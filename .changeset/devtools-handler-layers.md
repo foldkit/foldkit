@@ -2,4 +2,4 @@
 '@foldkit/devtools': patch
 ---
 
-Update the DevTools overlay for Foldkit's handler Layer APIs. Its Commands and Subscriptions now use declared definitions with Effect constructors, and the overlay supplies its store, ShadowRoot, browser storage, and selected Foldkit UI handlers through one application Layer.
+Rebuild the DevTools overlay as a Block program. Its root `Application` Block holds its Foldkit UI components as child instances, and `Program.makeElement` provides their Layers and the overlay's store, ShadowRoot, and browser storage services.

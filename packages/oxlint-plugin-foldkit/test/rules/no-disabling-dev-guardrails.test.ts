@@ -35,20 +35,21 @@ const objectExpression = (properties: ReadonlyArray<unknown>) => ({
 })
 
 describe('no-disabling-dev-guardrails', () => {
-  it('flags freezeModel: false in a Program.make config with a spread', () => {
+  it('flags slow: false in Program.make options with a spread', () => {
     const result = Testing.runRule(
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([
-          property('freezeModel', Testing.boolLiteral(false)),
+          property('slow', Testing.boolLiteral(false)),
           spreadProperty('rest'),
         ]),
       ]),
     )
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain('freezeModel: false')
+    expect(result[0]?.diagnostic.message).toContain('slow: false')
   })
 
   it('flags slow: false in a Program.make config', () => {
@@ -56,6 +57,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([property('slow', Testing.boolLiteral(false))]),
       ]),
     )
@@ -69,19 +71,8 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'makeElement', [
+        Testing.id('Application'),
         objectExpression([property('slow', Testing.boolLiteral(false))]),
-      ]),
-    )
-
-    expect(result).toHaveLength(1)
-  })
-
-  it('matches member callees by their last segment', () => {
-    const result = Testing.runRule(
-      noDisablingDevGuardrails,
-      'CallExpression',
-      Testing.callOfMember('Program', 'make', [
-        objectExpression([property('freezeModel', Testing.boolLiteral(false))]),
       ]),
     )
 
@@ -93,6 +84,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([
           literalKeyProperty('slow', Testing.boolLiteral(false)),
         ]),
@@ -102,32 +94,13 @@ describe('no-disabling-dev-guardrails', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('reports each disabled guardrail independently', () => {
+  it('allows slow set to true', () => {
     const result = Testing.runRule(
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
-        objectExpression([
-          property('slow', Testing.boolLiteral(false)),
-          property('freezeModel', Testing.boolLiteral(false)),
-        ]),
-      ]),
-    )
-
-    expect(result).toHaveLength(2)
-    expect(result[0]?.diagnostic.message).toContain('slow: false')
-    expect(result[1]?.diagnostic.message).toContain('freezeModel: false')
-  })
-
-  it('allows guardrails set to true', () => {
-    const result = Testing.runRule(
-      noDisablingDevGuardrails,
-      'CallExpression',
-      Testing.callOfMember('Program', 'make', [
-        objectExpression([
-          property('freezeModel', Testing.boolLiteral(true)),
-          property('slow', Testing.boolLiteral(true)),
-        ]),
+        Testing.id('Application'),
+        objectExpression([property('slow', Testing.boolLiteral(true))]),
       ]),
     )
 
@@ -139,6 +112,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([property('slow', Testing.id('disabled'))]),
       ]),
     )
@@ -151,6 +125,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([
           property('devTools', Testing.boolLiteral(false)),
           property('container', Testing.boolLiteral(false)),
@@ -166,6 +141,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([
           computedProperty(
             Testing.strLiteral('slow'),
@@ -184,6 +160,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([
           property(
             'slow',
@@ -201,6 +178,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([property('slow', objectExpression([]))]),
       ]),
     )
@@ -209,16 +187,18 @@ describe('no-disabling-dev-guardrails', () => {
     expect(emptied).toHaveLength(0)
   })
 
-  it('ignores config objects bound to a variable first', () => {
+  it('ignores options objects bound to a variable first', () => {
     const config = objectExpression([
       property('slow', Testing.boolLiteral(false)),
-      property('freezeModel', Testing.boolLiteral(false)),
     ])
     const result = Testing.runRuleMulti(noDisablingDevGuardrails, [
       ['ObjectExpression', config],
       [
         'CallExpression',
-        Testing.callOfMember('Program', 'make', [Testing.id('config')]),
+        Testing.callOfMember('Program', 'make', [
+          Testing.id('Application'),
+          Testing.id('config'),
+        ]),
       ],
     ])
 
@@ -257,7 +237,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callExpr('embed', [
-        objectExpression([property('freezeModel', Testing.boolLiteral(false))]),
+        objectExpression([property('slow', Testing.boolLiteral(false))]),
       ]),
     )
 
@@ -270,6 +250,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([
           property(
             'devTools',
@@ -287,6 +268,7 @@ describe('no-disabling-dev-guardrails', () => {
       noDisablingDevGuardrails,
       'CallExpression',
       Testing.callOfMember('Program', 'make', [
+        Testing.id('Application'),
         objectExpression([property('slowView', Testing.boolLiteral(false))]),
       ]),
     )
@@ -309,8 +291,9 @@ describe('no-disabling-dev-guardrails', () => {
 
 it('checks guards at the Program construction boundary', () => {
   const node = Testing.callOfMember('Program', 'make', [
+    Testing.id('Application'),
     Testing.objectExpr([
-      { key: 'freezeModel', value: { type: 'Literal', value: false } },
+      { key: 'slow', value: { type: 'Literal', value: false } },
     ]),
   ])
   const result = Testing.runRule(

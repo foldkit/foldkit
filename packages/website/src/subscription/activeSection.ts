@@ -53,7 +53,14 @@ type ChangedActiveSectionMessage = typeof Message.ChangedActiveSection.Type
 
 type ChangedActiveSection = ChangedActiveSectionMessage
 
-export const activeSectionDependencies = (model: Model) => {
+export type ActiveSectionDependencies = Readonly<{
+  pageId: string
+  sections: ReadonlyArray<string>
+}>
+
+export const activeSectionDependencies = (
+  model: Model,
+): ActiveSectionDependencies => {
   const currentPageTableOfContents = Match.value(model.route).pipe(
     Match.tags({
       WhyFoldkit: () => WhyFoldkit.tableOfContents,
@@ -79,7 +86,7 @@ export const activeSectionDependencies = (model: Model) => {
       ProjectOrganization: () => ProjectOrganization.tableOfContents,
       ToolingLinting: () => ToolingLinting.tableOfContents,
       ApiModule: ({ moduleSlug }) =>
-        Option.match(AsyncData.getData(model.apiReference.apiData), {
+        Option.match(AsyncData.getData(model.apiReference.model.apiData), {
           onSome: data =>
             pipe(
               ApiReference.resolveModule(data.parsedApi, moduleSlug),

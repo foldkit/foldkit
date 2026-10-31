@@ -1,47 +1,28 @@
-import { Duration, Effect, Fiber, Option, Schema, Stream } from 'effect'
-import { modifyFields } from 'foldkit/struct'
+import { Effect, Fiber, Option, Stream } from 'effect'
 import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Animation from '../animation/block.js'
-import { Message, SwipeState } from './toast.js'
-import { makeFixture } from './toast.js'
-
-const TestPayload = Schema.Struct({ body: Schema.String })
-type TestPayload = typeof TestPayload.Type
-const ToastFixture = makeFixture(TestPayload)
-const block = ToastFixture.block
-const toastInit = ToastFixture.init
-
-type Model = typeof block.Model.Type
-type Entry = typeof ToastFixture.Entry.Type
-type ToastMessage = typeof block.Message.Type
+import { Message, SwipeState } from './schema.js'
+import {
+  swipeDependencies,
+  swipeEscapeMessages,
+  swipePointerMessages,
+} from './update.js'
 
 const POINTER_ID = 1
 const OTHER_POINTER_ID = 2
 
-const makeDraggingEntry = (
-  id: string,
-  pointerId: number,
-  startX: number,
-): Entry => ({
-  id,
-  variant: 'Info',
-  animation: Animation.init({ id, isShowing: true }).model,
-  maybeDuration: Option.some(Duration.seconds(4)),
-  pendingDismissVersion: 0,
-  isHovered: false,
+const makeDraggingEntry = (pointerId: number, startX: number) => ({
   swipeState: SwipeState.Dragging({ pointerId, startX, currentX: startX }),
-  swipeVersion: 0,
-  payload: { body: 'Hello' },
 })
 
-const withDraggingEntries = (entries: ReadonlyArray<Entry>): Model =>
-  modifyFields(toastInit({ id: 'test', swipeToDismiss: {} }).model, {
-    entries: () => entries,
-    nextEntryKey: () => entries.length,
-  })
+const withDraggingEntries = (
+  entries: ReadonlyArray<ReturnType<typeof makeDraggingEntry>>,
+) => ({
+  maybeSwipeConfig: Option.some({ threshold: 40, direction: 'Right' }),
+  entries,
+})
 
 const waitForNextTurn = (): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, 0))
@@ -49,20 +30,17 @@ const waitForNextTurn = (): Promise<void> =>
 describe('Toast Subscriptions', () => {
   it('emits PressedEscape only for the Escape key', async () => {
     const model = withDraggingEntries([
-      makeDraggingEntry('test-entry-0', POINTER_ID, 100),
-      makeDraggingEntry('test-entry-1', OTHER_POINTER_ID, 200),
+      makeDraggingEntry(POINTER_ID, 100),
+      makeDraggingEntry(OTHER_POINTER_ID, 200),
     ])
-    const dependencies =
-      block.subscriptions.swipeEscape.modelToDependencies(model)
-    const stream =
-      block.subscriptions.swipeEscape.dependenciesToStream(dependencies)
-    const received: Array<ToastMessage> = []
+    const stream = swipeEscapeMessages(swipeDependencies(model))
+    const received: Array<typeof Message.PressedEscape.Type> = []
     const fiber = Effect.runFork(
       Stream.runForEach(stream, message =>
         Effect.sync(() => {
           received.push(message)
         }),
-      ).pipe(Effect.provide(block.EffectsLayer)),
+      ),
     )
 
     try {
@@ -89,17 +67,11 @@ describe('Toast Subscriptions', () => {
     const existingStyle = 'user-select: text; -webkit-user-select: text'
     documentElement.setAttribute('style', existingStyle)
 
-    const model = withDraggingEntries([
-      makeDraggingEntry('test-entry-0', POINTER_ID, 100),
-    ])
-    const dependencies =
-      block.subscriptions.swipePointer.modelToDependencies(model)
+    const model = withDraggingEntries([makeDraggingEntry(POINTER_ID, 100)])
+    const dependencies = swipeDependencies(model)
     expect(dependencies.isAnyDragging).toBe(true)
-    const stream =
-      block.subscriptions.swipePointer.dependenciesToStream(dependencies)
-    const fiber = Effect.runFork(
-      Stream.runDrain(stream).pipe(Effect.provide(block.EffectsLayer)),
-    )
+    const stream = swipePointerMessages(dependencies)
+    const fiber = Effect.runFork(Stream.runDrain(stream))
 
     try {
       await vi.waitFor(() => {

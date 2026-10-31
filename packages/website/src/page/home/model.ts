@@ -1,15 +1,15 @@
 import { Schema } from 'effect'
 
-import * as AsyncCounterDemo from './asyncCounterDemo'
+import { AsyncCounterDemo } from './asyncCounterDemo'
 import * as DemoTab from './demoTab'
-import * as NotePlayerDemo from './notePlayerDemo'
-import { PlaygroundMenuBlock } from './playgroundMenu'
+import { NotePlayerDemo } from './notePlayerDemo'
+import { PlaygroundMenu } from './playgroundMenu'
 
 export const Model = Schema.Struct({
-  demoTabs: DemoTab.DemoTabsBlock.Model,
+  demoTabs: DemoTab.DemoTabs,
   activeDemoTab: DemoTab.Tab,
-  playgroundMenu: PlaygroundMenuBlock.Model,
-  asyncCounterDemo: AsyncCounterDemo.AsyncCounterDemoBlock.Model,
-  notePlayerDemo: NotePlayerDemo.NotePlayerDemoBlock.Model,
+  playgroundMenu: PlaygroundMenu,
+  asyncCounterDemo: AsyncCounterDemo,
+  notePlayerDemo: NotePlayerDemo,
 })
 export type Model = typeof Model.Type

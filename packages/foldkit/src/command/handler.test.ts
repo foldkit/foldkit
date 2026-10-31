@@ -1,7 +1,6 @@
 import { Context, Data, Effect, Layer, Schema } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
-import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Command from './index.js'
 
@@ -52,10 +51,6 @@ const ReadPrefix = Command.define('ReadPrefix', {
   },
 })
 
-const ConstructionResource = ManagedResource.tag<string>()(
-  'CommandHandlerTestConstructionResource',
-)
-
 if (false) {
   const HostCommand = Command.define('ConstructionHostCommand', {
     messages: [Message.CompletedSendMessage],
@@ -69,9 +64,6 @@ if (false) {
       return () =>
         Effect.gen(function* () {
           yield* SendMessage({ text: 'nested' }).effect
-          yield* ConstructionResource.get.pipe(
-            Effect.catch(() => Effect.succeed('unavailable')),
-          )
           return Message.CompletedSendMessage({ text: 'complete' })
         })
     }),
@@ -81,15 +73,6 @@ if (false) {
     // @ts-expect-error Command handlers are unavailable while constructing another handler.
     Effect.gen(function* () {
       yield* SendMessage({ text: 'nested' }).effect
-      return () =>
-        Effect.succeed(Message.CompletedSendMessage({ text: 'complete' }))
-    }),
-  )
-
-  HostCommand.toLayer(
-    // @ts-expect-error ManagedResources are unavailable while constructing a handler.
-    Effect.gen(function* () {
-      yield* ConstructionResource.get
       return () =>
         Effect.succeed(Message.CompletedSendMessage({ text: 'complete' }))
     }),

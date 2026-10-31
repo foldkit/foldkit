@@ -1,10 +1,17 @@
 # Migrate from Stable Foldkit
 
-This guide starts with an application on the current stable Foldkit APIs and ends with the APIs documented by this integration preview. It goes directly to the final Definition → Composition → completed Block → Program design. It does not ask you to reproduce any intermediate preview API.
+## Overview
 
-If the application already uses an earlier Layers or Blocks preview, use [Upgrade an Earlier Preview](/preview-upgrade) instead.
+This guide takes an application on the current stable Foldkit APIs to the class Blocks in this integration preview. If the application already uses an earlier Blocks preview, with Definitions, Compositions, and Bindings, use [Upgrade a Previous Preview](/preview-upgrade) instead.
 
-The migration changes application assembly and effect wiring. Your Model remains the source of truth, Messages remain facts, update remains pure, and the Runtime still performs Commands after update returns them. The new structure makes those boundaries checkable across a complete child graph.
+In stable Foldkit, a feature is a set of loose values: a Model Schema, a Message union, `init`, `update`, `view`, and Commands that carry their own `execute` Effects. The parent wires each child in by hand with a `Got*Message` wrapper and an `Update.foldChild` call. In the preview, a feature is a Block: a class that declares the feature's contract, plus a constructor that returns its starting Model, update handlers, Command handlers, and view. A parent holds child instances in its Model, and Foldkit routes each instance's Messages back to it.
+
+The architecture does not change. The Model is still the source of truth, Messages still record facts, update is still pure, and the Runtime still performs the Commands update returns. What moves is where each piece is written:
+
+- Command, Mount, and Subscription implementations move out of their definitions and into the Block's constructor, where they close over the services it yields.
+- `init` becomes the constructor's returned `model`, plus `start` Commands for the work init used to return.
+- Child wiring becomes instances held in the parent Model. The parent sends a child Messages and handles its OutMessages; it no longer wraps or unwraps the child's Messages.
+- `Runtime.makeApplication` becomes `Program.make(Application, { layer, ... })`, where the Layer provides the root Block, every Block it creates, and the application's services.
 
 ## Pin the Exact Preview
 
@@ -12,15 +19,13 @@ Use this integration preview's ready announcement and the banner at the top of t
 
 The deployment URL and manifest belong together. Do not copy a guide from one preview and package versions from another, and do not replace an exact canary version with `latest`, a range, or the moving canary site. When reading this page through its exported Markdown, resolve `/preview-release.json` against the deployment that served the Markdown.
 
-For an agent-assisted migration, give the agent this guide's full deployment URL and the `/preview-release.json` URL from that same deployment. The ready announcement includes prompts with the source commit and package versions already pinned. Ask the agent to preserve the application's existing behavior, run its real checks, and fix type errors at the ownership boundary instead of adding broad casts.
+For an agent-assisted migration, give the agent this guide's full deployment URL and the `/preview-release.json` URL from that same deployment. Ask the agent to preserve the application's existing behavior, run its real checks, and fix type errors where the contract is declared instead of adding broad casts.
 
 Update every installed Foldkit package named by the manifest as one snapshot. Keep `effect` and `@effect/platform-browser` on the exact peer versions declared by those packages. Commit the resulting lockfile only after the application compiles and its tests pass.
 
-The stable package lane was checked against the published `foldkit@0.169.0` and `@foldkit/ui@0.169.0` APIs with `effect@4.0.0` and `@effect/platform-browser@4.0.0`. Those packages were released from Foldkit commit `7ee214268c602967937b80f6f20d1e831f2e8ab6`.
+The stable "before" examples on this page use the published `foldkit@0.169.0` and `@foldkit/ui@0.169.0` APIs with `effect@4.0.0`.
 
-The stable source examples were also checked at Foldkit main commit `76fa0d1ee2a5f9d06333e83a1ee381eab0ed37d5`. That commit identifies the source used to verify those examples; it is neither a package version nor the candidate target. Coverchart checkpoint `6480e465d27b1179bf7e4acffae5da58f65b339d` provides the tested stable consumer baseline for the separate local migration rehearsal. Local packed-artifact checks support guide preparation; acceptance against the published candidate packages remains a separate release gate.
-
-If the project already maintains a version-pinned Foldkit source reference or subtree, repin it to the `sourceCommit` recorded by the deployment manifest. If it already maintains generated `FOLDKIT.md` guidance or installed Foldkit skills, refresh those from the same snapshot. These steps keep existing project references aligned; a migration does not require adding a source checkout, guidance file, or skills to a project that does not maintain them.
+If the project already maintains a version-pinned Foldkit source reference or subtree, repin it to the `sourceCommit` recorded by the deployment manifest. If it already maintains generated `FOLDKIT.md` guidance or installed Foldkit skills, refresh those from the same snapshot. A migration does not require adding a source checkout, guidance file, or skills to a project that does not maintain them.
 
 ## Check Compiler and Editor Setup
 
@@ -32,363 +37,260 @@ Apply the shared [Vite security patch guidance](/preview-upgrade#vite-security-p
 
 Take one pass through the application before editing. Record the baseline result of its existing typecheck, lint, unit tests, browser tests, and production build. A failure that already exists belongs in the baseline; a new failure belongs to the migration.
 
-Inventory these boundaries:
+List these places in the code:
 
-- Every root created with `Runtime.makeApplication` or `Runtime.makeElement`, including its Flags, routing, Ports, DevTools, Subscriptions, ManagedResources, and container fields.
-- Every Submodel stored in a parent Model, rendered through `Submodel.defineView` and `h.submodel`, or wired into its parent through an update, initialization, Subscription, or ManagedResource lift.
-- Every Command with `execute`, Subscription with `dependenciesToStream`, Mount with `execute`, and ManagedResource with inline `acquire` or `release`.
-- Every hand-authored `Got*Message` variant and every `Update.foldChild`, `Update.foldChildAt`, `Update.foldChildStep`, `Update.foldChildInit`, and `Update.foldChildInits` call, including each `read`, `write`, `toParentMessage`, OutMessage, and key policy.
-- Every child Model helper that a parent calls directly, especially a helper that rewrites a child field without entering the child's update.
-- Every OutMessage fold, forwarded OutMessage, child initialization path, keyed collection, optional child, Mount registration, and alternate view.
-- Every Story or Scene test that constructs a child wrapper Message, compares a qualified Command name, or manually supplies child lifecycle declarations.
+- Every root created with `Runtime.makeApplication` or `Runtime.makeElement`, with its Flags, routing, Ports, DevTools, Subscriptions, ManagedResources, `resources` Layer, and container.
+- Every Submodel stored in a parent Model, rendered through `Submodel.defineView` and `h.submodel`, or wired into its parent through `Update.foldChild`, `Update.foldChildAt`, `Update.foldChildInit`, or `Update.foldChildInits`.
+- Every hand-written `Got*Message` variant and its `toParentMessage` callback.
+- Every Command with `execute`, Subscription with `dependenciesToStream`, Mount with `execute`, and ManagedResource with `acquire` and `release`.
+- Every child Model helper that a parent calls directly, especially one that rewrites a child field without going through the child's update.
+- Every OutMessage fold, keyed collection, optional child, and child that is created after startup.
+- Every Story or Scene test that calls `update` directly or constructs a child wrapper Message.
 
-Write down the intended child graph as parent → placement → completed child. The graph is the migration plan. Migrate leaf features first, then their parents, and finish with `ApplicationBlock` and the host entry.
+Write the child tree down as parent → field → child. The tree is the migration plan. Migrate leaf features first, then their parents, and finish with the root Block and the browser entry.
 
-## The New Assembly Model
+## Move Commands into the Block
 
-The final API separates four responsibilities:
+A stable Command carries the Effect that runs each invocation:
 
-| Stage           | What it owns                                                                                                                  | What it does not do                                                              |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Definition      | Model, local Message, optional OutMessage and child init contracts; local effects, lifecycle definitions, Steps, and Bindings | It does not fix the complete child graph or implement init, update, or view.     |
-| Composition     | Registered Bindings and Mounts; graph-aware init, update, and primary view authoring                                          | It does not start effects or choose a browser host.                              |
-| Completed Block | The fixed graph plus init, update, view, local lifecycle declarations, operations, and local `EffectsLayer`                   | It does not choose a container, request Flags, or application Service providers. |
-| Program         | Page or element host configuration, including the container, Flags Schema, routing, Ports, and DevTools                       | It does not own feature behavior or handler definitions.                         |
+::Snippet{name="previewMigrationStableCommandBefore" label="Stable before: Command execution"}
 
-`Block.makeDefinition`, `makeComposition`, `prepareBlock`, `Program.make`, and `Program.makeElement` all return passive values. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected Layers and starts the application.
+In the preview, `Command.define` declares only the Command's name, args, and result Messages. The Block that returns the Command lists it under `Command: [...]` in its class, and its constructor supplies one handler per listed Command under `commands`. The constructor yields services once per instance; each handler closes over them and runs once per invocation with that invocation's args:
 
-For ordinary source Blocks, name the single private zero-argument preparation producer `prepare` and put the matching four-shape export header immediately after it with no blank line. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. Keep the feature barrel focused on its completed Block, and compose parent state with `ChildBlock.Model`. The recommended `foldkit/no-completed-block-model-in-schema` rule guards inferred assembly dependencies while accepting the recognized checked boundary. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small). A package shipping declaration files uses a named interface over the same checked header for each public Block and verifies its emitted public entrypoints; a JavaScript-only application can keep the checked value annotation. See [public Block declarations](/patterns/project-organization#declaration-emission).
+::Snippet{name="previewMigrationCommandAfter" label="After: a Command handled in the Block constructor"}
 
-The completed Block is the boundary that parents consume. It carries its Model Schema, complete Message Codec, optional OutMessage matcher, operations, view contract, lifecycle declarations, handler graph, and child graph together.
+Make these changes for each Command:
 
-## 1. Move Effect Implementations into Layers
+1. Remove `execute` from the `Command.define` call. Keep the name, `args`, and `messages`.
+2. Declare the Message union and the Command at module level, before the class, so the Command can name its result Messages.
+3. List the Command in the class contract under `Command`.
+4. Move the Effect into the constructor's `commands` record. Yield any service the old `execute` read, such as `SettingsStore`, at the top of the constructor.
 
-Migrate effect definitions before composing Blocks. This gives every completed feature a local handler bundle that its parent can collect.
+A handler must return an Effect with no remaining requirements. The services it needs come from the constructor, so the Program's Layer provides them. Leaving out the handler for a listed Command is a type error.
 
-In stable Foldkit, a Command can own the Effect that executes each invocation:
+## Move Subscriptions into the Block
 
-::Snippet{name="previewMigrationStableCommandBefore" label="Stable Before: Command execution"}
+A stable Subscription registry maps the Model to a dependencies Schema and the dependencies to a Stream:
 
-In the preview, define the Command through its owning Definition. Put a generator under `handler`; Foldkit applies `Effect.gen` to that constructor. Obtain application-lifetime Services in the generator and return the function that handles each invocation. The Settings example shows a Definition-owned Command, its handler constructor, and the resulting `.layer`:
+::Snippet{name="previewMigrationStableSubscriptionBefore" label="Stable before: Subscription registry"}
 
-::Snippet{name="blockDefinition" label="Candidate: Definition-owned Command handler"}
+In the preview, a Subscription is an entry in the constructor's `subscriptions` record. `dependencies` derives a value from the Block's Model; Foldkit compares it after each update and restarts `stream` when it changes. An event source that runs for as long as the Block exists is the constructor's `stream` field instead.
 
-The handler constructor runs once when the Runtime builds the application Layer. The returned function runs once per Command invocation with fresh arguments. Keep changing data such as Command args, Subscription dependencies, mounted elements, and ManagedResource handles in that returned function or lifecycle object.
+::Snippet{name="previewMigrationSubscriptionAfter" label="After: a Subscription gated by Model state"}
 
-Apply the same ownership to every effect primitive:
+The dependencies no longer need a Schema. Return `Stream.empty` for the dependencies that should produce no Messages. When a Stream should keep running across some dependency changes, add `keepAliveEquivalence` and read the latest dependencies through the second `stream` argument.
 
-| Stable shape                                        | Candidate shape                                                                                                                                          |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Command.define(..., { execute })`                  | `FeatureDefinition.makeCommand(..., { handler: function* () { return args => Effect } })`                                                                |
-| `Subscription.make` with `dependenciesToStream`     | `FeatureDefinition.makeSubscriptions`, a stable handler name, declared `messages`, `modelToDependencies`, and a handler that returns the Stream function |
-| `Subscription.persistentEntry(stream)`              | A named Definition-owned entry whose handler returns a zero-argument Stream function                                                                     |
-| `Mount.define(..., { execute })`                    | `FeatureDefinition.makeMount(..., { handler })`; register the Mount in the Composition                                                                   |
-| ManagedResource with inline `acquire` and `release` | `FeatureDefinition.makeManagedResources`; the handler returns both `acquire` and `release`                                                               |
+## Move Mounts into the Block
 
-`makeSubscriptions` entries take a dependency Schema field record, in the same shape passed to `Schema.Struct`. If an adapter already supplies a Struct as `dependenciesSchema`, pass `dependenciesSchema.fields` to `entry`.
+A stable Mount carries the Effect that runs on its element:
 
-Collect all Subscriptions owned by one Block in one `makeSubscriptions` registry and compose its `subscriptions.layer`. Extract substantial Stream implementations into helpers instead of creating another registry for the same owner. Child Blocks retain their own registries; `Subscription.aggregate` remains appropriate at graph, adapter, and test boundaries that join independent records.
+::Snippet{name="previewMigrationStableMountBefore" label="Stable before: Mount execution"}
 
-Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then pass that bundle to `prepareBlock`. Registered child Bindings contribute their own handler graphs automatically.
+Mounts move the same way Commands do. `Mount.define` or `Mount.defineStream` declares the name, args, and result Messages; the class lists the Mount under `Mount: [...]`; the constructor supplies its handler under `mounts`. The view attaches it with `h.OnMount(...)` as before.
 
-::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
+::Snippet{name="previewMigrationMountAfter" label="After: a Mount handled in the Block constructor"}
 
-Keep ordinary Effect Service providers separate. `ApplicationLayer` supplies HTTP, storage, RPC, clock, browser, and other application Services below the completed handler graph:
+## Replace ManagedResources with a Child Block
 
-::Snippet{name="applicationRootLayer" label="Application Service providers"}
+A stable ManagedResource acquires a handle while the Model meets a condition and releases it when the condition ends:
 
-Omit `handler` only when an external host intentionally owns that implementation. Build the host alternative through the original definition's `toLayer` so it retains source identity, and complete or replace the Block's handler graph through its public handler APIs. Do not recreate a same-shaped definition.
+::Snippet{name="previewMigrationStableResourceBefore" label="Stable before: ManagedResource entry"}
 
-## 2. Complete Every Feature as a Block
+In the preview, the handle's lifetime is a child Block's lifetime. The child acquires the handle in its constructor with `Effect.acquireRelease` and exposes it with `expose`. The parent keeps the child in an `Option` field: putting the instance in the Model acquires the handle, and removing it releases the handle. Parent Commands read the handle with `instance.use`, which fails with `NotConnected` while the instance is not in the Model.
 
-A stable Submodel exports its contracts and behavior as separate module values. Wrap those values in the candidate's Definition, Composition, and completion stages in one pass:
+::Snippet{name="previewMigrationResourceAfter" label="After: a socket owned by a child Block"}
 
-| Stable                                                           | Candidate                                                |
-| ---------------------------------------------------------------- | -------------------------------------------------------- |
-| Separate Model, Message, optional OutMessage, and init contracts | `Block.makeDefinition('Search', contracts)`              |
-| Plain `init` and `update` functions                              | `SearchComposition.makeInit` and `makeUpdate`            |
-| `Submodel.defineView` and `h.submodel`                           | `SearchComposition.makeView` and a Binding's `embedView` |
-| Loose child exports imported by every parent integration point   | One completed `SearchBlock` consumed by parent Bindings  |
+The four-element type parameter list `Block<ChatSocket, void, void, WebSocket>` declares the exposed type. The `onAcquired`, `onReleased`, and `onAcquireError` Messages become ordinary facts: the parent already knows when it adds or removes the instance, and a failure the child can observe becomes a child Message or OutMessage.
 
-A graphless feature still has a Composition. This compact example shows the complete sequence without adding files solely to mirror the stages:
+## Replace Submodels with Child Blocks
 
-::Snippet{name="organizationGraphlessBlock" label="Compact completed Block"}
+Stable parent wiring repeats the child's Message contract inside a wrapper and routes it through `Update.foldChild` and `h.submodel`:
 
-Name a Definition `SearchDefinition`, its Composition `SearchComposition`, and its completed value `SearchBlock`. Keep the runtime ID `Search`. Export the completed Block from the feature barrel; parents should not assemble the feature from loose Model, Message, update, and view exports.
+::Snippet{name="previewMigrationStableChildBefore" label="Stable before: Submodel wiring"}
 
-When a named Definition is used only to call `makeComposition`, chain the two calls at module scope. Retain the named Definition when Commands, Mounts, ManagedResources, Subscriptions, Steps, OutMessage folds, or Bindings use its authoring methods.
+In the preview, the parent yields an instance in its constructor with `yield* new Settings('settings')` and puts it in its Model. The parent's Schema names the child class itself (`settings: Settings`), not the child's Model Schema. Foldkit routes the instance's Messages to the instance, so the wrapper Message, `toParentMessage`, and the fold all go away:
 
-Pass local implementation fields to completion:
+::Snippet{name="previewMigrationChildAfter" label="After: a child Block held in the parent Model"}
 
-- `init`, `update`, and `view` when the Block owns them.
-- `subscriptions`, `managedResources`, and local `EffectsLayer` when the feature declares them.
-- `operations` for parent-initiated transitions that enter this Block's update.
-- Explicit host handler contracts only for definitions whose implementation is deliberately delegated.
+The parent and child now meet in three places:
 
-The completed Settings Block shows these pieces together:
+- **Changing the child.** The parent returns `messages: [model.settings.send(Settings.Message.RequestedReset())]`. The child's update decides what that Message does. A stable helper such as `Settings.reset(model.settings)`, which rewrote the child's Model from the parent, becomes a `Requested*` or `InformedOf*` Message on the child.
+- **Reacting to the child.** The parent spreads `...settings.on({ ChangedTheme: (model, outMessage) => result })` into its update record. Name every OutMessage variant the parent handles.
+- **Rendering the child.** The parent calls `model.settings.view()`. A child that renders through parent callbacks declares a view input type and receives it as `model.settings.view({ toView })`.
 
-::Snippet{name="blockSettings" label="Completed Block with an operation and handler Layer"}
+The parent may read the child's current state as `model.settings.model`. It never writes it.
 
-## 3. Replace Manual Child Routing with Bindings
+### Keyed collections
 
-Stable parent wiring repeats a child's Message contract and routes it through an authored wrapper:
+A stable keyed collection, folded with `Update.foldChildAt`, becomes an array or Record of instances. Yield one factory in the constructor with `Row.each('rows', args)`, then call it with a stable key to create each instance. Handle OutMessages from every instance with the factory's `.on`; the third handler argument is the instance that reported it.
 
-::Snippet{name="previewMigrationStableChildBefore" label="Stable Before: authored child Message routing"}
+::Snippet{name="previewMigrationCollectionAfter" label="After: a keyed collection of child Blocks"}
 
-In the candidate API, the child's local `Message` union contains only facts owned by that child. The parent creates a Binding from the completed child Block and registers it under `bindings`:
+Key each instance by an identifier that stays with it, never by array position. Removing an instance from the Model closes its scope, which stops its Streams and releases anything its constructor acquired. Putting the same instance back constructs it fresh.
 
-::Snippet{name="organizationChildComposition" label="Candidate: Binding registration"}
+### Optional and variant children
 
-Make these changes together:
+A child that exists only some of the time lives in a `Schema.Option` field or inside one variant of a tagged union. Yield the instance once in the constructor and put it into the Model when it should exist. Instances can live in plain objects, arrays, `Option`, and tagged structs, but not in `HashMap`, `HashSet`, or class instances; convert those to arrays or Records.
 
-1. Delete the parent's authored `GotSettingsMessage` variant.
-2. Complete Settings as `SettingsBlock`, including its init, update, primary view, OutMessage, lifecycle declarations, and local handlers.
-3. Replace the `Update.foldChild` configuration with `ParentDefinition.makeBinding(SettingsBlock, ...)`. Move its Model access, delivery context, presence, key, and OutMessage policy into the Binding.
-4. Register that Binding with `ParentDefinition.makeComposition({ bindings: [SettingsBinding] })`.
-5. Delete `toParentMessage` and the local update branch that unpacks the child Message. Author the parent update with `ParentComposition.makeUpdate`; it matches only the parent's local Message union.
+## Replace init with the Constructor
 
-Composition derives a private delivery envelope for each registered placement and routes it before the local update callback. Use `ParentComposition.Message` while authoring against the graph, and `ParentBlock.Message` after completion, whenever serialization, replay, DevTools, routing, or crash reporting needs the complete Message Codec. Do not construct generated `Got<Placement>Message` envelopes yourself.
+The constructor replaces `init`. It runs once per instance, synchronously, when the instance enters its parent's Model. It returns the starting `model` and, under `start`, the Commands init used to return. Arguments the stable `init` received become the Block's constructor args, declared as the class's second type parameter and passed as `new Row('row-1', { label })` or through an `each` factory.
 
-Use `delivery.when` to accept child delivery conditionally and `delivery.toUpdateContext` when the child's update needs parent-supplied dispatch context. Those fields control delivery. They do not recreate an authored wrapper.
+The constructor must not do asynchronous work. Load data with a `start` Command and handle its result Message in update. Stable `Update.foldChildInit` and `foldChildInits` calls go away: each child's constructor produces its own Model and `start` Commands, and Foldkit runs them when the instance appears.
 
-### Author Local Update Handlers
+## Build the Root Block and Program
 
-Use `FeatureComposition.makeUpdate({ Tag: (model, message) => result })` for an exhaustive record of locally authored facts. Composition routes generated child delivery separately. Each handler retains its own inferred Command requirements and OutMessages, so an operation selecting a silent handler does not acquire another handler's possible OutMessage. Use `makeUpdate.withContext(context => handlers)` when dispatch supplies additional arguments.
+Stable `Runtime.makeApplication` combines the application's behavior with its browser host:
 
-::Snippet{name="counterUpdate" label="Authoring exhaustive local Message handlers"}
+::Snippet{name="previewMigrationStableRootBefore" label="Stable before: application and browser host"}
 
-Normal handlers may return result objects directly. In a handler that mixes local results with connected Binding recipes, use Definition-owned Steps for the local branches. The [Update guide](/core/update#preserving-local-results-beside-connected-operations) explains the enforced boundary and shows a repair. Do not annotate away registration or result-channel requirements.
+In the preview, the root is an ordinary Block named `Application`. Its constructor args declare what the host must supply:
 
-### Select the Binding Shape
+| Root args                              | The Program must pass |
+| -------------------------------------- | --------------------- |
+| none                                   | nothing extra         |
+| `Readonly<{ flags: Flags }>`           | `Flags`               |
+| `Readonly<{ url: Url }>`               | `routing`             |
+| `Readonly<{ flags: Flags; url: Url }>` | `Flags` and `routing` |
 
-Prefer the narrowest Binding that represents the parent's actual storage:
+::Snippet{name="previewMigrationRootAfter" label="After: the root Block receiving Flags"}
 
-- Use `field` for a required child Model or `Option<ChildModel>` stored directly on the parent.
-- Add `key` for a direct array or keyed wrapper whose stable identity field is a string or finite number.
-- Add `childField` when the collection item wraps the child Model with parent-owned data.
-- Use explicit accessors for a custom relationship that the field forms cannot represent.
-- Use `presentWhen` only when the whole child occurrence, including its lifecycle, is conditionally present. Use a Subscription gate when only one Subscription should stop.
+`entry.ts` builds the Program from the class and a Layer. The Layer provides the root Block, every Block the tree creates, and the application's ordinary services, such as HTTP, storage, and the `SettingsStore` the Settings constructor yields. The stable `resources` Layer becomes part of that Layer.
 
-The direct collection form keeps each child occurrence's identity in the parent Model:
+::Snippet{name="previewMigrationEntryAfter" label="After: the browser Program"}
 
-::Snippet{name="blockDirectCollection" label="Direct keyed child collection"}
+Make these changes:
 
-Never key repeated occurrences by array position. Generated delivery records the placement, stable key, and occurrence generation so a result from a removed child cannot reach its replacement.
+1. Declare `class Application extends Block<Application, Args>()('Application', { Model, Message, ... }) {}` and implement it with `Application.make(...)` as `ApplicationLive`.
+2. Rename a root route union named `AppRoute` to `ApplicationRoute`.
+3. Move the container, Flags Schema, routing, Ports, DevTools, and other host options into `Program.make(Application, { layer, ... })`.
+4. Provide each child Block's Layer to every parent Layer that creates it, or merge them into one Layer provided to the whole tree.
+5. Replace `devTools: { Message }` with `devTools: { dispatch: true }` when an external MCP client should discover and dispatch Messages. Omit `devTools` to keep inspection with dispatch disabled, or pass `devTools: false` to turn DevTools off.
 
-### Fold OutMessages in the Parent
+Routing Messages whose payloads are `{ request }` and `{ url }` can be passed directly: `routing: { onUrlRequest: Application.Message.ClickedLink, onUrlChange: Application.Message.ChangedUrl }`.
 
-A child OutMessage reports a fact across the boundary. The parent owns the response. Pass the completed child explicitly whether a fold is inline or named: `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`.
+### Choose the host
 
-::Snippet{name="blockOutMessagePolicy" label="Parent-owned child OutMessage policy"}
+| Host                     | Preview entry                                                                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser page             | `Program.make(Application, options)`, then `Runtime.run` or `Runtime.hydrate`                                                                                               |
+| Container-scoped element | `Program.makeElement(Application, options)`, then `Runtime.run` or `Runtime.embed`                                                                                          |
+| SSR or SSG               | `Server.renderToString(Application, { layer, Flags }, { flags, url })` from `foldkit/experimental`; the browser hydrates a `Program.make` Program built from the same class |
 
-Name every child OutMessage variant. The helper infers the payloads, parent contracts, Command requirements, and sibling graph. Pass `WholeChildBlock` explicitly when extracting the callable fold, adapting keyed policy, or staging self-referential or reciprocal composition. Use the inferred `FoldContext` only when a branch needs `liftCommand` or `modelBeforeUpdate`. Missing or extra variants, undeclared parent OutMessages, missing policy selection, and unregistered sibling operations fail type checking.
+A page Program's root view returns `{ title, body }` to set the document title; when it returns plain Html, the title is the Block id. An element Program's root view returns Html. The server renders the same class and Layer as the browser:
 
-Use `ParentDefinition.makeOutMessageForward(handlers)` inline under an unkeyed Binding's `withOutMessagePolicy({ forward })` when the current Block deliberately exposes a named child fact as one of its own OutMessages. Pass `WholeChildBlock` explicitly when extracting the callable forward or adapting keyed policy. The helper is available only when the parent Definition declares an OutMessage Schema. Each named handler returns a declared parent OutMessage or `undefined`, and at least one variant must forward. Omit forwarding when every variant stops here. An application root cannot leave an OutMessage for the host to discard; fold or stop every child OutMessage before completing `ApplicationBlock`.
-
-Keep a one-way policy as an ordinary fluent declaration. For a self-referential or reciprocal policy, first name `FooBinding`, author the fold against that operation-bearing value, then select `FooBindingWithOutMessagePolicy` and register the selected value. Policy selection keeps the same child Binding identity and lifecycle scopes. Definition, Binding, policy, and Composition construction remain passive.
-
-### Replace Parent Model Rewrites with Operations
-
-A parent-initiated child transition must still pass through the child's update. Put a local Message constructor or an exact Message tuple producer under the child completion's `operations`. The Binding projects each operation into a parent Step.
-
-The completed Settings Block exposes `requestThemeChange`. In a `makeUpdate` branch, the parent creates the connected Step and immediately applies it to the contextual `model`:
-
-::Snippet{name="blockDelegateViaHelper" label="Calling a bound Block operation"}
-
-An operation retains the child update's full context tuple, even when the Message branch it selects does not use every context value. Pass those context arguments when calling the completed Block or bound operation. `delivery.toUpdateContext` supplies context for incoming child Message delivery; it does not supply arguments to an ordinary operation call.
-
-Rename existing `Update.combine` calls to `Update.combineSteps`. Both data-first and data-last calls retain the same arguments and inference.
-
-When several Steps must run in order, pass the unapplied Binding operations alongside the parent Steps to `Update.combineSteps`. A Definition-owned `makeStep` may return the connected Step for later use under that Composition, and Composition startup may list it under `steps`. Do not return an unapplied Binding operation from an ordinary update branch that must produce an update result.
-
-Author parent transitions that read current state with `Definition.makeStep` or `makeFieldsStep`, then combine them with the Binding operations. The owner supplies the Model type, and each Step reads the Model produced by preceding Steps when it is applied.
-
-Use `request*` with `Requested*` Messages for actions and `inform*` with `InformedOf*` Messages for notifications. Keep internal Model-only transformations as Definition-owned Steps. Remove stable public helpers that silently accept and return a child Model, especially `reflect*` helpers.
-
-### Move Child Initialization into the Composition Plan
-
-The Binding owns how one child occurrence starts. The Composition's `makeInit` callback supplies parent-owned fields, shared child init context when required, and ordered startup Steps. Foldkit assembles the child Models and lifts their init Commands.
-
-Choose the init form from the relationship:
-
-- Omit `init` for an argument-free required direct field.
-- Use `init.contextToArgs` when a required or automatically present child receives values from `ChildInitContext`.
-- Use `init: false` when the parent constructs a required child through a deliberate dynamic path.
-- Use `init.instances` for the exact initial members of a keyed collection.
-- Use `Binding.init` for dynamic insertion, custom storage, or an Option-wrapped keyed occurrence.
-
-Return `childInitContext` from `makeInit` when a registered selector uses it. List startup transitions under `steps`; each Step receives the Model produced by the previous Step. Do not call an old `boot` helper or discard a child init result's Commands.
-
-::Snippet{name="blockFoldChildInit" label="Composition-owned child initialization"}
-
-### Author Views Against the Registered Graph
-
-Create the primary view through `FeatureComposition.makeView` or `makeView.withInputs`. Embed a child with `h.block(Binding.embedView(...))`. The builder permits only Bindings and Mounts registered by that Composition, so a missing registration becomes a local type error.
-
-When a helper needs the same graph capabilities, derive its builder type from the Composition:
-
-::Snippet{name="featureViewHelpers" label="Composition-derived view helpers"}
-
-Use `Block.ViewBuilderFor<typeof FeatureComposition>` for owner-specific helpers. Use the general `HtmlBuilder` only for a helper that truly has no owner-specific child or Mount capability. Do not widen the builder, Binding list, Mount list, or child attribute requirements to `any` to silence a graph error.
-
-## 4. Build the Root Block and Host Program
-
-Stable `Runtime.makeApplication` combines the application state machine, lifecycle declarations, browser container, and startup configuration:
-
-::Snippet{name="previewMigrationStableRootBefore" label="Stable Before: application and browser host"}
-
-Make the root an ordinary completed Block named `Application`:
-
-1. Replace the loose root contracts passed to `Runtime.makeApplication` with `Block.makeDefinition('Application', { Model, Message })`.
-2. Rename a root route union named `AppRoute` to `ApplicationRoute`, including its imports and type queries.
-3. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
-4. Author root init, update, and view through that Composition.
-5. Return `ApplicationComposition.prepareBlock(...)` from the private `prepare` producer, then complete `ApplicationBlock` with `Block.assemble(prepare)`.
-6. Move container, Flags, routing, Ports, DevTools, and other browser host fields into `Program.make`.
-7. Supply ordinary application Services with `program.provide(ApplicationLayer)` before starting the Runtime.
-
-The browser entry should now be small and host-focused:
-
-::Snippet{name="applicationEntryPoint" label="Candidate: browser Program"}
-
-The candidate entry opts into external MCP Message discovery and dispatch with `devTools: { dispatch: true }`. Program derives the dispatch Codec from `ApplicationBlock`, including generated child envelopes. Omit `devTools` to keep development inspection with dispatch disabled, or pass `devTools: false` to disable the DevTools store, overlay, and browser bridge.
-
-Preserve the host mode:
-
-| Host                     | Candidate entry                                                                                                                                  |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Browser page             | `Program.make({ block: ApplicationBlock, ...hostConfig })`, then `Runtime.run` or `Runtime.hydrate`                                              |
-| Container-scoped element | `Program.makeElement({ block: ApplicationBlock, ...hostConfig })`, then `Runtime.run` or `Runtime.embed`                                         |
-| SSR or SSG               | `Server.renderToString(ApplicationBlock, serverConfig, requestOptions)`; the browser hydrates a `Program.make` Program built from the same Block |
-
-::Snippet{name="runToElement" label="Container-scoped Program"}
-
-::Snippet{name="blockServerRender" label="Server rendering the completed root Block"}
+::Snippet{name="previewMigrationServerAfter" label="After: server rendering the root Block"}
 
 `Program.makeElement` and `Runtime.embed` do not hydrate. Keep the existing server Flags handoff and build-id policy when migrating an SSR or SSG application; the [Server Rendering guide](/core/server-rendering) describes that host contract.
 
-## 5. Preserve a Clear File Direction
+## Migrate UI Components
 
-A compact feature can keep contracts, Composition, implementation, and completion in one module. A compact application can keep those values in `application.ts` and put only host startup in `entry.ts`.
+Each `@foldkit/ui` component with state is a Block. Hold an instance in the parent Model, send it `Requested*` Messages, handle its OutMessages with `.on`, render it with `model.dialog.view({ toView })`, and provide its Layer:
 
-Split a growing feature by ownership:
+::Snippet{name="previewMigrationUiAfter" label="After: a Dialog held by its parent"}
 
-| File                                                              | Owns                                                                                          |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `definition.ts`                                                   | A named Definition and early contracts when authoring methods need it                         |
-| `command.ts`, `subscription.ts`, `mount.ts`, `managedResource.ts` | Local effect and lifecycle declarations                                                       |
-| `composition.ts` or `composition/`                                | Bindings, OutMessage policy, Mount registration, Composition, and optional view builder alias |
-| `init.ts`, `update.ts`, `view.ts`                                 | Behavior authored through that Composition                                                    |
-| `block.ts`                                                        | `prepareBlock` and the local `EffectsLayer` selection                                         |
-| `services.ts`                                                     | Root `ApplicationLayer` and test providers for ordinary Services                              |
-| `entry.ts`                                                        | Program host configuration and Runtime startup                                                |
+A component module exports its class under the component name and its Layer with a `Live` suffix, such as `Dialog.Dialog` and `Dialog.DialogLive`. A component whose state depends on an item type keeps a factory: `const ActionMenu = Menu.makeBlock<Action>()` returns a class, and `ActionMenu.Live` is its Layer. Create each factory class once at module scope. Each component's constructor args replace the stable init config, such as `{ id, isAnimated? }` for Dialog. The [UI overview](/ui/overview) and each component page show the current calls.
 
-Keep imports moving in that direction. Composition may import completed children and local policy declarations. It must not import its own init, update, view, completed Block, or feature barrel. Implementation modules may import the Definition, Composition, and Bindings. `block.ts` may import every implementation field to complete the feature.
+## Migrate Tests
 
-Use `index.ts` only as an explicit barrel. Export `SettingsBlock`, not every private effect registry and policy helper. Internal modules import real owning files instead of importing their own barrel.
+A stable Story drives `update` directly:
 
-If TypeScript reports a recursive initializer or a value is undefined during module evaluation, inspect the Binding stages and import graph. Name the ordinary Bindings before authoring self-referential or reciprocal folds, then select and register `<Child>BindingWithOutMessagePolicy`. Common import causes are `composition.ts` importing `block.ts`, a child importing its parent's barrel, or an extracted policy importing the completed parent. Keep reciprocal sibling policies in the same parent composition module, and move a shared pure Step into a leaf module when both sides need it. Do not add annotations, casts, generic argument lists, or raw child matchers to break the cycle.
+::Snippet{name="previewMigrationStableTestBefore" label="Stable before: Story over update"}
 
-The [Project Organization guide](/patterns/project-organization) shows compact, split, graphless, Mount-only, and policy-heavy layouts.
+In the preview, a Story or Scene runs against a Block's Layer. Without `given`, it starts from the Model the constructor returns. Tests use `@effect/vitest`: wrap each Story or Scene in `it.effect`, and add `@effect/vitest` to the package's devDependencies. Provide the services the constructor yields with `Layer.provide` on the Layer.
 
-## 6. Migrate Tests, Lint, and Dependencies
+::Snippet{name="previewMigrationTestAfter" label="After: Stories over the child and parent Layers"}
 
-Run typecheck after each completed leaf or parent. The candidate types carry graph identity, handler requirements, generated delivery, update context, and OutMessages together; postponing typecheck makes the first error harder to locate.
+Keep these differences in mind:
 
-Keep Story and Scene at the same behavioral boundary:
+- The Layer passed to `story` or `scene` provides exactly one root Block. Provide its children with `Layer.provide`, not `Layer.merge`.
+- In tests the Model is the resolved tree: each instance appears as its own Model, as in `model.settings.theme`. `given` can set child state but cannot add or remove instances; do that with Messages.
+- Deliver a child's Message with `Block.deliver(Child, 'id', message)`, or `Block.deliver(Child, ['rows', 'row-3'], message)` for an instance created by `each`. A child's Command result is routed back to the child automatically.
+- `start` Commands of the starting Model do not appear in the Story's Command ledger.
+- If a stable parent Story constructed a `Got*` wrapper to simulate a child UI event, deliver the child Message with `Block.deliver` or move the interaction to a parent Scene that clicks the rendered control.
 
-- A child Story still sends the child's local Messages to its authored update.
-- A parent Story or Scene resolves a child Command with the raw child result Message. The pending Command retains the generated delivery path.
-- Match Commands and Mounts by the original Definition's source identity, not by placement-qualified display strings.
-- Build Scene Subscription declarations from `Scene.subscriptions(ApplicationComposition, localSubscriptions?)` instead of manually wrapping child emissions.
-- Test a completed UI Block through its public Model, Message, OutMessage, operations, and test Definitions.
+See [Story](/testing/story) and [Scene](/testing/scene) for the full step API.
 
-If a parent Story constructed a `Got*` wrapper to simulate a child UI event, move that interaction to a parent Scene. Click the rendered control, then resolve or assert the resulting Commands. Keep child-local facts in a child Story. Do not add a production operation solely for a test or fabricate a generated envelope; parent-driven operations remain appropriate when the production parent actually initiates the transition.
+## Organize Files
 
-The testing migration examples show the before and after forms for Command resolution, Subscription emission, and completed UI components:
+Put each Block in one file named for it in camelCase: `settings.ts` for `Settings`, `issueBoard.ts` for `IssueBoard`, and `application.ts` for the root. The file holds the Block's Message and OutMessage unions, Model Schema, Command and Mount definitions, class, and `Live` Layer with its update handlers, Command handlers, and view. A stable Foldkit feature split across `message.ts`, `model.ts`, `update.ts`, `command.ts`, and `view.ts` becomes one file, and its `index.ts` barrel goes away.
 
-::Snippet{name="testingMigrationCommandAfter" label="Command resolution through source identity"}
+The other source files are not Blocks:
 
-::Snippet{name="testingMigrationSubscriptionAfter" label="Scene Subscription registry"}
+| File                          | Owns                                                   |
+| ----------------------------- | ------------------------------------------------------ |
+| `entry.ts`, `entry.server.ts` | `Program.make` and `Runtime.run`, or the server render |
+| `services.ts`                 | The root `ApplicationLayer` of ordinary services       |
+| `route.ts`                    | `ApplicationRoute`, when several Blocks share it       |
+| `domain/*.ts`                 | Schemas and pure functions used by more than one Block |
 
-::Snippet{name="testingMigrationUiAfter" label="Completed UI Block test fixture"}
+When a Block is too large to read in one file, extract a feature that owns its own state, effects, or lifecycle into a child Block in its own file. Render-only markup stays in the parent's file as view functions. Group a page with the child Blocks only it uses in a folder named for the page, such as `page/settings/settings.ts` and `page/settings/themePicker.ts`. The [Project Organization guide](/patterns/project-organization) covers the layout in detail.
 
-For a generic UI factory, the concrete completed Block owns the result Message Codec, while the component's `test` namespace owns the original Command and Mount Definitions. In an existing Scene with those effects pending, resolve them through those two owners:
+## Lint the Migrated Application
 
-::Snippet{name="previewMigrationFactoryUiTest" label="Resolving a factory Menu's effects"}
-
-Enable the current Foldkit Oxlint preset before treating the migration as finished. Its Block rules catch manual child routing, direct child Model updates, child Message construction in a parent, empty OutMessage forwarding, unstable component factories, and naming mismatches. Fix the reported ownership problem; do not disable the rule around migrated code.
+Enable the current Foldkit Oxlint preset before treating the migration as finished. Its rules check Block naming (`foldkit/block-name-matches-variable`), keyed rows and instances, selection Block factories created inside functions, Command construction, and Model state. Fix the reported code instead of disabling the rule. See [the Oxlint plugin](/tooling/oxlint-plugin) for the rule list.
 
 After typecheck and lint pass, run the application's full Story, Scene, unit, integration, browser, SSR or SSG, and production build checks that were green in the baseline. Verify the lockfile contains only the exact preview snapshot from the deployment manifest and the exact compatible Effect peers.
 
 ### Linked Packages and Duplicate Foldkit Copies
 
-A linked adapter or component library can accidentally load a second Foldkit copy even when its source imports look correct. The resulting errors often involve same-shaped Definitions, Bindings, Messages, or Layers that fail identity or type checks.
+A linked adapter or component library can load a second Foldkit copy even when its source imports look correct. The resulting errors often involve same-shaped Block classes, Messages, or Layers that fail identity or type checks.
 
 Declare `foldkit` and every relevant `@foldkit/*` package as peer dependencies of the linked library. Put the same exact preview versions in that library's development dependencies for its own build and tests. The consuming application must also declare those exact preview versions directly. Do not ship a separate Foldkit copy as a regular dependency of the linked library.
 
 Run `pnpm why foldkit` and `pnpm why @foldkit/ui` from the consuming application, adjusting the second command for each Foldkit package in use. Confirm that the linked library and application resolve one installed snapshot. Then verify that the application's `@foldkit/vite-plugin` build resolves both through one Foldkit module graph. Add narrowly scoped Vite `resolve.dedupe` entries or a `resolve.noExternal` entry only when graph inspection shows that a linked package is otherwise resolved or externalized separately.
 
-Preserve the original runtime definitions and their module identity. Type casts, recreated same-shaped definitions, and parallel aliases can silence or move a compiler error, but they do not repair a duplicate Foldkit graph.
+Type casts and recreated same-shaped definitions can silence or move a compiler error, but they do not repair a duplicate Foldkit graph.
 
 ## Required Changes and Optional Cleanup
 
 Finish the required column before broadening the migration.
 
-| Required for the candidate API                                              | Optional after behavior is green                                                      |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Pin one exact manifest snapshot.                                            | Split a compact feature that remains easy to navigate.                                |
-| Move effect implementations into Definition-owned handler Layers.           | Rename unrelated domain helpers for consistency.                                      |
-| Complete every consumed feature as a named Block.                           | Extract a local `EffectsLayer` from `block.ts` when it becomes substantial or reused. |
-| Register parent-owned Bindings and remove authored child delivery wrappers. | Extract a substantial one-way Binding policy into `composition/`.                     |
-| Replace parent rewrites of a child Model with Message-backed operations.    | Add more focused Story or Scene coverage beyond the migration baseline.               |
-| Move child startup into Binding and Composition init policy.                | Reorganize domain modules that do not participate in Block assembly.                  |
-| Create `ApplicationBlock` and move host fields to Program.                  | Adopt additional APIs unrelated to Layers, Blocks, or Program.                        |
-| Update affected tests and satisfy current lint rules.                       | Perform stylistic rewrites that do not resolve an API or ownership error.             |
+| Required for the preview                                                  | Optional after behavior is green                                        |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Pin one exact manifest snapshot.                                          | Extract a feature from a large Block into a child Block.                |
+| Move Command, Mount, and Subscription implementations into constructors.  | Rename unrelated domain helpers for consistency.                        |
+| Declare every feature as a Block class with a `Live` Layer.               | Extract shared update transitions into named Steps.                     |
+| Hold children as instances and remove `Got*Message` wrappers.             | Add more focused Story or Scene coverage beyond the migration baseline. |
+| Replace parent rewrites of a child Model with Messages sent to the child. | Reorganize domain modules that do not take part in the Block tree.      |
+| Move init into constructors and `start` Commands.                         | Adopt additional APIs unrelated to Blocks or Program.                   |
+| Create the root `Application` Block and move host options to Program.     | Perform stylistic rewrites that do not fix an API error.                |
+| Update affected tests and satisfy current lint rules.                     |                                                                         |
 
 Avoid mixing optional cleanup into the first compiling pass. A smaller diff makes it easier to prove that the migration preserved behavior.
 
 ## Compiler Error Guide
 
-Start with the first error in an ownership chain. For `makeUpdate` record errors, check completeness first: a missing local Message handler can produce a misleading connected-result error before naming the absent tag.
+Start with the first error for a Block. A missing update handler is reported on the update record before errors that depend on it.
 
-| Error or symptom                                                           | What to inspect                                                                                                                                                                                                                                               |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| An update record reports a connected `ResultRecipe` with no `model`        | Check every local Message tag has a handler, including Command completions. Then inspect remaining channel errors. Do not add a Model to the recipe. See [missing-handler troubleshooting](/core/update#checking-missing-handlers-before-structural-errors).  |
-| One handler mixes local results and connected Binding recipes              | Use Definition-owned Steps for that handler's local branches. Raw-only handlers remain valid. See the [paired repair](/core/update#preserving-local-results-beside-connected-operations).                                                                     |
-| A Definition-owned producer cannot apply a connected `combineSteps`        | Return `combineSteps(steps)` without its Model argument. Apply it under the registered Composition, whose contextual Model carries the Binding evidence. See [connected combinations](/core/update#child-bindings-and-multiple-steps).                        |
-| `Got*Message` is missing, or a local Message match is no longer exhaustive | Remove the authored wrapper and its update branch. Register the Binding and use the Composition or completed Block Message Codec where the complete graph is required.                                                                                        |
-| A stable `Update.foldChild` configuration no longer fits the child         | Complete the child, create a parent-owned Binding, move OutMessage and access policy into it, and register it under `bindings`.                                                                                                                               |
-| `execute`, `dependenciesToStream`, or inline lifecycle work is rejected    | Move the implementation into a Definition-owned handler constructor and include its `.layer` in the feature's local `EffectsLayer`.                                                                                                                           |
-| `Submodel.defineView` or `h.submodel` is missing                           | Author the view through the owning Composition and render the child through `h.block(Binding.embedView(...))`.                                                                                                                                                |
-| `Runtime.makeApplication` or `Runtime.makeElement` is missing              | Complete `ApplicationBlock`, then create the matching page or element Program separately.                                                                                                                                                                     |
-| A view cannot embed a child or use a Mount                                 | Register the exact Binding or Mount in the same Composition that authored the view. Derive helper builders from that Composition.                                                                                                                             |
-| A Binding operation is a Step where an update result is required           | Apply it to the contextual Model, such as `Binding.requestOpen()(model)`. Pass the unapplied Step only to `Update.combineSteps`, a Definition-owned `makeStep`, or Composition startup.                                                                       |
-| An OutMessage-producing Step fails an `Update.combineSteps` overload       | `combineSteps` has no OutMessage channel. Combine the plain Steps, then attach the known OutMessage to their result with `Update.withOutMessage`. See [Step authoring](/core/block).                                                                          |
-| The parent update loses Commands or an OutMessage                          | Return the executed result after applying the Binding operation to the contextual Model. Do not select or copy only `.model`; that discards the other channels.                                                                                               |
-| Child initialization leaves a field missing or loses Commands              | Put startup args and instances on the Binding. Let `makeInit` assemble children, and use `Binding.init` for dynamic occurrences.                                                                                                                              |
-| `Runtime.run` still requires a handler                                     | Include the owning definition's `.layer` in the feature's local `EffectsLayer`, or explicitly complete an intentional host handler contract.                                                                                                                  |
-| A handler Layer still requires an application Service                      | Supply that Service below the completed Program through `ApplicationLayer`; do not move Service lookup into update.                                                                                                                                           |
-| A Layer has the right shape but fails identity checks                      | Build it from the original definition's `toLayer`. Same names and protocols do not make separately created definitions identical.                                                                                                                             |
-| A linked package reports incompatible same-shaped Foldkit types            | Use `pnpm why` to find duplicate copies, align the library's peers and development dependencies with the app's exact preview versions, and verify the Vite module graph.                                                                                      |
-| `ApplicationBlock` cannot complete because of an OutMessage                | Fold or stop every root child OutMessage. A browser host is not an OutMessage parent.                                                                                                                                                                         |
-| TypeScript reports recursive initializers or runtime imports are undefined | Split self-referential or reciprocal policy selection into `FooBinding` and `FooBindingWithOutMessagePolicy`, restore the Definition → policy → Composition → implementation → Block import direction, and avoid importing a feature's own barrel internally. |
+| Error or symptom                                                      | What to inspect                                                                                                                                                          |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The update record is missing a property                               | Every Message tag needs a handler, including Command result Messages. A handler that changes nothing returns `{ model }`.                                                |
+| `execute`, `dependenciesToStream`, or `acquire` is rejected           | Move the Effect into the constructor's `commands`, `subscriptions`, or a child Block's constructor.                                                                      |
+| `commands` or `mounts` is missing a property                          | Add a handler for every Command and Mount listed on the class.                                                                                                           |
+| A handler's Effect still requires a service                           | Yield the service in the constructor and close over it. Provide it in the Program's Layer.                                                                               |
+| `Program.make` rejects the Layer                                      | The Layer still requires a child Block or a service. Provide each child's `Live` Layer to its parent's Layer and the services below them.                                |
+| `Program.make` asks for `routing` or `Flags`                          | The root's args include `url` or `flags`. Pass the matching option, or remove the arg.                                                                                   |
+| A Model field rejects a child Model value                             | Use the child class as the field's Schema (`settings: Settings`) and store the instance yielded in the constructor.                                                      |
+| A `commands` entry in an update result is rejected                    | Return only Commands listed on the class or Commands that produce this Block's own Messages. List the Command, or move it to the Block that handles its result.          |
+| `model.child.view()` reports a missing argument                       | The child declares a view input. Pass it, such as `model.dialog.view({ toView })`.                                                                                       |
+| `Runtime.makeApplication` or `Runtime.makeElement` is missing         | Build the root Block, then call `Program.make` or `Program.makeElement`.                                                                                                 |
+| `Submodel.defineView`, `h.submodel`, or `Update.foldChild` is missing | Hold the child as an instance and render it with `model.child.view()`.                                                                                                   |
+| A linked package reports incompatible same-shaped Foldkit types       | Use `pnpm why` to find duplicate copies, align the library's peers and development dependencies with the app's exact preview versions, and verify the Vite module graph. |
 
-Do not fix these errors with `as`, `unknown as`, `any`, a widened `ReadonlyArray`, or a generic `Layer.Layer<any>`. Those casts erase the evidence that the new API is checking: source identity, exact handler protocols, graph registration, generated delivery, and OutMessage policy. Fix the Definition, Binding, Composition, completion, or provider that owns the mismatch.
+Do not fix these errors with `as`, `unknown as`, `any`, or a generic `Layer.Layer<any>`. Fix the class contract, constructor, or Layer that is missing the piece.
 
 ## Completion Checklist
 
 The migration is complete when all of these statements are true:
 
 - The installed Foldkit packages match one deployment's `/preview-release.json` exactly.
-- Every feature consumed by a parent exports a completed, named `FooBlock`.
-- Every init, update, and primary view is authored by the Composition that owns its graph.
-- Every child relationship is a registered parent-owned Binding.
-- Local Message unions contain no authored child delivery envelopes.
-- Parents invoke child transitions through Binding operations and handle child facts through OutMessage policy.
-- Every effect and lifecycle implementation is present in the completed handler graph, and every remaining ordinary Service is supplied by `ApplicationLayer`.
-- The root is `ApplicationBlock`; browser hosting is a Program; SSR uses the same completed root Block.
+- Every feature a parent uses is a Block class with a `Live` Layer.
+- No Command, Mount, or Subscription definition carries its own implementation.
+- Every child is an instance held in its parent's Model, and no Message union contains a `Got*Message` wrapper.
+- Parents change children only by sending Messages and react to them only through OutMessages.
+- The root is `Application`; browser hosting is a Program; SSR renders the same class.
 - Typecheck, lint, Story, Scene, integration, browser, server-rendering, and production build checks pass to the extent they belong to the application.
-- No broad cast or disabled lint rule hides a graph, Layer, Message, or OutMessage error.
+- No broad cast or disabled lint rule hides a Block, Layer, Message, or OutMessage error.
 
-After that baseline is green, use [Blocks](/core/block), [Layers](/core/layers), [Project Organization](/patterns/project-organization), and [Testing](/testing) as the canonical references for ongoing work.
+After that baseline is green, use [Blocks](/core/block), [Runtime](/core/runtime), [Project Organization](/patterns/project-organization), and [Testing](/testing) as the references for ongoing work.

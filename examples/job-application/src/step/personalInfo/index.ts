@@ -1,1 +1,0 @@
-export { PersonalInfoBlock } from './block'

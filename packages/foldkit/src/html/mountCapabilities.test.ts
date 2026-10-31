@@ -4,9 +4,6 @@ import { describe, expect, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import * as Application from '../runtime/application.js'
-import * as Scene from '../test/scene.js'
-import type { VNode } from '../vdom.js'
-import { type BlockView, defineView } from './block.js'
 import {
   type Attribute,
   type ChildAttribute,
@@ -23,9 +20,6 @@ const Message = defineMessageUnion({
   CompletedFocusPanel: {},
 })
 type Message = typeof Message.Type
-
-const ForeignMessage = defineMessageUnion({ ClickedForeign: {} })
-type ForeignMessage = typeof ForeignMessage.Type
 
 const Model = Schema.Struct({ isVisible: Schema.Boolean })
 type Model = typeof Model.Type
@@ -59,61 +53,8 @@ const mountedPanel = (
 const lazyPanel = createLazy()
 const keyedLazyPanel = createKeyedLazy()
 
-type SlotInputs = Readonly<{
-  toView: (
-    attributes: ReadonlyArray<ChildAttribute<MeasurePanelRequirements>>,
-  ) => VNode | null
-}>
-
-const mountedChildView = defineView<
-  Model,
-  Message,
-  SlotInputs,
-  MeasurePanelRequirements
->((_model, { toView }, h) =>
-  toView(childAttributes([h.OnMount(MeasurePanel())])),
-)
-
-const inferredMountedChildView = defineView(
-  (model: Model, h: HtmlBuilder<Message, MeasurePanelRequirements>): Html =>
-    h.button(
-      [h.OnMount(MeasurePanel()), h.OnClick(Message.CompletedFocusPanel())],
-      [model.isVisible ? 'visible' : 'hidden'],
-    ),
-)
-
-const inferredMountedChildViewWithInputs = defineView(
-  (
-    _model: Model,
-    { toView }: SlotInputs,
-    h: HtmlBuilder<Message, MeasurePanelRequirements>,
-  ): Html => toView(childAttributes([h.OnMount(MeasurePanel())])),
-)
-
-const inferredViewRejectingForeignMessage = defineView(
-  (_model: Model, h: HtmlBuilder<Message, MeasurePanelRequirements>): Html =>
-    h.button([
-      // @ts-expect-error The annotated builder preserves its Message universe.
-      h.OnClick(ForeignMessage.ClickedForeign()),
-    ]),
-)
-
-const inferredMountedChildViewExact: BlockView<
-  Model,
-  Message,
-  void,
-  MeasurePanelRequirements
-> = inferredMountedChildView
-
-const inferredMountedChildViewWithInputsExact: BlockView<
-  Model,
-  Message,
-  SlotInputs,
-  MeasurePanelRequirements
-> = inferredMountedChildViewWithInputs
-
 describe('Mount capability types', () => {
-  it('propagates registered requirements through helpers, lazy views, and Block slots', () => {
+  it('propagates registered requirements through helpers, lazy views, and child attributes', () => {
     const renderRegistered = () =>
       Application.__makeFromConfig({
         Model,
@@ -127,15 +68,7 @@ describe('Mount capability types', () => {
               mountedPanel(model.isVisible, h),
               lazyPanel(mountedPanel, [model.isVisible, h]),
               keyedLazyPanel('panel', mountedPanel, [model.isVisible, h]),
-              h.block({
-                slotId: 'mounted-child',
-                model,
-                view: mountedChildView,
-                viewInputs: {
-                  toView: attributes => h.section(attributes),
-                },
-                toParentMessage: message => message,
-              }),
+              h.section(childAttributes([h.OnMount(MeasurePanel())])),
             ],
           ),
         }),
@@ -174,113 +107,7 @@ describe('Mount capability types', () => {
         container: document.createElement('div'),
       })
 
-    const mountlessBuilder = __htmlBuilder<Message>()
-    const renderMissingChildRegistration = () =>
-      mountlessBuilder.block(
-        // @ts-expect-error The child view requires MeasurePanel registration.
-        {
-          slotId: 'missing-child-registration',
-          model: { isVisible: true },
-          view: inferredMountedChildView,
-          toParentMessage: message => message,
-        },
-      )
-    const renderMissingChildInputsRegistration = () =>
-      mountlessBuilder.block(
-        // @ts-expect-error The child view with inputs requires MeasurePanel registration.
-        {
-          slotId: 'missing-child-inputs-registration',
-          model: { isVisible: true },
-          view: inferredMountedChildViewWithInputs,
-          viewInputs: { toView: () => null },
-          toParentMessage: message => message,
-        },
-      )
-
     expect(renderMissingRegistration).toBeTypeOf('function')
-    expect(renderMissingChildRegistration).toBeTypeOf('function')
-    expect(renderMissingChildInputsRegistration).toBeTypeOf('function')
-  })
-
-  it('infers exact Block view contracts from annotated parameters', () => {
-    const registeredBuilder = __htmlBuilder<Message, MeasurePanelRequirements>()
-    const foreignBuilder = __htmlBuilder<
-      ForeignMessage,
-      MeasurePanelRequirements
-    >()
-
-    const renderInferred = () =>
-      inferredMountedChildView({ isVisible: true }, registeredBuilder)
-    const renderInferredWithInputs = () =>
-      inferredMountedChildViewWithInputs(
-        { isVisible: true },
-        { toView: () => null },
-        registeredBuilder,
-      )
-    const renderWithWrongBuilder = () =>
-      inferredMountedChildView(
-        { isVisible: true },
-        // @ts-expect-error The inferred view preserves its exact Message type.
-        foreignBuilder,
-      )
-    const renderTwoArgumentViewWithInputs = () =>
-      inferredMountedChildView(
-        { isVisible: true },
-        { toView: () => null },
-        // @ts-expect-error A two-argument view does not accept ViewInputs.
-        registeredBuilder,
-      )
-    const renderThreeArgumentViewWithoutInputs = () =>
-      // @ts-expect-error A three-argument view requires ViewInputs.
-      inferredMountedChildViewWithInputs({ isVisible: true }, registeredBuilder)
-
-    const unannotatedView = defineView((model, h) => {
-      // @ts-expect-error An unannotated Model remains unknown.
-      const isVisible = model.isVisible
-      // @ts-expect-error An unannotated builder accepts no Message.
-      const onClick = h.OnClick(Message.CompletedFocusPanel())
-      return h.button([onClick], [globalThis.String(isVisible)])
-    })
-
-    const defineVoidInputsView = () =>
-      defineView(
-        // @ts-expect-error A void ViewInputs type has the two-argument runtime shape.
-        (
-          _model: Model,
-          _viewInputs: void,
-          _h: HtmlBuilder<Message, MeasurePanelRequirements>,
-        ) => null,
-      )
-    const defineUndefinedInputsView = () =>
-      defineView(
-        // @ts-expect-error An undefined ViewInputs type has the two-argument runtime shape.
-        (
-          _model: Model,
-          _viewInputs: undefined,
-          _h: HtmlBuilder<Message, MeasurePanelRequirements>,
-        ) => null,
-      )
-
-    const renderInScene = () =>
-      Scene.scene(
-        { update, view: inferredMountedChildView },
-        Scene.given<Model>({ isVisible: true }),
-      )
-
-    expect(inferredMountedChildViewExact).toBe(inferredMountedChildView)
-    expect(inferredMountedChildViewWithInputsExact).toBe(
-      inferredMountedChildViewWithInputs,
-    )
-    expect(inferredViewRejectingForeignMessage).toBeTypeOf('function')
-    expect(renderInferred).toBeTypeOf('function')
-    expect(renderInferredWithInputs).toBeTypeOf('function')
-    expect(renderWithWrongBuilder).toBeTypeOf('function')
-    expect(renderTwoArgumentViewWithInputs).toBeTypeOf('function')
-    expect(renderThreeArgumentViewWithoutInputs).toBeTypeOf('function')
-    expect(unannotatedView).toBeTypeOf('function')
-    expect(defineVoidInputsView).toBeTypeOf('function')
-    expect(defineUndefinedInputsView).toBeTypeOf('function')
-    expect(renderInScene).toBeTypeOf('function')
   })
 
   it('does not erase requirements through public attribute containers', () => {

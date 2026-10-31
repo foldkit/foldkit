@@ -1,72 +1,90 @@
-import { Option } from 'effect'
+import { Layer, Option } from 'effect'
+import type { Resolved } from 'foldkit/block'
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { fromString } from 'foldkit/url'
 
-import { products } from './data/products'
-import type { Model } from './model'
-import { ProductsBlock } from './page'
+import { describe, it } from '@effect/vitest'
+
+import { ApplicationLive, type Model } from './application'
+import { products } from './domain/products'
+import { ProductsLive } from './page/products'
 import { ApplicationRoute } from './route'
-import { update } from './update'
-import { view } from './view'
 
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 const banana = { id: '2', name: 'Banana', price: 0.75 }
 
-const baseModel: Model = {
+const application = ApplicationLive.pipe(Layer.provide(ProductsLive))
+
+const startArgs = {
+  url: Option.getOrThrow(fromString('http://localhost/')),
+}
+
+const baseModel: Resolved<Model> = {
   route: ApplicationRoute.Products({ searchText: Option.none() }),
   cart: [],
   deliveryInstructions: '',
   orderPlaced: false,
-  productsPage: ProductsBlock.init(products).model,
+  productsPage: { products, searchText: '' },
 }
 
 describe('view', () => {
-  test('the nav bar lists every section', () => {
+  it.effect('the nav bar lists every section', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(baseModel),
       expect(role('link', { name: 'Products' })).toExist(),
       expect(role('link', { name: 'Cart' })).toExist(),
       expect(role('link', { name: 'Checkout' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('the Cart link displays the item count when the cart has items', () => {
-    scene(
-      { update, view },
-      given(
-        modifyFields(baseModel, {
-          cart: () => [
-            { item: apple, quantity: 2 },
-            { item: banana, quantity: 3 },
-          ],
-        }),
+  it.effect(
+    'the Cart link displays the item count when the cart has items',
+    () =>
+      scene(
+        application,
+        startArgs,
+        given(
+          modifyFields(baseModel, {
+            cart: () => [
+              { item: apple, quantity: 2 },
+              { item: banana, quantity: 3 },
+            ],
+          }),
+        ),
+        expect(role('link', { name: 'Cart (5)' })).toExist(),
       ),
-      expect(role('link', { name: 'Cart (5)' })).toExist(),
-    )
-  })
+  )
 
-  test('the Products route renders the Products heading', () => {
+  it.effect('the Products route renders the Products heading', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(baseModel),
       expect(role('heading', { name: 'Products' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('the Cart route shows the empty state when no items have been added', () => {
-    scene(
-      { update, view },
-      given(modifyFields(baseModel, { route: () => ApplicationRoute.Cart() })),
-      expect(role('heading', { name: 'Shopping Cart' })).toExist(),
-      expect(text('Your cart is empty')).toExist(),
-    )
-  })
+  it.effect(
+    'the Cart route shows the empty state when no items have been added',
+    () =>
+      scene(
+        application,
+        startArgs,
+        given(
+          modifyFields(baseModel, { route: () => ApplicationRoute.Cart() }),
+        ),
+        expect(role('heading', { name: 'Shopping Cart' })).toExist(),
+        expect(text('Your cart is empty')).toExist(),
+      ),
+  )
 
-  test('the Cart route renders items and the running total', () => {
+  it.effect('the Cart route renders items and the running total', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(
         modifyFields(baseModel, {
           cart: () => [{ item: apple, quantity: 2 }],
@@ -78,39 +96,46 @@ describe('view', () => {
       expect(text('$3.00')).toExist(),
       expect(role('button', { name: 'Remove' })).toExist(),
       expect(role('button', { name: 'Clear Cart' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('the Checkout route shows the empty state when the cart is empty', () => {
-    scene(
-      { update, view },
-      given(
-        modifyFields(baseModel, { route: () => ApplicationRoute.Checkout() }),
+  it.effect(
+    'the Checkout route shows the empty state when the cart is empty',
+    () =>
+      scene(
+        application,
+        startArgs,
+        given(
+          modifyFields(baseModel, { route: () => ApplicationRoute.Checkout() }),
+        ),
+        expect(role('heading', { name: 'Checkout' })).toExist(),
+        expect(text('Your cart is empty')).toExist(),
       ),
-      expect(role('heading', { name: 'Checkout' })).toExist(),
-      expect(text('Your cart is empty')).toExist(),
-    )
-  })
+  )
 
-  test('the Checkout route renders the order summary and a Place Order button', () => {
-    scene(
-      { update, view },
-      given(
-        modifyFields(baseModel, {
-          cart: () => [{ item: apple, quantity: 2 }],
-          route: () => ApplicationRoute.Checkout(),
-        }),
+  it.effect(
+    'the Checkout route renders the order summary and a Place Order button',
+    () =>
+      scene(
+        application,
+        startArgs,
+        given(
+          modifyFields(baseModel, {
+            cart: () => [{ item: apple, quantity: 2 }],
+            route: () => ApplicationRoute.Checkout(),
+          }),
+        ),
+        expect(role('heading', { name: 'Order Summary' })).toExist(),
+        expect(text('× 2')).toExist(),
+        expect(text('$3.00')).toExist(),
+        expect(role('button', { name: 'Place Order' })).toExist(),
       ),
-      expect(role('heading', { name: 'Order Summary' })).toExist(),
-      expect(text('× 2')).toExist(),
-      expect(text('$3.00')).toExist(),
-      expect(role('button', { name: 'Place Order' })).toExist(),
-    )
-  })
+  )
 
-  test('placing an order swaps the form for the success panel', () => {
+  it.effect('placing an order swaps the form for the success panel', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(
         modifyFields(baseModel, {
           cart: () => [{ item: apple, quantity: 1 }],
@@ -119,12 +144,13 @@ describe('view', () => {
       ),
       click(role('button', { name: 'Place Order' })),
       expect(role('heading', { name: 'Order placed successfully!' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('an unmatched route renders 404 NotFound', () => {
+  it.effect('an unmatched route renders 404 NotFound', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(
         modifyFields(baseModel, {
           route: () => ApplicationRoute.NotFound({ path: '/oops' }),
@@ -132,6 +158,6 @@ describe('view', () => {
       ),
       expect(role('heading', { name: '404 - Page Not Found' })).toExist(),
       expect(text('The path "/oops" was not found.')).toExist(),
-    )
-  })
+    ),
+  )
 })

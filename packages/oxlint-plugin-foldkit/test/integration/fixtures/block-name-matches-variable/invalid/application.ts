@@ -1,14 +1,10 @@
-import * as Block from 'foldkit/block'
-import { makeDefinition as makeBlockDefinition } from 'foldkit/block'
+import { Effect } from 'effect'
+import { Block } from 'foldkit'
 
-const WrongNamespaceImport = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-const WrongAliasedImport = makeBlockDefinition('Application', {
-  Model,
-  Message,
-})
+export class App extends Block<App>()('Application', {}) {}
 
-void WrongNamespaceImport
-void WrongAliasedImport
+export const AppLive = App.make(
+  Effect.fn(function* () {
+    return {}
+  }),
+)

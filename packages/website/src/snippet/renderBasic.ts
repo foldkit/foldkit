@@ -1,25 +1,32 @@
-import { Effect } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Command, Render } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 
-const MeasurePanel = Command.define('MeasurePanel', {
-  messages: [MeasuredPanel],
-  handler: function* () {
-    return () =>
-      Effect.gen(function* () {
-        yield* Render.afterCommit
-        const element = document.getElementById('panel')
-        const width =
-          element instanceof HTMLElement
-            ? element.getBoundingClientRect().width
-            : 0
-        return MeasuredPanel({ width })
-      })
-  },
+const Message = defineMessageUnion({
+  CompletedMeasurePanel: { width: Schema.Number },
+  CompletedStartTransition: {},
 })
 
-const StartTransition = Command.define('StartTransition', {
-  messages: [StartedTransition],
-  handler: function* () {
-    return () => Render.afterPaint.pipe(Effect.as(StartedTransition()))
-  },
+export const MeasurePanel = Command.define('MeasurePanel', {
+  messages: [Message.CompletedMeasurePanel],
 })
+
+export const StartTransition = Command.define('StartTransition', {
+  messages: [Message.CompletedStartTransition],
+})
+
+// Handlers returned under `commands` in a Block's constructor:
+export const commands = {
+  MeasurePanel: () =>
+    Effect.gen(function* () {
+      yield* Render.afterCommit
+      const element = document.getElementById('panel')
+      const width =
+        element instanceof HTMLElement
+          ? element.getBoundingClientRect().width
+          : 0
+      return Message.CompletedMeasurePanel({ width })
+    }),
+  StartTransition: () =>
+    Render.afterPaint.pipe(Effect.as(Message.CompletedStartTransition())),
+}

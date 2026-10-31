@@ -9,19 +9,18 @@ import {
   type Variable,
 } from 'effect-oxlint'
 
+import { isBlockClassMethodCall } from '../block-implementation.ts'
 import {
   calleeMatchesHelperName,
   indexReferences,
   isCallExpression,
-  isFoldkitHtmlBuilderMember,
   isIdentifier,
   isIdentifierReference,
   isMemberExpression,
-  isObjectExpression,
-  isStringLiteral,
   resolveFoldkitApiPath,
   resolvedVariable,
 } from '../guards.ts'
+import { isFoldkitHtmlBuilderMember } from '../html-builder.ts'
 
 // GUARDS
 
@@ -112,6 +111,15 @@ const mapCallbackIndexParameter = (
   return Option.some({ name, variable })
 }
 
+const isBlockInstanceFactory = (
+  node: ESTree.Expression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean =>
+  node.type === 'YieldExpression' &&
+  node.delegate &&
+  node.argument !== null &&
+  isBlockClassMethodCall(node.argument, 'each', references)
+
 const firstNonSpreadArgument = (
   node: ESTree.CallExpression,
 ): Option.Option<ESTree.Expression> => {
@@ -121,25 +129,6 @@ const firstNonSpreadArgument = (
   }
   return Option.some(firstArgument)
 }
-
-const isSlotIdKey = (key: unknown): boolean =>
-  isIdentifier(key, 'slotId') ||
-  (isStringLiteral(key) && key.value === 'slotId')
-
-const isSlotIdProperty = (
-  property: ESTree.ObjectProperty | ESTree.SpreadElement,
-): property is ESTree.ObjectProperty =>
-  property.type === 'Property' &&
-  !property.computed &&
-  isSlotIdKey(property.key)
-
-const slotIdValue = (
-  configObject: ESTree.ObjectExpression,
-): Option.Option<ESTree.Expression> =>
-  Option.map(
-    Array.findFirst(configObject.properties, isSlotIdProperty),
-    property => property.value,
-  )
 
 type KeyedLazySlot = Readonly<{
   name: string
@@ -165,12 +154,6 @@ const keySinkExpression = (
   }
   if (isFoldkitHtmlBuilderMember(node.callee, 'Key', references, filename)) {
     return firstNonSpreadArgument(node)
-  }
-  if (isFoldkitHtmlBuilderMember(node.callee, 'block', references, filename)) {
-    const [configArgument] = node.arguments
-    if (isObjectExpression(configArgument)) {
-      return slotIdValue(configArgument)
-    }
   }
   if (isIdentifierReference(node.callee)) {
     const slotCallee = node.callee
@@ -261,8 +244,8 @@ const referencesIndexBindingAcrossFields = (
 
 /**
  * Disallows using a map callback's array index parameter as the key fed into
- * a keyed element, a Key attribute, a Block slotId, or a createKeyedLazy
- * slot call. Array positions shift when a list mutates, so view keys must
+ * a keyed element, a Key attribute, a `Block.each` instance factory, or a
+ * createKeyedLazy slot call. Array positions shift when a list mutates, so view keys must
  * come from stable Model identifiers.
  */
 export const noArrayIndexViewKeys = Rule.define({
@@ -287,8 +270,12 @@ export const noArrayIndexViewKeys = Rule.define({
         if (
           !isVariableDeclarator(node) ||
           node.id.type !== 'Identifier' ||
-          !isCallExpression(node.init) ||
-          !isCreateKeyedLazyCall(node.init, references)
+          node.init === null ||
+          !(
+            (isCallExpression(node.init) &&
+              isCreateKeyedLazyCall(node.init, references)) ||
+            isBlockInstanceFactory(node.init, references)
+          )
         ) {
           return Effect.void
         }

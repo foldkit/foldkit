@@ -69,11 +69,11 @@ The project has come a long way.
 
 ### Core Architecture
 
-Names and API signatures can still change before 1.0, but the architecture is locked. The Model remains the source of truth for application state. Messages are facts about what happened. After init, every Model change passes through update. Side effects happen through explicit boundaries, not inside update or view. That part isn't going anywhere.
+Names and API signatures can still change before 1.0, but the architecture is locked. The Model remains the source of truth for application state. Messages are facts about what happened. After the starting Model, every Model change passes through update. Side effects happen through explicit boundaries, not inside update or view. That part isn't going anywhere.
 
 ### One Application Model
 
-Server rendering will not create a second kind of Foldkit application. It uses the same Model, init, and view as the browser, not a parallel server-side programming model. Foldkit will not add `'use client'` and `'use server'` style annotations.
+Server rendering will not create a second kind of Foldkit application. It renders the same root Block as the browser, with the same Model, update, and view, not a parallel server-side programming model. Foldkit will not add `'use client'` and `'use server'` style annotations.
 
 ## Beyond 1.0
 

@@ -1,25 +1,16 @@
-import { Option } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { toParentMessage } from 'foldkit/test'
+import { Layer, Option } from 'effect'
+import { Block } from 'foldkit'
+import { Command, message, model, story } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
 
-import { CounterBinding } from './composition'
-import { CounterBlock } from './island'
-import { Message } from './message'
-import { Model } from './model'
-import { ApplicationRoute } from './route'
-import { update } from './update'
+import { describe, expect, it } from '@effect/vitest'
 
-type CounterMessage = typeof CounterBlock.Message.Type
+import { ApplicationLive, Message } from './application'
+import { Counter, CounterLive } from './counter'
 
-const home = Model.make({
-  route: ApplicationRoute.Home(),
-  counter: CounterBlock.init().model,
-})
+type CounterMessage = typeof Counter.Message.Type
 
-const counterMessage = (message: CounterMessage) =>
-  toParentMessage(CounterBinding, message)
+const application = ApplicationLive.pipe(Layer.provide(CounterLive))
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -27,36 +18,41 @@ const urlOrThrow = (raw: string) =>
     () => new Error(`Failed to parse url: ${raw}`),
   )
 
+const startArgs = { url: urlOrThrow('http://localhost/') }
+
+const counterMessage = (counterMessage: CounterMessage) =>
+  Block.deliver(Counter, 'counter', counterMessage)
+
 describe('update', () => {
   describe('ChangedUrl', () => {
-    test('navigating to / parses to the Home route', () => {
+    it.effect('navigating to / parses to the Home route', () =>
       story(
-        update,
-        given(home),
+        application,
+        startArgs,
         message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
         model(model => {
           expect(model.route._tag).toBe('Home')
         }),
-      )
-    })
+      ),
+    )
 
-    test('navigating to /posts parses to the Posts route', () => {
+    it.effect('navigating to /posts parses to the Posts route', () =>
       story(
-        update,
-        given(home),
+        application,
+        startArgs,
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
         ),
         model(model => {
           expect(model.route._tag).toBe('Posts')
         }),
-      )
-    })
+      ),
+    )
 
-    test('navigating to /posts/making-this-blog captures the slug', () => {
+    it.effect('navigating to /posts/making-this-blog captures the slug', () =>
       story(
-        update,
-        given(home),
+        application,
+        startArgs,
         message(
           Message.ChangedUrl({
             url: urlOrThrow('http://localhost/posts/making-this-blog'),
@@ -69,46 +65,50 @@ describe('update', () => {
             throw new Error('Expected Post route')
           }
         }),
-      )
-    })
+      ),
+    )
 
-    test('an unknown path falls through to NotFound with the path captured', () => {
-      story(
-        update,
-        given(home),
-        message(
-          Message.ChangedUrl({ url: urlOrThrow('http://localhost/missing') }),
+    it.effect(
+      'an unknown path falls through to NotFound with the path captured',
+      () =>
+        story(
+          application,
+          startArgs,
+          message(
+            Message.ChangedUrl({ url: urlOrThrow('http://localhost/missing') }),
+          ),
+          model(model => {
+            if (model.route._tag === 'NotFound') {
+              expect(model.route.path).toBe('/missing')
+            } else {
+              throw new Error('Expected NotFound route')
+            }
+          }),
         ),
-        model(model => {
-          if (model.route._tag === 'NotFound') {
-            expect(model.route.path).toBe('/missing')
-          } else {
-            throw new Error('Expected NotFound route')
-          }
-        }),
-      )
-    })
+    )
   })
 
-  describe('generated Counter Message', () => {
-    test('increments route through the Counter Block without commands', () => {
-      story(
-        update,
-        given(home),
-        message(counterMessage(CounterBlock.Message.ClickedIncrement())),
-        message(counterMessage(CounterBlock.Message.ClickedIncrement())),
-        Command.expectNone(),
-        model(model => {
-          expect(model.counter.count).toBe(2)
-        }),
-      )
-    })
+  describe('Counter Message', () => {
+    it.effect(
+      'increments route through the Counter Block without commands',
+      () =>
+        story(
+          application,
+          startArgs,
+          message(counterMessage(Counter.Message.ClickedIncrement())),
+          message(counterMessage(Counter.Message.ClickedIncrement())),
+          Command.expectNone(),
+          model(model => {
+            expect(model.counter.count).toBe(2)
+          }),
+        ),
+    )
 
-    test('the count survives navigating between routes', () => {
+    it.effect('the count survives navigating between routes', () =>
       story(
-        update,
-        given(home),
-        message(counterMessage(CounterBlock.Message.ClickedIncrement())),
+        application,
+        startArgs,
+        message(counterMessage(Counter.Message.ClickedIncrement())),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
         ),
@@ -120,7 +120,7 @@ describe('update', () => {
         model(model => {
           expect(model.counter.count).toBe(1)
         }),
-      )
-    })
+      ),
+    )
   })
 })

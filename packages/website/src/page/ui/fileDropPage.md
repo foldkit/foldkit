@@ -4,10 +4,10 @@
 
 A file drop zone that accepts files via both drag-and-drop and a hidden `<input type="file">`. FileDrop is headless. The component owns drag state and file-arrival events; your `toView` callback owns the visual.
 
-`FileDropBlock` is the completed Block to connect in the parent. Declare its startup arguments on the Binding, select its parent-owned `fold` policy through `withOutMessagePolicy`, register that Binding in the parent Composition, and render with `h.block(Binding.embedView(...))`. The Composition update routes the generated child envelope through the Binding automatically. The update function returns `Update.ReturnWithOutMessage<Model, Message, OutMessage>`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list. `RejectedNonFiles` fires when a drop or change event produced no files, for example when someone drags non-file data. Match both in the selected `fold` policy.
+Create a `FileDrop.FileDrop` instance in the parent's constructor, hold it in the parent Model, render it with `model.uploader.view({ ... })`, and provide `FileDrop.FileDropLive` to the parent's Layer. FileDrop reports two OutMessages, which the parent handles with `...uploader.on({ ... })`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list. `RejectedNonFiles` fires when a drop or change event produced no files, for example when someone drags non-file data.
 
 :::Info{label="See it in an app"}
-Check out how FileDrop is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/fileDrop.ts).
+Check out how FileDrop is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/fileDropPage.ts).
 :::
 
 ## Examples
@@ -35,7 +35,7 @@ The hidden `<input type="file">` stays in the DOM but visually hidden via the `s
 
 ### InitConfig {#init-config}
 
-Configuration passed to the FileDrop Binding's child initializer. Direct completed Block calls use `FileDrop.FileDropBlock.init()`.
+The args a parent passes when it creates an instance with `new`.
 
 | Name | Type     | Default | Description                                                                                               |
 | ---- | -------- | ------- | --------------------------------------------------------------------------------------------------------- |
@@ -43,7 +43,7 @@ Configuration passed to the FileDrop Binding's child initializer. Direct complet
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the FileDrop Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.uploader.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged; they keep the component's dispatch. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name         | Type                                       | Default | Description                                                                                                                                                                                                      |
 | ------------ | ------------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -63,9 +63,9 @@ Attribute groups provided to the `toView` callback.
 
 ### OutMessage {#out-message}
 
-The optional `outMessage` field of the update record. Handle it in the Binding’s selected `fold` policy to process arriving files.
+Facts FileDrop reports to its parent. Handle them by spreading `...uploader.on({ ... })` into the parent's update record to process arriving files; variants without a handler are ignored.
 
-| Name               | Type                                     | Default | Description                                                                                                                                                                                                                            |
-| ------------------ | ---------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ReceivedFiles`    | `{ files: NonEmptyReadonlyArray<File> }` | —       | Emitted when the user drops files on the zone or selects them via the hidden input. The files list is guaranteed non-empty. Handle it in the Binding's selected `fold` policy to process the files (validate, upload, store in Model). |
-| `RejectedNonFiles` | `{}`                                     | —       | Emitted when a drop or input-change event fires without any files, typically a drag of non-file data (text, URLs, images from another page). Consumers can ignore this or surface a hint to the user.                                  |
+| Name               | Type                                     | Default | Description                                                                                                                                                                                                              |
+| ------------------ | ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ReceivedFiles`    | `{ files: NonEmptyReadonlyArray<File> }` | —       | Emitted when the user drops files on the zone or selects them via the hidden input. The files list is guaranteed non-empty. Handle it with the instance's `.on` to process the files (validate, upload, store in Model). |
+| `RejectedNonFiles` | `{}`                                     | —       | Emitted when a drop or input-change event fires without any files, typically a drag of non-file data (text, URLs, images from another page). Consumers can ignore this or surface a hint to the user.                    |

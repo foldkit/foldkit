@@ -3,311 +3,74 @@ import { describe, expect, it } from 'vitest'
 
 import { blockNameMatchesVariable } from '../../src/rules/block-name-matches-variable.ts'
 
-const variableDeclarator = (name: string, init: unknown) => ({
-  type: 'VariableDeclarator',
-  id: Testing.id(name),
-  init,
+const blockClass = (
+  className: string,
+  blockId: unknown,
+  selfTypeName: string = className,
+) => ({
+  type: 'ClassDeclaration',
+  id: Testing.id(className),
+  superClass: {
+    type: 'CallExpression',
+    callee: {
+      type: 'CallExpression',
+      callee: Testing.id('Block'),
+      typeArguments: {
+        type: 'TSTypeParameterInstantiation',
+        params: [
+          { type: 'TSTypeReference', typeName: Testing.id(selfTypeName) },
+        ],
+      },
+      arguments: [],
+    },
+    arguments: [blockId, Testing.objectExpr([])],
+  },
+  body: { type: 'ClassBody', body: [] },
 })
 
-const callMethod = (object: unknown, methodName: string) => ({
-  type: 'CallExpression',
-  callee: {
-    type: 'MemberExpression',
-    computed: false,
-    object,
-    property: Testing.id(methodName),
-  },
-  arguments: [],
-})
+const runOnClass = (node: unknown) =>
+  Testing.runRule(blockNameMatchesVariable, 'ClassDeclaration', node)
 
 describe('block-name-matches-variable', () => {
-  it('flags a declaration identifier that does not match the Block name', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'PeopleDefinition',
-        Testing.callOfMember('Block', 'makeDefinition', [
-          Testing.strLiteral('PeopleDirectory'),
-        ]),
-      ),
+  it('allows a Block class named after its Block id', () => {
+    expect(
+      runOnClass(blockClass('Counter', Testing.strLiteral('Counter'))),
+    ).toHaveLength(0)
+  })
+
+  it('flags a Block class whose name differs from its Block id', () => {
+    const result = runOnClass(
+      blockClass('CounterBlock', Testing.strLiteral('Counter'), 'CounterBlock'),
     )
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"PeopleDefinition" must be "PeopleDirectoryDefinition"',
+      'Block class "CounterBlock" must be named "Counter"',
     )
   })
 
-  it('allows a declaration identifier that matches the Block name', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'PeopleDefinition',
-        Testing.callOfMember('Block', 'makeDefinition', [
-          Testing.strLiteral('People'),
-        ]),
-      ),
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('requires a Namespace suffix for makeNamespace', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'PeopleDefinition',
-        Testing.callOfMember('Block', 'makeNamespace', [
-          Testing.strLiteral('People'),
-        ]),
-      ),
+  it('flags a Self type that names another class', () => {
+    const result = runOnClass(
+      blockClass('Badge', Testing.strLiteral('Badge'), 'Panel'),
     )
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain(
-      '"PeopleDefinition" must be "PeopleNamespace"',
-    )
+    expect(result[0]?.diagnostic.message).toContain('Write Block<Badge, ...>()')
   })
 
-  it('allows the Block name with a Namespace suffix', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'PeopleNamespace',
-        Testing.callOfMember('Block', 'makeNamespace', [
-          Testing.strLiteral('People'),
-        ]),
-      ),
-    )
-
-    expect(result).toHaveLength(0)
+  it('ignores a dynamic Block id', () => {
+    expect(
+      runOnClass(blockClass('Dynamic', Testing.id('blockName'))),
+    ).toHaveLength(0)
   })
 
-  it('checks the outer variable of a Composition', () => {
-    const defineCall = Testing.callOfMember('Block', 'makeDefinition', [
-      Testing.strLiteral('PeopleDirectory'),
-    ])
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator('People', {
-        type: 'CallExpression',
-        callee: {
-          type: 'MemberExpression',
-          computed: false,
-          object: defineCall,
-          property: Testing.id('makeComposition'),
-        },
-        arguments: [],
-      }),
-    )
-
-    expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain(
-      '"People" must be "PeopleDirectoryComposition"',
-    )
-  })
-
-  it('allows the Block name with a Definition suffix', () => {
-    const defineCall = Testing.callOfMember('Block', 'makeDefinition', [
-      Testing.strLiteral('PeopleDirectory'),
-    ])
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator('PeopleDirectoryDefinition', defineCall),
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('allows the Block name with a Composition suffix', () => {
-    const defineCall = Testing.callOfMember('Block', 'makeDefinition', [
-      Testing.strLiteral('PeopleDirectory'),
-    ])
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator('PeopleDirectoryComposition', {
-        type: 'CallExpression',
-        callee: {
-          type: 'MemberExpression',
-          computed: false,
-          object: defineCall,
-          property: Testing.id('makeComposition'),
-        },
-        arguments: [],
-      }),
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('unwraps a Namespace-authored Definition', () => {
-    const namespace = Testing.callOfMember('Block', 'makeNamespace', [
-      Testing.strLiteral('PeopleDirectory'),
-    ])
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'PeopleDirectoryDefinition',
-        callMethod(namespace, 'makeDefinition'),
-      ),
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('unwraps a Namespace-authored Composition', () => {
-    const namespace = Testing.callOfMember('Block', 'makeNamespace', [
-      Testing.strLiteral('PeopleDirectory'),
-    ])
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'PeopleDirectoryComposition',
-        callMethod(callMethod(namespace, 'makeDefinition'), 'makeComposition'),
-      ),
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('requires ApplicationDefinition for the Application Block', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'Application',
-        Testing.callOfMember('Block', 'makeDefinition', [
-          Testing.strLiteral('Application'),
-        ]),
-      ),
-    )
-
-    expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain(
-      '"Application" must be "ApplicationDefinition"',
-    )
-  })
-
-  it('requires ApplicationComposition after inline makeComposition', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'Application',
-        callMethod(
-          Testing.callOfMember('Block', 'makeDefinition', [
-            Testing.strLiteral('Application'),
-          ]),
-          'makeComposition',
-        ),
-      ),
-    )
-
-    expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain(
-      '"Application" must be "ApplicationComposition"',
-    )
-  })
-
-  it('allows ApplicationDefinition for the Application Block', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'ApplicationDefinition',
-        Testing.callOfMember('Block', 'makeDefinition', [
-          Testing.strLiteral('Application'),
-        ]),
-      ),
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('does not give ApplicationDefinition special treatment for another Block', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'ApplicationDefinition',
-        Testing.callOfMember('Block', 'makeDefinition', [
-          Testing.strLiteral('Root'),
-        ]),
-      ),
-    )
-
-    expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain(
-      '"ApplicationDefinition" must be "RootDefinition"',
-    )
-  })
-
-  it('ignores dynamic Block names', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'People',
-        Testing.callOfMember('Block', 'makeNamespace', [
-          Testing.id('blockName'),
-        ]),
-      ),
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('ignores unrelated makeDefinition methods', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'People',
-        Testing.callOfMember('Registry', 'makeDefinition', [
-          Testing.strLiteral('PeopleDirectory'),
-        ]),
-      ),
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('ignores chains rooted in unrelated makeNamespace methods', () => {
-    const unrelatedNamespace = Testing.callOfMember(
-      'Registry',
-      'makeNamespace',
-      [Testing.strLiteral('PeopleDirectory')],
-    )
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'People',
-        callMethod(unrelatedNamespace, 'makeDefinition'),
-      ),
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('ignores unrelated makeComposition methods', () => {
-    const result = Testing.runRule(
-      blockNameMatchesVariable,
-      'VariableDeclarator',
-      variableDeclarator(
-        'People',
-        Testing.callOfMember('Registry', 'makeComposition', []),
-      ),
-    )
+  it('ignores classes that do not extend a Block declaration', () => {
+    const result = runOnClass({
+      type: 'ClassDeclaration',
+      id: Testing.id('Store'),
+      superClass: Testing.callExpr('Base', [Testing.strLiteral('Other')]),
+      body: { type: 'ClassBody', body: [] },
+    })
 
     expect(result).toHaveLength(0)
   })

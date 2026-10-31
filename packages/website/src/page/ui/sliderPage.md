@@ -4,8 +4,10 @@
 
 A numeric range input for values that sit on a continuous or stepped scale. Common uses include rating scales, volume controls, filter thresholds, and brightness settings. Follows the WAI-ARIA slider pattern with `role="slider"`, full keyboard navigation, and pointer drag.
 
+Create a `Slider.Slider` instance in the parent's constructor with `min`, `max`, and `step`, and hold it in the parent Model. The parent owns the value: it passes the value to `model.slider.view({ value, ... })` and stores each `ChangedValue` OutMessage it receives through `...slider.on({ ... })`. Provide `Slider.SliderLive` to the parent's Layer.
+
 :::Info{label="See it in an app"}
-Check out how Slider is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/slider.ts).
+Check out how Slider is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/sliderPage.ts).
 :::
 
 ## Examples
@@ -28,9 +30,9 @@ Pass `orientation: 'Vertical'` to map pointer movement along the Y axis, with `m
 
 ## Subscriptions
 
-Pointer drag needs document-level `pointermove` / `pointerup` tracking because the cursor can leave the slider element. Slider owns that tracking and an Escape-key Subscription that cancels an in-progress drag. Bind `SliderBlock` and include the Binding in the owning Composition's `bindings`; composition carries both Subscriptions into the application.
+Pointer drag needs document-level `pointermove` / `pointerup` tracking because the cursor can leave the slider element. Slider owns that tracking and an Escape-key Subscription that cancels an in-progress drag. Both run inside each Slider instance while it is in the parent Model, so the parent writes no Subscription wiring of its own.
 
-The default `Slider` uses `document` to resolve its drag target. For a Slider inside a Shadow DOM, call `Slider.forRoot(getTrackRoot)` and bind the completed Block returned by that factory. Including the Binding in the owner's `bindings` carries the named instance's Subscriptions and handler recipes automatically. Pass the same `getTrackRoot` resolver in the bound view's `viewInputs` so track presses and click-to-jump resolve the track inside that Shadow DOM too. The returned `subscriptions` registry remains available for focused Scene tests.
+The default `Slider.Slider` uses `document` to resolve its drag target. For a Slider inside a Shadow DOM, call `Slider.forRoot(getTrackRoot)` once at module scope. It returns a `Slider.SliderClass`, a Slider class with its Layer attached as `Live`. Create instances of that class and provide its `Live` instead of `Slider.SliderLive`. Pass the same `getTrackRoot` resolver to the instance's `view` so track presses and click-to-jump resolve the track inside that Shadow DOM too.
 
 ## Styling
 
@@ -92,13 +94,13 @@ The two flags are independent. Setting both emits both sets of attributes, and e
 
 ## Informing Slider about a Range Change
 
-When parent-owned configuration changes the minimum or maximum, call `SliderBinding.informRangeChanged({ min, max })`. The operation dispatches `InformedOfRangeChange` through Slider update, which keeps every child Model change inside the child. Its notification branch returns `{ model }` and emits no OutMessage.
+When parent-owned configuration changes the minimum or maximum, send the instance `Slider.Slider.Message.InformedOfRangeChange({ min, max })` from the parent's update handler. Slider's own update stores the new range, so every change to the Slider's Model stays inside the Slider. It reports no OutMessage.
 
 ## API Reference
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Slider Binding's child initializer. Direct completed Block calls use `Slider.SliderBlock.init()`.
+The args a parent passes when it creates an instance with `new`.
 
 | Name   | Type     | Default | Description                                                                                                                   |
 | ------ | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -109,11 +111,11 @@ Configuration passed to the Slider Binding's child initializer. Direct completed
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Slider Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.slider.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged; they keep the component's dispatch. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name             | Type                                          | Default        | Description                                                                                                                                                                                                                            |
 | ---------------- | --------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`          | `number`                                      | —              | The current value, read from your parent Model. The thumb position, aria-valuenow, and filled track derive from it. Fold the ChangedValue OutMessage into this field in your update.                                                   |
+| `value`          | `number`                                      | —              | The current value, read from your parent Model. The thumb position, aria-valuenow, and filled track derive from it. Store the value from the `ChangedValue` OutMessage in this field.                                                  |
 | `orientation`    | `"Horizontal" \| "Vertical"`                  | `"Horizontal"` | Layout axis for the track, filled track, and thumb. `Vertical` places `min` at the bottom and `max` at the top and maps pointer movement along the Y axis.                                                                             |
 | `thumbAlignment` | `"Center" \| "Edge"`                          | `"Center"`     | How the thumb aligns within the track. `Center` keeps the thumb's center on the value point and lets it overflow by half its size at the extremes. `Edge` insets the thumb's travel by `thumbSize` so it stays fully inside the track. |
 | `thumbSize`      | `string`                                      | `"0.75rem"`    | CSS length of the thumb along the track axis, used only with `Edge` alignment. Set it to the size your `toView` callback styles the thumb with so the fill meets the thumb's center.                                                   |
@@ -141,8 +143,8 @@ Attribute groups provided to the `toView` callback.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Parents handle the OutMessage in the Binding’s selected `fold` policy.
+Facts the component reports to its parent. Handle them by spreading the instance's `.on({ ... })` into the parent's update record. Variants without a handler are ignored.
 
-| Name           | Type                | Default | Description                                                                                                                                                                                                                       |
-| -------------- | ------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the Slider value changes via drag, click-to-jump, or keyboard navigation. Handle it in the Binding's selected `fold` policy to react, for example: persist the value, validate, or trigger a downstream Command. |
+| Name           | Type                | Default | Description                                                                                                                                                                                                         |
+| -------------- | ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the Slider value changes via drag, click-to-jump, or keyboard navigation. Handle it with the instance's `.on` to react, for example: persist the value, validate, or trigger a downstream Command. |

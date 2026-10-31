@@ -1,8 +1,22 @@
-import { Option, Schema, SchemaTransformation, Tuple, pipe } from 'effect'
+import {
+  Array,
+  Option,
+  Record,
+  Schema,
+  SchemaTransformation,
+  Tuple,
+  pipe,
+} from 'effect'
 import { Route } from 'foldkit'
 import { defineRouteUnion, literal, slash, string } from 'foldkit/route'
 
-import { GroupBy, IssueFilters, IssueStatus } from './domain'
+import {
+  GroupBy,
+  type Issue,
+  IssueFilters,
+  IssueStatus,
+  type SavedView,
+} from './domain/domain'
 
 export const defaultIssueFilters = IssueFilters.make({
   query: '',
@@ -306,3 +320,52 @@ export const withoutIssueId = (route: PageRoute) => {
 
   return pageRoute
 }
+
+type LinkContext = Readonly<{
+  route: ApplicationRoute
+  savedViews: ReadonlyArray<SavedView>
+}>
+
+export const appliedIssueFilters = ({ route, savedViews }: LinkContext) =>
+  Option.getOrElse(maybeRouteFilters(route), () => {
+    if (ApplicationRoute.guards.SavedView(route)) {
+      return Option.match(
+        Array.findFirst(savedViews, view => view.id === route.viewId),
+        {
+          onNone: () => defaultIssueFilters,
+          onSome: view => view.filters,
+        },
+      )
+    }
+
+    return defaultIssueFilters
+  })
+
+export const issueHref = (context: LinkContext, issueId: string) => {
+  const { route } = context
+
+  if (!isPageRoute(route)) {
+    return issueRouter({ issueId })
+  }
+
+  return routeToPath(
+    withIssueId(withRouteFilters(route, appliedIssueFilters(context)), issueId),
+  )
+}
+
+export const issueFiltersHref = (
+  { route }: LinkContext,
+  filters: IssueFilters,
+) =>
+  isPageRoute(route)
+    ? routeToPath(withRouteFilters(route, filters))
+    : routeToPath(route)
+
+export const issueHrefs = (
+  context: LinkContext,
+  issues: ReadonlyArray<Issue>,
+) =>
+  Record.fromIterableWith(issues, issue => [
+    issue.id,
+    issueHref(context, issue.id),
+  ])

@@ -1,94 +1,63 @@
-import { Effect, Option, Schema, Stream } from 'effect'
+import { Effect, Option, Stream } from 'effect'
 import { Dom } from 'foldkit'
 
 import { DARK_COLOR_SCHEME_QUERY } from '../colorScheme'
-import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
+import type { Model } from '../model'
 import { isSearchRoute } from '../route'
 import { NARROW_VIEWPORT_QUERY } from '../viewport'
 import {
+  type ActiveSectionDependencies,
   activeSectionChanges,
   activeSectionDependencies,
 } from './activeSection'
 
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
-  activeSectionChanges: entry(
-    'ActiveSectionChanges',
-    {
-      pageId: Schema.String,
-      sections: Schema.Array(Schema.String),
-    },
-    {
-      messages: [Message.ChangedActiveSection],
-      modelToDependencies: activeSectionDependencies,
-      handler: function* () {
-        return ({ sections }) => activeSectionChanges(sections)
-      },
-    },
-  ),
+export const viewportWidthChanges = Dom.streamFromMediaQuery({
+  query: NARROW_VIEWPORT_QUERY,
+  mapMatches: isNarrow => Message.ChangedViewportWidth({ isNarrow }),
+})
 
-  searchShortcutPresses: entry(
-    'SearchShortcutPresses',
-    { isSearchAvailable: Schema.Boolean },
-    {
-      messages: [Message.PressedSearchShortcut],
-      modelToDependencies: model => ({
-        isSearchAvailable: isSearchRoute(model.route),
-      }),
-      handler: function* () {
-        return ({ isSearchAvailable }) =>
-          Stream.when(
-            Dom.streamFromEventFilterMapPreventDefault({
-              target: document,
-              type: 'keydown',
-              filterMapEvent: event => {
-                if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-                  return Option.some(Message.PressedSearchShortcut())
-                }
-                return Option.none()
-              },
-            }),
-            Effect.sync(() => isSearchAvailable),
-          )
-      },
-    },
-  ),
+export const subscriptions = {
+  activeSectionChanges: {
+    dependencies: activeSectionDependencies,
+    stream: ({ sections }: ActiveSectionDependencies) =>
+      activeSectionChanges(sections),
+  },
 
-  systemThemeChanges: entry(
-    'SystemThemeChanges',
-    { isSystemPreference: Schema.Boolean },
-    {
-      messages: [Message.ChangedSystemTheme],
-      modelToDependencies: model => ({
-        isSystemPreference: Option.exists(
-          model.maybeThemePreference,
-          preference => preference === 'System',
-        ),
-      }),
-      handler: function* () {
-        return ({ isSystemPreference }) =>
-          Stream.when(
-            Dom.streamFromMediaQuery({
-              query: DARK_COLOR_SCHEME_QUERY,
-              mapMatches: isDark =>
-                Message.ChangedSystemTheme({
-                  theme: isDark ? 'Dark' : 'Light',
-                }),
-            }),
-            Effect.sync(() => isSystemPreference),
-          )
-      },
-    },
-  ),
+  searchShortcutPresses: {
+    dependencies: (model: Model) => isSearchRoute(model.route),
+    stream: (isSearchAvailable: boolean) =>
+      Stream.when(
+        Dom.streamFromEventFilterMapPreventDefault({
+          target: document,
+          type: 'keydown',
+          filterMapEvent: event => {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+              return Option.some(Message.PressedSearchShortcut())
+            }
+            return Option.none()
+          },
+        }),
+        Effect.sync(() => isSearchAvailable),
+      ),
+  },
 
-  viewportWidthChanges: entry('ViewportWidthChanges', {
-    messages: [Message.ChangedViewportWidth],
-    handler: function* () {
-      return () =>
+  systemThemeChanges: {
+    dependencies: (model: Model) =>
+      Option.exists(
+        model.maybeThemePreference,
+        preference => preference === 'System',
+      ),
+    stream: (isSystemPreference: boolean) =>
+      Stream.when(
         Dom.streamFromMediaQuery({
-          query: NARROW_VIEWPORT_QUERY,
-          mapMatches: isNarrow => Message.ChangedViewportWidth({ isNarrow }),
-        })
-    },
-  }),
-}))
+          query: DARK_COLOR_SCHEME_QUERY,
+          mapMatches: isDark =>
+            Message.ChangedSystemTheme({
+              theme: isDark ? 'Dark' : 'Light',
+            }),
+        }),
+        Effect.sync(() => isSystemPreference),
+      ),
+  },
+}

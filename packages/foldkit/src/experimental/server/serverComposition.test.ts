@@ -1,231 +1,189 @@
 // @vitest-environment node
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Effect, Layer, Schema, Stream } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { makeNamespace } from '../../block/define.js'
-import * as Block from '../../block/public.js'
+import { Block } from '../../blocks/block.js'
+import * as Command from '../../command/index.js'
 import { defineMessageUnion } from '../../message/index.js'
+import * as Mount from '../../mount/index.js'
 import type { Url } from '../../url/index.js'
-import { renderToString } from './server.js'
+import { FOLDKIT_APP_ATTRIBUTE, renderToString } from './server.js'
 
-const ChildNamespace = makeNamespace('ServerChild')
-const ChildModel = Schema.Struct({ title: Schema.String })
-type ChildModel = typeof ChildModel.Type
+const BUILD_ID = 'test-build-id'
+
 const ChildMessage = defineMessageUnion({
   ClickedPrepare: {},
   CompletedPrepare: {},
   CompletedObserve: {},
+  Ticked: {},
 })
-type ChildMessage = typeof ChildMessage.Type
-let constructions = 0
-let executions = 0
-const Prepare = ChildNamespace.makeCommand('Prepare', {
+
+const Prepare = Command.define('Prepare', {
   messages: [ChildMessage.CompletedPrepare],
-  handler: function* () {
-    yield* Effect.sync(() => {
-      constructions += 1
-    })
-
-    return () =>
-      Effect.sync(() => {
-        executions += 1
-        return ChildMessage.CompletedPrepare()
-      })
-  },
 })
-const Observe = ChildNamespace.makeMount('Observe', {
+
+const Observe = Mount.define('Observe', {
   messages: [ChildMessage.CompletedObserve],
-  handler: function* () {
-    yield* Effect.sync(() => {
-      constructions += 1
-    })
-
-    return () =>
-      Effect.sync(() => {
-        executions += 1
-        return ChildMessage.CompletedObserve()
-      })
-  },
 })
 
-const child = ChildNamespace.makeDefinition({
-  Model: ChildModel,
+class Child extends Block<Child, { readonly title: string }>()('Child', {
+  Model: Schema.Struct({ title: Schema.String }),
   Message: ChildMessage,
-}).makeComposition({ mounts: [Observe] })
-const childImplementation = {
-  init: (title: string) => ({ model: { title }, commands: [Prepare()] }),
-  update: child.makeUpdate({
-    CompletedObserve: model => ({ model }),
-    ClickedPrepare: model => ({ model }),
-    CompletedPrepare: model => ({ model }),
+  Command: [Prepare],
+  Mount: [Observe],
+}) {}
+
+const events: Array<string> = []
+
+const ChildLive = Child.make(
+  Effect.fn(function* (_id, { title }) {
+    yield* Effect.acquireRelease(
+      Effect.sync(() => {
+        events.push('acquired')
+      }),
+      () =>
+        Effect.sync(() => {
+          events.push('released')
+        }),
+    )
+
+    return {
+      model: { title },
+      start: [Prepare()],
+      stream: Stream.sync(() => {
+        events.push('streamed')
+        return Child.Message.Ticked()
+      }),
+      update: {
+        ClickedPrepare: model => ({ model }),
+        CompletedPrepare: model => ({ model }),
+        CompletedObserve: model => ({ model }),
+        Ticked: model => ({ model }),
+      },
+      commands: {
+        Prepare: () =>
+          Effect.sync(() => {
+            events.push('executed')
+            return Child.Message.CompletedPrepare()
+          }),
+      },
+      mounts: {
+        Observe: () =>
+          Effect.sync(() => {
+            events.push('mounted')
+            return Child.Message.CompletedObserve()
+          }),
+      },
+      view: (model, h) =>
+        h.button(
+          [h.OnMount(Observe()), h.OnClick(Child.Message.ClickedPrepare())],
+          [model.title],
+        ),
+    }
   }),
-  view: child.makeView((model, h) =>
-    h.button(
-      [h.OnMount(Observe()), h.OnClick(ChildMessage.ClickedPrepare())],
-      [model.title],
-    ),
-  ),
-  EffectsLayer: Layer.merge(Prepare.layer, Observe.layer),
-}
-const prepareChildBlock = () => child.prepareBlock(childImplementation)
-const childBlock: Block.FromAssemblyWithView<
-  typeof ChildModel,
-  typeof prepareChildBlock
-> = Block.assemble(prepareChildBlock)
-const RootModel = Schema.Struct({ title: Schema.String })
-type RootModel = typeof RootModel.Type
-const RootApplicationDefinition = Block.makeDefinition('Application', {
-  Model: RootModel,
-  Message: Schema.Never,
-})
-const PlainMessage = Schema.Never
-type PlainMessage = typeof PlainMessage.Type
-const ChildBinding = RootApplicationDefinition.makeBinding(childBlock, {
-  read: model => Option.some(model),
-  write: (_model, nextChild) => nextChild,
-})
-const RegisteredApplication = RootApplicationDefinition.makeComposition({
-  bindings: [ChildBinding],
-})
-const rootImplementation = {
-  init: RegisteredApplication.makeInit(() =>
-    ChildBinding.init({
-      args: ['Server-rendered child'],
-      toParentModel: child => child,
-    }),
-  ),
-  update: RegisteredApplication.makeUpdate({}),
-  view: RegisteredApplication.makeView((model, h) => ({
-    title: model.title,
-    body: h.div(
-      [],
-      [h.block(ChildBinding.embedView({ slotId: 'child', model }))],
-    ),
-  })),
-  EffectsLayer: Layer.empty,
-}
+)
+
+class Root extends Block<Root>()('Root', {
+  Model: Schema.Struct({ child: Child }),
+}) {}
+
+const RootLive = Root.make(
+  Effect.fn(function* () {
+    const child = yield* new Child('child', { title: 'Server-rendered child' })
+    return {
+      model: { child },
+      view: (model, h) => ({
+        title: model.child.model.title,
+        body: h.div([], [model.child.view()]),
+      }),
+    }
+  }),
+).pipe(Layer.provide(ChildLive))
 
 const ServerFlags = Schema.Struct({ title: Schema.String })
 type ServerFlags = typeof ServerFlags.Type
 
-const FlagsComposition = Block.makeDefinition('Application', {
-  Model: RootModel,
-  Message: PlainMessage,
-}).makeComposition()
-const flagsImplementation = {
-  init: (flags: ServerFlags) => ({ model: { title: flags.title } }),
-  update: FlagsComposition.makeUpdate({}),
-  view: FlagsComposition.makeView((model, h) => ({
-    title: model.title,
-    body: h.main([], [model.title]),
-  })),
-  EffectsLayer: Layer.empty,
-}
+class FlagsRoot extends Block<FlagsRoot, { readonly flags: ServerFlags }>()(
+  'FlagsRoot',
+  { Model: Schema.Struct({ title: Schema.String }) },
+) {}
 
-const RoutingComposition = Block.makeDefinition('Application', {
-  Model: RootModel,
-  Message: PlainMessage,
-}).makeComposition()
-const routingImplementation = {
-  init: (url: Url) => ({ model: { title: url.pathname } }),
-  update: RoutingComposition.makeUpdate({}),
-  view: RoutingComposition.makeView((model, h) => ({
-    title: model.title,
-    body: h.main([], [model.title]),
-  })),
-  EffectsLayer: Layer.empty,
-}
-
-const RoutingFlagsComposition = Block.makeDefinition('Application', {
-  Model: RootModel,
-  Message: PlainMessage,
-}).makeComposition()
-const routingFlagsImplementation = {
-  init: (flags: ServerFlags, url: Url) => ({
-    model: { title: `${flags.title}${url.pathname}` },
+const FlagsRootLive = FlagsRoot.make(
+  Effect.fn(function* (_id, { flags }) {
+    return {
+      model: { title: flags.title },
+      view: (model, h) => ({
+        title: model.title,
+        body: h.main([], [model.title]),
+      }),
+    }
   }),
-  update: RoutingFlagsComposition.makeUpdate({}),
-  view: RoutingFlagsComposition.makeView((model, h) => ({
-    title: model.title,
-    body: h.main([], [model.title]),
-  })),
-  EffectsLayer: Layer.empty,
-}
+)
 
-const DataComposition = Block.makeDefinition('Application', {
-  Model: RootModel,
-  Message: PlainMessage,
-}).makeComposition()
-const dataImplementation = {
-  init: () => ({ model: { title: 'data' } }),
-  update: DataComposition.makeUpdate({}),
-  EffectsLayer: Layer.empty,
-}
+class RoutingRoot extends Block<RoutingRoot, { readonly url: Url }>()(
+  'RoutingRoot',
+  { Model: Schema.Struct({ title: Schema.String }) },
+) {}
 
-const HtmlComposition = Block.makeDefinition('Application', {
-  Model: RootModel,
-  Message: PlainMessage,
-}).makeComposition()
-const htmlImplementation = {
-  init: () => ({ model: { title: 'html' } }),
-  update: HtmlComposition.makeUpdate({}),
-  view: HtmlComposition.makeView((model, h) => h.main([], [model.title])),
-  EffectsLayer: Layer.empty,
-}
+const RoutingRootLive = RoutingRoot.make(
+  Effect.fn(function* (_id, { url }) {
+    return {
+      model: { title: url.pathname },
+      view: (model, h) => ({
+        title: model.title,
+        body: h.main([], [model.title]),
+      }),
+    }
+  }),
+)
+
+class RoutingFlagsRoot extends Block<
+  RoutingFlagsRoot,
+  { readonly flags: ServerFlags; readonly url: Url }
+>()('RoutingFlagsRoot', { Model: Schema.Struct({ title: Schema.String }) }) {}
+
+const RoutingFlagsRootLive = RoutingFlagsRoot.make(
+  Effect.fn(function* (_id, { flags, url }) {
+    return {
+      model: { title: `${flags.title}${url.pathname}` },
+      view: (model, h) => ({
+        title: model.title,
+        body: h.main([], [model.title]),
+      }),
+    }
+  }),
+)
+
+class HtmlRoot extends Block<HtmlRoot>()('HtmlRoot', {
+  Model: Schema.Struct({ title: Schema.String }),
+}) {}
+
+const HtmlRootLive = HtmlRoot.make(
+  Effect.fn(function* () {
+    return {
+      model: { title: 'html' },
+      view: (model, h) => h.main([], [model.title]),
+    }
+  }),
+)
 
 const OtherFlags = Schema.Struct({ count: Schema.Number })
-type OtherFlags = typeof OtherFlags.Type
 
-const prepareRootBlock = () =>
-  RegisteredApplication.prepareBlock(rootImplementation)
-const RootBlock: Block.FromAssemblyWithView<
-  typeof RootModel,
-  typeof prepareRootBlock
-> = Block.assemble(prepareRootBlock)
-const prepareFlagsBlock = () =>
-  FlagsComposition.prepareBlock(flagsImplementation)
-const FlagsBlock: Block.FromAssemblyWithView<
-  typeof RootModel,
-  typeof prepareFlagsBlock
-> = Block.assemble(prepareFlagsBlock)
-const prepareRoutingBlock = () =>
-  RoutingComposition.prepareBlock(routingImplementation)
-const RoutingBlock: Block.FromAssemblyWithView<
-  typeof RootModel,
-  typeof prepareRoutingBlock
-> = Block.assemble(prepareRoutingBlock)
-const prepareRoutingFlagsBlock = () =>
-  RoutingFlagsComposition.prepareBlock(routingFlagsImplementation)
-const RoutingFlagsBlock: Block.FromAssemblyWithView<
-  typeof RootModel,
-  typeof prepareRoutingFlagsBlock
-> = Block.assemble(prepareRoutingFlagsBlock)
-const prepareDataBlock = () => DataComposition.prepareBlock(dataImplementation)
-const DataBlock: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof RootModel,
-  typeof prepareDataBlock
-> = Block.assemble(prepareDataBlock)
-const prepareHtmlBlock = () => HtmlComposition.prepareBlock(htmlImplementation)
-const HtmlBlock: Block.FromAssemblyWithView<
-  typeof RootModel,
-  typeof prepareHtmlBlock
-> = Block.assemble(prepareHtmlBlock)
-
-const verifyServerBlockContracts = (): void => {
-  const rootRender = renderToString(RootBlock, {}, { isHydratable: false })
+const verifyServerContracts = (): void => {
+  const rootRender = renderToString(Root, { layer: RootLive })
   const flagsRender = renderToString(
-    FlagsBlock,
-    { Flags: ServerFlags },
+    FlagsRoot,
+    { layer: FlagsRootLive, Flags: ServerFlags },
     { flags: { title: 'flags' }, isHydratable: false },
   )
   const routingRender = renderToString(
-    RoutingBlock,
-    { routing: {} },
+    RoutingRoot,
+    { layer: RoutingRootLive },
     { url: 'https://foldkit.dev/docs', isHydratable: false },
   )
   const routingFlagsRender = renderToString(
-    RoutingFlagsBlock,
-    { Flags: ServerFlags, routing: {} },
+    RoutingFlagsRoot,
+    { layer: RoutingFlagsRootLive, Flags: ServerFlags },
     {
       flags: { title: 'flags' },
       url: 'https://foldkit.dev/docs',
@@ -233,51 +191,32 @@ const verifyServerBlockContracts = (): void => {
     },
   )
 
-  const invalidDataRender = renderToString(
-    // @ts-expect-error The completed root must have a default Document view.
-    DataBlock,
-    {},
-    { isHydratable: false },
-  )
-  const invalidHtmlRender = renderToString(
-    // @ts-expect-error An embedded Html view cannot own the rendered Document.
-    HtmlBlock,
-    {},
-    { isHydratable: false },
-  )
   const invalidFlagsValueRender = renderToString(
-    FlagsBlock,
+    FlagsRoot,
+    { layer: FlagsRootLive, Flags: ServerFlags },
     // @ts-expect-error The render input must match the Flags Schema.
-    { Flags: ServerFlags },
     { flags: { title: 1 }, isHydratable: false },
   )
   const invalidFlagsSchemaRender = renderToString(
-    FlagsBlock,
-    // @ts-expect-error The host Flags Schema must match the root initializer.
-    { Flags: OtherFlags },
-    { flags: { count: 1 }, isHydratable: false },
-  )
-  const invalidRoutingRender = renderToString(
-    RootBlock,
-    // @ts-expect-error URL initialization must be accepted by the root initializer.
-    { routing: {} },
-    { url: 'https://foldkit.dev', isHydratable: false },
-  )
-  const invalidRoutingMode = renderToString(
-    RoutingBlock,
-    // @ts-expect-error Enabling URL initialization requires a routing configuration object.
-    { routing: undefined },
-    { url: 'https://foldkit.dev', isHydratable: false },
-  )
-  const duplicatedImplementation = {
-    Flags: ServerFlags,
-    init: flagsImplementation.init,
-  }
-  const invalidHostConfigRender = renderToString(
-    FlagsBlock,
-    // @ts-expect-error Host configuration cannot replace completed Block behavior.
-    duplicatedImplementation,
+    FlagsRoot,
+    // @ts-expect-error The Flags Schema must match the root constructor args.
+    { layer: FlagsRootLive, Flags: OtherFlags },
     { flags: { title: 'flags' }, isHydratable: false },
+  )
+  // @ts-expect-error A root that takes a URL requires the request URL.
+  const missingUrlRender = renderToString(RoutingRoot, {
+    layer: RoutingRootLive,
+  })
+  const unexpectedUrlRender = renderToString(
+    Root,
+    { layer: RootLive },
+    // @ts-expect-error A root that takes no URL accepts none.
+    { url: 'https://foldkit.dev', isHydratable: false },
+  )
+  const mismatchedLayerRender = renderToString(
+    Root,
+    // @ts-expect-error The Layer must provide the root Block.
+    { layer: FlagsRootLive },
   )
 
   void [
@@ -285,77 +224,96 @@ const verifyServerBlockContracts = (): void => {
     flagsRender,
     routingRender,
     routingFlagsRender,
-    invalidDataRender,
-    invalidHtmlRender,
     invalidFlagsValueRender,
     invalidFlagsSchemaRender,
-    invalidRoutingRender,
-    invalidRoutingMode,
-    invalidHostConfigRender,
+    missingUrlRender,
+    unexpectedUrlRender,
+    mismatchedLayerRender,
   ]
 }
 
-void verifyServerBlockContracts
+void verifyServerContracts
 
-describe('completed root Block server rendering', () => {
+describe('root Block server rendering', () => {
   it('rejects an erased Flags configuration before encoding', () => {
     expect(() =>
       Reflect.apply(renderToString, undefined, [
-        FlagsBlock,
-        { Flags: {} },
+        FlagsRoot,
+        { layer: FlagsRootLive, Flags: {} },
         { flags: { title: 'Invalid schema' }, isHydratable: false },
       ]),
     ).toThrow('Server Flags must be an Effect Schema')
   })
 
-  it('rejects an erased Html root before attempting Document serialization', async () => {
-    const render = Reflect.apply(renderToString, undefined, [
-      HtmlBlock,
-      {},
-      { isHydratable: false },
-    ])
-
-    await expect(Effect.runPromise(render)).rejects.toThrow(
-      'requires a Document view',
-    )
-  })
-
-  it('rejects an erased routing configuration that cannot enable URL initialization', () => {
+  it('rejects a configuration without the root Layer', () => {
     expect(() =>
       Reflect.apply(renderToString, undefined, [
-        RoutingBlock,
-        { routing: undefined },
-        { url: 'https://foldkit.dev', isHydratable: false },
+        Root,
+        {},
+        { isHydratable: false },
       ]),
-    ).toThrow('Server routing must be a configuration object')
+    ).toThrow('must include the root Block `layer`')
   })
 
-  it('renders a graphless completed Block', async () => {
+  it('constructs the root from the Flags', async () => {
     const rendered = await Effect.runPromise(
       renderToString(
-        FlagsBlock,
-        { Flags: ServerFlags },
-        { flags: { title: 'Graphless root' }, isHydratable: false },
+        FlagsRoot,
+        { layer: FlagsRootLive, Flags: ServerFlags },
+        { flags: { title: 'Flags root' }, isHydratable: false },
       ),
     )
 
-    expect(rendered.title).toBe('Graphless root')
-    expect(rendered.html).toContain('Graphless root')
+    expect(rendered.title).toBe('Flags root')
+    expect(rendered.html).toBe('<main>Flags root</main>')
   })
 
-  it('renders registered child boundaries without constructing or executing handlers', async () => {
-    const rendered = await Effect.runPromise(
+  it('constructs the root from the request URL and the Flags', async () => {
+    const routed = await Effect.runPromise(
       renderToString(
-        RootBlock,
-        {},
+        RoutingRoot,
+        { layer: RoutingRootLive },
+        { url: 'https://foldkit.dev/docs', isHydratable: false },
+      ),
+    )
+    const both = await Effect.runPromise(
+      renderToString(
+        RoutingFlagsRoot,
+        { layer: RoutingFlagsRootLive, Flags: ServerFlags },
         {
+          url: 'https://foldkit.dev/docs',
+          flags: { title: 'flags' },
           isHydratable: false,
         },
       ),
     )
+
+    expect(routed.html).toBe('<main>/docs</main>')
+    expect(both.html).toBe('<main>flags/docs</main>')
+  })
+
+  it('renders an Html root view as a Document titled with the root Block id', async () => {
+    const rendered = await Effect.runPromise(
+      renderToString(
+        HtmlRoot,
+        { layer: HtmlRootLive },
+        { isHydratable: false },
+      ),
+    )
+
+    expect(rendered.title).toBe('HtmlRoot')
+    expect(rendered.html).toBe('<main>html</main>')
+  })
+
+  it('renders child instances without running Commands, Mounts, or Streams, and releases them afterwards', async () => {
+    events.length = 0
+    const rendered = await Effect.runPromise(
+      renderToString(Root, { layer: RootLive }, { buildId: BUILD_ID }),
+    )
+
     expect(rendered.title).toBe('Server-rendered child')
+    expect(rendered.html).toContain(`${FOLDKIT_APP_ATTRIBUTE}="app"`)
     expect(rendered.html).toContain('Server-rendered child')
-    expect(constructions).toBe(0)
-    expect(executions).toBe(0)
+    expect(events).toEqual(['acquired', 'released'])
   })
 })

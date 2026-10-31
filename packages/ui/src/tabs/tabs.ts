@@ -8,16 +8,20 @@ import {
   String,
   pipe,
 } from 'effect'
-import { type Update } from 'foldkit'
-import * as Block from 'foldkit/block'
+import { Block, Command } from 'foldkit'
+import type * as BlockTypes from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
-import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
+import {
+  type ChildAttribute,
+  type Html,
+  type HtmlBuilder,
+  childAttributes,
+} from 'foldkit/html'
 import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
-import { TabsNamespace } from './definition.js'
 
 export { wrapIndex, findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 
@@ -67,8 +71,8 @@ export type Selected<Value extends string = string> = Readonly<{
   readonly index: number
 }>
 
-/** Union of OutMessages the tabs component can produce. The parent's
- *  parent bindings handle them through their OutMessage policy. */
+/** Union of OutMessages the tabs component can produce. The parent handles
+ *  them with `tabs.on(...)`. */
 export const OutMessage = defineMessageUnion({
   Selected: {
     value: Schema.String,
@@ -76,8 +80,7 @@ export const OutMessage = defineMessageUnion({
   },
 })
 
-/** The OutMessage union interface on completed Tabs, refined to its Value
- * type. */
+/** The OutMessage union on a Tabs class, refined to its Value type. */
 type OutMessageSchema<Value extends string = string> =
   typeof OutMessage extends MessageUnion<infer Cases>
     ? MessageUnion<
@@ -96,72 +99,23 @@ export type OutMessage<Value extends string = string> = Selected<Value>
 
 // INIT
 
-/** Configuration for creating a tabs model with `init`. */
+/** Constructor args for a Tabs instance. `id` prefixes the DOM ids of the
+ *  tabs and panels. Activation defaults to `Automatic`. */
 export type InitConfig = Readonly<{
   id: string
   activationMode?: ActivationMode
 }>
 
-const makeInitialModel = (config: InitConfig): Model => ({
-  id: config.id,
-  maybeFocusedIndex: Option.none(),
-  activationMode: config.activationMode ?? 'Automatic',
-})
-
-// UPDATE
+// COMMAND
 
 const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
 
-const TabsDefinition = TabsNamespace.makeDefinition({
-  Model,
-  Message,
-  OutMessage,
-})
-
-const TabsComposition = TabsDefinition.makeComposition()
-
-/** Creates an initial Tabs Model and Commands from a config. Focus follows the selected
- *  tab until the user navigates in `Manual` mode, so `maybeFocusedIndex`
- *  starts `None`. Defaults to automatic activation. */
-export const init = TabsComposition.makeInit((config: InitConfig) => ({
-  model: makeInitialModel(config),
-}))
-
 /** Moves focus to the tab at the given index. */
-export const FocusTab = TabsDefinition.makeCommand('FocusTab', {
+export const FocusTab = Command.define('FocusTab', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedFocusTab],
-  handler: function* () {
-    return ({ id, index }) =>
-      Dom.focus(idSelector(tabId(id, index))).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedFocusTab()),
-      )
-  },
-})
-
-/** Effect providers used by the Tabs component. */
-export const EffectsLayer = Layer.mergeAll(FocusTab.layer)
-
-/** Processes a Tabs Message and returns the next Model, optional Commands, and
- *  an optional OutMessage. `Selected` fires when a tab is committed via click
- *  or keyboard; the parent stores the new value and passes it back in as
- *  `selectedValue`. */
-export const update = TabsComposition.makeUpdate({
-  SelectedTab: (model, { index, value }) => ({
-    model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
-    commands: [FocusTab({ id: model.id, index })],
-    outMessage: OutMessage.Selected({ value, index }),
-  }),
-  FocusedTab: (model, { index }) => ({
-    model: modifyFields(model, {
-      maybeFocusedIndex: () => Option.some(index),
-    }),
-    commands: [FocusTab({ id: model.id, index })],
-  }),
-  CompletedFocusTab: TabsDefinition.makeNoopStep(),
 })
 
 // VIEW
@@ -201,7 +155,7 @@ export type RenderInfo<Value extends string = string> = Readonly<{
 export const PanelMount = Schema.Literals(['ActiveOnly', 'All'])
 export type PanelMount = typeof PanelMount.Type
 
-/** Per-render view inputs passed to `view` via `h.block`'s `viewInputs` field.
+/** View input a parent passes to `tabs.view(...)`.
  *  Generic over `Value extends string` so consumers using
  *  `Tabs.makeBlock<MyUnion>()` receive `tab.value: MyUnion` in `toView`
  *  and `(value: MyUnion, index) => boolean` in `isTabDisabled`, without
@@ -223,109 +177,113 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   panelMount?: PanelMount
 }>
 
-const internalView = TabsComposition.makeView.withInputs<ViewInputs>(
-  (model, viewInputs, h) => {
-    const { id, activationMode, maybeFocusedIndex } = model
-    const {
-      tabs,
-      selectedValue,
-      ariaLabel,
-      toView,
-      isTabDisabled,
-      orientation = 'Horizontal',
-      panelMount = 'ActiveOnly',
-    } = viewInputs
+const renderView = <Value extends string>(
+  model: Model,
+  viewInputs: ViewInputs<Value>,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const { id, activationMode, maybeFocusedIndex } = model
+  const {
+    tabs,
+    selectedValue,
+    ariaLabel,
+    toView,
+    isTabDisabled,
+    orientation = 'Horizontal',
+    panelMount = 'ActiveOnly',
+  } = viewInputs
 
-    const activeIndex = pipe(
+  const activeIndex = pipe(
+    tabs,
+    Array.findFirstIndex(tab => tab === selectedValue),
+    Option.getOrElse(() => 0),
+  )
+
+  const focusedIndex = pipe(
+    maybeFocusedIndex,
+    Option.filter(index => index < tabs.length),
+    Option.getOrElse(() => activeIndex),
+  )
+
+  const isDisabled = (index: number): boolean =>
+    !!isTabDisabled &&
+    pipe(
       tabs,
-      Array.findFirstIndex(tab => tab === selectedValue),
-      Option.getOrElse(() => 0),
+      Array.get(index),
+      Option.exists(tab => isTabDisabled(tab, index)),
     )
 
-    const focusedIndex = pipe(
-      maybeFocusedIndex,
-      Option.filter(index => index < tabs.length),
-      Option.getOrElse(() => activeIndex),
+  const { nextKey, previousKey } = Match.value(orientation).pipe(
+    Match.when('Horizontal', () => ({
+      nextKey: 'ArrowRight',
+      previousKey: 'ArrowLeft',
+    })),
+    Match.when('Vertical', () => ({
+      nextKey: 'ArrowDown',
+      previousKey: 'ArrowUp',
+    })),
+    Match.exhaustive,
+  )
+
+  const resolveKeyIndex = keyToIndex(
+    nextKey,
+    previousKey,
+    tabs.length,
+    focusedIndex,
+    isDisabled,
+  )
+
+  const tabSelectedAt = (index: number): Option.Option<SelectedTab> =>
+    pipe(
+      tabs,
+      Array.get(index),
+      Option.map(value => Message.SelectedTab({ index, value })),
     )
 
-    const isDisabled = (index: number): boolean =>
-      !!isTabDisabled &&
-      pipe(
-        tabs,
-        Array.get(index),
-        Option.exists(tab => isTabDisabled(tab, index)),
-      )
+  const handleAutomaticKeyDown = (key: string): Option.Option<SelectedTab> =>
+    Match.value(key).pipe(
+      Match.whenOr(
+        nextKey,
+        previousKey,
+        'Home',
+        'End',
+        'PageUp',
+        'PageDown',
+        () => tabSelectedAt(resolveKeyIndex(key)),
+      ),
+      Match.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
+      Match.orElse(() => Option.none()),
+    )
 
-    const { nextKey, previousKey } = Match.value(orientation).pipe(
-      Match.when('Horizontal', () => ({
-        nextKey: 'ArrowRight',
-        previousKey: 'ArrowLeft',
-      })),
-      Match.when('Vertical', () => ({
-        nextKey: 'ArrowDown',
-        previousKey: 'ArrowUp',
-      })),
+  const handleManualKeyDown = (
+    key: string,
+  ): Option.Option<SelectedTab | FocusedTab> =>
+    Match.value(key).pipe(
+      Match.whenOr(
+        nextKey,
+        previousKey,
+        'Home',
+        'End',
+        'PageUp',
+        'PageDown',
+        () => Option.some(Message.FocusedTab({ index: resolveKeyIndex(key) })),
+      ),
+      Match.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
+      Match.orElse(() => Option.none()),
+    )
+
+  const handleKeyDown = (
+    key: string,
+  ): Option.Option<SelectedTab | FocusedTab> =>
+    Match.value(activationMode).pipe(
+      Match.when('Automatic', () => handleAutomaticKeyDown(key)),
+      Match.when('Manual', () => handleManualKeyDown(key)),
       Match.exhaustive,
     )
 
-    const resolveKeyIndex = keyToIndex(
-      nextKey,
-      previousKey,
-      tabs.length,
-      focusedIndex,
-      isDisabled,
-    )
-
-    const tabSelectedAt = (index: number): Option.Option<SelectedTab> =>
-      pipe(
-        tabs,
-        Array.get(index),
-        Option.map(value => Message.SelectedTab({ index, value })),
-      )
-
-    const handleAutomaticKeyDown = (key: string): Option.Option<SelectedTab> =>
-      Match.value(key).pipe(
-        Match.whenOr(
-          nextKey,
-          previousKey,
-          'Home',
-          'End',
-          'PageUp',
-          'PageDown',
-          () => tabSelectedAt(resolveKeyIndex(key)),
-        ),
-        Match.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
-        Match.orElse(() => Option.none()),
-      )
-
-    const handleManualKeyDown = (
-      key: string,
-    ): Option.Option<SelectedTab | FocusedTab> =>
-      Match.value(key).pipe(
-        Match.whenOr(
-          nextKey,
-          previousKey,
-          'Home',
-          'End',
-          'PageUp',
-          'PageDown',
-          () =>
-            Option.some(Message.FocusedTab({ index: resolveKeyIndex(key) })),
-        ),
-        Match.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
-        Match.orElse(() => Option.none()),
-      )
-
-    const handleKeyDown = (
-      key: string,
-    ): Option.Option<SelectedTab | FocusedTab> =>
-      Match.value(activationMode).pipe(
-        Match.when('Automatic', () => handleAutomaticKeyDown(key)),
-        Match.when('Manual', () => handleManualKeyDown(key)),
-        Match.exhaustive,
-      )
-
-    const tabInfos: ReadonlyArray<TabInfo> = Array.map(tabs, (value, index) => {
+  const tabInfos: ReadonlyArray<TabInfo<Value>> = Array.map(
+    tabs,
+    (value, index) => {
       const isActive = index === activeIndex
       const isFocused = index === focusedIndex
       const isTabDisabledNow = isDisabled(index)
@@ -367,110 +325,115 @@ const internalView = TabsComposition.makeView.withInputs<ViewInputs>(
         tab: childAttributes(tabAttributes),
         panel: childAttributes(panelAttributes),
       }
-    })
-
-    const tablistAttributes = [
-      h.Role('tablist'),
-      h.AriaOrientation(String.toLowerCase(orientation)),
-      h.AriaLabel(ariaLabel),
-    ]
-
-    return toView({
-      tablist: childAttributes(tablistAttributes),
-      tabs: tabInfos,
-      activeIndex,
-    })
-  },
-)
-
-const prepareTabsBlock = () =>
-  TabsComposition.prepareBlock({
-    init,
-    update,
-    view: internalView,
-    EffectsLayer,
-  })
-/** Complete Tabs Block definition. */
-export const block: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepareTabsBlock
-> = Block.assemble(prepareTabsBlock)
-
-const makeBlockParts = <Value extends string>() => {
-  type GenericReturn = Update.ReturnWithOutMessage<
-    Model,
-    Message,
-    OutMessage<Value>,
-    Update.RequirementsOf<typeof update>
-  >
-
-  const castReturn = (result: ReturnType<typeof update>): GenericReturn =>
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    result as unknown as GenericReturn
-  const RefinedOutMessage =
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    OutMessage as unknown as OutMessageSchema<Value>
-  const TabsComposition = TabsNamespace.makeDefinition({
-    Model,
-    Message,
-    OutMessage: RefinedOutMessage,
-  }).makeComposition()
-  const init = TabsComposition.makeInit((config: InitConfig) => ({
-    model: makeInitialModel(config),
-  }))
-  const refinedView =
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    internalView as unknown as (
-      model: Model,
-      viewInputs: ViewInputs<Value>,
-      h: Parameters<typeof internalView>[2],
-    ) => Html
-  const refinedUpdate = TabsComposition.makeUpdate({
-    SelectedTab: (model, message) => castReturn(update(model, message)),
-    FocusedTab: (model, message) => castReturn(update(model, message)),
-    CompletedFocusTab: (model, message) => castReturn(update(model, message)),
-  })
-  const view = TabsComposition.makeView.withInputs<ViewInputs<Value>>(
-    (model, viewInputs, h) => refinedView(model, viewInputs, h),
-  )
-  return {
-    composition: TabsComposition,
-    implementation: {
-      init,
-      update: refinedUpdate,
-      view,
-      EffectsLayer,
     },
-  }
+  )
+
+  const tablistAttributes = [
+    h.Role('tablist'),
+    h.AriaOrientation(String.toLowerCase(orientation)),
+    h.AriaLabel(ariaLabel),
+  ]
+
+  return toView({
+    tablist: childAttributes(tablistAttributes),
+    tabs: tabInfos,
+    activeIndex,
+  })
 }
 
-type BlockParts<Value extends string> = ReturnType<typeof makeBlockParts<Value>>
+// BLOCK
 
-/** A completed Tabs Block refined to one Value type. */
-export interface Completed<
+type Contract<Value extends string> = Readonly<{
+  Model: typeof Model
+  Message: typeof Message
+  OutMessage: OutMessageSchema<Value>
+  Command: readonly [typeof FocusTab]
+}>
+
+/** A Tabs instance refined to one Value type. Store it in the parent Model
+ *  and render it with `tabs.view(viewInputs)`. */
+export interface Tabs<
   Value extends string = string,
-> extends Block.CompletedWithViewAndOutMessage<
-  BlockParts<Value>['composition'],
-  BlockParts<Value>['implementation']
+> extends BlockTypes.Instance<
+  Tabs<Value>,
+  Contract<Value>,
+  InitConfig,
+  ViewInputs<Value>
 > {}
 
-const assembleBlock = <Value extends string>(): Completed<Value> => {
-  const { composition, implementation } = makeBlockParts<Value>()
-
-  const prepare = () => composition.prepareBlock(implementation)
-  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
-
-  return completedBlock
-}
+/** A Tabs class refined to one Value type, with its Layer as `Live`. */
+export type TabsClass<Value extends string = string> = BlockTypes.BlockClass<
+  Tabs<Value>,
+  'Tabs',
+  InitConfig,
+  ViewInputs<Value>,
+  never,
+  Contract<Value>
+> &
+  Readonly<{ Live: Layer.Layer<Tabs<Value>> }>
 
 /**
- * Creates a completed Tabs Block refined to one Value type. Declare
- * `Tabs.makeBlock<DemoTab>()` once at module scope, then connect that Block to
- * the parent. Its view inputs and `Selected.value` share the Value type;
- * the parent Model owns the active tab.
+ * Creates a Tabs class refined to one Value type, with its Layer attached as
+ * `Live`. Declare `Tabs.makeBlock<DemoTab>()` once at module scope, create
+ * instances with `yield* new DemoTabs(id, { id })` in a parent constructor,
+ * and provide `DemoTabs.Live` to the parent's Layer. Its view input and
+ * `Selected.value` share the Value type; the parent Model owns the active tab.
  */
-export const makeBlock = <Value extends string = string>(): Completed<Value> =>
-  assembleBlock<Value>()
+export const makeBlock = <
+  Value extends string = string,
+>(): TabsClass<Value> => {
+  const contract: Contract<Value> = {
+    Model,
+    Message,
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    OutMessage: OutMessage as unknown as OutMessageSchema<Value>,
+    Command: [FocusTab],
+  }
+
+  const TabsClass = Block<Tabs<Value>, InitConfig, ViewInputs<Value>>()(
+    'Tabs',
+    contract,
+  )
+
+  const selected = (value: string, index: number): Selected<Value> =>
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    contract.OutMessage.Selected({ value: value as Value, index })
+
+  const TabsLive = TabsClass.make(
+    Effect.fn(function* (_instanceId, config) {
+      return {
+        model: {
+          id: config.id,
+          maybeFocusedIndex: Option.none(),
+          activationMode: config.activationMode ?? 'Automatic',
+        },
+        update: {
+          SelectedTab: (model, { index, value }) => ({
+            model: modifyFields(model, {
+              maybeFocusedIndex: () => Option.none(),
+            }),
+            commands: [FocusTab({ id: model.id, index })],
+            outMessage: selected(value, index),
+          }),
+          FocusedTab: (model, { index }) => ({
+            model: modifyFields(model, {
+              maybeFocusedIndex: () => Option.some(index),
+            }),
+            commands: [FocusTab({ id: model.id, index })],
+          }),
+          CompletedFocusTab: model => ({ model }),
+        },
+        commands: {
+          FocusTab: ({ id, index }) =>
+            Dom.focus(idSelector(tabId(id, index))).pipe(
+              Effect.ignore,
+              Effect.as(Message.CompletedFocusTab()),
+            ),
+        },
+        view: (model, h, viewInputs) => renderView(model, viewInputs, h),
+      }
+    }),
+  )
+
+  return Object.assign(TabsClass, { Live: TabsLive })
+}

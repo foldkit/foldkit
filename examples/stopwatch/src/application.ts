@@ -2,16 +2,16 @@ import {
   Clock,
   Duration,
   Effect,
-  Layer,
   Schema,
   Stream,
   String,
   flow,
   pipe,
 } from 'effect'
-import { Block } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Block, Command } from 'foldkit'
+import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
@@ -34,113 +34,104 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const DetermineStartTime = Command.define('DetermineStartTime', {
+  args: { elapsedMs: Schema.Number },
+  messages: [Message.CompletedDetermineStartTime],
+})
+
+export const DetermineTickTime = Command.define('DetermineTickTime', {
+  args: { startTime: Schema.Number },
+  messages: [Message.CompletedDetermineTickTime],
+})
+
+export class Application extends Block<Application>()('Application', {
   Model,
   Message,
-})
+  Command: [DetermineStartTime, DetermineTickTime],
+}) {}
 
-const { makeFieldsStep, makeCommandsStep } = ApplicationDefinition
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const clock = yield* Clock.Clock
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
-type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
->
+    return {
+      model: {
+        elapsedMs: 0,
+        isRunning: false,
+        startTime: 0,
+      },
 
-export const DetermineStartTime = ApplicationDefinition.makeCommand(
-  'DetermineStartTime',
-  {
-    args: { elapsedMs: Schema.Number },
-    messages: [Message.CompletedDetermineStartTime],
-    handler: function* () {
-      const clock = yield* Clock.Clock
+      update: {
+        ClickedStart: model => ({
+          model,
+          commands: [DetermineStartTime({ elapsedMs: model.elapsedMs })],
+        }),
 
-      return ({ elapsedMs }) =>
-        Effect.gen(function* () {
-          const now = yield* clock.currentTimeMillis
+        CompletedDetermineStartTime: (model, { startTime }) => ({
+          model: modifyFields(model, {
+            isRunning: () => true,
+            startTime: () => startTime,
+          }),
+        }),
 
-          return Message.CompletedDetermineStartTime({
-            startTime: now - elapsedMs,
-          })
-        })
-    },
-  },
-)
+        ClickedStop: model => ({
+          model: modifyFields(model, { isRunning: () => false }),
+        }),
 
-export const DetermineTickTime = ApplicationDefinition.makeCommand(
-  'DetermineTickTime',
-  {
-    args: { startTime: Schema.Number },
-    messages: [Message.CompletedDetermineTickTime],
-    handler: function* () {
-      const clock = yield* Clock.Clock
+        ClickedReset: model => ({
+          model: modifyFields(model, {
+            elapsedMs: () => 0,
+            isRunning: () => false,
+            startTime: () => 0,
+          }),
+        }),
 
-      return ({ startTime }) =>
-        Effect.gen(function* () {
-          const now = yield* clock.currentTimeMillis
+        Ticked: model => ({
+          model,
+          commands: [DetermineTickTime({ startTime: model.startTime })],
+        }),
 
-          return Message.CompletedDetermineTickTime({
-            elapsedMs: now - startTime,
-          })
-        })
-    },
-  },
-)
+        CompletedDetermineTickTime: (model, { elapsedMs }) => ({
+          model: modifyFields(model, { elapsedMs: () => elapsedMs }),
+        }),
+      },
 
-export const update = ApplicationComposition.makeUpdate({
-  ClickedStart: makeCommandsStep(model => [
-    DetermineStartTime({ elapsedMs: model.elapsedMs }),
-  ]),
+      commands: {
+        DetermineStartTime: ({ elapsedMs }) =>
+          Effect.gen(function* () {
+            const now = yield* clock.currentTimeMillis
 
-  CompletedDetermineStartTime: makeFieldsStep.fromMessage(({ startTime }) => ({
-    isRunning: () => true,
-    startTime: () => startTime,
-  })),
+            return Message.CompletedDetermineStartTime({
+              startTime: now - elapsedMs,
+            })
+          }),
 
-  ClickedStop: makeFieldsStep(() => ({
-    isRunning: () => false,
-  })),
+        DetermineTickTime: ({ startTime }) =>
+          Effect.gen(function* () {
+            const now = yield* clock.currentTimeMillis
 
-  ClickedReset: makeFieldsStep(() => ({
-    elapsedMs: () => 0,
-    isRunning: () => false,
-    startTime: () => 0,
-  })),
+            return Message.CompletedDetermineTickTime({
+              elapsedMs: now - startTime,
+            })
+          }),
+      },
 
-  Ticked: makeCommandsStep(model => [
-    DetermineTickTime({ startTime: model.startTime }),
-  ]),
+      subscriptions: {
+        stopwatchTicks: {
+          dependencies: model => model.isRunning,
+          stream: (isRunning: boolean) =>
+            isRunning
+              ? Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+                  Stream.drop(1),
+                  Stream.as(Message.Ticked()),
+                )
+              : Stream.empty,
+        },
+      },
 
-  CompletedDetermineTickTime: makeFieldsStep.fromMessage(({ elapsedMs }) => ({
-    elapsedMs: () => elapsedMs,
-  })),
-})
-
-export const init = ApplicationComposition.makeInit(() => ({
-  model: {
-    elapsedMs: 0,
-    isRunning: false,
-    startTime: 0,
-  },
-}))
-
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
-  stopwatchTicks: entry('StopwatchTicks', {
-    messages: [Message.Ticked],
-    when: model => model.isRunning,
-    handler: function* () {
-      return () =>
-        Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-          Stream.drop(1),
-          Stream.map(Message.Ticked),
-        )
-    },
+      view,
+    }
   }),
-}))
-
-export const EffectsLayer = Layer.mergeAll(
-  DetermineStartTime.layer,
-  DetermineTickTime.layer,
-  subscriptions.layer,
 )
 
 const formatTime = (ms: number): string => {
@@ -164,7 +155,7 @@ const formatTime = (ms: number): string => {
 
 const floorAndPad = flow(Math.floor, v => v.toString(), String.padStart(2, '0'))
 
-export const view = ApplicationComposition.makeView((model, h) => ({
+const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: `Stopwatch ${formatTime(model.elapsedMs)}`,
   body: h.div(
     [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],
@@ -200,12 +191,9 @@ export const view = ApplicationComposition.makeView((model, h) => ({
       ),
     ],
   ),
-}))
+})
 
-const startStopButton = (
-  isRunning: boolean,
-  h: ApplicationViewBuilder,
-): Html =>
+const startStopButton = (isRunning: boolean, h: HtmlBuilder<Message>): Html =>
   isRunning
     ? Button.view(
         {
@@ -240,16 +228,3 @@ const startStopButton = (
 
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)

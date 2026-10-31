@@ -1,6 +1,7 @@
 import { Duration, Effect, Schema, Stream } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
 const TICK_INTERVAL_MS = 1000
 
@@ -17,58 +18,57 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const CounterDefinition = Block.makeDefinition('Counter', { Model, Message })
+export class Application extends Block<Application>()('Application', {
+  Model,
+  Message,
+}) {}
 
-const { makeFieldsStep } = CounterDefinition
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: { count: 0, isAutoCounting: false },
 
-const CounterComposition = CounterDefinition.makeComposition()
-
-const subscriptions = CounterDefinition.makeSubscriptions(entry => ({
-  gameClockTicks: entry(
-    'GameClockTicks',
-    { isAutoCounting: Schema.Boolean },
-    {
-      messages: [Message.Ticked],
-      modelToDependencies: model => ({
-        isAutoCounting: model.isAutoCounting,
-      }),
-      handler: function* () {
-        return ({ isAutoCounting }) =>
-          Stream.when(
-            Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-              Stream.drop(1),
-              Stream.map(Message.Ticked),
-            ),
-            Effect.sync(() => isAutoCounting),
-          )
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
+        ClickedToggleAutoCount: model => ({
+          model: modifyFields(model, {
+            isAutoCounting: isAutoCounting => !isAutoCounting,
+          }),
+        }),
+        Ticked: model => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
       },
-    },
-  ),
-}))
 
-const update = CounterComposition.makeUpdate({
-  ClickedIncrement: makeFieldsStep(() => ({
-    count: count => count + 1,
-  })),
-  ClickedToggleAutoCount: makeFieldsStep(() => ({
-    isAutoCounting: isAutoCounting => !isAutoCounting,
-  })),
-  Ticked: makeFieldsStep(() => ({
-    count: count => count + 1,
-  })),
-})
+      subscriptions: {
+        ticks: {
+          dependencies: model => model.isAutoCounting,
+          stream: (isAutoCounting: boolean) =>
+            isAutoCounting
+              ? Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+                  Stream.drop(1),
+                  Stream.map(Message.Ticked),
+                )
+              : Stream.empty,
+        },
+      },
 
-const view = CounterComposition.makeView((model, h) => ({
-  title: `Count: ${model.count}`,
-  body: h.div(
-    [],
-    [
-      h.p([], [`Count: ${model.count}`]),
-      h.button([h.OnClick(Message.ClickedIncrement())], ['Increment']),
-      h.button(
-        [h.OnClick(Message.ClickedToggleAutoCount())],
-        [model.isAutoCounting ? 'Stop' : 'Auto-Count'],
-      ),
-    ],
-  ),
-}))
+      view: (model, h) => ({
+        title: `Count: ${model.count}`,
+        body: h.div(
+          [],
+          [
+            h.p([], [`Count: ${model.count}`]),
+            h.button([h.OnClick(Message.ClickedIncrement())], ['Increment']),
+            h.button(
+              [h.OnClick(Message.ClickedToggleAutoCount())],
+              [model.isAutoCounting ? 'Stop' : 'Auto-Count'],
+            ),
+          ],
+        ),
+      }),
+    }
+  }),
+)

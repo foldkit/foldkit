@@ -124,9 +124,9 @@ const render = async (origin: string): Promise<string> => {
   return response.text()
 }
 
-describe('Block Definition declarations under the SSR dev server', () => {
+describe('Block declarations under the SSR dev server', () => {
   it(
-    'reevaluates a split Block Definition when HMR is disabled',
+    'reevaluates a module that declares a Block class when HMR is disabled',
     async () => {
       const root = copyFixtureToTemporaryRoot()
       const devServer = await startServer(root, { hmr: false })
@@ -151,7 +151,7 @@ describe('Block Definition declarations under the SSR dev server', () => {
   )
 
   it(
-    'renders after an edit to a module that declares against a Block Definition it imports',
+    'renders after an edit to a module that declares a Block class from Schemas it imports',
     async () => {
       const root = copyFixtureToTemporaryRoot()
       const devServer = await startServer(root)
@@ -174,7 +174,7 @@ describe('Block Definition declarations under the SSR dev server', () => {
   )
 
   it(
-    'renders after an edit that moves a declaration into a module the edited module imports',
+    'renders after an edit that moves a Command declaration into a module the edited module imports',
     async () => {
       const root = copyFixtureToTemporaryRoot()
       const devServer = await startServer(root)
@@ -189,28 +189,6 @@ describe('Block Definition declarations under the SSR dev server', () => {
       )
 
       expect(await render(devServer.origin)).toBe('revision 2')
-    },
-    DEV_SERVER_TEST_TIMEOUT_MS,
-  )
-
-  it(
-    'rejects an edit that declares one name twice',
-    async () => {
-      const root = copyFixtureToTemporaryRoot()
-      const devServer = await startServer(root)
-
-      expect(await render(devServer.origin)).toBe('revision 1')
-
-      await editFile(
-        root,
-        devServer,
-        'declarations.ts',
-        fixtureSource(root, 'declarations.duplicate.ts'),
-      )
-
-      expect(await render(devServer.origin)).toContain(
-        String.raw`Block \"Application\" declares Command \"LoadPreferences\" more than once.`,
-      )
     },
     DEV_SERVER_TEST_TIMEOUT_MS,
   )

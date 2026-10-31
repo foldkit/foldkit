@@ -1,23 +1,23 @@
-import { Schema } from 'effect'
+import { Effect, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
-const Model = Schema.Struct({
-  count: Schema.Number,
-})
-type Model = typeof Model.Type
+export class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({ count: Schema.Number }),
+  Message: defineMessageUnion({ ClickedIncrement: {} }),
+}) {}
 
-const Message = defineMessageUnion({
-  ClickedIncrement: {},
-  ClickedDecrement: {},
-})
-type Message = typeof Message.Type
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: { count: 0 },
 
-const ApplicationComposition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-}).makeComposition()
-
-const init = ApplicationComposition.makeInit(() => ({
-  model: { count: 0 },
-}))
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: Number.increment }),
+        }),
+      },
+    }
+  }),
+)

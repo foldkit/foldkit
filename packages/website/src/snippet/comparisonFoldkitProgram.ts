@@ -1,55 +1,77 @@
-// src/init.ts
-
-import { ApplicationComposition } from './composition'
-
-export const init = ApplicationComposition.makeInit((flags: Flags) => ({
-  model: {
-    grid: Option.match(flags.maybeSavedCanvas, {
-      onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
-      onSome: ({ grid }) => grid,
-    }),
-    undoStack: [],
-    redoStack: [],
-    tool: 'Brush',
-    mirrorMode: 'None',
-    isDrawing: false,
-    maybeHoveredCell: Option.none(),
-    // remaining fields elided for brevity
-  },
-}))
-
 // src/application.ts
 
+import { Effect, Option } from 'effect'
 import { Block } from 'foldkit'
 
-import { ApplicationComposition } from './composition'
-import { init } from './init'
-import type { Model } from './model'
-import { update } from './update'
-import { view } from './view'
+// Flags, Model, Message, SaveCanvas, ExportPng, and view are declared above
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export class Application extends Block<
+  Application,
+  Readonly<{ flags: Flags }>
+>()('Application', {
+  Model,
+  Message,
+  Command: [SaveCanvas, ExportPng],
+}) {}
+
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    return {
+      model: {
+        grid: Option.match(flags.maybeSavedCanvas, {
+          onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
+          onSome: savedCanvas => savedCanvas.grid,
+        }),
+        undoStack: [],
+        redoStack: [],
+        tool: 'Brush',
+        mirrorMode: 'None',
+        isDrawing: false,
+        maybeHoveredCell: Option.none(),
+        // remaining fields elided for brevity
+      },
+      update: {
+        // one handler per Message
+      },
+      commands: {
+        // one handler per Command
+      },
+      view,
+    }
+  }),
+)
 
 // src/entry.ts
 
+import { Effect, Layer } from 'effect'
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './application'
-import { Flags, flags } from './flags'
+import { Dialog } from '@foldkit/ui'
 
-const program = Program.make({
-  block: ApplicationBlock,
+import { Application, ApplicationLive, Flags, flags } from './application'
+import { ApplicationLayer } from './services'
+import {
+  GridSizeRadioGroup,
+  PaletteRadioGroup,
+  ThemeListbox,
+  ToolRadioGroup,
+} from './toolbar'
+
+const program = Program.make(Application, {
+  layer: ApplicationLive.pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        Dialog.DialogLive,
+        ThemeListbox.Live,
+        ToolRadioGroup.Live,
+        GridSizeRadioGroup.Live,
+        PaletteRadioGroup.Live,
+      ),
+    ),
+    Layer.provide(ApplicationLayer),
+  ),
   Flags,
   container: document.getElementById('root'),
 })
 
-Runtime.run(program, { flags })
+Runtime.run(program, { flags: flags.pipe(Effect.provide(ApplicationLayer)) })

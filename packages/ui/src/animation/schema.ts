@@ -55,18 +55,12 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-// INIT
+// ARGS
 
-/** Configuration for creating an animation model with `init`. */
-export type InitConfig = Readonly<{
-  id: string
+/** Constructor args for an Animation instance. `id` is the DOM id of the
+ *  animated element and defaults to the instance id. `isShowing` defaults to
+ *  `false`. */
+export type AnimationArgs = Readonly<{
+  id?: string
   isShowing?: boolean
 }>
-
-/** @internal Creates the initial Animation Model before Composition authoring. */
-export const makeInitialModel = (config: InitConfig): Model => ({
-  id: config.id,
-  isShowing: config.isShowing ?? false,
-  transitionState: 'Idle',
-  transitionGeneration: 0,
-})

@@ -1,12 +1,25 @@
+// ❌ Don't do this in update
+import { Effect, Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Message } from './message'
-import type { Model } from './model'
+export class Search extends Block<Search>()('Search', {
+  Model: Schema.Struct({ dialogState: Schema.Literals(['Open', 'Closed']) }),
+  Message: defineMessageUnion({ OpenedDialog: {} }),
+}) {}
 
-// ❌ Don't do this in update
-const update = ApplicationComposition.makeUpdate({
-  OpenedDialog: model => {
-    document.querySelector<HTMLInputElement>('#search-input')?.focus()
-    return { model: modifyFields(model, { dialogState: () => 'Open' }) }
-  },
-})
+export const SearchLive = Search.make(
+  Effect.fn(function* () {
+    return {
+      model: { dialogState: 'Closed' },
+
+      update: {
+        OpenedDialog: model => {
+          document.querySelector<HTMLInputElement>('#search-input')?.focus()
+          return { model: modifyFields(model, { dialogState: () => 'Open' }) }
+        },
+      },
+    }
+  }),
+)

@@ -1,10 +1,7 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Effect, Match, Option, Schema, Tuple } from 'effect'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
-import type { ChildAttribute, Html } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
+import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
+import { modifyFields } from 'foldkit/struct'
 
 import { Calendar as UiCalendar } from '@foldkit/ui'
 import type {
@@ -15,101 +12,28 @@ import type {
   YearsModeAttributes as UiCalendarYearsModeAttributes,
 } from '@foldkit/ui/calendar'
 
-// Add a field to your Model for the Calendar Block, plus a field the
-// parent owns for the selected date. The calendar no longer stores the
-// selection; the parent holds it and passes it back in as `maybeSelectedDate`.
-const Model = Schema.Struct({
-  calendarDemo: UiCalendar.CalendarBlock.Model,
-  maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
-  // ...your other fields
-})
-type Model = typeof Model.Type
-// Fetch `today` once at the app boundary via flags so init stays pure:
-const Flags = Schema.Struct({
-  today: Calendar.CalendarDate,
-  // ...your other flags
-})
-type Flags = typeof Flags.Type
-
-const flags = Effect.gen(function* () {
+// Read `today` once at the app boundary, for example through Flags, and pass
+// it in as constructor args so the constructor stays pure
+export const flags = Effect.gen(function* () {
   const today = yield* Calendar.today.local
-  return { today /* ...your other flags */ }
+  return { today }
 })
 
-// This excerpt has no parent-owned facts. The Composition derives Calendar
-// delivery from the Binding.
-const Message = defineMessageUnion({})
-type Message = typeof Message.Type
+type CalendarExampleArgs = Readonly<{ today: Calendar.CalendarDate }>
 
-const CalendarExampleDefinition = Block.makeDefinition('CalendarExample', {
-  Model,
-  Message,
-  ChildInitContext: Flags,
-})
+// The parent owns the selected date and passes it back in as
+// `maybeSelectedDate`
+export class CalendarExample extends Block<
+  CalendarExample,
+  CalendarExampleArgs
+>()('CalendarExample', {
+  Model: Schema.Struct({
+    calendarDemo: UiCalendar.Calendar,
+    maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
+  }),
+}) {}
 
-const { makeFieldsStep, makeNoopStep } = CalendarExampleDefinition
-
-// At module scope, fold the OutMessage into your own Model. When the user
-// commits a date (click, Enter, or Space) it carries `SelectedDate({ date })`.
-// `ChangedViewMonth` fires when navigation shifts the visible month without
-// selecting a date. Each arm returns an Update.Step over the parent Model,
-// which already has the next Calendar Model written back. The parent
-// Definition checks every named variant and infers the parent Step:
-const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
-  UiCalendar.CalendarBlock,
-  {
-    // The child has emitted `SelectedDate`. This is where the parent lifts
-    // the committed date into its own field. That field is then passed back
-    // to the calendar as `maybeSelectedDate`, so the parent stays the single
-    // source of truth for the selection.
-    SelectedDate: ({ date }) =>
-      makeFieldsStep(() => ({
-        maybeSelectedDate: () => Option.some(date),
-      })),
-    // The child has emitted `ChangedViewMonth`. In this arm the parent can
-    // update its own state or dispatch its own Commands, for example
-    // prefetch month data, fire analytics, or trigger a downstream Command.
-    ChangedViewMonth: makeNoopStep,
-  },
-)
-
-// The Binding wires the completed child Block into the parent: it delegates navigation,
-// focus, and picker-mode transitions to UiCalendar.CalendarBlock.update, writes the next
-// Calendar Model back, routes generated delivery and Command results,
-// and hands any OutMessage to the OutMessage fold.
-const CalendarBinding = CalendarExampleDefinition.makeBinding(
-  UiCalendar.CalendarBlock,
-  {
-    field: 'calendarDemo',
-    init: {
-      contextToArgs: flags =>
-        Tuple.make({
-          id: 'calendar-demo',
-          today: flags.today,
-          initialViewDate: flags.today,
-        }),
-    },
-  },
-).withOutMessagePolicy({ fold: foldCalendarOutMessage })
-
-const CalendarExampleComposition = CalendarExampleDefinition.makeComposition({
-  bindings: [CalendarBinding],
-})
-type CalendarExampleViewBuilder = Block.ViewBuilderFor<
-  typeof CalendarExampleComposition
->
-
-// Pass the flags-resolved date through the child init context. `initialViewDate`
-// seeds the month the calendar opens onto. The parent owns the selection.
-const init = CalendarExampleComposition.makeInit((flags: Flags) => ({
-  childInitContext: flags,
-  model: {
-    maybeSelectedDate: Option.none(),
-    // ...your other fields
-  },
-}))
-
-const update = CalendarExampleComposition.makeUpdate({})
+type CalendarExampleViewBuilder = HtmlBuilder<never>
 
 // Class names live at module scope, and each view mode gets its own view
 // function below.
@@ -283,28 +207,49 @@ const yearsView = (
     ],
   )
 
-// Inside your view function, render the calendar. The `toView` callback
-// receives a discriminated `CalendarAttributes` whose variant matches the
-// calendar's current `viewMode`, so the match hands each grid to its own view
-// function:
-const view = CalendarExampleComposition.makeView((model, h) => {
-  const calendarView = Match.type<UiCalendarCalendarAttributes>().pipe(
-    Match.tagsExhaustive({
-      Days: days => daysView(days, h),
-      Months: months => monthsView(months, h),
-      Years: years => yearsView(years, h),
-    }),
-  )
+export const CalendarExampleLive = CalendarExample.make(
+  Effect.fn(function* (_id, { today }) {
+    // `initialViewDate` seeds the month the calendar opens onto
+    const calendarDemo = yield* new UiCalendar.Calendar('calendarDemo', {
+      id: 'calendar-demo',
+      today,
+      initialViewDate: today,
+    })
 
-  return h.block(
-    CalendarBinding.embedView({
-      slotId: model.calendarDemo.id,
-      model: model.calendarDemo,
-      viewInputs: {
-        // The parent-owned selection. The selected-day marker derives from it.
-        maybeSelectedDate: model.maybeSelectedDate,
-        toView: calendarView,
+    return {
+      model: { calendarDemo, maybeSelectedDate: Option.none() },
+
+      update: {
+        // `SelectedDate` fires when the user commits a date with a click,
+        // Enter, or Space. `ChangedViewMonth` fires when navigation shifts the
+        // visible month without selecting a date.
+        ...calendarDemo.on({
+          SelectedDate: (model, { date }) => ({
+            model: modifyFields(model, {
+              maybeSelectedDate: () => Option.some(date),
+            }),
+          }),
+        }),
       },
-    }),
-  )
-})
+
+      // `toView` receives a discriminated `CalendarAttributes` whose variant
+      // matches the calendar's current `viewMode`, so the match hands each
+      // grid to its own view function
+      view: (model, h) => {
+        const calendarView = Match.type<UiCalendarCalendarAttributes>().pipe(
+          Match.tagsExhaustive({
+            Days: days => daysView(days, h),
+            Months: months => monthsView(months, h),
+            Years: years => yearsView(years, h),
+          }),
+        )
+
+        return model.calendarDemo.view({
+          // The parent-owned selection. The selected-day marker derives from it.
+          maybeSelectedDate: model.maybeSelectedDate,
+          toView: calendarView,
+        })
+      },
+    }
+  }),
+).pipe(Layer.provide(UiCalendar.CalendarLive))

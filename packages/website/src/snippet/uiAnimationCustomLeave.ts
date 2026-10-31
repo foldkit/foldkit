@@ -1,47 +1,63 @@
-// Pseudocode walkthrough of a custom leave Command. Fit it into the
-// foldAnimationOutMessage from the basic example.
-import { Effect, Schema } from 'effect'
-import { Block } from 'foldkit'
+import { Effect, Layer, Schema } from 'effect'
+import { Block, Command } from 'foldkit'
 import * as Dom from 'foldkit/dom'
+import { defineMessageUnion } from 'foldkit/message'
 
 import { Animation } from '@foldkit/ui'
 
-const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
-  Model,
-  Message,
+const Message = defineMessageUnion({
+  CompletedWaitForPanelSettled: { generation: Schema.Number },
 })
 
-const { makeCommandsStep, makeNoopStep } = AnimationExampleDefinition
+// The Command carries the generation of the leave that started it, so
+// Animation can tell this leave's settlement apart from a late result left
+// over from an earlier enter
+const WaitForPanelSettled = Command.define('WaitForPanelSettled', {
+  args: { generation: Schema.Number },
+  messages: [Message.CompletedWaitForPanelSettled],
+})
 
-// The leave Command returns Animation's own EndedAnimation Message. It takes
-// the generation of the leave that started it and puts that generation on the
-// result, so Animation can tell this leave's settlement apart from a late
-// result left over from an earlier enter. This one waits on a child panel
-// instead of the Animation wrapper:
-const WaitForPanelSettled = AnimationExampleDefinition.makeCommand(
-  'WaitForPanelSettled',
-  {
-    args: { generation: Schema.Number },
-    messages: [Animation.AnimationBlock.Message.EndedAnimation],
-    handler: function* () {
-      return ({ generation }) =>
-        Dom.waitForAnimationSettled('#drawer-panel').pipe(
-          Effect.as(
-            Animation.AnimationBlock.Message.EndedAnimation({ generation }),
+export class Drawer extends Block<Drawer>()('Drawer', {
+  Model: Schema.Struct({ animation: Animation.Animation }),
+  Message,
+  Command: [WaitForPanelSettled],
+}) {}
+
+export const DrawerLive = Drawer.make(
+  Effect.fn(function* () {
+    const animation = yield* new Animation.Animation('animation', {
+      id: 'drawer',
+    })
+
+    return {
+      model: { animation },
+
+      update: {
+        // When the panel settles, tell Animation that this leave finished
+        CompletedWaitForPanelSettled: (model, { generation }) => ({
+          model,
+          messages: [
+            model.animation.send(
+              Animation.Animation.Message.RequestedFinish({ generation }),
+            ),
+          ],
+        }),
+
+        // Wait on a child panel instead of the Animation wrapper
+        ...animation.on({
+          StartedLeaveAnimating: (model, { generation }) => ({
+            model,
+            commands: [WaitForPanelSettled({ generation })],
+          }),
+        }),
+      },
+
+      commands: {
+        WaitForPanelSettled: ({ generation }) =>
+          Dom.waitForAnimationSettled('#drawer-panel').pipe(
+            Effect.as(Message.CompletedWaitForPanelSettled({ generation })),
           ),
-        )
-    },
-  },
-)
-
-// StartedLeaveAnimating carries the generation. Pass it straight to the Command:
-const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
-  Animation.AnimationBlock,
-  {
-    StartedLeaveAnimating: ({ generation }, { liftCommand }) =>
-      makeCommandsStep(() => [
-        liftCommand(WaitForPanelSettled({ generation })),
-      ]),
-    TransitionedOut: makeNoopStep,
-  },
-)
+      },
+    }
+  }),
+).pipe(Layer.provide(Animation.AnimationLive))

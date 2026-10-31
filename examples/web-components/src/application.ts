@@ -1,8 +1,9 @@
 import { clsx } from 'clsx'
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block, CustomElement } from 'foldkit'
-import { Html } from 'foldkit/html'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 import 'vanilla-colorful/hex-color-picker.js'
 
 import { Button, Input } from '@foldkit/ui'
@@ -22,41 +23,42 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export class Application extends Block<Application>()('Application', {
   Model,
   Message,
-})
+}) {}
 
-const { makeFieldsStep } = ApplicationDefinition
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: {
+        content: DEFAULT_CONTENT,
+        fillColor: DEFAULT_FILL_COLOR,
+        backgroundColor: DEFAULT_BACKGROUND_COLOR,
+      },
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
-type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
->
+      update: {
+        UpdatedContent: (model, { value }) => ({
+          model: modifyFields(model, { content: () => value }),
+        }),
+        ChangedFillColor: (model, { value }) => ({
+          model: modifyFields(model, { fillColor: () => value }),
+        }),
+        ChangedBackgroundColor: (model, { value }) => ({
+          model: modifyFields(model, { backgroundColor: () => value }),
+        }),
+      },
+
+      view,
+    }
+  }),
+)
+
+type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const DEFAULT_CONTENT = 'https://foldkit.dev'
 const DEFAULT_FILL_COLOR = '#1e1b4b'
 const DEFAULT_BACKGROUND_COLOR = '#fef3c7'
-
-export const init = ApplicationComposition.makeInit(() => ({
-  model: {
-    content: DEFAULT_CONTENT,
-    fillColor: DEFAULT_FILL_COLOR,
-    backgroundColor: DEFAULT_BACKGROUND_COLOR,
-  },
-}))
-
-export const update = ApplicationComposition.makeUpdate({
-  UpdatedContent: makeFieldsStep.fromMessage(({ value }) => ({
-    content: () => value,
-  })),
-  ChangedFillColor: makeFieldsStep.fromMessage(({ value }) => ({
-    fillColor: () => value,
-  })),
-  ChangedBackgroundColor: makeFieldsStep.fromMessage(({ value }) => ({
-    backgroundColor: () => value,
-  })),
-})
 
 // WEB COMPONENT
 
@@ -83,7 +85,7 @@ const qrCode = CustomElement.define({
   events: {},
 })
 
-export const view = ApplicationComposition.makeView((model, h) => ({
+const view = (model: Model, h: ApplicationViewBuilder) => ({
   title: 'Foldkit QR Designer',
   body: h.div(
     [
@@ -98,7 +100,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
       ),
     ],
   ),
-}))
+})
 
 const codeView = (text: string, h: ApplicationViewBuilder): Html =>
   h.code([h.Class('px-1 py-0.5 rounded bg-slate-200 text-[0.8em]')], [text])
@@ -321,14 +323,3 @@ const previewView = (model: Model, h: ApplicationViewBuilder): Html => {
     ],
   )
 }
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)

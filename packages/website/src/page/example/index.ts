@@ -1,1 +1,1 @@
-export { ExampleDetailBlock } from './block'
+export { ExampleDetail, ExampleDetailLive } from './block'

@@ -12,9 +12,9 @@ import {
 import {
   InvocationIdentityTypeId,
   InvocationNameTypeId,
+  type ValidateConstructionRequirements,
   registerIdentity,
-} from '../block/identity.js'
-import type { ValidateConstructionRequirements } from '../block/scope.js'
+} from '../definitionIdentity.js'
 import { CommandDefinitionTypeId, brandAsDefinition } from './brand.js'
 import { type Handler, type ToLayer, makeHandler } from './handler.js'
 import * as Interruptible from './interruptible/index.js'
@@ -218,7 +218,7 @@ type HandlerArgs<Fields extends Schema.Struct.Fields> = Schema.Struct.Type<
  * Interruption is for one-shot async work that is structurally a Command (an
  * in-flight HTTP request, a file read, an upload), fired once and normally left
  * to finish, where stopping it is the exception. Work whose lifetime is derived
- * from the Model belongs in a Subscription or ManagedResource instead: the
+ * from the Model belongs in a Subscription or a child Block instead: the
  * runtime starts and tears those down as the Model declares them, so there is
  * no in-flight Command to interrupt.
  *

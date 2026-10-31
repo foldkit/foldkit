@@ -1,87 +1,34 @@
-import { Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import * as Dialog from '../../dialog/block.js'
+import { Dialog, DialogLive } from '../../dialog/block.js'
 
-// MODEL
-
-export const Model = Schema.Struct({
-  isEnabled: Schema.Boolean,
-  dialog: Dialog.Model,
-})
-export type Model = typeof Model.Type
-
-// MESSAGE
-
-export const Message = defineMessageUnion({
+const Message = defineMessageUnion({
   ClickedToggle: {},
   ClickedSubmit: {},
 })
-export type Message = typeof Message.Type
+type Message = typeof Message.Type
 
-const DisabledButtonTestDefinition = Block.makeDefinition(
-  'DisabledButtonTest',
+/** Constructor args for {@link DisabledButton}. `isInDialog` renders the
+ *  submit button inside the Dialog's panel instead of at the top level. */
+export type DisabledButtonArgs = Readonly<{ isInDialog: boolean }>
+
+/** A test app with a submit button that starts disabled and a toggle that
+ *  enables it, optionally rendered inside a Dialog. */
+export class DisabledButton extends Block<DisabledButton, DisabledButtonArgs>()(
+  'DisabledButton',
   {
-    Model,
+    Model: Schema.Struct({ isEnabled: Schema.Boolean, dialog: Dialog }),
     Message,
   },
-)
+) {}
 
-// UPDATE
-
-const foldDialogOutMessage = DisabledButtonTestDefinition.makeOutMessageFold(
-  Dialog.DialogBlock,
-  {
-    Opened: DisabledButtonTestDefinition.makeNoopStep,
-    Closed: DisabledButtonTestDefinition.makeNoopStep,
-    CompletedClose: DisabledButtonTestDefinition.makeNoopStep,
-  },
-)
-
-const DialogBinding = DisabledButtonTestDefinition.makeBinding(
-  Dialog.DialogBlock,
-  {
-    field: 'dialog',
-    init: { contextToArgs: () => [{ id: 'test-dialog' }] },
-  },
-).withOutMessagePolicy({ fold: foldDialogOutMessage })
-
-const DisabledButtonTestComposition =
-  DisabledButtonTestDefinition.makeComposition({
-    bindings: [DialogBinding],
-  })
-
-// INIT
-
-const makeInitialModel = (): Model => ({
-  isEnabled: false,
-  dialog: Dialog.DialogBlock.init({ id: 'test-dialog' }).model,
-})
-
-const init = DisabledButtonTestComposition.makeInit(() => ({
-  model: { isEnabled: false },
-  steps: [DialogBinding.requestOpen()],
-}))
-
-export const initialModel = modifyFields(makeInitialModel(), {
-  dialog: dialog => modifyFields(dialog, { isOpen: () => true }),
-})
-
-export const update = DisabledButtonTestComposition.makeUpdate({
-  ClickedToggle: DisabledButtonTestDefinition.makeFieldsStep(() => ({
-    isEnabled: isEnabled => !isEnabled,
-  })),
-  ClickedSubmit: DisabledButtonTestDefinition.makeNoopStep(),
-})
-
-// VIEW
-
-const submitButton = <ParentMessage, AllowedMountRequirements>(
+const submitButton = <AllowedMountRequirements>(
   isEnabled: boolean,
-  h: HtmlBuilder<Message | ParentMessage, AllowedMountRequirements>,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html =>
   h.button(
     [
@@ -93,52 +40,43 @@ const submitButton = <ParentMessage, AllowedMountRequirements>(
     ['Submit'],
   )
 
-/** Plain view, no dialog wrapper. */
-export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
-  return h.div(
-    [],
-    [
-      h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
-      submitButton(model.isEnabled, h),
-    ],
-  )
-}
+/** Implements {@link DisabledButton}. */
+export const DisabledButtonLive = DisabledButton.make(
+  Effect.fn(function* (_id, { isInDialog }) {
+    const dialog = yield* new Dialog('dialog', { id: 'test-dialog' })
 
-/** View with submit button inside a dialog's panel. */
-export const viewWithDialog = DisabledButtonTestComposition.makeView(
-  (model, h) => {
-    return h.div(
-      [],
-      [
-        h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
-        h.block(
-          DialogBinding.embedView({
-            slotId: model.dialog.id,
-            model: model.dialog,
-            viewInputs: {
-              toView: ({ dialog, backdrop, panel, isVisible }) =>
-                h.dialog(
-                  [...dialog],
-                  isVisible
-                    ? [
-                        h.div([...backdrop]),
-                        h.div([...panel], [submitButton(model.isEnabled, h)]),
-                      ]
-                    : [],
-                ),
-            },
-          }),
+    return {
+      model: { isEnabled: false, dialog },
+      update: {
+        ClickedToggle: model => ({
+          model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
+        }),
+        ClickedSubmit: model => ({ model }),
+      },
+      view: (model, h) =>
+        h.div(
+          [],
+          [
+            h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
+            isInDialog
+              ? model.dialog.view({
+                  toView: ({ dialog, backdrop, panel, isVisible }) =>
+                    h.dialog(
+                      [...dialog],
+                      isVisible
+                        ? [
+                            h.div([...backdrop]),
+                            h.div(
+                              [...panel],
+                              [submitButton(model.isEnabled, h)],
+                            ),
+                          ]
+                        : [],
+                    ),
+                })
+              : submitButton(model.isEnabled, h),
+          ],
         ),
-      ],
-    )
-  },
-)
-
-const prepare = () =>
-  DisabledButtonTestComposition.prepareBlock({
-    init,
-    update,
-    view: viewWithDialog,
-  })
-export const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
-  Block.assemble(prepare)
+    }
+  }),
+).pipe(Layer.provide(DialogLive))

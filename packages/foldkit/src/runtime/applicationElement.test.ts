@@ -1,13 +1,10 @@
-import { Context, Effect, Layer, Option, Schema, Stream } from 'effect'
+import { Context, Effect, Layer, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
-import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import * as Port from '../port/index.js'
-import * as Subscription from '../subscription/subscription.js'
-import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { embed, run } from './start.js'
 
@@ -42,7 +39,7 @@ const AnchorPanel = Mount.define('AnchorPanel', {
   messages: [Message.CompletedAnchorPanel],
 })
 
-const update = Update.define((model: Model, message: Message) =>
+const update = (model: Model, message: Message) =>
   Message.match(message, {
     ChangedStatus: ({ status }) => ({ model: Model.make({ status }) }),
     ClickedSend: () => ({
@@ -51,8 +48,7 @@ const update = Update.define((model: Model, message: Message) =>
     }),
     CompletedAnchorPanel: ({ status }) => ({ model: Model.make({ status }) }),
     CompletedSend: ({ status }) => ({ model: Model.make({ status }) }),
-  }),
-)
+  })
 
 let container: HTMLElement
 
@@ -146,64 +142,17 @@ describe('Program.makeElement runtime', () => {
     })
   })
 
-  it('makes runtime-provided ManagedResource access available to Flags', async () => {
-    const Token = ManagedResource.tag<string>()('FlagToken')
-    const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-      token: entry('ManageFlagToken', Schema.Option(Schema.String), {
-        resource: Token,
-        modelToMaybeRequirements: () => Option.none(),
-        onAcquired: status => Message.ChangedStatus({ status }),
-        onReleased: () => Message.ChangedStatus({ status: 'released' }),
-        onAcquireError: () => Message.ChangedStatus({ status: 'failed' }),
-      }),
-    }))
-    const element = Application.__makeElementFromConfig({
-      Model,
-      Flags,
-      flags: Token.get.pipe(
-        Effect.catchTag('ResourceNotAvailable', () =>
-          Effect.succeed('not acquired'),
-        ),
-        Effect.map(initialStatus => ({ initialStatus })),
-      ),
-      init: ({ initialStatus }) => ({
-        model: Model.make({ status: initialStatus }),
-      }),
-      update: (model: Model) => ({ model }),
-      view: (model, h) => h.div([], [model.status]),
-      managedResources,
-      container,
-    })
-    const provided = element.provide(
-      managedResources.token.toLayer(
-        Effect.succeed({
-          acquire: () => Effect.succeed('token'),
-          release: () => Effect.void,
-        }),
-      ),
-    )
-    const handle = embed(provided)
-
-    try {
-      await vi.waitFor(() => {
-        expect(document.body.textContent).toBe('not acquired')
-      })
-    } finally {
-      handle.dispose()
-    }
-  })
-
   it('keeps inbound Ports available through Layer provision', async () => {
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      hostStatus: entry('HostStatus', {
-        messages: [
-          Message.ChangedStatus,
-          Message.ClickedSend,
-          Message.CompletedAnchorPanel,
-          Message.CompletedSend,
-        ],
-      }),
-    }))
+    const subscriptions = {
+      hostStatus: {
+        dependenciesSchema: Schema.Struct({}),
+        modelToDependencies: () => ({}),
+        dependenciesToStream: () =>
+          Port.stream(ports.inbound.statusChanged).pipe(
+            Stream.map(status => Message.ChangedStatus({ status })),
+          ),
+      },
+    }
     const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: Model.make({ status: 'ready' }) }),
@@ -214,20 +163,10 @@ describe('Program.makeElement runtime', () => {
       container,
     })
 
-    const HostStatusLayer = subscriptions.hostStatus.toLayer(
-      Effect.succeed(() =>
-        Port.stream(ports.inbound.statusChanged).pipe(
-          Stream.map(status => Message.ChangedStatus({ status })),
-        ),
-      ),
-    )
     const provided = element.provide(
-      Layer.mergeAll(
-        HostStatusLayer,
-        Send.toLayer(
-          Effect.succeed(({ text }) =>
-            Effect.succeed(Message.CompletedSend({ status: text })),
-          ),
+      Send.toLayer(
+        Effect.succeed(({ text }) =>
+          Effect.succeed(Message.CompletedSend({ status: text })),
         ),
       ),
     )
@@ -348,31 +287,34 @@ const checkElementTypes = (): void => {
     ),
   )
 
-  const subscriptions = Subscription.make<Model, Message>()(entry => ({
-    status: entry(
-      'StatusUpdates',
-      { status: Schema.String },
-      {
-        messages: [],
-        modelToDependencies: model => ({ status: model.status }),
-      },
-    ),
-  }))
   const subscriptionElement = Application.__makeElementFromConfig({
     Model,
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: (model: Model) => ({ model }),
     view: (model, h) => h.div([], [model.status]),
-    subscriptions,
+    subscriptions: {
+      status: {
+        dependenciesSchema: Schema.Struct({ status: Schema.String }),
+        modelToDependencies: (model: Model) => ({ status: model.status }),
+        dependenciesToStream: ({ status }: Readonly<{ status: string }>) =>
+          Stream.fromEffect(
+            Effect.map(Database, database =>
+              Message.ChangedStatus({ status: database.store(status) }),
+            ),
+          ),
+      },
+    },
     container,
   })
 
-  // @ts-expect-error The named Subscription handler is required.
+  // @ts-expect-error The Subscription requires Database.
   embed(subscriptionElement)
 
   embed(
     subscriptionElement.provide(
-      subscriptions.status.toLayer(Effect.succeed(() => Stream.empty)),
+      Layer.succeed(Database, {
+        store: text => text,
+      }),
     ),
   )
 
@@ -394,39 +336,6 @@ const checkElementTypes = (): void => {
         Effect.succeed(() =>
           Effect.succeed(Message.CompletedAnchorPanel({ status: 'anchored' })),
         ),
-      ),
-    ),
-  )
-
-  const Token = ManagedResource.tag<string>()('Token')
-  const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-    token: entry('ManageToken', Schema.Option(Schema.String), {
-      resource: Token,
-      modelToMaybeRequirements: () => Option.none(),
-      onAcquired: status => Message.ChangedStatus({ status }),
-      onReleased: () => Message.ChangedStatus({ status: 'released' }),
-      onAcquireError: () => Message.ChangedStatus({ status: 'failed' }),
-    }),
-  }))
-  const managedElement = Application.__makeElementFromConfig({
-    Model,
-    init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: (model: Model) => ({ model }),
-    view: (model, h) => h.div([], [model.status]),
-    managedResources,
-    container,
-  })
-
-  // @ts-expect-error The ManagedResource lifecycle handler is required.
-  embed(managedElement)
-
-  embed(
-    managedElement.provide(
-      managedResources.token.toLayer(
-        Effect.succeed({
-          acquire: () => Effect.succeed('token'),
-          release: () => Effect.void,
-        }),
       ),
     ),
   )

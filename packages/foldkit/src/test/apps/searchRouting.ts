@@ -1,11 +1,12 @@
 import { Effect, Option, Schema, pipe } from 'effect'
 
-import * as Block from '../../block/public.js'
+import * as Command from '../../command/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import type * as Mount from '../../mount/index.js'
+import * as Mount from '../../mount/index.js'
 import * as Navigation from '../../navigation/index.js'
 import { modifyFields } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 import * as Url from '../../url/index.js'
 
 export const Model = Schema.Struct({
@@ -36,20 +37,14 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const Definition = Block.makeDefinition('SearchRouting', {
-  Model,
-  Message,
-  OutMessage,
-})
-
-export const CancelSearch = Definition.makeCommand('CancelSearch', {
+export const CancelSearch = Command.define('CancelSearch', {
   messages: [Message.CompletedCancelSearch],
   handler: function* () {
     return () => Effect.succeed(Message.CompletedCancelSearch())
   },
 })
 
-export const ReplaceSearchUrl = Definition.makeCommand('ReplaceSearchUrl', {
+export const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
   args: { query: Schema.String },
   messages: [Message.CompletedReplaceSearchUrl],
   handler: function* () {
@@ -60,7 +55,7 @@ export const ReplaceSearchUrl = Definition.makeCommand('ReplaceSearchUrl', {
   },
 })
 
-export const FetchSearch = Definition.makeCommand('FetchSearch', {
+export const FetchSearch = Command.define('FetchSearch', {
   args: { searchId: Schema.Number, query: Schema.String },
   messages: [Message.CompletedFetchSearch],
   handler: function* () {
@@ -74,53 +69,64 @@ export const FetchSearch = Definition.makeCommand('FetchSearch', {
   },
 })
 
-export const ObserveResults = Definition.makeMount('ObserveResults', {
+export const ObserveResults = Mount.define('ObserveResults', {
   messages: [Message.CompletedObserveResults],
+  handler: function* () {
+    return () => Effect.succeed(Message.CompletedObserveResults())
+  },
 })
 
-const Composition = Definition.makeComposition()
+type UpdateReturn = Update.ReturnWithOutMessage<
+  Model,
+  Message,
+  OutMessage,
+  | Command.HandlerOf<typeof CancelSearch>
+  | Command.HandlerOf<typeof ReplaceSearchUrl>
+  | Command.HandlerOf<typeof FetchSearch>
+>
 
-export const update = Composition.makeUpdate({
-  TypedQuery: (model, { query }) => ({
-    model: modifyFields(model, {
-      query: () => query,
-      activeSearchId: searchId => searchId + 1,
-      results: () => [],
-    }),
-    commands: [CancelSearch(), ReplaceSearchUrl({ query })],
-  }),
-  ChangedUrl: (model, { url }) => {
-    const searchParams = new URLSearchParams(
-      Option.getOrElse(url.search, () => ''),
-    )
-    const query = pipe(
-      Option.fromNullishOr(searchParams.get('q')),
-      Option.getOrElse(() => ''),
-    )
-    const searchId = model.activeSearchId + 1
-
-    return {
+export const update = (model: Model, message: Message): UpdateReturn =>
+  Message.match<UpdateReturn>(message, {
+    TypedQuery: ({ query }) => ({
       model: modifyFields(model, {
-        requestedQuery: () => query,
-        requestedUrl: () => Url.toString(url),
-        activeSearchId: () => searchId,
+        query: () => query,
+        activeSearchId: searchId => searchId + 1,
         results: () => [],
       }),
-      commands: query === '' ? [] : [FetchSearch({ searchId, query })],
-      outMessage: OutMessage.RequestedSearch({ pathname: url.pathname }),
-    }
-  },
-  CompletedCancelSearch: model => ({ model }),
-  CompletedReplaceSearchUrl: model => ({ model }),
-  CompletedFetchSearch: (model, { searchId, results }) =>
-    searchId === model.activeSearchId
-      ? {
-          model: modifyFields(model, { results: () => results }),
-          outMessage: OutMessage.PresentedResults({ count: results.length }),
-        }
-      : { model },
-  CompletedObserveResults: model => ({ model }),
-})
+      commands: [CancelSearch(), ReplaceSearchUrl({ query })],
+    }),
+    ChangedUrl: ({ url }) => {
+      const searchParams = new URLSearchParams(
+        Option.getOrElse(url.search, () => ''),
+      )
+      const query = pipe(
+        Option.fromNullishOr(searchParams.get('q')),
+        Option.getOrElse(() => ''),
+      )
+      const searchId = model.activeSearchId + 1
+
+      return {
+        model: modifyFields(model, {
+          requestedQuery: () => query,
+          requestedUrl: () => Url.toString(url),
+          activeSearchId: () => searchId,
+          results: () => [],
+        }),
+        commands: query === '' ? [] : [FetchSearch({ searchId, query })],
+        outMessage: OutMessage.RequestedSearch({ pathname: url.pathname }),
+      }
+    },
+    CompletedCancelSearch: () => ({ model }),
+    CompletedReplaceSearchUrl: () => ({ model }),
+    CompletedFetchSearch: ({ searchId, results }) =>
+      searchId === model.activeSearchId
+        ? {
+            model: modifyFields(model, { results: () => results }),
+            outMessage: OutMessage.PresentedResults({ count: results.length }),
+          }
+        : { model },
+    CompletedObserveResults: () => ({ model }),
+  })
 
 export const initialModel: Model = Model.make({
   query: '',

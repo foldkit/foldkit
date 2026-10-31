@@ -1,35 +1,33 @@
-import { Array, Effect, Layer } from 'effect'
+import { Array, Effect } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { PagefindService } from '../pagefind'
-import { EffectsLayer } from './layer'
+import { fetchSearchResults } from './command'
 import { Message } from './message'
-import { FetchSearchResults } from './update'
 
-describe('Search Command services', () => {
+describe('Search Commands', () => {
   it('loads and normalizes results from the supplied search service', async () => {
     const queries: Array<string> = []
     const loadedResults: Array<number> = []
-    const PagefindTestLayer = Layer.succeed(PagefindService, {
-      search: async query => {
-        queries.push(query)
-        return {
-          results: Array.map(Array.range(1, 10), index => ({
-            data: async () => {
-              loadedResults.push(index)
-              return {
-                url: `/result/${index}`,
-                excerpt: `Excerpt ${index}`,
-              }
-            },
-          })),
-        }
-      },
-    })
 
     const message = await Effect.runPromise(
-      FetchSearchResults({ query: 'Commands' }).effect.pipe(
-        Effect.provide(Layer.provide(EffectsLayer, PagefindTestLayer)),
+      fetchSearchResults(
+        {
+          search: async query => {
+            queries.push(query)
+            return {
+              results: Array.map(Array.range(1, 10), index => ({
+                data: async () => {
+                  loadedResults.push(index)
+                  return {
+                    url: `/result/${index}`,
+                    excerpt: `Excerpt ${index}`,
+                  }
+                },
+              })),
+            }
+          },
+        },
+        'Commands',
       ),
     )
 
@@ -50,15 +48,14 @@ describe('Search Command services', () => {
   })
 
   it('converts a supplied search service failure into an empty result', async () => {
-    const PagefindTestLayer = Layer.succeed(PagefindService, {
-      search: async () => {
-        throw new Error('Search unavailable')
-      },
-    })
-
     const message = await Effect.runPromise(
-      FetchSearchResults({ query: 'Commands' }).effect.pipe(
-        Effect.provide(Layer.provide(EffectsLayer, PagefindTestLayer)),
+      fetchSearchResults(
+        {
+          search: async () => {
+            throw new Error('Search unavailable')
+          },
+        },
+        'Commands',
       ),
     )
 

@@ -177,12 +177,10 @@ const assertPortableDeclarations = (directory: string): void => {
 
 const main = (): void => {
   for (const fixture of [
-    'generic-composition.accepted.ts',
-    'generic-composition.rejected.ts',
-    'generic-composition.consume.ts',
+    'generic-blocks.accepted.ts',
+    'generic-blocks.rejected.ts',
+    'generic-blocks.consume.ts',
     'test-namespaces.accepted.ts',
-    'kernel-operation-channels.accepted.ts',
-    'kernel-operation-channels.consume.ts',
     'shared-dialog-renderer.ts',
     'shared-dialog-renderer.accepted.ts',
     'shared-dialog-renderer.rejected.ts',
@@ -251,10 +249,9 @@ const main = (): void => {
     const sources = join(emitter, 'fixtures')
     mkdirSync(sources, { recursive: true })
     for (const fixture of [
-      'generic-composition.accepted.ts',
-      'generic-composition.rejected.ts',
+      'generic-blocks.accepted.ts',
+      'generic-blocks.rejected.ts',
       'test-namespaces.accepted.ts',
-      'kernel-operation-channels.accepted.ts',
       'shared-dialog-renderer.ts',
       'shared-dialog-renderer.accepted.ts',
       'shared-dialog-renderer.rejected.ts',
@@ -275,9 +272,8 @@ const main = (): void => {
         outDir: output,
       },
       files: [
-        join(sources, 'generic-composition.accepted.ts'),
+        join(sources, 'generic-blocks.accepted.ts'),
         join(sources, 'test-namespaces.accepted.ts'),
-        join(sources, 'kernel-operation-channels.accepted.ts'),
         join(sources, 'shared-dialog-renderer.accepted.ts'),
       ],
     })
@@ -288,22 +284,30 @@ const main = (): void => {
     assertPortableDeclarations(output)
 
     const acceptedDeclaration = readFileSync(
-      join(output, 'generic-composition.accepted.d.ts'),
+      join(output, 'generic-blocks.accepted.d.ts'),
       'utf8',
     )
     if (
       !acceptedDeclaration.includes(
-        'Combobox.Completed<"Apple" | "Pear", "Apple" | "Pear">',
+        'Combobox.ComboboxClass<"Apple" | "Pear", "Apple" | "Pear">',
       )
     ) {
       fail(
-        'The generic Combobox export did not retain its public Completed type.',
+        'The generic Combobox export did not retain its public ComboboxClass type.',
       )
     }
 
-    if (!acceptedDeclaration.includes('Combobox.Completed<string, number>')) {
+    if (
+      !acceptedDeclaration.includes('Combobox.ComboboxClass<string, number>')
+    ) {
       fail(
         'The generic Combobox export did not retain a transformed Item Codec encoded type.',
+      )
+    }
+
+    if (!acceptedDeclaration.includes('Slider.SliderClass')) {
+      fail(
+        'The root-scoped Slider export did not retain its public SliderClass type.',
       )
     }
 
@@ -311,20 +315,19 @@ const main = (): void => {
     writeJson(rejectedConfig, {
       compilerOptions: { ...compilerOptions, noEmit: true },
       files: [
-        join(sources, 'generic-composition.rejected.ts'),
+        join(sources, 'generic-blocks.rejected.ts'),
         join(sources, 'shared-dialog-renderer.rejected.ts'),
       ],
     })
     runCompiler('Rejecting invalid generic UI wiring', ['-p', rejectedConfig])
 
-    const relocated = join(consumer, 'generic-composition')
+    const relocated = join(consumer, 'generic-blocks')
     cpSync(output, relocated, { recursive: true })
     copyFileSync(
-      join(fixtureRoot, 'generic-composition.consume.ts'),
-      join(relocated, 'generic-composition.consume.ts'),
+      join(fixtureRoot, 'generic-blocks.consume.ts'),
+      join(relocated, 'generic-blocks.consume.ts'),
     )
     for (const fixture of [
-      'kernel-operation-channels.consume.ts',
       'shared-dialog-renderer.consume.ts',
       'shared-dialog-renderer.rejected.ts',
     ]) {
@@ -334,8 +337,7 @@ const main = (): void => {
     writeJson(consumerConfig, {
       compilerOptions: { ...compilerOptions, noEmit: true },
       files: [
-        'generic-composition.consume.ts',
-        'kernel-operation-channels.consume.ts',
+        'generic-blocks.consume.ts',
         'shared-dialog-renderer.consume.ts',
         'shared-dialog-renderer.rejected.ts',
       ],
@@ -346,7 +348,7 @@ const main = (): void => {
     ])
 
     process.stdout.write(
-      `[ui-emitted-declarations] ${version}; shared Dialog source contracts, isolated package build, external emission, exact kernel operation channels, rejected wiring, and relocation checks passed.\n`,
+      `[ui-emitted-declarations] ${version}; shared Dialog source contracts, isolated package build, external emission, rejected wiring, and relocation checks passed.\n`,
     )
   } finally {
     rmSync(workspace, { recursive: true, force: true })

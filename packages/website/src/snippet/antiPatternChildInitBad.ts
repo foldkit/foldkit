@@ -1,27 +1,24 @@
-// ❌ Bad: running the child Step directly and copying selected fields drops
-// the RestoredTheme OutMessage.
+// ❌ Bad: the constructor waits for storage before returning.
 
-// init.ts
+import { Effect, Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { ApplicationComposition } from './composition'
+import { Theme, ThemeStore } from './antiPatternThemeStore'
 
-const init = ApplicationComposition.makeInit(
-  (username: string, savedTheme: Settings.Theme) => {
-    const settingsInit = Settings.init()
-    const settingsRestore = Settings.restore(settingsInit.model, savedTheme)
-    const commands = Command.mapMessages(settingsRestore.commands, message =>
-      Message.GotSettingsMessage({ message }),
+export class ThemePreference extends Block<ThemePreference>()(
+  'ThemePreference',
+  { Model: Schema.Struct({ theme: Theme }) },
+) {}
+
+export const ThemePreferenceLive = ThemePreference.make(
+  Effect.fn(function* () {
+    const themeStore = yield* ThemeStore
+    const theme = yield* themeStore.load.pipe(
+      Effect.orElseSucceed((): Theme => 'System'),
     )
 
-    // ❌ The parent keeps the Model and Commands but drops
-    // settingsRestore.outMessage.
     return {
-      model: Model.make({
-        username,
-        settings: settingsRestore.model,
-        maybeRestoredTheme: Option.none(),
-      }),
-      commands,
+      model: { theme },
     }
-  },
+  }),
 )

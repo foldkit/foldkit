@@ -1,4 +1,0 @@
-{
-  "extends": "./tsconfig.accepted.json",
-  "include": ["callback-guard.accepted.ts"]
-}

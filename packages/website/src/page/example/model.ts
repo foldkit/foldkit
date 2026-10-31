@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { SourceFileTabsBlock } from './fileTabs'
+import { SourceFileTabs } from './fileTabs'
 import { ExampleSources } from './sources'
 
 export const CurrentSourcesAsyncData = AsyncData.Schema(
@@ -10,7 +10,7 @@ export const CurrentSourcesAsyncData = AsyncData.Schema(
 )
 export type CurrentSourcesAsyncData = typeof CurrentSourcesAsyncData.schema.Type
 export const Model = Schema.Struct({
-  sourceFileTabs: SourceFileTabsBlock.Model,
+  sourceFileTabs: SourceFileTabs,
   maybeActiveSourceFilePath: Schema.Option(Schema.String),
   maybeExampleUrl: Schema.Option(Schema.String),
   isLivePreviewOpen: Schema.Boolean,

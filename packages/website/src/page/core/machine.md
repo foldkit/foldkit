@@ -103,13 +103,13 @@ Context is a read-only input to the current transition. State that the Machine o
 
 ### Folding Machine State
 
-The Machine state lives in a field of the application Model. `Machine.fold` reads that field, runs the transition, writes the next state back, and preserves any Commands returned by the Edge.
+The Machine state lives in a field of a Block's Model. `Machine.fold` reads that field, runs the transition, writes the next state back, and returns `{ model, commands }` with any Commands returned by the Edge. That is the shape a Block update handler returns, so the fold can be the handler itself.
 
 ::Snippet{name="machineFold" label="Machine fold"}
 
 #### Delegating Messages
 
-Most update functions also handle Messages that do not belong to the transition table. Match those Messages normally and send only the Messages handled by the table through the fold. In this example, `ToggledHelp` updates another Model field while the checkout Messages go through `foldCheckout`.
+A Block's update record has one handler per Message, including Messages that do not belong to the transition table. Write those handlers normally and point only the Messages handled by the table at the fold. In this example, `ToggledHelp` updates another Model field while the checkout Messages map to `foldCheckout`.
 
 #### Optional Machine State
 
@@ -137,13 +137,13 @@ The four ignored reasons answer different questions:
 
 #### Runtime Integration
 
-The Foldkit [Runtime](/core/runtime) needs no Machine configuration. Update calls a pure value and returns the resulting Model and Commands through the normal application loop.
+The Foldkit [Runtime](/core/runtime) needs no Machine configuration. A Block's update handler calls a pure value and returns the resulting Model and Commands like any other handler.
 
 ## Analyze the Transition Graph
 
 ### Graph Data
 
-The transition table is enumerable data, so a Machine can answer structural questions without running the application. `makeMachine` checks and completes it directly; there is no later Composition stage:
+The transition table is enumerable data, so a Machine can answer structural questions without running the application. `makeMachine` checks the table and returns the finished Machine:
 
 - `edges` lists every Edge after shared defaults and state-local overrides are combined, with its source, Message tag, target, and guard position.
 - `reachableFrom(tag)` returns the state tags reachable from one starting tag.

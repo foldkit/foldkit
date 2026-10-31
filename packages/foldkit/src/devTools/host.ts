@@ -13,4 +13,4 @@ export type {
 
 export { toInspectableValue } from './serialize.js'
 
-export { GOT_MESSAGE_PATTERN, extractBlockInfo, isTagged } from './blockPath.js'
+export { extractBlockInfo, isTagged } from './blockPath.js'

@@ -6,6 +6,7 @@ export type {
   EdgeGuard,
   EdgeInput,
   EdgeSummary,
+  Fold,
   FoldConfig,
   GuardedEdge,
   Ignore,

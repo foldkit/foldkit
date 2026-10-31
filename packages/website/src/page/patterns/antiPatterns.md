@@ -55,7 +55,7 @@ The source fields and `visibleItems` now give two answers to the same question: 
 
 The same rule applies outside derived collections. Browser storage may persist a snapshot of the Model, and a DOM attribute may display its current state. Neither should become a second value that update treats as authoritative. A module variable that mirrors a Model field creates the same conflict while also hiding the value from the Runtime and DevTools.
 
-Copying parent-owned data into a child Model just so the child can render it also creates two sources of truth. Pass that data through the child's `viewInputs` instead. When child update needs current parent context while handling its own Message, pass the value through update's third `context` argument. Use a public child helper when a parent-owned change must trigger a child transition.
+Copying parent-owned data into a child Model just so the child can render it also creates two sources of truth. Pass that data to the child's `view` as its [view input](/core/block#callback-dispatch-boundaries) instead. When a parent-owned change must change the child's Model, send the child a Message, as [Informing Blocks](/patterns/informing-blocks) describes.
 
 ### Cache Only After Profiling
 
@@ -77,54 +77,58 @@ Define the Model with Schema and derive the TypeScript type from it. The decoder
 
 Deriving the Model type from its Schema matters even when the application does not decode an API response. Foldkit uses the Model Schema when it restores state after a development reload. Use `Schema.Unknown` only when no narrower Schema describes the value at that boundary, and represent every valid state variant in the Schema itself. See [Model](/core/model) for the complete pattern.
 
-## Keep Effects Out of init, update, and view
+## Keep Effects Out of update and view
 
 ### Effects Inside Pure Functions
 
-Calling `fetch` inside view starts another request whenever Foldkit renders that view. Reading `Date.now()` or `Math.random()` inside init or update lets the same inputs produce a different Model. Writing to the DOM or browser storage inside update repeats that write when DevTools replays the Message.
+Calling `fetch` inside view starts another request whenever Foldkit renders that view. Reading `Date.now()` or `Math.random()` inside update lets the same inputs produce a different Model. Writing to the DOM or browser storage inside update repeats that write when DevTools replays the Message.
 
 ::Snippet{name="antiPatternEffectInUpdateBad" label="❌ DOM effect inside update" class="mb-4"}
 
 ### Return Work to the Runtime
 
-Keep init, update, and view deterministic. The `ClickedOpenDialog` handler should set `dialogState` to `Open` and return a `FocusSearchInput` Command.
+Keep update and view deterministic. The `ClickedOpenDialog` handler should set `dialogState` to `Open` and return a `FocusSearchInput` Command.
 
 ::Snippet{name="antiPatternEffectInUpdateGood" label="✅ Command returned from update"}
 
 `Effect`, `Stream`, and `Layer` values describe work; constructing one should not perform that work. Supply the lazy description to the boundary that controls its lifetime, and let the Runtime execute it.
 
-Use [Flags](/core/init-and-flags#flags) when the initial Model needs outside data. For work after initialization, choose the Runtime boundary based on what starts the work and how long it must live.
+Use [Flags](/core/init-and-flags#flags) when the root's starting Model needs outside data, and a `start` Command when a Block should load data as soon as it appears. For later work, choose the Runtime boundary based on what starts the work and how long it must live.
 
 ## Keep Live Handles Behind Runtime Boundaries
 
 ### Handles Outside the Runtime
 
-Imagine a chat screen that needs a `WebSocket` only while the visitor is in a room. Opening the socket inside update and storing it in a module variable puts it outside the Runtime's lifecycle. The Runtime therefore cannot close it when the visitor leaves the room, and replaying the Message in DevTools can open another connection.
-
-### Runtime-Owned Resource Lifetimes
-
-Storing the socket in the Model does not give it a Runtime-controlled lifetime. The live connection cannot be recreated from the Model Schema after a development reload, and update would still be responsible for opening and closing it. Keep the room and connection status in the Model, and let a ManagedResource own the `WebSocket` itself.
+Imagine a chat room that needs a `WebSocket` only while the visitor has joined it. Opening the socket inside update and storing it in a module variable puts it outside the Runtime's lifecycle. The Runtime cannot close it when the visitor leaves, and replaying the Message in DevTools can open another connection.
 
 ::Snippet{name="antiPatternLiveHandleBad" label="❌ A module variable owns the WebSocket" class="mb-4"}
 
-::Snippet{name="antiPatternLiveHandleGood" label="✅ A ManagedResource owns the WebSocket lifetime"}
+### Resource Blocks
 
-ManagedResource fits when Commands or Subscriptions need the typed handle. In this example, `acquire` returns the Effect that creates the socket, and `release` returns the Effect that closes it when the room requirements disappear. The Runtime performs both Effects. When the Runtime performs `SendChatMessage`, that Command's Effect retrieves the live `ChatSocket`. When the socket only produces an event stream, a Subscription can own the connection directly.
+Storing the socket itself in a Model field does not help. The live connection cannot be recreated from the Model Schema after a development reload, and update would still be responsible for opening and closing it.
+
+Give the socket to a resource Block instead. ChatSocket opens the `WebSocket` in its constructor with `Effect.acquireRelease` and exposes a `send` function. ChatRoom holds the ChatSocket instance in an `Option` field while the visitor is in the room:
+
+::Snippet{name="antiPatternLiveHandleGood" label="✅ A ChatSocket instance owns the WebSocket lifetime"}
+
+Putting the instance in `maybeSocket` constructs it, which opens the socket. Taking it out closes the instance's scope, which closes the socket. Update decides only whether the visitor is in the room. The `SendChatMessage` handler reads the live socket with `socket.use`, which fails with `NotConnected` while the instance is not in the Model.
+
+When the socket only produces events and no Command sends through it, a Subscription can own the connection directly.
 
 ### Choose by Cause and Lifetime
 
 Choose the boundary whose lifetime matches the work:
 
-| Cause or lifetime                                                     | Boundary                                   |
-| --------------------------------------------------------------------- | ------------------------------------------ |
-| One-time work started while handling a Message                        | [Command](/core/commands)                  |
-| Work that requires one rendered element                               | [Mount](/core/mount)                       |
-| Ongoing work controlled by Model-derived dependencies                 | [Subscription](/core/subscriptions)        |
-| A typed handle needed while a Model condition holds                   | [ManagedResource](/core/managed-resources) |
-| A service shared for the entire application Runtime                   | [Layer](/core/layers)                      |
-| A native web component whose properties and events remain declarative | [CustomElement](/core/custom-element)      |
+| Cause or lifetime                                                       | Boundary                                  |
+| ----------------------------------------------------------------------- | ----------------------------------------- |
+| One-time work started while handling a Message                          | [Command](/core/commands)                 |
+| Work that requires one rendered element                                 | [Mount](/core/mount)                      |
+| Ongoing work controlled by Model-derived dependencies                   | [Subscription](/core/subscriptions)       |
+| A typed handle that Commands use while a child instance is in the Model | [Resource Block](/core/managed-resources) |
+| A service shared for the entire application Runtime                     | [Layer](/core/layers)                     |
+| A native web component whose properties and events remain declarative   | [CustomElement](/core/custom-element)     |
 
-If a Mount handler never uses its element, the work should not be tied to that element's lifetime. Choose the boundary based on what actually starts and stops the work. The [Mount comparison](/core/mount#when-to-reach-for-mount) and [Managed Resources](/core/managed-resources) guides cover these choices in depth.
+If a Mount handler never uses its element, the work should not be tied to that element's lifetime. Choose the boundary based on what actually starts and stops the work. The [Mount comparison](/core/mount#when-to-reach-for-mount) and [Resource Blocks](/core/managed-resources) guides cover these choices in depth.
 
 ## Name Messages After Facts
 
@@ -188,56 +192,48 @@ The old `FetchSuggestions` Command may finish just before the Interrupt runs, le
 
 ## Preserve Block Boundaries
 
-### Keep Transitions Inside the Child
+A child Block owns its Model and every transition of it. The parent cannot write a child's Model: it changes the child by sending it a Message with `send`, and it learns facts from the child through OutMessages handled with `.on`. Two mistakes still cross that boundary.
 
-A parent stores a Block's Model, but the child owns every transition of that state. If the parent changes a child field directly, the child's update function does not run.
+### Send Requests, Not Impersonated Events
 
-::Snippet{name="antiPatternBlockMutationBad" label="❌ The parent changes a child field directly" class="mb-4"}
+Suppose an Account page has a Reset button that should return its Settings child to the System theme. Settings already handles `ClickedTheme`, so sending `ClickedTheme({ theme: 'System' })` looks like a shortcut:
 
-The direct change may skip validation, Commands, or OutMessages that the child needs. Importing an internal child Message does not fix the boundary: it turns that private event into an API the parent depends on.
+::Snippet{name="antiPatternBlockMessageBad" label="❌ The parent sends a Message for a click that never happened" class="mb-4"}
 
-::Snippet{name="antiPatternBlockMessageBad" label="❌ The parent constructs an internal child Message" class="mb-4"}
+DevTools and tests now record a theme click on Settings that no person made. Settings' `ClickedTheme` handler was written for a click, so anything it does only for clicks runs here as well. Account also now depends on how Settings handles clicks, which Settings should be free to change.
 
-### Keep the Complete Child Result
+Have the child declare the request it accepts from its parent, and send that:
 
-Manually copying the child Model from a helper result causes a separate problem. The parent can keep the next child Model while silently discarding Commands returned with it.
+::Snippet{name="antiPatternBlockBoundaryGood" label="✅ The parent sends RequestedReset"}
 
-::Snippet{name="antiPatternBlockResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
+Settings' `RequestedReset` handler decides what a reset means, including its `SaveTheme` Command and `ChangedTheme` OutMessage. Name these Messages for what they mean to the child: `RequestedReset`, `RequestedClose`, `InformedOfRouteChange`.
 
-Put the local Message constructor directly under `operations` when its payload is the public input. Use a tuple producer there when the public inputs need mapping, refinement, defaults, or an exact update context tuple. The parent calls `binding.operation(...)`, which returns a connected parent Update.Step and preserves the child's complete update result. Apply it to the contextual Model inside the owning Composition.
+### Read Child State Instead of Copying It
 
-::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
+A parent that displays a child's state may be tempted to copy it into its own Model when the child reports a change:
 
-This excerpt focuses on the operation and its parent call. It omits the completed export's producer/header annotation; use the [matching checked assembly boundary](/patterns/project-organization#keep-model-schema-dependencies-small) in the feature module.
+::Snippet{name="antiPatternBlockCopiedStateBad" label="❌ The parent copies the theme into its own Model" class="mb-4"}
 
-The Binding writes the returned child Model into the parent, maps its Commands, and applies the required `fold` or `forward` selected through `withOutMessagePolicy`. The [Block guide](/core/block) explains child Messages and OutMessages. [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
+Account's `theme` and the Settings Model now both claim to hold the theme. A Settings transition that changes the theme without reporting `ChangedTheme` leaves Account showing the old one. Read the child's current Model through the instance:
 
-## Initialize Children Through Their Connections
+::Snippet{name="antiPatternBlockCopiedStateGood" label="✅ The parent reads the theme from Settings"}
 
-### Initialize One Child
+Handle an OutMessage when the parent has to react to the fact, such as saving it, telling a sibling, or reporting it further up. The [Block guide](/core/block#surfacing-facts) covers OutMessages, and [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
 
-A child's `init` can return a Model and Commands. A public restoration operation produces a `RequestedRestore` Message so update owns its Model change, Command, and `RestoredTheme` OutMessage. The parent Model exists before the Binding handles that OutMessage.
+## Load Data with start Commands
 
-::Snippet{name="antiPatternChildInitSettings" label="The restoration operation emits RestoredTheme" class="mb-4"}
+A Block's constructor runs synchronously when its instance first appears in the parent's Model. It yields services and returns the starting Model. It cannot wait for storage, the network, or a timer:
 
-Copying the child Model from an update result can silently drop its Commands and OutMessage:
+::Snippet{name="antiPatternChildInitBad" label="❌ The constructor waits for storage" class="mb-4"}
 
-::Snippet{name="antiPatternChildInitBad" label="❌ Manual assembly loses an initialization OutMessage" class="mb-4"}
+When `themeStore.load` is asynchronous, the instance cannot be constructed, and the Runtime reports a construction error instead of rendering the application. Even a synchronous load hides the work from DevTools and leaves no Message to handle a failure.
 
-Store Settings in a required direct field and omit `init`, then list the Binding-projected restoration Step in the Composition init plan. The Composition calls its zero-argument initializer, assembles the complete parent Model, and retains init Commands; the Binding maps restoration Commands and applies the exhaustive OutMessage policy declared at the composition boundary:
+Return a starting Model the Block can render, and return the load as a `start` Command. The result comes back through update like any other Command result:
 
-::Snippet{name="antiPatternChildInitGood" label="✅ Initialize and restore through the Binding"}
+::Snippet{name="antiPatternChildInitGood" label="✅ A start Command loads the theme"}
 
-The restoration Step runs against the completed parent Model. The Runtime starts returned Commands independently, so array order does not sequence their execution or completion. See [Connecting a child](/core/block#embedding) and [Composing Update Steps](/core/update#composing-update-steps).
-
-### Initialize Several Children
-
-Store Search and Editor in required direct fields and omit `init`. Return the parent's own fields from Composition init and list both public restoration operations in `steps`. Each Step receives the Model produced by the preceding Step, so later operations preserve earlier changes:
-
-::Snippet{name="updateIndependentInits" label="✅ Initialize independent child Bindings together"}
-
-Each Binding declares whether a child OutMessage is handled locally, forwarded upward, or both. If several restoration Steps emit parent OutMessages during one `Update.combineSteps`, the last emitted parent OutMessage wins; split the operations when each fact must be observed independently.
+`SucceededLoadTheme` sets the theme and reports `RestoredTheme` to the parent. A parent that holds several children does not sequence their loads: each instance returns its own `start` Commands, and the Runtime performs them independently. Values the parent already has, such as a Route or a saved id, belong in the child's constructor args instead. See [Implement a Block](/core/block#implement-a-block).
 
 ## Know What Linting Can Catch {#what-linting-can-catch}
 
-The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount handler that never uses its element. It also flags direct child Model edits and manual child Return copies when an in-file Binding establishes the Block boundary. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value without that boundary evidence. Those questions still require design review.
+The [Foldkit linter](/tooling/oxlint-plugin) recognizes code shapes such as a module-level `let`, `Date.now()` inside update, a Message named `NoOp`, or a Mount handler that never uses its element. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which Block should own a value. Those questions require design review.

@@ -1,15 +1,12 @@
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Mount } from 'foldkit'
+import type { HtmlBuilder } from 'foldkit/html'
 
 import type * as Dialog from '@foldkit/ui/dialog'
 
-type RenderDialog = (
-  attributes: Dialog.RenderInfo['dialog'],
-  children: ReadonlyArray<Html | string>,
-) => Html
+type DialogMounts = Mount.RequirementsOf<(typeof Dialog.Dialog.Mount)[number]>
 
-export const confirmDialogInputs = <ParentMessage>(
-  h: HtmlBuilder<ParentMessage>,
-  renderDialog: RenderDialog,
+export const confirmDialogInput = <ParentMessage>(
+  h: HtmlBuilder<ParentMessage, DialogMounts>,
   config: Readonly<{
     title: string
     description: string
@@ -26,8 +23,8 @@ export const confirmDialogInputs = <ParentMessage>(
     closeButton,
     isVisible,
   }) =>
-    renderDialog(
-      dialog,
+    h.dialog(
+      [...dialog],
       isVisible
         ? [
             h.div(

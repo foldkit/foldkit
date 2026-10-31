@@ -59,23 +59,23 @@ Catch a meaningful failure with `Effect.catch` and turn it into a Message. Use `
 
 ## Using Dom Streams
 
-Each Dom Stream helper returns a composable Stream, not a complete Subscription entry. Compose the Stream with Effect Stream operators, then give it to a Subscription or Mount. For a listener attached to one rendered element, `FeatureDefinition.makeMountStream` starts it when the element appears and stops it when the element leaves the view:
+Each Dom Stream helper returns a composable Stream. Compose it with Effect Stream operators, then return it from a Block's `stream`, a `subscriptions` entry, or a Mount handler. For a listener attached to one rendered element, a Mount declared with `Mount.defineStream` starts it when the element appears and stops it when the element leaves the view:
 
 ::Snippet{name="domMountEvent" label="Element pointer Stream owned by a Mount"}
 
-The [Subscriptions guide](/core/subscriptions) covers named entries with Model-driven and always-active lifetimes.
+The [Subscriptions guide](/core/subscriptions) covers always-on `stream` and Model-driven `subscriptions` entries.
 
 ### Animation Frames
 
 `Dom.animationFrameTicks` emits the elapsed milliseconds since the previous browser animation frame. Each subscriber owns its loop, and closing its scope cancels the pending frame. The browser pauses frames in hidden tabs, so cap the elapsed value when using it for motion or physics.
 
-A named Subscription maps these values to declared Messages and controls when the loop is active. See [Animation Frames](/core/subscriptions#animation-frames) for that wiring.
+A Subscription maps these values to the Block's Messages and controls when the loop is active. See [Animation Frames](/core/subscriptions#animation-frames) for that wiring.
 
 ### Event Streams
 
 `Dom.streamFromEvent` turns an `EventTarget` into a Stream. The target may be `window`, `document`, or a rendered element. The helper adds the listener when the Stream starts and removes it when the Stream stops.
 
-Its `mapEvent` callback can produce any output type, including the raw event. A Subscription or Mount that runs the Stream checks that its output is a declared Message type.
+Its `mapEvent` callback can produce any output type, including the raw event. A Subscription or Mount that runs the Stream checks that its output is one of the Block's Messages.
 
 ::Snippet{name="subscriptionFromEvent" label="Window keydown Stream in a Subscription"}
 
@@ -135,7 +135,7 @@ Sequences may have any length and expire after one second unless `sequenceTimeou
 
 #### Model-Dependent Key Bindings
 
-The Stream's output type comes from each binding's `mapEvent`. Put a fixed table in a named entry with no local dependencies, or build the table from entry dependencies when availability follows the Model. Derive `isEnabled` from those dependencies, as the example does for Escape. If the meaning of a key depends on the Model, dispatch a factual Message such as `PressedEscape` and make the decision in update; `mapEvent` should not read application state.
+The Stream's output type comes from each binding's `mapEvent`. Return a fixed table as the Block's `stream`, or build the table in a `subscriptions` entry from its dependencies when availability follows the Model. Derive `isEnabled` from those dependencies, as the example does for Escape. If the meaning of a key depends on the Model, dispatch a factual Message such as `PressedEscape` and make the decision in update; `mapEvent` should not read application state.
 
 ::Snippet{name="subscriptionKeyBindings" label="Model-dependent key bindings"}
 

@@ -1,10 +1,23 @@
-import { ApplicationComposition } from './composition'
-
 // ❌ Don't do this in view
-const view = ApplicationComposition.makeView((model, h) => {
-  fetch('/api/user').then(res => res.json())
-  setTimeout(() => console.log('tick'), 1000)
-  window.addEventListener('resize', () => {})
+import { Effect, Schema } from 'effect'
+import { Block } from 'foldkit'
 
-  return { title: model.title, body: h.div([], [model.title]) }
-})
+export class Profile extends Block<Profile>()('Profile', {
+  Model: Schema.Struct({ title: Schema.String }),
+}) {}
+
+export const ProfileLive = Profile.make(
+  Effect.fn(function* () {
+    return {
+      model: { title: 'Profile' },
+
+      view: (model, h) => {
+        fetch('/api/user').then(response => response.json())
+        setTimeout(() => console.log('tick'), 1000)
+        window.addEventListener('resize', () => {})
+
+        return { title: model.title, body: h.div([], [model.title]) }
+      },
+    }
+  }),
+)

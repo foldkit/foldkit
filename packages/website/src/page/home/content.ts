@@ -33,7 +33,7 @@ import {
   examples as exampleMetas,
 } from '../example/domain'
 import { exampleAppCount } from '../examples'
-import type { HomeViewBuilder } from './composition'
+import type { HomeViewBuilder } from './message'
 
 // CONTENT CONSTANTS
 

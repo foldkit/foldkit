@@ -1,10 +1,15 @@
-import { Context, Effect, Schema } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { block as blockImpl, defineView } from '../html/block.js'
-import { beginRender, createBoundaryRegistry } from '../html/boundary.js'
+import { Block, deliver, runtimeBlockOf } from '../blocks/block.js'
+import {
+  constructSync,
+  makeGraph,
+  reconcile,
+  renderRoot,
+} from '../blocks/engine.js'
 import { type ChildAttribute, childAttributes } from '../html/childAttribute.js'
 import {
   type Html,
@@ -299,80 +304,105 @@ describe('CustomElement.define', () => {
 })
 
 describe('ElementBuilder ChildAttribute support', () => {
-  type ChildClicked = Readonly<{ _tag: 'ChildClicked' }>
-  type GotChild = Readonly<{ _tag: 'GotChild'; message: ChildClicked }>
+  const ControlMessage = defineMessageUnion({ ClickedControl: {} })
 
-  const GotChild = (args: { message: ChildClicked }): GotChild => ({
-    _tag: 'GotChild',
-    ...args,
-  })
+  type ControlViewInput = Readonly<{
+    toView: (attributes: { control: ReadonlyArray<ChildAttribute> }) => Html
+  }>
 
-  it('routes a published ChildAttribute OnClick through the Block boundary when spread into a custom element', () => {
-    // Mirrors the childAttributes scenario: a Block publishes an
-    // attribute group and the consumer spreads it into an element built
-    // in the parent's boundary. Here the consumer's element is a defined
-    // custom element rather than an html builder element, so this locks
-    // in both halves: the ElementBuilder signature accepts the union,
-    // and the runtime routes the handler through the Block's wrap.
-    const registry = createBoundaryRegistry()
-    const { dispatch, dispatched } = createCapturingDispatch()
-    const testContext = Context.make(Dispatch, dispatch).pipe(
-      Context.add(MountTracker, {
-        started: () => {},
-        ended: () => {},
-      }),
-    )
+  class Control extends Block<Control, void, ControlViewInput>()('Control', {
+    Message: ControlMessage,
+  }) {}
 
-    setHtmlRuntime(dispatch.dispatchSync, testContext, registry)
-    beginRender(registry)
-    try {
-      type ControlViewInputs = Readonly<{
-        toView: (attributes: { control: ReadonlyArray<ChildAttribute> }) => Html
-      }>
+  const ControlLive = Control.make(
+    Effect.fn(function* () {
+      return {
+        update: { ClickedControl: model => ({ model }) },
+        view: (_model, h, { toView }) =>
+          toView({
+            control: childAttributes([
+              h.OnClick(Control.Message.ClickedControl()),
+            ]),
+          }),
+      }
+    }),
+  )
 
-      const fakeControlView = defineView<
-        object,
-        ChildClicked,
-        ControlViewInputs
-      >((_model, viewInputs) => {
-        const h = __htmlBuilder<ChildClicked>()
-        return viewInputs.toView({
-          control: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
-        })
-      })
+  class Parent extends Block<Parent>()('Parent', {
+    Model: Schema.Struct({ control: Control }),
+    Message,
+  }) {}
 
-      const result = blockImpl(
-        {
-          slotId: 'fake-control',
-          model: {},
-          view: fakeControlView,
-          viewInputs: {
+  const ParentLive = Parent.make(
+    Effect.fn(function* () {
+      const control = yield* new Control('control')
+      return {
+        model: { control },
+        update: {
+          RatingChanged: model => ({ model }),
+          RatingCleared: model => ({ model }),
+          ToggledDisabled: model => ({ model }),
+        },
+        view: (model, h) =>
+          model.control.view({
             toView: attributes => {
-              const rating = emojiRating.withMessage(__htmlBuilder<Message>())
+              const rating = emojiRating.withMessage(h)
               return rating([...attributes.control, rating.Value(3)])
             },
-          },
-          toParentMessage: message => GotChild({ message }),
-        },
-        __htmlBuilder(),
-      )
-      if (result === null) {
-        throw new Error('block returned null Html')
+          }),
       }
+    }),
+  ).pipe(Layer.provide(ControlLive))
 
-      const element = patchInto(result)
-      expect(element.tagName).toBe('FK-EMOJI-RATING')
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      expect((element as unknown as { value: number }).value).toBe(3)
+  it.effect(
+    'routes a published ChildAttribute OnClick to the child when spread into a custom element',
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const context = yield* Layer.build(ParentLive)
+          const block = runtimeBlockOf(Parent)
+          const graph = makeGraph({ isSimulation: false })
+          const instance = constructSync(
+            graph,
+            block,
+            [],
+            block.id,
+            undefined,
+            context,
+          )
+          reconcile(graph, instance)
 
-      element.dispatchEvent(new Event('click'))
-      expect(dispatched).toStrictEqual([
-        { _tag: 'GotChild', message: { _tag: 'ChildClicked' } },
-      ])
-    } finally {
-      clearHtmlRuntime()
-    }
-  })
+          const { dispatch, dispatched } = createCapturingDispatch()
+          const testContext = Context.make(Dispatch, dispatch).pipe(
+            Context.add(MountTracker, {
+              started: () => {},
+              ended: () => {},
+            }),
+          )
+
+          setHtmlRuntime(dispatch.dispatchSync, testContext)
+          try {
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            const result = renderRoot(graph, instance) as Html
+            if (result === null) {
+              throw new Error('The root view returned null Html')
+            }
+
+            const element = patchInto(result)
+            expect(element.tagName).toBe('FK-EMOJI-RATING')
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            expect((element as unknown as { value: number }).value).toBe(3)
+
+            element.dispatchEvent(new Event('click'))
+            expect(dispatched).toStrictEqual([
+              deliver(Control, 'control', Control.Message.ClickedControl()),
+            ])
+          } finally {
+            clearHtmlRuntime()
+          }
+        }),
+      ),
+  )
 })
 
 describe('CustomElement.define validation', () => {

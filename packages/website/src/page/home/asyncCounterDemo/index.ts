@@ -1,1 +1,1 @@
-export { AsyncCounterDemoBlock } from './block'
+export { AsyncCounterDemo, AsyncCounterDemoLive } from './asyncCounterDemo'

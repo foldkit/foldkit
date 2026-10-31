@@ -1,36 +1,31 @@
 import {
   Clock,
-  Duration,
+  type Duration,
   Effect,
-  Function,
   Layer,
   Number,
   Option,
   Result,
   Schema,
   type Scope,
-  Tuple,
   pipe,
 } from 'effect'
 
 import * as AsyncData from '../../asyncData/public.js'
-import * as Block from '../../block/public.js'
-import type { ValidateConstructionRequirements } from '../../block/scope.js'
+import { Block } from '../../blocks/block.js'
+import type * as BlockTypes from '../../blocks/public.js'
 import * as Command from '../../command/index.js'
-import type * as Interruptible from '../../command/interruptible/public.js'
+import { __makeRegistry } from '../../command/interruptible/interruptible.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Update from '../../update/index.js'
 import {
-  type CompletedFetchOf,
-  type QueryStore,
-  applyTransition,
+  type AsyncDataTransition,
+  type QueryFetcher,
+  makeFetcher,
+  makeFetcherLayer,
+  runWhileHoldingKey,
 } from './internal.js'
 import { cancelData, isFresh, resolveStaleTime } from './policy.js'
-
-type AnyLayer =
-  | Layer.Layer<never, unknown, unknown>
-  | Layer.Layer<unknown, unknown, unknown>
 
 /** Schemas and identity used to define an unkeyed Query. */
 export type QueryConfig<
@@ -41,64 +36,25 @@ export type QueryConfig<
   EI,
   Notify extends boolean = false,
 > = Readonly<{
-  /** Block identity and prefix for the Query's Fetch Command. */
+  /** Block id and prefix for the Query's Fetch and CancelFetch Commands. */
   name: Name
   /** Schema for successfully fetched data. */
   data: Schema.Codec<A, AI, never, never>
   /** Schema for expected fetch failures retained in AsyncData. */
   error: Schema.Codec<E, EI, never, never>
   /** Successful data's fresh lifetime. Defaults to Infinity. Expiry does not
-   * remove retained data; freshness-aware operations take an explicit Clock time. */
+   * remove retained data; freshness-aware Messages carry an explicit Clock time. */
   staleTime?: Duration.Input
-  /** Exposes accepted Fetch completions through an OutMessage contract. */
+  /** Reports accepted Fetch completions through the `CompletedFetch` OutMessage. */
   notifyOnCompletion?: Notify
-  execute?: never
 }> &
   ([Notify] extends [true] ? Readonly<{ notifyOnCompletion: true }> : unknown)
 
-type QueryFetchArgs = Readonly<{ generation: number }>
-
-type QueryFetchHandler<Name extends string, A, AI, E, EI> = Command.Handler<
-  `${Name}/Fetch`,
-  QueryFetchArgs,
-  CompletedFetchOf<QueryMessage<A, AI, E, EI>>
->
-
-type QueryFetchDefinition<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-> = Interruptible.DefinitionWithArgs<
-  `${Name}/Fetch`,
-  { readonly generation: typeof Schema.Number },
-  Readonly<{ generation: number }>,
-  Effect.Effect<
-    CompletedFetchOf<QueryMessage<A, AI, E, EI>>,
-    never,
-    QueryFetchHandler<Name, A, AI, E, EI>
-  >
-> &
-  Readonly<{
-    toLayer: Command.ToLayer<
-      `${Name}/Fetch`,
-      QueryFetchArgs,
-      CompletedFetchOf<QueryMessage<A, AI, E, EI>>
-    >
-  }>
-
-/** Builds a Query fetch handler Layer from an Effect that constructs a fetch. */
-export interface QueryToLayer<Name extends string, A, AI, E, EI> {
-  <R, BuildE = never, BuildR = never>(
-    build: Effect.Effect<() => Effect.Effect<A, E, R>, BuildE, BuildR> &
-      ValidateConstructionRequirements<BuildR>,
-  ): Layer.Layer<
-    QueryFetchHandler<Name, A, AI, E, EI>,
-    BuildE,
-    Exclude<R | BuildR, Scope.Scope>
-  >
-}
+/** Constructor args for a Query instance. Pass `{}` for an Idle Query. */
+export type QueryArgs = Readonly<{
+  /** Starts the first fetch when the instance enters its parent's Model. */
+  isLoadingOnStart?: boolean
+}>
 
 const makeQueryMessage = <A, AI, E, EI>(
   data: Schema.Codec<A, AI>,
@@ -176,71 +132,76 @@ export interface QueryModel<A, AI, E, EI> extends Schema.Struct<
   }>
 > {}
 
-const makeQueryApi = <
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fetch extends QueryFetchDefinition<Name, A, AI, E, EI>,
->(
+/** @internal The pure policy of a Query: its Schemas, Commands, and the
+ *  transitions its update handlers apply. */
+export const makeQueryPolicy = <Name extends string, A, AI, E, EI>(
   config: QueryConfig<Name, A, AI, E, EI, boolean>,
-  Model: QueryModel<A, AI, E, EI>,
-  Message: QueryMessage<A, AI, E, EI>,
-  Fetch: Fetch,
 ) => {
   const staleTimeMillis = resolveStaleTime(config.name, config.staleTime)
+  const Model = makeQueryModel(config.data, config.error)
+  const Message = makeQueryMessage(config.data, config.error)
   const OutMessage = makeQueryOutMessage(config.data, config.error)
   type Model = typeof Model.Type
   type Message = typeof Message.Type
-  type UpdateReturn = Update.Return<
-    Model,
-    Message,
-    QueryFetchHandler<Name, A, AI, E, EI>
+
+  const Fetch = Command.define(`${config.name}/Fetch`, {
+    args: { generation: Schema.Number },
+    messages: [Message.CompletedFetch],
+  })
+  const CancelFetch = Command.define(`${config.name}/CancelFetch`, {
+    args: { generation: Schema.Number },
+    messages: [Message.CompletedCancelFetch],
+  })
+  const Fetcher = makeFetcher<Name, () => Effect.Effect<A, E>>(config.name)
+
+  type Commands = ReadonlyArray<
+    ReturnType<typeof Fetch> | ReturnType<typeof CancelFetch>
   >
-  type PureUpdateReturn = Update.Return<Model, Message>
-  type CancelReturn = Update.Return<Model, Message>
+  type Return = Readonly<{ model: Model; commands?: Commands }>
+  type FetchReturn = Readonly<{
+    model: Model
+    commands?: ReadonlyArray<ReturnType<typeof Fetch>>
+  }>
+  type CancelReturn = Readonly<{
+    model: Model
+    commands?: ReadonlyArray<ReturnType<typeof CancelFetch>>
+  }>
 
-  const store: QueryStore<
-    Model,
-    undefined,
-    A,
-    E,
-    Message,
-    QueryFetchHandler<Name, A, AI, E, EI>
-  > = {
-    read: model => model.data,
-    start: (model, _args, data) => {
-      const nextGeneration = Number.increment(model.generation)
-
-      return {
-        model: modifyFields(model, {
-          data: () => data,
-          generation: () => nextGeneration,
-        }),
-        generation: nextGeneration,
-      }
-    },
-    fetch: (_args, generation) => Fetch({ generation }),
-  }
-
-  const init = () => ({
+  const init = (): Readonly<{ model: Model }> => ({
     model: Model.make({
       data: AsyncData.Idle(),
       generation: 0,
       maybeCompletedAtMillis: Option.none(),
     }),
   })
-  const reset = (model: Model): PureUpdateReturn => ({
+  const read = (model: Model): AsyncData.AsyncData<A, E> => model.data
+  const applyTransition = (
+    model: Model,
+    transition: AsyncDataTransition,
+  ): FetchReturn =>
+    Option.match(transition(model.data), {
+      onNone: () => ({ model }),
+      onSome: nextData => {
+        const nextGeneration = Number.increment(model.generation)
+
+        return {
+          model: modifyFields(model, {
+            data: () => nextData,
+            generation: () => nextGeneration,
+          }),
+          commands: [Fetch({ generation: nextGeneration })],
+        }
+      },
+    })
+  const requestReset = (model: Model): Readonly<{ model: Model }> => ({
     model: modifyFields(model, { data: () => AsyncData.Idle() }),
   })
-  const read = (model: Model): AsyncData.AsyncData<A, E> => model.data
-  const revalidate = (model: Model): UpdateReturn =>
-    applyTransition(store, model, undefined, AsyncData.revalidate)
-  const revalidateOrLoad = (model: Model): UpdateReturn =>
-    applyTransition(store, model, undefined, AsyncData.revalidateOrLoad)
-  const loadIfMissing = (model: Model): UpdateReturn =>
-    applyTransition(store, model, undefined, AsyncData.loadIfMissing)
+  const requestRevalidation = (model: Model): FetchReturn =>
+    applyTransition(model, AsyncData.revalidate)
+  const requestRevalidationOrLoad = (model: Model): FetchReturn =>
+    applyTransition(model, AsyncData.revalidateOrLoad)
+  const requestLoadIfMissing = (model: Model): FetchReturn =>
+    applyTransition(model, AsyncData.loadIfMissing)
   const isQueryFresh = (model: Model, nowMillis: number): boolean =>
     isFresh(
       model.data,
@@ -248,25 +209,24 @@ const makeQueryApi = <
       nowMillis,
       staleTimeMillis,
     )
-  const loadIfStale = (model: Model, nowMillis: number): UpdateReturn =>
-    isQueryFresh(model, nowMillis) ? { model } : revalidateOrLoad(model)
-  const cancel = (model: Model): CancelReturn => {
+  const requestLoadIfStale = (model: Model, nowMillis: number): FetchReturn => {
+    if (isQueryFresh(model, nowMillis)) {
+      return { model }
+    } else {
+      return requestRevalidationOrLoad(model)
+    }
+  }
+  const requestCancel = (model: Model): CancelReturn => {
     if (!AsyncData.isPending(model.data)) {
       return { model }
     }
-
-    const oldGeneration = model.generation
 
     return {
       model: modifyFields(model, {
         data: cancelData,
         generation: Number.increment,
       }),
-      commands: [
-        Fetch.Interrupt({ generation: oldGeneration }, () =>
-          Message.CompletedCancelFetch(),
-        ),
-      ],
+      commands: [CancelFetch({ generation: model.generation })],
     }
   }
   const completeFetch = (
@@ -277,15 +237,13 @@ const makeQueryApi = <
       completedAtMillis,
     }: typeof Message.CompletedFetch.Type,
   ): Option.Option<Model> => {
-    const data = read(model)
-
-    if (!AsyncData.isPending(data) || generation !== model.generation) {
+    if (!AsyncData.isPending(model.data) || generation !== model.generation) {
       return Option.none()
     }
 
     return Option.some(
       modifyFields(model, {
-        data: () => AsyncData.settle(data, result),
+        data: () => AsyncData.settle(model.data, result),
         maybeCompletedAtMillis: previous =>
           Result.isSuccess(result)
             ? Option.fromNullishOr(completedAtMillis)
@@ -293,21 +251,22 @@ const makeQueryApi = <
       }),
     )
   }
+
   const updateHandlers = {
-    RequestedReset: (model: Model) => reset(model),
-    RequestedRevalidation: (model: Model) => revalidate(model),
-    RequestedRevalidationOrLoad: (model: Model) => revalidateOrLoad(model),
-    RequestedLoadIfMissing: (model: Model) => loadIfMissing(model),
+    RequestedReset: requestReset,
+    RequestedRevalidation: requestRevalidation,
+    RequestedRevalidationOrLoad: requestRevalidationOrLoad,
+    RequestedLoadIfMissing: requestLoadIfMissing,
     RequestedLoadIfStale: (
       model: Model,
       { nowMillis }: typeof Message.RequestedLoadIfStale.Type,
-    ) => loadIfStale(model, nowMillis),
-    RequestedCancel: (model: Model) => cancel(model),
-    CompletedCancelFetch: (model: Model) => ({ model }),
+    ) => requestLoadIfStale(model, nowMillis),
+    RequestedCancel: requestCancel,
+    CompletedCancelFetch: (model: Model): Return => ({ model }),
     CompletedFetch: (
       model: Model,
       message: typeof Message.CompletedFetch.Type,
-    ) =>
+    ): Return =>
       Option.match(completeFetch(model, message), {
         onNone: () => ({ model }),
         onSome: nextModel => ({ model: nextModel }),
@@ -318,8 +277,8 @@ const makeQueryApi = <
     CompletedFetch: (
       model: Model,
       message: typeof Message.CompletedFetch.Type,
-    ): Update.ReturnWithOutMessage<Model, Message, typeof OutMessage.Type> => {
-      return Option.match(completeFetch(model, message), {
+    ): Readonly<{ model: Model; outMessage?: typeof OutMessage.Type }> =>
+      Option.match(completeFetch(model, message), {
         onNone: () => ({ model }),
         onSome: nextModel => ({
           model: nextModel,
@@ -331,584 +290,383 @@ const makeQueryApi = <
               : { completedAtMillis: message.completedAtMillis }),
           }),
         }),
-      })
-    },
+      }),
   }
-  const operations = {
-    requestLoadIfStale: (nowMillis: number) =>
-      Tuple.make(Message.RequestedLoadIfStale({ nowMillis })),
-    requestCancel: () => Tuple.make(Message.RequestedCancel()),
+  const update = (
+    model: Model,
+    message: Message,
+  ): Readonly<{
+    model: Model
+    commands?: Commands
+    outMessage?: typeof OutMessage.Type
+  }> => {
+    const handlers =
+      config.notifyOnCompletion === true
+        ? notifyingUpdateHandlers
+        : updateHandlers
+    const tag: string = message._tag
+    const handler: (model: Model, message: Message) => Return = Reflect.get(
+      handlers,
+      tag,
+    )
+    return handler(model, message)
   }
-  const run = pipe(
-    Fetch({ generation: 0 }).effect,
-    Effect.map(({ result }) => AsyncData.settle(AsyncData.Loading(), result)),
-  )
-  const toLayer: QueryToLayer<Name, A, AI, E, EI> = <
-    HandlerR,
-    BuildE = never,
-    BuildR = never,
-  >(
-    build: Effect.Effect<() => Effect.Effect<A, E, HandlerR>, BuildE, BuildR> &
-      ValidateConstructionRequirements<BuildR>,
-  ) =>
-    Fetch.toLayer<HandlerR, BuildE, BuildR>(
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      Effect.map(
-        build,
-        execute =>
-          ({ generation }: QueryFetchArgs) =>
-            pipe(
-              execute(),
-              Effect.result,
-              Effect.flatMap(result =>
-                Effect.map(Clock.currentTimeMillis, completedAtMillis =>
-                  Message.CompletedFetch({
-                    generation,
-                    result,
-                    completedAtMillis,
-                  }),
-                ),
+  const startModel = ({
+    isLoadingOnStart = false,
+  }: QueryArgs): Readonly<{ model: Model; start: Commands }> => {
+    if (isLoadingOnStart) {
+      const started = requestLoadIfMissing(init().model)
+      return { model: started.model, start: started.commands ?? [] }
+    } else {
+      return { model: init().model, start: [] }
+    }
+  }
+  const makeFetchHandlers = (execute: () => Effect.Effect<A, E>) => {
+    const registry = __makeRegistry()
+
+    return {
+      fetch: ({ generation }: Readonly<{ generation: number }>) =>
+        runWhileHoldingKey(
+          registry,
+          `${generation}`,
+          pipe(
+            execute(),
+            Effect.result,
+            Effect.flatMap(result =>
+              Effect.map(Clock.currentTimeMillis, completedAtMillis =>
+                Message.CompletedFetch({
+                  generation,
+                  result,
+                  completedAtMillis,
+                }),
               ),
             ),
-      ) as never,
-    )
-
-  return {
-    init,
-    reset,
-    read,
-    isFresh: isQueryFresh,
-    updateHandlers,
-    notifyingUpdateHandlers,
-    OutMessage,
-    revalidate,
-    revalidateOrLoad,
-    loadIfMissing,
-    loadIfStale,
-    cancel,
-    operations,
-    run,
-    toLayer,
+          ),
+        ),
+      cancelFetch: ({ generation }: Readonly<{ generation: number }>) =>
+        Effect.as(
+          registry.interrupt(`${generation}`),
+          Message.CompletedCancelFetch(),
+        ),
+    }
   }
-}
-
-// oxlint-disable effecttsgo/any-unknown-in-error-context
-const enrichQuery = <
-  BlockValue extends Block.AnyBlock,
-  Fetch,
-  Read,
-  IsFresh,
-  Run,
-  ToLayer,
-  Operations extends Readonly<
-    Record<string, (...args: ReadonlyArray<any>) => any>
-  >,
->(
-  block: BlockValue,
-  api: Readonly<{
-    Fetch: Fetch
-    read: Read
-    isFresh: IsFresh
-    run: Run
-    toLayer: ToLayer
-    operations: Operations
-  }>,
-) => {
-  const { replaceEffectsLayer, provideHandlers } = block
-
-  return Object.assign(block, {
-    Fetch: api.Fetch,
-    read: api.read,
-    isFresh: api.isFresh,
-    run: api.run,
-    toLayer: api.toLayer,
-    ...api.operations,
-    replaceEffectsLayer: <EffectsLayer extends AnyLayer>(
-      EffectsLayer: EffectsLayer,
-    ) => enrichQuery(replaceEffectsLayer(EffectsLayer), api),
-    provideHandlers: <HandlersLayer extends AnyLayer>(
-      HandlersLayer: HandlersLayer,
-    ) => enrichQuery(provideHandlers(HandlersLayer), api),
-  })
-}
-// oxlint-enable effecttsgo/any-unknown-in-error-context
-
-type QueryModelType<A, AI, E, EI> = QueryModel<A, AI, E, EI>['Type']
-type QueryMessageType<A, AI, E, EI> = QueryMessage<A, AI, E, EI>['Type']
-
-type QueryExposedOperations<Name extends string, A, AI, E, EI> = Readonly<{
-  /** Returns the Query to Idle without starting a fetch. */
-  requestReset: Update.Step<
-    QueryModelType<A, AI, E, EI>,
-    QueryMessageType<A, AI, E, EI>,
-    QueryFetchHandler<Name, A, AI, E, EI>
-  >
-  /** Starts a fetch for `Success` or `Stale` data while retaining that data.
-   * Other states remain unchanged. */
-  requestRevalidation: Update.Step<
-    QueryModelType<A, AI, E, EI>,
-    QueryMessageType<A, AI, E, EI>,
-    QueryFetchHandler<Name, A, AI, E, EI>
-  >
-  /** Revalidates retained data and starts an initial or retry fetch when no
-   * successful data is available. */
-  requestRevalidationOrLoad: Update.Step<
-    QueryModelType<A, AI, E, EI>,
-    QueryMessageType<A, AI, E, EI>,
-    QueryFetchHandler<Name, A, AI, E, EI>
-  >
-  /** Starts a fetch while the Query is `Idle` or `Failure`. Loaded and pending
-   * states remain unchanged. */
-  requestLoadIfMissing: Update.Step<
-    QueryModelType<A, AI, E, EI>,
-    QueryMessageType<A, AI, E, EI>,
-    QueryFetchHandler<Name, A, AI, E, EI>
-  >
-  /** Uses retained data while fresh; otherwise starts a load or refresh.
-   * nowMillis comes from Effect Clock through an application Message. */
-  requestLoadIfStale: {
-    (
-      model: QueryModelType<A, AI, E, EI>,
-      nowMillis: number,
-    ): Update.Return<
-      QueryModelType<A, AI, E, EI>,
-      QueryMessageType<A, AI, E, EI>,
-      QueryFetchHandler<Name, A, AI, E, EI>
-    >
-    (
-      nowMillis: number,
-    ): Update.Step<
-      QueryModelType<A, AI, E, EI>,
-      QueryMessageType<A, AI, E, EI>,
-      QueryFetchHandler<Name, A, AI, E, EI>
-    >
-  }
-  /** Invalidates and interrupts the pending generation, retaining successful data. */
-  requestCancel: Update.Step<
-    QueryModelType<A, AI, E, EI>,
-    QueryMessageType<A, AI, E, EI>
-  >
-}>
-
-type QueryImplementationOperations<Name extends string, A, AI, E, EI> = Omit<
-  QueryExposedOperations<Name, A, AI, E, EI>,
-  'requestLoadIfStale'
-> &
-  Readonly<{
-    requestLoadIfStale: (
-      model: QueryModelType<A, AI, E, EI>,
-      nowMillis: number,
-    ) => Update.Return<
-      QueryModelType<A, AI, E, EI>,
-      QueryMessageType<A, AI, E, EI>,
-      QueryFetchHandler<Name, A, AI, E, EI>
-    >
-  }>
-
-type QueryImplementation<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  EffectsLayer extends AnyLayer,
-  HostHandlers extends ReadonlyArray<unknown>,
-  Notify extends boolean,
-> = Readonly<{
-  init: () => Readonly<{ model: QueryModelType<A, AI, E, EI> }>
-  update: (
-    model: QueryModelType<A, AI, E, EI>,
-    message: QueryMessageType<A, AI, E, EI>,
-  ) => Notify extends true
-    ? Update.ReturnWithOutMessage<
-        QueryModelType<A, AI, E, EI>,
-        QueryMessageType<A, AI, E, EI>,
-        QueryOutMessage<A, AI, E, EI>['Type'],
-        QueryFetchHandler<Name, A, AI, E, EI>
-      >
-    : Update.Return<
-        QueryModelType<A, AI, E, EI>,
-        QueryMessageType<A, AI, E, EI>,
-        QueryFetchHandler<Name, A, AI, E, EI>
-      >
-  operations: QueryImplementationOperations<Name, A, AI, E, EI>
-  EffectsLayer: EffectsLayer
-  hostHandlers: HostHandlers
-}>
-
-type QueryConveniences<Name extends string, A, AI, E, EI> = Readonly<{
-  /** Fetch Command definition owned by this Query Block. */
-  Fetch: QueryFetchDefinition<Name, A, AI, E, EI>
-  /** Reads the retained AsyncData without exposing the Query Model shape. */
-  read: (model: QueryModelType<A, AI, E, EI>) => AsyncData.AsyncData<A, E>
-  /** Checks retained successful data against an explicit Effect Clock time. */
-  isFresh: (model: QueryModelType<A, AI, E, EI>, nowMillis: number) => boolean
-  /** Runs the Query's fetch handler directly and returns settled AsyncData. */
-  run: Effect.Effect<
+  const run: Effect.Effect<
     AsyncData.AsyncData<A, E>,
     never,
-    QueryFetchHandler<Name, A, AI, E, EI>
-  >
-  /** Builds a handler Layer from an Effect that constructs the fetch function. */
-  toLayer: QueryToLayer<Name, A, AI, E, EI>
-}> &
-  QueryExposedOperations<Name, A, AI, E, EI>
+    QueryFetcher<Name>
+  > = Effect.flatMap(Fetcher, execute =>
+    pipe(
+      execute(),
+      Effect.result,
+      Effect.map(result => AsyncData.settle(AsyncData.Loading(), result)),
+    ),
+  )
 
-type MergeLayers<Left extends AnyLayer, Right extends AnyLayer> = Layer.Layer<
-  Layer.Success<Left | Right>,
-  Layer.Error<Left | Right>,
-  Layer.Services<Left | Right>
+  return {
+    name: config.name,
+    Model,
+    Message,
+    OutMessage,
+    Fetch,
+    CancelFetch,
+    Fetcher,
+    init,
+    read,
+    isFresh: isQueryFresh,
+    requestReset,
+    requestRevalidation,
+    requestRevalidationOrLoad,
+    requestLoadIfMissing,
+    requestLoadIfStale,
+    requestCancel,
+    update,
+    updateHandlers,
+    notifyingUpdateHandlers,
+    startModel,
+    makeFetchHandlers,
+    run,
+  }
+}
+
+type QueryPolicy<Name extends string, A, AI, E, EI> = ReturnType<
+  typeof makeQueryPolicy<Name, A, AI, E, EI>
 >
 
-type QueryBlockBase<
+type FetchBuild<A, E, R, BuildE, BuildR> = Effect.Effect<
+  () => Effect.Effect<A, E, R>,
+  BuildE,
+  BuildR
+>
+
+type CompletedFetch<A, AI, E, EI> = QueryMessage<
+  A,
+  AI,
+  E,
+  EI
+>['CompletedFetch']['Type']
+
+type CompletedCancelFetch<A, AI, E, EI> = QueryMessage<
+  A,
+  AI,
+  E,
+  EI
+>['CompletedCancelFetch']['Type']
+
+/** Fetch Command definition owned by a Query. */
+export type QueryFetch<
   Name extends string,
   A,
   AI,
   E,
   EI,
-  EffectsLayer extends AnyLayer,
-  HostHandlers extends ReadonlyArray<unknown>,
-  Notify extends boolean,
-> = Block.Block<
-  Block.Owner<Name, false>,
-  QueryModel<A, AI, E, EI>,
-  QueryMessage<A, AI, E, EI>,
-  Notify extends true ? QueryOutMessage<A, AI, E, EI> : undefined,
-  readonly [],
-  readonly [],
-  QueryImplementation<Name, A, AI, E, EI, EffectsLayer, HostHandlers, Notify>
+> = Command.LayeredCommandDefinitionWithArgs<
+  `${Name}/Fetch`,
+  { generation: typeof Schema.Number },
+  CompletedFetch<A, AI, E, EI>
 >
 
-type QueryShape<
+/** CancelFetch Command definition owned by a Query. */
+export type QueryCancelFetch<
   Name extends string,
   A,
   AI,
   E,
   EI,
-  EffectsLayer extends AnyLayer,
-  HostHandlers extends ReadonlyArray<unknown>,
-  Notify extends boolean,
-> = Omit<
-  QueryBlockBase<Name, A, AI, E, EI, EffectsLayer, HostHandlers, Notify>,
-  'replaceEffectsLayer' | 'provideHandlers'
+> = Command.LayeredCommandDefinitionWithArgs<
+  `${Name}/CancelFetch`,
+  { generation: typeof Schema.Number },
+  CompletedCancelFetch<A, AI, E, EI>
+>
+
+type PlainContract<Name extends string, A, AI, E, EI> = Readonly<{
+  Model: QueryModel<A, AI, E, EI>
+  Message: QueryMessage<A, AI, E, EI>
+  Command: readonly [
+    QueryFetch<Name, A, AI, E, EI>,
+    QueryCancelFetch<Name, A, AI, E, EI>,
+  ]
+}>
+
+type NotifyingContract<Name extends string, A, AI, E, EI> = PlainContract<
+  Name,
+  A,
+  AI,
+  E,
+  EI
 > &
-  QueryConveniences<Name, A, AI, E, EI> &
-  Readonly<{
-    /** Replaces the Query's complete local fetch handler recipe. */
-    replaceEffectsLayer: <SelectedEffectsLayer extends AnyLayer>(
-      EffectsLayer: SelectedEffectsLayer &
-        NoInfer<
-          Block.ValidateConcreteComposition<
-            QueryBlockBase<
-              Name,
-              A,
-              AI,
-              E,
-              EI,
-              SelectedEffectsLayer,
-              HostHandlers,
-              Notify
-            >
-          >
-        >,
-    ) => Query<Name, A, AI, E, EI, SelectedEffectsLayer, HostHandlers, Notify>
-    /** Supplies the host-provided Fetch handler and returns a complete Query. */
-    provideHandlers: HostHandlers extends readonly [
-      QueryFetchDefinition<Name, A, AI, E, EI>,
-    ]
-      ? <HandlerError, HandlerRequirements>(
-          HandlersLayer: Layer.Layer<
-            QueryFetchHandler<Name, A, AI, E, EI>,
-            HandlerError,
-            HandlerRequirements
-          >,
-        ) => Query<
-          Name,
-          A,
-          AI,
-          E,
-          EI,
-          MergeLayers<
-            EffectsLayer,
-            Layer.Layer<
-              QueryFetchHandler<Name, A, AI, E, EI>,
-              HandlerError,
-              HandlerRequirements
-            >
-          >,
-          readonly [],
-          Notify
-        >
-      : never
-  }>
+  Readonly<{ OutMessage: QueryOutMessage<A, AI, E, EI> }>
 
-/** Named completed Query contract with accepted-completion OutMessages. */
-export interface QueryWithOutMessage<
+type QueryContract<
   Name extends string,
   A,
   AI,
   E,
   EI,
-  EffectsLayer extends AnyLayer,
-  HostHandlers extends ReadonlyArray<unknown>,
-> extends QueryShape<Name, A, AI, E, EI, EffectsLayer, HostHandlers, true> {}
-
-/** Named completed Query contract without a completion OutMessage contract. */
-export interface QueryWithoutOutMessage<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  EffectsLayer extends AnyLayer,
-  HostHandlers extends ReadonlyArray<unknown>,
-> extends QueryShape<Name, A, AI, E, EI, EffectsLayer, HostHandlers, false> {}
+  Notify extends boolean,
+> = Notify extends true
+  ? NotifyingContract<Name, A, AI, E, EI>
+  : PlainContract<Name, A, AI, E, EI>
 
 /**
- * Viewless Block for fetching and retaining one `AsyncData` value.
- *
- * EffectsLayer and HostHandlers describe handler assembly. Notify selects the
- * optional accepted-completion OutMessage contract; it defaults to false.
+ * A Query instance: a viewless Block that fetches and retains one
+ * `AsyncData` value. Store it in the parent Model and send it `Requested*`
+ * Messages. Notify selects whether it reports accepted completions through
+ * the `CompletedFetch` OutMessage.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
-export type Query<
+export interface Query<
   Name extends string,
   A,
   AI,
   E,
   EI,
-  EffectsLayer extends AnyLayer = Layer.Layer<never, never, never>,
-  HostHandlers extends ReadonlyArray<unknown> = readonly [
-    QueryFetchDefinition<Name, A, AI, E, EI>,
-  ],
   Notify extends boolean = false,
-> = Notify extends true
-  ? QueryWithOutMessage<Name, A, AI, E, EI, EffectsLayer, HostHandlers>
-  : QueryWithoutOutMessage<Name, A, AI, E, EI, EffectsLayer, HostHandlers>
+> extends BlockTypes.Instance<
+  Query<Name, A, AI, E, EI, Notify>,
+  QueryContract<Name, A, AI, E, EI, Notify>,
+  QueryArgs
+> {}
 
-const makeQueryParts = <Name extends string, A, AI, E, EI>(
-  config: QueryConfig<Name, A, AI, E, EI, boolean>,
-) => {
-  const Model = makeQueryModel(config.data, config.error)
-  const Message = makeQueryMessage(config.data, config.error)
-  const QueryNamespace = Block.makeNamespace(config.name)
-  const makePlain = (): LayeredQuery<Name, A, AI, E, EI> => {
-    const Definition = QueryNamespace.makeDefinition({ Model, Message })
-    const Fetch = Definition.makeCommand('Fetch', {
-      args: { generation: Schema.Number },
-      messages: [Message.CompletedFetch],
-      interrupt: {
-        keyFields: ['generation'],
-        toKey: ({ generation }) => `${generation}`,
-      },
-    })
-    const api = makeQueryApi(config, Model, Message, Fetch)
-    const Composition = Definition.makeComposition()
-    const init = Composition.makeInit(api.init)
-    const prepare = () =>
-      Composition.prepareBlock({
-        init,
-        update: Composition.makeUpdate(api.updateHandlers),
-        operations: {
-          requestReset: Message.RequestedReset,
-          requestRevalidation: Message.RequestedRevalidation,
-          requestRevalidationOrLoad: Message.RequestedRevalidationOrLoad,
-          requestLoadIfMissing: Message.RequestedLoadIfMissing,
-          ...api.operations,
-        },
-        EffectsLayer: Layer.empty,
-        hostHandlers: [Fetch],
-      })
-    const block: Block.FromAssemblyWithoutViewOrOutMessage<
-      typeof Model,
-      typeof prepare
-    > = Block.assemble(prepare)
+/** The statics a Query class carries beside its Block contract. */
+export type QueryStatics<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Notify extends boolean,
+> = Readonly<{
+  /** Fetch Command definition owned by this Query. Match and resolve it in
+   *  Story and Scene tests. */
+  Fetch: QueryFetch<Name, A, AI, E, EI>
+  /** CancelFetch Command definition returned by `RequestedCancel`. */
+  CancelFetch: QueryCancelFetch<Name, A, AI, E, EI>
+  /** Reads the retained AsyncData from the Query Model. */
+  read: (model: QueryModel<A, AI, E, EI>['Type']) => AsyncData.AsyncData<A, E>
+  /** Checks retained successful data against an explicit Effect Clock time. */
+  isFresh: (
+    model: QueryModel<A, AI, E, EI>['Type'],
+    nowMillis: number,
+  ) => boolean
+  /** Runs the fetch function directly and returns settled AsyncData. Provide
+   *  the Query's Layer to supply the fetch function. */
+  run: Effect.Effect<AsyncData.AsyncData<A, E>, never, QueryFetcher<Name>>
+  /** Builds the Query's Layer from an Effect that constructs its fetch
+   *  function. The fetch function is constructed once when the Layer is
+   *  built and runs for every Fetch Command. */
+  toLayer: <R, BuildE = never, BuildR = never>(
+    build: FetchBuild<A, E, R, BuildE, BuildR>,
+  ) => Layer.Layer<
+    Query<Name, A, AI, E, EI, Notify> | QueryFetcher<Name>,
+    BuildE,
+    Exclude<R | BuildR, Scope.Scope>
+  >
+}>
 
-    return enrichQuery(block, {
-      Fetch,
-      read: api.read,
-      isFresh: api.isFresh,
-      run: api.run,
-      toLayer: api.toLayer,
-      operations: {
-        ...block.operations,
-        requestLoadIfStale: Function.dual(
-          2,
-          block.operations.requestLoadIfStale,
-        ),
-        requestCancel: block.operations.requestCancel,
-      },
+/**
+ * A Query class. Put it in a parent Model Schema, create instances with
+ * `yield* new PostsQuery('posts', {})`, and provide its Layer.
+ *
+ * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ */
+export type QueryClass<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Notify extends boolean = false,
+> = BlockTypes.BlockClass<
+  Query<Name, A, AI, E, EI, Notify>,
+  Name,
+  QueryArgs,
+  void,
+  never,
+  QueryContract<Name, A, AI, E, EI, Notify>
+> &
+  QueryStatics<Name, A, AI, E, EI, Notify>
+
+/** A Query class whose definition included a `handler`, with its Layer
+ *  attached as `Live`. */
+export type QueryWithLive<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Notify extends boolean,
+  BuildE,
+  R,
+> = QueryClass<Name, A, AI, E, EI, Notify> &
+  Readonly<{
+    /** The Query's Layer, built from its `handler`. */
+    Live: Layer.Layer<
+      Query<Name, A, AI, E, EI, Notify> | QueryFetcher<Name>,
+      BuildE,
+      Exclude<R, Scope.Scope>
+    >
+  }>
+
+const makeConstructor =
+  <Name extends string, A, AI, E, EI, Update>(
+    policy: QueryPolicy<Name, A, AI, E, EI>,
+    update: Update,
+  ) =>
+  (_id: string, args: QueryArgs) =>
+    Effect.gen(function* () {
+      const execute = yield* policy.Fetcher
+      const { model, start } = policy.startModel(args)
+      const { fetch, cancelFetch } = policy.makeFetchHandlers(execute)
+
+      return {
+        model,
+        start,
+        update,
+        // NOTE: the engine's handler record is keyed by Command name, which
+        // TypeScript cannot resolve for a generic Query name.
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        commands: {
+          [policy.Fetch.name]: fetch,
+          [policy.CancelFetch.name]: cancelFetch,
+        } as never,
+      }
     })
+
+const makePlainQuery = <Name extends string, A, AI, E, EI>(
+  policy: QueryPolicy<Name, A, AI, E, EI>,
+): QueryClass<Name, A, AI, E, EI, false> => {
+  const contract: PlainContract<Name, A, AI, E, EI> = {
+    Model: policy.Model,
+    Message: policy.Message,
+    Command: [policy.Fetch, policy.CancelFetch],
   }
-  const makeNotifying = (): LayeredQuery<Name, A, AI, E, EI, true> => {
-    const OutMessage = makeQueryOutMessage(config.data, config.error)
-    const Definition = QueryNamespace.makeDefinition({
-      Model,
-      Message,
-      OutMessage,
-    })
-    const Fetch = Definition.makeCommand('Fetch', {
-      args: { generation: Schema.Number },
-      messages: [Message.CompletedFetch],
-      interrupt: {
-        keyFields: ['generation'],
-        toKey: ({ generation }) => `${generation}`,
-      },
-    })
-    const api = makeQueryApi(config, Model, Message, Fetch)
-    const Composition = Definition.makeComposition()
-    const init = Composition.makeInit(api.init)
-    const prepare = () =>
-      Composition.prepareBlock({
-        init,
-        update: Composition.makeUpdate(api.notifyingUpdateHandlers),
-        operations: {
-          requestReset: Message.RequestedReset,
-          requestRevalidation: Message.RequestedRevalidation,
-          requestRevalidationOrLoad: Message.RequestedRevalidationOrLoad,
-          requestLoadIfMissing: Message.RequestedLoadIfMissing,
-          ...api.operations,
-        },
-        EffectsLayer: Layer.empty,
-        hostHandlers: [Fetch],
-      })
-    const block: Block.FromAssemblyWithOutMessage<
-      typeof Model,
-      typeof prepare
-    > = Block.assemble(prepare)
+  const QueryBlock = Block<Query<Name, A, AI, E, EI, false>, QueryArgs>()(
+    policy.name,
+    contract,
+  )
+  const toLayer = <R, BuildE = never, BuildR = never>(
+    build: FetchBuild<A, E, R, BuildE, BuildR>,
+  ) =>
+    QueryBlock.make(makeConstructor(policy, policy.updateHandlers)).pipe(
+      Layer.provideMerge(makeFetcherLayer(policy.Fetcher, build)),
+    )
 
-    return enrichQuery(block, {
-      Fetch,
-      read: api.read,
-      isFresh: api.isFresh,
-      run: api.run,
-      toLayer: api.toLayer,
-      operations: {
-        ...block.operations,
-        requestLoadIfStale: Function.dual(
-          2,
-          block.operations.requestLoadIfStale,
-        ),
-        requestCancel: block.operations.requestCancel,
-      },
-    })
-  }
-
-  return { makePlain, makeNotifying }
+  return Object.assign(QueryBlock, {
+    Fetch: policy.Fetch,
+    CancelFetch: policy.CancelFetch,
+    read: policy.read,
+    isFresh: policy.isFresh,
+    run: policy.run,
+    toLayer,
+  })
 }
 
-/** A Query whose fetch definition can be supplied through Block handler assembly. */
-export type LayeredQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Notify extends boolean = false,
-> = Query<
-  Name,
-  A,
-  AI,
-  E,
-  EI,
-  Layer.Layer<never, never, never>,
-  readonly [QueryFetchDefinition<Name, A, AI, E, EI>],
-  Notify
->
+const makeNotifyingQuery = <Name extends string, A, AI, E, EI>(
+  policy: QueryPolicy<Name, A, AI, E, EI>,
+): QueryClass<Name, A, AI, E, EI, true> => {
+  const contract: NotifyingContract<Name, A, AI, E, EI> = {
+    Model: policy.Model,
+    Message: policy.Message,
+    OutMessage: policy.OutMessage,
+    Command: [policy.Fetch, policy.CancelFetch],
+  }
+  const QueryBlock = Block<Query<Name, A, AI, E, EI, true>, QueryArgs>()(
+    policy.name,
+    contract,
+  )
+  const toLayer = <R, BuildE = never, BuildR = never>(
+    build: FetchBuild<A, E, R, BuildE, BuildR>,
+  ) =>
+    QueryBlock.make(
+      makeConstructor(policy, policy.notifyingUpdateHandlers),
+    ).pipe(Layer.provideMerge(makeFetcherLayer(policy.Fetcher, build)))
 
-/** @internal Exact completed Block type for a Query with a canonical handler. */
-export type CanonicalQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  HandlerRequirements,
-  BuildError,
-  BuildRequirements,
-  Notify extends boolean = false,
-> = Query<
-  Name,
-  A,
-  AI,
-  E,
-  EI,
-  Layer.Layer<
-    QueryFetchHandler<Name, A, AI, E, EI>,
-    BuildError,
-    Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
-  >,
-  readonly [],
-  Notify
->
+  return Object.assign(QueryBlock, {
+    Fetch: policy.Fetch,
+    CancelFetch: policy.CancelFetch,
+    read: policy.read,
+    isFresh: policy.isFresh,
+    run: policy.run,
+    toLayer,
+  })
+}
 
-export function defineQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  const Notify extends boolean = false,
->(
-  config: QueryConfig<Name, A, AI, E, EI, Notify>,
-): LayeredQuery<Name, A, AI, E, EI, Notify>
-export function defineQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  HandlerRequirements,
-  BuildError,
-  BuildRequirements,
-  const Notify extends boolean = false,
->(
-  config: QueryConfig<Name, A, AI, E, EI, Notify>,
-  handler: Effect.Effect<
-    () => Effect.Effect<A, E, HandlerRequirements>,
-    BuildError,
-    BuildRequirements
-  > &
-    ValidateConstructionRequirements<BuildRequirements>,
-): CanonicalQuery<
-  Name,
-  A,
-  AI,
-  E,
-  EI,
-  HandlerRequirements,
-  BuildError,
-  BuildRequirements,
-  Notify
->
-export function defineQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  HandlerRequirements,
-  BuildError,
-  BuildRequirements,
->(
+/** @internal Defines an unkeyed Query class, attaching `Live` when a fetch
+ *  constructor is given. */
+export const defineQuery = <Name extends string, A, AI, E, EI>(
   config: QueryConfig<Name, A, AI, E, EI, boolean>,
-  handler?: Effect.Effect<
-    () => Effect.Effect<A, E, HandlerRequirements>,
-    BuildError,
-    BuildRequirements
-  > &
-    ValidateConstructionRequirements<BuildRequirements>,
-): unknown {
-  const parts = makeQueryParts(config)
+  build?: FetchBuild<A, E, never, never, never>,
+): unknown => {
+  const policy = makeQueryPolicy(config)
   const query =
     config.notifyOnCompletion === true
-      ? parts.makeNotifying()
-      : parts.makePlain()
+      ? makeNotifyingQuery(policy)
+      : makePlainQuery(policy)
 
-  if (handler === undefined) {
+  if (build === undefined) {
     return query
+  } else {
+    return Object.assign(query, { Live: query.toLayer(build) })
   }
-
-  return query.provideHandlers(query.toLayer(handler))
 }

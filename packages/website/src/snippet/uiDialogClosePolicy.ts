@@ -1,35 +1,46 @@
-import { Update } from 'foldkit'
+import { Effect, Layer, Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
 
-import {
-  EditorComposition,
-  EditorDefinition,
-  Message,
-} from './editor/definition'
+const Project = Schema.Struct({ name: Schema.String })
 
-const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
-  Dialog.DialogBlock,
-  {
-    Opened: EditorDefinition.makeNoopStep,
-    Closed: () =>
-      EditorDefinition.makeFieldsStep(() => ({
-        route: () => '/projects',
-      })),
-    CompletedClose: EditorDefinition.makeNoopStep,
-  },
-)
-
-export const DialogBinding = EditorDefinition.makeBinding(Dialog.DialogBlock, {
-  field: 'dialog',
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
-
-export const update = EditorComposition.makeUpdate({
-  SavedProject: (model, { project }) =>
-    Update.combineSteps(model, [
-      EditorDefinition.makeFieldsStep(() => ({
-        project: () => project,
-      })),
-      DialogBinding.requestClose(),
-    ]),
+const Message = defineMessageUnion({
+  SavedProject: { project: Project },
 })
+
+export class Editor extends Block<Editor>()('Editor', {
+  Model: Schema.Struct({
+    dialog: Dialog.Dialog,
+    project: Project,
+    route: Schema.String,
+  }),
+  Message,
+}) {}
+
+export const EditorLive = Editor.make(
+  Effect.fn(function* () {
+    const dialog = yield* new Dialog.Dialog('dialog', { id: 'project-editor' })
+
+    return {
+      model: { dialog, project: { name: '' }, route: '/projects/new' },
+
+      update: {
+        // Saving only asks the Dialog to close
+        SavedProject: (model, { project }) => ({
+          model: modifyFields(model, { project: () => project }),
+          messages: [model.dialog.send(Dialog.Dialog.Message.RequestedClose())],
+        }),
+
+        // Every close path, including Escape and the close button, ends here
+        ...dialog.on({
+          Closed: model => ({
+            model: modifyFields(model, { route: () => '/projects' }),
+          }),
+        }),
+      },
+    }
+  }),
+).pipe(Layer.provide(Dialog.DialogLive))

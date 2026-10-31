@@ -7,31 +7,21 @@ import { Effect, Queue, Stream } from 'effect'
  *
  * The browser pauses `requestAnimationFrame` when the tab is hidden, so the
  * first elapsed value after it becomes visible may be large. Cap the value in
- * the Subscription handler when the update uses it for motion or physics.
+ * update when it uses the value for motion or physics.
  *
  * @example
  * ```ts
- * const ExampleDefinition = Block.makeDefinition('Example', { Model, Message })
- * const subscriptions = ExampleDefinition.makeSubscriptions(entry => ({
- *   frame: entry(
- *     'AnimationFrameTicks',
- *     { isActive: Schema.Boolean },
- *     {
- *       messages: [Message.Ticked],
- *       modelToDependencies: model => ({ isActive: model.isActive }),
- *       handler: function* () {
- *         return ({ isActive }) =>
- *           isActive
- *             ? Dom.animationFrameTicks.pipe(
- *                 Stream.map(deltaTime => Message.Ticked({ deltaTime })),
- *               )
- *             : Stream.empty
- *       },
- *     },
- *   ),
- * }))
- *
- * const EffectsLayer = subscriptions.frame.layer
+ * subscriptions: {
+ *   frame: {
+ *     dependencies: model => model.isActive,
+ *     stream: (isActive: boolean) =>
+ *       isActive
+ *         ? Dom.animationFrameTicks.pipe(
+ *             Stream.map(deltaTime => Message.Ticked({ deltaTime })),
+ *           )
+ *         : Stream.empty,
+ *   },
+ * },
  * ```
  */
 export const animationFrameTicks: Stream.Stream<number> =

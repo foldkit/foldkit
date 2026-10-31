@@ -5,7 +5,6 @@ import * as Interruptible from '../../command/interruptible/index.js'
 import type { Document, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -80,7 +79,7 @@ const setStatusById = (uploadId: number, status: UploadStatus) =>
       : upload,
   )
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedStartUpload: () => {
       const startedUpload: Upload = {
@@ -122,8 +121,7 @@ export const update = Update.define((model: Model, message: Message) =>
         }),
         NotFound: () => ({ model }),
       }),
-  }),
-)
+  })
 
 // VIEW
 

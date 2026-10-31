@@ -1,9 +1,10 @@
 import { Option } from 'effect'
-import { Command, Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
-import { describe, expect, expectTypeOf, test } from 'vitest'
+import { Command, given, message, model, story } from 'foldkit/story'
 
-import { ApiReferenceBlock } from './block'
+import { describe, expect, it } from '@effect/vitest'
+
+import { ApiReferenceLive } from './block'
+import { LoadApiData } from './command'
 import {
   ApiData,
   ApiDataAsyncData,
@@ -12,10 +13,7 @@ import {
   SIGNATURE_COLLAPSE_THRESHOLD,
   scopedId,
 } from './domain'
-import { init } from './init'
 import { Message } from './message'
-import { type Model } from './model'
-import { LoadApiData, update } from './update'
 
 const apiModule = ApiModule.make({
   name: 'Command',
@@ -49,104 +47,118 @@ const fullData = ApiData.make({
 })
 const signatureId = scopedId('function', 'Command', 'define')
 
-const failedLoad = (model: Model) =>
-  update(model, Message.FailedLoadApiData({ error: 'Offline' }))
+const coldStart = { maybeApiData: Option.none() }
+const seededStart = { maybeApiData: Option.some(seededData) }
+
+const failLoad = message(Message.FailedLoadApiData({ error: 'Offline' }))
 
 describe('API Reference startup', () => {
-  test('cold startup schedules the full reference load', () => {
-    const initialDataLoad = init()
+  it.effect('cold startup begins loading the full reference', () =>
+    story(
+      ApiReferenceLive,
+      coldStart,
+      model(model => {
+        expect(model.apiData).toEqual(ApiDataAsyncData.Loading())
+        expect(model.disclosures).toEqual({})
+      }),
+    ),
+  )
 
-    expect(initialDataLoad.model.apiData).toEqual(ApiDataAsyncData.Loading())
-    expect(initialDataLoad.model.disclosures).toEqual({})
-    expect(initialDataLoad.commands).toHaveLength(1)
-    expect(initialDataLoad.commands?.map(command => command.name)).toEqual([
-      LoadApiData.name,
-    ])
-    expectTypeOf<Update.RequirementsOf<typeof init>>().toEqualTypeOf<
-      Command.HandlerOf<typeof LoadApiData>
-    >()
-  })
+  it.effect(
+    'prerendered data stays visible while the full reference loads',
+    () =>
+      story(
+        ApiReferenceLive,
+        seededStart,
+        model(model => {
+          expect(model.apiData).toEqual(
+            ApiDataAsyncData.Refreshing({ data: seededData }),
+          )
+          expect(model.disclosures).toEqual({ [signatureId]: false })
+        }),
+        message(Message.InformedOfRouteChange()),
+        model(model => {
+          expect(model.apiData).toEqual(
+            ApiDataAsyncData.Refreshing({ data: seededData }),
+          )
+        }),
+        Command.expectNone(),
+      ),
+  )
 
-  test('prerendered data stays visible while the full reference loads', () => {
-    const initialDataLoad = init(Option.some(seededData))
+  it.effect('failed cold loads can be requested again', () =>
+    story(
+      ApiReferenceLive,
+      coldStart,
+      failLoad,
+      model(model => {
+        expect(model.apiData).toEqual(
+          ApiDataAsyncData.Failure({ error: 'Offline' }),
+        )
+      }),
+      message(Message.InformedOfRouteChange()),
+      model(model => {
+        expect(model.apiData).toEqual(ApiDataAsyncData.Loading())
+      }),
+      Command.expectExact(LoadApiData),
+      Command.resolve(
+        LoadApiData,
+        Message.SucceededLoadApiData({ apiData: seededData }),
+      ),
+    ),
+  )
 
-    expect(initialDataLoad.model.apiData).toEqual(
-      ApiDataAsyncData.Refreshing({ data: seededData }),
-    )
-    expect(initialDataLoad.model.disclosures).toEqual({ [signatureId]: false })
-    expect(initialDataLoad.commands?.map(command => command.name)).toEqual([
-      LoadApiData.name,
-    ])
-    expect(
-      ApiReferenceBlock.operations.informRouteChanged(initialDataLoad.model),
-    ).toEqual({
-      model: initialDataLoad.model,
-    })
-  })
+  it.effect(
+    'failed full loads retain the seeded slice and retry on entry',
+    () =>
+      story(
+        ApiReferenceLive,
+        seededStart,
+        failLoad,
+        model(model => {
+          expect(model.apiData).toEqual(
+            ApiDataAsyncData.Stale({ data: seededData, error: 'Offline' }),
+          )
+          expect(model.disclosures).toEqual({ [signatureId]: false })
+        }),
+        message(Message.InformedOfRouteChange()),
+        model(model => {
+          expect(model.apiData).toEqual(
+            ApiDataAsyncData.Refreshing({ data: seededData }),
+          )
+        }),
+        Command.expectExact(LoadApiData),
+        message(Message.InformedOfRouteChange()),
+        Command.expectExact(LoadApiData),
+        Command.resolve(
+          LoadApiData,
+          Message.SucceededLoadApiData({ apiData: fullData }),
+        ),
+      ),
+  )
 
-  test('failed cold loads can be requested again', () => {
-    const initialDataLoad = init()
-    const apiReferenceFailure = failedLoad(initialDataLoad.model)
-    const retry = ApiReferenceBlock.operations.informRouteChanged(
-      apiReferenceFailure.model,
-    )
-
-    expect(apiReferenceFailure.model.apiData).toEqual(
-      ApiDataAsyncData.Failure({ error: 'Offline' }),
-    )
-    expect(retry.model.apiData).toEqual(ApiDataAsyncData.Loading())
-    expect(retry.commands?.map(command => command.name)).toEqual([
-      LoadApiData.name,
-    ])
-  })
-
-  test('failed full loads retain the seeded slice and retry on entry', () => {
-    const initialDataLoad = init(Option.some(seededData))
-    const apiReferenceFailure = failedLoad(initialDataLoad.model)
-    const retry = ApiReferenceBlock.operations.informRouteChanged(
-      apiReferenceFailure.model,
-    )
-
-    expect(apiReferenceFailure.model.apiData).toEqual(
-      ApiDataAsyncData.Stale({ data: seededData, error: 'Offline' }),
-    )
-    expect(apiReferenceFailure.model.disclosures).toEqual({
-      [signatureId]: false,
-    })
-    expect(retry.model.apiData).toEqual(
-      ApiDataAsyncData.Refreshing({ data: seededData }),
-    )
-    expect(retry.commands?.map(command => command.name)).toEqual([
-      LoadApiData.name,
-    ])
-    expect(
-      ApiReferenceBlock.operations.informRouteChanged(retry.model),
-    ).toEqual({
-      model: retry.model,
-    })
-  })
-
-  test('full success adds disclosures without resetting the seeded selection', () => {
-    const initialDataLoad = init(Option.some(seededData))
-    const expandedModel = modifyFields(initialDataLoad.model, {
-      disclosures: () => ({ [signatureId]: true }),
-    })
-    const succeededLoad = update(
-      expandedModel,
-      Message.SucceededLoadApiData({ apiData: fullData }),
-    )
-
-    expect(succeededLoad.model.apiData).toEqual(
-      ApiDataAsyncData.Success({ data: fullData }),
-    )
-    expect(succeededLoad.model.disclosures).toEqual({
-      [signatureId]: true,
-      [scopedId('function', 'Update', 'define')]: false,
-    })
-    expect(
-      ApiReferenceBlock.operations.informRouteChanged(succeededLoad.model),
-    ).toEqual({
-      model: succeededLoad.model,
-    })
-  })
+  it.effect(
+    'full success adds disclosures without resetting the seeded selection',
+    () =>
+      story(
+        ApiReferenceLive,
+        seededStart,
+        given({
+          apiData: ApiDataAsyncData.Refreshing({ data: seededData }),
+          disclosures: { [signatureId]: true },
+        }),
+        message(Message.SucceededLoadApiData({ apiData: fullData })),
+        model(model => {
+          expect(model.apiData).toEqual(
+            ApiDataAsyncData.Success({ data: fullData }),
+          )
+          expect(model.disclosures).toEqual({
+            [signatureId]: true,
+            [scopedId('function', 'Update', 'define')]: false,
+          })
+        }),
+        message(Message.InformedOfRouteChange()),
+        Command.expectNone(),
+      ),
+  )
 })

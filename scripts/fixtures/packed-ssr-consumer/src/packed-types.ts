@@ -1,6 +1,4 @@
 import type {
-  ApplicationConfig,
-  ApplicationConfigWithFlags,
   EntryResult,
   HydratableRenderOptions,
   InjectIntoTemplateOptions,
@@ -11,6 +9,8 @@ import type {
   RenderedApplication,
   RequestClassification,
   ResponseOptions,
+  ServerConfig,
+  ServerRenderOptions,
   StaticRenderOptions,
 } from 'foldkit/experimental/server'
 import type { HydrateOptions } from 'foldkit/runtime'
@@ -21,8 +21,6 @@ const either: ReadonlyArray<RenderOptions> = [hydratable, staticOnly]
 const hydrate: HydrateOptions = { buildId: 'deployment-1' }
 
 export type Used = [
-  ApplicationConfig<never>,
-  ApplicationConfigWithFlags<never, never>,
   EntryResult,
   InjectIntoTemplateOptions,
   RenderFlagsOptions<never>,
@@ -31,6 +29,8 @@ export type Used = [
   RenderedApplication,
   RequestClassification,
   ResponseOptions,
+  ServerConfig<never, never, never>,
+  ServerRenderOptions<never>,
 ]
 
 export const count = either.length + Number(hydrate.buildId === '')

@@ -1,15 +1,11 @@
-import { Effect, Option, Predicate, Schema, type Scope, Stream } from 'effect'
+import { Effect, Option, Predicate, Schema, Stream } from 'effect'
 
 import {
   Document,
   Html,
-  type NativeHtmlBuilder as HtmlBuilder,
+  type HtmlBuilder,
   type HtmlBuilder as InertHtmlBuilder,
 } from '../html/index.js'
-import type {
-  ServicesOf as ManagedResourceServicesOf,
-  ManagedResources,
-} from '../managedResource/index.js'
 import type {
   AnyMountHandler,
   LayeredMountDefinition,
@@ -18,11 +14,7 @@ import type {
   PreciseMountRegistry,
 } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
-import type { Registrations } from '../subscription/subscription.js'
-import type {
-  RequirementsOf as UpdateRequirementsOf,
-  Return as UpdateReturn,
-} from '../update/index.js'
+import type { Return as UpdateReturn } from '../update/index.js'
 import type {
   CrashConfig,
   CrashContext,
@@ -37,13 +29,13 @@ import {
   makeRuntime,
 } from './runtime.js'
 import type { SlowConfig } from './slowPhase.js'
+import type { Subscriptions } from './subscription.js'
 import type { ViewTransitionConfig } from './viewTransition.js'
 
 type BaseElementConfig<
   Model,
   Message,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = Readonly<{
@@ -51,16 +43,12 @@ type BaseElementConfig<
   update: (
     model: Model,
     message: Message,
-  ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+  ) => UpdateReturn<Model, Message, Resources>
   view: (
     model: Model,
     h: HtmlBuilder<Message, MountRequirementsOf<NoInfer<Mounts>>>,
   ) => Html
-  subscriptions?: Registrations<
-    Model,
-    Message,
-    Resources | ManagedResourceServices
-  >
+  subscriptions?: Subscriptions<Model, Message, Resources>
   mounts?: Mounts
   container: HTMLElement | null
   ports?: P
@@ -68,7 +56,6 @@ type BaseElementConfig<
   slow?: SlowConfig<Model, Message>
   viewTransition?: ViewTransitionConfig<Model, Message>
   freezeModel?: boolean
-  managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
 }>
 
@@ -78,17 +65,9 @@ export type ElementConfigWithFlags<
   Message,
   Flags,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = BaseElementConfig<
-  Model,
-  Message,
-  Resources,
-  ManagedResourceServices,
-  P,
-  Mounts
-> &
+> = BaseElementConfig<Model, Message, Resources, P, Mounts> &
   FlagsSchemaConfig<Flags> &
   Readonly<{
     /**
@@ -99,9 +78,7 @@ export type ElementConfigWithFlags<
      * a Command's Effect has.
      */
     flags: Effect.Effect<Flags, never, NoInfer<Resources>>
-    init: (
-      flags: Flags,
-    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+    init: (flags: Flags) => UpdateReturn<Model, Message, Resources>
   }>
 
 /** Configuration for `makeElement` without Flags. */
@@ -109,23 +86,11 @@ export type ElementConfig<
   Model,
   Message,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = BaseElementConfig<
-  Model,
-  Message,
-  Resources,
-  ManagedResourceServices,
-  P,
-  Mounts
-> &
+> = BaseElementConfig<Model, Message, Resources, P, Mounts> &
   Readonly<{
-    init: () => UpdateReturn<
-      Model,
-      Message,
-      Resources | ManagedResourceServices
-    >
+    init: () => UpdateReturn<Model, Message, Resources>
   }>
 
 /** The `init` function type for a `makeElement` app. A scoped app never owns
@@ -136,14 +101,13 @@ export type ElementInit<
   Message,
   Flags = void,
   Resources = never,
-  ManagedResourceServices = never,
-> = ApplicationInit<Model, Message, Flags, Resources, ManagedResourceServices>
+> = ApplicationInit<Model, Message, Flags, Resources>
 
 type InferredElementConfig<
   Model,
   Message,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = ElementConfig<Model, Message, any, any, any, Mounts> &
+> = ElementConfig<Model, Message, any, any, Mounts> &
   Readonly<{ Flags?: never; flags?: never }>
 
 type InferredElementConfigWithFlags<
@@ -151,7 +115,7 @@ type InferredElementConfigWithFlags<
   Message,
   Flags,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = ElementConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
+> = ElementConfigWithFlags<Model, Message, Flags, any, any, Mounts>
 
 type ElementConfigWithFlagsInput<
   ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -194,6 +158,9 @@ type ReturnRequirements<Return> =
       : never
     : never
 
+type UpdateRequirementsOf<Update extends (...args: ReadonlyArray<any>) => any> =
+  ReturnRequirements<ReturnType<Update>>
+
 type FunctionReturn<Fn> = Fn extends (
   ...args: ReadonlyArray<never>
 ) => infer Return
@@ -220,36 +187,10 @@ type MountRequirements<Config> =
       : never
     : never
 
-type ManagedResourceRuntimeServices<Config> =
-  Config extends Readonly<{ managedResources: infer ManagedResources }>
-    ? ManagedResourceServicesOf<ManagedResources>
-    : never
-
-type ManagedResourceLifecycleRequirements<Config> =
-  Config extends Readonly<{
-    managedResources: Readonly<Record<string, infer Entry>>
-  }>
-    ?
-        | (Entry extends Readonly<{
-            acquire: (
-              ...args: ReadonlyArray<any>
-            ) => Effect.Effect<any, any, infer Requirements>
-          }>
-            ? Exclude<Requirements, Scope.Scope>
-            : never)
-        | (Entry extends Readonly<{
-            release: (
-              ...args: ReadonlyArray<any>
-            ) => Effect.Effect<any, any, infer Requirements>
-          }>
-            ? Exclude<Requirements, Scope.Scope>
-            : never)
-    : never
-
 type ConfigRequirements<
   Config,
   Update extends (...args: ReadonlyArray<any>) => any,
-> = Exclude<
+> =
   | (Config extends Readonly<{ init: infer Init }>
       ? ReturnRequirements<FunctionReturn<Init>>
       : never)
@@ -263,9 +204,6 @@ type ConfigRequirements<
     }>
       ? Requirements
       : never)
-  | ManagedResourceLifecycleRequirements<Config>,
-  ManagedResourceRuntimeServices<Config>
->
 
 type SelfContainedConfig<
   Config,
@@ -340,10 +278,7 @@ const toCrashConfig = <Model, Message>(
  * `makeApplication` when the app owns the page and should manage those tags, and
  * `makeElement` when it is one component among others on a page it does not
  * control. Embedded apps do not own the URL bar, so `makeElement` has no
- * `routing` config. Complete the root with
- * `ApplicationComposition.prepareBlock`, pass it to `Program.makeElement`, and
- * supply Services through the Program's `provide` method when Commands, Flags,
- * Subscriptions, Mounts, or ManagedResources need them.
+ * `routing` config.
  */
 export function makeElement<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -407,19 +342,10 @@ export function makeElement<
   Message extends { _tag: string },
   Flags,
   Resources extends never = never,
-  ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
-  config: ElementConfigWithFlags<
-    Model,
-    Message,
-    Flags,
-    Resources,
-    ManagedResourceServices,
-    P,
-    Mounts
-  > &
+  config: ElementConfigWithFlags<Model, Message, Flags, Resources, P, Mounts> &
     Readonly<{ mounts?: Mounts }> &
     PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, void, Resources, 'Element'>
@@ -428,18 +354,10 @@ export function makeElement<
   Model,
   Message extends { _tag: string },
   Resources extends never = never,
-  ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
-  config: ElementConfig<
-    Model,
-    Message,
-    Resources,
-    ManagedResourceServices,
-    P,
-    Mounts
-  > &
+  config: ElementConfig<Model, Message, Resources, P, Mounts> &
     Readonly<{ mounts?: Mounts }> &
     PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, void, Resources, 'Element'>
@@ -449,7 +367,6 @@ export function makeElement<
   Message extends { _tag: string },
   Flags,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 >(config: any): any {
   const { container } = config
@@ -494,9 +411,6 @@ export function makeElement<
     ...(Predicate.isNotUndefined(config.freezeModel) && {
       freezeModel: config.freezeModel,
     }),
-    ...(config.managedResources && {
-      managedResources: config.managedResources,
-    }),
     ...(Predicate.isNotUndefined(config.devTools) && {
       devTools: config.devTools,
     }),
@@ -511,20 +425,13 @@ export function makeElement<
       isFlagsRequired: true,
       init: (flags: unknown) =>
         (
-          config as ElementConfigWithFlags<
-            Model,
-            Message,
-            Flags,
-            Resources,
-            ManagedResourceServices
-          >
+          config as ElementConfigWithFlags<Model, Message, Flags, Resources>
         ).init(flags as Flags),
     } as RuntimeConfig<
       Model,
       Message,
       Flags,
       Resources,
-      ManagedResourceServices,
       P,
       'Element'
     >) as unknown as MakeRuntimeReturn<P, void, Resources, 'Element'>
@@ -534,24 +441,8 @@ export function makeElement<
       Flags: Schema.Void,
       configuredFlags: Option.none(),
       isFlagsRequired: false,
-      init: () =>
-        (
-          config as ElementConfig<
-            Model,
-            Message,
-            Resources,
-            ManagedResourceServices
-          >
-        ).init(),
-    } as RuntimeConfig<
-      Model,
-      Message,
-      void,
-      Resources,
-      ManagedResourceServices,
-      P,
-      'Element'
-    >)
+      init: () => (config as ElementConfig<Model, Message, Resources>).init(),
+    } as RuntimeConfig<Model, Message, void, Resources, P, 'Element'>)
   }
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }

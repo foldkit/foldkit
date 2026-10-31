@@ -34,20 +34,18 @@ type ChildAttributeValue<RequiredMountRequirements> =
       _tag: Exclude<Attribute<never>['_tag'], 'OnMount'>
     }>
 
-/** An attribute carrying a handler that dispatches through a Block
- *  boundary's wrapping chain. Published by Blocks (typically Foldkit's
- *  `Ui.*` components) for a parent to spread into its own element
- *  attribute arrays. The parent does not know or care which child
- *  produced these; the runtime routes each handler through the
- *  originating Block's wrap chain at event-fire time.
+/** An attribute carrying a handler that dispatches through the Block
+ *  instance that built it. A child Block publishes these for a parent to
+ *  spread into its own element attribute arrays, typically from a view input
+ *  callback. The parent does not know or care which child produced them; each
+ *  handler dispatches the originating instance's Message.
  *
- *  `resolveUnmount` snapshots the boundary's wrapping chain at the time the
- *  group was published (child boundary alive) so `OnUnmount` can dispatch a
- *  root message after the boundary has been torn down. `boundaryMappers`
- *  snapshots the `toParentMessage` lifts (innermost first) for the Scene test
- *  harness. Groups containing `OnMount` also carry `resolveMountDispatch`,
- *  which binds the Mount to the acquiring render's dispatch owner while
- *  following that owner's current live wrappers.
+ *  `resolveUnmount` snapshots the child's dispatcher when the group is
+ *  published, so `OnUnmount` dispatches through it at teardown.
+ *  `boundaryMappers` snapshots the child frame's Message mappers for the Scene
+ *  test harness. Groups containing `OnMount` also carry
+ *  `resolveMountDispatch`, which binds the Mount to the acquiring render's
+ *  dispatch owner.
  *
  *  Created via {@link childAttributes}. Element constructors accept
  *  `ChildAttribute` alongside `Attribute<Message>` in their attribute
@@ -57,7 +55,7 @@ export type ChildAttribute<RequiredMountRequirements = never> = Readonly<{
   readonly [BRAND]: true
   /** Wrapped Attribute rendered by the receiving parent element. */
   readonly attribute: ChildAttributeValue<RequiredMountRequirements>
-  /** Dispatcher captured from the originating Block boundary. */
+  /** Dispatcher captured from the originating Block instance. */
   readonly dispatch: DispatchSync
   /** Captures an `OnUnmount` dispatch while the originating boundary exists. */
   readonly resolveUnmount: (message: unknown) => () => void
@@ -86,29 +84,27 @@ export type AnyChildAttribute = Readonly<{
 export const isChildAttribute = (value: unknown): value is AnyChildAttribute =>
   typeof value === 'object' && value !== null && BRAND in value
 
-/** Captures the current boundary's dispatcher and wraps each attribute
- *  so handlers inside it route through that boundary's wrapping chain at
- *  event-fire time, even when the attribute is later spread into a
- *  parent's element in a different boundary.
+/** Captures the current Block instance's dispatcher and wraps each
+ *  attribute so its handlers dispatch that instance's Messages, even when
+ *  the attribute is later spread into a parent's element.
  *
- *  Blocks call this when publishing attribute groups to a consumer's
- *  `toView` slot callback:
+ *  A child Block calls this when publishing attribute groups to its view
+ *  input's `toView` callback:
  *
  *  ```ts
- *  // Inside a BlockView running in the child's boundary:
- *  return viewInputs.toView({
- *    checkbox: childAttributes([
- *      h.OnClick(Toggled()),
- *      h.Role('checkbox'),
- *    ]),
- *    ...
- *  })
+ *  view: (model, h, { toView }) =>
+ *    toView({
+ *      checkbox: childAttributes([
+ *        h.OnClick(Message.Toggled()),
+ *        h.Role('checkbox'),
+ *      ]),
+ *    }),
  *  ```
  *
- *  Without this binding step the consumer's element constructor would
- *  process `h.OnClick(Toggled())` using the parent's dispatcher (because
- *  the consumer's `toView` runs in the parent's boundary), bypassing the
- *  Block's `toParentMessage`. */
+ *  Without this step the parent's element constructor would process
+ *  `h.OnClick(Message.Toggled())` with the parent's dispatcher, because
+ *  `toView` runs in the parent's frame, and the child would never receive
+ *  the Message. */
 export const childAttributes = <
   const Attributes extends ReadonlyArray<Attribute<unknown, unknown>>,
 >(

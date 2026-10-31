@@ -4,7 +4,7 @@ export const exampleSourceHref = (slug: string): string =>
   `${exampleBase}/${slug}/src`
 
 export const uiShowcaseViewSourceHref = (slug: string): string =>
-  `https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/${slug}.ts`
+  `https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/${slug}Page.ts`
 
 export const Link = {
   elm: 'https://elm-lang.org',
@@ -23,11 +23,11 @@ export const Link = {
   foldkitVdom:
     'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/src/vdom.ts',
   foldkitExamples: exampleBase,
-  exampleAuthLogin: `${exampleBase}/auth/src/page/loggedOut/page/login/login.ts`,
+  exampleAuthLogin: `${exampleBase}/auth/src/page/loggedOut/login.ts`,
   exampleSnakeRequestPattern:
-    'https://github.com/foldkit/foldkit/blob/main/examples/snake/src/application.ts#L229',
+    'https://github.com/foldkit/foldkit/blob/main/examples/snake/src/application.ts#L156-L159',
   exampleWeatherFetch:
-    'https://github.com/foldkit/foldkit/blob/main/examples/weather/src/command.ts',
+    'https://github.com/foldkit/foldkit/blob/main/examples/weather/src/application.ts',
   typingTerminal: 'https://typingterminal.com',
   typingTerminalSource:
     'https://github.com/foldkit/foldkit/tree/main/packages/typing-game',

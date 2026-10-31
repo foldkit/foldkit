@@ -1,13 +1,7 @@
-import { Effect } from 'effect'
+import { Command } from 'foldkit'
 
-import { ApplicationDefinition, Message } from './definition'
+import { Message } from './definition'
 
-export const LoadPreferences = ApplicationDefinition.makeCommand(
-  'LoadPreferences',
-  {
-    messages: [Message.CompletedLoadPreferences],
-    handler: function* () {
-      return () => Effect.succeed(Message.CompletedLoadPreferences())
-    },
-  },
-)
+export const LoadPreferences = Command.define('LoadPreferences', {
+  messages: [Message.CompletedLoadPreferences],
+})

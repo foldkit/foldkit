@@ -1,34 +1,48 @@
-import { Array, Effect } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
+import { Block, Program, Runtime } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
-import { EditorBlock } from './commandHostContract'
+import { DocumentStore, Editor, EditorLive } from './commandHostContract'
 
-const DOCUMENT_STORAGE_KEY = 'editor-document'
+const DOCUMENT_STORAGE_KEY = 'document'
 
-const SaveDocument = Array.headNonEmpty(EditorBlock.hostHandlers)
-
-const SaveDocumentLayer = SaveDocument.toLayer(
+const BrowserDocumentStore = Layer.effect(
+  DocumentStore,
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
-    return ({ contents }) =>
-      store.set(DOCUMENT_STORAGE_KEY, contents).pipe(
-        Effect.as(EditorBlock.Message.SucceededSaveDocument()),
-        Effect.catch(() =>
-          Effect.succeed(
-            EditorBlock.Message.FailedSaveDocument({
-              reason: 'The document could not be saved.',
-            }),
-          ),
-        ),
-      )
+    return {
+      save: contents =>
+        store
+          .set(DOCUMENT_STORAGE_KEY, contents)
+          .pipe(Effect.mapError(cause => new Error(String(cause)))),
+    }
+  }),
+).pipe(Layer.provide(BrowserKeyValueStore.layerLocalStorage))
+
+class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({ editor: Editor }),
+}) {}
+
+const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const editor = yield* new Editor('editor')
+
+    return {
+      model: { editor },
+      view: (model, h) => ({ title: 'Notes', body: model.editor.view() }),
+    }
   }),
 )
 
-export const editor = EditorBlock.provideHandlers(SaveDocumentLayer)
+const program = Program.make(Application, {
+  layer: ApplicationLive.pipe(
+    Layer.provide(EditorLive),
+    Layer.provide(BrowserDocumentStore),
+  ),
+  container: document.getElementById('root'),
+})
 
-const ServicesLayer = BrowserKeyValueStore.layerLocalStorage
-
-export const ApplicationLayer = ServicesLayer
+Runtime.run(program)

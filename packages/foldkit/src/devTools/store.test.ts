@@ -11,6 +11,7 @@ import {
 } from 'effect'
 import { describe, expect, it, vi } from 'vitest'
 
+import { InstanceTypeId } from '../blocks/engine.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import {
@@ -120,6 +121,32 @@ describe('computeDiff', () => {
     expect(hasPath(changedPaths, 'root.items.2')).toBe(true)
     expect(hasPath(changedPaths, 'root.items.0')).toBe(false)
     expect(hasPath(affectedPaths, 'root.items')).toBe(true)
+  })
+
+  it('reports Block instance changes as paths in the resolved Model tree', () => {
+    const blockInstance = (id: string, model: unknown) => ({
+      [InstanceTypeId]: true,
+      id,
+      model,
+    })
+    const unchangedChild = blockInstance('sidebar', { isOpen: false })
+    const previousRoot = blockInstance('Application', {
+      home: blockInstance('home', { count: 1 }),
+      sidebar: unchangedChild,
+    })
+    const currentRoot = blockInstance('Application', {
+      home: blockInstance('home', { count: 2 }),
+      sidebar: unchangedChild,
+    })
+
+    const { changedPaths, affectedPaths } = computeDiff(
+      previousRoot,
+      currentRoot,
+    )
+
+    expect(Array.fromIterable(changedPaths)).toEqual(['root.home.count'])
+    expect(hasPath(affectedPaths, 'root.home')).toBe(true)
+    expect(hasPath(affectedPaths, 'root.sidebar')).toBe(false)
   })
 })
 

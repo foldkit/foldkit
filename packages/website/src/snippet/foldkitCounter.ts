@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -13,24 +13,32 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationComposition = Block.makeDefinition('Application', {
+export class Application extends Block<Application>()('Application', {
   Model,
   Message,
-}).makeComposition()
+}) {}
 
-const update = ApplicationComposition.makeUpdate({
-  ClickedIncrement: model => ({
-    model: modifyFields(model, { count: count => count + 1 }),
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: { count: 0 },
+
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
+      },
+
+      view: (model, h) => ({
+        title: `Count: ${model.count}`,
+        body: h.div(
+          [],
+          [
+            h.p([], [`Count: ${model.count}`]),
+            h.button([h.OnClick(Message.ClickedIncrement())], ['Increment']),
+          ],
+        ),
+      }),
+    }
   }),
-})
-
-const view = ApplicationComposition.makeView((model, h) => ({
-  title: `Count: ${model.count}`,
-  body: h.div(
-    [],
-    [
-      h.p([], [`Count: ${model.count}`]),
-      h.button([h.OnClick(Message.ClickedIncrement())], ['Increment']),
-    ],
-  ),
-}))
+)

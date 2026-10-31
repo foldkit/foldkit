@@ -1,14 +1,19 @@
-import { Array, Deferred, Effect, Option, Stream, pipe } from 'effect'
+import { Array, Deferred, Effect, Layer, Option, Stream, pipe } from 'effect'
+import type { Result } from 'foldkit/block'
 import * as Mount from 'foldkit/mount'
 import * as Story from 'foldkit/story'
-import { describe, expect, expectTypeOf, it, vi } from 'vitest'
+import { expectTypeOf, vi } from 'vitest'
 
+import { describe, expect, it } from '@effect/vitest'
+
+import * as VirtualList from './index.js'
 import {
   ApplyScroll,
   ApplyScrollOutcome,
   HistoryPage,
   type HistoryPrependInput,
   type HistoryRows,
+  type InitConfig,
   Message,
   type Model,
   ObserveVirtualList,
@@ -17,21 +22,60 @@ import {
   ScrollContainer,
   ScrollTarget,
   type ScrollToOptions,
-  block,
-  init,
-  makeBlock,
-  scrollTo,
-  scrollToEnd,
-  scrollToIndex,
-  scrollToKey,
-  scrollToOffset,
-  update,
+  handleApplyScroll,
+  handleObserveVirtualList,
+  initialModel,
+  update as updateHandlers,
 } from './virtualList.js'
 
-const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 }).model
+const tagOf = (message: Readonly<{ _tag: string }>): string => message._tag
 
-const HistoryBlock = makeBlock<HistoryItem>()
-const informItemsChanged = block.operations.informItemsChanged
+type UpdateResult = Result<Model, unknown, ReturnType<typeof ApplyScroll>>
+
+const update = (model: Model, message: Message): UpdateResult => {
+  const handler: (model: Model, message: Message) => UpdateResult = Reflect.get(
+    updateHandlers,
+    tagOf(message),
+  )
+  return handler(model, message)
+}
+
+const init = (config: InitConfig) => ({ model: initialModel(config) })
+
+const TestList = VirtualList.makeBlock<unknown>()
+
+const EffectsLayer = Layer.mergeAll(
+  ApplyScroll.toLayer(Effect.succeed(handleApplyScroll)),
+  ObserveVirtualList.toLayer(Effect.succeed(handleObserveVirtualList)),
+)
+
+const defaultConfig: InitConfig = { id: 'test', rowHeightPx: 30 }
+
+const defaultInit = (): Model => initialModel(defaultConfig)
+
+const informItemsChanged = (
+  model: Model,
+  itemKeys: ReadonlyArray<string>,
+): UpdateResult => update(model, VirtualList.informItemsChanged(itemKeys))
+
+const scrollToIndex = (
+  model: Model,
+  index: number,
+  options?: ScrollToOptions,
+): UpdateResult =>
+  update(model, VirtualList.requestScrollToIndex(index, options))
+
+const scrollToKey = (
+  model: Model,
+  key: string,
+  options?: ScrollToOptions,
+): UpdateResult => update(model, VirtualList.requestScrollToKey(key, options))
+
+const scrollToOffset = (model: Model, offset: number): UpdateResult =>
+  update(model, VirtualList.requestScrollToOffset(offset))
+
+const scrollToEnd = (model: Model): UpdateResult =>
+  update(model, VirtualList.requestScrollToEnd())
 
 type HistoryItem = Readonly<{ key: string; estimatedHeightPx: number }>
 
@@ -63,20 +107,23 @@ const prependHistory = (
   prependedItems: ReadonlyArray<HistoryItem>,
   page: HistoryPage = HistoryPage.More(),
 ) =>
-  HistoryBlock.operations.informHistoryPrepended(model, {
-    items: Array.map(itemKeys, key =>
-      pipe(
-        prependedItems,
-        Array.findFirst(item => item.key === key),
-        Option.getOrElse(() => ({ key, estimatedHeightPx: 30 })),
+  update(
+    model,
+    VirtualList.informHistoryPrepended({
+      items: Array.map(itemKeys, key =>
+        pipe(
+          prependedItems,
+          Array.findFirst(item => item.key === key),
+          Option.getOrElse(() => ({ key, estimatedHeightPx: 30 })),
+        ),
       ),
-    ),
-    prependedItems,
-    itemToKey: historyRows.itemToKey,
-    page,
-  })
+      prependedItems,
+      itemToKey: historyRows.itemToKey,
+      page,
+    }),
+  )
 
-type ScrollReturn = ReturnType<typeof scrollToIndex>
+type ScrollReturn = UpdateResult
 
 const createScrollElement = (
   currentScrollTop: number,
@@ -163,7 +210,7 @@ const runMountedScroll = (
 
         return element.scrollTop
       }),
-    ).pipe(Effect.provide(block.EffectsLayer)),
+    ).pipe(Effect.provide(EffectsLayer)),
   )
 
 const executeScroll = async (
@@ -204,43 +251,56 @@ const completedApplyScroll = (version: number) =>
   })
 
 describe('VirtualList', () => {
-  describe('exposed operations', () => {
-    it('preserves the public model-first call shapes', () => {
+  describe('Message helpers', () => {
+    it('preserves the public call shapes', () => {
       expectTypeOf<
-        Parameters<typeof block.operations.requestScrollTo>[1]
+        Parameters<typeof VirtualList.requestScrollTo>[0]
       >().toEqualTypeOf<ScrollTarget>()
       expectTypeOf<
-        Parameters<typeof block.operations.requestScrollTo>[2]
+        Parameters<typeof VirtualList.requestScrollTo>[1]
       >().toEqualTypeOf<ScrollToOptions | undefined>()
       expectTypeOf<
-        Parameters<typeof block.operations.requestScrollToIndex>[1]
+        Parameters<typeof VirtualList.requestScrollToIndex>[0]
       >().toEqualTypeOf<number>()
       expectTypeOf<
-        Parameters<typeof block.operations.requestScrollToIndex>[2]
+        Parameters<typeof VirtualList.requestScrollToIndex>[1]
       >().toEqualTypeOf<ScrollToOptions | undefined>()
       expectTypeOf<
-        Parameters<typeof block.operations.requestScrollToKey>[1]
+        Parameters<typeof VirtualList.requestScrollToKey>[0]
       >().toEqualTypeOf<string>()
       expectTypeOf<
-        Parameters<typeof block.operations.requestScrollToKey>[2]
+        Parameters<typeof VirtualList.requestScrollToKey>[1]
       >().toEqualTypeOf<ScrollToOptions | undefined>()
       expectTypeOf<
-        Parameters<typeof block.operations.requestScrollToOffset>[1]
+        Parameters<typeof VirtualList.requestScrollToOffset>[0]
       >().toEqualTypeOf<number>()
       expectTypeOf<
-        Parameters<typeof block.operations.informItemsChanged>[1]
+        Parameters<typeof VirtualList.informItemsChanged>[0]
       >().toEqualTypeOf<ReadonlyArray<string>>()
       expectTypeOf<
-        Parameters<typeof HistoryBlock.operations.informHistoryPrepended>[1]
+        Parameters<typeof VirtualList.informHistoryPrepended<HistoryItem>>[0]
       >().toEqualTypeOf<HistoryPrependInput<HistoryItem>>()
-      expectTypeOf(scrollTo).toEqualTypeOf(block.operations.requestScrollTo)
-      expectTypeOf(scrollToIndex).toEqualTypeOf(
-        block.operations.requestScrollToIndex,
+    })
+
+    it('maps an omitted alignment to None', () => {
+      expect(VirtualList.requestScrollToIndex(4)).toStrictEqual(
+        Message.RequestedScrollToIndex({
+          index: 4,
+          maybeAlignment: Option.none(),
+        }),
+      )
+      expect(
+        VirtualList.requestScrollToKey('row', { alignment: 'Center' }),
+      ).toStrictEqual(
+        Message.RequestedScrollToKey({
+          key: 'row',
+          maybeAlignment: Option.some('Center'),
+        }),
       )
     })
   })
 
-  describe('init', () => {
+  describe('initial Model', () => {
     it('starts in the Unmeasured state with scrollTop 0 and pendingScroll Idle', () => {
       const model = defaultInit()
       expect(model.id).toBe('test')
@@ -294,10 +354,7 @@ describe('VirtualList', () => {
 
       expect(emptyScroll.model.initialScroll._tag).toBe('Pending')
 
-      const arrived = block.operations.informItemsChanged(emptyScroll.model, [
-        'first',
-        'last',
-      ])
+      const arrived = informItemsChanged(emptyScroll.model, ['first', 'last'])
       expect(arrived.model.pendingScroll).toMatchObject({
         _tag: 'Pending',
         request: { _tag: 'Target', target: { _tag: 'End' } },
@@ -343,9 +400,7 @@ describe('VirtualList', () => {
 
       expect(missing.model.initialScroll._tag).toBe('Pending')
 
-      const arrived = block.operations.informItemsChanged(missing.model, [
-        'wanted',
-      ])
+      const arrived = informItemsChanged(missing.model, ['wanted'])
       expect(arrived.model.pendingScroll).toMatchObject({
         _tag: 'Pending',
         request: {
@@ -400,9 +455,10 @@ describe('VirtualList', () => {
   })
 
   describe('ObservedContainerScroll', () => {
-    it('writes the new scrollTop into the model', () => {
+    it.effect('writes the new scrollTop into the model', () =>
       Story.story(
-        update,
+        TestList.Live,
+        defaultConfig,
         Story.given(defaultInit()),
         Story.message(
           Message.ObservedContainerScroll({
@@ -415,8 +471,8 @@ describe('VirtualList', () => {
         Story.model(model => {
           expect(model.scrollTop).toBe(450)
         }),
-      )
-    })
+      ),
+    )
 
     it('tracks End while follow-end is within its threshold and a Row after the user scrolls away', () => {
       const model = init({
@@ -522,9 +578,7 @@ describe('VirtualList', () => {
 
       expect(scrolled.model.pendingScroll._tag).toBe('Idle')
       expect(scrolled.model.pendingScrollVersion).toBe(2)
-      const changed = block.operations.informItemsChanged(scrolled.model, [
-        'row-20',
-      ])
+      const changed = informItemsChanged(scrolled.model, ['row-20'])
       expect(changed.model.pendingScroll._tag).toBe('Pending')
       if (changed.model.pendingScroll._tag === 'Pending') {
         expect(changed.model.pendingScroll.request).toStrictEqual({
@@ -634,28 +688,32 @@ describe('VirtualList', () => {
   })
 
   describe('ResizedContainer', () => {
-    it('transitions Unmeasured to Measured with the reported height', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(
-          Message.ResizedContainer({
-            containerWidth: 320,
-            containerHeight: 600,
+    it.effect(
+      'transitions Unmeasured to Measured with the reported height',
+      () =>
+        Story.story(
+          TestList.Live,
+          defaultConfig,
+          Story.given(defaultInit()),
+          Story.message(
+            Message.ResizedContainer({
+              containerWidth: 320,
+              containerHeight: 600,
+            }),
+          ),
+          Story.model(model => {
+            expect(model.measurement._tag).toBe('Measured')
+            if (model.measurement._tag === 'Measured') {
+              expect(model.measurement.containerHeight).toBe(600)
+            }
           }),
         ),
-        Story.model(model => {
-          expect(model.measurement._tag).toBe('Measured')
-          if (model.measurement._tag === 'Measured') {
-            expect(model.measurement.containerHeight).toBe(600)
-          }
-        }),
-      )
-    })
+    )
 
-    it('updates the height when already Measured', () => {
+    it.effect('updates the height when already Measured', () =>
       Story.story(
-        update,
+        TestList.Live,
+        defaultConfig,
         Story.given(defaultInit()),
         Story.message(
           Message.ResizedContainer({
@@ -675,71 +733,80 @@ describe('VirtualList', () => {
             expect(model.measurement.containerHeight).toBe(720)
           }
         }),
-      )
-    })
+      ),
+    )
 
-    it('issues no Command on the initial Unmeasured to Measured transition when scrollTop is 0', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(
-          Message.ResizedContainer({
-            containerWidth: 320,
-            containerHeight: 600,
-          }),
+    it.effect(
+      'issues no Command on the initial Unmeasured to Measured transition when scrollTop is 0',
+      () =>
+        Story.story(
+          TestList.Live,
+          defaultConfig,
+          Story.given(defaultInit()),
+          Story.message(
+            Message.ResizedContainer({
+              containerWidth: 320,
+              containerHeight: 600,
+            }),
+          ),
+          Story.Command.expectNone(),
         ),
-        Story.Command.expectNone(),
-      )
-    })
+    )
 
-    it('issues an apply-scroll Command on the initial transition when scrollTop is non-zero', () => {
-      Story.story(
-        update,
-        Story.given(
-          init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }).model,
-        ),
-        Story.message(
-          Message.ResizedContainer({
-            containerWidth: 320,
-            containerHeight: 300,
+    it.effect(
+      'issues an apply-scroll Command on the initial transition when scrollTop is non-zero',
+      () =>
+        Story.story(
+          TestList.Live,
+          defaultConfig,
+          Story.given(
+            init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }).model,
+          ),
+          Story.message(
+            Message.ResizedContainer({
+              containerWidth: 320,
+              containerHeight: 300,
+            }),
+          ),
+          Story.Command.expectHas(ApplyScroll),
+          Story.model(model => {
+            expect(model.pendingScroll._tag).toBe('Pending')
+            if (model.pendingScroll._tag === 'Pending') {
+              expect(model.pendingScroll.request).toStrictEqual({
+                _tag: 'Target',
+                target: { _tag: 'Offset', offset: 600 },
+                alignment: 'Start',
+              })
+            }
+            expect(model.pendingScrollVersion).toBe(1)
           }),
+          Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
         ),
-        Story.Command.expectHas(ApplyScroll),
-        Story.model(model => {
-          expect(model.pendingScroll._tag).toBe('Pending')
-          if (model.pendingScroll._tag === 'Pending') {
-            expect(model.pendingScroll.request).toStrictEqual({
-              _tag: 'Target',
-              target: { _tag: 'Offset', offset: 600 },
-              alignment: 'Start',
-            })
-          }
-          expect(model.pendingScrollVersion).toBe(1)
-        }),
-        Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
-      )
-    })
+    )
 
-    it('reconciles the stored viewport anchor after a later resize', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(
-          Message.ResizedContainer({
-            containerWidth: 320,
-            containerHeight: 300,
-          }),
+    it.effect(
+      'reconciles the stored viewport anchor after a later resize',
+      () =>
+        Story.story(
+          TestList.Live,
+          defaultConfig,
+          Story.given(defaultInit()),
+          Story.message(
+            Message.ResizedContainer({
+              containerWidth: 320,
+              containerHeight: 300,
+            }),
+          ),
+          Story.message(
+            Message.ResizedContainer({
+              containerWidth: 320,
+              containerHeight: 320,
+            }),
+          ),
+          Story.Command.expectHas(ApplyScroll),
+          Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
         ),
-        Story.message(
-          Message.ResizedContainer({
-            containerWidth: 320,
-            containerHeight: 320,
-          }),
-        ),
-        Story.Command.expectHas(ApplyScroll),
-        Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
-      )
-    })
+    )
 
     it('invalidates cached row measurements when the container width changes', () => {
       const measured = update(
@@ -1094,7 +1161,7 @@ describe('VirtualList', () => {
 
               return yield* maybeCommand.value.effect
             }),
-          ).pipe(Effect.provide(block.EffectsLayer)),
+          ).pipe(Effect.provide(EffectsLayer)),
         )
 
         if (outcome._tag !== 'CompletedApplyScroll') {
@@ -1142,7 +1209,7 @@ describe('VirtualList', () => {
 
               return yield* maybeCommand.value.effect
             }),
-          ).pipe(Effect.provide(block.EffectsLayer)),
+          ).pipe(Effect.provide(EffectsLayer)),
         )
 
         if (outcome._tag !== 'CompletedApplyScroll') {
@@ -1191,10 +1258,7 @@ describe('VirtualList', () => {
 
   describe('informItemsChanged', () => {
     it('bumps the layout version and reconciles the stored anchor', () => {
-      const itemChange = block.operations.informItemsChanged(defaultInit(), [
-        'first',
-        'second',
-      ])
+      const itemChange = informItemsChanged(defaultInit(), ['first', 'second'])
 
       expect(itemChange.model.layoutVersion).toBe(1)
       expect(itemChange.model.pendingScroll._tag).toBe('Pending')
@@ -1527,10 +1591,7 @@ describe('VirtualList', () => {
                 const snapshot = yield* Deferred.await(observed)
                 return snapshot.anchor
               }),
-            ).pipe(
-              Effect.timeout('2 seconds'),
-              Effect.provide(block.EffectsLayer),
-            ),
+            ).pipe(Effect.timeout('2 seconds'), Effect.provide(EffectsLayer)),
           )
 
           expect(anchor).toEqual({
@@ -1575,10 +1636,7 @@ describe('VirtualList', () => {
               yield* Deferred.await(settled)
               return true
             }),
-          ).pipe(
-            Effect.timeout('2 seconds'),
-            Effect.provide(block.EffectsLayer),
-          ),
+          ).pipe(Effect.timeout('2 seconds'), Effect.provide(EffectsLayer)),
         )
 
         expect(ended).toBe(true)
@@ -1730,26 +1788,22 @@ describe('VirtualList', () => {
   describe('MeasuredRows', () => {
     it('leaves the Model unchanged when a row matches its layout height', () => {
       const initialModel = defaultInit()
-      Story.story(
-        update,
-        Story.given(initialModel),
-        Story.message(
-          Message.MeasuredRows({
-            measurements: [
-              {
-                key: 'row-1',
-                height: 30,
-                layoutHeightPx: 30,
-                layoutVersion: initialModel.layoutVersion,
-              },
-            ],
-          }),
-        ),
-        Story.model(model => {
-          expect(model).toBe(initialModel)
+      const measurement = update(
+        initialModel,
+        Message.MeasuredRows({
+          measurements: [
+            {
+              key: 'row-1',
+              height: 30,
+              layoutHeightPx: 30,
+              layoutVersion: initialModel.layoutVersion,
+            },
+          ],
         }),
-        Story.Command.expectNone(),
       )
+
+      expect(measurement.model).toBe(initialModel)
+      expect(measurement.commands).toBeUndefined()
     })
 
     it('records a height correction above the visible row without scrolling', () => {
@@ -1813,43 +1867,47 @@ describe('VirtualList', () => {
       expect(measurement.commands).toBeUndefined()
     })
 
-    it('reconciles a visible row when a later history row measures taller', () => {
-      const initialModel = historyInit()
-      const scrolled = update(
-        initialModel,
-        Message.ObservedContainerScroll({
-          scrollTop: -160,
-          scrollHeight: 2000,
-          containerHeight: 100,
-          anchor: {
-            _tag: 'Row',
-            key: 'visible',
-            index: 10,
-            viewportOffset: 0,
-          },
-        }),
-      )
-
-      Story.story(
-        update,
-        Story.given(scrolled.model),
-        Story.message(
-          Message.MeasuredRows({
-            measurements: [
-              {
-                key: 'later',
-                index: 12,
-                height: 80,
-                layoutHeightPx: 30,
-                layoutVersion: scrolled.model.layoutVersion,
-              },
-            ],
+    it.effect(
+      'reconciles a visible row when a later history row measures taller',
+      () => {
+        const initialModel = historyInit()
+        const scrolled = update(
+          initialModel,
+          Message.ObservedContainerScroll({
+            scrollTop: -160,
+            scrollHeight: 2000,
+            containerHeight: 100,
+            anchor: {
+              _tag: 'Row',
+              key: 'visible',
+              index: 10,
+              viewportOffset: 0,
+            },
           }),
-        ),
-        Story.Command.expectHas(ApplyScroll),
-        Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
-      )
-    })
+        )
+
+        return Story.story(
+          TestList.Live,
+          defaultConfig,
+          Story.given(scrolled.model),
+          Story.message(
+            Message.MeasuredRows({
+              measurements: [
+                {
+                  key: 'later',
+                  index: 12,
+                  height: 80,
+                  layoutHeightPx: 30,
+                  layoutVersion: scrolled.model.layoutVersion,
+                },
+              ],
+            }),
+          ),
+          Story.Command.expectHas(ApplyScroll),
+          Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
+        )
+      },
+    )
 
     it('stores measurements from the current layout and reconciles the anchor', () => {
       const measurement = update(
@@ -1866,7 +1924,7 @@ describe('VirtualList', () => {
     })
 
     it('ignores stale measurements from a previous items layout', () => {
-      const model = block.operations.informItemsChanged(defaultInit(), []).model
+      const model = informItemsChanged(defaultInit(), []).model
       const measurement = update(
         model,
         Message.MeasuredRows({

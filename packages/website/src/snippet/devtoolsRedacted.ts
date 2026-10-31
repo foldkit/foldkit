@@ -14,44 +14,56 @@ type AccessToken = typeof AccessToken.Type
 const makeAccessToken = (accessToken: string): AccessToken =>
   Redacted.make(accessToken, { label: accessTokenLabel })
 
-// 2. Store the wrapper in the Model, never the raw string.
-const Model = Schema.Struct({ accessToken: AccessToken })
-type Model = typeof Model.Type
-
 const Message = defineMessageUnion({
+  ClickedLoadProfile: {},
   CompletedFetchProfile: {},
   FailedFetchProfile: {},
 })
-type Message = typeof Message.Type
 
-const ApplicationComposition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-}).makeComposition()
-
-const init = ApplicationComposition.makeInit((accessToken: string) => ({
-  model: { accessToken: makeAccessToken(accessToken) },
-}))
-
+// 2. Require a Redacted value because DevTools records Command arguments.
 const FetchProfile = Command.define('FetchProfile', {
-  // 3. Require a Redacted value because DevTools records Command arguments.
   args: { accessToken: AccessToken },
   messages: [Message.CompletedFetchProfile, Message.FailedFetchProfile],
-  handler: function* () {
-    return ({ accessToken }) =>
-      Effect.tryPromise(() =>
-        fetch('/api/profile', {
-          headers: {
-            // 4. Recover the raw token only at the request boundary that needs it.
-            Authorization: `Bearer ${Redacted.value(accessToken)}`,
-          },
-        }),
-      ).pipe(
-        Effect.as(Message.CompletedFetchProfile()),
-        Effect.catch(() => Effect.succeed(Message.FailedFetchProfile())),
-      )
-  },
 })
 
-const fetchProfile = (model: Model) =>
-  FetchProfile({ accessToken: model.accessToken })
+// 3. Store the wrapper in the Model, never the raw string.
+export class Profile extends Block<
+  Profile,
+  Readonly<{ rawAccessToken: string }>
+>()('Profile', {
+  Model: Schema.Struct({ accessToken: AccessToken }),
+  Message,
+  Command: [FetchProfile],
+}) {}
+
+export const ProfileLive = Profile.make(
+  Effect.fn(function* (_id, { rawAccessToken }) {
+    return {
+      model: { accessToken: makeAccessToken(rawAccessToken) },
+
+      update: {
+        ClickedLoadProfile: model => ({
+          model,
+          commands: [FetchProfile({ accessToken: model.accessToken })],
+        }),
+        CompletedFetchProfile: model => ({ model }),
+        FailedFetchProfile: model => ({ model }),
+      },
+
+      commands: {
+        FetchProfile: ({ accessToken }) =>
+          Effect.tryPromise(() =>
+            fetch('/api/profile', {
+              headers: {
+                // 4. Recover the raw token only at the request that needs it.
+                Authorization: `Bearer ${Redacted.value(accessToken)}`,
+              },
+            }),
+          ).pipe(
+            Effect.as(Message.CompletedFetchProfile()),
+            Effect.catch(() => Effect.succeed(Message.FailedFetchProfile())),
+          ),
+      },
+    }
+  }),
+)

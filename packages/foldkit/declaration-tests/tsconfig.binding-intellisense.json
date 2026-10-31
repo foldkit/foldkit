@@ -1,8 +1,0 @@
-{
-  "extends": "./tsconfig.base.json",
-  "compilerOptions": { "noEmit": true },
-  "include": [
-    "composition-authoring.accepted.ts",
-    "composition-safety.accepted.ts"
-  ]
-}

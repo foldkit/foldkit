@@ -1,13 +1,14 @@
 export {
-  PopoverBlock,
-  buttonId,
+  Popover,
+  PopoverLive,
   arrowId,
-  type InitConfig,
+  buttonId,
+  type PopoverArgs,
   type RenderInfo,
-  type ViewInputs,
+  type ViewInput,
 } from './index.js'
 
 export type { AnchorConfig } from '../anchor/index.js'
 
-/** Original Popover Command and Mount Definitions for Story and Scene test resolution. */
+/** Popover Command and Mount Definitions for Story and Scene test resolution. */
 export * as test from './test.js'

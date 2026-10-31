@@ -1,17 +1,20 @@
 import { clsx } from 'clsx'
 import { Array, Match, Option, String, pipe } from 'effect'
-import { Html, inertHtml as ih } from 'foldkit/html'
+import type { Mount } from 'foldkit'
+import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+
+import type { Dialog } from '@foldkit/ui'
 
 import { Icon } from '../icon'
 import { KEYBOARD_WARMUP_INPUT_ID, SEARCH_INPUT_ID } from '../searchDom'
-import {
-  DialogBinding,
-  SearchComposition,
-  type SearchViewBuilder,
-} from './composition'
 import { type SearchResult, SearchState, resultsFromState } from './domain'
 import { Message } from './message'
 import type { Model } from './model'
+
+type SearchViewBuilder = HtmlBuilder<
+  Message,
+  Mount.RequirementsOf<(typeof Dialog.Dialog.Mount)[number]>
+>
 
 const RESULTS_LIST_ID = 'search-results'
 const resultItemId = (index: number): string => `search-result-${index}`
@@ -237,59 +240,52 @@ const keyboardWarmupInput: Html = ih.input([
   ih.Class('fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none -z-10'),
 ])
 
-export const view = SearchComposition.makeView((model, h) =>
+export const view = (model: Model, h: SearchViewBuilder): Html =>
   h.div(
     [],
     [
       keyboardWarmupInput,
-      h.block(
-        DialogBinding.embedView({
-          slotId: model.dialog.id,
-          model: model.dialog,
-          viewInputs: {
-            toView: ({ dialog, backdrop, panel, title, isVisible }) =>
-              h.dialog(
-                [...dialog],
-                isVisible
-                  ? [
-                      h.div([
-                        ...backdrop,
-                        h.Class(
-                          'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
-                        ),
-                      ]),
+      model.dialog.view({
+        toView: ({ dialog, backdrop, panel, title, isVisible }) =>
+          h.dialog(
+            [...dialog],
+            isVisible
+              ? [
+                  h.div([
+                    ...backdrop,
+                    h.Class(
+                      'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
+                    ),
+                  ]),
+                  h.div(
+                    [
+                      ...panel,
+                      h.Class(
+                        'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
+                      ),
+                    ],
+                    [
                       h.div(
                         [
-                          ...panel,
                           h.Class(
-                            'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
+                            'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
                           ),
                         ],
                         [
-                          h.div(
-                            [
-                              h.Class(
-                                'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
-                              ),
-                            ],
-                            [
-                              h.span(
-                                [...title, h.Class('sr-only')],
-                                ['Search documentation'],
-                              ),
-                              searchInputView(model, h),
-                              resultsListView(model, h),
-                              resultCountAnnouncement(model),
-                            ],
+                          h.span(
+                            [...title, h.Class('sr-only')],
+                            ['Search documentation'],
                           ),
+                          searchInputView(model, h),
+                          resultsListView(model, h),
+                          resultCountAnnouncement(model),
                         ],
                       ),
-                    ]
-                  : [],
-              ),
-          },
-        }),
-      ),
+                    ],
+                  ),
+                ]
+              : [],
+          ),
+      }),
     ],
-  ),
-)
+  )

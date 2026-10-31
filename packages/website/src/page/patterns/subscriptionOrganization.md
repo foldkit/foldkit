@@ -2,76 +2,57 @@
 
 ## Overview
 
-A Block owns the Subscriptions that produce its Messages. Its completed Block carries those registrations and their handler recipes. A parent Binding lifts them through the same Model accessor and generated delivery used for update and view.
+A Block owns the Subscriptions that produce its Messages. It returns them from its constructor as `stream` and `subscriptions`, beside the update handlers that receive their Messages. Each instance runs its own Streams, computed from its own Model.
 
-This keeps one parent-child relationship in one place. The parent does not separately lift and aggregate a child's Subscription record, and the application entry does not import leaf Subscription handlers.
+Nothing above the Block collects them. A parent does not lift a child's Subscriptions, the root does not register a combined record, and the application entry does not import Stream handlers. The parent controls a child's Streams through the same two tools it uses for everything else about the child:
 
-## Declare Local Subscriptions
+- Whether the instance is in the parent's Model. An instance's Streams run while it is in the Model and stop when it leaves.
+- The Messages the parent sends it. A Message can change the child Model that an entry's `dependencies` read.
 
-Use the Block definition's `makeSubscriptions` helper. It fixes the Model and Message types while each entry keeps its named handler identity, dependency Schema, declared Messages, and attached Layer recipe.
+[Subscriptions](/core/subscriptions) covers `stream`, `subscriptions`, and dependency comparison. This page covers where those declarations live as an application grows.
 
-Create one registry for all Subscriptions owned by that Block. Add entries to the same record as the feature grows. A substantial handler may move its Stream construction into a focused helper, but its entry stays in the owning registry. A child Block remains a distinct owner with its own registry.
+## Declare Subscriptions in the Owning Block
 
-::Snippet{name="subscriptionOrganizationChild" label="Block Subscription definitions"}
+Put a Subscription in the Block whose Messages it emits and whose Model decides when it runs. A ThemeMenu that closes on Escape owns that listener, because `PressedEscape` is its Message and `isOpen` is its state.
 
-When Subscription declarations are split from Block assembly, that module exports the Block's `subscriptions` registry. In the child's Block assembly, pass `EffectsLayer: subscriptions.layer` to `FeatureComposition.prepareBlock`. When the feature has other local providers, compose their recipes and the registry Layer in `EffectsLayer`. A parent Binding contributes the completed child's handlers automatically.
+When the Stream construction grows, extract it into a named function in the Block's file, above the `Live` Layer. The function takes the entry's dependencies and returns the Stream. The entry stays in the constructor, next to the update handlers for the Messages it produces, and passes the function as its `stream`:
 
-Use `Subscription.aggregate` only where a graph, adapter, or test boundary must join independent Subscription records. It is not needed to rebuild one Block's registry from several same-owner records.
+::Snippet{name="subscriptionOrganizationThemeMenu" label="ThemeMenu declaring its escapePresses entry"}
 
-## Connect the Child Once
+Keep every entry for one Block in that Block's `subscriptions` record. A child Block is a separate owner and declares its own.
 
-The parent binds the completed child and includes the Binding in its Composition:
+## Control a Child's Streams from the Parent
 
-::Snippet{name="subscriptionOrganizationComposing" label="Composing child Subscriptions through a Binding"}
+A child's `dependencies` see only the child's Model. When a parent-owned fact, such as the active Route or an open dialog, decides whether a child's Stream runs, the parent has two ways to express it.
 
-The Binding derives three things from the same policy:
+### Hold the Instance Only While It Should Run
 
-- `read` locates the child Model for update and every lifecycle.
-- Generated delivery wraps view, Command, Subscription, Mount, and ManagedResource Messages with their captured Binding occurrence. Composition routes them through the same Binding.
-- `placement` qualifies the child's runtime identities and registration keys.
+If the child's state is not needed while its Streams are stopped, put the instance in the Model only while it should run. This application holds ThemeMenu inside the `Settings` page variant. Navigating to `Home` takes the instance out of the Model, which stops its Streams and discards its state:
 
-Nested Blocks repeat the same pattern. By the time a Stream reaches the root, every emitted Message has been wrapped through each parent boundary.
+::Snippet{name="subscriptionOrganizationPresence" label="ThemeMenu living in the Settings page"}
 
-## Install the Root
+Navigating back to `Settings` constructs ThemeMenu fresh, closed, with its `escapePresses` entry computed from the new Model. An instance in an `Option` field behaves the same way.
 
-The Application Composition already contains the Subscription and handler graph. Its `prepareBlock` method produces the unfinished implementation assembly, and `Block.assemble(prepare)` finishes `ApplicationBlock`; `Program.make` adds the browser host configuration:
+### Inform the Child
 
-::Snippet{name="subscriptionOrganizationRoot" label="Installing the root Subscription graph"}
+If the child's state must survive while one of its Streams pauses, keep the instance in the Model and tell it about the parent-owned fact. The child records the fact in its Model, and the entry's `dependencies` read it.
 
-The root `ApplicationLayer` supplies ordinary services required by the handlers. It does not merge the feature `EffectsLayer` bundles again.
+This Room listens to server events for as long as it exists, and to key presses only while no dialog covers it. The server events are its `stream`. The key presses are a `subscriptions` entry that depends on `isDialogOpen`:
 
-## Optional Children
+::Snippet{name="subscriptionOrganizationRoom" label="Room gating keyPresses on isDialogOpen"}
 
-Return `Some(child)` from `read` while the child exists and `None` while it is absent. Foldkit stops every Stream for the absent occurrence and skips its dependency functions.
+Lobby owns the help dialog. When the dialog opens or closes, it sends Room `InformedOfDialogChange`:
 
-::Snippet{name="subscriptionOrganizationOptional" label="Reading an optional child Model"}
+::Snippet{name="subscriptionOrganizationInform" label="Lobby informing Room about its dialog"}
 
-When that child reappears, its Streams start in a new occurrence scope.
+Room's update records the fact, its `keyPresses` dependencies change, and the Runtime restarts the entry with `Stream.empty` while the dialog is open. The `stream` of server events keeps running throughout. [Informing Blocks](/patterns/informing-blocks) covers this Message pattern in depth.
 
-## Parent-owned Gates {#gating}
+## Keyed Instances
 
-A child expresses conditions from its own Model through `modelToDependencies` and its Stream. It cannot see parent-owned state such as the active Route. Put that policy on the Binding.
+Instances created with `Child.each` each run their own `stream` and `subscriptions`. Ten rows run ten independent sets of Streams, each gated by its own Model.
 
-### Gate the whole child record
+Removing an instance from the collection stops its Streams. Adding an instance with the same key later constructs it fresh, so a Stream started by the removed instance never delivers Messages to the new one.
 
-::Snippet{name="subscriptionOrganizationGate" label="Route-gated child Subscriptions"}
+## Services for Streams
 
-The gate controls Stream lifetime only. It does not make the child Model absent and does not prevent `binding.fold` from running.
-
-### Gate named entries
-
-Use a record when some entries remain active. This Room keeps its Binding Stream alive while gating only its keyboard listener:
-
-::Snippet{name="subscriptionOrganizationEntryGate" label="Per-entry Subscription gate"}
-
-An omitted entry has no additional parent gate. It still stops when `read` returns `None`.
-
-## Keyed Children
-
-For an array storing child Models directly, use `ParentDefinition.makeBinding` with `field` and a string-valued `key`. The child Schema must expose its declared Struct fields. An exact array of closed Struct wrappers adds `childField`, whose required Schema has exactly the same decoded shape as the child Model; its distinct required `key` belongs to the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration use `readAll`, function-valued `key`, `read`, and `writeAt`. The Binding declares storage, stable identity, and generated child delivery once. Every active key receives independent Stream scopes and its own gate evaluation.
-
-Removing a key stops those Streams. Reusing the key later creates a fresh occurrence, so callbacks captured by the old occurrence cannot dispatch into the replacement.
-
-## Ownership Rule
-
-Put a Subscription in the lowest Block whose Messages it emits and whose Model controls its dependencies. Parent route policy belongs on the Binding. Shared event-source services belong in Effect Layers supplied at application assembly.
+When a Stream needs a shared event source, such as a connection pool or a clock, make it an Effect service. Yield the service in the constructor and close over it in the entry's `stream` function. The Block's Layer then requires the service, and the program Layer provides it once for every Block that uses it. [Layers](/core/layers) covers that wiring.

@@ -1,8 +1,9 @@
 import { Schema, String, pipe } from 'effect'
 import { Route } from 'foldkit'
+import type { Document, HtmlBuilder } from 'foldkit/html'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 
-import { ApplicationComposition } from './composition'
+type ApplicationViewBuilder = HtmlBuilder<Message>
 
 // ROUTE
 
@@ -32,8 +33,8 @@ const routeToCanonicalUrl = (route: ApplicationRoute): string =>
     }),
   )
 
-const view = ApplicationComposition.makeView((model, h) => ({
+export const view = (model: Model, h: ApplicationViewBuilder): Document => ({
   title: pageTitle(model.route),
   canonical: routeToCanonicalUrl(model.route),
   body: h.div([h.Class('mx-auto max-w-prose p-6')], [pageContent(model, h)]),
-}))
+})

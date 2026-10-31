@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `Http` module has one export: `Http.layer`, a Fetch-backed Effect `HttpClient` Layer with trace-header propagation disabled by default. Provide it from the application root, then yield `HttpClient.HttpClient` inside an HTTP [Command](/core/commands).
+The `Http` module has one export: `Http.layer`, a Fetch-backed Effect `HttpClient` Layer with trace-header propagation disabled by default. Provide it from the application root, then yield `HttpClient.HttpClient` in the constructor of a Block whose [Commands](/core/commands) make requests.
 
 Import client modules from `effect/http`, their path in Effect 4 stable.
 
@@ -22,7 +22,7 @@ Local observability remains intact. The `http.client` span still records request
 
 ## Providing It to the Application
 
-Leave `HttpClient.HttpClient` in each handler constructor's Effect requirements. Compose each feature's handlers into its local `EffectsLayer` and complete the Block with it, then supply `Http.layer` through the root `ApplicationLayer`. The root owns the concrete browser transport, and a whole-application test can provide a deterministic HTTP client beneath the same handlers. See [Layers](/core/layers) for service and handler composition.
+Yield `HttpClient.HttpClient` in the constructor of each Block whose Commands make requests, and close over it in their handlers. The Block's Layer then requires `HttpClient`, and the root supplies `Http.layer` through `ApplicationLayer`. The root owns the concrete browser transport, and a test can provide a deterministic HTTP client to the same Block Layers. See [Layers](/core/layers) for how services reach Blocks.
 
 The Command remains responsible for status checks, response decoding, and converting failures into declared Messages.
 

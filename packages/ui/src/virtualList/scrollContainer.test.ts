@@ -1,3 +1,4 @@
+import type { Result } from 'foldkit/block'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -14,7 +15,30 @@ import {
   viewportHeight,
   viewportTop,
 } from './scrollContainer.js'
-import { Message, ObservedAnchor, init, update } from './virtualList.js'
+import {
+  type ApplyScroll,
+  Message,
+  type Model,
+  ObservedAnchor,
+  initialModel,
+  update as updateHandlers,
+} from './virtualList.js'
+
+const tagOf = (message: Readonly<{ _tag: string }>): string => message._tag
+
+const update = (
+  model: Model,
+  message: Message,
+): Result<Model, unknown, ReturnType<typeof ApplyScroll>> => {
+  const handler: (
+    model: Model,
+    message: Message,
+  ) => Result<Model, unknown, ReturnType<typeof ApplyScroll>> = Reflect.get(
+    updateHandlers,
+    tagOf(message),
+  )
+  return handler(model, message)
+}
 
 const rect = (top: number, height: number) => ({
   top,
@@ -178,11 +202,11 @@ describe('VirtualList external scroll coordinates', () => {
 
 describe('VirtualList viewport resizing', () => {
   it('preserves the pre-resize row anchor when an absolute preceding row overlaps it', () => {
-    const unmeasured = init({
+    const unmeasured = initialModel({
       id: 'resizing-list',
       rowHeightPx: 40,
       scrollContainer: ScrollContainer.Ancestor({ selector: '#catalog-main' }),
-    }).model
+    })
     const measured = update(
       unmeasured,
       Message.ResizedContainer({

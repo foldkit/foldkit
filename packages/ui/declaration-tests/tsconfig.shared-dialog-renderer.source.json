@@ -5,6 +5,7 @@
     "paths": {
       "@foldkit/ui/dialog": ["../src/dialog/public.ts"],
       "foldkit": ["../../foldkit/src/index.ts"],
+      "foldkit/block": ["../../foldkit/src/blocks/public.ts"],
       "foldkit/*": ["../../foldkit/src/*/public.ts"],
       "foldkit/devtools-host": ["../../foldkit/src/devTools/host.ts"]
     }

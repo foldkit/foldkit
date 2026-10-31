@@ -1,5 +1,6 @@
 import { Array, Effect, Number, Schema } from 'effect'
-import { Block } from 'foldkit'
+import { Block, Command } from 'foldkit'
+import type { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -32,12 +33,6 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
-
 // CONSTANTS
 
 const HEAVY_ITEM_COUNT = 10_000
@@ -55,59 +50,16 @@ const heavyPayload = makeHeavyArray(HEAVY_ITEM_COUNT)
 
 // COMMAND
 
-const FillHistoryStep = ApplicationDefinition.makeCommand('FillHistoryStep', {
+const FillHistoryStep = Command.define('FillHistoryStep', {
   args: { remaining: Schema.Number },
   messages: [Message.CompletedFillHistoryStep],
-  handler: function* () {
-    return ({ remaining }) =>
-      Effect.sync(() => Message.CompletedFillHistoryStep({ remaining }))
-  },
 })
 
-export const EffectsLayer = FillHistoryStep.layer
-
-// UPDATE
-
-export const update = ApplicationComposition.makeUpdate({
-  ClickedTick: ApplicationDefinition.makeFieldsStep(() => ({
-    tickCount: Number.increment,
-  })),
-  ClickedDispatchLargeMessage: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ payload }) => ({
-      lastReceivedPayloadSize: () => payload.length,
-    }),
-  ),
-  ClickedFillLargeModel: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ items }) => ({
-      largeArray: () => items,
-    }),
-  ),
-  ClickedClearLargeModel: ApplicationDefinition.makeFieldsStep(() => ({
-    largeArray: () => [],
-  })),
-  ClickedFillHistory: ApplicationDefinition.makeCommandsStep(() => [
-    FillHistoryStep({ remaining: HISTORY_FILL_COUNT }),
-  ]),
-  CompletedFillHistoryStep: (model, { remaining }) => ({
-    model: modifyFields(model, {
-      tickCount: Number.increment,
-    }),
-    commands: Array.filter(
-      [FillHistoryStep({ remaining: Number.decrement(remaining) })],
-      () => remaining > 1,
-    ),
-  }),
-})
-
-// INIT
-
-export const init = ApplicationComposition.makeInit(() => ({
-  model: Model.make({
-    tickCount: 0,
-    lastReceivedPayloadSize: 0,
-    largeArray: [],
-  }),
-}))
+export class Application extends Block<Application>()('Application', {
+  Model,
+  Message,
+  Command: [FillHistoryStep],
+}) {}
 
 // VIEW
 
@@ -119,7 +71,7 @@ const blurbStyle = 'text-sm text-neutral-600 mb-3'
 const rowStyle = 'flex items-center gap-3'
 const stateStyle = 'text-sm text-neutral-700'
 
-export const view = ApplicationComposition.makeView((model, h) => {
+const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const { div, button, h1, h2, p, code, Class, OnClick } = h
 
   return {
@@ -233,16 +185,48 @@ export const view = ApplicationComposition.makeView((model, h) => {
       ],
     ),
   }
-})
+}
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: {
+        tickCount: 0,
+        lastReceivedPayloadSize: 0,
+        largeArray: [],
+      },
+      update: {
+        ClickedTick: model => ({
+          model: modifyFields(model, { tickCount: Number.increment }),
+        }),
+        ClickedDispatchLargeMessage: (model, { payload }) => ({
+          model: modifyFields(model, {
+            lastReceivedPayloadSize: () => payload.length,
+          }),
+        }),
+        ClickedFillLargeModel: (model, { items }) => ({
+          model: modifyFields(model, { largeArray: () => items }),
+        }),
+        ClickedClearLargeModel: model => ({
+          model: modifyFields(model, { largeArray: () => [] }),
+        }),
+        ClickedFillHistory: model => ({
+          model,
+          commands: [FillHistoryStep({ remaining: HISTORY_FILL_COUNT })],
+        }),
+        CompletedFillHistoryStep: (model, { remaining }) => ({
+          model: modifyFields(model, { tickCount: Number.increment }),
+          commands: Array.filter(
+            [FillHistoryStep({ remaining: Number.decrement(remaining) })],
+            () => remaining > 1,
+          ),
+        }),
+      },
+      commands: {
+        FillHistoryStep: ({ remaining }) =>
+          Effect.succeed(Message.CompletedFillHistoryStep({ remaining })),
+      },
+      view,
+    }
+  }),
+)

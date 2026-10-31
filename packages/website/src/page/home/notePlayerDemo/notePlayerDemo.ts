@@ -7,13 +7,14 @@ import {
   Match,
   Number,
   Option,
+  Ref,
   Result,
   Schema,
   String,
   pipe,
 } from 'effect'
-import { FieldValidation } from 'foldkit'
-import { Html, inertHtml as ih } from 'foldkit/html'
+import { Block, Command, FieldValidation } from 'foldkit'
+import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import notePlayerDemoCodeHtml from 'virtual:note-player-demo-code'
 
@@ -21,25 +22,19 @@ import { Button, Input } from '@foldkit/ui'
 
 import { Icon } from '../../../icon'
 import * as DemoView from '../../demoView'
-import {
-  NoteDurationRadioGroupBinding,
-  NotePlayerDemoComposition,
-  type NotePlayerDemoViewBuilder,
-} from './composition'
+import { type CompletedPlayNote, Message } from './message'
+import { prependToLog } from './messageLog'
 import {
   AudioState,
-  type CompletedPlayNote,
-  Message,
   Model,
   Note,
   NoteDuration,
+  NoteDurationRadioGroup,
   NoteHighlightPhase,
-  NotePlayerDemoDefinition,
   PlaybackState,
-  makeFieldsStep,
-  makeNoopStep,
-} from './definition'
-import { prependToLog } from './messageLog'
+} from './model'
+
+type NotePlayerDemoViewBuilder = HtmlBuilder<Message>
 
 // CONSTANTS
 
@@ -99,33 +94,25 @@ const parseNotes = (value: string) =>
   )
 const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
 
-export const init = NotePlayerDemoComposition.makeInit(() => ({
-  model: {
-    noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
-    noteDuration: 'Medium',
-    playbackState: PlaybackState.Idle(),
-    highlightPhase: 'Idle',
-    generation: 0,
-    messageLog: [],
-    audio: AudioState.Acquiring(),
-  },
-}))
-
-const DelayAdvanceNotePlayerPhase = NotePlayerDemoDefinition.makeCommand(
+const DelayAdvanceNotePlayerPhase = Command.define(
   'DelayAdvanceNotePlayerPhase',
   {
     args: { generation: Schema.Number },
     messages: [Message.CompletedDelayAdvanceNotePlayerPhase],
-    handler: function* () {
-      return ({ generation }) =>
-        Effect.sleep(PHASE_DURATION).pipe(
-          Effect.as(
-            Message.CompletedDelayAdvanceNotePlayerPhase({ generation }),
-          ),
-        )
-    },
   },
 )
+
+const PlayNote = Command.define('PlayNote', {
+  args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
+  messages: [Message.CompletedPlayNote],
+})
+
+export const AcquireAudioContext = Command.define('AcquireAudioContext', {
+  messages: [
+    Message.SucceededAcquireAudioContext,
+    Message.FailedAcquireAudioContext,
+  ],
+})
 
 const enterNoteCommandPhase = (
   model: Model,
@@ -149,303 +136,6 @@ const enterNoteCommandPhase = (
   ],
 })
 
-export const update = NotePlayerDemoComposition.makeUpdate({
-  ChangedNoteInput: makeFieldsStep.fromMessage(({ value }) => {
-    const uppercased = String.toUpperCase(value)
-    const fieldState = String.isEmpty(uppercased)
-      ? FieldValidation.NotValidated({ value: uppercased })
-      : validateNoteInput(uppercased)
-
-    return {
-      noteInput: () => fieldState,
-      playbackState: () => PlaybackState.Idle(),
-      highlightPhase: () => 'Idle',
-    }
-  }),
-
-  ClickedPlay: model =>
-    PlaybackState.match(model.playbackState, {
-      Playing: () => ({ model }),
-      Paused: ({ noteSequence, currentNoteIndex }) => {
-        const resumeIndex = currentNoteIndex + 1
-
-        if (resumeIndex >= noteSequence.length) {
-          return {
-            model: modifyFields(model, {
-              playbackState: () => PlaybackState.Idle(),
-              highlightPhase: () => 'Idle',
-              messageLog: prependToLog('ClickedPlay'),
-            }),
-          }
-        }
-
-        const nextGeneration = model.generation + 1
-
-        return {
-          model: modifyFields(model, {
-            playbackState: () =>
-              PlaybackState.Playing({
-                noteSequence,
-                currentNoteIndex: resumeIndex,
-              }),
-            highlightPhase: () => 'PlayMessage',
-            generation: () => nextGeneration,
-            messageLog: prependToLog('ClickedPlay'),
-          }),
-          commands: [
-            DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
-          ],
-        }
-      },
-      Idle: () => {
-        const noteSequence =
-          model.noteInput._tag === 'Valid'
-            ? parseNotes(model.noteInput.value)
-            : []
-
-        if (Array.isReadonlyArrayEmpty(noteSequence)) {
-          return { model }
-        }
-
-        const nextGeneration = model.generation + 1
-
-        return {
-          model: modifyFields(model, {
-            playbackState: () =>
-              PlaybackState.Playing({
-                noteSequence,
-                currentNoteIndex: 0,
-              }),
-            highlightPhase: () => 'PlayMessage',
-            generation: () => nextGeneration,
-            messageLog: prependToLog('ClickedPlay'),
-          }),
-          commands: [
-            DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
-          ],
-        }
-      },
-    }),
-
-  ClickedPause: model =>
-    Match.value(model.playbackState).pipe(
-      Match.tag('Playing', ({ noteSequence, currentNoteIndex }) => {
-        const nextGeneration = model.generation + 1
-
-        return {
-          model: modifyFields(model, {
-            playbackState: () =>
-              PlaybackState.Paused({
-                noteSequence,
-                currentNoteIndex,
-              }),
-            highlightPhase: () => 'PauseMessage',
-            generation: () => nextGeneration,
-            messageLog: prependToLog('ClickedPause'),
-          }),
-          commands: [
-            DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
-          ],
-        }
-      }),
-      Match.orElse(() => ({ model })),
-    ),
-
-  ClickedStop: makeFieldsStep(() => ({
-    playbackState: () => PlaybackState.Idle(),
-    highlightPhase: () => 'Idle',
-    messageLog: prependToLog('ClickedStop'),
-  })),
-
-  CompletedPlayNote: (model, { noteIndex }) => {
-    if (
-      model.playbackState._tag !== 'Playing' ||
-      noteIndex !== model.playbackState.currentNoteIndex
-    ) {
-      return { model }
-    }
-
-    const nextGeneration = model.generation + 1
-
-    return {
-      model: modifyFields(model, {
-        highlightPhase: () => 'NoteMessage',
-        generation: () => nextGeneration,
-        messageLog: prependToLog(`CompletedPlayNote(${noteIndex})`),
-      }),
-      commands: [DelayAdvanceNotePlayerPhase({ generation: nextGeneration })],
-    }
-  },
-
-  CompletedDelayAdvanceNotePlayerPhase: (model, { generation }) => {
-    if (generation !== model.generation) {
-      return { model }
-    }
-
-    return Match.value(model.highlightPhase).pipe(
-      Match.when('PlayMessage', () => ({
-        model: modifyFields(model, { highlightPhase: () => 'PlayUpdate' }),
-        commands: [DelayAdvanceNotePlayerPhase({ generation: generation })],
-      })),
-      Match.when('PauseMessage', () => ({
-        model: modifyFields(model, { highlightPhase: () => 'Idle' }),
-      })),
-      Match.when('PlayUpdate', () => ({
-        model: modifyFields(model, { highlightPhase: () => 'PlayModel' }),
-        commands: [DelayAdvanceNotePlayerPhase({ generation: generation })],
-      })),
-      Match.when('PlayModel', () => {
-        if (model.playbackState._tag !== 'Playing') {
-          return {
-            model: modifyFields(model, { highlightPhase: () => 'Idle' }),
-          }
-        }
-
-        const { noteSequence, currentNoteIndex } = model.playbackState
-
-        return enterNoteCommandPhase(model, noteSequence, currentNoteIndex)
-      }),
-      Match.when('NoteMessage', () => ({
-        model: modifyFields(model, { highlightPhase: () => 'NoteUpdate' }),
-        commands: [DelayAdvanceNotePlayerPhase({ generation: generation })],
-      })),
-      Match.when('NoteUpdate', () => ({
-        model: modifyFields(model, { highlightPhase: () => 'NoteModel' }),
-        commands: [DelayAdvanceNotePlayerPhase({ generation: generation })],
-      })),
-      Match.when('NoteModel', () => {
-        if (model.playbackState._tag !== 'Playing') {
-          return {
-            model: modifyFields(model, { highlightPhase: () => 'Idle' }),
-          }
-        }
-
-        const { noteSequence, currentNoteIndex } = model.playbackState
-        const nextIndex = Number.increment(currentNoteIndex)
-
-        if (nextIndex >= noteSequence.length) {
-          return {
-            model: modifyFields(model, {
-              playbackState: () => PlaybackState.Idle(),
-              highlightPhase: () => 'Idle',
-            }),
-          }
-        }
-
-        return enterNoteCommandPhase(model, noteSequence, nextIndex)
-      }),
-      Match.whenOr('Idle', 'NoteCommand', () => ({ model })),
-      Match.exhaustive,
-    )
-  },
-
-  SucceededAcquireAudioContext: makeFieldsStep(() => ({
-    audio: () => AudioState.Ready(),
-  })),
-
-  FailedAcquireAudioContext: makeFieldsStep(() => ({
-    audio: () => AudioState.Unavailable(),
-  })),
-
-  ReleasedAudioContext: makeNoopStep(),
-})
-
-// MANAGED RESOURCE
-
-const AudioContextResource =
-  NotePlayerDemoDefinition.makeResource<AudioContext>()('AudioContext')
-
-export const managedResources = NotePlayerDemoDefinition.makeManagedResources(
-  entry => ({
-    audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
-      resource: AudioContextResource,
-      modelToMaybeRequirements: () => Option.some(null),
-      onAcquired: () => Message.SucceededAcquireAudioContext(),
-      onReleased: () => Message.ReleasedAudioContext(),
-      onAcquireError: () => Message.FailedAcquireAudioContext(),
-      handler: function* () {
-        return {
-          acquire: () =>
-            Effect.try({
-              try: () => new AudioContext(),
-              catch: () =>
-                new Error('The Web Audio API is unavailable in this browser.'),
-            }),
-          release: audioContext =>
-            Effect.promise(() => audioContext.close().catch(() => undefined)),
-        }
-      },
-    }),
-  }),
-)
-
-const PlayNote = NotePlayerDemoDefinition.makeCommand('PlayNote', {
-  args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
-  messages: [Message.CompletedPlayNote],
-  handler: function* () {
-    return ({ note, duration, noteIndex }) =>
-      Effect.gen(function* () {
-        const audioContext = yield* AudioContextResource.get
-        yield* Effect.promise(() =>
-          audioContext.resume().catch(() => undefined),
-        )
-
-        return yield* Effect.callback<CompletedPlayNote>(resume => {
-          if (audioContext.state === 'closed') {
-            resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-            return
-          }
-
-          const oscillator = audioContext.createOscillator()
-          const gainNode = audioContext.createGain()
-          const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
-
-          oscillator.type = 'triangle'
-          oscillator.frequency.setValueAtTime(
-            NOTE_FREQUENCIES[note],
-            audioContext.currentTime,
-          )
-
-          const releaseEnd =
-            audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
-
-          gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-          gainNode.gain.linearRampToValueAtTime(
-            0.1,
-            audioContext.currentTime + GAIN_ATTACK_TIME,
-          )
-          gainNode.gain.exponentialRampToValueAtTime(
-            GAIN_NEAR_SILENT,
-            releaseEnd,
-          )
-
-          oscillator.connect(gainNode)
-          gainNode.connect(audioContext.destination)
-
-          oscillator.start()
-          oscillator.stop(audioContext.currentTime + durationSeconds)
-
-          oscillator.onended = () => {
-            gainNode.disconnect()
-            resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-          }
-        })
-      }).pipe(
-        Effect.catchTag('ResourceNotAvailable', () =>
-          Effect.sleep(Duration.millis(DURATION_MILLISECONDS[duration])).pipe(
-            Effect.map(() => Message.CompletedPlayNote({ noteIndex })),
-          ),
-        ),
-      )
-  },
-})
-
-export const EffectsLayer = Layer.mergeAll(
-  DelayAdvanceNotePlayerPhase.layer,
-  PlayNote.layer,
-  managedResources.layer,
-)
-
 const inputBorderClass = (field: FieldValidation.Field<string>): string =>
   FieldValidation.match(field, {
     onNotValidated: () => 'border-gray-300 dark:border-gray-600',
@@ -466,7 +156,7 @@ const durationButtonClass = (
       !isSelected && isDisabled,
   })
 
-export const view = NotePlayerDemoComposition.makeView((model, h) =>
+const view = (model: Model, h: NotePlayerDemoViewBuilder): Html =>
   DemoView.shell(
     DemoView.codePanel(
       'note-demo-code-panel',
@@ -475,8 +165,7 @@ export const view = NotePlayerDemoComposition.makeView((model, h) =>
       notePlayerDemoCodeHtml,
     ),
     appPanel(model, h),
-  ),
-)
+  )
 
 const appPanel = (model: Model, h: NotePlayerDemoViewBuilder): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
@@ -600,42 +289,33 @@ const durationSelectorView = (
         [h.Class('text-xs text-gray-600 dark:text-gray-400')],
         ['Note Length'],
       ),
-      h.block(
-        NoteDurationRadioGroupBinding.embedView({
-          slotId: model.noteDurationRadioGroup.id,
-          model: model.noteDurationRadioGroup,
-          viewInputs: {
-            selectedValue: Option.some(model.noteDuration),
-            options: noteDurations,
-            ariaLabel: 'Note length',
-            orientation: 'Horizontal',
-            isDisabled: isInputLocked,
-            toView: ({ group, options }) =>
+      model.noteDurationRadioGroup.view({
+        selectedValue: Option.some(model.noteDuration),
+        options: noteDurations,
+        ariaLabel: 'Note length',
+        orientation: 'Horizontal',
+        isDisabled: isInputLocked,
+        toView: ({ group, options }) =>
+          h.div(
+            [
+              ...group,
+              h.Class(
+                'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
+              ),
+            ],
+            options.map(option =>
               h.div(
                 [
-                  ...group,
+                  ...option.option,
                   h.Class(
-                    'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
+                    durationButtonClass(option.isSelected, option.isDisabled),
                   ),
                 ],
-                options.map(option =>
-                  h.div(
-                    [
-                      ...option.option,
-                      h.Class(
-                        durationButtonClass(
-                          option.isSelected,
-                          option.isDisabled,
-                        ),
-                      ),
-                    ],
-                    [option.value],
-                  ),
-                ),
+                [option.value],
               ),
-          },
-        }),
-      ),
+            ),
+          ),
+      }),
     ],
   )
 
@@ -870,3 +550,360 @@ const phaseIndicatorView = (model: Model): Html =>
     phaseColorClass(model.highlightPhase),
     [],
   )
+
+// BLOCK
+
+export class NotePlayerDemo extends Block<NotePlayerDemo>()('NotePlayerDemo', {
+  Model,
+  Message,
+  Command: [DelayAdvanceNotePlayerPhase, PlayNote, AcquireAudioContext],
+}) {}
+
+export const NotePlayerDemoLive = NotePlayerDemo.make(
+  Effect.fn(function* () {
+    const noteDurationRadioGroup = yield* new NoteDurationRadioGroup(
+      'noteDurationRadioGroup',
+      { id: 'note-duration' },
+    )
+    const audioContextRef = yield* Ref.make(Option.none<AudioContext>())
+
+    yield* Effect.addFinalizer(() =>
+      Ref.get(audioContextRef).pipe(
+        Effect.flatMap(
+          Option.match({
+            onNone: () => Effect.void,
+            onSome: audioContext =>
+              Effect.promise(() => audioContext.close().catch(() => undefined)),
+          }),
+        ),
+      ),
+    )
+
+    return {
+      model: {
+        noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
+        noteDurationRadioGroup,
+        noteDuration: 'Medium',
+        playbackState: PlaybackState.Idle(),
+        highlightPhase: 'Idle',
+        generation: 0,
+        messageLog: [],
+        audio: AudioState.Acquiring(),
+      },
+
+      start: [AcquireAudioContext()],
+
+      update: {
+        ChangedNoteInput: (model, { value }) => {
+          const uppercased = String.toUpperCase(value)
+          const fieldState = String.isEmpty(uppercased)
+            ? FieldValidation.NotValidated({ value: uppercased })
+            : validateNoteInput(uppercased)
+
+          return {
+            model: modifyFields(model, {
+              noteInput: () => fieldState,
+              playbackState: () => PlaybackState.Idle(),
+              highlightPhase: () => 'Idle',
+            }),
+          }
+        },
+
+        ClickedPlay: model =>
+          PlaybackState.match(model.playbackState, {
+            Playing: () => ({ model }),
+            Paused: ({ noteSequence, currentNoteIndex }) => {
+              const resumeIndex = currentNoteIndex + 1
+
+              if (resumeIndex >= noteSequence.length) {
+                return {
+                  model: modifyFields(model, {
+                    playbackState: () => PlaybackState.Idle(),
+                    highlightPhase: () => 'Idle',
+                    messageLog: prependToLog('ClickedPlay'),
+                  }),
+                }
+              }
+
+              const nextGeneration = model.generation + 1
+
+              return {
+                model: modifyFields(model, {
+                  playbackState: () =>
+                    PlaybackState.Playing({
+                      noteSequence,
+                      currentNoteIndex: resumeIndex,
+                    }),
+                  highlightPhase: () => 'PlayMessage',
+                  generation: () => nextGeneration,
+                  messageLog: prependToLog('ClickedPlay'),
+                }),
+                commands: [
+                  DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
+                ],
+              }
+            },
+            Idle: () => {
+              const noteSequence =
+                model.noteInput._tag === 'Valid'
+                  ? parseNotes(model.noteInput.value)
+                  : []
+
+              if (Array.isReadonlyArrayEmpty(noteSequence)) {
+                return { model }
+              }
+
+              const nextGeneration = model.generation + 1
+
+              return {
+                model: modifyFields(model, {
+                  playbackState: () =>
+                    PlaybackState.Playing({
+                      noteSequence,
+                      currentNoteIndex: 0,
+                    }),
+                  highlightPhase: () => 'PlayMessage',
+                  generation: () => nextGeneration,
+                  messageLog: prependToLog('ClickedPlay'),
+                }),
+                commands: [
+                  DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
+                ],
+              }
+            },
+          }),
+
+        ClickedPause: model =>
+          Match.value(model.playbackState).pipe(
+            Match.tag('Playing', ({ noteSequence, currentNoteIndex }) => {
+              const nextGeneration = model.generation + 1
+
+              return {
+                model: modifyFields(model, {
+                  playbackState: () =>
+                    PlaybackState.Paused({
+                      noteSequence,
+                      currentNoteIndex,
+                    }),
+                  highlightPhase: () => 'PauseMessage',
+                  generation: () => nextGeneration,
+                  messageLog: prependToLog('ClickedPause'),
+                }),
+                commands: [
+                  DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
+                ],
+              }
+            }),
+            Match.orElse(() => ({ model })),
+          ),
+
+        ClickedStop: model => ({
+          model: modifyFields(model, {
+            playbackState: () => PlaybackState.Idle(),
+            highlightPhase: () => 'Idle',
+            messageLog: prependToLog('ClickedStop'),
+          }),
+        }),
+
+        CompletedPlayNote: (model, { noteIndex }) => {
+          if (
+            model.playbackState._tag !== 'Playing' ||
+            noteIndex !== model.playbackState.currentNoteIndex
+          ) {
+            return { model }
+          }
+
+          const nextGeneration = model.generation + 1
+
+          return {
+            model: modifyFields(model, {
+              highlightPhase: () => 'NoteMessage',
+              generation: () => nextGeneration,
+              messageLog: prependToLog(`CompletedPlayNote(${noteIndex})`),
+            }),
+            commands: [
+              DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
+            ],
+          }
+        },
+
+        CompletedDelayAdvanceNotePlayerPhase: (model, { generation }) => {
+          if (generation !== model.generation) {
+            return { model }
+          }
+
+          return Match.value(model.highlightPhase).pipe(
+            Match.when('PlayMessage', () => ({
+              model: modifyFields(model, {
+                highlightPhase: () => 'PlayUpdate',
+              }),
+              commands: [
+                DelayAdvanceNotePlayerPhase({ generation: generation }),
+              ],
+            })),
+            Match.when('PauseMessage', () => ({
+              model: modifyFields(model, { highlightPhase: () => 'Idle' }),
+            })),
+            Match.when('PlayUpdate', () => ({
+              model: modifyFields(model, { highlightPhase: () => 'PlayModel' }),
+              commands: [
+                DelayAdvanceNotePlayerPhase({ generation: generation }),
+              ],
+            })),
+            Match.when('PlayModel', () => {
+              if (model.playbackState._tag !== 'Playing') {
+                return {
+                  model: modifyFields(model, { highlightPhase: () => 'Idle' }),
+                }
+              }
+
+              const { noteSequence, currentNoteIndex } = model.playbackState
+
+              return enterNoteCommandPhase(
+                model,
+                noteSequence,
+                currentNoteIndex,
+              )
+            }),
+            Match.when('NoteMessage', () => ({
+              model: modifyFields(model, {
+                highlightPhase: () => 'NoteUpdate',
+              }),
+              commands: [
+                DelayAdvanceNotePlayerPhase({ generation: generation }),
+              ],
+            })),
+            Match.when('NoteUpdate', () => ({
+              model: modifyFields(model, { highlightPhase: () => 'NoteModel' }),
+              commands: [
+                DelayAdvanceNotePlayerPhase({ generation: generation }),
+              ],
+            })),
+            Match.when('NoteModel', () => {
+              if (model.playbackState._tag !== 'Playing') {
+                return {
+                  model: modifyFields(model, { highlightPhase: () => 'Idle' }),
+                }
+              }
+
+              const { noteSequence, currentNoteIndex } = model.playbackState
+              const nextIndex = Number.increment(currentNoteIndex)
+
+              if (nextIndex >= noteSequence.length) {
+                return {
+                  model: modifyFields(model, {
+                    playbackState: () => PlaybackState.Idle(),
+                    highlightPhase: () => 'Idle',
+                  }),
+                }
+              }
+
+              return enterNoteCommandPhase(model, noteSequence, nextIndex)
+            }),
+            Match.whenOr('Idle', 'NoteCommand', () => ({ model })),
+            Match.exhaustive,
+          )
+        },
+
+        SucceededAcquireAudioContext: model => ({
+          model: modifyFields(model, { audio: () => AudioState.Ready() }),
+        }),
+
+        FailedAcquireAudioContext: model => ({
+          model: modifyFields(model, { audio: () => AudioState.Unavailable() }),
+        }),
+        ...noteDurationRadioGroup.on({
+          Selected: (model, { value }) => ({
+            model: modifyFields(model, {
+              noteDuration: () => value,
+              messageLog: prependToLog(`Selected(${value})`),
+            }),
+          }),
+        }),
+      },
+
+      commands: {
+        DelayAdvanceNotePlayerPhase: ({ generation }) =>
+          Effect.sleep(PHASE_DURATION).pipe(
+            Effect.as(
+              Message.CompletedDelayAdvanceNotePlayerPhase({ generation }),
+            ),
+          ),
+        AcquireAudioContext: () =>
+          Effect.try({
+            try: () => new AudioContext(),
+            catch: () =>
+              new Error('The Web Audio API is unavailable in this browser.'),
+          }).pipe(
+            Effect.flatMap(audioContext =>
+              Ref.set(audioContextRef, Option.some(audioContext)),
+            ),
+            Effect.as(Message.SucceededAcquireAudioContext()),
+            Effect.catch(() =>
+              Effect.succeed(Message.FailedAcquireAudioContext()),
+            ),
+          ),
+        PlayNote: ({ note, duration, noteIndex }) =>
+          Effect.gen(function* () {
+            const audioContext = yield* Effect.fromOption(
+              yield* Ref.get(audioContextRef),
+            )
+            yield* Effect.promise(() =>
+              audioContext.resume().catch(() => undefined),
+            )
+
+            return yield* Effect.callback<CompletedPlayNote>(resume => {
+              if (audioContext.state === 'closed') {
+                resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
+                return
+              }
+
+              const oscillator = audioContext.createOscillator()
+              const gainNode = audioContext.createGain()
+              const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
+
+              oscillator.type = 'triangle'
+              oscillator.frequency.setValueAtTime(
+                NOTE_FREQUENCIES[note],
+                audioContext.currentTime,
+              )
+
+              const releaseEnd =
+                audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
+
+              gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+              gainNode.gain.linearRampToValueAtTime(
+                0.1,
+                audioContext.currentTime + GAIN_ATTACK_TIME,
+              )
+              gainNode.gain.exponentialRampToValueAtTime(
+                GAIN_NEAR_SILENT,
+                releaseEnd,
+              )
+
+              oscillator.connect(gainNode)
+              gainNode.connect(audioContext.destination)
+
+              oscillator.start()
+              oscillator.stop(audioContext.currentTime + durationSeconds)
+
+              oscillator.onended = () => {
+                gainNode.disconnect()
+                resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
+              }
+            })
+          }).pipe(
+            Effect.catchTag('NoSuchElementError', () =>
+              Effect.sleep(
+                Duration.millis(DURATION_MILLISECONDS[duration]),
+              ).pipe(
+                Effect.map(() => Message.CompletedPlayNote({ noteIndex })),
+              ),
+            ),
+          ),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(NoteDurationRadioGroup.Live))

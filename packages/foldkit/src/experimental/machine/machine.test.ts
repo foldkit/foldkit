@@ -1,23 +1,13 @@
-import {
-  Context,
-  Duration,
-  Effect,
-  Layer,
-  Match,
-  Option,
-  Schema,
-  Stream,
-} from 'effect'
+import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 import * as Command from '../../command/public.js'
-import * as ManagedResource from '../../managedResource/public.js'
 import { defineMessageUnion, defineTaggedUnion } from '../../schema/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Subscription from '../../subscription/public.js'
 import * as Update from '../../update/index.js'
 import {
   type EdgeInput,
+  type Fold,
   type Machine,
   type StateTransitions,
   type TransitionTable,
@@ -321,8 +311,10 @@ const foldConnection = fold({
     modifyFields(model, { connection: () => nextConnection }),
 })
 
-const update = Update.define((model: AppModel, message: ConnectionMessage) =>
-  ConnectionMessage.match(message, {
+const update = (model: AppModel, message: ConnectionMessage) =>
+  ConnectionMessage.match<
+    Update.Return<AppModel, ConnectionMessage, ConnectionHandlerRequirements>
+  >(message, {
     ClickedConnect: connectionMessage =>
       foldConnection(model, connectionMessage),
     ClickedDisconnect: connectionMessage =>
@@ -335,97 +327,7 @@ const update = Update.define((model: AppModel, message: ConnectionMessage) =>
       foldConnection(model, connectionMessage),
     ReleasedSocket: () => ({ model }),
     CompletedLogTransition: () => ({ model }),
-  }),
-)
-
-// The Machine owns transitions only. Lifecycle effects stay in ordinary
-// primitives gated on the state tag. The socket is a ManagedResource that
-// exists while the Machine is in Connecting or Connected; its lifecycle
-// Messages feed the Machine: a successful open dispatches SocketOpened
-// (Connecting to Connected) and a failed open dispatches SocketErrored,
-// which drives the reconnect-or-fail guard.
-
-const SOCKET_URL = 'wss://example.test/socket'
-
-const Socket = ManagedResource.tag<WebSocket>()('Socket')
-
-const managedResources = ManagedResource.make<AppModel, ConnectionMessage>()(
-  entry => ({
-    socket: entry('ManageSocket', Schema.Option(Schema.Null), {
-      resource: Socket,
-      modelToMaybeRequirements: model =>
-        Match.value(model.connection).pipe(
-          Match.tag('Connecting', 'Connected', () => Option.some(null)),
-          Match.orElse(() => Option.none()),
-        ),
-      onAcquired: socket =>
-        ConnectionMessage.SocketOpened({ sessionId: socket.url }),
-      onReleased: () => ConnectionMessage.ReleasedSocket(),
-      onAcquireError: error =>
-        ConnectionMessage.SocketErrored({ reason: String(error) }),
-    }),
-  }),
-)
-
-const SocketLayer = managedResources.socket.toLayer(
-  Effect.succeed({
-    acquire: () =>
-      Effect.callback<WebSocket, string>(resume => {
-        const socket = new WebSocket(SOCKET_URL)
-        socket.addEventListener('open', () => resume(Effect.succeed(socket)))
-        socket.addEventListener('error', () =>
-          resume(Effect.fail('Socket failed to open')),
-        )
-      }),
-    release: socket => Effect.sync(() => socket.close()),
-  }),
-)
-
-// The backoff timer is a Subscription gated on the Reconnecting tag: the
-// Stream sleeps for the state's delayMillis, emits TimedOutBackoff (driving
-// Reconnecting back to Connecting), and tears down whenever the Machine
-// leaves Reconnecting.
-
-const subscriptions = Subscription.make<AppModel, ConnectionMessage>()(
-  entry => ({
-    backoffTimer: entry(
-      'BackoffTimer',
-      { maybeDelayMillis: Schema.Option(Schema.Number) },
-      {
-        modelToDependencies: model => ({
-          maybeDelayMillis: Match.value(model.connection).pipe(
-            Match.tag('Reconnecting', ({ delayMillis }) =>
-              Option.some(delayMillis),
-            ),
-            Match.orElse(() => Option.none()),
-          ),
-        }),
-        messages: [ConnectionMessage.TimedOutBackoff],
-      },
-    ),
-  }),
-)
-
-const BackoffTimerLayer = subscriptions.backoffTimer.toLayer(
-  Effect.succeed(({ maybeDelayMillis }) =>
-    Option.match(maybeDelayMillis, {
-      onNone: () => Stream.empty,
-      onSome: delayMillis =>
-        Stream.fromEffect(
-          Effect.as(
-            Effect.sleep(Duration.millis(delayMillis)),
-            ConnectionMessage.TimedOutBackoff(),
-          ),
-        ),
-    }),
-  ),
-)
-
-const EffectsLayer = Layer.mergeAll(
-  LogTransitionLayer,
-  SocketLayer,
-  BackoffTimerLayer,
-)
+  })
 
 // TYPE-LEVEL GUARANTEES
 
@@ -1507,7 +1409,7 @@ describe('connection machine', () => {
       expect(commandNames).toEqual(['LogTransition'])
 
       const commandResults = result.commands.map(command =>
-        Effect.runSync(command.effect.pipe(Effect.provide(EffectsLayer))),
+        Effect.runSync(command.effect.pipe(Effect.provide(LogTransitionLayer))),
       )
       expect(commandResults).toEqual([
         ConnectionMessage.CompletedLogTransition(),
@@ -2393,12 +2295,7 @@ describe('integration', () => {
     const connectionUpdate = connect(model)
 
     expectTypeOf(foldConnection).toEqualTypeOf<
-      Update.Fold<
-        AppModel,
-        ConnectionMessage,
-        ConnectionMessage,
-        ConnectionHandlerRequirements
-      >
+      Fold<AppModel, ConnectionMessage, ConnectionHandlerRequirements>
     >()
     expect(connectionUpdate.model.connection).toStrictEqual(
       ConnectionState.Connecting({ attemptCount: 1 }),
@@ -2540,11 +2437,6 @@ describe('integration', () => {
     }
 
     expect(true).toBe(true)
-  })
-
-  it('wires the gating sketch records', () => {
-    expect(Object.keys(managedResources)).toEqual(['socket'])
-    expect(Object.keys(subscriptions)).toEqual(['backoffTimer'])
   })
 })
 

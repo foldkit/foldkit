@@ -2,20 +2,20 @@
 
 ## Overview
 
-A custom select dropdown with keyboard navigation, typeahead search, and anchor positioning. Unlike Menu (which is for actions), Listbox is for choosing a value. The parent owns the selection: it passes the chosen value in as `maybeSelectedValue` (multi-select passes `selectedValues`) and folds the `Selected` OutMessage into its own state (single-select stores the value, multi-select toggles the value in its array). For a searchable input with filtering, use Combobox instead.
+A custom select dropdown with keyboard navigation, typeahead search, and anchor positioning. Unlike Menu (which is for actions), Listbox is for choosing a value. The parent owns the selection: it passes the chosen value in as `maybeSelectedValue` (multi-select passes `selectedValues`) and stores what the `Selected` OutMessage carries in its own state (single-select stores the value, multi-select toggles the value in its array). For a searchable input with filtering, use Combobox instead.
 
 ### Create a Typed Listbox
 
-Embed Listbox via the [`Listbox.makeBlock<Item, Value?>()` factory](/ui/selection-blocks) at module scope: `const PlanListbox = Listbox.makeBlock<Plan>()`. The factory binds the view, update, and programmatic helpers to the same `Item` type, so the `Selected` OutMessage carries a `Plan`.
+Call the [`Listbox.makeBlock<Item, Value?>()` factory](/ui/selection-blocks) once at module scope: `const PlanListbox = Listbox.makeBlock<Plan>()`. It returns a Block class bound to `Plan`, with its Layer attached as `Live`, so the view takes `Plan` items and the `Selected` OutMessage carries a `Plan`. Create an instance in the parent's constructor with `yield* new PlanListbox('listbox', { id: 'plan' })`, hold it in the parent Model, and provide `PlanListbox.Live` to the parent's Layer.
 
-What the factory returns is typed [`Completed<Item, Value>` from `@foldkit/ui/listbox`](/ui/selection-blocks#completed-type). The multi-select namespace exports its own `Completed<Item, Value>` type, for the cases where a created Block has to be named rather than called directly.
+The class type is [`ListboxClass<Item, Value>` from `@foldkit/ui/listbox`](/ui/selection-blocks#completed-type), and an instance is `Listbox<Item, Value>`. The multi-select namespace exports its own `ListboxClass` and `Listbox` types, for the cases where either has to be named.
 
-### Programmatic Helpers
+### Controlling a Listbox from the Parent
 
-Programmatic operations are exposed through the Binding. Call `listbox.requestOpen()` and `listbox.requestClose()`. Call `listbox.requestSelectItem(item)` with the selected item.
+To control the Listbox from a parent update handler, send it `PlanListbox.Message.RequestedOpen()`, `RequestedClose()`, or `RequestedSelectItem({ item })`.
 
 :::Info{label="See it in an app"}
-Check out how Listbox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/listbox.ts).
+Check out how Listbox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/listboxPage.ts).
 :::
 
 ## Examples
@@ -30,7 +30,7 @@ Pass an `itemToConfig` callback that maps each item to its content. The context 
 
 ### Multi-select
 
-Use `Listbox.Multi.makeBlock()` and `Listbox.Multi.makeBlock` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
+Use `Listbox.Multi.makeBlock()` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and handles each `Selected` OutMessage by toggling the value in its array.
 
 ::Demo{name="multi-select"}
 
@@ -70,7 +70,7 @@ Listbox is headless. The `itemToConfig` callback controls all item markup. Use `
 
 ### Portaled Panels
 
-The items panel is portaled to the document body and positioned relative to the trigger button with Floating UI. Ancestor stacking contexts and overflow clipping no longer apply, so a clipped container or a sibling listbox wrapper cannot hide an open dropdown. The panel still stacks at the document level: give it a z-index above elevated content like sticky headers or toasts, as the demos on this page do with `z-10`. Inside a `<dialog>`, the panel is portaled into that dialog, so it renders above the dialog's content and stays interactive. Pass `anchor: { portal: false }` to keep the panel inside the wrapper.
+The items panel is portaled to the document body and positioned relative to the trigger button with Floating UI. Ancestor stacking contexts and overflow clipping do not apply to it, so a clipped container or a sibling listbox wrapper cannot hide an open dropdown. The panel still stacks at the document level: give it a z-index above elevated content like sticky headers or toasts, as the demos on this page do with `z-10`. Inside a `<dialog>`, the panel is portaled into that dialog, so it renders above the dialog's content and stays interactive. Pass `anchor: { portal: false }` to keep the panel inside the wrapper.
 
 ### Matching the Trigger Width
 
@@ -117,7 +117,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Binding for the completed Block returned by `Listbox.makeBlock(Item)` or `Listbox.Multi.makeBlock(Item)`.
+The args a parent passes when it creates an instance with `new`, for both `Listbox.makeBlock()` and `Listbox.Multi.makeBlock()`.
 
 | Name          | Type                         | Default      | Description                                                                                                                                          |
 | ------------- | ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -128,7 +128,7 @@ Configuration passed to the Binding for the completed Block returned by `Listbox
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the composed Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries). The same structure is used for `Listbox.Multi.makeBlock()` except where noted.
+Pass these fields to the instance's `view`, as in `model.listbox.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged, and wrap handler-bearing attributes you pass in with `childAttributes`. See [View input](/core/block#callback-dispatch-boundaries). The same structure is used for `Listbox.Multi.makeBlock()` except where noted.
 
 | Name                                           | Type                                      | Default | Description                                                                                                                                                                                                                                                                                                                          |
 | ---------------------------------------------- | ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -160,8 +160,8 @@ Pass the child Model as `model` and these fields as `viewInputs` to the composed
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy. The same shape applies to the completed Block returned by `Listbox.Multi.makeBlock()`.
+Facts the component reports to its parent. Handle them by spreading the instance's `.on({ ... })` into the parent's update record. Variants without a handler are ignored. The same shape applies to `Listbox.Multi.makeBlock()`.
 
-| Name       | Type               | Default | Description                                                                                                                                                                                                                                                                                                                                                                   |
-| ---------- | ------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Selected` | `{ value: Value }` | —       | Emitted when an item is activated. Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means. Single-select stores the value; multi-select toggles the value in and out of its array. Handle it in the Binding's selected `fold` policy to lift the value into the selection you own. A read-only Listbox never emits it. |
+| Name       | Type               | Default | Description                                                                                                                                                                                                                                                                                                                                                     |
+| ---------- | ------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Selected` | `{ value: Value }` | —       | Emitted when an item is activated. Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means. Single-select stores the value; multi-select toggles the value in and out of its array. Handle it with the instance's `.on` to lift the value into the selection you own. A read-only Listbox never emits it. |

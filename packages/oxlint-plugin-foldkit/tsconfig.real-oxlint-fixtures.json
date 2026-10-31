@@ -7,10 +7,14 @@
     "noEmit": true,
     "rootDir": ".",
     "types": ["node"],
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+    "noUnusedLocals": false
   },
   "include": [
-    "test/integration/fixtures/no-direct-block-state-update/valid/**/*.ts",
-    "test/integration/fixtures/no-binding-write-coordination/**/*.ts"
+    "test/integration/fixtures/block-name-matches-variable/valid/**/*.ts",
+    "test/integration/fixtures/mount-factory-must-use-element/*/block.ts",
+    "test/integration/fixtures/no-array-index-view-keys/*/block.ts",
+    "test/integration/fixtures/no-empty-children-array/invalid/contextual-view.ts",
+    "test/integration/fixtures/no-impure-call-at-decision-time/*/block.ts"
   ]
 }

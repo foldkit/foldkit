@@ -3,7 +3,12 @@ import { inertHtml as ih } from 'foldkit/html'
 
 import { Listbox } from '@foldkit/ui'
 
-import { GroupBy, IssueFilters, IssuePriority, IssueStatus } from './domain'
+import {
+  GroupBy,
+  IssueFilters,
+  IssuePriority,
+  IssueStatus,
+} from './domain/domain'
 
 const makeListboxOption = <Value extends string>(value: Schema.Schema<Value>) =>
   Schema.Struct({ value, label: Schema.String })
@@ -26,30 +31,26 @@ export type StatusFilterValue = typeof StatusFilterValue.Type
 export const StatusFilterListboxOption = makeListboxOption(StatusFilterValue)
 export type StatusFilterListboxOption = typeof StatusFilterListboxOption.Type
 
-export const WorkspaceListboxBlock =
-  Listbox.makeBlock<typeof ListboxOption.Type>()
+export const WorkspaceListbox = Listbox.makeBlock<typeof ListboxOption.Type>()
 
-export const StatusListboxBlock = Listbox.makeBlock<
+export const StatusListbox = Listbox.makeBlock<
   StatusListboxOption,
   IssueStatus
 >()
 
-export const PriorityListboxBlock = Listbox.makeBlock<
+export const PriorityListbox = Listbox.makeBlock<
   PriorityListboxOption,
   IssuePriority
 >()
 
-export const SortListboxBlock = Listbox.makeBlock<
+export const SortListbox = Listbox.makeBlock<
   SortListboxOption,
   typeof IssueFilters.fields.sort.Type
 >()
 
-export const GroupListboxBlock = Listbox.makeBlock<
-  GroupListboxOption,
-  GroupBy
->()
+export const GroupListbox = Listbox.makeBlock<GroupListboxOption, GroupBy>()
 
-export const StatusFilterListboxBlock = Listbox.makeBlock<
+export const StatusFilterListbox = Listbox.makeBlock<
   StatusFilterListboxOption,
   StatusFilterValue
 >()

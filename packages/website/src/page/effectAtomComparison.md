@@ -28,7 +28,7 @@ State is distributed by design, and that is the point. A feature can own its ato
 
 ### Foldkit Model and Messages
 
-Foldkit centralizes state in the [Model](/core/model). The [Message](/core/messages) union lists the facts the application handles, and [update](/core/update) defines how those facts change the Model. Those are framework constraints, not conventions a team maintains by discipline. [Blocks](/core/block) split a large application into smaller state machines while preserving the same parent-to-child Message flow.
+Foldkit centralizes state in the [Model](/core/model). The [Message](/core/messages) union lists the facts the application handles, and [update](/core/update) defines how those facts change the Model. Those are framework constraints, not conventions a team maintains by discipline. [Blocks](/core/block) split a large application into smaller state machines. Each Block has its own Model, Message union, and update; a parent sends a child Messages and hears back through OutMessages.
 
 ## How State Changes
 
@@ -48,7 +48,7 @@ The Foldkit version represents the same actions as Messages:
 
 ::Snippet{name="atomCompareFoldkitState" label="Foldkit state"}
 
-`AddedTodo`, `ClearedDoneTodos`, and `SelectedFilter` appear in DevTools and in Story or Scene tests. “How can the todo list change?” is answered by one Message union and one update function. `Message.match` reports every place that must handle a newly added Message variant.
+`AddedTodo`, `ClearedDoneTodos`, and `SelectedFilter` appear in DevTools and in Story or Scene tests. “How can the todo list change?” is answered by one Message union and one update record. The update record is typed from the Message union, so adding a Message variant is a compile error until it has a handler.
 
 ## Async State
 
@@ -86,11 +86,11 @@ Effects remain colocated with the atoms that perform them. Dependencies between 
 
 ### Foldkit: Commands and Subscriptions {#foldkit-effect}
 
-Foldkit selects a lifecycle primitive based on what causes the work. A [Command](/core/commands) runs after a Message. A [Subscription](/core/subscriptions) runs while a Model condition holds. A [Mount](/core/mount) follows an element’s lifetime, and a [ManagedResource](/core/managed-resources) follows Model state while exposing a stateful handle to Commands.
+Foldkit selects a lifecycle primitive based on what causes the work. A [Command](/core/commands) runs after a Message. A [Subscription](/core/subscriptions) runs while a Model condition holds. A [Mount](/core/mount) follows an element’s lifetime. A stateful handle that Commands use, such as a connection, is a child Block that acquires it in its constructor and lives while the parent's Model holds it.
 
 ::Snippet{name="atomCompareFoldkitEffect" label="Foldkit effects"}
 
-The difference is locational. Effect Atom colocates effects with atoms, and any atom may run one. Foldkit assigns effects to a small set of lifecycle primitives based on what causes them. The `mouseRelease` Subscription starts and stops from Model state, then emits Messages so the resulting change still passes through update.
+The difference is locational. Effect Atom colocates effects with atoms, and any atom may run one. Foldkit assigns effects to a small set of lifecycle primitives based on what causes them. The `mouseRelease` Subscription starts and stops as `isDrawing` changes, then emits Messages so the resulting change still passes through update. The `CreateTodo` handler closes over the `Api` service that the Block's constructor yields.
 
 ## The View Layer Is Still React {#the-view-layer}
 
@@ -128,7 +128,7 @@ Foldkit’s update function is pure: given a Model and a Message, it returns the
 
 ### Story Tests the State Machine
 
-[Story](/testing/story) sends Messages through update, inspects the Model, and resolves Commands by supplying their result Messages. The test can assert that a Command was returned without executing its Effect.
+[Story](/testing/story) builds the Block from its Layer, sends Messages through update, inspects the Model, and resolves Commands by supplying their result Messages. The test can assert that a Command was returned without executing its Effect.
 
 ::Snippet{name="atomCompareFoldkitStory" label="Foldkit Story test"}
 
@@ -154,7 +154,7 @@ An Effect Atom application grows a graph of atoms. Adding an independent atom is
 
 ### Foldkit State Machine
 
-A Foldkit application grows its Model, Message union, and update logic. Exhaustive matching keeps the transition catalog complete, but a large update function eventually needs to be divided into [Blocks](/core/block). Block composition adds explicit parent-child wiring.
+A Foldkit application grows its Model, Message union, and update logic. The typed update record keeps the transition catalog complete, but a large update eventually needs to be divided into [Blocks](/core/block). Block composition adds explicit parent-child wiring: the parent holds child instances in its Model, sends them Messages, and handles their OutMessages.
 
 The trade-off is locality versus a central index. Effect Atom favors independently composable reactive cells. Foldkit favors an explicit state machine whose transitions share one runtime path.
 

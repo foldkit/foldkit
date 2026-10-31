@@ -1,3 +1,3 @@
 import { Tabs } from '@foldkit/ui'
 
-export const PlaygroundFileTabsBlock = Tabs.makeBlock()
+export const PlaygroundFileTabs = Tabs.makeBlock()

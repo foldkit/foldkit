@@ -2,6 +2,6 @@
 '@foldkit/devtools-mcp': minor
 ---
 
-Use Block terminology in DevTools Message paths. Serialized history entries expose `blockPath`, and serialized Commands expose `maybeBlockPath`, replacing `submodelPath` and `maybeSubmodelPath`. The overlay, runtime, and MCP tool descriptions use the same fields.
+Report Block instance paths in DevTools Message history. A Message sent to a child Block instance has the tag `BlockMessage`, and its serialized history entry exposes `blockPath`, the instance path from the root, where an instance created by `each` appears as its collection name followed by its key. Serialized Commands expose `maybeBlockPath`. These replace `submodelPath` and `maybeSubmodelPath`, which listed `Got*Message` wrapper tags. The overlay, runtime, and MCP tool descriptions use the same fields.
 
-Require Foldkit 0.169.0 or newer so MCP decodes the current serialized protocol. Update the MCP server alongside the application's Foldkit packages. The relay registry's on-disk record shape is unchanged.
+The `foldkit` peer floor rises to 0.169.0. Update the MCP server alongside the application's Foldkit packages. The relay registry's on-disk record shape is unchanged.

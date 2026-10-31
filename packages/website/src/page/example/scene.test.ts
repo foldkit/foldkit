@@ -1,27 +1,25 @@
-import { Array, Option, pipe } from 'effect'
+import { Array, Layer, Option, pipe } from 'effect'
 import { Calendar, Url } from 'foldkit'
 import {
   Command,
   Mount,
   click,
   expect,
-  given,
   role,
   scene,
   within,
 } from 'foldkit/scene'
-import { describe, test } from 'vitest'
 
+import { describe, it } from '@effect/vitest'
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
+import { ApplicationLive } from '../../block'
 import { Deployment } from '../../deployment'
-import { init } from '../../init'
-import { SnippetDisclosureBlock } from '../../snippetDisclosure'
+import { ApplicationServerLayer } from '../../services'
+import { SnippetDisclosure } from '../../snippetDisclosure'
 import { SnippetSize } from '../../snippetDisclosure/model'
 import { MeasureSnippetHeight } from '../../snippetDisclosure/mount'
-import { update } from '../../update'
-import { view } from '../../view/view'
-import { SourceFileTabsBlock } from './fileTabs'
+import { SourceFileTabs } from './fileTabs'
 import { type ExampleSources } from './sources'
 
 const longCode = pipe(
@@ -59,15 +57,15 @@ const flags = {
 }
 
 describe('example detail', () => {
-  test('source files share their code disclosure state', () => {
+  it.effect('source files share their code disclosure state', () =>
     scene(
-      { update, view },
-      given(init(flags, url).model),
+      ApplicationLive.pipe(Layer.provide(ApplicationServerLayer)),
+      { flags, url },
       Mount.resolve(
         MeasureSnippetHeight({
           snippetId: 'example-ssr-source-src/application.ts',
         }),
-        SnippetDisclosureBlock.Message.CompletedMeasureSnippetHeight({
+        SnippetDisclosure.Message.CompletedMeasureSnippetHeight({
           snippetId: 'example-ssr-source-src/application.ts',
           snippetSize: SnippetSize.Overflows(),
         }),
@@ -91,7 +89,7 @@ describe('example detail', () => {
       ),
       Command.resolve(
         TabsTest.FocusTab,
-        SourceFileTabsBlock.Message.CompletedFocusTab(),
+        SourceFileTabs.Message.CompletedFocusTab(),
       ),
       expect(
         within(
@@ -99,6 +97,6 @@ describe('example detail', () => {
           role('button', { name: 'Hide code' }),
         ),
       ).toExist(),
-    )
-  })
+    ),
+  )
 })

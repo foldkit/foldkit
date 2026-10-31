@@ -4,11 +4,13 @@
 
 Story and Scene test two parts of a Foldkit application. Story calls update directly. Scene enters through the rendered view. Neither test runs a browser or executes the Effects inside Commands, so both stay deterministic and fast.
 
+Both start from a Block's Layer. Foldkit builds the Block, runs its constructor, and starts the test from the Model the constructor returns. You never assemble a Model by hand to begin a test.
+
 ### Compare the Boundaries
 
 |                | Story                                        | Scene                                              |
 | -------------- | -------------------------------------------- | -------------------------------------------------- |
-| Enters through | A Message                                    | An interaction or lifecycle result                 |
+| Enters through | A Message                                    | An interaction or a delivered Message              |
 | Observes       | Model changes, Commands, and OutMessages     | Rendered output, Commands, Mounts, and OutMessages |
 | Best suited to | Update logic, edge cases, and Command wiring | User flows, view behavior, and accessibility       |
 
@@ -23,82 +25,68 @@ Name each file for the boundary it tests:
 - `story.test.ts` drives update.
 - `scene.test.ts` drives the rendered view.
 - When one folder has several tests of the same kind, prefix the subject: `login.story.test.ts`.
-- Keep root-level Scene tests for flows that cross pages. Colocate page and Block tests with the code they exercise.
+- Keep root-level Scene tests for flows that cross pages. Put a child Block's tests beside its file and prefix them with its name: `search.story.test.ts` and `search.scene.test.ts` beside `search.ts`.
 
-The names stay accurate whether update and view live together or in separate files. See [Project Organization](/patterns/project-organization) for the full layout.
+See [Project Organization](/patterns/project-organization) for the full layout.
+
+### Write Tests with @effect/vitest
+
+`story` and `scene` return an Effect. Run each one with `it.effect` from `@effect/vitest`, which runs the Effect and fails the test when a step throws. Add `@effect/vitest` to the package's development dependencies if it is missing.
 
 ## Story
 
-`story` starts from a Model, sends Messages through update, and keeps Commands as data until the test supplies their result Messages. See the [Story](/testing/story) page for the full API.
-
-### Test a Root or Child Update
-
-Story can test a root update or a child update in isolation. The update function is the contract at either level.
+`story` takes a Block's Layer, then a list of steps. It sends Messages through update and keeps Commands as data until the test supplies their result Messages. See the [Story](/testing/story) page for the full API.
 
 ::Snippet{name="counterCommandsTest" label="Delayed-reset Story test"}
 
 ## Scene
 
-`scene` renders the view after every step. Locators find elements by role, label, placeholder, and visible text. Interactions invoke the view's event handlers, while cause-named steps supply Subscription, ManagedResource, and CustomElement results. Scene also tracks pending Commands and Mounts. See the [Scene](/testing/scene) page for the full API.
-
-### Test at the Owning Level
-
-Scene can also start at the root or at a child Block. `withViewInputs` adapts a Block view that needs ViewInputs, and `expectOutMessage` checks a child's OutMessage directly.
-
-Choose the level by ownership. Test a Block's rendering, interactions, Commands, and OutMessages at the Block. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
+`scene` takes the same Layer and renders the view after every step. Locators find elements by role, label, placeholder, and visible text. Interactions invoke the view's event handlers. Scene also tracks pending Commands and Mounts. See the [Scene](/testing/scene) page for the full API.
 
 ::Snippet{name="sceneWeatherFlow" label="Weather search Scene test"}
 
+## Building the Test Layer
+
+The Layer passed to `story` or `scene` must provide exactly one root Block. Everything that Block's constructor needs comes from that Layer:
+
+- Provide each child Block's Layer with `Layer.provide`, the same way the application's entry does. Do not use `Layer.merge`; the test would then see several root Blocks and fail.
+- Provide the services the constructor yields, such as an `HttpClient`, with `Layer.provide` as well. Command handlers never run in a Story or Scene, so a test can provide a real or a stub service. The constructor only needs one to exist.
+- Pass the root's constructor args after the Layer when the Block takes them, such as `{ url }` for a routed root.
+
+The weather Scene above provides `Http.layer` because the weather Block's constructor yields `HttpClient`.
+
+## Testing a Parent and Its Children
+
+A test of a parent Block runs the whole tree below it. The test reads the Model in its resolved form: each child instance appears as its own Model, so `model.notes` is an array of Note Models. `given` can change a child's state, but it cannot add or remove an instance. Do that with the Messages that add and remove instances in the application.
+
+### Deliver a Message to a Child
+
+`Block.deliver(Child, path, message)` addresses a Message to one child instance. The path is the instance id for a single instance, or `[collection, key]` for an instance created by `each`. Pass the result to `message` in a Story, or to `deliver` in a Scene.
+
+When the child returns an OutMessage, the parent's `.on` handler runs exactly as it does at runtime.
+
+::Snippet{name="testingChildBlocks" label="Delivering Messages to child instances"}
+
+### Resolve a Child's Command
+
+Resolve a child's Command with the child's own result Message, such as `Note.Message.SucceededSave()`. Foldkit routes the result back to the instance that returned the Command.
+
+When sibling instances have identical pending Commands, a bare Definition matches more than one and the step throws. Select one instance with `Command.at(path, Definition)`, using the same path form as `Block.deliver`. The [Scene Commands section](/testing/scene#commands) shows `Command.at` in context.
+
+### Test a Child Block on Its Own
+
+A child Block is an ordinary Block, so it can be the root of its own test. Its Layer is the root Layer, and its OutMessages appear to `expectOutMessage`. Test the child's behavior in the child's own tests. Test the parent's `.on` handlers, the Messages the parent sends to its children, and anything that needs both together from the parent.
+
+A Block whose view takes a view input cannot be the root of a Scene, because nothing would supply the input. Test it through a small test-only parent Block, as shown in [Blocks with a view input](/testing/scene#blocks-with-a-view-input).
+
+## Streams and Subscriptions
+
+Neither Story nor Scene runs a Block's `stream` or `subscriptions`. A test supplies the Messages those sources would produce: `message` in a Story, `deliver` in a Scene. For a child's Stream, address the Message with `Block.deliver`.
+
+See [Deliver a Stream or Subscription Message](/testing/story#deliver-a-stream-or-subscription-message) for an example.
+
 ## Executing Effects
 
-To test a Command's work, execute its Effect with the application's real handler Layer and controlled service providers. The [Commands guide](/core/commands#testing-the-handler-through-its-services) shows an HTTP test that runs the real request, decoding, and result Message mapping.
+A Command handler is a function the Block's constructor returns, closing over the services the constructor yields. Story and Scene never call it. To test a handler's work, extract it as a function of those services and run it with test services. The [Story page](/testing/story#test-command-effects) shows an HTTP handler tested against a stub client.
 
-Choose the lowest service boundary whose behavior the test needs to exercise. If an API service contains authentication or retry policy, retain that service and replace its transport. The same principle applies to Subscription Streams, Mount integrations, and ManagedResource acquisition and cleanup. [Testing through service boundaries](/core/layers#testing-through-service-boundaries) explains how to compose these providers at the application root.
-
-Replacing an entire handler tests a narrower orchestration path and excludes the replaced implementation. Story and Scene already supply results explicitly; execution tests use Effect and Layer composition to run the application's handlers.
-
-## Migrate an Existing Test Suite
-
-The Blocks preview changes where tests get identity, generated delivery, and lifecycle declarations. Keep tests at the same Story or Scene boundary, then replace hand-written observations with the declarations carried by the composed application.
-
-### Match Commands by Source Identity
-
-A bound child Command has a placement-qualified display name such as `Application/Pins/ReadPins`. Do not compare that string, or compare `command.name` with `Definition.name`. Story and Scene match the original Definition by its source identity, so the same matcher keeps working after the Command is registered below a Binding. Pass an instance for exact args; a bound instance also selects its composition path.
-
-When the Command belongs to a child Block, supply its raw child result Message. The pending Command retains the generated delivery chain and Story or Scene replays it before calling the parent update.
-
-::Snippet{name="testingMigrationCommandBefore" label="❌ Command test before Blocks"}
-
-::Snippet{name="testingMigrationCommandAfter" label="✅ Command test with source identity"}
-
-The parent Message union no longer declares `GotPinsMessage`. Composition owns generated child envelopes, and tests do not fabricate their placement or occurrence fields.
-
-### Send a Child Fact Without a View
-
-When a parent Story owns a delivery or OutMessage policy assertion, use `toParentMessage` from `foldkit/test` with the actual Binding and a decoded child Message. A keyed Binding takes its decoded key before the Message. The helper wraps exactly one boundary using the Binding's existing tracked mapper; it needs no Model, slot, view or ViewInputs.
-
-::Snippet{name="testingHeadlessChildMessage" label="Test a parent policy without rendering the child"}
-
-The helper uses synthetic generation `0` for pure replay. It does not select a live occurrence, create an absent child or override Runtime admission. Normal parent dispatch still applies presence, delivery context and OutMessage policy. Wrap nested ancestor boundaries explicitly. Keep production parent code on Binding operations, and retain Command/Subscription replay for facts originating from those sources.
-
-### Register Scene Subscription Sources
-
-`Subscription.emit` identifies both the registered source and its raw Message. Build the Scene registry from the Application Composition, pass it in the Scene config, and select the entry that declared the Message. For a child entry, pass the child's Message; Scene derives every generated parent delivery from the registry.
-
-::Snippet{name="testingMigrationSubscriptionBefore" label="❌ Subscription test before registered sources"}
-
-::Snippet{name="testingMigrationSubscriptionAfter" label="✅ Subscription test with a Scene registry"}
-
-The scaffolded `tsconfig.json` includes `src/**/*`, which keeps `*.test.ts` files in the project typecheck. Preserve that coverage when customizing TypeScript project references or include patterns, so a changed Story or Scene signature fails during `typecheck` instead of waiting for the test runner.
-
-### Test Completed UI Blocks Through Public Contracts
-
-Stateful UI components expose their Model, Message, init, operations, and OutMessage through a completed Block. Derive a named alias such as `type FooModel = typeof FooBlock.Model.Type` once, then use `FooModel` in annotations. Let the parent Binding and Composition initialize the child so its startup Commands are retained.
-
-Command and Mount Definitions intended for Story and Scene live under the component's `test` namespace. Resolve the original public Definition with a result Message from the completed Block.
-
-::Snippet{name="testingMigrationUiBefore" label="❌ UI component test before completed Blocks"}
-
-::Snippet{name="testingMigrationUiAfter" label="✅ UI component test with a completed Block"}
-
-The [Block guide](/core/block) covers connected Steps, owner-specific builder aliases, and child initialization. The [Mount guide](/core/mount#mount-requirements-in-reusable-views) covers reusable mounted view helpers. Component pages document helpers that drain a component's whole pending lifecycle when one public operation is clearer than several individual resolvers.
+Choose the lowest service boundary whose behavior the test needs to exercise. If an API service contains authentication or retry policy, keep that service and replace its transport. The [Commands guide](/core/commands) covers handler services in depth.

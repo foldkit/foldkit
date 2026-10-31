@@ -1,13 +1,13 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './block'
+import { Application, ApplicationLive } from './runRoutedApplication'
 
-const program = Program.make({
-  block: ApplicationBlock,
+const program = Program.make(Application, {
+  layer: ApplicationLive,
   container: document.getElementById('root'),
   routing: {
-    onUrlRequest: ApplicationBlock.Message.ClickedLink,
-    onUrlChange: ApplicationBlock.Message.ChangedUrl,
+    onUrlRequest: Application.Message.ClickedLink,
+    onUrlChange: Application.Message.ChangedUrl,
   },
 })
 

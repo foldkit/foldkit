@@ -1,16 +1,28 @@
-import { Effect, Layer, Schema } from 'effect'
-import { Block } from 'foldkit'
-import { type Html } from 'foldkit/html'
+import { Effect, Number, Schema, pipe } from 'effect'
+import { Block, Command, Route } from 'foldkit'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
+import { defineRouteUnion, literal } from 'foldkit/route'
+import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
-import {
-  ApplicationRoute,
-  aboutRouter,
-  homeRouter,
-  urlToApplicationRoute,
-} from './route'
+export const ApplicationRoute = defineRouteUnion({
+  Home: {},
+  About: {},
+  NotFound: { path: Schema.String },
+})
+export type ApplicationRoute = typeof ApplicationRoute.Type
+
+const homeRouter = pipe(Route.root, Route.mapTo(ApplicationRoute.Home))
+const aboutRouter = pipe(literal('about'), Route.mapTo(ApplicationRoute.About))
+
+const routeParser = Route.oneOf(aboutRouter, homeRouter)
+
+const urlToApplicationRoute = Route.parseUrlWithFallback(
+  routeParser,
+  ApplicationRoute.NotFound,
+)
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,
@@ -27,66 +39,77 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-
-const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
-
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
-type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
->
-
-export const init = ApplicationComposition.makeInit((url: Url) => ({
-  model: { route: urlToApplicationRoute(url), count: 0 },
-}))
-
-const NavigateInternal = ApplicationDefinition.makeCommand('NavigateInternal', {
+const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  handler: function* () {
-    return ({ url }) =>
-      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
-  },
 })
 
-const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
+const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  handler: function* () {
-    return ({ href }) =>
-      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
-  },
 })
 
-export const EffectsLayer = Layer.mergeAll(
-  NavigateInternal.layer,
-  LoadExternal.layer,
+export class Application extends Block<Application, { readonly url: Url }>()(
+  'Application',
+  {
+    Model,
+    Message,
+    Command: [NavigateInternal, LoadExternal],
+  },
+) {}
+
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { url }) {
+    return {
+      model: { route: urlToApplicationRoute(url), count: 0 },
+
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: Number.increment }),
+        }),
+        ClickedLink: (model, { request }) =>
+          UrlRequest.match(request, {
+            Internal: ({ url }) => ({
+              model,
+              commands: [NavigateInternal({ url: urlToString(url) })],
+            }),
+            External: ({ href }) => ({
+              model,
+              commands: [LoadExternal({ href })],
+            }),
+          }),
+        ChangedUrl: (model, { url }) => ({
+          model: modifyFields(model, {
+            route: () => urlToApplicationRoute(url),
+          }),
+        }),
+        CompletedNavigateInternal: model => ({ model }),
+        CompletedLoadExternal: model => ({ model }),
+      },
+
+      commands: {
+        NavigateInternal: ({ url }) =>
+          pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+        LoadExternal: ({ href }) =>
+          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+      },
+
+      view: (model, h) => ({
+        title: routeTitle(model.route),
+        body: h.main(
+          [
+            h.Class(
+              'mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8',
+            ),
+          ],
+          [navigationView(h), pageView(model, h)],
+        ),
+      }),
+    }
+  }),
 )
 
-export const update = ApplicationComposition.makeUpdate({
-  ClickedIncrement: makeFieldsStep(() => ({
-    count: count => count + 1,
-  })),
-  ClickedLink: (model, { request }) =>
-    UrlRequest.match(request, {
-      Internal: ({ url }) => ({
-        model,
-        commands: [NavigateInternal({ url: urlToString(url) })],
-      }),
-      External: ({ href }) => ({
-        model,
-        commands: [LoadExternal({ href })],
-      }),
-    }),
-  ChangedUrl: makeFieldsStep.fromMessage(({ url }) => ({
-    route: () => urlToApplicationRoute(url),
-  })),
-  CompletedNavigateInternal: makeNoopStep(),
-  CompletedLoadExternal: makeNoopStep(),
-})
+type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const routeTitle = (route: ApplicationRoute): string =>
   ApplicationRoute.match(route, {
@@ -155,23 +178,3 @@ const pageView = (model: Model, h: ApplicationViewBuilder): Html =>
         ],
       ),
   })
-
-export const view = ApplicationComposition.makeView((model, h) => ({
-  title: routeTitle(model.route),
-  body: h.main(
-    [h.Class('mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8')],
-    [navigationView(h), pageView(model, h)],
-  ),
-}))
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)

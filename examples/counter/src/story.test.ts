@@ -1,60 +1,56 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { describe, expect, test } from 'vitest'
 
-import { Message, Model, update } from './application'
+import { describe, expect, it } from '@effect/vitest'
 
-const initialModel = Model.make({ count: 0 })
+import { ApplicationLive, Message } from './application'
 
 describe('update', () => {
-  test('ClickedIncrement adds one to the count', () => {
+  it.effect('ClickedIncrement adds one to the count', () =>
     story(
-      update,
-      given(initialModel),
+      ApplicationLive,
       message(Message.ClickedIncrement()),
       Command.expectNone(),
       model(model => {
         expect(model.count).toBe(1)
       }),
-    )
-  })
+    ),
+  )
 
-  test('ClickedDecrement subtracts one from the count', () => {
+  it.effect('ClickedDecrement subtracts one from the count', () =>
     story(
-      update,
+      ApplicationLive,
       given({ count: 5 }),
       message(Message.ClickedDecrement()),
       model(model => {
         expect(model.count).toBe(4)
       }),
-    )
-  })
+    ),
+  )
 
-  test('ClickedDecrement past zero produces a negative count', () => {
+  it.effect('ClickedDecrement past zero produces a negative count', () =>
     story(
-      update,
-      given(initialModel),
+      ApplicationLive,
       message(Message.ClickedDecrement()),
       model(model => {
         expect(model.count).toBe(-1)
       }),
-    )
-  })
+    ),
+  )
 
-  test('ClickedReset sets the count back to zero', () => {
+  it.effect('ClickedReset sets the count back to zero', () =>
     story(
-      update,
+      ApplicationLive,
       given({ count: 99 }),
       message(Message.ClickedReset()),
       model(model => {
         expect(model.count).toBe(0)
       }),
-    )
-  })
+    ),
+  )
 
-  test('successive Messages accumulate as expected', () => {
+  it.effect('successive Messages accumulate as expected', () =>
     story(
-      update,
-      given(initialModel),
+      ApplicationLive,
       message(Message.ClickedIncrement()),
       message(Message.ClickedIncrement()),
       message(Message.ClickedIncrement()),
@@ -66,6 +62,6 @@ describe('update', () => {
       model(model => {
         expect(model.count).toBe(0)
       }),
-    )
-  })
+    ),
+  )
 })

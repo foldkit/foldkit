@@ -1,5 +1,6 @@
-import { Duration, Effect, Layer, Schema, Stream } from 'effect'
-import { Block, Port } from 'foldkit'
+import { Duration, Effect, Schema, Stream } from 'effect'
+import { Block, Command, Port } from 'foldkit'
+import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -19,14 +20,8 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-
-const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
-
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const Flags = Schema.Struct({ initialCount: Schema.Number })
+export type Flags = typeof Flags.Type
 
 // PORT
 
@@ -35,23 +30,55 @@ export const ports = {
   outbound: { countChanged: Port.outbound(Schema.Number) },
 }
 
-export const Flags = Schema.Struct({ initialCount: Schema.Number })
-export type Flags = typeof Flags.Type
+// COMMAND
 
-export const init = ApplicationComposition.makeInit((flags: Flags) => ({
-  model: Model.make({ count: flags.initialCount, step: 1 }),
-}))
-
-export const ReportCount = ApplicationDefinition.makeCommand('ReportCount', {
+export const ReportCount = Command.define('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
-  handler: function* () {
-    return ({ count }) =>
-      Port.emit(ports.outbound.countChanged, count).pipe(
-        Effect.as(Message.CompletedReportCount()),
-      )
-  },
 })
+
+export class Application extends Block<
+  Application,
+  Readonly<{ flags: Flags }>
+>()('Application', {
+  Model,
+  Message,
+  Command: [ReportCount],
+}) {}
+
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    return {
+      model: { count: flags.initialCount, step: 1 },
+
+      update: {
+        Ticked: advance,
+        ClickedAdvance: advance,
+        ChangedStep: (model, { step }) => ({
+          model: modifyFields(model, { step: () => step }),
+        }),
+        CompletedReportCount: model => ({ model }),
+      },
+
+      commands: {
+        ReportCount: ({ count }) =>
+          Port.emit(ports.outbound.countChanged, count).pipe(
+            Effect.as(Message.CompletedReportCount()),
+          ),
+      },
+
+      subscriptions: {
+        widgetTicks: { dependencies: () => null, stream: () => widgetTicks },
+        hostStepChanges: {
+          dependencies: () => null,
+          stream: () => hostStepChanges,
+        },
+      },
+
+      view,
+    }
+  }),
+)
 
 const advance = (model: Model) => {
   const count = model.count + model.step
@@ -61,45 +88,20 @@ const advance = (model: Model) => {
   }
 }
 
-export const update = ApplicationComposition.makeUpdate({
-  Ticked: model => advance(model),
-  ClickedAdvance: model => advance(model),
-  ChangedStep: makeFieldsStep.fromMessage(({ step }) => ({
-    step: () => step,
-  })),
-  CompletedReportCount: makeNoopStep(),
-})
-
 const TICK_INTERVAL = Duration.seconds(1)
 
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
-  widgetTicks: entry('WidgetTicks', {
-    messages: [Message.Ticked],
-    handler: function* () {
-      return () =>
-        Stream.tick(TICK_INTERVAL).pipe(
-          Stream.drop(1),
-          Stream.map(Message.Ticked),
-        )
-    },
-  }),
-  hostStepChanges: entry('HostStepChanges', {
-    messages: [Message.ChangedStep],
-    handler: function* () {
-      return () =>
-        Port.stream(ports.inbound.stepChanged).pipe(
-          Stream.map(step => Message.ChangedStep({ step })),
-        )
-    },
-  }),
-}))
-
-export const EffectsLayer = Layer.mergeAll(
-  ReportCount.layer,
-  subscriptions.layer,
+const widgetTicks = Stream.tick(TICK_INTERVAL).pipe(
+  Stream.drop(1),
+  Stream.map(Message.Ticked),
 )
 
-export const view = ApplicationComposition.makeView((model, h) =>
+const hostStepChanges = Port.stream(ports.inbound.stepChanged).pipe(
+  Stream.map(step => Message.ChangedStep({ step })),
+)
+
+// VIEW
+
+const view = (model: Model, h: HtmlBuilder<Message>) =>
   h.div(
     [
       h.Class(
@@ -140,18 +142,4 @@ export const view = ApplicationComposition.makeView((model, h) =>
         h,
       ),
     ],
-  ),
-)
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+  )

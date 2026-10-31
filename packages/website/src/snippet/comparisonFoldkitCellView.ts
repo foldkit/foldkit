@@ -1,9 +1,12 @@
 import { Array } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
-import { Message } from './message'
-import type { Cell, HexColor } from './model'
-import { type PaletteTheme, resolveColor } from './palette'
+import type { Cell } from './domain/grid'
+import {
+  type HexColor,
+  type PaletteTheme,
+  resolveColor,
+} from './domain/palette'
 
 const rowView = (
   row: ReadonlyArray<Cell>,

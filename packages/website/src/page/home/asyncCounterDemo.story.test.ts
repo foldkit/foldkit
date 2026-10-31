@@ -1,15 +1,13 @@
 import { Array, Duration } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { describe, expect, test } from 'vitest'
+import { Command, message, model, story } from 'foldkit/story'
+
+import { describe, expect, it } from '@effect/vitest'
 
 import {
+  AsyncCounterDemoLive,
   DelayAdvanceAsyncCounterPhase,
-  init,
-  update,
 } from './asyncCounterDemo/asyncCounterDemo'
-import { Message } from './asyncCounterDemo/definition'
-
-const init_ = init()
+import { Message } from './asyncCounterDemo/message'
 
 const INCREMENT_PHASE_STEPS = 3
 const DURATION_PHASE_STEPS = 3
@@ -27,10 +25,9 @@ const advancePhases = (steps: number, generation: number) =>
   )
 
 describe('async counter demo', () => {
-  test('Add 1 runs the increment animation and keeps the count', () => {
+  it.effect('Add 1 runs the increment animation and keeps the count', () =>
     story(
-      update,
-      given(init_.model),
+      AsyncCounterDemoLive,
       message(Message.ClickedDemoIncrement()),
       model(model => {
         expect(model.count).toBe(1)
@@ -43,34 +40,34 @@ describe('async counter demo', () => {
         expect(model.phase).toBe('Idle')
         expect(model.count).toBe(1)
       }),
-    )
-  })
+    ),
+  )
 
-  test('a reset holds isResetting until the delay lands, then zeroes', () => {
-    story(
-      update,
-      given(init_.model),
-      message(Message.ClickedDemoIncrement()),
-      Command.resolveAll(...advancePhases(INCREMENT_PHASE_STEPS, 1)),
-      message(Message.ClickedDemoReset()),
-      model(model => {
-        expect(model.count).toBe(1)
-        expect(model.isResetting).toBe(true)
-      }),
-      Command.resolveAll(...advancePhases(RESET_PHASE_STEPS, 2)),
-      model(model => {
-        expect(model.count).toBe(0)
-        expect(model.isResetting).toBe(false)
-        expect(model.phase).toBe('Idle')
-        expect(model.messageLog).toContain('CompletedDelayReset')
-      }),
-    )
-  })
+  it.effect(
+    'a reset holds isResetting until the delay lands, then zeroes',
+    () =>
+      story(
+        AsyncCounterDemoLive,
+        message(Message.ClickedDemoIncrement()),
+        Command.resolveAll(...advancePhases(INCREMENT_PHASE_STEPS, 1)),
+        message(Message.ClickedDemoReset()),
+        model(model => {
+          expect(model.count).toBe(1)
+          expect(model.isResetting).toBe(true)
+        }),
+        Command.resolveAll(...advancePhases(RESET_PHASE_STEPS, 2)),
+        model(model => {
+          expect(model.count).toBe(0)
+          expect(model.isResetting).toBe(false)
+          expect(model.phase).toBe('Idle')
+          expect(model.messageLog).toContain('CompletedDelayReset')
+        }),
+      ),
+  )
 
-  test('changing the delay runs its own Message animation', () => {
+  it.effect('changing the delay runs its own Message animation', () =>
     story(
-      update,
-      given(init_.model),
+      AsyncCounterDemoLive,
       message(Message.ChangedDemoResetDuration({ seconds: 4 })),
       model(model => {
         expect(model.resetDuration).toBe(4)
@@ -84,37 +81,38 @@ describe('async counter demo', () => {
         expect(model.phase).toBe('Idle')
         expect(model.resetDuration).toBe(4)
       }),
-    )
-  })
+    ),
+  )
 
-  test('a delay below the allowed range is clamped before it reaches the Model', () => {
-    story(
-      update,
-      given(init_.model),
-      message(Message.ChangedDemoResetDuration({ seconds: 0 })),
-      model(model => {
-        expect(model.resetDuration).toBe(1)
-      }),
-      Command.resolveAll(...advancePhases(DURATION_PHASE_STEPS, 1)),
-    )
-  })
+  it.effect(
+    'a delay below the allowed range is clamped before it reaches the Model',
+    () =>
+      story(
+        AsyncCounterDemoLive,
+        message(Message.ChangedDemoResetDuration({ seconds: 0 })),
+        model(model => {
+          expect(model.resetDuration).toBe(1)
+        }),
+        Command.resolveAll(...advancePhases(DURATION_PHASE_STEPS, 1)),
+      ),
+  )
 
-  test('a delay above the allowed range is clamped before it reaches the Model', () => {
-    story(
-      update,
-      given(init_.model),
-      message(Message.ChangedDemoResetDuration({ seconds: 99 })),
-      model(model => {
-        expect(model.resetDuration).toBe(5)
-      }),
-      Command.resolveAll(...advancePhases(DURATION_PHASE_STEPS, 1)),
-    )
-  })
+  it.effect(
+    'a delay above the allowed range is clamped before it reaches the Model',
+    () =>
+      story(
+        AsyncCounterDemoLive,
+        message(Message.ChangedDemoResetDuration({ seconds: 99 })),
+        model(model => {
+          expect(model.resetDuration).toBe(5)
+        }),
+        Command.resolveAll(...advancePhases(DURATION_PHASE_STEPS, 1)),
+      ),
+  )
 
-  test('the reset Command waits the delay the Model reports', () => {
+  it.effect('the reset Command waits the delay the Model reports', () =>
     story(
-      update,
-      given(init_.model),
+      AsyncCounterDemoLive,
       message(Message.ChangedDemoResetDuration({ seconds: 0 })),
       model(model => {
         expect(model.resetDuration).toBe(1)
@@ -138,27 +136,28 @@ describe('async counter demo', () => {
         expect(model.phase).toBe('Idle')
         expect(model.count).toBe(0)
       }),
-    )
-  })
+    ),
+  )
 
-  test('a stale phase Message from a superseded interaction is ignored', () => {
-    story(
-      update,
-      given(init_.model),
-      message(Message.ClickedDemoIncrement()),
-      Command.resolveAll(...advancePhases(INCREMENT_PHASE_STEPS, 1)),
-      message(Message.ClickedDemoReset()),
-      model(model => {
-        expect(model.phase).toBe('ResetMessage')
-        expect(model.generation).toBe(2)
-      }),
-      Command.resolve(
-        DelayAdvanceAsyncCounterPhase,
-        Message.CompletedDelayAdvanceAsyncCounterPhase({ generation: 1 }),
+  it.effect(
+    'a stale phase Message from a superseded interaction is ignored',
+    () =>
+      story(
+        AsyncCounterDemoLive,
+        message(Message.ClickedDemoIncrement()),
+        Command.resolveAll(...advancePhases(INCREMENT_PHASE_STEPS, 1)),
+        message(Message.ClickedDemoReset()),
+        model(model => {
+          expect(model.phase).toBe('ResetMessage')
+          expect(model.generation).toBe(2)
+        }),
+        Command.resolve(
+          DelayAdvanceAsyncCounterPhase,
+          Message.CompletedDelayAdvanceAsyncCounterPhase({ generation: 1 }),
+        ),
+        model(model => {
+          expect(model.phase).toBe('ResetMessage')
+        }),
       ),
-      model(model => {
-        expect(model.phase).toBe('ResetMessage')
-      }),
-    )
-  })
+  )
 })

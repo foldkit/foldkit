@@ -1,6 +1,7 @@
 import {
   Effect,
   Equal,
+  Layer,
   Match,
   Option,
   Schema,
@@ -8,9 +9,14 @@ import {
   String,
   pipe,
 } from 'effect'
-import { type Update } from 'foldkit'
-import * as Block from 'foldkit/block'
-import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
+import { Block } from 'foldkit'
+import type * as BlockTypes from 'foldkit/block'
+import {
+  type ChildAttribute,
+  type Html,
+  type HtmlBuilder,
+  childAttributes,
+} from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -82,6 +88,7 @@ export type ReleasedDragPointer = typeof Message.ReleasedDragPointer.Type
 export type CancelledDrag = typeof Message.CancelledDrag.Type
 export type PressedKeyboardNavigation =
   typeof Message.PressedKeyboardNavigation.Type
+type InformedOfRangeChange = typeof Message.InformedOfRangeChange.Type
 
 // OUT MESSAGE
 
@@ -91,18 +98,10 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const SliderDefinition = Block.makeDefinition('Slider', {
-  Model,
-  Message,
-  OutMessage,
-})
-
-const SliderComposition = SliderDefinition.makeComposition()
-type SliderViewBuilder = Block.ViewBuilderFor<typeof SliderComposition>
-
 // INIT
 
-/** Configuration for creating a Slider Model with `init`. */
+/** Constructor args for a Slider instance. The value lives in the parent
+ *  Model; initialize it there and snap it with {@link snapAndClamp}. */
 export type InitConfig = Readonly<{
   id: string
   min: number
@@ -117,12 +116,6 @@ const makeInitialModel = (config: InitConfig): Model => ({
   step: config.step,
   dragState: DragState.Idle(),
 })
-
-/** Creates an initial Slider Model and Commands from a config. The value lives in the
- *  parent Model; initialize it there and snap it with {@link snapAndClamp}. */
-export const init = SliderComposition.makeInit((config: InitConfig) => ({
-  model: makeInitialModel(config),
-}))
 
 // HELPERS
 
@@ -186,7 +179,7 @@ const nextValueForDirection = (
 
 // UPDATE
 
-type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+type UpdateReturn = BlockTypes.Result<Model, OutMessage, never>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 const withChangedValue = (
@@ -204,16 +197,14 @@ const withChangedValue = (
   }
 }
 
-/** Processes a Slider Message and returns the next Model, optional Commands,
- *  and an optional OutMessage for the parent. The value lives in the parent
- *  Model: the view supplies the current value on the Messages that need it,
- *  and value changes surface as `ChangedValue` rather than mutating this
- *  Model. */
-export const update = SliderComposition.makeUpdate({
-  InformedOfRangeChange: SliderDefinition.makeFieldsStep.fromMessage(
-    ({ min, max }) => ({ min: () => min, max: () => max }),
-  ),
-  PressedThumb: (model, { originValue }) =>
+const update = {
+  InformedOfRangeChange: (
+    model: Model,
+    { min, max }: InformedOfRangeChange,
+  ): UpdateReturn => ({
+    model: modifyFields(model, { min: () => min, max: () => max }),
+  }),
+  PressedThumb: (model: Model, { originValue }: PressedThumb): UpdateReturn =>
     Match.value(model.dragState).pipe(
       withUpdateReturn,
       Match.tag('Dragging', () => ({ model })),
@@ -229,7 +220,10 @@ export const update = SliderComposition.makeUpdate({
   // from the thumb's current position. Fine-grained sliders (e.g. step
   // 0.05) see a visible jump without this guard, because the cursor sits
   // off-center on a non-zero-width thumb.
-  PressedPointer: (model, { value, originValue }) =>
+  PressedPointer: (
+    model: Model,
+    { value, originValue }: PressedPointer,
+  ): UpdateReturn =>
     Match.value(model.dragState).pipe(
       withUpdateReturn,
       Match.tag('Dragging', () => ({ model })),
@@ -244,7 +238,7 @@ export const update = SliderComposition.makeUpdate({
         )
       }),
     ),
-  MovedDragPointer: (model, { value }) =>
+  MovedDragPointer: (model: Model, { value }: MovedDragPointer): UpdateReturn =>
     Match.value(model.dragState).pipe(
       withUpdateReturn,
       Match.tag('Dragging', () => ({
@@ -255,7 +249,7 @@ export const update = SliderComposition.makeUpdate({
       })),
       Match.orElse(() => ({ model })),
     ),
-  ReleasedDragPointer: model =>
+  ReleasedDragPointer: (model: Model): UpdateReturn =>
     Match.value(model.dragState).pipe(
       withUpdateReturn,
       Match.tag('Dragging', () => ({
@@ -263,7 +257,7 @@ export const update = SliderComposition.makeUpdate({
       })),
       Match.orElse(() => ({ model })),
     ),
-  CancelledDrag: model =>
+  CancelledDrag: (model: Model): UpdateReturn =>
     Match.value(model.dragState).pipe(
       withUpdateReturn,
       Match.tag('Dragging', ({ originValue }) => ({
@@ -272,18 +266,28 @@ export const update = SliderComposition.makeUpdate({
       })),
       Match.orElse(() => ({ model })),
     ),
-  PressedKeyboardNavigation: (model, { direction, value }) =>
+  PressedKeyboardNavigation: (
+    model: Model,
+    { direction, value }: PressedKeyboardNavigation,
+  ): UpdateReturn =>
     withChangedValue(
       model,
       value,
       nextValueForDirection(value, model.min, model.max, model.step, direction),
     ),
-})
+}
 
 // SUBSCRIPTION
 
 const DragActivity = Schema.Literals(['Idle', 'Active'])
 type DragActivity = typeof DragActivity.Type
+
+type DragPointerDependencies = Readonly<{
+  dragActivity: DragActivity
+  id: string
+  min: number
+  max: number
+}>
 
 const dragActivityFromModel = (model: Model): DragActivity =>
   Match.value(model.dragState).pipe(
@@ -525,7 +529,7 @@ const thumbStyle = (
     Match.exhaustive,
   )
 
-/** Per-render view inputs passed to `view` via `h.block`'s `viewInputs` field. */
+/** View input a parent passes to `slider.view(...)`. */
 export type ViewInputs = Readonly<{
   /** The current value, read straight from the parent Model. The thumb
    *  position, `aria-valuenow`, and the filled track all derive from it. */
@@ -578,7 +582,7 @@ export type ViewInputs = Readonly<{
 const renderView = (
   model: Model,
   viewInputs: ViewInputs,
-  h: SliderViewBuilder,
+  h: HtmlBuilder<Message>,
 ): Html => {
   const {
     value,
@@ -724,170 +728,127 @@ const renderView = (
   })
 }
 
-/** Renders an accessible Slider with the supplied value and view callback. */
-export const view =
-  SliderComposition.makeView.withInputs<ViewInputs>(renderView)
-
-const defineSubscriptionsForRoot = <Id extends string>(
-  defineSubscriptions: Block.DefineSubscriptions<Id, Model, Message>,
+const dragPointerStream = (
   getTrackRoot: () => Document | ShadowRoot,
-) =>
-  defineSubscriptions(entry => ({
-    dragPointer: entry(
-      'DragPointer',
-      {
-        dragActivity: DragActivity,
-        id: Schema.String,
-        min: Schema.Number,
-        max: Schema.Number,
-      },
-      {
-        messages: [Message.MovedDragPointer, Message.ReleasedDragPointer],
-        modelToDependencies: model => ({
-          dragActivity: dragActivityFromModel(model),
-          id: model.id,
-          min: model.min,
-          max: model.max,
-        }),
-        handler: function* () {
-          return ({ dragActivity, id, min, max }) => {
-            const pointerEvents = Stream.merge(
-              Stream.fromEventListener<PointerEvent>(
-                document,
-                'pointermove',
-              ).pipe(
-                Stream.mapEffect(event =>
-                  Effect.sync(() =>
-                    Option.map(findTrackElement(id, getTrackRoot()), track =>
-                      Message.MovedDragPointer({
-                        value: valueFromPointer(
-                          event.clientX,
-                          event.clientY,
-                          track,
-                          min,
-                          max,
-                        ),
-                      }),
-                    ),
-                  ),
-                ),
-                Stream.filter(Option.isSome),
-                Stream.map(option => option.value),
+  { dragActivity, id, min, max }: DragPointerDependencies,
+): Stream.Stream<Message> => {
+  const pointerEvents = Stream.merge(
+    Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
+      Stream.mapEffect(event =>
+        Effect.sync(() =>
+          Option.map(findTrackElement(id, getTrackRoot()), track =>
+            Message.MovedDragPointer({
+              value: valueFromPointer(
+                event.clientX,
+                event.clientY,
+                track,
+                min,
+                max,
               ),
-              Stream.fromEventListener<PointerEvent>(
-                document,
-                'pointerup',
-              ).pipe(Stream.map(() => Message.ReleasedDragPointer())),
-            )
-
-            return Stream.when(
-              Stream.merge(pointerEvents, documentDragStyles),
-              Effect.sync(() => dragActivity === 'Active'),
-            )
-          }
-        },
-      },
+            }),
+          ),
+        ),
+      ),
+      Stream.filter(Option.isSome),
+      Stream.map(option => option.value),
     ),
-
-    dragEscape: entry(
-      'DragEscape',
-      { dragActivity: DragActivity },
-      {
-        messages: [Message.CancelledDrag],
-        modelToDependencies: model => ({
-          dragActivity: dragActivityFromModel(model),
-        }),
-        handler: function* () {
-          return ({ dragActivity }) =>
-            Stream.when(
-              Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-                Stream.filter(({ key }) => key === 'Escape'),
-                Stream.map(() => Message.CancelledDrag()),
-              ),
-              Effect.sync(() => dragActivity === 'Active'),
-            )
-        },
-      },
+    Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
+      Stream.map(() => Message.ReleasedDragPointer()),
     ),
-  }))
+  )
 
-/** Default drag Subscriptions, with the track looked up via `document`. */
-export const subscriptions = defineSubscriptionsForRoot(
-  SliderDefinition.makeSubscriptions,
+  return Stream.when(
+    Stream.merge(pointerEvents, documentDragStyles),
+    Effect.sync(() => dragActivity === 'Active'),
+  )
+}
+
+const dragEscapeStream = (dragActivity: DragActivity): Stream.Stream<Message> =>
+  Stream.when(
+    Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+      Stream.filter(({ key }) => key === 'Escape'),
+      Stream.map(() => Message.CancelledDrag()),
+    ),
+    Effect.sync(() => dragActivity === 'Active'),
+  )
+
+// BLOCK
+
+const contract = { Model, Message, OutMessage }
+
+/** A Slider instance. Store it in the parent Model and render it with
+ *  `slider.view(viewInputs)`. The parent changes the range by sending
+ *  `Slider.Message.InformedOfRangeChange({ min, max })`; it owns the value, so
+ *  it snaps that value to the new bounds with `snapAndClamp` in the same
+ *  transition. */
+export class Slider extends Block<Slider, InitConfig, ViewInputs>()(
+  'Slider',
+  contract,
+) {}
+
+type SliderBlockClass = BlockTypes.BlockClass<
+  Slider,
+  'Slider',
+  InitConfig,
+  ViewInputs,
+  never,
+  typeof contract
+>
+
+/** A Slider class built by `forRoot`, with its Layer as `Live`. */
+export type SliderClass = SliderBlockClass &
+  Readonly<{ Live: Layer.Layer<Slider> }>
+
+const implementSlider = (
+  SliderClass: SliderBlockClass,
+  getTrackRoot: () => Document | ShadowRoot,
+): Layer.Layer<Slider> =>
+  SliderClass.make(
+    Effect.fn(function* (_instanceId, config) {
+      return {
+        model: makeInitialModel(config),
+        update,
+        subscriptions: {
+          dragPointer: {
+            dependencies: (model: Model): DragPointerDependencies => ({
+              dragActivity: dragActivityFromModel(model),
+              id: model.id,
+              min: model.min,
+              max: model.max,
+            }),
+            stream: (dependencies: DragPointerDependencies) =>
+              dragPointerStream(getTrackRoot, dependencies),
+          },
+          dragEscape: {
+            dependencies: dragActivityFromModel,
+            stream: dragEscapeStream,
+          },
+        },
+        view: (model, h, viewInputs) => renderView(model, viewInputs, h),
+      }
+    }),
+  )
+
+/** The Slider Layer, with drag Subscriptions that look up the track via
+ *  `document`. */
+export const SliderLive: Layer.Layer<Slider> = implementSlider(
+  Slider,
   () => document,
 )
 
-const operations = {
-  /** Updates the range through the Slider's update. The parent owns the value;
-   * snap it to the new bounds with `snapAndClamp` in the same parent transition. */
-  informRangeChanged: Message.InformedOfRangeChange,
-}
-
-const prepareSliderBlock = () =>
-  SliderComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations,
-    subscriptions,
-    EffectsLayer: subscriptions.layer,
-  })
-/** Completed Slider Block contract. */
-export interface SliderBlock extends Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepareSliderBlock
-> {}
-/** Completed Slider Block. */
-export const SliderBlock: SliderBlock = Block.assemble(prepareSliderBlock)
-
 /**
- * Builds a complete Slider Block whose drag Subscriptions resolve tracks from
- * a custom document or Shadow DOM root.
+ * Builds a Slider class whose drag Subscriptions resolve tracks from a custom
+ * document or Shadow DOM root, with its Layer attached as `Live`.
  */
-export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
-  const SliderDefinition = Block.makeDefinition('Slider', {
-    Model,
-    Message,
-    OutMessage,
-  })
-  const SliderComposition = SliderDefinition.makeComposition()
-  const init = SliderComposition.makeInit((config: InitConfig) => ({
-    model: makeInitialModel(config),
-  }))
-  const rootUpdate = SliderComposition.makeUpdate({
-    InformedOfRangeChange: SliderDefinition.makeFieldsStep.fromMessage(
-      ({ min, max }) => ({ min: () => min, max: () => max }),
-    ),
-    PressedThumb: update,
-    PressedPointer: update,
-    MovedDragPointer: update,
-    ReleasedDragPointer: update,
-    CancelledDrag: update,
-    PressedKeyboardNavigation: update,
-  })
-  const rootView = SliderComposition.makeView.withInputs<ViewInputs>(renderView)
-  const subscriptions = defineSubscriptionsForRoot(
-    SliderDefinition.makeSubscriptions,
-    getTrackRoot,
+export const forRoot = (
+  getTrackRoot: () => Document | ShadowRoot,
+): SliderClass => {
+  const RootSlider: SliderBlockClass = Block<Slider, InitConfig, ViewInputs>()(
+    'Slider',
+    contract,
   )
-  const operations = {
-    informRangeChanged: Message.InformedOfRangeChange,
-  }
 
-  const prepareSliderBlock = () =>
-    SliderComposition.prepareBlock({
-      init,
-      update: rootUpdate,
-      view: rootView,
-      operations,
-      subscriptions,
-      EffectsLayer: subscriptions.layer,
-    })
-
-  const sliderBlock: Block.FromAssemblyWithViewAndOutMessage<
-    typeof Model,
-    typeof prepareSliderBlock
-  > = Block.assemble(prepareSliderBlock)
-
-  return sliderBlock
+  return Object.assign(RootSlider, {
+    Live: implementSlider(RootSlider, getTrackRoot),
+  })
 }

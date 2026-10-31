@@ -1,6 +1,6 @@
-import { Layer, Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { CustomElement, Block } from 'foldkit'
-import { type Document } from 'foldkit/html'
+import { type Document, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -22,23 +22,15 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+export class Application extends Block<
+  Application,
+  { readonly flags: Flags }
+>()('Application', {
   Model,
   Message,
-}).makeComposition()
+}) {}
 
-export const init = ApplicationComposition.makeInit((flags: Flags) => ({
-  model: Model.make({ count: flags.start, formState: 'Controlled' }),
-}))
-
-export const update = ApplicationComposition.makeUpdate({
-  ClickedIncrement: model => ({
-    model: modifyFields(model, { count: count => count + 1 }),
-  }),
-  ClickedRelease: model => ({
-    model: modifyFields(model, { formState: () => 'Released' }),
-  }),
-})
+type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const serverOnlyPin = import.meta.env.SSR ? '{{SERVER_ONLY_PIN}}' : ''
 const observedId = CustomElement.define({
@@ -57,7 +49,7 @@ const parserChild = CustomElement.define({
   events: {},
 })
 
-export const view = ApplicationComposition.makeView((model, h): Document => {
+const view = (model: Model, h: ApplicationViewBuilder): Document => {
   const observedIdElement = observedId.withMessage(h)
   const parserOwnedElement = parserOwned.withMessage(h)
   const parserChildElement = parserChild.withMessage(h)
@@ -243,18 +235,21 @@ export const view = ApplicationComposition.makeView((model, h): Document => {
       ],
     ),
   }
-})
+}
 
-export const EffectsLayer = Layer.empty
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    return {
+      model: Model.make({ count: flags.start, formState: 'Controlled' }),
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
+        ClickedRelease: model => ({
+          model: modifyFields(model, { formState: () => 'Released' }),
+        }),
+      },
+      view,
+    }
+  }),
+)

@@ -1,158 +1,165 @@
-import { DateTime } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { Option } from 'effect'
+import { Command, message, model, story } from 'foldkit/story'
+
+import { describe, expect, it } from '@effect/vitest'
 
 import {
+  ConnectionState,
+  Message,
   SendMessage,
   TimestampReceivedMessage,
   TimestampSentMessage,
-} from './command'
-import { Message } from './message'
-import { ConnectionState, type Model } from './model'
-import { update } from './update'
+} from './application'
+import {
+  application,
+  deliverToChatSocket,
+  zonedAt,
+} from './application.fixture'
+import { ChatSocket, WaitForOpen } from './chatSocket'
 
-const idleModel: Model = {
-  connection: ConnectionState.Disconnected(),
-  messages: [],
-  messageInput: '',
-}
+const zonedNow = zonedAt(0)
 
-const connectedModel: Model = modifyFields(idleModel, {
-  connection: () => ConnectionState.Connected(),
-})
-
-const zonedNow = DateTime.makeZonedUnsafe(0, { timeZone: 'UTC' })
+const connect = [
+  message(Message.ClickedConnect()),
+  Command.resolve(WaitForOpen, ChatSocket.Message.SucceededWaitForOpen()),
+]
 
 describe('update', () => {
   describe('connection state', () => {
-    test('ClickedConnect moves into Connecting', () => {
+    it.effect('ClickedConnect moves into Connecting and opens the socket', () =>
       story(
-        update,
-        given(idleModel),
+        application,
         message(Message.ClickedConnect()),
         model(model => {
           expect(model.connection._tag).toBe('Connecting')
+          expect(Option.isSome(model.maybeChatSocket)).toBe(true)
         }),
-      )
-    })
+        Command.expectExact(WaitForOpen),
+        Command.resolve(WaitForOpen, ChatSocket.Message.SucceededWaitForOpen()),
+      ),
+    )
 
-    test('ConnectedChatSocket moves into Connected', () => {
+    it.effect('an opened socket moves into Connected', () =>
       story(
-        update,
-        given(
-          modifyFields(idleModel, {
-            connection: () => ConnectionState.Connecting(),
-          }),
-        ),
-        message(Message.ConnectedChatSocket()),
+        application,
+        message(Message.ClickedConnect()),
+        Command.resolve(WaitForOpen, ChatSocket.Message.SucceededWaitForOpen()),
         model(model => {
           expect(model.connection._tag).toBe('Connected')
         }),
-      )
-    })
+      ),
+    )
 
-    test('DisconnectedChatSocket returns to Disconnected and clears messages', () => {
-      story(
-        update,
-        given(
-          modifyFields(connectedModel, {
-            messages: () => [{ text: 'old', zoned: zonedNow, isSent: true }],
+    it.effect(
+      'a closed socket returns to Disconnected and clears messages',
+      () =>
+        story(
+          application,
+          ...connect,
+          message(
+            Message.TimestampedMessage({
+              text: 'old',
+              zoned: zonedNow,
+              isSent: true,
+            }),
+          ),
+          message(deliverToChatSocket(ChatSocket.Message.ClosedSocket())),
+          model(model => {
+            expect(model.connection._tag).toBe('Disconnected')
+            expect(model.messages).toHaveLength(0)
+            expect(Option.isNone(model.maybeChatSocket)).toBe(true)
           }),
         ),
-        message(Message.DisconnectedChatSocket()),
-        model(model => {
-          expect(model.connection._tag).toBe('Disconnected')
-          expect(model.messages).toHaveLength(0)
-        }),
-      )
-    })
+    )
 
-    test('FailedConnectChatSocket captures the error message', () => {
+    it.effect('a socket that fails to open captures the error message', () =>
       story(
-        update,
-        given(
-          modifyFields(idleModel, {
-            connection: () => ConnectionState.Connecting(),
-          }),
+        application,
+        message(Message.ClickedConnect()),
+        Command.resolve(
+          WaitForOpen,
+          ChatSocket.Message.FailedWaitForOpen({ error: 'Timeout' }),
         ),
-        message(Message.FailedConnectChatSocket({ error: 'Timeout' })),
         model(model => {
-          if (model.connection._tag === 'Error') {
-            expect(model.connection.error).toBe('Timeout')
-          } else {
-            throw new Error('Expected Error')
-          }
+          expect(model.connection).toEqual(
+            ConnectionState.Error({ error: 'Timeout' }),
+          )
+          expect(Option.isNone(model.maybeChatSocket)).toBe(true)
         }),
-      )
-    })
+      ),
+    )
 
-    test('releasing the socket preserves a connection error', () => {
+    it.effect('a socket error releases the socket and keeps the error', () =>
       story(
-        update,
-        given(connectedModel),
-        message(Message.FailedChatSocket({ error: 'Connection error' })),
-        message(Message.ReleasedChatSocket()),
+        application,
+        ...connect,
+        message(
+          deliverToChatSocket(
+            ChatSocket.Message.ErroredSocket({ error: 'Connection error' }),
+          ),
+        ),
         model(model => {
           expect(model.connection).toEqual(
             ConnectionState.Error({ error: 'Connection error' }),
           )
+          expect(Option.isNone(model.maybeChatSocket)).toBe(true)
         }),
-      )
-    })
+      ),
+    )
 
-    test('FailedSendMessage reports an unavailable socket', () => {
+    it.effect('FailedSendMessage reports an unavailable socket', () =>
       story(
-        update,
-        given(connectedModel),
+        application,
+        ...connect,
         message(Message.FailedSendMessage({ error: 'Socket unavailable' })),
         model(model => {
           expect(model.connection).toEqual(
             ConnectionState.Error({ error: 'Socket unavailable' }),
           )
+          expect(Option.isNone(model.maybeChatSocket)).toBe(true)
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('message input', () => {
-    test('UpdatedMessageInput stores the new input value', () => {
+    it.effect('UpdatedMessageInput stores the new input value', () =>
       story(
-        update,
-        given(connectedModel),
+        application,
+        ...connect,
         message(Message.UpdatedMessageInput({ value: 'Hello' })),
         model(model => {
           expect(model.messageInput).toBe('Hello')
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('SubmittedMessage', () => {
-    test('an empty input is ignored', () => {
+    it.effect('an empty input is ignored', () =>
       story(
-        update,
-        given(modifyFields(connectedModel, { messageInput: () => '' })),
+        application,
+        ...connect,
         message(Message.SubmittedMessage()),
         Command.expectNone(),
-      )
-    })
+      ),
+    )
 
-    test('whitespace-only input is ignored', () => {
+    it.effect('whitespace-only input is ignored', () =>
       story(
-        update,
-        given(modifyFields(connectedModel, { messageInput: () => '   ' })),
+        application,
+        ...connect,
+        message(Message.UpdatedMessageInput({ value: '   ' })),
         message(Message.SubmittedMessage()),
         Command.expectNone(),
-      )
-    })
+      ),
+    )
 
-    test('connected client fires SendMessage and clears the input', () => {
+    it.effect('connected client fires SendMessage and clears the input', () =>
       story(
-        update,
-        given(
-          modifyFields(connectedModel, { messageInput: () => 'Hello there' }),
-        ),
+        application,
+        ...connect,
+        message(Message.UpdatedMessageInput({ value: 'Hello there' })),
         message(Message.SubmittedMessage()),
         model(model => {
           expect(model.messageInput).toBe('')
@@ -172,47 +179,53 @@ describe('update', () => {
           }),
         ),
         model(model => {
-          expect(model.messages).toHaveLength(1)
-          expect(model.messages[0]?.text).toBe('Hello there')
-          expect(model.messages[0]?.isSent).toBe(true)
+          expect(model.messages).toEqual([
+            { text: 'Hello there', zoned: zonedNow, isSent: true },
+          ])
         }),
-      )
-    })
+      ),
+    )
 
-    test('disconnected client ignores SubmittedMessage', () => {
+    it.effect('disconnected client ignores SubmittedMessage', () =>
       story(
-        update,
-        given(modifyFields(idleModel, { messageInput: () => 'Hello' })),
+        application,
+        message(Message.UpdatedMessageInput({ value: 'Hello' })),
         message(Message.SubmittedMessage()),
         Command.expectNone(),
         model(model => {
           expect(model.messageInput).toBe('Hello')
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('inbound messages', () => {
-    test('ReceivedMessage queues TimestampReceivedMessage that appends to the list', () => {
-      story(
-        update,
-        given(connectedModel),
-        message(Message.ReceivedMessage({ text: 'echo' })),
-        Command.expectHas(TimestampReceivedMessage),
-        Command.resolve(
-          TimestampReceivedMessage,
-          Message.TimestampedMessage({
-            text: 'echo',
-            zoned: zonedNow,
-            isSent: false,
+    it.effect(
+      'a received socket message queues TimestampReceivedMessage that appends to the list',
+      () =>
+        story(
+          application,
+          ...connect,
+          message(
+            deliverToChatSocket(
+              ChatSocket.Message.ReceivedSocketMessage({ text: 'echo' }),
+            ),
+          ),
+          Command.expectHas(TimestampReceivedMessage),
+          Command.resolve(
+            TimestampReceivedMessage,
+            Message.TimestampedMessage({
+              text: 'echo',
+              zoned: zonedNow,
+              isSent: false,
+            }),
+          ),
+          model(model => {
+            expect(model.messages).toEqual([
+              { text: 'echo', zoned: zonedNow, isSent: false },
+            ])
           }),
         ),
-        model(model => {
-          expect(model.messages).toHaveLength(1)
-          expect(model.messages[0]?.isSent).toBe(false)
-          expect(model.messages[0]?.text).toBe('echo')
-        }),
-      )
-    })
+    )
   })
 })

@@ -2,19 +2,15 @@ import {
   Duration,
   Effect,
   Equal,
-  Layer,
   Match,
   Number,
   Option,
   Predicate,
   Schema,
-  pipe,
 } from 'effect'
-import * as Block from 'foldkit/block'
+import { Block, Command, Mount } from 'foldkit'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
-import * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
-import * as Update from 'foldkit/update'
 
 import { AnchorConfig, anchorSetup } from '../anchor/index.js'
 import * as OptionExt from '../internal/optionExtensions.js'
@@ -35,12 +31,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-const TooltipDefinition = Block.makeDefinition('Tooltip', {
-  Model,
-  Message,
-  OutMessage,
-})
-
 // SELECTORS
 
 /** Returns the bare DOM id of the tooltip trigger button, derived from the
@@ -55,7 +45,7 @@ const panelId = (id: string): string => `${id}-panel`
 
 const DEFAULT_SHOW_DELAY = Duration.millis(500)
 
-/** Configuration for creating a tooltip model with `init`. */
+/** Constructor args for a Tooltip instance. `id` is the base DOM id for the trigger and panel. */
 export type InitConfig = Readonly<{
   id: string
   showDelay?: Duration.Input
@@ -79,57 +69,19 @@ const makeInitialModel = (config: InitConfig): Model => ({
 
 /** Waits for the tooltip's show delay before emitting
  *  `CompletedWaitBeforeShowing`. */
-export const WaitBeforeShowing = TooltipDefinition.makeCommand(
-  'WaitBeforeShowing',
-  {
-    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-    messages: [Message.CompletedWaitBeforeShowing],
-    handler: function* () {
-      return ({ delay, version }) =>
-        Effect.sleep(delay).pipe(
-          Effect.as(Message.CompletedWaitBeforeShowing({ version })),
-        )
-    },
-  },
-)
+export const WaitBeforeShowing = Command.define('WaitBeforeShowing', {
+  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+  messages: [Message.CompletedWaitBeforeShowing],
+})
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. */
-export const AnchorTooltip = TooltipDefinition.makeMount('AnchorTooltip', {
+export const AnchorTooltip = Mount.define('AnchorTooltip', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorTooltip],
-  handler: function* () {
-    return ({ element, buttonId, anchor }) =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() =>
-            anchorSetup(element, {
-              buttonId,
-              anchor,
-              interceptTab: false,
-            }),
-          ),
-          cleanup => Effect.sync(cleanup),
-        )
-        return Message.CompletedAnchorTooltip()
-      })
-  },
 })
 
 /** Mount definitions rendered by Tooltip. */
 export const mounts = [AnchorTooltip]
-
-/** Effect providers used by the Tooltip component. */
-export const EffectsLayer = Layer.mergeAll(
-  WaitBeforeShowing.layer,
-  AnchorTooltip.layer,
-)
-
-const TooltipComposition = TooltipDefinition.makeComposition({ mounts })
-
-/** Creates an initial Tooltip Model and Commands from a config. Defaults to hidden. */
-export const init = TooltipComposition.makeInit((config: InitConfig) => ({
-  model: makeInitialModel(config),
-}))
 
 const computeUpdate = (model: Model, message: Message) =>
   Message.match(message, {
@@ -254,24 +206,8 @@ const updateVisibility = (model: Model, message: Message) => {
     tooltipUpdate.model.isOpen,
   )
 
-  return pipe(tooltipUpdate, Update.withOutMessage(outMessage))
+  return { ...tooltipUpdate, outMessage }
 }
-
-/** Processes a Tooltip Message and returns the next Model, optional Commands,
- *  and an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
- *  transitions, so consumers don't get spurious events for messages that
- *  only update hover/focus/delay state without changing visibility. */
-export const update = TooltipComposition.makeUpdate({
-  InformedOfShowDelayChange: updateVisibility,
-  EnteredTrigger: updateVisibility,
-  LeftTrigger: updateVisibility,
-  FocusedTrigger: updateVisibility,
-  BlurredTrigger: updateVisibility,
-  PressedEscape: updateVisibility,
-  PressedPointerOnTrigger: updateVisibility,
-  CompletedWaitBeforeShowing: updateVisibility,
-  CompletedAnchorTooltip: updateVisibility,
-})
 
 // VIEW
 
@@ -291,7 +227,7 @@ export type RenderInfo = Readonly<{
   isVisible: boolean
 }>
 
-/** Per-render view inputs passed to `view` via `h.block`'s `viewInputs` field. */
+/** Per-render view inputs the parent passes to `model.tooltip.view(...)`. */
 export type ViewInputs = Readonly<{
   anchor: AnchorConfig
   toView: (render: RenderInfo) => Html
@@ -300,100 +236,138 @@ export type ViewInputs = Readonly<{
   ariaLabelledBy?: string
 }>
 
-/** Renders a headless tooltip with an anchored non-interactive panel.
- *  Shows on hover (after delay) or focus (from keyboard, touch, or pen;
- *  mouse-click focus is excluded). Hides on leave, blur, or Escape. */
-export const view = TooltipComposition.makeView.withInputs<ViewInputs>(
-  (model, viewInputs, h) => {
-    const { id, isOpen } = model
-    const { anchor, toView, isDisabled, ariaLabel, ariaLabelledBy } = viewInputs
+// BLOCK
 
-    const resolveTriggerLabel = () => {
-      if (Predicate.isNotUndefined(ariaLabel)) {
-        return [h.AriaLabel(ariaLabel)]
-      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
-        return [h.AriaLabelledBy(ariaLabelledBy)]
-      } else {
-        return []
-      }
-    }
-
-    const triggerLabelAttributes = resolveTriggerLabel()
-
-    const handleTriggerKeyDown = (
-      key: string,
-    ): Option.Option<typeof Message.PressedEscape.Type> =>
-      Match.value(key).pipe(
-        Match.when('Escape', () =>
-          OptionExt.when(isOpen, Message.PressedEscape()),
-        ),
-        Match.orElse(() => Option.none()),
-      )
-
-    const handleTriggerPointerDown = (
-      pointerType: string,
-    ): Option.Option<typeof Message.PressedPointerOnTrigger.Type> =>
-      Option.some(Message.PressedPointerOnTrigger({ pointerType }))
-
-    const triggerAttributes = [
-      h.Id(triggerId(id)),
-      h.Type('button'),
-      h.AriaDescribedBy(panelId(id)),
-      ...triggerLabelAttributes,
-      ...(isOpen ? [h.DataAttribute('open', '')] : []),
-      ...(isDisabled
-        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-        : [
-            h.OnMouseEnter(Message.EnteredTrigger()),
-            h.OnMouseLeave(Message.LeftTrigger()),
-            h.OnFocus(Message.FocusedTrigger()),
-            h.OnBlur(Message.BlurredTrigger()),
-            h.OnKeyDownPreventDefault(handleTriggerKeyDown),
-            h.OnPointerDown(handleTriggerPointerDown),
-          ]),
-    ]
-
-    const panelAttributes = [
-      h.Id(panelId(id)),
-      h.Role('tooltip'),
-      h.Style({
-        position: 'absolute',
-        margin: '0',
-        visibility: 'hidden',
-        pointerEvents: 'none',
-      }),
-      h.OnMount(AnchorTooltip({ buttonId: triggerId(id), anchor })),
-      ...(isOpen ? [h.DataAttribute('open', '')] : []),
-    ]
-
-    return toView({
-      trigger: childAttributes(triggerAttributes),
-      panel: childAttributes(panelAttributes),
-      isVisible: isOpen,
-    })
+/** A headless tooltip with an anchored non-interactive panel. Shows on hover
+ *  (after delay) or focus (from keyboard, touch, or pen; mouse-click focus is
+ *  excluded). Hides on leave, blur, or Escape. Emits `Shown`/`Hidden` only on
+ *  visibility transitions, so consumers don't get spurious events for
+ *  Messages that only update hover, focus, or delay state. Send
+ *  `Message.InformedOfShowDelayChange` to change the hover delay without
+ *  changing visibility or restarting a pending timer. */
+export class Tooltip extends Block<Tooltip, InitConfig, ViewInputs>()(
+  'Tooltip',
+  {
+    Model,
+    Message,
+    OutMessage,
+    Command: [WaitBeforeShowing],
+    Mount: mounts,
   },
-)
+) {}
 
-const prepare = () =>
-  TooltipComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      /** Supplies a new hover delay without changing visibility or restarting a
-       * pending timer. Accepts any Effect Duration input. */
-      informShowDelayChanged: (showDelay: Duration.Input) => [
-        Message.InformedOfShowDelayChange({
-          showDelay: Duration.fromInputUnsafe(showDelay),
-        }),
-      ],
-    },
-    EffectsLayer,
-  })
-/** Completed Tooltip Block contract. */
-export interface TooltipBlock extends Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> {}
-/** Completed Tooltip Block for binding into a parent. */
-export const TooltipBlock: TooltipBlock = Block.assemble(prepare)
+/** The Tooltip implementation. Provide it to every parent that creates a
+ *  Tooltip instance. */
+export const TooltipLive = Tooltip.make(
+  Effect.fn(function* (_id, config) {
+    return {
+      model: makeInitialModel(config),
+
+      update: {
+        InformedOfShowDelayChange: updateVisibility,
+        EnteredTrigger: updateVisibility,
+        LeftTrigger: updateVisibility,
+        FocusedTrigger: updateVisibility,
+        BlurredTrigger: updateVisibility,
+        PressedEscape: updateVisibility,
+        PressedPointerOnTrigger: updateVisibility,
+        CompletedWaitBeforeShowing: updateVisibility,
+        CompletedAnchorTooltip: updateVisibility,
+      },
+
+      commands: {
+        WaitBeforeShowing: ({ delay, version }) =>
+          Effect.sleep(delay).pipe(
+            Effect.as(Message.CompletedWaitBeforeShowing({ version })),
+          ),
+      },
+
+      mounts: {
+        AnchorTooltip: ({ element, buttonId, anchor }) =>
+          Effect.gen(function* () {
+            yield* Effect.acquireRelease(
+              Effect.sync(() =>
+                anchorSetup(element, {
+                  buttonId,
+                  anchor,
+                  interceptTab: false,
+                }),
+              ),
+              cleanup => Effect.sync(cleanup),
+            )
+            return Message.CompletedAnchorTooltip()
+          }),
+      },
+
+      view: (model, h, viewInputs) => {
+        const { id, isOpen } = model
+        const { anchor, toView, isDisabled, ariaLabel, ariaLabelledBy } =
+          viewInputs
+
+        const resolveTriggerLabel = () => {
+          if (Predicate.isNotUndefined(ariaLabel)) {
+            return [h.AriaLabel(ariaLabel)]
+          } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+            return [h.AriaLabelledBy(ariaLabelledBy)]
+          } else {
+            return []
+          }
+        }
+
+        const triggerLabelAttributes = resolveTriggerLabel()
+
+        const handleTriggerKeyDown = (
+          key: string,
+        ): Option.Option<typeof Message.PressedEscape.Type> =>
+          Match.value(key).pipe(
+            Match.when('Escape', () =>
+              OptionExt.when(isOpen, Message.PressedEscape()),
+            ),
+            Match.orElse(() => Option.none()),
+          )
+
+        const handleTriggerPointerDown = (
+          pointerType: string,
+        ): Option.Option<typeof Message.PressedPointerOnTrigger.Type> =>
+          Option.some(Message.PressedPointerOnTrigger({ pointerType }))
+
+        const triggerAttributes = [
+          h.Id(triggerId(id)),
+          h.Type('button'),
+          h.AriaDescribedBy(panelId(id)),
+          ...triggerLabelAttributes,
+          ...(isOpen ? [h.DataAttribute('open', '')] : []),
+          ...(isDisabled
+            ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+            : [
+                h.OnMouseEnter(Message.EnteredTrigger()),
+                h.OnMouseLeave(Message.LeftTrigger()),
+                h.OnFocus(Message.FocusedTrigger()),
+                h.OnBlur(Message.BlurredTrigger()),
+                h.OnKeyDownPreventDefault(handleTriggerKeyDown),
+                h.OnPointerDown(handleTriggerPointerDown),
+              ]),
+        ]
+
+        const panelAttributes = [
+          h.Id(panelId(id)),
+          h.Role('tooltip'),
+          h.Style({
+            position: 'absolute',
+            margin: '0',
+            visibility: 'hidden',
+            pointerEvents: 'none',
+          }),
+          h.OnMount(AnchorTooltip({ buttonId: triggerId(id), anchor })),
+          ...(isOpen ? [h.DataAttribute('open', '')] : []),
+        ]
+
+        return toView({
+          trigger: childAttributes(triggerAttributes),
+          panel: childAttributes(panelAttributes),
+          isVisible: isOpen,
+        })
+      },
+    }
+  }),
+)

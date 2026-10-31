@@ -18,12 +18,5 @@ test.describe('slow-warnings example', () => {
 
     await page.getByRole('button', { name: 'Run patch work' }).click()
     await expect(page.getByText(/Patch exceeded/)).toBeVisible()
-
-    await page
-      .getByRole('button', { name: 'Run dependency extraction' })
-      .click()
-    await expect(
-      page.getByText(/Subscription dependencies exceeded/),
-    ).toBeVisible()
   })
 })

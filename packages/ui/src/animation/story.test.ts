@@ -1,16 +1,20 @@
+import { Array, Effect, Layer, Schema } from 'effect'
+import { Block } from 'foldkit'
+import { childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
+import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import {
+  Animation,
+  AnimationLive,
   Message,
   OutMessage,
   WaitForAnimationSettled,
   WaitForPaint,
-  AnimationBlock as block,
-  init,
-  update,
 } from './block.js'
 
 const INITIAL_TRANSITION_GENERATION = 0
@@ -18,56 +22,90 @@ const FIRST_TRANSITION_GENERATION = 1
 const SECOND_TRANSITION_GENERATION = 2
 const STALE_TRANSITION_GENERATION = -1
 
+const hidden = { id: 'test' }
+const showing = { id: 'test', isShowing: true }
+
 const resolveStaleSettle = Story.Command.resolve(
   WaitForAnimationSettled,
   Message.EndedAnimation({ generation: STALE_TRANSITION_GENERATION }),
 )
 
-const givenEnterAnimating = Story.steps(
-  Story.given(init({ id: 'test' }).model),
-  Story.message(Message.Showed()),
-  Story.Command.resolve(
-    WaitForPaint,
-    Message.CompletedWaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
-  ),
+const resolveFirstPaint = Story.Command.resolve(
+  WaitForPaint,
+  Message.CompletedWaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
 )
 
-const givenLeaveAnimating = Story.steps(
-  Story.given(init({ id: 'test', isShowing: true }).model),
-  Story.message(Message.Hid()),
-  Story.Command.resolve(
-    WaitForPaint,
-    Message.CompletedWaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
-  ),
+const resolveFirstSettle = Story.Command.resolve(
+  WaitForAnimationSettled,
+  Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
 )
+
+const enterAnimating = Story.steps(
+  Story.message(Message.Showed()),
+  resolveFirstPaint,
+)
+
+const leaveAnimating = Story.steps(
+  Story.message(Message.Hid()),
+  resolveFirstPaint,
+)
+
+const leaveAnimatingModel = {
+  id: 'test',
+  isShowing: false,
+  transitionState: 'LeaveAnimating',
+  transitionGeneration: FIRST_TRANSITION_GENERATION,
+}
 
 describe('Animation', () => {
-  describe('init', () => {
-    it('defaults isShowing to false', () => {
-      expect(init({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        isShowing: false,
-        transitionState: 'Idle',
-        transitionGeneration: INITIAL_TRANSITION_GENERATION,
-      })
-    })
+  describe('constructor', () => {
+    it.effect('defaults isShowing to false', () =>
+      Story.story(
+        AnimationLive,
+        hidden,
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            isShowing: false,
+            transitionState: 'Idle',
+            transitionGeneration: INITIAL_TRANSITION_GENERATION,
+          })
+        }),
+      ),
+    )
 
-    it('accepts a custom isShowing', () => {
-      expect(init({ id: 'test', isShowing: true }).model).toStrictEqual({
-        id: 'test',
-        isShowing: true,
-        transitionState: 'Idle',
-        transitionGeneration: INITIAL_TRANSITION_GENERATION,
-      })
-    })
+    it.effect('accepts a custom isShowing', () =>
+      Story.story(
+        AnimationLive,
+        showing,
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            isShowing: true,
+            transitionState: 'Idle',
+            transitionGeneration: INITIAL_TRANSITION_GENERATION,
+          })
+        }),
+      ),
+    )
+
+    it.effect('defaults the element id to the instance id', () =>
+      Story.story(
+        AnimationLive,
+        {},
+        Story.model(model => {
+          expect(model.id).toBe(Animation.id)
+        }),
+      ),
+    )
   })
 
   describe('update', () => {
     describe('Showed', () => {
-      it('starts enter lifecycle when hidden', () => {
+      it.effect('starts enter lifecycle when hidden', () =>
         Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
+          AnimationLive,
+          hidden,
           Story.message(Message.Showed()),
           Story.model(model => {
             expect(model.isShowing).toBe(true)
@@ -77,12 +115,7 @@ describe('Animation', () => {
           Story.Command.expectHas(
             WaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
           ),
-          Story.Command.resolve(
-            WaitForPaint,
-            Message.CompletedWaitForPaint({
-              generation: FIRST_TRANSITION_GENERATION,
-            }),
-          ),
+          resolveFirstPaint,
           Story.model(model => {
             expect(model.transitionState).toBe('EnterAnimating')
           }),
@@ -100,13 +133,13 @@ describe('Animation', () => {
             expect(model.transitionState).toBe('Idle')
           }),
           Story.expectNoOutMessage(),
-        )
-      })
+        ),
+      )
 
-      it('does nothing when already showing', () => {
+      it.effect('does nothing when already showing', () =>
         Story.story(
-          update,
-          Story.given(init({ id: 'test', isShowing: true }).model),
+          AnimationLive,
+          showing,
           Story.message(Message.Showed()),
           Story.model(model => {
             expect(model.isShowing).toBe(true)
@@ -114,15 +147,15 @@ describe('Animation', () => {
           }),
           Story.Command.expectNone(),
           Story.expectNoOutMessage(),
-        )
-      })
+        ),
+      )
     })
 
     describe('Hid', () => {
-      it('starts leave lifecycle when showing', () => {
+      it.effect('starts leave lifecycle when showing', () =>
         Story.story(
-          update,
-          Story.given(init({ id: 'test', isShowing: true }).model),
+          AnimationLive,
+          showing,
           Story.message(Message.Hid()),
           Story.model(model => {
             expect(model.isShowing).toBe(false)
@@ -132,12 +165,7 @@ describe('Animation', () => {
           Story.Command.expectHas(
             WaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
           ),
-          Story.Command.resolve(
-            WaitForPaint,
-            Message.CompletedWaitForPaint({
-              generation: FIRST_TRANSITION_GENERATION,
-            }),
-          ),
+          resolveFirstPaint,
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
@@ -154,34 +182,29 @@ describe('Animation', () => {
             expect(model.transitionState).toBe('Idle')
           }),
           Story.expectOutMessage(OutMessage.TransitionedOut()),
-        )
-      })
+        ),
+      )
 
-      it('does nothing when already hidden', () => {
+      it.effect('does nothing when already hidden', () =>
         Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
+          AnimationLive,
+          hidden,
           Story.message(Message.Hid()),
           Story.model(model => {
             expect(model.isShowing).toBe(false)
           }),
           Story.Command.expectNone(),
           Story.expectNoOutMessage(),
-        )
-      })
+        ),
+      )
 
-      it('does nothing when already in LeaveAnimating', () => {
+      it.effect('does nothing when already in LeaveAnimating', () =>
         Story.story(
-          update,
-          Story.given(init({ id: 'test', isShowing: true }).model),
+          AnimationLive,
+          showing,
           Story.message(Message.Hid()),
           Story.Command.expectHas(WaitForPaint),
-          Story.Command.resolve(
-            WaitForPaint,
-            Message.CompletedWaitForPaint({
-              generation: FIRST_TRANSITION_GENERATION,
-            }),
-          ),
+          resolveFirstPaint,
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
@@ -197,15 +220,15 @@ describe('Animation', () => {
           }),
           Story.Command.expectNone(),
           Story.expectNoOutMessage(),
-        )
-      })
+        ),
+      )
     })
 
     describe('CompletedWaitForPaint', () => {
-      it('does nothing when Idle', () => {
+      it.effect('does nothing when Idle', () =>
         Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
+          AnimationLive,
+          hidden,
           Story.message(
             Message.CompletedWaitForPaint({
               generation: INITIAL_TRANSITION_GENERATION,
@@ -215,15 +238,15 @@ describe('Animation', () => {
             expect(model.transitionState).toBe('Idle')
           }),
           Story.Command.expectNone(),
-        )
-      })
+        ),
+      )
     })
 
     describe('EndedAnimation', () => {
-      it('does nothing when Idle', () => {
+      it.effect('does nothing when Idle', () =>
         Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
+          AnimationLive,
+          hidden,
           Story.message(
             Message.EndedAnimation({
               generation: INITIAL_TRANSITION_GENERATION,
@@ -233,15 +256,16 @@ describe('Animation', () => {
             expect(model.transitionState).toBe('Idle')
           }),
           Story.Command.expectNone(),
-        )
-      })
+        ),
+      )
     })
 
     describe('stale results', () => {
-      it('ignores an enter settlement after a leave starts', () => {
+      it.effect('ignores an enter settlement after a leave starts', () =>
         Story.story(
-          update,
-          givenEnterAnimating,
+          AnimationLive,
+          hidden,
+          enterAnimating,
           resolveStaleSettle,
           Story.message(Message.Hid()),
           Story.Command.resolve(
@@ -271,13 +295,14 @@ describe('Animation', () => {
             expect(model.transitionState).toBe('Idle')
           }),
           Story.expectOutMessage(OutMessage.TransitionedOut()),
-        )
-      })
+        ),
+      )
 
-      it('ignores a leave settlement after an enter starts', () => {
+      it.effect('ignores a leave settlement after an enter starts', () =>
         Story.story(
-          update,
-          givenLeaveAnimating,
+          AnimationLive,
+          showing,
+          leaveAnimating,
           Story.message(Message.Showed()),
           Story.Command.resolve(
             WaitForPaint,
@@ -305,13 +330,13 @@ describe('Animation', () => {
             expect(model.transitionState).toBe('Idle')
           }),
           Story.expectNoOutMessage(),
-        )
-      })
+        ),
+      )
 
-      it('ignores an enter paint after a leave starts', () => {
+      it.effect('ignores an enter paint after a leave starts', () =>
         Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
+          AnimationLive,
+          hidden,
           Story.message(Message.Showed()),
           Story.Command.resolve(
             WaitForPaint,
@@ -348,177 +373,432 @@ describe('Animation', () => {
               generation: SECOND_TRANSITION_GENERATION,
             }),
           ),
-        )
-      })
+        ),
+      )
     })
   })
 
-  describe('toggle', () => {
-    it('shows a hidden animation', () => {
-      const animationToggle = block.operations.requestToggle(
-        init({ id: 'test' }).model,
-      )
+  describe('RequestedToggle', () => {
+    it.effect('shows a hidden animation', () =>
+      Story.story(
+        AnimationLive,
+        hidden,
+        Story.message(Message.RequestedToggle()),
+        Story.model(model => {
+          expect(model.isShowing).toBe(true)
+          expect(model.transitionState).toBe('EnterStart')
+        }),
+        Story.Command.expectExact(
+          WaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
+        ),
+        resolveFirstPaint,
+        resolveFirstSettle,
+      ),
+    )
 
-      expect(animationToggle.model.isShowing).toBe(true)
-      expect(animationToggle.model.transitionState).toBe('EnterStart')
-      expect(animationToggle.commands).toHaveLength(1)
-    })
-
-    it('hides a shown animation', () => {
-      const animationToggle = block.operations.requestToggle(
-        init({ id: 'test', isShowing: true }).model,
-      )
-
-      expect(animationToggle.model.isShowing).toBe(false)
-      expect(animationToggle.model.transitionState).toBe('LeaveStart')
-      expect(animationToggle.commands).toHaveLength(1)
-    })
+    it.effect('hides a shown animation', () =>
+      Story.story(
+        AnimationLive,
+        showing,
+        Story.message(Message.RequestedToggle()),
+        Story.model(model => {
+          expect(model.isShowing).toBe(false)
+          expect(model.transitionState).toBe('LeaveStart')
+        }),
+        Story.Command.expectExact(
+          WaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
+        ),
+        resolveFirstPaint,
+      ),
+    )
   })
 
-  describe('programmatic capabilities', () => {
-    it('shows a hidden Animation', () => {
-      const animationShow = block.operations.requestShow(
-        init({ id: 'test' }).model,
-      )
-
-      expect(animationShow.model.isShowing).toBe(true)
-      expect(animationShow.model.transitionState).toBe('EnterStart')
-      expect(animationShow.commands).toHaveLength(1)
-    })
-
-    it('hides a showing Animation', () => {
-      const animationHide = block.operations.requestHide(
-        init({ id: 'test', isShowing: true }).model,
-      )
-
-      expect(animationHide.model.isShowing).toBe(false)
-      expect(animationHide.model.transitionState).toBe('LeaveStart')
-      expect(animationHide.commands).toHaveLength(1)
-    })
-
-    it('requests the standard wait only while leave is animating', () => {
-      const idleModel = init({ id: 'test' }).model
-      const idleWait = block.operations.requestWaitForLeaveSettlement(idleModel)
-
-      expect(idleWait).toEqual({ model: idleModel })
-
-      const leaveStart = update(
-        init({ id: 'test', isShowing: true }).model,
-        Message.RequestedHide(),
-      )
-      const leaveAnimating = update(
-        leaveStart.model,
-        Message.CompletedWaitForPaint({
-          generation: FIRST_TRANSITION_GENERATION,
+  describe('parent requests', () => {
+    it.effect('RequestedShow shows a hidden Animation', () =>
+      Story.story(
+        AnimationLive,
+        hidden,
+        Story.message(Message.RequestedShow()),
+        Story.model(model => {
+          expect(model.isShowing).toBe(true)
+          expect(model.transitionState).toBe('EnterStart')
         }),
-      )
-      const leaveWait = block.operations.requestWaitForLeaveSettlement(
-        leaveAnimating.model,
-      )
+        Story.Command.expectExact(
+          WaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
+        ),
+        resolveFirstPaint,
+        resolveFirstSettle,
+      ),
+    )
 
-      expect(leaveWait.model).toBe(leaveAnimating.model)
-      expect(
-        leaveWait.commands?.map(({ name, args }) => ({ name, args })),
-      ).toStrictEqual([
-        {
-          name: WaitForAnimationSettled.name,
-          args: {
+    it.effect('RequestedHide hides a showing Animation', () =>
+      Story.story(
+        AnimationLive,
+        showing,
+        Story.message(Message.RequestedHide()),
+        Story.model(model => {
+          expect(model.isShowing).toBe(false)
+          expect(model.transitionState).toBe('LeaveStart')
+        }),
+        Story.Command.expectExact(
+          WaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
+        ),
+        resolveFirstPaint,
+      ),
+    )
+
+    it.effect('RequestedFinish completes only the current generation', () =>
+      Story.story(
+        AnimationLive,
+        showing,
+        leaveAnimating,
+        Story.message(
+          Message.RequestedFinish({ generation: STALE_TRANSITION_GENERATION }),
+        ),
+        Story.model(model => {
+          expect(model.transitionState).toBe('LeaveAnimating')
+        }),
+        Story.expectNoOutMessage(),
+        Story.message(
+          Message.RequestedFinish({ generation: FIRST_TRANSITION_GENERATION }),
+        ),
+        Story.model(model => {
+          expect(model.transitionState).toBe('Idle')
+        }),
+        Story.expectOutMessage(OutMessage.TransitionedOut()),
+      ),
+    )
+
+    it.effect(
+      'RequestedWaitForLeaveSettlement does nothing unless leave is animating',
+      () =>
+        Story.story(
+          AnimationLive,
+          hidden,
+          Story.message(Message.RequestedWaitForLeaveSettlement()),
+          Story.model(model => {
+            expect(model).toStrictEqual({
+              id: 'test',
+              isShowing: false,
+              transitionState: 'Idle',
+              transitionGeneration: INITIAL_TRANSITION_GENERATION,
+            })
+          }),
+          Story.Command.expectNone(),
+          Story.expectNoOutMessage(),
+        ),
+    )
+
+    it.effect(
+      'RequestedWaitForLeaveSettlement waits while leave is animating',
+      () =>
+        Story.story(
+          AnimationLive,
+          showing,
+          leaveAnimating,
+          Story.message(Message.RequestedWaitForLeaveSettlement()),
+          Story.model(model => {
+            expect(model).toStrictEqual(leaveAnimatingModel)
+          }),
+          Story.Command.expectExact(
+            WaitForAnimationSettled({
+              id: 'test',
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
+          resolveFirstSettle,
+        ),
+    )
+
+    it.effect(
+      'emits TransitionedOut once when the wait is requested twice',
+      () =>
+        Story.story(
+          AnimationLive,
+          showing,
+          leaveAnimating,
+          Story.message(
+            Message.CompletedWaitForPaint({
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.model(model => {
+            expect(model).toStrictEqual(leaveAnimatingModel)
+          }),
+          Story.Command.expectNone(),
+          Story.expectNoOutMessage(),
+          Story.message(Message.RequestedWaitForLeaveSettlement()),
+          Story.message(Message.RequestedWaitForLeaveSettlement()),
+          Story.Command.expectExact(
+            WaitForAnimationSettled({
+              id: 'test',
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+            WaitForAnimationSettled({
+              id: 'test',
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.message(
+            Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
+          ),
+          Story.expectOutMessage(OutMessage.TransitionedOut()),
+          Story.message(
+            Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('Idle')
+          }),
+          Story.expectNoOutMessage(),
+          Story.Command.resolveAllExact(
+            [
+              WaitForAnimationSettled,
+              Message.EndedAnimation({
+                generation: FIRST_TRANSITION_GENERATION,
+              }),
+            ],
+            [
+              WaitForAnimationSettled,
+              Message.EndedAnimation({
+                generation: FIRST_TRANSITION_GENERATION,
+              }),
+            ],
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('Idle')
+          }),
+          Story.expectNoOutMessage(),
+        ),
+    )
+
+    it.effect(
+      'RequestedImmediateReset resets a leaving Animation without completing the transition',
+      () =>
+        Story.story(
+          AnimationLive,
+          showing,
+          leaveAnimating,
+          Story.message(Message.RequestedImmediateReset()),
+          Story.model(model => {
+            expect(model).toStrictEqual({
+              id: 'test',
+              isShowing: false,
+              transitionState: 'Idle',
+              transitionGeneration: FIRST_TRANSITION_GENERATION,
+            })
+          }),
+          Story.Command.expectNone(),
+          Story.expectNoOutMessage(),
+          Story.message(
+            Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('Idle')
+          }),
+          Story.expectNoOutMessage(),
+        ),
+    )
+
+    it.effect('RequestedResume repeats the wait the current phase needs', () =>
+      Story.story(
+        AnimationLive,
+        hidden,
+        Story.message(Message.RequestedResume()),
+        Story.Command.expectNone(),
+        Story.message(Message.RequestedShow()),
+        resolveFirstPaint,
+        Story.Command.resolve(
+          WaitForAnimationSettled,
+          Message.EndedAnimation({ generation: STALE_TRANSITION_GENERATION }),
+        ),
+        Story.message(Message.RequestedResume()),
+        Story.Command.expectExact(
+          WaitForAnimationSettled({
             id: 'test',
             generation: FIRST_TRANSITION_GENERATION,
-          },
-        },
-      ])
+          }),
+        ),
+        resolveFirstSettle,
+        Story.model(model => {
+          expect(model.transitionState).toBe('Idle')
+        }),
+      ),
+    )
+  })
+
+  describe('in a parent', () => {
+    const PanelMessage = defineMessageUnion({
+      ClickedShow: {},
+      ClickedHide: {},
+      ClickedAddEntry: {},
     })
 
-    it('emits TransitionedOut once when the standard wait is explicitly requested twice', () => {
-      const leaveStart = update(
-        init({ id: 'test', isShowing: true }).model,
-        Message.RequestedHide(),
-      )
-      const leaveAnimating = update(
-        leaveStart.model,
-        Message.CompletedWaitForPaint({
-          generation: FIRST_TRANSITION_GENERATION,
+    class Panel extends Block<Panel>()('Panel', {
+      Model: Schema.Struct({
+        animation: Animation,
+        entries: Schema.Array(Animation),
+        transitionedOutCount: Schema.Number,
+        nextEntryKey: Schema.Number,
+      }),
+      Message: PanelMessage,
+    }) {}
+
+    const PanelLive = Panel.make(
+      Effect.fn(function* () {
+        const animation = yield* new Animation('animation', {
+          id: 'panel-content',
+        })
+        const entry = yield* Animation.each('entries', { isShowing: true })
+
+        return {
+          model: {
+            animation,
+            entries: [],
+            transitionedOutCount: 0,
+            nextEntryKey: 0,
+          },
+          update: {
+            ClickedShow: model => ({
+              model,
+              messages: [model.animation.send(Message.RequestedShow())],
+            }),
+            ClickedHide: model => ({
+              model,
+              messages: [model.animation.send(Message.RequestedHide())],
+            }),
+            ClickedAddEntry: model => ({
+              model: {
+                ...model,
+                entries: Array.append(
+                  model.entries,
+                  entry(`entry-${model.nextEntryKey}`),
+                ),
+                nextEntryKey: model.nextEntryKey + 1,
+              },
+            }),
+            ...animation.on({
+              StartedLeaveAnimating: model => ({
+                model,
+                messages: [
+                  model.animation.send(
+                    Message.RequestedWaitForLeaveSettlement(),
+                  ),
+                ],
+              }),
+              TransitionedOut: model => ({
+                model: {
+                  ...model,
+                  transitionedOutCount: model.transitionedOutCount + 1,
+                },
+              }),
+            }),
+          },
+          view: (model, h) =>
+            h.div(
+              [],
+              [
+                h.button([h.OnClick(PanelMessage.ClickedShow())], ['Show']),
+                h.button([h.OnClick(PanelMessage.ClickedHide())], ['Hide']),
+                model.animation.view({
+                  toView: () => h.p([], ['Content']),
+                  className: 'panel',
+                  attributes: childAttributes([h.Role('region')]),
+                }),
+              ],
+            ),
+        }
+      }),
+    )
+
+    const PanelWithAnimation = PanelLive.pipe(Layer.provide(AnimationLive))
+
+    it.effect(
+      'drives the lifecycle through sent Messages and OutMessages',
+      () =>
+        Story.story(
+          PanelWithAnimation,
+          Story.message(PanelMessage.ClickedShow()),
+          Story.model(model => {
+            expect(model.animation.transitionState).toBe('EnterStart')
+          }),
+          resolveFirstPaint,
+          Story.Command.resolve(
+            WaitForAnimationSettled,
+            Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
+          ),
+          Story.message(PanelMessage.ClickedHide()),
+          Story.Command.resolve(
+            WaitForPaint,
+            Message.CompletedWaitForPaint({
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.Command.expectExact(
+            WaitForAnimationSettled({
+              id: 'panel-content',
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.Command.resolve(
+            WaitForAnimationSettled,
+            Message.EndedAnimation({
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.model(model => {
+            expect(model.animation.transitionState).toBe('Idle')
+            expect(model.transitionedOutCount).toBe(1)
+          }),
+        ),
+    )
+
+    it.effect('uses each instance key as its element id', () =>
+      Story.story(
+        PanelWithAnimation,
+        Story.message(PanelMessage.ClickedAddEntry()),
+        Story.message(PanelMessage.ClickedAddEntry()),
+        Story.model(model => {
+          expect(model.entries).toStrictEqual([
+            {
+              id: 'entry-0',
+              isShowing: true,
+              transitionState: 'Idle',
+              transitionGeneration: INITIAL_TRANSITION_GENERATION,
+            },
+            {
+              id: 'entry-1',
+              isShowing: true,
+              transitionState: 'Idle',
+              transitionGeneration: INITIAL_TRANSITION_GENERATION,
+            },
+          ])
         }),
-      )
-      const duplicatePaint = update(
-        leaveAnimating.model,
-        Message.CompletedWaitForPaint({
-          generation: FIRST_TRANSITION_GENERATION,
-        }),
-      )
-      const firstWait = block.operations.requestWaitForLeaveSettlement(
-        duplicatePaint.model,
-      )
-      const duplicateWait = block.operations.requestWaitForLeaveSettlement(
-        firstWait.model,
-      )
-      const expectedWait = [
-        {
-          name: WaitForAnimationSettled.name,
-          args: {
-            id: 'test',
+      ),
+    )
+
+    it.effect('renders transition data attributes and parent content', () =>
+      Scene.scene(
+        PanelWithAnimation,
+        Scene.expect(Scene.role('region')).toBeAbsent(),
+        Scene.click(Scene.role('button', { name: 'Show' })),
+        Scene.expect(Scene.role('region')).toHaveAttr('id', 'panel-content'),
+        Scene.expect(Scene.role('region')).toHaveAttr('data-enter', ''),
+        Scene.expect(Scene.role('region')).toHaveAttr('data-closed', ''),
+        Scene.expect(Scene.text('Content')).toExist(),
+        Scene.Command.resolve(
+          WaitForPaint,
+          Message.CompletedWaitForPaint({
             generation: FIRST_TRANSITION_GENERATION,
-          },
-        },
-      ]
-
-      expect(duplicatePaint).toEqual({ model: leaveAnimating.model })
-      expect(
-        firstWait.commands?.map(({ name, args }) => ({ name, args })),
-      ).toStrictEqual(expectedWait)
-      expect(
-        duplicateWait.commands?.map(({ name, args }) => ({ name, args })),
-      ).toStrictEqual(expectedWait)
-
-      const firstCompletion = update(
-        duplicateWait.model,
-        Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
-      )
-
-      expect(firstCompletion.outMessage).toEqual(OutMessage.TransitionedOut())
-
-      const duplicateCompletion = update(
-        firstCompletion.model,
-        Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
-      )
-
-      expect(duplicateCompletion).toEqual({ model: firstCompletion.model })
-    })
-
-    it('resets a leaving Animation immediately without completing the transition', () => {
-      const leaveStart = update(
-        init({ id: 'test', isShowing: true }).model,
-        Message.RequestedHide(),
-      )
-      const leaveAnimating = update(
-        leaveStart.model,
-        Message.CompletedWaitForPaint({
-          generation: FIRST_TRANSITION_GENERATION,
-        }),
-      )
-
-      const animationReset = block.operations.requestImmediateReset(
-        leaveAnimating.model,
-      )
-
-      expect(animationReset).toEqual({
-        model: {
-          id: 'test',
-          isShowing: false,
-          transitionState: 'Idle',
-          transitionGeneration: FIRST_TRANSITION_GENERATION,
-        },
-      })
-
-      const staleSettlement = update(
-        animationReset.model,
-        Message.EndedAnimation({
-          generation: FIRST_TRANSITION_GENERATION,
-        }),
-      )
-
-      expect(staleSettlement).toEqual({ model: animationReset.model })
-    })
+          }),
+        ),
+        Scene.expect(Scene.role('region')).not.toHaveAttr('data-closed'),
+        Scene.Command.resolve(
+          WaitForAnimationSettled,
+          Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
+        ),
+        Scene.expect(Scene.role('region')).not.toHaveAttr('data-transition'),
+        Scene.expect(Scene.role('region')).toHaveAttr('class', 'panel'),
+      ),
+    )
   })
 })

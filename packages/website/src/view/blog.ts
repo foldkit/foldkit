@@ -2,33 +2,23 @@ import { Match, Option } from 'effect'
 import { Html, createKeyedLazy, inertHtml as ih } from 'foldkit/html'
 
 import { Shared } from '../component'
-import type { ApplicationViewBuilder } from '../composition'
-import {
-  SnippetCopyBinding,
-  SnippetDisclosureBinding,
-  UiPagesBinding,
-} from '../composition'
 import { Docs } from '../layout'
 import { docPage } from '../markdown'
 import { Message } from '../message'
 import { type Model } from '../model'
-import { Blog, NotFound, UiBlock } from '../page'
+import { Blog, NotFound } from '../page'
 import * as Release0167 from '../page/blog/post/foldkit-0-167-0'
 import * as Prose from '../prose'
 import { type ApplicationRoute, homeRouter } from '../route'
-import { SnippetCopyBlock } from '../snippetCopy'
 import * as SnippetCopyRenderer from '../snippetCopyRenderer'
-import { SnippetDisclosureBlock } from '../snippetDisclosure'
 import * as SnippetDisclosureRenderer from '../snippetDisclosureRenderer'
+import type { ApplicationViewBuilder } from './builder'
 import * as Search from './search'
 import * as Sidebar from './sidebar'
 
 type BlogRoute = typeof ApplicationRoute.Blog.Type
 type BlogPostRoute = typeof ApplicationRoute.BlogPost.Type
 
-type SnippetCopyBlockModel = typeof SnippetCopyBlock.Model.Type
-type SnippetDisclosureBlockModel = typeof SnippetDisclosureBlock.Model.Type
-type UiBlockModel = typeof UiBlock.Model.Type
 type Blog = BlogRoute
 type BlogPost = BlogPostRoute
 
@@ -37,19 +27,17 @@ const PagefindIgnore = ih.DataAttribute('pagefind-ignore', '')
 
 const postView = (
   post: Blog.BlogPost,
-  snippetCopy: SnippetCopyBlockModel,
-  snippetDisclosure: SnippetDisclosureBlockModel,
-  uiPages: UiBlockModel,
+  snippetCopy: Model['snippetCopy'],
+  snippetDisclosure: Model['snippetDisclosure'],
+  uiPages: Model['uiPages'],
+  url: Model['url'],
   h: ApplicationViewBuilder,
 ): Html => {
-  const renderCopyButton = SnippetCopyRenderer.renderer(snippetCopy, config =>
-    h.block(SnippetCopyBinding.embedView(config)),
-  )
+  const renderCopyButton = SnippetCopyRenderer.renderer(snippetCopy)
 
   const renderSnippet = SnippetDisclosureRenderer.renderer(
     snippetDisclosure,
     renderCopyButton,
-    config => h.block(SnippetDisclosureBinding.embedView(config)),
   )
   const renderHeadingLink = Prose.renderHeadingLink(
     hash => Message.ClickedCopyLink({ hash }),
@@ -58,13 +46,17 @@ const postView = (
 
   const content =
     post.slug === 'foldkit-0-167-0'
-      ? h.block(
-          UiPagesBinding.embedView({
-            slotId: 'blog-release-0167',
-            model: uiPages,
-            view: Release0167.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
+      ? Release0167.view(
+          uiPages.view({
+            page: 'Release0167ChatDemo',
+            url,
+            renderCopyButton,
+            renderSnippet,
+            renderHeadingLink,
           }),
+          renderCopyButton,
+          renderSnippet,
+          renderHeadingLink,
         )
       : docPage(post.document, post.slug).view(
           renderCopyButton,
@@ -95,6 +87,7 @@ export const view = (
               model.snippetCopy,
               model.snippetDisclosure,
               model.uiPages,
+              model.url,
               h,
             ]),
         }),
@@ -111,7 +104,7 @@ export const view = (
     [
       Shared.skipNavLink,
       Docs.headerView(model, h),
-      Search.dialogView(model, h),
+      Search.dialogView(model),
       Sidebar.mobileView(model, h),
       h.main(
         [

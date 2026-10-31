@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import {
   Command,
   Mount,
@@ -10,18 +11,25 @@ import {
   text,
 } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
 
+import { describe, it } from '@effect/vitest'
 import { RadioGroup } from '@foldkit/ui'
 
-import { SyncChart } from './command'
-import { Message } from './message'
-import { TelemetryAsyncData } from './model'
-import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
-import { CHART_HOST_ID, MountChart } from './mount'
-import { ChartModeRadioGroupBlock } from './radioGroups'
-import { update } from './update'
-import { view } from './view/index'
+import {
+  CHART_HOST_ID,
+  Message,
+  MountChart,
+  SyncChart,
+  TelemetryAsyncData,
+} from './application'
+import {
+  application,
+  loadingModel,
+  readyModel,
+  sampleTelemetry,
+} from './model.fixture'
+import { ApplicationLayer } from './services'
+import { ChartModeRadioGroup } from './sidebar'
 
 const acknowledgeChartMount = Mount.resolve(
   MountChart,
@@ -35,21 +43,21 @@ const acknowledgeChartSync = Command.resolve(
 
 const resolveFocusOption = Command.resolve(
   RadioGroup.test.FocusOption,
-  ChartModeRadioGroupBlock.Message.CompletedFocusOption(),
+  ChartModeRadioGroup.Message.CompletedFocusOption(),
 )
 
 describe('view', () => {
-  test('loading view shows a telemetry progress state', () => {
+  it.effect('loading view shows a telemetry progress state', () =>
     scene(
-      { update, view },
+      application,
       given(loadingModel),
       expect(label('Loading telemetry')).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(ApplicationLayer)),
+  )
 
-  test('ready view shows summaries and chart controls', () => {
+  it.effect('ready view shows summaries and chart controls', () =>
     scene(
-      { update, view },
+      application,
       given(readyModel),
       acknowledgeChartMount,
       acknowledgeChartSync,
@@ -57,12 +65,12 @@ describe('view', () => {
       expect(text('Downloads')).toExist(),
       expect(role('radio', { name: 'Velocity' })).toExist(),
       expect(role('radio', { name: /@foldkit\/ui/ })).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(ApplicationLayer)),
+  )
 
-  test('clicking a chart mode updates the visible selected control', () => {
+  it.effect('clicking a chart mode updates the visible selected control', () =>
     scene(
-      { update, view },
+      application,
       given(readyModel),
       acknowledgeChartMount,
       acknowledgeChartSync,
@@ -73,12 +81,12 @@ describe('view', () => {
         'aria-checked',
         'true',
       ),
-    )
-  })
+    ).pipe(Effect.provide(ApplicationLayer)),
+  )
 
-  test('refreshing state keeps the dashboard visible', () => {
+  it.effect('refreshing state keeps the dashboard visible', () =>
     scene(
-      { update, view },
+      application,
       given(
         modifyFields(readyModel, {
           telemetry: () =>
@@ -89,12 +97,12 @@ describe('view', () => {
       acknowledgeChartSync,
       expect(text('Refreshing public data')).toExist(),
       expect(text('Contributors')).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(ApplicationLayer)),
+  )
 
-  test('failure without stale data shows retry', () => {
+  it.effect('failure without stale data shows retry', () =>
     scene(
-      { update, view },
+      application,
       given(
         modifyFields(loadingModel, {
           telemetry: () => TelemetryAsyncData.Failure({ error: 'offline' }),
@@ -102,6 +110,6 @@ describe('view', () => {
       ),
       expect(label('Telemetry failed')).toExist(),
       expect(role('button', { name: 'Retry' })).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(ApplicationLayer)),
+  )
 })

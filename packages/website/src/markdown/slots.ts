@@ -31,10 +31,10 @@ export type Slots<DemoName extends string> = Readonly<{
   renderFaq?: RenderFaq
   /**
    * Controls the page does not own but its markdown renders: the SnippetCopy
-   * Block button and the heading copy-link. The boundary that owns those
-   * behaviors constructs the renderers. A page embedded with `h.block`
-   * receives them from its parent through `viewInputs`, so each control keeps
-   * dispatching through its actual owner rather than the page's boundary.
+   * Block button and the heading copy-link. The Block that owns those
+   * behaviors constructs the renderers. A page rendered by a child Block
+   * receives them from its parent in its view input, and view input functions
+   * run as the parent, so each control dispatches to its actual owner.
    */
   renderCopyButton: CodeBlock.RenderCopyButton
   renderSnippet: CodeBlock.RenderSnippet

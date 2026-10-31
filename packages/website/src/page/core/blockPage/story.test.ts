@@ -1,19 +1,18 @@
-import { given, message, model, story } from 'foldkit/story'
-import { describe, expect, test } from 'vitest'
+import { message, model, story } from 'foldkit/story'
 
-import { init } from './init'
+import { describe, expect, it } from '@effect/vitest'
+
+import { BlockPageLive } from './block'
 import { Message } from './message'
-import { update } from './update'
 
 describe('Block page', () => {
-  test('owns the mapMessages disclosure state', () => {
+  it.effect('owns the message routing disclosure state', () =>
     story(
-      update,
-      given(init().model),
-      message(Message.ToggledMapMessagesUnderHood({ isOpen: true })),
+      BlockPageLive,
+      message(Message.ToggledMessageRoutingUnderHood({ isOpen: true })),
       model(model => {
-        expect(model.isMapMessagesUnderHoodOpen).toBe(true)
+        expect(model.isMessageRoutingUnderHoodOpen).toBe(true)
       }),
-    )
-  })
+    ),
+  )
 })

@@ -1,4 +1,5 @@
-import { Match, Option, Schema } from 'effect'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
+import { Block } from 'foldkit'
 import * as Calendar from 'foldkit/calendar'
 import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
@@ -8,17 +9,12 @@ import { describe, it } from '@effect/vitest'
 
 import * as UiCalendar from '../calendar/block.js'
 import * as Popover from '../popover/block.js'
-import type { Model, ViewInputs } from './block.js'
 import {
-  DatePickerBlock,
-  Message,
-  init,
+  DatePicker,
+  DatePickerLive,
+  type ViewInputs,
   triggerId,
-  update,
-  view,
 } from './block.js'
-
-type TestHtmlBuilder = Parameters<typeof view>[2]
 
 const acknowledgeAnchorPopover = Scene.Mount.resolve(
   Popover.AnchorPopover,
@@ -31,17 +27,10 @@ const acknowledgePopoverBackdrop = Scene.Mount.resolve(
 
 const today = Calendar.make(2026, 4, 13)
 
-const gotCalendarMessage = ({
-  message,
-}: Readonly<{
-  message: typeof UiCalendar.CalendarBlock.Message.Type
-}>) =>
-  Schema.decodeSync(DatePickerBlock.Message)({
-    _tag: 'GotCalendarMessage',
-    placement: 'calendar',
-    generation: 0,
-    message,
-  })
+const resolveFocusGrid = Scene.Command.resolve(
+  UiCalendar.FocusGrid,
+  UiCalendar.Message.CompletedFocusGrid(),
+)
 
 const germanCalendarViewLabels: UiCalendar.ViewLabels = {
   previousMonthLabel: 'Vorheriger Monat',
@@ -146,277 +135,293 @@ const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) =>
     ],
   )
 
-const sceneView =
-  (
-    overrides: Omit<
-      Partial<ViewInputs>,
-      'anchor' | 'triggerContent' | 'toCalendarView'
-    > = {},
-  ) =>
-  (model: Model, h: TestHtmlBuilder) =>
-    view(
-      model,
-      {
-        anchor: { placement: 'bottom-start' },
-        maybeSelectedDate: Option.none(),
-        triggerContent,
-        toCalendarView: testToCalendarView,
-        ...overrides,
-      },
-      h,
-    )
+type Overrides = Omit<
+  Partial<ViewInputs>,
+  'anchor' | 'triggerContent' | 'toCalendarView'
+>
+
+class DatePickerScene extends Block<DatePickerScene, Overrides>()(
+  'DatePickerScene',
+  { Model: Schema.Struct({ datePicker: DatePicker }) },
+) {}
+
+const DatePickerSceneLive = DatePickerScene.make(
+  Effect.fn(function* (_id, overrides) {
+    const datePicker = yield* new DatePicker('datePicker', {
+      id: 'picker',
+      today,
+    })
+
+    return {
+      model: { datePicker },
+      view: model =>
+        model.datePicker.view({
+          anchor: { placement: 'bottom-start' },
+          maybeSelectedDate: Option.none(),
+          triggerContent,
+          toCalendarView: testToCalendarView,
+          ...overrides,
+        }),
+    }
+  }),
+).pipe(Layer.provide(DatePickerLive))
 
 const trigger = Scene.selector('#picker-popover-button')
 const panel = Scene.selector('#picker-popover-panel')
 const grid = Scene.role('grid')
 const hiddenInput = Scene.selector('input[type="hidden"]')
 
-const closedModel = init({ id: 'picker', today }).model
-const pickerOpen = update(closedModel, Message.Opened())
+const openPicker = [
+  Scene.click(trigger),
+  acknowledgeAnchorPopover,
+  acknowledgePopoverBackdrop,
+]
+
+const drillIntoMonths = [
+  ...openPicker,
+  Scene.click(Scene.label('Zur Monatsauswahl')),
+  resolveFocusGrid,
+]
+
+const drillIntoYears = [
+  ...drillIntoMonths,
+  Scene.click(Scene.label('Zur Jahresauswahl')),
+  resolveFocusGrid,
+]
 
 describe('DatePicker', () => {
   describe('rendering', () => {
-    it('renders the trigger button with type=button and default aria-expanded false', () => {
-      Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(closedModel),
-        Scene.expect(trigger).toExist(),
-        Scene.expect(trigger).toHaveAttr('type', 'button'),
-        Scene.expect(trigger).toHaveAttr('aria-expanded', 'false'),
-        Scene.expect(trigger).not.toHaveAttr('aria-controls'),
-      )
-    })
-
-    it('renders the trigger placeholder text when no date is selected', () => {
-      Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(closedModel),
-        Scene.expect(trigger).toHaveText('Pick a date'),
-      )
-    })
-
-    it('renders the trigger with the selected date when one is set', () => {
-      const selected = Calendar.make(2026, 4, 20)
-      Scene.scene(
-        {
-          update,
-          view: sceneView({ maybeSelectedDate: Option.some(selected) }),
-        },
-        Scene.given(closedModel),
-        Scene.expect(trigger).toHaveText('2026-4-20'),
-      )
-    })
-
-    it('does not render the calendar grid when the popover is closed', () => {
-      Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(closedModel),
-        Scene.expect(grid).toBeAbsent(),
-      )
-    })
-
-    it('renders the calendar grid inside the popover panel when open', () => {
-      Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(pickerOpen.model),
-        Scene.expect(panel).toExist(),
-        Scene.expect(grid).toExist(),
-        Scene.expect(trigger).toHaveAttr(
-          'aria-controls',
-          'picker-popover-panel',
+    it.effect(
+      'renders the trigger button with type=button and default aria-expanded false',
+      () =>
+        Scene.scene(
+          DatePickerSceneLive,
+          {},
+          Scene.expect(trigger).toExist(),
+          Scene.expect(trigger).toHaveAttr('type', 'button'),
+          Scene.expect(trigger).toHaveAttr('aria-expanded', 'false'),
+          Scene.expect(trigger).not.toHaveAttr('aria-controls'),
         ),
-        acknowledgeAnchorPopover,
-        acknowledgePopoverBackdrop,
-      )
-    })
+    )
+
+    it.effect(
+      'renders the trigger placeholder text when no date is selected',
+      () =>
+        Scene.scene(
+          DatePickerSceneLive,
+          {},
+          Scene.expect(trigger).toHaveText('Pick a date'),
+        ),
+    )
+
+    it.effect(
+      'renders the trigger with the selected date when one is set',
+      () => {
+        const selected = Calendar.make(2026, 4, 20)
+        return Scene.scene(
+          DatePickerSceneLive,
+          { maybeSelectedDate: Option.some(selected) },
+          Scene.expect(trigger).toHaveText('2026-4-20'),
+        )
+      },
+    )
+
+    it.effect(
+      'does not render the calendar grid when the popover is closed',
+      () =>
+        Scene.scene(DatePickerSceneLive, {}, Scene.expect(grid).toBeAbsent()),
+    )
+
+    it.effect(
+      'renders the calendar grid inside the popover panel when open',
+      () =>
+        Scene.scene(
+          DatePickerSceneLive,
+          {},
+          ...openPicker,
+          Scene.expect(panel).toExist(),
+          Scene.expect(grid).toExist(),
+          Scene.expect(trigger).toHaveAttr(
+            'aria-controls',
+            'picker-popover-panel',
+          ),
+        ),
+    )
   })
 
   describe('Calendar view labels', () => {
-    const pickerMonths = update(
-      pickerOpen.model,
-      gotCalendarMessage({
-        message: UiCalendar.Message.ClickedHeading(),
-      }),
-    )
-    const pickerYears = update(
-      pickerMonths.model,
-      gotCalendarMessage({
-        message: UiCalendar.Message.ClickedHeading(),
-      }),
-    )
-
-    it('forwards Days-mode labels to the embedded Calendar', () => {
+    it.effect('forwards Days-mode labels to the embedded Calendar', () =>
       Scene.scene(
-        { update, view: sceneView(germanCalendarViewLabels) },
-        Scene.given(pickerOpen.model),
+        DatePickerSceneLive,
+        germanCalendarViewLabels,
+        ...openPicker,
         Scene.expect(Scene.label('Vorheriger Monat')).toExist(),
         Scene.expect(Scene.label('Nächster Monat')).toExist(),
         Scene.expect(Scene.label('Zur Monatsauswahl')).toExist(),
         Scene.expect(Scene.label('Kalender, April 2026')).toExist(),
         Scene.expect(Scene.label('Woche ab March 29, 2026')).toExist(),
-        acknowledgeAnchorPopover,
-        acknowledgePopoverBackdrop,
-      )
-    })
+      ),
+    )
 
-    it('forwards Months-mode labels to the embedded Calendar', () => {
+    it.effect('forwards Months-mode labels to the embedded Calendar', () =>
       Scene.scene(
-        { update, view: sceneView(germanCalendarViewLabels) },
-        Scene.given(pickerMonths.model),
+        DatePickerSceneLive,
+        germanCalendarViewLabels,
+        ...drillIntoMonths,
         Scene.expect(Scene.label('Zur Jahresauswahl')).toExist(),
         Scene.expect(Scene.label('Monatsauswahl, 2026')).toExist(),
-        acknowledgeAnchorPopover,
-        acknowledgePopoverBackdrop,
-      )
-    })
+      ),
+    )
 
-    it('forwards Years-mode labels to the embedded Calendar', () => {
+    it.effect('forwards Years-mode labels to the embedded Calendar', () =>
       Scene.scene(
-        { update, view: sceneView(germanCalendarViewLabels) },
-        Scene.given(pickerYears.model),
+        DatePickerSceneLive,
+        germanCalendarViewLabels,
+        ...drillIntoYears,
         Scene.expect(Scene.label('Vorherige 12 Jahre')).toExist(),
         Scene.expect(Scene.label('Nächste 12 Jahre')).toExist(),
         Scene.expect(Scene.label('Jahresauswahl, 2016–2027')).toExist(),
-        acknowledgeAnchorPopover,
-        acknowledgePopoverBackdrop,
-      )
-    })
+      ),
+    )
   })
 
   describe('contentFocus popover wiring', () => {
-    it('does not put tabindex on the popover panel when open', () => {
+    it.effect('does not put tabindex on the popover panel when open', () =>
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(pickerOpen.model),
+        DatePickerSceneLive,
+        {},
+        ...openPicker,
         Scene.expect(panel).not.toHaveAttr('tabIndex'),
-        acknowledgeAnchorPopover,
-        acknowledgePopoverBackdrop,
-      )
-    })
+      ),
+    )
 
-    it('does not attach a blur handler to the popover panel when open', () => {
-      Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(pickerOpen.model),
-        Scene.expect(panel).not.toHaveHandler('blur'),
-        acknowledgeAnchorPopover,
-        acknowledgePopoverBackdrop,
-      )
-    })
+    it.effect(
+      'does not attach a blur handler to the popover panel when open',
+      () =>
+        Scene.scene(
+          DatePickerSceneLive,
+          {},
+          ...openPicker,
+          Scene.expect(panel).not.toHaveHandler('blur'),
+        ),
+    )
 
-    it('still attaches a keydown handler to the popover panel for Escape', () => {
-      // NOTE: Keydown events bubble, so the panel handler catches Escape
-      // presses even though focus lives on the calendar grid (a descendant).
-      // Removing this while retaining contentFocus would break Escape-to-close.
-      Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(pickerOpen.model),
-        Scene.expect(panel).toHaveHandler('keydown'),
-        acknowledgeAnchorPopover,
-        acknowledgePopoverBackdrop,
-      )
-    })
+    it.effect(
+      'still attaches a keydown handler to the popover panel for Escape',
+      () => {
+        // NOTE: Keydown events bubble, so the panel handler catches Escape
+        // presses even though focus lives on the calendar grid (a descendant).
+        // Removing this while retaining contentFocus would break Escape-to-close.
+        return Scene.scene(
+          DatePickerSceneLive,
+          {},
+          ...openPicker,
+          Scene.expect(panel).toHaveHandler('keydown'),
+        )
+      },
+    )
   })
 
   describe('hidden form input', () => {
-    it('does not render a hidden input when no name is provided', () => {
+    it.effect('does not render a hidden input when no name is provided', () =>
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(closedModel),
+        DatePickerSceneLive,
+        {},
         Scene.expect(hiddenInput).toBeAbsent(),
-      )
-    })
+      ),
+    )
 
-    it('renders a hidden input with the name when provided', () => {
+    it.effect('renders a hidden input with the name when provided', () =>
       Scene.scene(
-        { update, view: sceneView({ name: 'dob' }) },
-        Scene.given(closedModel),
+        DatePickerSceneLive,
+        { name: 'dob' },
         Scene.expect(hiddenInput).toExist(),
         Scene.expect(hiddenInput).toHaveAttr('name', 'dob'),
-      )
-    })
+      ),
+    )
 
-    it('emits an empty hidden input value when no date is selected', () => {
-      Scene.scene(
-        { update, view: sceneView({ name: 'dob' }) },
-        Scene.given(closedModel),
-        Scene.expect(hiddenInput).toHaveValue(''),
-      )
-    })
+    it.effect(
+      'emits an empty hidden input value when no date is selected',
+      () =>
+        Scene.scene(
+          DatePickerSceneLive,
+          { name: 'dob' },
+          Scene.expect(hiddenInput).toHaveValue(''),
+        ),
+    )
 
-    it('encodes the selected date as ISO YYYY-MM-DD', () => {
+    it.effect('encodes the selected date as ISO YYYY-MM-DD', () => {
       const selected = Calendar.make(2026, 4, 5)
-      Scene.scene(
+      return Scene.scene(
+        DatePickerSceneLive,
         {
-          update,
-          view: sceneView({
-            name: 'dob',
-            maybeSelectedDate: Option.some(selected),
-          }),
+          name: 'dob',
+          maybeSelectedDate: Option.some(selected),
         },
-        Scene.given(closedModel),
         Scene.expect(hiddenInput).toHaveValue('2026-04-05'),
       )
     })
 
-    it('pads single-digit months and days to two characters', () => {
+    it.effect('pads single-digit months and days to two characters', () => {
       const selected = Calendar.make(2026, 1, 9)
-      Scene.scene(
+      return Scene.scene(
+        DatePickerSceneLive,
         {
-          update,
-          view: sceneView({
-            name: 'dob',
-            maybeSelectedDate: Option.some(selected),
-          }),
+          name: 'dob',
+          maybeSelectedDate: Option.some(selected),
         },
-        Scene.given(closedModel),
         Scene.expect(hiddenInput).toHaveValue('2026-01-09'),
       )
     })
   })
 
   describe('trigger labeling', () => {
-    it('no aria-label or aria-labelledby on the trigger by default', () => {
-      Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(closedModel),
-        Scene.expect(trigger).not.toHaveAttr('aria-label'),
-        Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
-      )
-    })
+    it.effect(
+      'no aria-label or aria-labelledby on the trigger by default',
+      () =>
+        Scene.scene(
+          DatePickerSceneLive,
+          {},
+          Scene.expect(trigger).not.toHaveAttr('aria-label'),
+          Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
+        ),
+    )
 
-    it('applies aria-label to the trigger when ariaLabel is provided', () => {
-      Scene.scene(
-        { update, view: sceneView({ ariaLabel: 'Due date' }) },
-        Scene.given(closedModel),
-        Scene.expect(trigger).toHaveAttr('aria-label', 'Due date'),
-        Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
-      )
-    })
+    it.effect(
+      'applies aria-label to the trigger when ariaLabel is provided',
+      () =>
+        Scene.scene(
+          DatePickerSceneLive,
+          { ariaLabel: 'Due date' },
+          Scene.expect(trigger).toHaveAttr('aria-label', 'Due date'),
+          Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
+        ),
+    )
 
-    it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', () => {
-      Scene.scene(
-        { update, view: sceneView({ ariaLabelledBy: 'due-label' }) },
-        Scene.given(closedModel),
-        Scene.expect(trigger).toHaveAttr('aria-labelledby', 'due-label'),
-        Scene.expect(trigger).not.toHaveAttr('aria-label'),
-      )
-    })
+    it.effect(
+      'applies aria-labelledby to the trigger when ariaLabelledBy is provided',
+      () =>
+        Scene.scene(
+          DatePickerSceneLive,
+          { ariaLabelledBy: 'due-label' },
+          Scene.expect(trigger).toHaveAttr('aria-labelledby', 'due-label'),
+          Scene.expect(trigger).not.toHaveAttr('aria-label'),
+        ),
+    )
 
-    it('prefers aria-label over aria-labelledby when both are provided', () => {
-      Scene.scene(
-        {
-          update,
-          view: sceneView({
+    it.effect(
+      'prefers aria-label over aria-labelledby when both are provided',
+      () =>
+        Scene.scene(
+          DatePickerSceneLive,
+          {
             ariaLabel: 'Due date',
             ariaLabelledBy: 'due-label',
-          }),
-        },
-        Scene.given(closedModel),
-        Scene.expect(trigger).toHaveAttr('aria-label', 'Due date'),
-        Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
-      )
-    })
+          },
+          Scene.expect(trigger).toHaveAttr('aria-label', 'Due date'),
+          Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
+        ),
+    )
 
     it('triggerId derives the trigger id from the base id', () => {
       expect(triggerId('picker')).toBe('picker-popover-button')

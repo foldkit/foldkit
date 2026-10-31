@@ -8,6 +8,7 @@ import {
   RuleContext,
 } from 'effect-oxlint'
 
+import { isBlockImplementationObject } from '../block-implementation.ts'
 import {
   effectConstructorValue,
   generatorConstructorValue,
@@ -15,7 +16,6 @@ import {
 } from '../effect-constructor.ts'
 import {
   indexReferences,
-  isOwnedDefinitionCall,
   isCallExpression,
   isIdentifier,
   isIdentifierReference,
@@ -35,13 +35,6 @@ const isMountDefinitionCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
-  if (
-    isOwnedDefinitionCall(node, 'makeMount', references) ||
-    isOwnedDefinitionCall(node, 'makeMountStream', references)
-  ) {
-    return true
-  }
-
   if (references === undefined) {
     return AST.isCallOf(node, 'Mount', MOUNT_DEFINITION_METHODS)
   }
@@ -397,7 +390,40 @@ const mountHandler = (
   )
 }
 
-/** Flags local Mount handlers whose implementation never uses its element. A Mount exists for element-caused, element-targeted work; work that ignores the element belongs in a Command, Subscription, or ManagedResource. */
+const blockMountHandlers = (
+  node: ESTree.ObjectExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ReadonlyArray<MountHandler> => {
+  if (!isBlockImplementationObject(node, references)) {
+    return []
+  }
+
+  return pipe(
+    node.properties,
+    Array.findFirst(
+      (property): property is ESTree.ObjectProperty =>
+        isObjectProperty(property) &&
+        Option.contains(staticPropertyName(property), 'mounts'),
+    ),
+    Option.flatMap(property => resolveLocalValue(property.value, references)),
+    Option.filter(isObjectExpression),
+    Option.match({
+      onNone: () => [],
+      onSome: mounts =>
+        Array.flatMap(mounts.properties, property =>
+          isObjectProperty(property)
+            ? pipe(
+                resolveLocalValue(property.value, references),
+                Option.filter(isMountHandler),
+                Option.toArray,
+              )
+            : [],
+        ),
+    }),
+  )
+}
+
+/** Flags local Mount handlers, attached to a Mount definition or listed under a Block's `mounts`, whose implementation never uses its element. A Mount exists for element-caused, element-targeted work; work that ignores the element belongs in a Command, Subscription, or ManagedResource. */
 export const mountFactoryMustUseElement = Rule.define({
   name: 'mount-factory-must-use-element',
   meta: Rule.meta({
@@ -410,6 +436,12 @@ export const mountFactoryMustUseElement = Rule.define({
     const references =
       scopes === undefined ? undefined : indexReferences(scopes)
     const localMountDefinitions = new Set<string>()
+    const reportHandler = (handler: MountHandler) =>
+      Option.match(handlerDiagnostic(handler, references), {
+        onNone: () => Effect.void,
+        onSome: message =>
+          ctx.report(Diagnostic.make({ node: handler, message })),
+      })
     return {
       VariableDeclarator: (node: ESTree.Node) => {
         if (
@@ -433,15 +465,20 @@ export const mountFactoryMustUseElement = Rule.define({
           mountHandler(node, localMountDefinitions, references),
           {
             onNone: () => Effect.void,
-            onSome: handler =>
-              Option.match(handlerDiagnostic(handler, references), {
-                onNone: () => Effect.void,
-                onSome: message =>
-                  ctx.report(Diagnostic.make({ node: handler, message })),
-              }),
+            onSome: reportHandler,
           },
         )
       },
+      ObjectExpression: (node: ESTree.Node) =>
+        isObjectExpression(node)
+          ? Effect.forEach(
+              blockMountHandlers(node, references),
+              reportHandler,
+              {
+                discard: true,
+              },
+            )
+          : Effect.void,
     }
   },
 })

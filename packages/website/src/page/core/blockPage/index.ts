@@ -1,1 +1,2 @@
-export { BlockPageBlock } from './block'
+export { BlockPage, BlockPageLive } from './block'
+export type { ViewInput } from './view'

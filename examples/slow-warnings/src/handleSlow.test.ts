@@ -1,9 +1,9 @@
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test, vi } from 'vitest'
+import { vi } from 'vitest'
 
-import { Message } from './message'
-import type { Model } from './model'
-import { handleSlow } from './subscription'
+import { describe, expect, it } from '@effect/vitest'
+
+import { Message, type Model, handleSlow } from './application'
 
 const initialModel: Model = {
   activeWorkload: 'Idle',
@@ -14,7 +14,7 @@ const initialModel: Model = {
 }
 
 describe('handleSlow', () => {
-  test('logs the warning to the console', () => {
+  it('logs the warning to the console', () => {
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     try {

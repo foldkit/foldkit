@@ -1,9 +1,8 @@
 import { Array, Context, Effect, Option, Schema } from 'effect'
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
-import * as Block from '../block/public.js'
-import { qualifyCommand } from '../block/scope.js'
 import * as Command from '../command/index.js'
+import type { Html, HtmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Scene from '../scene/public.js'
 import * as Story from '../story/public.js'
@@ -15,11 +14,7 @@ const Message = defineMessageUnion({
   CompletedPaint: { generation: Schema.Number },
 })
 type Message = typeof Message.Type
-const ChildDefinition = Block.makeDefinition('CommandArgsChild', {
-  Model,
-  Message,
-})
-const Paint = ChildDefinition.makeCommand('Paint', {
+const Paint = Command.define('Paint', {
   args: { generation: Schema.Number },
   messages: [Message.CompletedPaint],
   handler: function* () {
@@ -27,46 +22,34 @@ const Paint = ChildDefinition.makeCommand('Paint', {
       Effect.succeed(Message.CompletedPaint({ generation }))
   },
 })
-const ChildComposition = ChildDefinition.makeComposition()
-const prepare = () =>
-  ChildComposition.prepareBlock({
-    init: ChildComposition.makeInit(() => ({ model: { generation: 1 } })),
-    update: ChildComposition.makeUpdate({
-      RequestedPaint: model => ({
-        model,
-        commands: [Paint({ generation: model.generation })],
-      }),
-      CompletedPaint: model => ({ model }),
-    }),
-    EffectsLayer: Paint.layer,
-    operations: { requestPaint: Message.RequestedPaint },
-  })
-const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
 
-const ParentMessage = defineMessageUnion({ ClickedPaint: {} })
+const ParentMessage = defineMessageUnion({
+  ClickedPaint: {},
+  GotChildMessage: { message: Message },
+})
 type ParentMessage = typeof ParentMessage.Type
-const ParentDefinition = Block.makeDefinition('CommandArgsParent', {
-  Model: Schema.Struct({ child: Model }),
-  Message: ParentMessage,
-})
-const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-})
-const ParentComposition = ParentDefinition.makeComposition({
-  bindings: [ChildBinding],
-})
-const update = ParentComposition.makeUpdate({
-  ClickedPaint: model => ChildBinding.requestPaint()(model),
-})
-const view = ParentComposition.makeView((_model, h) =>
-  h.button([h.OnClick(ParentMessage.ClickedPaint())], ['Paint']),
-)
+const ParentModel = Schema.Struct({ child: Model })
+type ParentModel = typeof ParentModel.Type
+
+const update = (model: ParentModel, message: ParentMessage) =>
+  ParentMessage.match(message, {
+    ClickedPaint: () => ({
+      model,
+      commands: [
+        Command.mapMessage(
+          Paint({ generation: model.child.generation }),
+          childMessage =>
+            ParentMessage.GotChildMessage({ message: childMessage }),
+        ),
+      ],
+    }),
+    GotChildMessage: () => ({ model }),
+  })
+const view = (_model: ParentModel, h: HtmlBuilder<ParentMessage>): Html =>
+  h.button([h.OnClick(ParentMessage.ClickedPaint())], ['Paint'])
 
 describe('Command.argsOf', () => {
-  it('projects a real Story capture through qualified child delivery', () => {
+  it('projects a real Story capture through a parent Message mapping', () => {
     const inspectAndResolve = <RootModel, RootMessage, OutMessage>(
       simulation: Story.StorySimulation<RootModel, RootMessage, OutMessage>,
     ) => {
@@ -74,7 +57,6 @@ describe('Command.argsOf', () => {
       const args = Option.getOrThrow(Story.Command.argsOf(Paint)(pending))
 
       expect(args.generation).toBe(7)
-      expect(pending.name).toBe('child/Paint')
       expectTypeOf(args.generation).toEqualTypeOf<number>()
       expectTypeOf(pending.name).toEqualTypeOf<string>()
 
@@ -92,7 +74,7 @@ describe('Command.argsOf', () => {
     )
   })
 
-  it('projects a real Scene capture without exposing a child-local Effect', () => {
+  it('projects a real Scene capture without exposing the unmapped Effect', () => {
     Scene.scene(
       { update, view },
       Scene.given({ child: { generation: 9 } }),
@@ -102,7 +84,6 @@ describe('Command.argsOf', () => {
         const args = Option.getOrThrow(Scene.Command.argsOf(Paint)(pending))
 
         expect(args.generation).toBe(9)
-        expect(pending.name).not.toBe(Paint.name)
 
         if (false) {
           // @ts-expect-error Captured metadata does not gain an executable child Effect.
@@ -156,8 +137,8 @@ describe('Command.argsOf', () => {
   })
 
   it('projects every source occurrence while leaving absence and ambiguity policy to the caller', () => {
-    const first = qualifyCommand('First', Paint({ generation: 1 }))
-    const second = qualifyCommand('Second', Paint({ generation: 2 }))
+    const first = Paint({ generation: 1 })
+    const second = Paint({ generation: 2 })
     const pending = [first, second]
     const matching = Array.getSomes(
       Array.map(pending, Scene.Command.argsOf(Paint)),
@@ -167,8 +148,6 @@ describe('Command.argsOf', () => {
     expect(Array.getSomes(Array.map([], Story.Command.argsOf(Paint)))).toEqual(
       [],
     )
-    expect(first.name).toBe('First/Paint')
-    expect(second.name).toBe('Second/Paint')
 
     expect(() =>
       Story.story(
@@ -189,17 +168,11 @@ describe('Command.argsOf', () => {
       messages: [Message.CompletedPaint],
       interrupt: { keyFields: ['entryId'], toKey: ({ entryId }) => entryId },
     })
-    const first = qualifyCommand(
-      'Left',
-      work({ entryId: 'first', generation: 1 }),
-    )
-    const second = qualifyCommand(
-      'Right',
-      work({ entryId: 'second', generation: 2 }),
-    )
-    const interrupt: Story.AnyCommand = qualifyCommand(
-      'Left',
-      work.Interrupt({ entryId: 'first' }, () => ParentMessage.ClickedPaint()),
+    const first = work({ entryId: 'first', generation: 1 })
+    const second = work({ entryId: 'second', generation: 2 })
+    const interrupt: Story.AnyCommand = work.Interrupt(
+      { entryId: 'first' },
+      () => ParentMessage.ClickedPaint(),
     )
     const pending = [first, second, interrupt]
     const matching = Array.getSomes(
@@ -214,8 +187,7 @@ describe('Command.argsOf', () => {
       { entryId: 'second', generation: 2 },
     ])
     expect(interrupts).toEqual([{ entryId: 'first' }])
-    expect(first.key).toBe('Left/KeyedArgsWork:first')
-    expect(second.key).toBe('Right/KeyedArgsWork:second')
+    expect(first.key).not.toBe(second.key)
     expect(interrupt.interruptsKey).toBe(first.key)
   })
 
@@ -284,7 +256,7 @@ describe('Command.argsOf', () => {
 
 class Store extends Context.Service<Store, {}>()('CommandArgs/Store') {}
 type ParentResult = Readonly<{ _tag: 'GotPaint'; message: Message }>
-type QualifiedPending = Command.Command<ParentResult, 'Failed', Store> &
+type MappedPending = Command.Command<ParentResult, 'Failed', Store> &
   Readonly<{
     name: `Parent/${string}`
     key: 'retained-key'
@@ -292,7 +264,7 @@ type QualifiedPending = Command.Command<ParentResult, 'Failed', Store> &
     detail: 'retained-detail'
   }>
 
-const checkParentChannels = (pending: QualifiedPending) => {
+const checkParentChannels = (pending: MappedPending) => {
   const maybeArgs = Scene.Command.argsOf(Paint)(pending)
   if (Option.isSome(maybeArgs)) {
     expectTypeOf(maybeArgs.value.generation).toEqualTypeOf<number>()

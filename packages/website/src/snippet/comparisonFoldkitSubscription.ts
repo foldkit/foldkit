@@ -1,50 +1,30 @@
-import { Effect, Schema, Stream } from 'effect'
+import { Stream } from 'effect'
 import { Dom } from 'foldkit'
 
-import { toToolMessage, toUndoRedoMessage } from './keyboard'
-import { Message } from './message'
-import { pixelArt } from './update'
-
-export const subscriptions = pixelArt.makeSubscriptions(entry => ({
-  undoRedoKeyPresses: entry('UndoRedoKeyPresses', {
-    messages: [Message.ClickedUndo, Message.ClickedRedo],
-    handler: function* () {
-      return () =>
-        Dom.streamFromEventFilterMapPreventDefault({
-          target: document,
-          type: 'keydown',
-          filterMapEvent: toUndoRedoMessage,
-        })
-    },
+// Always on: the Application's `stream`
+export const keyPresses = Stream.merge(
+  Dom.streamFromEventFilterMapPreventDefault({
+    target: document,
+    type: 'keydown',
+    filterMapEvent: toUndoRedoMessage,
   }),
-
-  toolKeyPresses: entry('ToolKeyPresses', {
-    messages: [Message.SelectedTool],
-    handler: function* () {
-      return () =>
-        Dom.streamFromEventFilterMap({
-          target: document,
-          type: 'keydown',
-          filterMapEvent: toToolMessage,
-        })
-    },
+  Dom.streamFromEventFilterMap({
+    target: document,
+    type: 'keydown',
+    filterMapEvent: toToolMessage,
   }),
+)
 
-  mouseReleases: entry(
-    'MouseReleases',
-    { isDrawing: Schema.Boolean },
-    {
-      messages: [Message.ReleasedMouse],
-      modelToDependencies: model => ({ isDrawing: model.isDrawing }),
-      handler: function* () {
-        return ({ isDrawing }) =>
-          Stream.when(
-            Stream.fromEventListener(document, 'mouseup').pipe(
-              Stream.map(() => Message.ReleasedMouse()),
-            ),
-            Effect.succeed(isDrawing),
-          )
-      },
-    },
-  ),
-}))
+// Gated by the Model: an entry under `subscriptions`
+export const mouseReleases = {
+  dependencies: (model: Model) => model.isDrawing,
+  stream: (isDrawing: boolean) =>
+    isDrawing
+      ? Stream.fromEventListener(document, 'mouseup').pipe(
+          Stream.map(() => Message.ReleasedMouse()),
+        )
+      : Stream.empty,
+}
+
+// In the Application constructor:
+// return { stream: keyPresses, subscriptions: { mouseReleases }, ... }

@@ -1,12 +1,8 @@
 import { Array, Option, pipe } from 'effect'
-import { createKeyedLazy, createLazy } from 'foldkit/html'
+import { type Html, createKeyedLazy, createLazy } from 'foldkit/html'
 
-import { ApplicationComposition } from './composition'
-import { isGridEmpty } from './grid'
-import { currentPaletteTheme } from './palette'
-import { canvasView } from './view/canvas'
-import { historyPanelView } from './view/history'
-import { toolPanelView } from './view/toolbar'
+import { isGridEmpty } from './domain/grid'
+import { currentPaletteTheme } from './domain/palette'
 
 const lazyToolPanel = createLazy()
 const lazyHistoryPanel = createLazy()
@@ -17,7 +13,7 @@ const lazyRow = createKeyedLazy()
 // modifyFields() preserves references for unchanged Model fields, so the check just
 // works, and the builder is the same object every render, so passing it
 // through the args never invalidates the cache.
-export const view = ApplicationComposition.makeView((model, h) => {
+export const contentView = (model: Model, h: ApplicationViewBuilder): Html => {
   const theme = currentPaletteTheme(model)
   const currentGrid = model.isDrawing
     ? pipe(
@@ -26,35 +22,32 @@ export const view = ApplicationComposition.makeView((model, h) => {
       )
     : model.grid
 
-  return {
-    title: 'Pixel Art',
-    body: h.div(
-      [],
-      [
-        lazyToolPanel(toolPanelView, [
-          model.mirrorMode,
-          model.tool,
-          model.gridSize,
-          model.selectedColorIndex,
-          isGridEmpty(model.grid),
-          theme,
-          model.paletteThemeIndex,
-          model.themeListbox,
-          model.toolRadioGroup,
-          model.gridSizeRadioGroup,
-          model.paletteRadioGroup,
-          h,
-        ]),
-        canvasView(model, theme, h),
-        lazyHistoryPanel(historyPanelView, [
-          model.undoStack,
-          model.redoStack,
-          currentGrid,
-          model.gridSize,
-          theme,
-          h,
-        ]),
-      ],
-    ),
-  }
-})
+  return h.div(
+    [],
+    [
+      lazyToolPanel(toolPanelView, [
+        model.mirrorMode,
+        model.tool,
+        model.gridSize,
+        model.selectedColorIndex,
+        isGridEmpty(model.grid),
+        theme,
+        model.paletteThemeIndex,
+        model.themeListbox,
+        model.toolRadioGroup,
+        model.gridSizeRadioGroup,
+        model.paletteRadioGroup,
+        h,
+      ]),
+      canvasView(model, theme, h),
+      lazyHistoryPanel(historyPanelView, [
+        model.undoStack,
+        model.redoStack,
+        currentGrid,
+        model.gridSize,
+        theme,
+        h,
+      ]),
+    ],
+  )
+}

@@ -2,17 +2,17 @@
 
 ## Overview
 
-A modal dialog backed by the native `<dialog>` element, opened with `show()` and a high z-index. Bind `DialogBlock` in the parent. The framework manages focus trapping, Escape handling, scroll locking, and backdrop rendering. For non-modal floating content, use Popover instead.
+A modal dialog backed by the native `<dialog>` element, opened with `show()` and a high z-index. Create a `Dialog.Dialog` instance in the parent's constructor and hold it in the parent Model. The Dialog manages focus trapping, Escape handling, scroll locking, and backdrop rendering. For non-modal floating content, use Popover instead.
 
 :::Info{label="See it in an app"}
-Check out how Dialog is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/dialog.ts).
+Check out how Dialog is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/dialogPage.ts).
 :::
 
 ## Examples
 
 ### Basic
 
-Open the Dialog from a trigger by dispatching your own Message. Call the Binding’s `requestOpen()` and `requestClose()` operations. Spread the `closeButton` bundle onto a Cancel button to dismiss it. Spread `...title` onto a heading element so the Dialog is labeled for screen readers.
+Open the Dialog from a trigger by dispatching your own Message. Its update handler sends `Dialog.Dialog.Message.RequestedOpen()` to the instance; send `RequestedClose()` the same way to close it. Spread the `closeButton` bundle onto a Cancel button to dismiss it without a parent Message. Spread `...title` onto a heading element so the Dialog is labeled for screen readers. Provide `Dialog.DialogLive` to the parent's Layer.
 
 ::Demo{name="dialog"}
 
@@ -20,7 +20,7 @@ Open the Dialog from a trigger by dispatching your own Message. Call the Binding
 
 ### Animated
 
-Pass `isAnimated: true` at init to coordinate animations. The component manages an Animation block internally. Apply transition classes using `data-closed` (e.g. `data-[closed]:opacity-0 data-[closed]:scale-95`).
+Pass `isAnimated: true` when you create the instance to coordinate animations. The Dialog holds its own Animation instance. Apply transition classes using `data-closed` (e.g. `data-[closed]:opacity-0 data-[closed]:scale-95`).
 
 ::Demo{name="animated"}
 
@@ -36,7 +36,7 @@ A field inside a dialog can open its own overlay, like a Combobox or DatePicker.
 
 ### Stacked
 
-Use a separate Dialog Model for each level and open the second from a button in the first. The framework stacks them by z-index, isolates the page around the topmost Dialog, and traps focus there. Escape closes the top Dialog first; its parent becomes interactive again and receives focus.
+Create a separate Dialog instance for each level and open the second from a button in the first. The framework stacks them by z-index, isolates the page around the topmost Dialog, and traps focus there. Escape closes the top Dialog first; its parent becomes interactive again and receives focus.
 
 ::Demo{name="nested"}
 
@@ -58,11 +58,11 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 
 ## Starting with an Open Dialog
 
-When a Dialog should be open at application startup, declare its init inputs on the Binding as in the basic example. Put `DialogBinding.requestOpen()` in the Composition init plan's `steps` array. The open operation returns a `ShowDialog` Command and emits `Opened` through the Binding's OutMessage policy. The Composition retains init Commands and collects the open operation's Commands. The Runtime executes them after root init returns.
+A Dialog always starts closed. To open it when the parent appears, return a `start` Command whose result Message the parent handles by sending `RequestedOpen()`. The Runtime performs `start` Commands when the instance first appears in the Model, so the Dialog opens right after the first render.
 
 ::Snippet{name="uiDialogInitiallyOpen" label="Starting with an open Dialog"}
 
-See [Initialize the child](/core/block#initialize-the-child) for the general child-initialization pattern.
+See [When the constructor runs](/core/block#when-the-constructor-runs) for why the constructor itself cannot send a Message.
 
 ## Keyboard Interaction
 
@@ -83,13 +83,13 @@ The dialog always sets `aria-labelledby` on the native element. Set `hasDescript
 
 #### Reuse the Managed IDs
 
-The ids are framework-managed (the `-dialog-title`, `-dialog-description`, and `-panel` suffixes on the configured id). Going through the render info keeps them unique for you. The `titleId(model)` and `descriptionId(model)` helpers imported from `@foldkit/ui/dialog` return the same ids as plain strings for the cases where you need the id as a value outside `toView`, such as a Command that calls `getElementById` or a cross-element reference. As a backstop, the runtime warns on any duplicate id in the rendered tree in development.
+The ids are framework-managed (the `-dialog-title`, `-dialog-description`, and `-panel` suffixes on the configured id). Going through the render info keeps them unique for you. The `titleId(model.dialog.model)` and `descriptionId(model.dialog.model)` helpers imported from `@foldkit/ui/dialog` return the same ids as plain strings for the cases where you need the id as a value outside `toView`, such as a Command that calls `getElementById` or a cross-element reference. As a backstop, the runtime warns on any duplicate id in the rendered tree in development.
 
 ## API Reference
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Dialog Binding's child initializer. Direct completed Block calls use `Dialog.DialogBlock.init()`.
+The args passed to `new Dialog.Dialog(id, args)`.
 
 | Name            | Type      | Default | Description                                                                                                                                                                                                                                                                                          |
 | --------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -99,7 +99,7 @@ Configuration passed to the Dialog Binding's child initializer. Direct completed
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Dialog Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.dialog.view({ toView, hasDescription })`. Spread the attribute groups in `RenderInfo` unchanged; they keep the Dialog's dispatch. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name             | Type                           | Default | Description                                                                                                                                                                                                                                         |
 | ---------------- | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -123,15 +123,15 @@ Payload delivered to the `toView` callback each render.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the Binding’s selected `fold` policy.
+Facts the Dialog reports to its parent. Handle them by spreading `...dialog.on({ ... })` into the parent's update record; variants without a handler are ignored.
 
-| Name             | Type | Default | Description                                                                                                                                                                                                                                                                                |
-| ---------------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Opened`         | `{}` | —       | Emitted once `RequestedOpen` changes the Model to open.                                                                                                                                                                                                                                    |
-| `Closed`         | `{}` | —       | Emitted once `RequestedClose` changes an open Model to closed, whether the request came from the view or the bound `requestClose()` operation. Calling close on an already-closed Model is a no-op that does not re-emit, as is calling it while a leave animation is already in progress. |
-| `CompletedClose` | `{}` | —       | Emitted after the leave animation, native dialog close, scroll unlock, focus restoration, and other close cleanup have completed.                                                                                                                                                          |
+| Name             | Type | Default | Description                                                                                                                                                                                                                                                                                      |
+| ---------------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Opened`         | `{}` | —       | Emitted once `RequestedOpen` changes the Model to open.                                                                                                                                                                                                                                          |
+| `Closed`         | `{}` | —       | Emitted once `RequestedClose` changes an open Model to closed, whether the request came from the view or from a parent that sent `RequestedClose()`. Calling close on an already-closed Model is a no-op that does not re-emit, as is calling it while a leave animation is already in progress. |
+| `CompletedClose` | `{}` | —       | Emitted after the leave animation, native dialog close, scroll unlock, focus restoration, and other close cleanup have completed.                                                                                                                                                                |
 
-Treat `Closed` as the parent's single close policy. If closing should navigate, clear a selection, or update another child, return that Step from the `Closed` fold. A parent Message that calls `DialogBinding.requestClose()` should not repeat the same transition; the operation runs the same OutMessage policy as a close button or Escape.
+Treat `Closed` as the parent's single close policy. If closing should navigate, clear a selection, or update another child, do it in the `Closed` handler. A parent handler that sends `RequestedClose()` should not repeat the same transition: the Dialog reports `Closed` for that request just as it does for a close button or Escape.
 
 ::Snippet{name="uiDialogClosePolicy" label="One parent-owned Dialog close policy"}
 

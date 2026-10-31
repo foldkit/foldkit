@@ -1,1 +1,1 @@
-export { ApiReferenceBlock } from './block'
+export { ApiReference, ApiReferenceLive } from './block'

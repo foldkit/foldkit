@@ -1,87 +1,76 @@
-// composition.ts
+import { Effect, Layer, Schema } from 'effect'
+import { Block, Program, Runtime } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+
 import { Dialog, Menu } from '@foldkit/ui'
 
-import { ApplicationDefinition } from './definition'
+const AccountMenu = Menu.makeBlock<'Profile' | 'Sign out'>()
 
-export const DialogBinding = ApplicationDefinition.makeBinding(
-  Dialog.DialogBlock,
-  {
-    field: 'dialog',
-  },
-).withOutMessagePolicy({ fold: foldDialogOutMessage })
-
-export const ApplicationMenu = Menu.makeBlock<string>()
-
-export const MenuBinding = ApplicationDefinition.makeBinding(ApplicationMenu, {
-  field: 'menu',
-}).withOutMessagePolicy({ fold: foldMenuOutMessage })
-
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [DialogBinding, MenuBinding],
+const Message = defineMessageUnion({
+  ClickedOpenSettings: {},
 })
 
-// update.ts
-import { ApplicationComposition } from './composition'
+export class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({
+    settingsDialog: Dialog.Dialog,
+    accountMenu: AccountMenu,
+  }),
+  Message,
+}) {}
 
-export const update = ApplicationComposition.makeUpdate({})
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const settingsDialog = yield* new Dialog.Dialog('settingsDialog', {
+      id: 'settings',
+    })
+    const accountMenu = yield* new AccountMenu('accountMenu', {
+      id: 'account',
+    })
 
-// view.ts
-import {
-  ApplicationComposition,
-  DialogBinding,
-  MenuBinding,
-} from './composition'
+    return {
+      model: { settingsDialog, accountMenu },
 
-export const view = ApplicationComposition.makeView((model, h) => ({
-  title: 'Account',
-  body: h.main(
-    [],
-    [
-      h.block(
-        DialogBinding.embedView({
-          slotId: 'dialog',
-          model: model.dialog,
-          viewInputs: dialogViewInputs,
+      update: {
+        ClickedOpenSettings: model => ({
+          model,
+          messages: [
+            model.settingsDialog.send(Dialog.Dialog.Message.RequestedOpen()),
+          ],
         }),
-      ),
-      h.block(
-        MenuBinding.embedView({
-          slotId: 'menu',
-          model: model.menu,
-          viewInputs: menuViewInputs,
-        }),
-      ),
-    ],
-  ),
-}))
+      },
 
-// block.ts
-import { Block } from 'foldkit'
+      view: (model, h) => ({
+        title: 'Account',
+        body: h.main(
+          [],
+          [
+            model.accountMenu.view({
+              items: ['Profile', 'Sign out'],
+              buttonContent: h.span([], ['Account']),
+              itemToConfig: item => ({ content: h.span([], [item]) }),
+            }),
+            h.button([h.OnClick(Message.ClickedOpenSettings())], ['Settings']),
+            model.settingsDialog.view({
+              toView: ({ dialog, panel, title, isVisible }) =>
+                h.dialog(
+                  [...dialog],
+                  isVisible
+                    ? [h.div([...panel], [h.h2([...title], ['Settings'])])]
+                    : [],
+                ),
+            }),
+          ],
+        ),
+      }),
+    }
+  }),
+).pipe(
+  // Each component's Layer carries its Commands, Mounts, and Subscriptions
+  Layer.provide(Layer.mergeAll(Dialog.DialogLive, AccountMenu.Live)),
+)
 
-import { ApplicationComposition } from './composition'
-import { init } from './init'
-import type { Model } from './model'
-import { update } from './update'
-import { view } from './view'
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
-
-// entry.ts
-import { Program, Runtime } from 'foldkit'
-
-import { ApplicationBlock } from './block'
-
-const program = Program.make({
-  block: ApplicationBlock,
+const program = Program.make(Application, {
+  layer: ApplicationLive,
   container: document.getElementById('root'),
   devTools: { dispatch: true },
 })

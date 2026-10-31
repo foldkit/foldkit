@@ -3,7 +3,6 @@ import { Html } from 'foldkit/html'
 
 import { Nav } from '@foldkit/ui'
 
-import type { ApplicationViewBuilder } from '../composition'
 import {
   type ApplicationRoute,
   blogRouter,
@@ -11,6 +10,7 @@ import {
   isBlogRoute,
   isDocsSectionRoute,
 } from '../route'
+import type { ApplicationViewBuilder } from './builder'
 
 const HeaderSection = Schema.Literals(['Docs', 'Blog'])
 type HeaderSection = typeof HeaderSection.Type

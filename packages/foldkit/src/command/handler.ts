@@ -1,7 +1,9 @@
 import { Context, Effect, Layer, type Scope } from 'effect'
 
-import type { DefinitionIdentity } from '../block/identity.js'
-import type { ValidateConstructionRequirements } from '../block/scope.js'
+import type {
+  DefinitionIdentity,
+  ValidateConstructionRequirements,
+} from '../definitionIdentity.js'
 import type { Handler } from './public.js'
 
 export type { Handler } from './public.js'

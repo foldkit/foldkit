@@ -1,22 +1,59 @@
+import { Effect, HashMap, HashSet } from 'effect'
 import { Block } from 'foldkit'
+import { modifyFields } from 'foldkit/struct'
 
-import { SnippetDisclosureComposition } from './composition'
-import { init } from './init'
-import type { Model } from './model'
-import { MeasureSnippetHeight } from './mount'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model, SnippetSize } from './model'
+import { COLLAPSIBLE_HEIGHT_PX, MeasureSnippetHeight } from './mount'
+import { type ViewInputs, view } from './view'
 
-export const EffectsLayer = MeasureSnippetHeight.layer
+export class SnippetDisclosure extends Block<
+  SnippetDisclosure,
+  void,
+  ViewInputs
+>()('SnippetDisclosure', {
+  Model,
+  Message,
+  Mount: [MeasureSnippetHeight],
+}) {}
 
-const prepare = () =>
-  SnippetDisclosureComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const SnippetDisclosureBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const SnippetDisclosureLive = SnippetDisclosure.make(
+  Effect.fn(function* () {
+    return {
+      model: {
+        openDisclosureIds: HashSet.empty(),
+        snippetSizes: HashMap.empty(),
+      },
+
+      update: {
+        ToggledCodeDisclosure: (model, { disclosureId, isOpen }) => ({
+          model: modifyFields(model, {
+            openDisclosureIds: isOpen
+              ? HashSet.add(disclosureId)
+              : HashSet.remove(disclosureId),
+          }),
+        }),
+        CompletedMeasureSnippetHeight: (model, { snippetId, snippetSize }) => ({
+          model: modifyFields(model, {
+            snippetSizes: HashMap.set(snippetId, snippetSize),
+          }),
+        }),
+      },
+
+      mounts: {
+        MeasureSnippetHeight: ({ element, snippetId }) =>
+          Effect.sync(() =>
+            Message.CompletedMeasureSnippetHeight({
+              snippetId,
+              snippetSize:
+                element.scrollHeight > COLLAPSIBLE_HEIGHT_PX
+                  ? SnippetSize.Overflows()
+                  : SnippetSize.Fits(),
+            }),
+          ),
+      },
+
+      view,
+    }
+  }),
+)

@@ -9,15 +9,15 @@ import {
   SubscriptionRef,
 } from 'effect'
 import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
-import type { DevToolsStore, StoreState } from 'foldkit/devtools-host'
+import type {
+  CommandRecord,
+  DevToolsStore,
+  StoreState,
+} from 'foldkit/devtools-host'
 import { Storage } from 'happy-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  CopyPayloadToClipboard,
-  CopyPayloadToClipboardLayer,
-  createOverlay,
-} from './overlay.js'
+import { copyPayloadToClipboard, createOverlay } from './overlay.js'
 
 const initialStoreState: StoreState = {
   entries: [],
@@ -140,6 +140,55 @@ describe('DevTools interaction blocker', () => {
   })
 })
 
+describe('DevTools message list', () => {
+  it('labels a child instance Message with its instance path', async () => {
+    const noCommands: ReadonlyArray<CommandRecord> = []
+    const entry = (path: ReadonlyArray<string>, tag: string) => ({
+      tag: 'BlockMessage',
+      message: { _tag: 'BlockMessage', path, message: { _tag: tag } },
+      commands: noCommands,
+      mountStarts: [],
+      mountEnds: [],
+      timestamp: 100,
+      isModelChanged: true,
+      diff: {
+        changedPaths: HashSet.empty<string>(),
+        affectedPaths: HashSet.empty<string>(),
+      },
+    })
+    const stateRef = await Effect.runPromise(
+      SubscriptionRef.make<StoreState>({
+        ...initialStoreState,
+        entries: [
+          { ...entry([], 'ClickedAddRow'), tag: 'ClickedAddRow' },
+          entry(['rows', 'row-3'], 'ClickedIncrement'),
+        ],
+      }),
+    )
+    localStorage.setItem(
+      'foldkit-devtools',
+      JSON.stringify({ isOpen: true, isFlattened: false }),
+    )
+
+    const overlayFiber = startOverlay(makeStore(stateRef))
+
+    try {
+      await vi.waitFor(() => {
+        const labels = Array.from(
+          overlayShadow().querySelectorAll('.message-list .dt-row'),
+          row => row.querySelector('.truncate')?.textContent,
+        )
+        expect(labels.slice(0, 2)).toEqual([
+          'rows › row-3 › ClickedIncrement',
+          'ClickedAddRow',
+        ])
+      })
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(overlayFiber))
+    }
+  })
+})
+
 describe('DevTools payload copy', () => {
   it('copies the displayed Model, Message, Command, and Mount payloads', async () => {
     const inspectedModel = {
@@ -149,7 +198,8 @@ describe('DevTools payload copy', () => {
       },
     }
     const inspectedMessage = {
-      _tag: 'GotProfileMessage',
+      _tag: 'BlockMessage',
+      path: ['profile'],
       message: {
         _tag: 'UpdatedTheme',
         theme: 'Light',
@@ -160,7 +210,7 @@ describe('DevTools payload copy', () => {
       ...initialStoreState,
       entries: [
         {
-          tag: 'GotProfileMessage',
+          tag: 'BlockMessage',
           message: inspectedMessage,
           commands: [
             {
@@ -387,11 +437,11 @@ describe('DevTools payload copy', () => {
     })
 
     const result = await Effect.runPromise(
-      CopyPayloadToClipboard({
+      copyPayloadToClipboard({
         targetId: 'Model:0',
         requestId: 1,
         payload: { count: 1n },
-      }).effect.pipe(Effect.provide(CopyPayloadToClipboardLayer)),
+      }),
     )
 
     expect(result).toEqual({
@@ -410,11 +460,11 @@ describe('DevTools payload copy', () => {
     })
 
     const result = await Effect.runPromise(
-      CopyPayloadToClipboard({
+      copyPayloadToClipboard({
         targetId: 'Model:0',
         requestId: 1,
         payload: { count: 1 },
-      }).effect.pipe(Effect.provide(CopyPayloadToClipboardLayer)),
+      }),
     )
 
     expect(result).toEqual({

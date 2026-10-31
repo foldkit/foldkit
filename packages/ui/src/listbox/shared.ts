@@ -2,8 +2,6 @@ import {
   Array,
   Effect,
   Equal,
-  Function,
-  Layer,
   Match,
   Number,
   Option,
@@ -12,13 +10,12 @@ import {
   String,
   pipe,
 } from 'effect'
-import * as Block from 'foldkit/block'
+import { Command, Mount } from 'foldkit'
+import type * as BlockTypes from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
 import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
 import { makeModifyFieldsFor } from 'foldkit/struct'
-import * as Update from 'foldkit/update'
 
 import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
 import * as Animation from '../animation/index.js'
@@ -33,9 +30,6 @@ import {
 import { resolveTypeaheadMatch } from '../typeahead.js'
 
 export { resolveTypeaheadMatch }
-
-/** Shared Listbox namespace for selection-specific definitions and effects. */
-export const ListboxNamespace = Block.makeNamespace('Listbox')
 
 // MODEL
 
@@ -54,7 +48,7 @@ export const BaseModel = Schema.Struct({
   isAnimated: Schema.Boolean,
   isModal: Schema.Boolean,
   orientation: Orientation,
-  animation: Animation.AnimationBlock.Model,
+  animation: Animation.Animation,
   maybeActiveItemIndex: Schema.Option(Schema.Number),
   activationTrigger: ActivationTrigger,
   searchQuery: Schema.String,
@@ -66,7 +60,7 @@ export const BaseModel = Schema.Struct({
 })
 export type BaseModel = typeof BaseModel.Type
 
-/** Configuration fields shared by all listbox variant `init` functions. */
+/** Constructor args shared by all listbox variants. `id` is the base DOM id. */
 export type BaseInitConfig = Readonly<{
   id: string
   isAnimated?: boolean
@@ -74,15 +68,22 @@ export type BaseInitConfig = Readonly<{
   orientation?: Orientation
 }>
 
-/** Creates the shared base fields for a listbox model from a config. Each variant spreads this and adds its selection field. */
-export const baseInit = (config: BaseInitConfig): BaseModel => ({
+/** Returns the DOM id of the Animation a Listbox with the given base id
+ *  creates. */
+export const animationId = (id: string): string => `${id}-listbox`
+
+/** Creates the shared base fields for a listbox model from its constructor
+ *  args and its Animation instance. */
+export const baseInit = (
+  config: BaseInitConfig,
+  animation: Animation.Animation,
+): BaseModel => ({
   id: config.id,
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
   orientation: config.orientation ?? 'Vertical',
-  animation: Animation.AnimationBlock.init({ id: `${config.id}-listbox` })
-    .model,
+  animation,
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   searchQuery: '',
@@ -138,6 +139,7 @@ export const Message = defineMessageUnion({
     button: Schema.Number,
   },
 })
+/** Every Message a Listbox can process. */
 export type Message = typeof Message.Type
 
 export type Opened = typeof Message.Opened.Type
@@ -161,6 +163,31 @@ export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type SuppressedItemCommit = typeof Message.SuppressedItemCommit.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 
+/** A string Schema whose decoded type and constructor input are both
+ *  narrowed to a Listbox's Value type. */
+type ValueSchema<Value extends string> = Schema.Codec<Value, Value> &
+  Readonly<{ '~type.make': Value }>
+
+/** The Message union interface on a Listbox class, refined so the item a
+ *  parent sends with `RequestedSelectItem` and the item a click reports with
+ *  `SelectedItem` carry the Listbox's Value type. */
+export type MessageSchema<Value extends string = string> =
+  typeof Message extends MessageUnion<infer Cases>
+    ? MessageUnion<
+        Omit<Cases, 'RequestedSelectItem' | 'SelectedItem'> &
+          Readonly<{
+            RequestedSelectItem: Omit<Cases['RequestedSelectItem'], 'item'> &
+              Readonly<{ item: ValueSchema<Value> }>
+            SelectedItem: Omit<Cases['SelectedItem'], 'item'> &
+              Readonly<{ item: ValueSchema<Value> }>
+          }>
+      >
+    : never
+
+/** Every Message a Listbox refined to one Value type can process. */
+export type MessageOf<Value extends string = string> =
+  MessageSchema<Value>['Type']
+
 // OUT MESSAGE
 
 export type Selected<Value extends string = string> = Readonly<{
@@ -173,23 +200,23 @@ export const OutMessage = defineMessageUnion({
   Selected: { value: Schema.String },
 })
 
-/** The OutMessage union interface on a completed Listbox, refined to its
- * selected Value type. */
+/** The OutMessage union interface on a Listbox class, refined to its selected
+ * Value type. */
 export type OutMessageSchema<Value extends string = string> =
   typeof OutMessage extends MessageUnion<infer Cases>
     ? MessageUnion<
         Omit<Cases, 'Selected'> &
           Readonly<{
             Selected: Omit<Cases['Selected'], 'value'> &
-              Readonly<{ value: Schema.Schema<Value> }>
+              Readonly<{ value: ValueSchema<Value> }>
           }>
       >
     : never
 
 /** Generic over `Value extends string` so consumers who create the listbox
  *  via `Listbox.makeBlock<MyUnion>()` receive `value: MyUnion` in the
- *  `Selected` OutMessage from the factory's `update`, instead of
- *  `value: string`. Defaults to `string`. */
+ *  `Selected` OutMessage, instead of `value: string`. Defaults to
+ *  `string`. */
 export type OutMessage<Value extends string = string> = Selected<Value>
 
 // CONSTANTS
@@ -228,207 +255,174 @@ export const closedModel = <Model extends BaseModel>(model: Model): Model =>
     maybeLastButtonPointerType: () => Option.none(),
   })
 
+// COMMAND
+
+/** Prevents page scrolling while the listbox is open in modal mode. */
+export const LockListboxScroll = Command.define('LockListboxScroll', {
+  messages: [Message.CompletedLockListboxScroll],
+})
+/** Re-enables page scrolling after the listbox closes. */
+export const UnlockListboxScroll = Command.define('UnlockListboxScroll', {
+  messages: [Message.CompletedUnlockListboxScroll],
+})
+/** Marks all elements outside the listbox as inert for modal behavior. */
+export const InertListboxOthers = Command.define('InertListboxOthers', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedInertListboxOthers],
+})
+/** Removes the inert attribute from elements outside the listbox. */
+export const RestoreListboxInert = Command.define('RestoreListboxInert', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedRestoreListboxInert],
+})
+/** Moves focus back to the listbox button after closing. */
+export const FocusListboxButton = Command.define('FocusListboxButton', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusListboxButton],
+})
+/** Moves focus to the listbox items container after opening. */
+export const FocusListboxItems = Command.define('FocusListboxItems', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusListboxItems],
+})
+/** Scrolls the active listbox item into view after keyboard navigation. */
+export const ScrollListboxItemIntoView = Command.define(
+  'ScrollListboxItemIntoView',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedScrollListboxItemIntoView],
+  },
+)
+/** Programmatically clicks the active listbox item's DOM element. */
+export const ClickListboxItem = Command.define('ClickListboxItem', {
+  args: { id: Schema.String, index: Schema.Number },
+  messages: [Message.CompletedClickListboxItem],
+})
+/** Waits for the typeahead search debounce period before clearing the query. */
+export const DelayClearListboxSearch = Command.define(
+  'DelayClearListboxSearch',
+  {
+    args: { version: Schema.Number },
+    messages: [Message.CompletedDelayClearListboxSearch],
+  },
+)
+/** Detects whether the listbox button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
+export const DetectListboxMovementOrAnimationEnd = Command.define(
+  'DetectListboxMovementOrAnimationEnd',
+  {
+    args: { id: Schema.String, generation: Schema.Number },
+    messages: [Message.CompletedDetectListboxMovementOrAnimationEnd],
+  },
+)
+
+/** Command Definitions every Listbox variant owns. */
+export const commandDefinitions = [
+  LockListboxScroll,
+  UnlockListboxScroll,
+  InertListboxOthers,
+  RestoreListboxInert,
+  FocusListboxButton,
+  FocusListboxItems,
+  ScrollListboxItemIntoView,
+  ClickListboxItem,
+  DelayClearListboxSearch,
+  DetectListboxMovementOrAnimationEnd,
+]
+
+/** Command handlers every Listbox variant installs. */
+export const commandHandlers = {
+  LockListboxScroll: () =>
+    Dom.lockScroll.pipe(Effect.as(Message.CompletedLockListboxScroll())),
+  UnlockListboxScroll: () =>
+    Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockListboxScroll())),
+  InertListboxOthers: ({ id }: Readonly<{ id: string }>) =>
+    Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
+      Effect.as(Message.CompletedInertListboxOthers()),
+    ),
+  RestoreListboxInert: ({ id }: Readonly<{ id: string }>) =>
+    Dom.restoreInert(id).pipe(
+      Effect.as(Message.CompletedRestoreListboxInert()),
+    ),
+  FocusListboxButton: ({ id }: Readonly<{ id: string }>) =>
+    Dom.focus(buttonSelector(id)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusListboxButton()),
+    ),
+  FocusListboxItems: ({ id }: Readonly<{ id: string }>) =>
+    Dom.focus(itemsSelector(id)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusListboxItems()),
+    ),
+  ScrollListboxItemIntoView: ({
+    id,
+    index,
+  }: Readonly<{ id: string; index: number }>) =>
+    Dom.scrollIntoView(itemSelector(id, index)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedScrollListboxItemIntoView()),
+    ),
+  ClickListboxItem: ({ id, index }: Readonly<{ id: string; index: number }>) =>
+    Dom.clickElement(itemSelector(id, index)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedClickListboxItem()),
+    ),
+  DelayClearListboxSearch: ({ version }: Readonly<{ version: number }>) =>
+    Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+      Effect.as(Message.CompletedDelayClearListboxSearch({ version })),
+    ),
+  DetectListboxMovementOrAnimationEnd: ({
+    id,
+    generation,
+  }: Readonly<{ id: string; generation: number }>) =>
+    Effect.raceFirst(
+      Dom.detectElementMovement(buttonSelector(id)).pipe(
+        Effect.as(
+          Message.CompletedDetectListboxMovementOrAnimationEnd({ generation }),
+        ),
+      ),
+      Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
+        Effect.as(
+          Message.CompletedDetectListboxMovementOrAnimationEnd({ generation }),
+        ),
+      ),
+    ),
+}
+
 // UPDATE FACTORY
+
+type CommandInvocation = ReturnType<(typeof commandDefinitions)[number]>
+
+/** The update record `makeUpdate` creates for a Listbox refined to `Value`. */
+export type Update<Value extends string> = BlockTypes.UpdateRecord<
+  BaseModel,
+  MessageOf<Value>,
+  OutMessage<Value>,
+  CommandInvocation
+>
 
 type HandlerReturn<Model, Value extends string> = Readonly<{
   model: Model
   outMessage?: OutMessage<Value>
 }>
 
-/** Prevents page scrolling while the listbox is open in modal mode. */
-export const LockListboxScroll = ListboxNamespace.makeCommand(
-  'LockListboxScroll',
-  {
-    messages: [Message.CompletedLockListboxScroll],
-    handler: function* () {
-      return () =>
-        Dom.lockScroll.pipe(Effect.as(Message.CompletedLockListboxScroll()))
-    },
-  },
-)
-/** Re-enables page scrolling after the listbox closes. */
-export const UnlockListboxScroll = ListboxNamespace.makeCommand(
-  'UnlockListboxScroll',
-  {
-    messages: [Message.CompletedUnlockListboxScroll],
-    handler: function* () {
-      return () =>
-        Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockListboxScroll()))
-    },
-  },
-)
-/** Marks all elements outside the listbox as inert for modal behavior. */
-export const InertListboxOthers = ListboxNamespace.makeCommand(
-  'InertListboxOthers',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedInertListboxOthers],
-    handler: function* () {
-      return ({ id }) =>
-        Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
-          Effect.as(Message.CompletedInertListboxOthers()),
-        )
-    },
-  },
-)
-/** Removes the inert attribute from elements outside the listbox. */
-export const RestoreListboxInert = ListboxNamespace.makeCommand(
-  'RestoreListboxInert',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedRestoreListboxInert],
-    handler: function* () {
-      return ({ id }) =>
-        Dom.restoreInert(id).pipe(
-          Effect.as(Message.CompletedRestoreListboxInert()),
-        )
-    },
-  },
-)
-/** Moves focus back to the listbox button after closing. */
-export const FocusListboxButton = ListboxNamespace.makeCommand(
-  'FocusListboxButton',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedFocusListboxButton],
-    handler: function* () {
-      return ({ id }) =>
-        Dom.focus(buttonSelector(id)).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusListboxButton()),
-        )
-    },
-  },
-)
-/** Moves focus to the listbox items container after opening. */
-export const FocusListboxItems = ListboxNamespace.makeCommand(
-  'FocusListboxItems',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedFocusListboxItems],
-    handler: function* () {
-      return ({ id }) =>
-        Dom.focus(itemsSelector(id)).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusListboxItems()),
-        )
-    },
-  },
-)
-/** Scrolls the active listbox item into view after keyboard navigation. */
-export const ScrollListboxItemIntoView = ListboxNamespace.makeCommand(
-  'ScrollListboxItemIntoView',
-  {
-    args: { id: Schema.String, index: Schema.Number },
-    messages: [Message.CompletedScrollListboxItemIntoView],
-    handler: function* () {
-      return ({ id, index }) =>
-        Dom.scrollIntoView(itemSelector(id, index)).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedScrollListboxItemIntoView()),
-        )
-    },
-  },
-)
-/** Programmatically clicks the active listbox item's DOM element. */
-export const ClickListboxItem = ListboxNamespace.makeCommand(
-  'ClickListboxItem',
-  {
-    args: { id: Schema.String, index: Schema.Number },
-    messages: [Message.CompletedClickListboxItem],
-    handler: function* () {
-      return ({ id, index }) =>
-        Dom.clickElement(itemSelector(id, index)).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedClickListboxItem()),
-        )
-    },
-  },
-)
-/** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearListboxSearch = ListboxNamespace.makeCommand(
-  'DelayClearListboxSearch',
-  {
-    args: { version: Schema.Number },
-    messages: [Message.CompletedDelayClearListboxSearch],
-    handler: function* () {
-      return ({ version }) =>
-        Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-          Effect.as(Message.CompletedDelayClearListboxSearch({ version })),
-        )
-    },
-  },
-)
-/** Detects whether the listbox button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectListboxMovementOrAnimationEnd = ListboxNamespace.makeCommand(
-  'DetectListboxMovementOrAnimationEnd',
-  {
-    args: { id: Schema.String, generation: Schema.Number },
-    messages: [Message.CompletedDetectListboxMovementOrAnimationEnd],
-    handler: function* () {
-      return ({ id, generation }) =>
-        Effect.raceFirst(
-          Dom.detectElementMovement(buttonSelector(id)).pipe(
-            Effect.as(
-              Message.CompletedDetectListboxMovementOrAnimationEnd({
-                generation,
-              }),
-            ),
-          ),
-          Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
-            Effect.as(
-              Message.CompletedDetectListboxMovementOrAnimationEnd({
-                generation,
-              }),
-            ),
-          ),
-        )
-    },
-  },
-)
-
-/** Creates exact Listbox Message handlers and their Animation Binding. */
-export const makeUpdateHandlers = <
-  Value extends string,
-  ParentOutMessageSchema extends Schema.Top,
->(
-  bindChild: Block.BindChild<
-    typeof BaseModel,
-    typeof Message,
-    ParentOutMessageSchema
-  >,
-  makeOutMessageFold: Block.MakeOutMessageFold<
-    BaseModel,
-    Message,
-    OutMessage<Value>
-  >,
-  step: Block.DefineStep<BaseModel, Message, OutMessage<Value>>,
-  stepFields: Block.DefineStepFields<BaseModel, Message>,
-  stepNoop: Block.DefineStepNoop<BaseModel>,
-  commandsStep: Block.MakeCommandsStep<BaseModel, Message>,
+/** Creates the Listbox update record for one instance. Shared logic handles
+ *  opening, closing, activation, typeahead, and the Animation lifecycle;
+ *  `selectionBehavior` and `handleSelectedItem` vary by variant. */
+export const makeUpdate = <Value extends string>(
+  animation: Animation.Animation,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handleSelectedItem: (
     model: BaseModel,
     item: string,
   ) => HandlerReturn<BaseModel, Value>,
-) => {
+): Update<Value> => {
   type Model = BaseModel
 
-  const detectListboxMovementOrAnimationEndStep = (generation: number) =>
-    commandsStep(model => [
-      DetectListboxMovementOrAnimationEnd({ id: model.id, generation }),
-    ])
+  const showAnimation = (model: Model) =>
+    model.animation.send(Animation.Animation.Message.RequestedShow())
 
-  const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
-    StartedLeaveAnimating: ({ generation }) =>
-      detectListboxMovementOrAnimationEndStep(generation),
-    TransitionedOut: stepNoop,
-  })
-
-  const AnimationBinding = bindChild(Animation.AnimationBlock, {
-    field: 'animation',
-    init: false,
-  }).withOutMessagePolicy({ fold: foldAnimationOutMessage })
+  const hideAnimation = (model: Model) =>
+    model.animation.send(Animation.Animation.Message.RequestedHide())
 
   const modalOpenCommands = (model: Model) =>
     Array.filter(
@@ -455,39 +449,35 @@ export const makeUpdateHandlers = <
     ...closeWithoutFocusCommands(model),
   ]
 
-  const openListboxStep = (model: Model, baseModel: Model) => {
-    if (baseModel.isAnimated) {
-      return Update.combineSteps([
-        step(() => ({ model: baseModel, commands: openCommands(model) })),
-        AnimationBinding.requestShow(),
-        stepFields(() => ({ isOpen: () => true })),
-      ])
-    }
+  const openListbox = (model: Model, baseModel: Model) => {
+    const openedModel = modifyBaseFields(baseModel, { isOpen: () => true })
 
-    return step(() => ({
-      model: modifyBaseFields(baseModel, { isOpen: () => true }),
-      commands: openCommands(model),
-    }))
+    if (baseModel.isAnimated) {
+      return {
+        model: openedModel,
+        commands: openCommands(model),
+        messages: [showAnimation(baseModel)],
+      }
+    } else {
+      return { model: openedModel, commands: openCommands(model) }
+    }
   }
 
-  const closeListboxStep = (
+  const closeListbox = (
     baseModel: Model,
     commands: ReturnType<typeof closeWithFocusCommands>,
   ) => {
     if (!baseModel.isOpen) {
-      return step(() => ({ model: baseModel }))
+      return { model: baseModel }
     }
 
     const closed = closedModel(baseModel)
 
     if (baseModel.isAnimated) {
-      return Update.combineSteps([
-        step(() => ({ model: closed, commands })),
-        AnimationBinding.requestHide(),
-      ])
+      return { model: closed, commands, messages: [hideAnimation(closed)] }
+    } else {
+      return { model: closed, commands }
     }
-
-    return step(() => ({ model: closed, commands }))
   }
 
   const openWithActiveItem = (
@@ -495,10 +485,10 @@ export const makeUpdateHandlers = <
     maybeActiveItemIndex: Option.Option<number>,
   ) => {
     if (model.isOpen) {
-      return stepNoop()
+      return { model }
     }
 
-    return openListboxStep(
+    return openListbox(
       model,
       modifyBaseFields(model, {
         maybeActiveItemIndex: () => maybeActiveItemIndex,
@@ -516,21 +506,18 @@ export const makeUpdateHandlers = <
 
   const selectItem = (model: Model, item: string) => {
     const selection = handleSelectedItem(model, item)
+
     if (selectionBehavior === 'CloseWithFocus') {
-      return step(() =>
-        Function.compose(
-          step(() =>
-            closeListboxStep(selection.model, closeWithFocusCommands(model)),
-          ),
-          Update.withOutMessage(selection.outMessage),
-        ),
-      )
+      return {
+        ...closeListbox(selection.model, closeWithFocusCommands(model)),
+        outMessage: selection.outMessage,
+      }
     } else {
-      return step(() => selection)
+      return selection
     }
   }
 
-  const cases = {
+  const handlers = {
     CompletedLockListboxScroll: model => ({ model }),
     CompletedUnlockListboxScroll: model => ({ model }),
     CompletedInertListboxOthers: model => ({ model }),
@@ -545,24 +532,23 @@ export const makeUpdateHandlers = <
     CompletedPortalListboxBackdrop: model => ({ model }),
     RequestedOpen: model => openWithActiveItem(model, Option.none()),
 
-    RequestedClose: model =>
-      closeListboxStep(model, closeWithFocusCommands(model)),
+    RequestedClose: model => closeListbox(model, closeWithFocusCommands(model)),
 
     RequestedSelectItem: (model, { item }) => selectItem(model, item),
 
     Opened: (model, { maybeActiveItemIndex }) =>
       openWithActiveItem(model, maybeActiveItemIndex),
 
-    Closed: model => closeListboxStep(model, closeWithFocusCommands(model)),
+    Closed: model => closeListbox(model, closeWithFocusCommands(model)),
 
     BlurredItems: model => {
       if (
         Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
       ) {
-        return stepNoop()
+        return { model }
       }
 
-      return closeListboxStep(model, closeWithoutFocusCommands(model))
+      return closeListbox(model, closeWithoutFocusCommands(model))
     },
 
     ActivatedItem: (model, { index, activationTrigger }) => ({
@@ -637,8 +623,14 @@ export const makeUpdateHandlers = <
       }
     },
 
-    CompletedDetectListboxMovementOrAnimationEnd: (_model, { generation }) =>
-      AnimationBinding.requestFinish(generation),
+    CompletedDetectListboxMovementOrAnimationEnd: (model, { generation }) => ({
+      model,
+      messages: [
+        model.animation.send(
+          Animation.Animation.Message.RequestedFinish({ generation }),
+        ),
+      ],
+    }),
 
     PressedPointerOnButton: (model, { pointerType, button }) => {
       const withPointerType = modifyBaseFields(model, {
@@ -646,7 +638,7 @@ export const makeUpdateHandlers = <
       })
 
       if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
-        return step(() => ({ model: withPointerType }))
+        return { model: withPointerType }
       }
 
       if (model.isOpen) {
@@ -655,22 +647,17 @@ export const makeUpdateHandlers = <
         })
 
         if (model.isAnimated) {
-          return Update.combineSteps([
-            step(() => ({
-              model: closed,
-              commands: closeWithFocusCommands(model),
-            })),
-            AnimationBinding.requestHide(),
-          ])
+          return {
+            model: closed,
+            commands: closeWithFocusCommands(model),
+            messages: [hideAnimation(closed)],
+          }
         }
 
-        return step(() => ({
-          model: closed,
-          commands: closeWithFocusCommands(model),
-        }))
+        return { model: closed, commands: closeWithFocusCommands(model) }
       }
 
-      return openListboxStep(
+      return openListbox(
         model,
         modifyBaseFields(withPointerType, {
           maybeActiveItemIndex: () => Option.none(),
@@ -687,17 +674,20 @@ export const makeUpdateHandlers = <
         maybeLastButtonPointerType: () => Option.none(),
       }),
     }),
+
     ClickedButton: model => {
       if (
         Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
       ) {
-        return stepFields(() => ({
-          maybeLastButtonPointerType: () => Option.none(),
-        }))
+        return {
+          model: modifyBaseFields(model, {
+            maybeLastButtonPointerType: () => Option.none(),
+          }),
+        }
       }
 
       if (model.isOpen) {
-        return closeListboxStep(model, closeWithFocusCommands(model))
+        return closeListbox(model, closeWithFocusCommands(model))
       }
 
       return openWithActiveItem(model, Option.none())
@@ -710,24 +700,19 @@ export const makeUpdateHandlers = <
   }>
 
   return {
-    handlers: {
-      ...cases,
-      RequestedOpen: step(cases.RequestedOpen),
-      RequestedClose: step(cases.RequestedClose),
-      RequestedSelectItem: step(cases.RequestedSelectItem),
-      Opened: step(cases.Opened),
-      Closed: step(cases.Closed),
-      BlurredItems: step(cases.BlurredItems),
-      SelectedItem: step(cases.SelectedItem),
-      PressedPointerOnButton: step(cases.PressedPointerOnButton),
-      ClickedButton: step(cases.ClickedButton),
-      CompletedDetectListboxMovementOrAnimationEnd: step(
-        cases.CompletedDetectListboxMovementOrAnimationEnd,
-      ),
-    },
-    AnimationBinding,
+    ...handlers,
+    ...animation.on<Model>({
+      StartedLeaveAnimating: (model, { generation }) => ({
+        model,
+        commands: [
+          DetectListboxMovementOrAnimationEnd({ id: model.id, generation }),
+        ],
+      }),
+    }),
   }
 }
+
+// MOUNT
 
 /**
  * The anchor-positioning Mount this Listbox renders on its items panel.
@@ -746,67 +731,79 @@ export const makeUpdateHandlers = <
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`.
  */
-export const AnchorListbox = ListboxNamespace.makeMount('AnchorListbox', {
+export const AnchorListbox = Mount.define('AnchorListbox', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorListbox],
-  handler: function* () {
-    return ({ element, buttonId, anchor }) =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() =>
-            anchorSetup(element, {
-              buttonId,
-              anchor,
-              focusAfterPosition: true,
-            }),
-          ),
-          cleanup => Effect.sync(cleanup),
-        )
-        return Message.CompletedAnchorListbox()
-      })
-  },
 })
 
 /** The backdrop-portaling Mount this Listbox renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalListboxBackdrop, CompletedPortalListboxBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalListboxBackdrop = ListboxNamespace.makeMount(
-  'PortalListboxBackdrop',
-  {
-    messages: [Message.CompletedPortalListboxBackdrop],
-    handler: function* () {
-      return ({ element }) =>
-        Effect.gen(function* () {
-          yield* Effect.acquireRelease(
-            Effect.sync(() => portalBackdrop(element)),
-            cleanup => Effect.sync(cleanup),
-          )
-          return Message.CompletedPortalListboxBackdrop()
-        })
-    },
-  },
-)
+export const PortalListboxBackdrop = Mount.define('PortalListboxBackdrop', {
+  messages: [Message.CompletedPortalListboxBackdrop],
+})
 
 /** Mount Definitions rendered by Listbox views. */
 export const mounts = [AnchorListbox, PortalListboxBackdrop]
 
+/** Mount handlers every Listbox variant installs. */
+export const mountHandlers = {
+  AnchorListbox: ({
+    element,
+    buttonId,
+    anchor,
+  }: Readonly<{ element: Element; buttonId: string; anchor: AnchorConfig }>) =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          anchorSetup(element, {
+            buttonId,
+            anchor,
+            focusAfterPosition: true,
+          }),
+        ),
+        cleanup => Effect.sync(cleanup),
+      )
+      return Message.CompletedAnchorListbox()
+    }),
+  PortalListboxBackdrop: ({ element }: Readonly<{ element: Element }>) =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => portalBackdrop(element)),
+        cleanup => Effect.sync(cleanup),
+      )
+      return Message.CompletedPortalListboxBackdrop()
+    }),
+}
+
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
-/** Provides Listbox's local Command and Mount handlers. */
-export const EffectsLayer = Layer.mergeAll(
-  LockListboxScroll.layer,
-  UnlockListboxScroll.layer,
-  InertListboxOthers.layer,
-  RestoreListboxInert.layer,
-  FocusListboxButton.layer,
-  FocusListboxItems.layer,
-  ScrollListboxItemIntoView.layer,
-  ClickListboxItem.layer,
-  DelayClearListboxSearch.layer,
-  DetectListboxMovementOrAnimationEnd.layer,
-  AnchorListbox.layer,
-  PortalListboxBackdrop.layer,
-)
+/** The contract every Listbox class declares, refined to its selected Value
+ *  type. */
+export type Contract<Value extends string> = Readonly<{
+  Model: typeof BaseModel
+  Message: MessageSchema<Value>
+  OutMessage: OutMessageSchema<Value>
+  Command: typeof commandDefinitions
+  Mount: typeof mounts
+}>
+
+/** Builds the contract for a Listbox class refined to one Value type. */
+export const makeContract = <Value extends string>(): Contract<Value> => ({
+  Model: BaseModel,
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  Message: Message as unknown as MessageSchema<Value>,
+  OutMessage: OutMessage as unknown as OutMessageSchema<Value>,
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  Command: commandDefinitions,
+  Mount: mounts,
+})
+
+/** Returns the `Selected` OutMessage for a committed item, refined to the
+ *  Listbox's Value type. */
+export const selected = <Value extends string>(item: string): Selected<Value> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  OutMessage.Selected({ value: item }) as Selected<Value>
 
 // VIEW TYPES
 
@@ -822,11 +819,11 @@ export type GroupHeading = Readonly<{
   className?: string
 }>
 
-/** Per-render view inputs passed to a Listbox connection's `embedView` method.
+/** Per-render view input a parent passes to `model.listbox.view(...)`.
  *
- *  The Listbox emits a `Selected({ value })` OutMessage on commit.
- *  Fold it through the Listbox connection: single-select stores
- *  the value, while multi-select toggles its membership. */
+ *  The Listbox emits a `Selected({ value })` OutMessage on commit. Handle
+ *  it with `.on`: single-select stores the value, while multi-select
+ *  toggles its membership. */
 export type BaseViewInputsCommon<Item> = Readonly<{
   items: ReadonlyArray<Item>
   itemToConfig: (
@@ -926,7 +923,9 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       id,
       isOpen,
       orientation,
-      animation: { transitionState },
+      animation: {
+        model: { transitionState },
+      },
       maybeActiveItemIndex,
       searchQuery,
     } = model
@@ -971,32 +970,12 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
     const itemToSearchText =
       viewInputs.itemToSearchText ?? ((item: unknown) => itemToValue(item))
 
-    const isLeaving =
-      transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
+    const isLeaving = Animation.isLeaving(transitionState)
     const isVisible = isOpen || isLeaving
 
-    const animationAttributes: ReadonlyArray<
-      ReturnType<typeof h.DataAttribute>
-    > = Match.value(transitionState).pipe(
-      Match.when('EnterStart', () => [
-        h.DataAttribute('closed', ''),
-        h.DataAttribute('enter', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('EnterAnimating', () => [
-        h.DataAttribute('enter', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('LeaveStart', () => [
-        h.DataAttribute('leave', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('LeaveAnimating', () => [
-        h.DataAttribute('closed', ''),
-        h.DataAttribute('leave', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.orElse(() => []),
+    const animationAttributes = Animation.transitionAttributes(
+      h,
+      transitionState,
     )
 
     const isItemDisabledByIndex = (index: number): boolean =>
@@ -1424,11 +1403,11 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
     ])
   }
 
-  return <Item, Value extends string = string, ParentMessage = never>() =>
+  return <Item, Value extends string = string>() =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     impl as unknown as (
       model: Model,
       viewInputs: BaseViewInputs<Item, Value>,
-      h: HtmlBuilder<Message | ParentMessage, MountRequirements>,
+      h: HtmlBuilder<MessageOf<Value>, MountRequirements>,
     ) => Html
 }

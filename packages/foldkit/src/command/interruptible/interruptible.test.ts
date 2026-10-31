@@ -3,7 +3,6 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Block from '../../block/public.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Command from '../index.js'
 import { __CurrentRegistry, type __Registry, __makeRegistry } from './index.js'
@@ -21,14 +20,10 @@ const provideRegistry =
 
 describe('interruptible Command.define', () => {
   it.effect(
-    'selects the same key fields for owned and unowned invocation and interruption',
+    'selects the same key fields for host and attached invocation and interruption',
     () =>
       Effect.gen(function* () {
         const registry = __makeRegistry()
-        const Definition = Block.makeDefinition('SelectedTaskFields', {
-          Model: Schema.Struct({}),
-          Message,
-        })
         const Args = Schema.Struct({
           taskId: Schema.NumberFromString,
           label: Schema.String,
@@ -40,7 +35,7 @@ describe('interruptible Command.define', () => {
           label: Args.fields.label,
         })
         type KeyArgs = typeof KeyArgs.Type
-        const OwnedHost = Definition.makeCommand('OwnedHost', {
+        const Host = Command.define('SelectedFieldsHost', {
           args: Args.fields,
           messages: [Message.SucceededTask],
           interrupt: {
@@ -48,27 +43,7 @@ describe('interruptible Command.define', () => {
             toKey: keyArgs => JSON.stringify(keyArgs),
           },
         })
-        const OwnedAttached = Definition.makeCommand('OwnedAttached', {
-          args: Args.fields,
-          messages: [Message.SucceededTask],
-          handler: function* () {
-            return ({ taskId }) =>
-              Effect.as(Effect.never, Message.SucceededTask({ taskId }))
-          },
-          interrupt: {
-            keyFields: ['label', 'taskId'],
-            toKey: keyArgs => JSON.stringify(keyArgs),
-          },
-        })
-        const UnownedHost = Command.define('SelectedFieldsHost', {
-          args: Args.fields,
-          messages: [Message.SucceededTask],
-          interrupt: {
-            keyFields: ['label', 'taskId'],
-            toKey: keyArgs => JSON.stringify(keyArgs),
-          },
-        })
-        const UnownedAttached = Command.define('SelectedFieldsAttached', {
+        const Attached = Command.define('SelectedFieldsAttached', {
           args: Args.fields,
           messages: [Message.SucceededTask],
           handler: function* () {
@@ -81,18 +56,12 @@ describe('interruptible Command.define', () => {
           },
         })
         const EffectsLayer = Layer.mergeAll(
-          OwnedHost.toLayer(
+          Host.toLayer(
             Effect.succeed(({ taskId }) =>
               Effect.as(Effect.never, Message.SucceededTask({ taskId })),
             ),
           ),
-          OwnedAttached.layer,
-          UnownedHost.toLayer(
-            Effect.succeed(({ taskId }) =>
-              Effect.as(Effect.never, Message.SucceededTask({ taskId })),
-            ),
-          ),
-          UnownedAttached.layer,
+          Attached.layer,
         )
         const args = { taskId: 7, revision: 3, label: 'seven' }
         const keyArgs = { taskId: 7, label: 'seven' }
@@ -103,12 +72,7 @@ describe('interruptible Command.define', () => {
         })
         expect(decodedKeyArgs).toEqual(keyArgs)
 
-        for (const definition of [
-          OwnedHost,
-          OwnedAttached,
-          UnownedHost,
-          UnownedAttached,
-        ]) {
+        for (const definition of [Host, Attached]) {
           const instance = definition(args)
           const interrupt = definition.Interrupt(keyArgs, outcome => outcome)
           const decodedInterrupt = definition.Interrupt(

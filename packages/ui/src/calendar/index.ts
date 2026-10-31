@@ -1,5 +1,6 @@
 export {
-  CalendarBlock,
+  Calendar,
+  CalendarLive,
   ViewMode,
   type InitConfig,
   type DayCell,

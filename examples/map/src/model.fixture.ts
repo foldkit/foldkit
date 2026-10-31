@@ -1,12 +1,20 @@
-import { Option } from 'effect'
+import { Layer, Option } from 'effect'
+import type { Resolved } from 'foldkit/block'
 import { modifyFields } from 'foldkit/struct'
 
-import { Location, featuredLocations } from './locations'
-import { GeolocateState, type Model } from './model'
+import { ApplicationLive, GeolocateState, type Model } from './application'
+import { type Location, featuredLocations } from './domain/location'
+import { ApplicationLayer } from './services'
+import { SidebarLive } from './sidebar'
 
-export const initialModel: Model = {
+export const TestLive = ApplicationLive.pipe(
+  Layer.provide(SidebarLive),
+  Layer.provide(ApplicationLayer),
+)
+
+export const initialModel: Resolved<Model> = {
+  sidebar: { searchQuery: '' },
   locations: featuredLocations,
-  searchQuery: '',
   maybeMapHostId: Option.none(),
   maybeMapError: Option.none(),
   maybeBounds: Option.none(),
@@ -15,7 +23,7 @@ export const initialModel: Model = {
   geolocateState: GeolocateState.Idle(),
 }
 
-export const mountedModel: Model = modifyFields(initialModel, {
+export const mountedModel: Resolved<Model> = modifyFields(initialModel, {
   maybeMapHostId: () => Option.some('map-host-1'),
 })
 

@@ -1,163 +1,157 @@
-import { Array, Result, Schema } from 'effect'
-import type * as Block from 'foldkit/block'
+import { Array, Equal, Option, Predicate, Result, pipe } from 'effect'
+import { Block } from 'foldkit'
 import * as Story from 'foldkit/story'
-import { __bindCommandMatcher, __commandMatches } from 'foldkit/test'
 
-import {
-  DragAndDropBlock,
-  FocusItem,
-  Message,
-  ResolveKeyboardMove,
-  ResolveKeyboardMoveArgs,
-} from './block.js'
+import { FocusItem, Message, ResolveKeyboardMove } from './block.js'
 
 export { FocusItem, ResolveKeyboardMove }
 
-type BindingFor<BlockValue> = Block.AnyBinding &
-  Block.BindingEvidence<BlockValue, unknown, unknown, boolean>
-
-type DragAndDropBinding = BindingFor<typeof DragAndDropBlock>
-
-type BindingOccurrence<BindingValue> =
-  BindingValue extends Block.BindingEvidence<unknown, unknown, unknown, true> &
-    Readonly<{ fold: (...args: infer Args) => unknown }>
-    ? Args extends readonly [unknown, infer Key, ...ReadonlyArray<unknown>]
-      ? Readonly<{ key: Key & (string | number) }>
-      : never
-    : Readonly<{ key?: never }>
-
-type BindingSelection<BindingValue> = BindingValue extends DragAndDropBinding
-  ? Readonly<{ binding: BindingValue }> & BindingOccurrence<BindingValue>
-  : Readonly<{ binding?: never; key?: never }>
+type InstancePath = string | ReadonlyArray<string>
 
 type StoryTransform = <Model, Message, OutMessage>(
   simulation: Story.StorySimulation<Model, Message, OutMessage>,
 ) => Story.StorySimulation<Model, Message, OutMessage>
 
-const assertBindingSelectedForKey = (
-  binding: DragAndDropBinding | undefined,
-  key: string | number | undefined,
-) => {
-  if (binding === undefined && key !== undefined) {
+const toPath = (path: InstancePath): ReadonlyArray<string> =>
+  Predicate.isString(path) ? [path] : path
+
+const commandPath = (command: Story.AnyCommand): ReadonlyArray<string> => {
+  const routed = Array.reduce(
+    command.messageMappers ?? [],
+    Message.CompletedFocusItem(),
+    (message: unknown, mapper) => mapper(message),
+  )
+  return Block.isBlockMessage(routed) ? routed.path : []
+}
+
+const isAtPath = (
+  maybePath: Option.Option<ReadonlyArray<string>>,
+  command: Story.AnyCommand,
+): boolean =>
+  Option.match(maybePath, {
+    onNone: () => true,
+    onSome: path =>
+      Equal.equals(Array.fromIterable(path), commandPath(command)),
+  })
+
+const describePath = (maybePath: Option.Option<ReadonlyArray<string>>) =>
+  Option.match(maybePath, {
+    onNone: () => '',
+    onSome: path => ` at path ${JSON.stringify(path)}`,
+  })
+
+const findFocusAtPath = (
+  commands: ReadonlyArray<Story.AnyCommand>,
+  maybePath: Option.Option<ReadonlyArray<string>>,
+  itemId: string,
+): boolean =>
+  Array.some(
+    commands,
+    command =>
+      isAtPath(maybePath, command) &&
+      Option.exists(
+        Story.Command.argsOf(FocusItem)(command),
+        args => args.itemId === itemId,
+      ),
+  )
+
+const assertFocusPending = (
+  commands: ReadonlyArray<Story.AnyCommand>,
+  maybePath: Option.Option<ReadonlyArray<string>>,
+  itemId: string,
+): void => {
+  if (
+    Option.isSome(maybePath) &&
+    !findFocusAtPath(commands, maybePath, itemId)
+  ) {
     throw new Error(
-      '[foldkit/ui] DragAndDrop.test helpers require a Binding when key is provided.',
+      `[foldkit/ui] DragAndDrop.test could not find a pending FocusItem for item "${itemId}"${describePath(maybePath)}.`,
     )
   }
 }
 
-/** Identifies the item whose focus Command {@link settleFocus} resolves.
- * Pass `binding` when testing an embedded DragAndDrop Block. A keyed Binding
- * also requires its exact occurrence `key`. */
-export type SettleFocusInput<
-  BindingValue extends DragAndDropBinding | undefined = undefined,
-> = Readonly<{
-  itemId: string
-}> &
-  BindingSelection<BindingValue>
+const resolveFocus =
+  (
+    maybePath: Option.Option<ReadonlyArray<string>>,
+    itemId: string,
+  ): StoryTransform =>
+  simulation => {
+    assertFocusPending(simulation.commands, maybePath, itemId)
 
-const selectedFocusMatcher = (
-  binding: DragAndDropBinding | undefined,
-  key: string | number | undefined,
-  itemId: string,
-) =>
-  binding === undefined
-    ? FocusItem({ itemId })
-    : __bindCommandMatcher(
-        DragAndDropBlock,
-        binding,
-        FocusItem({ itemId }),
-        key,
-      )
+    return Story.Command.resolve(
+      FocusItem({ itemId }),
+      Message.CompletedFocusItem(),
+    )(simulation)
+  }
+
+/** Identifies the item whose focus Command {@link settleFocus} resolves.
+ *  Pass `path` when testing an embedded DragAndDrop instance. It addresses the
+ *  instance from the Story root, in the same form `Block.deliver` takes. */
+export type SettleFocusInput = Readonly<{
+  itemId: string
+  path?: InstancePath
+}>
 
 /** Returns a Story step that resolves `FocusItem({ itemId })` after a keyboard
- *  drop, cancellation, or move. The step fails if no matching Command is pending
- *  and leaves unrelated Commands pending. Pass the DragAndDrop Binding, plus
- *  its key when keyed, to select one embedded occurrence.
+ *  drop, cancellation, or move. The step fails if no matching Command is
+ *  pending and leaves unrelated Commands pending. Pass `path` to require that
+ *  the Command belongs to one embedded DragAndDrop instance.
  *
  *  @example
  *  ```ts
- *  Story.story(
- *    DragAndDropBlock.update,
- *    Story.given(model),
- *    Story.message(DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
+ *  story(
+ *    DragAndDropLive,
+ *    {},
+ *    message(DragAndDrop.Message.ActivatedKeyboardDrag({ itemId: 'card-1', containerId: 'todo', index: 0 })),
+ *    message(DragAndDrop.Message.ConfirmedKeyboardDrop()),
  *    DragAndDrop.test.settleFocus({ itemId: 'card-1' }),
  *  )
  *  ```
  */
-export const settleFocus = <
-  const BindingValue extends DragAndDropBinding | undefined = undefined,
->({
-  itemId,
-  binding,
-  key,
-}: SettleFocusInput<BindingValue>) => {
-  assertBindingSelectedForKey(binding, key)
-
-  return binding === undefined
-    ? Story.Command.resolve(FocusItem({ itemId }), Message.CompletedFocusItem())
-    : Story.Command.resolve(
-        selectedFocusMatcher(binding, key, itemId),
-        Message.CompletedFocusItem(),
-      )
-}
+export const settleFocus = ({ itemId, path }: SettleFocusInput) =>
+  resolveFocus(Option.map(Option.fromUndefinedOr(path), toPath), itemId)
 
 /** The dragged item and target position supplied to
- * {@link resolveKeyboardMove}. Pass `binding` when testing an embedded
- * DragAndDrop Block. A keyed Binding also requires its exact occurrence
- * `key`. */
-export type ResolveKeyboardMoveInput<
-  BindingValue extends DragAndDropBinding | undefined = undefined,
-> = Readonly<{
+ *  {@link resolveKeyboardMove}. Pass `path` when testing an embedded
+ *  DragAndDrop instance. It addresses the instance from the Story root, in the
+ *  same form `Block.deliver` takes. */
+export type ResolveKeyboardMoveInput = Readonly<{
   itemId: string
   targetContainerId: string
   targetIndex: number
-}> &
-  BindingSelection<BindingValue>
+  path?: InstancePath
+}>
 
 const resolveSelectedKeyboardMove =
   (
-    binding: DragAndDropBinding | undefined,
-    key: string | number | undefined,
+    maybePath: Option.Option<ReadonlyArray<string>>,
     itemId: string,
     targetContainerId: string,
     targetIndex: number,
   ): StoryTransform =>
-  <Model, ParentMessage, OutMessage>(
-    simulation: Story.StorySimulation<Model, ParentMessage, OutMessage>,
-  ): Story.StorySimulation<Model, ParentMessage, OutMessage> => {
-    const matchers = Array.filterMap(simulation.commands, command => {
-      const { args } = command
-      if (!Schema.is(ResolveKeyboardMoveArgs)(args) || args.itemId !== itemId) {
-        return Result.failVoid
-      }
+  simulation => {
+    const pendingMoves = Array.filterMap(simulation.commands, command =>
+      pipe(
+        Story.Command.argsOf(ResolveKeyboardMove)(command),
+        Option.filter(
+          args => args.itemId === itemId && isAtPath(maybePath, command),
+        ),
+        Result.fromOption(() => undefined),
+      ),
+    )
 
-      const instance = ResolveKeyboardMove(args)
-      const matcher =
-        binding === undefined
-          ? instance
-          : __bindCommandMatcher(DragAndDropBlock, binding, instance, key)
-      return __commandMatches(matcher, command)
-        ? Result.succeed({
-            keyboardDragGeneration: args.keyboardDragGeneration,
-            matcher,
-          })
-        : Result.failVoid
-    })
-
-    const selectedMove = Array.match(matchers, {
+    const selectedArgs = Array.match(pendingMoves, {
       onEmpty: () => {
         throw new Error(
-          binding === undefined
-            ? `[foldkit/ui] DragAndDrop.test.resolveKeyboardMove could not find a pending keyboard move for item "${itemId}".`
-            : `[foldkit/ui] DragAndDrop.test.resolveKeyboardMove could not find a pending keyboard move for item "${itemId}" at the selected Binding occurrence.`,
+          `[foldkit/ui] DragAndDrop.test.resolveKeyboardMove could not find a pending keyboard move for item "${itemId}"${describePath(maybePath)}.`,
         )
       },
       onNonEmpty: nonEmpty => {
         if (Array.isArrayNonEmpty(Array.drop(nonEmpty, 1))) {
           throw new Error(
-            binding === undefined
-              ? `[foldkit/ui] DragAndDrop.test.resolveKeyboardMove found multiple pending keyboard moves for item "${itemId}". Isolate one pending move in this Story, or pass a Binding when the candidates come from embedded occurrences.`
-              : `[foldkit/ui] DragAndDrop.test.resolveKeyboardMove found multiple pending keyboard moves for item "${itemId}" under the selected Binding. Isolate one ancestor occurrence in this Story.`,
+            Option.isNone(maybePath)
+              ? `[foldkit/ui] DragAndDrop.test.resolveKeyboardMove found multiple pending keyboard moves for item "${itemId}". Isolate one pending move in this Story, or pass a path when the candidates come from embedded instances.`
+              : `[foldkit/ui] DragAndDrop.test.resolveKeyboardMove found multiple pending keyboard moves for item "${itemId}"${describePath(maybePath)}. Isolate one pending move in this Story.`,
           )
         }
 
@@ -165,41 +159,48 @@ const resolveSelectedKeyboardMove =
       },
     })
 
+    const identicalMoveCount = Array.length(
+      Array.filter(simulation.commands, command =>
+        Option.exists(
+          Story.Command.argsOf(ResolveKeyboardMove)(command),
+          args => Equal.equals(args, selectedArgs),
+        ),
+      ),
+    )
+
+    if (identicalMoveCount > 1) {
+      throw new Error(
+        `[foldkit/ui] DragAndDrop.test.resolveKeyboardMove found identical pending keyboard moves for item "${itemId}" in several DragAndDrop instances. Isolate one instance's move in this Story.`,
+      )
+    }
+
     const afterMove = Story.Command.resolve(
-      selectedMove.matcher,
+      ResolveKeyboardMove(selectedArgs),
       Message.CompletedResolveKeyboardMove({
-        keyboardDragGeneration: selectedMove.keyboardDragGeneration,
+        keyboardDragGeneration: selectedArgs.keyboardDragGeneration,
         targetContainerId,
         targetIndex,
       }),
     )(simulation)
 
-    return Story.Command.resolve(
-      selectedFocusMatcher(binding, key, itemId),
-      Message.CompletedFocusItem(),
-    )(afterMove)
+    return resolveFocus(maybePath, itemId)(afterMove)
   }
 
 /** Returns Story steps that resolve a pending `ResolveKeyboardMove` to the
  *  supplied container and index, then resolve `FocusItem` for `itemId`.
  *
  *  The steps fail if either Command is missing or multiple keyboard moves are
- *  pending. Unrelated Commands stay pending. Pass the DragAndDrop Binding,
- *  plus its key when keyed, to select one embedded occurrence and verify the
- *  pending move belongs to `itemId`. Binding selection matches the composed
- *  path suffix. When an enclosing Binding repeats that path, isolate one
- *  ancestor occurrence in the Story; the helper rejects the ambiguity.
+ *  pending. Unrelated Commands stay pending. Pass `path` to select the move of
+ *  one embedded DragAndDrop instance. Two instances with identical pending
+ *  moves cannot be told apart by resolution, so the helper rejects them.
  *
  *  @example
  *  ```ts
- *  Story.story(
- *    DragAndDropBlock.update,
- *    Story.given(keyboardDraggingModel),
- *    Story.message(
- *      DragAndDropBlock.Message.PressedArrowKey({
- *        direction: 'NextContainer',
- *      }),
- *    ),
+ *  story(
+ *    DragAndDropLive,
+ *    {},
+ *    message(DragAndDrop.Message.ActivatedKeyboardDrag({ itemId: 'card-1', containerId: 'todo', index: 0 })),
+ *    message(DragAndDrop.Message.PressedArrowKey({ direction: 'NextContainer' })),
  *    DragAndDrop.test.resolveKeyboardMove({
  *      itemId: 'card-1',
  *      targetContainerId: 'done',
@@ -208,22 +209,15 @@ const resolveSelectedKeyboardMove =
  *  )
  *  ```
  */
-export const resolveKeyboardMove = <
-  const BindingValue extends DragAndDropBinding | undefined = undefined,
->({
+export const resolveKeyboardMove = ({
   itemId,
   targetContainerId,
   targetIndex,
-  binding,
-  key,
-}: ResolveKeyboardMoveInput<BindingValue>) => {
-  assertBindingSelectedForKey(binding, key)
-
-  return resolveSelectedKeyboardMove(
-    binding,
-    key,
+  path,
+}: ResolveKeyboardMoveInput) =>
+  resolveSelectedKeyboardMove(
+    Option.map(Option.fromUndefinedOr(path), toPath),
     itemId,
     targetContainerId,
     targetIndex,
   )
-}

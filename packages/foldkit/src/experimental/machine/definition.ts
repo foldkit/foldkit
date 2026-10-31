@@ -406,9 +406,10 @@ export interface OtherwiseConstructor {
 }
 
 /** A Schema-bound authoring surface for a pure Machine. Export needed helpers
- * from the owning contract module, as with a Block Definition. Source and
+ * from the module that owns the State and Message Schemas. Source and
  * Message selectors establish extracted inputs without repeating EdgeInput
- * type arguments. No Composition stage or Runtime is introduced. */
+ * type arguments. A Machine runs inside a Block's update handlers and adds
+ * no Block or Runtime of its own. */
 export interface Definition<
   State extends Tagged,
   Message extends Tagged,

@@ -1,9 +1,11 @@
-import { Program } from 'foldkit'
+import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './block'
+import { Application, ApplicationLive } from './application'
 
-Program.make({
-  block: ApplicationBlock,
+const program = Program.make(Application, {
+  layer: ApplicationLive,
   container: document.getElementById('root'),
   devTools: { dispatch: true },
 })
+
+Runtime.run(program)

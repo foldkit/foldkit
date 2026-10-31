@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
@@ -8,64 +8,32 @@ import { makeBlock } from './public.js'
 
 const TestMenu = makeBlock<string>()
 
-const Model = Schema.Struct({ menu: TestMenu.Model })
-type Model = typeof Model.Type
-const MenuTriggerClickTestDefinition = Block.makeDefinition(
+class MenuTriggerClickTest extends Block<MenuTriggerClickTest>()(
   'MenuTriggerClickTest',
-  {
-    Model,
-    Message: Schema.Never,
-  },
-)
-const foldMenuOutMessage = MenuTriggerClickTestDefinition.makeOutMessageFold(
-  TestMenu,
-  {
-    Selected: () => MenuTriggerClickTestDefinition.makeNoopStep(),
-    Closed: () => MenuTriggerClickTestDefinition.makeNoopStep(),
-  },
-)
-const MenuBinding = MenuTriggerClickTestDefinition.makeBinding(TestMenu, {
-  field: 'menu',
-  init: false,
-}).withOutMessagePolicy({ fold: foldMenuOutMessage })
-const MenuTriggerClickTestComposition =
-  MenuTriggerClickTestDefinition.makeComposition({
-    bindings: [MenuBinding],
-  })
-const view = MenuTriggerClickTestComposition.makeView((model, h) =>
-  h.div(
-    [],
-    [
-      h.block(
-        MenuBinding.embedView({
-          slotId: 'menu',
-          model: model.menu,
-          viewInputs: {
-            items: ['Name'],
-            itemToConfig: item => ({ content: h.span([], [item]) }),
-            buttonContent: h.span([], ['Actions']),
-            anchor: { placement: 'bottom-start' },
-          },
-        }),
-      ),
-    ],
-  ),
-)
-const prepare = () =>
-  MenuTriggerClickTestComposition.prepareBlock({
-    init: MenuTriggerClickTestComposition.makeInit(() =>
-      MenuBinding.init({
-        args: [{ id: 'actions', isModal: true }],
-        toParentModel: menu => ({ menu }),
-      }),
-    ),
-    update: MenuTriggerClickTestComposition.makeUpdate({}),
-    view,
-  })
-const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+  { Model: Schema.Struct({ menu: TestMenu }) },
+) {}
+
+const MenuTriggerClickTestLive = MenuTriggerClickTest.make(
+  Effect.fn(function* () {
+    const menu = yield* new TestMenu('menu', { id: 'actions', isModal: true })
+
+    return {
+      model: { menu },
+      view: (model, h) =>
+        h.div(
+          [],
+          [
+            model.menu.view({
+              items: ['Name'],
+              itemToConfig: item => ({ content: h.span([], [item]) }),
+              buttonContent: h.span([], ['Actions']),
+              anchor: { placement: 'bottom-start' },
+            }),
+          ],
+        ),
+    }
+  }),
+).pipe(Layer.provide(TestMenu.Live))
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)
@@ -98,7 +66,10 @@ describe('Menu trigger click', () => {
     container.id = 'app'
     document.body.append(background, container)
     const handle = Runtime.embed(
-      Program.makeElement({ block: ApplicationBlock, container }),
+      Program.makeElement(MenuTriggerClickTest, {
+        layer: MenuTriggerClickTestLive,
+        container,
+      }),
     )
 
     try {

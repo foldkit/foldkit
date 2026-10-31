@@ -38,29 +38,17 @@ export type StreamFromMediaQueryConfig<Output> = Readonly<{
  * only when the Stream starts. The Stream can therefore be created during
  * server rendering as long as it runs only in the browser.
  *
- * This helper returns a Stream, not a Subscription entry. Declare a named
- * entry with no Model dependencies for a query the application always follows.
- * To follow the query only in a particular Model state, declare dependencies
- * on the entry and apply `Stream.when` in its handler.
+ * This helper returns a Stream, not a Subscription. Return it as a Block's
+ * `stream` for a query the Block always follows, or from a `subscriptions`
+ * entry's `stream` to follow it only in a particular Model state.
  *
  * @example
  * ```typescript
- * const ExampleDefinition = Block.makeDefinition('Example', { Model, Message })
- * const subscriptions = ExampleDefinition.makeSubscriptions(entry => ({
- *   reducedMotion: entry('ReducedMotion', {
- *     messages: [Message.ChangedReducedMotion],
- *     handler: function* () {
- *       return () =>
- *         Dom.streamFromMediaQuery({
- *           query: '(prefers-reduced-motion: reduce)',
- *           mapMatches: isMatching =>
- *             Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
- *         })
- *     },
- *   }),
- * }))
- *
- * const EffectsLayer = subscriptions.reducedMotion.layer
+ * stream: Dom.streamFromMediaQuery({
+ *   query: '(prefers-reduced-motion: reduce)',
+ *   mapMatches: isMatching =>
+ *     Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
+ * }),
  * ```
  */
 export const streamFromMediaQuery = <Output>(

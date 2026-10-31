@@ -7,10 +7,13 @@ export {
   DEFAULT_SWIPE_DIRECTION,
   DEFAULT_SWIPE_THRESHOLD,
   SWIPE_SETTLE_DURATION,
+  WaitBeforeDismissal,
+  WaitForSwipeSettled,
   swipeOffset,
   type InitConfig,
   type ShowInput,
   type SwipeToDismissConfig,
   type EntryHandlers,
+  type ViewInputs,
   type Completed,
 } from './toast.js'

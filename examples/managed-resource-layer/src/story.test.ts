@@ -1,116 +1,117 @@
 import { Option } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { Command, message, model, story } from 'foldkit/story'
 
-import {
-  Compute,
-  EngineState,
-  Message,
-  type Model,
-  update,
-} from './application'
+import { describe, expect, it } from '@effect/vitest'
 
-const offModel: Model = {
-  engine: EngineState.Off(),
-  computeCount: 0,
-  maybeSquareResult: Option.none(),
-}
+import { Compute, EngineState, Message } from './application'
+import { application } from './application.fixture'
+import { BootEngine, Engine } from './engine'
 
-const readyModel: Model = {
-  engine: EngineState.Ready({ engineId: 'engine-1' }),
-  computeCount: 2,
-  maybeSquareResult: Option.none(),
-}
+const startEngine = [
+  message(Message.ClickedStartEngine()),
+  Command.resolve(
+    BootEngine,
+    Engine.Message.SucceededBootEngine({ engineId: 'engine-1' }),
+  ),
+]
 
 describe('update', () => {
   describe('engine lifecycle', () => {
-    test('ClickedStartEngine requests the engine by entering Booting', () => {
-      story(
-        update,
-        given(offModel),
-        message(Message.ClickedStartEngine()),
-        model(model => {
-          expect(model.engine._tag).toBe('Booting')
-        }),
-      )
-    })
+    it.effect(
+      'ClickedStartEngine requests the engine by entering Booting',
+      () =>
+        story(
+          application,
+          message(Message.ClickedStartEngine()),
+          model(model => {
+            expect(model.engine._tag).toBe('Booting')
+            expect(Option.isSome(model.maybeComputeEngine)).toBe(true)
+          }),
+          Command.expectExact(BootEngine),
+          Command.resolve(
+            BootEngine,
+            Engine.Message.SucceededBootEngine({ engineId: 'engine-1' }),
+          ),
+        ),
+    )
 
-    test('StartedEngine marks the engine ready with its id', () => {
+    it.effect('a booted engine marks the engine ready with its id', () =>
       story(
-        update,
-        given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
-        message(Message.StartedEngine({ engineId: 'engine-7' })),
+        application,
+        message(Message.ClickedStartEngine()),
+        Command.resolve(
+          BootEngine,
+          Engine.Message.SucceededBootEngine({ engineId: 'engine-7' }),
+        ),
         model(model => {
           expect(model.engine).toStrictEqual(
             EngineState.Ready({ engineId: 'engine-7' }),
           )
         }),
-      )
-    })
+      ),
+    )
 
-    test('ClickedStopEngine releases the engine by entering Off', () => {
+    it.effect('ClickedStopEngine releases the engine by entering Off', () =>
       story(
-        update,
-        given(readyModel),
+        application,
+        ...startEngine,
         message(Message.ClickedStopEngine()),
         model(model => {
           expect(model.engine._tag).toBe('Off')
+          expect(Option.isNone(model.maybeComputeEngine)).toBe(true)
         }),
-      )
-    })
+      ),
+    )
 
-    test('StoppedEngine is a no-op lifecycle ack', () => {
+    it.effect('a failed boot records the failure reason', () =>
       story(
-        update,
-        given(offModel),
-        message(Message.StoppedEngine()),
-        model(model => {
-          expect(model).toStrictEqual(offModel)
-        }),
-      )
-    })
-
-    test('FailedStartEngine records the failure reason', () => {
-      story(
-        update,
-        given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
-        message(Message.FailedStartEngine({ reason: 'boot timeout' })),
+        application,
+        message(Message.ClickedStartEngine()),
+        Command.resolve(
+          BootEngine,
+          Engine.Message.FailedBootEngine({ reason: 'boot timeout' }),
+        ),
         model(model => {
           expect(model.engine).toStrictEqual(
             EngineState.Failed({ reason: 'boot timeout' }),
           )
+          expect(Option.isNone(model.maybeComputeEngine)).toBe(true)
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('compute', () => {
-    test('ClickedCompute increments the counter and fires Compute with the next value', () => {
-      story(
-        update,
-        given(readyModel),
-        message(Message.ClickedCompute()),
-        model(model => {
-          expect(model.computeCount).toBe(3)
-        }),
-        Command.expectExact(Compute({ value: 3 })),
-        Command.resolve(Compute, Message.SucceededCompute({ result: 9 })),
-        model(model => {
-          expect(model.maybeSquareResult).toStrictEqual(Option.some(9))
-        }),
-      )
-    })
+    it.effect(
+      'ClickedCompute increments the counter and fires Compute with the next value',
+      () =>
+        story(
+          application,
+          ...startEngine,
+          message(Message.ClickedCompute()),
+          model(model => {
+            expect(model.computeCount).toBe(1)
+          }),
+          Command.expectExact(Compute({ value: 1 })),
+          Command.resolve(Compute, Message.SucceededCompute({ result: 1 })),
+          model(model => {
+            expect(model.maybeSquareResult).toStrictEqual(Option.some(1))
+          }),
+        ),
+    )
 
-    test('FailedCompute leaves the model unchanged', () => {
+    it.effect('FailedCompute leaves the model unchanged', () =>
       story(
-        update,
-        given(readyModel),
+        application,
+        ...startEngine,
         message(Message.FailedCompute()),
         model(model => {
-          expect(model).toStrictEqual(readyModel)
+          expect(model.engine).toStrictEqual(
+            EngineState.Ready({ engineId: 'engine-1' }),
+          )
+          expect(model.maybeSquareResult).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
   })
 })

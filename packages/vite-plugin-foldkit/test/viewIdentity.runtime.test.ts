@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { Effect, Fiber, Layer, Schema } from 'effect'
+import { Effect, Fiber, Schema } from 'effect'
 import { Block, Program } from 'foldkit'
 import { brandViewResult } from 'foldkit/brand'
 import { type Html, inertHtml } from 'foldkit/html'
@@ -16,21 +16,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationComposition = Block.makeDefinition('Application', {
+class Application extends Block<Application>()('Application', {
   Model,
   Message,
-}).makeComposition()
-
-const init = ApplicationComposition.makeInit(() => ({
-  model: Model.make({ mode: 'Viewing' }),
-}))
-
-const update = ApplicationComposition.makeUpdate({
-  ClickedToggle: model => {
-    const nextMode = model.mode === 'Viewing' ? 'Editing' : 'Viewing'
-    return { model: Model.make({ mode: nextMode }) }
-  },
-})
+}) {}
 
 const FIXTURE_MODULE_ID = '/app/src/View.js'
 const FIXTURE_ROOT = '/app'
@@ -174,19 +163,22 @@ const withRunningApp = async (
   view: View,
   run: () => Promise<void>,
 ): Promise<void> => {
-  const prepare = () =>
-    ApplicationComposition.prepareBlock({
-      init,
-      update,
-      view: ApplicationComposition.makeView(model => view(model)),
-      EffectsLayer: Layer.empty,
-    })
-  const ApplicationBlock: Block.FromAssemblyWithView<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
-  const element = Program.makeElement({
-    block: ApplicationBlock,
+  const ApplicationLive = Application.make(
+    Effect.fn(function* () {
+      return {
+        model: Model.make({ mode: 'Viewing' }),
+        update: {
+          ClickedToggle: model => {
+            const nextMode = model.mode === 'Viewing' ? 'Editing' : 'Viewing'
+            return { model: Model.make({ mode: nextMode }) }
+          },
+        },
+        view: model => view(model),
+      }
+    }),
+  )
+  const element = Program.makeElement(Application, {
+    layer: ApplicationLive,
     container,
   })
   const fiber = Effect.runFork(element.start())

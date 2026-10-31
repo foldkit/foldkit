@@ -22,11 +22,11 @@ Start with the input domain for application state. Both versions define a discri
 
 ### Foldkit Message union {#foldkit-message}
 
-The Foldkit application currently has 25 parent Messages:
+The Foldkit application has 19 Messages:
 
 ::Snippet{name="comparisonFoldkitMessage" label="Foldkit Messages"}
 
-The local Message union contains this feature's facts. Composition derives the complete update input by adding delivery from registered child Bindings. Generated `Got*Message` envelopes mark child boundaries and carry each child's complete Message Schema.
+The union contains the application's own facts. Its UI controls are child Block instances with their own Message unions, and Foldkit routes each child's Messages to that child. A child reports facts the parent cares about through OutMessages, such as a RadioGroup's `Selected`.
 
 Messages such as `SucceededExportPng` and `CompletedSaveCanvas` do not have to change the Model. They still record that a Command finished, and update must handle them.
 
@@ -42,9 +42,9 @@ The React reducer has 19 Actions:
 
 The Action union is the complete input type for this reducer. It is not the input domain for the whole component tree. PNG export begins in an event handler, localStorage persistence runs in an Effect, and Headless UI owns transient interaction state inside its components.
 
-The difference in counts reflects those boundaries, not missing features. Foldkit has Messages for starting export and for successful export and save completion. It also wraps Messages from two Dialogs, one Listbox, and three RadioGroups. The React reducer instead has Actions for two dialog dismissals and a palette-theme selection, while the rest of the Headless UI interaction stays inside the library.
+The difference in counts reflects those boundaries, not missing features. Foldkit has Messages for starting export and for successful export and save completion. Its two Dialogs, one Listbox, and three RadioGroups handle their own Messages. The React reducer instead has Actions for two dialog dismissals and a palette-theme selection, while the rest of the Headless UI interaction stays inside the library.
 
-Both unions are useful indexes. The Foldkit union covers the parent Runtime channel. The React union covers the reducer channel chosen for this application.
+Both unions are useful indexes. The Foldkit union covers every way the application Model changes. The React union covers the reducer channel chosen for this application.
 
 ## Declaration vs Procedure
 
@@ -62,13 +62,13 @@ This is ordinary explicit React composition. The component tree is also where st
 
 ### Foldkit program
 
-The Foldkit entry point supplies the Runtime with the application definitions:
+The Foldkit root is a Block class, its implementation Layer, and a Program that hosts it:
 
 ::Snippet{name="comparisonFoldkitProgram" label="Foldkit program"}
 
-`init` constructs the first Model and startup Commands. `ApplicationDefinition` establishes the Model and Message Schemas. `ApplicationComposition` collects child Bindings and assembles `ApplicationBlock` from init, update, view, local lifecycle declarations, and handler recipes. `Program.make` receives that Block, the Flags Schema, and the container. The Runtime dispatches Messages and executes lifecycle primitives.
+The `Application` class declares the Model, Message, and Command contracts. `Application.make` takes a constructor that receives the decoded `{ flags }`, and returns the starting Model, one update handler per Message, one handler per Command, and the view. `Program.make` receives the class, a Layer that provides the root Block, its child UI Blocks, and ordinary services, the Flags Schema, and the container. The Runtime dispatches Messages, runs Commands, and starts the Streams.
 
-The Foldkit view still passes Model data to smaller view functions as parameters. Those functions do not own Hook state or lifecycle, so the Runtime assembly stays separate from the view tree.
+The Foldkit view still passes Model data to smaller view functions as parameters. Those functions do not own Hook state or lifecycle, so the program wiring stays separate from the view tree.
 
 ## Complete State Ownership {#state-management}
 
@@ -76,11 +76,11 @@ The two versions draw their application-state boundary differently.
 
 ### Foldkit Model (every UI component, fully exposed) {#foldkit-model}
 
-The Foldkit Model describes application state with Effect Schema and uses `Option` for absent values. It also contains the Models for two Dialogs, one Listbox, and three RadioGroups:
+The Foldkit Model describes application state with Effect Schema and uses `Option` for absent values. It also holds instances of two Dialogs, one Listbox, and three RadioGroups:
 
 ::Snippet{name="comparisonFoldkitModel" label="Foldkit Model"}
 
-Those child Models expose transient interaction state such as whether a Listbox is open, its highlighted item, and its transition phase. The parent still owns selected values such as `paletteThemeIndex`; it passes the selected value into the child view and folds the child’s `Selected` OutMessage into parent state.
+Each child instance holds transient interaction state such as whether a Listbox is open, its highlighted item, and its transition phase. The parent can read that state, but only the child changes it. The parent still owns selected values such as `paletteThemeIndex`; it passes the selected value into the child view and handles the child’s `Selected` OutMessage in its own update.
 
 ### React State (reducer fields, plus whatever Headless UI hides) {#react-state}
 
@@ -98,14 +98,14 @@ For a given Message, Foldkit update returns both the next Model and the Commands
 
 ### Foldkit update (state + side effects) {#foldkit-update}
 
-The return type is `Update.Return<Model, Message>`:
+Each handler returns `{ model, commands? }`:
 
 ::Snippet{name="comparisonFoldkitUpdate" label="Foldkit update"}
 
-`Message.match` requires a handler for every Message variant. `modifyFields` preserves references for unchanged fields, which supports view memoization. A handler such as `ClickedUndo` returns the next Model and a `SaveCanvas` Command together.
+The update record is typed from the Message union, so it requires a handler for every Message variant. `modifyFields` preserves references for unchanged fields, which supports view memoization. A handler such as `ClickedUndo` returns the next Model and a `SaveCanvas` Command together.
 
 :::Info{label="What update answers"}
-For any parent Message, update shows the next parent Model and the Commands caused immediately by that Message. Subscriptions and Mounts have their own declarations because their lifetimes are not caused by a single update transition.
+For any Message, update shows the next Model and the Commands caused immediately by that Message. Subscriptions and Mounts have their own declarations because their lifetimes are not caused by a single update transition.
 :::
 
 ### React reducer (state only) {#react-reducer}
@@ -130,10 +130,10 @@ Both Commands are named definitions with Schema-checked arguments and declared r
 
 Update returns a Command value. The Runtime executes its Effect and dispatches the resulting Message. Foldkit DevTools can associate the Command with the Message and Model transition that produced it, and Story or Scene tests can inspect or resolve the same value.
 
-`SaveCanvas` leaves its storage service in the Effect requirements. The application root binds that tag to localStorage, while a whole-application test can bind it to a deterministic store and retain the real Command handler.
+The constructor yields the storage service once, and the `SaveCanvas` handler closes over it. The program's Layer binds that service to localStorage, while a whole-application test can bind it to a deterministic store and retain the real Command handler.
 
 :::Info{label="Effect locations in this application"}
-Event-driven work is in `command.ts`. Keyboard and mouse-release event sources are Subscriptions in `subscription.ts`. This application does not need a Mount. The primitive identifies why each effect exists.
+Event-driven work is in the Commands that `application.ts` defines. Keyboard and mouse-release event sources are Streams declared in the same file, returned from the constructor as `stream` and `subscriptions`. This application does not need a Mount. The primitive identifies why each effect exists.
 :::
 
 ### React useEffect (effect as an implicit reaction) {#react-useeffect}
@@ -150,7 +150,7 @@ That distribution follows React’s component and Hook model. To understand a re
 
 The test boundary follows the production boundary in each implementation.
 
-Foldkit Story tests call update and receive both the Model and Commands. The React reducer tests call the reducer and receive state. The React suite uses component tests for behavior that lives in Effects or event handlers.
+Foldkit Story tests build the application from its Layer, call update, and receive both the Model and Commands. The React reducer tests call the reducer and receive state. The React suite uses component tests for behavior that lives in Effects or event handlers.
 
 ### Foldkit test (state + side effects in one story) {#foldkit-test}
 
@@ -158,7 +158,7 @@ Foldkit Story tests call update and receive both the Model and Commands. The Rea
 
 ::Snippet{name="comparisonFoldkitTest" label="Foldkit test"}
 
-`Command.resolve(SaveCanvas, CompletedSaveCanvas())` verifies that a matching Command is pending, supplies its result Message, and continues the state-machine test. Removing that Command from `ReleasedMouse` makes this Story fail at the resolution step.
+`Command.resolve(SaveCanvas, Message.CompletedSaveCanvas())` verifies that a matching Command is pending, supplies its result Message, and continues the state-machine test. Removing that Command from `ReleasedMouse` makes this Story fail at the resolution step.
 
 ### React test (state only) {#react-test}
 
@@ -220,11 +220,11 @@ Both applications listen for keyboard shortcuts and mouse release. The mouse-rel
 
 ### Foldkit Subscriptions
 
-The Subscription declares that lifetime from Model dependencies:
+The keyboard shortcuts are an always-on `stream`. The mouse-release listener declares its lifetime from Model dependencies:
 
 ::Snippet{name="comparisonFoldkitSubscription" label="Foldkit Subscriptions"}
 
-The keyboard stream is persistent. The mouse-release stream is active only when `isDrawing` is true. The Runtime compares Subscription dependencies after each update and scopes each Stream accordingly.
+The keyboard stream runs for as long as the application does. The mouse-release stream is active only when `isDrawing` is true. The Runtime recomputes `dependencies` after each update and restarts the Stream when the value changes.
 
 ### React hooks
 
@@ -240,13 +240,13 @@ Both applications use controlled values for selections and Dialog visibility. Th
 
 ### State Ownership Comparison
 
-|                              | Foldkit UI                                                  | React + Headless UI                                 |
-| ---------------------------- | ----------------------------------------------------------- | --------------------------------------------------- |
-| Selected values / open state | Parent Model                                                | Reducer state passed through controlled props       |
-| Transient interaction state  | Child Models inside the application Model                   | Encapsulated inside Headless UI components          |
-| Events                       | Child Messages and OutMessages folded through parent update | Callback props such as `onChange` and `onClose`     |
-| Accessibility behavior       | Implemented by Foldkit UI                                   | Implemented by Headless UI                          |
-| Debugging                    | Parent and child Models appear in Foldkit DevTools          | App state and component internals use React’s tools |
+|                              | Foldkit UI                                         | React + Headless UI                                 |
+| ---------------------------- | -------------------------------------------------- | --------------------------------------------------- |
+| Selected values / open state | Parent Model                                       | Reducer state passed through controlled props       |
+| Transient interaction state  | Child Block instances inside the application Model | Encapsulated inside Headless UI components          |
+| Events                       | Child OutMessages handled in the parent's update   | Callback props such as `onChange` and `onClose`     |
+| Accessibility behavior       | Implemented by Foldkit UI                          | Implemented by Headless UI                          |
+| Debugging                    | Parent and child Models appear in Foldkit DevTools | App state and component internals use React’s tools |
 
 ### Visible and Encapsulated State
 
@@ -292,13 +292,13 @@ Within a Foldkit application, the framework enforces several properties that Rea
 
 ### The Message union as total input domain {#message-union-index}
 
-The Composition's complete Message Schema is the total input domain of its update. A child Block contributes its own complete Schema behind generated delivery. Every Runtime-driven Model transition enters through that checked dispatch contract; authored update handlers cover only local facts.
+A Block's Message union is the total input domain of its update. A child Block has its own union and its own update, and the parent hears from it only through OutMessages. Every Model transition enters through one of those update records.
 
 React’s Action union provides the same property for this reducer. It does not cover state internal to Headless UI or work begun directly in handlers and Effects, because those paths do not use the reducer.
 
 ### Safe evolution under type pressure {#safe-evolution}
 
-Both versions can exhaustively handle a new union variant in their transition function. Foldkit extends that check across the Runtime channel because every parent state transition uses a Message. Adding a Message makes `Message.match` fail until update handles it.
+Both versions can exhaustively handle a new union variant in their transition function. Foldkit extends that check across the Runtime channel because every parent state transition uses a Message. Adding a Message makes the update record fail to typecheck until it has a handler for the new variant.
 
 Exhaustiveness catches an omitted branch, not an incorrect branch or a forgotten product requirement. Tests still have to establish what the new case should do.
 
@@ -326,7 +326,7 @@ This React application gives its reducer state the same central transition point
 
 ### No stale closures in view, update, or Subscriptions {#no-stale-closures}
 
-Foldkit update receives the current Model with each Message, and Subscription lifetimes are rebuilt from declared Model dependencies. The framework does not use Hook dependency arrays for either boundary.
+Foldkit update receives the current Model with each Message, and Subscription lifetimes follow the `dependencies` each entry derives from the Model. The framework does not use Hook dependency arrays for either boundary.
 
 Closures still exist in application code, and [Mount](/core/mount) arguments are intentionally captured when an element mounts. Commands also capture the arguments supplied when update creates them. Foldkit narrows where captured values matter; it does not remove JavaScript closures.
 

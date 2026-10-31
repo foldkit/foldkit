@@ -1,56 +1,51 @@
-import { Schema, Tuple } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import * as Story from 'foldkit/story'
+import { Command, message, story } from 'foldkit/story'
 
+import { it } from '@effect/vitest'
 import { Toast } from '@foldkit/ui'
 
 const ToastPayload = Schema.Struct({ body: Schema.String })
-type ToastPayload = typeof ToastPayload.Type
 
-const ToastBlock = Toast.makeBlock(ToastPayload)
+const Notifications = Toast.makeBlock(ToastPayload)
 
-const Model = Schema.Struct({ toast: ToastBlock.Model })
-type Model = typeof Model.Type
+const Message = defineMessageUnion({ ClickedSave: {} })
 
-const Message = defineMessageUnion({ RequestedShowToast: {} })
-type Message = typeof Message.Type
-
-const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
+class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({ toast: Notifications }),
   Message,
-})
+}) {}
 
-const { makeNoopStep } = ApplicationDefinition
+const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const toast = yield* new Notifications('toast', { id: 'notifications' })
 
-const foldToastOutMessage = ApplicationDefinition.makeOutMessageFold(
-  ToastBlock,
-  {
-    DismissedToast: makeNoopStep,
-  },
-)
-const ToastBinding = ApplicationDefinition.makeBinding(ToastBlock, {
-  field: 'toast',
-  init: {
-    contextToArgs: () => Tuple.make({ id: 'notifications' }),
-  },
-}).withOutMessagePolicy({ fold: foldToastOutMessage })
-const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [ToastBinding],
-})
-
-const init = ApplicationComposition.makeInit(() => ({ model: {} }))
-const update = ApplicationComposition.makeUpdate({
-  RequestedShowToast: ToastBinding.requestShow({ payload: { body: 'Saved' } }),
-})
-
-Story.story(
-  update,
-  Story.given(init().model),
-  Story.message(Message.RequestedShowToast()),
-  ToastBlock.test.drainEntry({
-    binding: ToastBinding,
-    entryId: 'notifications-entry-0',
+    return {
+      model: { toast },
+      update: {
+        ClickedSave: model => ({
+          model,
+          messages: [
+            model.toast.send(
+              Notifications.requestShow({ payload: { body: 'Saved' } }),
+            ),
+          ],
+        }),
+      },
+    }
   }),
-  Story.Command.expectNone(),
+).pipe(Layer.provide(Notifications.Live))
+
+it.effect('shows and drains a toast', () =>
+  story(
+    ApplicationLive,
+    message(Message.ClickedSave()),
+    // `path` is the Toast instance's path from the root, as in Block.deliver
+    Notifications.test.drainEntry({
+      path: 'toast',
+      entryId: 'notifications-entry-0',
+    }),
+    Command.expectNone(),
+  ),
 )

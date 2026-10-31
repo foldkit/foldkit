@@ -2,158 +2,89 @@
 '@foldkit/ui': minor
 ---
 
-Expose each stateful Foldkit UI component as a completed Block. The owning parent creates Bindings with `makeBinding` and includes them under its Composition's `bindings`. Composition carries handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
+Every stateful Foldkit UI component is a Block. A parent creates an instance in its constructor, holds it in its Model, provides the component's Layer, renders it with `model.x.view(input)`, sends it Messages with `model.x.send(...)` under `messages`, and handles its OutMessages with `.on`. The `init`, `update`, `view`, `Model`, `Message`, `OutMessage`, `subscriptions`, and Command exports of each component are replaced by the Block class, and a parent no longer needs a `Got*Message` wrapper, `Update.foldChild`, or `h.submodel`. The component's Commands, Mounts, and Subscriptions run from its Layer, so the parent does not register them.
+
+Components with a fixed Item type export a class and its Layer: `Animation.Animation` and `AnimationLive`, `Calendar.Calendar`, `DatePicker.DatePicker`, `Dialog.Dialog`, `DragAndDrop.DragAndDrop`, `FileDrop.FileDrop`, `HoverIntent.HoverIntent`, `Popover.Popover`, `Slider.Slider`, and `Tooltip.Tooltip`, each with a matching `*Live` Layer. Generic components have a `makeBlock` factory that returns a class with its Layer attached as `Live`. Call it once at module scope and name the result for its domain. `Combobox.create`, `Combobox.Multi.create`, `Listbox.create`, `Listbox.Multi.create`, `Menu.create`, `RadioGroup.create`, `Tabs.create`, and `VirtualList.create` become `makeBlock`, and `Toast.make` becomes `Toast.makeBlock`. Existing type parameters and Schema arguments are unchanged.
 
 Before:
 
 ```ts
-import { Menu } from '@foldkit/ui'
-import { Submodel } from 'foldkit'
+const ActionMenu = Menu.create<Action>()
 
-import { Message } from './message'
-import { Model } from './model'
-import { menuViewInputs } from './viewInputs'
+const Model = Schema.Struct({ menu: Menu.Model })
+const Message = defineMessageUnion({
+  GotMenuMessage: { message: Menu.Message },
+})
 
-const AppMenu = Menu.create<string>()
+const foldMenu = Update.foldChild({
+  update: ActionMenu.update,
+  read: (model: Model) => Option.some(model.menu),
+  write: (model, nextMenu) => modifyFields(model, { menu: () => nextMenu }),
+  toParentMessage: message => Message.GotMenuMessage({ message }),
+  foldOutMessage: foldMenuOutMessage,
+})
 
-export const mounts = Menu.mounts
-
-export const view = Submodel.defineView<Model, Message>((model, h) =>
+const view = (model: Model, h: HtmlBuilder<Message>) =>
   h.submodel({
-    slotId: model.menu.id,
+    slotId: 'menu',
     model: model.menu,
-    view: AppMenu.view,
+    view: ActionMenu.view,
     viewInputs: menuViewInputs,
     toParentMessage: message => Message.GotMenuMessage({ message }),
+  })
+```
+
+After:
+
+```ts
+const ActionMenu = Menu.makeBlock<Action>()
+
+export class Toolbar extends Block<Toolbar>()('Toolbar', {
+  Model: Schema.Struct({ menu: ActionMenu }),
+}) {}
+
+export const ToolbarLive = Toolbar.make(
+  Effect.fn(function* () {
+    const menu = yield* new ActionMenu('menu', { id: 'actions' })
+
+    return {
+      model: { menu },
+      update: {
+        ...menu.on({
+          Selected: (model, { value }) => ({ model }),
+        }),
+      },
+      view: (model, h) => model.menu.view(menuViewInputs),
+    }
   }),
-)
+).pipe(Layer.provide(ActionMenu.Live))
 ```
 
-After:
+Drive a component by sending one of its `Requested*` Messages. The free functions that returned an updated child Model, such as `Dialog.open`, `Dialog.close`, `Animation.show`, and `VirtualList.scrollToIndex`, are removed. For example, `model.dialog.send(Dialog.Dialog.Message.RequestedOpen())` opens a Dialog, and VirtualList's `requestScrollTo`, `requestScrollToIndex`, `requestScrollToKey`, `requestScrollToOffset`, `requestScrollToEnd`, `informItemsChanged`, and `informHistoryPrepended` build the Messages to send to a list instance.
+
+`Dialog.boot` is removed. To show a Dialog when its parent starts, return a `start` Command from the parent and send `RequestedOpen` from the handler for that Command's result Message.
+
+For a dynamic collection of components, create a factory with `yield* Dialog.Dialog.each('dialogs', args)` and store the instances it returns in a Model field such as `Schema.Array(Dialog.Dialog)`. Each instance needs a stable key. `factory.on({...})` handles OutMessages from every instance in the collection.
+
+Animation's view input takes a `toView: () => Html` renderer instead of `content: Html`. The renderer runs as the parent, so event handlers inside it produce the parent's Messages.
 
 ```ts
-import { Menu, Tabs } from '@foldkit/ui'
-import { Block } from 'foldkit'
-import { foldMenuOutMessage, foldTabsOutMessage } from './outMessage'
-import { Message } from './message'
-import { Model, type Tab } from './model'
-import { menuViewInputs } from './viewInputs'
-const MenuBlock = Menu.makeBlock()
-const TabsBlock = Tabs.makeBlock<Tab>()
-const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
-const MenuBinding = PanelDefinition.makeBinding(MenuBlock, {
-  field: 'menu',
-}).withOutMessagePolicy({ fold: foldMenuOutMessage })
-const TabsBinding = PanelDefinition.makeBinding(TabsBlock, {
-  field: 'tabs',
-}).withOutMessagePolicy({ fold: foldTabsOutMessage })
-const PanelComposition = PanelDefinition.makeComposition({
-  bindings: [MenuBinding, TabsBinding],
-})
-export const view = PanelComposition.makeView((model, h) =>
-  h.block(
-    MenuBinding.embedView({
-      slotId: model.menu.id,
-      model: model.menu,
-      viewInputs: menuViewInputs,
-    }),
-  ),
-)
+// Before
+viewInputs: {
+  content: h.p([], ['Saved'])
+}
+
+// After
+model.animation.view({ toView: () => h.p([], ['Saved']) })
 ```
 
-Register only the components the owner embeds. A Binding makes the parent-child relationship explicit once: the Composition routes received wrapper Messages through the Binding automatically, update uses operations such as `binding.requestOpen()` for parent-driven changes, and view uses `binding.embedView`.
+`Animation.defaultLeaveCommand` is removed. Handle `StartedLeaveAnimating` by sending `Animation.Animation.Message.RequestedWaitForLeaveSettlement()` to the instance, which waits for the leave transition to settle using the Animation's current id and transition generation. A custom leave policy can race another signal against settlement: take `generation` from `StartedLeaveAnimating` and send `RequestedFinish({ generation })`.
 
-Factories live on the component namespace: `Combobox.makeBlock`, `Combobox.Multi.makeBlock`, `Listbox.makeBlock`, `Listbox.Multi.makeBlock`, `Menu.makeBlock`, `Tabs.makeBlock`, `RadioGroup.makeBlock`, `VirtualList.makeBlock`, and `Toast.makeBlock`. Name completed factory results `FooBlock`. Factory definitions retain stable local names; Binding placement and keys distinguish occurrences. Schema-taking factories such as `Combobox.makeBlock(City)` preserve decoded Item payloads and encoded types. Item Codecs must be synchronous and service-free because the component decodes supplied values synchronously. Type-only factories such as `Tabs.makeBlock<Tab>()` preserve selected value types. Import ViewInputs and domain helpers from component subpaths; the completed value carries its Model, Message, and declared OutMessage matcher.
-
-```ts
-import { Toast } from '@foldkit/ui'
-import { Schema } from 'effect'
-import { Block } from 'foldkit'
-import { foldToastOutMessage } from './outMessage'
-import { Message } from './message'
-import { Model } from './model'
-const ToastPayload = Schema.Struct({ message: Schema.String })
-type ToastPayload = typeof ToastPayload.Type
-const ToastBlock = Toast.makeBlock(ToastPayload)
-const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-const ToastBinding = ApplicationDefinition.makeBinding(ToastBlock, {
-  field: 'toast',
-}).withOutMessagePolicy({ fold: foldToastOutMessage })
-```
-
-The Binding contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration carried by the completed Block.
-
-For dynamic keyed component collections, use the keyed `makeBinding` shape. Every rendered occurrence needs a stable string or finite number key.
+DragAndDrop renders through its own view. `model.dragAndDrop.view({ toView })` passes a `RenderInfo` with `draggable`, `droppable`, and `sortable` attribute builders already bound to the instance, and the parent keeps ownership of the list markup and item order. The public `DragAndDrop.draggable` mapper and its `toParentMessage` adapter are removed. `DragAndDrop.droppable` and `DragAndDrop.sortable` remain available as handler-free attribute builders.
 
 ```ts
-import { Schema } from 'effect'
-import { DialogBlock } from '@foldkit/ui'
-import { Block } from 'foldkit'
-import { replaceDialog } from './dialog'
-import { foldDialogOutMessage } from './outMessage'
-import { Message } from './message'
-import { Model } from './model'
-const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-const DialogsBinding = ApplicationDefinition.makeBinding(DialogBlock, {
-  readAll: model => model.dialogs,
-  key: dialog => dialog.id,
-  read: dialog => dialog.model,
-  writeAt: (model, dialogId, nextDialog) =>
-    replaceDialog(model, dialogId, nextDialog),
-  keySchema: Schema.String,
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
-```
-
-## Use completed component contracts and test matchers
-
-Ordinary stateful components export one feature-named completed value such as `DialogBlock`, `DragAndDropBlock`, or `SliderBlock`. Generic factories return an exact completed Block that the consumer names for its domain, such as `CityComboboxBlock` or `NavigationTabsBlock`. Read the component Model, Message, and OutMessage contracts from that completed value.
-
-Command and Mount Definitions used only to match pending work in Story and Scene tests now live under the component's `test` namespace. Pair that Definition with the result Message from the completed instance:
-
-Before:
-
-```ts
-import { Menu } from '@foldkit/ui'
-import { Command } from 'foldkit/story'
-
-const resolveMenuFocus = Command.resolve(
-  Menu.FocusMenuButton,
-  Menu.Message.CompletedFocusMenuButton(),
-)
-```
-
-After:
-
-```ts
-import { Menu } from '@foldkit/ui'
-import { Command } from 'foldkit/story'
-
-import { NavigationMenuBlock } from './menu'
-
-const resolveMenuFocus = Command.resolve(
-  Menu.test.FocusMenuButton,
-  NavigationMenuBlock.Message.CompletedFocusMenuButton(),
-)
-```
-
-The same move applies to matcher Definitions from Dialog, Listbox, Popover, RadioGroup, Tabs, and the other stateful component families. Application code uses the completed Block and its Binding operations; the `test` namespace exists for resolving or asserting the original pending Command or Mount.
-
-## Embed DragAndDrop's canonical view
-
-`DragAndDropBlock` now has a canonical embedded view. Its `RenderInfo` supplies `draggable`, `droppable`, and `sortable` attribute builders already bound to the child Model and dispatcher. The parent still owns the list markup and data order through `viewInputs.toView`.
-
-Before, the parent mapped DragAndDrop's local Message by hand when it created draggable attributes:
-
-```ts
-import { DragAndDrop } from '@foldkit/ui'
-
-const itemAttributes = DragAndDrop.draggable(
+// Before
+DragAndDrop.draggable(
   {
     model: model.dragAndDrop,
     toParentMessage: message => Message.GotDragAndDropMessage({ message }),
@@ -163,43 +94,49 @@ const itemAttributes = DragAndDrop.draggable(
   },
   h,
 )
+
+// After
+model.dragAndDrop.view({
+  toView: ({ draggable, droppable }) =>
+    h.ul(
+      [...droppable('todo', 'To do')],
+      Array.map(model.items, (item, index) =>
+        h.li(
+          [...draggable({ itemId: item.id, containerId: 'todo', index })],
+          [item.label],
+        ),
+      ),
+    ),
+})
 ```
 
-After, embed the registered Binding and use the bound builders inside `toView`:
+Toast is a class built by `Toast.makeBlock(PayloadSchema)`. Show an entry by sending `AppToast.requestShow({ payload })` to the instance, and provide `AppToast.Live`. The Toast Story helper moves from the module-level `Toast.test.drainEntry` to the class: `AppToast.test.drainEntry({ path, entryId })`, where `path` is the Toast instance's path from the Story root, as in `Block.deliver`. It drains a freshly shown, non-sticky entry through enter, auto-dismiss, and exit, and `version` defaults to `0`. Resolve individual Commands after hover, swipe, or manual dismissal has advanced the entry.
 
 ```ts
-import { Array } from 'effect'
+// Before
+Toast.test.drainEntry({
+  entryId: 'notifications-entry-0',
+  waitBeforeDismissal: [WaitBeforeDismissal, completedTimer],
+})
 
-import { ApplicationComposition, DragAndDropBinding } from './composition'
+// After
+Notifications.test.drainEntry({
+  path: 'toast',
+  entryId: 'notifications-entry-0',
+})
+```
 
-export const view = ApplicationComposition.makeView((model, h) =>
-  h.block(
-    DragAndDropBinding.embedView({
-      slotId: 'drag-and-drop',
-      model: model.dragAndDrop,
-      viewInputs: {
-        toView: ({ draggable, droppable }) =>
-          h.ul(
-            [...droppable('todo', 'To do')],
-            Array.map(model.items, (item, index) =>
-              h.li(
-                [
-                  ...draggable({
-                    itemId: item.id,
-                    containerId: 'todo',
-                    index,
-                  }),
-                ],
-                [item.label],
-              ),
-            ),
-          ),
-      },
-    }),
-  ),
+Command and Mount Definitions used to match pending work in Story and Scene tests live under each component's `test` namespace: Animation, Calendar, Combobox, Dialog, DragAndDrop, HoverIntent, Listbox, Menu, Popover, RadioGroup, Tabs, Tooltip, and VirtualList. Their names carry the component, such as `Menu.test.FocusMenuButton`. Pair the Definition with a result Message from the component's class, and address a Message to a child instance with `Block.deliver`.
+
+```ts
+// Before
+Command.resolve(Menu.FocusButton, Menu.Message.CompletedFocusButton())
+
+// After
+Command.resolve(
+  Menu.test.FocusMenuButton,
+  ActionMenu.Message.CompletedFocusMenuButton(),
 )
 ```
 
-Remove the public `DragAndDrop.draggable` mapper and every `toParentMessage` adapter used only by it. Generated delivery routes the embedded Block's Messages. `droppable` and `sortable` remain handler-free attribute builders, and the canonical integration receives all three builders together from `RenderInfo`.
-
-Stateless render helpers such as Button, Input, Textarea, Select, Fieldset, Checkbox, Switch, Disclosure, and Nav remain direct view functions. They own no Model or lifecycle graph and need no Binding.
+Stateless render helpers such as Button, Input, Textarea, Select, Fieldset, Checkbox, Switch, Disclosure, and Nav remain direct view functions with no Model or Layer.

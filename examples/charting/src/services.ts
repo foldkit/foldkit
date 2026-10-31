@@ -1,9 +1,9 @@
 import { Layer } from 'effect'
 import { Http } from 'foldkit'
 
-import { ChartRegistryLayer } from './chartRegistry'
-import { GitHubApiLayer } from './githubApi'
-import { NpmApiLayer } from './npmApi'
+import { ChartRegistryLayer } from './domain/chartRegistry'
+import { GitHubApiLayer } from './domain/githubApi'
+import { NpmApiLayer } from './domain/npmApi'
 
 const TelemetryApisLayer = Layer.mergeAll(GitHubApiLayer, NpmApiLayer).pipe(
   Layer.provide(Http.layer),

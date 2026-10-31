@@ -1,28 +1,29 @@
 import {
+  Command,
   click,
   expectNoOutMessage,
   expectOutMessage,
-  expectOutMessages,
-  given,
   role,
   scene,
 } from 'foldkit/scene'
 
-scene(
-  { update, view },
-  given(initialModel),
-  click(role('button', { name: 'Log out' })),
-  expectOutMessage(OutMessage.RequestedLogout()),
-  click(role('button', { name: 'Dismiss notification' })),
-  expectNoOutMessage(),
+import { it } from '@effect/vitest'
+
+import { Note, NoteLive, Save } from './notes'
+
+it.effect('asks its parent to delete the note', () =>
+  scene(
+    NoteLive,
+    click(role('button', { name: 'Delete' })),
+    expectOutMessage(Note.OutMessage.RequestedDelete()),
+  ),
 )
 
-scene(
-  { update, view: treeRowView },
-  given(initialModel),
-  click(role('button', { name: 'Expand' })),
-  expectOutMessages(
-    OutMessage.RequestedExpand(),
-    OutMessage.RequestedSelection(),
+it.effect('saves without reporting to its parent', () =>
+  scene(
+    NoteLive,
+    click(role('button', { name: 'Save' })),
+    expectNoOutMessage(),
+    Command.resolve(Save, Note.Message.SucceededSave()),
   ),
 )

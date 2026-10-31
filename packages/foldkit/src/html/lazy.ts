@@ -2,17 +2,9 @@ import { Array, Data, Predicate, Result } from 'effect'
 
 import { type VNode, dedupeMemoizedResult, memoizedVNodes } from '../vdom.js'
 import {
-  type BoundaryId,
-  type TrackedBoundaryWrap,
-  beginLazyTracking,
-  endLazyTracking,
-  registerBoundaryWrapTransactionRollback,
-  restoreBoundaryWrapsForLazyHit,
-} from './boundary.js'
-import {
   type DispatchSync,
   type MountRenderOwner,
-  requireBoundary,
+  requireBoundaryRegistry,
   requireDispatch,
   requireMountDispatch,
   requireMountRenderOwner,
@@ -82,26 +74,7 @@ type CacheEntry = Readonly<{
   mountDispatch: DispatchSync
   mountRenderOwner: MountRenderOwner
   vnode: VNode | null
-  // NOTE: boundary registrations captured during the wrapped function's run.
-  // A cache hit restores evicted wraps and replays their ids into the
-  // duplicate-slotId guard even though `h.block` did not run.
-  trackedBoundaries: ReadonlyMap<BoundaryId, TrackedBoundaryWrap>
 }>
-
-const trackedBoundaryOccurrencesAreCurrent = (
-  trackedBoundaries: ReadonlyMap<BoundaryId, TrackedBoundaryWrap>,
-): boolean => {
-  if (trackedBoundaries.size === 0) {
-    return true
-  }
-
-  for (const { block } of trackedBoundaries.values()) {
-    if (block.isCurrent?.() === false) {
-      return false
-    }
-  }
-  return true
-}
 
 const findMissReason = (
   previousEntry: CacheEntry | undefined,
@@ -122,8 +95,7 @@ const findMissReason = (
   if (
     previousEntry.dispatch !== dispatch ||
     previousEntry.mountDispatch !== mountDispatch ||
-    previousEntry.mountRenderOwner !== mountRenderOwner ||
-    !trackedBoundaryOccurrencesAreCurrent(previousEntry.trackedBoundaries)
+    previousEntry.mountRenderOwner !== mountRenderOwner
   ) {
     return LazyMissReason.FrameChanged()
   }
@@ -150,12 +122,12 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   previousEntry: CacheEntry | undefined,
   fn: (...args: Args) => VNode | null,
   args: Args,
-  onCache: (entry: CacheEntry | undefined) => void,
+  onCache: (entry: CacheEntry) => void,
 ): VNode | null => {
   const dispatch = requireDispatch()
   const mountDispatch = requireMountDispatch()
   const mountRenderOwner = requireMountRenderOwner()
-  const { registry } = requireBoundary()
+  const registry = requireBoundaryRegistry()
   // NOTE: dispatcher identities and Mount render ownership belong in the
   // cache key because the cached VNode closes over them. Current frame
   // construction makes the Mount dispatcher identity derivable from the
@@ -170,7 +142,6 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
     previousEntry.dispatch === dispatch &&
     previousEntry.mountDispatch === mountDispatch &&
     previousEntry.mountRenderOwner === mountRenderOwner &&
-    trackedBoundaryOccurrencesAreCurrent(previousEntry.trackedBoundaries) &&
     argsEqual(previousEntry.args, args)
 
   if (resolutionObserver !== undefined) {
@@ -191,17 +162,10 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   }
 
   if (isHit) {
-    restoreBoundaryWrapsForLazyHit(registry, previousEntry.trackedBoundaries)
     return previousEntry.vnode
   }
 
-  const trackedBoundaries = beginLazyTracking(registry)
-  let vnode: VNode | null
-  try {
-    vnode = fn(...args)
-  } finally {
-    endLazyTracking(registry)
-  }
+  const vnode = fn(...args)
   // NOTE: dedupe the freshly built subtree against the per-render seen set so a
   // const shared inside this view, or across memoized siblings, is cloned even
   // though dedupeSharedVNodes leaves memoized subtrees opaque. Record the result
@@ -219,16 +183,13 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
     mountDispatch,
     mountRenderOwner,
     vnode: deduped,
-    trackedBoundaries,
   })
-  registerBoundaryWrapTransactionRollback(registry, previousEntry, onCache)
   return deduped
 }
 
 /** Creates a memoization slot for a view function. On each render, if the
  *  function reference, dispatchers, Mount render owner, and all arguments are
- *  equal to the previous call and any tracked Block occurrences remain
- *  active, the cached VNode is returned without
+ *  equal to the previous call, the cached VNode is returned without
  *  re-running the view function. Snabbdom's `patchVnode` short-circuits when
  *  it sees the same VNode reference, so both VNode construction and subtree
  *  diffing are skipped.

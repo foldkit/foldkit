@@ -4,10 +4,10 @@
 
 An anchored floating panel with natural Tab navigation. Unlike Dialog (which is modal and traps focus) or Menu (which uses aria-activedescendant for item navigation), Popover holds arbitrary content and uses the disclosure ARIA pattern. Focus flows naturally through the panel content.
 
-Bind `PopoverBlock` in the parent. For programmatic control in a parent update, call the Binding’s `requestOpen()` and `requestClose()` operations. Both return connected parent Steps, so apply them to the contextual `makeUpdate` Model directly or through `Update.combineSteps`.
+Create a `Popover.Popover` instance in the parent's constructor, hold it in the parent Model, and render it with `model.popover.view({ ... })`. To open or close it from a parent update handler, send `Popover.Popover.Message.RequestedOpen()` or `RequestedClose()` to the instance. Provide `Popover.PopoverLive` to the parent's Layer.
 
 :::Info{label="See it in an app"}
-Check out how Popover is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/popover.ts).
+Check out how Popover is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/popoverPage.ts).
 :::
 
 ## Examples
@@ -30,13 +30,13 @@ Popover does not draw an arrow. It positions one. Spread the `arrow` bundle onto
 
 ### Animated
 
-Pass `isAnimated: true` at init for animation coordination.
+Pass `isAnimated: true` when you create the instance to coordinate animations.
 
 ::Demo{name="animated"}
 
 ### Nested
 
-Use a separate Popover Model for each level. For a parent panel that opens onto another Popover trigger, pass `contentFocus: true` at init and `focusSelector` in the view so focus lands on the nested trigger.
+Create a separate Popover instance for each level. For a parent panel that opens onto another Popover trigger, pass `contentFocus: true` when you create the parent instance and `focusSelector` to its `view` so focus lands on the nested trigger.
 
 ::Demo{name="nested"}
 
@@ -119,7 +119,7 @@ Use `Scene.focusLeave(panel)` to test that a default Popover closes when focus l
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Popover Binding's child initializer. Direct completed Block calls use `Popover.PopoverBlock.init()`.
+The args a parent passes when it creates an instance with `new`.
 
 | Name           | Type      | Default | Description                                                                                                                                                                                              |
 | -------------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -130,7 +130,7 @@ Configuration passed to the Popover Binding's child initializer. Direct complete
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Popover Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.popover.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged; they keep the component's dispatch. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name             | Type                           | Default | Description                                                                                                                                                                                                                                                 |
 | ---------------- | ------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -156,9 +156,9 @@ Payload delivered to the `toView` callback each render.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy.
+Facts the component reports to its parent. Handle them by spreading the instance's `.on({ ... })` into the parent's update record. Variants without a handler are ignored.
 
-| Name     | Type | Default | Description                                                                                                                                                            |
-| -------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Opened` | `{}` | —       | Emitted once the popover has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                             |
-| `Closed` | `{}` | —       | Emitted once the popover has transitioned to closed. Calling the bound `popover.requestClose()` operation on an already-closed Model is a no-op that does not re-emit. |
+| Name     | Type | Default | Description                                                                                                                                        |
+| -------- | ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Opened` | `{}` | —       | Emitted once the popover has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.         |
+| `Closed` | `{}` | —       | Emitted once the popover has transitioned to closed. Sending `RequestedClose()` to an already-closed Popover changes nothing and does not re-emit. |

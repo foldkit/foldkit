@@ -14,14 +14,14 @@ Effectful work lives at boundaries managed by the Runtime. Depending on the boun
 
 - [Commands](/core/commands) describe one-shot work caused by a Message, such as an HTTP request, navigation, storage operation, or focus change.
 - [Mount](/core/mount) describes work tied to one live `Element`. Use it for element measurement, observers, portaling, and imperative third-party libraries.
-- [Flags](/core/init-and-flags#flags) obtain the outside data needed before init can construct the first Model.
-- [Subscriptions](/core/subscriptions) describe ongoing work whose lifetime follows dependencies derived from the Model.
-- [Layers](/core/layers) provide app-lifetime services shared by Commands, Subscriptions, Mounts, and Flags.
-- [ManagedResource](/core/managed-resources) acquires a typed stateful handle while a Model condition holds. Commands and Subscriptions can use that handle while it is live.
+- [Flags](/core/init-and-flags#flags) obtain the outside data needed before the root's constructor builds the first Model.
+- [Subscriptions](/core/subscriptions) describe ongoing work that runs while a Block instance exists, or while dependencies derived from its Model hold.
+- [Layers](/core/layers) provide app-lifetime services that Block constructors yield and their handlers use.
+- A [resource Block](/core/managed-resources) acquires a stateful handle in its constructor and releases it when it leaves the Model. Commands can use the handle while the instance is live.
 
 ### Synchronous DOM Event Work
 
-Effects, Streams, and Layers do nothing until the Runtime starts them. One narrow exception stays inside its boundary: a DOM-event mapper may need to perform synchronous browser work before returning a value. Use [`Dom.streamFromEventFilterMapPreventDefault`](/core/dom#filtered-events-and-synchronous-cancellation) when handling an event should also cancel its default action. The helper runs `filterMapEvent` and calls `preventDefault()` inside the browser's dispatch, while a downstream `Stream` operator runs too late to cancel the event. `FeatureDefinition.makeSubscriptions` checks that the final Stream emits Messages.
+Effects, Streams, and Layers do nothing until the Runtime starts them. One narrow exception stays inside its boundary: a DOM-event mapper may need to perform synchronous browser work before returning a value. Use [`Dom.streamFromEventFilterMapPreventDefault`](/core/dom#filtered-events-and-synchronous-cancellation) when handling an event should also cancel its default action. The helper runs `filterMapEvent` and calls `preventDefault()` inside the browser's dispatch, while a downstream `Stream` operator runs too late to cancel the event. The Block's `stream` and `subscriptions` types check that the final Stream emits the Block's Messages.
 
 ### CustomElement Boundaries
 
@@ -46,7 +46,7 @@ For example:
 
 ### View is Pure
 
-View reads the Model and any declared ViewInputs, then returns `Document` or `Html`. It does not fetch, schedule timers, subscribe, or read live DOM state. Event attributes construct Messages for the Runtime to dispatch.
+View reads the Model and any view input its parent passes, then returns `Document` or `Html`. It does not fetch, schedule timers, subscribe, or read live DOM state. Event attributes construct Messages for the Runtime to dispatch.
 
 ::Snippet{name="viewPureBad" label="❌ Side effects inside view" class="mb-4"}
 
@@ -80,4 +80,4 @@ The pure version returns `GenerateApplePosition`. Its Effect generates the coord
 
 `RequestedApple` now returns the same Model and Command every time. Only the result handler writes the generated position into the Model.
 
-See the [Snake example](https://github.com/foldkit/foldkit/blob/main/examples/snake/src/application.ts#L220-L245) for a complete implementation of this pattern.
+See the [Snake example](https://github.com/foldkit/foldkit/blob/main/examples/snake/src/application.ts#L426-L437) for a complete implementation of this pattern.

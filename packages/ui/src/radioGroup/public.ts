@@ -5,8 +5,9 @@ export {
   type ViewInputs,
   type RenderInfo,
   type OptionInfo,
-  type Completed,
+  type RadioGroup,
+  type RadioGroupClass,
 } from './index.js'
 
-/** Original RadioGroup Command Definitions for Story and Scene test resolution. */
+/** RadioGroup Command Definitions for Story and Scene test resolution. */
 export * as test from './test.js'

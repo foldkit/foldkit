@@ -2,8 +2,7 @@ import { Array } from 'effect'
 import { File } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import type { UiViewBuilder } from '../composition'
-import { FileDropBasicDemoBinding } from '../composition'
+import type { UiViewBuilder } from '../definition'
 import { Message } from '../message'
 import type { Model } from '../model'
 
@@ -49,30 +48,24 @@ export const basicDemo = (
     h.div(
       [h.Class('flex flex-col gap-3 w-full max-w-md')],
       [
-        h.block(
-          FileDropBasicDemoBinding.embedView({
-            slotId: model.fileDropBasicDemo.id,
-            model: model.fileDropBasicDemo,
-            viewInputs: {
-              multiple: true,
-              toView: attributes =>
-                h.label(
-                  [...attributes.root, h.Class(dropZoneClassName)],
-                  [
-                    h.p(
-                      [h.Class(primaryTextClassName)],
-                      ['Drop files or click to browse'],
-                    ),
-                    h.p(
-                      [h.Class(secondaryTextClassName)],
-                      ['Any file type. This demo just lists them.'],
-                    ),
-                    h.input(attributes.input),
-                  ],
+        model.fileDropBasicDemo.view({
+          multiple: true,
+          toView: attributes =>
+            h.label(
+              [...attributes.root, h.Class(dropZoneClassName)],
+              [
+                h.p(
+                  [h.Class(primaryTextClassName)],
+                  ['Drop files or click to browse'],
                 ),
-            },
-          }),
-        ),
+                h.p(
+                  [h.Class(secondaryTextClassName)],
+                  ['Any file type. This demo just lists them.'],
+                ),
+                h.input(attributes.input),
+              ],
+            ),
+        }),
         ...Array.match(model.fileDropBasicDemoFiles, {
           onEmpty: () => [],
           onNonEmpty: files =>

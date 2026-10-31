@@ -1,56 +1,57 @@
-import { Option } from 'effect'
+import { Match, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { DialogBlock } from '@foldkit/ui'
-
-import {
-  GridSizeRadioGroupBlock,
-  PaletteRadioGroupBlock,
-  ThemeListboxBlock,
-  ToolRadioGroupBlock,
-} from './components'
-import { createEmptyGrid } from './grid'
-import { Message } from './message'
-import type { Model } from './model'
-import { update } from './update'
+import { type Canvas, Message, canvasUpdate } from './application'
+import { createEmptyGrid } from './domain/grid'
 
 const GRID_SIZE = 16
 
-const initialModel: Model = {
+const initialModel: Canvas = {
   grid: createEmptyGrid(GRID_SIZE),
   undoStack: [],
   redoStack: [],
   selectedColorIndex: 0,
   gridSize: GRID_SIZE,
-  tool: 'Brush' as const,
-  mirrorMode: 'None' as const,
+  tool: 'Brush',
+  mirrorMode: 'None',
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: DialogBlock.init({ id: 'export-error-dialog' }).model,
-  maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: DialogBlock.init({ id: 'grid-size-confirm-dialog' })
-    .model,
-  maybePendingGridSize: Option.none(),
-  themeListbox: ThemeListboxBlock.init({ id: 'theme-picker' }).model,
-  toolRadioGroup: ToolRadioGroupBlock.init({ id: 'tool-picker' }).model,
-  gridSizeRadioGroup: GridSizeRadioGroupBlock.init({ id: 'grid-size-picker' })
-    .model,
-  paletteRadioGroup: PaletteRadioGroupBlock.init({ id: 'palette-picker' })
-    .model,
 }
 
+type CanvasMessage =
+  | typeof Message.PressedCell.Type
+  | typeof Message.EnteredCell.Type
+  | typeof Message.ReleasedMouse.Type
+  | typeof Message.ClickedUndo.Type
+  | typeof Message.ClickedRedo.Type
+
+const update = (
+  model: Canvas,
+  message: CanvasMessage,
+): Readonly<{ model: Canvas }> =>
+  Match.value(message).pipe(
+    Match.withReturnType<Readonly<{ model: Canvas }>>(),
+    Match.tagsExhaustive({
+      PressedCell: pressedCell => canvasUpdate.PressedCell(model, pressedCell),
+      EnteredCell: enteredCell => canvasUpdate.EnteredCell(model, enteredCell),
+      ReleasedMouse: () => canvasUpdate.ReleasedMouse(model),
+      ClickedUndo: () => canvasUpdate.ClickedUndo(model),
+      ClickedRedo: () => canvasUpdate.ClickedRedo(model),
+    }),
+  )
+
 const dispatch = (
-  model: Model,
-  ...messages: ReadonlyArray<Parameters<typeof update>[1]>
-): Model =>
-  messages.reduce<Model>(
+  model: Canvas,
+  ...messages: ReadonlyArray<CanvasMessage>
+): Canvas =>
+  messages.reduce<Canvas>(
     (currentModel, message) => update(currentModel, message).model,
     model,
   )
 
-const buildHistoryModel = (steps: number): Model => {
+const buildHistoryModel = (steps: number): Canvas => {
   let model = initialModel
   for (let i = 0; i < steps; i++) {
     const x = i % GRID_SIZE
@@ -91,7 +92,7 @@ describe('update: single operations', () => {
 
   test('flood fill (empty grid)', async ({ bench }) => {
     await bench('flood fill (empty grid)', () => {
-      const fillModel: Model = modifyFields(initialModel, {
+      const fillModel: Canvas = modifyFields(initialModel, {
         tool: () => 'Fill',
       })
       dispatch(fillModel, Message.PressedCell({ x: 0, y: 0 }))
@@ -146,7 +147,7 @@ describe('update: paint sequence (16x16 grid)', () => {
 
   test('paint 50 cells with mirror mode', async ({ bench }) => {
     await bench('paint 50 cells with mirror mode', () => {
-      let model: Model = modifyFields(initialModel, {
+      let model: Canvas = modifyFields(initialModel, {
         mirrorMode: () => 'Both',
       })
       for (let i = 0; i < 50; i++) {

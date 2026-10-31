@@ -9,23 +9,16 @@ import {
 } from '@foldkit/ui/combobox'
 
 import { Icon } from '../../../icon'
-import { CityComboboxBlock, CityMultiComboboxBlock } from '../combobox'
-import type { UiViewBuilder } from '../composition'
-import {
-  ComboboxDemoBinding,
-  ComboboxMultiDemoBinding,
-  ComboboxNullableDemoBinding,
-  ComboboxPlacementLockDemoBinding,
-  ComboboxSelectOnFocusDemoBinding,
-} from '../composition'
+import { CityCombobox, CityMultiCombobox } from '../combobox'
+import type { UiViewBuilder } from '../definition'
 import type { City } from '../domain/domain'
 
-type CityComboboxBlockModel = typeof CityComboboxBlock.Model.Type
-type CityMultiComboboxBlockModel = typeof CityMultiComboboxBlock.Model.Type
+type CityComboboxModel = typeof CityCombobox.Type
+type CityMultiComboboxModel = typeof CityMultiCombobox.Type
 
 // DEMO CONTENT
 
-export { CityComboboxBlock, CityMultiComboboxBlock }
+export { CityCombobox, CityMultiCombobox }
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
@@ -114,7 +107,7 @@ export const comboboxViewInputs = ({
 }
 
 export const view = (
-  comboboxModel: CityComboboxBlockModel,
+  comboboxModel: CityComboboxModel,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
@@ -123,28 +116,22 @@ export const view = (
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(inputId(comboboxModel.id)), h.Class('demo-label')],
+          [h.For(inputId(comboboxModel.model.id)), h.Class('demo-label')],
           ['City'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              ComboboxDemoBinding.embedView({
-                slotId: comboboxModel.id,
-                model: comboboxModel,
-                viewInputs: {
-                  ...comboboxViewInputs({
-                    inputValue: comboboxModel.inputValue,
-                    restingInputValue: Option.getOrElse(
-                      maybeSelectedCity,
-                      () => '',
-                    ),
-                  }),
-                  maybeSelectedValue: maybeSelectedCity,
-                },
+            comboboxModel.view({
+              ...comboboxViewInputs({
+                inputValue: comboboxModel.model.inputValue,
+                restingInputValue: Option.getOrElse(
+                  maybeSelectedCity,
+                  () => '',
+                ),
               }),
-            ),
+              maybeSelectedValue: maybeSelectedCity,
+            }),
           ],
         ),
       ],
@@ -153,7 +140,7 @@ export const view = (
 }
 
 export const nullableDemo = (
-  comboboxNullableModel: CityComboboxBlockModel,
+  comboboxNullableModel: CityComboboxModel,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
@@ -162,28 +149,25 @@ export const nullableDemo = (
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(inputId(comboboxNullableModel.id)), h.Class('demo-label')],
+          [
+            h.For(inputId(comboboxNullableModel.model.id)),
+            h.Class('demo-label'),
+          ],
           ['City'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              ComboboxNullableDemoBinding.embedView({
-                slotId: comboboxNullableModel.id,
-                model: comboboxNullableModel,
-                viewInputs: {
-                  ...comboboxViewInputs({
-                    inputValue: comboboxNullableModel.inputValue,
-                    restingInputValue: Option.getOrElse(
-                      maybeSelectedCity,
-                      () => '',
-                    ),
-                  }),
-                  maybeSelectedValue: maybeSelectedCity,
-                },
+            comboboxNullableModel.view({
+              ...comboboxViewInputs({
+                inputValue: comboboxNullableModel.model.inputValue,
+                restingInputValue: Option.getOrElse(
+                  maybeSelectedCity,
+                  () => '',
+                ),
               }),
-            ),
+              maybeSelectedValue: maybeSelectedCity,
+            }),
           ],
         ),
       ],
@@ -192,7 +176,7 @@ export const nullableDemo = (
 }
 
 export const selectOnFocusDemo = (
-  comboboxSelectOnFocusModel: CityComboboxBlockModel,
+  comboboxSelectOnFocusModel: CityComboboxModel,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
@@ -202,7 +186,7 @@ export const selectOnFocusDemo = (
       [
         h.label(
           [
-            h.For(inputId(comboboxSelectOnFocusModel.id)),
+            h.For(inputId(comboboxSelectOnFocusModel.model.id)),
             h.Class('demo-label'),
           ],
           ['City'],
@@ -210,22 +194,16 @@ export const selectOnFocusDemo = (
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              ComboboxSelectOnFocusDemoBinding.embedView({
-                slotId: comboboxSelectOnFocusModel.id,
-                model: comboboxSelectOnFocusModel,
-                viewInputs: {
-                  ...comboboxViewInputs({
-                    inputValue: comboboxSelectOnFocusModel.inputValue,
-                    restingInputValue: Option.getOrElse(
-                      maybeSelectedCity,
-                      () => '',
-                    ),
-                  }),
-                  maybeSelectedValue: maybeSelectedCity,
-                },
+            comboboxSelectOnFocusModel.view({
+              ...comboboxViewInputs({
+                inputValue: comboboxSelectOnFocusModel.model.inputValue,
+                restingInputValue: Option.getOrElse(
+                  maybeSelectedCity,
+                  () => '',
+                ),
               }),
-            ),
+              maybeSelectedValue: maybeSelectedCity,
+            }),
           ],
         ),
       ],
@@ -234,7 +212,7 @@ export const selectOnFocusDemo = (
 }
 
 export const placementLockDemo = (
-  comboboxPlacementLockModel: CityComboboxBlockModel,
+  comboboxPlacementLockModel: CityComboboxModel,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => [
@@ -250,7 +228,7 @@ export const placementLockDemo = (
         [
           h.label(
             [
-              h.For(inputId(comboboxPlacementLockModel.id)),
+              h.For(inputId(comboboxPlacementLockModel.model.id)),
               h.Class('demo-label'),
             ],
             ['City'],
@@ -258,28 +236,22 @@ export const placementLockDemo = (
           h.div(
             [h.Class('relative')],
             [
-              h.block(
-                ComboboxPlacementLockDemoBinding.embedView({
-                  slotId: comboboxPlacementLockModel.id,
-                  model: comboboxPlacementLockModel,
-                  viewInputs: {
-                    ...comboboxViewInputs({
-                      inputValue: comboboxPlacementLockModel.inputValue,
-                      restingInputValue: Option.getOrElse(
-                        maybeSelectedCity,
-                        () => '',
-                      ),
-                      anchor: {
-                        ...COMBOBOX_ANCHOR,
-                        isPlacementLocked: true,
-                        portal: false,
-                      },
-                    }),
-                    maybeSelectedValue: maybeSelectedCity,
-                    openOnFocus: true,
+              comboboxPlacementLockModel.view({
+                ...comboboxViewInputs({
+                  inputValue: comboboxPlacementLockModel.model.inputValue,
+                  restingInputValue: Option.getOrElse(
+                    maybeSelectedCity,
+                    () => '',
+                  ),
+                  anchor: {
+                    ...COMBOBOX_ANCHOR,
+                    isPlacementLocked: true,
+                    portal: false,
                   },
                 }),
-              ),
+                maybeSelectedValue: maybeSelectedCity,
+                openOnFocus: true,
+              }),
             ],
           ),
         ],
@@ -294,7 +266,7 @@ const tagClassName =
 const emptyTagClassName = 'text-sm py-0.5 text-gray-700 dark:text-gray-400'
 
 export const multiDemo = (
-  comboboxMultiModel: CityMultiComboboxBlockModel,
+  comboboxMultiModel: CityMultiComboboxModel,
   selectedCities: ReadonlyArray<City>,
   h: UiViewBuilder,
 ) => {
@@ -303,7 +275,7 @@ export const multiDemo = (
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(inputId(comboboxMultiModel.id)), h.Class('demo-label')],
+          [h.For(inputId(comboboxMultiModel.model.id)), h.Class('demo-label')],
           ['Cities'],
         ),
         h.div(
@@ -321,19 +293,13 @@ export const multiDemo = (
                   ),
               }),
             ),
-            h.block(
-              ComboboxMultiDemoBinding.embedView({
-                slotId: comboboxMultiModel.id,
-                model: comboboxMultiModel,
-                viewInputs: {
-                  ...comboboxViewInputs({
-                    inputValue: comboboxMultiModel.inputValue,
-                    restingInputValue: '',
-                  }),
-                  selectedValues: selectedCities,
-                },
+            comboboxMultiModel.view({
+              ...comboboxViewInputs({
+                inputValue: comboboxMultiModel.model.inputValue,
+                restingInputValue: '',
               }),
-            ),
+              selectedValues: selectedCities,
+            }),
           ],
         ),
       ],

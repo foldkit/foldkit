@@ -2,7 +2,7 @@ import { Option, Schema } from 'effect'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { IssueFilters } from './domain'
+import { IssueFilters } from './domain/domain'
 import {
   ApplicationRoute,
   PageRoute,

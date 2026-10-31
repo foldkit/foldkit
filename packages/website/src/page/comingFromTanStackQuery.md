@@ -35,13 +35,13 @@ Here is how common TanStack Query concepts map onto Foldkit:
 
 There is no separate query cache. The Model is the cache. A single resource lives in one `AsyncData` field. A collection of resources keyed by id lives in an `Schema.HashMap` of those fields. A cache hit is data the application already holds.
 
-Here is the complete shape of a simple query. It uses one field, one Command, and two `update` arms:
+Here is the complete shape of a simple query. It uses one field, one Command, and two update handlers:
 
 ::Snippet{name="useQueryTranslation" label="Translating useQuery"}
 
 Each behavior is visible in the transition that implements it. `revalidateOrLoad` returns `None` while the field is already `Loading` or `Refreshing`, so the same update path does not start another request. A successful value moves to `Refreshing` when revalidated, keeping the current list on screen. A cold field moves to `Loading`. When the Command finishes, `settle` folds its `Result` into the field and preserves previous data as `Stale` if a refresh fails.
 
-The [API Cache example](/example-apps/api-cache) shows the same policy written by hand. [API Cache Query](/example-apps/api-cache-query) uses the experimental [Query](/core/query) module so fetching and retained entries live in the Block instead of the parent update.
+The [API Cache example](/example-apps/api-cache) shows the same policy written by hand. [API Cache Query](/example-apps/api-cache-query) uses the experimental [Query](/core/query) module, so fetching and retained entries live in Query Blocks instead of the parent's update handlers.
 
 ## Mapping Query Status
 
@@ -98,7 +98,7 @@ When a superseded request is expensive or the user can cancel it, define the Com
 
 There is no equivalent hook, and you do not assemble one. A query is an [AsyncData](/core/async-data) field in the [Model](/core/model) plus a [Command](/core/commands) returned from `update`. The runtime executes the Command and dispatches its result Message. `update` then folds the result into the field.
 
-When several resources share fetching and retained entries, [Query.define](/core/query) is that Block. The parent still owns policy. The Query owns the `AsyncData` transitions.
+When several resources share fetching and retained entries, [Query.define](/core/query) defines a Query Block for them. The parent stores the Query in its Model and sends it `Requested*` Messages, so the parent owns the policy. The Query owns the `AsyncData` transitions.
 
 ### How do I cache responses? {#faq-caching}
 

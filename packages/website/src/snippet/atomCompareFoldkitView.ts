@@ -1,16 +1,30 @@
+import { Schema } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
+
+const Todo = Schema.Struct({
+  id: Schema.String,
+  text: Schema.String,
+  done: Schema.Boolean,
+})
+type Todo = typeof Todo.Type
+
+const Message = defineMessageUnion({
+  ClickedTodo: { id: Schema.String },
+})
+type Message = typeof Message.Type
 
 // The view is a plain function returning data. No memo, no useCallback, no
 // dependency array. The event is a Message value, not a closure, so there is
 // nothing to stabilize at the boundary.
-const todoItem = (todo: Todo, h: HtmlBuilder<Message>): Html =>
+export const todoItem = (todo: Todo, h: HtmlBuilder<Message>): Html =>
   h.li(
     [],
     [
       h.input([
         h.Type('checkbox'),
         h.Checked(todo.done),
-        h.OnClick(ClickedTodo({ id: todo.id })),
+        h.OnClick(Message.ClickedTodo({ id: todo.id })),
       ]),
       todo.text,
     ],

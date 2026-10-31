@@ -5,25 +5,27 @@ import { expect } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import * as AsyncData from '../../asyncData/index.js'
-import * as Block from '../../block/public.js'
+import { Block } from '../../blocks/public.js'
+import { story } from '../../blocks/testing.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Story from '../../test/story.js'
 import * as Query from './index.js'
+import { makeQueryPolicy } from './query.js'
 
-const finiteQuery = Query.define({
+const finiteQuery = makeQueryPolicy({
   name: 'FinitePolicy',
   data: Schema.String,
   error: Schema.String,
   staleTime: '10 millis',
 })
 
-const infiniteQuery = Query.define({
+const infiniteQuery = makeQueryPolicy({
   name: 'InfinitePolicy',
   data: Schema.String,
   error: Schema.String,
 })
 
-const notifyingQuery = Query.define({
+const notifyingQuery = makeQueryPolicy({
   name: 'NotifyingPolicy',
   data: Schema.String,
   error: Schema.String,
@@ -31,57 +33,78 @@ const notifyingQuery = Query.define({
 })
 
 describe('Query freshness and cancellation', () => {
-  it('runs stale loading through the ordinary Query update story', () => {
-    const Model = Schema.Struct({ query: finiteQuery.Model })
-    type Model = typeof Model.Type
+  it.effect('runs stale loading through a parent Block story', () => {
+    const FiniteQuery = Query.define({
+      name: 'FinitePolicyBlock',
+      data: Schema.String,
+      error: Schema.String,
+      staleTime: '10 millis',
+      handler: function* () {
+        return () => Effect.succeed('loaded')
+      },
+    })
     const Message = defineMessageUnion({
       RequestedLoad: { nowMillis: Schema.Number },
     })
-    type Message = typeof Message.Type
-    const Definition = Block.makeDefinition('FinitePolicyParent', {
-      Model,
-      Message,
-    })
-    const Binding = Definition.makeBinding(finiteQuery, {
-      field: 'query',
-      init: false,
-    })
-    const Composition = Definition.makeComposition({ bindings: [Binding] })
-    const update = Composition.makeUpdate({
-      RequestedLoad: (model, { nowMillis }) =>
-        Binding.requestLoadIfStale(nowMillis)(model),
-    })
-    const prepare = () =>
-      Composition.prepareBlock({
-        init: Composition.makeInit(() => ({
-          model: Model.make({ query: finiteQuery.init().model }),
-        })),
-        update,
-        EffectsLayer: Layer.empty,
-      })
-    const Parent: Block.FromAssemblyWithoutViewOrOutMessage<
-      typeof Model,
-      typeof prepare
-    > = Block.assemble(prepare)
 
-    Story.story(
-      Parent.update,
-      Story.given(Parent.init().model),
+    class Parent extends Block<Parent>()('FinitePolicyParent', {
+      Model: Schema.Struct({ query: FiniteQuery }),
+      Message,
+    }) {}
+
+    const ParentLive = Parent.make(
+      Effect.fn(function* () {
+        const query = yield* new FiniteQuery('query', {})
+
+        return {
+          model: { query },
+          update: {
+            RequestedLoad: (model, { nowMillis }) => ({
+              model,
+              messages: [
+                model.query.send(
+                  FiniteQuery.Message.RequestedLoadIfStale({ nowMillis }),
+                ),
+              ],
+            }),
+          },
+        }
+      }),
+    ).pipe(Layer.provide(FiniteQuery.Live))
+
+    return story(
+      ParentLive,
       Story.message(Message.RequestedLoad({ nowMillis: 0 })),
-      Story.Command.expectHas(finiteQuery.Fetch({ generation: 1 })),
+      Story.Command.expectExact(FiniteQuery.Fetch),
       Story.Command.resolve(
-        finiteQuery.Fetch({ generation: 1 }),
-        finiteQuery.Message.CompletedFetch({
+        FiniteQuery.Fetch,
+        FiniteQuery.Message.CompletedFetch({
           generation: 1,
           result: Result.succeed('story'),
           completedAtMillis: 10,
         }),
       ),
       Story.model(nextModel => {
-        expect(finiteQuery.read(nextModel.query)).toEqual(
+        expect(FiniteQuery.read(nextModel.query)).toEqual(
           AsyncData.Success({ data: 'story' }),
         )
         expect(nextModel.query.maybeCompletedAtMillis).toEqual(Option.some(10))
+      }),
+      Story.message(Message.RequestedLoad({ nowMillis: 19 })),
+      Story.Command.expectNone(),
+      Story.message(Message.RequestedLoad({ nowMillis: 20 })),
+      Story.Command.resolve(
+        FiniteQuery.Fetch,
+        FiniteQuery.Message.CompletedFetch({
+          generation: 2,
+          result: Result.succeed('refreshed'),
+          completedAtMillis: 20,
+        }),
+      ),
+      Story.model(nextModel => {
+        expect(FiniteQuery.read(nextModel.query)).toEqual(
+          AsyncData.Success({ data: 'refreshed' }),
+        )
       }),
     )
   })
@@ -255,16 +278,10 @@ describe('Query freshness and cancellation', () => {
 
   it.effect('timestamps each Fetch completion with the execution Clock', () =>
     Effect.gen(function* () {
-      const handlerLayer = finiteQuery.toLayer(
-        Effect.succeed(() =>
-          Effect.sleep('25 millis').pipe(Effect.as('clocked')),
-        ),
+      const handlers = finiteQuery.makeFetchHandlers(() =>
+        Effect.sleep('25 millis').pipe(Effect.as('clocked')),
       )
-      const fetch = yield* Effect.forkChild(
-        finiteQuery
-          .Fetch({ generation: 1 })
-          .effect.pipe(Effect.provide(handlerLayer)),
-      )
+      const fetch = yield* Effect.forkChild(handlers.fetch({ generation: 1 }))
 
       yield* TestClock.adjust('25 millis')
       const completed = yield* Fiber.join(fetch)
@@ -279,30 +296,49 @@ describe('Query freshness and cancellation', () => {
     }).pipe(Effect.provide(TestClock.layer())),
   )
 
+  it.effect('CancelFetch interrupts only the canceled generation', () =>
+    Effect.gen(function* () {
+      const handlers = infiniteQuery.makeFetchHandlers(() => Effect.never)
+      const canceled = yield* Effect.forkChild(
+        handlers.fetch({ generation: 31 }),
+      )
+      const running = yield* Effect.forkChild(
+        handlers.fetch({ generation: 32 }),
+      )
+
+      yield* Effect.yieldNow
+      const interrupted = yield* handlers.cancelFetch({ generation: 31 })
+      const exit = yield* Fiber.await(canceled)
+
+      expect(interrupted).toEqual(infiniteQuery.Message.CompletedCancelFetch())
+      expect(Exit.isFailure(exit)).toBe(true)
+      expect(running.pollUnsafe()).toBeUndefined()
+
+      yield* Fiber.interrupt(running)
+    }),
+  )
+
   it.effect(
-    'interrupts the active generation through its real Command key',
+    'CancelFetch does not reach another instance of the same Query',
     () =>
       Effect.gen(function* () {
-        const handlerLayer = infiniteQuery.toLayer(
-          Effect.succeed(() => Effect.never),
+        const first = infiniteQuery.makeFetchHandlers(() => Effect.never)
+        const second = infiniteQuery.makeFetchHandlers(() => Effect.never)
+        const firstFetch = yield* Effect.forkChild(
+          first.fetch({ generation: 1 }),
         )
-        const fetch = yield* Effect.forkChild(
-          infiniteQuery
-            .Fetch({ generation: 31 })
-            .effect.pipe(Effect.provide(handlerLayer)),
+        const secondFetch = yield* Effect.forkChild(
+          second.fetch({ generation: 1 }),
         )
 
         yield* Effect.yieldNow
-        const interrupted = yield* infiniteQuery.Fetch.Interrupt(
-          { generation: 31 },
-          () => infiniteQuery.Message.CompletedCancelFetch(),
-        ).effect
-        const exit = yield* Fiber.await(fetch)
+        yield* first.cancelFetch({ generation: 1 })
+        const exit = yield* Fiber.await(firstFetch)
 
-        expect(interrupted).toEqual(
-          infiniteQuery.Message.CompletedCancelFetch(),
-        )
         expect(Exit.isFailure(exit)).toBe(true)
+        expect(secondFetch.pollUnsafe()).toBeUndefined()
+
+        yield* Fiber.interrupt(secondFetch)
       }),
   )
 })

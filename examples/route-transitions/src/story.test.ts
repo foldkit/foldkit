@@ -2,20 +2,28 @@ import { Array, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
 
-import { LoadCatalog, LoadPainting, SaveDraft } from './command'
-import { init } from './init'
-import { Message } from './message'
-import { Model, PaintingStatus } from './model'
-import { ApplicationRoute } from './route'
-import { update } from './update'
+import { describe, expect, it } from '@effect/vitest'
+
+import {
+  ApplicationLive,
+  ApplicationRoute,
+  LoadCatalog,
+  LoadPainting,
+  Message,
+  Model,
+  PaintingStatus,
+  SaveDraft,
+  init,
+} from './application'
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
     fromString(raw),
     () => new Error(`Failed to parse url: ${raw}`),
   )
+
+const startingArgs = { url: urlOrThrow('http://localhost/') }
 
 const modelOn = (route: ApplicationRoute): Model =>
   Model.make({
@@ -28,7 +36,7 @@ const modelOn = (route: ApplicationRoute): Model =>
   })
 
 describe('init', () => {
-  test('a cold load into the gallery logs the transition and loads the catalog', () => {
+  it('a cold load into the gallery logs the transition and loads the catalog', () => {
     const init_ = init(urlOrThrow('http://localhost/gallery'))
 
     expect(init_.model.route._tag).toBe('Gallery')
@@ -45,7 +53,7 @@ describe('init', () => {
     ).toBe(true)
   })
 
-  test('a cold load into the home route loads nothing', () => {
+  it('a cold load into the home route loads nothing', () => {
     const homeInit = init(urlOrThrow('http://localhost/'))
 
     expect(homeInit.model.route._tag).toBe('Home')
@@ -56,72 +64,82 @@ describe('init', () => {
 })
 
 describe('update', () => {
-  test('entering the gallery loads the catalog and logs the transition', () => {
-    story(
-      update,
-      given(modelOn(ApplicationRoute.Home())),
-      message(
-        Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery') }),
-      ),
-      model(model => {
-        expect(model.route._tag).toBe('Gallery')
-        expect(model.catalogStatus).toBe('Loading')
-        expect(model.transitionLog).toHaveLength(1)
-      }),
-      Command.expectHas(LoadCatalog),
-      Command.resolve(LoadCatalog, Message.CompletedLoadCatalog()),
-      model(model => {
-        expect(model.catalogStatus).toBe('Ready')
-      }),
-    )
-  })
-
-  test('re-entering the gallery while a catalog load is in flight does not fire another', () => {
-    story(
-      update,
-      given(
-        modifyFields(modelOn(ApplicationRoute.Home()), {
-          catalogStatus: () => 'Loading',
+  it.effect(
+    'entering the gallery loads the catalog and logs the transition',
+    () =>
+      story(
+        ApplicationLive,
+        startingArgs,
+        given(modelOn(ApplicationRoute.Home())),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery') }),
+        ),
+        model(model => {
+          expect(model.route._tag).toBe('Gallery')
+          expect(model.catalogStatus).toBe('Loading')
+          expect(model.transitionLog).toHaveLength(1)
+        }),
+        Command.expectHas(LoadCatalog),
+        Command.resolve(LoadCatalog, Message.CompletedLoadCatalog()),
+        model(model => {
+          expect(model.catalogStatus).toBe('Ready')
         }),
       ),
-      message(
-        Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery') }),
-      ),
-      Command.expectNone(),
-      model(model => {
-        expect(model.catalogStatus).toBe('Loading')
-      }),
-    )
-  })
+  )
 
-  test('entering a painting loads it with the payload from the route', () => {
-    story(
-      update,
-      given(modelOn(ApplicationRoute.Gallery())),
-      message(
-        Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery/3') }),
+  it.effect(
+    're-entering the gallery while a catalog load is in flight does not fire another',
+    () =>
+      story(
+        ApplicationLive,
+        startingArgs,
+        given(
+          modifyFields(modelOn(ApplicationRoute.Home()), {
+            catalogStatus: () => 'Loading',
+          }),
+        ),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery') }),
+        ),
+        Command.expectNone(),
+        model(model => {
+          expect(model.catalogStatus).toBe('Loading')
+        }),
       ),
-      model(model => {
-        expect(model.paintingStatus).toStrictEqual(
-          PaintingStatus.Loading({ paintingId: 3 }),
-        )
-      }),
-      Command.expectHas(LoadPainting),
-      Command.resolve(
-        LoadPainting,
-        Message.CompletedLoadPainting({ paintingId: 3 }),
-      ),
-      model(model => {
-        expect(model.paintingStatus).toStrictEqual(
-          PaintingStatus.Ready({ paintingId: 3 }),
-        )
-      }),
-    )
-  })
+  )
 
-  test('staying on the painting route with a new id refetches', () => {
+  it.effect(
+    'entering a painting loads it with the payload from the route',
+    () =>
+      story(
+        ApplicationLive,
+        startingArgs,
+        given(modelOn(ApplicationRoute.Gallery())),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery/3') }),
+        ),
+        model(model => {
+          expect(model.paintingStatus).toStrictEqual(
+            PaintingStatus.Loading({ paintingId: 3 }),
+          )
+        }),
+        Command.expectHas(LoadPainting),
+        Command.resolve(
+          LoadPainting,
+          Message.CompletedLoadPainting({ paintingId: 3 }),
+        ),
+        model(model => {
+          expect(model.paintingStatus).toStrictEqual(
+            PaintingStatus.Ready({ paintingId: 3 }),
+          )
+        }),
+      ),
+  )
+
+  it.effect('staying on the painting route with a new id refetches', () =>
     story(
-      update,
+      ApplicationLive,
+      startingArgs,
       given(
         modifyFields(modelOn(ApplicationRoute.Painting({ paintingId: 1 })), {
           paintingStatus: () => PaintingStatus.Ready({ paintingId: 1 }),
@@ -150,32 +168,36 @@ describe('update', () => {
           PaintingStatus.Ready({ paintingId: 2 }),
         )
       }),
-    )
-  })
+    ),
+  )
 
-  test('staying on the painting route with the same id does not refetch', () => {
-    story(
-      update,
-      given(
-        modifyFields(modelOn(ApplicationRoute.Painting({ paintingId: 1 })), {
-          paintingStatus: () => PaintingStatus.Ready({ paintingId: 1 }),
+  it.effect(
+    'staying on the painting route with the same id does not refetch',
+    () =>
+      story(
+        ApplicationLive,
+        startingArgs,
+        given(
+          modifyFields(modelOn(ApplicationRoute.Painting({ paintingId: 1 })), {
+            paintingStatus: () => PaintingStatus.Ready({ paintingId: 1 }),
+          }),
+        ),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery/1') }),
+        ),
+        Command.expectNone(),
+        model(model => {
+          expect(model.paintingStatus).toStrictEqual(
+            PaintingStatus.Ready({ paintingId: 1 }),
+          )
         }),
       ),
-      message(
-        Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery/1') }),
-      ),
-      Command.expectNone(),
-      model(model => {
-        expect(model.paintingStatus).toStrictEqual(
-          PaintingStatus.Ready({ paintingId: 1 }),
-        )
-      }),
-    )
-  })
+  )
 
-  test('a stale painting response for another id is ignored', () => {
+  it.effect('a stale painting response for another id is ignored', () =>
     story(
-      update,
+      ApplicationLive,
+      startingArgs,
       given(
         modifyFields(modelOn(ApplicationRoute.Painting({ paintingId: 2 })), {
           paintingStatus: () => PaintingStatus.Loading({ paintingId: 2 }),
@@ -187,12 +209,13 @@ describe('update', () => {
           PaintingStatus.Loading({ paintingId: 2 }),
         )
       }),
-    )
-  })
+    ),
+  )
 
-  test('leaving the studio saves the draft', () => {
+  it.effect('leaving the studio saves the draft', () =>
     story(
-      update,
+      ApplicationLive,
+      startingArgs,
       given(
         modifyFields(modelOn(ApplicationRoute.Studio()), {
           studioDraft: () => 'half-finished thought',
@@ -209,15 +232,16 @@ describe('update', () => {
           Option.some('half-finished thought'),
         )
       }),
-    )
-  })
+    ),
+  )
 
-  test('leaving the studio with an empty draft saves nothing', () => {
+  it.effect('leaving the studio with an empty draft saves nothing', () =>
     story(
-      update,
+      ApplicationLive,
+      startingArgs,
       given(modelOn(ApplicationRoute.Studio())),
       message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
       Command.expectNone(),
-    )
-  })
+    ),
+  )
 })
