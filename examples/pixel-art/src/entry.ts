@@ -6,8 +6,6 @@ import { Dialog } from '@foldkit/ui'
 import { Application, ApplicationLive, Flags, flags } from './application'
 import { ErrorDialogLive } from './errorDialog'
 import { GridSizeConfirmDialogLive } from './gridSizeConfirmDialog'
-import { HeaderLive } from './header'
-import { HistoryPanelLive } from './historyPanel'
 import { ApplicationLayer } from './services'
 import {
   GridSizeRadioGroup,
@@ -20,13 +18,7 @@ import {
 const program = Program.make(Application, {
   layer: ApplicationLive.pipe(
     Layer.provide(
-      Layer.mergeAll(
-        HeaderLive,
-        ToolbarLive,
-        HistoryPanelLive,
-        ErrorDialogLive,
-        GridSizeConfirmDialogLive,
-      ),
+      Layer.mergeAll(ToolbarLive, ErrorDialogLive, GridSizeConfirmDialogLive),
     ),
     Layer.provide(
       Layer.mergeAll(

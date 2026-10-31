@@ -16,10 +16,7 @@ import { NotificationCenter } from './notificationCenter'
 import { ProjectSettings } from './projectSettings'
 import { ApplicationRoute, maybeIssueId } from './route'
 import { ApplicationLayer } from './services'
-import { Sidebar } from './sidebar'
 import { TeammateActivity } from './teammateActivity'
-import { WorkspacePage } from './workspacePage'
-import { WorkspaceSettings } from './workspaceSettings'
 
 export type ResolvedModel = Resolved<Model>
 
@@ -75,20 +72,9 @@ export const notificationMessage = (
 export const issueMoveMessage = (childMessage: typeof IssueMove.Message.Type) =>
   Block.deliver(IssueMove, 'issueMove', childMessage)
 
-export const sidebarMessage = (childMessage: typeof Sidebar.Message.Type) =>
-  Block.deliver(Sidebar, 'sidebar', childMessage)
-
-export const workspaceSettingsMessage = (
-  childMessage: typeof WorkspaceSettings.Message.Type,
-) => Block.deliver(WorkspaceSettings, 'workspaceSettings', childMessage)
-
 export const teammateActivityMessage = (
   childMessage: typeof TeammateActivity.Message.Type,
 ) => Block.deliver(TeammateActivity, 'teammateActivity', childMessage)
-
-export const workspacePageMessage = (
-  childMessage: typeof WorkspacePage.Message.Type,
-) => Block.deliver(WorkspacePage, 'workspacePage', childMessage)
 
 export const activeMemberMessage = (memberId: string) =>
   Block.deliver(

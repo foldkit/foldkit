@@ -280,7 +280,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 Foldkit ships these; reaching past them is a finding, not a style choice.
 
-- [ ] `update` is a record with one handler per tag, not a `Message.match` or `switch` inside one function. The record stays in the Block's constructor; a Block too large to read in one file extracts a feature into a child Block.
+- [ ] `update` is a record with one handler per tag, not a `Message.match` or `switch` inside one function. The record stays in the Block's constructor; a Block too large to read in one file extracts a feature that owns its own state, effects, or lifecycle into a child Block, and keeps render-only markup as view functions.
 - [ ] Handlers omit `commands`, `outMessage`, and `messages` when they statically produce none, return computed collections directly, and never write `commands: []`.
 - [ ] Update-like results from helpers are bound to values named after their operations and consumed with dot access, not destructured or renamed.
 - [ ] An OutMessage that is already known is included directly in a new result. `Update.withOutMessage` is used for an existing result or a value of type `OutMessage | undefined`.

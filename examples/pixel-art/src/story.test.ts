@@ -10,7 +10,6 @@ import { Dialog } from '@foldkit/ui'
 import { ExportPng, Message, type Model, SaveCanvas } from './application'
 import { type PaletteIndex, createEmptyGrid } from './domain/grid'
 import { GridSizeConfirmDialog } from './gridSizeConfirmDialog'
-import { Header } from './header'
 import { application, startArgs, withInitialModel } from './model.fixture'
 import { Toolbar } from './toolbar'
 
@@ -411,9 +410,7 @@ describe('export', () => {
       story(
         application,
         startArgs,
-        message(
-          Block.deliver(Header, 'header', Header.Message.ClickedExport()),
-        ),
+        message(Message.ClickedExport()),
         Command.expectHas(ExportPng),
         Command.resolve(ExportPng, Message.SucceededExportPng()),
         model(model => {

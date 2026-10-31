@@ -8,8 +8,6 @@ import { ApplicationLive, type Flags, type Model } from './application'
 import { createEmptyGrid } from './domain/grid'
 import { ErrorDialogLive } from './errorDialog'
 import { GridSizeConfirmDialogLive } from './gridSizeConfirmDialog'
-import { HeaderLive } from './header'
-import { HistoryPanelLive } from './historyPanel'
 import { ApplicationLayer } from './services'
 import {
   GridSizeRadioGroup,
@@ -21,13 +19,7 @@ import {
 
 export const application = ApplicationLive.pipe(
   Layer.provide(
-    Layer.mergeAll(
-      HeaderLive,
-      ToolbarLive,
-      HistoryPanelLive,
-      ErrorDialogLive,
-      GridSizeConfirmDialogLive,
-    ),
+    Layer.mergeAll(ToolbarLive, ErrorDialogLive, GridSizeConfirmDialogLive),
   ),
   Layer.provide(
     Layer.mergeAll(

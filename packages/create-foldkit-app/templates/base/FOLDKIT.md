@@ -312,7 +312,7 @@ The `layer` provides the root Block, every Block the graph creates, and their Se
 
 ### File organization
 
-One file, one Block. A Block's file holds everything that defines it: its Message and OutMessage unions, Model Schema, Command and Mount definitions, the class, and its `Live` Layer with update, Command handlers, and view. Name the file for the Block in camelCase; the root is `application.ts`, and `IssueBoard` lives in `issueBoard.ts`. Never split one Block across `message.ts`, `model.ts`, `update.ts`, `command.ts`, or `view.ts`. When a Block grows too large to read in one file, extract a feature into a child Block in its own file.
+One file, one Block. A Block's file holds everything that defines it: its Message and OutMessage unions, Model Schema, Command and Mount definitions, the class, and its `Live` Layer with update, Command handlers, and view. Name the file for the Block in camelCase; the root is `application.ts`, and `IssueBoard` lives in `issueBoard.ts`. Never split one Block across `message.ts`, `model.ts`, `update.ts`, `command.ts`, or `view.ts`. When a Block grows too large to read in one file, extract a feature that owns its own state, effects, or lifecycle into a child Block in its own file. Markup that only renders the parent's state and sends the parent's Messages stays in the parent's file as view functions.
 
 Order the file so it reads top to bottom: the contract (Messages, Model, Commands, Mounts, and the class), then the `Live` Layer directly after the class, then the Steps, selectors, and view helpers the Layer uses. Create child instances with `yield*` at the top of the Layer constructor, not in a separate helper.
 

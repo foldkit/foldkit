@@ -15,7 +15,6 @@ import {
   issueListMessage,
   issueMoveMessage,
   loadWorkspace,
-  sidebarMessage,
   startAt,
   url,
   visibleWorkspaceOf,
@@ -37,7 +36,6 @@ import {
   withIssueId,
 } from '../route'
 import { RepositoryError } from '../services'
-import { Sidebar } from '../sidebar'
 import { AppendActivity, TeammateActivity } from '../teammateActivity'
 
 const FAILED_MOVE_ANNOUNCEMENT =
@@ -377,13 +375,7 @@ describe('Application child policies', () => {
           application,
           startAt(),
           displayingSavedViews,
-          message(
-            sidebarMessage(
-              Sidebar.Message.ClickedDeleteSavedView({
-                viewId: unrelatedView.id,
-              }),
-            ),
-          ),
+          message(Message.ClickedDeleteSavedView({ viewId: unrelatedView.id })),
           model(model => {
             expect(model.savedViews).toEqual([displayedView])
             expect(model.route).toEqual(
@@ -400,13 +392,7 @@ describe('Application child policies', () => {
           application,
           startAt(),
           displayingSavedViews,
-          message(
-            sidebarMessage(
-              Sidebar.Message.ClickedDeleteSavedView({
-                viewId: displayedView.id,
-              }),
-            ),
-          ),
+          message(Message.ClickedDeleteSavedView({ viewId: displayedView.id })),
           model(model => {
             expect(model.savedViews).toEqual([unrelatedView])
             expect(appliedIssueFilters(model)).toEqual(savedFilters)
@@ -458,11 +444,7 @@ describe('Application child policies', () => {
         model(model => {
           expect(model.savedViews).toEqual([savedView])
         }),
-        message(
-          sidebarMessage(
-            Sidebar.Message.ClickedDeleteSavedView({ viewId: savedView.id }),
-          ),
-        ),
+        message(Message.ClickedDeleteSavedView({ viewId: savedView.id })),
         Command.expectExact(ReplaceInternalUrl({ url: repairedIssuePath })),
         model(model => {
           expect(model.savedViews).toEqual([])

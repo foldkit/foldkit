@@ -17,7 +17,6 @@ import {
   url,
   visibleNotifications,
   visibleWorkspaceOf,
-  workspaceSettingsMessage,
 } from '../application.fixture'
 import { Comment, IssueDraft } from '../domain/domain'
 import { mergeIssue, savedIssueFromIssue } from '../domain/issue'
@@ -35,7 +34,6 @@ import {
   AssignIssue,
   TeammateActivity,
 } from '../teammateActivity'
-import { WorkspaceSettings } from '../workspaceSettings'
 
 const issueA = Option.getOrThrow(Array.head(initialWorkspace.issues))
 const issueB = Option.getOrThrow(Array.get(initialWorkspace.issues, 1))
@@ -75,11 +73,7 @@ describe('workspace notifications', () => {
         application,
         startAt(),
         loadWorkspace,
-        message(
-          workspaceSettingsMessage(
-            WorkspaceSettings.Message.ClickedSimulateActivity(),
-          ),
-        ),
+        message(Message.ClickedSimulateActivity()),
         Command.expectExact(
           AppendActivity({ issueId: issueA.id, authorId: 'alex', body }),
         ),

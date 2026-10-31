@@ -5,7 +5,11 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, expect as expectValue, it } from '@effect/vitest'
 import { Listbox } from '@foldkit/ui'
 
-import { LoadWorkspace, NavigateInternal } from './application'
+import {
+  LoadWorkspace,
+  NavigateInternal,
+  SimulateSaveFailure,
+} from './application'
 import { Message } from './application'
 import {
   type ResolvedModel,
@@ -13,7 +17,6 @@ import {
   loadWorkspace,
   startAt,
   url,
-  workspacePageMessage,
 } from './application.fixture'
 import { Comment, IssueFilters, SavedView } from './domain/domain'
 import { savedIssueFromIssue } from './domain/issue'
@@ -31,8 +34,6 @@ import {
 } from './route'
 import { RepositoryError } from './services'
 import { AppendActivity, TeammateActivity } from './teammateActivity'
-import { WorkspacePage } from './workspacePage'
-import { SimulateSaveFailure, WorkspaceSettings } from './workspaceSettings'
 
 const firstIssue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 const issuePath = issuesRouter({ issueId: firstIssue.id })
@@ -325,7 +326,7 @@ describe('workspace application', () => {
         Scene.click(Scene.role('button', { name: 'Fail next save' })),
         Scene.Command.resolve(
           SimulateSaveFailure,
-          WorkspaceSettings.Message.CompletedSimulateSaveFailure(),
+          Message.CompletedSimulateSaveFailure(),
         ),
         deliverUrl('/'),
         deliverUrl(issuePath),
@@ -708,9 +709,7 @@ describe('workspace application', () => {
           Scene.label('Issue title'),
           'Keep this draft while refreshing',
         ),
-        Scene.deliver(
-          workspacePageMessage(WorkspacePage.Message.ClickedRetryLoad()),
-        ),
+        Scene.deliver(Message.ClickedRetryLoad()),
         Scene.expect(Scene.label('Issue title')).toHaveValue(
           'Keep this draft while refreshing',
         ),
@@ -757,9 +756,7 @@ describe('workspace application', () => {
         startAt(issuePath),
         deliverWorkspace,
         Scene.type(Scene.label('Issue title'), 'Keep this unsaved title'),
-        Scene.deliver(
-          workspacePageMessage(WorkspacePage.Message.ClickedRetryLoad()),
-        ),
+        Scene.deliver(Message.ClickedRetryLoad()),
         Scene.Command.resolve(
           LoadWorkspace,
           Message.SucceededLoadWorkspace({ workspace: latestWorkspace }),

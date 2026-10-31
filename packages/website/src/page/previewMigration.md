@@ -224,7 +224,7 @@ The other source files are not Blocks:
 | `route.ts`                    | `ApplicationRoute`, when several Blocks share it       |
 | `domain/*.ts`                 | Schemas and pure functions used by more than one Block |
 
-When a Block is too large to read in one file, extract a feature into a child Block in its own file. Group a page with the child Blocks only it uses in a folder named for the page, such as `page/settings/settings.ts` and `page/settings/themePicker.ts`. The [Project Organization guide](/patterns/project-organization) covers the layout in detail.
+When a Block is too large to read in one file, extract a feature that owns its own state, effects, or lifecycle into a child Block in its own file. Render-only markup stays in the parent's file as view functions. Group a page with the child Blocks only it uses in a folder named for the page, such as `page/settings/settings.ts` and `page/settings/themePicker.ts`. The [Project Organization guide](/patterns/project-organization) covers the layout in detail.
 
 ## Lint the Migrated Application
 

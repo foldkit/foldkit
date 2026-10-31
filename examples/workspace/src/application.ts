@@ -1,3 +1,4 @@
+import { clsx } from 'clsx'
 import {
   Array,
   Duration,
@@ -20,6 +21,8 @@ import { modifyFields } from 'foldkit/struct'
 import { combineSteps } from 'foldkit/update'
 import { Url, toString as urlToString } from 'foldkit/url'
 
+import { Button, Nav } from '@foldkit/ui'
+
 import { CommandPalette, CommandPaletteLive } from './commandPalette'
 import { CreateIssue, CreateIssueLive } from './createIssue'
 import {
@@ -41,7 +44,9 @@ import {
   mergeIssue,
   mergeIssues,
 } from './domain/issue'
-import { documentTitle } from './domain/pageTitle'
+import { missingPage } from './domain/missingPage'
+import { navigationLink } from './domain/navigationLink'
+import { documentTitle, pageTitle } from './domain/pageTitle'
 import { IssueBoard, IssueBoardLive } from './issueBoard'
 import {
   IssuePane,
@@ -65,6 +70,7 @@ import { ProjectSettings, ProjectSettingsLive } from './projectSettings'
 import {
   ApplicationRoute,
   appliedIssueFilters,
+  boardRouter,
   isPageRoute,
   issueFiltersHref,
   issueHref,
@@ -72,16 +78,18 @@ import {
   issuesRouter,
   maybeIssueId,
   maybeProjectId,
+  maybeRouteFilters,
+  myIssuesRouter,
+  peopleRouter,
   projectRouter,
   routeToPath,
+  savedViewRouter,
+  settingsRouter,
   urlToApplicationRoute,
   withoutIssueId,
 } from './route'
 import { RepositoryError, WorkspaceRepository } from './services'
-import { Sidebar, SidebarLive } from './sidebar'
 import { TeammateActivity, TeammateActivityLive } from './teammateActivity'
-import { WorkspacePage, WorkspacePageLive } from './workspacePage'
-import { WorkspaceSettings, WorkspaceSettingsLive } from './workspaceSettings'
 
 // MODEL
 
@@ -90,8 +98,6 @@ const WorkspaceAsyncData = AsyncData.Schema(Workspace, Schema.String)
 export const Model = Schema.Struct({
   route: ApplicationRoute,
   workspaceAsyncData: WorkspaceAsyncData.schema,
-  sidebar: Sidebar,
-  workspacePage: WorkspacePage,
   memberSwitcher: MemberSwitcher,
   issueList: IssueList,
   createIssue: CreateIssue,
@@ -100,7 +106,6 @@ export const Model = Schema.Struct({
   commandPalette: CommandPalette,
   memberDirectory: MemberDirectory,
   notificationCenter: NotificationCenter,
-  workspaceSettings: WorkspaceSettings,
   teammateActivity: TeammateActivity,
   issuePane: IssuePane,
   maybeNotice: Schema.Option(Schema.String),
@@ -121,6 +126,12 @@ export const Message = defineMessageUnion({
   SucceededLoadWorkspace: { workspace: Workspace },
   FailedLoadWorkspace: { error: Schema.String },
   TickedActivityStream: {},
+  ClickedRetryLoad: {},
+  ClickedOpenCommandPalette: {},
+  ClickedDeleteSavedView: { viewId: Schema.String },
+  ClickedSimulateActivity: {},
+  ClickedSimulateSaveFailure: {},
+  CompletedSimulateSaveFailure: {},
 })
 export type Message = typeof Message.Type
 
@@ -145,11 +156,16 @@ export const ReplaceInternalUrl = Command.define('ReplaceInternalUrl', {
   messages: [Message.CompletedReplaceInternalUrl],
 })
 
+export const SimulateSaveFailure = Command.define('SimulateSaveFailure', {
+  messages: [Message.CompletedSimulateSaveFailure],
+})
+
 type ApplicationCommand =
   | ReturnType<typeof LoadWorkspace>
   | ReturnType<typeof NavigateInternal>
   | ReturnType<typeof LoadExternal>
   | ReturnType<typeof ReplaceInternalUrl>
+  | ReturnType<typeof SimulateSaveFailure>
 
 export class Application extends Block<Application, Readonly<{ url: Url }>>()(
   'Application',
@@ -161,6 +177,7 @@ export class Application extends Block<Application, Readonly<{ url: Url }>>()(
       NavigateInternal,
       LoadExternal,
       ReplaceInternalUrl,
+      SimulateSaveFailure,
     ],
   },
 ) {}
@@ -168,8 +185,6 @@ export class Application extends Block<Application, Readonly<{ url: Url }>>()(
 export const ApplicationLive = Application.make(
   Effect.fn(function* (_id, { url }) {
     const repository = yield* WorkspaceRepository
-    const sidebar = yield* new Sidebar('sidebar')
-    const workspacePage = yield* new WorkspacePage('workspacePage')
     const memberSwitcher = yield* new MemberSwitcher('memberSwitcher')
     const issueList = yield* new IssueList('issueList')
     const createIssue = yield* new CreateIssue('createIssue')
@@ -179,7 +194,6 @@ export const ApplicationLive = Application.make(
     const notificationCenter = yield* new NotificationCenter(
       'notificationCenter',
     )
-    const workspaceSettings = yield* new WorkspaceSettings('workspaceSettings')
     const teammateActivity = yield* new TeammateActivity('teammateActivity')
     const issuePane = yield* new IssuePane('issuePane')
     const issueBoard = yield* IssueBoard.each('issueBoards')
@@ -189,8 +203,6 @@ export const ApplicationLive = Application.make(
       model: {
         route: urlToApplicationRoute(url),
         workspaceAsyncData: WorkspaceAsyncData.Loading(),
-        sidebar,
-        workspacePage,
         memberSwitcher,
         issueList,
         createIssue,
@@ -199,7 +211,6 @@ export const ApplicationLive = Application.make(
         commandPalette,
         memberDirectory,
         notificationCenter,
-        workspaceSettings,
         teammateActivity,
         issuePane,
         maybeNotice: Option.none(),
@@ -246,6 +257,23 @@ export const ApplicationLive = Application.make(
           }),
         }),
         TickedActivityStream: requestActivity,
+        ClickedRetryLoad: retryLoad,
+        ClickedOpenCommandPalette: model => ({
+          model,
+          messages: [
+            model.commandPalette.send(CommandPalette.Message.RequestedOpen()),
+          ],
+        }),
+        ClickedDeleteSavedView: (model, { viewId }) =>
+          deleteSavedView(model, viewId),
+        ClickedSimulateActivity: requestActivity,
+        ClickedSimulateSaveFailure: model => ({
+          model,
+          commands: [SimulateSaveFailure()],
+        }),
+        CompletedSimulateSaveFailure: showNoticeStep(
+          'The next save will fail. Your draft will be kept so you can retry.',
+        ),
         ...teammateActivity.on<Model>({
           AddedComment: (model, { issueId, comment }) =>
             applyIssueCommentStep(issueId, comment)(model),
@@ -274,25 +302,6 @@ export const ApplicationLive = Application.make(
               ),
             ])
           },
-        }),
-        ...workspacePage.on<Model>({
-          RequestedRetryLoad: retryLoad,
-        }),
-        ...sidebar.on<Model>({
-          RequestedCommandPalette: model => ({
-            model,
-            messages: [
-              model.commandPalette.send(CommandPalette.Message.RequestedOpen()),
-            ],
-          }),
-          RequestedDeleteSavedView: (model, { viewId }) =>
-            deleteSavedView(model, viewId),
-        }),
-        ...workspaceSettings.on<Model>({
-          RequestedActivity: requestActivity,
-          ScheduledSaveFailure: showNoticeStep(
-            'The next save will fail. Your draft will be kept so you can retry.',
-          ),
         }),
         ...createIssue.on<Model>({
           Created: (model, { issue }) =>
@@ -442,6 +451,10 @@ export const ApplicationLive = Application.make(
           replaceUrl(internalUrl).pipe(
             Effect.as(Message.CompletedReplaceInternalUrl()),
           ),
+        SimulateSaveFailure: () =>
+          repository
+            .failNext('Save')
+            .pipe(Effect.as(Message.CompletedSimulateSaveFailure())),
       },
 
       subscriptions: {
@@ -470,16 +483,8 @@ export const ApplicationLive = Application.make(
             ),
           ],
           [
-            model.sidebar.view({
-              route: model.route,
-              savedViews: model.savedViews,
-              maybeConfirmedWorkspace: AsyncData.getData(
-                model.workspaceAsyncData,
-              ),
-              issueDrafts: unsavedIssueDrafts(model.issuePane.model),
-              toIssueHref: issueId => issueHref(model, issueId),
-            }),
-            workspacePageView(model),
+            sidebarView(model, h),
+            workspacePageView(model, h),
             overlaysView(model, h),
           ],
         ),
@@ -489,8 +494,6 @@ export const ApplicationLive = Application.make(
 ).pipe(
   Layer.provide(
     Layer.mergeAll(
-      SidebarLive,
-      WorkspacePageLive,
       MemberSwitcherLive,
       IssueListLive,
       CreateIssueLive,
@@ -498,7 +501,6 @@ export const ApplicationLive = Application.make(
       CommandPaletteLive,
       MemberDirectoryLive,
       NotificationCenterLive,
-      WorkspaceSettingsLive,
       TeammateActivityLive,
       IssuePaneLive,
       IssueBoardLive,
@@ -1008,66 +1010,6 @@ const retryLoad = (model: Model) =>
   })
 // VIEW
 
-const workspacePageView = (model: Model): Html =>
-  model.workspacePage.view({
-    route: model.route,
-    workspaceAsyncData: visibleWorkspaceAsyncData(model),
-    savedViews: model.savedViews,
-    activeMemberId: activeMemberId(model),
-    maybeNotice: model.maybeNotice,
-    memberSwitcherView: ({ members }) => model.memberSwitcher.view({ members }),
-    notificationCenterView: ({ issues, members }) =>
-      model.notificationCenter.view({
-        activeMemberId: activeMemberId(model),
-        issues,
-        members,
-      }),
-    issueMoveView: () => model.issueMove.view(),
-    issueListView: ({ members, projects }, issues) =>
-      model.issueList.view({
-        filters: appliedIssueFilters(model),
-        issueHrefs: issueHrefs(model, issues),
-        issues,
-        members,
-        projects,
-        maybeActiveIssueId: maybeIssueId(model.route),
-      }),
-    maybeIssueBoardView: (workspace, projectId, issues) =>
-      Option.map(Record.get(model.issueBoards, projectId), board =>
-        board.view({
-          issueHrefs: issueHrefs(model, workspace.issues),
-          isSaving: IssueMoveState.guards.MovingIssue(
-            model.issueMove.model.state,
-          ),
-          issues,
-          members: workspace.members,
-        }),
-      ),
-    maybeProjectSettingsView: projectId =>
-      Option.map(Record.get(model.projectSettings, projectId), settings =>
-        settings.view(),
-      ),
-    memberDirectoryView: ({ members, issues }) =>
-      model.memberDirectory.view({
-        members,
-        issues,
-        issueHrefs: issueHrefs(model, issues),
-      }),
-    workspaceSettingsView: () =>
-      model.workspaceSettings.view({
-        maybeNotice: model.maybeNotice,
-        maybeActivityError: model.teammateActivity.model.maybeActivityError,
-        activityTick: model.teammateActivity.model.activityTick,
-      }),
-    issuePaneView: (workspace, issueId) =>
-      model.issuePane.view({
-        issueId,
-        isFullPage: ApplicationRoute.guards.Issue(model.route),
-        workspace,
-        authorId: activeMemberId(model),
-      }),
-  })
-
 const overlaysView = (model: Model, h: ApplicationViewBuilder): Html => {
   const paletteInputs = Option.match(maybeVisibleWorkspace(model), {
     onNone: () => ({ issues: [], projects: [] }),
@@ -1086,6 +1028,818 @@ const overlaysView = (model: Model, h: ApplicationViewBuilder): Html => {
     [
       model.commandPalette.view(paletteInputs),
       model.createIssue.view({ projects }),
+    ],
+  )
+}
+
+// SIDEBAR VIEW
+
+const SIDEBAR_COLLECTION_CLASS =
+  'col-span-2 w-full border-t border-slate-200 pt-5 lg:mt-6'
+
+const SAVED_VIEW_LINK_CLASS =
+  'min-w-0 flex-1 truncate rounded-lg px-3 py-2 text-left text-sm'
+
+const DRAFT_LINK_CLASS = 'block rounded-lg px-3 py-2'
+
+const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
+  const { route } = model
+  const maybeConfirmedWorkspace = AsyncData.getData(model.workspaceAsyncData)
+  const maybeCurrentProjectId = maybeProjectId(route)
+
+  const workspacePages = {
+    'All issues': {
+      href: issuesRouter({}),
+      isCurrent: ApplicationRoute.guards.Issues(route),
+    },
+    'My issues': {
+      href: myIssuesRouter({}),
+      isCurrent: ApplicationRoute.guards.MyIssues(route),
+    },
+    People: {
+      href: peopleRouter({}),
+      isCurrent: ApplicationRoute.guards.People(route),
+    },
+    Settings: {
+      href: settingsRouter({}),
+      isCurrent: ApplicationRoute.guards.Settings(route),
+    },
+  }
+
+  return h.aside(
+    [
+      h.Class(
+        'grid max-h-[40dvh] shrink-0 grid-cols-[1fr_auto] items-start gap-4 overflow-y-auto border-b border-slate-200 bg-slate-100/80 p-4 lg:flex lg:h-full lg:max-h-none lg:w-60 lg:flex-col lg:gap-0 lg:border-r lg:border-b-0 lg:p-5',
+      ),
+    ],
+    [
+      h.a(
+        [
+          h.Href(issuesRouter({})),
+          h.Class(
+            'flex min-h-10 items-center gap-2.5 px-1 text-lg font-semibold tracking-tight text-slate-800 lg:mb-7 lg:px-2',
+          ),
+        ],
+        [
+          h.span(
+            [
+              h.AriaHidden(true),
+              h.Class(
+                'grid size-8 place-items-center rounded-xl bg-indigo-600 text-sm text-white shadow-sm',
+              ),
+            ],
+            ['N'],
+          ),
+          'Northstar',
+        ],
+      ),
+      Button.view(
+        {
+          type: 'button',
+          onClick: Message.ClickedOpenCommandPalette(),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.AriaLabel('Search workspace'),
+                h.Class('button w-full justify-between lg:mb-5'),
+              ],
+              [
+                h.span([h.Class('sm:hidden')], ['Search']),
+                h.span([h.Class('hidden sm:inline')], ['Search workspace']),
+                h.kbd(
+                  [
+                    h.Class(
+                      'hidden rounded border border-slate-200 px-1 text-xs font-medium text-slate-600 sm:inline',
+                    ),
+                  ],
+                  ['⌘ K'],
+                ),
+              ],
+            ),
+        },
+        h,
+      ),
+      h.div(
+        [h.Class('col-span-2 w-full')],
+        [
+          Nav.view({
+            items: Record.keys(workspacePages),
+            ariaLabel: 'Workspace navigation',
+            toHref: label => workspacePages[label].href,
+            isItemCurrent: label => workspacePages[label].isCurrent,
+            toView: ({ nav, items }) =>
+              h.nav(
+                [...nav, h.Class('flex w-full flex-wrap gap-1 lg:flex-col')],
+                Array.map(items, item => navigationLink(item, item.value, h)),
+              ),
+          }),
+          h.p(
+            [
+              h.Class(
+                'mt-5 hidden px-3 pb-2 text-xs font-semibold tracking-wider text-slate-600 uppercase lg:block',
+              ),
+            ],
+            ['Projects'],
+          ),
+          ...Option.match(maybeConfirmedWorkspace, {
+            onNone: () => [],
+            onSome: ({ projects }) => [
+              Nav.view({
+                items: Array.map(projects, project => project.id),
+                ariaLabel: 'Projects',
+                toHref: projectId => projectRouter({ projectId }),
+                isItemCurrent: projectId =>
+                  Option.contains(maybeCurrentProjectId, projectId),
+                toView: ({ nav, items }) =>
+                  h.nav(
+                    [
+                      ...nav,
+                      h.Class('flex w-full flex-wrap gap-1 lg:flex-col'),
+                    ],
+                    Array.map(Array.zip(items, projects), ([item, project]) =>
+                      navigationLink(item, project.name, h),
+                    ),
+                  ),
+              }),
+            ],
+          }),
+        ],
+      ),
+      savedViewsSection(route, model.savedViews, h),
+      draftsSection(model, maybeConfirmedWorkspace, h),
+      h.div(
+        [
+          h.Class(
+            'mt-auto hidden pt-10 text-xs font-medium leading-6 text-slate-500 lg:block',
+          ),
+        ],
+        [h.p([], ['Demo data resets on reload'])],
+      ),
+    ],
+  )
+}
+
+const savedViewsSection = (
+  route: ApplicationRoute,
+  savedViews: ReadonlyArray<SavedView>,
+  h: ApplicationViewBuilder,
+): Html =>
+  h.section(
+    [
+      h.Class(
+        clsx({
+          hidden: Array.isReadonlyArrayEmpty(savedViews),
+          [SIDEBAR_COLLECTION_CLASS]: Array.isReadonlyArrayNonEmpty(savedViews),
+        }),
+      ),
+      h.AriaLabel('Saved views'),
+    ],
+    [
+      h.h2(
+        [
+          h.Class(
+            'mb-2 px-3 text-xs font-semibold tracking-wider text-slate-600 uppercase',
+          ),
+        ],
+        ['Saved views'],
+      ),
+      ...Array.match(savedViews, {
+        onEmpty: () => [],
+        onNonEmpty: nonEmptySavedViews =>
+          Array.map(nonEmptySavedViews, savedView =>
+            h.keyed('div')(
+              savedView.id,
+              [h.Class('flex items-center gap-1')],
+              [
+                h.a(
+                  [
+                    h.Href(
+                      savedViewRouter({
+                        viewId: savedView.id,
+                        filters: savedView.filters,
+                      }),
+                    ),
+                    h.Class(
+                      clsx(SAVED_VIEW_LINK_CLASS, {
+                        'bg-white font-semibold text-indigo-700':
+                          ApplicationRoute.guards.SavedView(route) &&
+                          route.viewId === savedView.id,
+                        'font-medium text-slate-600 hover:bg-white/60':
+                          !ApplicationRoute.guards.SavedView(route) ||
+                          route.viewId !== savedView.id,
+                      }),
+                    ),
+                  ],
+                  [savedView.name],
+                ),
+                Button.view(
+                  {
+                    type: 'button',
+                    onClick: Message.ClickedDeleteSavedView({
+                      viewId: savedView.id,
+                    }),
+                    toView: attributes =>
+                      h.button(
+                        [
+                          ...attributes.button,
+                          h.AriaLabel(`Delete view ${savedView.name}`),
+                          h.Class(
+                            'inline-grid size-7 cursor-pointer place-items-center rounded text-sm font-medium text-slate-600 outline-offset-2 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-indigo-500',
+                          ),
+                        ],
+                        ['×'],
+                      ),
+                  },
+                  h,
+                ),
+              ],
+            ),
+          ),
+      }),
+    ],
+  )
+
+const draftsSection = (
+  model: Model,
+  maybeConfirmedWorkspace: Option.Option<Workspace>,
+  h: ApplicationViewBuilder,
+): Html => {
+  const issueDrafts = unsavedIssueDrafts(model.issuePane.model)
+
+  return h.section(
+    [
+      h.Class(
+        clsx({
+          hidden: Array.isReadonlyArrayEmpty(issueDrafts),
+          [SIDEBAR_COLLECTION_CLASS]:
+            Array.isReadonlyArrayNonEmpty(issueDrafts),
+        }),
+      ),
+      h.AriaLabel('Drafts'),
+    ],
+    [
+      h.h2(
+        [
+          h.Class(
+            'mb-2 px-3 text-xs font-semibold tracking-wider text-slate-600 uppercase',
+          ),
+        ],
+        ['Drafts'],
+      ),
+      ...Array.map(issueDrafts, retainedDraft => {
+        const maybeIssue = Option.flatMap(maybeConfirmedWorkspace, workspace =>
+          Array.findFirst(
+            workspace.issues,
+            issue => issue.id === retainedDraft.issueId,
+          ),
+        )
+        const isActive = Option.contains(
+          maybeIssueId(model.route),
+          retainedDraft.issueId,
+        )
+
+        return h.keyed('div')(
+          retainedDraft.issueId,
+          [],
+          [
+            h.a(
+              [
+                h.Href(issueHref(model, retainedDraft.issueId)),
+                h.Class(
+                  clsx(DRAFT_LINK_CLASS, {
+                    'bg-white text-indigo-700 shadow-xs': isActive,
+                    'text-slate-500 transition hover:bg-white/60 hover:text-slate-800':
+                      !isActive,
+                  }),
+                ),
+                ...(isActive ? [h.AriaCurrent('page')] : []),
+              ],
+              [
+                h.span(
+                  [h.Class('block text-xs font-semibold')],
+                  [
+                    Option.match(maybeIssue, {
+                      onNone: () => retainedDraft.issueId,
+                      onSome: issue => issue.identifier,
+                    }),
+                  ],
+                ),
+                h.span(
+                  [h.Class('block truncate text-sm font-medium')],
+                  [retainedDraft.title],
+                ),
+              ],
+            ),
+          ],
+        )
+      }),
+    ],
+  )
+}
+
+// WORKSPACE PAGE VIEW
+
+const workspacePageView = (model: Model, h: ApplicationViewBuilder): Html =>
+  h.main(
+    [h.Class('flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto')],
+    [
+      h.div(
+        [h.Role('status'), h.AriaLive('polite'), h.Class('sr-only')],
+        [Option.getOrElse(model.maybeNotice, () => '')],
+      ),
+      ApplicationRoute.guards.NotFound(model.route)
+        ? notFoundView(h)
+        : AsyncData.matchDataSplitEmpty(visibleWorkspaceAsyncData(model), {
+            onIdle: () => workspaceLoadingView(h),
+            onLoading: () => workspaceLoadingView(h),
+            onFailure: error => workspaceFailureView(error, h),
+            onData: workspace => workspaceView(model, workspace, h),
+          }),
+    ],
+  )
+
+const projectTabs = (
+  project: Project,
+  route: ApplicationRoute,
+  h: ApplicationViewBuilder,
+): Html => {
+  const projectPageRoutes = {
+    Overview: ApplicationRoute.ProjectOverview({ projectId: project.id }),
+    Issues: ApplicationRoute.Project({ projectId: project.id }),
+    Board: ApplicationRoute.Board({ projectId: project.id }),
+    'Project settings': ApplicationRoute.ProjectSettings({
+      projectId: project.id,
+    }),
+  }
+
+  return Nav.view({
+    items: Record.keys(projectPageRoutes),
+    ariaLabel: 'Project navigation',
+    toHref: label => routeToPath(projectPageRoutes[label]),
+    isItemCurrent: label => projectPageRoutes[label]._tag === route._tag,
+    toView: ({ nav, items }) =>
+      h.nav(
+        [
+          ...nav,
+          h.Class('flex flex-wrap gap-1 border-b border-slate-200 px-2 pb-3'),
+        ],
+        Array.map(items, item => navigationLink(item, item.value, h)),
+      ),
+  })
+}
+
+const projectStatistic = (
+  label: string,
+  count: number,
+  itemClass: string,
+  h: ApplicationViewBuilder,
+): Html =>
+  h.div(
+    [h.Class(itemClass)],
+    [
+      h.dt([h.Class('text-sm font-medium text-slate-600')], [label]),
+      h.dd(
+        [h.Class('mt-1 text-xl font-semibold text-slate-800')],
+        [`${count}`],
+      ),
+    ],
+  )
+
+const projectOverview = (
+  project: Project,
+  workspace: Workspace,
+  h: ApplicationViewBuilder,
+): Html => {
+  const projectIssues = Array.filter(
+    workspace.issues,
+    issue => issue.projectId === project.id,
+  )
+  const completedIssues = Array.filter(
+    projectIssues,
+    issue => issue.status === 'Done',
+  )
+  const inProgressIssues = Array.filter(
+    projectIssues,
+    issue => issue.status === 'InProgress',
+  )
+
+  return h.section(
+    [h.Class('space-y-6 p-5 lg:p-8'), h.AriaLabel('Project overview')],
+    [
+      h.div(
+        [
+          h.Class(
+            'flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end',
+          ),
+        ],
+        [
+          h.p(
+            [h.Class('max-w-2xl text-sm leading-6 text-slate-500')],
+            [project.description],
+          ),
+          h.a(
+            [
+              h.Href(boardRouter({ projectId: project.id })),
+              h.Class(
+                'shrink-0 text-sm font-semibold text-indigo-600 hover:text-indigo-800',
+              ),
+            ],
+            ['Open board'],
+          ),
+        ],
+      ),
+      h.dl(
+        [
+          h.Class(
+            'grid divide-y divide-slate-200 border-y border-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0',
+          ),
+        ],
+        [
+          projectStatistic(
+            'Total issues',
+            projectIssues.length,
+            'py-4 sm:px-5 sm:first:pl-0',
+            h,
+          ),
+          projectStatistic(
+            'In progress',
+            inProgressIssues.length,
+            'py-4 sm:px-5',
+            h,
+          ),
+          projectStatistic(
+            'Completed',
+            completedIssues.length,
+            'py-4 sm:px-5',
+            h,
+          ),
+        ],
+      ),
+    ],
+  )
+}
+
+const issueListView = (
+  model: Model,
+  { members, projects }: Workspace,
+  issues: ReadonlyArray<Issue>,
+): Html =>
+  model.issueList.view({
+    filters: appliedIssueFilters(model),
+    issueHrefs: issueHrefs(model, issues),
+    issues,
+    members,
+    projects,
+    maybeActiveIssueId: maybeIssueId(model.route),
+  })
+
+const routeContent = (
+  model: Model,
+  workspace: Workspace,
+  h: ApplicationViewBuilder,
+): Html => {
+  const { route } = model
+
+  const projectContent = (
+    projectId: string,
+    toView: (project: Project) => Html,
+  ) =>
+    Option.match(
+      Array.findFirst(workspace.projects, project => project.id === projectId),
+      {
+        onNone: () =>
+          missingPage(
+            'This project is unavailable',
+            'This project is not part of the workspace.',
+            h,
+          ),
+        onSome: toView,
+      },
+    )
+
+  const projectIssues = (projectId: string) =>
+    Array.filter(workspace.issues, issue => issue.projectId === projectId)
+
+  return ApplicationRoute.match<Html>(route, {
+    Issues: () => issueListView(model, workspace, workspace.issues),
+    MyIssues: () =>
+      issueListView(
+        model,
+        workspace,
+        Array.filter(workspace.issues, issue =>
+          Option.contains(issue.maybeAssigneeId, activeMemberId(model)),
+        ),
+      ),
+    Project: ({ projectId }) =>
+      projectContent(projectId, () =>
+        issueListView(model, workspace, projectIssues(projectId)),
+      ),
+    ProjectOverview: ({ projectId }) =>
+      projectContent(projectId, project =>
+        projectOverview(project, workspace, h),
+      ),
+    ProjectSettings: ({ projectId }) =>
+      projectContent(projectId, () =>
+        Option.match(Record.get(model.projectSettings, projectId), {
+          onNone: () => h.empty,
+          onSome: settings => settings.view(),
+        }),
+      ),
+    Board: ({ projectId }) =>
+      projectContent(projectId, () =>
+        Option.match(Record.get(model.issueBoards, projectId), {
+          onNone: () =>
+            h.p(
+              [h.Class('p-8 text-sm text-slate-500'), h.Role('status')],
+              ['Loading board…'],
+            ),
+          onSome: board =>
+            board.view({
+              issueHrefs: issueHrefs(model, workspace.issues),
+              isSaving: IssueMoveState.guards.MovingIssue(
+                model.issueMove.model.state,
+              ),
+              issues: projectIssues(projectId),
+              members: workspace.members,
+            }),
+        }),
+      ),
+    People: () =>
+      model.memberDirectory.view({
+        members: workspace.members,
+        issues: workspace.issues,
+        issueHrefs: issueHrefs(model, workspace.issues),
+      }),
+    Settings: () => workspaceSettingsView(model, h),
+    SavedView: ({ viewId }) =>
+      Option.match(
+        Array.findFirst(model.savedViews, savedView => savedView.id === viewId),
+        {
+          onNone: () =>
+            Option.match(maybeRouteFilters(route), {
+              onNone: () =>
+                missingPage(
+                  'This saved view is unavailable',
+                  'Save a new set of issue filters to create a view.',
+                  h,
+                ),
+              onSome: () => issueListView(model, workspace, workspace.issues),
+            }),
+          onSome: () => issueListView(model, workspace, workspace.issues),
+        },
+      ),
+    Issue: () => h.empty,
+    NotFound: () =>
+      missingPage(
+        'Page not found',
+        'Choose a page from the workspace navigation.',
+        h,
+      ),
+  })
+}
+
+const workspaceView = (
+  model: Model,
+  workspace: Workspace,
+  h: ApplicationViewBuilder,
+): Html => {
+  const { route } = model
+  const maybeProject = Option.flatMap(maybeProjectId(route), projectId =>
+    Array.findFirst(workspace.projects, project => project.id === projectId),
+  )
+  const maybeSelectedIssueId = maybeIssueId(route)
+
+  return h.div(
+    [h.Class('flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden')],
+    [
+      h.header(
+        [
+          h.Class(
+            'flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-3 px-5 py-3',
+          ),
+        ],
+        [
+          h.h1(
+            [h.Class('text-lg font-semibold text-slate-900')],
+            [pageTitle(route, model.savedViews, workspace)],
+          ),
+          h.div(
+            [h.Class('flex items-center gap-3')],
+            [
+              model.memberSwitcher.view({ members: workspace.members }),
+              model.notificationCenter.view({
+                activeMemberId: activeMemberId(model),
+                issues: workspace.issues,
+                members: workspace.members,
+              }),
+            ],
+          ),
+        ],
+      ),
+      Option.match(maybeProject, {
+        onNone: () => h.empty,
+        onSome: project => projectTabs(project, route, h),
+      }),
+      model.issueMove.view(),
+      h.div(
+        [
+          h.Class(
+            'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 xl:flex-row',
+          ),
+        ],
+        [
+          ...(!ApplicationRoute.guards.Issue(route)
+            ? [
+                h.div(
+                  [
+                    h.Class(
+                      clsx(
+                        'min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain',
+                        {
+                          'hidden xl:block':
+                            Option.isSome(maybeSelectedIssueId),
+                        },
+                      ),
+                    ),
+                  ],
+                  [routeContent(model, workspace, h)],
+                ),
+              ]
+            : []),
+          ...Option.match(maybeSelectedIssueId, {
+            onNone: () => [],
+            onSome: issueId => [
+              model.issuePane.view({
+                issueId,
+                isFullPage: ApplicationRoute.guards.Issue(route),
+                workspace,
+                authorId: activeMemberId(model),
+              }),
+            ],
+          }),
+        ],
+      ),
+    ],
+  )
+}
+
+const workspaceLoadingView = (h: ApplicationViewBuilder): Html =>
+  h.div(
+    [
+      h.Class(
+        'grid min-h-[60vh] place-content-center px-8 text-sm text-slate-500',
+      ),
+      h.Role('status'),
+    ],
+    ['Loading workspace…'],
+  )
+
+const workspaceFailureView = (error: string, h: ApplicationViewBuilder): Html =>
+  h.div(
+    [
+      h.Class(
+        'mx-auto my-20 max-w-md rounded-xl border border-rose-100 bg-white p-8 text-center',
+      ),
+      h.Role('alert'),
+    ],
+    [
+      h.h1(
+        [h.Class('mb-3 text-lg font-semibold text-slate-700')],
+        ['Unable to load workspace'],
+      ),
+      h.p([h.Class('mb-6 text-sm leading-6 text-slate-500')], [error]),
+      Button.view(
+        {
+          onClick: Message.ClickedRetryLoad(),
+          toView: attributes =>
+            h.button(
+              [...attributes.button, h.Class('button-primary')],
+              ['Retry loading'],
+            ),
+        },
+        h,
+      ),
+    ],
+  )
+
+const notFoundView = (h: ApplicationViewBuilder): Html =>
+  h.section(
+    [h.Class('p-8')],
+    [
+      h.h1(
+        [h.Class('mb-3 text-2xl font-semibold text-slate-800')],
+        ['Page not found'],
+      ),
+      h.p(
+        [h.Class('text-sm text-slate-500')],
+        ['Choose a page from the workspace navigation.'],
+      ),
+    ],
+  )
+
+// WORKSPACE SETTINGS VIEW
+
+const workspaceSettingsView = (
+  model: Model,
+  h: ApplicationViewBuilder,
+): Html => {
+  const { maybeActivityError, activityTick } = model.teammateActivity.model
+
+  return h.section(
+    [h.Class('max-w-2xl space-y-6 p-5')],
+    [
+      h.div(
+        [h.Class('space-y-2')],
+        [
+          h.h2(
+            [h.Class('text-base font-semibold text-slate-800')],
+            ['Demo controls'],
+          ),
+          h.p(
+            [h.Class('text-sm leading-6 text-slate-600')],
+            [
+              'Changes last for this session. Reloading restores the sample workspace.',
+            ],
+          ),
+          Option.match(model.maybeNotice, {
+            onNone: () => h.empty,
+            onSome: notice =>
+              h.p([h.Class('text-sm leading-6 text-slate-600')], [notice]),
+          }),
+        ],
+      ),
+      h.div(
+        [h.Class('border-t border-slate-200 pt-5')],
+        [
+          h.h3(
+            [h.Class('mb-2 text-base font-semibold text-slate-800')],
+            ['Live activity'],
+          ),
+          h.p(
+            [h.Class('mb-4 text-sm leading-6 text-slate-600')],
+            [
+              'Teammate activity arrives every 20 seconds. Comments and assignments appear in Notifications.',
+            ],
+          ),
+          Option.match(maybeActivityError, {
+            onNone: () => h.empty,
+            onSome: error =>
+              h.p(
+                [h.Role('alert'), h.Class('mb-4 text-sm text-rose-700')],
+                [error],
+              ),
+          }),
+          h.div(
+            [h.Class('flex flex-wrap items-center gap-4')],
+            [
+              Button.view(
+                {
+                  type: 'button',
+                  onClick: Message.ClickedSimulateActivity(),
+                  toView: attributes =>
+                    h.button(
+                      [...attributes.button, h.Class('button')],
+                      ['Simulate activity'],
+                    ),
+                },
+                h,
+              ),
+              h.p(
+                [h.Class('text-[13px] text-slate-600')],
+                [`${activityTick} activity events requested`],
+              ),
+            ],
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class('border-t border-slate-200 pt-5')],
+        [
+          h.h3(
+            [h.Class('mb-2 text-base font-semibold text-slate-800')],
+            ['Save recovery'],
+          ),
+          h.p(
+            [h.Class('mb-4 text-sm leading-6 text-slate-600')],
+            [
+              'Fail the next issue save to test recovery. The editor keeps your draft for retry.',
+            ],
+          ),
+          Button.view(
+            {
+              type: 'button',
+              onClick: Message.ClickedSimulateSaveFailure(),
+              toView: attributes =>
+                h.button(
+                  [...attributes.button, h.Class('button')],
+                  ['Fail next save'],
+                ),
+            },
+            h,
+          ),
+        ],
+      ),
     ],
   )
 }

@@ -66,7 +66,8 @@ of a release tag. After an upgrade, use the same command with `pull` in place of
   class, and `Live` Layer. Never split a Block across `message.ts`,
   `model.ts`, `update.ts`, `command.ts`, or `view.ts`, and do not add an
   `index.ts` barrel for it. When a Block grows too large to read, extract a
-  feature into a child Block in its own file. The other source files are
+  feature that owns its own state, effects, or lifecycle into a child Block in
+  its own file; render-only markup stays in the parent as view functions. The other source files are
   entries, `services.ts`, `route.ts`, and `domain/` modules shared by several
   Blocks.
 - Use a stateful `@foldkit/ui` component as a child Block. Declare the

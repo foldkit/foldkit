@@ -24,7 +24,6 @@ import {
   SaveSession,
 } from './application'
 import { Session } from './domain/session'
-import { LoggedInLive } from './page/loggedIn/loggedIn'
 import { LoggedOutLive } from './page/loggedOut/loggedOut'
 import {
   Login,
@@ -35,9 +34,7 @@ import {
 import { ApplicationRoute } from './route'
 
 const application = ApplicationLive.pipe(
-  Layer.provide(
-    Layer.mergeAll(LoggedOutLive.pipe(Layer.provide(LoginLive)), LoggedInLive),
-  ),
+  Layer.provide(LoggedOutLive.pipe(Layer.provide(LoginLive))),
 )
 
 const startArgs = {

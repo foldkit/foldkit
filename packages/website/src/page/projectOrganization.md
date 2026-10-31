@@ -73,7 +73,7 @@ A Step transforms one Block's Model, so it lives in that Block's file. Keep a St
 
 ### Extracting a Child Block
 
-When a Block grows too large to read in one file, extract a feature into a child Block in its own file. Do not slice the parent's responsibilities into sibling files.
+When a Block grows too large to read in one file, extract a feature that owns its own state, effects, or lifecycle into a child Block in its own file. Do not slice the parent's responsibilities into sibling files. Markup that only renders the parent's state and sends the parent's Messages stays in the parent's file as view functions.
 
 A parent holds a child instance in its Model. Name the child class in the parent's Model Schema, create the instance in the parent constructor with `yield* new Child('id', args)`, and put it in the starting Model. Name the instance for its role in the parent, and use that name for the Model field and the id:
 

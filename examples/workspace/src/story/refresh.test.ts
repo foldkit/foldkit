@@ -14,13 +14,11 @@ import {
   loadWorkspace,
   startAt,
   visibleWorkspaceOf,
-  workspacePageMessage,
 } from '../application.fixture'
 import { revisionFromIssue } from '../domain/issue'
 import { initialWorkspace } from '../domain/seed'
 import { IssueDetail } from '../issueDetail/issueDetail'
 import { issueRouter } from '../route'
-import { WorkspacePage } from '../workspacePage'
 
 const issueA = Option.getOrThrow(Array.head(initialWorkspace.issues))
 
@@ -41,7 +39,7 @@ describe('when refreshing the workspace with an unsaved issue draft', () => {
             IssueDetail.Message.UpdatedTitle({ value: title }),
           ),
         ),
-        message(workspacePageMessage(WorkspacePage.Message.ClickedRetryLoad())),
+        message(Message.ClickedRetryLoad()),
         Command.expectExact(LoadWorkspace()),
         model(model => {
           expect(model.workspaceAsyncData._tag).toBe('Refreshing')
@@ -91,7 +89,7 @@ describe('when refreshing the workspace with an unsaved issue draft', () => {
             IssueDetail.Message.UpdatedTitle({ value: title }),
           ),
         ),
-        message(workspacePageMessage(WorkspacePage.Message.ClickedRetryLoad())),
+        message(Message.ClickedRetryLoad()),
         Command.expectExact(LoadWorkspace()),
         Command.resolve(
           LoadWorkspace,

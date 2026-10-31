@@ -4,7 +4,6 @@ import { Program, Runtime } from 'foldkit'
 
 import { Application, ApplicationLive, Flags } from './application'
 import { SESSION_STORAGE_KEY, SessionJsonString } from './domain/session'
-import { LoggedInLive } from './page/loggedIn/loggedIn'
 import { LoggedOutLive } from './page/loggedOut/loggedOut'
 import { LoginLive } from './page/loggedOut/login'
 import { ApplicationLayer } from './services'
@@ -28,12 +27,7 @@ const flags = Effect.gen(function* () {
 
 const program = Program.make(Application, {
   layer: ApplicationLive.pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        LoggedOutLive.pipe(Layer.provide(LoginLive)),
-        LoggedInLive,
-      ),
-    ),
+    Layer.provide(LoggedOutLive.pipe(Layer.provide(LoginLive))),
     Layer.provide(ApplicationLayer),
   ),
   Flags,

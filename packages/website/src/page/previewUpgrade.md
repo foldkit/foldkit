@@ -248,7 +248,7 @@ Create each factory class once at module scope; the `foldkit/selection-block-fac
 The old split layout had `definition.ts`, `composition.ts`, `init.ts`, `update.ts`, `view.ts`, and `block.ts` for each feature. Collapse it:
 
 - Each Block lives in one file named for it in camelCase, such as `issueBoard.ts`, holding its Message and OutMessage unions, Model Schema, Command and Mount definitions, class, and `Live` Layer. Remove the feature's `index.ts` barrel.
-- A Block too large to read in one file extracts a feature into a child Block in its own file instead of splitting into `message.ts`, `model.ts`, `update.ts`, `command.ts`, or `view.ts`.
+- A Block too large to read in one file extracts a feature that owns its own state, effects, or lifecycle into a child Block in its own file instead of splitting into `message.ts`, `model.ts`, `update.ts`, `command.ts`, or `view.ts`.
 - `definition.ts`, `composition.ts`, `composition/` policy modules, and `init.ts` have no counterpart. Their contents move into the class, the constructor, and the parent's update record.
 
 The recursive-initializer and import-cycle workarounds for reciprocal Binding policies go away, since policies are `.on` handlers in the parent's own constructor. See [Project Organization](/patterns/project-organization).

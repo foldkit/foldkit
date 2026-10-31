@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import {
   Array,
   Effect,
@@ -19,6 +20,8 @@ import {
 } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { makeModifyFieldsFor, modifyFields } from 'foldkit/struct'
+
+import { Button } from '@foldkit/ui'
 
 import {
   type Cell,
@@ -44,8 +47,6 @@ import {
 import { Tool } from './domain/tool'
 import { ErrorDialog } from './errorDialog'
 import { GridSizeConfirmDialog } from './gridSizeConfirmDialog'
-import { Header } from './header'
-import { HistoryPanel } from './historyPanel'
 import { Toolbar } from './toolbar'
 
 const DEFAULT_GRID_SIZE = 16
@@ -54,6 +55,8 @@ const DEFAULT_PALETTE_THEME_INDEX = 0
 const CANVAS_SIZE_PX = 512
 const EXPORT_SCALE = 4
 const STORAGE_KEY = 'pixel-art-canvas'
+const VISIBLE_HISTORY_COUNT = 6
+const THUMBNAIL_CELL_SIZE = 2
 
 // MODEL
 
@@ -88,9 +91,7 @@ export type Canvas = typeof Canvas.Type
 
 export const Model = Schema.Struct({
   ...Canvas.fields,
-  header: Header,
   toolbar: Toolbar,
-  historyPanel: HistoryPanel,
   errorDialog: ErrorDialog,
   gridSizeConfirmDialog: GridSizeConfirmDialog,
 })
@@ -127,6 +128,9 @@ export const Message = defineMessageUnion({
   SelectedGridSize: { size: Schema.Number },
   ClickedUndo: {},
   ClickedRedo: {},
+  ClickedHistoryStep: { stepIndex: Schema.Number },
+  ClickedRedoStep: { stepIndex: Schema.Number },
+  ClickedExport: {},
   SucceededExportPng: {},
   FailedExportPng: { error: Schema.String },
   CompletedSaveCanvas: {},
@@ -170,9 +174,7 @@ export const ApplicationLive = Application.make(
   Effect.fn(function* (_id, { flags }) {
     const store = yield* KeyValueStore.KeyValueStore
 
-    const header = yield* new Header('header')
     const toolbar = yield* new Toolbar('toolbar')
-    const historyPanel = yield* new HistoryPanel('historyPanel')
     const errorDialog = yield* new ErrorDialog('errorDialog')
     const gridSizeConfirmDialog = yield* new GridSizeConfirmDialog(
       'gridSizeConfirmDialog',
@@ -202,9 +204,7 @@ export const ApplicationLive = Application.make(
           onNone: () => DEFAULT_PALETTE_THEME_INDEX,
           onSome: savedCanvas => savedCanvas.paletteThemeIndex,
         }),
-        header,
         toolbar,
-        historyPanel,
         errorDialog,
         gridSizeConfirmDialog,
       },
@@ -228,7 +228,13 @@ export const ApplicationLive = Application.make(
           ],
         }),
 
-        ...header.on({ ClickedExport: exportStep }),
+        ClickedHistoryStep: (model, { stepIndex }) =>
+          restoreHistoryStep(model, stepIndex),
+
+        ClickedRedoStep: (model, { stepIndex }) =>
+          restoreRedoStep(model, stepIndex),
+
+        ClickedExport: exportStep,
 
         ...toolbar.on({
           SelectedTool: (model, { tool }) => selectToolStep(model, tool),
@@ -241,15 +247,6 @@ export const ApplicationLive = Application.make(
           ToggledMirrorHorizontal: toggleMirrorHorizontalStep,
           ToggledMirrorVertical: toggleMirrorVerticalStep,
           ClickedClear: clearCanvasStep,
-        }),
-
-        ...historyPanel.on({
-          ClickedUndo: canvasUpdate.ClickedUndo,
-          ClickedRedo: canvasUpdate.ClickedRedo,
-          ClickedHistoryStep: (model, { stepIndex }) =>
-            restoreHistoryStep(model, stepIndex),
-          ClickedRedoStep: (model, { stepIndex }) =>
-            restoreRedoStep(model, stepIndex),
         }),
 
         ...gridSizeConfirmDialog.on({
@@ -271,7 +268,7 @@ export const ApplicationLive = Application.make(
         body: h.div(
           [h.Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],
           [
-            lazyHeader(headerView, [model.header]),
+            lazyHeader(headerView, [h]),
             contentView(model, h),
             lazyErrorDialog(errorDialogView, [model.errorDialog]),
             lazyGridSizeConfirmDialog(gridSizeConfirmDialogView, [
@@ -810,8 +807,6 @@ const canvasView = (
   )
 }
 
-const headerView = (header: Header): Html => header.view()
-
 const toolbarView = (
   toolbar: Toolbar,
   mirrorMode: MirrorMode,
@@ -831,15 +826,6 @@ const toolbarView = (
     theme,
     paletteThemeIndex,
   })
-
-const historyPanelView = (
-  historyPanel: HistoryPanel,
-  undoStack: ReadonlyArray<Grid>,
-  redoStack: ReadonlyArray<Grid>,
-  grid: Grid,
-  gridSize: number,
-  theme: PaletteTheme,
-): Html => historyPanel.view({ undoStack, redoStack, grid, gridSize, theme })
 
 const errorDialogView = (errorDialog: ErrorDialog): Html => errorDialog.view()
 
@@ -875,7 +861,6 @@ const contentView = (model: Model, h: ApplicationViewBuilder): Html => {
       ]),
       canvasView(model, theme, h),
       lazyHistoryPanel(historyPanelView, [
-        model.historyPanel,
         model.undoStack,
         model.redoStack,
         model.isDrawing
@@ -886,7 +871,290 @@ const contentView = (model: Model, h: ApplicationViewBuilder): Html => {
           : model.grid,
         model.gridSize,
         theme,
+        h,
       ]),
+    ],
+  )
+}
+
+// HEADER VIEW
+
+const downloadIcon = (className: string, h: ApplicationViewBuilder): Html =>
+  h.svg(
+    [
+      h.AriaHidden(true),
+      h.Class(className),
+      h.Xmlns('http://www.w3.org/2000/svg'),
+      h.Fill('none'),
+      h.ViewBox('0 0 24 24'),
+      h.StrokeWidth('1.5'),
+      h.Stroke('currentColor'),
+    ],
+    [
+      h.path([
+        h.StrokeLinecap('round'),
+        h.StrokeLinejoin('round'),
+        h.D(
+          'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3',
+        ),
+      ]),
+    ],
+  )
+
+const secondaryButtonStyle =
+  'px-3 py-1.5 rounded text-sm bg-gray-800 text-gray-200 transition motion-reduce:transition-none'
+
+const headerView = (h: ApplicationViewBuilder): Html =>
+  h.div(
+    [
+      h.Class(
+        'flex items-center justify-between px-4 py-3 border-b border-gray-800',
+      ),
+    ],
+    [
+      h.div(
+        [h.Class('flex flex-col')],
+        [
+          h.h1(
+            [h.Class('text-lg font-bold tracking-tight leading-none mb-1')],
+            ['PixelForge'],
+          ),
+          h.div(
+            [
+              h.Class(
+                'flex items-center gap-1 text-xs text-gray-400 leading-none',
+              ),
+            ],
+            [
+              h.a(
+                [
+                  h.Href('https://foldkit.dev'),
+                  h.Class('hover:text-gray-200 transition'),
+                ],
+                ['Built with Foldkit'],
+              ),
+              h.span([], ['/']),
+              h.a(
+                [
+                  h.Href(
+                    'https://github.com/foldkit/foldkit/tree/main/examples/pixel-art',
+                  ),
+                  h.Class('hover:text-gray-200 transition'),
+                ],
+                ['Source on GitHub'],
+              ),
+            ],
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class('flex items-center gap-4')],
+        [
+          Button.view(
+            {
+              onClick: Message.ClickedExport(),
+              toView: attributes =>
+                h.button(
+                  [
+                    ...attributes.button,
+                    h.Class(
+                      clsx(
+                        secondaryButtonStyle,
+                        'flex items-center gap-2 hover:bg-gray-700 cursor-pointer',
+                      ),
+                    ),
+                  ],
+                  [downloadIcon('w-4 h-4', h), h.span([], ['Export PNG'])],
+                ),
+            },
+            h,
+          ),
+        ],
+      ),
+    ],
+  )
+
+// HISTORY PANEL VIEW
+
+const sectionLabel = (text: string, h: ApplicationViewBuilder): Html =>
+  h.div(
+    [
+      h.Class(
+        'text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2',
+      ),
+    ],
+    [text],
+  )
+
+const historyButtonView = (
+  label: string,
+  shortcut: string,
+  stackCount: number,
+  onClick: Message,
+  h: ApplicationViewBuilder,
+): Html =>
+  Button.view(
+    {
+      onClick,
+      isDisabled: stackCount === 0,
+      toView: attributes =>
+        h.button(
+          [
+            ...attributes.button,
+            h.Class(
+              clsx(
+                'flex items-center justify-between px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none bg-gray-800 w-full',
+                {
+                  'text-gray-200 hover:bg-gray-700 cursor-pointer':
+                    stackCount > 0,
+                  'text-gray-600 opacity-40 cursor-not-allowed':
+                    stackCount === 0,
+                },
+              ),
+            ),
+          ],
+          [h.span([], [label]), h.span([h.Class('text-gray-400')], [shortcut])],
+        ),
+    },
+    h,
+  )
+
+const thumbnailEntry = (
+  grid: Grid,
+  gridSize: number,
+  isActive: boolean,
+  label: string,
+  maybeOnClick: Option.Option<Message>,
+  theme: PaletteTheme,
+  h: ApplicationViewBuilder,
+): Html =>
+  h.div(
+    [
+      h.Class(
+        clsx('flex items-center gap-2 px-2 py-1.5 rounded', {
+          'bg-indigo-600 text-white': isActive,
+          'bg-gray-800 cursor-pointer hover:bg-gray-700': !isActive,
+        }),
+      ),
+      ...Array.fromOption(Option.map(maybeOnClick, h.OnClick)),
+      ...Array.fromOption(
+        Option.map(maybeOnClick, clickMessage =>
+          h.OnKeyDownPreventDefault(key =>
+            key === 'Enter' || key === ' '
+              ? Option.some(clickMessage)
+              : Option.none(),
+          ),
+        ),
+      ),
+      ...(Option.isSome(maybeOnClick) ? [h.Role('button'), h.Tabindex(0)] : []),
+    ],
+    [
+      h.div(
+        [
+          h.Class('flex-shrink-0'),
+          h.Style({
+            display: 'grid',
+            'grid-template-columns': `repeat(${gridSize}, ${THUMBNAIL_CELL_SIZE}px)`,
+          }),
+        ],
+        Array.flatMap(grid, row =>
+          Array.map(row, cell =>
+            h.div([
+              h.Style({
+                width: `${THUMBNAIL_CELL_SIZE}px`,
+                height: `${THUMBNAIL_CELL_SIZE}px`,
+                backgroundColor: resolveColor(cell, theme),
+              }),
+            ]),
+          ),
+        ),
+      ),
+      h.span(
+        [
+          h.Class(
+            clsx('text-[10px] truncate', {
+              'text-white': isActive,
+              'text-gray-400': !isActive,
+            }),
+          ),
+        ],
+        [label],
+      ),
+    ],
+  )
+
+const historyPanelView = (
+  undoStack: ReadonlyArray<Grid>,
+  redoStack: ReadonlyArray<Grid>,
+  grid: Grid,
+  gridSize: number,
+  theme: PaletteTheme,
+  h: ApplicationViewBuilder,
+): Html => {
+  const undoCount = undoStack.length
+  const redoCount = redoStack.length
+  const visibleUndoEntries = Array.takeRight(undoStack, VISIBLE_HISTORY_COUNT)
+  const hiddenUndoCount = undoCount - visibleUndoEntries.length
+
+  return h.div(
+    [h.Class('w-full md:w-44 flex flex-col flex-shrink-0')],
+    [
+      sectionLabel('History', h),
+      h.div(
+        [h.Class('flex flex-col gap-1.5')],
+        [
+          historyButtonView('Undo', '⌘Z', undoCount, Message.ClickedUndo(), h),
+          historyButtonView('Redo', '⌘⇧Z', redoCount, Message.ClickedRedo(), h),
+        ],
+      ),
+      h.div(
+        [h.Class('flex flex-col gap-1.5 overflow-y-auto max-h-[420px] mt-3')],
+        [
+          ...Array.map(redoStack, (entryGrid, index) =>
+            thumbnailEntry(
+              entryGrid,
+              gridSize,
+              false,
+              `Forward ${redoCount - index}`,
+              Option.some(Message.ClickedRedoStep({ stepIndex: index })),
+              theme,
+              h,
+            ),
+          ),
+          thumbnailEntry(
+            grid,
+            gridSize,
+            true,
+            'Current',
+            Option.none(),
+            theme,
+            h,
+          ),
+          ...Array.map(
+            Array.reverse(visibleUndoEntries),
+            (entryGrid, index) => {
+              const stepIndex = undoCount - 1 - index
+              return thumbnailEntry(
+                entryGrid,
+                gridSize,
+                false,
+                `Back ${index + 1}`,
+                Option.some(Message.ClickedHistoryStep({ stepIndex })),
+                theme,
+                h,
+              )
+            },
+          ),
+          ...(hiddenUndoCount > 0
+            ? [
+                h.div(
+                  [h.Class('text-[10px] text-gray-500 text-center py-1')],
+                  [`${hiddenUndoCount} more…`],
+                ),
+              ]
+            : []),
+        ],
+      ),
     ],
   )
 }
