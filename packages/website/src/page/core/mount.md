@@ -148,6 +148,8 @@ Construct the handle in an acquire Effect, return the Mount's result Message, an
 
 :::Warning{label="Construct the handle inside the acquire body"}
 `Effect.acquireRelease` registers the release only after its acquire Effect succeeds. Constructing a chart, map, or other stateful handle before that Effect can leak the handle if interruption happens before registration. Make construction the acquire Effect's success value. For example: use `Effect.sync(() => new Thing(...))`, or put an asynchronous import and construction in the same Effect pipeline. Whatever the release needs must be produced by the acquire Effect.
+
+Acquisition is uninterruptible by default. For asynchronous setup that must stop when the element unmounts, pass `{ interruptible: true }` as the third argument to `Effect.acquireRelease`, as the chart integration does above. Construct the handle after the interruptible wait so cancellation leaves no handle to release.
 :::
 
 The Model owns the input data. The library owns its rendered subtree. Foldkit owns the lifecycle.

@@ -23,35 +23,33 @@ const decodeJsonSchema2020Tools = Schema.decodeUnknownEffect(Schema.Struct({
   }))
 }))
 
-const callTool = (name: string, arguments_: Record<string, unknown> = {}) =>
-  Effect.gen(function*() {
-    const test = yield* McpConformance
-    const initialized = yield* test.initialize({ server: "features" })
-    yield* test.notifyInitialized(initialized)
-    const response = yield* test.send(initialized, {
-      jsonrpc: "2.0",
-      id: 2,
-      method: "tools/call",
-      params: { name, arguments: arguments_ }
-    })
-    return yield* test.decodeResult(response).pipe(
-      Effect.flatMap((message) => decodeCallTool(message.result))
-    )
+const callTool = Effect.fnUntraced(function*(name: string, arguments_: Record<string, unknown> = {}) {
+  const test = yield* McpConformance
+  const initialized = yield* test.initialize({ server: "features" })
+  yield* test.notifyInitialized(initialized)
+  const response = yield* test.send(initialized, {
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/call",
+    params: { name, arguments: arguments_ }
   })
+  return yield* test.decodeResult(response).pipe(
+    Effect.flatMap((message) => decodeCallTool(message.result))
+  )
+})
 
-const callToolWire = (name: string) =>
-  Effect.gen(function*() {
-    const test = yield* McpConformance
-    const initialized = yield* test.initialize({ server: "features" })
-    yield* test.notifyInitialized(initialized)
-    const response = yield* test.send(initialized, {
-      jsonrpc: "2.0",
-      id: 2,
-      method: "tools/call",
-      params: { name, arguments: {} }
-    })
-    return yield* test.decodeResult(response)
+const callToolWire = Effect.fnUntraced(function*(name: string) {
+  const test = yield* McpConformance
+  const initialized = yield* test.initialize({ server: "features" })
+  yield* test.notifyInitialized(initialized)
+  const response = yield* test.send(initialized, {
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/call",
+    params: { name, arguments: {} }
   })
+  return yield* test.decodeResult(response)
+})
 
 // String results are mirrored as serialized JSON only where they are also returned as structured content.
 const stringResultContent = (protocol: McpProtocol.ProtocolAdapter, text: string) => [{
@@ -279,11 +277,11 @@ export const suite = (protocol: McpProtocol.ProtocolAdapter, layer: McpConforman
               method: "tools/call",
               params: { name: "DefectTool", arguments: {} }
             })
-            const result = yield* test.decodeError(response)
+            // Checked before schema decoding, which would accept extra members such as `_tag`.
+            const message = (yield* readMcpHttpResponse(response)) as { readonly error: unknown }
 
-            assert.strictEqual(result.error.code, McpSchema.INTERNAL_ERROR_CODE)
-            assert.strictEqual(result.error.message, "Internal error")
-            assert.notMatch(JSON.stringify(result), /private defect details/)
+            assert.deepStrictEqual(message.error, { code: McpSchema.INTERNAL_ERROR_CODE, message: "Internal error" })
+            assert.notMatch(JSON.stringify(message), /private defect details/)
           }))
 
         it.effect.skipIf(protocol.protocolVersion === "2024-11-05")(

@@ -126,11 +126,10 @@ const rewriteWorkspaceSpec =
     return version
   }
 
-// NOTE: Rolldown 1.2.9's generated loader rejects its WASI binding because
-// both export `__napiBindingTarget`. WebContainers must use the last compatible
-// release until Rolldown publishes a matching loader and binding pair.
+// NOTE: WebContainer installs Rolldown's WASI binding in a separate project,
+// so playground overrides cannot constrain that binding's dependencies.
 export const PLAYGROUND_DEPENDENCY_OVERRIDES: DependencySpec = {
-  rolldown: '1.2.6',
+  rolldown: '1.2.16',
 }
 
 const versionForDeployment = (

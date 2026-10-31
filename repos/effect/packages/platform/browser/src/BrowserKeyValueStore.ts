@@ -9,6 +9,7 @@
  * IndexedDB. The IndexedDB layer requires the browser `IndexedDb` service and
  * accepts an optional database name.
  *
+ * @stability unstable
  * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
@@ -19,6 +20,7 @@ import { IndexedDb } from "./IndexedDb.ts"
 /**
  * Creates a `KeyValueStore` layer that uses the browser's `localStorage` API and stores values between browser sessions.
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */
@@ -29,6 +31,7 @@ export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyVa
 /**
  * Creates a `KeyValueStore` layer that uses the browser's `sessionStorage` API and stores values only for the current session.
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */
@@ -59,6 +62,7 @@ export const layerSessionStorage: Layer.Layer<KeyValueStore.KeyValueStore> = Key
  * @see {@link layerLocalStorage} for synchronous persistent Web Storage
  * @see {@link layerSessionStorage} for synchronous tab-session Web Storage
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */
@@ -67,6 +71,7 @@ export const layerIndexedDb = (options?: {
 }): Layer.Layer<KeyValueStore.KeyValueStore, never, IndexedDb> =>
   Layer.effect(KeyValueStore.KeyValueStore)(
     Effect.gen(function*() {
+      const { IDBKeyRange } = yield* IndexedDb
       const db = yield* Effect.acquireRelease(
         openDatabase(options?.database ?? "effect_key_value_store"),
         (db) => Effect.sync(() => db.close())
@@ -80,6 +85,15 @@ export const layerIndexedDb = (options?: {
             (store) => store.clear()
           )
         }),
+        clearPrefix: (prefix: string) =>
+          Effect.asVoid(Effect.suspend(() => {
+            const range = prefixKeyRange(IDBKeyRange, prefix)
+            return idbWriteRequest(
+              db,
+              { method: "clearPrefix", message: "Failed to clear prefix in backing store", key: prefix },
+              (store) => range === undefined ? store.clear() : store.delete(range)
+            )
+          })),
         get: (key: string) =>
           Effect.map(
             Effect.suspend(() => {
@@ -131,6 +145,14 @@ export const layerIndexedDb = (options?: {
             () => store.count()
           )
         }),
+        keys: Effect.suspend(() => {
+          const store = getKvsEntriesStore(db, "readonly")
+          return idbRequest(
+            { method: "keys", message: "Failed to get backing store keys" },
+            // keys are always strings since `set` only accepts string keys
+            () => store.getAllKeys() as IDBRequest<Array<string>>
+          )
+        }),
         remove: (key: string) =>
           Effect.asVoid(Effect.suspend(() => {
             return idbWriteRequest(
@@ -142,6 +164,21 @@ export const layerIndexedDb = (options?: {
       })
     })
   )
+
+// Strings sort by UTF-16 code unit, so keys starting with `prefix` form one
+// contiguous range.
+const prefixKeyRange = (
+  KeyRange: typeof globalThis.IDBKeyRange,
+  prefix: string
+): IDBKeyRange | undefined => {
+  let end = prefix.length
+  while (end > 0 && prefix.charCodeAt(end - 1) === 0xffff) end--
+  if (end === 0) {
+    return prefix.length === 0 ? undefined : KeyRange.lowerBound(prefix)
+  }
+  const upper = prefix.slice(0, end - 1) + String.fromCharCode(prefix.charCodeAt(end - 1) + 1)
+  return KeyRange.bound(prefix, upper, false, true)
+}
 
 const databaseVersion = 1
 const entriesStoreName = "entries"

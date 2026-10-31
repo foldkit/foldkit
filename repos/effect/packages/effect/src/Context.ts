@@ -8,6 +8,7 @@
  * for creating keys, building contexts, adding and reading services, merging
  * contexts, and selecting or removing services.
  *
+ * @stability stable
  * @since 4.0.0
  */
 import type { Effect, EffectIterator } from "./Effect.ts"
@@ -26,6 +27,7 @@ import type * as Types from "./Types.ts"
  * String literal type used as the runtime type identifier for `Context`
  * service keys.
  *
+ * @stability stable
  * @category type IDs
  * @since 4.0.0
  */
@@ -35,6 +37,7 @@ export type ServiceTypeId = "~effect/Context/Service"
  * Runtime type identifier attached to `Context` service keys and used by
  * `isKey` to recognize them.
  *
+ * @stability stable
  * @category type IDs
  * @since 4.0.0
  */
@@ -58,6 +61,7 @@ export const ServiceTypeId: ServiceTypeId = "~effect/Context/Service"
  * @see {@link Service} for creating required service keys
  * @see {@link Reference} for creating service keys with default values
  *
+ * @stability stable
  * @category models
  * @since 4.0.0
  */
@@ -92,6 +96,7 @@ export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Ide
  * Context.get(context, Database).query("SELECT 1") // => "Result: SELECT 1"
  * ```
  *
+ * @stability stable
  * @category services
  * @since 4.0.0
  */
@@ -117,6 +122,7 @@ export interface Service<in out Identifier, in out Shape> extends Key<Identifier
  *
  * @see {@link Service} for creating function-style keys or class-style service keys
  *
+ * @stability stable
  * @category services
  * @since 4.0.0
  */
@@ -131,6 +137,7 @@ export interface ServiceClass<in out Self, in out Identifier extends string, in 
  * Namespace containing helper types for class-style `Context.Service`
  * declarations.
  *
+ * @stability stable
  * @since 4.0.0
  */
 export declare namespace ServiceClass {
@@ -195,6 +202,7 @@ export declare namespace ServiceClass {
  *
  * @see {@link Reference} for service keys with default values
  *
+ * @stability stable
  * @category services
  * @since 4.0.0
  */
@@ -329,6 +337,7 @@ const ReferenceTypeId = "~effect/Context/Reference" as const
  * messages // => ["default logger"]
  * ```
  *
+ * @stability stable
  * @category services
  * @since 3.11.0
  */
@@ -360,6 +369,7 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
  * Database.key // => "Database"
  * ```
  *
+ * @stability stable
  * @since 2.0.0
  */
 export declare namespace Service {
@@ -461,6 +471,7 @@ const TypeId = "~effect/Context" as const
  * Context.get(context, Database).query("SELECT 1") // => "Result: SELECT 1"
  * ```
  *
+ * @stability stable
  * @category models
  * @since 2.0.0
  */
@@ -478,6 +489,7 @@ interface ContextImpl<in Services> extends Context<Services> {
   overlay: Overlay | undefined
   depth: number
   _flat: ReadonlyMap<string, any> | undefined
+  maxDepth: number
 }
 
 interface Overlay {
@@ -486,7 +498,6 @@ interface Overlay {
   readonly parent: Overlay | undefined
 }
 
-const MaxDepth = 8
 // Keep small bases cheap to read; larger bases are worth copying only after
 // enough fall-throughs to amortize the copy.
 const FlattenAfterBaseHits = 8
@@ -495,7 +506,8 @@ const makeImpl = <Services>(
   cacheRoot: ContextImpl<any> | undefined,
   base: ReadonlyMap<string, any>,
   overlay: Overlay | undefined,
-  depth: number
+  depth: number,
+  maxDepth: number
 ): ContextImpl<Services> => {
   const self: ContextImpl<Services> = Object.create(Proto)
   self.cacheRoot = cacheRoot ?? self
@@ -504,6 +516,7 @@ const makeImpl = <Services>(
   self.depth = depth
   self._flat = undefined
   self.baseHits = 0
+  self.maxDepth = maxDepth
   return self
 }
 
@@ -524,7 +537,7 @@ const flatten = (self: ContextImpl<any>): ReadonlyMap<string, any> => {
 const withFlat = <B>(self: Context<any>, f: (map: Map<string, any>) => void): Context<B> => {
   const map = new Map(self.mapUnsafe)
   f(map)
-  return makeUnsafe(map)
+  return makeImpl(undefined, map, undefined, 0, (self as ContextImpl<any>).maxDepth)
 }
 
 // A private symbol so user code cannot forge a value that reads as absent
@@ -556,7 +569,22 @@ const lookup = (self: Context<any>, key: string): unknown => {
  * Use when constructing a low-level `Context` from a trusted map whose lifecycle
  * you control.
  *
+ * **Details**
+ *
+ * `options.maxDepth` sets how many `add` calls are kept as overlays before the
+ * context is rebased into a flat map (default `8`). Lower values make lookups
+ * cheaper, higher values make additions to a large base cheaper. Invalid
+ * values fall back to the default.
+ *
+ * Contexts derived with `add`, `pick`, `omit`, and `merge` keep the setting
+ * (`merge` from its first non-empty argument). `make`, `empty`, and `mergeAll`
+ * use the default. Layers are combined with `mergeAll`, so apply it to the
+ * final context rather than inside a layer.
+ *
  * **Gotchas**
+ *
+ * Excessively large `maxDepth` values can cause stack overflow when overlays
+ * are materialized or rebased. Choose a modest value.
  *
  * The provided map is retained without copying and must not be mutated after
  * construction. Prefer `empty`, `make`, `add`, or `merge` for normal Context
@@ -576,15 +604,22 @@ const lookup = (self: Context<any>, key: string): unknown => {
  * context.mapUnsafe.size // => 1
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 4.0.0
  */
-export const makeUnsafe = <Services = never>(mapUnsafe: ReadonlyMap<string, any>): Context<Services> =>
-  makeImpl(undefined, mapUnsafe, undefined, 0)
+export const makeUnsafe = <Services = never>(
+  mapUnsafe: ReadonlyMap<string, any>,
+  options?: { readonly maxDepth?: number }
+): Context<Services> => {
+  const maxDepth = options?.maxDepth
+  // NaN or Infinity would never trigger a rebase, so fall back to the default
+  return makeImpl(undefined, mapUnsafe, undefined, 0, Number.isInteger(maxDepth) && maxDepth! >= 0 ? maxDepth! : 8)
+}
 
 const Proto: Omit<
   ContextImpl<never>,
-  "cacheRoot" | "base" | "overlay" | "depth" | "_flat" | "baseHits"
+  "cacheRoot" | "base" | "overlay" | "depth" | "_flat" | "baseHits" | "maxDepth"
 > = {
   get mapUnsafe() {
     return flatten(this as any as ContextImpl<any>)
@@ -648,6 +683,7 @@ export const hasSameCache = <Services, Services2>(
  * @see {@link isKey} for checking service keys
  * @see {@link isReference} for checking references with defaults
  *
+ * @stability stable
  * @category guards
  * @since 2.0.0
  */
@@ -663,6 +699,7 @@ export const isContext = (u: unknown): u is Context<never> => hasProperty(u, Typ
  * Context.isKey(Context.Service("Service")) // => true
  * ```
  *
+ * @stability stable
  * @category guards
  * @since 4.0.0
  */
@@ -684,6 +721,7 @@ export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceT
  * Context.isReference(Context.Service("Key")) // => false
  * ```
  *
+ * @stability stable
  * @category guards
  * @since 3.11.0
  */
@@ -699,6 +737,7 @@ export const isReference = <I, S>(u: Key<I, S>): u is Reference<S> => !!(u as Re
  * Context.empty().mapUnsafe.size // => 0
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -720,6 +759,7 @@ const emptyContext = makeUnsafe(new Map())
  * Context.get(context, Port).PORT // => 8080
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -761,6 +801,7 @@ export const make = <I, S>(
  *
  * @see {@link addOrOmit} for adding or removing a service from an `Option`
  *
+ * @stability stable
  * @category combining
  * @since 2.0.0
  */
@@ -783,6 +824,7 @@ export const add: {
 /**
  * Adds a service by key to a given `Context` using a string key.
  *
+ * @stability stable
  * @category combining
  * @since 4.0.0
  */
@@ -793,19 +835,20 @@ export const addUnsafe = <Services, I, S>(
 ): Context<Services | I> => {
   const impl = self as ContextImpl<Services>
   const cacheRoot = cacheKeys.has(key) ? undefined : impl.cacheRoot
-  if (impl.depth >= MaxDepth) {
-    // Rebase the overlay chain into a flat map, keeping the cacheRoot so a
-    // rebase on an ordinary key does not invalidate fiber caches
-    const map = new Map(impl.mapUnsafe)
+  if (impl.depth >= impl.maxDepth) {
+    // Avoid mapUnsafe: it would flatten the parent before copying.
+    const map = new Map(impl._flat ?? impl.base)
+    if (!impl._flat) applyOverlays(map, impl.overlay)
     map.set(key, service)
-    return makeImpl(cacheRoot, map, undefined, 0)
+    return makeImpl(cacheRoot, map, undefined, 0, impl.maxDepth)
   }
 
   return makeImpl(
     cacheRoot,
     impl.base,
     { key, value: service, parent: impl.overlay },
-    impl.depth + 1
+    impl.depth + 1,
+    impl.maxDepth
   )
 }
 
@@ -841,6 +884,7 @@ export const addUnsafe = <Services, I, S>(
  *
  * @see {@link add} for always storing a service value
  *
+ * @stability stable
  * @category combining
  * @since 4.0.0
  */
@@ -907,6 +951,7 @@ export const addOrOmit: {
  *
  * @see {@link getOption} for returning `Option.none` when a non-reference key is missing
  *
+ * @stability stable
  * @category getters
  * @since 3.7.0
  */
@@ -935,6 +980,7 @@ export const getOrElse: {
  *
  * @see {@link getOption} for a reference-aware optional lookup
  *
+ * @stability stable
  * @category getters
  * @since 4.0.0
  */
@@ -984,6 +1030,7 @@ export const getOrUndefinedUnsafe = <A, Services = never>(self: Context<Services
  * @see {@link get} for type-checked service access
  * @see {@link getOption} for optional service access
  *
+ * @stability stable
  * @category unsafe
  * @since 4.0.0
  */
@@ -1029,6 +1076,7 @@ export const getUnsafe: {
  * @see {@link getOption} for optional service access
  * @see {@link getOrElse} for fallback values
  *
+ * @stability stable
  * @category getters
  * @since 2.0.0
  */
@@ -1089,6 +1137,7 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  *
  * @see {@link getOrElse} for returning a fallback value directly
  *
+ * @stability stable
  * @category getters
  * @since 2.0.0
  */
@@ -1132,6 +1181,7 @@ export const getOption: {
  *
  * @see {@link mergeAll} for merging more than two contexts at once
  *
+ * @stability stable
  * @category combining
  * @since 2.0.0
  */
@@ -1180,6 +1230,7 @@ export const merge: {
  *
  * @see {@link merge} for merging two contexts
  *
+ * @stability stable
  * @category combining
  * @since 3.12.0
  */
@@ -1223,6 +1274,7 @@ export const mergeAll = <T extends Array<unknown>>(
  *
  * @see {@link omit} for removing selected services
  *
+ * @stability stable
  * @category filtering
  * @since 2.0.0
  */
@@ -1230,6 +1282,15 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
   ...services: S
 ) =>
 <Services>(self: Context<Services>): Context<Services & Service.Identifier<S[number]>> => {
+  if (services.length <= 1) {
+    const map = new Map<string, unknown>()
+    if (services.length === 1) {
+      const key = services[0].key
+      const value = lookup(self, key)
+      if (value !== notFound) map.set(key, value)
+    }
+    return makeImpl(undefined, map, undefined, 0, (self as ContextImpl<any>).maxDepth)
+  }
   const keep = new Set(services.map((key) => key.key))
   return withFlat(self, (map) =>
     map.forEach((_, key) => {
@@ -1265,6 +1326,7 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
  *
  * @see {@link pick} for keeping selected services
  *
+ * @stability stable
  * @category filtering
  * @since 2.0.0
  */
@@ -1321,6 +1383,7 @@ export const omit = <S extends ReadonlyArray<Key<any, any>>>(
  *
  * @see {@link Service} for required services without default values
  *
+ * @stability stable
  * @category services
  * @since 3.11.0
  */
