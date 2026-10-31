@@ -1,11 +1,13 @@
 import { deliver, Block as makeBlockClass } from './block.js'
-import { NotConnected, isBlockMessage } from './engine.js'
+import { InstancePath, NotConnected, isBlockMessage } from './engine.js'
 
 export type {
+  AllOutMessageHandlers,
   BlockClass,
   BlockMessage,
   Contract,
   Factory,
+  Handlers,
   Implementation,
   InstanceMembers as Instance,
   MessageOf,
@@ -19,7 +21,7 @@ export type {
   Subscription,
   UpdateRecord,
 } from './block.js'
-export type { Resolved } from './testing.js'
+export type { MissingBlockLayer, Resolved } from './testing.js'
 export type { BlockParent } from './engine.js'
 export { OnSlotTypeId } from './block.js'
 export { NotConnected } from './engine.js'
@@ -48,16 +50,19 @@ export { NotConnected } from './engine.js'
  * ```
  *
  * `Block.deliver` addresses a Message to an instance by its path for tests,
- * `Block.isBlockMessage` recognizes such a Message, and `Block.NotConnected`
- * is the error `instance.use` fails with.
+ * `Block.isBlockMessage` recognizes such a Message, `Block.NotConnected` is
+ * the error `instance.use` fails with, and `Block.Path` is the service a
+ * constructor yields to read its instance's path from the root.
  */
 export const Block: typeof makeBlockClass &
   Readonly<{
     deliver: typeof deliver
     isBlockMessage: typeof isBlockMessage
     NotConnected: typeof NotConnected
+    Path: typeof InstancePath
   }> = Object.assign(makeBlockClass, {
   deliver,
   isBlockMessage,
   NotConnected,
+  Path: InstancePath,
 })

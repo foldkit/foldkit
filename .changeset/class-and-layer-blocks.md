@@ -18,7 +18,7 @@ Implement it with `XLive = X.make(Effect.fn(function* (id, args) { ... }))`. The
 - `model` is the instance's starting Model.
 - `start` lists Commands the Runtime performs when the instance appears. Load data here, never with asynchronous work in the constructor.
 - `update` has one handler per Message: `(model, message) => ({ model, commands?, outMessage?, messages? })`. A handler that changes nothing returns `{ model }`.
-- `commands` and `mounts` implement every Command and Mount listed on the class. A listed Command or Mount without a handler is a type error.
+- `commands` and `mounts` implement every Command and Mount listed on the class. A listed Mount without a handler is a type error. A constructor that returns no `commands` leaves every Command handler to the Block's `handlers` Layer, and its Layer requires `Handlers<X>` until one is provided.
 - `stream` is a Stream of Messages that runs for as long as the instance exists.
 - `subscriptions` is a record of `{ dependencies, stream, keepAliveEquivalence? }` entries. Foldkit recomputes `dependencies` from the instance's Model after each update and restarts that entry's Stream when they change.
 - `expose` is a value the parent's Commands read with `instance.use`.
@@ -134,12 +134,13 @@ export const ApplicationLive = Application.make(
 A parent and child meet in three places:
 
 - The parent changes a child only by returning `messages: [model.child.send(Child.Message.Requested...())]`. A helper that rewrote a child's Model from the parent becomes a `Requested*` or `InformedOf*` Message on the child. The parent may read `model.child.model`, but it never writes it.
-- The parent reacts to a child's OutMessages by spreading `...child.on({ Variant: (model, outMessage, instance) => result })` into its update record. Name each variant the parent handles.
+- The parent reacts to a child's OutMessages by spreading `...child.on({ Variant: (model, outMessage, instance) => result })` into its update record. Name each variant the parent handles. An OutMessage without a handler is dropped. `...child.onAll({ ... })` requires a handler for every variant, so a variant added to the child is a type error in the parent until the parent handles it.
+- The parent gates the Messages a child receives by spreading `...child.when((model, message) => boolean)` into its update record. A Message from the child's view, Commands, Stream, or Subscriptions reaches the child's update only when the predicate returns true for the parent's current Model; otherwise it is dropped. Messages the parent sends with `send` are not gated.
 - The parent renders a child with `model.child.view()`. A child that renders through parent callbacks declares a view input and is rendered with `model.child.view(input)`. Functions in the input run as the parent, so the Messages they create are the parent's. `Submodel.defineView` and `h.submodel` are removed.
 
 An instance is live while it is in its parent's Model. Putting it in the Model runs its constructor, starts its `stream` and `subscriptions`, and performs its `start` Commands. Removing it closes its scope: its Streams stop, its running Commands are interrupted, and anything its constructor acquired is released. Putting the same instance back constructs it fresh. Instances can live in plain objects, arrays, `Option`, and tagged structs, but not in `HashMap`, `HashSet`, or class instances.
 
-A keyed collection, previously folded with `Update.foldChildAt`, becomes an array or Record of instances. Create one factory in the constructor with `const row = yield* Row.each('rows', args)`, then call `row(key)` or `row(key, args)` for each instance. The factory's `row.on({ ... })` handles OutMessages from every instance it creates, and its third argument is the instance that reported. Key each instance by an identifier that stays with it, never by array position. `Update.foldChild`, `Update.foldChildAt`, `Update.foldChildInit`, `Update.foldChildInits`, and `Update.foldChildStep`, with their `ChildFold*`, `Fold*`, and `FoldContext` types, are removed.
+A keyed collection, previously folded with `Update.foldChildAt`, becomes an array or Record of instances. Create one factory in the constructor with `const row = yield* Row.each('rows', args)`, then call `row(key)` or `row(key, args)` for each instance. The factory's `row.on({ ... })` handles OutMessages from every instance it creates, and its third argument is the instance that reported. `row.onAll` and `row.when` apply to every instance the same way. Key each instance by an identifier that stays with it, never by array position. `Update.foldChild`, `Update.foldChildAt`, `Update.foldChildInit`, `Update.foldChildInits`, and `Update.foldChildStep`, with their `ChildFold*`, `Fold*`, and `FoldContext` types, are removed.
 
 `Subscription.make`, `Subscription.aggregate`, `Subscription.lift`, `Subscription.persistentEntry`, `Subscription.animationFrameEntry`, and `Port.subscriptionEntry` are removed, along with the `foldkit/subscription` entry point. An event source that runs for as long as the Block exists is the constructor's `stream`. A source gated by Model state is a `subscriptions` entry, whose `dependencies` no longer need a Schema; return `Stream.empty` for dependencies that should produce no Messages. Each Block's entries start and stop with its instance, so there is nothing to aggregate. Read an inbound Port with `Port.stream(port)` and map it to Messages in a `stream` or `subscriptions` entry. Use `Dom.animationFrameTicks` for animation frames.
 
@@ -284,6 +285,31 @@ it.effect('choosing a theme saves it', () =>
 )
 ```
 
-In tests the Model is the resolved tree: each instance appears as its own Model, as in `model.settings.theme`, and `Resolved<Model>` from `foldkit/block` names that type. `given` can set child state but cannot add or remove instances. A story never runs Command handlers, and the root instance's `start` Commands are not part of it. A child's `start` Commands are, as Commands of the update that put the child in the Model.
+In tests the Model is the resolved tree: each instance appears as its own Model, as in `model.settings.theme`, and `Resolved<Model>` from `foldkit/block` names that type. `given` can set child state but cannot add or remove instances. A story never runs Command handlers, so it needs no `handlers` Layer and none of the services that Layer yields. When the Layer still requires a child Block, `story` and `scene` return `MissingBlockLayer<Child>` instead of an Effect, so the type error at `it.effect` names the Block whose Layer to provide. The root instance's `start` Commands are not part of a story. A child's `start` Commands are, as Commands of the update that put the child in the Model.
 
 To test a parent's reaction to a child, address the child's Message with `Block.deliver(Child, 'id', message)`, or `Block.deliver(Child, ['rows', 'row-3'], message)` for an instance created by `each`, and pass it to `message` or `Scene.deliver`. `Scene.deliver(message)` dispatches a Message whose cause is not a rendered interaction, such as a Stream, a Subscription, or a host event, and replaces `Scene.Subscription.emit`. A child's Command result is routed back to the child automatically. When sibling instances have identical pending Commands, `Command.at('left', SaveCount)` restricts a matcher to the instance at that path.
+
+A Block's Command handlers can live outside its constructor. `X.handlers` takes an `Effect.fn` constructor that yields the services the handlers use and returns one handler per Command, so the handlers close over those services and require nothing themselves. The returned Layer provides `Handlers<X>`. Provide it in the program Layer, and leave it out of stories:
+
+```ts
+export const ApprovalPanelLive = ApprovalPanel.make(
+  Effect.fn(function* () {
+    return { model, update, view }
+  }),
+)
+
+export const ApprovalHandlersLive = ApprovalPanel.handlers(
+  Effect.fn(function* () {
+    const api = yield* WorkOrderApi
+
+    return {
+      SubmitApproval: ({ workOrderId }) =>
+        api
+          .approve(workOrderId)
+          .pipe(Effect.as(ApprovalPanel.Message.SucceededSubmitApproval())),
+    }
+  }),
+)
+```
+
+A constructor yields `Block.Path` to read its instance's path from the root, such as `['tickers', 'wo-42']` for a keyed instance. The root's path is empty. Use it to derive identifiers that must be unique across the program.

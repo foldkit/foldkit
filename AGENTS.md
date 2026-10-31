@@ -105,7 +105,9 @@ This review supplements correctness, type-safety, runtime, and performance check
 - Create a child instance in the parent constructor with `yield* new Child('id', args)` and hold it in the parent Model; a collection uses `yield* Child.each('field', args)` and a factory call per key. An instance is live while it is in the Model: removing it closes its scope, and putting it back constructs it fresh.
 - A parent changes a child only by sending it a Message (`messages: [model.child.send(Child.Message.RequestedClose())]`) and learns from it only through OutMessages (`...child.on({ Closed: model => ... })`). A parent may read `model.child.model`; it never writes it.
 - A child that renders with parent-supplied callbacks declares its view input as the Block's third type parameter and receives it as `view(model, h, input)`; the parent calls `model.child.view(input)`. Attributes the child builds for the parent go through `childAttributes(...)`.
-- Fold a child OutMessage by naming its variant, even when the union has one variant.
+- Fold a child OutMessage by naming its variant, even when the union has one variant. Use `...child.onAll({ ... })` when the parent must handle every variant the child reports; `on` drops the variants it does not name.
+- A parent that must refuse some of a child's Messages while its own state forbids them gates them with `...child.when((model, message) => boolean)`. Do not thread the parent's state into the child for this.
+- A Command whose handler needs services a story should not provide, such as an API client from an adapter, is implemented with `X.handlers(Effect.fn(...))` instead of the constructor's `commands`. The program Layer provides that Layer; stories leave it out.
 - An always-on event source is the Block's `stream`. A source gated by Model state is a `subscriptions` entry whose `dependencies` derive from the Model. A stateful handle with a lifetime is a child Block that acquires it in its constructor with `Effect.acquireRelease`, exposes it with `expose`, and lives in an `Option` field while it should exist; parent Commands read it with `instance.use`.
 
 ## Code Style

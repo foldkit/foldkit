@@ -245,7 +245,37 @@ const PanelLive = Panel.make(
   }),
 )
 
+const ExhaustivePanelLive = Panel.make(
+  Effect.fn(function* () {
+    const toggle = yield* new Toggle('toggle')
+
+    return {
+      model: { toggle, opens: 0, closes: 0 },
+      update: {
+        ...toggle.onAll({
+          Opened: model => ({ model: { ...model, opens: model.opens + 1 } }),
+          Closed: model => ({ model: { ...model, closes: model.closes + 1 } }),
+        }),
+      },
+      view: model => model.toggle.view(),
+    }
+  }),
+)
+
 describe('Block OutMessage handlers', () => {
+  it('handles every OutMessage with `onAll`', () =>
+    Effect.runPromise(
+      story(
+        ExhaustivePanelLive.pipe(Layer.provide(ToggleLive)),
+        message(deliver(Toggle, 'toggle', Toggle.Message.ClickedToggle())),
+        message(deliver(Toggle, 'toggle', Toggle.Message.ClickedToggle())),
+        model(panel => {
+          expect(panel.opens).toBe(1)
+          expect(panel.closes).toBe(1)
+        }),
+      ),
+    ))
+
   it('handles an OutMessage from any `on` entry for the child', () =>
     Effect.runPromise(
       story(

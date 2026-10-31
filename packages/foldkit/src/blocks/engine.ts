@@ -50,6 +50,9 @@ export const PreservedTypeId = Symbol.for('foldkit/Block/Preserved')
 /** @internal Marks an OutMessage handler entry spread into an update record. */
 export const OnEntryTypeId = Symbol.for('foldkit/Block/OnEntry')
 
+/** @internal Marks a Message gate entry spread into an update record. */
+export const GateEntryTypeId = Symbol.for('foldkit/Block/GateEntry')
+
 /** @internal Marks a Message sent from a parent to a child instance. */
 export const SendTypeId = Symbol.for('foldkit/Block/Send')
 
@@ -130,7 +133,13 @@ export type RuntimeBlock = Readonly<{
   Command: ReadonlyArray<AnyHandlerDefinition>
   Mount: ReadonlyArray<AnyHandlerDefinition>
   service: Context.Key<unknown, RuntimeConstructor>
+  handlers: Context.Key<unknown, RuntimeHandlers>
 }>
+
+/** @internal Command handlers keyed by Command name. */
+export type RuntimeHandlers = Readonly<
+  Record<string, (input: unknown) => unknown>
+>
 
 /** @internal Shared state for one running graph: a program or a test. */
 export type Graph = {
@@ -156,6 +165,7 @@ export type Node = Readonly<{
   scope: Scope.Closeable
   handlerContext: Context.Context<never>
   onEntries: ReadonlyArray<OnEntry>
+  gateEntries: ReadonlyArray<GateEntry>
   running: Map<string, { dependencies: unknown; fiber: Fiber.Fiber<void> }>
   commandFibers: CommandFibers
   viewState: ViewState
@@ -198,6 +208,14 @@ export type OnEntry = Readonly<{
   >
 }>
 
+/** @internal A Message gate entry. Messages addressed to a matching child
+ *  instance reach its update only when the predicate returns true. */
+export type GateEntry = Readonly<{
+  [GateEntryTypeId]: true
+  target: OnTarget
+  predicate: (model: unknown, message: unknown) => boolean
+}>
+
 /** @internal A Message a parent sends to a child instance from update. */
 export type Send = Readonly<{
   [SendTypeId]: true
@@ -238,6 +256,15 @@ export class BlockParent extends Context.Service<
   BlockParent,
   Readonly<{ graph: Graph; path: Path }>
 >()('foldkit/Block/BlockParent') {}
+
+/** The path of the Block instance being constructed, from the root. The
+ *  root's path is empty, and a child's path ends with its id: a keyed
+ *  instance's path is its collection field followed by its key. Yield it in
+ *  a constructor to derive identifiers that must be unique across the
+ *  program. */
+export class InstancePath extends Context.Service<InstancePath, Path>()(
+  'foldkit/Block/InstancePath',
+) {}
 
 const noCommands: ReadonlyArray<AnyCommand> = []
 
@@ -610,30 +637,37 @@ export const hydrate = (data: unknown, template: unknown): unknown => {
 
 // CONSTRUCTION
 
+// NOTE: a simulation never runs Command handlers, so a story or scene builds
+// a Block whose Command handlers come from a host Layer it does not provide.
 const handlerLayers = (
+  graph: Graph,
   block: RuntimeBlock,
   kind: 'Command' | 'Mount',
   definitions: ReadonlyArray<AnyHandlerDefinition>,
-  handlers: Readonly<Record<string, (input: unknown) => unknown>> | undefined,
+  handlers: RuntimeHandlers | undefined,
 ): ReadonlyArray<Layer.Layer<never>> =>
-  Array.map(definitions, definition => {
+  Array.flatMap(definitions, definition => {
     const handler = handlers?.[definition.name]
-    if (handler === undefined) {
+    if (handler !== undefined) {
+      return [definition.toLayer(Effect.succeed(handler))]
+    } else if (graph.isSimulation && kind === 'Command') {
+      return []
+    } else {
       throw new Error(
-        `[foldkit] Block "${block.id}" declares ${kind} "${definition.name}" but its constructor returned no handler for it under \`${kind === 'Command' ? 'commands' : 'mounts'}\`.`,
+        `[foldkit] Block "${block.id}" declares ${kind} "${definition.name}" but has no handler for it. Return it under \`${kind === 'Command' ? 'commands' : 'mounts'}\` from the constructor${kind === 'Command' ? ", or provide the Block's `handlers` Layer" : ''}.`,
       )
     }
-    return definition.toLayer(Effect.succeed(handler))
   })
 
 const buildHandlerContext = (
+  graph: Graph,
   block: RuntimeBlock,
   impl: RuntimeImplementation,
   scope: Scope.Scope,
 ): Effect.Effect<Context.Context<never>> => {
   const layers = [
-    ...handlerLayers(block, 'Command', block.Command, impl.commands),
-    ...handlerLayers(block, 'Mount', block.Mount, impl.mounts),
+    ...handlerLayers(graph, block, 'Command', block.Command, impl.commands),
+    ...handlerLayers(graph, block, 'Mount', block.Mount, impl.mounts),
   ]
 
   if (Array.isReadonlyArrayEmpty(layers)) {
@@ -651,15 +685,15 @@ const buildHandlerContext = (
 const isOnEntry = (value: unknown): value is OnEntry =>
   Predicate.hasProperty(value, OnEntryTypeId)
 
-const collectOnEntries = (
+const isGateEntry = (value: unknown): value is GateEntry =>
+  Predicate.hasProperty(value, GateEntryTypeId)
+
+const symbolEntries = (
   update: RuntimeImplementation['update'],
-): ReadonlyArray<OnEntry> =>
+): ReadonlyArray<unknown> =>
   update === undefined
     ? []
-    : Array.filter(
-        Array.map(Object.getOwnPropertySymbols(update), key => update[key]),
-        isOnEntry,
-      )
+    : Array.map(Object.getOwnPropertySymbols(update), key => update[key])
 
 const construct = (
   graph: Graph,
@@ -678,12 +712,15 @@ const construct = (
 
     const impl = yield* constructor(id, args).pipe(
       Effect.provideService(BlockParent, { graph, path }),
+      Effect.provideService(InstancePath, path),
       Scope.provide(scope),
       closeScopeOnError,
     )
 
     const handlerContext = Context.add(
-      yield* buildHandlerContext(block, impl, scope).pipe(closeScopeOnError),
+      yield* buildHandlerContext(graph, block, impl, scope).pipe(
+        closeScopeOnError,
+      ),
       CurrentInterruptRegistry,
       makeInterruptRegistry(),
     )
@@ -706,7 +743,8 @@ const construct = (
       impl,
       scope,
       handlerContext,
-      onEntries: collectOnEntries(impl.update),
+      onEntries: Array.filter(symbolEntries(impl.update), isOnEntry),
+      gateEntries: Array.filter(symbolEntries(impl.update), isGateEntry),
       running: new Map(),
       commandFibers,
       viewState: {
@@ -961,7 +999,7 @@ const applyResult = (
   let { outMessage } = result
 
   for (const send of result.messages ?? []) {
-    const sent = deliver(current, send.target, send.message)
+    const sent = deliver(current, send.target, send.message, true)
     current = sent.instance
     commands = [...commands, ...sent.commands]
     if (sent.outMessage !== undefined) {
@@ -999,6 +1037,12 @@ const applyLocal = (
   return applyResult(instance, handler(instance.model, message))
 }
 
+const isTargetOf = (target: OnTarget, childPath: Path): boolean =>
+  target.kind === 'Instance'
+    ? isPathEqual(target.path, childPath)
+    : childPath.length === target.path.length + 1 &&
+      isPathPrefix(target.path, childPath)
+
 const findOnHandler = (
   node: Node,
   child: RuntimeInstance,
@@ -1012,15 +1056,10 @@ const findOnHandler = (
     return undefined
   }
 
-  const isTarget = ({ target }: OnEntry): boolean =>
-    target.kind === 'Instance'
-      ? isPathEqual(target.path, childPath)
-      : childPath.length === target.path.length + 1 &&
-        isPathPrefix(target.path, childPath)
-
   const maybeEntry = Array.findFirst(
     node.onEntries,
-    entry => isTarget(entry) && entry.handlers[tag] !== undefined,
+    entry =>
+      isTargetOf(entry.target, childPath) && entry.handlers[tag] !== undefined,
   )
 
   return Option.match(maybeEntry, {
@@ -1029,10 +1068,26 @@ const findOnHandler = (
   })
 }
 
+const isRefusedByGate = (
+  node: Node,
+  model: unknown,
+  childPath: Path,
+  message: unknown,
+): boolean =>
+  Array.some(
+    node.gateEntries,
+    entry =>
+      isTargetOf(entry.target, childPath) && !entry.predicate(model, message),
+  )
+
+// NOTE: a gate filters the Messages a child receives from its view, Commands,
+// Stream, and Subscriptions. A Message the parent sends with `send` is the
+// parent's own decision, so it skips the parent's gates.
 const deliver = (
   instance: RuntimeInstance,
   path: Path,
   message: unknown,
+  isSentByParent = false,
 ): ApplyResult => {
   const node = nodeOf(instance)
   if (isPathEqual(node.path, path)) {
@@ -1051,6 +1106,15 @@ const deliver = (
   }
 
   const child = maybeChild.value
+  const childPath = nodeOf(child).path
+  if (
+    !isSentByParent &&
+    isPathEqual(childPath, path) &&
+    isRefusedByGate(node, instance.model, childPath, message)
+  ) {
+    return { instance, commands: noCommands, outMessage: undefined }
+  }
+
   const delivered = deliver(child, path, message)
   const parent = withModel(
     instance,

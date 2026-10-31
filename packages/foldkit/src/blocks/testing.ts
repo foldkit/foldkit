@@ -19,7 +19,7 @@ import {
   given as givenStory,
   story as runStory,
 } from '../test/story.js'
-import { blockRegistry } from './block.js'
+import { type Handlers, blockRegistry } from './block.js'
 import {
   type BlockMessage,
   type RuntimeBlock,
@@ -74,6 +74,21 @@ type ArgsOfInstance<Self> =
   }>
     ? Args
     : never
+
+type AnyHandlers = Handlers<any>
+
+type MissingBlocks<R> = Extract<R, AnyInstance>
+
+/** What a story or scene returns when its Layer still requires a child
+ *  Block. The test runner rejects it with a type error that names the
+ *  Block; provide that Block's Layer with `Layer.provide`. */
+export interface MissingBlockLayer<Block> {
+  readonly 'Provide the Layer of this child Block with Layer.provide': Block
+}
+
+type SimulationResult<E, R> = [MissingBlocks<R>] extends [never]
+  ? Effect.Effect<void, E, Exclude<R, AnyHandlers>>
+  : MissingBlockLayer<MissingBlocks<R>>
 
 type StorySteps<Self> = ReadonlyArray<
   StoryStep<ResolvedModelOf<Self>, MessageOfInstance<Self>, any>
@@ -189,12 +204,12 @@ export const story: {
   <Self, E, R>(
     layer: Layer.Layer<Self, E, R>,
     ...steps: StorySteps<Self>
-  ): Effect.Effect<void, E, R>
+  ): SimulationResult<E, R>
   <Self, E, R>(
     layer: Layer.Layer<Self, E, R>,
     args: ArgsOfInstance<Self>,
     ...steps: StorySteps<Self>
-  ): Effect.Effect<void, E, R>
+  ): SimulationResult<E, R>
   // oxlint-disable-next-line typescript/consistent-type-assertions
 } & typeof runStory = ((
   layer: unknown,
@@ -237,12 +252,12 @@ export const scene: {
   <Self, E, R>(
     layer: Layer.Layer<Self, E, R>,
     ...steps: SceneSteps<Self>
-  ): Effect.Effect<void, E, R>
+  ): SimulationResult<E, R>
   <Self, E, R>(
     layer: Layer.Layer<Self, E, R>,
     args: ArgsOfInstance<Self>,
     ...steps: SceneSteps<Self>
-  ): Effect.Effect<void, E, R>
+  ): SimulationResult<E, R>
   // oxlint-disable-next-line typescript/consistent-type-assertions
 } & typeof runScene = ((
   layer: unknown,
