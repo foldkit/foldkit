@@ -8,6 +8,11 @@ describe("Base64Url", () => {
     assert.strictEqual(Base64Url.encode(new Uint8Array([251, 255])), "-_8")
   })
 
+  it("encodePadded keeps the padding", () => {
+    assert.strictEqual(Base64Url.encodePadded("f"), "Zg==")
+    assert.strictEqual(Base64Url.encodePadded(new Uint8Array([251, 255])), "-_8=")
+  })
+
   it("decodes padded and unpadded input", () => {
     const expected = new Uint8Array([72, 101, 108, 108, 111, 63])
     assert.deepStrictEqual(Result.getOrThrow(Base64Url.decode("SGVsbG8_")), expected)
@@ -29,7 +34,7 @@ describe("Base64Url", () => {
   })
 
   it("rejects malformed padding", () => {
-    for (const input of ["SGVsbG8_=", "SGVsbG8_==", "AAAA=", "AAAA==", "AAA=="]) {
+    for (const input of ["SGVsbG8_=", "SGVsbG8_==", "AAAA=", "AAAA==", "AAA==", "Zg="]) {
       assert.isTrue(Result.isFailure(Base64Url.decode(input)), input)
     }
   })

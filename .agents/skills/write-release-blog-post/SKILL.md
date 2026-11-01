@@ -11,20 +11,27 @@ prose, snippet, historical-post, and contributor-attribution rules live in
 
 ## Choose the amount of detail
 
-Foldkit's version posts give selected changes room to explain themselves. They
-usually open with the version and a short summary, group the highlights under
-feature headings, and close with release notes and contributor thanks. A release
-with one substantial addition can revolve around that addition. Do not give every
-package or changeset a section just to complete the inventory.
+Default to a concise announcement of the changes readers should notice. State
+what improves for a Foldkit consumer, then link the active guides and release
+notes for configuration, integration, migrations, and the complete inventory.
+For a maintenance release, group fixes by consumer impact. Include smaller
+additions when they merit a mention. Give a substantial feature more space when
+explaining it helps the reader use it.
 
-Read [the post examples](references/posts.md) to choose a relevant model. The
-0.167.0 post is the clearest example of the current balance. Earlier posts offer
-useful shapes for a focused addition, several smaller features, and combined
-releases. Their older API examples describe those releases, not today's API.
+Read [the post examples](references/posts.md) before drafting. Use 0.169.0 as the
+concise announcement model. The 0.167.0 post offers techniques for a release that
+benefits from more feature explanation. Earlier posts offer shapes for focused
+additions and combined releases. Their API examples describe those releases,
+not today's API.
+
+Snippets and demos are optional. Include one when seeing the call shape or trying
+the interaction communicates more than the linked guide alone. Before presenting
+the draft, compare its detail with the chosen example and remove explanations
+that belong in the linked material.
 
 Allocate detail according to what helps the reader understand the change:
 
-- **A new API:** Explain the operation it replaces or simplifies, then show a
+- **A new API:** Explain the operation it replaces or simplifies. Include a
   compact, realistic snippet when the call shape is the useful part. A changeset
   example can supply the starting point. The `foldChildAt` section in 0.167.0 shows
   the parent selecting an Applicant Submodel by key without teaching the whole
