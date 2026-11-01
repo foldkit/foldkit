@@ -50,6 +50,11 @@ const makeLink = (
 const click = (
   link: HTMLAnchorElement,
   options: MouseEventInit = {},
+): MouseEvent => clickElement(link, options)
+
+const clickElement = (
+  element: Element,
+  options: MouseEventInit = {},
 ): MouseEvent => {
   const event = new MouseEvent('click', {
     bubbles: true,
@@ -57,9 +62,50 @@ const click = (
     button: 0,
     ...options,
   })
-  link.dispatchEvent(event)
+  element.dispatchEvent(event)
   return event
 }
+
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
+const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink'
+
+const makeSvgAnchor = (
+  configure: (link: SVGAElement) => void,
+): SVGRectElement => {
+  const svg = document.createElementNS(SVG_NAMESPACE, 'svg')
+  const link = document.createElementNS(SVG_NAMESPACE, 'a')
+  configure(link)
+  const rect = document.createElementNS(SVG_NAMESPACE, 'rect')
+  link.appendChild(rect)
+  svg.appendChild(link)
+  document.body.appendChild(svg)
+  return rect
+}
+
+const makeSvgLink = (
+  href: string,
+  attributes: Readonly<{ target?: string }> = {},
+): SVGRectElement =>
+  makeSvgAnchor(link => {
+    link.setAttribute('href', href)
+    if (attributes.target !== undefined) {
+      link.setAttribute('target', attributes.target)
+    }
+  })
+
+const makeSvgXLink = (href: string): SVGRectElement =>
+  makeSvgAnchor(link => {
+    link.setAttributeNS(XLINK_NAMESPACE, 'xlink:href', href)
+  })
+
+const makeSvgLinkWithBothHrefs = (
+  href: string,
+  xlinkHref: string,
+): SVGRectElement =>
+  makeSvgAnchor(link => {
+    link.setAttribute('href', href)
+    link.setAttributeNS(XLINK_NAMESPACE, 'xlink:href', xlinkHref)
+  })
 
 describe('addLinkClickListener', () => {
   beforeAll(() => {
@@ -207,5 +253,56 @@ describe('addLinkClickListener', () => {
 
     expect(dispatched).toHaveLength(0)
     expect(event.defaultPrevented).toBe(true)
+  })
+
+  it('preventDefaults and dispatches Internal for a click inside an SVG anchor', () => {
+    const rect = makeSvgLink('/units/42')
+    const event = clickElement(rect)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(dispatched).toMatchObject([
+      { _tag: 'Internal', url: { pathname: '/units/42' } },
+    ])
+  })
+
+  it('falls through on an SVG anchor with target="_blank"', () => {
+    const rect = makeSvgLink('/units/42', { target: '_blank' })
+    const event = clickElement(rect)
+
+    expect(event.defaultPrevented).toBe(false)
+    expect(dispatched).toHaveLength(0)
+  })
+
+  it('preventDefaults and dispatches Internal for an SVG anchor written with xlink:href', () => {
+    const rect = makeSvgXLink('/units/43')
+    const event = clickElement(rect)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(dispatched).toMatchObject([
+      { _tag: 'Internal', url: { pathname: '/units/43' } },
+    ])
+  })
+
+  it('prefers href over xlink:href when an SVG anchor has both', () => {
+    const rect = makeSvgLinkWithBothHrefs('/units/42', '/units/43')
+    const event = clickElement(rect)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(dispatched).toMatchObject([
+      { _tag: 'Internal', url: { pathname: '/units/42' } },
+    ])
+  })
+
+  it('dispatches the resolved URL for a protocol-relative SVG link', () => {
+    const rect = makeSvgLink('//other.example/x')
+    const event = clickElement(rect)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(dispatched).toMatchObject([
+      {
+        _tag: 'External',
+        href: new URL('//other.example/x', document.baseURI).href,
+      },
+    ])
   })
 })
