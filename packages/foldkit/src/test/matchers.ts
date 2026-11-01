@@ -1,4 +1,4 @@
-import { Option, String } from 'effect'
+import { Array, Function, Option, Record, Result, String, pipe } from 'effect'
 
 import { serializedStylePropertyName } from '../domReflection.js'
 import type { VNode } from '../vdom.js'
@@ -14,6 +14,56 @@ const textMatches = (value: string, expected: string | RegExp): boolean =>
 
 const textIncludes = (value: string, expected: string | RegExp): boolean =>
   expected instanceof RegExp ? expected.test(value) : value.includes(expected)
+
+type AttributeExpectations = Readonly<Record<string, string>>
+
+/** Throws when `toHaveAttrs` receives no attributes, since that assertion
+ *  would pass or fail without checking anything. */
+export const refuseEmptyAttributes = (
+  expected: AttributeExpectations,
+): void => {
+  if (Record.isEmptyReadonlyRecord(expected)) {
+    throw new Error(
+      'toHaveAttrs needs at least one attribute. Use toExist() to assert that the element exists.',
+    )
+  }
+}
+
+/** Formats attribute expectations as `name="value"` pairs for failure messages. */
+export const describeAttributes = (expected: AttributeExpectations): string =>
+  pipe(
+    Record.toEntries(expected),
+    Array.map(([name, value]) => `${name}="${value}"`),
+    Array.join(', '),
+  )
+
+const maybeAttributeMismatch = (
+  vnode: VNode,
+  name: string,
+  expectedValue: string,
+): Option.Option<string> =>
+  Option.match(attr(vnode, name), {
+    onNone: () => Option.some(`"${name}" is not present`),
+    onSome: actual =>
+      actual === expectedValue
+        ? Option.none()
+        : Option.some(`"${name}" received "${actual}"`),
+  })
+
+/** Describes each expected attribute that is missing or has a different value. */
+export const attributeMismatches = (
+  vnode: VNode,
+  expected: AttributeExpectations,
+): Array<string> =>
+  pipe(
+    Record.toEntries(expected),
+    Array.filterMap(([name, expectedValue]) =>
+      Result.fromOption(
+        maybeAttributeMismatch(vnode, name, expectedValue),
+        Function.constVoid,
+      ),
+    ),
+  )
 
 /** Custom Vitest matchers for scene testing. Register with `expect.extend(Scene.sceneMatchers)`. */
 export const sceneMatchers = {
@@ -119,6 +169,30 @@ export const sceneMatchers = {
                 : `Expected element to have attribute ${name}="${expectedValue}" but received "${actual}".`,
           }),
         })
+      },
+    })
+  },
+
+  toHaveAttrs(received: Option.Option<VNode>, expected: AttributeExpectations) {
+    refuseEmptyAttributes(expected)
+
+    const described = describeAttributes(expected)
+    return Option.match(received, {
+      onNone: () => ({
+        pass: false,
+        message: () =>
+          `Expected element to have attributes ${described} but the element does not exist.`,
+      }),
+      onSome: vnode => {
+        const mismatches = attributeMismatches(vnode, expected)
+        return {
+          pass: Array.isArrayEmpty(mismatches),
+          message: () =>
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            (this as unknown as MatcherContext).isNot
+              ? `Expected element not to have attributes ${described} but it does.`
+              : `Expected element to have attributes ${described} but ${Array.join(mismatches, '; ')}.`,
+        }
       },
     })
   },
