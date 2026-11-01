@@ -11,12 +11,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0",
-    "@effect/platform-node": "4.0.0",
-    "@effect/platform-node-shared": "4.0.0",
+    "@effect/platform-browser": "4.1.0",
+    "@effect/platform-node": "4.1.0",
+    "@effect/platform-node-shared": "4.1.0",
     "@foldkit/node": "workspace:*",
     "@foldkit/ui": "workspace:*",
-    "effect": "4.0.0",
+    "effect": "4.1.0",
     "foldkit": "workspace:*"
   },
   "devDependencies": {

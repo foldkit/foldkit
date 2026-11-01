@@ -115,7 +115,9 @@ export type DynamicTypeId = "~effect/ai/Tool/Dynamic"
  * execution will be returned in the error channel of the calling effect.
  *
  * If set to `"return"`, errors that occur during tool call handler execution
- * will be captured and returned as part of the tool call result.
+ * will be captured and returned as part of the tool call result. Like
+ * `Effect.catch`, only the first typed failure is returned, and a cause
+ * containing a defect is raised as a defect.
  *
  * @stability unstable
  * @category models
@@ -246,7 +248,9 @@ export interface Tool<
    * effect.
    *
    * If set to `"return"`, errors that occur during tool call handler execution
-   * will be captured and returned as part of the tool call result.
+   * will be captured and returned as part of the tool call result. Like
+   * `Effect.catch`, only the first typed failure is returned, and a cause
+   * containing a defect is raised as a defect.
    */
   readonly failureMode: FailureMode
 
@@ -285,6 +289,12 @@ export interface Tool<
    *   a boolean or an Effect that resolves to a boolean.
    */
   readonly needsApproval?: boolean | NeedsApprovalFunction<any> | undefined
+
+  /**
+   * Maps a successful tool result to the content sent to the model in place
+   * of the encoded result. `setSuccess` removes the mapping.
+   */
+  readonly toModelOutput?: ((result: any) => ReadonlyArray<Prompt.ToolModelOutputPart>) | undefined
 
   /**
    * Set whether user approval is required before executing this tool.
@@ -908,17 +918,36 @@ export type ResultEncoded<T> = SuccessEncoded<T> | FailureResultEncoded<T>
  * @category utility types
  * @since 4.0.0
  */
-export type HandlerServices<T> = T extends Tool<
+export type HandlerServices<T> = SchemaServices<T> | Requirements<T>
+
+/**
+ * A utility type to extract the request-level dependencies a `Tool` declares
+ * with `dependencies` or `Tool.addDependency`.
+ *
+ * @stability unstable
+ * @category utility types
+ * @since 4.0.0
+ */
+export type Requirements<T> = T extends Tool<
   infer _Name,
   infer _Config,
   infer _Requirements
-> ? // Parameters must be decoded when received from a model
-    | _Config["parameters"]["DecodingServices"]
-    // A tool call `result`, whether success or failure, is encoded and returned
-    // as the `encodedResult` along with the `result`
-    | ResultEncodingServices<T>
-    // Per-request requirements
-    | _Requirements
+> ? _Requirements
+  : never
+
+/**
+ * A utility type to extract the services needed to decode the parameters of a
+ * `Tool` call and encode its result, whether success or failure.
+ *
+ * @stability unstable
+ * @category utility types
+ * @since 4.0.0
+ */
+export type SchemaServices<T> = T extends Tool<
+  infer _Name,
+  infer _Config,
+  infer _Requirements
+> ? _Config["parameters"]["DecodingServices"] | ResultEncodingServices<T>
   : never
 
 /**
@@ -949,6 +978,20 @@ export type ResultDecodingServices<T> = T extends Tool<
   infer _Config,
   infer _Requirements
 > ? _Config["success"]["DecodingServices"] | _Config["failure"]["DecodingServices"]
+  : never
+
+/**
+ * Extracts the services required to decode tool parameters.
+ *
+ * @stability unstable
+ * @category utility types
+ * @since 4.0.0
+ */
+export type ParametersDecodingServices<T> = T extends Tool<
+  infer _Name,
+  infer _Config,
+  infer _Requirements
+> ? _Config["parameters"]["DecodingServices"]
   : never
 
 /**
@@ -1012,6 +1055,10 @@ export interface HandlerResult<Tool extends Any> {
    * into subsequent requests to the large language model.
    */
   readonly encodedResult: unknown
+  /**
+   * The output of the tool's `toModelOutput` mapping for a successful result.
+   */
+  readonly modelOutput?: ReadonlyArray<Prompt.ToolModelOutputPart> | undefined
   /**
    * Whether the result of executing the tool call handler was an error or not.
    */
@@ -1113,7 +1160,7 @@ const Proto = {
     return clone(this, { parametersSchema, jsonSchema: undefined })
   },
   setSuccess(this: Any, successSchema: Schema.Constraint) {
-    return clone(this, { successSchema })
+    return clone(this, { successSchema, toModelOutput: undefined })
   },
   setFailure(this: Any, failureSchema: Schema.Constraint) {
     return clone(this, { failureSchema })
@@ -1154,6 +1201,7 @@ const userDefinedProto = <
   readonly annotations: Context.Context<never>
   readonly failureMode: Mode
   readonly needsApproval?: NeedsApproval<Parameters> | undefined
+  readonly toModelOutput?: ((result: any) => ReadonlyArray<Prompt.ToolModelOutputPart>) | undefined
 }): Tool<
   Name,
   {
@@ -1216,6 +1264,7 @@ const dynamicProto = <
   readonly annotations: Context.Context<never>
   readonly failureMode: Mode
   readonly needsApproval?: NeedsApproval<any> | undefined
+  readonly toModelOutput?: ((result: any) => ReadonlyArray<Prompt.ToolModelOutputPart>) | undefined
   readonly jsonSchema: JsonSchema.JsonSchema | undefined
 }): Dynamic<
   Name,
@@ -1295,7 +1344,9 @@ export const make = <
    * execution will be returned in the error channel of the calling effect.
    *
    * If set to `"return"`, errors that occur during tool call handler execution
-   * will be captured and returned as part of the tool call result.
+   * will be captured and returned as part of the tool call result. Like
+   * `Effect.catch`, only the first typed failure is returned, and a cause
+   * containing a defect is raised as a defect.
    */
   readonly failureMode?: Mode
   /**
@@ -1313,6 +1364,12 @@ export const make = <
    *   dynamically determine if approval is needed.
    */
   readonly needsApproval?: NeedsApproval<Parameters> | undefined
+  /**
+   * Maps a successful tool result to the content sent to the model in place
+   * of the encoded result, such as images or files. The application still
+   * receives the typed result.
+   */
+  readonly toModelOutput?: ((result: Success["Type"]) => ReadonlyArray<Prompt.ToolModelOutputPart>) | undefined
 }): Tool<
   Name,
   {
@@ -1333,7 +1390,8 @@ export const make = <
     failureSchema,
     failureMode: options?.failureMode ?? "error",
     annotations: Context.empty(),
-    needsApproval: options?.needsApproval as any
+    needsApproval: options?.needsApproval as any,
+    toModelOutput: options?.toModelOutput
   }) as any
 }
 
@@ -1394,6 +1452,7 @@ export const dynamic: {
       readonly failure?: Schema.Constraint | undefined
       readonly failureMode?: FailureMode | undefined
       readonly needsApproval?: NeedsApproval<any> | undefined
+      readonly toModelOutput?: ((result: any) => ReadonlyArray<Prompt.ToolModelOutputPart>) | undefined
     }
   >(
     name: Name,
@@ -1421,6 +1480,7 @@ export const dynamic: {
     readonly failure?: Schema.Constraint | undefined
     readonly failureMode?: FailureMode | undefined
     readonly needsApproval?: NeedsApproval<any> | undefined
+    readonly toModelOutput?: ((result: any) => ReadonlyArray<Prompt.ToolModelOutputPart>) | undefined
   }
 >(name: Name, options?: Options): any => {
   const successSchema = options?.success ?? Schema.Unknown
@@ -1438,6 +1498,7 @@ export const dynamic: {
     failureMode: options?.failureMode ?? "error",
     annotations: Context.empty(),
     needsApproval: options?.needsApproval,
+    toModelOutput: options?.toModelOutput,
     jsonSchema
   })
 }
@@ -1534,7 +1595,9 @@ export const providerDefined = <
          * execution will be returned in the error channel of the calling effect.
          *
          * If set to `"return"`, errors that occur during tool call handler execution
-         * will be captured and returned as part of the tool call result.
+         * will be captured and returned as part of the tool call result. Like
+         * `Effect.catch`, only the first typed failure is returned, and a cause
+         * containing a defect is raised as a defect.
          */
         readonly failureMode?: Mode | undefined
       }

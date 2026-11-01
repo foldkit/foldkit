@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
+import { Cause, Logger, References } from "effect"
 import * as Clock from "effect/Clock"
 import * as Deferred from "effect/Deferred"
 import * as Duration from "effect/Duration"
@@ -382,4 +383,135 @@ describe("RcRef", () => {
       yield* Fiber.join(close)
       assert.strictEqual(released, 2)
     }))
+
+  describe("interruption", () => {
+    it.effect("shares an acquisition until every get is interrupted, then starts fresh", () =>
+      Effect.gen(function*() {
+        let acquired = 0
+        const started = yield* Deferred.make<void>()
+        const finalizing = yield* Deferred.make<void>()
+        const finishFinalizer = yield* Deferred.make<void>()
+        const ref = yield* RcRef.make({
+          acquire: Effect.suspend(() => {
+            if (++acquired > 1) return Effect.succeed(acquired)
+            return Deferred.succeed(started, void 0).pipe(
+              Effect.andThen(Effect.never),
+              Effect.onInterrupt(() =>
+                Deferred.succeed(finalizing, void 0).pipe(Effect.andThen(Deferred.await(finishFinalizer)))
+              )
+            )
+          })
+        })
+
+        const first = yield* Effect.forkChild(Effect.scoped(RcRef.get(ref)), { startImmediately: true })
+        yield* Deferred.await(started)
+        const second = yield* Effect.forkChild(Effect.scoped(RcRef.get(ref)), { startImmediately: true })
+        yield* Fiber.interrupt(first)
+        assert.isFalse(yield* Deferred.isDone(finalizing))
+
+        // A get made while the abandoned acquisition finalizes starts a fresh one.
+        const interruptSecond = yield* Effect.forkChild(Fiber.interrupt(second), { startImmediately: true })
+        yield* Deferred.await(finalizing)
+        const fresh = yield* Effect.forkChild(Effect.scoped(RcRef.get(ref)), { startImmediately: true })
+        yield* Deferred.succeed(finishFinalizer, void 0)
+        yield* Fiber.join(interruptSecond)
+        assert.deepStrictEqual(yield* Fiber.await(fresh), Exit.succeed(2))
+      }))
+
+    it.effect.each([false, true])(
+      "releases references of waiters interrupted after the acquisition publishes them (interrupt all: %s)",
+      (interruptAll) =>
+        Effect.gen(function*() {
+          // Sweep the op budget so the acquisition yields at every step between
+          // publishing its references and its fiber completing.
+          for (let ops = 3; ops <= 64; ops++) {
+            let acquired = 0
+            let released = 0
+            const gate = yield* Deferred.make<void>()
+            const ref = yield* RcRef.make({
+              acquire: Effect.acquireRelease(
+                Deferred.await(gate).pipe(Effect.map(() => ++acquired)),
+                () =>
+                  Effect.sync(() => {
+                    released++
+                  })
+              )
+            })
+            const withBudget = Effect.provideService(Scheduler.MaxOpsBeforeYield, ops)
+
+            const holderScope = yield* Scope.make()
+            const holder = yield* Effect.forkChild(withBudget(RcRef.get(ref).pipe(Scope.provide(holderScope))), {
+              startImmediately: true
+            })
+            const waiter = yield* Effect.forkChild(withBudget(Effect.scoped(RcRef.get(ref))), {
+              startImmediately: true
+            })
+            for (let i = 0; i < 200; i++) yield* Effect.yieldNow
+            yield* Deferred.succeed(gate, void 0)
+            yield* Fiber.interrupt(waiter)
+            if (interruptAll) yield* Fiber.interrupt(holder)
+            yield* Fiber.await(holder)
+            yield* Scope.close(holderScope, Exit.void)
+
+            assert.deepStrictEqual([acquired, released], [1, 1], `${ops} ops`)
+            assert.strictEqual(yield* Effect.scoped(RcRef.get(ref)), 2, `${ops} ops`)
+          }
+        })
+    )
+
+    it.effect("closing the ref interrupts a pending acquisition and closes its scope", () =>
+      Effect.gen(function*() {
+        let released = 0
+        const started = yield* Deferred.make<void>()
+        const refScope = yield* Scope.make()
+        const ref = yield* RcRef.make({
+          acquire: Effect.gen(function*() {
+            yield* Effect.addFinalizer(() =>
+              Effect.sync(() => {
+                released++
+              })
+            )
+            yield* Deferred.succeed(started, void 0)
+            return yield* Effect.never
+          })
+        }).pipe(Scope.provide(refScope))
+
+        const getter = yield* Effect.forkChild(Effect.scoped(RcRef.get(ref)), { startImmediately: true })
+        yield* Deferred.await(started)
+        yield* Scope.close(refScope, Exit.void)
+
+        assert.strictEqual(released, 1)
+        assert.isTrue(Exit.hasInterrupts(yield* Fiber.await(getter)))
+      }))
+  })
+
+  it.effect("reports idle expiry defects at UnhandledLogLevel", () => {
+    const logged: Array<Logger.Options<unknown>> = []
+    const logger = Logger.make((event) => {
+      logged.push(event)
+    })
+    return Effect.gen(function*() {
+      let released = 0
+      const ref = yield* RcRef.make({
+        acquire: Effect.acquireRelease(
+          Effect.succeed("a"),
+          () => Effect.sync(() => released++).pipe(Effect.andThen(Effect.die("release a")))
+        ),
+        idleTimeToLive: "1 second"
+      })
+      yield* Effect.scoped(RcRef.get(ref))
+      yield* TestClock.adjust("1 second")
+      assert.strictEqual(released, 1)
+      assert.deepStrictEqual(
+        logged.map((event) => ({
+          level: event.logLevel,
+          defects: event.cause.reasons.filter(Cause.isDieReason).map((reason) => reason.defect)
+        })),
+        [{ level: "Warn", defects: ["release a"] }]
+      )
+    }).pipe(
+      Effect.provide(Logger.layer([logger])),
+      Effect.provideService(References.UnhandledLogLevel, "Warn")
+    )
+  })
 })
