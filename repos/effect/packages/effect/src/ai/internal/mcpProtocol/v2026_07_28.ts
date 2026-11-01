@@ -26,7 +26,7 @@ import * as McpCore from "../mcpCore.ts"
 import * as McpProtocol from "../mcpProtocol.ts"
 import * as McpSchema from "../mcpSchema/v2026_07_28.ts"
 
-const InputResponses = Schema.Record(Schema.String, Schema.JsonObject)
+const InputResponses = Schema.Record(Schema.String, Schema.Record(Schema.String, Schema.Unknown))
 const decodeRequestMetadata = Schema.decodeUnknownEffect(McpSchema.RequestMetaObject)
 const decodeCancellation = Schema.decodeUnknownEffect(McpSchema.CancelledNotification.payloadSchema)
 const isJson = Schema.is(Schema.Json)
@@ -92,8 +92,8 @@ export const profileFromRequestMetadata = Effect.fnUntraced(function*(metadata: 
 
 const resultMetadata = (
   value: ObjectWithUndefined,
-  serverInfo: Schema.JsonObject
-): Schema.JsonObject => {
+  serverInfo: Readonly<Record<string, unknown>>
+): Readonly<Record<string, unknown>> => {
   const metadata: unknown = value._meta
   return {
     ...(Predicate.isReadonlyObject(metadata) ? metadata : {}),
@@ -103,7 +103,7 @@ const resultMetadata = (
 
 const projectInputRequired = (
   outcome: McpCore.InputRequiredFields,
-  serverInfo: Schema.JsonObject
+  serverInfo: Readonly<Record<string, unknown>>
 ) =>
   omitUndefined({
     _meta: { "io.modelcontextprotocol/serverInfo": serverInfo },
@@ -138,8 +138,8 @@ export const projectCallToolOutcome = Effect.fnUntraced(function*(
 const requiredCapabilitiesForInputRequests = (
   inputRequests: McpCore.InputRequiredFields["inputRequests"],
   capabilities: McpCore.NegotiatedProtocolProfile["clientCapabilities"]
-): Record<string, Schema.JsonObject> => {
-  const required: Record<string, Types.Mutable<Schema.JsonObject>> = {}
+): Record<string, Readonly<Record<string, unknown>>> => {
+  const required: Record<string, Record<string, unknown>> = {}
   for (const request of Object.values(inputRequests ?? {})) {
     Match.value(request).pipe(
       Match.when({ method: "roots/list" }, () => {
@@ -264,16 +264,14 @@ const projectError = (error: ProtocolError): McpSchema.McpError => {
   })
 }
 
-const failWithHttpStatus = Effect.fnUntraced(function*(status: number, error: McpProtocol.ProtocolError) {
-  const request = yield* Effect.serviceOption(HttpServerRequest.HttpServerRequest)
-  if (Option.isSome(request)) {
+const failWithHttpStatus = (status: number, error: McpProtocol.ProtocolError) =>
+  Effect.withFiber((fiber) => {
     appendPreResponseHandlerUnsafe(
-      request.value,
+      fiber.context,
       (_request, response) => Effect.succeed(HttpServerResponse.setStatus(response, status))
     )
-  }
-  return yield* error
-})
+    return Effect.fail(error)
+  })
 
 /**
  * @internal
@@ -327,8 +325,13 @@ export const makeHandlers = (
   // Older adapters accept arbitrary JSON; this binding requires extension settings objects.
   const extensions = context.serverInfo.extensions === undefined ? undefined : Record.filter(
     context.serverInfo.extensions,
-    (value): value is Schema.JsonObject => Predicate.isReadonlyObject(value)
+    (value): value is Readonly<Record<string, unknown>> => Predicate.isReadonlyObject(value)
   )
+  // Project only the wire fields; structurally compatible hints can carry extra properties.
+  const cacheHint = (family: keyof McpProtocol.CacheHints) => {
+    const hint = context.serverInfo.cacheHints?.[family]
+    return hint === undefined ? privateStaleCache : { ttlMs: hint.ttlMs, cacheScope: hint.cacheScope }
+  }
   const getDiscovery = Effect.map(context.registrationPresence, (presence) => {
     const capabilities: Types.Mutable<typeof McpSchema.ServerCapabilities.Type> = { completions: {}, logging: {} }
     if (extensions !== undefined) capabilities.extensions = extensions
@@ -386,6 +389,8 @@ export const makeHandlers = (
       }
       const presence = yield* context.registrationPresence
       const eventsScope = yield* Scope.fork(yield* Effect.scope)
+      // Ignore changes emitted before this subscription, even if delivery was deferred.
+      const listChangeRevision = context.getListChangeRevision?.() ?? 0
       const events = yield* Scope.provide(context.subscribeServerNotifications, eventsScope)
       const honored = {
         ...(presence.tools && request.notifications.toolsListChanged === true
@@ -410,6 +415,9 @@ export const makeHandlers = (
       yield* Effect.gen(function*() {
         while (true) {
           const event = yield* PubSub.take(events)
+          if (event.listChangeRevision !== undefined && event.listChangeRevision <= listChangeRevision) {
+            continue
+          }
           if (event.targetClientId !== undefined && event.targetClientId !== client.id) {
             continue
           }
@@ -480,7 +488,7 @@ export const makeHandlers = (
     ) {
       const discovery = yield* getDiscovery
       const result = yield* projectCompleteResult({
-        ...privateStaleCache,
+        ...cacheHint("discover"),
         supportedVersions: Array.from(discovery.supportedVersions),
         capabilities: discovery.capabilities,
         instructions: context.serverInfo.instructions
@@ -491,9 +499,9 @@ export const makeHandlers = (
       _request: typeof McpSchema.ListResources.payloadSchema.Type
     ) {
       const invocation = yield* getInvocation
-      const resources = yield* core.resources.list(invocation.protocol)
+      const resources = yield* core.resources.list(invocation)
       const result = yield* projectCompleteResult({
-        ...privateStaleCache,
+        ...cacheHint("resources"),
         resources: resources.map(projectResource)
       }, context.serverInfo)
       return yield* decodeListResourcesResult(result)
@@ -502,9 +510,9 @@ export const makeHandlers = (
       _request: typeof McpSchema.ListResourceTemplates.payloadSchema.Type
     ) {
       const invocation = yield* getInvocation
-      const resourceTemplates = yield* core.resources.listTemplates(invocation.protocol)
+      const resourceTemplates = yield* core.resources.listTemplates(invocation)
       const result = yield* projectCompleteResult({
-        ...privateStaleCache,
+        ...cacheHint("resourceTemplates"),
         resourceTemplates: resourceTemplates.map(projectResourceTemplate)
       }, context.serverInfo)
       return yield* decodeListResourceTemplatesResult(result)
@@ -534,10 +542,10 @@ export const makeHandlers = (
         )
       }
       const invocation = yield* getInvocation
-      const prompts = yield* core.prompts.list(invocation.protocol)
+      const prompts = yield* core.prompts.list(invocation)
       const projectedPrompts = yield* Effect.forEach(prompts, projectPrompt)
       const result = yield* projectCompleteResult({
-        ...privateStaleCache,
+        ...cacheHint("prompts"),
         prompts: projectedPrompts
       }, context.serverInfo)
       return yield* decodeListPromptsResult(result)
@@ -590,17 +598,17 @@ export const makeHandlers = (
       _request: typeof McpSchema.ListTools.payloadSchema.Type
     ) {
       const invocation = yield* getInvocation
-      const tools = yield* core.tools.list(invocation.protocol)
+      const tools = yield* core.tools.list(invocation)
       const projectedTools = yield* Effect.forEach(tools, projectTool)
       const result = yield* projectCompleteResult({
-        ...privateStaleCache,
+        ...cacheHint("tools"),
         tools: projectedTools
       }, context.serverInfo)
       return yield* decodeListToolsResult(result)
     }, Effect.mapError(projectError)),
     "tools/call": Effect.fnUntraced(function*(request: typeof McpSchema.CallTool.payloadSchema.Type) {
       const invocation = yield* getInputInvocation(request)
-      const tool = (yield* core.tools.list(invocation.protocol)).find((tool) => tool.name === request.name)
+      const tool = core.tools.find(request.name, invocation.protocol)
       const httpRequest = yield* Effect.serviceOption(HttpServerRequest.HttpServerRequest)
 
       if (tool !== undefined && Option.isSome(httpRequest)) {

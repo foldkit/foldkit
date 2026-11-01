@@ -199,6 +199,45 @@ describe("Response", () => {
     }
   })
 
+  describe("schemas without a toolkit", () => {
+    const parts = [
+      Response.toolCallPart({
+        id: "call-1",
+        name: "UnknownTool",
+        params: { path: "a.ts", options: [1, null] },
+        providerExecuted: false
+      }),
+      Response.makePart("tool-result", {
+        id: "call-1",
+        name: "UnknownTool",
+        isFailure: false,
+        result: { content: "hello" },
+        encodedResult: { content: "hello" },
+        providerExecuted: false,
+        preliminary: false
+      })
+    ]
+
+    for (
+      const [name, makeSchema] of [
+        ["AllParts", () => Response.AllParts()],
+        ["Part", () => Response.Part()],
+        ["StreamPart", () => Response.StreamPart()]
+      ] as const
+    ) {
+      it.effect(`${name} round trips tool parts with any tool name through JSON`, () =>
+        Effect.gen(function*() {
+          const schema = makeSchema()
+          for (const part of parts) {
+            const encoded = yield* Schema.encodeUnknownEffect(schema)(part)
+            const decoded = yield* Schema.decodeUnknownEffect(schema)(JSON.parse(JSON.stringify(encoded)))
+
+            deepStrictEqual<unknown>(decoded, part, `decoded ${part.type}`)
+          }
+        }))
+    }
+  })
+
   it.effect("decodes response metadata with omitted optional fields", () =>
     Effect.gen(function*() {
       const encoded: Response.ResponseMetadataPartEncoded = {
@@ -215,8 +254,7 @@ describe("Response", () => {
       const part = Response.makePart("response-metadata", {
         id: undefined,
         modelId: undefined,
-        timestamp: undefined,
-        request: undefined
+        timestamp: undefined
       })
 
       const encoded = yield* Schema.encodeEffect(Response.ResponseMetadataPart)(part)
@@ -228,34 +266,6 @@ describe("Response", () => {
         type: "response-metadata"
       }, "encoded JSON")
       deepStrictEqual(decoded, Response.makePart("response-metadata", {}), "decoded part")
-    }))
-
-  it.effect("round trips HTTP request details with an undefined hash through JSON", () =>
-    Effect.gen(function*() {
-      const request: typeof Response.HttpRequestDetails.Type = {
-        method: "POST",
-        url: "https://example.com/v1/responses",
-        urlParams: [],
-        hash: undefined,
-        headers: {}
-      }
-
-      const encoded = yield* Schema.encodeEffect(Response.HttpRequestDetails)(request)
-      const json = JSON.parse(JSON.stringify(encoded))
-      const decoded = yield* Schema.decodeUnknownEffect(Response.HttpRequestDetails)(json)
-
-      deepStrictEqual(json, {
-        method: "POST",
-        url: "https://example.com/v1/responses",
-        urlParams: [],
-        headers: {}
-      }, "encoded JSON")
-      deepStrictEqual(decoded, {
-        method: "POST",
-        url: "https://example.com/v1/responses",
-        urlParams: [],
-        headers: {}
-      }, "decoded request")
     }))
 
   it.effect("round trips a finish part with undefined optional fields through JSON", () =>

@@ -3,7 +3,6 @@ import {
   Clock,
   ConfigProvider,
   Console,
-  Crypto,
   Data,
   Duration,
   Effect,
@@ -23,6 +22,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 import {
   Event as DevToolsEvent,
   EventFrame,
@@ -707,8 +707,8 @@ type Relay = Readonly<{
 }>
 
 const relayId = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto
-  return yield* crypto.randomUUIDv4.pipe(Effect.orDie)
+  const secureRandom = yield* SecureRandom.SecureRandom
+  return yield* secureRandom.uuidV4()
 })
 
 const attachRelayHandlers = (
@@ -742,8 +742,8 @@ const relayHasNoBoundPort = () =>
   new Error('[foldkit:devTools] the MCP relay listener has no bound port')
 
 const relayToken = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto
-  const bytes = yield* crypto.randomBytes(RELAY_TOKEN_BYTES).pipe(Effect.orDie)
+  const secureRandom = yield* SecureRandom.SecureRandom
+  const bytes = yield* secureRandom.randomBytes(RELAY_TOKEN_BYTES)
   return Buffer.from(bytes).toString('hex')
 })
 
@@ -1050,17 +1050,20 @@ const startMcpRelay = (
     )
     // NOTE: A configured port accepts unauthenticated connections on every
     // interface. An assigned port binds to loopback and requires discovery.
-    const acquire: Effect.Effect<Relay, RelayBindFailed, Crypto.Crypto> =
-      Effect.gen(function* () {
-        const id = yield* relayId
-        if (devToolsMcpPort !== undefined) {
-          return yield* bindStandaloneRelay(devToolsMcpPort, id, enqueue)
-        }
+    const acquire: Effect.Effect<
+      Relay,
+      RelayBindFailed,
+      SecureRandom.SecureRandom
+    > = Effect.gen(function* () {
+      const id = yield* relayId
+      if (devToolsMcpPort !== undefined) {
+        return yield* bindStandaloneRelay(devToolsMcpPort, id, enqueue)
+      }
 
-        const token = yield* relayToken
+      const token = yield* relayToken
 
-        return yield* bindLoopbackRelay(id, token, enqueue)
-      })
+      return yield* bindLoopbackRelay(id, token, enqueue)
+    })
 
     return yield* Effect.acquireRelease(acquire, relay =>
       Effect.gen(function* () {
@@ -1161,7 +1164,11 @@ const main = (
  */
 const relayRegistryLayer = Layer.provideMerge(
   NodeChildProcessSpawner.layer,
-  Layer.mergeAll(NodeFileSystem.layer, NodePath.layer, NodeCrypto.layer),
+  Layer.mergeAll(
+    NodeFileSystem.layer,
+    NodePath.layer,
+    NodeCrypto.layerSecureRandom,
+  ),
 )
 
 type MainRun = Readonly<{

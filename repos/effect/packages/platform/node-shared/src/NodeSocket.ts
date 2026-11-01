@@ -4,8 +4,9 @@
  * This module opens `node:net` or `node:tls` connections, or wraps existing
  * Node `Duplex` streams, and presents them as `Socket.Socket` values, socket
  * channels, or layers. It also exposes the `NetSocket` service tag for the
- * underlying Node socket and re-exports the `ws` package namespace.
+ * underlying Node socket.
  *
+ * @stability unstable
  * @since 4.0.0
  */
 import * as Arr from "effect/Array"
@@ -28,16 +29,10 @@ import * as Tls from "node:tls"
 const isDeno = "Deno" in globalThis
 
 /**
- * @stability unstable
- * @category re-exports
- * @since 4.0.0
- */
-export * as NodeWS from "ws"
-
-/**
  * Service tag for the underlying Node `net.Socket` associated with the current
  * socket connection.
  *
+ * @stability unstable
  * @category services
  * @since 4.0.0
  */
@@ -46,15 +41,15 @@ export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
 ) {}
 
 const readAvailable = (
-  conn: Duplex
-): Arr.NonEmptyReadonlyArray<Uint8Array | string> | null => {
+  conn: Duplex,
+  chunkSize: number
+): Arr.NonEmptyReadonlyArray<Uint8Array | string> | undefined => {
   const first = conn.read() as Uint8Array | string | null
-  if (first === null) return null
-  const second = conn.read() as Uint8Array | string | null
-  if (second === null) return [first]
-  const out: [Uint8Array | string, ...Array<Uint8Array | string>] = [first, second]
+  if (first === null) return undefined
+  const out: [Uint8Array | string, ...Array<Uint8Array | string>] = [first]
   let chunk: Uint8Array | string | null
-  while ((chunk = conn.read() as Uint8Array | string | null) !== null) {
+  // read() may synchronously refill the buffer; leave further reads to the next pull.
+  while (out.length < chunkSize && (chunk = conn.read() as Uint8Array | string | null) !== null) {
     out.push(chunk)
   }
   return out
@@ -85,12 +80,18 @@ const closeSocket = (conn: Net.Socket, isOpen: boolean) => {
  * Supports `openTimeout` and closes or destroys the underlying socket when the
  * reader scope is finalized.
  *
+ * @stability unstable
  * @category constructors
  * @since 4.0.0
  */
 export const makeNet = (
   options: Net.NetConnectOpts & {
     readonly openTimeout?: Duration.Input | undefined
+    /**
+     * Maximum chunks per pull. Defaults to 4096 unless a positive safe integer or Infinity is supplied.
+     * Use Infinity for unbounded batching.
+     */
+    readonly chunkSize?: number | undefined
   }
 ): Effect.Effect<Socket.Socket> =>
   fromDuplex(
@@ -130,9 +131,9 @@ export const makeNet = (
  *
  * **Details**
  *
- * Reader acquisition opens the duplex and keeps it paused: each pull drains
- * Node's internal buffer with `stream.read()`. On Node 26+ that yields each
- * buffered chunk as a separate batch element with no copy. Earlier Node
+ * Reader acquisition opens the duplex and keeps it paused: each pull reads at
+ * most `chunkSize` chunks (default 4096) with `stream.read()`. On Node 26+ that
+ * yields each buffered chunk as a separate batch element with no copy. Earlier Node
  * concatenates the buffer into one chunk. The stream is never resumed, so once
  * Node's buffer reaches its `highWaterMark` the kernel receive window closes
  * and the peer blocks: backpressure is end-to-end with no buffering above
@@ -142,6 +143,7 @@ export const makeNet = (
  * the internal buffer is full. `writeAll` corks the stream around the batch.
  * Releasing the writer scope half-closes the stream (`end()`).
  *
+ * @stability unstable
  * @category constructors
  * @since 4.0.0
  */
@@ -149,6 +151,11 @@ export const fromDuplex = <RO>(
   open: Effect.Effect<Duplex, Socket.SocketError, RO>,
   options?: {
     readonly openTimeout?: Duration.Input | undefined
+    /**
+     * Maximum chunks per pull. Defaults to 4096 unless a positive safe integer or Infinity is supplied.
+     * Use Infinity for unbounded batching.
+     */
+    readonly chunkSize?: number | undefined
     readonly tlsServer?: boolean | undefined
   }
 ): Effect.Effect<Socket.Socket, never, Exclude<RO, Scope.Scope>> =>
@@ -157,6 +164,11 @@ export const fromDuplex = <RO>(
     const latch = Latch.makeUnsafe(false)
     const openServices = fiber.context as Context.Context<RO>
     const isServer = options?.tlsServer === true
+    const requestedChunkSize = options?.chunkSize ?? 4096
+    const chunkSize = requestedChunkSize === Infinity ||
+        (Number.isSafeInteger(requestedChunkSize) && requestedChunkSize > 0)
+      ? requestedChunkSize
+      : 4096
     const secureEvent = isServer ? "secure" : "secureConnect"
 
     const reader: Socket.Socket["reader"] = Effect.gen(function*() {
@@ -181,51 +193,83 @@ export const fromDuplex = <RO>(
 
       let error: Socket.SocketError | undefined
       let waiter: ReadResume | undefined
+      // Bytes consumed by read() while the parked pull was interrupted.
+      let pending: Arr.NonEmptyReadonlyArray<Uint8Array | string> | undefined
+      let reading = false
+      let closed = false
       let upgradeAvailable = true
 
-      function fail(err: Socket.SocketError) {
-        if (error === undefined) error = err
-        if (waiter !== undefined) {
-          const resume = waiter
-          waiter = undefined
-          resume(Effect.fail(error!))
+      // The only place a waiter is resumed, so delivery order has one owner:
+      // retained bytes first, then freshly read bytes, then the error.
+      function drain() {
+        if (waiter === undefined || reading) return
+        let chunk = pending
+        pending = undefined
+        if (chunk === undefined && !closed) {
+          // A data listener can interrupt and replace the pull synchronously.
+          // The replacement must wait for this read to preserve byte order.
+          reading = true
+          try {
+            chunk = readAvailable(conn, chunkSize)
+          } finally {
+            reading = false
+          }
         }
-      }
-      function onReadable() {
-        if (waiter === undefined) return
-        const chunk = readAvailable(conn)
-        if (chunk === null) return
+        // A close during read() discards the bytes it consumed.
+        if (closed) chunk = undefined
+        if (waiter === undefined) {
+          pending = chunk
+          return
+        }
+        const result = chunk !== undefined
+          ? Effect.succeed(chunk)
+          : error !== undefined
+          ? Effect.fail(error)
+          : undefined
+        if (result === undefined) return
         const resume = waiter
         waiter = undefined
-        resume(Effect.succeed(chunk))
+        resume(result)
+      }
+      // Normal EOF: already consumed bytes are still delivered before the error.
+      function end(err: Socket.SocketError) {
+        error ??= err
+        drain()
+      }
+      // Teardown or failure: consumed bytes are discarded.
+      function close(err: Socket.SocketError) {
+        error ??= err
+        closed = true
+        pending = undefined
+        drain()
       }
       function onEnd() {
-        fail(new Socket.SocketError({ reason: new Socket.SocketCloseError({ code: 1000 }) }))
+        end(new Socket.SocketError({ reason: new Socket.SocketCloseError({ code: 1000 }) }))
       }
       function onError(cause: Error) {
-        fail(
+        close(
           new Socket.SocketError({
             reason: new Socket.SocketReadError({ cause })
           })
         )
       }
       function onClose(hadError: boolean) {
-        fail(
-          new Socket.SocketError({
-            reason: new Socket.SocketCloseError({ code: hadError ? 1006 : 1000 })
-          })
-        )
+        const err = new Socket.SocketError({
+          reason: new Socket.SocketCloseError({ code: hadError ? 1006 : 1000 })
+        })
+        if (hadError) close(err)
+        else end(err)
       }
 
       function attachReadListeners(conn: Duplex) {
-        conn.on("readable", onReadable)
+        conn.on("readable", drain)
         conn.on("end", onEnd)
         conn.on("error", onError)
         conn.on("close", onClose)
       }
 
       function detachReadListeners(conn: Duplex) {
-        conn.off("readable", onReadable)
+        conn.off("readable", drain)
         conn.off("end", onEnd)
         conn.off("error", onError)
         conn.off("close", onClose)
@@ -239,7 +283,7 @@ export const fromDuplex = <RO>(
         scope,
         Effect.sync(() => {
           // resume a pull blocked in another fiber before detaching
-          fail(
+          close(
             new Socket.SocketError({
               reason: new Socket.SocketCloseError({ code: 1006 })
             })
@@ -254,15 +298,13 @@ export const fromDuplex = <RO>(
       currentSocket = conn
       latch.openUnsafe()
 
-      const pull = Effect.suspend(() => {
-        const chunk = readAvailable(conn)
-        if (chunk !== null) return Effect.succeed(chunk)
-        if (error !== undefined) return Effect.fail(error)
-        return Effect.callback<Arr.NonEmptyReadonlyArray<Uint8Array | string>, Socket.SocketError>((resume) => {
-          waiter = resume
-          return Effect.sync(() => {
-            if (waiter === resume) waiter = undefined
-          })
+      const pull = Effect.callback<Arr.NonEmptyReadonlyArray<Uint8Array | string>, Socket.SocketError>((resume) => {
+        waiter = resume
+        drain()
+        // Resumed synchronously: nothing to cancel.
+        if (waiter !== resume) return
+        return Effect.sync(() => {
+          if (waiter === resume) waiter = undefined
         })
       })
 
@@ -321,7 +363,7 @@ export const fromDuplex = <RO>(
               }
               tls = isServer
                 ? new Tls.TLSSocket(raw as Net.Socket, { ...tlsOptions, isServer: true })
-                : Tls.connect({ ...tlsOptions, socket: raw as Net.Socket })
+                : Tls.connect({ ...tlsOptions, servername: upgradeOptions.servername, socket: raw as Net.Socket })
             } catch (cause) {
               attachReadListeners(raw)
               resume(Effect.fail(
@@ -352,7 +394,7 @@ export const fromDuplex = <RO>(
               const upgradeError = new Socket.SocketError({
                 reason: new Socket.SocketUpgradeError({ cause })
               })
-              fail(upgradeError)
+              close(upgradeError)
               resume(Effect.fail(upgradeError))
             }
             function onUpgradeClose() {
@@ -365,7 +407,7 @@ export const fromDuplex = <RO>(
 
             return Effect.sync(() => {
               cleanup()
-              fail(
+              close(
                 new Socket.SocketError({
                   reason: new Socket.SocketCloseError({ code: 1006 })
                 })
@@ -480,11 +522,12 @@ export const fromDuplex = <RO>(
  * Creates a `Channel` over a TCP socket, reading arrays of `Uint8Array`
  * chunks and writing arrays of bytes, strings, or socket close events.
  *
+ * @stability unstable
  * @category constructors
  * @since 4.0.0
  */
 export const makeNetChannel = <IE = never>(
-  options: Net.NetConnectOpts
+  options: Parameters<typeof makeNet>[0]
 ): Channel.Channel<
   Arr.NonEmptyReadonlyArray<Uint8Array>,
   Socket.SocketError | IE,
@@ -500,10 +543,11 @@ export const makeNetChannel = <IE = never>(
  * Provides a `Socket.Socket` by opening a TCP connection with the supplied
  * Node `net` connection options.
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */
-export const layerNet: (options: Net.NetConnectOpts) => Layer.Layer<
+export const layerNet: (options: Parameters<typeof makeNet>[0]) => Layer.Layer<
   Socket.Socket,
   Socket.SocketError
 > = Function.flow(makeNet, Layer.effect(Socket.Socket))
@@ -524,12 +568,18 @@ export const layerNet: (options: Net.NetConnectOpts) => Layer.Layer<
  * certificate, fails with a `SocketOpenError`. Supports `openTimeout` and
  * destroys the underlying socket when the reader scope is finalized.
  *
+ * @stability unstable
  * @category constructors
  * @since 4.0.0
  */
 export const makeTls = (
   options: Tls.ConnectionOptions & {
     readonly openTimeout?: Duration.Input | undefined
+    /**
+     * Maximum chunks per pull. Defaults to 4096 unless a positive safe integer or Infinity is supplied.
+     * Use Infinity for unbounded batching.
+     */
+    readonly chunkSize?: number | undefined
   }
 ): Effect.Effect<Socket.Socket> =>
   fromDuplex(
@@ -568,11 +618,12 @@ export const makeTls = (
  * Creates a `Channel` over a TLS socket, reading arrays of `Uint8Array`
  * chunks and writing arrays of bytes, strings, or socket close events.
  *
+ * @stability unstable
  * @category constructors
  * @since 4.0.0
  */
 export const makeTlsChannel = <IE = never>(
-  options: Tls.ConnectionOptions
+  options: Parameters<typeof makeTls>[0]
 ): Channel.Channel<
   Arr.NonEmptyReadonlyArray<Uint8Array>,
   Socket.SocketError | IE,
@@ -588,10 +639,11 @@ export const makeTlsChannel = <IE = never>(
  * Provides a `Socket.Socket` by opening a TLS connection with the supplied
  * Node `tls` connection options.
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */
-export const layerTls: (options: Tls.ConnectionOptions) => Layer.Layer<
+export const layerTls: (options: Parameters<typeof makeTls>[0]) => Layer.Layer<
   Socket.Socket,
   Socket.SocketError
 > = Function.flow(makeTls, Layer.effect(Socket.Socket))

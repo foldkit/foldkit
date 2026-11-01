@@ -27,6 +27,7 @@ Start with architecture and correctness. Then audit the entire diff for API desi
 - Distinguish library internals from consumer apps when choosing abstractions. Use Effect's `Data.TaggedEnum` for internal diagnostic unions rather than introducing an app union helper into the library.
 - Put tests in the suite owned by the behavior or abstraction under test.
 - For UI changes, inspect both the website and UI showcase when they expose the component. Exercise the browser behavior changed by the diff, including opt-out or disabled behavior and representative dynamic states when relevant.
+- For a new public API or recommended pattern, inspect active guides, snippets, examples, and first-party apps that exercise the affected behavior. When finishing an accepted change, adopt it where it simplifies or clarifies that behavior, preserving lifecycle and navigation semantics. Leave simpler flows alone when adoption adds indirection without making the flow clearer.
 
 Do not expand a focused contribution into a repository-wide migration or a new testing framework. Open a follow-up issue for worthwhile adjacent work.
 

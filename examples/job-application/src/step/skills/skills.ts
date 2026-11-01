@@ -1,4 +1,5 @@
-import { Array, Crypto, Effect, Schema } from 'effect'
+import { Array, Effect, Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -18,8 +19,7 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedAddEntry: {},
-  SucceededGenerateEntryId: { entryId: Schema.String },
-  FailedGenerateEntryId: {},
+  CompletedGenerateEntryId: { entryId: Schema.String },
   RemovedEntry: { entryId: Schema.String },
   GotEntryMessage: {
     entryId: Schema.String,
@@ -38,15 +38,12 @@ export const init = (initialEntryId: string): Model => ({
 // COMMAND
 
 export const GenerateEntryId = Command.define('GenerateEntryId', {
-  messages: [Message.SucceededGenerateEntryId, Message.FailedGenerateEntryId],
+  messages: [Message.CompletedGenerateEntryId],
   execute: Effect.gen(function* () {
-    const crypto = yield* Crypto.Crypto
-    const entryId = yield* crypto.randomUUIDv4
-    return Message.SucceededGenerateEntryId({ entryId })
-  }).pipe(
-    Effect.provide(BrowserCrypto.layer),
-    Effect.catch(() => Effect.succeed(Message.FailedGenerateEntryId())),
-  ),
+    const secureRandom = yield* SecureRandom.SecureRandom
+    const entryId = yield* secureRandom.uuidV4()
+    return Message.CompletedGenerateEntryId({ entryId })
+  }).pipe(Effect.provide(BrowserCrypto.layerSecureRandom)),
 })
 
 // UPDATE
@@ -77,13 +74,11 @@ export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedAddEntry: () => ({ model, commands: [GenerateEntryId()] }),
 
-    SucceededGenerateEntryId: ({ entryId }) => ({
+    CompletedGenerateEntryId: ({ entryId }) => ({
       model: modifyFields(model, {
         entries: Array.append(Entry.init(entryId)),
       }),
     }),
-
-    FailedGenerateEntryId: () => ({ model }),
 
     RemovedEntry: ({ entryId }) => ({
       model: modifyFields(model, {
