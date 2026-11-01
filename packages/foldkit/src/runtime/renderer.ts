@@ -21,6 +21,7 @@ import {
   __patchVNode,
   __recoverVNodeAfterPatchFailure,
 } from '../vdom.js'
+import { currentAnimationFrame } from './animationFramePhase.js'
 import {
   type CrashConfig,
   type VNodeSlot,
@@ -182,6 +183,8 @@ export const makeRenderer = <Model, Message>({
     // `commitNotifier` tracks the patch itself, so `Render.afterCommit`
     // waits for the commit rather than for the frame that scheduled it.
     let isRenderFrameScheduled = false
+    let isRunningRenderFrame = false
+    let maybeEarlyRenderFrame: Option.Option<number> = Option.none()
     // NOTE: resume clears the DevTools store's pause flag before its frame
     // patches the live view. This distinguishes that intentional repaint
     // from an ordinary frame that was already queued when jumpTo installed
@@ -675,7 +678,7 @@ export const makeRenderer = <Model, Message>({
     // notifier, whether or not it patched. A frame abandoned silently
     // would strand any `Render.afterCommit` registered against it, and
     // the Dom helpers that gate on it would never run their DOM work.
-    const renderFramePlain = (): void => {
+    const renderScheduledFrame = (): void => {
       // NOTE: retain the scheduled frame's pending commit while the drain waits.
       if (isLiveModelBehindQueue()) {
         requestAnimationFrame(renderFramePlain)
@@ -724,10 +727,26 @@ export const makeRenderer = <Model, Message>({
       }
     }
 
+    const renderFramePlain = (): void => {
+      isRunningRenderFrame = true
+      try {
+        renderScheduledFrame()
+      } finally {
+        isRunningRenderFrame = false
+      }
+    }
+
     // NOTE: render frames run as plain JavaScript inside the
     // requestAnimationFrame callback. Messages arriving between frames mark
     // at most one pending frame; the callback renders once with the latest
-    // model.
+    // model. A Message dispatched from an animation-frame callback, such as
+    // a Subscription.animationFrameEntry tick, is already in the frame about to
+    // paint. Requesting another frame from there defers the render, and the
+    // next tick lands first and folds into that pending render, so the view
+    // runs on every other frame. That tick renders in a microtask before
+    // paint instead, once per frame. Any later Message in that frame, and a
+    // Message dispatched while the render is on the stack, requests a later
+    // frame, so the render cannot reschedule itself.
     const scheduleRenderFrame = (
       isRestoringLiveView: boolean = false,
     ): void => {
@@ -739,6 +758,19 @@ export const makeRenderer = <Model, Message>({
       }
       isRenderFrameScheduled = true
       commitNotifier.markCommitPending()
+      const maybeFrame = currentAnimationFrame()
+      if (
+        Option.isSome(maybeFrame) &&
+        !isRunningRenderFrame &&
+        !Option.exists(
+          maybeEarlyRenderFrame,
+          frame => frame === maybeFrame.value,
+        )
+      ) {
+        maybeEarlyRenderFrame = maybeFrame
+        queueMicrotask(renderFramePlain)
+        return
+      }
       requestAnimationFrame(renderFramePlain)
     }
 
