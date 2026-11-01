@@ -415,6 +415,7 @@ const mountMap = (element: Element, hostId: string) =>
           return { map, maplibre }
         }),
         ({ map }) => Effect.sync(() => removeMap(hostId, map)),
+        { interruptible: true },
       )
       const { map, maplibre } = mapResource
 

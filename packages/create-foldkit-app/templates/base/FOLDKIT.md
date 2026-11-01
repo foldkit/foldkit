@@ -104,7 +104,7 @@ Command args contain values already present in the Model or Message. Calling `Da
 
 For the with-args shape, see `repos/foldkit/examples/weather/src/main.ts` or `repos/foldkit/examples/kanban/src/command.ts`. For an argless DOM-side-effect Command, the argless form in `kanban/src/command.ts` (`FocusAddCardInput`) is the canonical reference.
 
-For DOM operations (focus, scroll, modals, scroll lock), Foldkit ships a `Dom` module. For time, randomness, UUIDs, and delays, use Effect's APIs directly (`Clock`, `Random`, `Crypto.Crypto`, `Effect.sleep`). Provide the platform Crypto layer when using `Crypto.Crypto`. Don't reach for raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`.
+For DOM operations (focus, scroll, modals, scroll lock), Foldkit ships a `Dom` module. For time, randomness, UUIDs, and delays, use Effect's APIs directly (`Clock`, `Random`, `SecureRandom.SecureRandom`, `Effect.sleep`). Import `SecureRandom` from `effect/crypto` and provide `BrowserCrypto.layerSecureRandom` when using its service in the browser. Don't reach for raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`.
 
 ### File Organization
 

@@ -192,6 +192,7 @@ If a Mount's `execute` doesn't read or write its element, you've misidentified t
 
 ## Commits and Releases
 
+- For release preparation, merge gates, and publication verification, use [the release skill](.agents/skills/release-version/SKILL.md).
 - Conventional Commits. Add `!` after the scope for breaking changes (e.g. `refactor(foldkit)!:`).
 - Valid scopes: package directories (`foldkit`, `ui`, `devtools`, `create-foldkit-app`, `vite-plugin`, `devtools-mcp`, `oxlint-plugin`, `markdown`, `website`, `typing-game`, `examples-e2e`), example directory names, `skills`, `ci`, and `release`. Never internal module names.
 - The `skills` scope means the shipped Foldkit app skills (`skills/foldkit`, `skills/generate-program`, `skills/audit-program`) and their packaging. Do not use it for repo-maintenance helper skills such as `.agents/skills/commit-changes`. Omit the scope when no valid scope fits the whole change.
