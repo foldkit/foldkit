@@ -67,9 +67,9 @@ The generated project also includes `lint` and `format` scripts. Run them with y
 
 Skip this section if you used `create-foldkit-app`. Scaffolded projects already receive compatible package versions.
 
-Foldkit uses Effect 4 stable and pins its peer dependencies to exact versions: `effect@4.0.0` and `@effect/platform-browser@4.0.0`. Install those versions together. When upgrading an existing app, update every Effect package to the same version. Use the stable import paths, such as `effect/http` and `effect/persistence`, in place of their `effect/unstable` paths.
+Foldkit requires Effect 4.1 and accepts patch updates through `~4.1.0` peer ranges for `effect` and `@effect/platform-browser`. Effect minor releases can change APIs, so each minor upgrade is verified before Foldkit widens those ranges. When upgrading an existing app, update every Effect package together within the supported minor version. Use the stable import paths, such as `effect/http` and `effect/persistence`, in place of their `effect/unstable` paths.
 
-Install Foldkit together with its pinned peer dependencies:
+Install Foldkit together with its compatible peer dependencies:
 
 ::Snippet{name="getStartedInstallFoldkit" label="Install Foldkit and Effect"}
 
