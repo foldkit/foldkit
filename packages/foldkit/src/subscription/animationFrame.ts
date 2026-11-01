@@ -40,7 +40,7 @@ const makeAnimationFrameStream = <Message>(
         }
 
         const tick = (now: number): void => {
-          beginAnimationFrameCallbackPhase()
+          beginAnimationFrameCallbackPhase(now)
           try {
             const deltaTime = now - state.lastTime
             state.lastTime = now

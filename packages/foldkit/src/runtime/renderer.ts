@@ -21,7 +21,7 @@ import {
   __patchVNode,
   __recoverVNodeAfterPatchFailure,
 } from '../vdom.js'
-import { isInAnimationFrameCallbackPhase } from './animationFramePhase.js'
+import { currentAnimationFrame } from './animationFramePhase.js'
 import {
   type CrashConfig,
   type VNodeSlot,
@@ -184,6 +184,7 @@ export const makeRenderer = <Model, Message>({
     // waits for the commit rather than for the frame that scheduled it.
     let isRenderFrameScheduled = false
     let isRunningRenderFrame = false
+    let maybeEarlyRenderFrame: Option.Option<number> = Option.none()
     // NOTE: resume clears the DevTools store's pause flag before its frame
     // patches the live view. This distinguishes that intentional repaint
     // from an ordinary frame that was already queued when jumpTo installed
@@ -743,8 +744,9 @@ export const makeRenderer = <Model, Message>({
     // paint. Requesting another frame from there defers the render, and the
     // next tick lands first and folds into that pending render, so the view
     // runs on every other frame. That tick renders in a microtask before
-    // paint instead. A Message dispatched while the render is on the stack
-    // still requests a later frame, so the render cannot reschedule itself.
+    // paint instead, once per frame. Any later Message in that frame, and a
+    // Message dispatched while the render is on the stack, requests a later
+    // frame, so the render cannot reschedule itself.
     const scheduleRenderFrame = (
       isRestoringLiveView: boolean = false,
     ): void => {
@@ -756,7 +758,16 @@ export const makeRenderer = <Model, Message>({
       }
       isRenderFrameScheduled = true
       commitNotifier.markCommitPending()
-      if (isInAnimationFrameCallbackPhase() && !isRunningRenderFrame) {
+      const maybeFrame = currentAnimationFrame()
+      if (
+        Option.isSome(maybeFrame) &&
+        !isRunningRenderFrame &&
+        !Option.exists(
+          maybeEarlyRenderFrame,
+          frame => frame === maybeFrame.value,
+        )
+      ) {
+        maybeEarlyRenderFrame = maybeFrame
         queueMicrotask(renderFramePlain)
         return
       }

@@ -25,6 +25,14 @@ const flushMicrotasks = (): Promise<void> =>
     setTimeout(resolve, 0)
   })
 
+// NOTE: yields to queued microtasks only. A MessageChannel or setTimeout
+// task stays queued, so the frame's callback phase is still open.
+const flushMicrotaskQueue = async (): Promise<void> => {
+  for (let turn = 0; turn < 100; turn++) {
+    await Promise.resolve()
+  }
+}
+
 const installFrameClock = () => {
   const originalRequestAnimationFrame = globalThis.requestAnimationFrame
   const originalCancelAnimationFrame = globalThis.cancelAnimationFrame
@@ -54,6 +62,16 @@ const installFrameClock = () => {
     return count
   }
 
+  const startFrame = (): void => {
+    const callbacks = scheduled.splice(0)
+    now += FRAME_STEP_MS
+    for (const entry of callbacks) {
+      if (!cancelled.has(entry.id)) {
+        entry.callback(now)
+      }
+    }
+  }
+
   const runFrame = async (): Promise<void> => {
     const callbacks = scheduled.splice(0)
     now += FRAME_STEP_MS
@@ -79,7 +97,7 @@ const installFrameClock = () => {
     window.cancelAnimationFrame = originalCancelAnimationFrame
   }
 
-  return { scheduledCount, runFrame, restore }
+  return { scheduledCount, startFrame, runFrame, restore }
 }
 
 const waitUntil = async (
@@ -114,6 +132,17 @@ const ClickModel = Schema.Struct({ label: Schema.String })
 type ClickModel = typeof ClickModel.Type
 
 const clickH = __htmlBuilder<ClickMessage>()
+
+const MixedMessage = defineMessageUnion({
+  Ticked: { deltaTime: Schema.Number },
+  ClickedBump: {},
+})
+type MixedMessage = typeof MixedMessage.Type
+
+const MixedModel = Schema.Struct({ step: Schema.Number, label: Schema.String })
+type MixedModel = typeof MixedModel.Type
+
+const mixedH = __htmlBuilder<MixedMessage>()
 
 describe('animation frame rendering', () => {
   let container: HTMLDivElement
@@ -231,6 +260,70 @@ describe('animation frame rendering', () => {
       await clock.runFrame()
 
       expect(document.body.textContent).toContain('bumped')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('renders early once per frame and defers a later Message', async () => {
+    const clock = installFrameClock()
+    restoreClock = clock.restore
+
+    const subscriptions = make<MixedModel, MixedMessage>()(() => ({
+      frame: animationFrameEntry({
+        isActive: () => true,
+        toMessage: deltaTime => MixedMessage.Ticked({ deltaTime }),
+      }),
+    }))
+
+    const application = makeApplication({
+      Model: MixedModel,
+      init: () => ({ model: { step: 0, label: 'idle' } }),
+      update: (model: MixedModel, message: MixedMessage) =>
+        MixedMessage.match<Update.Return<MixedModel, MixedMessage>>(message, {
+          Ticked: () => ({
+            model: modifyFields(model, { step: Number.increment }),
+          }),
+          ClickedBump: () => ({
+            model: modifyFields(model, { label: () => 'bumped' }),
+          }),
+        }),
+      view: model => ({
+        title: 'frames',
+        body: mixedH.button(
+          [mixedH.OnClick(MixedMessage.ClickedBump())],
+          [`${model.step} ${model.label}`],
+        ),
+      }),
+      subscriptions,
+      container,
+    })
+
+    const fiber = Effect.runFork(provideBrowserScheduler(application.start()))
+
+    try {
+      await waitUntil(
+        () => clock.scheduledCount() === 1,
+        'animation frame was not scheduled',
+      )
+      const button = document.body.querySelector('button')
+      if (button === null) {
+        throw new Error('expected a button')
+      }
+
+      clock.startFrame()
+      await flushMicrotaskQueue()
+
+      expect(button.textContent).toBe('1 idle')
+
+      button.click()
+      await flushMicrotaskQueue()
+
+      expect(button.textContent).toBe('1 idle')
+
+      await clock.runFrame()
+
+      expect(button.textContent).toBe('2 bumped')
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
