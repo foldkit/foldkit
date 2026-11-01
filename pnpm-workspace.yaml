@@ -11,11 +11,11 @@ allowBuilds:
   simple-git-hooks: true
 
 minimumReleaseAgeExclude:
-  - '@effect/platform-browser@4.0.0'
-  - '@effect/platform-node-shared@4.0.0'
-  - '@effect/platform-node@4.0.0'
-  - '@effect/vitest@4.0.0'
-  - effect@4.0.0
+  - '@effect/platform-browser@4.1.0'
+  - '@effect/platform-node-shared@4.1.0'
+  - '@effect/platform-node@4.1.0'
+  - '@effect/vitest@4.1.0'
+  - effect@4.1.0
   - '@effect/tsgo-darwin-arm64@0.50.0'
   - '@effect/tsgo-darwin-x64@0.50.0'
   - '@effect/tsgo-linux-arm64@0.50.0'
@@ -28,9 +28,9 @@ minimumReleaseAgeExclude:
 overrides:
   '@mapbox/jsonlint-lines-primitives': 2.0.2
   '@types/node': 26.4.0
-  effect: 4.0.0
-  '@effect/platform-browser': 4.0.0
-  '@effect/platform-node': 4.0.0
-  '@effect/platform-node-shared': 4.0.0
-  '@effect/vitest': 4.0.0
+  effect: 4.1.0
+  '@effect/platform-browser': 4.1.0
+  '@effect/platform-node': 4.1.0
+  '@effect/platform-node-shared': 4.1.0
+  '@effect/vitest': 4.1.0
   'monaco-editor>dompurify': 3.4.14
