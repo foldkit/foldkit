@@ -18,22 +18,10 @@ describe('education', () => {
       Command.expectHas(GenerateEntryId),
       Command.resolve(
         GenerateEntryId,
-        Message.SucceededGenerateEntryId({ entryId: 'test-edu-1' }),
+        Message.CompletedGenerateEntryId({ entryId: 'test-edu-1' }),
       ),
       model(model => {
         expect(model.entries).toHaveLength(2)
-      }),
-    )
-  })
-
-  test('FailedGenerateEntryId leaves the entries unchanged', () => {
-    story(
-      update,
-      givenInitial,
-      message(Message.FailedGenerateEntryId()),
-      Command.expectNone(),
-      model(model => {
-        expect(model).toEqual(init(today, 'education-entry-1'))
       }),
     )
   })

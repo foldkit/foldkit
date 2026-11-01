@@ -216,12 +216,12 @@ describe('no-impure-call-at-decision-time', () => {
     expect(result[0]?.diagnostic.message).toContain('new Date()')
   })
 
-  it('recommends the Effect v4 Crypto service for UUIDs', () => {
+  it('recommends the Effect SecureRandom service for UUIDs', () => {
     const result = run(atProgram(Testing.callOfMember('crypto', 'randomUUID')))
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      "Crypto.Crypto's randomUUIDv4 Effect with a platform Crypto layer",
+      "SecureRandom.SecureRandom's uuidV4 Effect with the platform SecureRandom layer",
     )
   })
 

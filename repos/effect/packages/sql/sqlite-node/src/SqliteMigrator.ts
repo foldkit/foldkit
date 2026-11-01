@@ -6,6 +6,7 @@
  * `SqlClient`. It does not add Node-specific schema dump support; migration
  * execution is handled by the shared SQL migrator.
  *
+ * @stability unstable
  * @since 4.0.0
  */
 import type * as Effect from "effect/Effect"
@@ -18,10 +19,19 @@ import type { SqlError } from "effect/sql/SqlError"
  * @since 4.0.0
  */
 export * from "effect/sql/Migrator"
+export {
+  /**
+   * @stability unstable
+   * @category loaders
+   * @since 4.0.0
+   */
+  fromFileSystem
+} from "effect/sql/MigratorFileSystem"
 
 /**
  * Runs SQL migrations for a SQLite database using the shared `Migrator` implementation and the current `SqlClient`.
  *
+ * @stability unstable
  * @category running
  * @since 4.0.0
  */
@@ -78,6 +88,7 @@ export const run: <R2 = never>(
 /**
  * Creates a layer that runs the configured SQLite migrations during layer construction and provides no services.
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */

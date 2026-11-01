@@ -6,8 +6,10 @@
  * choosing serialization, runner health checks, runner storage, message
  * storage, and optional client-only mode from the supplied options.
  *
+ * @stability unstable
  * @since 4.0.0
  */
+import * as NodeCrypto from "@effect/platform-node-shared/NodeCrypto"
 import * as HttpRunner from "effect/cluster/HttpRunner"
 import * as MessageStorage from "effect/cluster/MessageStorage"
 import * as RunnerHealth from "effect/cluster/RunnerHealth"
@@ -29,7 +31,6 @@ import * as Option from "effect/Option"
 import * as RpcSerialization from "effect/rpc/RpcSerialization"
 import type { SqlClient } from "effect/sql/SqlClient"
 import { layerK8sHttpClient } from "./BunClusterSocket.ts"
-import * as BunCrypto from "./BunCrypto.ts"
 import * as BunFileSystem from "./BunFileSystem.ts"
 import * as BunHttpServer from "./BunHttpServer.ts"
 import type { BunServices } from "./BunServices.ts"
@@ -39,6 +40,7 @@ export {
   /**
    * Layer that provides a Kubernetes HTTP client for runner health checks.
    *
+   * @stability unstable
    * @category re-exports
    * @since 4.0.0
    */
@@ -48,6 +50,7 @@ export {
 /**
  * Layer that provides a Bun HTTP server for cluster runners.
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */
@@ -94,6 +97,7 @@ export const layerHttpServer: Layer.Layer<
  * @see {@link layerHttpServer} for the server layer used by non-client-only transports
  * @see {@link layerK8sHttpClient} for Kubernetes runner health support
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */
@@ -159,7 +163,7 @@ export const layer = <
         ? MessageStorage.layerNoop
         : options?.storage === "byo"
         ? Layer.empty
-        : Layer.orDie(SqlMessageStorage.layer).pipe(Layer.provide(BunCrypto.layer))
+        : SqlMessageStorage.layer.pipe(Layer.provide(NodeCrypto.layerDigest))
     ),
     Layer.provide(
       options?.storage === "local"

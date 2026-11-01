@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Release a Foldkit Version'
+  short_description: 'Prepare and verify Foldkit version releases'
+  default_prompt: 'Use $release-version to prepare and verify a Foldkit release through the automated publication workflow.'

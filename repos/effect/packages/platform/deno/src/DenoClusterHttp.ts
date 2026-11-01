@@ -6,6 +6,7 @@
  * choosing serialization, runner health checks, runner storage, message
  * storage, and optional client-only mode from the supplied options.
  *
+ * @stability unstable
  * @since 4.0.0
  */
 import * as HttpRunner from "effect/cluster/HttpRunner"
@@ -18,6 +19,7 @@ import * as ShardingConfig from "effect/cluster/ShardingConfig"
 import * as SqlMessageStorage from "effect/cluster/SqlMessageStorage"
 import * as SqlRunnerStorage from "effect/cluster/SqlRunnerStorage"
 import type * as Config from "effect/Config"
+import * as Digest from "effect/crypto/Digest"
 import * as Effect from "effect/Effect"
 import type * as Etag from "effect/http/Etag"
 import type { HttpPlatform } from "effect/http/HttpPlatform"
@@ -28,7 +30,6 @@ import * as Option from "effect/Option"
 import * as RpcSerialization from "effect/rpc/RpcSerialization"
 import type { SqlClient } from "effect/sql/SqlClient"
 import { layerK8sHttpClient } from "./DenoClusterSocket.ts"
-import * as DenoCrypto from "./DenoCrypto.ts"
 import * as DenoHttpClient from "./DenoHttpClient.ts"
 import * as DenoHttpServer from "./DenoHttpServer.ts"
 import type { DenoServices } from "./DenoServices.ts"
@@ -38,6 +39,7 @@ export {
   /**
    * Layer that provides a Kubernetes HTTP client for runner health checks.
    *
+   * @stability unstable
    * @category re-exports
    * @since 4.0.0
    */
@@ -47,6 +49,7 @@ export {
 /**
  * Layer that provides a native Deno HTTP server for cluster runners.
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */
@@ -74,6 +77,7 @@ export const layerHttpServer: Layer.Layer<
  * Creates Deno cluster layers for HTTP or WebSocket transport, configuring
  * serialization, storage, runner health, and optional client-only mode.
  *
+ * @stability unstable
  * @category layers
  * @since 4.0.0
  */
@@ -137,7 +141,7 @@ export const layer = <
         ? MessageStorage.layerNoop
         : options.storage === "byo"
         ? Layer.empty
-        : Layer.orDie(SqlMessageStorage.layer).pipe(Layer.provide(DenoCrypto.layer))
+        : SqlMessageStorage.layer.pipe(Layer.provide(Digest.layerWebCrypto))
     ),
     Layer.provide(
       options.storage === "local"

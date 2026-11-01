@@ -40,6 +40,9 @@
     "packages/devtools": {
       "entry": ["src/vite.ts"]
     },
+    "packages/node": {
+      "ignoreDependencies": ["@effect/platform-node-shared"]
+    },
     "packages/vite-plugin-foldkit": {
       "ignoreFiles": ["test/fixtures/**"],
       "ignoreDependencies": ["@effect/platform-node-shared"]
