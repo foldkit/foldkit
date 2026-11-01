@@ -17,6 +17,10 @@ import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import { idSelector } from '../internal/selectors.js'
+import {
+  type ValueOutMessageMatch,
+  bindValueOutMessageMatch,
+} from '../internal/valueOutMessageMatch.js'
 import { keyToIndex } from '../keyboard.js'
 
 // MODEL
@@ -431,7 +435,8 @@ const internalView = defineView<Model, Message, ViewInputs>(
 )
 
 /** The `view` and `update` pair that `RadioGroup.create` returns, bound to one
- *  `Value` type. Name it to annotate a value that holds a created bundle,
+ *  `Value` type. `OutMessage.match` folds a `Selected` whose `value` is that
+ *  same `Value`. Name it to annotate a value that holds a created bundle,
  *  such as a field on a config object or a function parameter that takes
  *  the bundle rather than calling `create` itself. */
 export type Bundle<Value extends string = string> = Readonly<{
@@ -440,6 +445,9 @@ export type Bundle<Value extends string = string> = Readonly<{
     model: Model,
     message: Message,
   ) => Update.ReturnWithOutMessage<Model, Message, OutMessage<Value>>
+  OutMessage: Readonly<{
+    match: ValueOutMessageMatch<OutMessage<Value>>
+  }>
 }>
 
 /** Pairs the radio group `view` and `update` behind a single Value-typed
@@ -453,8 +461,8 @@ export type Bundle<Value extends string = string> = Readonly<{
  *  // In view (selectedValue is the parent-owned selection):
  *  h.submodel({ view: PlanRadioGroup.view, viewInputs: { selectedValue, ... }, ... })
  *
- *  // In the parent update, pass PlanRadioGroup.update to Update.foldChild
- *  // and fold the Selected OutMessage into your Model.
+ *  // In the parent update, fold Selected with PlanRadioGroup.OutMessage.match
+ *  // so value is Plan, and pass PlanRadioGroup.update to Update.foldChild.
  *  ```
  *
  *  The internal view stays typed `ReadonlyArray<string>`; consumers can
@@ -478,5 +486,8 @@ export const create = <Value extends string = string>(): Bundle<Value> => {
       ViewInputs<Value>
     >,
     update: (model, message) => cast(update(model, message)),
+    OutMessage: {
+      match: bindValueOutMessageMatch<OutMessage<Value>>(OutMessage.match),
+    },
   }
 }

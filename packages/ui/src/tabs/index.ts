@@ -8,6 +8,10 @@ import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import { idSelector } from '../internal/selectors.js'
+import {
+  type ValueOutMessageMatch,
+  bindValueOutMessageMatch,
+} from '../internal/valueOutMessageMatch.js'
 import { keyToIndex } from '../keyboard.js'
 
 export { wrapIndex, findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
@@ -350,7 +354,8 @@ const internalView = defineView<Model, Message, ViewInputs>(
 )
 
 /** The `view` and `update` pair that `Tabs.create` returns, bound to one
- *  `Value` type. Name it to annotate a value that holds a created bundle,
+ *  `Value` type. `OutMessage.match` folds a `Selected` whose `value` is that
+ *  same `Value`. Name it to annotate a value that holds a created bundle,
  *  such as a field on a config object or a function parameter that takes
  *  the bundle rather than calling `create` itself. */
 export type Bundle<Value extends string = string> = Readonly<{
@@ -359,6 +364,9 @@ export type Bundle<Value extends string = string> = Readonly<{
     model: Model,
     message: Message,
   ) => Update.ReturnWithOutMessage<Model, Message, OutMessage<Value>>
+  OutMessage: Readonly<{
+    match: ValueOutMessageMatch<OutMessage<Value>>
+  }>
 }>
 
 /** Pairs the tabs `view` and `update` behind a single Value-typed entry
@@ -372,8 +380,8 @@ export type Bundle<Value extends string = string> = Readonly<{
  *  // In view (selectedValue is the parent-owned active tab):
  *  h.submodel({ view: DemoTabs.view, viewInputs: { selectedValue, ... }, ... })
  *
- *  // In the parent update, pass DemoTabs.update to Update.foldChild and
- *  // fold the Selected OutMessage into your Model.
+ *  // In the parent update, fold Selected with DemoTabs.OutMessage.match so
+ *  // value is DemoTab, and pass DemoTabs.update to Update.foldChild.
  *  ```
  *
  *  The internal view stays typed `ReadonlyArray<string>`; consumers can
@@ -397,5 +405,8 @@ export const create = <Value extends string = string>(): Bundle<Value> => {
       ViewInputs<Value>
     >,
     update: (model, message) => cast(update(model, message)),
+    OutMessage: {
+      match: bindValueOutMessageMatch<OutMessage<Value>>(OutMessage.match),
+    },
   }
 }
