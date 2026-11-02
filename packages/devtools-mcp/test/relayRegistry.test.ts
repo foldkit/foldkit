@@ -6,14 +6,24 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  readlink,
   rename,
   rm,
   symlink,
   writeFile,
 } from 'node:fs/promises'
+import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, win32 } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest'
 
 import {
   type RelayRegistryReader,
@@ -21,6 +31,7 @@ import {
   isWithinRoot,
   makeRelayRegistryReader,
 } from '../src/relayRegistry.ts'
+import { boundPort } from './boundPort.ts'
 import {
   RELAY_DIRECTORY_VARIABLE,
   RUNTIME_DIRECTORY_VARIABLE,
@@ -34,6 +45,24 @@ const SHARED_DIRECTORY_MODE = 0o777
 // NOTE: This exceeds every PID Linux or macOS can issue, so no live process can
 // carry it.
 const DEAD_PID = 2_147_483_647
+// NOTE: Port 1 is privileged and unused, so connecting to it is refused.
+const REFUSING_PORT = 1
+const OTHER_PID_NAMESPACE = 'pid:[1]'
+const OTHER_NETWORK_NAMESPACE = 'net:[1]'
+
+const acceptConnections = async (): Promise<number> => {
+  const server = createServer()
+  onTestFinished(() => new Promise<void>(done => server.close(() => done())))
+  await new Promise<void>((resolveListening, reject) => {
+    server.on('error', reject)
+    server.listen(0, '127.0.0.1', () => resolveListening())
+  })
+
+  return Option.getOrThrowWith(
+    boundPort(server.address()),
+    () => new Error('The server has no bound port'),
+  )
+}
 
 const record = (
   root: string,
@@ -272,14 +301,98 @@ describe('discoverRelays', () => {
   })
 
   it('drops and removes the record of a dev server that is gone', async () => {
-    await publish('gone', record('/workspace/app', 4700, { pid: DEAD_PID }))
+    await publish(
+      'gone',
+      record('/workspace/app', REFUSING_PORT, { pid: DEAD_PID }),
+    )
 
     expect(await discover('/workspace')).toStrictEqual([])
     expect(await readdir(registryDirectory)).toEqual([])
   })
 
+  it.skipIf(process.platform !== 'linux')(
+    'keeps the record of a relay in another PID namespace while its port accepts connections',
+    async () => {
+      const port = await acceptConnections()
+      const network = await readlink('/proc/self/ns/net')
+      const elsewhere = record('/workspace/app', port, {
+        pid: DEAD_PID,
+        namespaces: { pid: OTHER_PID_NAMESPACE, network },
+      })
+      await publish('elsewhere', elsewhere)
+
+      expect(await discover('/workspace')).toStrictEqual([elsewhere])
+      expect(await readdir(registryDirectory)).toEqual(['elsewhere.json'])
+    },
+  )
+
+  it.skipIf(process.platform !== 'linux')(
+    'removes the record of a relay in another PID namespace once its port refuses connections',
+    async () => {
+      const network = await readlink('/proc/self/ns/net')
+      await publish(
+        'gone',
+        record('/workspace/app', REFUSING_PORT, {
+          pid: DEAD_PID,
+          namespaces: { pid: OTHER_PID_NAMESPACE, network },
+        }),
+      )
+
+      expect(await discover('/workspace')).toStrictEqual([])
+      expect(await readdir(registryDirectory)).toEqual([])
+    },
+  )
+
+  it.skipIf(process.platform !== 'linux')(
+    'leaves out the record of a relay in another network namespace without removing it',
+    async () => {
+      await publish(
+        'unreachable',
+        record('/workspace/app', REFUSING_PORT, {
+          pid: DEAD_PID,
+          namespaces: {
+            pid: OTHER_PID_NAMESPACE,
+            network: OTHER_NETWORK_NAMESPACE,
+          },
+        }),
+      )
+
+      expect(await discover('/workspace')).toStrictEqual([])
+      expect(await readdir(registryDirectory)).toEqual(['unreachable.json'])
+    },
+  )
+
+  it.skipIf(process.platform !== 'linux')(
+    'keeps a record without namespaces while its port accepts connections',
+    async () => {
+      const port = await acceptConnections()
+      const older = record('/workspace/app', port, { pid: DEAD_PID })
+      await publish('older', older)
+
+      expect(await discover('/workspace')).toStrictEqual([older])
+    },
+  )
+
+  it.skipIf(process.platform !== 'linux')(
+    'removes the record of a dead relay in its own PID namespace without probing its port',
+    async () => {
+      const port = await acceptConnections()
+      const namespaces = {
+        pid: await readlink('/proc/self/ns/pid'),
+        network: await readlink('/proc/self/ns/net'),
+      }
+      await publish(
+        'gone',
+        record('/workspace/app', port, { pid: DEAD_PID, namespaces }),
+      )
+
+      expect(await discover('/workspace')).toStrictEqual([])
+      expect(await readdir(registryDirectory)).toEqual([])
+    },
+  )
+
   it('keeps the newest replacement published while stale cleanup is in progress', async () => {
-    const stale = record('/workspace/app', 4750, {
+    const stale = record('/workspace/app', REFUSING_PORT, {
       id: 'stale',
       pid: DEAD_PID,
     })
