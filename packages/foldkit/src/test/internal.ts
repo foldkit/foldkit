@@ -22,7 +22,14 @@ import { isScopedEntry, isScopedInvocation } from '../block/scope.js'
 import type { Scoped } from '../block/scope.js'
 import { CommandDefinitionTypeId } from '../command/index.js'
 import type { InterruptDefinitionNoArgs } from '../command/interruptible/index.js'
-import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
+import {
+  type MountDefinition,
+  MountDefinitionTypeId,
+  type MountRegistration,
+  MountRegistrationTypeId,
+  type StreamMountAction,
+  type StreamMountDefinition,
+} from '../mount/index.js'
 import {
   type Subscription,
   type MessageDeclaration as SubscriptionMessageDeclaration,
@@ -173,6 +180,8 @@ export type PendingMount = Readonly<{
   [InvocationIdentityTypeId]?: DefinitionIdentity | undefined
   /** @internal The original Mount name before placement prefixes. */
   [InvocationNameTypeId]?: string | undefined
+  /** @internal Immutable lifecycle kind and declared result Schemas. */
+  [MountRegistrationTypeId]?: MountRegistration
   name: string
   args?: Record<string, unknown>
   occurrence: number
@@ -195,6 +204,21 @@ export type AnyMount = Readonly<{
  *  Two modes only: definition identity or identity + full args. Partial-args matching is
  *  intentionally unsupported, mirroring `CommandMatcher`. */
 export type MountMatcher = MountDefinition<string, unknown> | AnyMount
+
+/** A continuous Mount Definition or action selected for a later emission. */
+export type StreamMountMatcher =
+  | StreamMountDefinition<string, unknown, any>
+  | StreamMountAction<unknown, any, any>
+
+/** The result Message declared by a selected continuous Mount. */
+export type StreamMountMessage<Matcher extends StreamMountMatcher> =
+  Matcher extends (...args: Array<any>) => infer Action
+    ? Action extends StreamMountAction<infer Message, any, any>
+      ? Message
+      : never
+    : Matcher extends StreamMountAction<infer Message, any, any>
+      ? Message
+      : never
 
 const isMountDefinitionMatcher = (
   matcher: MountMatcher,
@@ -756,27 +780,9 @@ export const resolveMountByMatcher = <Model, Message>(
         pendingMounts,
         Array.get(index),
         Option.map(matchedMount => {
-          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          const resolverMessage = foldMessageMappers(
-            matchedMount.messageMappers,
-            resultMessage,
-          ) as Message
           const remaining = Array.remove(pendingMounts, index)
-          const messageUpdate = internal.updateFn(
-            internal.model,
-            resolverMessage,
-          )
           return {
-            internal: {
-              ...internal,
-              model: messageUpdate.model,
-              message: resolverMessage,
-              commands: Array.appendAll(
-                internal.commands,
-                messageUpdate.commands ?? [],
-              ),
-              outMessage: messageUpdate.outMessage,
-            },
+            internal: applyMountMessage(internal, matchedMount, resultMessage),
             pendingMounts: remaining,
           }
         }),
@@ -784,6 +790,28 @@ export const resolveMountByMatcher = <Model, Message>(
     ),
     Option.getOrUndefined,
   )
+
+/** Applies a selected Mount's raw result through its captured boundary chain. */
+export const applyMountMessage = <Model, Message, OutMessage>(
+  internal: BaseInternal<Model, Message, OutMessage>,
+  mount: PendingMount,
+  resultMessage: unknown,
+): BaseInternal<Model, Message, OutMessage> => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const message = foldMessageMappers(
+    mount.messageMappers,
+    resultMessage,
+  ) as Message
+  const messageUpdate = internal.updateFn(internal.model, message)
+
+  return {
+    ...internal,
+    model: messageUpdate.model,
+    message,
+    commands: Array.appendAll(internal.commands, messageUpdate.commands ?? []),
+    outMessage: messageUpdate.outMessage,
+  }
+}
 
 /** Throws if any of the given matchers are missing from the pending mount
  *  list. Definition matchers select the source; Instance matchers also

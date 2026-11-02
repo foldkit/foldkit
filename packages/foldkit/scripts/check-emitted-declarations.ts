@@ -762,6 +762,12 @@ const checks: ReadonlyArray<
     consumers: ['scene-routing.consume.ts'],
   },
   {
+    name: 'scene-mount-stream',
+    accepted: ['scene-mount-stream.accepted.ts'],
+    rejected: ['scene-mount-stream.rejected.ts'],
+    consumers: ['scene-mount-stream.consume.ts'],
+  },
+  {
     name: 'machine',
     accepted: [
       'machine.contracts.ts',
@@ -1063,6 +1069,7 @@ const main = async (): Promise<void> => {
     'message-steps',
     'machine',
     'scene-routing',
+    'scene-mount-stream',
     'append-initialization',
     'set-initialization',
     'set-optional-initialization',

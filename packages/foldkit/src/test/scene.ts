@@ -44,7 +44,7 @@ import type {
   KeyboardModifiers,
 } from '../html/index.js'
 import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
-import { MountTracker } from '../mount/index.js'
+import { MountRegistrationTypeId, MountTracker } from '../mount/index.js'
 import type {
   AnyMountHandler,
   LayeredMountDefinition,
@@ -90,9 +90,12 @@ import type {
   Resolver,
   ResolverEntry,
   SimulationUpdateReturn,
+  StreamMountMatcher,
+  StreamMountMessage,
   SubscriptionEmissionSource,
 } from './internal.js'
 import {
+  applyMountMessage,
   assertAllCommandsResolved,
   assertAllMountsResolved,
   assertAllUnmountsAcknowledged,
@@ -151,6 +154,8 @@ export type {
   MountResolver,
   PendingMount,
   Resolver,
+  StreamMountMatcher,
+  StreamMountMessage,
 }
 
 export {
@@ -1623,6 +1628,65 @@ const resolveMount: {
     /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
 
+/** Delivers a declared Message from one resolved, still-mounted stream. */
+const emitMountMessage =
+  <const Matcher extends StreamMountMatcher>(
+    matcher: Matcher,
+    message: NoInfer<StreamMountMessage<Matcher>>,
+  ) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    assertExternalMessageBoundary(
+      simulation,
+      'when a stream Mount emitted a new Message',
+    )
+    const internal = toInternal(simulation)
+    const matching = Array.filter(
+      internal.mountSlots,
+      state =>
+        state.status._tag === 'Resolved' && mountMatches(matcher, state.slot),
+    )
+    const selected = Array.matchLeft(matching, {
+      onEmpty: () => {
+        throw new Error(
+          `Scene.Mount.emit selected no resolved active Mount matching ${formatMountMatcher(matcher)}.\n\n` +
+            'Resolve its first result before emitting later Messages, and keep its element mounted.',
+        )
+      },
+      onNonEmpty: (first, remaining) => {
+        if (Array.isArrayNonEmpty(remaining)) {
+          throw new Error(
+            `Scene.Mount.emit selected multiple active Mounts matching ${formatMountMatcher(matcher)}.\n\n` +
+              'Select the bound Mount instance and its complete args for the intended occurrence.',
+          )
+        }
+        return first
+      },
+    })
+    const registration = selected.slot[MountRegistrationTypeId]
+
+    if (registration?.kind !== 'Stream') {
+      throw new Error(
+        'Scene.Mount.emit requires a stream Mount declared with makeMountStream or Mount.defineStream.',
+      )
+    }
+
+    if (
+      !Array.some(registration.messages, schema => Schema.is(schema)(message))
+    ) {
+      throw new Error(
+        `Scene.Mount.emit received a Message not declared by ${selected.slot.name}:\n\n` +
+          `    ${JSON.stringify(message)}`,
+      )
+    }
+
+    return {
+      ...internal,
+      ...applyMountMessage(internal, selected.slot, message),
+    }
+  }
+
 /** Resolves all listed Mounts with their result Messages. Mounts are resolved
  *  in the order listed; each resolution feeds its Message through update
  *  before the next is resolved. */
@@ -2047,13 +2111,19 @@ export const Command = {
   keepPending: keepPendingCommandStep,
 } as const
 
-/** Steps that operate on the pending Mounts of a scene simulation.
+/** Steps that operate on pending and active Mounts of a scene simulation.
  *  Destructure as `const { Mount } = Scene` for concise call sites. */
 export const Mount = {
   /** Resolves a specific pending Mount with the given result Message. */
   resolve: resolveMount,
   /** Resolves all listed Mounts with their result Messages. */
   resolveAll: resolveAllMounts,
+  /** Delivers a declared raw Message from one resolved stream Mount without
+   *  consuming its active registration. The element must still be mounted.
+   *  Select a bound instance and complete args when the same source occurs
+   *  more than once. Pending Commands, Mounts, and unacknowledged unmounts
+   *  must be handled before another emission. */
+  emit: emitMountMessage,
   /** Asserts that every given Mount is among the pending Mounts. */
   expectHas: expectHasMountsStep,
   /** Asserts that the pending Mounts match the given source and instance matchers exactly, regardless of order. */

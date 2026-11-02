@@ -589,7 +589,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 DialogBlock,
                 Story.given(openDialog({ id: 'test' }).model),
                 Story.message(Message.FailedAcquireResources()),
-                Story.expectNoOutMessage(),
+                Story.expectOutMessage(OutMessage.Closed()),
                 Story.model(model => {
                   expect(model.isOpen).toBe(false)
                 }),
@@ -622,7 +622,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 DialogBlock,
                 Story.given(enteringModel),
                 Story.message(Message.FailedAcquireResources()),
-                Story.expectNoOutMessage(),
+                Story.expectOutMessage(OutMessage.Closed()),
                 Story.model(model => {
                   expect(model.isOpen).toBe(false)
                   expect(model.animation.isShowing).toBe(false)
@@ -933,7 +933,7 @@ it.layer(layer, { buildPerTest: true })(it => {
 
       describe('Unmounted', () => {
         it.effect(
-          'resets the model to closed and releases resources without emitting Closed',
+          'reports Closed while resetting the model and releasing resources',
           () =>
             Story.withBlock(DialogBlock, block => {
               const { openDialog } = makeFixture(block)
@@ -942,7 +942,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 DialogBlock,
                 Story.given(openDialog({ id: 'test' }).model),
                 Story.message(Message.Unmounted()),
-                Story.expectNoOutMessage(),
+                Story.expectOutMessage(OutMessage.Closed()),
                 Story.model(model => {
                   expect(model.isOpen).toBe(false)
                 }),
@@ -1035,7 +1035,7 @@ it.layer(layer, { buildPerTest: true })(it => {
 
       describe('FailedShowDialog', () => {
         it.effect(
-          'closes the model without emitting Closed or releasing resources',
+          'reports Closed without releasing resources when showing fails',
           () =>
             Story.withBlock(DialogBlock, block => {
               const { openDialog } = makeFixture(block)
@@ -1044,7 +1044,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 DialogBlock,
                 Story.given(openDialog({ id: 'test' }).model),
                 Story.message(Message.FailedShowDialog()),
-                Story.expectNoOutMessage(),
+                Story.expectOutMessage(OutMessage.Closed()),
                 Story.model(model => {
                   expect(model.isOpen).toBe(false)
                 }),
@@ -1074,7 +1074,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               DialogBlock,
               Story.given(enteringModel),
               Story.message(Message.FailedShowDialog()),
-              Story.expectNoOutMessage(),
+              Story.expectOutMessage(OutMessage.Closed()),
               Story.model(model => {
                 expect(model.isOpen).toBe(false)
                 expect(model.animation.isShowing).toBe(false)
@@ -1146,11 +1146,66 @@ it.layer(layer, { buildPerTest: true })(it => {
                 DialogBlock,
                 Story.given(openDialog({ id: 'test' }).model),
                 Story.message(Message.FailedShowDialog()),
+                Story.expectOutMessage(OutMessage.Closed()),
                 Story.inMessage(InMessage.RequestedClose()),
                 Story.expectNoOutMessage(),
                 Story.Command.expectNone(),
               )
             }),
+        )
+      })
+
+      describe('parent close policy', () => {
+        it.effect('runs when the native dialog fails to show', () =>
+          Story.story(
+            ParentBlock,
+            Story.init(),
+            Story.Command.resolve(
+              LoadParentData,
+              ParentMessage.CompletedLoadParentData(),
+            ),
+            Story.Command.resolve(ShowDialog, Message.FailedShowDialog()),
+            Story.model(model => {
+              expect(model.dialog.isOpen).toBe(false)
+              expect(model.dialogEvents).toStrictEqual(['Opened', 'Closed'])
+            }),
+          ),
+        )
+
+        it.effect('runs when lifecycle acquisition fails', () =>
+          Story.story(
+            ParentBlock,
+            Story.init(),
+            Story.Command.resolveAll(
+              [LoadParentData, ParentMessage.CompletedLoadParentData()],
+              [ShowDialog, Message.SucceededShowDialog()],
+            ),
+            Story.messageFrom(DialogBinding, Message.FailedAcquireResources()),
+            Story.model(model => {
+              expect(model.dialog.isOpen).toBe(false)
+              expect(model.dialogEvents).toStrictEqual(['Opened', 'Closed'])
+            }),
+          ),
+        )
+
+        it.effect('runs when the open dialog unmounts', () =>
+          Story.story(
+            ParentBlock,
+            Story.init(),
+            Story.Command.resolveAll(
+              [LoadParentData, ParentMessage.CompletedLoadParentData()],
+              [ShowDialog, Message.SucceededShowDialog()],
+            ),
+            Story.messageFrom(DialogBinding, Message.Unmounted()),
+            Story.model(model => {
+              expect(model.dialog.isOpen).toBe(false)
+              expect(model.dialogEvents).toStrictEqual(['Opened', 'Closed'])
+            }),
+            Story.Command.resolve(
+              ReleaseDialogResources,
+              Message.CompletedReleaseDialogResources(),
+            ),
+          ),
         )
       })
     })

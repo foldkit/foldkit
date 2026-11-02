@@ -277,12 +277,25 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Mount.resolve(Def, ResultMessage)`           | Resolves the first pending Mount from the given Definition by feeding `ResultMessage` through update. For a Mount inside a child Block, resolve replays the boundary lift automatically, so you pass the child’s raw result Message. |
 | `Mount.resolveAll([Def, ResultMessage], ...)` | Resolves a batch of pending mounts in order.                                                                                                                                                                                         |
+| `Mount.emit(Def, Message)`                    | Delivers a later declared Message from one resolved, still-mounted stream Mount. It leaves the active Mount available for subsequent emissions.                                                                                      |
 | `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent, by source identity).                                                                                                                                                      |
 | `Mount.expectHas(A)`                          | A is among the pending mounts by source identity.                                                                                                                                                                                    |
 | `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                         |
 | `Mount.expectEnded(A)`                        | A's element was removed or replaced. Required for every Mount that fired before its element was removed or replaced, regardless of whether it was resolved first; otherwise the scene throws at the end.                             |
 
 UI components expose their Mount Definitions as `Popover.test.AnchorPopover`, `Listbox.test.AnchorListbox`, and so on. These are the original declarations, so source-identity matching survives placement-qualified runtime names. The [testing migration cookbook](/testing#migrate-an-existing-test-suite) shows the completed Block and public test namespace together.
+
+### Stream Mount emissions
+
+A Mount declared with `makeMountStream` or `Mount.defineStream` can produce Messages throughout its element's lifetime. Resolve its first result with `Mount.resolve`, then use `Mount.emit` for later results. `resolve` continues to consume one pending Mount; calling it again does not select an already-resolved stream.
+
+This example assumes `CanvasBlock` renders `ObserveCanvas`, a stream Mount that reports its initial size and subsequent `ResizeObserver` measurements.
+
+::Snippet{name="sceneMountStream" label="Later measurements from a mounted stream"}
+
+`Mount.emit` accepts the stream's declared raw Message and validates its payload. Child Block boundary lifts are replayed automatically. The selected element must still be mounted, and its first result must already be resolved. Resolve pending Commands and Mounts and acknowledge ended Mounts before emitting again. `Mount.expectNone` checks pending Mounts; an active, resolved stream does not count as pending.
+
+When several active Mounts share the same source, pass the bound instance and its complete args to select one occurrence. An ambiguous match throws. Stream emissions do not execute handler Layers, so the same steps work for attached and host-owned implementations.
 
 ## Subscriptions
 

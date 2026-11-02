@@ -56,7 +56,7 @@ When the program runs without an embed handle (started with `Runtime.run`), emit
 
 ::Snippet{name="embeddingHost" label="Host wiring"}
 
-`dispose` ties the runtime to the host’s unmount. It interrupts the runtime and runs all cleanup: Subscriptions, Mounts, and ManagedResources release, in-flight Commands stop, the rendered DOM is removed, and the container element is restored empty in its place, ready for a fresh `embed`. It is idempotent, and sends on a disposed handle are no-ops, so a host that unmounts and remounts in quick succession stays correct. A program can be embedded once at a time; after `dispose`, the same program and container can be embedded again.
+`dispose` disables the handle immediately and returns a Promise that settles after runtime teardown completes. Teardown interrupts in-flight Commands, releases Subscriptions, Mounts, and ManagedResources, removes the rendered DOM, and restores the original container empty in its place. Await that Promise before creating or embedding a different Program in the same container. Re-embedding the same Program is sequenced automatically, and repeated calls to `dispose` return the same Promise.
 
 ## The Schema Boundary
 
@@ -66,6 +66,6 @@ An invalid inbound value never reaches the app. `send` returns an `Exit` carryin
 
 ## Embedding in React
 
-The handle is framework-agnostic, and its lifecycle maps directly onto effect hooks. In React, `embed` on effect setup and `dispose` on cleanup is the whole integration:
+The handle is framework-agnostic. React cleanup cannot await a Promise, so keep the pending teardown and make the next effect setup wait before reusing the container:
 
 ::Snippet{name="embeddingReactHost" label="React host"}

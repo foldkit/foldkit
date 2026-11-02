@@ -243,11 +243,14 @@ export const hydrate = <P extends Ports | undefined, Flags, Resources>(
  * app. The host never touches the Model or dispatches Messages directly; the
  * Schema-typed Ports are the whole boundary.
  *
- * Works with programs from both `makeApplication` and `makeElement`; for a
- * widget on a page the host owns, `makeElement` is the natural fit.
+ * Works with Programs from both `Program.make` and `Program.makeElement`;
+ * use `Program.makeElement` for a widget on a page the host owns.
  *
- * A program can be embedded once at a time (it owns one container). After
- * `dispose`, the same container can be embedded again with a fresh program.
+ * A Program can be embedded once at a time. `dispose` immediately disables
+ * its handle and returns a Promise that settles after runtime teardown and
+ * container restoration. Await that Promise before reusing the container for
+ * a different Program. Re-embedding the same Program is sequenced
+ * automatically.
  *
  * ```ts
  * const handle = Runtime.embed(element)
@@ -257,7 +260,7 @@ export const hydrate = <P extends Ports | undefined, Flags, Resources>(
  *   console.log(count)
  * })
  *
- * handle.dispose()
+ * await handle.dispose()
  * ```
  */
 export function embed<
@@ -323,15 +326,20 @@ export function embed<P extends Ports | undefined = undefined>(
   )
   embedLifecycle.maybeActiveFiber = Option.some(fiber)
 
-  let isHandleDisposed = false
-  const dispose = (): void => {
-    if (isHandleDisposed) {
-      return
+  let disposalPromise: Promise<void> | undefined
+  const dispose = (): Promise<void> => {
+    if (disposalPromise !== undefined) {
+      return disposalPromise
     }
-    isHandleDisposed = true
+
     connector.dispose()
     embedLifecycle.isEmbedActive = false
-    Effect.runFork(Fiber.interrupt(fiber))
+
+    disposalPromise = Promise.resolve().then(() =>
+      Effect.runPromise(Effect.asVoid(Fiber.interrupt(fiber))),
+    )
+
+    return disposalPromise
   }
 
   const ports = buildPortHandles(program.ports, connector)

@@ -63,7 +63,7 @@ Flags still resolve before init, but their wiring follows the ownership boundary
 
 ### Host-Owned Lifetime
 
-`Runtime.run` starts a program for the lifetime of the page and returns no handle. `Runtime.embed` starts one under a host-controlled lifetime, whether the host is React or anything else. The host seeds the program with Flags, exchanges values through Schema-typed Ports, and tears it down with `dispose`.
+`Runtime.run` starts a Program for the lifetime of the page and returns no handle. `Runtime.embed` starts one under a host-controlled lifetime, whether the host is React or anything else. The host seeds the Program with Flags, exchanges values through Schema-typed Ports, and calls `dispose` to disable the handle and receive a Promise for completed teardown.
 
 ### Handle Boundary
 

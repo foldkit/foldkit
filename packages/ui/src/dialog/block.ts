@@ -225,7 +225,8 @@ const acquireDialogResourcesResult = (
  *  signal to `CanceledDialog` while suppressing native `cancel` events. The
  *  Dialog component supplies its own backdrop. If the dialog element is gone
  *  by the time the show runs, the Command reports `FailedShowDialog` without
- *  taking the scroll lock. The update function then closes the Model. The
+ *  taking the scroll lock. The update function then closes the Model and emits
+ *  `Closed` if it was open. The
  *  acquisition becomes uninterruptible after the committed element is found,
  *  so modal resources and the scroll lock cannot split. A concurrent
  *  lifecycle acquisition reuses the resources already held by the id. */
@@ -322,6 +323,12 @@ const markDialogClosed = DialogDefinition.makeFieldsStep(() => ({
 }))
 const resetToClosed = DialogDefinition.makeStep(() =>
   Update.combineSteps([markDialogClosed, resetAnimationImmediately]),
+)
+const resetAndReportClose = DialogDefinition.makeStep(model =>
+  Function.compose(
+    resetToClosed,
+    Update.withOutMessage(model.isOpen ? OutMessage.Closed() : undefined),
+  ),
 )
 
 const AnimationBindingWithOutMessagePolicy =
@@ -423,12 +430,17 @@ export const update = DialogComposition.makeUpdate({
   ClickedCloseButton: closeDialog,
   Unmounted: model => {
     if (isOpenOrAnimating(model)) {
-      return Update.combineSteps(model, [
+      const dialogUnmount = Update.combineSteps(model, [
         resetToClosed,
         DialogDefinition.makeCommandsStep(stepModel => [
           ReleaseDialogResources({ id: stepModel.id }),
         ]),
       ])
+
+      return pipe(
+        dialogUnmount,
+        Update.withOutMessage(model.isOpen ? OutMessage.Closed() : undefined),
+      )
     } else {
       return leaveDialogUnchanged(model)
     }
@@ -446,7 +458,7 @@ export const update = DialogComposition.makeUpdate({
 
   FailedShowDialog: model => {
     if (isOpenOrAnimating(model)) {
-      return resetToClosed(model)
+      return resetAndReportClose(model)
     } else {
       return leaveDialogUnchanged(model)
     }
@@ -464,7 +476,7 @@ export const update = DialogComposition.makeUpdate({
 
   FailedAcquireResources: model => {
     if (isOpenOrAnimating(model)) {
-      return resetToClosed(model)
+      return resetAndReportClose(model)
     } else {
       return leaveDialogUnchanged(model)
     }

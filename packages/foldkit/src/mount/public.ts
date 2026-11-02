@@ -19,7 +19,12 @@ export type {
   MountDefinition,
   MountDefinitionNoArgs,
   MountDefinitionWithArgs,
+  MountRegistration,
   RequirementsOf,
+  StreamMountAction,
+  StreamMountDefinition,
+  StreamMountDefinitionNoArgs,
+  StreamMountDefinitionWithArgs,
   ToEffectLayer,
   ToStreamLayer,
 } from './index.js'

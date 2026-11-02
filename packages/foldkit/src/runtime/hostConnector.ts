@@ -63,14 +63,17 @@ export type PortHandles<P extends Ports | undefined> = P extends Ports
  * through it: `ports.<name>.send` pushes values in, `ports.<name>.subscribe`
  * listens to values the app emits, and `dispose` shuts the runtime down.
  *
- * `dispose` is idempotent. It interrupts the runtime and runs all cleanup:
- * Subscriptions, ManagedResources, Mounts, listeners, and in-flight Commands
- * stop, and the rendered DOM is removed with the container element restored
- * empty in its place, ready for a fresh `embed`.
+ * `dispose` is idempotent and returns a Promise that settles after teardown
+ * completes. It immediately disables the handle, then interrupts the runtime
+ * and runs all cleanup: Subscriptions, ManagedResources, Mounts, listeners,
+ * and in-flight Commands stop, and the rendered DOM is removed with the
+ * container element restored empty in its place. Await it before reusing the
+ * container for a different Program. Re-embedding the same Program is
+ * sequenced automatically.
  */
 export type EmbedHandle<P extends Ports | undefined = undefined> = Readonly<{
   ports: PortHandles<P>
-  dispose: () => void
+  dispose: () => Promise<void>
 }>
 
 export type HostConnector = Readonly<{

@@ -24,9 +24,6 @@ const unsubscribe = handle.ports.countChanged.subscribe(count => {
   console.log(`widget count: ${count}`)
 })
 
-// On host unmount: dispose interrupts the runtime and runs all cleanup.
-// Subscriptions, Mounts, ManagedResources, and in-flight Commands stop, the
-// rendered DOM is removed, and the container element is restored empty,
-// ready for a fresh embed. dispose is idempotent.
+// Await dispose before reusing this container for a different Program.
 unsubscribe()
-handle.dispose()
+await handle.dispose()
