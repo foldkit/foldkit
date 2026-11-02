@@ -2,13 +2,13 @@
 
 import { Schema } from 'effect'
 
-const Session = Schema.Struct({
+export const Session = Schema.Struct({
   userId: Schema.String,
   displayName: Schema.String,
 })
-type Session = typeof Session.Type
+export type Session = typeof Session.Type
 
-const Model = Schema.Struct({
+export const Model = Schema.Struct({
   session: Session,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type

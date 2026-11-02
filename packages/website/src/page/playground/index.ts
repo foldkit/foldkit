@@ -1,1 +1,1 @@
-export { PlaygroundBlock } from './block'
+export { Playground, PlaygroundLive } from './playground'

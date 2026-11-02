@@ -1,9 +1,0 @@
-{
-  "extends": "../tsconfig.base.json",
-  "compilerOptions": { "noEmit": true, "rootDir": ".." },
-  "include": [
-    "route-step-program.accepted.ts",
-    "route-step-program.consume.ts",
-    "route-step-program.rejected.ts"
-  ]
-}

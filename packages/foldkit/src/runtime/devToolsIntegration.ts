@@ -11,6 +11,7 @@ import {
   SubscriptionRef,
 } from 'effect'
 
+import { isBlockMessage } from '../blocks/engine.js'
 import { extractBlockInfo, isTagged } from '../devTools/blockPath.js'
 import {
   type CommandRecord,
@@ -35,6 +36,13 @@ import {
   resolveDevToolsMaxEntries,
   resolveExcludeFromHistoryTags,
 } from './devToolsConfig.js'
+
+/** The tag `excludeFromHistory` matches: a child Message addressed to a Block
+ *  instance is matched by its own tag. */
+const historyTag = (message: unknown): string | undefined => {
+  const inner = isBlockMessage(message) ? message.message : message
+  return isTagged(inner) ? inner._tag : undefined
+}
 
 /** The Mount starts and ends recorded since the last drain. */
 export type MountEvents = Readonly<{
@@ -166,9 +174,10 @@ export const makeDevToolsIntegration = <Model, Message, DispatchServices>({
     let devToolsStore: DevToolsStore | null = null
 
     const prepareExternalDispatch: PrepareDispatch = message => {
-      if (isTagged(message) && excludeFromHistoryTags.has(message._tag)) {
+      const maybeTag = historyTag(message)
+      if (maybeTag !== undefined && excludeFromHistoryTags.has(maybeTag)) {
         return Result.fail(
-          `Message ${message._tag} is excluded from DevTools history and cannot be dispatched externally.`,
+          `Message ${maybeTag} is excluded from DevTools history and cannot be dispatched externally.`,
         )
       }
       return prepareDispatch(message)
@@ -335,8 +344,7 @@ export const makeDevToolsIntegration = <Model, Message, DispatchServices>({
       // receive the exact history index assigned by the store.
       if (devToolsStore !== null) {
         const store = devToolsStore
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        const tag = (message as { _tag: string })._tag
+        const tag = historyTag(message) ?? ''
         const isModelChanged = currentModel !== nextModel
         if (!excludeFromHistoryTags.has(tag)) {
           return Effect.map(

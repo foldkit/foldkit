@@ -1,12 +1,11 @@
 import { clsx } from 'clsx'
 import { Html } from 'foldkit/html'
 
-import type { ApplicationViewBuilder } from '../composition'
-import { SearchBinding } from '../composition'
 import { Icon } from '../icon'
 import { Message } from '../message'
 import { type Model } from '../model'
 import { KEYBOARD_WARMUP_INPUT_ID } from '../searchDom'
+import type { ApplicationViewBuilder } from './builder'
 
 const keyboardWarmupSelector = `#${KEYBOARD_WARMUP_INPUT_ID}`
 
@@ -15,8 +14,7 @@ const onClickOpenSearch = (h: ApplicationViewBuilder) =>
     focusSelector: keyboardWarmupSelector,
   })
 
-export const dialogView = (model: Model, h: ApplicationViewBuilder): Html =>
-  h.block(SearchBinding.embedView({ slotId: 'search', model: model.search }))
+export const dialogView = (model: Model): Html => model.search.view()
 
 export const triggerView = (
   className: string,

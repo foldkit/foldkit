@@ -2,7 +2,7 @@ import { Duration, Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import * as Animation from '../animation/schema.js'
+import { Animation } from '../animation/index.js'
 
 // VARIANT
 
@@ -75,33 +75,41 @@ export const SWIPE_SETTLE_DURATION = Duration.millis(150)
 
 // ENTRY
 
+const makeEntryFields = <A, I>(payloadSchema: Schema.Codec<A, I>) => ({
+  id: Schema.String,
+  variant: Variant,
+  maybeDuration: Schema.Option(Schema.DurationFromMillis),
+  pendingDismissVersion: Schema.Number,
+  isHovered: Schema.Boolean,
+  swipeState: SwipeState,
+  swipeVersion: Schema.Number,
+  payload: payloadSchema,
+})
+
+/** Schema factory for the fields of a toast entry that a parent supplies
+ *  with `Added`. Toast creates the entry's Animation instance itself. */
+export const makeEntryInput = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
+  Schema.Struct(makeEntryFields(payloadSchema))
+
 /** Schema factory for a single toast entry. `payloadSchema` is user-provided
  *  and defines the shape of per-entry content, whatever the consumer wants
  *  to encode. The Toast Block itself owns only lifecycle + a11y fields: `id`,
- *  `variant` (for ARIA role), `animation`, `maybeDuration`,
- *  `pendingDismissVersion` (for cancellable auto-dismiss), `isHovered`
- *  (for pause-on-hover), and `swipeState` + `swipeVersion` (for the
- *  opt-in swipe gesture). */
+ *  `variant` (for ARIA role), `animation` (the entry's Animation instance),
+ *  `maybeDuration`, `pendingDismissVersion` (for cancellable auto-dismiss),
+ *  `isHovered` (for pause-on-hover), and `swipeState` + `swipeVersion` (for
+ *  the opt-in swipe gesture). */
 export const makeEntry = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
   Schema.Struct({
-    id: Schema.String,
-    variant: Variant,
-    animation: Animation.Model,
-    maybeDuration: Schema.Option(Schema.DurationFromMillis),
-    pendingDismissVersion: Schema.Number,
-    isHovered: Schema.Boolean,
-    swipeState: SwipeState,
-    swipeVersion: Schema.Number,
-    payload: payloadSchema,
+    ...makeEntryFields(payloadSchema),
+    animation: Animation,
   })
 
 // MODEL
 
 /**
  * Schema factory for the Toast container's state. `nextEntryKey` generates
- * unique entry IDs from the Model. Thread the updated Model through successive
- * calls to the exposed `show` operation. Two calls against the same prior Model
- * produce the same entry ID.
+ * unique entry IDs from the Model: each `RequestedShow` creates the entry
+ * `<id>-entry-<nextEntryKey>` and advances the key.
  */
 export const makeModel = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
   Schema.Struct({
@@ -165,7 +173,7 @@ export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
       maybeDuration: Schema.Option(Schema.DurationFromMillis),
       isSticky: Schema.Boolean,
     },
-    Added: { entry: makeEntry(payloadSchema) },
+    Added: { entry: makeEntryInput(payloadSchema) },
     RequestedDismiss: { entryId: Schema.String },
     RequestedDismissAll: {},
     Dismissed: { entryId: Schema.String },
@@ -206,9 +214,10 @@ export type SwipeToDismissConfig = Readonly<{
 }>
 
 /**
- * Configuration for creating a Toast container Model. `defaultDuration` applies
- * to `show` calls without an explicit duration, unless `sticky: true` disables
- * auto-dismissal. Accepts any Effect Duration input; bare numbers are milliseconds.
+ * Constructor args for a Toast instance. `id` is the DOM id of the container
+ * and prefixes entry ids. `defaultDuration` applies to `RequestedShow`
+ * Messages without a duration, unless `isSticky` disables auto-dismissal.
+ * Accepts any Effect Duration input; bare numbers are milliseconds.
  */
 export type InitConfig = Readonly<{
   id: string

@@ -1,4 +1,10 @@
-const viewInputs = {
+import { Calendar } from 'foldkit'
+
+import type { ViewInputs } from '@foldkit/ui/calendar'
+
+import { germanLocale } from './uiCalendarGermanLocale'
+
+export const viewInputs: Partial<ViewInputs> = {
   previousMonthLabel: 'Vorheriger Monat',
   toDaysGridLabel: monthYear => `Kalender, ${monthYear}`,
   toWeekLabel: weekStart =>

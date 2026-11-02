@@ -5,7 +5,6 @@ import * as Interruptible from '../../command/interruptible/index.js'
 import type { Document, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -56,11 +55,14 @@ export const UploadFile = Command.define('UploadFile', {
     keyFields: ['uploadId'],
     toKey: ({ uploadId }) => String(uploadId),
   },
-  handler: function* () {
+})
+
+export const UploadFileLive = UploadFile.toLayer(
+  Effect.gen(function* () {
     return ({ uploadId }) =>
       Effect.as(Effect.never, Message.SucceededUploadFile({ uploadId }))
-  },
-})
+  }),
+)
 
 export const CancelUploadFile = ({ uploadId }: UploadFileArgs) =>
   UploadFile.Interrupt({ uploadId }, outcome =>
@@ -80,7 +82,7 @@ const setStatusById = (uploadId: number, status: UploadStatus) =>
       : upload,
   )
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedStartUpload: () => {
       const startedUpload: Upload = {
@@ -122,8 +124,7 @@ export const update = Update.define((model: Model, message: Message) =>
         }),
         NotFound: () => ({ model }),
       }),
-  }),
-)
+  })
 
 // VIEW
 
@@ -158,4 +159,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   return { title: 'Uploads', body }
 }
 
-export const EffectsLayer = Layer.mergeAll(UploadFile.layer)
+export const EffectsLayer = Layer.mergeAll(UploadFileLive)

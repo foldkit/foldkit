@@ -108,14 +108,19 @@ describe('no-array-index-view-keys', () => {
     expect(result[0]?.diagnostic.message).toContain('`i`')
   })
 
-  it('flags an index key in a Block slotId', () => {
-    const sink = Testing.callOfMember('h', 'block', [
-      Testing.objectExpr([{ key: 'slotId', value: Testing.id('i') }]),
+  it('flags an index used as the id of a new Block instance', () => {
+    const arrow = methodMapArrow(itemAndIndexParameters)
+    const indexIdentifier = Testing.id('i')
+    const instance = Testing.newExpr('Counter', [indexIdentifier])
+
+    const result = Testing.runRuleMulti(noArrayIndexViewKeys, [
+      ['ArrowFunctionExpression', arrow],
+      ['NewExpression', instance],
+      ['ArrowFunctionExpression:exit', arrow],
     ])
 
-    const result = runMapScenario(methodMapArrow(itemAndIndexParameters), sink)
-
     expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.node).toBe(indexIdentifier)
   })
 
   it('flags an index key in a keyed-lazy slot call', () => {
@@ -261,19 +266,6 @@ describe('no-array-index-view-keys', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('allows a static object key that collides with the index name', () => {
-    const sink = Testing.callOfMember('h', 'block', [
-      Testing.objectExpr([
-        { key: 'slotId', value: Testing.memberExpr('item', 'id') },
-        { key: 'i', value: Testing.strLiteral('extra') },
-      ]),
-    ])
-
-    const result = runMapScenario(methodMapArrow(itemAndIndexParameters), sink)
-
-    expect(result).toHaveLength(0)
-  })
-
   it('allows an index name shadowed by a nested arrow parameter', () => {
     const nestedArrow = {
       type: 'ArrowFunctionExpression',
@@ -293,14 +285,6 @@ describe('no-array-index-view-keys', () => {
     const sink = Testing.callOfMember('h', 'Key', [
       { type: 'SpreadElement', argument: Testing.id('i') },
     ])
-
-    const result = runMapScenario(methodMapArrow(itemAndIndexParameters), sink)
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('skips block calls whose first argument is not an object literal', () => {
-    const sink = Testing.callOfMember('h', 'block', [Testing.id('config')])
 
     const result = runMapScenario(methodMapArrow(itemAndIndexParameters), sink)
 

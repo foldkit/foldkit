@@ -3,7 +3,10 @@ import { Command, File } from 'foldkit'
 
 const SelectResume = Command.define('SelectResume', {
   messages: [CompletedSelectResume, CancelledSelectResume],
-  handler: function* () {
+})
+
+const SelectResumeLive = SelectResume.toLayer(
+  Effect.gen(function* () {
     return () =>
       File.select(['application/pdf']).pipe(
         Effect.map(
@@ -13,15 +16,18 @@ const SelectResume = Command.define('SelectResume', {
           }),
         ),
       )
-  },
-})
+  }),
+)
 
 const SelectAttachments = Command.define('SelectAttachments', {
   messages: [CompletedSelectAttachments],
-  handler: function* () {
+})
+
+const SelectAttachmentsLive = SelectAttachments.toLayer(
+  Effect.gen(function* () {
     return () =>
       File.selectMultiple(['image/*', 'application/pdf']).pipe(
         Effect.map(files => CompletedSelectAttachments({ files })),
       )
-  },
-})
+  }),
+)

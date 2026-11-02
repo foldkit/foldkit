@@ -4,7 +4,7 @@
 
 The initial helper below is a historical prototype, superseded by the approved
 owned-registry API. `Definition.makeManagedResources` now returns
-`managedResources.layer` for a closed registry whose entries all have attached
+`managedResources.toLayer` for a closed registry whose entries all have attached
 handlers. Empty registries expose `Layer.empty`; mixed/host-owned registries
 require explicit providers. The key `layer` is now reserved at the owned
 registry boundary, and aggregate metadata is non-enumerable and excluded from

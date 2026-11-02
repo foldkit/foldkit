@@ -43,29 +43,7 @@ const mountDefinition = (method: 'define' | 'defineStream' = 'define') =>
     ]),
   ])
 
-const generatorConstructor = (handler: unknown) => ({
-  type: 'FunctionExpression',
-  id: null,
-  params: [],
-  body: Testing.blockStmt([Testing.returnStmt(handler)]),
-  generator: true,
-  async: false,
-})
-
-const attachedMountDefinition = (
-  handler: unknown,
-  method: 'define' | 'defineStream' = 'define',
-  constructor: unknown = generatorConstructor(handler),
-) =>
-  Testing.callOfMember('Mount', method, [
-    Testing.strLiteral('MountThing'),
-    Testing.objectExpr([
-      { key: 'messages', value: Testing.id('CompletedMountThing') },
-      { key: 'handler', value: constructor },
-    ]),
-  ])
-
-const toLayer = (
+const layerCall = (
   definition: unknown,
   handler: unknown,
   build: unknown = Testing.callOfMember('Effect', 'succeed', [handler]),
@@ -85,7 +63,7 @@ const mountLayer = (
   handler: unknown,
   method: 'define' | 'defineStream' = 'define',
   build: unknown = Testing.callOfMember('Effect', 'succeed', [handler]),
-) => toLayer(mountDefinition(method), handler, build)
+) => layerCall(mountDefinition(method), handler, build)
 
 const effectConstructorCases: ReadonlyArray<
   Readonly<{ name: string; build: (handler: unknown) => unknown }>
@@ -239,39 +217,11 @@ describe('mount-factory-must-use-element', () => {
     ])
     const result = Testing.runRuleMulti(mountFactoryMustUseElement, [
       ['VariableDeclarator', definition],
-      ['CallExpression', toLayer(Testing.id('MountThing'), handler)],
+      ['CallExpression', layerCall(Testing.id('MountThing'), handler)],
     ])
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.node).toBe(handler)
-  })
-
-  const definitionMethods: ReadonlyArray<'define' | 'defineStream'> = [
-    'define',
-    'defineStream',
-  ]
-
-  it.each(definitionMethods)(
-    'checks attached %s generator handlers',
-    method => {
-      const handler = Testing.arrowFn(Testing.callExpr('analyticsPing'), [
-        elementPattern(),
-      ])
-      const result = runOn(attachedMountDefinition(handler, method))
-
-      expect(result).toHaveLength(1)
-      expect(result[0]?.diagnostic.node).toBe(handler)
-    },
-  )
-
-  it('accepts an attached constructor handler that uses the element', () => {
-    const handler = Testing.arrowFn(
-      Testing.callExpr('measure', [Testing.id('element')]),
-      [elementPattern()],
-    )
-    const result = runOn(attachedMountDefinition(handler))
-
-    expect(result).toHaveLength(0)
   })
 
   it('checks the handler returned by an effectful constructor', () => {
@@ -343,7 +293,7 @@ describe('mount-factory-must-use-element', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('skips an unrelated toLayer method', () => {
+  it('skips an unrelated layer method', () => {
     const result = runOn(
       Testing.callOfMember('ExternalMount', 'toLayer', [
         Testing.callOfMember('Effect', 'succeed', [
@@ -361,7 +311,7 @@ describe('mount-factory-must-use-element', () => {
     const handler = Testing.arrowFn(Testing.callExpr('analyticsPing'), [
       elementPattern(),
     ])
-    const result = runOn(toLayer(Testing.callExpr('createMount'), handler))
+    const result = runOn(layerCall(Testing.callExpr('createMount'), handler))
 
     expect(result).toHaveLength(0)
   })
@@ -378,7 +328,7 @@ describe('mount-factory-must-use-element', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('skips computed toLayer calls', () => {
+  it('skips computed layer calls', () => {
     const result = runOn({
       type: 'CallExpression',
       callee: Testing.computedMemberExpr('MountDefinition', 'toLayer'),
@@ -1038,24 +988,4 @@ describe('mount-factory-must-use-element', () => {
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('never referenced')
   })
-})
-
-it('checks the element input of a named Block Mount', () => {
-  const definition = Testing.callOfMember('Editor', 'makeMount', [
-    Testing.strLiteral('MountEditor'),
-    Testing.objectExpr([
-      { key: 'messages', value: Testing.id('CompletedMountEditor') },
-      {
-        key: 'handler',
-        value: generatorConstructor(Testing.arrowFn(Testing.id('effect'), [])),
-      },
-    ]),
-  ])
-  const result = Testing.runRule(
-    mountFactoryMustUseElement,
-    'CallExpression',
-    definition,
-  )
-
-  expect(result).toHaveLength(1)
 })

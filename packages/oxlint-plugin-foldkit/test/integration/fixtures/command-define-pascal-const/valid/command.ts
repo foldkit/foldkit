@@ -14,13 +14,15 @@ const owner = {
 
 export const FetchWeather = Command.define('FetchWeather', {
   messages: [Message.CompletedFetchWeather],
-  handler: fetchWeatherEffect,
 })
+
+export const FetchWeatherLive = FetchWeather.toLayer(Effect.succeed(() => fetchWeatherEffect))
 
 export const CreateRoom = Command.define(owner.name('CreateRoom'), {
   messages: [Message.CompletedFetchWeather],
-  handler: fetchWeatherEffect,
 })
+
+export const CreateRoomLive = CreateRoom.toLayer(Effect.succeed(() => fetchWeatherEffect))
 
 export const defineLocal = (Command: { define: (name: string) => string }) =>
   Command.define('not-pascal-case')

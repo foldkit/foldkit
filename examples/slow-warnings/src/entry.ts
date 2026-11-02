@@ -1,10 +1,9 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './block'
-import { handleSlow } from './subscription'
+import { Application, ApplicationLive, handleSlow } from './application'
 
-const program = Program.make({
-  block: ApplicationBlock,
+const program = Program.make(Application, {
+  layer: ApplicationLive,
   container: document.getElementById('root'),
   slow: {
     show: 'Always',

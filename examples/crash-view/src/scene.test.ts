@@ -1,14 +1,11 @@
-import { expect, given, role, scene } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { expect, role, scene } from 'foldkit/scene'
 
-import { update, view } from './application'
+import { describe, it } from '@effect/vitest'
+
+import { ApplicationLive } from './application'
 
 describe('view', () => {
-  test('initial view shows the Crash button', () => {
-    scene(
-      { update, view },
-      given(null),
-      expect(role('button', { name: 'Crash' })).toExist(),
-    )
-  })
+  it.effect('initial view shows the Crash button', () =>
+    scene(ApplicationLive, expect(role('button', { name: 'Crash' })).toExist()),
+  )
 })

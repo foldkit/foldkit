@@ -5,7 +5,6 @@ import { type Html, type HtmlBuilder, createLazy } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -41,22 +40,31 @@ export type Message = typeof Message.Type
 
 export const MeasurePanel = Mount.define('MeasurePanel', {
   messages: [Message.MeasuredPanel, Message.FailedMountSidebar],
-  handler: function* () {
-    return () => Effect.succeed(Message.MeasuredPanel({ width: 320 }))
-  },
 })
+
+export const MeasurePanelLive = MeasurePanel.toLayer(
+  Effect.gen(function* () {
+    return () => Effect.succeed(Message.MeasuredPanel({ width: 320 }))
+  }),
+)
 
 export const FocusButton = Mount.define('FocusButton', {
   messages: [Message.CompletedFocusButton],
-  handler: function* () {
-    return () => Effect.succeed(Message.CompletedFocusButton())
-  },
 })
+
+export const FocusButtonLive = FocusButton.toLayer(
+  Effect.gen(function* () {
+    return () => Effect.succeed(Message.CompletedFocusButton())
+  }),
+)
 
 export const ScrollList = Mount.define('ScrollList', {
   args: { offset: Schema.Number },
   messages: [Message.ScrolledTo],
-  handler: function* () {
+})
+
+export const ScrollListLive = ScrollList.toLayer(
+  Effect.gen(function* () {
     return ({ element, offset }) =>
       Effect.sync(() => {
         if (element instanceof HTMLElement) {
@@ -64,8 +72,8 @@ export const ScrollList = Mount.define('ScrollList', {
         }
         return Message.ScrolledTo({ offset })
       })
-  },
-})
+  }),
+)
 
 export const Mounts = [MeasurePanel, FocusButton, ScrollList]
 type MountRequirements = Mount.RequirementsOf<typeof Mounts>
@@ -80,7 +88,7 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedToggle: () => ({
       model: modifyFields(model, { isOpen: isOpen => !isOpen }),
@@ -95,8 +103,7 @@ export const update = Update.define((model: Model, message: Message) =>
     }),
     ScrolledTo: () => ({ model }),
     Ticked: () => ({ model }),
-  }),
-)
+  })
 
 // VIEW
 
@@ -359,7 +366,7 @@ export const branchedPanelView = (
   )
 
 export const EffectsLayer = Layer.mergeAll(
-  MeasurePanel.layer,
-  FocusButton.layer,
-  ScrollList.layer,
+  MeasurePanelLive,
+  FocusButtonLive,
+  ScrollListLive,
 )

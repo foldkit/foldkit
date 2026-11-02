@@ -11,56 +11,60 @@ import {
   type,
 } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
 
-import { SubmitForm, ValidateEmail } from './command'
-import { initialModel } from './init'
-import { Message } from './message'
-import { update } from './update'
-import { view } from './view'
+import { describe, it } from '@effect/vitest'
+
+import {
+  ApplicationLive,
+  Message,
+  SubmitForm,
+  ValidateEmail,
+  initialModel,
+} from './application'
 
 describe('view', () => {
-  test('initial view shows all fields and a disabled submit button', () => {
+  it.effect('initial view shows all fields and a disabled submit button', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
       expect(role('heading', { name: 'Join Our Waitlist' })).toExist(),
       expect(label('Name')).toExist(),
       expect(label('Email')).toExist(),
       expect(label("Anything you'd like to share with us?")).toExist(),
       expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
-    )
-  })
+    ),
+  )
 
-  test('typing a short name shows a validation error via accessible description', () => {
-    scene(
-      { update, view },
-      given(initialModel),
-      type(label('Name'), 'A'),
-      expect(label('Name')).toHaveAccessibleDescription(
-        'Name must be at least 2 characters',
+  it.effect(
+    'typing a short name shows a validation error via accessible description',
+    () =>
+      scene(
+        ApplicationLive,
+        type(label('Name'), 'A'),
+        expect(label('Name')).toHaveAccessibleDescription(
+          'Name must be at least 2 characters',
+        ),
       ),
-    )
-  })
+  )
 
-  test('typing a malformed email surfaces a synchronous validation error', () => {
-    scene(
-      { update, view },
-      given(initialModel),
-      type(label('Email'), 'not-an-email'),
-      expect(label('Email')).toHaveAccessibleDescription(
-        'Please enter a valid email address',
+  it.effect(
+    'typing a malformed email surfaces a synchronous validation error',
+    () =>
+      scene(
+        ApplicationLive,
+        type(label('Email'), 'not-an-email'),
+        expect(label('Email')).toHaveAccessibleDescription(
+          'Please enter a valid email address',
+        ),
       ),
-    )
-  })
+  )
 
-  test('typing a well-formed email triggers async validation', () => {
+  it.effect('typing a well-formed email triggers async validation', () => {
     const modelWithValidName = modifyFields(initialModel, {
       name: () => FieldValidation.Valid({ value: 'Alice' }),
     })
 
-    scene(
-      { update, view },
+    return scene(
+      ApplicationLive,
       given(modelWithValidName),
       type(label('Email'), 'alice@example.com'),
       expect(label('Email')).toHaveAccessibleDescription('Checking...'),
@@ -76,10 +80,9 @@ describe('view', () => {
     )
   })
 
-  test('async validation can flag an email as taken', () => {
+  it.effect('async validation can flag an email as taken', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
       type(label('Email'), 'test@example.com'),
       Command.expectExact(ValidateEmail),
       Command.resolve(
@@ -94,51 +97,54 @@ describe('view', () => {
       expect(label('Email')).toHaveAccessibleDescription(
         'This email is already on our waitlist',
       ),
-    )
-  })
+    ),
+  )
 
-  test('submit becomes enabled once name and email are valid', () => {
+  it.effect('submit becomes enabled once name and email are valid', () => {
     const validModel = modifyFields(initialModel, {
       name: () => FieldValidation.Valid({ value: 'Alice' }),
       email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
     })
 
-    scene(
-      { update, view },
+    return scene(
+      ApplicationLive,
       given(validModel),
       expect(role('button', { name: 'Join Waitlist' })).toBeEnabled(),
     )
   })
 
-  test('submitting a valid form shows the loading label then a success banner', () => {
+  it.effect(
+    'submitting a valid form shows the loading label then a success banner',
+    () => {
+      const validModel = modifyFields(initialModel, {
+        name: () => FieldValidation.Valid({ value: 'Alice' }),
+        email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
+      })
+
+      return scene(
+        ApplicationLive,
+        given(validModel),
+        click(role('button', { name: 'Join Waitlist' })),
+        expect(role('button', { name: 'Joining...' })).toBeDisabled(),
+        Command.expectExact(SubmitForm),
+        Command.resolve(
+          SubmitForm,
+          Message.SucceededSubmitForm({ name: 'Alice' }),
+        ),
+        expect(role('status')).toContainText('Welcome to the waitlist, Alice!'),
+        expect(role('button', { name: 'Join Waitlist' })).toExist(),
+      )
+    },
+  )
+
+  it.effect('a failed submission renders an error banner', () => {
     const validModel = modifyFields(initialModel, {
       name: () => FieldValidation.Valid({ value: 'Alice' }),
       email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
     })
 
-    scene(
-      { update, view },
-      given(validModel),
-      click(role('button', { name: 'Join Waitlist' })),
-      expect(role('button', { name: 'Joining...' })).toBeDisabled(),
-      Command.expectExact(SubmitForm),
-      Command.resolve(
-        SubmitForm,
-        Message.SucceededSubmitForm({ name: 'Alice' }),
-      ),
-      expect(role('status')).toContainText('Welcome to the waitlist, Alice!'),
-      expect(role('button', { name: 'Join Waitlist' })).toExist(),
-    )
-  })
-
-  test('a failed submission renders an error banner', () => {
-    const validModel = modifyFields(initialModel, {
-      name: () => FieldValidation.Valid({ value: 'Alice' }),
-      email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
-    })
-
-    scene(
-      { update, view },
+    return scene(
+      ApplicationLive,
       given(validModel),
       submit(role('form')),
       Command.expectExact(SubmitForm),
@@ -147,13 +153,14 @@ describe('view', () => {
     )
   })
 
-  test('submitting an invalid form (e.g. via Enter key) is rejected by update', () => {
-    scene(
-      { update, view },
-      given(initialModel),
-      expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
-      submit(role('form')),
-      expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
-    )
-  })
+  it.effect(
+    'submitting an invalid form (e.g. via Enter key) is rejected by update',
+    () =>
+      scene(
+        ApplicationLive,
+        expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
+        submit(role('form')),
+        expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
+      ),
+  )
 })

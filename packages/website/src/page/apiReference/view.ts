@@ -1,7 +1,12 @@
 import { clsx } from 'clsx'
 import { Array, Option, Record, Result, pipe } from 'effect'
 import { AsyncData } from 'foldkit'
-import { Html, createKeyedLazy, inertHtml as ih } from 'foldkit/html'
+import {
+  Html,
+  type HtmlBuilder,
+  createKeyedLazy,
+  inertHtml as ih,
+} from 'foldkit/html'
 
 import { Disclosure } from '@foldkit/ui'
 
@@ -13,10 +18,6 @@ import {
 } from '../../prose'
 import { homeRouter } from '../../route'
 import * as NotFound from '../notFound'
-import {
-  ApiReferenceComposition,
-  type ApiReferenceViewBuilder,
-} from './composition'
 import type { ApiData } from './domain'
 import {
   type ApiFunction,
@@ -30,6 +31,9 @@ import {
   sectionId,
 } from './domain'
 import { Message } from './message'
+import type { Model } from './model'
+
+type ApiReferenceViewBuilder = HtmlBuilder<Message>
 
 type Highlights = ApiData['highlights']
 
@@ -602,94 +606,86 @@ type ModuleViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-/**
- * Renders one API module: its sections and every function, type, interface, and
- * constant it exports.
- *
- * The page is dispatched through `h.block`, so it takes `renderHeadingLink`
- * from its parent rather than building the copy-link itself. The control carries
- * Application Message, so its event handler must retain the parent's dispatch
- * frame rather than acquire this Block's frame.
- */
-const moduleView =
-  ApiReferenceComposition.makeView.withInputs<ModuleViewInputs>(
-    (model, { module, highlights, renderHeadingLink }, h) =>
-      h.div(
-        [
-          h.DataAttribute('pagefind-meta', 'kind:API Reference'),
-          ...(AsyncData.isSuccess(model.apiData)
-            ? [h.DataAttribute('api-reference-loaded', '')]
-            : []),
-        ],
-        [
-          pageTitle(module.name, module.name),
-          ...section(
+const moduleView = (
+  model: Model,
+  { module, highlights, renderHeadingLink }: ModuleViewInputs,
+  h: ApiReferenceViewBuilder,
+): Html =>
+  h.div(
+    [
+      h.DataAttribute('pagefind-meta', 'kind:API Reference'),
+      ...(AsyncData.isSuccess(model.apiData)
+        ? [h.DataAttribute('api-reference-loaded', '')]
+        : []),
+    ],
+    [
+      pageTitle(module.name, module.name),
+      ...section(
+        module.name,
+        'Functions',
+        module.functions,
+        renderHeadingLink,
+        apiFunction => {
+          const key = scopedId('function', module.name, apiFunction.name)
+          return lazyItem(key, functionView, [
             module.name,
-            'Functions',
-            module.functions,
+            apiFunction,
+            model.disclosures[key],
+            highlights,
             renderHeadingLink,
-            apiFunction => {
-              const key = scopedId('function', module.name, apiFunction.name)
-              return lazyItem(key, functionView, [
-                module.name,
-                apiFunction,
-                model.disclosures[key],
-                highlights,
-                renderHeadingLink,
-                h,
-              ])
-            },
-          ),
-          ...section(
-            module.name,
-            'Types',
-            module.types,
-            renderHeadingLink,
-            type => {
-              const key = scopedId('type', module.name, type.name)
-              return lazyItem(key, typeView, [
-                module.name,
-                type,
-                highlights,
-                renderHeadingLink,
-                h,
-              ])
-            },
-          ),
-          ...section(
-            module.name,
-            'Interfaces',
-            module.interfaces,
-            renderHeadingLink,
-            apiInterface => {
-              const key = scopedId('interface', module.name, apiInterface.name)
-              return lazyItem(key, interfaceView, [
-                module.name,
-                apiInterface,
-                highlights,
-                renderHeadingLink,
-                h,
-              ])
-            },
-          ),
-          ...section(
-            module.name,
-            'Constants',
-            module.variables,
-            renderHeadingLink,
-            variable => {
-              const key = scopedId('const', module.name, variable.name)
-              return lazyItem(key, variableView, [
-                module.name,
-                variable,
-                highlights,
-                renderHeadingLink,
-                h,
-              ])
-            },
-          ),
-        ],
+            h,
+          ])
+        },
       ),
+      ...section(
+        module.name,
+        'Types',
+        module.types,
+        renderHeadingLink,
+        type => {
+          const key = scopedId('type', module.name, type.name)
+          return lazyItem(key, typeView, [
+            module.name,
+            type,
+            highlights,
+            renderHeadingLink,
+            h,
+          ])
+        },
+      ),
+      ...section(
+        module.name,
+        'Interfaces',
+        module.interfaces,
+        renderHeadingLink,
+        apiInterface => {
+          const key = scopedId('interface', module.name, apiInterface.name)
+          return lazyItem(key, interfaceView, [
+            module.name,
+            apiInterface,
+            highlights,
+            renderHeadingLink,
+            h,
+          ])
+        },
+      ),
+      ...section(
+        module.name,
+        'Constants',
+        module.variables,
+        renderHeadingLink,
+        variable => {
+          const key = scopedId('const', module.name, variable.name)
+          return lazyItem(key, variableView, [
+            module.name,
+            variable,
+            highlights,
+            renderHeadingLink,
+            h,
+          ])
+        },
+      ),
+    ],
   )
 
 const skeletonFunctionBlocks: ReadonlyArray<{
@@ -748,25 +744,27 @@ export const failureView = (error: string): Html =>
     ],
   )
 
-type ViewInputs = Readonly<{
+export type ViewInputs = Readonly<{
   moduleSlug: string
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = ApiReferenceComposition.makeView.withInputs<ViewInputs>(
-  (model, { moduleSlug, renderHeadingLink }, h) =>
-    AsyncData.matchData(model.apiData, {
-      onData: data =>
-        Option.match(resolveModule(data.parsedApi, moduleSlug), {
-          onSome: module =>
-            moduleView(
-              model,
-              { module, highlights: data.highlights, renderHeadingLink },
-              h,
-            ),
-          onNone: () => NotFound.view(moduleSlug, homeRouter()),
-        }),
-      onFailure: failureView,
-      onEmpty: skeletonView,
-    }),
-)
+export const view = (
+  model: Model,
+  h: ApiReferenceViewBuilder,
+  { moduleSlug, renderHeadingLink }: ViewInputs,
+): Html =>
+  AsyncData.matchData(model.apiData, {
+    onData: data =>
+      Option.match(resolveModule(data.parsedApi, moduleSlug), {
+        onSome: module =>
+          moduleView(
+            model,
+            { module, highlights: data.highlights, renderHeadingLink },
+            h,
+          ),
+        onNone: () => NotFound.view(moduleSlug, homeRouter()),
+      }),
+    onFailure: failureView,
+    onEmpty: skeletonView,
+  })

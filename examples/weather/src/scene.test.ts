@@ -11,38 +11,35 @@ import {
   text,
   type,
 } from 'foldkit/scene'
-import { describe, test } from 'vitest'
 
-import { FetchWeather } from './command'
-import { Message } from './message'
-import { WeatherAsyncData } from './model'
-import { weatherData, weatherModel } from './model.fixture'
-import { update } from './update'
-import { view } from './view'
+import { describe, it } from '@effect/vitest'
+
+import { FetchWeather, Message, WeatherAsyncData } from './application'
+import { application, weatherData, weatherModel } from './application.fixture'
 
 describe('view', () => {
-  test('initial view shows empty form with Get Weather button', () => {
+  it.effect('initial view shows empty form with Get Weather button', () =>
     scene(
-      { update, view },
+      application,
       given(weatherModel),
       expect(label('Zip code')).toExist(),
       expect(role('button', { name: 'Get Weather' })).toExist(),
       expect(role('article')).toBeAbsent(),
-    )
-  })
+    ),
+  )
 
-  test('typing a zip code updates the input value', () => {
+  it.effect('typing a zip code updates the input value', () =>
     scene(
-      { update, view },
+      application,
       given(weatherModel),
       type(label('Zip code'), '10001'),
       expect(label('Zip code')).toHaveValue('10001'),
-    )
-  })
+    ),
+  )
 
-  test('submitting the form shows loading state', () => {
+  it.effect('submitting the form shows loading state', () =>
     scene(
-      { update, view },
+      application,
       given(weatherModel),
       submit(role('form')),
       expect(role('button', { name: 'Loading...' })).toExist(),
@@ -51,12 +48,12 @@ describe('view', () => {
         FetchWeather,
         Message.SucceededFetchWeather({ weather: weatherData }),
       ),
-    )
-  })
+    ),
+  )
 
-  test('successful fetch renders weather card', () => {
+  it.effect('successful fetch renders weather card', () =>
     scene(
-      { update, view },
+      application,
       given(weatherModel),
       submit(role('form')),
       Command.expectExact(FetchWeather({ zipCode: '90210' })),
@@ -73,12 +70,12 @@ describe('view', () => {
         expect(text('45%')).toExist(),
         expect(text('10 mph')).toExist(),
       ),
-    )
-  })
+    ),
+  )
 
-  test('failed fetch renders error message', () => {
+  it.effect('failed fetch renders error message', () =>
     scene(
-      { update, view },
+      application,
       given(weatherModel),
       submit(role('form')),
       Command.expectExact(FetchWeather({ zipCode: '90210' })),
@@ -88,12 +85,12 @@ describe('view', () => {
       ),
       expect(role('article')).toBeAbsent(),
       expect(text('Network error', { exact: false })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('full flow: type zip code, click get weather, see results', () => {
+  it.effect('full flow: type zip code, click get weather, see results', () =>
     scene(
-      { update, view },
+      application,
       given({ zipCodeInput: '', weather: WeatherAsyncData.Idle() }),
       type(label('Zip code'), '90210'),
       click(role('button', { name: 'Get Weather' })),
@@ -108,6 +105,6 @@ describe('view', () => {
         expect(text('Beverly Hills, California')).toExist(),
         expect(text('72°F')).toExist(),
       ),
-    )
-  })
+    ),
+  )
 })

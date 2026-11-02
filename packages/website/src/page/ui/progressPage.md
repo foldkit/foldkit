@@ -5,7 +5,7 @@
 Progress reports completion of a task, such as uploading a file or loading a page. It is a stateless controlled view: your Model owns a determinate value when one is known, while omitting `value` renders indeterminate progress. Use Meter instead for a scalar measurement that is not task completion.
 
 :::Info{label="See it in an app"}
-Check out how Progress is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/progress.ts).
+Check out how Progress is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/application.ts#L198-L279).
 :::
 
 ## Examples

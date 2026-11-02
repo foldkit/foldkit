@@ -14,4 +14,4 @@ Update.combineSteps(model, [writeDraft, clearErrors])
 const saveDraft = Update.combineSteps([writeDraft, clearErrors])
 ```
 
-Each Step receives the Model produced by the previous Step. The helper collects returned Commands without executing them; collection order does not sequence their effects or completion. Arguments, inferred requirements, and registration checks are unchanged. The former export has no compatibility alias.
+Each Step receives the Model produced by the previous Step. The helper collects the returned Commands without executing them; collection order does not sequence their effects or completion. The former export has no compatibility alias.

@@ -7,29 +7,27 @@ import type {
   VirtualListChatHistoryMode,
   VirtualListChatMessage,
 } from '../domain/domain'
+import type { Activity } from './virtualListData'
 
 export type Character = Readonly<{
   firstName: string
   lastName: string
 }>
 
-export const ItemListboxBlock = Listbox.makeBlock<ListboxItem>()
-export const ItemMultiListboxBlock = Listbox.Multi.makeBlock<ListboxItem>()
-export const CharacterListboxBlock = Listbox.makeBlock<Character>()
+export const ItemListbox = Listbox.make<ListboxItem>()
+export const ItemMultiListbox = Listbox.Multi.make<ListboxItem>()
+export const CharacterListbox = Listbox.make<Character>()
 
 export type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
-export const DemoMenuBlock = Menu.makeBlock<MenuItem>()
+export const DemoMenu = Menu.make<MenuItem>()
 
-export const PlanRadioGroupBlock = RadioGroup.makeBlock<Plan>()
+export const PlanRadioGroup = RadioGroup.make<Plan>()
 
-export const DemoTabsBlock = Tabs.makeBlock<DemoTab>()
+export const DemoTabs = Tabs.make<DemoTab>()
 
-import type { Activity } from './virtualListData'
+export const ActivityVirtualList = VirtualList.make<Activity>()
+export const ChatVirtualList = VirtualList.make<VirtualListChatMessage>()
 
-export const ActivityVirtualListBlock = VirtualList.makeBlock<Activity>()
-export const ChatVirtualListBlock =
-  VirtualList.makeBlock<VirtualListChatMessage>()
-
-export const HistoryModeRadioGroupBlock =
-  RadioGroup.makeBlock<VirtualListChatHistoryMode>()
+export const HistoryModeRadioGroup =
+  RadioGroup.make<VirtualListChatHistoryMode>()

@@ -1,29 +1,30 @@
-import { Duration, Schema, Stream } from 'effect'
+import { Duration, Function, Number, Schema, Stream } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
-const Model = Schema.Struct({})
-type Model = typeof Model.Type
+export class Heartbeat extends Block<Heartbeat>()('Heartbeat', {
+  Model: Schema.Struct({ beatCount: Schema.Number }),
+  Message: defineMessageUnion({ TickedHeartbeat: {} }),
+}) {}
 
-const Message = defineMessageUnion({
-  TickedHeartbeat: {},
-})
-type Message = typeof Message.Type
+export const HeartbeatLive = Heartbeat.toLayer(() => ({
+  init: () => ({ beatCount: 0 }),
 
-const HeartbeatDefinition = Block.makeDefinition('Heartbeat', {
-  Model,
-  Message,
-})
-
-export const subscriptions = HeartbeatDefinition.makeSubscriptions(entry => ({
-  heartbeatTicks: entry('HeartbeatTicks', {
-    messages: [Message.TickedHeartbeat],
-    handler: function* () {
-      return () =>
+  subscriptions: {
+    heartbeatTicks: {
+      dependencies: Function.constVoid,
+      stream: () =>
         Stream.tick(Duration.seconds(30)).pipe(
           Stream.drop(1),
-          Stream.map(Message.TickedHeartbeat),
-        )
+          Stream.as(Heartbeat.Message.TickedHeartbeat()),
+        ),
     },
-  }),
+  },
+
+  update: {
+    TickedHeartbeat: model => ({
+      model: modifyFields(model, { beatCount: Number.increment }),
+    }),
+  },
 }))

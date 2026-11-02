@@ -1,8 +1,7 @@
 import { Option } from 'effect'
-import { Command } from 'foldkit'
 import { Transition } from 'foldkit/route'
 
-type Commands = ReadonlyArray<Command.Command<Message>>
+type Commands = ReadonlyArray<ReturnType<typeof FetchPerson>>
 
 const commandsForTransition = (
   transition: Transition.Transition<ApplicationRoute>,

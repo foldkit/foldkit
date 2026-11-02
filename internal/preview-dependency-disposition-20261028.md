@@ -58,9 +58,9 @@ The current owned entry points were inspected individually:
 - `@foldkit/node` imports `NodeHttpServer` and converts inbound requests into the application's Fetch handler. `node.ts:269` invokes that local handler; it does not fetch the supplied URL over the network.
 - Vite's SSR path imports the server entry through `ssrEnvironment.runner.import` and calls `renderPage`. Its module invalidation, request gate and disposal changes do not construct an outbound HTTP client.
 - Website `entry.server.ts` loads Flags from bundled virtual modules and calls `Server.renderToString`; the inspected Flags loader performs local imports and date calculations, not outbound requests.
-- `create-foldkit-app` copies bundled templates and invokes the chosen package manager. `NodeServices.layer` supplies filesystem/process/crypto/path/stdio/terminal services, not `NodeHttpClient`.
+- `create-foldkit-app` copies bundled templates and invokes the chosen package manager. `NodeServices.toLayer` supplies filesystem/process/crypto/path/stdio/terminal services, not `NodeHttpClient`.
 - MCP uses stdio and the `ws` package for its relay, not an Undici HTTP client. Typing Game's Node entry is an inbound HTTP/RPC server.
-- Foldkit's `Http.layer` uses Effect's `FetchHttpClient`. In a browser this uses the browser's transport; in Node it uses the selected Fetch implementation. The current Node binary bundles the patched version, independently of the vulnerable npm copy.
+- Foldkit's `Http.toLayer` uses Effect's `FetchHttpClient`. In a browser this uses the browser's transport; in Node it uses the selected Fetch implementation. The current Node binary bundles the patched version, independently of the vulnerable npm copy.
 
 Disposition: **transport-capable downstream High risk**, not a fetch-only finding. No current owned endpoint selecting the vulnerable npm client was established. A consumer adding `NodeHttpClient.makeUndici` or its Layer must update the resolution or apply an appropriate TLS 1.3 restriction first. Supported older Node binaries need their own bundled-Undici assessment.
 

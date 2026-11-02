@@ -1,30 +1,29 @@
-import { click, expect, given, role, scene, text } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { Option } from 'effect'
+import { click, expect, role, scene, text } from 'foldkit/scene'
+import { fromString } from 'foldkit/url'
 
-import { Model, update, view } from './application'
-import { ApplicationRoute } from './route'
+import { describe, it } from '@effect/vitest'
 
-const initialModel = Model.make({
-  route: ApplicationRoute.Home(),
-  count: 0,
-})
+import { ApplicationLive } from './application'
+
+const homeUrl = Option.getOrThrow(fromString('http://localhost/'))
 
 describe('view', () => {
-  test('renders the statically generated home page', () => {
+  it.effect('renders the statically generated home page', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
+      { url: homeUrl },
       expect(text('Statically generated home')).toExist(),
       expect(role('button', { name: 'Count: 0' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clicking the counter increments the count', () => {
+  it.effect('clicking the counter increments the count', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
+      { url: homeUrl },
       click(role('button', { name: 'Count: 0' })),
       expect(role('button', { name: 'Count: 1' })).toExist(),
-    )
-  })
+    ),
+  )
 })

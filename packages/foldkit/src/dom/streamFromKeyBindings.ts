@@ -926,66 +926,42 @@ const keyBindingStream = <Message>(
  * Duplicate bindings and a complete binding that is also a sequence prefix
  * are rejected when the Stream is created.
  *
- * This helper returns a Stream, not a complete Subscription entry. Declare a
- * named entry with no Model dependencies for a fixed table. When availability
- * depends on the Model that owns the entry, build the Stream in the entry's
- * handler and derive each binding's `isEnabled` from the dependency record. A
- * dependency change opens a new Stream scope and resets any sequence in
- * progress. If a parent owns a condition for a lifted child, declare the table
- * at that parent or put bindings with different parent-owned lifetimes in
- * separate child entries so each registered child's binding subscriptions can
- * apply its own `when` gate individually.
+ * This helper returns a Stream, not a Subscription. Return it as a Block's
+ * `stream` for a fixed table. When availability depends on the Model, return
+ * it from a `subscriptions` entry's `stream` and derive each binding's
+ * `isEnabled` from the entry's dependencies. A dependency change opens a new
+ * Stream scope and resets any sequence in progress.
  * If the meaning of a key depends on the Model, dispatch a factual key Message
  * and decide what it means in update instead of reading the Model from
  * `mapEvent`.
  *
  * @example
  * ```typescript
- * const ExampleDefinition = Block.makeDefinition('Example', { Model, Message })
- * const subscriptions = ExampleDefinition.makeSubscriptions(entry => ({
- *   keyBindings: entry(
- *     'KeyBindings',
- *     { isPaletteOpen: Schema.Boolean },
- *     {
- *       messages: [
- *         Message.PressedEscape,
- *         Message.PressedSearchShortcut,
- *         Message.PressedListShortcut,
- *       ],
- *       modelToDependencies: model => ({
- *         isPaletteOpen: model.paletteState._tag === 'Open',
+ * subscriptions: {
+ *   keyBindings: {
+ *     dependencies: model => model.paletteState._tag === 'Open',
+ *     stream: (isPaletteOpen: boolean) =>
+ *       Dom.streamFromKeyBindings({
+ *         bindings: [
+ *           {
+ *             keys: 'Escape',
+ *             isEnabled: isPaletteOpen,
+ *             whileTyping: 'Allow',
+ *             mapEvent: () => Message.PressedEscape(),
+ *           },
+ *           {
+ *             keys: 'Mod+K',
+ *             whileTyping: 'Allow',
+ *             mapEvent: () => Message.PressedSearchShortcut(),
+ *           },
+ *           {
+ *             keys: ['G', 'L'],
+ *             mapEvent: () => Message.PressedListShortcut(),
+ *           },
+ *         ],
  *       }),
- *       handler: function* () {
- *         return ({ isPaletteOpen }) =>
- *           Dom.streamFromKeyBindings<
- *             | typeof Message.PressedEscape.Type
- *             | typeof Message.PressedSearchShortcut.Type
- *             | typeof Message.PressedListShortcut.Type
- *           >({
- *             bindings: [
- *               {
- *                 keys: 'Escape',
- *                 isEnabled: isPaletteOpen,
- *                 whileTyping: 'Allow',
- *                 mapEvent: () => Message.PressedEscape(),
- *               },
- *               {
- *                 keys: 'Mod+K',
- *                 whileTyping: 'Allow',
- *                 mapEvent: () => Message.PressedSearchShortcut(),
- *               },
- *               {
- *                 keys: ['G', 'L'],
- *                 mapEvent: () => Message.PressedListShortcut(),
- *               },
- *             ],
- *           })
- *       },
- *     },
- *   ),
- * }))
- *
- * const EffectsLayer = subscriptions.keyBindings.layer
+ *   },
+ * },
  * ```
  */
 export const streamFromKeyBindings = <Output>(

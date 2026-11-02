@@ -10,5 +10,6 @@ const saveDraftEffect = Effect.succeed(Message.CompletedSaveDraft())
 
 export const SaveDraft = Command.define('SaveDraft', {
   messages: [Message.CompletedSaveDraft],
-  handler: saveDraftEffect,
 })
+
+export const SaveDraftLive = SaveDraft.toLayer(Effect.succeed(() => saveDraftEffect))

@@ -1,1 +1,1 @@
-export { NotePlayerDemoBlock } from './block'
+export { NotePlayerDemo, NotePlayerDemoLive } from './notePlayerDemo'

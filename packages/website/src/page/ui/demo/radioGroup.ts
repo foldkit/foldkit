@@ -1,8 +1,4 @@
-import type { UiViewBuilder } from '../composition'
-import {
-  HorizontalRadioGroupDemoBinding,
-  VerticalRadioGroupDemoBinding,
-} from '../composition'
+import type { UiViewBuilder } from '../definition'
 import { type Plan } from '../domain/domain'
 import { type Model } from '../model'
 
@@ -60,61 +56,52 @@ export const verticalDemo = (model: Model, h: UiViewBuilder) => {
   const checkPlaceholder = h.div([h.Class('size-5')])
 
   return [
-    h.block(
-      VerticalRadioGroupDemoBinding.embedView({
-        slotId: model.verticalRadioGroupDemo.id,
-        model: model.verticalRadioGroupDemo,
-        viewInputs: {
-          selectedValue: model.verticalRadioGroupDemoValue,
-          options: plans,
-          ariaLabel: 'Server plan',
-          hasOptionDescription: () => true,
-          toView: ({ group, options }) =>
-            h.div(
-              [...group, h.Class(verticalGroupClassName)],
-              options.map(option => {
-                const plan = option.value
-                return h.div(
-                  [...option.option, h.Class(verticalOptionClassName)],
+    model.verticalRadioGroupDemo.view({
+      selectedValue: model.verticalRadioGroupDemoValue,
+      options: plans,
+      ariaLabel: 'Server plan',
+      hasOptionDescription: () => true,
+      toView: ({ group, options }) =>
+        h.div(
+          [...group, h.Class(verticalGroupClassName)],
+          options.map(option => {
+            const plan = option.value
+            return h.div(
+              [...option.option, h.Class(verticalOptionClassName)],
+              [
+                h.div(
+                  [h.Class('flex w-full items-center justify-between')],
                   [
                     h.div(
-                      [h.Class('flex w-full items-center justify-between')],
+                      [],
                       [
-                        h.div(
-                          [],
-                          [
-                            h.span(
-                              [...option.label, h.Class(labelClassName)],
-                              [plan],
-                            ),
-                            h.p(
-                              [
-                                ...option.description,
-                                h.Class(descriptionClassName),
-                              ],
-                              [planDescriptions[plan]],
-                            ),
-                          ],
+                        h.span(
+                          [...option.label, h.Class(labelClassName)],
+                          [plan],
                         ),
-                        h.div(
-                          [h.Class('flex items-center gap-3')],
+                        h.p(
                           [
-                            h.span(
-                              [h.Class(priceClassName)],
-                              [planPrices[plan]],
-                            ),
-                            option.isSelected ? checkIcon : checkPlaceholder,
+                            ...option.description,
+                            h.Class(descriptionClassName),
                           ],
+                          [planDescriptions[plan]],
                         ),
                       ],
                     ),
+                    h.div(
+                      [h.Class('flex items-center gap-3')],
+                      [
+                        h.span([h.Class(priceClassName)], [planPrices[plan]]),
+                        option.isSelected ? checkIcon : checkPlaceholder,
+                      ],
+                    ),
                   ],
-                )
-              }),
-            ),
-        },
-      }),
-    ),
+                ),
+              ],
+            )
+          }),
+        ),
+    }),
   ]
 }
 
@@ -139,52 +126,39 @@ export const horizontalDemo = (model: Model, h: UiViewBuilder) => {
   const checkPlaceholder = h.div([h.Class('size-5')])
 
   return [
-    h.block(
-      HorizontalRadioGroupDemoBinding.embedView({
-        slotId: model.horizontalRadioGroupDemo.id,
-        model: model.horizontalRadioGroupDemo,
-        viewInputs: {
-          selectedValue: model.horizontalRadioGroupDemoValue,
-          options: plans,
-          ariaLabel: 'Server plan',
-          orientation: 'Horizontal',
-          hasOptionDescription: () => true,
-          toView: ({ group, options }) =>
-            h.div(
-              [...group, h.Class(horizontalGroupClassName)],
-              options.map(option => {
-                const plan = option.value
-                return h.div(
-                  [...option.option, h.Class(horizontalOptionClassName)],
+    model.horizontalRadioGroupDemo.view({
+      selectedValue: model.horizontalRadioGroupDemoValue,
+      options: plans,
+      ariaLabel: 'Server plan',
+      orientation: 'Horizontal',
+      hasOptionDescription: () => true,
+      toView: ({ group, options }) =>
+        h.div(
+          [...group, h.Class(horizontalGroupClassName)],
+          options.map(option => {
+            const plan = option.value
+            return h.div(
+              [...option.option, h.Class(horizontalOptionClassName)],
+              [
+                h.div(
+                  [h.Class('flex w-full items-start justify-between gap-2')],
                   [
-                    h.div(
-                      [
-                        h.Class(
-                          'flex w-full items-start justify-between gap-2',
-                        ),
-                      ],
-                      [
-                        h.span(
-                          [...option.label, h.Class(labelClassName)],
-                          [plan],
-                        ),
-                        h.span([h.Class(priceClassName)], [planPrices[plan]]),
-                      ],
-                    ),
-                    h.p(
-                      [...option.description, h.Class(descriptionClassName)],
-                      [planDescriptions[plan]],
-                    ),
-                    h.div(
-                      [h.Class('mt-auto flex justify-end pt-2')],
-                      [option.isSelected ? checkIcon : checkPlaceholder],
-                    ),
+                    h.span([...option.label, h.Class(labelClassName)], [plan]),
+                    h.span([h.Class(priceClassName)], [planPrices[plan]]),
                   ],
-                )
-              }),
-            ),
-        },
-      }),
-    ),
+                ),
+                h.p(
+                  [...option.description, h.Class(descriptionClassName)],
+                  [planDescriptions[plan]],
+                ),
+                h.div(
+                  [h.Class('mt-auto flex justify-end pt-2')],
+                  [option.isSelected ? checkIcon : checkPlaceholder],
+                ),
+              ],
+            )
+          }),
+        ),
+    }),
   ]
 }

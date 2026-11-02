@@ -55,7 +55,7 @@ main costs and bundle growth are retained for approval.
   removed. All three focused helpers support Model-aware callbacks and
   payload-only `.fromMessage`. Producers run when applied; Command-only and
   OutMessage-only transitions preserve incoming Model identity.
-- Fully attached ManagedResource registries expose `managedResources.layer`.
+- Fully attached ManagedResource registries expose `managedResources.toLayer`.
   `layer` is newly reserved; mixed/host-owned entries use explicit providers.
   The temporary followup `ManagedResource.handlersLayer` helper is not retained.
 - Handle the new keyboard DragAndDrop facts and echo invocation generations in

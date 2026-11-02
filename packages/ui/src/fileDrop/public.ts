@@ -1,5 +1,6 @@
 export {
-  FileDropBlock,
+  FileDrop,
+  FileDropLive,
   type InitConfig,
   type FileDropAttributes,
   type ViewInputs,

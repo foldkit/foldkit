@@ -1,5 +1,6 @@
 export {
-  DatePickerBlock,
+  DatePicker,
+  DatePickerLive,
   triggerId,
   type InitConfig,
   type ViewInputs,

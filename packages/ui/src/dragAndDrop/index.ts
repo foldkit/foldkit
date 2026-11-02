@@ -1,5 +1,6 @@
 export {
-  DragAndDropBlock,
+  DragAndDrop,
+  DragAndDropLive,
   DragState,
   droppable,
   sortable,

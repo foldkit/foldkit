@@ -1,16 +1,5 @@
-import {
-  Effect,
-  Layer,
-  Option,
-  Predicate,
-  Schema,
-  type Scope,
-  Stream,
-} from 'effect'
+import { Effect, Layer, Option, Schema, Stream } from 'effect'
 
-import type { AnyBlock } from '../block/definition.js'
-import { qualifyLayer } from '../block/scope.js'
-import type { ServicesOf as ManagedResourceServicesOf } from '../managedResource/index.js'
 import {
   type LayeredMountDefinition,
   type MountAction,
@@ -36,41 +25,33 @@ type InferredApplicationConfig<
   Model,
   Message,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = ApplicationConfig<Model, Message, any, any, any, Mounts>
+> = ApplicationConfig<Model, Message, any, any, Mounts>
 
 type InferredApplicationConfigWithFlags<
   Model,
   Message,
   Flags,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = ApplicationConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
+> = ApplicationConfigWithFlags<Model, Message, Flags, any, any, Mounts>
 
 type InferredRoutingApplicationConfig<
   Model,
   Message,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = RoutingApplicationConfig<Model, Message, any, any, any, Mounts>
+> = RoutingApplicationConfig<Model, Message, any, any, Mounts>
 
 type InferredRoutingApplicationConfigWithFlags<
   Model,
   Message,
   Flags,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = RoutingApplicationConfigWithFlags<
-  Model,
-  Message,
-  Flags,
-  any,
-  any,
-  any,
-  Mounts
->
+> = RoutingApplicationConfigWithFlags<Model, Message, Flags, any, any, Mounts>
 
 type InferredElementConfig<
   Model,
   Message,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = ElementConfig<Model, Message, any, any, any, Mounts> &
+> = ElementConfig<Model, Message, any, any, Mounts> &
   Readonly<{ Flags?: never; flags?: never }>
 
 type InferredElementConfigWithFlags<
@@ -78,7 +59,7 @@ type InferredElementConfigWithFlags<
   Message,
   Flags,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = ElementConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
+> = ElementConfigWithFlags<Model, Message, Flags, any, any, Mounts>
 
 type RoutingApplicationConfigWithFlagsInput<
   ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -204,33 +185,7 @@ type MountRequirements<Config> =
       : never
     : never
 
-type ManagedResourceRuntimeServices<Config> =
-  Config extends Readonly<{ managedResources: infer ManagedResources }>
-    ? ManagedResourceServicesOf<ManagedResources>
-    : never
-
-type ManagedResourceLifecycleRequirements<Config> =
-  Config extends Readonly<{
-    managedResources: Readonly<Record<string, infer Entry>>
-  }>
-    ?
-        | (Entry extends Readonly<{
-            acquire: (
-              ...args: ReadonlyArray<any>
-            ) => Effect.Effect<any, any, infer R>
-          }>
-            ? Exclude<R, Scope.Scope>
-            : never)
-        | (Entry extends Readonly<{
-            release: (
-              ...args: ReadonlyArray<any>
-            ) => Effect.Effect<any, any, infer R>
-          }>
-            ? Exclude<R, Scope.Scope>
-            : never)
-    : never
-
-type ConfigRequirements<Config, Update> = Exclude<
+type ConfigRequirements<Config, Update> =
   | (Config extends Readonly<{ init: infer Init }>
       ? ReturnRequirements<FunctionReturn<Init>>
       : never)
@@ -244,9 +199,6 @@ type ConfigRequirements<Config, Update> = Exclude<
     }>
       ? Requirements
       : never)
-  | ManagedResourceLifecycleRequirements<Config>,
-  ManagedResourceRuntimeServices<Config>
->
 
 type ConfigPorts<Config> =
   Config extends Readonly<{
@@ -285,72 +237,6 @@ type ResidualRequirements<Current, Provided, Needed, RuntimeServices> = Exclude<
   Exclude<Current, Provided> | Needed,
   RuntimeServices
 >
-
-const assertDistinctHandlerNames = (
-  kind: 'Subscription' | 'ManagedResource',
-  entries: Readonly<Record<string, unknown>>,
-): void => {
-  const definitions = new Map<
-    string,
-    Readonly<{ key: string; toLayer: unknown }>
-  >()
-
-  for (const [key, entry] of globalThis.Object.entries(entries)) {
-    if (!Predicate.isObject(entry)) {
-      continue
-    }
-
-    const { name, toLayer } = entry
-
-    if (!Predicate.isString(name) || !Predicate.isFunction(toLayer)) {
-      continue
-    }
-
-    const previous = definitions.get(name)
-
-    if (previous && previous.toLayer !== toLayer) {
-      throw new Error(
-        `[foldkit] ${kind} handlers "${previous.key}" and "${key}" have the same name "${name}" but different definitions. Give each definition a distinct name.`,
-      )
-    }
-
-    definitions.set(name, { key, toLayer })
-  }
-}
-
-const assertDistinctManagedResourceKeys = (
-  entries: Readonly<Record<string, unknown>>,
-): void => {
-  const registrations = new Map<string, string>()
-
-  for (const [registrationKey, entry] of globalThis.Object.entries(entries)) {
-    if (!Predicate.isObject(entry)) {
-      continue
-    }
-
-    const { resource } = entry
-
-    if (!Predicate.isObject(resource)) {
-      continue
-    }
-
-    const { key: resourceKey } = resource
-
-    if (!Predicate.isString(resourceKey)) {
-      continue
-    }
-
-    const previousRegistrationKey = registrations.get(resourceKey)
-
-    if (previousRegistrationKey !== undefined) {
-      throw new Error(
-        `[foldkit] ManagedResource registrations "${previousRegistrationKey}" and "${registrationKey}" use the same resource tag key "${resourceKey}". Give each lifecycle owner a distinct ManagedResource tag key.`,
-      )
-    }
-
-    registrations.set(resourceKey, registrationKey)
-  }
-}
 
 /** @internal Passive program contract before all ordinary Services are provided. */
 export interface PendingApplication<
@@ -483,8 +369,7 @@ type PublicProgram<
 
 /**
  * Defines a page-owning Foldkit application and preserves the services its
- * init and update Commands, Subscriptions, registered Mounts, and
- * ManagedResources require.
+ * init and update Commands, Subscriptions, and registered Mounts require.
  */
 export function __makeFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -523,8 +408,7 @@ export function __makeFromConfig<
 ): Application<
   ConfigPorts<Config>,
   FlagsSchema['Type'],
-  ConfigRequirements<Config, Update>,
-  ManagedResourceRuntimeServices<Config>
+  ConfigRequirements<Config, Update>
 >
 
 export function __makeFromConfig<
@@ -552,12 +436,7 @@ export function __makeFromConfig<
     > &
     Readonly<{ mounts?: Mounts }> &
     PreciseMountRegistry<Mounts>,
-): Application<
-  ConfigPorts<Config>,
-  void,
-  ConfigRequirements<Config, Update>,
-  ManagedResourceRuntimeServices<Config>
->
+): Application<ConfigPorts<Config>, void, ConfigRequirements<Config, Update>>
 
 export function __makeFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -591,8 +470,7 @@ export function __makeFromConfig<
 ): Application<
   ConfigPorts<Config>,
   FlagsSchema['Type'],
-  ConfigRequirements<Config, Update>,
-  ManagedResourceRuntimeServices<Config>
+  ConfigRequirements<Config, Update>
 >
 
 export function __makeFromConfig<
@@ -617,12 +495,7 @@ export function __makeFromConfig<
     > &
     Readonly<{ mounts?: Mounts }> &
     PreciseMountRegistry<Mounts>,
-): Application<
-  ConfigPorts<Config>,
-  void,
-  ConfigRequirements<Config, Update>,
-  ManagedResourceRuntimeServices<Config>
->
+): Application<ConfigPorts<Config>, void, ConfigRequirements<Config, Update>>
 
 export function __makeFromConfig(
   config:
@@ -631,24 +504,14 @@ export function __makeFromConfig(
     | InferredApplicationConfigWithFlags<any, any, any>
     | InferredApplicationConfig<any, any>,
 ): unknown {
-  if (config.subscriptions) {
-    assertDistinctHandlerNames('Subscription', config.subscriptions)
-  }
-
-  if (config.managedResources) {
-    assertDistinctManagedResourceKeys(config.managedResources)
-    assertDistinctHandlerNames('ManagedResource', config.managedResources)
-  }
-
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return bindProvide(makeRuntimeApplication(config as any))
 }
 
 /**
  * Defines a container-scoped Foldkit Element with requirements inferred from
- * its Flags Effect, init and update Commands, Subscriptions, registered Mounts,
- * and ManagedResources. Its view returns `Html` and does not manage page
- * metadata.
+ * its Flags Effect, init and update Commands, Subscriptions, and registered
+ * Mounts. Its view returns `Html` and does not manage page metadata.
  */
 export function __makeElementFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -679,11 +542,7 @@ export function __makeElementFromConfig<
     > &
     Readonly<{ mounts?: Mounts }> &
     PreciseMountRegistry<Mounts>,
-): Element<
-  ConfigPorts<Config>,
-  ConfigRequirements<Config, Update>,
-  ManagedResourceRuntimeServices<Config>
->
+): Element<ConfigPorts<Config>, ConfigRequirements<Config, Update>>
 
 export function __makeElementFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -703,56 +562,15 @@ export function __makeElementFromConfig<
     > &
     Readonly<{ mounts?: Mounts }> &
     PreciseMountRegistry<Mounts>,
-): Element<
-  ConfigPorts<Config>,
-  ConfigRequirements<Config, Update>,
-  ManagedResourceRuntimeServices<Config>
->
+): Element<ConfigPorts<Config>, ConfigRequirements<Config, Update>>
 
 export function __makeElementFromConfig(
   config:
     | InferredElementConfigWithFlags<any, any, any>
     | InferredElementConfig<any, any>,
 ): unknown {
-  if (config.subscriptions) {
-    assertDistinctHandlerNames('Subscription', config.subscriptions)
-  }
-
-  if (config.managedResources) {
-    assertDistinctManagedResourceKeys(config.managedResources)
-    assertDistinctHandlerNames('ManagedResource', config.managedResources)
-  }
-
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return bindProvide(makeRuntimeElement(config as any))
-}
-
-/** @internal Installs a completed root Block into a native Runtime program. */
-export const installBlock = (program: any, block: AnyBlock): any => {
-  const internals = runtimeInternals.get(program)!
-  const nativeStart = internals.startWithApplicationLayer
-  internals.compositionRoot = block
-  internals.startWithApplicationLayer = (
-    connector,
-    preservedModel,
-    bootMode,
-    flags,
-    buildId,
-    layer,
-  ) =>
-    nativeStart(
-      connector,
-      preservedModel,
-      bootMode,
-      flags,
-      buildId,
-      qualifyLayer(block.owner.id, layer),
-    )
-  return provideProgram(
-    program,
-    // oxlint-disable-next-line typescript/consistent-type-assertions
-    block.EffectsLayer as Layer.Layer<any, any, any>,
-  )
 }
 
 type RuntimeProgram = Readonly<{

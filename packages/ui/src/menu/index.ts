@@ -1,5 +1,5 @@
 export {
-  makeBlock,
+  make,
   buttonId,
   ActivationTrigger,
   groupContiguous,
@@ -8,5 +8,6 @@ export {
   type ViewInputs,
   type ItemConfig,
   type GroupHeading,
-  type Completed,
+  type Menu,
+  type MenuClass,
 } from './menu.js'

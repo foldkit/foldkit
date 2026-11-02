@@ -16,25 +16,25 @@ Components are either stateful Blocks or stateless render helpers.
 
 ### Stateful Blocks
 
-Stateful [Blocks](/core/block), including Menu, Listbox, Combobox, Calendar, Dialog, and Popover, have their own Model, Message union, update, and OutMessage. Embed them with `h.block` and fold their OutMessages into the parent update.
+Stateful [Blocks](/core/block), including Menu, Listbox, Combobox, Calendar, Dialog, and Popover, have their own Model, Message union, update, and OutMessage. Create an instance with `new` in the parent's `init` or update, hold it in the parent Model, render it with its `view`, send it Messages, and handle its OutMessages by spreading the class's `.on` into the parent's update record.
 
 ### Stateless Render Helpers
 
-Stateless render helpers, including Button, Input, Textarea, Select, Checkbox, Switch, Disclosure, Fieldset, and Nav, take a `ViewConfig` and your builder and return Html. They bundle ARIA, data, and event attributes for DOM elements that you render. They need no child Model or `h.block` wiring. The builder determines the Message type returned by their callbacks, so you do not provide a Message type argument.
+Stateless render helpers, including Button, Input, Textarea, Select, Checkbox, Switch, Disclosure, Fieldset, and Nav, take a `ViewConfig` and your builder and return Html. They bundle ARIA, data, and event attributes for DOM elements that you render. They need no child instance. The builder determines the Message type returned by their callbacks, so you do not provide a Message type argument.
 
 The Kind column below identifies each component category.
 
 ## Application Wiring
 
-Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Connect each stateful component’s completed Block value and include the Binding in the parent's `bindings`. The parent Composition collects the component's handlers and lifecycle registrations.
+Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Each component's Layer carries those handlers once for every instance. Foldkit starts an instance's Subscriptions when it appears in the parent Model and stops them when it leaves. The parent's only wiring is to provide the component's Layer to its own Layer.
 
-The example below shows two component Bindings included by one owning Block. Assume its Model, Message, init, named OutMessage folds, and component ViewInputs are defined in the application's other modules. The root includes its component Bindings in `ApplicationComposition` and assembles `ApplicationBlock`; the final lines show separate `entry.ts` startup through `Program.make`. Supply external service providers through the root `ApplicationLayer` as described in [Layers](/core/layers).
+Each component module exports its class and its Layer: `Dialog.Dialog` and `Dialog.DialogLive`. A component that holds other components, such as Dialog holding an Animation, provides their Layers inside its own. A generic factory such as `Menu.make<Item>()` returns a class declared with its implementation, so the class is its own Layer: provide it with `Layer.provide(ActionMenu)`. Its Layer requires the Layers of the components it holds, so provide `AnimationLive` alongside a Combobox, Listbox, Menu, or Toast class.
+
+The example below creates a Dialog and a Menu in one root Block, provides both Layers, and starts the Program. Supply external services through the root Layer as described in [Layers](/core/layers).
 
 ::Snippet{name="uiEffects" label="Providing Foldkit UI effects"}
 
-Mounted UI views and attribute slots carry their Mount requirements. Author the parent view through its Composition's `makeView`; its builder derives the component and Mount capabilities. Give ordinary feature-local helpers a `FeatureViewBuilder` parameter derived with `Block.ViewBuilderFor<typeof FeatureComposition>`, declared immediately after the Composition. Use the framework's general `HtmlBuilder<Message>` for a function genuinely shared across owners. TypeScript checks capabilities during composition and handler provision before startup. Foldkit also checks each rendered definition before patching the DOM. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views).
-
-Component factories with instance-specific behavior return completed Blocks. Connect the result of `Slider.forRoot(getTrackRoot)` or `Toast.makeBlock(PayloadSchema)` in the Block that owns the instance.
+Component factories with instance-specific behavior return classes too. Call `Slider.make(getTrackRoot)` or `Toast.make(PayloadSchema)` once at module scope, create instances of the class it returns, and provide that class.
 
 ## Components
 
@@ -73,4 +73,4 @@ Underneath the floating components sits [Anchor](/ui/anchor), the positioning ru
 
 ## Showcase
 
-The [UI Showcase](/example-apps/ui-showcase) demonstrates every component with styled, interactive examples. Use its source to see parent-child wiring, OutMessage folds, and view composition in one application.
+The [UI Showcase](/example-apps/ui-showcase) demonstrates every component with styled, interactive examples. Use its source to see parent-child wiring, OutMessage handling, and view composition in one application.

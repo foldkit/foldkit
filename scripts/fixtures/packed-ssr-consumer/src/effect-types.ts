@@ -30,25 +30,25 @@ type Model = typeof Model.Type
 const Message = Foldkit.Message.defineMessageUnion({ CompletedWait: {} })
 type Message = typeof Message.Type
 
-const PackedEffectConsumerDefinition = Foldkit.Block.makeDefinition(
-  'PackedEffectConsumer',
-  {
-    Model,
-    Message,
-  },
-)
-
-const Wait = PackedEffectConsumerDefinition.makeCommand('Wait', {
+const Wait = Foldkit.Command.define('Wait', {
   messages: [Message.CompletedWait],
-  handler: function* () {
-    return () =>
-      Effect.sleep('1 millis').pipe(Effect.as(Message.CompletedWait()))
-  },
 })
 
-export const EffectsLayer = Wait.layer
+const WaitLive = Wait.toLayer(
+  Effect.gen(function* () {
+    return () =>
+      Effect.sleep('1 millis').pipe(Effect.as(Message.CompletedWait()))
+  }),
+)
+
+export class PackedEffectConsumer extends Foldkit.Block<PackedEffectConsumer>()(
+  'PackedEffectConsumer',
+  { Model, Message, Command: [Wait] },
+) {}
+
+export const WaitLayer = WaitLive
 export const wait: Effect.Effect<Message> = Wait().effect.pipe(
-  Effect.provide(EffectsLayer),
+  Effect.provide(WaitLayer),
 )
 
 export type PackageEffect = Effect.Effect<Message>

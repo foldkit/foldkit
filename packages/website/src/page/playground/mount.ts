@@ -8,16 +8,15 @@ import {
   String,
   pipe,
 } from 'effect'
-import type { Mount } from 'foldkit'
+import { Mount } from 'foldkit'
 
 import { reasonFromError } from '../playgroundWebContainer'
 import {
   type EditedPlaygroundFile,
   type FailedMountPlaygroundEditor,
   Message,
-  PlaygroundDefinition,
   type SucceededMountPlaygroundEditor,
-} from './definition'
+} from './model'
 
 const monacoLanguageForPath = (path: string): string =>
   pipe(
@@ -114,7 +113,7 @@ const configureMonaco = async () => {
     // NOTE: `noEmit` + `allowImportingTsExtensions` together unlock
     // Bundler's auto-resolution of `.ts` extensions for relative
     // imports. Without these flags, Monaco's Bundler will not match
-    // `./ui/message` against our model at `file:///src/ui/message.ts`,
+    // `./page/home` against our model at `file:///src/page/home.ts`,
     // even though the model exists.
     noEmit: true,
     allowImportingTsExtensions: true,
@@ -152,8 +151,8 @@ const registerPlaygroundModels = (
   // We also register each TypeScript file as an extraLib. Monaco's TS service
   // uses different code paths for resolving against models vs extraLibs, and
   // Bundler's extension auto-resolution only kicks in for extraLib paths.
-  // Without this, relative imports like `./ui/message` fail to resolve to the
-  // model at `file:///src/ui/message.ts` despite the model existing.
+  // Without this, relative imports like `./page/home` fail to resolve to the
+  // model at `file:///src/page/home.ts` despite the model existing.
   const tsDefaults = monaco.typescript.typescriptDefaults
   for (const [siblingPath, siblingContent] of Object.entries(files)) {
     const siblingUri = monaco.Uri.parse(monacoUriForPath(siblingPath))
@@ -240,7 +239,7 @@ const releasePlaygroundEditor = (resource: PlaygroundEditorResource) =>
     resource.editorModel.dispose()
   })
 
-const streamPlaygroundEditorMessages = (
+export const streamPlaygroundEditorMessages = (
   element: Element,
   path: string,
   initialContent: string,
@@ -274,7 +273,7 @@ const streamPlaygroundEditorMessages = (
     ),
   )
 
-export const MountPlaygroundEditor = PlaygroundDefinition.makeMountStream(
+export const MountPlaygroundEditor = Mount.defineStream(
   'MountPlaygroundEditor',
   {
     args: {
@@ -287,15 +286,5 @@ export const MountPlaygroundEditor = PlaygroundDefinition.makeMountStream(
       Message.FailedMountPlaygroundEditor,
       Message.EditedPlaygroundFile,
     ],
-    handler: function* () {
-      return ({ element, path, initialContent, files, viewStateChanges }) =>
-        streamPlaygroundEditorMessages(
-          element,
-          path,
-          initialContent,
-          files,
-          viewStateChanges,
-        )
-    },
   },
 )

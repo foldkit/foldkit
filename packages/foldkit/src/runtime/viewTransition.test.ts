@@ -15,8 +15,6 @@ import { type DevToolsStore, INIT_INDEX } from '../devTools/store.js'
 import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { afterCommit } from '../render/render.js'
-import * as Subscription from '../subscription/subscription.js'
-import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { __setDevToolsOverlay } from './devToolsConfig.js'
 import {
@@ -188,14 +186,13 @@ type Model = typeof Model.Type
 
 const h = __htmlBuilder<Message>()
 
-const update = Update.define((_model: Model, message: Message) =>
+const update = (_model: Model, message: Message) =>
   Message.match(message, {
     ClickedTransition: () => ({ model: { label: 'transitioned' } }),
     ClickedPlain: () => ({ model: { label: 'plain' } }),
     CompletedProbeCommittedDom: () => ({ model: _model }),
     Ticked: () => ({ model: { label: 'ticked' } }),
-  }),
-)
+  })
 
 describe('makeElement with viewTransition', () => {
   let container: HTMLElement
@@ -403,7 +400,7 @@ describe('makeElement with viewTransition', () => {
       const element = Application.__makeElementFromConfig({
         Model,
         init: () => ({ model: { label: 'initial' } }),
-        update: Update.define((model: Model, message: Message) =>
+        update: (model: Model, message: Message) =>
           Message.match(message, {
             ClickedTransition: () => ({
               model: { label: 'transitioned' },
@@ -413,7 +410,6 @@ describe('makeElement with viewTransition', () => {
             CompletedProbeCommittedDom: () => ({ model }),
             Ticked: () => ({ model: { label: 'ticked' } }),
           }),
-        ),
         view: model => {
           renderCount += 1
           return h.div(
@@ -512,26 +508,18 @@ describe('makeElement with viewTransition', () => {
       PubSub.unbounded<Message>(),
     )
     let isSubscriptionReady = false
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      testMessages: entry('TestMessages', {
-        messages: [
-          Message.ClickedTransition,
-          Message.ClickedPlain,
-          Message.CompletedProbeCommittedDom,
-          Message.Ticked,
-        ],
-      }),
-    }))
-
-    const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() =>
-        Stream.fromEffect(
-          Effect.sync(() => {
-            isSubscriptionReady = true
-          }),
-        ).pipe(Stream.flatMap(() => Stream.fromPubSub(subscriptionMessages))),
-      ),
-    )
+    const subscriptions = {
+      testMessages: {
+        dependenciesSchema: Schema.Struct({}),
+        modelToDependencies: () => ({}),
+        dependenciesToStream: () =>
+          Stream.fromEffect(
+            Effect.sync(() => {
+              isSubscriptionReady = true
+            }),
+          ).pipe(Stream.flatMap(() => Stream.fromPubSub(subscriptionMessages))),
+      },
+    }
     let didProcessTick = false
     let maybeStore: DevToolsStore | null = null
     __setDevToolsOverlay(store => {
@@ -542,19 +530,19 @@ describe('makeElement with viewTransition', () => {
     const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
-      update: Update.define((model, message) => {
+      update: (model, message) => {
         if (message._tag === 'Ticked') {
           didProcessTick = true
         }
         return update(model, message)
-      }),
+      },
       view: model => h.div([], [model.label]),
       subscriptions,
       container,
       viewTransition: () => true,
       devTools: { show: 'Always' },
     })
-    const fiber = Effect.runFork(element.provide(TestMessagesLayer).start())
+    const fiber = Effect.runFork(element.start())
 
     try {
       await awaitBodyText('initial')
@@ -939,7 +927,7 @@ describe('makeElement with viewTransition', () => {
     const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
-      update: Update.define((model: Model, message: Message) =>
+      update: (model: Model, message: Message) =>
         Message.match(message, {
           ClickedTransition: () => ({
             model: { label: 'transitioned' },
@@ -949,7 +937,6 @@ describe('makeElement with viewTransition', () => {
           CompletedProbeCommittedDom: () => ({ model }),
           Ticked: () => ({ model: { label: 'ticked' } }),
         }),
-      ),
       view: model =>
         h.div(
           [],

@@ -1,6 +1,7 @@
-import { Option, Schema } from 'effect'
+import { Option } from 'effect'
+import { Block } from 'foldkit'
+import type { Resolved } from 'foldkit/block'
 import * as Story from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -12,13 +13,11 @@ import {
   InertPopoverOthers,
   LockPopoverScroll,
   Message,
-  type Model,
   OutMessage,
-  PopoverBlock,
+  type Popover,
+  PopoverLive,
   RestorePopoverInert,
   UnlockPopoverScroll,
-  init,
-  update,
 } from './block.js'
 
 const completedDetectPopoverMovementOrAnimationEnd = (generation: number) =>
@@ -26,29 +25,19 @@ const completedDetectPopoverMovementOrAnimationEnd = (generation: number) =>
 
 const STALE_ANIMATION_GENERATION = -1
 
-const gotAnimationMessage = ({
-  message,
-}: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
-  Schema.decodeSync(PopoverBlock.Message)({
-    _tag: 'GotAnimationMessage',
-    placement: 'animation',
-    generation: 0,
-    message,
-  })
+const deliverAnimationMessage = (
+  message: typeof Animation.Animation.Message.Type,
+) => Block.deliver(Animation.Animation, 'animation', message)
 
-const givenClosed = Story.given(init({ id: 'test' }).model)
+type PopoverModel = Resolved<Popover>
 
-const givenOpen = Story.steps(
-  givenClosed,
-  Story.message(Message.RequestedOpen()),
-)
+const closed = { id: 'test' }
+const closedAnimated = { id: 'test', isAnimated: true }
+const closedModal = { id: 'test', isModal: true }
 
-const givenClosedAnimated = Story.given(
-  init({ id: 'test', isAnimated: true }).model,
-)
+const openSteps = Story.steps(Story.message(Message.RequestedOpen()))
 
-const givenOpenAnimated = Story.steps(
-  givenClosedAnimated,
+const openAnimatedSteps = Story.steps(
   Story.message(Message.RequestedOpen()),
   Story.Command.resolveAll(
     [
@@ -60,83 +49,128 @@ const givenOpenAnimated = Story.steps(
       Animation.Message.EndedAnimation({ generation: 1 }),
     ],
   ),
-  Story.model((model: Model) => {
+  Story.model((model: PopoverModel) => {
     expect(model.animation.transitionState).toBe('Idle')
   }),
 )
 
+const openModalSteps = Story.steps(
+  Story.message(Message.RequestedOpen()),
+  Story.Command.resolveAll(
+    [LockPopoverScroll, Message.CompletedLockPopoverScroll()],
+    [InertPopoverOthers, Message.CompletedInertPopoverOthers()],
+  ),
+)
+
 describe('Popover', () => {
   describe('init', () => {
-    it('defaults to closed', () => {
-      expect(init({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        isOpen: false,
-        isAnimated: false,
-        isModal: false,
-        contentFocus: false,
-        animation: Animation.init({ id: 'test-panel' }).model,
-        maybeLastButtonPointerType: Option.none(),
-      })
-    })
+    it.effect('defaults to closed', () =>
+      Story.story(
+        PopoverLive,
+        closed,
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            isOpen: false,
+            isAnimated: false,
+            isModal: false,
+            contentFocus: false,
+            animation: {
+              id: 'test-panel',
+              isShowing: false,
+              transitionState: 'Idle',
+              transitionGeneration: 0,
+            },
+            maybeLastButtonPointerType: Option.none(),
+          })
+        }),
+      ),
+    )
 
-    it('accepts isAnimated option', () => {
-      const model = init({ id: 'test', isAnimated: true }).model
-      expect(model.isAnimated).toBe(true)
-      expect(model.animation.transitionState).toBe('Idle')
-    })
+    it.effect('accepts isAnimated option', () =>
+      Story.story(
+        PopoverLive,
+        closedAnimated,
+        Story.model(model => {
+          expect(model.isAnimated).toBe(true)
+          expect(model.animation.transitionState).toBe('Idle')
+        }),
+      ),
+    )
 
-    it('defaults isModal to false', () => {
-      const model = init({ id: 'test' }).model
-      expect(model.isModal).toBe(false)
-    })
+    it.effect('defaults isModal to false', () =>
+      Story.story(
+        PopoverLive,
+        closed,
+        Story.model(model => {
+          expect(model.isModal).toBe(false)
+        }),
+      ),
+    )
 
-    it('accepts isModal option', () => {
-      const model = init({ id: 'test', isModal: true }).model
-      expect(model.isModal).toBe(true)
-    })
+    it.effect('accepts isModal option', () =>
+      Story.story(
+        PopoverLive,
+        closedModal,
+        Story.model(model => {
+          expect(model.isModal).toBe(true)
+        }),
+      ),
+    )
 
-    it('defaults contentFocus to false', () => {
-      const model = init({ id: 'test' }).model
-      expect(model.contentFocus).toBe(false)
-    })
+    it.effect('defaults contentFocus to false', () =>
+      Story.story(
+        PopoverLive,
+        closed,
+        Story.model(model => {
+          expect(model.contentFocus).toBe(false)
+        }),
+      ),
+    )
 
-    it('accepts contentFocus option', () => {
-      const model = init({ id: 'test', contentFocus: true }).model
-      expect(model.contentFocus).toBe(true)
-    })
+    it.effect('accepts contentFocus option', () =>
+      Story.story(
+        PopoverLive,
+        { id: 'test', contentFocus: true },
+        Story.model(model => {
+          expect(model.contentFocus).toBe(true)
+        }),
+      ),
+    )
   })
 
   describe('update', () => {
     describe('RequestedOpen', () => {
-      it('opens the popover', () => {
+      it.effect('opens the popover', () =>
         Story.story(
-          update,
-          givenClosed,
+          PopoverLive,
+          closed,
           Story.message(Message.RequestedOpen()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
 
-      it('does not dispatch focus commands when opening', () => {
+      it.effect('does not dispatch focus commands when opening', () =>
         Story.story(
-          update,
-          givenClosed,
+          PopoverLive,
+          closed,
           Story.message(Message.RequestedOpen()),
           Story.Command.expectNone(),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('RequestedClose', () => {
-      it('closes the popover and returns a focus command', () => {
+      it.effect('closes the popover and returns a focus command', () =>
         Story.story(
-          update,
-          givenOpen,
+          PopoverLive,
+          closed,
+          openSteps,
           Story.message(Message.RequestedClose()),
           Story.expectOutMessage(OutMessage.Closed()),
           Story.Command.expectExact(FocusPopoverButton),
@@ -150,28 +184,31 @@ describe('Popover', () => {
               Option.none(),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('returns no Command and no OutMessage when already closed', () => {
-        Story.story(
-          update,
-          givenClosed,
-          Story.message(Message.RequestedClose()),
-          Story.expectNoOutMessage(),
-          Story.Command.expectNone(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
+      it.effect(
+        'returns no Command and no OutMessage when already closed',
+        () =>
+          Story.story(
+            PopoverLive,
+            closed,
+            Story.message(Message.RequestedClose()),
+            Story.expectNoOutMessage(),
+            Story.Command.expectNone(),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+            }),
+          ),
+      )
     })
 
     describe('BlurredPanel', () => {
-      it('closes the popover without restoring button focus', () => {
+      it.effect('closes the popover without restoring button focus', () =>
         Story.story(
-          update,
-          givenOpen,
+          PopoverLive,
+          closed,
+          openSteps,
           Story.message(Message.BlurredPanel()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -179,15 +216,15 @@ describe('Popover', () => {
               Option.none(),
             )
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('PressedPointerOnButton', () => {
-      it('records pointer type for touch without toggling', () => {
+      it.effect('records pointer type for touch without toggling', () =>
         Story.story(
-          update,
-          givenClosed,
+          PopoverLive,
+          closed,
           Story.message(
             Message.PressedPointerOnButton({
               pointerType: 'touch',
@@ -200,13 +237,13 @@ describe('Popover', () => {
               Option.some('touch'),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('records pointer type for pen without toggling', () => {
+      it.effect('records pointer type for pen without toggling', () =>
         Story.story(
-          update,
-          givenClosed,
+          PopoverLive,
+          closed,
           Story.message(
             Message.PressedPointerOnButton({
               pointerType: 'pen',
@@ -219,13 +256,13 @@ describe('Popover', () => {
               Option.some('pen'),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('opens the popover on mouse left button when closed', () => {
+      it.effect('opens the popover on mouse left button when closed', () =>
         Story.story(
-          update,
-          givenClosed,
+          PopoverLive,
+          closed,
           Story.message(
             Message.PressedPointerOnButton({
               pointerType: 'mouse',
@@ -238,36 +275,39 @@ describe('Popover', () => {
               Option.some('mouse'),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('closes the popover on mouse left button when open and preserves pointer type', () => {
-        Story.story(
-          update,
-          givenOpen,
-          Story.message(
-            Message.PressedPointerOnButton({
-              pointerType: 'mouse',
-              button: 0,
+      it.effect(
+        'closes the popover on mouse left button when open and preserves pointer type',
+        () =>
+          Story.story(
+            PopoverLive,
+            closed,
+            openSteps,
+            Story.message(
+              Message.PressedPointerOnButton({
+                pointerType: 'mouse',
+                button: 0,
+              }),
+            ),
+            Story.Command.resolve(
+              FocusPopoverButton,
+              Message.CompletedFocusPopoverButton(),
+            ),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+              expect(model.maybeLastButtonPointerType).toStrictEqual(
+                Option.some('mouse'),
+              )
             }),
           ),
-          Story.Command.resolve(
-            FocusPopoverButton,
-            Message.CompletedFocusPopoverButton(),
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.maybeLastButtonPointerType).toStrictEqual(
-              Option.some('mouse'),
-            )
-          }),
-        )
-      })
+      )
 
-      it('does not toggle on mouse right button', () => {
+      it.effect('does not toggle on mouse right button', () =>
         Story.story(
-          update,
-          givenClosed,
+          PopoverLive,
+          closed,
           Story.message(
             Message.PressedPointerOnButton({
               pointerType: 'mouse',
@@ -280,13 +320,13 @@ describe('Popover', () => {
               Option.some('mouse'),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('always records maybeLastButtonPointerType', () => {
+      it.effect('always records maybeLastButtonPointerType', () =>
         Story.story(
-          update,
-          givenClosed,
+          PopoverLive,
+          closed,
           Story.message(
             Message.PressedPointerOnButton({
               pointerType: 'touch',
@@ -309,15 +349,16 @@ describe('Popover', () => {
               Option.some('mouse'),
             )
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('IgnoredMouseClick', () => {
-      it('resets maybeLastButtonPointerType', () => {
+      it.effect('resets maybeLastButtonPointerType', () =>
         Story.story(
-          update,
-          givenOpen,
+          PopoverLive,
+          closed,
+          openSteps,
           Story.message(
             Message.PressedPointerOnButton({
               pointerType: 'mouse',
@@ -340,121 +381,131 @@ describe('Popover', () => {
               Option.none(),
             )
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('ClickedButton', () => {
-      it('keeps the popover open after the click that follows a mouse press', () => {
-        Story.story(
-          update,
-          givenClosed,
-          Story.message(
-            Message.PressedPointerOnButton({
-              pointerType: 'mouse',
-              button: 0,
+      it.effect(
+        'keeps the popover open after the click that follows a mouse press',
+        () =>
+          Story.story(
+            PopoverLive,
+            closed,
+            Story.message(
+              Message.PressedPointerOnButton({
+                pointerType: 'mouse',
+                button: 0,
+              }),
+            ),
+            Story.message(Message.ClickedButton()),
+            Story.model(model => {
+              expect(model.isOpen).toBe(true)
+              expect(model.maybeLastButtonPointerType).toStrictEqual(
+                Option.none(),
+              )
             }),
           ),
-          Story.message(Message.ClickedButton()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-            expect(model.maybeLastButtonPointerType).toStrictEqual(
-              Option.none(),
-            )
-          }),
-        )
-      })
+      )
 
-      it('opens when the click did not follow a mouse press', () => {
+      it.effect('opens when the click did not follow a mouse press', () =>
         Story.story(
-          update,
-          givenClosed,
+          PopoverLive,
+          closed,
           Story.message(Message.ClickedButton()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
 
-      it('closes an open Popover when the click did not follow a mouse press', () => {
-        Story.story(
-          update,
-          givenOpen,
-          Story.message(Message.ClickedButton()),
-          Story.expectOutMessage(OutMessage.Closed()),
-          Story.Command.resolve(
-            FocusPopoverButton,
-            Message.CompletedFocusPopoverButton(),
+      it.effect(
+        'closes an open Popover when the click did not follow a mouse press',
+        () =>
+          Story.story(
+            PopoverLive,
+            closed,
+            openSteps,
+            Story.message(Message.ClickedButton()),
+            Story.expectOutMessage(OutMessage.Closed()),
+            Story.Command.resolve(
+              FocusPopoverButton,
+              Message.CompletedFocusPopoverButton(),
+            ),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+            }),
           ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
+      )
     })
 
     describe('CompletedFocusPopoverPanel', () => {
-      it('returns model unchanged', () => {
+      it.effect('returns model unchanged', () =>
         Story.story(
-          update,
-          givenOpen,
+          PopoverLive,
+          closed,
+          openSteps,
           Story.message(Message.CompletedFocusPopoverPanel()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('animation', () => {
       describe('enter flow', () => {
-        it('starts enter animation and emits WaitForPaint on RequestedOpen', () => {
-          Story.story(
-            update,
-            givenClosedAnimated,
-            Story.message(Message.RequestedOpen()),
-            Story.expectOutMessage(OutMessage.Opened()),
-            Story.model(model => {
-              expect(model.isOpen).toBe(true)
-              expect(model.animation.transitionState).toBe('EnterStart')
-            }),
-            Story.Command.expectHas(Animation.WaitForPaint),
-            Story.Command.resolveAll(
-              [
+        it.effect(
+          'starts enter animation and emits WaitForPaint on RequestedOpen',
+          () =>
+            Story.story(
+              PopoverLive,
+              closedAnimated,
+              Story.message(Message.RequestedOpen()),
+              Story.expectOutMessage(OutMessage.Opened()),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+                expect(model.animation.transitionState).toBe('EnterStart')
+              }),
+              Story.Command.expectHas(Animation.WaitForPaint),
+              Story.Command.resolveAll(
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+                ],
+                [
+                  Animation.WaitForAnimationSettled,
+                  Animation.Message.EndedAnimation({ generation: 1 }),
+                ],
+              ),
+            ),
+        )
+
+        it.effect(
+          'advances EnterStart to EnterAnimating on CompletedWaitForPaint',
+          () =>
+            Story.story(
+              PopoverLive,
+              closedAnimated,
+              Story.message(Message.RequestedOpen()),
+              Story.Command.resolve(
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-              ],
-              [
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('EnterAnimating')
+              }),
+              Story.Command.resolve(
                 Animation.WaitForAnimationSettled,
                 Animation.Message.EndedAnimation({ generation: 1 }),
-              ],
+              ),
             ),
-          )
-        })
+        )
 
-        it('advances EnterStart to EnterAnimating on CompletedWaitForPaint', () => {
+        it.effect('completes EnterAnimating to Idle on EndedAnimation', () =>
           Story.story(
-            update,
-            givenClosedAnimated,
-            Story.message(Message.RequestedOpen()),
-            Story.Command.resolve(
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-            ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('EnterAnimating')
-            }),
-            Story.Command.resolve(
-              Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ generation: 1 }),
-            ),
-          )
-        })
-
-        it('completes EnterAnimating to Idle on EndedAnimation', () => {
-          Story.story(
-            update,
-            givenClosedAnimated,
+            PopoverLive,
+            closedAnimated,
             Story.message(Message.RequestedOpen()),
             Story.Command.resolveAll(
               [
@@ -469,30 +520,48 @@ describe('Popover', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
       })
 
       describe('leave flow', () => {
-        it('preserves Closed when the pointer closes an animated Popover', () => {
-          const opened = update(
-            init({ id: 'animated-pointer', isAnimated: true }).model,
-            Message.RequestedOpen(),
-          )
-          const closed = update(
-            opened.model,
-            Message.PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
-          )
+        it.effect(
+          'preserves Closed when the pointer closes an animated Popover',
+          () =>
+            Story.story(
+              PopoverLive,
+              closedAnimated,
+              openAnimatedSteps,
+              Story.message(
+                Message.PressedPointerOnButton({
+                  pointerType: 'mouse',
+                  button: 0,
+                }),
+              ),
+              Story.expectOutMessage(OutMessage.Closed()),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.transitionState).toBe('LeaveStart')
+              }),
+              Story.Command.resolveAll(
+                [FocusPopoverButton, Message.CompletedFocusPopoverButton()],
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+                ],
+                [
+                  DetectPopoverMovementOrAnimationEnd,
+                  completedDetectPopoverMovementOrAnimationEnd(2),
+                ],
+              ),
+            ),
+        )
 
-          expect(closed.outMessage).toEqual(OutMessage.Closed())
-          expect(closed.model.isOpen).toBe(false)
-          expect(closed.model.animation.transitionState).toBe('LeaveStart')
-        })
-
-        it('sets LeaveStart on RequestedClose', () => {
+        it.effect('sets LeaveStart on RequestedClose', () =>
           Story.story(
-            update,
-            givenOpenAnimated,
+            PopoverLive,
+            closedAnimated,
+            openAnimatedSteps,
             Story.message(Message.RequestedClose()),
             Story.expectOutMessage(OutMessage.Closed()),
             Story.model(model => {
@@ -510,27 +579,30 @@ describe('Popover', () => {
                 completedDetectPopoverMovementOrAnimationEnd(2),
               ],
             ),
-          )
-        })
+          ),
+        )
 
-        it('starts no leave cascade on RequestedClose when already closed', () => {
-          Story.story(
-            update,
-            givenClosedAnimated,
-            Story.message(Message.RequestedClose()),
-            Story.expectNoOutMessage(),
-            Story.Command.expectNone(),
-            Story.model(model => {
-              expect(model.isOpen).toBe(false)
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        it.effect(
+          'starts no leave cascade on RequestedClose when already closed',
+          () =>
+            Story.story(
+              PopoverLive,
+              closedAnimated,
+              Story.message(Message.RequestedClose()),
+              Story.expectNoOutMessage(),
+              Story.Command.expectNone(),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
+            ),
+        )
 
-        it('begins the leave animation when the panel blurs', () => {
+        it.effect('begins the leave animation when the panel blurs', () =>
           Story.story(
-            update,
-            givenOpenAnimated,
+            PopoverLive,
+            closedAnimated,
+            openAnimatedSteps,
             Story.message(Message.BlurredPanel()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
@@ -546,41 +618,45 @@ describe('Popover', () => {
                 completedDetectPopoverMovementOrAnimationEnd(2),
               ],
             ),
-          )
-        })
+          ),
+        )
 
-        it('advances LeaveStart to LeaveAnimating with DetectPopoverMovementOrAnimationEnd', () => {
-          Story.story(
-            update,
-            givenOpenAnimated,
-            Story.message(Message.RequestedClose()),
-            Story.Command.resolve(
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ generation: 2 }),
-            ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('LeaveAnimating')
-            }),
-            Story.Command.expectHas(
-              DetectPopoverMovementOrAnimationEnd({
-                id: 'test',
-                generation: 2,
+        it.effect(
+          'advances LeaveStart to LeaveAnimating with DetectPopoverMovementOrAnimationEnd',
+          () =>
+            Story.story(
+              PopoverLive,
+              closedAnimated,
+              openAnimatedSteps,
+              Story.message(Message.RequestedClose()),
+              Story.Command.resolve(
+                Animation.WaitForPaint,
+                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('LeaveAnimating')
               }),
+              Story.Command.expectHas(
+                DetectPopoverMovementOrAnimationEnd({
+                  id: 'test',
+                  generation: 2,
+                }),
+              ),
+              Story.Command.resolveAll(
+                [FocusPopoverButton, Message.CompletedFocusPopoverButton()],
+                [
+                  DetectPopoverMovementOrAnimationEnd,
+                  completedDetectPopoverMovementOrAnimationEnd(2),
+                ],
+              ),
             ),
-            Story.Command.resolveAll(
-              [FocusPopoverButton, Message.CompletedFocusPopoverButton()],
-              [
-                DetectPopoverMovementOrAnimationEnd,
-                completedDetectPopoverMovementOrAnimationEnd(2),
-              ],
-            ),
-          )
-        })
+        )
 
-        it('completes LeaveAnimating to Idle on animation end', () => {
+        it.effect('completes LeaveAnimating to Idle on animation end', () =>
           Story.story(
-            update,
-            givenOpenAnimated,
+            PopoverLive,
+            closedAnimated,
+            openAnimatedSteps,
             Story.message(Message.RequestedClose()),
             Story.Command.resolveAll(
               [FocusPopoverButton, Message.CompletedFocusPopoverButton()],
@@ -596,26 +672,27 @@ describe('Popover', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
       })
 
       describe('non-animated', () => {
-        it('keeps transitionState Idle on RequestedOpen', () => {
+        it.effect('keeps transitionState Idle on RequestedOpen', () =>
           Story.story(
-            update,
-            givenClosed,
+            PopoverLive,
+            closed,
             Story.message(Message.RequestedOpen()),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
 
-        it('keeps transitionState Idle on RequestedClose', () => {
+        it.effect('keeps transitionState Idle on RequestedClose', () =>
           Story.story(
-            update,
-            givenOpen,
+            PopoverLive,
+            closed,
+            openSteps,
             Story.message(Message.RequestedClose()),
             Story.Command.resolve(
               FocusPopoverButton,
@@ -624,191 +701,199 @@ describe('Popover', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
       })
 
       describe('stale messages', () => {
-        it('ignores GotAnimationMessage with CompletedWaitForPaint when Idle', () => {
-          Story.story(
-            update,
-            givenOpen,
-            Story.message(
-              gotAnimationMessage({
-                message: Animation.Message.CompletedWaitForPaint({
-                  generation: 0,
-                }),
+        it.effect(
+          'ignores a stale Animation CompletedWaitForPaint when Idle',
+          () =>
+            Story.story(
+              PopoverLive,
+              closed,
+              openSteps,
+              Story.message(
+                deliverAnimationMessage(
+                  Animation.Message.CompletedWaitForPaint({ generation: 0 }),
+                ),
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+                expect(model.animation.transitionState).toBe('Idle')
               }),
             ),
-            Story.model(model => {
-              expect(model.isOpen).toBe(true)
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        )
 
-        it('ignores CompletedDetectPopoverMovementOrAnimationEnd when Idle', () => {
-          Story.story(
-            update,
-            givenOpen,
-            Story.message(completedDetectPopoverMovementOrAnimationEnd(0)),
-            Story.model(model => {
-              expect(model.isOpen).toBe(true)
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        it.effect(
+          'ignores CompletedDetectPopoverMovementOrAnimationEnd when Idle',
+          () =>
+            Story.story(
+              PopoverLive,
+              closed,
+              openSteps,
+              Story.message(completedDetectPopoverMovementOrAnimationEnd(0)),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
+            ),
+        )
       })
 
       describe('interruptions', () => {
-        it('transitions to LeaveStart when RequestedClose during enter', () => {
-          Story.story(
-            update,
-            givenClosedAnimated,
-            Story.message(Message.RequestedOpen()),
-            Story.Command.resolveAll(
-              [
-                Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation({
-                  generation: STALE_ANIMATION_GENERATION,
-                }),
-              ],
+        it.effect(
+          'transitions to LeaveStart when RequestedClose during enter',
+          () =>
+            Story.story(
+              PopoverLive,
+              closedAnimated,
+              Story.message(Message.RequestedOpen()),
+              Story.Command.resolveAll(
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+                ],
+                [
+                  Animation.WaitForAnimationSettled,
+                  Animation.Message.EndedAnimation({
+                    generation: STALE_ANIMATION_GENERATION,
+                  }),
+                ],
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('EnterAnimating')
+              }),
+              Story.message(Message.RequestedClose()),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.transitionState).toBe('LeaveStart')
+              }),
+              Story.Command.resolveAll(
+                [FocusPopoverButton, Message.CompletedFocusPopoverButton()],
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+                ],
+                [
+                  DetectPopoverMovementOrAnimationEnd,
+                  completedDetectPopoverMovementOrAnimationEnd(2),
+                ],
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
             ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('EnterAnimating')
-            }),
-            Story.message(Message.RequestedClose()),
-            Story.model(model => {
-              expect(model.isOpen).toBe(false)
-              expect(model.animation.transitionState).toBe('LeaveStart')
-            }),
-            Story.Command.resolveAll(
-              [FocusPopoverButton, Message.CompletedFocusPopoverButton()],
-              [
-                Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
-              ],
-              [
-                DetectPopoverMovementOrAnimationEnd,
-                completedDetectPopoverMovementOrAnimationEnd(2),
-              ],
-            ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        )
       })
     })
   })
 
   describe('modal commands', () => {
-    const givenClosedModal = Story.given(
-      init({ id: 'test', isModal: true }).model,
+    it.effect(
+      'emits lockScroll and inertOthers commands on RequestedOpen when isModal is true',
+      () =>
+        Story.story(
+          PopoverLive,
+          closedModal,
+          Story.message(Message.RequestedOpen()),
+          Story.Command.resolveAll(
+            [LockPopoverScroll, Message.CompletedLockPopoverScroll()],
+            [InertPopoverOthers, Message.CompletedInertPopoverOthers()],
+          ),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+          }),
+        ),
     )
 
-    const givenOpenModal = Story.steps(
-      givenClosedModal,
-      Story.message(Message.RequestedOpen()),
-      Story.Command.resolveAll(
-        [LockPopoverScroll, Message.CompletedLockPopoverScroll()],
-        [InertPopoverOthers, Message.CompletedInertPopoverOthers()],
-      ),
+    it.effect(
+      'emits unlockScroll and restoreInert commands on RequestedClose when isModal is true',
+      () =>
+        Story.story(
+          PopoverLive,
+          closedModal,
+          openModalSteps,
+          Story.message(Message.RequestedClose()),
+          Story.Command.resolveAll(
+            [FocusPopoverButton, Message.CompletedFocusPopoverButton()],
+            [UnlockPopoverScroll, Message.CompletedUnlockPopoverScroll()],
+            [RestorePopoverInert, Message.CompletedRestorePopoverInert()],
+          ),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
+        ),
     )
 
-    it('emits lockScroll and inertOthers commands on RequestedOpen when isModal is true', () => {
-      Story.story(
-        update,
-        givenClosedModal,
-        Story.message(Message.RequestedOpen()),
-        Story.Command.resolveAll(
-          [LockPopoverScroll, Message.CompletedLockPopoverScroll()],
-          [InertPopoverOthers, Message.CompletedInertPopoverOthers()],
+    it.effect(
+      'emits no Commands on RequestedClose when already closed in modal mode',
+      () =>
+        Story.story(
+          PopoverLive,
+          closedModal,
+          Story.message(Message.RequestedClose()),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
         ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(true)
-        }),
-      )
-    })
+    )
 
-    it('emits unlockScroll and restoreInert commands on RequestedClose when isModal is true', () => {
-      Story.story(
-        update,
-        givenOpenModal,
-        Story.message(Message.RequestedClose()),
-        Story.Command.resolveAll(
-          [FocusPopoverButton, Message.CompletedFocusPopoverButton()],
-          [UnlockPopoverScroll, Message.CompletedUnlockPopoverScroll()],
-          [RestorePopoverInert, Message.CompletedRestorePopoverInert()],
+    it.effect(
+      'emits no Commands when RequestedOpen reaches an open modal Popover',
+      () =>
+        Story.story(
+          PopoverLive,
+          closedModal,
+          openModalSteps,
+          Story.message(Message.RequestedOpen()),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+          }),
         ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
+    )
 
-    it('emits no Commands on RequestedClose when already closed in modal mode', () => {
-      Story.story(
-        update,
-        givenClosedModal,
-        Story.message(Message.RequestedClose()),
-        Story.expectNoOutMessage(),
-        Story.Command.expectNone(),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('emits no Commands when requestOpen receives an open modal Model', () => {
-      const openModal = modifyFields(
-        init({ id: 'test', isModal: true }).model,
-        { isOpen: () => true },
-      )
-
-      const reopened = PopoverBlock.operations.requestOpen(openModal)
-
-      expect(reopened.commands).toBeUndefined()
-      expect(reopened.outMessage).toBeUndefined()
-      expect(reopened.model.isOpen).toBe(true)
-    })
-
-    it('emits unlockScroll and restoreInert commands when the panel blurs in modal mode', () => {
-      Story.story(
-        update,
-        givenOpenModal,
-        Story.message(Message.BlurredPanel()),
-        Story.Command.resolveAll(
-          [UnlockPopoverScroll, Message.CompletedUnlockPopoverScroll()],
-          [RestorePopoverInert, Message.CompletedRestorePopoverInert()],
+    it.effect(
+      'emits unlockScroll and restoreInert commands when the panel blurs in modal mode',
+      () =>
+        Story.story(
+          PopoverLive,
+          closedModal,
+          openModalSteps,
+          Story.message(Message.BlurredPanel()),
+          Story.Command.resolveAll(
+            [UnlockPopoverScroll, Message.CompletedUnlockPopoverScroll()],
+            [RestorePopoverInert, Message.CompletedRestorePopoverInert()],
+          ),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
         ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
+    )
 
-    it('emits no Commands when the panel blurs on a closed popover in modal mode', () => {
-      Story.story(
-        update,
-        givenClosedModal,
-        Story.message(Message.BlurredPanel()),
-        Story.expectNoOutMessage(),
-        Story.Command.expectNone(),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
+    it.effect(
+      'emits no Commands when the panel blurs on a closed popover in modal mode',
+      () =>
+        Story.story(
+          PopoverLive,
+          closedModal,
+          Story.message(Message.BlurredPanel()),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
+        ),
+    )
 
-    it('does not emit modal commands when isModal is false', () => {
+    it.effect('does not emit modal commands when isModal is false', () =>
       Story.story(
-        update,
-        givenClosed,
+        PopoverLive,
+        closed,
         Story.message(Message.RequestedOpen()),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
@@ -821,7 +906,7 @@ describe('Popover', () => {
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
-      )
-    })
+      ),
+    )
   })
 })

@@ -5,4 +5,4 @@
 '@foldkit/vite-plugin': patch
 ---
 
-Show `ApplicationDefinition`, `ApplicationComposition`, `ApplicationBlock`, and `Program.make` in DevTools setup guidance, installer instructions, the Vite plugin's build-id guidance and fixtures, and the Markdown island example. Migrate the DevTools overlay to the same completed root Block and element Program. Root graph assembly through the ordinary Block Definition and Composition lives in `application.ts`; host configuration, Service provision through `program.provide`, and browser startup remain in `entry.ts`.
+Show the `Application` Block class, its `ApplicationLive` Layer, and `Program.make(Application, { layer: ApplicationLive, ... })` in the DevTools setup guidance, the MCP installer instructions, the Vite plugin's build-id guidance and fixtures, and the Markdown island example.

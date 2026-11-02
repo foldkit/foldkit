@@ -1,13 +1,6 @@
-import { Array, Equal, type Option, Predicate, Schema, pipe } from 'effect'
+import { Array, Equal, type Option, Predicate, pipe } from 'effect'
 
-import {
-  type MessageDeclaration,
-  type Registrations,
-  type RegistryEntries,
-  type Subscription as RuntimeSubscription,
-  __messageDeclarations as subscriptionMessageDeclarations,
-} from '../subscription/subscription.js'
-import { commandArgs } from './bindingMatcher.js'
+import { atBlockPath, commandArgs } from './commandMatcher.js'
 import type {
   AnyCommand,
   AnyCommandInstance,
@@ -18,7 +11,6 @@ import type {
   Resolver,
   ResolverEntry,
   SimulationUpdateReturn,
-  SubscriptionEmissionSource,
 } from './internal.js'
 import {
   assertAllCommandsResolved,
@@ -31,7 +23,6 @@ import {
   resolveAllExactInternal,
   resolveAllInternal,
   resolveByMatcher,
-  resolveSubscriptionMessage,
 } from './internal.js'
 
 export type { AnyCommand, CommandMatcher, Resolver }
@@ -69,16 +60,6 @@ export type MessageWithStep<Model, Message> = Readonly<{
   toMessage: (model: Model) => Message
 }>
 
-/** A Subscription Message step produced by `Subscription.from(...).emit`. */
-export type SubscriptionMessageStep<Message> = Readonly<{
-  _tag: 'SubscriptionMessageStep'
-  /** @internal Carries the registered Subscriptions' Message type. */
-  _phantomMessage?: Message
-  declarations: ReadonlyArray<MessageDeclaration>
-  entry: unknown
-  message: unknown
-}>
-
 /** A typed OutMessage assertion step produced by {@link expectOutMessage}. */
 export type OutMessageStep<OutMessage> = Readonly<{
   _tag: 'OutMessageStep'
@@ -106,7 +87,6 @@ export type StoryStep<Model, Message = unknown, OutMessage = unknown> =
   | ModelStep<NoInfer<Model>>
   | MessageStep<NoInfer<Message>>
   | MessageWithStep<NoInfer<Model>, NoInfer<Message>>
-  | SubscriptionMessageStep<NoInfer<Message>>
   | OutMessageStep<NoInfer<OutMessage>>
   | StoryStepsStep<
       NoInfer<Model>,
@@ -195,91 +175,9 @@ export const messageWith = <Model, Message>(
   toMessage,
 })
 
-type IsAny<Value> = 0 extends 1 & Value ? true : false
-
-type MessageOfSubscriptions<Subscriptions> =
-  IsAny<Subscriptions> extends true
-    ? any
-    : RegistryEntries<Subscriptions>[keyof RegistryEntries<Subscriptions>] extends RuntimeSubscription<
-          any,
-          infer Message,
-          any,
-          any
-        >
-      ? Message
-      : never
-
-type EmissionSourceOf<Subscriptions> =
-  IsAny<Subscriptions> extends true
-    ? any
-    : {
-        readonly [
-          Key in keyof RegistryEntries<Subscriptions>
-        ]: SubscriptionEmissionSource<RegistryEntries<Subscriptions>[Key]>
-      }[keyof RegistryEntries<Subscriptions>]
-
-/** Emission steps for one registered Subscription record. Explicit annotations
- *  retain the accepted entry source as the second type argument. */
-export type SubscriptionEmitter<Message, EmissionSource> = Readonly<{
-  /** Feeds a decoded Message declared by `entry` through update. For a child
-   *  entry, Story applies the generated delivery in the registered record. */
-  emit: <
-    Entry extends Readonly<{
-      messages: ReadonlyArray<Schema.Top>
-    }> &
-      EmissionSource,
-  >(
-    entry: Entry,
-    message: NoInfer<Schema.Schema.Type<Entry['messages'][number]>>,
-  ) => SubscriptionMessageStep<Message>
-}>
-
-const fromSubscriptions = <
-  const Subscriptions extends Registrations<any, any, any>,
->(
-  subscriptions: Subscriptions,
-): SubscriptionEmitter<
-  MessageOfSubscriptions<Subscriptions>,
-  EmissionSourceOf<Subscriptions>
-> => {
-  const declarations = subscriptionMessageDeclarations(subscriptions)
-
-  return {
-    emit: (entry, message) => ({
-      _tag: 'SubscriptionMessageStep',
-      declarations,
-      entry,
-      message,
-    }),
-  }
-}
-
-const applySubscriptionMessage = <Model, Message, OutMessage>(
-  simulation: StorySimulation<Model, Message, OutMessage>,
-  step: SubscriptionMessageStep<unknown>,
-): StorySimulation<Model, Message, OutMessage> => {
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  const message_ = resolveSubscriptionMessage(
-    'Story.Subscription.emit',
-    step.declarations,
-    step.entry,
-    step.message,
-  ) as Message
-
-  return applyMessage(simulation, message_)
-}
-
-/** Steps that model decoded Messages arriving from a Subscription. */
-export const Subscription = {
-  /** Returns an emitter for a completed Block's registered Subscriptions. The
-   *  entry must belong to that record or be the child entry from which a
-   *  registered entry was lifted. */
-  from: fromSubscriptions,
-} as const
-
 /** Resolves a pending Command with its raw result Message. A Definition matches
  *  its originating identity; an instance also matches its complete args.
- *  A scoped instance selects its composition occurrence. */
+ *  A matcher narrowed with `Command.at` selects that instance's Command. */
 const resolveCommand: {
   <Name extends string, ResultMessage>(
     definition: ResolvableCommandDefinition<Name, ResultMessage>,
@@ -390,11 +288,9 @@ export const steps = <Steps extends ReadonlyArray<StoryStep<any, any, any>>>(
       ? Message
       : Step extends MessageWithStep<any, infer Message>
         ? Message
-        : Step extends SubscriptionMessageStep<infer Message>
+        : Step extends StoryStepsStep<any, any, infer Message, any>
           ? Message
-          : Step extends StoryStepsStep<any, any, infer Message, any>
-            ? Message
-            : never
+          : never
     : never,
   Steps[number] extends infer Step
     ? Step extends OutMessageStep<infer OutMessage>
@@ -410,7 +306,7 @@ export const steps = <Steps extends ReadonlyArray<StoryStep<any, any, any>>>(
 
 /** Asserts that every matcher selects a pending Command. Definitions select
  *  their originating identity; instances also compare complete args and any
- *  explicitly scoped composition occurrence. */
+ *  the instance path a matcher was narrowed to with `Command.at`. */
 const expectHasCommandsStep =
   (...matchers: ReadonlyArray<CommandMatcher>) =>
   <Model, Message, OutMessage = undefined>(
@@ -422,7 +318,7 @@ const expectHasCommandsStep =
 
 /** Asserts that the pending Commands match the given matchers exactly
  *  (order-independent). Definitions select their originating identity;
- *  instances also compare complete args and any scoped occurrence.
+ *  instances also compare complete args and any instance path from `Command.at`.
  *  Each matcher must consume exactly one
  *  pending Command. */
 const expectExactCommandsStep =
@@ -449,7 +345,7 @@ const expectNoCommandsStep =
  *  Destructure as `const { Command } = Story` for concise call sites. */
 export const Command = {
   /** Projects captured args by reference when the pending Command has this
-   * Definition's source identity, across all Binding and keyed occurrences.
+   * Definition's source identity, from any Block instance.
    * An argless match returns `Some(undefined)`; other sources and name-only
    * metadata return `None`. This does not decode args, narrow the pending value,
    * run Effects, or choose among matching occurrences. */
@@ -457,6 +353,12 @@ export const Command = {
     definition: Definition,
   ): ((pending: AnyCommand) => Option.Option<CommandArgs<Definition>>) =>
     commandArgs(definition),
+  /** Restricts a Command matcher to the Block instance at `path`, given as
+   *  in `Block.deliver`: an instance id, or `[collection, key]` and deeper
+   *  segments from the root. `[]` selects the root. Use it when sibling
+   *  instances have identical pending Commands:
+   *  `Command.resolve(Command.at('left', SaveCount), message)`. */
+  at: atBlockPath,
   /** Resolves a specific pending Command with the given result Message. */
   resolve: resolveCommand,
   /** Resolves listed Commands with their result Messages, cascading through any
@@ -535,10 +437,6 @@ const applyStoryStep = <Model, Message, OutMessage>(
 
   if (Predicate.isTagged(step, 'MessageWithStep')) {
     return applyMessage(current, step.toMessage(toInternal(current).model))
-  }
-
-  if (Predicate.isTagged(step, 'SubscriptionMessageStep')) {
-    return applySubscriptionMessage(current, step)
   }
 
   if (Predicate.isTagged(step, 'OutMessageStep')) {

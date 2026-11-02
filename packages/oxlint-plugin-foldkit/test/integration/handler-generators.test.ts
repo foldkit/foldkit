@@ -46,13 +46,18 @@ beforeAll(async () => {
   writeFileSync(
     fixturePath,
     `
-const FetchPosts = {
-  handler: function* () {
-    return () => Promise.resolve('posts')
-  },
-}
+import { Effect } from 'effect'
+import { Command } from 'foldkit'
 
-void FetchPosts
+const FetchPosts = Command.define('FetchPosts', {
+  messages: [CompletedFetchPosts],
+})
+
+export const FetchPostsLive = FetchPosts.toLayer(
+  Effect.gen(function* () {
+    return () => Effect.succeed(CompletedFetchPosts())
+  }),
+)
 `,
   )
 })

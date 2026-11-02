@@ -24,17 +24,10 @@ import {
 
 import type { DevToolsStore } from '../devTools/store.js'
 import { INIT_INDEX, latestEntryIndex } from '../devTools/store.js'
-import {
-  type Html,
-  Prop,
-  __htmlBuilder,
-  createLazy,
-  defineView,
-} from '../html/index.js'
+import { type Html, Prop, __htmlBuilder, createLazy } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import { modifyFields } from '../struct/index.js'
-import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { type DevToolsConfig, __setDevToolsOverlay } from './devToolsConfig.js'
@@ -53,14 +46,6 @@ type EditorMessage =
   | typeof Message.CompletedMountEditor.Type
   | typeof Message.EditedFromMount.Type
 
-const ChildMessage = defineMessageUnion({
-  CompletedChildMount: {},
-})
-type ChildMessage = typeof ChildMessage.Type
-
-const ChildModel = Schema.Struct({})
-type ChildModel = typeof ChildModel.Type
-
 const Model = Schema.Struct({
   mountEditCount: Schema.Number,
   tickCount: Schema.Number,
@@ -74,7 +59,7 @@ const initialModel = (isEditorShown: boolean): Model => ({
   isEditorShown,
 })
 
-const update = Update.define((model: Model, message: Message) =>
+const update = (model: Model, message: Message) =>
   Message.match(message, {
     CompletedMountEditor: () => ({ model }),
     EditedFromMount: () => ({
@@ -91,8 +76,7 @@ const update = Update.define((model: Model, message: Message) =>
     HidEditor: () => ({
       model: modifyFields(model, { isEditorShown: () => false }),
     }),
-  }),
-)
+  })
 
 const h = __htmlBuilder<Message, Mount.AnyMountHandler>()
 
@@ -174,23 +158,13 @@ describe('Mount view-state awareness', () => {
     const subscriptionMessages = await Effect.runPromise(
       PubSub.unbounded<Message>(),
     )
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      testMessages: entry('TestMessages', {
-        messages: [
-          Message.CompletedMountEditor,
-          Message.EditedFromMount,
-          Message.EditedEntityFromMount,
-          Message.GotChildMountResult,
-          Message.Ticked,
-          Message.ShowedEditor,
-          Message.HidEditor,
-        ],
-      }),
-    }))
-
-    const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() => Stream.fromPubSub(subscriptionMessages)),
-    )
+    const subscriptions = {
+      testMessages: {
+        dependenciesSchema: Schema.Struct({}),
+        modelToDependencies: () => ({}),
+        dependenciesToStream: () => Stream.fromPubSub(subscriptionMessages),
+      },
+    }
     const observedViewStates: globalThis.Array<Mount.ViewState> = []
     const processedTags: globalThis.Array<Message['_tag']> = []
     let acquireCount = 0
@@ -263,9 +237,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      runtime
-        .provide(Layer.mergeAll(TestMessagesLayer, MountEditorLayer))
-        .start(),
+      runtime.provide(MountEditorLayer).start(),
     )
 
     try {
@@ -401,259 +373,6 @@ describe('Mount view-state awareness', () => {
     }
   })
 
-  it('keeps a live Mount bound to the Block wrapper from its acquisition render', async () => {
-    const subscriptionMessages = await Effect.runPromise(
-      PubSub.unbounded<Message>(),
-    )
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      testMessages: entry('TestMessages', {
-        messages: [
-          Message.CompletedMountEditor,
-          Message.EditedFromMount,
-          Message.EditedEntityFromMount,
-          Message.GotChildMountResult,
-          Message.Ticked,
-          Message.ShowedEditor,
-          Message.HidEditor,
-        ],
-      }),
-    }))
-
-    const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() => Stream.fromPubSub(subscriptionMessages)),
-    )
-    const processedMessages: globalThis.Array<Message> = []
-    const emitters: globalThis.Array<() => void> = []
-
-    const MountChildEditor = Mount.defineStream('MountChildEditor', {
-      messages: [ChildMessage.CompletedChildMount],
-    })
-
-    const MountChildEditorLayer = MountChildEditor.toLayer(
-      Effect.succeed(() =>
-        Stream.callback<typeof ChildMessage.CompletedChildMount.Type>(queue =>
-          Effect.sync(() => {
-            emitters.push(() =>
-              Queue.offerUnsafe(queue, ChildMessage.CompletedChildMount()),
-            )
-          }),
-        ),
-      ),
-    )
-    const childH = __htmlBuilder<ChildMessage, Mount.AnyMountHandler>()
-    const lazyChild = createLazy()
-    const renderChildEditor = () =>
-      childH.div([childH.Id('editor'), childH.OnMount(MountChildEditor())])
-    const childView = defineView<ChildModel, ChildMessage>(() =>
-      lazyChild(renderChildEditor, []),
-    )
-
-    let maybeStore: DevToolsStore | null = null
-    __setDevToolsOverlay(store => {
-      maybeStore = store
-      return Effect.void
-    })
-
-    const runtime = Application.__makeElementFromConfig({
-      Model,
-      init: () => ({ model: initialModel(true) }),
-      update: (model, message) => {
-        processedMessages.push(message)
-        return update(model, message)
-      },
-      view: model =>
-        h.div(
-          [],
-          [
-            h.button([h.OnClick(Message.ShowedEditor())], ['show']),
-            h.button([h.OnClick(Message.HidEditor())], ['hide']),
-            ...(model.isEditorShown
-              ? [
-                  h.block({
-                    slotId: 'editor',
-                    model: {},
-                    view: childView,
-                    toParentMessage: () =>
-                      Message.GotChildMountResult({
-                        ownerId: model.tickCount,
-                      }),
-                  }),
-                ]
-              : []),
-          ],
-        ),
-      mounts: [MountChildEditor],
-      container,
-      subscriptions,
-      devTools: { show: 'Always', keyframeInterval: 1 },
-    })
-    const runtimeFiber = Effect.runFork(
-      runtime
-        .provide(Layer.mergeAll(TestMessagesLayer, MountChildEditorLayer))
-        .start(),
-    )
-
-    try {
-      await vi.waitFor(() => {
-        expect(maybeStore).not.toBeNull()
-        expect(emitters).toHaveLength(1)
-      })
-      const store = requireDevToolsStore(maybeStore)
-
-      clickButton('hide')
-      await vi.waitFor(() => {
-        expect(document.querySelector('#editor')).toBeNull()
-      })
-      PubSub.publishUnsafe(subscriptionMessages, Message.Ticked())
-      await vi.waitFor(() => {
-        expect(processedMessages).toContainEqual(Message.Ticked())
-      })
-      clickButton('show')
-      await vi.waitFor(() => {
-        expect(emitters).toHaveLength(2)
-      })
-      const liveEditor = requireElement('#editor')
-      const maybeLiveEmitter = Array.last(emitters)
-      if (Option.isNone(maybeLiveEmitter)) {
-        throw new Error('Expected the live Mount emitter')
-      }
-
-      await Effect.runPromise(store.jumpTo(INIT_INDEX))
-      expect(requireElement('#editor')).toBe(liveEditor)
-
-      maybeLiveEmitter.value()
-      await vi.waitFor(() => {
-        expect(processedMessages).toContainEqual(
-          Message.GotChildMountResult({ ownerId: 1 }),
-        )
-      })
-      expect(processedMessages).not.toContainEqual(
-        Message.GotChildMountResult({ ownerId: 0 }),
-      )
-    } finally {
-      await Effect.runPromise(Fiber.interrupt(runtimeFiber))
-    }
-  })
-
-  it('uses the latest live Block wrapper when a surviving Mount emits', async () => {
-    const subscriptionMessages = await Effect.runPromise(
-      PubSub.unbounded<Message>(),
-    )
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      testMessages: entry('TestMessages', {
-        messages: [
-          Message.CompletedMountEditor,
-          Message.EditedFromMount,
-          Message.EditedEntityFromMount,
-          Message.GotChildMountResult,
-          Message.Ticked,
-          Message.ShowedEditor,
-          Message.HidEditor,
-        ],
-      }),
-    }))
-
-    const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() => Stream.fromPubSub(subscriptionMessages)),
-    )
-    const processedMessages: globalThis.Array<Message> = []
-    const emitters: globalThis.Array<() => void> = []
-
-    const MountChildEditor = Mount.defineStream('MountChildEditor', {
-      messages: [ChildMessage.CompletedChildMount],
-    })
-
-    const MountChildEditorLayer = MountChildEditor.toLayer(
-      Effect.succeed(() =>
-        Stream.callback<typeof ChildMessage.CompletedChildMount.Type>(queue =>
-          Effect.sync(() => {
-            emitters.push(() =>
-              Queue.offerUnsafe(queue, ChildMessage.CompletedChildMount()),
-            )
-          }),
-        ),
-      ),
-    )
-    const childH = __htmlBuilder<ChildMessage, Mount.AnyMountHandler>()
-    const childView = defineView<ChildModel, ChildMessage>(() =>
-      childH.button([
-        childH.Id('editor'),
-        childH.OnClick(ChildMessage.CompletedChildMount()),
-        childH.OnMount(MountChildEditor()),
-      ]),
-    )
-
-    const runtime = Application.__makeElementFromConfig({
-      Model,
-      init: () => ({ model: initialModel(true) }),
-      update: (model, message) => {
-        processedMessages.push(message)
-        return update(model, message)
-      },
-      view: model =>
-        h.div(
-          [],
-          [
-            h.span([], [`ticks:${model.tickCount}`]),
-            h.block({
-              slotId: 'editor',
-              model: {},
-              view: childView,
-              toParentMessage: () =>
-                Message.GotChildMountResult({ ownerId: model.tickCount }),
-            }),
-          ],
-        ),
-      mounts: [MountChildEditor],
-      container,
-      subscriptions,
-      devTools: false,
-    })
-    const runtimeFiber = Effect.runFork(
-      runtime
-        .provide(Layer.mergeAll(TestMessagesLayer, MountChildEditorLayer))
-        .start(),
-    )
-
-    try {
-      await vi.waitFor(() => {
-        expect(emitters).toHaveLength(1)
-      })
-      const maybeEmit = Array.head(emitters)
-      if (Option.isNone(maybeEmit)) {
-        throw new Error('Expected the live Mount emitter')
-      }
-
-      maybeEmit.value()
-      await vi.waitFor(() => {
-        expect(processedMessages).toContainEqual(
-          Message.GotChildMountResult({ ownerId: 0 }),
-        )
-      })
-
-      PubSub.publishUnsafe(subscriptionMessages, Message.Ticked())
-      await waitForBodyText('ticks:1')
-      expect(emitters).toHaveLength(1)
-
-      requireElement('#editor').dispatchEvent(
-        new MouseEvent('click', { bubbles: true }),
-      )
-      maybeEmit.value()
-
-      await vi.waitFor(() => {
-        expect(
-          Array.filter(
-            processedMessages,
-            message =>
-              message._tag === 'GotChildMountResult' && message.ownerId === 1,
-          ),
-        ).toHaveLength(2)
-      })
-    } finally {
-      await Effect.runPromise(Fiber.interrupt(runtimeFiber))
-    }
-  })
-
   it('keeps live Mount dispatch available when resume waits for an animation frame', async () => {
     const observedViewStates: globalThis.Array<Mount.ViewState> = []
     const processedTags: globalThis.Array<Message['_tag']> = []
@@ -743,23 +462,13 @@ describe('Mount view-state awareness', () => {
     const subscriptionMessages = await Effect.runPromise(
       PubSub.unbounded<Message>({ replay: 1 }),
     )
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      testMessages: entry('TestMessages', {
-        messages: [
-          Message.CompletedMountEditor,
-          Message.EditedFromMount,
-          Message.EditedEntityFromMount,
-          Message.GotChildMountResult,
-          Message.Ticked,
-          Message.ShowedEditor,
-          Message.HidEditor,
-        ],
-      }),
-    }))
-
-    const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() => Stream.fromPubSub(subscriptionMessages)),
-    )
+    const subscriptions = {
+      testMessages: {
+        dependenciesSchema: Schema.Struct({}),
+        modelToDependencies: () => ({}),
+        dependenciesToStream: () => Stream.fromPubSub(subscriptionMessages),
+      },
+    }
     const statesByAcquisition: globalThis.Array<
       globalThis.Array<Mount.ViewState>
     > = []
@@ -813,9 +522,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      runtime
-        .provide(Layer.mergeAll(TestMessagesLayer, MountEditorLayer))
-        .start(),
+      runtime.provide(MountEditorLayer).start(),
     )
 
     try {
@@ -886,23 +593,13 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const replaySetup = await Effect.runPromise(Queue.unbounded<void>())
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      testMessages: entry('TestMessages', {
-        messages: [
-          Message.CompletedMountEditor,
-          Message.EditedFromMount,
-          Message.EditedEntityFromMount,
-          Message.GotChildMountResult,
-          Message.Ticked,
-          Message.ShowedEditor,
-          Message.HidEditor,
-        ],
-      }),
-    }))
-
-    const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() => Stream.fromPubSub(subscriptionMessages)),
-    )
+    const subscriptions = {
+      testMessages: {
+        dependenciesSchema: Schema.Struct({}),
+        modelToDependencies: () => ({}),
+        dependenciesToStream: () => Stream.fromPubSub(subscriptionMessages),
+      },
+    }
     const statesByAcquisition: globalThis.Array<
       globalThis.Array<Mount.ViewState>
     > = []
@@ -953,9 +650,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      runtime
-        .provide(Layer.mergeAll(TestMessagesLayer, MountEditorLayer))
-        .start(),
+      runtime.provide(MountEditorLayer).start(),
     )
 
     try {
@@ -1012,23 +707,13 @@ describe('Mount view-state awareness', () => {
     const subscriptionMessages = await Effect.runPromise(
       PubSub.unbounded<Message>(),
     )
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      testMessages: entry('TestMessages', {
-        messages: [
-          Message.CompletedMountEditor,
-          Message.EditedFromMount,
-          Message.EditedEntityFromMount,
-          Message.GotChildMountResult,
-          Message.Ticked,
-          Message.ShowedEditor,
-          Message.HidEditor,
-        ],
-      }),
-    }))
-
-    const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() => Stream.fromPubSub(subscriptionMessages)),
-    )
+    const subscriptions = {
+      testMessages: {
+        dependenciesSchema: Schema.Struct({}),
+        modelToDependencies: () => ({}),
+        dependenciesToStream: () => Stream.fromPubSub(subscriptionMessages),
+      },
+    }
     const processedMessages: globalThis.Array<Message> = []
     const releasedAcquisitionIds: globalThis.Array<number> = []
     const acquisitions: globalThis.Array<
@@ -1118,23 +803,14 @@ describe('Mount view-state awareness', () => {
       typeof config
     >(config)
     expectTypeOf(runtime).toEqualTypeOf<
-      Application.Element<
-        undefined,
-        | Layer.Success<typeof TestMessagesLayer>
-        | Layer.Success<typeof MountEditorLayer>
-      >
+      Application.Element<undefined, Layer.Success<typeof MountEditorLayer>>
     >()
-    expectTypeOf<
-      Layer.Services<typeof TestMessagesLayer>
-    >().toEqualTypeOf<never>()
     expectTypeOf<
       Layer.Services<typeof MountEditorLayer>
     >().toEqualTypeOf<never>()
 
     const runtimeFiber = Effect.runFork(
-      runtime
-        .provide(Layer.mergeAll(TestMessagesLayer, MountEditorLayer))
-        .start(),
+      runtime.provide(MountEditorLayer).start(),
     )
 
     try {
@@ -1214,23 +890,13 @@ describe('Mount view-state awareness', () => {
     const subscriptionMessages = await Effect.runPromise(
       PubSub.unbounded<Message>({ replay: 1 }),
     )
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      testMessages: entry('TestMessages', {
-        messages: [
-          Message.CompletedMountEditor,
-          Message.EditedFromMount,
-          Message.EditedEntityFromMount,
-          Message.GotChildMountResult,
-          Message.Ticked,
-          Message.ShowedEditor,
-          Message.HidEditor,
-        ],
-      }),
-    }))
-
-    const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() => Stream.fromPubSub(subscriptionMessages)),
-    )
+    const subscriptions = {
+      testMessages: {
+        dependenciesSchema: Schema.Struct({}),
+        modelToDependencies: () => ({}),
+        dependenciesToStream: () => Stream.fromPubSub(subscriptionMessages),
+      },
+    }
     const processedTags: globalThis.Array<Message['_tag']> = []
 
     const mountEditor: Mount.MountAction<Message> = {
@@ -1256,9 +922,7 @@ describe('Mount view-state awareness', () => {
       container,
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
-    const runtimeFiber = Effect.runFork(
-      runtime.provide(TestMessagesLayer).start(),
-    )
+    const runtimeFiber = Effect.runFork(runtime.start())
 
     try {
       await vi.waitFor(() => {
@@ -1654,130 +1318,6 @@ describe('Mount view-state awareness', () => {
       await vi.waitFor(() => {
         expect(observedViewStates).toEqual(['Live', 'Paused', 'Live'])
         expect(document.querySelector('#editor')).toBeNull()
-      })
-    } finally {
-      await Effect.runPromise(Fiber.interrupt(runtimeFiber))
-    }
-  })
-
-  it('restores a cached lazy Block when resume reinserts its subtree', async () => {
-    const processedMessages: globalThis.Array<Message> = []
-    let renderCount = 0
-    const MountChildEditor = Mount.define('MountChildEditor', {
-      messages: [ChildMessage.CompletedChildMount],
-    })
-
-    const MountChildEditorLayer = MountChildEditor.toLayer(
-      Effect.succeed(() => Effect.succeed(ChildMessage.CompletedChildMount())),
-    )
-    const childView = defineView<
-      ChildModel,
-      ChildMessage,
-      void,
-      Mount.RequirementsOf<typeof MountChildEditor>
-    >((_model, childH) =>
-      childH.div(
-        [childH.Id('child-editor'), childH.OnMount(MountChildEditor())],
-        [
-          childH.button(
-            [childH.OnClick(ChildMessage.CompletedChildMount())],
-            ['child action'],
-          ),
-        ],
-      ),
-    )
-    const lazyChild = createLazy()
-    const renderChild = (): Html => {
-      renderCount += 1
-      const child = h.block({
-        slotId: 'lazy-child',
-        model: {},
-        view: childView,
-        toParentMessage: () => Message.GotChildMountResult({ ownerId: 1 }),
-      })
-      if (child === null) {
-        throw new Error('Expected the child view to return an element')
-      }
-      return child
-    }
-    const renderLazyChild = (): Html => {
-      const child = lazyChild(renderChild, [])
-      if (child === null) {
-        throw new Error('Expected the lazy child view to return an element')
-      }
-      return child
-    }
-
-    let maybeStore: DevToolsStore | null = null
-    __setDevToolsOverlay(store => {
-      maybeStore = store
-      return Effect.void
-    })
-
-    const runtime = Application.__makeElementFromConfig({
-      Model,
-      init: () => ({ model: initialModel(false) }),
-      update: (model: Model, message: Message) => {
-        processedMessages.push(message)
-        return update(model, message)
-      },
-      view: model =>
-        h.div(
-          [],
-          [
-            h.button([h.OnClick(Message.ShowedEditor())], ['show']),
-            ...(model.isEditorShown ? [renderLazyChild()] : []),
-          ],
-        ),
-      mounts: [MountChildEditor],
-      container,
-      devTools: { show: 'Always', keyframeInterval: 1 },
-    })
-    const runtimeFiber = Effect.runFork(
-      runtime.provide(MountChildEditorLayer).start(),
-    )
-
-    try {
-      await vi.waitFor(() => {
-        expect(maybeStore).not.toBeNull()
-      })
-      const store = requireDevToolsStore(maybeStore)
-
-      clickButton('show')
-      await vi.waitFor(() => {
-        expect(document.querySelector('#child-editor')).not.toBeNull()
-        expect(
-          Array.filter(
-            processedMessages,
-            message => message._tag === 'GotChildMountResult',
-          ),
-        ).toHaveLength(1)
-        expect(renderCount).toBe(1)
-      })
-
-      await Effect.runPromise(store.jumpTo(INIT_INDEX))
-      expect(document.querySelector('#child-editor')).toBeNull()
-
-      await Effect.runPromise(store.resume)
-      await vi.waitFor(() => {
-        expect(document.querySelector('#child-editor')).not.toBeNull()
-        expect(
-          Array.filter(
-            processedMessages,
-            message => message._tag === 'GotChildMountResult',
-          ),
-        ).toHaveLength(2)
-        expect(renderCount).toBe(1)
-      })
-
-      clickButton('child action')
-      await vi.waitFor(() => {
-        expect(
-          Array.filter(
-            processedMessages,
-            message => message._tag === 'GotChildMountResult',
-          ),
-        ).toHaveLength(3)
       })
     } finally {
       await Effect.runPromise(Fiber.interrupt(runtimeFiber))
@@ -2184,29 +1724,20 @@ describe('Mount view-state awareness', () => {
         PubSub.unbounded<Message>(),
       )
       let isSubscriptionReady = false
-      const subscriptions = Subscription.make<Model, Message>()(entry => ({
-        testMessages: entry('TestMessages', {
-          messages: [
-            Message.CompletedMountEditor,
-            Message.EditedFromMount,
-            Message.EditedEntityFromMount,
-            Message.GotChildMountResult,
-            Message.Ticked,
-            Message.ShowedEditor,
-            Message.HidEditor,
-          ],
-        }),
-      }))
-
-      const TestMessagesLayer = subscriptions.testMessages.toLayer(
-        Effect.succeed(() =>
-          Stream.fromEffect(
-            Effect.sync(() => {
-              isSubscriptionReady = true
-            }),
-          ).pipe(Stream.flatMap(() => Stream.fromPubSub(subscriptionMessages))),
-        ),
-      )
+      const subscriptions = {
+        testMessages: {
+          dependenciesSchema: Schema.Struct({}),
+          modelToDependencies: () => ({}),
+          dependenciesToStream: () =>
+            Stream.fromEffect(
+              Effect.sync(() => {
+                isSubscriptionReady = true
+              }),
+            ).pipe(
+              Stream.flatMap(() => Stream.fromPubSub(subscriptionMessages)),
+            ),
+        },
+      }
       let maybeStore: DevToolsStore | null = null
       __setDevToolsOverlay(store => {
         maybeStore = store
@@ -2246,9 +1777,7 @@ describe('Mount view-state awareness', () => {
         subscriptions,
         devTools: { show: 'Always', keyframeInterval: 1 },
       })
-      const runtimeFiber = Effect.runFork(
-        runtime.provide(TestMessagesLayer).start(),
-      )
+      const runtimeFiber = Effect.runFork(runtime.start())
 
       try {
         await vi.waitFor(() => {
@@ -2322,23 +1851,13 @@ describe('Mount view-state awareness', () => {
     const subscriptionMessages = await Effect.runPromise(
       PubSub.unbounded<Message>(),
     )
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      testMessages: entry('TestMessages', {
-        messages: [
-          Message.CompletedMountEditor,
-          Message.EditedFromMount,
-          Message.EditedEntityFromMount,
-          Message.GotChildMountResult,
-          Message.Ticked,
-          Message.ShowedEditor,
-          Message.HidEditor,
-        ],
-      }),
-    }))
-
-    const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() => Stream.fromPubSub(subscriptionMessages)),
-    )
+    const subscriptions = {
+      testMessages: {
+        dependenciesSchema: Schema.Struct({}),
+        modelToDependencies: () => ({}),
+        dependenciesToStream: () => Stream.fromPubSub(subscriptionMessages),
+      },
+    }
     const observedViewStates: globalThis.Array<Mount.ViewState> = []
     const processedTags: globalThis.Array<Message['_tag']> = []
 
@@ -2382,9 +1901,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1, maxEntries: 20 },
     })
     const runtimeFiber = Effect.runFork(
-      runtime
-        .provide(Layer.mergeAll(TestMessagesLayer, ObserveViewStateLayer))
-        .start(),
+      runtime.provide(ObserveViewStateLayer).start(),
     )
 
     try {

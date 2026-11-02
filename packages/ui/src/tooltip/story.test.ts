@@ -1,553 +1,601 @@
 import { Duration, Option } from 'effect'
-import * as Story from 'foldkit/story'
+import {
+  Command,
+  expectNoOutMessage,
+  expectOutMessage,
+  message,
+  model,
+  steps,
+  story,
+} from 'foldkit/story'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import {
-  WaitBeforeShowing,
-  TooltipBlock as block,
-  init,
-  update,
-} from './block.js'
+import { TooltipLive, WaitBeforeShowing } from './block.js'
 import { Message, OutMessage } from './message.js'
 
 const STALE_SHOW_VERSION = -1
 
-const resolveShowAsStale = Story.Command.resolve(
+const args = { id: 'test' }
+
+const resolveShowAsStale = Command.resolve(
   WaitBeforeShowing,
   Message.CompletedWaitBeforeShowing({ version: STALE_SHOW_VERSION }),
 )
 
-const givenHidden = Story.given(init({ id: 'test' }).model)
-
-const givenHoveredOpen = Story.steps(
-  givenHidden,
-  Story.message(Message.EnteredTrigger()),
-  Story.Command.resolve(
+const givenHoveredOpen = steps(
+  message(Message.EnteredTrigger()),
+  Command.resolve(
     WaitBeforeShowing,
     Message.CompletedWaitBeforeShowing({ version: 1 }),
   ),
 )
 
-const givenFocusedOpen = Story.steps(
-  givenHidden,
-  Story.message(Message.FocusedTrigger()),
-)
+const givenFocusedOpen = steps(message(Message.FocusedTrigger()))
 
 describe('Tooltip', () => {
   describe('init', () => {
-    it('defaults to hidden with the standard show delay', () => {
-      expect(init({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        isOpen: false,
-        isHovered: false,
-        isFocused: false,
-        isDismissed: false,
-        showDelay: Duration.millis(500),
-        pendingShowVersion: 0,
-        maybeLastPointerType: Option.none(),
-      })
-    })
+    it.effect('defaults to hidden with the standard show delay', () =>
+      story(
+        TooltipLive,
+        args,
+        model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            isOpen: false,
+            isHovered: false,
+            isFocused: false,
+            isDismissed: false,
+            showDelay: Duration.millis(500),
+            pendingShowVersion: 0,
+            maybeLastPointerType: Option.none(),
+          })
+        }),
+      ),
+    )
 
-    it('accepts a custom show delay as a number of milliseconds', () => {
-      const model = init({ id: 'test', showDelay: 100 }).model
-      expect(model.showDelay).toStrictEqual(Duration.millis(100))
-    })
+    it.effect('accepts a custom show delay as a number of milliseconds', () =>
+      story(
+        TooltipLive,
+        { id: 'test', showDelay: 100 },
+        model(model => {
+          expect(model.showDelay).toStrictEqual(Duration.millis(100))
+        }),
+      ),
+    )
 
-    it('accepts a custom show delay as a Duration', () => {
-      const model = init({ id: 'test', showDelay: Duration.seconds(1) }).model
-      expect(model.showDelay).toStrictEqual(Duration.seconds(1))
-    })
+    it.effect('accepts a custom show delay as a Duration', () =>
+      story(
+        TooltipLive,
+        { id: 'test', showDelay: Duration.seconds(1) },
+        model(model => {
+          expect(model.showDelay).toStrictEqual(Duration.seconds(1))
+        }),
+      ),
+    )
   })
 
   describe('update', () => {
     describe('EnteredTrigger', () => {
-      it('starts a show-delay timer when hidden', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(Message.EnteredTrigger()),
-          Story.model(model => {
+      it.effect('starts a show-delay timer when hidden', () =>
+        story(
+          TooltipLive,
+          args,
+          message(Message.EnteredTrigger()),
+          model(model => {
             expect(model.isHovered).toBe(true)
             expect(model.isOpen).toBe(false)
             expect(model.pendingShowVersion).toBe(1)
           }),
-          Story.Command.expectHas(WaitBeforeShowing),
-          Story.Command.resolve(
+          Command.expectHas(WaitBeforeShowing),
+          Command.resolve(
             WaitBeforeShowing,
             Message.CompletedWaitBeforeShowing({ version: 1 }),
           ),
-        )
-      })
+        ),
+      )
 
-      it('opens the tooltip and emits Shown when the delay completes while hovering', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(Message.EnteredTrigger()),
-          Story.Command.resolve(
-            WaitBeforeShowing,
-            Message.CompletedWaitBeforeShowing({ version: 1 }),
+      it.effect(
+        'opens the tooltip and emits Shown when the delay completes while hovering',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            message(Message.EnteredTrigger()),
+            Command.resolve(
+              WaitBeforeShowing,
+              Message.CompletedWaitBeforeShowing({ version: 1 }),
+            ),
+            expectOutMessage(OutMessage.Shown()),
+            model(model => {
+              expect(model.isOpen).toBe(true)
+              expect(model.isHovered).toBe(true)
+            }),
           ),
-          Story.expectOutMessage(OutMessage.Shown()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-            expect(model.isHovered).toBe(true)
-          }),
-        )
-      })
+      )
 
-      it('does not start a new timer when already open via focus', () => {
-        Story.story(
-          update,
+      it.effect('does not start a new timer when already open via focus', () =>
+        story(
+          TooltipLive,
+          args,
           givenFocusedOpen,
-          Story.message(Message.EnteredTrigger()),
-          Story.Command.expectNone(),
-          Story.model(model => {
+          message(Message.EnteredTrigger()),
+          Command.expectNone(),
+          model(model => {
             expect(model.isHovered).toBe(true)
             expect(model.isFocused).toBe(true)
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
 
-      it('schedules a show on re-hover after Escape even while focus stays active', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(Message.FocusedTrigger()),
-          Story.message(Message.EnteredTrigger()),
-          Story.message(Message.PressedEscape()),
-          Story.message(Message.LeftTrigger()),
-          Story.message(Message.EnteredTrigger()),
-          Story.Command.expectHas(WaitBeforeShowing),
-          Story.model(model => {
-            expect(model.isFocused).toBe(true)
-            expect(model.isHovered).toBe(true)
-            expect(model.isOpen).toBe(false)
-            expect(model.isDismissed).toBe(false)
-          }),
-          Story.Command.resolve(
-            WaitBeforeShowing,
-            Message.CompletedWaitBeforeShowing({ version: 4 }),
+      it.effect(
+        'schedules a show on re-hover after Escape even while focus stays active',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            message(Message.FocusedTrigger()),
+            message(Message.EnteredTrigger()),
+            message(Message.PressedEscape()),
+            message(Message.LeftTrigger()),
+            message(Message.EnteredTrigger()),
+            Command.expectHas(WaitBeforeShowing),
+            model(model => {
+              expect(model.isFocused).toBe(true)
+              expect(model.isHovered).toBe(true)
+              expect(model.isOpen).toBe(false)
+              expect(model.isDismissed).toBe(false)
+            }),
+            Command.resolve(
+              WaitBeforeShowing,
+              Message.CompletedWaitBeforeShowing({ version: 4 }),
+            ),
+            model(model => {
+              expect(model.isOpen).toBe(true)
+            }),
           ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-          }),
-        )
-      })
+      )
     })
 
     describe('LeftTrigger', () => {
-      it('cancels a pending show-delay by advancing the version', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(Message.EnteredTrigger()),
-          Story.model(model => {
+      it.effect('cancels a pending show-delay by advancing the version', () =>
+        story(
+          TooltipLive,
+          args,
+          message(Message.EnteredTrigger()),
+          model(model => {
             expect(model.pendingShowVersion).toBe(1)
           }),
           resolveShowAsStale,
-          Story.message(Message.LeftTrigger()),
-          Story.model(model => {
+          message(Message.LeftTrigger()),
+          model(model => {
             expect(model.isHovered).toBe(false)
             expect(model.isOpen).toBe(false)
             expect(model.pendingShowVersion).toBe(2)
           }),
-        )
-      })
+        ),
+      )
 
-      it('hides the tooltip and emits Hidden when hover was the only source', () => {
-        Story.story(
-          update,
-          givenHoveredOpen,
-          Story.message(Message.LeftTrigger()),
-          Story.expectOutMessage(OutMessage.Hidden()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.isHovered).toBe(false)
-          }),
-        )
-      })
+      it.effect(
+        'hides the tooltip and emits Hidden when hover was the only source',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            givenHoveredOpen,
+            message(Message.LeftTrigger()),
+            expectOutMessage(OutMessage.Hidden()),
+            model(model => {
+              expect(model.isOpen).toBe(false)
+              expect(model.isHovered).toBe(false)
+            }),
+          ),
+      )
 
-      it('keeps the tooltip open when focus is still active', () => {
-        Story.story(
-          update,
+      it.effect('keeps the tooltip open when focus is still active', () =>
+        story(
+          TooltipLive,
+          args,
           givenFocusedOpen,
-          Story.message(Message.EnteredTrigger()),
-          Story.message(Message.LeftTrigger()),
-          Story.model(model => {
+          message(Message.EnteredTrigger()),
+          message(Message.LeftTrigger()),
+          model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isHovered).toBe(false)
             expect(model.isFocused).toBe(true)
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('FocusedTrigger', () => {
-      it('shows the tooltip immediately', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(Message.FocusedTrigger()),
-          Story.Command.expectNone(),
-          Story.model(model => {
+      it.effect('shows the tooltip immediately', () =>
+        story(
+          TooltipLive,
+          args,
+          message(Message.FocusedTrigger()),
+          Command.expectNone(),
+          model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isFocused).toBe(true)
           }),
-        )
-      })
+        ),
+      )
 
-      it('invalidates a pending hover-delay', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(Message.EnteredTrigger()),
+      it.effect('invalidates a pending hover-delay', () =>
+        story(
+          TooltipLive,
+          args,
+          message(Message.EnteredTrigger()),
           resolveShowAsStale,
-          Story.message(Message.FocusedTrigger()),
-          Story.model(model => {
+          message(Message.FocusedTrigger()),
+          model(model => {
             expect(model.pendingShowVersion).toBe(2)
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('BlurredTrigger', () => {
-      it('hides the tooltip when focus was the only source', () => {
-        Story.story(
-          update,
+      it.effect('hides the tooltip when focus was the only source', () =>
+        story(
+          TooltipLive,
+          args,
           givenFocusedOpen,
-          Story.message(Message.BlurredTrigger()),
-          Story.model(model => {
+          message(Message.BlurredTrigger()),
+          model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.isFocused).toBe(false)
           }),
-        )
-      })
+        ),
+      )
 
-      it('keeps the tooltip open when hover is still active', () => {
-        Story.story(
-          update,
+      it.effect('keeps the tooltip open when hover is still active', () =>
+        story(
+          TooltipLive,
+          args,
           givenHoveredOpen,
-          Story.message(Message.FocusedTrigger()),
-          Story.message(Message.BlurredTrigger()),
-          Story.model(model => {
+          message(Message.FocusedTrigger()),
+          message(Message.BlurredTrigger()),
+          model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isFocused).toBe(false)
             expect(model.isHovered).toBe(true)
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('PressedEscape', () => {
-      it('hides the tooltip without lying about hover or focus state', () => {
-        Story.story(
-          update,
+      it.effect(
+        'hides the tooltip without lying about hover or focus state',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            givenHoveredOpen,
+            message(Message.PressedEscape()),
+            model(model => {
+              expect(model.isOpen).toBe(false)
+              expect(model.isHovered).toBe(true)
+              expect(model.isDismissed).toBe(true)
+            }),
+          ),
+      )
+
+      it.effect('does not re-open on hover until the pointer leaves', () =>
+        story(
+          TooltipLive,
+          args,
           givenHoveredOpen,
-          Story.message(Message.PressedEscape()),
-          Story.model(model => {
+          message(Message.PressedEscape()),
+          Command.expectNone(),
+          message(Message.EnteredTrigger()),
+          Command.expectNone(),
+          model(model => {
             expect(model.isOpen).toBe(false)
-            expect(model.isHovered).toBe(true)
             expect(model.isDismissed).toBe(true)
           }),
-        )
-      })
+        ),
+      )
 
-      it('does not re-open on hover until the pointer leaves', () => {
-        Story.story(
-          update,
-          givenHoveredOpen,
-          Story.message(Message.PressedEscape()),
-          Story.Command.expectNone(),
-          Story.message(Message.EnteredTrigger()),
-          Story.Command.expectNone(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.isDismissed).toBe(true)
-          }),
-        )
-      })
-
-      it('does not re-open on focus until the trigger blurs', () => {
-        Story.story(
-          update,
+      it.effect('does not re-open on focus until the trigger blurs', () =>
+        story(
+          TooltipLive,
+          args,
           givenFocusedOpen,
-          Story.message(Message.PressedEscape()),
-          Story.message(Message.FocusedTrigger()),
-          Story.model(model => {
+          message(Message.PressedEscape()),
+          message(Message.FocusedTrigger()),
+          model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.isFocused).toBe(true)
             expect(model.isDismissed).toBe(true)
           }),
-        )
-      })
+        ),
+      )
 
-      it('clears the dismissed flag on leave', () => {
-        Story.story(
-          update,
+      it.effect('clears the dismissed flag on leave', () =>
+        story(
+          TooltipLive,
+          args,
           givenHoveredOpen,
-          Story.message(Message.PressedEscape()),
-          Story.message(Message.LeftTrigger()),
-          Story.model(model => {
+          message(Message.PressedEscape()),
+          message(Message.LeftTrigger()),
+          model(model => {
             expect(model.isDismissed).toBe(false)
             expect(model.isHovered).toBe(false)
           }),
-        )
-      })
+        ),
+      )
 
-      it('clears the dismissed flag on blur', () => {
-        Story.story(
-          update,
+      it.effect('clears the dismissed flag on blur', () =>
+        story(
+          TooltipLive,
+          args,
           givenFocusedOpen,
-          Story.message(Message.PressedEscape()),
-          Story.message(Message.BlurredTrigger()),
-          Story.model(model => {
+          message(Message.PressedEscape()),
+          message(Message.BlurredTrigger()),
+          model(model => {
             expect(model.isDismissed).toBe(false)
             expect(model.isFocused).toBe(false)
           }),
-        )
-      })
+        ),
+      )
 
-      it('re-opens on a fresh hover after leaving', () => {
-        Story.story(
-          update,
+      it.effect('re-opens on a fresh hover after leaving', () =>
+        story(
+          TooltipLive,
+          args,
           givenHoveredOpen,
-          Story.message(Message.PressedEscape()),
-          Story.message(Message.LeftTrigger()),
-          Story.message(Message.EnteredTrigger()),
-          Story.Command.expectHas(WaitBeforeShowing),
-          Story.Command.resolve(
+          message(Message.PressedEscape()),
+          message(Message.LeftTrigger()),
+          message(Message.EnteredTrigger()),
+          Command.expectHas(WaitBeforeShowing),
+          Command.resolve(
             WaitBeforeShowing,
             Message.CompletedWaitBeforeShowing({ version: 4 }),
           ),
-          Story.model(model => {
+          model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isDismissed).toBe(false)
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('CompletedWaitBeforeShowing', () => {
-      it('ignores a stale delay whose version does not match', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(Message.EnteredTrigger()),
-          Story.Command.resolve(
+      it.effect('ignores a stale delay whose version does not match', () =>
+        story(
+          TooltipLive,
+          args,
+          message(Message.EnteredTrigger()),
+          Command.resolve(
             WaitBeforeShowing,
             Message.CompletedWaitBeforeShowing({ version: 99 }),
           ),
-          Story.model(model => {
+          model(model => {
             expect(model.isOpen).toBe(false)
           }),
-        )
-      })
+        ),
+      )
 
-      it('stays hidden when a stale delay fires and the user then leaves', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(Message.EnteredTrigger()),
-          resolveShowAsStale,
-          Story.message(Message.LeftTrigger()),
-          Story.model(model => {
-            expect(model.pendingShowVersion).toBe(2)
-            expect(model.isOpen).toBe(false)
-            expect(model.isHovered).toBe(false)
-          }),
-        )
-      })
+      it.effect(
+        'stays hidden when a stale delay fires and the user then leaves',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            message(Message.EnteredTrigger()),
+            resolveShowAsStale,
+            message(Message.LeftTrigger()),
+            model(model => {
+              expect(model.pendingShowVersion).toBe(2)
+              expect(model.isOpen).toBe(false)
+              expect(model.isHovered).toBe(false)
+            }),
+          ),
+      )
     })
 
     describe('PressedPointerOnTrigger', () => {
-      it('records the pointer type without opening when closed', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(
-            Message.PressedPointerOnTrigger({ pointerType: 'mouse' }),
-          ),
-          Story.Command.expectNone(),
-          Story.model(model => {
+      it.effect('records the pointer type without opening when closed', () =>
+        story(
+          TooltipLive,
+          args,
+          message(Message.PressedPointerOnTrigger({ pointerType: 'mouse' })),
+          Command.expectNone(),
+          model(model => {
             expect(model.maybeLastPointerType).toStrictEqual(
               Option.some('mouse'),
             )
             expect(model.isOpen).toBe(false)
           }),
-        )
-      })
+        ),
+      )
 
-      it('suppresses the auto-show on focus that follows a mouse press and does not count it as keyboard focus', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(
-            Message.PressedPointerOnTrigger({ pointerType: 'mouse' }),
+      it.effect(
+        'suppresses the auto-show on focus that follows a mouse press and does not count it as keyboard focus',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            message(Message.PressedPointerOnTrigger({ pointerType: 'mouse' })),
+            message(Message.FocusedTrigger()),
+            model(model => {
+              expect(model.isFocused).toBe(false)
+              expect(model.isOpen).toBe(false)
+              expect(model.maybeLastPointerType).toStrictEqual(Option.none())
+            }),
           ),
-          Story.message(Message.FocusedTrigger()),
-          Story.model(model => {
-            expect(model.isFocused).toBe(false)
-            expect(model.isOpen).toBe(false)
-            expect(model.maybeLastPointerType).toStrictEqual(Option.none())
-          }),
-        )
-      })
+      )
 
-      it('does not suppress focus from a touch or pen press', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(
-            Message.PressedPointerOnTrigger({ pointerType: 'touch' }),
-          ),
-          Story.message(Message.FocusedTrigger()),
-          Story.model(model => {
+      it.effect('does not suppress focus from a touch or pen press', () =>
+        story(
+          TooltipLive,
+          args,
+          message(Message.PressedPointerOnTrigger({ pointerType: 'touch' })),
+          message(Message.FocusedTrigger()),
+          model(model => {
             expect(model.isFocused).toBe(true)
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
 
-      it('does not suppress a keyboard focus with no preceding pointer press', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(Message.FocusedTrigger()),
-          Story.model(model => {
-            expect(model.isFocused).toBe(true)
-            expect(model.isOpen).toBe(true)
-          }),
-        )
-      })
-
-      it('clears the recorded pointer type on blur', () => {
-        Story.story(
-          update,
-          givenHidden,
-          Story.message(
-            Message.PressedPointerOnTrigger({ pointerType: 'mouse' }),
+      it.effect(
+        'does not suppress a keyboard focus with no preceding pointer press',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            message(Message.FocusedTrigger()),
+            model(model => {
+              expect(model.isFocused).toBe(true)
+              expect(model.isOpen).toBe(true)
+            }),
           ),
-          Story.message(Message.FocusedTrigger()),
-          Story.message(Message.BlurredTrigger()),
-          Story.model(model => {
+      )
+
+      it.effect('clears the recorded pointer type on blur', () =>
+        story(
+          TooltipLive,
+          args,
+          message(Message.PressedPointerOnTrigger({ pointerType: 'mouse' })),
+          message(Message.FocusedTrigger()),
+          message(Message.BlurredTrigger()),
+          model(model => {
             expect(model.maybeLastPointerType).toStrictEqual(Option.none())
           }),
-        )
-      })
+        ),
+      )
 
-      it('keeps an open tooltip visible when the trigger is pressed', () => {
-        Story.story(
-          update,
-          givenHoveredOpen,
-          Story.message(
-            Message.PressedPointerOnTrigger({ pointerType: 'mouse' }),
+      it.effect(
+        'keeps an open tooltip visible when the trigger is pressed',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            givenHoveredOpen,
+            message(Message.PressedPointerOnTrigger({ pointerType: 'mouse' })),
+            Command.expectNone(),
+            expectNoOutMessage(),
+            model(model => {
+              expect(model.isOpen).toBe(true)
+              expect(model.isDismissed).toBe(false)
+              expect(model.isHovered).toBe(true)
+              expect(model.maybeLastPointerType).toStrictEqual(
+                Option.some('mouse'),
+              )
+            }),
           ),
-          Story.Command.expectNone(),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-            expect(model.isDismissed).toBe(false)
-            expect(model.isHovered).toBe(true)
-            expect(model.maybeLastPointerType).toStrictEqual(
-              Option.some('mouse'),
-            )
-          }),
-        )
-      })
+      )
 
-      it('stays open across the focus that follows a press while hovering', () => {
-        Story.story(
-          update,
-          givenHoveredOpen,
-          Story.message(
-            Message.PressedPointerOnTrigger({ pointerType: 'mouse' }),
+      it.effect(
+        'stays open across the focus that follows a press while hovering',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            givenHoveredOpen,
+            message(Message.PressedPointerOnTrigger({ pointerType: 'mouse' })),
+            message(Message.FocusedTrigger()),
+            model(model => {
+              expect(model.isOpen).toBe(true)
+              expect(model.isFocused).toBe(false)
+              expect(model.isHovered).toBe(true)
+              expect(model.maybeLastPointerType).toStrictEqual(Option.none())
+            }),
           ),
-          Story.message(Message.FocusedTrigger()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-            expect(model.isFocused).toBe(false)
-            expect(model.isHovered).toBe(true)
-            expect(model.maybeLastPointerType).toStrictEqual(Option.none())
-          }),
-        )
-      })
+      )
 
-      it('still hides on leave after the trigger is pressed while hovering', () => {
-        Story.story(
-          update,
-          givenHoveredOpen,
-          Story.message(
-            Message.PressedPointerOnTrigger({ pointerType: 'mouse' }),
+      it.effect(
+        'still hides on leave after the trigger is pressed while hovering',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            givenHoveredOpen,
+            message(Message.PressedPointerOnTrigger({ pointerType: 'mouse' })),
+            message(Message.FocusedTrigger()),
+            message(Message.LeftTrigger()),
+            expectOutMessage(OutMessage.Hidden()),
+            model(model => {
+              expect(model.isOpen).toBe(false)
+              expect(model.isHovered).toBe(false)
+              expect(model.isFocused).toBe(false)
+            }),
           ),
-          Story.message(Message.FocusedTrigger()),
-          Story.message(Message.LeftTrigger()),
-          Story.expectOutMessage(OutMessage.Hidden()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.isHovered).toBe(false)
-            expect(model.isFocused).toBe(false)
-          }),
-        )
-      })
+      )
 
-      it('does not dismiss, so a re-hover after leaving still schedules a show', () => {
-        Story.story(
-          update,
-          givenHoveredOpen,
-          Story.message(
-            Message.PressedPointerOnTrigger({ pointerType: 'mouse' }),
+      it.effect(
+        'does not dismiss, so a re-hover after leaving still schedules a show',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            givenHoveredOpen,
+            message(Message.PressedPointerOnTrigger({ pointerType: 'mouse' })),
+            message(Message.LeftTrigger()),
+            message(Message.EnteredTrigger()),
+            Command.expectHas(WaitBeforeShowing),
+            model(model => {
+              expect(model.isDismissed).toBe(false)
+            }),
+            resolveShowAsStale,
           ),
-          Story.message(Message.LeftTrigger()),
-          Story.message(Message.EnteredTrigger()),
-          Story.Command.expectHas(WaitBeforeShowing),
-          Story.model(model => {
-            expect(model.isDismissed).toBe(false)
-          }),
-          resolveShowAsStale,
-        )
-      })
+      )
     })
 
-    describe('informShowDelayChanged', () => {
-      it('records the informed delay without changing visibility or emitting an OutMessage', () => {
-        const next = block.operations.informShowDelayChanged(
-          init({ id: 'test' }).model,
-          '1 second',
-        )
-        expect(next.commands).toBeUndefined()
-        expect(next.outMessage).toBeUndefined()
-        expect(next.model.showDelay).toStrictEqual(Duration.seconds(1))
-        expect(next.model.isOpen).toBe(false)
-        expect(next.model.pendingShowVersion).toBe(0)
-      })
-
-      it('uses the informed delay on a fresh hover', () => {
-        Story.story(
-          update,
-          Story.given(
-            block.operations.informShowDelayChanged(
-              init({ id: 'test' }).model,
-              50,
-            ).model,
+    describe('InformedOfShowDelayChange', () => {
+      it.effect(
+        'records the informed delay without changing visibility or emitting an OutMessage',
+        () =>
+          story(
+            TooltipLive,
+            args,
+            message(
+              Message.InformedOfShowDelayChange({
+                showDelay: Duration.seconds(1),
+              }),
+            ),
+            Command.expectNone(),
+            expectNoOutMessage(),
+            model(model => {
+              expect(model.showDelay).toStrictEqual(Duration.seconds(1))
+              expect(model.isOpen).toBe(false)
+              expect(model.pendingShowVersion).toBe(0)
+            }),
           ),
-          Story.message(Message.EnteredTrigger()),
-          Story.model(model => {
+      )
+
+      it.effect('uses the informed delay on a fresh hover', () =>
+        story(
+          TooltipLive,
+          args,
+          message(
+            Message.InformedOfShowDelayChange({
+              showDelay: Duration.millis(50),
+            }),
+          ),
+          message(Message.EnteredTrigger()),
+          model(model => {
             expect(model.showDelay).toStrictEqual(Duration.millis(50))
           }),
-          Story.Command.resolve(
+          Command.expectHas(
+            WaitBeforeShowing({ delay: Duration.millis(50), version: 1 }),
+          ),
+          Command.resolve(
             WaitBeforeShowing,
             Message.CompletedWaitBeforeShowing({ version: 1 }),
           ),
-          Story.model(model => {
+          model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
     })
   })
 })

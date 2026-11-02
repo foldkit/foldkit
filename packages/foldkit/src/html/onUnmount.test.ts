@@ -1,8 +1,10 @@
-import { Context, Effect, Queue, Schema, Stream } from 'effect'
+import { Context, Effect, Layer, Queue, Schema, Stream } from 'effect'
 import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import { Block, deliver, runtimeBlockOf } from '../blocks/block.js'
+import { constructRoot, makeGraph, renderRoot } from '../blocks/engine.js'
 import { defineMessageUnion } from '../message/index.js'
 import type { MountAction } from '../mount/index.js'
 import { MountTracker } from '../mount/index.js'
@@ -30,7 +32,6 @@ import {
   __beginReplayRender as beginReplayRender,
   __clearRuntime as clearHtmlRuntime,
   __createBoundaryRegistry as createHtmlBoundaryRegistry,
-  defineView,
   __endReplayRender as endReplayRender,
   __flushReplayUnmountsAfterPatchFailure as flushReplayUnmountsAfterPatchFailure,
   __setRuntime as setHtmlRuntime,
@@ -448,39 +449,29 @@ describe('OnUnmount', () => {
   })
 })
 
-type ChildUnmounted = Readonly<{ _tag: 'ChildUnmounted' }>
-const ChildUnmounted: ChildUnmounted = { _tag: 'ChildUnmounted' }
-type GotChildMessage = Readonly<{
-  _tag: 'GotChildMessage'
-  message: ChildUnmounted
-}>
-const GotChildMessage = (message: ChildUnmounted): GotChildMessage => ({
-  _tag: 'GotChildMessage',
-  message,
-})
-type ParentUnmounted = Readonly<{ _tag: 'ParentUnmounted' }>
-const ParentUnmounted: ParentUnmounted = { _tag: 'ParentUnmounted' }
-type ParentMessage = GotChildMessage | ParentUnmounted
+const DialogMessage = defineMessageUnion({ UnmountedDialog: {} })
+const ParentMessage = defineMessageUnion({ UnmountedParent: {} })
 
-type ChildViewInputs = Readonly<{
+type DialogViewInput = Readonly<{
   toView: (dialog: ReadonlyArray<ChildAttribute>) => VNode | null
 }>
 
-// A Block that publishes an OnUnmount attribute through its boundary,
+// A Block that publishes an OnUnmount attribute through its view input,
 // mirroring how Ui.Dialog publishes `dialog` attributes carrying OnUnmount.
-const childView = defineView<
-  Readonly<{ id: string }>,
-  ChildUnmounted,
-  ChildViewInputs
->((_model, viewInputs) => {
-  const childHtml = __htmlBuilder<ChildUnmounted>()
-  return viewInputs.toView(
-    childAttributes([
-      childHtml.Id('child-dialog'),
-      childHtml.OnUnmount(ChildUnmounted),
-    ]),
-  )
-})
+class Dialog extends Block<Dialog, void, DialogViewInput>()('Dialog', {
+  Message: DialogMessage,
+}) {}
+
+const DialogLive = Dialog.toLayer(() => ({
+  update: { UnmountedDialog: model => ({ model }) },
+  view: (_model, h, { toView }) =>
+    toView(
+      childAttributes([
+        h.Id('child-dialog'),
+        h.OnUnmount(Dialog.Message.UnmountedDialog()),
+      ]),
+    ),
+}))
 
 // Renders with a persistent boundary registry shared across renders and a
 // `beginRender` call each pass, matching how the runtime drives Block
@@ -513,39 +504,60 @@ const renderViewWithRegistry = (
 }
 
 describe('OnUnmount across a Block boundary', () => {
-  it('composes child and parent callbacks on the same element', () => {
-    const h = __htmlBuilder<ParentMessage>()
-    const { dispatch, dispatched } = createCapturingDispatch()
-    const registry = createHtmlBoundaryRegistry()
+  it.effect('composes child and parent callbacks on the same element', () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        let isDialogRendered = true
 
-    const withChild = () =>
-      h.div(
-        [],
-        [
-          h.block({
-            slotId: 'child-dialog',
-            model: { id: 'child-dialog' },
-            view: childView,
-            viewInputs: {
-              toView: dialog =>
-                h.dialog([...dialog, h.OnUnmount(ParentUnmounted)]),
-            },
-            toParentMessage: message => GotChildMessage(message),
-          }),
-        ],
-      )
-    const withoutChild = () => h.div([])
+        class Parent extends Block<Parent>()('Parent', {
+          Model: Schema.Struct({ dialog: Dialog }),
+          Message: ParentMessage,
+        }) {}
 
-    const mounted = patch(
-      toVNode(makeRootContainer()),
-      renderViewWithRegistry(withChild, dispatch, registry),
-    )
+        const ParentLive = Parent.toLayer(() => ({
+          init: () => ({ dialog: new Dialog('dialog') }),
+          update: { UnmountedParent: model => ({ model }) },
+          view: (model, h) =>
+            isDialogRendered
+              ? h.div(
+                  [],
+                  [
+                    model.dialog.view({
+                      toView: dialogAttributes =>
+                        h.dialog([
+                          ...dialogAttributes,
+                          h.OnUnmount(Parent.Message.UnmountedParent()),
+                        ]),
+                    }),
+                  ],
+                )
+              : h.div([]),
+        })).pipe(Layer.provide(DialogLive))
 
-    patch(mounted, renderViewWithRegistry(withoutChild, dispatch, registry))
+        const context = yield* Layer.build(ParentLive)
+        const block = runtimeBlockOf(Parent)
+        const graph = makeGraph({ isSimulation: false })
+        const instance = constructRoot(graph, block, undefined, context)
 
-    expect(dispatched).toStrictEqual([
-      GotChildMessage(ChildUnmounted),
-      ParentUnmounted,
-    ])
-  })
+        const { dispatch, dispatched } = createCapturingDispatch()
+        const registry = createHtmlBoundaryRegistry()
+        const render = () =>
+          renderViewWithRegistry(
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            () => renderRoot(graph, instance) as VNode | null,
+            dispatch,
+            registry,
+          )
+
+        const mounted = patch(toVNode(makeRootContainer()), render())
+        isDialogRendered = false
+        patch(mounted, render())
+
+        expect(dispatched).toStrictEqual([
+          deliver(Dialog, 'dialog', Dialog.Message.UnmountedDialog()),
+          Parent.Message.UnmountedParent(),
+        ])
+      }),
+    ),
+  )
 })

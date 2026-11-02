@@ -1,8 +1,8 @@
 import { Effect, Match } from 'effect'
+import type { KeyValueStore } from 'effect/persistence'
+import { Command } from 'foldkit'
 
-import { ApplicationDefinition } from './definition'
 import { Message, ResolvedTheme } from './message'
-import { LocalStorage } from './storage'
 import { ThemePreference } from './themePreference'
 
 export const THEME_STORAGE_KEY = 'theme-preference'
@@ -31,43 +31,37 @@ const setThemeColorMeta = (color: string): void => {
   }
 }
 
-export const ApplyTheme = ApplicationDefinition.makeCommand('ApplyTheme', {
+export const ApplyTheme = Command.define('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],
-  handler: function* () {
-    return ({ theme }) =>
-      Effect.sync(() => {
-        Match.value(theme).pipe(
-          Match.when('Dark', () => {
-            document.documentElement.classList.add('dark')
-            setThemeColorMeta(DARK_THEME_COLOR)
-          }),
-          Match.when('Light', () => {
-            document.documentElement.classList.remove('dark')
-            setThemeColorMeta(LIGHT_THEME_COLOR)
-          }),
-          Match.exhaustive,
-        )
-        return Message.CompletedApplyTheme()
-      })
-  },
 })
 
-export const SaveThemePreference = ApplicationDefinition.makeCommand(
-  'SaveThemePreference',
-  {
-    args: { preference: ThemePreference },
-    messages: [Message.CompletedSaveThemePreference],
-    handler: function* () {
-      const store = yield* LocalStorage
+export const SaveThemePreference = Command.define('SaveThemePreference', {
+  args: { preference: ThemePreference },
+  messages: [Message.CompletedSaveThemePreference],
+})
 
-      return ({ preference }) =>
-        store.set(THEME_STORAGE_KEY, JSON.stringify(preference)).pipe(
-          Effect.as(Message.CompletedSaveThemePreference()),
-          Effect.catch(() =>
-            Effect.succeed(Message.CompletedSaveThemePreference()),
-          ),
-        )
-    },
-  },
-)
+export const applyTheme = (theme: ResolvedTheme) =>
+  Effect.sync(() => {
+    Match.value(theme).pipe(
+      Match.when('Dark', () => {
+        document.documentElement.classList.add('dark')
+        setThemeColorMeta(DARK_THEME_COLOR)
+      }),
+      Match.when('Light', () => {
+        document.documentElement.classList.remove('dark')
+        setThemeColorMeta(LIGHT_THEME_COLOR)
+      }),
+      Match.exhaustive,
+    )
+    return Message.CompletedApplyTheme()
+  })
+
+export const saveThemePreference = (
+  localStorage: KeyValueStore.KeyValueStore,
+  preference: ThemePreference,
+) =>
+  localStorage.set(THEME_STORAGE_KEY, JSON.stringify(preference)).pipe(
+    Effect.as(Message.CompletedSaveThemePreference()),
+    Effect.catch(() => Effect.succeed(Message.CompletedSaveThemePreference())),
+  )

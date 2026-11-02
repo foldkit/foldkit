@@ -5,7 +5,7 @@
 Meter displays a scalar quantity within a known range, such as remaining storage, battery charge, or a health level. It is a stateless controlled view: your Model owns the value, and Meter provides the ARIA and styling attributes. Use Progress instead when the value represents completion of a task.
 
 :::Info{label="See it in an app"}
-Check out how Meter is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/meter.ts).
+Check out how Meter is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/application.ts#L116-L196).
 :::
 
 ## Examples

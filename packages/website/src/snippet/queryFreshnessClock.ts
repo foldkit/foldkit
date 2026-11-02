@@ -1,43 +1,44 @@
-import { Clock, Effect, Schema } from 'effect'
-import { Block } from 'foldkit'
+import { Clock, Effect, Layer, Schema } from 'effect'
+import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-const Model = Schema.Struct({ posts: postsQuery.Model })
-type Model = typeof Model.Type
+import { PostsQuery, PostsQueryLive } from './queryDefine'
 
 const Message = defineMessageUnion({
   EnteredPostsRoute: {},
   CompletedReadCurrentTime: { nowMillis: Schema.Number },
 })
-type Message = typeof Message.Type
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-
-const PostsBinding = ApplicationDefinition.makeBinding(postsQuery, {
-  field: 'posts',
-})
-
-const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [PostsBinding],
-})
-
-const ReadCurrentTime = ApplicationDefinition.makeCommand('ReadCurrentTime', {
+const ReadCurrentTime = Command.define('ReadCurrentTime', {
   messages: [Message.CompletedReadCurrentTime],
-  handler: function* () {
-    return () =>
+})
+
+export class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({ posts: PostsQuery }),
+  Message,
+  Command: [ReadCurrentTime],
+}) {}
+
+export const ApplicationLive = Application.toLayer(() => ({
+  init: () => ({ posts: new PostsQuery('posts', {}) }),
+  update: {
+    EnteredPostsRoute: model => ({
+      model,
+      commands: [ReadCurrentTime()],
+    }),
+    CompletedReadCurrentTime: (model, { nowMillis }) => ({
+      model,
+      messages: [
+        model.posts.send(
+          PostsQuery.Message.RequestedLoadIfStale({ nowMillis }),
+        ),
+      ],
+    }),
+  },
+  commands: {
+    ReadCurrentTime: () =>
       Effect.map(Clock.currentTimeMillis, nowMillis =>
         Message.CompletedReadCurrentTime({ nowMillis }),
-      )
+      ),
   },
-})
-
-const update = ApplicationComposition.makeUpdate({
-  EnteredPostsRoute: ApplicationDefinition.makeCommandsStep(() => [
-    ReadCurrentTime(),
-  ]),
-  CompletedReadCurrentTime: (model, { nowMillis }) =>
-    PostsBinding.requestLoadIfStale(nowMillis)(model),
-})
+})).pipe(Layer.provide(PostsQueryLive))

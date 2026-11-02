@@ -1,6 +1,6 @@
 import { Effect, Queue, Stream } from 'effect'
+import { Mount } from 'foldkit'
 
-import { ExampleDetailDefinition } from './definition'
 import { type ChangedExampleUrl, Message } from './message'
 
 const BRIDGE_MESSAGE_TYPE = 'foldkit-example-url'
@@ -21,7 +21,7 @@ const isExampleUrlMessageFromIframe = (
   event.data.type === BRIDGE_MESSAGE_TYPE &&
   typeof event.data.url === 'string'
 
-const observeExampleUrlMessages = (element: Element) => {
+export const observeExampleUrlMessages = (element: Element) => {
   if (!(element instanceof HTMLIFrameElement)) {
     return Stream.empty
   }
@@ -49,10 +49,7 @@ const observeExampleUrlMessages = (element: Element) => {
   )
 }
 
-export const ObserveExampleUrlMessages =
-  ExampleDetailDefinition.makeMountStream('ObserveExampleUrlMessages', {
-    messages: [Message.ChangedExampleUrl],
-    handler: function* () {
-      return ({ element }) => observeExampleUrlMessages(element)
-    },
-  })
+export const ObserveExampleUrlMessages = Mount.defineStream(
+  'ObserveExampleUrlMessages',
+  { messages: [Message.ChangedExampleUrl] },
+)

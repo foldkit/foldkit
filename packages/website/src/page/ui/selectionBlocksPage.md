@@ -6,9 +6,9 @@ Foldkit UI ships five Blocks for selecting values from a set: [Listbox](/ui/list
 
 For example: a Listbox of plans, a Combobox of cities, Tabs for view modes, a Menu of actions, or a RadioGroup of pricing plans.
 
-### Typed Completed Blocks
+### Typed Block Classes
 
-Each exposes a factory that keeps one item type across its view, update, programmatic API, and `Selected` OutMessage. Most factories take a type parameter. Combobox takes the Item Schema itself so its completed Block also carries exact Message and OutMessage Schemas.
+Each exposes a factory that keeps one item type across its view, its Messages, and its `Selected` OutMessage. Most factories take a type parameter. Combobox takes the Item Schema itself so the class it returns also carries exact Message and OutMessage Schemas.
 
 A Listbox over a literal-union `Plan` type:
 
@@ -16,17 +16,17 @@ A Listbox over a literal-union `Plan` type:
 
 ## Make a typed Block {#make-block-factory}
 
-A call to `Listbox.makeBlock<Plan>()` returns a completed Block whose entry points are all bound to `Plan`. Its view accepts `items: ReadonlyArray<Plan>`. Its update and public `requestSelectItem` operation can return a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope and use the same Block at every site that needs it. Construction is passive. The Block's `init` creates each occurrence's initial Model and Commands.
+A call to `Listbox.make<Plan>()` returns a Block class whose entry points are all bound to `Plan`, declared with its implementation, so the class is its own Layer. Its view accepts `items: ReadonlyArray<Plan>`, and its `Selected` OutMessage carries a `Plan`, whether the user picked the item or the parent sent `RequestedSelectItem({ item })`. Call the factory once at module scope, name the result, and use that class at every site that needs it. Each call declares a different Block. Create instances with `new PlanListbox('listbox', { id })` and provide the class to the parent's Layer with `Layer.provide(PlanListbox)`. A Listbox, Combobox, or Menu holds Animation instances, so provide `AnimationLive` as well.
 
-There is no inbound inform operation for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is no child Model field to update. When an external value changes the selection, the parent writes its own field. Components that store parent-provided configuration provide Message-producing operations instead: Calendar and DatePicker provide `informMinDateChanged`, `informMaxDateChanged`, `informDisabledDatesChanged`, and `informDisabledDaysOfWeekChanged`; Slider provides `informRangeChanged`. See [Informing a child about external state](/core/block#informing-external-state).
+There is no Message that informs the Block of the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is no child Model field to update. When an external value changes the selection, the parent writes its own field. Components that store parent-provided configuration accept Messages for it instead: Calendar and DatePicker accept `InformedOfMinDateChange`, `InformedOfMaxDateChange`, `InformedOfDisabledDatesChange`, and `InformedOfDisabledDaysOfWeekChange`; Slider accepts `InformedOfRangeChange`. See [Parent to child](/core/block#informing-external-state).
 
 ## Naming What a Factory Returns {#completed-type}
 
-Each component subpath exports a `Completed` type for what its factory returns. `Completed<Plan>` from `@foldkit/ui/listbox` is what `Listbox.makeBlock<Plan>()` produces. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup subpaths expose their corresponding `Completed` types.
+Each component subpath exports two types for what its factory returns: a class type and an instance type. `ListboxClass<Plan>` from `@foldkit/ui/listbox` is what `Listbox.make<Plan>()` returns, and `Listbox<Plan>` is the type of one of its instances. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup subpaths expose the matching `ComboboxClass` and `Combobox`, `TabsClass` and `Tabs`, `MenuClass` and `Menu`, and `RadioGroupClass` and `RadioGroup` types.
 
-### When to Name the Completed Block
+### When to Name the Type
 
-Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for `Completed` when a created Block has to be named instead. For example, a config object may hold a `Completed<City>` imported from `@foldkit/ui/combobox`, or a view helper may accept `Completed<Plan>` from `@foldkit/ui/listbox` because it receives the completed Block rather than calling the factory itself.
+Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for the named types when the class or an instance has to be named instead. For example, a config object may hold a `ComboboxClass<City>` imported from `@foldkit/ui/combobox`, or a view helper may accept a `Listbox<Plan>` instance from `@foldkit/ui/listbox` because it renders an instance it receives from its caller. `typeof PlanListbox.Type` names the same instance type from the class value.
 
 ### Declaration Output
 
@@ -48,11 +48,11 @@ That split is why the Listbox Model can stay generic-free (no `Listbox.Model<Ite
 
 Without the factory, separately generic view and update functions could be instantiated with different item types at the same call site. The selected item could arrive in the OutMessage as one type while update treated it as another, and TypeScript would have no shared value through which to enforce the relationship.
 
-The factory closes that hole by setting `Item` once. The completed Block’s `view`, `update`, operations, Message, and OutMessage are bound to the same `Item` because they all come from the same factory call.
+The factory closes that hole by setting `Item` once. The class's view, update, Message, and OutMessage are bound to the same `Item` because they all come from the same factory call.
 
 ### The Schema Boundary
 
-Combobox builds its Message, OutMessage, view, and update from the supplied Item Schema, so it needs no erased generic cast at the factory boundary. The Schema also lets the parent Definition validate the child Message and OutMessage contracts when it creates a Binding.
+Combobox builds its Message, OutMessage, view, and update from the supplied Item Schema, so it needs no erased generic cast at the factory boundary. The Schema also gives the Message and OutMessage Schemas an exact item type, so tests and DevTools decode them without a cast.
 
 ## The Factories {#factories}
 
@@ -60,20 +60,20 @@ Each generic selection Block has a root factory export. Its inputs differ by wha
 
 ### Listbox
 
-`Listbox.makeBlock<Item, Value>()` takes two type parameters, or `Listbox.makeBlock<Item>()` when relying on the default. `Item` is the shape of the items the consumer supplies. `Value` is the shape of the value the OutMessage carries; it defaults to `Item` when `Item extends string`, else `string`. The two-parameter shape supports object-typed items via an `itemToValue` callback that extracts the stringy identifier from each `Item`.
+`Listbox.make<Item, Value>()` takes two type parameters, or `Listbox.make<Item>()` when relying on the default. `Item` is the shape of the items the consumer supplies. `Value` is the shape of the value the OutMessage carries; it defaults to `Item` when `Item extends string`, else `string`. The two-parameter shape supports object-typed items via an `itemToValue` callback that extracts the stringy identifier from each `Item`.
 
-`Listbox.Multi.makeBlock<Item, Value>()` (or `Listbox.Multi.makeBlock<Item>()`) is the multi-select variant. Same type-parameter shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
+`Listbox.Multi.make<Item, Value>()` (or `Listbox.Multi.make<Item>()`) is the multi-select variant. Same type-parameter shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
 
 ### Combobox
 
-`Combobox.makeBlock(Item)` takes one string Schema, such as `Combobox.makeBlock(City)`. Combobox items may be a literal union, a branded string Schema, or plain `Schema.String`.
+`Combobox.make(Item)` takes one string Schema, such as `Combobox.make(City)`. Combobox items may be a literal union, a branded string Schema, or plain `Schema.String`.
 
-`Combobox.Multi.makeBlock(Item)` is the multi-select variant. It takes the same Schema shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
+`Combobox.Multi.make(Item)` is the multi-select variant. It takes the same Schema shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
 
 ### Tabs
 
-`Tabs.makeBlock<Value>()` takes one type parameter, `Value extends string`. The view accepts `ReadonlyArray<Value>` as its tab list (a literal union `Value` is assignable to `string`), and the OutMessage carries both the picked `value: Value` and its `index: number`. The single parameter is enough because Tabs values are always inline strings; there is no object form.
+`Tabs.make<Value>()` takes one type parameter, `Value extends string`. The view accepts `ReadonlyArray<Value>` as its tab list (a literal union `Value` is assignable to `string`), and the OutMessage carries both the picked `value: Value` and its `index: number`. The single parameter is enough because Tabs values are always inline strings; there is no object form.
 
 ### Menu
 
-`Menu.makeBlock<Item>()` takes one type parameter, `Item extends string`. The view accepts `ReadonlyArray<Item>` as its menu items, and the OutMessage carries both the picked `value: Item` and its `index: number`. The picked value arrives directly in the OutMessage, so consumers no longer need to look it up from their own items array.
+`Menu.make<Item>()` takes one type parameter, `Item extends string`. The view accepts `ReadonlyArray<Item>` as its menu items, and the OutMessage carries both the picked `value: Item` and its `index: number`. The picked value arrives directly in the OutMessage, so consumers do not need to look it up in their own items array.

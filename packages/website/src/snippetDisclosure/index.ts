@@ -1,1 +1,2 @@
-export { SnippetDisclosureBlock } from './block'
+export { SnippetDisclosure, SnippetDisclosureLive } from './block'
+export type { ViewInputs } from './view'

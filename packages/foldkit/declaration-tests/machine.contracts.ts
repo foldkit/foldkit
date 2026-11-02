@@ -75,7 +75,10 @@ export const FetchQuotes = Command.define('MachineFixture/FetchQuotes', {
     searchGeneration: Schema.Number,
   },
   messages: [Message.SucceededFetchQuotes, Message.FailedFetchQuotes],
-  handler: function* () {
+})
+
+export const FetchQuotesLive = FetchQuotes.toLayer(
+  Effect.gen(function* () {
     const client = yield* QuotesClient
     return ({ label, offset, limit, searchGeneration }) =>
       client.fetch(label, offset, limit).pipe(
@@ -93,25 +96,31 @@ export const FetchQuotes = Command.define('MachineFixture/FetchQuotes', {
           ),
         ),
       )
-  },
-})
+  }),
+)
 
 export const TrackSearch = Command.define('MachineFixture/TrackSearch', {
   args: { query: Schema.String },
   messages: [Message.CompletedTrackSearch],
-  handler: function* () {
+})
+
+export const TrackSearchLive = TrackSearch.toLayer(
+  Effect.gen(function* () {
     const audit = yield* SearchAudit
     return ({ query }) =>
       audit.record(query).pipe(Effect.as(Message.CompletedTrackSearch()))
-  },
-})
+  }),
+)
 
 export const CancelSearch = Command.define('MachineFixture/CancelSearch', {
   messages: [Message.CompletedCancelSearch],
-  handler: function* () {
-    return () => Effect.succeed(Message.CompletedCancelSearch())
-  },
 })
+
+export const CancelSearchLive = CancelSearch.toLayer(
+  Effect.gen(function* () {
+    return () => Effect.succeed(Message.CompletedCancelSearch())
+  }),
+)
 
 export const queryToMaybeLabel = (query: string): Option.Option<string> =>
   Option.liftPredicate((value: string) => /^[a-z0-9-]+$/.test(value))(query)

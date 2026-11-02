@@ -33,7 +33,6 @@
     "foldkit/no-noop-message": "error",
     "foldkit/no-empty-children-array": "error",
     "foldkit/no-empty-commands-array": "error",
-    "foldkit/no-empty-to-parent-out-message": "error",
     "foldkit/no-empty-object-tagged-call": "error",
     "foldkit/prefer-callable-message-constructor": "error",
     "foldkit/no-module-level-mutable-state": "error",

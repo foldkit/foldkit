@@ -6,11 +6,6 @@ import { commandDefinePascalConst } from '../../src/rules/command-define-pascal-
 const commandDefineCall = (defineArguments: ReadonlyArray<unknown>) =>
   Testing.callOfMember('Command', 'define', defineArguments)
 
-const definitionCommandCall = (
-  definitionName: string,
-  defineArguments: ReadonlyArray<unknown>,
-) => Testing.callOfMember(definitionName, 'makeCommand', defineArguments)
-
 const inDeclaration = (kind: string, declarator: Record<string, unknown>) =>
   Object.assign(declarator, {
     parent: { type: 'VariableDeclaration', kind },
@@ -169,42 +164,6 @@ describe('command-define-pascal-const', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('not Foo')
-  })
-
-  it('flags a Definition command whose const does not match its name', () => {
-    const commandCall = definitionCommandCall('ApplicationDefinition', [
-      Testing.strLiteral('FetchUser'),
-      Testing.id('config'),
-    ])
-    const declarator = inDeclaration('const', {
-      type: 'VariableDeclarator',
-      id: Testing.id('SaveUser'),
-      init: commandCall,
-    })
-    Object.assign(commandCall, { parent: declarator })
-
-    const result = run(commandCall)
-
-    expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain(
-      "ApplicationDefinition.makeCommand('FetchUser', ...)",
-    )
-    expect(result[0]?.diagnostic.message).toContain('not SaveUser')
-  })
-
-  it('allows a matching Definition command const', () => {
-    const commandCall = definitionCommandCall('SearchDefinition', [
-      Testing.strLiteral('FetchSearchResults'),
-      Testing.id('config'),
-    ])
-    const declarator = inDeclaration('const', {
-      type: 'VariableDeclarator',
-      id: Testing.id('FetchSearchResults'),
-      init: commandCall,
-    })
-    Object.assign(commandCall, { parent: declarator })
-
-    expect(run(commandCall)).toHaveLength(0)
   })
 
   it('flags a call with no arguments', () => {

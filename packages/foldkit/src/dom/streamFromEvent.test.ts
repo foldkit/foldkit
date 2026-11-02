@@ -1,7 +1,7 @@
 import { Effect, Fiber, Option, Schema, Stream } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
-import { make } from '../subscription/subscription.js'
+import type { Subscription } from '../runtime/subscription.js'
 import {
   type StreamFromEventConfig,
   type TypedEventTarget,
@@ -396,22 +396,17 @@ describe('event type inference', () => {
         }),
       ).toEqualTypeOf<Stream.Stream<KeyboardEvent>>()
 
-      const subscriptions = make<{ isActive: boolean }, InferenceMessage>()(
-        entry => ({
-          keyboard: entry(
-            'RawEventKeyboardEvents',
-            { isActive: Schema.Boolean },
-            {
-              messages: [InferenceMessage],
-              modelToDependencies: model => ({ isActive: model.isActive }),
-            },
-          ),
-        }),
-      )
-      subscriptions.keyboard.toLayer(
+      const keyboard: Subscription<
+        { isActive: boolean },
+        InferenceMessage,
+        { isActive: boolean }
+      > = {
+        dependenciesSchema: Schema.Struct({ isActive: Schema.Boolean }),
+        modelToDependencies: model => ({ isActive: model.isActive }),
         // @ts-expect-error a raw KeyboardEvent is not an application Message
-        Effect.succeed(() => rawEventStream),
-      )
+        dependenciesToStream: () => rawEventStream,
+      }
+      expect(keyboard).toBeDefined()
 
       expectTypeOf(
         streamFromEvent({

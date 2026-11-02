@@ -150,8 +150,13 @@ export const fromKnownTime = new Date(timestamp)
 
 export const ReadAttachedClock = Command.define('ReadAttachedClock', {
   messages: [CompletedReadClock],
-handler: function* () { return () => Effect.succeed(CompletedReadClock({ timestamp: Date.now() })) },
 })
+
+export const ReadAttachedClockLive = ReadAttachedClock.toLayer(
+  Effect.gen(function* () {
+    return () => Effect.succeed(CompletedReadClock({ timestamp: Date.now() }))
+  }),
+)
 
 export const attachedSubscriptions = Subscription.make<typeof Model.Type, Message>()(entry => ({
   clock: entry('AttachedClock', { messages: [Schema.Number], handler: function* () { return () => Stream.make(Date.now()) }},

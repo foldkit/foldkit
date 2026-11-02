@@ -1,27 +1,34 @@
-import { Array, Effect, Fiber, Option, Stream } from 'effect'
+import { Cause, Effect, Exit, Fiber, Option, Stream } from 'effect'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import {
+  DragAndDropLive,
+  DragState,
   FocusItem,
   Message,
-  type Model,
   OutMessage,
   ResolveKeyboardMove,
-  DragAndDropBlock as block,
   ghostStyle,
-  init,
   isDragging,
   maybeDraggedItemId,
   maybeDropTarget,
-  subscriptions,
-  update,
+  streamKeyboardDragEvents,
 } from './block.js'
 import * as DragAndDropTest from './test.js'
 
-const defaultInit = () => init({ id: 'test' }).model
+const expectStoryFailure = <E, R>(
+  story: Effect.Effect<void, E, R>,
+  message: string,
+): Effect.Effect<void, never, R> =>
+  Effect.map(Effect.exit(story), exit => {
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      expect(Cause.pretty(exit.cause)).toContain(message)
+    }
+  })
 
 const waitForNextTurn = (): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, 0))
@@ -61,6 +68,14 @@ const activatedKeyboardDrag = Message.ActivatedKeyboardDrag({
   index: 0,
 })
 
+const idleModel = {
+  id: 'DragAndDrop',
+  orientation: 'Vertical',
+  activationThreshold: 5,
+  keyboardDragGeneration: 0,
+  dragState: DragState.Idle(),
+}
+
 const movedPointerBelowThreshold = movedPointer({
   screenX: 102,
   screenY: 201,
@@ -70,25 +85,52 @@ const movedPointerBelowThreshold = movedPointer({
 
 describe('DragAndDrop', () => {
   describe('init', () => {
-    it('starts in the Idle state with Vertical orientation', () => {
-      const model = defaultInit()
-      expect(model.id).toBe('test')
-      expect(model.orientation).toBe('Vertical')
-      expect(model.keyboardDragGeneration).toBe(0)
-      expect(model.dragState._tag).toBe('Idle')
-    })
+    it.effect('starts in the Idle state with Vertical orientation', () =>
+      Story.story(
+        DragAndDropLive,
+        {},
+        Story.model(model => {
+          expect(model.id).toBe('DragAndDrop')
+          expect(model.orientation).toBe('Vertical')
+          expect(model.activationThreshold).toBe(5)
+          expect(model.keyboardDragGeneration).toBe(0)
+          expect(model.dragState._tag).toBe('Idle')
+        }),
+      ),
+    )
 
-    it('accepts a custom orientation', () => {
-      const model = init({ id: 'test', orientation: 'Horizontal' }).model
-      expect(model.orientation).toBe('Horizontal')
-    })
+    it.effect(
+      'accepts a custom id, orientation, and activation threshold',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          { id: 'test', orientation: 'Horizontal', activationThreshold: 12 },
+          Story.model(model => {
+            expect(model.id).toBe('test')
+            expect(model.orientation).toBe('Horizontal')
+            expect(model.activationThreshold).toBe(12)
+          }),
+        ),
+    )
+
+    it.effect('waits for a custom activation threshold before dragging', () =>
+      Story.story(
+        DragAndDropLive,
+        { activationThreshold: 20 },
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.model(model => expect(model.dragState._tag).toBe('Pending')),
+        Story.message(movedPointer({ screenX: 130, clientX: 130 })),
+        Story.model(model => expect(model.dragState._tag).toBe('Dragging')),
+      ),
+    )
   })
 
   describe('update', () => {
-    it('transitions from Idle to Pending on PressedDraggable', () => {
+    it.effect('transitions from Idle to Pending on PressedDraggable', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Pending')
@@ -102,64 +144,72 @@ describe('DragAndDrop', () => {
             })
           }
         }),
-      )
-    })
+      ),
+    )
 
-    it('stays Pending when pointer moves below activation threshold', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(pressedDraggable),
-        Story.message(movedPointerBelowThreshold),
-        Story.model(model => {
-          expect(model.dragState._tag).toBe('Pending')
-        }),
-      )
-    })
+    it.effect(
+      'stays Pending when pointer moves below activation threshold',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(pressedDraggable),
+          Story.message(movedPointerBelowThreshold),
+          Story.model(model => {
+            expect(model.dragState._tag).toBe('Pending')
+          }),
+        ),
+    )
 
-    it('transitions from Pending to Dragging when pointer exceeds threshold', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(pressedDraggable),
-        Story.message(movedPointerAboveThreshold),
-        Story.model(model => {
-          expect(model.dragState._tag).toBe('Dragging')
-          if (model.dragState._tag === 'Dragging') {
-            expect(model.dragState.itemId).toBe('item-1')
-            expect(model.dragState.sourceContainerId).toBe('list-1')
-            expect(model.dragState.sourceIndex).toBe(0)
-            expect(model.dragState.origin).toStrictEqual({
-              screenX: 100,
-              screenY: 200,
-            })
-            expect(model.dragState.current).toStrictEqual({
-              clientX: 110,
-              clientY: 200,
-            })
-            expect(model.dragState.maybeDropTarget).toStrictEqual(Option.none())
-          }
-        }),
-      )
-    })
+    it.effect(
+      'transitions from Pending to Dragging when pointer exceeds threshold',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(pressedDraggable),
+          Story.message(movedPointerAboveThreshold),
+          Story.model(model => {
+            expect(model.dragState._tag).toBe('Dragging')
+            if (model.dragState._tag === 'Dragging') {
+              expect(model.dragState.itemId).toBe('item-1')
+              expect(model.dragState.sourceContainerId).toBe('list-1')
+              expect(model.dragState.sourceIndex).toBe(0)
+              expect(model.dragState.origin).toStrictEqual({
+                screenX: 100,
+                screenY: 200,
+              })
+              expect(model.dragState.current).toStrictEqual({
+                clientX: 110,
+                clientY: 200,
+              })
+              expect(model.dragState.maybeDropTarget).toStrictEqual(
+                Option.none(),
+              )
+            }
+          }),
+        ),
+    )
 
-    it('transitions from Pending to Idle on ReleasedPointer (click)', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(pressedDraggable),
-        Story.message(Message.ReleasedPointer()),
-        Story.model(model => {
-          expect(model.dragState._tag).toBe('Idle')
-        }),
-      )
-    })
+    it.effect(
+      'transitions from Pending to Idle on ReleasedPointer (click)',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(pressedDraggable),
+          Story.message(Message.ReleasedPointer()),
+          Story.model(model => {
+            expect(model.dragState._tag).toBe('Idle')
+          }),
+        ),
+    )
 
-    it('updates current position and drop target while Dragging', () => {
+    it.effect('updates current position and drop target while Dragging', () => {
       const dropTarget = Option.some({ containerId: 'list-1', index: 2 })
-      Story.story(
-        update,
-        Story.given(defaultInit()),
+      return Story.story(
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(
@@ -184,102 +234,110 @@ describe('DragAndDrop', () => {
       )
     })
 
-    it('transitions from Dragging to Idle on ReleasedPointer (drop)', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(pressedDraggable),
-        Story.message(movedPointerAboveThreshold),
-        Story.message(Message.ReleasedPointer()),
-        Story.model(model => {
-          expect(model.dragState._tag).toBe('Idle')
-        }),
-      )
-    })
+    it.effect(
+      'transitions from Dragging to Idle on ReleasedPointer (drop)',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(pressedDraggable),
+          Story.message(movedPointerAboveThreshold),
+          Story.message(Message.ReleasedPointer()),
+          Story.model(model => {
+            expect(model.dragState._tag).toBe('Idle')
+          }),
+        ),
+    )
 
-    it('transitions from Dragging to Idle on CancelledDrag', () => {
+    it.effect('transitions from Dragging to Idle on CancelledDrag', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(Message.CancelledDrag()),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns model unchanged when Idle receives MovedPointer', () => {
-      const originalModel = defaultInit()
+    it.effect('returns model unchanged when Idle receives MovedPointer', () =>
       Story.story(
-        update,
-        Story.given(originalModel),
+        DragAndDropLive,
+        {},
         Story.message(movedPointerAboveThreshold),
         Story.model(model => {
-          expect(model).toBe(originalModel)
+          expect(model).toStrictEqual(idleModel)
         }),
-      )
-    })
+        Story.expectNoOutMessage(),
+        Story.Command.expectNone(),
+      ),
+    )
 
-    it('returns model unchanged when Idle receives ReleasedPointer', () => {
-      const originalModel = defaultInit()
-      Story.story(
-        update,
-        Story.given(originalModel),
-        Story.message(Message.ReleasedPointer()),
-        Story.model(model => {
-          expect(model).toBe(originalModel)
-        }),
-      )
-    })
+    it.effect(
+      'returns model unchanged when Idle receives ReleasedPointer',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(Message.ReleasedPointer()),
+          Story.model(model => {
+            expect(model).toStrictEqual(idleModel)
+          }),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+        ),
+    )
 
-    it('returns to Idle when CancelledDrag received while Pending', () => {
+    it.effect('returns to Idle when CancelledDrag received while Pending', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(Message.CancelledDrag()),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('keyboard drag generations', () => {
-    it('ignores a pending keyboard move completion after cancellation', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(activatedKeyboardDrag),
-        Story.message(Message.PressedArrowKey({ direction: 'Down' })),
-        Story.message(Message.CancelledDrag()),
-        Story.expectOutMessage(OutMessage.Cancelled()),
-        Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
-        Story.Command.resolve(
-          ResolveKeyboardMove,
-          Message.CompletedResolveKeyboardMove({
-            keyboardDragGeneration: 1,
-            targetContainerId: 'list-1',
-            targetIndex: 1,
-          }),
-        ),
-        Story.model(model => expect(model.dragState._tag).toBe('Idle')),
-        Story.Command.expectNone(),
-      )
-    })
-
-    it.each(['item-1', 'item-2'])(
-      'ignores a previous keyboard drag completion after restarting with %s',
-      restartedItemId => {
+    it.effect(
+      'ignores a pending keyboard move completion after cancellation',
+      () =>
         Story.story(
-          update,
-          Story.given(defaultInit()),
+          DragAndDropLive,
+          {},
           Story.message(activatedKeyboardDrag),
           Story.message(Message.PressedArrowKey({ direction: 'Down' })),
           Story.message(Message.CancelledDrag()),
-          Story.expectOutMessage(OutMessage.Cancelled()),
+          Story.expectOutMessage(OutMessage.Cancelled({ itemId: 'item-1' })),
+          Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
+          Story.Command.resolve(
+            ResolveKeyboardMove,
+            Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
+              targetContainerId: 'list-1',
+              targetIndex: 1,
+            }),
+          ),
+          Story.model(model => expect(model.dragState._tag).toBe('Idle')),
+          Story.Command.expectNone(),
+        ),
+    )
+
+    it.effect.each(['item-1', 'item-2'])(
+      'ignores a previous keyboard drag completion after restarting with %s',
+      restartedItemId =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(activatedKeyboardDrag),
+          Story.message(Message.PressedArrowKey({ direction: 'Down' })),
+          Story.message(Message.CancelledDrag()),
+          Story.expectOutMessage(OutMessage.Cancelled({ itemId: 'item-1' })),
           Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
           Story.message(
             Message.ActivatedKeyboardDrag({
@@ -307,17 +365,16 @@ describe('DragAndDrop', () => {
           }),
           Story.expectNoOutMessage(),
           Story.Command.expectNone(),
-        )
-      },
+        ),
     )
   })
 
   describe('OutMessage', () => {
-    it('emits Reordered when dropping on a valid drop target', () => {
+    it.effect('emits Reordered when dropping on a valid drop target', () => {
       const dropTarget = Option.some({ containerId: 'list-1', index: 2 })
-      Story.story(
-        update,
-        Story.given(defaultInit()),
+      return Story.story(
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(movedPointer({ maybeDropTarget: dropTarget })),
@@ -334,210 +391,212 @@ describe('DragAndDrop', () => {
       )
     })
 
-    it('emits Cancelled when dropping without a drop target', () => {
+    it.effect('emits Cancelled when dropping without a drop target', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(Message.ReleasedPointer()),
-        Story.expectOutMessage(OutMessage.Cancelled()),
-      )
-    })
+        Story.expectOutMessage(OutMessage.Cancelled({ itemId: 'item-1' })),
+      ),
+    )
 
-    it('emits Cancelled when CancelledDrag while Dragging', () => {
+    it.effect('emits Cancelled when CancelledDrag while Dragging', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(Message.CancelledDrag()),
-        Story.expectOutMessage(OutMessage.Cancelled()),
-      )
-    })
+        Story.expectOutMessage(OutMessage.Cancelled({ itemId: 'item-1' })),
+      ),
+    )
 
-    it('emits no OutMessage when CancelledDrag while Pending', () => {
+    it.effect('emits no OutMessage when CancelledDrag while Pending', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(Message.CancelledDrag()),
         Story.expectNoOutMessage(),
-      )
-    })
+      ),
+    )
 
-    it('emits no OutMessage on PressedDraggable', () => {
+    it.effect('emits no OutMessage on PressedDraggable', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.expectNoOutMessage(),
-      )
-    })
+      ),
+    )
 
-    it('emits no OutMessage on MovedPointer', () => {
+    it.effect('emits no OutMessage on MovedPointer', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.expectNoOutMessage(),
-      )
-    })
+      ),
+    )
   })
 
   describe('ghostStyle', () => {
-    it('returns None when Idle', () => {
+    it.effect('returns None when Idle', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.model(model => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns None when Pending', () => {
+    it.effect('returns None when Pending', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.model(model => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns Some with client-coordinate positioning when Dragging', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(pressedDraggable),
-        Story.message(movedPointerAboveThreshold),
-        Story.model(model => {
-          const result = ghostStyle(model)
-          expect(Option.isSome(result)).toBe(true)
-          if (Option.isSome(result)) {
-            expect(result.value['position']).toBe('fixed')
-            expect(result.value['transform']).toBe(
-              'translate3d(110px, 200px, 0)',
-            )
-            expect(result.value['pointer-events']).toBe('none')
-          }
-        }),
-      )
-    })
+    it.effect(
+      'returns Some with client-coordinate positioning when Dragging',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(pressedDraggable),
+          Story.message(movedPointerAboveThreshold),
+          Story.model(model => {
+            const result = ghostStyle(model)
+            expect(Option.isSome(result)).toBe(true)
+            if (Option.isSome(result)) {
+              expect(result.value['position']).toBe('fixed')
+              expect(result.value['transform']).toBe(
+                'translate3d(110px, 200px, 0)',
+              )
+              expect(result.value['pointer-events']).toBe('none')
+            }
+          }),
+        ),
+    )
   })
 
   describe('isDragging', () => {
-    it('returns false when Idle', () => {
+    it.effect('returns false when Idle', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.model(model => {
           expect(isDragging(model)).toBe(false)
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns false when Pending', () => {
+    it.effect('returns false when Pending', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.model(model => {
           expect(isDragging(model)).toBe(false)
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns true when Dragging', () => {
+    it.effect('returns true when Dragging', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.model(model => {
           expect(isDragging(model)).toBe(true)
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('maybeDraggedItemId', () => {
-    it('returns None when Idle', () => {
+    it.effect('returns None when Idle', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.model(model => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns Some with itemId when Pending', () => {
+    it.effect('returns Some with itemId when Pending', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.model(model => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.some('item-1'))
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns Some with itemId when Dragging', () => {
+    it.effect('returns Some with itemId when Dragging', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.model(model => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.some('item-1'))
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('maybeDropTarget', () => {
-    it('returns None when Idle', () => {
+    it.effect('returns None when Idle', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns None when Pending', () => {
+    it.effect('returns None when Pending', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns None when Dragging without a drop target', () => {
+    it.effect('returns None when Dragging without a drop target', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
 
-    it('returns Some when Dragging over a drop target', () => {
+    it.effect('returns Some when Dragging over a drop target', () => {
       const target = Option.some({ containerId: 'list-1', index: 2 })
-      Story.story(
-        update,
-        Story.given(defaultInit()),
+      return Story.story(
+        DragAndDropLive,
+        {},
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(movedPointer({ maybeDropTarget: target })),
@@ -547,35 +606,29 @@ describe('DragAndDrop', () => {
       )
     })
 
-    it('returns Some when KeyboardDragging', () => {
+    it.effect('returns Some when KeyboardDragging', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(activatedKeyboardDrag),
         Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(
             Option.some({ containerId: 'list-1', index: 0 }),
           )
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('keyboard drag', () => {
     it('prevents handled document keys before the native dispatch returns', async () => {
-      const keyboardDrag = update(defaultInit(), activatedKeyboardDrag)
-      const dependencies = subscriptions.documentKeyboard.modelToDependencies(
-        keyboardDrag.model,
-      )
       const received: Array<Message> = []
-      const stream =
-        subscriptions.documentKeyboard.dependenciesToStream(dependencies)
       const fiber = Effect.runFork(
-        Stream.runForEach(stream, message =>
+        Stream.runForEach(streamKeyboardDragEvents(), message =>
           Effect.sync(() => {
             received.push(message)
           }),
-        ).pipe(Effect.provide(block.EffectsLayer)),
+        ),
       )
 
       await waitForNextTurn()
@@ -596,119 +649,125 @@ describe('DragAndDrop', () => {
       ])
     })
 
-    it('transitions from Idle to KeyboardDragging on ActivatedKeyboardDrag', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(activatedKeyboardDrag),
-        Story.model(model => {
-          expect(model.dragState._tag).toBe('KeyboardDragging')
-          expect(model.keyboardDragGeneration).toBe(1)
-          if (model.dragState._tag === 'KeyboardDragging') {
-            expect(model.dragState.itemId).toBe('item-1')
-            expect(model.dragState.sourceContainerId).toBe('list-1')
-            expect(model.dragState.sourceIndex).toBe(0)
-            expect(model.dragState.targetContainerId).toBe('list-1')
-            expect(model.dragState.targetIndex).toBe(0)
-          }
-        }),
-      )
-    })
+    it.effect(
+      'transitions from Idle to KeyboardDragging on ActivatedKeyboardDrag',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(activatedKeyboardDrag),
+          Story.model(model => {
+            expect(model.dragState._tag).toBe('KeyboardDragging')
+            expect(model.keyboardDragGeneration).toBe(1)
+            if (model.dragState._tag === 'KeyboardDragging') {
+              expect(model.dragState.itemId).toBe('item-1')
+              expect(model.dragState.sourceContainerId).toBe('list-1')
+              expect(model.dragState.sourceIndex).toBe(0)
+              expect(model.dragState.targetContainerId).toBe('list-1')
+              expect(model.dragState.targetIndex).toBe(0)
+            }
+          }),
+        ),
+    )
 
-    it('emits keyboard facts without announcing an unchanged or inactive target', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(activatedKeyboardDrag),
-        Story.expectOutMessage(
-          OutMessage.StartedKeyboardDrag({
-            itemId: 'item-1',
-            containerId: 'list-1',
-            index: 0,
-          }),
+    it.effect(
+      'emits keyboard facts without announcing an unchanged or inactive target',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(activatedKeyboardDrag),
+          Story.expectOutMessage(
+            OutMessage.StartedKeyboardDrag({
+              itemId: 'item-1',
+              containerId: 'list-1',
+              index: 0,
+            }),
+          ),
+          Story.message(
+            Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
+              targetContainerId: 'list-2',
+              targetIndex: 3,
+            }),
+          ),
+          Story.expectOutMessage(
+            OutMessage.ChangedKeyboardTarget({
+              itemId: 'item-1',
+              fromContainerId: 'list-1',
+              fromIndex: 0,
+              toContainerId: 'list-2',
+              toIndex: 3,
+            }),
+          ),
+          Story.Command.resolve(
+            FocusItem({ itemId: 'item-1' }),
+            Message.CompletedFocusItem(),
+          ),
+          Story.expectNoOutMessage(),
+          Story.message(
+            Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
+              targetContainerId: 'list-2',
+              targetIndex: 3,
+            }),
+          ),
+          Story.expectNoOutMessage(),
+          Story.Command.resolve(
+            FocusItem({ itemId: 'item-1' }),
+            Message.CompletedFocusItem(),
+          ),
+          Story.message(Message.CancelledDrag()),
+          Story.expectOutMessage(OutMessage.Cancelled({ itemId: 'item-1' })),
+          Story.Command.resolve(
+            FocusItem({ itemId: 'item-1' }),
+            Message.CompletedFocusItem(),
+          ),
+          Story.message(
+            Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
+              targetContainerId: 'list-1',
+              targetIndex: 0,
+            }),
+          ),
+          Story.expectNoOutMessage(),
+          Story.model(model => expect(model.dragState._tag).toBe('Idle')),
         ),
-        Story.message(
-          Message.CompletedResolveKeyboardMove({
-            keyboardDragGeneration: 1,
-            targetContainerId: 'list-2',
-            targetIndex: 3,
-          }),
-        ),
-        Story.expectOutMessage(
-          OutMessage.ChangedKeyboardTarget({
-            itemId: 'item-1',
-            fromContainerId: 'list-1',
-            fromIndex: 0,
-            toContainerId: 'list-2',
-            toIndex: 3,
-          }),
-        ),
-        Story.Command.resolve(
-          FocusItem({ itemId: 'item-1' }),
-          Message.CompletedFocusItem(),
-        ),
-        Story.expectNoOutMessage(),
-        Story.message(
-          Message.CompletedResolveKeyboardMove({
-            keyboardDragGeneration: 1,
-            targetContainerId: 'list-2',
-            targetIndex: 3,
-          }),
-        ),
-        Story.expectNoOutMessage(),
-        Story.Command.resolve(
-          FocusItem({ itemId: 'item-1' }),
-          Message.CompletedFocusItem(),
-        ),
-        Story.message(Message.CancelledDrag()),
-        Story.expectOutMessage(OutMessage.Cancelled()),
-        Story.Command.resolve(
-          FocusItem({ itemId: 'item-1' }),
-          Message.CompletedFocusItem(),
-        ),
-        Story.message(
-          Message.CompletedResolveKeyboardMove({
-            keyboardDragGeneration: 1,
-            targetContainerId: 'list-1',
-            targetIndex: 0,
-          }),
-        ),
-        Story.expectNoOutMessage(),
-        Story.model(model => expect(model.dragState._tag).toBe('Idle')),
-      )
-    })
+    )
 
-    it('creates ResolveKeyboardMove command on PressedArrowKey and resolves target', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(activatedKeyboardDrag),
-        Story.message(Message.PressedArrowKey({ direction: 'Down' })),
-        Story.Command.resolve(
-          ResolveKeyboardMove,
-          Message.CompletedResolveKeyboardMove({
-            keyboardDragGeneration: 1,
-            targetContainerId: 'list-1',
-            targetIndex: 1,
+    it.effect(
+      'creates ResolveKeyboardMove command on PressedArrowKey and resolves target',
+      () =>
+        Story.story(
+          DragAndDropLive,
+          {},
+          Story.message(activatedKeyboardDrag),
+          Story.message(Message.PressedArrowKey({ direction: 'Down' })),
+          Story.Command.resolve(
+            ResolveKeyboardMove,
+            Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
+              targetContainerId: 'list-1',
+              targetIndex: 1,
+            }),
+          ),
+          Story.Command.resolve(
+            FocusItem({ itemId: 'item-1' }),
+            Message.CompletedFocusItem(),
+          ),
+          Story.model(model => {
+            expect(model.dragState._tag).toBe('KeyboardDragging')
+            if (model.dragState._tag === 'KeyboardDragging') {
+              expect(model.dragState.targetIndex).toBe(1)
+            }
           }),
         ),
-        Story.Command.resolve(
-          FocusItem({ itemId: 'item-1' }),
-          Message.CompletedFocusItem(),
-        ),
-        Story.model(model => {
-          expect(model.dragState._tag).toBe('KeyboardDragging')
-          if (model.dragState._tag === 'KeyboardDragging') {
-            expect(model.dragState.targetIndex).toBe(1)
-          }
-        }),
-      )
-    })
+    )
 
-    it('updates target on CompletedResolveKeyboardMove', () => {
+    it.effect('updates target on CompletedResolveKeyboardMove', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(activatedKeyboardDrag),
         Story.message(
           Message.CompletedResolveKeyboardMove({
@@ -728,13 +787,13 @@ describe('DragAndDrop', () => {
             expect(model.dragState.targetIndex).toBe(3)
           }
         }),
-      )
-    })
+      ),
+    )
 
-    it('emits Reordered on ConfirmedKeyboardDrop', () => {
+    it.effect('emits Reordered on ConfirmedKeyboardDrop', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(activatedKeyboardDrag),
         Story.message(
           Message.CompletedResolveKeyboardMove({
@@ -761,62 +820,62 @@ describe('DragAndDrop', () => {
           }),
         ),
         Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
-      )
-    })
+      ),
+    )
 
-    it('emits Cancelled on CancelledDrag while KeyboardDragging', () => {
+    it.effect('emits Cancelled on CancelledDrag while KeyboardDragging', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(activatedKeyboardDrag),
         Story.message(Message.CancelledDrag()),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
-        Story.expectOutMessage(OutMessage.Cancelled()),
+        Story.expectOutMessage(OutMessage.Cancelled({ itemId: 'item-1' })),
         Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
-      )
-    })
+      ),
+    )
 
-    it('isDragging returns true when KeyboardDragging', () => {
+    it.effect('isDragging returns true when KeyboardDragging', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(activatedKeyboardDrag),
         Story.model(model => {
           expect(isDragging(model)).toBe(true)
         }),
-      )
-    })
+      ),
+    )
 
-    it('maybeDraggedItemId returns Some when KeyboardDragging', () => {
+    it.effect('maybeDraggedItemId returns Some when KeyboardDragging', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(activatedKeyboardDrag),
         Story.model(model => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.some('item-1'))
         }),
-      )
-    })
+      ),
+    )
 
-    it('ghostStyle returns None when KeyboardDragging', () => {
+    it.effect('ghostStyle returns None when KeyboardDragging', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(activatedKeyboardDrag),
         Story.model(model => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('test helpers', () => {
-    it('settleFocus resolves focus after a keyboard drop', () => {
+    it.effect('settleFocus resolves focus after a keyboard drop', () =>
       Story.story(
-        update,
-        Story.given(defaultInit()),
+        DragAndDropLive,
+        {},
         Story.message(activatedKeyboardDrag),
         Story.message(Message.ConfirmedKeyboardDrop()),
         Story.expectOutMessage(
@@ -832,127 +891,126 @@ describe('DragAndDrop', () => {
         Story.model(model => {
           expect(isDragging(model)).toBe(false)
         }),
-      )
-    })
+      ),
+    )
 
-    it('resolveKeyboardMove supplies the target and resolves focus', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(activatedKeyboardDrag),
-        Story.message(Message.PressedArrowKey({ direction: 'NextContainer' })),
-        DragAndDropTest.resolveKeyboardMove({
-          itemId: 'item-1',
-          targetContainerId: 'list-2',
-          targetIndex: 3,
-        }),
-        Story.model(model => {
-          expect(maybeDropTarget(model)).toEqual(
-            Option.some({ containerId: 'list-2', index: 3 }),
-          )
-        }),
-      )
-    })
-
-    it('settleFocus rejects a missing focus Command', () => {
-      expect(() =>
+    it.effect(
+      'resolveKeyboardMove supplies the target and resolves focus',
+      () =>
         Story.story(
-          update,
-          Story.given(defaultInit()),
+          DragAndDropLive,
+          {},
+          Story.message(activatedKeyboardDrag),
+          Story.message(
+            Message.PressedArrowKey({ direction: 'NextContainer' }),
+          ),
+          DragAndDropTest.resolveKeyboardMove({
+            itemId: 'item-1',
+            targetContainerId: 'list-2',
+            targetIndex: 3,
+          }),
+          Story.model(model => {
+            expect(maybeDropTarget(model)).toEqual(
+              Option.some({ containerId: 'list-2', index: 3 }),
+            )
+          }),
+        ),
+    )
+
+    it.effect('settleFocus rejects a missing focus Command', () =>
+      expectStoryFailure(
+        Story.story(
+          DragAndDropLive,
+          {},
           DragAndDropTest.settleFocus({ itemId: 'item-1' }),
         ),
-      ).toThrow('no matching pending Command was found')
-    })
+        'no matching pending Command was found',
+      ),
+    )
 
-    it('resolveKeyboardMove rejects a pending move for another item', () => {
-      expect(() =>
-        Story.story(
-          update,
-          Story.given(defaultInit()),
-          Story.message(activatedKeyboardDrag),
-          Story.message(
-            Message.PressedArrowKey({ direction: 'NextContainer' }),
+    it.effect(
+      'resolveKeyboardMove rejects a pending move for another item',
+      () =>
+        expectStoryFailure(
+          Story.story(
+            DragAndDropLive,
+            {},
+            Story.message(activatedKeyboardDrag),
+            Story.message(
+              Message.PressedArrowKey({ direction: 'NextContainer' }),
+            ),
+            DragAndDropTest.resolveKeyboardMove({
+              itemId: 'item-2',
+              targetContainerId: 'list-2',
+              targetIndex: 3,
+            }),
           ),
-          DragAndDropTest.resolveKeyboardMove({
-            itemId: 'item-2',
-            targetContainerId: 'list-2',
-            targetIndex: 3,
-          }),
+          'could not find a pending keyboard move for item "item-2"',
         ),
-      ).toThrow('could not find a pending keyboard move for item "item-2"')
-    })
+    )
 
-    it('resolveKeyboardMove rejects duplicate pending moves for the item', () => {
-      const updateWithDuplicateMoves = (model: Model, message: Message) => {
-        const dragAndDropUpdate = update(model, message)
-        const commands = dragAndDropUpdate.commands ?? []
-
-        return {
-          ...dragAndDropUpdate,
-          commands: Array.appendAll(commands, commands),
-        }
-      }
-
-      expect(() =>
-        Story.story(
-          updateWithDuplicateMoves,
-          Story.given(defaultInit()),
-          Story.message(activatedKeyboardDrag),
-          Story.message(
-            Message.PressedArrowKey({ direction: 'NextContainer' }),
+    it.effect(
+      'resolveKeyboardMove rejects duplicate pending moves for the item',
+      () =>
+        expectStoryFailure(
+          Story.story(
+            DragAndDropLive,
+            {},
+            Story.message(activatedKeyboardDrag),
+            Story.message(
+              Message.PressedArrowKey({ direction: 'NextContainer' }),
+            ),
+            Story.message(
+              Message.PressedArrowKey({ direction: 'NextContainer' }),
+            ),
+            DragAndDropTest.resolveKeyboardMove({
+              itemId: 'item-1',
+              targetContainerId: 'list-2',
+              targetIndex: 3,
+            }),
           ),
-          DragAndDropTest.resolveKeyboardMove({
-            itemId: 'item-1',
-            targetContainerId: 'list-2',
-            targetIndex: 3,
-          }),
+          'Isolate one pending move in this Story',
         ),
-      ).toThrow('Isolate one pending move in this Story')
-    })
+    )
 
-    it('resolveKeyboardMove rejects a missing move Command', () => {
-      expect(() =>
+    it.effect('resolveKeyboardMove rejects a missing move Command', () =>
+      expectStoryFailure(
         Story.story(
-          update,
-          Story.given(defaultInit()),
+          DragAndDropLive,
+          {},
           Story.message(activatedKeyboardDrag),
-          DragAndDropTest.resolveKeyboardMove({
-            itemId: 'item-1',
-            targetContainerId: 'list-2',
-            targetIndex: 3,
-          }),
-        ),
-      ).toThrow('could not find a pending keyboard move')
-    })
-
-    it('resolveKeyboardMove rejects a move that omits its focus Command', () => {
-      const updateWithoutFocus = (model: Model, message: Message) => {
-        const dragAndDropUpdate = update(model, message)
-
-        return {
-          ...dragAndDropUpdate,
-          commands: Array.filter(
-            dragAndDropUpdate.commands ?? [],
-            command => command.name !== FocusItem.name,
-          ),
-        }
-      }
-
-      expect(() =>
-        Story.story(
-          updateWithoutFocus,
-          Story.given(defaultInit()),
-          Story.message(activatedKeyboardDrag),
-          Story.message(
-            Message.PressedArrowKey({ direction: 'NextContainer' }),
-          ),
           DragAndDropTest.resolveKeyboardMove({
             itemId: 'item-1',
             targetContainerId: 'list-2',
             targetIndex: 3,
           }),
         ),
-      ).toThrow('no matching pending Command was found')
-    })
+        'could not find a pending keyboard move',
+      ),
+    )
+
+    it.effect(
+      'resolveKeyboardMove rejects a move that produces no focus Command',
+      () =>
+        expectStoryFailure(
+          Story.story(
+            DragAndDropLive,
+            {},
+            Story.message(activatedKeyboardDrag),
+            Story.message(
+              Message.PressedArrowKey({ direction: 'NextContainer' }),
+            ),
+            Story.message(Message.CancelledDrag()),
+            Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
+            Story.message(activatedKeyboardDrag),
+            DragAndDropTest.resolveKeyboardMove({
+              itemId: 'item-1',
+              targetContainerId: 'list-2',
+              targetIndex: 3,
+            }),
+          ),
+          'no matching pending Command was found',
+        ),
+    )
   })
 })

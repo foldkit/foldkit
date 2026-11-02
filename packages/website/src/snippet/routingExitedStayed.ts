@@ -1,8 +1,9 @@
 import { Array, Option } from 'effect'
-import { Command } from 'foldkit'
 import { Transition } from 'foldkit/route'
 
-type Commands = ReadonlyArray<Command.Command<Message>>
+type Commands = ReadonlyArray<
+  ReturnType<typeof RecordVisitEnded> | ReturnType<typeof FetchPerson>
+>
 
 // Leaving a route is a fact too: one-shot Commands on the way out...
 const commandsOnExit = (

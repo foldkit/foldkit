@@ -1,10 +1,9 @@
-import { TooltipBlock } from '@foldkit/ui'
+import type { Tooltip } from '@foldkit/ui'
 import { type AnchorConfig, triggerId } from '@foldkit/ui/tooltip'
 
-import type { UiViewBuilder } from '../composition'
-import { TooltipDemoBinding } from '../composition'
+import type { UiViewBuilder } from '../definition'
 
-type TooltipBlockModel = typeof TooltipBlock.Model.Type
+type TooltipModel = Tooltip.Tooltip
 
 // DEMO CONTENT
 
@@ -21,45 +20,39 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const demo = (tooltipModel: TooltipBlockModel, h: UiViewBuilder) => {
+export const demo = (tooltipModel: TooltipModel, h: UiViewBuilder) => {
   return [
     h.div(
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(triggerId(tooltipModel.id)), h.Class('demo-label')],
+          [h.For(triggerId(tooltipModel.model.id)), h.Class('demo-label')],
           ['Tooltip trigger'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              TooltipDemoBinding.embedView({
-                slotId: tooltipModel.id,
-                model: tooltipModel,
-                viewInputs: {
-                  anchor: TOOLTIP_ANCHOR,
-                  toView: ({ trigger, panel, isVisible }) =>
-                    h.div(
-                      [h.Class(wrapperClassName)],
-                      [
-                        h.button(
-                          [...trigger, h.Class(triggerClassName)],
-                          [h.span([], ['Hover or focus me'])],
-                        ),
-                        ...(isVisible
-                          ? [
-                              h.div(
-                                [...panel, h.Class(panelClassName)],
-                                [h.span([], ['This is a tooltip'])],
-                              ),
-                            ]
-                          : []),
-                      ],
+            tooltipModel.view({
+              anchor: TOOLTIP_ANCHOR,
+              toView: ({ trigger, panel, isVisible }) =>
+                h.div(
+                  [h.Class(wrapperClassName)],
+                  [
+                    h.button(
+                      [...trigger, h.Class(triggerClassName)],
+                      [h.span([], ['Hover or focus me'])],
                     ),
-                },
-              }),
-            ),
+                    ...(isVisible
+                      ? [
+                          h.div(
+                            [...panel, h.Class(panelClassName)],
+                            [h.span([], ['This is a tooltip'])],
+                          ),
+                        ]
+                      : []),
+                  ],
+                ),
+            }),
           ],
         ),
       ],

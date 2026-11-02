@@ -1,13 +1,6 @@
-import { Effect, Option, Predicate, Schema, type Scope, Stream } from 'effect'
+import { Effect, Option, Predicate, Schema, Stream } from 'effect'
 
-import {
-  Document,
-  type NativeHtmlBuilder as HtmlBuilder,
-} from '../html/index.js'
-import type {
-  ServicesOf as ManagedResourceServicesOf,
-  ManagedResources,
-} from '../managedResource/index.js'
+import { Document, type HtmlBuilder } from '../html/index.js'
 import type {
   LayeredMountDefinition,
   MountAction,
@@ -15,11 +8,7 @@ import type {
   PreciseMountRegistry,
 } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
-import type { Registrations } from '../subscription/subscription.js'
-import type {
-  RequirementsOf as UpdateRequirementsOf,
-  Return as UpdateReturn,
-} from '../update/index.js'
+import type { Return as UpdateReturn } from '../update/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
 import type { RoutingConfig } from './browserListeners.js'
 import type { CrashConfig } from './crashUI.js'
@@ -36,13 +25,13 @@ import {
   makeRuntime,
 } from './runtime.js'
 import type { SlowConfig } from './slowPhase.js'
+import type { Subscriptions } from './subscription.js'
 import type { ViewTransitionConfig } from './viewTransition.js'
 
 type BaseApplicationConfig<
   Model,
   Message,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = Readonly<{
@@ -50,16 +39,12 @@ type BaseApplicationConfig<
   update: (
     model: Model,
     message: Message,
-  ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+  ) => UpdateReturn<Model, Message, Resources>
   view: (
     model: Model,
     h: HtmlBuilder<Message, MountRequirementsOf<NoInfer<Mounts>>>,
   ) => Document
-  subscriptions?: Registrations<
-    Model,
-    Message,
-    Resources | ManagedResourceServices
-  >
+  subscriptions?: Subscriptions<Model, Message, Resources>
   mounts?: Mounts
   container: HTMLElement | null
   ports?: P
@@ -68,7 +53,6 @@ type BaseApplicationConfig<
   viewTransition?: ViewTransitionConfig<Model, Message>
   freezeModel?: boolean
   preserveScroll?: boolean
-  managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
 }>
 
@@ -78,24 +62,13 @@ export type RoutingApplicationConfigWithFlags<
   Message,
   Flags,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = BaseApplicationConfig<
-  Model,
-  Message,
-  Resources,
-  ManagedResourceServices,
-  P,
-  Mounts
-> &
+> = BaseApplicationConfig<Model, Message, Resources, P, Mounts> &
   FlagsSchemaConfig<Flags> &
   Readonly<{
     routing: RoutingConfig<Message>
-    init: (
-      flags: Flags,
-      url: Url,
-    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+    init: (flags: Flags, url: Url) => UpdateReturn<Model, Message, Resources>
   }>
 
 /** Configuration for `makeApplication` with URL routing but no Flags. */
@@ -103,22 +76,12 @@ export type RoutingApplicationConfig<
   Model,
   Message,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = BaseApplicationConfig<
-  Model,
-  Message,
-  Resources,
-  ManagedResourceServices,
-  P,
-  Mounts
-> &
+> = BaseApplicationConfig<Model, Message, Resources, P, Mounts> &
   Readonly<{
     routing: RoutingConfig<Message>
-    init: (
-      url: Url,
-    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+    init: (url: Url) => UpdateReturn<Model, Message, Resources>
   }>
 
 /** Configuration for `makeApplication` with Flags but no URL routing. */
@@ -127,22 +90,12 @@ export type ApplicationConfigWithFlags<
   Message,
   Flags,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = BaseApplicationConfig<
-  Model,
-  Message,
-  Resources,
-  ManagedResourceServices,
-  P,
-  Mounts
-> &
+> = BaseApplicationConfig<Model, Message, Resources, P, Mounts> &
   FlagsSchemaConfig<Flags> &
   Readonly<{
-    init: (
-      flags: Flags,
-    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+    init: (flags: Flags) => UpdateReturn<Model, Message, Resources>
   }>
 
 /** Configuration for `makeApplication` without Flags or URL routing. */
@@ -150,23 +103,11 @@ export type ApplicationConfig<
   Model,
   Message,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = BaseApplicationConfig<
-  Model,
-  Message,
-  Resources,
-  ManagedResourceServices,
-  P,
-  Mounts
-> &
+> = BaseApplicationConfig<Model, Message, Resources, P, Mounts> &
   Readonly<{
-    init: () => UpdateReturn<
-      Model,
-      Message,
-      Resources | ManagedResourceServices
-    >
+    init: () => UpdateReturn<Model, Message, Resources>
   }>
 
 /** The `init` function type for a `makeApplication` app without URL routing. */
@@ -175,12 +116,9 @@ export type ApplicationInit<
   Message,
   Flags = void,
   Resources = never,
-  ManagedResourceServices = never,
 > = Flags extends void
-  ? () => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
-  : (
-      flags: Flags,
-    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+  ? () => UpdateReturn<Model, Message, Resources>
+  : (flags: Flags) => UpdateReturn<Model, Message, Resources>
 
 /** The `init` function type for a `makeApplication` app with URL routing, receives the current URL and optional Flags. */
 export type RoutingApplicationInit<
@@ -188,49 +126,35 @@ export type RoutingApplicationInit<
   Message,
   Flags = void,
   Resources = never,
-  ManagedResourceServices = never,
 > = Flags extends void
-  ? (
-      url: Url,
-    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
-  : (
-      flags: Flags,
-      url: Url,
-    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+  ? (url: Url) => UpdateReturn<Model, Message, Resources>
+  : (flags: Flags, url: Url) => UpdateReturn<Model, Message, Resources>
 
 type InferredApplicationConfig<
   Model,
   Message,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = ApplicationConfig<Model, Message, any, any, any, Mounts>
+> = ApplicationConfig<Model, Message, any, any, Mounts>
 
 type InferredApplicationConfigWithFlags<
   Model,
   Message,
   Flags,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = ApplicationConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
+> = ApplicationConfigWithFlags<Model, Message, Flags, any, any, Mounts>
 
 type InferredRoutingApplicationConfig<
   Model,
   Message,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = RoutingApplicationConfig<Model, Message, any, any, any, Mounts>
+> = RoutingApplicationConfig<Model, Message, any, any, Mounts>
 
 type InferredRoutingApplicationConfigWithFlags<
   Model,
   Message,
   Flags,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
-> = RoutingApplicationConfigWithFlags<
-  Model,
-  Message,
-  Flags,
-  any,
-  any,
-  any,
-  Mounts
->
+> = RoutingApplicationConfigWithFlags<Model, Message, Flags, any, any, Mounts>
 
 type RoutingApplicationConfigWithFlagsInput<
   ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -303,6 +227,9 @@ type ReturnRequirements<Return> =
       : never
     : never
 
+type UpdateRequirementsOf<Update extends (...args: ReadonlyArray<any>) => any> =
+  ReturnRequirements<ReturnType<Update>>
+
 type FunctionReturn<Fn> = Fn extends (
   ...args: ReadonlyArray<never>
 ) => infer Return
@@ -329,36 +256,10 @@ type MountRequirements<Config> =
       : never
     : never
 
-type ManagedResourceRuntimeServices<Config> =
-  Config extends Readonly<{ managedResources: infer ManagedResources }>
-    ? ManagedResourceServicesOf<ManagedResources>
-    : never
-
-type ManagedResourceLifecycleRequirements<Config> =
-  Config extends Readonly<{
-    managedResources: Readonly<Record<string, infer Entry>>
-  }>
-    ?
-        | (Entry extends Readonly<{
-            acquire: (
-              ...args: ReadonlyArray<any>
-            ) => Effect.Effect<any, any, infer Requirements>
-          }>
-            ? Exclude<Requirements, Scope.Scope>
-            : never)
-        | (Entry extends Readonly<{
-            release: (
-              ...args: ReadonlyArray<any>
-            ) => Effect.Effect<any, any, infer Requirements>
-          }>
-            ? Exclude<Requirements, Scope.Scope>
-            : never)
-    : never
-
 type ConfigRequirements<
   Config,
   Update extends (...args: ReadonlyArray<any>) => any,
-> = Exclude<
+> =
   | (Config extends Readonly<{ init: infer Init }>
       ? ReturnRequirements<FunctionReturn<Init>>
       : never)
@@ -367,9 +268,6 @@ type ConfigRequirements<
       ? SubscriptionRequirements<Subscriptions>
       : never)
   | MountRequirements<Config>
-  | ManagedResourceLifecycleRequirements<Config>,
-  ManagedResourceRuntimeServices<Config>
->
 
 type SelfContainedConfig<
   Config,
@@ -412,11 +310,8 @@ type ValidUpdate<Model, Update> = Update extends (
  * Creates the self-contained page runtime used by Application completion.
  * Its view returns a Document, so the runtime manages document.title and the
  * canonical and og:url tags. Add routing configuration for URL routing, and
- * use one Application per document. Complete Applications whose handlers or
- * Flags require Services with the owning Composition's `prepareBlock` method,
- * pass that Block to `Program.make`, and supply Services through the Program's
- * `provide` method. Use `Program.makeElement` for rendering scoped to a node
- * without changing the document head.
+ * use one Application per document. Use `makeElement` for rendering scoped
+ * to a node without changing the document head.
  */
 export function makeApplication<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -563,7 +458,6 @@ export function makeApplication<
   Message extends { _tag: string },
   Flags,
   Resources extends never = never,
-  ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
@@ -572,7 +466,6 @@ export function makeApplication<
     Message,
     Flags,
     Resources,
-    ManagedResourceServices,
     P,
     Mounts
   > &
@@ -584,18 +477,10 @@ export function makeApplication<
   Model,
   Message extends { _tag: string },
   Resources extends never = never,
-  ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
-  config: RoutingApplicationConfig<
-    Model,
-    Message,
-    Resources,
-    ManagedResourceServices,
-    P,
-    Mounts
-  > &
+  config: RoutingApplicationConfig<Model, Message, Resources, P, Mounts> &
     Readonly<{ mounts?: Mounts }> &
     PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, void, Resources, 'Application'>
@@ -605,7 +490,6 @@ export function makeApplication<
   Message extends { _tag: string },
   Flags,
   Resources extends never = never,
-  ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
@@ -614,7 +498,6 @@ export function makeApplication<
     Message,
     Flags,
     Resources,
-    ManagedResourceServices,
     P,
     Mounts
   > &
@@ -626,18 +509,10 @@ export function makeApplication<
   Model,
   Message extends { _tag: string },
   Resources extends never = never,
-  ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
-  config: ApplicationConfig<
-    Model,
-    Message,
-    Resources,
-    ManagedResourceServices,
-    P,
-    Mounts
-  > &
+  config: ApplicationConfig<Model, Message, Resources, P, Mounts> &
     Readonly<{ mounts?: Mounts }> &
     PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, void, Resources, 'Application'>
@@ -647,7 +522,6 @@ export function makeApplication<
   Message extends { _tag: string },
   Flags,
   Resources = never,
-  ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 >(config: any): any {
   const { container } = config
@@ -704,9 +578,6 @@ export function makeApplication<
     ...(Predicate.isNotUndefined(config.preserveScroll) && {
       preserveScroll: config.preserveScroll,
     }),
-    ...(config.managedResources && {
-      managedResources: config.managedResources,
-    }),
     ...(Predicate.isNotUndefined(config.devTools) && {
       devTools: config.devTools,
     }),
@@ -725,19 +596,10 @@ export function makeApplication<
             Model,
             Message,
             Flags,
-            Resources,
-            ManagedResourceServices
+            Resources
           >
         ).init(flags as Flags, url ?? currentUrl!),
-    } as RuntimeConfig<
-      Model,
-      Message,
-      Flags,
-      Resources,
-      ManagedResourceServices,
-      P,
-      'Application'
-    >)
+    } as RuntimeConfig<Model, Message, Flags, Resources, P, 'Application'>)
   } else if (hasRouting) {
     return makeRuntime({
       ...baseConfig,
@@ -745,23 +607,10 @@ export function makeApplication<
       configuredFlags: Option.none(),
       isFlagsRequired: false,
       init: (_flags, url) =>
-        (
-          config as RoutingApplicationConfig<
-            Model,
-            Message,
-            Resources,
-            ManagedResourceServices
-          >
-        ).init(url ?? currentUrl!),
-    } as RuntimeConfig<
-      Model,
-      Message,
-      void,
-      Resources,
-      ManagedResourceServices,
-      P,
-      'Application'
-    >)
+        (config as RoutingApplicationConfig<Model, Message, Resources>).init(
+          url ?? currentUrl!,
+        ),
+    } as RuntimeConfig<Model, Message, void, Resources, P, 'Application'>)
   } else if (hasFlags) {
     return makeRuntime({
       ...baseConfig,
@@ -770,23 +619,9 @@ export function makeApplication<
       isFlagsRequired: true,
       init: (flags: unknown) =>
         (
-          config as ApplicationConfigWithFlags<
-            Model,
-            Message,
-            Flags,
-            Resources,
-            ManagedResourceServices
-          >
+          config as ApplicationConfigWithFlags<Model, Message, Flags, Resources>
         ).init(flags as Flags),
-    } as RuntimeConfig<
-      Model,
-      Message,
-      Flags,
-      Resources,
-      ManagedResourceServices,
-      P,
-      'Application'
-    >)
+    } as RuntimeConfig<Model, Message, Flags, Resources, P, 'Application'>)
   } else {
     return makeRuntime({
       ...baseConfig,
@@ -794,23 +629,8 @@ export function makeApplication<
       configuredFlags: Option.none(),
       isFlagsRequired: false,
       init: () =>
-        (
-          config as ApplicationConfig<
-            Model,
-            Message,
-            Resources,
-            ManagedResourceServices
-          >
-        ).init(),
-    } as RuntimeConfig<
-      Model,
-      Message,
-      void,
-      Resources,
-      ManagedResourceServices,
-      P,
-      'Application'
-    >)
+        (config as ApplicationConfig<Model, Message, Resources>).init(),
+    } as RuntimeConfig<Model, Message, void, Resources, P, 'Application'>)
   }
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }

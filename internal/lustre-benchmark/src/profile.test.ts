@@ -116,37 +116,31 @@ const runProfile = async (
     return wrappedView.fn(model, h)
   }
 
-  const ApplicationComposition = Block.makeDefinition('Application', {
+  class Application extends Block<Application>()('Application', {
     Model,
     Message,
-  }).makeComposition()
-  const prepare = () =>
-    ApplicationComposition.prepareBlock({
-      init: ApplicationComposition.makeInit(init_),
-      update: ApplicationComposition.makeUpdate({
-        UpdatedNewTodo: wrappedUpdate.fn,
-        UpdatedEditingTodo: wrappedUpdate.fn,
-        AddedTodo: wrappedUpdate.fn,
-        DeletedTodo: wrappedUpdate.fn,
-        ToggledTodo: wrappedUpdate.fn,
-        StartedEditing: wrappedUpdate.fn,
-        SavedEdit: wrappedUpdate.fn,
-        CancelledEdit: wrappedUpdate.fn,
-        ToggledAll: wrappedUpdate.fn,
-        ClearedCompleted: wrappedUpdate.fn,
-        SelectedFilter: wrappedUpdate.fn,
-      }),
-      view: ApplicationComposition.makeView(captureView),
-    })
-  const ApplicationBlock: Block.FromAssemblyWithView<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
-  const program = Program.make({
-    block: ApplicationBlock,
+  }) {}
+  const ApplicationLive = Application.toLayer(() => ({
+    init: () => init_().model,
+    update: {
+      UpdatedNewTodo: wrappedUpdate.fn,
+      UpdatedEditingTodo: wrappedUpdate.fn,
+      AddedTodo: wrappedUpdate.fn,
+      DeletedTodo: wrappedUpdate.fn,
+      ToggledTodo: wrappedUpdate.fn,
+      StartedEditing: wrappedUpdate.fn,
+      SavedEdit: wrappedUpdate.fn,
+      CancelledEdit: wrappedUpdate.fn,
+      ToggledAll: wrappedUpdate.fn,
+      ClearedCompleted: wrappedUpdate.fn,
+      SelectedFilter: wrappedUpdate.fn,
+    },
+    view: captureView,
+  }))
+  const program = Program.make(Application, {
+    layer: ApplicationLive,
     container,
     devTools: false,
-    freezeModel: false,
   })
 
   Runtime.run(program)

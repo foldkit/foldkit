@@ -1,7 +1,10 @@
 import { Context, Effect, Layer, type Scope } from 'effect'
 
-import type { DefinitionIdentity } from '../block/identity.js'
-import type { ValidateConstructionRequirements } from '../block/scope.js'
+import type {
+  DefinitionIdentity,
+  HandlerRequirements,
+  ValidateConstructionRequirements,
+} from '../definitionIdentity.js'
 import type { Handler } from './public.js'
 
 export type { Handler } from './public.js'
@@ -50,7 +53,17 @@ export interface ToLayer<Name extends string, Args, Message> {
   ): Layer.Layer<
     Handler<Name, Args, Message>,
     E,
-    Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
+    Exclude<
+      HandlerRequirements<ExecuteRequirements> | BuildRequirements,
+      Scope.Scope
+    >
+  >
+  <ExecuteRequirements>(
+    handler: (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
+  ): Layer.Layer<
+    Handler<Name, Args, Message>,
+    never,
+    Exclude<HandlerRequirements<ExecuteRequirements>, Scope.Scope>
   >
 }
 
@@ -80,31 +93,44 @@ export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
       )
     })
 
-  const toLayer: ToLayer<Name, Args, Message> = <
+  const layerFromBuild = <
     ExecuteRequirements,
     E = never,
     BuildRequirements = never,
   >(
-    build: Effect.Effect<
-      (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
-      E,
-      BuildRequirements
-    >,
+    build:
+      | Effect.Effect<
+          (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
+          E,
+          BuildRequirements
+        >
+      | ((args: Args) => Effect.Effect<Message, never, ExecuteRequirements>),
   ): Layer.Layer<
     Handler<Name, Args, Message>,
     E,
-    Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
+    Exclude<
+      HandlerRequirements<ExecuteRequirements> | BuildRequirements,
+      Scope.Scope
+    >
   > =>
     Layer.effect(
       service,
       Effect.gen(function* () {
         const context = yield* Effect.context<
-          Exclude<ExecuteRequirements, Scope.Scope> | BuildRequirements
+          | Exclude<HandlerRequirements<ExecuteRequirements>, Scope.Scope>
+          | BuildRequirements
         >()
-        const handler = yield* build
+        const handler = yield* Effect.isEffect(build)
+          ? build
+          : Effect.succeed(build)
         return { identity, context, execute: handler }
       }),
     )
+
+  // NOTE: one implementation serves both overloads: a handler or an Effect
+  // that builds one.
+  // oxlint-disable-next-line typescript/consistent-type-assertions
+  const layer = layerFromBuild as unknown as ToLayer<Name, Args, Message>
 
   const definitionIdentity: DefinitionIdentity = {
     kind: 'Command',
@@ -113,5 +139,5 @@ export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
     service,
   }
 
-  return { execute, toLayer, identity: definitionIdentity }
+  return { execute, toLayer: layer, identity: definitionIdentity }
 }

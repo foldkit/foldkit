@@ -1,8 +1,11 @@
+import type { Html } from 'foldkit/html'
+
 import { type CodeBlock } from '../../component'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
-import { UiComposition } from './composition'
 import { RadioGroupPageContent } from './content'
+import type { UiViewBuilder } from './definition'
 import * as RadioGroup from './demo/radioGroup'
+import type { Model } from './model'
 
 const { tableOfContents, view: renderPage } = RadioGroupPageContent
 
@@ -14,15 +17,17 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = UiComposition.makeView.withInputs<ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
-    renderPage({
-      demos: {
-        vertical: demoContainer(...RadioGroup.verticalDemo(model, h)),
-        horizontal: demoContainer(...RadioGroup.horizontalDemo(model, h)),
-      },
-      renderCopyButton,
-      renderSnippet,
-      renderHeadingLink,
-    }),
-)
+export const view = (
+  model: Model,
+  { renderCopyButton, renderSnippet, renderHeadingLink }: ViewInputs,
+  h: UiViewBuilder,
+): Html =>
+  renderPage({
+    demos: {
+      vertical: demoContainer(...RadioGroup.verticalDemo(model, h)),
+      horizontal: demoContainer(...RadioGroup.horizontalDemo(model, h)),
+    },
+    renderCopyButton,
+    renderSnippet,
+    renderHeadingLink,
+  })

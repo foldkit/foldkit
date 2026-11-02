@@ -1,17 +1,18 @@
-import { Array } from 'effect'
-import { expect, test } from 'vitest'
+import { Effect } from 'effect'
+import { model, story } from 'foldkit/story'
 
-import { FetchTelemetry } from './command'
-import { init } from './init'
+import { describe, expect, it } from '@effect/vitest'
 
-test('seeds loading state and queues a telemetry fetch', () => {
-  const init_ = init()
+import { application } from './model.fixture'
+import { ApplicationLayer } from './services'
 
-  expect(init_.model.telemetry._tag).toBe('Loading')
-  expect(
-    Array.some(
-      init_.commands ?? [],
-      command => command.name === FetchTelemetry.name,
-    ),
-  ).toBe(true)
+describe('init', () => {
+  it.effect('seeds loading state', () =>
+    story(
+      application,
+      model(model => {
+        expect(model.telemetry._tag).toBe('Loading')
+      }),
+    ).pipe(Effect.provide(ApplicationLayer)),
+  )
 })

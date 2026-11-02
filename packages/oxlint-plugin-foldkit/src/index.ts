@@ -7,20 +7,14 @@ import { keyedRequiredForMappedRows } from './rules/keyed-required-for-mapped-ro
 import { lazyViewStableReferences } from './rules/lazy-view-stable-references.ts'
 import { mountFactoryMustUseElement } from './rules/mount-factory-must-use-element.ts'
 import { noArrayIndexViewKeys } from './rules/no-array-index-view-keys.ts'
-import { noBindingWriteCoordination } from './rules/no-binding-write-coordination.ts'
-import { noChildMessageConstructionInRoot } from './rules/no-child-message-construction-in-root.ts'
-import { noCompletedBlockModelInSchema } from './rules/no-completed-block-model-in-schema.ts'
-import { noDirectBlockStateUpdate } from './rules/no-direct-block-state-update.ts'
 import { noDisablingDevGuardrails } from './rules/no-disabling-dev-guardrails.ts'
 import { noDuplicateOnmountPerElement } from './rules/no-duplicate-onmount-per-element.ts'
 import { noEmptyChildrenArray } from './rules/no-empty-children-array.ts'
 import { noEmptyCommandsArray } from './rules/no-empty-commands-array.ts'
 import { noEmptyObjectTaggedCall } from './rules/no-empty-object-tagged-call.ts'
-import { noEmptyToParentOutMessage } from './rules/no-empty-to-parent-out-message.ts'
 import { noHandRolledCommandStruct } from './rules/no-hand-rolled-command-struct.ts'
 import { noHardcodedRouteStrings } from './rules/no-hardcoded-route-strings.ts'
 import { noImpureCallAtDecisionTime } from './rules/no-impure-call-at-decision-time.ts'
-import { noManualCompositionRouting } from './rules/no-manual-composition-routing.ts'
 import { noModuleLevelMutableState } from './rules/no-module-level-mutable-state.ts'
 import { noNonportableServerGlobals } from './rules/no-nonportable-server-globals.ts'
 import { noNoopMessage } from './rules/no-noop-message.ts'
@@ -48,20 +42,14 @@ const basePlugin = Plugin.define({
     'lazy-view-stable-references': lazyViewStableReferences,
     'mount-factory-must-use-element': mountFactoryMustUseElement,
     'no-array-index-view-keys': noArrayIndexViewKeys,
-    'no-binding-write-coordination': noBindingWriteCoordination,
-    'no-child-message-construction-in-root': noChildMessageConstructionInRoot,
-    'no-completed-block-model-in-schema': noCompletedBlockModelInSchema,
-    'no-direct-block-state-update': noDirectBlockStateUpdate,
     'no-disabling-dev-guardrails': noDisablingDevGuardrails,
     'no-duplicate-onmount-per-element': noDuplicateOnmountPerElement,
     'no-empty-children-array': noEmptyChildrenArray,
     'no-empty-commands-array': noEmptyCommandsArray,
-    'no-empty-to-parent-out-message': noEmptyToParentOutMessage,
     'no-empty-object-tagged-call': noEmptyObjectTaggedCall,
     'no-hand-rolled-command-struct': noHandRolledCommandStruct,
     'no-hardcoded-route-strings': noHardcodedRouteStrings,
     'no-impure-call-at-decision-time': noImpureCallAtDecisionTime,
-    'no-manual-composition-routing': noManualCompositionRouting,
     'no-module-level-mutable-state': noModuleLevelMutableState,
     'no-nonportable-server-globals': noNonportableServerGlobals,
     'no-noop-message': noNoopMessage,

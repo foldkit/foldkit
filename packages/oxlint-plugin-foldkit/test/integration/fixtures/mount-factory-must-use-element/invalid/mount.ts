@@ -19,6 +19,11 @@ export const ObserveWithoutElement = Mount.define(
   'ObserveWithoutElement',
   {
     messages: [CompletedMountAnalytics],
-  handler: function* () { return ({ element }) => Effect.sync(() => resizeObserver.disconnect()) },
   },
+)
+
+export const ObserveWithoutElementLive = ObserveWithoutElement.toLayer(
+  Effect.gen(function* () {
+    return ({ element }) => Effect.sync(() => resizeObserver.disconnect())
+  }),
 )

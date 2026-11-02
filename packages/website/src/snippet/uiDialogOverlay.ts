@@ -1,17 +1,16 @@
-import { Option, Schema, Tuple } from 'effect'
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
+import { Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
-import { Combobox, Dialog } from '@foldkit/ui'
+import { Animation, Combobox, Dialog } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
 type City = typeof City.Type
 
-const CityCombobox = Combobox.makeBlock(City)
+const CityCombobox = Combobox.make(City)
+
 const cities: ReadonlyArray<City> = [
   'Johannesburg',
   'Kyiv',
@@ -19,128 +18,90 @@ const cities: ReadonlyArray<City> = [
   'Wellington',
 ]
 
-// One Model field for the dialog, one for the overlay it contains, plus
-// the parent-owned selection (`City` and `CityCombobox` are the
-// `Schema.Literals` Schema and typed factory from the Combobox example):
-const Model = Schema.Struct({
-  dialog: Dialog.DialogBlock.Model,
-  combobox: CityCombobox.Model,
-  maybeCity: Schema.Option(City),
-  // ...your other fields
+const Message = defineMessageUnion({
+  ClickedEditFilters: {},
 })
-type Model = typeof Model.Type
-// This excerpt has no parent-owned facts. The two Bindings derive distinct
-// generated delivery for Dialog and Combobox.
-const Message = defineMessageUnion({})
-type Message = typeof Message.Type
 
-const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
-  Model,
+export class FilterDialog extends Block<FilterDialog>()('FilterDialog', {
+  Model: Schema.Struct({
+    dialog: Dialog.Dialog,
+    combobox: CityCombobox,
+    maybeCity: Schema.Option(City),
+  }),
   Message,
-})
+}) {}
 
-const { makeFieldsStep, makeNoopStep } = FilterDialogDefinition
-
-const foldDialogOutMessage = FilterDialogDefinition.makeOutMessageFold(
-  Dialog.DialogBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-    CompletedClose: makeNoopStep,
-  },
-)
-
-const foldComboboxOutMessage = FilterDialogDefinition.makeOutMessageFold(
-  CityCombobox,
-  {
-    Selected: ({ value }) =>
-      makeFieldsStep(() => ({
-        maybeCity: () => Option.some(value),
-      })),
-    ClearedSelection: makeNoopStep,
-  },
-)
-
-const DialogBinding = FilterDialogDefinition.makeBinding(Dialog.DialogBlock, {
-  field: 'dialog',
-  init: { contextToArgs: () => Tuple.make({ id: 'edit-filters' }) },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
-
-const ComboboxBinding = FilterDialogDefinition.makeBinding(CityCombobox, {
-  field: 'combobox',
-  init: { contextToArgs: () => Tuple.make({ id: 'city' }) },
-}).withOutMessagePolicy({ fold: foldComboboxOutMessage })
-
-const FilterDialogComposition = FilterDialogDefinition.makeComposition({
-  bindings: [DialogBinding, ComboboxBinding],
-})
-
-const init = FilterDialogComposition.makeInit(() => ({
-  model: {
+export const FilterDialogLive = FilterDialog.toLayer(() => ({
+  init: () => ({
+    dialog: new Dialog.Dialog('dialog', { id: 'edit-filters' }),
+    combobox: new CityCombobox('combobox', { id: 'city' }),
     maybeCity: Option.none(),
-    // ...your other fields
-  },
-}))
+  }),
 
-const update = FilterDialogComposition.makeUpdate({})
-
-// Render the overlay inside the dialog panel. Its panel portals into the
-// dialog, so it renders above the dialog content with no extra anchor config.
-// Give the panel `relative` so it paints above the Dialog backdrop, and the
-// Combobox wrapper `relative` so the input stays above the Combobox backdrop,
-// which goes directly before that wrapper.
-const view = FilterDialogComposition.makeView((model, h) => {
-  const dialogView = ({
-    dialog,
-    backdrop,
-    panel,
-    title,
-    isVisible,
-  }: DialogRenderInfo) =>
-    h.dialog(
-      [...dialog],
-      isVisible
-        ? [
-            h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
-            h.div(
-              [
-                ...panel,
-                h.Class('relative rounded-lg p-6 max-w-md mx-auto shadow-xl'),
-              ],
-              [
-                h.h2([...title], ['Edit filters']),
-                h.block(
-                  ComboboxBinding.embedView({
-                    slotId: model.combobox.id,
-                    model: model.combobox,
-                    viewInputs: {
-                      items: cities,
-                      itemToConfig: city => ({ content: h.span([], [city]) }),
-                      itemToValue: city => city,
-                      itemToDisplayText: city => city,
-                      className: 'relative w-full',
-                      maybeSelectedValue: model.maybeCity,
-                      restingInputValue: Option.getOrElse(
-                        model.maybeCity,
-                        () => '',
-                      ),
-                      anchor: { placement: 'bottom-start' },
-                    },
-                  }),
-                ),
-              ],
-            ),
-          ]
-        : [],
-    )
-
-  return h.block(
-    DialogBinding.embedView({
-      slotId: model.dialog.id,
-      model: model.dialog,
-      viewInputs: {
-        toView: dialogView,
-      },
+  update: {
+    ClickedEditFilters: model => ({
+      model,
+      messages: [model.dialog.send(Dialog.Dialog.Message.RequestedOpen())],
     }),
-  )
-})
+
+    ...CityCombobox.on({
+      Selected: (model, { value }) => ({
+        model: modifyFields(model, { maybeCity: () => Option.some(value) }),
+      }),
+    }),
+  },
+
+  view: (model, h) => {
+    // Render the Combobox inside the dialog panel. Its panel portals into
+    // the dialog, so it renders above the dialog content with no extra
+    // anchor config. The panel and the Combobox wrapper are `relative`.
+    const dialogView = ({
+      dialog,
+      backdrop,
+      panel,
+      title,
+      isVisible,
+    }: DialogRenderInfo) =>
+      h.dialog(
+        [...dialog],
+        isVisible
+          ? [
+              h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
+              h.div(
+                [
+                  ...panel,
+                  h.Class('relative rounded-lg p-6 max-w-md mx-auto shadow-xl'),
+                ],
+                [
+                  h.h2([...title], ['Edit filters']),
+                  model.combobox.view({
+                    items: cities,
+                    itemToConfig: city => ({ content: h.span([], [city]) }),
+                    itemToValue: city => city,
+                    itemToDisplayText: city => city,
+                    className: 'relative w-full',
+                    maybeSelectedValue: model.maybeCity,
+                    restingInputValue: Option.getOrElse(
+                      model.maybeCity,
+                      () => '',
+                    ),
+                    anchor: { placement: 'bottom-start' },
+                  }),
+                ],
+              ),
+            ]
+          : [],
+      )
+
+    return h.div(
+      [],
+      [
+        h.button([h.OnClick(Message.ClickedEditFilters())], ['Edit filters']),
+        model.dialog.view({ toView: dialogView }),
+      ],
+    )
+  },
+})).pipe(
+  Layer.provide(Layer.mergeAll(Dialog.DialogLive, CityCombobox)),
+  Layer.provide(Animation.AnimationLive),
+)

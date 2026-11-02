@@ -1,16 +1,27 @@
-// ❌ Bad: the parent imports and constructs an internal Settings Message.
+// ❌ Bad: the parent reports a click that never happened.
 
-import { Message as SettingsMessage } from './settings/message'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 
-const SettingsBinding = ParentDefinition.makeBinding(Settings.block, {
-  field: 'settings',
-  parentMessage: Message.GotSettingsMessage,
-})
+import { Settings } from './blockSettingsContract'
 
-const update = ParentComposition.makeUpdate({
-  ClickedResetSettings: model =>
-    SettingsBinding.fold(
+export class Account extends Block<Account>()('Account', {
+  Model: Schema.Struct({ settings: Settings }),
+  Message: defineMessageUnion({ ClickedResetSettings: {} }),
+}) {}
+
+export const AccountLive = Account.toLayer(() => ({
+  init: () => ({
+    settings: new Settings('settings', { initialTheme: 'System' }),
+  }),
+
+  update: {
+    ClickedResetSettings: model => ({
       model,
-      SettingsMessage.ChangedTheme({ theme: 'Light' }),
-    ),
-})
+      messages: [
+        model.settings.send(Settings.Message.ClickedTheme({ theme: 'System' })),
+      ],
+    }),
+  },
+}))

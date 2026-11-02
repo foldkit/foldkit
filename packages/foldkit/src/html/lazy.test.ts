@@ -1,5 +1,5 @@
 import { Context } from 'effect'
-import { afterEach, beforeEach, expect, vi } from 'vitest'
+import { afterEach, beforeEach, expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -11,7 +11,6 @@ import {
   type BoundaryRegistry,
   beginRender,
   createBoundaryRegistry,
-  registerBoundaryWrap,
 } from './boundary.js'
 import {
   type LazyResolution,
@@ -540,54 +539,6 @@ describe('observeLazyResolutions', () => {
     expect(resolutions.map(({ missReason }) => missReason)).toEqual([
       { _tag: 'FrameChanged' },
     ])
-  })
-
-  it('reports a replaced Block occurrence as FrameChanged and renders it again', () => {
-    const registry = createBoundaryRegistry()
-    let generation = 0
-    const viewFn = vi.fn(() => {
-      const currentGeneration = generation
-      registerBoundaryWrap(
-        registry,
-        'child',
-        {
-          toParentMessage: message => message,
-          isCurrent: () => generation === currentGeneration,
-        },
-        noOpDispatchSync,
-      )
-      return h('div', {}, ['child'])
-    })
-    const lazy = createLazy()
-
-    setRuntime(noOpDispatchSync, noOpContext, registry)
-    try {
-      beginRender(registry)
-      lazy(viewFn, [])
-      generation++
-      beginRender(registry)
-
-      const resolutions = observe(() => {
-        lazy(viewFn, [])
-      })
-
-      expect(viewFn).toHaveBeenCalledTimes(2)
-      expect(resolutions.map(({ missReason }) => missReason)).toEqual([
-        { _tag: 'FrameChanged' },
-      ])
-
-      beginRender(registry)
-      const currentResolutions = observe(() => {
-        lazy(viewFn, [])
-      })
-
-      expect(viewFn).toHaveBeenCalledTimes(2)
-      expect(currentResolutions.map(({ missReason }) => missReason)).toEqual([
-        undefined,
-      ])
-    } finally {
-      clearRuntime()
-    }
   })
 
   it('reports a different number of arguments as ArgumentCountChanged', () => {

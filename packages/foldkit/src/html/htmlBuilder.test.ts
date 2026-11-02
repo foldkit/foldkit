@@ -7,7 +7,6 @@ import { isClientOnlyProperty } from '../propertyProvenance.js'
 import { Dispatch, embed, makeElement } from '../runtime/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
-import { defineView } from './block.js'
 import { beginRender, createBoundaryRegistry } from './boundary.js'
 import * as HtmlModule from './index.js'
 import {
@@ -23,8 +22,6 @@ import {
   clearRuntime,
   setRuntime,
 } from './runtimeSingleton.js'
-
-type ChildModel = Readonly<{ value: number }>
 
 const ChildMessage = defineMessageUnion({
   ClickedChild: { value: Schema.Number },
@@ -59,13 +56,6 @@ const runtimeContext = (dispatchSync: DispatchSync) =>
     }),
   )
 
-const childView = defineView<ChildModel, ChildMessage>((model, h) =>
-  h.button(
-    [h.OnClick(ChildMessage.ClickedChild({ value: model.value }))],
-    ['fire'],
-  ),
-)
-
 // TYPE GUARANTEES
 //
 // The @ts-expect-error directives below are the assertions: `pnpm typecheck`
@@ -73,56 +63,15 @@ const childView = defineView<ChildModel, ChildMessage>((model, h) =>
 // becomes expressible again without a cast.
 
 describe('HtmlBuilder type guarantees', () => {
-  it('refuses handlers when defineView is called without its type arguments', () => {
-    const viewMissingTypeArguments = defineView((_model: ChildModel, h) =>
+  it('rejects a Message from another universe at the handler call site', () => {
+    const childViewWithForeignMessage = (h: HtmlBuilder<ChildMessage>): Html =>
       h.button(
         [
-          // @ts-expect-error `Message` defaults to `never`, so omitting the type
-          // arguments must not widen the builder to accept any Message at all
+          // @ts-expect-error an app-level Message is not part of this Block's union
           h.OnClick(AppMessage.ClickedApp()),
         ],
         ['x'],
-      ),
-    )
-
-    expect(viewMissingTypeArguments).toBeTypeOf('function')
-  })
-
-  it('rejects an embed that omits viewInputs the view requires', () => {
-    const needsInputs = defineView<ChildModel, ChildMessage, { label: string }>(
-      (_model, viewInputs, h) => h.button([], [viewInputs.label]),
-    )
-    const parentBuilder = __htmlBuilder<ParentMessage>()
-
-    // Never invoked: the assertion is the directive below. Calling it would
-    // hit the very failure this rejects, the builder arriving as viewInputs.
-    const embedOmittingViewInputs = () =>
-      parentBuilder.block(
-        // @ts-expect-error omitting them would call a three-parameter view with
-        // two arguments, landing the builder in the viewInputs slot
-        {
-          slotId: 'omits-view-inputs',
-          model: { value: 0 },
-          view: needsInputs,
-          toParentMessage: message =>
-            ParentMessage.GotChildMessage({ message }),
-        },
       )
-
-    expect(embedOmittingViewInputs).toBeTypeOf('function')
-  })
-
-  it('rejects a Message from another universe at the handler call site', () => {
-    const childViewWithForeignMessage = defineView<ChildModel, ChildMessage>(
-      (_model, h) =>
-        h.button(
-          [
-            // @ts-expect-error an app-level Message is not part of this Block's union
-            h.OnClick(AppMessage.ClickedApp()),
-          ],
-          ['x'],
-        ),
-    )
     expect(typeof childViewWithForeignMessage).toBe('function')
   })
 
@@ -130,25 +79,10 @@ describe('HtmlBuilder type guarantees', () => {
     const appHeaderView = (h: HtmlBuilder<AppMessage>): Html =>
       h.button([h.OnClick(AppMessage.ClickedApp())], ['header'])
 
-    const childViewUsingAppHelper = defineView<ChildModel, ChildMessage>(
-      (_model, h) =>
-        // @ts-expect-error the child frame's builder is not the app builder
-        appHeaderView(h),
-    )
+    const childViewUsingAppHelper = (h: HtmlBuilder<ChildMessage>): Html =>
+      // @ts-expect-error the child frame's builder is not the app builder
+      appHeaderView(h)
     expect(typeof childViewUsingAppHelper).toBe('function')
-  })
-
-  it('rejects a toParentMessage lift that lands outside the embedding Message union', () => {
-    const parentH = __htmlBuilder<ParentMessage>()
-    const embedWithForeignLift = (): Html =>
-      parentH.block({
-        slotId: 'child',
-        model: { value: 1 },
-        view: childView,
-        // @ts-expect-error the lift must produce the embedding frame's Message
-        toParentMessage: () => AppMessage.ClickedApp(),
-      })
-    expect(typeof embedWithForeignLift).toBe('function')
   })
 
   it('refuses handler construction on inertHtml', () => {
@@ -227,38 +161,6 @@ describe('HtmlBuilder runtime guarantees', () => {
     const childBuilder: unknown = __htmlBuilder<ChildMessage>()
     expect(parentBuilder).toBe(childBuilder)
     expect<unknown>(inertHtml).toBe(parentBuilder)
-  })
-
-  it('passes the child-typed builder to a Block view and routes its handlers through the boundary', () => {
-    const registry = createBoundaryRegistry()
-    const dispatched: Array<unknown> = []
-    const dispatchSync: DispatchSync = message => {
-      dispatched.push(message)
-    }
-    setRuntime(dispatchSync, runtimeContext(dispatchSync), registry)
-    try {
-      beginRender(registry)
-      const parentH = __htmlBuilder<ParentMessage>()
-      const result = parentH.block({
-        slotId: 'child',
-        model: { value: 7 },
-        view: childView,
-        toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-      })
-
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      const onClick = result?.data?.on?.['click'] as () => void
-      onClick()
-
-      expect(dispatched).toEqual([
-        {
-          _tag: 'GotChildMessage',
-          message: { _tag: 'ClickedChild', value: 7 },
-        },
-      ])
-    } finally {
-      clearRuntime()
-    }
   })
 
   it('keeps createLazy cache hits when the builder flows through the args array', () => {
@@ -341,59 +243,6 @@ describe('HtmlBuilder runtime guarantees', () => {
       await vi.waitFor(() => {
         expect(document.body.textContent).toContain('count:1')
       })
-    } finally {
-      handle.dispose()
-    }
-  })
-
-  it('passes an explicitly undefined viewInputs through as the inputs argument', async () => {
-    const Message = defineMessageUnion({ IgnoredChildRender: {} })
-    type Message = typeof Message.Type
-    const Model = Schema.Struct({ ready: Schema.Boolean })
-    type Model = typeof Model.Type
-
-    // `undefined` is a legitimate value for these inputs, so the runtime must
-    // decide by whether the property is present, not by whether it is
-    // undefined. Branching on the value drops the view to the two-argument
-    // call and the builder arrives where the inputs belong.
-    let receivedInputs: unknown = 'never called'
-    const childView = defineView<
-      Readonly<{ id: string }>,
-      Message,
-      Readonly<{ label: string }> | undefined
-    >((_model, viewInputs, h) => {
-      receivedInputs = viewInputs
-      return h.div([], ['child rendered'])
-    })
-
-    const container = document.createElement('div')
-    container.id = 'explicit-undefined-view-inputs'
-    document.body.appendChild(container)
-
-    const widget = makeElement({
-      Model,
-      init: () => ({ model: { ready: true } }),
-      update: (
-        model: Model,
-        _message: Message,
-      ): Update.Return<Model, Message> => ({ model }),
-      view: (_model, h) =>
-        h.block({
-          slotId: 'child',
-          model: { id: 'child' },
-          view: childView,
-          viewInputs: undefined,
-          toParentMessage: () => Message.IgnoredChildRender(),
-        }),
-      container,
-    })
-
-    const handle = embed(widget)
-    try {
-      await vi.waitFor(() => {
-        expect(document.body.textContent).toContain('child rendered')
-      })
-      expect(receivedInputs).toBeUndefined()
     } finally {
       handle.dispose()
     }

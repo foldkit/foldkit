@@ -14,12 +14,12 @@ import {
   indexReferences,
   isArrayExpression,
   isCallExpression,
-  isFoldkitHtmlBuilderMember,
   isIdentifier,
   isMemberExpression,
   resolveImportedPath,
   resolvedVariable,
 } from '../guards.ts'
+import { isFoldkitHtmlBuilderMember } from '../html-builder.ts'
 
 const rowElementTagNames = ['li', 'div', 'tr', 'article', 'section']
 

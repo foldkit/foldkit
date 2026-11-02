@@ -1,110 +1,77 @@
-# Managed Resources
+# Resources
 
 ## Overview
 
-Layers provided to the application live for the entire runtime. Some stateful handles should exist only while the Model is in a particular state: a camera stream during a video call, a `WebSocket` while on a chat page, or a Web Worker pool during a computation. Managed Resources give those handles a Model-driven acquire and release lifecycle, using the same dependency-diffing engine as Subscriptions.
+Services in the program's Layer live for the whole run. Some stateful handles should exist only while part of the Model exists: a `WebSocket` while a chat room is open, an `EventSource` while a match page is showing, or a Web Worker pool during a computation.
 
-Choose a ManagedResource when Commands or other consumers need access to the acquired handle. Model-gated listeners and scoped work with no handle consumer belong in a Subscription, which supports cleanup even when it emits no Messages. Check [lifecycle ownership](/core/subscriptions#lifecycle-ownership) before defining a resource accessor or acquisition Messages.
+In Foldkit, the Model decides when such a handle exists. A Block instance that needs the handle opens it from a [Subscription](/core/subscriptions). Foldkit starts the instance's Subscriptions when the instance appears in a Model and stops them when it leaves, so the handle lives exactly as long as the instance does. Nothing about the handle is stored in the Model; the Model holds only the data that identifies it, such as a room id.
+
+Choose between two forms by asking who uses the handle:
+
+- Only the Subscription's Stream reads from it. Acquire the handle inside the Stream with `Effect.acquireRelease`. The Stream holds it until the Subscription stops.
+- Commands also use it, for example to send on a socket. Put the handles in an Effect `RcMap`, a map of reference-counted resources, which the Block's Layer creates once. The Subscription holds the entry for the instance's key while the instance is in the Model, and Command handlers borrow the same handle by key.
+
+A Block's Layer constructor runs once per Block, not once per instance, so it never holds one instance's handle. Per-instance data lives in the Model and reaches Command handlers through Command args.
 
 :::Info{label="The restaurant analogy"}
-Application-scoped Layers are the kitchen equipment available all night. A Managed Resource is a specialty station set up only while the menu needs it. Changing the special tears down the old station and sets up the new one, just as changing camera requirements releases one stream and acquires another. A Command that asks for an inactive station receives `ResourceNotAvailable`.
+Services are the kitchen equipment available all night. A keyed resource is a specialty station: the Subscription sets it up when an order for that table arrives and breaks it down when the table leaves. Commands for that table use the station by table number.
 :::
 
-### Defining the Lifecycle
+## Hold a Resource in a Subscription
 
-Create the handle accessor from the named feature with `FeatureDefinition.makeResource<Value>()('ResourceName')`, then define its lifecycle through `FeatureDefinition.makeManagedResources`. The feature name qualifies the accessor's local identity. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
+This LiveScore Block opens an `EventSource` for its match and records each score it receives:
 
-Give each entry a stable local handler name and set `config.handler` to a generator constructor that returns both `acquire` and `release`. Both functions are required whenever the handler is supplied. The entry exposes that attached recipe as `.layer`. When every entry has an attached handler, include the owned registry's `managedResources.layer` in the local `EffectsLayer` and pass the registry under `managedResources` to `FeatureComposition.prepareBlock`. `Block.assemble` then creates the Block that carries the lifecycle registrations and handler graph through parent Bindings. The root follows the same producer and finisher sequence, while `program.provide(layer)` supplies any ordinary Services the handler recipes still require. The constructed handler lasts for the application lifetime; each handle it acquires still starts and stops according to the Model.
+::Snippet{name="resourceScoreFeed" label="A LiveScore Block that holds an EventSource"}
 
-Put the named authoring value and resource accessor in a shared module. The lifecycle registry and Commands must import the same accessor definition.
+`init` stores the `matchId` from the instance's args in its Model. The `scoreEvents` entry returns that id from `dependencies`, so each LiveScore instance gets its own `EventSource`, and the id stays the same for the instance's lifetime.
 
-::Snippet{name="managedResourcesDefinition" label="Defining a shared resource accessor"}
+`Effect.acquireRelease` registers the cleanup as part of acquisition. Construct the resource inside the acquire Effect, never before it, so the release is registered even if construction is interrupted. `Stream.unwrap` runs the acquisition in the Stream's scope, so the `EventSource` closes when the Stream stops.
 
-::Snippet{name="managedResources" label="Camera ManagedResource lifecycle"}
+The lifecycle follows the Model:
 
-### Requirements Transitions
+| Model change                               | What Foldkit does                                                  |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| A LiveScore instance appears               | Starts `scoreEvents`, which opens the `EventSource`                |
+| The instance leaves the Model              | Stops `scoreEvents`; its scope closes and the `EventSource` closes |
+| A new instance with a new id appears later | Starts a fresh Stream with a fresh `EventSource`                   |
 
-The runtime compares the requirements after every Model change and performs the corresponding transition.
+Acquisition can take time. A Stream may wait for a Promise, such as `getUserMedia`, before it emits anything, and report readiness or failure as Messages.
 
-| Requirements transition                          | Runtime behavior                                                           |
-| ------------------------------------------------ | -------------------------------------------------------------------------- |
-| `Option.none()` to `Option.some(params)`         | Acquire the handle, then dispatch `onAcquired`.                            |
-| `Option.some(params)` to `Option.none()`         | Release the handle, then dispatch `onReleased`.                            |
-| `Option.some(a)` to a different `Option.some(b)` | Release and dispatch `onReleased`, then acquire and dispatch `onAcquired`. |
-| Structurally equal requirements                  | Keep the current handle.                                                   |
+## Share a Resource with Commands {#accessing-managed-resources}
 
-If acquisition fails, the runtime dispatches `onAcquireError` as a Message. The lifecycle keeps watching for the next requirements change, and the failed acquisition does not crash the application.
+When Commands need the handle too, the Stream cannot keep it to itself. This Socket Block keeps one `WebSocket` per room in an `RcMap`:
 
-Register cleanup when each handle is created, before waiting for it to become ready. `Effect.acquireRelease` inside `acquire` ties that cleanup to the ManagedResource Scope, including when readiness fails, times out, or is interrupted. The entry's explicit `release` callback runs only after acquisition has returned a handle. On release, Foldkit runs that callback and every scoped finalizer before it clears the handle or dispatches `onReleased`. Cleanup defects are contained so the remaining cleanup and lifecycle transition can finish.
+::Snippet{name="resourceSocket" label="A Socket Block that keys its connections by room"}
 
-## Handler Contracts and Identity
+The Layer constructor creates the `RcMap` once. `lookup` describes how to open the connection for a key and how to close it. Nothing opens until something asks for a key.
 
-### Handler Construction
+Two parts of the Block use the map:
 
-The Runtime runs the attached handler generator once while building the application Layer and obtains the lifecycle handler. Return `{ acquire, release }` directly when construction has no dependencies. The constructor must not capture an active resource handle or the current requirements; each Model-scoped acquisition supplies those values. Model changes call the returned `acquire` and `release` functions without rebuilding the handler or its providers.
+- The `receivedData` Subscription calls `RcMap.get(connections, roomId)` inside `Stream.unwrap`. The Stream holds a reference to the room's socket for as long as it runs, which is as long as the instance is in the Model. When the Stream stops, the reference is released and the `RcMap` closes the socket.
+- The `SendData` handler gets the same socket with `RcMap.get` and releases its reference with `Effect.scoped` when the send completes. Update returns `SendData({ roomId: model.roomId, data })`, so the handler finds the room through its Command args.
 
-### External Host Handlers
+Two instances for the same room share one connection. A socket that closes before a send fails the send, and `FailedSendData` reports the reason to the parent as `FailedToSend`.
 
-Omit `handler` when an external host owns the lifecycle implementation. That entry has no `.layer`. List it in the completed Block's `hostHandlers`, then let the host call `block.provideHandlers(entry.toLayer(...))` before binding the feature. The method also constructs an alternative to an attached handler. `toLayer` accepts the implementation Effect constructor, and both `acquire` and `release` are required in either constructor.
+### Hold the Resource Block in the Parent
 
-### Names and Requirements
+Chat decides when the connection exists by holding a Socket instance in `maybeSocket`:
 
-ManagedResource names are local to their named Block. Two features can both declare `ManageSession`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. Reusing one completed child at two placements shares its handler recipe while giving each occurrence a separate handle lifecycle.
+::Snippet{name="resourceChat" label="A Chat that connects and disconnects a Socket"}
 
-A ManagedResource handler requirement contains its owned name, decoded acquire params, and resource value type. `FeatureComposition.prepareBlock` checks that each local requirement is supplied by `EffectsLayer` or declared in `hostHandlers`; `block.provideHandlers` checks an external provider against those declared contracts. Use `ManagedResource.HandlerOf<typeof managedResources.camera>` for an explicit requirement; the expanded form is `ManagedResource.Handler<Name, Params, Value>`, with all three arguments required.
+`ClickedConnect` puts `new Socket('socket', { roomId: 'general' })` in the Model, which starts its Subscription and opens the socket. `ClickedDisconnect` sets the field to `Option.none()`: the Subscription stops, any `SendData` still running is interrupted, and the socket closes.
 
-Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. An external implementation should use the declared entry's `toLayer` so it keeps that identity.
+To send, Chat sends the Socket instance a `RequestedSend` Message. The Socket's update returns the `SendData` Command, so the Command belongs to the instance and stops with it. While disconnected, `maybeSocket` is `None` and **Say hello** sends nothing.
 
-Within one Block Definition, each local lifecycle owner needs its own resource accessor. Completion rejects two local entries that share an accessor. Binding a completed child derives a placement-scoped accessor, so the same child can appear more than once with independent handles. A keyed Binding applies the same rule per active collection key.
+## Test a Resource Block's Parent
 
-The record key identifies the local lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation and becomes part of its owned path. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`. The registry key `layer` is reserved for the aggregate Layer, matching Subscriptions; use another key for a resource entry. An empty owned registry supplies `Layer.empty`.
+Stories and scenes never run Subscriptions or Command handlers, so the real `SocketLive` opens nothing in a test: the `RcMap` is created, but no key is ever requested. Deliver the Messages the Subscription would produce with `Block.deliver`, and assert on the Commands update returns:
 
-Mixed attached and host-owned registries expose no aggregate `.layer`. Compose individual entry Layers when selecting a subset or supplying host-owned implementations. Create a standalone `ManageCameraLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly.
+::Snippet{name="resourceChatStory" label="Testing Chat with its Socket"}
 
-The aggregate requires one closed owned registry with own string keys. It includes non-enumerable entries and preserves exact Layer output, error, and Service contracts. Open registries and alternatives with conflicting Layer contracts expose no aggregate Layer; select a concrete implementation or provide its entries explicitly. Registry construction and Layer composition remain passive.
+`Command.at('socket', ...)` selects the `SendData` returned by the instance whose id is `socket`.
 
-### Execution Testing
+## Several Resources and Nested Resources
 
-In a whole-application execution test, keep the real lifecycle handler and replace the service it uses to open the camera, socket, worker, or other external capability. The test then covers the same Model-driven acquire, reacquire, release, error, and cleanup paths as production. Replacing the entire lifecycle handler can orchestrate those result paths, but it does not test the replaced acquire and release code.
+Each instance holds its own reference. A parent that needs one socket per room holds one Socket instance per room, each created with the room's id as its instance id and args, in an array or Record. Removing one room's instance releases only that room's socket.
 
-## Accessing Managed Resources in Commands {#accessing-managed-resources}
-
-Commands access the current handle through `.get`. Keep that lookup inside the returned Command function so it runs for each invocation; capturing `.get` while the handler Layer is built would read at application lifetime instead of the ManagedResource lifetime. Because the handle may be inactive, `.get` can fail with `ResourceNotAvailable`. The Command must turn that error into one of its declared result Messages.
-
-::Snippet{name="managedResourcesCommand" label="ManagedResource Command"}
-
-This is the usual Command error-to-Message boundary. The Model should gate the operation, for example by enabling `TakePhoto` only after `AcquiredCamera` has been received. The error handler remains a safety net if that Model logic is wrong or the handle disappears before the Command reads it.
-
-### Operations Using a Handle
-
-A handle lookup returns the currently acquired value. The Model may deactivate that resource while a Command waits. Deactivation does not automatically interrupt running Commands. Release callbacks and scoped finalizers should stop operations that require the live handle. When cancellation is application policy, use [Command interruption](/core/commands#interrupting-commands) and wait for its result before changing the resource's activation state.
-
-## Building a Layer in acquire
-
-When setup and teardown are already packaged as an Effect `Layer`, keep that lifecycle intact. `acquire` runs with the Managed Resource’s `Scope` in its context. `Layer.build` registers the Layer’s finalizers on that Scope, and the runtime closes it on release or reacquisition. Map the built Context down to the bare service value that Commands need.
-
-::Snippet{name="managedResourcesLayer" label="Layer-backed ManagedResource"}
-
-The resource accessor holds that bare value, so Commands read it through `.get` with no wrapper to destructure. Any finalizer registered during `acquire`, through either `Layer.build` or `Effect.addFinalizer`, runs when the handle is released. In that case the required explicit `release` can be `() => Effect.void`: scoped acquisition has already registered the real cleanup. The explicit callback runs first, followed by the Scope finalizers in Effect’s last-in-first-out order.
-
-## Composing Child Blocks
-
-A child Block defines its ManagedResources in its own Model and Message terms, with no knowledge of its parent. Create the registry through `FeatureDefinition.makeManagedResources` and include it in `FeatureComposition.prepareBlock`.
-
-A Binding lifts the child's entries through its Model access and generated delivery. Include that Binding in the parent's `bindings` list, and the parent collects its entries under placement-qualified keys. `ApplicationComposition.prepareBlock({ init, update, view, ... })` packages the root's complete graph, and `Block.assemble(prepare)` finishes the root Block. Completion rejects one local resource accessor used by two lifecycle owners; changing record keys does not create another local handle. Repeating the completed child through separate Bindings is different: each placement receives its own scoped accessor and lifecycle.
-
-### Optional Child Models
-
-Use an exact `Option<ChildModel>` field for direct optional storage. `None` releases the child's resources without reading their requirements, and `Some` lets the child determine which resources it needs. A direct-field `presentWhen` predicate can also make the whole child absent without clearing its stored Model. Use [whole-variant Bindings](/core/block#whole-tagged-variants) for one complete tagged child member. Use explicit accessors for nested, wrapped, or custom storage; `None` from `read` has the same release behavior. `subscriptions.when` does not gate ManagedResources.
-
-::Snippet{name="managedResourcesLift" label="Composing child ManagedResources"}
-
-### Multiple Block Levels
-
-`makeBinding` automates composition for static, optional, and keyed placements. Every active collection key receives an independent ManagedResource lifetime. [Subscription Organization](/patterns/subscription-organization) traces the equivalent leaf-to-root shape with Subscriptions.
-
-:::Info{label="Layers vs Managed Resources"}
-Use the root `ApplicationLayer` and the completed program's `provide` method for services that live with the runtime, such as an `RpcClient` or analytics client. The completed Block already carries its handler recipes. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections. These are separate scopes: restarting or releasing a ManagedResource handle does not rebuild the app service or handler Layer that implements its lifecycle.
-:::
-
-Layers and Managed Resources cover app-lifetime services and Model-scoped handles. Unrecoverable errors in update, view, or a Command follow a different runtime path. The next page covers crash views.
+A Block that holds a resource can hold child Blocks of its own. Removing the outer instance stops the Subscriptions and interrupts the Commands of every instance inside it.

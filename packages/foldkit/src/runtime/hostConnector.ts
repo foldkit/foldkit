@@ -64,7 +64,7 @@ export type PortHandles<P extends Ports | undefined> = P extends Ports
  * listens to values the app emits, and `dispose` shuts the runtime down.
  *
  * `dispose` is idempotent. It interrupts the runtime and runs all cleanup:
- * Subscriptions, ManagedResources, Mounts, listeners, and in-flight Commands
+ * Subscriptions, Block instances, Mounts, listeners, and in-flight Commands
  * stop, and the rendered DOM is removed with the container element restored
  * empty in its place, ready for a fresh `embed`.
  */

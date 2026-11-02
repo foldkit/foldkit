@@ -1,13 +1,14 @@
+import { Effect } from 'effect'
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './counterApplicationWithFlags'
+import { ApplicationLayer } from './counterServices'
 import { Flags, flags } from './flagsDefinition'
-import { ApplicationLayer } from './services'
+import { Application, ApplicationLive } from './initWithFlags'
 
-const program = Program.make({
-  block: ApplicationBlock,
+const program = Program.make(Application, {
+  layer: ApplicationLive,
   Flags,
   container: document.getElementById('root'),
 })
 
-Runtime.run(program.provide(ApplicationLayer), { flags })
+Runtime.run(program, { flags: flags.pipe(Effect.provide(ApplicationLayer)) })

@@ -1,1 +1,1 @@
-export { HomeBlock } from './block'
+export { Home, HomeLive } from './block'

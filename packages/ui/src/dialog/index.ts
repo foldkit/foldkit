@@ -1,5 +1,6 @@
 export {
-  DialogBlock,
+  Dialog,
+  DialogLive,
   titleId,
   descriptionId,
   initialFocusMarkerAttribute,

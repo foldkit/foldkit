@@ -25,6 +25,8 @@ Start with the nearest current exemplar:
 - `packages/typing-game/client/src/` for a production multi-page application
 - `packages/website/src/` for routing, pages, and documentation examples
 - `packages/foldkit/src/` and emitted declarations for exact behavior and types
+- `packages/create-foldkit-app/templates/base/FOLDKIT.md` for the consumer
+  conventions of the installed version, including Blocks and testing
 - `AGENTS.md` for naming, state modeling, code style, and file organization
 
 List directories before following a path from prose because examples move. A
@@ -54,41 +56,58 @@ of a release tag. After an upgrade, use the same command with `pull` in place of
   type. Let owned callbacks infer their parameters.
 - Prefer Foldkit and Effect modules over hand-rolled equivalents or outside
   libraries. Check `create-foldkit-app` and current examples first.
-- Construct generic UI Blocks with `Component.makeBlock` once at module scope,
-  then bind the exact completed result into the parent.
-- Use stateful Foldkit UI Blocks through a parent Binding. Call stateless render
-  helpers directly with the caller's builder and Model. Do not turn a render
-  helper into a Block merely for structural symmetry.
+- Every feature with state is a Block class. The class declares the contract
+  (`class Search extends Block<Search, Args>()('Search', { Model, Message })`),
+  and `SearchLive = Search.toLayer(() => ({ ... }))` implements it, or
+  `Search.toLayer(Effect.gen(...))` when its handlers need Services. The Layer
+  constructor runs once per Block and returns a module every instance shares.
+  An instance is plain data created with `new Search('search', args)`;
+  Foldkit runs its `start` Commands and Subscriptions while a Model holds it.
+- One file, one Block. A Block's file, named for it in camelCase
+  (`search.ts`, `issueBoard.ts`, `application.ts` for the root), holds its
+  Message and OutMessage unions, Model Schema, Command and Mount definitions,
+  class, and `Live` Layer. Never split a Block across `message.ts`,
+  `model.ts`, `update.ts`, `command.ts`, or `view.ts`, and do not add an
+  `index.ts` barrel for it. When a Block grows too large to read, extract a
+  feature that owns its own state, effects, or lifecycle into a child Block in
+  its own file; render-only markup stays in the parent as view functions. The other source files are
+  entries, `services.ts`, `route.ts`, and `domain/` modules shared by several
+  Blocks.
+- Use a stateful `@foldkit/ui` component as a child Block. Create the
+  instance with `new Dialog.Dialog('dialog', args)` in the parent's `init` or
+  an update handler, store it in the parent Model, and provide
+  `Dialog.DialogLive` to the parent's Layer.
+- Call a generic component factory once at module scope, such as
+  `const ResultListbox = Listbox.make<Result>()`. It returns a class
+  declared with its implementation, so the class is its own Layer:
+  `Layer.provide(ResultListbox)`, with `AnimationLive` for a Combobox,
+  Listbox, Menu, or Toast class. Never call the factory again to recover a
+  Model or class.
+- Call stateless render helpers directly with the caller's builder and Model.
+  Do not turn a render helper into a Block merely for structural symmetry.
 - Use `modifyFields` transformers directly when they depend only on that field's
-  current value. Use `() => value` for replacement from a Message, operation
-  result, Command result, or another Model field.
+  current value. Use `() => value` for replacement from a Message payload,
+  Command result, or another Model field.
 
-For any Block, Program, child Binding, child startup policy,
-Mount capability, OutMessage policy, handler recipe, or Service Layer work,
-read [references/composition.md](references/composition.md). It contains the
-decision tables, canonical stages, and safety invariants for that surface. Then
-inspect the matching source and example for the installed version instead of
-reconstructing an overload from memory.
+For any Block, child instance, OutMessage, view input, per-instance resource,
+Program, or Service Layer work, read
+[references/composition.md](references/composition.md). It covers the
+ownership model, the canonical class shape, children and their lifecycle,
+testing a composed graph, and review invariants. Then inspect the matching
+source in `packages/foldkit/src/blocks/` and an example for the installed
+version instead of reconstructing an API from memory.
 
 ## Preserve ownership boundaries
 
 Push back on mutation, two-way binding, imperative event handlers, Messages
 named as instructions, effects performed by update or view, and workflow state
 hidden in services. Propose the Foldkit form that keeps state transitions in
-update and effects behind Commands, Subscriptions, Mounts, or ManagedResources.
+update and effects behind Commands, Subscriptions, Mounts, or a keyed
+resource Service.
 
 Errors from Commands become Messages. Model absence with `Option`, remote data
 with `AsyncData`, and multi-state domain behavior with discriminated unions.
-Use Schema types for Models, Messages, Routes, and domain unions. Keep public
-child state behind the child's operations and accessors; a parent integrates a
-child through its Binding and OutMessages.
-
-Experimental Query can own retained fetch data, freshness, cancellation, and
-per-key retention. Derive displayed data through `read`; avoid a second canonical
-cache in the parent. Use `staleTime` with `requestLoadIfStale` and an Effect Clock
-timestamp supplied in a Message. KeyedQuery's `maxSettledEntries` protects pending
-entries; its `pendingArgs` and `requestCancel` support selected obsolete work.
-Opt into `notifyOnCompletion` and fold accepted results through the Binding when
-coordinating further requests. Keep URL policy, debounce, paging, sorting, and
-provider cooldowns in the application. Read the matching Query guide and source
-before relying on cancellation ordering or retention limits.
+Use Schema types for Models, Messages, Routes, and domain unions. A parent
+reads a child's state through `model.child.model`, changes it only by sending
+the child a Message, and learns child facts through `Child.on` OutMessage
+handlers.

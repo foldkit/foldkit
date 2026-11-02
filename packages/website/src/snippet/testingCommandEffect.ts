@@ -1,53 +1,40 @@
-import { Effect, Layer, Match, String } from 'effect'
+import { Effect } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/http'
-import { expect, test } from 'vitest'
 
-import { FetchWeather } from './command'
+import { expect, it } from '@effect/vitest'
 
-test('the FetchWeather handler returns a success Message from HTTP responses', async () => {
-  const testClient = HttpClient.make(request =>
-    Effect.sync(() => {
-      const responseData = Match.value(request.url).pipe(
-        Match.when(String.includes('geocoding'), () => ({
-          results: [
-            {
-              name: 'Beverly Hills',
-              latitude: 34.07362,
-              longitude: -118.40036,
-              admin1: 'California',
-            },
-          ],
-        })),
-        Match.when(String.includes('forecast'), () => ({
-          current: {
-            time: '2026-03-10T01:30',
-            interval: 900,
-            temperature_2m: 72.4,
-            relative_humidity_2m: 45,
-            wind_speed_10m: 9.8,
-            weather_code: 0,
-          },
-        })),
-        Match.orElse(url => {
-          throw new Error(`Unexpected request URL: ${url}`)
+import { Message, fetchWeather } from './weather'
+
+const testClient = HttpClient.make(request =>
+  Effect.succeed(
+    HttpClientResponse.fromWeb(
+      request,
+      new Response(
+        JSON.stringify({
+          locationName: 'Beverly Hills',
+          region: 'California',
+          temperature: 72,
+          description: 'Clear sky',
         }),
-      )
-      return HttpClientResponse.fromWeb(
-        request,
-        new Response(JSON.stringify(responseData), { status: 200 }),
-      )
-    }),
-  )
+        { status: 200 },
+      ),
+    ),
+  ),
+)
 
-  const TestLayer = Layer.provide(
-    FetchWeather.layer,
-    Layer.succeed(HttpClient.HttpClient, testClient),
-  )
+it.effect('maps a weather response to SucceededFetchWeather', () =>
+  Effect.gen(function* () {
+    const message = yield* fetchWeather(testClient)({ zipCode: '90210' })
 
-  const message = await FetchWeather({ zipCode: '90210' }).effect.pipe(
-    Effect.provide(TestLayer),
-    Effect.runPromise,
-  )
-
-  expect(message._tag).toBe('SucceededFetchWeather')
-})
+    expect(message).toEqual(
+      Message.SucceededFetchWeather({
+        weather: {
+          locationName: 'Beverly Hills',
+          region: 'California',
+          temperature: 72,
+          description: 'Clear sky',
+        },
+      }),
+    )
+  }),
+)

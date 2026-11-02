@@ -1,1 +1,0 @@
-export { SkillsEntryBlock } from './block'

@@ -3,13 +3,7 @@ import { childAttributes } from 'foldkit/html'
 
 import { VirtualList } from '@foldkit/ui'
 
-import type { UiViewBuilder } from '../composition'
-import {
-  VirtualListChatDemoBinding,
-  VirtualListChatHistoryModeGroupBinding,
-  VirtualListDemoBinding,
-  VirtualListVariableDemoBinding,
-} from '../composition'
+import type { UiViewBuilder } from '../definition'
 import {
   VirtualListChatHistoryLoad,
   type VirtualListChatHistoryMode,
@@ -23,16 +17,15 @@ import {
   chatMessageKey,
 } from '../virtualListChat'
 import {
-  ActivityVirtualListBlock,
-  ChatVirtualListBlock,
-  HistoryModeRadioGroupBlock,
+  ActivityVirtualList,
+  ChatVirtualList,
+  HistoryModeRadioGroup,
 } from './components'
 import { type Activity, ROW_COUNT } from './virtualListData'
 
-type ActivityVirtualListBlockModel = typeof ActivityVirtualListBlock.Model.Type
-type ChatVirtualListBlockModel = typeof ChatVirtualListBlock.Model.Type
-type HistoryModeRadioGroupBlockModel =
-  typeof HistoryModeRadioGroupBlock.Model.Type
+type ActivityVirtualListModel = typeof ActivityVirtualList.Type
+type ChatVirtualListModel = typeof ChatVirtualList.Type
+type HistoryModeRadioGroupModel = typeof HistoryModeRadioGroup.Type
 
 // SAMPLE DATA
 
@@ -160,10 +153,7 @@ const secondaryButtonClassName =
 const headerClassName =
   'flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-400'
 
-export const view = (
-  model: ActivityVirtualListBlockModel,
-  h: UiViewBuilder,
-) => {
+export const view = (model: ActivityVirtualListModel, h: UiViewBuilder) => {
   return [
     h.div(
       [h.Class('flex flex-col gap-4 w-full')],
@@ -181,42 +171,36 @@ export const view = (
             ),
           ],
         ),
-        h.block(
-          VirtualListDemoBinding.embedView({
-            slotId: model.id,
-            model,
-            viewInputs: {
-              items: sampleActivities,
-              itemToKey: row => String(row.id),
-              itemToView: row =>
+        model.view({
+          items: sampleActivities,
+          itemToKey: row => String(row.id),
+          itemToView: row =>
+            h.div(
+              [h.Class(rowClassName)],
+              [
                 h.div(
-                  [h.Class(rowClassName)],
+                  [h.Class(avatarClassName(row.colorClass))],
+                  [row.initial],
+                ),
+                h.div(
+                  [h.Class(activityTextClassName)],
                   [
-                    h.div(
-                      [h.Class(avatarClassName(row.colorClass))],
-                      [row.initial],
-                    ),
-                    h.div(
-                      [h.Class(activityTextClassName)],
-                      [
-                        h.span([h.Class(actorClassName)], [row.actor]),
-                        ' ',
-                        row.verb,
-                        ' ',
-                        h.span([h.Class(targetClassName)], [row.target]),
-                      ],
-                    ),
-                    h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
+                    h.span([h.Class(actorClassName)], [row.actor]),
+                    ' ',
+                    row.verb,
+                    ' ',
+                    h.span([h.Class(targetClassName)], [row.target]),
                   ],
                 ),
-              containerClassName,
-              containerAttributes: childAttributes([
-                h.AriaLabel('Activity events'),
-                h.Tabindex(0),
-              ]),
-            },
-          }),
-        ),
+                h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
+              ],
+            ),
+          containerClassName,
+          containerAttributes: childAttributes([
+            h.AriaLabel('Activity events'),
+            h.Tabindex(0),
+          ]),
+        }),
       ],
     ),
   ]
@@ -292,7 +276,7 @@ const variableArtifactClassName =
   'mt-1 inline-flex w-fit rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-700 dark:text-gray-300'
 
 export const virtualListVariableDemo = (
-  model: ActivityVirtualListBlockModel,
+  model: ActivityVirtualListModel,
   h: UiViewBuilder,
 ) => {
   const variableTallRow = (row: Activity, summary: Summary) =>
@@ -363,26 +347,20 @@ export const virtualListVariableDemo = (
             ),
           ],
         ),
-        h.block(
-          VirtualListVariableDemoBinding.embedView({
-            slotId: model.id,
-            model,
-            viewInputs: {
-              items: variableActivities,
-              itemToKey: row => String(row.id),
-              itemToRowHeightPx: variableRowHeightPx,
-              itemToView: (row, index) =>
-                row.hasSummary
-                  ? variableTallRow(row, summaryFor(index))
-                  : variableShortRow(row),
-              containerClassName,
-              containerAttributes: childAttributes([
-                h.AriaLabel('Variable-height activity events'),
-                h.Tabindex(0),
-              ]),
-            },
-          }),
-        ),
+        model.view({
+          items: variableActivities,
+          itemToKey: row => String(row.id),
+          itemToRowHeightPx: variableRowHeightPx,
+          itemToView: (row, index) =>
+            row.hasSummary
+              ? variableTallRow(row, summaryFor(index))
+              : variableShortRow(row),
+          containerClassName,
+          containerAttributes: childAttributes([
+            h.AriaLabel('Variable-height activity events'),
+            h.Tabindex(0),
+          ]),
+        }),
       ],
     ),
   ]
@@ -457,8 +435,8 @@ const estimateWideChatMessageHeight = estimateChatMessageHeightForWidth({
   isNarrowContainer: false,
 })
 
-export const estimatedChatMessageHeight = (model: ChatVirtualListBlockModel) =>
-  Match.value(model.measurement).pipe(
+export const estimatedChatMessageHeight = (model: ChatVirtualListModel) =>
+  Match.value(model.model.measurement).pipe(
     Match.withReturnType<(message: VirtualListChatMessage) => number>(),
     Match.tagsExhaustive({
       Unmeasured: () => estimateWideChatMessageHeight,
@@ -470,7 +448,7 @@ export const estimatedChatMessageHeight = (model: ChatVirtualListBlockModel) =>
   )
 
 export const chatHistoryRows = (
-  model: ChatVirtualListBlockModel,
+  model: ChatVirtualListModel,
 ): VirtualList.HistoryRows<VirtualListChatMessage> => ({
   itemToKey: chatMessageKey,
   dynamicRowHeights: true,
@@ -541,14 +519,14 @@ const chatHistoryStatus = (
 }
 
 export const virtualListChatDemo = (
-  model: ChatVirtualListBlockModel,
+  model: ChatVirtualListModel,
   messages: ReadonlyArray<VirtualListChatMessage>,
   h: UiViewBuilder,
   options: Readonly<{
     historySource: VirtualListChatHistorySource
     historyLoad: VirtualListChatHistoryLoad
     announcedOlderCount: number
-    historyModeGroup?: HistoryModeRadioGroupBlockModel
+    historyModeGroup?: HistoryModeRadioGroupModel
   }> = {
     historySource: VirtualListChatHistorySource.Unbounded(),
     historyLoad: VirtualListChatHistoryLoad.Idle(),
@@ -638,47 +616,36 @@ export const virtualListChatDemo = (
                             ],
                             ['History mode'],
                           ),
-                          h.block(
-                            VirtualListChatHistoryModeGroupBinding.embedView({
-                              slotId: historyModeGroup.id,
-                              model: historyModeGroup,
-                              viewInputs: {
-                                selectedValue: Option.some(historyMode),
-                                options: historyModes,
-                                ariaLabel: 'History mode',
-                                orientation: 'Horizontal',
-                                toView: ({ group, options }) =>
-                                  h.div(
-                                    [
-                                      ...group,
-                                      h.AriaDescribedBy(
-                                        `${historyModeGroup.id}-hint`,
-                                      ),
-                                      h.Class(historyModeGroupClassName),
-                                    ],
-                                    options.map(option =>
-                                      h.button(
-                                        [
-                                          ...option.option,
-                                          h.Class(historyModeOptionClassName),
-                                        ],
-                                        [
-                                          h.span(
-                                            [...option.label],
-                                            [option.value],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                          historyModeGroup.view({
+                            selectedValue: Option.some(historyMode),
+                            options: historyModes,
+                            ariaLabel: 'History mode',
+                            orientation: 'Horizontal',
+                            toView: ({ group, options }) =>
+                              h.div(
+                                [
+                                  ...group,
+                                  h.AriaDescribedBy(
+                                    `${historyModeGroup.model.id}-hint`,
                                   ),
-                              },
-                            }),
-                          ),
+                                  h.Class(historyModeGroupClassName),
+                                ],
+                                options.map(option =>
+                                  h.button(
+                                    [
+                                      ...option.option,
+                                      h.Class(historyModeOptionClassName),
+                                    ],
+                                    [h.span([...option.label], [option.value])],
+                                  ),
+                                ),
+                              ),
+                          }),
                         ],
                       ),
                       h.span(
                         [
-                          h.Id(`${historyModeGroup.id}-hint`),
+                          h.Id(`${historyModeGroup.model.id}-hint`),
                           h.Class('text-xs text-gray-500 dark:text-gray-400'),
                         ],
                         ['Changing modes resets the conversation.'],
@@ -715,26 +682,20 @@ export const virtualListChatDemo = (
           ],
           [chatHistoryStatus(isLoading, isComplete, announcedOlderCount)],
         ),
-        h.block(
-          VirtualListChatDemoBinding.embedView({
-            slotId: model.id,
-            model,
-            viewInputs: {
-              items: messages,
-              ...chatHistoryRows(model),
-              itemToView: message => chatMessageView(message, h),
-              accessibleSet,
-              overscan: 16,
-              contentAlignment: 'End',
-              containerClassName:
-                'h-96 sm:h-80 w-full rounded-lg bg-gray-100/70 dark:bg-gray-950/40 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none',
-              containerAttributes: childAttributes([
-                h.AriaLabel('End-anchored chat messages'),
-                h.Tabindex(0),
-              ]),
-            },
-          }),
-        ),
+        model.view({
+          items: messages,
+          ...chatHistoryRows(model),
+          itemToView: message => chatMessageView(message, h),
+          accessibleSet,
+          overscan: 16,
+          contentAlignment: 'End',
+          containerClassName:
+            'h-96 sm:h-80 w-full rounded-lg bg-gray-100/70 dark:bg-gray-950/40 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none',
+          containerAttributes: childAttributes([
+            h.AriaLabel('End-anchored chat messages'),
+            h.Tabindex(0),
+          ]),
+        }),
         h.div(
           [h.Class('grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end')],
           [

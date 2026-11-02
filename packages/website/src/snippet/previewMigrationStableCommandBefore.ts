@@ -1,18 +1,18 @@
-// Stable Before: a Command owns its execution Effect directly.
-import { Effect, Schema } from 'effect'
+// Stable before: the Command owns the Effect that runs each invocation.
+import { Effect } from 'effect'
 import { Command } from 'foldkit'
 
-import { Message } from './message'
-import { PeopleDirectory } from './peopleDirectory'
+import { Message, Theme } from './message'
+import { SettingsStore } from './settingsStore'
 
-export const FetchPeople = Command.define('FetchPeople', {
-  args: { searchText: Schema.String },
-  messages: [Message.CompletedFetchPeople, Message.FailedFetchPeople],
-  execute: ({ searchText }) =>
+export const SaveTheme = Command.define('SaveTheme', {
+  args: { theme: Theme },
+  messages: [Message.CompletedSaveTheme, Message.FailedSaveTheme],
+  execute: ({ theme }) =>
     Effect.gen(function* () {
-      const peopleDirectory = yield* PeopleDirectory
-      const people = yield* peopleDirectory.search(searchText)
+      const settingsStore = yield* SettingsStore
+      yield* settingsStore.saveTheme(theme)
 
-      return Message.CompletedFetchPeople({ searchText, people })
-    }).pipe(Effect.catch(() => Effect.succeed(Message.FailedFetchPeople()))),
+      return Message.CompletedSaveTheme()
+    }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSaveTheme()))),
 })

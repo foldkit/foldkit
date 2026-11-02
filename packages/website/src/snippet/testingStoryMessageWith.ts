@@ -1,10 +1,18 @@
-import { messageWith, steps } from 'foldkit/story'
+import { message, messageWith, model, story } from 'foldkit/story'
 
-export const receiveCurrentFrame = steps(
-  messageWith((model: Model) =>
-    Message.ReceivedFrame({
-      sessionId: model.sessionId,
-      frame: nextFrame,
+import { expect, it } from '@effect/vitest'
+
+import { FrameFeedLive, Message } from './frameFeed'
+
+it.effect('keeps frames from the current session', () =>
+  story(
+    FrameFeedLive,
+    message(Message.ClickedReconnect()),
+    messageWith(model =>
+      Message.ReceivedFrame({ sessionId: model.sessionId, frame: 'hello' }),
+    ),
+    model(model => {
+      expect(model.frames).toEqual(['hello'])
     }),
   ),
 )

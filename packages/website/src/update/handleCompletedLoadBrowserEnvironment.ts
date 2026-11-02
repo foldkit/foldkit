@@ -1,59 +1,58 @@
 import { Option } from 'effect'
-import { Update } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
 import { modifyFields } from 'foldkit/struct'
 
-import { PlaygroundBinding, UiPagesBinding } from '../composition'
-import { makeStep } from '../definition'
 import { findActiveSectionKeyForRoute } from '../docsNav'
 import type { Message, ThemePreference } from '../message'
+import type { Model } from '../model'
+import { Playground, Ui } from '../page'
 import { initialSidebarGroups } from '../sidebarStorage'
 import { ApplyTheme, resolveTheme } from '../theme'
 
-type CompletedLoadBrowserEnvironmentMessage =
+type CompletedLoadBrowserEnvironment =
   typeof Message.CompletedLoadBrowserEnvironment.Type
 
-type CompletedLoadBrowserEnvironment = CompletedLoadBrowserEnvironmentMessage
+export const UI_PAGES_ID = 'ui'
 
-export const handleCompletedLoadBrowserEnvironmentStep = makeStep.fromMessage(
-  ({
+export const handleCompletedLoadBrowserEnvironment = (
+  model: Model,
+  {
     maybeThemePreference,
     maybeSidebarState,
     systemTheme,
     isPlaygroundSupported,
     currentYear,
     today,
-  }: CompletedLoadBrowserEnvironment) => {
-    const themePreference: ThemePreference = Option.getOrElse(
-      maybeThemePreference,
-      () => 'System',
-    )
-    const resolvedTheme = resolveTheme(themePreference, systemTheme)
+  }: CompletedLoadBrowserEnvironment,
+) => {
+  const themePreference: ThemePreference = Option.getOrElse(
+    maybeThemePreference,
+    () => 'System',
+  )
+  const resolvedTheme = resolveTheme(themePreference, systemTheme)
 
-    const applyBrowserEnvironmentStep = makeStep(model => ({
-      model: modifyFields(model, {
-        currentYear: () => currentYear,
-        maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
-        sidebarGroups: () =>
-          initialSidebarGroups(
-            maybeSidebarState,
-            findActiveSectionKeyForRoute(model.route),
-          ),
-        maybeThemePreference: () => Option.some(themePreference),
-        systemTheme: () => systemTheme,
-        resolvedTheme: () => resolvedTheme,
-      }),
-      commands: [ApplyTheme({ theme: resolvedTheme })],
-    }))
-
-    const initUiPagesStep = makeStep(model =>
-      initAndSet(UiPagesBinding, model, { args: [today] }),
-    )
-
-    return Update.combineSteps([
-      applyBrowserEnvironmentStep,
-      PlaygroundBinding.informSupport({ isSupported: isPlaygroundSupported }),
-      initUiPagesStep,
-    ])
-  },
-)
+  return {
+    model: modifyFields(model, {
+      currentYear: () => currentYear,
+      maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
+      sidebarGroups: () =>
+        initialSidebarGroups(
+          maybeSidebarState,
+          findActiveSectionKeyForRoute(model.route),
+        ),
+      maybeThemePreference: () => Option.some(themePreference),
+      systemTheme: () => systemTheme,
+      resolvedTheme: () => resolvedTheme,
+      uiPages: () => new Ui(UI_PAGES_ID, { today }),
+    }),
+    commands: [ApplyTheme({ theme: resolvedTheme })],
+    messages: Option.toArray(
+      Option.map(model.playground, playground =>
+        playground.send(
+          Playground.Message.InformedOfSupport({
+            isSupported: isPlaygroundSupported,
+          }),
+        ),
+      ),
+    ),
+  }
+}

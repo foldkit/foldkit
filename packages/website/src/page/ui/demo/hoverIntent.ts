@@ -1,16 +1,12 @@
 import type { Html } from 'foldkit/html'
 
-import { HoverIntentBlock } from '@foldkit/ui'
+import type { HoverIntent } from '@foldkit/ui'
 import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
 
-import type { UiViewBuilder } from '../composition'
-import {
-  HoverIntentCardDemoBinding,
-  HoverIntentMenuDemoBinding,
-} from '../composition'
+import type { UiViewBuilder } from '../definition'
 import { Message } from '../message'
 
-type HoverIntentBlockModel = typeof HoverIntentBlock.Model.Type
+type HoverIntentModel = HoverIntent.HoverIntent
 
 const triggerClassName =
   'button-accent inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm shadow-sm'
@@ -76,22 +72,16 @@ const hoverCard = (
   )
 
 export const hoverCardDemo = (
-  hoverIntentCardDemo: HoverIntentBlockModel,
+  hoverIntentCardDemo: HoverIntentModel,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(
     [h.Class('flex min-h-32 w-full items-center justify-center')],
     [
-      h.block(
-        HoverIntentCardDemoBinding.embedView({
-          slotId: 'hover-intent-card-demo',
-          model: hoverIntentCardDemo,
-          viewInputs: {
-            focusTriggerSelector: `#${CARD_TRIGGER_ID}`,
-            toView: renderInfo => hoverCard(renderInfo, h),
-          },
-        }),
-      ),
+      hoverIntentCardDemo.view({
+        focusTriggerSelector: `#${CARD_TRIGGER_ID}`,
+        toView: renderInfo => hoverCard(renderInfo, h),
+      }),
     ],
   ),
 ]
@@ -151,22 +141,16 @@ const hoverMenu = (
   )
 
 export const hoverMenuDemo = (
-  hoverIntentMenuDemo: HoverIntentBlockModel,
+  hoverIntentMenuDemo: HoverIntentModel,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(
     [h.Class('flex min-h-32 w-full items-center justify-center')],
     [
-      h.block(
-        HoverIntentMenuDemoBinding.embedView({
-          slotId: 'hover-intent-menu-demo',
-          model: hoverIntentMenuDemo,
-          viewInputs: {
-            focusTriggerSelector: `#${MENU_TRIGGER_ID}`,
-            toView: renderInfo => hoverMenu(renderInfo, h),
-          },
-        }),
-      ),
+      hoverIntentMenuDemo.view({
+        focusTriggerSelector: `#${MENU_TRIGGER_ID}`,
+        toView: renderInfo => hoverMenu(renderInfo, h),
+      }),
     ],
   ),
 ]

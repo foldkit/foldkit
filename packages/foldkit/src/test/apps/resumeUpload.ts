@@ -5,7 +5,6 @@ import * as File from '../../file/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -32,7 +31,10 @@ export type Message = typeof Message.Type
 
 export const SelectResume = Command.define('SelectResume', {
   messages: [Message.CompletedSelectResume, Message.CancelledSelectResume],
-  handler: function* () {
+})
+
+export const SelectResumeLive = SelectResume.toLayer(
+  Effect.gen(function* () {
     return () =>
       File.select(['application/pdf']).pipe(
         Effect.map(
@@ -42,20 +44,23 @@ export const SelectResume = Command.define('SelectResume', {
           }),
         ),
       )
-  },
-})
+  }),
+)
 
 export const ReadResumePreview = Command.define('ReadResumePreview', {
   args: { file: File.File },
   messages: [Message.SucceededReadPreview, Message.FailedReadPreview],
-  handler: function* () {
+})
+
+export const ReadResumePreviewLive = ReadResumePreview.toLayer(
+  Effect.gen(function* () {
     return ({ file }) =>
       File.readAsDataUrl(file).pipe(
         Effect.map(dataUrl => Message.SucceededReadPreview({ dataUrl })),
         Effect.catch(() => Effect.succeed(Message.FailedReadPreview())),
       )
-  },
-})
+  }),
+)
 
 // INIT
 
@@ -67,7 +72,7 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedChooseResume: () => ({ model, commands: [SelectResume()] }),
     CompletedSelectResume: ({ file }) => ({
@@ -95,8 +100,7 @@ export const update = Update.define((model: Model, message: Message) =>
         readStatus: () => 'Idle',
       }),
     }),
-  }),
-)
+  })
 
 // VIEW
 
@@ -143,6 +147,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 export const EffectsLayer = Layer.mergeAll(
-  SelectResume.layer,
-  ReadResumePreview.layer,
+  SelectResumeLive,
+  ReadResumePreviewLive,
 )

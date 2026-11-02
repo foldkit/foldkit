@@ -84,6 +84,24 @@ export type RuntimeDevToolsConfig<DispatchServices = never> =
         dispatchSchema?: Schema.Codec<any, any, DispatchServices, unknown>
       }>)
 
+/** @internal Adds the dispatch Schema DevTools uses when `dispatch` is enabled. */
+export const resolveProgramDevToolsConfig = <
+  const DispatchSchema extends Schema.Codec<any, any, any, any>,
+>(
+  devTools: DevToolsConfig | undefined,
+  dispatchSchema: DispatchSchema,
+): RuntimeDevToolsConfig<DispatchSchema['DecodingServices']> | undefined => {
+  if (
+    devTools === undefined ||
+    devTools === false ||
+    devTools.dispatch !== true
+  ) {
+    return devTools
+  }
+
+  return { ...devTools, dispatchSchema }
+}
+
 let registeredDevToolsOverlay: DevToolsOverlay | undefined
 
 /** Registers the overlay supplied by the Foldkit Vite plugin. */

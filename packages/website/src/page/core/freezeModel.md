@@ -6,7 +6,7 @@
 
 Foldkit depends on immutable Model updates. TypeScript's `readonly` checks source code, but it cannot stop a write at runtime. If code mutates `model.items` in place, reference equality can no longer tell which parts changed. A Subscription may keep stale dependencies, and the view may leave stale DOM on screen.
 
-During development, Foldkit deep-freezes the Model after init and after every update. An accidental write then throws a `TypeError` at the write site instead of producing a later rendering or Subscription bug.
+During development, Foldkit deep-freezes the Model when an instance is constructed and after every update. An accidental write then throws a `TypeError` at the write site instead of producing a later rendering or Subscription bug.
 
 ### Development Configuration
 

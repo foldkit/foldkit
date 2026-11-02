@@ -1,6 +1,7 @@
 export {
-  SliderBlock,
-  forRoot,
+  Slider,
+  SliderLive,
+  make,
   fractionOfValue,
   snapAndClamp,
   valueFromPointer,
@@ -9,4 +10,5 @@ export {
   type InitConfig,
   type ViewInputs,
   type SliderAttributes,
+  type SliderClass,
 } from './slider.js'

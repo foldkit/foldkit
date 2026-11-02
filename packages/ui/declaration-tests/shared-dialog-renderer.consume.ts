@@ -1,18 +1,15 @@
-import type * as Block from 'foldkit/block'
+import type { Layer } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 
 import type * as Dialog from '@foldkit/ui/dialog'
 
 import {
-  DeleteDialogBinding,
-  DeleteIssueBlock,
-  DeleteIssueComposition,
-  DeleteIssueMessage,
-  DeleteIssueModel,
-  InviteDialogBinding,
-  InviteMemberBlock,
-  InviteMemberComposition,
-  InviteMemberMessage,
+  type DeleteIssue,
+  DeleteIssueLive,
+  type DeleteIssueMessage,
+  type DeleteIssueViewBuilder,
+  type InviteMember,
+  InviteMemberLive,
   deleteDialogInputs,
 } from './shared-dialog-renderer.accepted.js'
 import {
@@ -31,10 +28,7 @@ type Expect<Value extends true> = Value
 export type SameOwnerParameters = Expect<
   Equal<
     Parameters<typeof deleteDialogInputs>,
-    [
-      model: typeof DeleteIssueModel.Type,
-      h: Block.ViewBuilderFor<typeof DeleteIssueComposition>,
-    ]
+    [model: typeof DeleteIssue.Model.Type, h: DeleteIssueViewBuilder]
   >
 >
 export type SharedRendererAttributes = Expect<
@@ -49,39 +43,14 @@ export type SharedContentBuilder = Expect<
 export type SharedViewInputs = Expect<
   Equal<ReturnType<typeof confirmDialogInputs>, Dialog.ViewInputs>
 >
-export type PreservedDeleteIssueModel = Expect<
-  Equal<typeof DeleteIssueBlock.Model.Type, typeof DeleteIssueModel.Type>
+export type DialogFieldIsInstance = Expect<
+  Equal<(typeof DeleteIssue.Model.Type)['dialog'], Dialog.Dialog>
+>
+export type DeleteIssueLayer = Expect<
+  Equal<typeof DeleteIssueLive, Layer.Layer<DeleteIssue>>
+>
+export type InviteMemberLayer = Expect<
+  Equal<typeof InviteMemberLive, Layer.Layer<InviteMember>>
 >
 
-export const relocatedDeleteView = DeleteIssueComposition.makeView((model, h) =>
-  h.block(
-    DeleteDialogBinding.embedView({
-      slotId: 'relocated-delete',
-      model: model.dialog,
-      viewInputs: deleteDialogInputs(model, h),
-    }),
-  ),
-)
-
-export const relocatedInviteView = InviteMemberComposition.makeView(
-  (model, h) =>
-    h.block(
-      InviteDialogBinding.embedView({
-        slotId: 'relocated-invite',
-        model: model.dialog,
-        viewInputs: confirmDialogInputs(
-          h,
-          (attributes, children) => h.dialog(attributes, children),
-          {
-            title: 'Invite member',
-            description: `Invite ${model.email}?`,
-            confirmMessage: InviteMemberMessage.ClickedSendInvite({
-              email: model.email,
-            }),
-          },
-        ),
-      }),
-    ),
-)
-
-export const completedParents = [DeleteIssueBlock, InviteMemberBlock]
+export const completedLayers = [DeleteIssueLive, InviteMemberLive]

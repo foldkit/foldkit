@@ -1,19 +1,7 @@
 import { clsx } from 'clsx'
-import {
-  Array,
-  Deferred,
-  Effect,
-  FiberMap,
-  Layer,
-  Match,
-  Option,
-  Order,
-  Record,
-  Schema,
-  pipe,
-} from 'effect'
-import { ManagedResource } from 'foldkit'
-import { Html, inertHtml as ih } from 'foldkit/html'
+import { Array, Layer, Match, Option, Order, Record, pipe } from 'effect'
+import { Block, type Mount } from 'foldkit'
+import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import filesBySlug from 'virtual:playground-files'
 
@@ -21,25 +9,15 @@ import { Icon } from '../../icon'
 import { exampleDetailRouter, examplesRouter } from '../../route'
 import { type ExampleMeta, findBySlug } from '../example/meta'
 import * as PlaygroundPreview from '../playgroundPreview'
-import {
-  type PlaygroundWebContainer,
-  acquirePlaygroundWebContainer,
-  reasonFromError,
-} from '../playgroundWebContainer'
-import {
-  FileTabsBinding,
-  PlaygroundComposition,
-  type PlaygroundViewBuilder,
-} from './composition'
-import {
+import { PlaygroundContainer, PlaygroundContainerLive } from './container'
+import { PlaygroundFileTabs } from './fileTabs'
+import { Message, Model, PlaygroundState } from './model'
+import { MountPlaygroundEditor, streamPlaygroundEditorMessages } from './mount'
+
+type PlaygroundViewBuilder = HtmlBuilder<
   Message,
-  Model,
-  PlaygroundDefinition,
-  PlaygroundState,
-  makeFieldsStep,
-  makeNoopStep,
-} from './definition'
-import { MountPlaygroundEditor } from './mount'
+  Mount.RequirementsOf<typeof MountPlaygroundEditor>
+>
 
 const PREFERRED_INITIAL_FILES: ReadonlyArray<string> = ['src/application.ts']
 
@@ -70,165 +48,18 @@ const initialActiveFile = (files: Readonly<Record<string, string>>): string =>
     Option.getOrElse(() => ''),
   )
 
-export const init = PlaygroundComposition.makeInit(
-  (slug: string, maybeIsSupported: Option.Option<boolean> = Option.none()) => {
-    const files = Option.getOrElse(maybeFilesForSlug(slug), () => ({}))
+const hasPlaygroundFiles = (slug: string): boolean =>
+  Record.has(filesBySlug, slug)
 
-    return {
-      model: {
-        slug,
-        state: PlaygroundState.Booting(),
-        files,
-        activeFilePath: initialActiveFile(files),
-        dirtyPaths: [],
-        lastWriteError: Option.none(),
-        maybeIsSupported,
-      },
-    }
-  },
-)
-
-// MANAGED RESOURCE
-
-const WebContainerPlayground =
-  PlaygroundDefinition.makeResource<PlaygroundWebContainer>()(
-    'WebContainerPlayground',
-  )
-
-export type WebContainerPlaygroundService = ManagedResource.ServiceOf<
-  typeof WebContainerPlayground
->
-
-const PlaygroundParams = Schema.Struct({ slug: Schema.String })
-type PlaygroundParams = typeof PlaygroundParams.Type
-// NOTE: Vite's HMR for a content file (`src/application.ts`) doesn't reliably
-// invalidate Tailwind's CSS module in the WebContainer. After writing the
-// content file, we write `src/styles.css` back to itself so Vite emits a
-// CSS HMR update; that re-runs the Tailwind plugin against the latest
-// content tree and the new utility classes show up in the preview.
-const STYLES_CSS_PATH = 'src/styles.css'
-
-const WRITE_DEBOUNCE_MILLIS = 250
-
-export const WaitForPlaygroundServerFailure = PlaygroundDefinition.makeCommand(
-  'WaitForPlaygroundServerFailure',
-  {
-    messages: [Message.CompletedWaitForPlaygroundServerFailure],
-    handler: function* () {
-      return () =>
-        Effect.gen(function* () {
-          const { serverFailure } = yield* WebContainerPlayground.get
-          return yield* Deferred.await(serverFailure).pipe(
-            Effect.catch(error =>
-              Effect.succeed(
-                Message.CompletedWaitForPlaygroundServerFailure({
-                  reason: reasonFromError(error),
-                }),
-              ),
-            ),
-          )
-        }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt))
-    },
-  },
-)
-
-export const SchedulePlaygroundFileWrite = PlaygroundDefinition.makeCommand(
-  'SchedulePlaygroundFileWrite',
-  {
-    args: { path: Schema.String, content: Schema.String },
-    messages: [
-      Message.SucceededSchedulePlaygroundFileWrite,
-      Message.FailedSchedulePlaygroundFileWrite,
-    ],
-    handler: function* () {
-      return ({ path, content }) =>
-        Effect.gen(function* () {
-          const { container, pendingWrites } = yield* WebContainerPlayground.get
-          yield* FiberMap.run(
-            pendingWrites,
-            path,
-            Effect.gen(function* () {
-              yield* Effect.sleep(WRITE_DEBOUNCE_MILLIS)
-              yield* Effect.tryPromise(() =>
-                container.fs.writeFile(path, content),
-              )
-              if (path !== STYLES_CSS_PATH) {
-                const stylesContent = yield* Effect.tryPromise(() =>
-                  container.fs.readFile(STYLES_CSS_PATH, 'utf-8'),
-                )
-                yield* Effect.tryPromise(() =>
-                  container.fs.writeFile(STYLES_CSS_PATH, stylesContent),
-                )
-              }
-            }).pipe(
-              Effect.catch(error =>
-                Effect.logError(
-                  `[playground] Debounced write failed for ${path}:`,
-                  error,
-                ),
-              ),
-            ),
-            { startImmediately: true },
-          )
-          return Message.SucceededSchedulePlaygroundFileWrite()
-        }).pipe(
-          Effect.catchTag('ResourceNotAvailable', () =>
-            Effect.succeed(
-              Message.FailedSchedulePlaygroundFileWrite({
-                reason: 'WebContainer not yet ready',
-              }),
-            ),
-          ),
-        )
-    },
-  },
-)
-
-export const managedResources = PlaygroundDefinition.makeManagedResources(
-  entry => ({
-    webContainerPlayground: entry(
-      'ManageWebContainerPlayground',
-      Schema.Option(PlaygroundParams),
-      {
-        resource: WebContainerPlayground,
-        modelToMaybeRequirements: ({ slug, state, maybeIsSupported }) =>
-          state._tag === 'Failed' ||
-          state._tag === 'Idle' ||
-          !Option.contains(maybeIsSupported, true)
-            ? Option.none()
-            : pipe(
-                slug,
-                Option.liftPredicate(() => Record.has(filesBySlug, slug)),
-                Option.map(() => ({ slug })),
-              ),
-        onAcquired: ({ previewUrl }) =>
-          Message.BootedPlayground({ previewUrl }),
-        onReleased: () => Message.ReleasedPlayground(),
-        onAcquireError: error =>
-          Message.FailedBootPlayground({ reason: reasonFromError(error) }),
-        handler: function* () {
-          return {
-            acquire: ({ slug }) =>
-              Effect.gen(function* () {
-                const fileEntry = yield* Effect.fromOption(
-                  Record.get(filesBySlug, slug),
-                )
-                return yield* acquirePlaygroundWebContainer(fileEntry.files)
-              }),
-            release: () => Effect.void,
-          }
-        },
-      },
-    ),
-  }),
-)
-
-export const EffectsLayer = Layer.mergeAll(
-  managedResources.layer,
-  MountPlaygroundEditor.layer,
-  WaitForPlaygroundServerFailure.layer,
-  SchedulePlaygroundFileWrite.layer,
-)
+const isContainerRequired = ({
+  slug,
+  state,
+  maybeIsSupported,
+}: Model): boolean =>
+  state._tag !== 'Failed' &&
+  state._tag !== 'Idle' &&
+  Option.contains(maybeIsSupported, true) &&
+  hasPlaygroundFiles(slug)
 
 const appendDeduped = (
   paths: ReadonlyArray<string>,
@@ -236,16 +67,22 @@ const appendDeduped = (
 ): ReadonlyArray<string> =>
   Array.contains(paths, path) ? paths : [...paths, path]
 
-const flushDirtyPaths = (
-  model: Model,
-): ReadonlyArray<ReturnType<typeof SchedulePlaygroundFileWrite>> =>
-  model.dirtyPaths.flatMap(path =>
-    pipe(
-      Record.get(model.files, path),
-      Option.map(content => SchedulePlaygroundFileWrite({ path, content })),
-      Option.toArray,
-    ),
-  )
+const flushDirtyPaths = (model: Model) =>
+  Option.match(model.maybeContainer, {
+    onNone: () => [],
+    onSome: container =>
+      Array.flatMap(model.dirtyPaths, path =>
+        pipe(
+          Record.get(model.files, path),
+          Option.map(content =>
+            container.send(
+              PlaygroundContainer.Message.RequestedFileWrite({ path, content }),
+            ),
+          ),
+          Option.toArray,
+        ),
+      ),
+  })
 
 const markPreviewLoaded = (
   state: PlaygroundState,
@@ -265,66 +102,6 @@ const markPreviewLoaded = (
     }),
     Match.orElse(() => state),
   )
-
-export const update = PlaygroundComposition.makeUpdate({
-  InformedOfSupport: makeFieldsStep.fromMessage(({ isSupported }) => ({
-    maybeIsSupported: () => Option.some(isSupported),
-  })),
-  BootedPlayground: (model, { previewUrl }) => ({
-    model: modifyFields(model, {
-      state: () =>
-        PlaygroundState.Booted({
-          preview: PlaygroundPreview.start(previewUrl),
-        }),
-      dirtyPaths: () => [],
-      lastWriteError: () => Option.none(),
-    }),
-    commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
-  }),
-  FailedBootPlayground: makeFieldsStep.fromMessage(({ reason }) => ({
-    state: () => PlaygroundState.Failed({ reason }),
-  })),
-  ReleasedPlayground: makeFieldsStep(() => ({
-    state: state => (state._tag === 'Failed' ? state : PlaygroundState.Idle()),
-  })),
-  LoadedPlaygroundPreview: makeFieldsStep.fromMessage(({ previewUrl }) => ({
-    state: state => markPreviewLoaded(state, previewUrl),
-  })),
-  EditedPlaygroundFile: (model, { path, content }) => {
-    const isBooted = model.state._tag === 'Booted'
-    const nextModel = modifyFields(model, {
-      files: Record.set(path, content),
-      dirtyPaths: existing =>
-        isBooted ? existing : appendDeduped(existing, path),
-    })
-
-    if (isBooted) {
-      return {
-        model: nextModel,
-        commands: [SchedulePlaygroundFileWrite({ path, content })],
-      }
-    } else {
-      return { model: nextModel }
-    }
-  },
-  FailedMountPlaygroundEditor: makeFieldsStep.fromMessage(({ reason }) => ({
-    state: () => PlaygroundState.Failed({ reason }),
-  })),
-  SucceededSchedulePlaygroundFileWrite: makeFieldsStep(() => ({
-    lastWriteError: () => Option.none(),
-  })),
-  FailedSchedulePlaygroundFileWrite: makeFieldsStep.fromMessage(
-    ({ reason }) => ({
-      lastWriteError: () => Option.some(reason),
-    }),
-  ),
-  CompletedWaitForPlaygroundServerFailure: makeFieldsStep.fromMessage(
-    ({ reason }) => ({
-      state: () => PlaygroundState.Failed({ reason }),
-    }),
-  ),
-  SucceededMountPlaygroundEditor: makeNoopStep(),
-})
 
 const FILE_TAB_BUTTON_BASE_CLASS =
   'block w-full text-left px-3 py-1.5 font-mono text-xs'
@@ -570,63 +347,57 @@ const editorLayoutView = (model: Model, h: PlaygroundViewBuilder): Html => {
       h.div(
         [h.Class('flex-1 min-h-0 min-w-0 flex max-playground-wide:flex-col')],
         [
-          h.block(
-            FileTabsBinding.embedView({
-              slotId: model.fileTabs.id,
-              model: model.fileTabs,
-              viewInputs: {
-                tabs: paths,
-                selectedValue: model.activeFilePath,
-                ariaLabel: 'Playground files',
-                orientation: 'Vertical',
-                toView: ({ tablist, tabs, activeIndex }) =>
+          model.fileTabs.view({
+            tabs: paths,
+            selectedValue: model.activeFilePath,
+            ariaLabel: 'Playground files',
+            orientation: 'Vertical',
+            toView: ({ tablist, tabs, activeIndex }) =>
+              h.div(
+                [
+                  h.Class(
+                    'shrink-0 min-h-0 flex w-[1056px] max-playground-wide:w-full max-playground-wide:h-1/2',
+                  ),
+                ],
+                [
                   h.div(
                     [
+                      ...tablist,
                       h.Class(
-                        'shrink-0 min-h-0 flex w-[1056px] max-playground-wide:w-full max-playground-wide:h-1/2',
+                        'w-56 shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 py-3 text-sm flex flex-col',
                       ),
                     ],
-                    [
+                    tabs.map(tab =>
+                      h.button(
+                        [...tab.tab, h.Class(fileTabButtonClassName)],
+                        [h.span([], [tab.value])],
+                      ),
+                    ),
+                  ),
+                  ...tabs
+                    .filter(tab => tab.index === activeIndex)
+                    .map(tab =>
                       h.div(
                         [
-                          ...tablist,
-                          h.Class(
-                            'w-56 shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 py-3 text-sm flex flex-col',
+                          ...tab.panel,
+                          h.Class('flex-1 min-w-0 min-h-0 flex flex-col'),
+                        ],
+                        [
+                          editorPanelContent(
+                            tab.value,
+                            pipe(
+                              Record.get(model.files, tab.value),
+                              Option.getOrElse(() => ''),
+                            ),
+                            model.files,
+                            h,
                           ),
                         ],
-                        tabs.map(tab =>
-                          h.button(
-                            [...tab.tab, h.Class(fileTabButtonClassName)],
-                            [h.span([], [tab.value])],
-                          ),
-                        ),
                       ),
-                      ...tabs
-                        .filter(tab => tab.index === activeIndex)
-                        .map(tab =>
-                          h.div(
-                            [
-                              ...tab.panel,
-                              h.Class('flex-1 min-w-0 min-h-0 flex flex-col'),
-                            ],
-                            [
-                              editorPanelContent(
-                                tab.value,
-                                pipe(
-                                  Record.get(model.files, tab.value),
-                                  Option.getOrElse(() => ''),
-                                ),
-                                model.files,
-                                h,
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-              },
-            }),
-          ),
+                    ),
+                ],
+              ),
+          }),
           previewPaneView(model.state, h),
         ],
       ),
@@ -634,74 +405,238 @@ const editorLayoutView = (model: Model, h: PlaygroundViewBuilder): Html => {
   )
 }
 
-type ViewInputs = Readonly<{
+export type ViewInputs = Readonly<{
   maybeIsPlaygroundSupported: Option.Option<boolean>
 }>
 
-export const view = PlaygroundComposition.makeView.withInputs<ViewInputs>(
-  (model, { maybeIsPlaygroundSupported }, h) => {
-    const maybeMeta = findBySlug(model.slug)
-    const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
+const view = (
+  model: Model,
+  h: PlaygroundViewBuilder,
+  { maybeIsPlaygroundSupported }: ViewInputs,
+): Html => {
+  const maybeMeta = findBySlug(model.slug)
+  const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
 
-    const content = Match.value({
-      maybeIsPlaygroundSupported,
-      maybeMeta,
-      maybeFiles,
-    }).pipe(
-      Match.when(
-        ({ maybeMeta }) => isUnavailableExample(maybeMeta),
-        () =>
+  const content = Match.value({
+    maybeIsPlaygroundSupported,
+    maybeMeta,
+    maybeFiles,
+  }).pipe(
+    Match.when(
+      ({ maybeMeta }) => isUnavailableExample(maybeMeta),
+      () =>
+        messageView(
+          'Playground unavailable',
+          'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
+          maybeMeta,
+        ),
+    ),
+    Match.when(
+      ({ maybeIsPlaygroundSupported }) =>
+        Option.isNone(maybeIsPlaygroundSupported),
+      () =>
+        messageView(
+          'Playground availability',
+          'The Playground needs SharedArrayBuffer on an isolated page and a compatible embedded preview. If the editor does not open, you can still see the example on its detail page.',
+          maybeMeta,
+        ),
+    ),
+    Match.when(
+      ({ maybeIsPlaygroundSupported }) =>
+        Option.contains(maybeIsPlaygroundSupported, false),
+      () =>
+        messageView(
+          'Playground cannot run here',
+          'The Playground needs SharedArrayBuffer on a cross-origin isolated page and a working embedded preview. This browser session did not provide that combination. You can still see the example running on its detail page.',
+          maybeMeta,
+        ),
+    ),
+    Match.orElse(() =>
+      Option.match(Option.all([maybeMeta, maybeFiles]), {
+        onNone: () =>
           messageView(
-            'Playground unavailable',
-            'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
+            'Playground coming soon',
+            'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
             maybeMeta,
           ),
+        onSome: () => responsiveEditorView(model, h),
+      }),
+    ),
+  )
+
+  return h.div(
+    [h.Class('flex flex-col h-screen')],
+    [
+      h.main(
+        [
+          h.Id('main-content'),
+          h.Class('flex-1 flex flex-col min-h-0'),
+          h.AriaLabel('Playground'),
+        ],
+        [content],
       ),
-      Match.when(
-        ({ maybeIsPlaygroundSupported }) =>
-          Option.isNone(maybeIsPlaygroundSupported),
-        () =>
-          messageView(
-            'Playground availability',
-            'The Playground needs SharedArrayBuffer on an isolated page and a compatible embedded preview. If the editor does not open, you can still see the example on its detail page.',
-            maybeMeta,
-          ),
-      ),
-      Match.when(
-        ({ maybeIsPlaygroundSupported }) =>
-          Option.contains(maybeIsPlaygroundSupported, false),
-        () =>
-          messageView(
-            'Playground cannot run here',
-            'The Playground needs SharedArrayBuffer on a cross-origin isolated page and a working embedded preview. This browser session did not provide that combination. You can still see the example running on its detail page.',
-            maybeMeta,
-          ),
-      ),
-      Match.orElse(() =>
-        Option.match(Option.all([maybeMeta, maybeFiles]), {
-          onNone: () =>
-            messageView(
-              'Playground coming soon',
-              'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
-              maybeMeta,
-            ),
-          onSome: () => responsiveEditorView(model, h),
+    ],
+  )
+}
+
+// BLOCK
+
+type PlaygroundArgs = Readonly<{
+  maybeIsSupported: Option.Option<boolean>
+}>
+
+export class Playground extends Block<Playground, PlaygroundArgs, ViewInputs>()(
+  'Playground',
+  {
+    Model,
+    Message,
+    Mount: [MountPlaygroundEditor],
+  },
+) {}
+
+export const PlaygroundLive = Playground.toLayer(() => ({
+  init: ({ maybeIsSupported }, { id }) => {
+    const files = filesForSlug(id)
+
+    return syncContainer({
+      slug: id,
+      state: PlaygroundState.Booting(),
+      files,
+      fileTabs: new PlaygroundFileTabs('fileTabs', {
+        id: 'playground-files',
+      }),
+      activeFilePath: initialActiveFile(files),
+      dirtyPaths: [],
+      lastWriteError: Option.none(),
+      maybeIsSupported,
+      maybeContainer: Option.none(),
+    })
+  },
+
+  update: {
+    InformedOfSupport: (model, { isSupported }) => ({
+      model: syncContainer(
+        modifyFields(model, {
+          maybeIsSupported: () => Option.some(isSupported),
         }),
       ),
-    )
+    }),
+    LoadedPlaygroundPreview: (model, { previewUrl }) => ({
+      model: modifyFields(model, {
+        state: state => markPreviewLoaded(state, previewUrl),
+      }),
+    }),
+    EditedPlaygroundFile: (model, { path, content }) => {
+      const isBooted = model.state._tag === 'Booted'
+      const nextModel = modifyFields(model, {
+        files: Record.set(path, content),
+        dirtyPaths: existing =>
+          isBooted ? existing : appendDeduped(existing, path),
+      })
 
-    return h.div(
-      [h.Class('flex flex-col h-screen')],
-      [
-        h.main(
-          [
-            h.Id('main-content'),
-            h.Class('flex-1 flex flex-col min-h-0'),
-            h.AriaLabel('Playground'),
-          ],
-          [content],
-        ),
-      ],
-    )
+      if (isBooted) {
+        return {
+          model: nextModel,
+          messages: requestFileWrite(model, path, content),
+        }
+      } else {
+        return { model: nextModel }
+      }
+    },
+    FailedMountPlaygroundEditor: (model, { reason }) =>
+      failPlayground(model, reason),
+    SucceededMountPlaygroundEditor: model => ({ model }),
+    ...PlaygroundContainer.on({
+      Booted: (model, { previewUrl }) => ({
+        model: modifyFields(model, {
+          state: () =>
+            PlaygroundState.Booted({
+              preview: PlaygroundPreview.start(previewUrl),
+            }),
+          dirtyPaths: () => [],
+          lastWriteError: () => Option.none(),
+        }),
+        messages: flushDirtyPaths(model),
+      }),
+      Failed: (model, { reason }) => failPlayground(model, reason),
+      ScheduledFileWrite: model => ({
+        model: modifyFields(model, { lastWriteError: () => Option.none() }),
+      }),
+      FailedFileWrite: (model, { reason }) => ({
+        model: modifyFields(model, {
+          lastWriteError: () => Option.some(reason),
+        }),
+      }),
+    }),
+    ...PlaygroundFileTabs.on({
+      Selected: (model, { value }) => ({
+        model: modifyFields(model, { activeFilePath: () => value }),
+      }),
+    }),
   },
+
+  mounts: {
+    MountPlaygroundEditor: ({
+      element,
+      path,
+      initialContent,
+      files,
+      viewStateChanges,
+    }) =>
+      streamPlaygroundEditorMessages(
+        element,
+        path,
+        initialContent,
+        files,
+        viewStateChanges,
+      ),
+  },
+
+  view,
+})).pipe(
+  Layer.provide(Layer.mergeAll(PlaygroundFileTabs, PlaygroundContainerLive)),
 )
+
+const filesForSlug = (slug: string): Readonly<Record<string, string>> =>
+  Option.getOrElse(maybeFilesForSlug(slug), () => ({}))
+
+const syncContainer = (model: Model): Model => {
+  const isRequired = isContainerRequired(model)
+
+  if (isRequired && Option.isNone(model.maybeContainer)) {
+    return modifyFields(model, {
+      maybeContainer: () =>
+        Option.some(
+          new PlaygroundContainer('container', {
+            files: filesForSlug(model.slug),
+          }),
+        ),
+    })
+  } else if (!isRequired && Option.isSome(model.maybeContainer)) {
+    return modifyFields(model, {
+      maybeContainer: () => Option.none(),
+      state: state =>
+        state._tag === 'Failed' ? state : PlaygroundState.Idle(),
+    })
+  } else {
+    return model
+  }
+}
+
+const failPlayground = (model: Model, reason: string) => ({
+  model: syncContainer(
+    modifyFields(model, {
+      state: () => PlaygroundState.Failed({ reason }),
+    }),
+  ),
+})
+
+const requestFileWrite = (model: Model, path: string, content: string) =>
+  Option.match(model.maybeContainer, {
+    onNone: () => [],
+    onSome: container => [
+      container.send(
+        PlaygroundContainer.Message.RequestedFileWrite({ path, content }),
+      ),
+    ],
+  })

@@ -9,13 +9,11 @@ import {
   scene,
   text,
 } from 'foldkit/scene'
-import { describe, test } from 'vitest'
 
+import { describe, it } from '@effect/vitest'
 import { Tabs } from '@foldkit/ui'
 
-import { FetchPostDetail, FetchStats } from './command'
-import { Message } from './message'
-import { ApplicationTabsBlock } from './model'
+import { ApplicationLive, ApplicationTabs } from './application'
 import {
   FETCHED_AT,
   cachedFirstPostModel,
@@ -23,37 +21,37 @@ import {
   fixtureStats,
   loadedPostsModel,
   loadingPostsModel,
-} from './model.fixture'
-import { update } from './update'
-import { view } from './view/view'
+} from './application.fixture'
+import { FetchPostDetail, PostsTab } from './postsTab'
+import { FetchStats, StatsTab } from './statsTab'
 
 const resolveFocusTab = Command.resolve(
   Tabs.test.FocusTab,
-  ApplicationTabsBlock.Message.CompletedFocusTab(),
+  ApplicationTabs.Message.CompletedFocusTab(),
 )
 
 describe('view', () => {
-  test('posts load into clickable rows with an Invalidate button', () => {
+  it.effect('posts load into clickable rows with an Invalidate button', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(loadingPostsModel),
       expect(text('Loading posts...')).toExist(),
       expect(role('button', { name: 'Invalidate' })).toExist(),
       expect(role('tab', { name: 'Posts' })).toExist(),
       expect(role('tab', { name: 'Stats' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clicking a post fetches its detail and renders it', () => {
+  it.effect('clicking a post fetches its detail and renders it', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(loadedPostsModel),
       click(role('button', { name: /First Post/ })),
       expect(text('Loading post...')).toExist(),
       Command.expectExact(FetchPostDetail({ postId: 'first-post' })),
       Command.resolve(
         FetchPostDetail,
-        Message.CompletedFetchPostDetail({
+        PostsTab.Message.CompletedFetchPostDetail({
           postId: 'first-post',
           result: Result.succeed({
             detail: firstPostDetail,
@@ -67,40 +65,42 @@ describe('view', () => {
         expect(text('The whole body of the first fixture post.')).toExist(),
       ),
       expect(role('button', { name: 'Back to posts' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('a cached post shows the Cached badge and revisits skip the fetch', () => {
-    scene(
-      { update, view },
-      given(cachedFirstPostModel),
-      expect(text('Cached')).toExist(),
-      click(role('button', { name: /First Post/ })),
-      Command.expectNone(),
-      expect(text('By Grace Hopper')).toExist(),
-    )
-  })
+  it.effect(
+    'a cached post shows the Cached badge and revisits skip the fetch',
+    () =>
+      scene(
+        ApplicationLive,
+        given(cachedFirstPostModel),
+        expect(text('Cached')).toExist(),
+        click(role('button', { name: /First Post/ })),
+        Command.expectNone(),
+        expect(text('By Grace Hopper')).toExist(),
+      ),
+  )
 
-  test('a failed detail fetch shows the error with a Retry button', () => {
+  it.effect('a failed detail fetch shows the error with a Retry button', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(loadedPostsModel),
       click(role('button', { name: /First Post/ })),
       Command.resolve(
         FetchPostDetail,
-        Message.CompletedFetchPostDetail({
+        PostsTab.Message.CompletedFetchPostDetail({
           postId: 'first-post',
           result: Result.fail('The connection dropped.'),
         }),
       ),
       expect(text('The connection dropped.')).toExist(),
       expect(role('button', { name: 'Retry' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('switching to the Stats tab fetches and renders stats', () => {
+  it.effect('switching to the Stats tab fetches and renders stats', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(loadedPostsModel),
       click(role('tab', { name: 'Stats' })),
       expect(text('Loading stats...')).toExist(),
@@ -108,7 +108,7 @@ describe('view', () => {
       Command.expectExact(FetchStats()),
       Command.resolve(
         FetchStats,
-        Message.CompletedFetchStats({
+        StatsTab.Message.CompletedFetchStats({
           result: Result.succeed({
             stats: fixtureStats,
             fetchedAt: FETCHED_AT,
@@ -118,6 +118,6 @@ describe('view', () => {
       expect(text('Active users')).toExist(),
       expect(text('97%')).toExist(),
       expect(text('Updated at', { exact: false })).toExist(),
-    )
-  })
+    ),
+  )
 })

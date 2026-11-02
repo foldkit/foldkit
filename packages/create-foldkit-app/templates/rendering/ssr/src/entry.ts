@@ -1,10 +1,10 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock, Flags } from './application'
+import { Application, ApplicationLive, Flags } from './application'
 import './styles.css'
 
-const program = Program.make({
-  block: ApplicationBlock,
+const program = Program.make(Application, {
+  layer: ApplicationLive,
   Flags,
   container: document.getElementById('root'),
   devTools: { dispatch: true },

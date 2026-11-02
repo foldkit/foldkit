@@ -4,21 +4,18 @@ import { childAttributes } from 'foldkit/html'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/listbox'
 
 import { Icon } from '../../../icon'
-import type { UiViewBuilder } from '../composition'
-import {
-  ListboxDemoBinding,
-  ListboxGroupedDemoBinding,
-  ListboxMultiDemoBinding,
-} from '../composition'
+import type { UiViewBuilder } from '../definition'
 import type { ListboxItem } from '../domain/domain'
-import {
-  type Character,
-  ItemListboxBlock,
-  ItemMultiListboxBlock,
+import type {
+  Character,
+  CharacterListbox,
+  ItemListbox,
+  ItemMultiListbox,
 } from './components'
 
-type ItemListboxBlockModel = typeof ItemListboxBlock.Model.Type
-type ItemMultiListboxBlockModel = typeof ItemMultiListboxBlock.Model.Type
+type ItemListboxModel = typeof ItemListbox.Type
+type ItemMultiListboxModel = typeof ItemMultiListbox.Type
+type CharacterListboxModel = typeof CharacterListbox.Type
 
 // DEMO CONTENT
 
@@ -69,7 +66,7 @@ const LISTBOX_ANCHOR: AnchorConfig = {
 }
 
 export const basicDemo = (
-  listboxModel: ItemListboxBlockModel,
+  listboxModel: ItemListboxModel,
   maybeSelectedItem: Option.Option<ListboxItem>,
   h: UiViewBuilder,
 ) => {
@@ -83,47 +80,37 @@ export const basicDemo = (
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(buttonId(listboxModel.id)), h.Class('demo-label')],
+          [h.For(buttonId(listboxModel.model.id)), h.Class('demo-label')],
           ['Family member'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              ListboxDemoBinding.embedView({
-                slotId: 'listbox-basic',
-                model: listboxModel,
-                viewInputs: {
-                  anchor: LISTBOX_ANCHOR,
-                  items: LISTBOX_ITEMS,
-                  maybeSelectedValue: maybeSelectedItem,
-                  itemToConfig: item => ({
-                    className: itemClassName,
-                    content: h.div(
-                      [h.Class('flex items-center gap-2')],
-                      [
-                        Icon.check(
-                          'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900 dark:text-white',
-                        ),
-                        h.span([], [item]),
-                      ],
+            listboxModel.view({
+              anchor: LISTBOX_ANCHOR,
+              items: LISTBOX_ITEMS,
+              maybeSelectedValue: maybeSelectedItem,
+              itemToConfig: item => ({
+                className: itemClassName,
+                content: h.div(
+                  [h.Class('flex items-center gap-2')],
+                  [
+                    Icon.check(
+                      'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900 dark:text-white',
                     ),
-                  }),
-                  buttonContent: h.div(
-                    [h.Class('flex w-full items-center justify-between gap-4')],
-                    [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
-                  ),
-                  buttonAttributes: childAttributes([
-                    h.Class(triggerClassName),
-                  ]),
-                  itemsAttributes: childAttributes([h.Class(itemsClassName)]),
-                  backdropAttributes: childAttributes([
-                    h.Class(backdropClassName),
-                  ]),
-                  attributes: childAttributes([h.Class(wrapperClassName)]),
-                },
+                    h.span([], [item]),
+                  ],
+                ),
               }),
-            ),
+              buttonContent: h.div(
+                [h.Class('flex w-full items-center justify-between gap-4')],
+                [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
+              ),
+              buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+              itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+              backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+              attributes: childAttributes([h.Class(wrapperClassName)]),
+            }),
           ],
         ),
       ],
@@ -132,7 +119,7 @@ export const basicDemo = (
 }
 
 export const multiSelectDemo = (
-  listboxModel: ItemMultiListboxBlockModel,
+  listboxModel: ItemMultiListboxModel,
   selectedItems: ReadonlyArray<ListboxItem>,
   h: UiViewBuilder,
 ) => {
@@ -149,47 +136,37 @@ export const multiSelectDemo = (
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(buttonId(listboxModel.id)), h.Class('demo-label')],
+          [h.For(buttonId(listboxModel.model.id)), h.Class('demo-label')],
           ['Family members'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              ListboxMultiDemoBinding.embedView({
-                slotId: 'listbox-multi',
-                model: listboxModel,
-                viewInputs: {
-                  anchor: LISTBOX_ANCHOR,
-                  items: LISTBOX_ITEMS,
-                  selectedValues: selectedItems,
-                  itemToConfig: item => ({
-                    className: itemClassName,
-                    content: h.div(
-                      [h.Class('flex items-center gap-2')],
-                      [
-                        Icon.check(
-                          'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900 dark:text-white',
-                        ),
-                        h.span([], [item]),
-                      ],
+            listboxModel.view({
+              anchor: LISTBOX_ANCHOR,
+              items: LISTBOX_ITEMS,
+              selectedValues: selectedItems,
+              itemToConfig: item => ({
+                className: itemClassName,
+                content: h.div(
+                  [h.Class('flex items-center gap-2')],
+                  [
+                    Icon.check(
+                      'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900 dark:text-white',
                     ),
-                  }),
-                  buttonContent: h.div(
-                    [h.Class('flex w-full items-center justify-between gap-4')],
-                    [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
-                  ),
-                  buttonAttributes: childAttributes([
-                    h.Class(triggerClassName),
-                  ]),
-                  itemsAttributes: childAttributes([h.Class(itemsClassName)]),
-                  backdropAttributes: childAttributes([
-                    h.Class(backdropClassName),
-                  ]),
-                  attributes: childAttributes([h.Class(wrapperClassName)]),
-                },
+                    h.span([], [item]),
+                  ],
+                ),
               }),
-            ),
+              buttonContent: h.div(
+                [h.Class('flex w-full items-center justify-between gap-4')],
+                [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
+              ),
+              buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+              itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+              backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+              attributes: childAttributes([h.Class(wrapperClassName)]),
+            }),
           ],
         ),
       ],
@@ -198,7 +175,7 @@ export const multiSelectDemo = (
 }
 
 export const groupedDemo = (
-  listboxModel: ItemListboxBlockModel,
+  listboxModel: CharacterListboxModel,
   maybeSelectedItem: Option.Option<string>,
   h: UiViewBuilder,
 ) => {
@@ -212,56 +189,46 @@ export const groupedDemo = (
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(buttonId(listboxModel.id)), h.Class('demo-label')],
+          [h.For(buttonId(listboxModel.model.id)), h.Class('demo-label')],
           ['Character'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              ListboxGroupedDemoBinding.embedView({
-                slotId: 'listbox-grouped',
-                model: listboxModel,
-                viewInputs: {
-                  anchor: LISTBOX_ANCHOR,
-                  items: GROUPED_CHARACTERS,
-                  maybeSelectedValue: maybeSelectedItem,
-                  itemToValue: characterName,
-                  itemGroupKey: character => character.lastName,
-                  groupToHeading: lastName => ({
-                    content: h.span([], [`${lastName}s`]),
-                    className: groupHeadingClassName,
-                  }),
-                  separatorAttributes: childAttributes([
-                    h.Class(separatorClassName),
-                  ]),
-                  itemToConfig: character => ({
-                    className: itemClassName,
-                    content: h.div(
-                      [h.Class('flex items-center gap-2')],
-                      [
-                        Icon.check(
-                          'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900 dark:text-white',
-                        ),
-                        h.span([], [characterName(character)]),
-                      ],
-                    ),
-                  }),
-                  buttonContent: h.div(
-                    [h.Class('flex w-full items-center justify-between gap-4')],
-                    [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
-                  ),
-                  buttonAttributes: childAttributes([
-                    h.Class(triggerClassName),
-                  ]),
-                  itemsAttributes: childAttributes([h.Class(itemsClassName)]),
-                  backdropAttributes: childAttributes([
-                    h.Class(backdropClassName),
-                  ]),
-                  attributes: childAttributes([h.Class(wrapperClassName)]),
-                },
+            listboxModel.view({
+              anchor: LISTBOX_ANCHOR,
+              items: GROUPED_CHARACTERS,
+              maybeSelectedValue: maybeSelectedItem,
+              itemToValue: characterName,
+              itemGroupKey: character => character.lastName,
+              groupToHeading: lastName => ({
+                content: h.span([], [`${lastName}s`]),
+                className: groupHeadingClassName,
               }),
-            ),
+              separatorAttributes: childAttributes([
+                h.Class(separatorClassName),
+              ]),
+              itemToConfig: character => ({
+                className: itemClassName,
+                content: h.div(
+                  [h.Class('flex items-center gap-2')],
+                  [
+                    Icon.check(
+                      'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900 dark:text-white',
+                    ),
+                    h.span([], [characterName(character)]),
+                  ],
+                ),
+              }),
+              buttonContent: h.div(
+                [h.Class('flex w-full items-center justify-between gap-4')],
+                [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
+              ),
+              buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+              itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+              backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+              attributes: childAttributes([h.Class(wrapperClassName)]),
+            }),
           ],
         ),
       ],

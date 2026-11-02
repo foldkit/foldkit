@@ -43,7 +43,7 @@ describe('selection-block-factory-at-module-scope', () => {
             Testing.blockStmt([
               Testing.returnStmt(
                 callWithCallee(
-                  propertyAccess(factoryCall('Combobox', 'makeBlock'), 'view'),
+                  propertyAccess(factoryCall('Combobox', 'make'), 'view'),
                 ),
               ),
             ]),
@@ -67,7 +67,7 @@ describe('selection-block-factory-at-module-scope', () => {
               Testing.varDecl(
                 'const',
                 'InnerListbox',
-                factoryCall('Listbox', 'makeBlock'),
+                factoryCall('Listbox', 'make'),
               ),
             ]),
           ),
@@ -76,7 +76,7 @@ describe('selection-block-factory-at-module-scope', () => {
     ])
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain('Listbox.makeBlock')
+    expect(result[0]?.diagnostic.message).toContain('Listbox.make')
   })
 
   it('flags a module-scope initializer that only nests the factory call', () => {
@@ -84,7 +84,7 @@ describe('selection-block-factory-at-module-scope', () => {
       Testing.varDecl(
         'const',
         'PlanListboxView',
-        propertyAccess(factoryCall('Listbox', 'makeBlock'), 'view'),
+        propertyAccess(factoryCall('Listbox', 'make'), 'view'),
       ),
     ])
 
@@ -97,9 +97,7 @@ describe('selection-block-factory-at-module-scope', () => {
         Testing.varDecl(
           'const',
           'PlanListboxView',
-          Testing.callExpr('makeFactory', [
-            factoryCall('Listbox', 'makeBlock'),
-          ]),
+          Testing.callExpr('makeFactory', [factoryCall('Listbox', 'make')]),
         ),
       ),
     ])
@@ -112,12 +110,12 @@ describe('selection-block-factory-at-module-scope', () => {
       Testing.varDecl(
         'const',
         'render',
-        Testing.arrowFn(factoryCall('Ui', 'Listbox', 'makeBlock')),
+        Testing.arrowFn(factoryCall('Ui', 'Listbox', 'make')),
       ),
     ])
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain('Ui.Listbox.makeBlock')
+    expect(result[0]?.diagnostic.message).toContain('Ui.Listbox.make')
   })
 
   it('flags a Ui-rooted Multi factory created inline', () => {
@@ -125,23 +123,17 @@ describe('selection-block-factory-at-module-scope', () => {
       Testing.varDecl(
         'const',
         'render',
-        Testing.arrowFn(factoryCall('Ui', 'Combobox', 'Multi', 'makeBlock')),
+        Testing.arrowFn(factoryCall('Ui', 'Combobox', 'Multi', 'make')),
       ),
     ])
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain(
-      'Ui.Combobox.Multi.makeBlock',
-    )
+    expect(result[0]?.diagnostic.message).toContain('Ui.Combobox.Multi.make')
   })
 
   it('allows a direct module-scope const initializer', () => {
     const result = runOnProgram([
-      Testing.varDecl(
-        'const',
-        'PlanListbox',
-        factoryCall('Listbox', 'makeBlock'),
-      ),
+      Testing.varDecl('const', 'PlanListbox', factoryCall('Listbox', 'make')),
     ])
 
     expect(result).toHaveLength(0)
@@ -153,7 +145,7 @@ describe('selection-block-factory-at-module-scope', () => {
         Testing.varDecl(
           'const',
           'FeatureSpecListbox',
-          factoryCall('Listbox', 'Multi', 'makeBlock'),
+          factoryCall('Listbox', 'Multi', 'make'),
         ),
       ),
     ])
@@ -168,7 +160,7 @@ describe('selection-block-factory-at-module-scope', () => {
         type: 'TSSatisfiesExpression',
         expression: {
           type: 'TSAsExpression',
-          expression: factoryCall('Combobox', 'makeBlock'),
+          expression: factoryCall('Combobox', 'make'),
         },
       },
     }
@@ -191,17 +183,13 @@ describe('selection-block-factory-at-module-scope', () => {
       Testing.varDecl(
         'const',
         'ButtonFactory',
-        factoryCall('Ui', 'Button', 'makeBlock'),
+        factoryCall('Ui', 'Button', 'make'),
       ),
-      Testing.varDecl(
-        'const',
-        'ButtonFactory2',
-        factoryCall('Button', 'makeBlock'),
-      ),
+      Testing.varDecl('const', 'ButtonFactory2', factoryCall('Button', 'make')),
       Testing.varDecl(
         'const',
         'OtherListbox',
-        factoryCall('Other', 'Listbox', 'makeBlock'),
+        factoryCall('Other', 'Listbox', 'make'),
       ),
     ])
 
@@ -213,7 +201,7 @@ describe('selection-block-factory-at-module-scope', () => {
       Testing.varDecl(
         'const',
         'PlanListbox',
-        factoryCall('Ui', 'Listbox', 'makeBlock'),
+        factoryCall('Ui', 'Listbox', 'make'),
       ),
     ])
 
@@ -225,7 +213,7 @@ describe('selection-block-factory-at-module-scope', () => {
       Testing.varDecl(
         'const',
         'M',
-        Testing.arrowFn(factoryCall('Menu', 'Multi', 'makeBlock')),
+        Testing.arrowFn(factoryCall('Menu', 'Multi', 'make')),
       ),
     ])
 
@@ -234,12 +222,12 @@ describe('selection-block-factory-at-module-scope', () => {
 
   it('allows a module-scope factory with type arguments', () => {
     const factoryWithTypeArguments = {
-      ...Testing.callOfMember('Tabs', 'makeBlock', []),
+      ...Testing.callOfMember('Tabs', 'make', []),
       typeArguments: { type: 'TSTypeParameterInstantiation', params: [] },
     }
     const instantiatedFactory = callWithCallee({
       type: 'TSInstantiationExpression',
-      expression: Testing.memberExpr('Tabs', 'makeBlock'),
+      expression: Testing.memberExpr('Tabs', 'make'),
     })
     const result = runOnProgram([
       Testing.exportNamedDecl(

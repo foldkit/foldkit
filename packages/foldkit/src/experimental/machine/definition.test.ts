@@ -1,4 +1,4 @@
-import { Context, Effect, Option, Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 import * as Command from '../../command/public.js'
@@ -46,28 +46,12 @@ const ContextSchema = Schema.Struct({
 type ContextSchema = typeof ContextSchema.Type
 type ContextValue = typeof ContextSchema.Type
 
-class WorkService extends Context.Service<
-  WorkService,
-  { readonly id: 'work' }
->()('MachineDefinitionTestWorkService') {}
-
-class AuditService extends Context.Service<
-  AuditService,
-  { readonly id: 'audit' }
->()('MachineDefinitionTestAuditService') {}
-
 const Work = Command.define('Work', {
   messages: [Message.CompletedWork],
-  handler: function* () {
-    return () => Effect.map(WorkService, () => Message.CompletedWork())
-  },
 })
 
 const Audit = Command.define('Audit', {
   messages: [Message.CompletedWork],
-  handler: function* () {
-    return () => Effect.map(AuditService, () => Message.CompletedWork())
-  },
 })
 
 type WorkRequirements = Command.HandlerOf<typeof Work>

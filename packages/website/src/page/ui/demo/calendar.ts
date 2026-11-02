@@ -1,5 +1,4 @@
-import type { UiViewBuilder } from '../composition'
-import { CalendarBasicDemoBinding } from '../composition'
+import type { UiViewBuilder } from '../definition'
 import type { Model } from '../model'
 import { calendarView } from './calendarView'
 
@@ -10,15 +9,9 @@ const containerClassName =
 
 export const basicDemo = (model: Model, h: UiViewBuilder) => {
   return [
-    h.block(
-      CalendarBasicDemoBinding.embedView({
-        slotId: model.calendarBasicDemo.id,
-        model: model.calendarBasicDemo,
-        viewInputs: {
-          maybeSelectedDate: model.maybeCalendarBasicDemoSelectedDate,
-          toView: calendarView(containerClassName, h),
-        },
-      }),
-    ),
+    model.calendarBasicDemo.view({
+      maybeSelectedDate: model.maybeCalendarBasicDemoSelectedDate,
+      toView: calendarView(containerClassName, h),
+    }),
   ]
 }

@@ -1,18 +1,15 @@
 import { type Html, inertHtml as ih } from 'foldkit/html'
 
-import { PopoverBlock } from '@foldkit/ui'
-import { type AnchorConfig, buttonId } from '@foldkit/ui/popover'
-
-import type { UiViewBuilder } from '../composition'
+import type { Popover } from '@foldkit/ui'
 import {
-  PopoverAnimatedDemoBinding,
-  PopoverArrowDemoBinding,
-  PopoverBasicDemoBinding,
-  PopoverNestedChildDemoBinding,
-  PopoverNestedParentDemoBinding,
-} from '../composition'
+  type AnchorConfig,
+  type ViewInput,
+  buttonId,
+} from '@foldkit/ui/popover'
 
-type PopoverBlockModel = typeof PopoverBlock.Model.Type
+import type { UiViewBuilder } from '../definition'
+
+type PopoverModel = Popover.Popover
 
 // DEMO CONTENT
 
@@ -74,7 +71,7 @@ const panelContent = (): Html =>
 const popoverViewInputs = (
   panelVariant: PanelVariant,
   h: UiViewBuilder,
-): Parameters<typeof PopoverBasicDemoBinding.embedView>[0]['viewInputs'] => {
+): ViewInput => {
   const isArrowDrawn = panelVariant === 'Arrow'
 
   return {
@@ -136,7 +133,7 @@ const popoverViewInputs = (
 }
 
 const labeledPopoverDemo = (
-  popoverModel: PopoverBlockModel,
+  popoverModel: PopoverModel,
   content: Html,
   h: UiViewBuilder,
 ): Array<Html> => [
@@ -144,7 +141,7 @@ const labeledPopoverDemo = (
     [h.Class('demo-field')],
     [
       h.label(
-        [h.For(buttonId(popoverModel.id)), h.Class('demo-label')],
+        [h.For(buttonId(popoverModel.model.id)), h.Class('demo-label')],
         ['Product menu'],
       ),
       h.div([h.Class('relative')], [content]),
@@ -153,105 +150,81 @@ const labeledPopoverDemo = (
 ]
 
 export const basicDemo = (
-  popoverModel: PopoverBlockModel,
+  popoverModel: PopoverModel,
   h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
     popoverModel,
-    h.block(
-      PopoverBasicDemoBinding.embedView({
-        slotId: popoverModel.id,
-        model: popoverModel,
-        viewInputs: popoverViewInputs('Basic', h),
-      }),
-    ),
+    popoverModel.view(popoverViewInputs('Basic', h)),
     h,
   )
 
 export const animatedDemo = (
-  popoverModel: PopoverBlockModel,
+  popoverModel: PopoverModel,
   h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
     popoverModel,
-    h.block(
-      PopoverAnimatedDemoBinding.embedView({
-        slotId: popoverModel.id,
-        model: popoverModel,
-        viewInputs: popoverViewInputs('Animated', h),
-      }),
-    ),
+    popoverModel.view(popoverViewInputs('Animated', h)),
     h,
   )
 
 export const arrowDemo = (
-  popoverModel: PopoverBlockModel,
+  popoverModel: PopoverModel,
   h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
     popoverModel,
-    h.block(
-      PopoverArrowDemoBinding.embedView({
-        slotId: popoverModel.id,
-        model: popoverModel,
-        viewInputs: popoverViewInputs('Arrow', h),
-      }),
-    ),
+    popoverModel.view(popoverViewInputs('Arrow', h)),
     h,
   )
 
 const nestedChildPopover = (
-  childPopoverModel: PopoverBlockModel,
+  childPopoverModel: PopoverModel,
   h: UiViewBuilder,
 ): Html =>
-  h.block(
-    PopoverNestedChildDemoBinding.embedView({
-      slotId: childPopoverModel.id,
-      model: childPopoverModel,
-      viewInputs: {
-        ariaLabel: 'Advanced settings',
-        anchor: NESTED_POPOVER_ANCHOR,
-        toView: ({ button, panel, backdrop, isVisible }) =>
-          h.div(
-            [h.Class(wrapperClassName)],
-            [
-              h.button(
-                [...button, h.Class(triggerClassName)],
-                [h.span([], ['Advanced settings'])],
-              ),
-              ...(isVisible
-                ? [
-                    h.div([...backdrop, h.Class(backdropClassName)]),
-                    h.div(
-                      [...panel, h.Class(basicPanelClassName)],
+  childPopoverModel.view({
+    ariaLabel: 'Advanced settings',
+    anchor: NESTED_POPOVER_ANCHOR,
+    toView: ({ button, panel, backdrop, isVisible }) =>
+      h.div(
+        [h.Class(wrapperClassName)],
+        [
+          h.button(
+            [...button, h.Class(triggerClassName)],
+            [h.span([], ['Advanced settings'])],
+          ),
+          ...(isVisible
+            ? [
+                h.div([...backdrop, h.Class(backdropClassName)]),
+                h.div(
+                  [...panel, h.Class(basicPanelClassName)],
+                  [
+                    h.p(
                       [
-                        h.p(
-                          [
-                            h.Class(
-                              'text-sm font-semibold text-gray-900 dark:text-white mb-2',
-                            ),
-                          ],
-                          ['Permissions'],
-                        ),
-                        h.p(
-                          [h.Class('text-sm text-gray-700 dark:text-gray-400')],
-                          [
-                            'Review who can change billing, members, and integrations.',
-                          ],
+                        h.Class(
+                          'text-sm font-semibold text-gray-900 dark:text-white mb-2',
                         ),
                       ],
+                      ['Permissions'],
                     ),
-                  ]
-                : []),
-            ],
-          ),
-      },
-    }),
-  )
+                    h.p(
+                      [h.Class('text-sm text-gray-700 dark:text-gray-400')],
+                      [
+                        'Review who can change billing, members, and integrations.',
+                      ],
+                    ),
+                  ],
+                ),
+              ]
+            : []),
+        ],
+      ),
+  })
 
 export const nestedDemo = (
-  parentPopoverModel: PopoverBlockModel,
-  childPopoverModel: PopoverBlockModel,
+  parentPopoverModel: PopoverModel,
+  childPopoverModel: PopoverModel,
   h: UiViewBuilder,
 ) => {
   return [
@@ -259,58 +232,52 @@ export const nestedDemo = (
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(buttonId(parentPopoverModel.id)), h.Class('demo-label')],
+          [h.For(buttonId(parentPopoverModel.model.id)), h.Class('demo-label')],
           ['Account'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              PopoverNestedParentDemoBinding.embedView({
-                slotId: parentPopoverModel.id,
-                model: parentPopoverModel,
-                viewInputs: {
-                  anchor: POPOVER_ANCHOR,
-                  focusSelector: nestedChildButtonSelector,
-                  toView: ({ button, panel, backdrop, isVisible }) =>
-                    h.div(
-                      [h.Class(wrapperClassName)],
-                      [
-                        h.button(
-                          [...button, h.Class(triggerClassName)],
-                          [h.span([], ['Account'])],
-                        ),
-                        ...(isVisible
-                          ? [
-                              h.div([...backdrop, h.Class(backdropClassName)]),
+            parentPopoverModel.view({
+              anchor: POPOVER_ANCHOR,
+              focusSelector: nestedChildButtonSelector,
+              toView: ({ button, panel, backdrop, isVisible }) =>
+                h.div(
+                  [h.Class(wrapperClassName)],
+                  [
+                    h.button(
+                      [...button, h.Class(triggerClassName)],
+                      [h.span([], ['Account'])],
+                    ),
+                    ...(isVisible
+                      ? [
+                          h.div([...backdrop, h.Class(backdropClassName)]),
+                          h.div(
+                            [...panel, h.Class(basicPanelClassName)],
+                            [
                               h.div(
-                                [...panel, h.Class(basicPanelClassName)],
+                                [h.Class('flex flex-col gap-4')],
                                 [
-                                  h.div(
-                                    [h.Class('flex flex-col gap-4')],
+                                  h.p(
                                     [
-                                      h.p(
-                                        [
-                                          h.Class(
-                                            'text-sm text-gray-700 dark:text-gray-400',
-                                          ),
-                                        ],
-                                        [
-                                          'Manage account settings without leaving this panel.',
-                                        ],
+                                      h.Class(
+                                        'text-sm text-gray-700 dark:text-gray-400',
                                       ),
-                                      nestedChildPopover(childPopoverModel, h),
+                                    ],
+                                    [
+                                      'Manage account settings without leaving this panel.',
                                     ],
                                   ),
+                                  nestedChildPopover(childPopoverModel, h),
                                 ],
                               ),
-                            ]
-                          : []),
-                      ],
-                    ),
-                },
-              }),
-            ),
+                            ],
+                          ),
+                        ]
+                      : []),
+                  ],
+                ),
+            }),
           ],
         ),
       ],

@@ -13,6 +13,7 @@ import {
   pipe,
 } from 'effect'
 
+import { isInstance } from '../blocks/engine.js'
 import { modifyFields } from '../struct/index.js'
 
 export const INIT_INDEX = -1
@@ -33,13 +34,30 @@ export const emptyDiff: DiffResult = {
 
 const isExpandable = Predicate.isObjectOrArray
 
+const instanceModelOrValue = (value: unknown): unknown =>
+  isInstance(value) ? value.model : value
+
+/** Computes the changed and affected paths between two Model snapshots. A
+ *  Block instance in either snapshot is compared through its own Model, so
+ *  the paths match the resolved Model tree the inspector displays. */
 export const computeDiff = (
   previous: unknown,
   current: unknown,
 ): DiffResult => {
   const changed = new Set<string>()
 
-  const walk = (prev: unknown, curr: unknown, path: string): void => {
+  const walk = (
+    previousValue: unknown,
+    currentValue: unknown,
+    path: string,
+  ): void => {
+    if (previousValue === currentValue) {
+      return
+    }
+
+    const prev = instanceModelOrValue(previousValue)
+    const curr = instanceModelOrValue(currentValue)
+
     if (prev === curr) {
       return
     }

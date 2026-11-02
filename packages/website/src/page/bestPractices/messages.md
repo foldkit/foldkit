@@ -13,9 +13,7 @@ Common prefixes make the source of a fact visible:
 | `Succeeded*`/`Failed*` | A Command completed with a meaningful success or failure. | `SucceededFetchUser`        |
 | `Completed*`           | Any other Command result.                                 | `CompletedFocusSearchInput` |
 
-Composition reserves and derives `Got<Placement>Message` tags for child Block
-delivery. Application authors do not declare those variants in the local
-`Message` union.
+A Message a parent sends to a child Block with `send` belongs to the child's union and is named from the child's point of view, such as `RequestedClose` or `InformedOfRouteChange`.
 
 Avoid imperative names such as `SetCartItems`, `UpdateSearchText`, and `MutateUserState`. Those names prescribe a transition before update has seen the current Model. A fact leaves the decision where it belongs: in update.
 

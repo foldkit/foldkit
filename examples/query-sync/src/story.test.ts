@@ -1,34 +1,22 @@
-import { Option } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
-import { toParentMessage } from 'foldkit/test'
+import { Layer, Option } from 'effect'
+import { Block } from 'foldkit'
+import { Command, message, model, story } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
 
-import { Listbox } from '@foldkit/ui'
+import { describe, expect, it } from '@effect/vitest'
+import * as Listbox from '@foldkit/ui/listbox'
 
-import { ReplaceFilters } from './command'
-import { DietListboxBinding } from './composition'
-import { Message } from './message'
-import { DietListboxBlock, type Model, PeriodListboxBlock } from './model'
-import { ApplicationRoute, Sorting, browseRouter } from './route'
-import { update } from './update'
+import { ApplicationLive, Message } from './application'
+import { Browse, BrowseLive, DietListbox, ReplaceFilters } from './browse'
+import { Sorting, browseRouter } from './route'
 
-type DietListboxMessage = typeof DietListboxBlock.Message.Type
+const TestLive = ApplicationLive.pipe(Layer.provide(BrowseLive))
 
-const browseModel: Model = {
-  route: ApplicationRoute.Browse({
-    search: Option.none(),
-    sorting: Sorting.Unsorted(),
-    diet: Option.none(),
-    period: Option.none(),
-  }),
-  dietListbox: DietListboxBlock.init({ id: 'diet-filter' }).model,
-  periodListbox: PeriodListboxBlock.init({ id: 'period-filter' }).model,
-}
+const browseMessage = (message: typeof Browse.Message.Type) =>
+  Block.deliver(Browse, 'browse', message)
 
-const dietMessage = (message: DietListboxMessage) =>
-  toParentMessage(DietListboxBinding, message)
+const dietMessage = (message: typeof DietListbox.Message.Type) =>
+  Block.deliver(DietListbox, ['browse', 'dietListbox'], message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -36,8 +24,10 @@ const urlOrThrow = (raw: string) =>
     () => new Error(`Failed to parse url: ${raw}`),
   )
 
+const browseArgs = { url: urlOrThrow('http://localhost/') }
+
 describe('routing', () => {
-  test('prints sorting in the same format the parser accepts', () => {
+  it('prints sorting in the same format the parser accepts', () => {
     const path = browseRouter({
       search: Option.none(),
       sorting: Sorting.Ascending({ column: 'Length' }),
@@ -51,10 +41,10 @@ describe('routing', () => {
 
 describe('update', () => {
   describe('ChangedUrl', () => {
-    test('parses search, sorting, diet, and period from the URL', () => {
+    it.effect('parses search, sorting, diet, and period from the URL', () =>
       story(
-        update,
-        given(browseModel),
+        TestLive,
+        browseArgs,
         message(
           Message.ChangedUrl({
             url: urlOrThrow(
@@ -73,13 +63,13 @@ describe('update', () => {
           expect(model.route.diet).toStrictEqual(Option.some('Carnivore'))
           expect(model.route.period).toStrictEqual(Option.some('Cretaceous'))
         }),
-      )
-    })
+      ),
+    )
 
-    test('an unknown path falls through to NotFound', () => {
+    it.effect('an unknown path falls through to NotFound', () =>
       story(
-        update,
-        given(browseModel),
+        TestLive,
+        browseArgs,
         message(
           Message.ChangedUrl({
             url: urlOrThrow('http://localhost/somewhere/else'),
@@ -88,82 +78,98 @@ describe('update', () => {
         model(model => {
           expect(model.route._tag).toBe('NotFound')
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('ChangedSearchInput', () => {
-    test('typing search text fires a URL replacement with the new value', () => {
-      story(
-        update,
-        given(browseModel),
-        message(Message.ChangedSearchInput({ value: 'rex' })),
-        Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
-      )
-    })
-
-    test('clearing the search input fires a replacement', () => {
-      story(
-        update,
-        given(
-          modifyFields(browseModel, {
-            route: () =>
-              ApplicationRoute.Browse({
-                search: Option.some('foo'),
-                sorting: Sorting.Unsorted(),
-                diet: Option.none(),
-                period: Option.none(),
-              }),
-          }),
+    it.effect(
+      'typing search text fires a URL replacement with the new value',
+      () =>
+        story(
+          TestLive,
+          browseArgs,
+          message(
+            browseMessage(Browse.Message.ChangedSearchInput({ value: 'rex' })),
+          ),
+          Command.expectHas(ReplaceFilters),
+          Command.resolve(
+            ReplaceFilters,
+            Browse.Message.CompletedReplaceFilters(),
+          ),
         ),
-        message(Message.ChangedSearchInput({ value: '' })),
+    )
+
+    it.effect('clearing the search input fires a replacement', () =>
+      story(
+        TestLive,
+        { url: urlOrThrow('http://localhost/?search=foo') },
+        message(
+          browseMessage(Browse.Message.ChangedSearchInput({ value: '' })),
+        ),
         Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
-      )
-    })
+        Command.resolve(
+          ReplaceFilters,
+          Browse.Message.CompletedReplaceFilters(),
+        ),
+      ),
+    )
   })
 
   describe('ClickedColumnHeader', () => {
-    test('first click on an Unsorted column produces an Ascending sort', () => {
-      story(
-        update,
-        given(browseModel),
-        message(Message.ClickedColumnHeader({ column: 'Name' })),
-        Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
-      )
-    })
+    it.effect(
+      'first click on an Unsorted column produces an Ascending sort',
+      () =>
+        story(
+          TestLive,
+          browseArgs,
+          message(
+            browseMessage(
+              Browse.Message.ClickedColumnHeader({ column: 'Name' }),
+            ),
+          ),
+          Command.expectHas(ReplaceFilters),
+          Command.resolve(
+            ReplaceFilters,
+            Browse.Message.CompletedReplaceFilters(),
+          ),
+        ),
+    )
   })
 
   describe('Listbox SelectedItem', () => {
-    test('selecting a diet refocuses the listbox button and replaces the URL', () => {
-      story(
-        update,
-        given(browseModel),
-        message(
-          dietMessage(
-            DietListboxBlock.Message.Opened({
-              maybeActiveItemIndex: Option.none(),
-            }),
+    it.effect(
+      'selecting a diet refocuses the listbox button and replaces the URL',
+      () =>
+        story(
+          TestLive,
+          browseArgs,
+          message(
+            dietMessage(
+              DietListbox.Message.Opened({
+                maybeActiveItemIndex: Option.none(),
+              }),
+            ),
+          ),
+          Command.resolve(
+            Listbox.test.FocusListboxItems,
+            DietListbox.Message.CompletedFocusListboxItems(),
+          ),
+          message(
+            dietMessage(
+              DietListbox.Message.SelectedItem({ item: 'Carnivore' }),
+            ),
+          ),
+          Command.resolve(
+            Listbox.test.FocusListboxButton,
+            DietListbox.Message.CompletedFocusListboxButton(),
+          ),
+          Command.expectHas(ReplaceFilters),
+          Command.resolve(
+            ReplaceFilters,
+            Browse.Message.CompletedReplaceFilters(),
           ),
         ),
-        Command.resolve(
-          Listbox.test.FocusListboxItems,
-          DietListboxBlock.Message.CompletedFocusListboxItems(),
-        ),
-        message(
-          dietMessage(
-            DietListboxBlock.Message.SelectedItem({ item: 'Carnivore' }),
-          ),
-        ),
-        Command.resolve(
-          Listbox.test.FocusListboxButton,
-          DietListboxBlock.Message.CompletedFocusListboxButton(),
-        ),
-        Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
-      )
-    })
+    )
   })
 })

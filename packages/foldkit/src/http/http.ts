@@ -19,7 +19,7 @@ import { FetchHttpClient, HttpClient } from 'effect/http'
  * under the runtime's Command span. An app doing distributed tracing can
  * re-enable propagation per Command with
  * `Effect.provideService(HttpClient.TracerPropagationEnabled, true)`, or use
- * `FetchHttpClient.layer` from Effect directly.
+ * `FetchHttpClient.toLayer` from Effect directly.
  *
  * @example
  * ```ts
@@ -27,27 +27,30 @@ import { FetchHttpClient, HttpClient } from 'effect/http'
  * import { HttpClient } from 'effect/http'
  * import { Command, Http } from 'foldkit'
  *
- * const FetchCount = Command.define(
- *  'FetchCount',
- *  { messages: [Message.SucceededFetchCount, Message.FailedFetchCount], handler: function* () {
- *    const client = yield* HttpClient.HttpClient
+ * const FetchCount = Command.define('FetchCount', {
+ *   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+ * })
  *
- *    return () =>
- *      Effect.gen(function* () {
- *        const response = yield* client.get('/api/count')
- *        const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
- *          yield* response.json,
- *        )
- *        return Message.SucceededFetchCount({ count })
- *      }).pipe(
- *        Effect.catch(() =>
- *          Effect.succeed(Message.FailedFetchCount({ error: 'Request failed' })),
- *        ),
- *      )
- *  }},
+ * const FetchCountLive = FetchCount.toLayer(
+ *   Effect.gen(function* () {
+ *     const client = yield* HttpClient.HttpClient
+ *
+ *     return () =>
+ *       Effect.gen(function* () {
+ *         const response = yield* client.get('/api/count')
+ *         const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
+ *           yield* response.json,
+ *         )
+ *         return Message.SucceededFetchCount({ count })
+ *       }).pipe(
+ *         Effect.catch(() =>
+ *           Effect.succeed(Message.FailedFetchCount({ error: 'Request failed' })),
+ *         ),
+ *       )
+ *   }),
  * )
  *
- * const ApplicationLayer = FetchCount.layer.pipe(Layer.provide(Http.layer))
+ * const ApplicationLayer = FetchCountLive.pipe(Layer.provide(Http.layer))
  * ```
  */
 export const layer: Layer.Layer<HttpClient.HttpClient> = Layer.provide(

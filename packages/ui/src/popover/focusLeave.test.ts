@@ -1,94 +1,52 @@
-import { Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { PopoverBlock } from './block.js'
+import { Popover, PopoverLive } from './block.js'
 
-const Model = Schema.Struct({ popover: PopoverBlock.Model })
-type Model = typeof Model.Type
-const PopoverFocusLeaveTestDefinition = Block.makeDefinition(
+class PopoverFocusLeaveTest extends Block<PopoverFocusLeaveTest>()(
   'PopoverFocusLeaveTest',
   {
-    Model,
-    Message: Schema.Never,
+    Model: Schema.Struct({ popover: Popover }),
   },
-)
-const foldPopoverOutMessage =
-  PopoverFocusLeaveTestDefinition.makeOutMessageFold(PopoverBlock, {
-    Opened: () => PopoverFocusLeaveTestDefinition.makeNoopStep(),
-    Closed: () => PopoverFocusLeaveTestDefinition.makeNoopStep(),
-  })
-const PopoverBinding = PopoverFocusLeaveTestDefinition.makeBinding(
-  PopoverBlock,
-  {
-    field: 'popover',
-    init: false,
-  },
-).withOutMessagePolicy({ fold: foldPopoverOutMessage })
-const PopoverFocusLeaveTestComposition =
-  PopoverFocusLeaveTestDefinition.makeComposition({
-    bindings: [PopoverBinding],
-  })
-const view = PopoverFocusLeaveTestComposition.makeView((model, h) =>
-  h.div(
-    [],
-    [
-      h.block(
-        PopoverBinding.embedView({
-          slotId: 'popover',
-          model: model.popover,
-          viewInputs: {
-            anchor: { placement: 'bottom-start' },
-            toView: ({ button, panel, backdrop, isVisible }) =>
-              h.div(
-                [],
-                [
-                  h.button([...button], ['Sort']),
-                  ...(isVisible
-                    ? [
-                        h.div([...backdrop]),
-                        h.div(
-                          [...panel],
-                          [
-                            h.button(
-                              [h.Id('item'), h.Type('button')],
-                              ['Name'],
-                            ),
-                          ],
-                        ),
-                      ]
-                    : []),
-                ],
-              ),
-          },
-        }),
-      ),
-    ],
-  ),
-)
+) {}
 
-const makeProgram = (container: HTMLElement) => {
-  const prepare = () =>
-    PopoverFocusLeaveTestComposition.prepareBlock({
-      init: PopoverFocusLeaveTestComposition.makeInit(() =>
-        PopoverBinding.init({
-          args: [{ id: 'sort' }],
-          toParentModel: popover => ({ popover }),
+const PopoverFocusLeaveTestLive = PopoverFocusLeaveTest.toLayer(() => ({
+  init: () => ({ popover: new Popover('popover', { id: 'sort' }) }),
+  view: (model, h) =>
+    h.div(
+      [],
+      [
+        model.popover.view({
+          anchor: { placement: 'bottom-start' },
+          toView: ({ button, panel, backdrop, isVisible }) =>
+            h.div(
+              [],
+              [
+                h.button([...button], ['Sort']),
+                ...(isVisible
+                  ? [
+                      h.div([...backdrop]),
+                      h.div(
+                        [...panel],
+                        [h.button([h.Id('item'), h.Type('button')], ['Name'])],
+                      ),
+                    ]
+                  : []),
+              ],
+            ),
         }),
-      ),
-      update: PopoverFocusLeaveTestComposition.makeUpdate({}),
-      view,
-    })
-  const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
-    Block.assemble(prepare)
+      ],
+    ),
+})).pipe(Layer.provide(PopoverLive))
 
-  return Program.makeElement({
-    block,
+const makeProgram = (container: HTMLElement) =>
+  Program.makeElement(PopoverFocusLeaveTest, {
+    layer: PopoverFocusLeaveTestLive,
     container,
   })
-}
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)

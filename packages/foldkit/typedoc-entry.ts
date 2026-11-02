@@ -5,6 +5,3 @@
 
 export * from './src/index.js'
 export * as Experimental from './typedoc-experimental.js'
-
-/** Whole tagged-variant Bindings, imported from `foldkit/variantBinding`. */
-export * as VariantBinding from './src/block/variantBinding.js'

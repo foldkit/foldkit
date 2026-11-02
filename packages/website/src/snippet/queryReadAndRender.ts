@@ -1,8 +1,19 @@
-const postsView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  // Read the value through Query's public API.
-  const postsAsyncData = postsQuery.read(model.posts)
+import { Array } from 'effect'
+import { AsyncData } from 'foldkit'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
-  // Render it with the ordinary AsyncData helpers.
+import { PostsQuery } from './queryDefine'
+import type { Application } from './queryParent'
+
+type ApplicationViewBuilder = HtmlBuilder<typeof Application.Message.Type>
+
+export const postsView = (
+  model: typeof Application.Model.Type,
+  h: ApplicationViewBuilder,
+): Html => {
+  // Pass the Query's Model to the Query's own accessor.
+  const postsAsyncData = PostsQuery.read(model.posts.model)
+
   return AsyncData.matchData(postsAsyncData, {
     onEmpty: () => h.p([], ['Loading posts…']),
     onFailure: error => h.p([], [error]),

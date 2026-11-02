@@ -6,7 +6,6 @@ import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import { afterCommit } from '../render/render.js'
-import * as Update from '../update/index.js'
 import * as Application from './application.js'
 
 describe('afterCommit', () => {
@@ -149,15 +148,14 @@ const ProbeCommittedDomLayer = ProbeCommittedDom.toLayer(
   ),
 )
 
-const update = Update.define((model: Model, message: Message) =>
+const update = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedTransition: () => ({
       model: { label: 'transitioned' },
       commands: [ProbeCommittedDom()],
     }),
     CompletedProbeCommittedDom: () => ({ model }),
-  }),
-)
+  })
 
 describe('Render.afterCommit inside a View Transition', () => {
   let container: HTMLElement

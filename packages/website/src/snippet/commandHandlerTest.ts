@@ -1,31 +1,31 @@
-import { Effect, Layer } from 'effect'
+import { Effect } from 'effect'
 import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http'
-import { expect, test } from 'vitest'
 
-import { FetchCount, FetchCountLayer, Message } from './counterHttpCommand'
+import { expect, it } from '@effect/vitest'
 
-test('decodes the count returned by the API', async () => {
-  const responseData = { count: 42 }
-  const testClient = HttpClient.make(request =>
-    Effect.sync(() => {
-      expect(request.url).toBe('https://example.test/api/count')
+import { Application, fetchCount } from './counterHttpCommand'
 
-      return HttpClientResponse.fromWeb(
-        request,
-        new Response(JSON.stringify(responseData), { status: 200 }),
-      )
-    }),
-  ).pipe(
-    HttpClient.mapRequest(HttpClientRequest.prependUrl('https://example.test')),
-  )
-  const HttpTestLayer = Layer.succeed(HttpClient.HttpClient, testClient)
-  const TestLayer = Layer.provide(FetchCountLayer, HttpTestLayer)
-  const expectedMessage = Message.SucceededFetchCount(responseData)
+it.effect('decodes the count returned by the API', () =>
+  Effect.gen(function* () {
+    const testClient = HttpClient.make(request =>
+      Effect.sync(() => {
+        expect(request.url).toBe('https://example.test/api/count')
 
-  const resultMessage = await FetchCount().effect.pipe(
-    Effect.provide(TestLayer),
-    Effect.runPromise,
-  )
+        return HttpClientResponse.fromWeb(
+          request,
+          new Response(JSON.stringify({ count: 42 }), { status: 200 }),
+        )
+      }),
+    ).pipe(
+      HttpClient.mapRequest(
+        HttpClientRequest.prependUrl('https://example.test'),
+      ),
+    )
 
-  expect(resultMessage).toEqual(expectedMessage)
-})
+    const resultMessage = yield* fetchCount(testClient)
+
+    expect(resultMessage).toEqual(
+      Application.Message.SucceededFetchCount({ count: 42 }),
+    )
+  }),
+)

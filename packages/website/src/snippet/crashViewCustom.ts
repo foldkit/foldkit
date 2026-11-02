@@ -1,12 +1,10 @@
 import { Program, Runtime } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 
-import { ApplicationBlock } from './block'
-import type { Message } from './message'
-import type { Model } from './model'
+import { Application, ApplicationLive } from './counter'
 
 const crashView = (
-  { error }: Runtime.CrashContext<Model, Message>,
+  { error }: Runtime.CrashContext<unknown, unknown>,
   h: HtmlBuilder<never>,
 ): Document => ({
   title: 'Something went wrong',
@@ -40,8 +38,8 @@ const crashView = (
   ),
 })
 
-const program = Program.make({
-  block: ApplicationBlock,
+const program = Program.make(Application, {
+  layer: ApplicationLive,
   crash: { view: crashView },
   container: document.getElementById('root'),
 })

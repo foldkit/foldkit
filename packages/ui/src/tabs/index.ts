@@ -1,10 +1,11 @@
 export {
-  makeBlock,
+  make,
   Orientation,
   ActivationMode,
   type InitConfig,
   type ViewInputs,
   type RenderInfo,
   type TabInfo,
-  type Completed,
+  type Tabs,
+  type TabsClass,
 } from './tabs.js'

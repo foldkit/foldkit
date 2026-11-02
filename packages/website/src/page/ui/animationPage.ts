@@ -1,8 +1,11 @@
+import type { Html } from 'foldkit/html'
+
 import { type CodeBlock } from '../../component'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
-import { UiComposition } from './composition'
 import { AnimationPageContent } from './content'
+import type { UiViewBuilder } from './definition'
 import * as Animation from './demo/animation'
+import type { Model } from './model'
 
 const { tableOfContents, view: renderPage } = AnimationPageContent
 
@@ -14,14 +17,16 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = UiComposition.makeView.withInputs<ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
-    renderPage({
-      demos: {
-        animation: demoContainer(...Animation.view(model.animationDemo, h)),
-      },
-      renderCopyButton,
-      renderSnippet,
-      renderHeadingLink,
-    }),
-)
+export const view = (
+  model: Model,
+  { renderCopyButton, renderSnippet, renderHeadingLink }: ViewInputs,
+  h: UiViewBuilder,
+): Html =>
+  renderPage({
+    demos: {
+      animation: demoContainer(...Animation.view(model.animationDemo, h)),
+    },
+    renderCopyButton,
+    renderSnippet,
+    renderHeadingLink,
+  })

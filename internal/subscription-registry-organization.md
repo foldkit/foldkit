@@ -1,7 +1,7 @@
 # Subscription registry organization
 
 Each Block declares its local Subscriptions in one `Definition.makeSubscriptions`
-registry. Fully attached registries contribute `subscriptions.layer` to the local
+registry. Fully attached registries contribute `subscriptions.toLayer` to the local
 `EffectsLayer`. Substantial dependency selectors and Stream implementations can
 live in focused helper modules. Distinct child Blocks keep their own registries.
 

@@ -4,8 +4,7 @@ import { triggerId } from '@foldkit/ui/datePicker'
 import type { AnchorConfig } from '@foldkit/ui/popover'
 
 import { Icon } from '../../../icon'
-import type { UiViewBuilder } from '../composition'
-import { DatePickerBasicDemoBinding } from '../composition'
+import type { UiViewBuilder } from '../definition'
 import type { Model } from '../model'
 import { calendarView } from './calendarView'
 
@@ -63,27 +62,21 @@ export const basicDemo = (model: Model, h: UiViewBuilder) => {
       [
         h.label(
           [
-            h.For(triggerId(model.datePickerBasicDemo.id)),
+            h.For(triggerId(model.datePickerBasicDemo.model.id)),
             h.Class('demo-label'),
           ],
           ['Due date'],
         ),
-        h.block(
-          DatePickerBasicDemoBinding.embedView({
-            slotId: model.datePickerBasicDemo.id,
-            model: model.datePickerBasicDemo,
-            viewInputs: {
-              anchor: DATE_PICKER_ANCHOR,
-              maybeSelectedDate: model.maybeDatePickerBasicDemoSelectedDate,
-              triggerContent,
-              triggerClassName,
-              panelClassName,
-              backdropClassName,
-              className: wrapperClassName,
-              toCalendarView: calendarView(calendarWrapperClassName, h),
-            },
-          }),
-        ),
+        model.datePickerBasicDemo.view({
+          anchor: DATE_PICKER_ANCHOR,
+          maybeSelectedDate: model.maybeDatePickerBasicDemoSelectedDate,
+          triggerContent,
+          triggerClassName,
+          panelClassName,
+          backdropClassName,
+          className: wrapperClassName,
+          toCalendarView: calendarView(calendarWrapperClassName, h),
+        }),
       ],
     ),
   ]

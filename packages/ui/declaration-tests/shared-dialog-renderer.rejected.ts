@@ -1,45 +1,21 @@
-import { Schema } from 'effect'
-import * as Block from 'foldkit/block'
+import type { HtmlBuilder } from 'foldkit/html'
 
-import type * as Dialog from '@foldkit/ui/dialog'
+import * as Dialog from '@foldkit/ui/dialog'
 
 import {
-  DeleteDialogBinding,
-  DeleteIssueComposition,
   DeleteIssueMessage,
-  DeleteIssueModel,
+  type DeleteIssueViewBuilder,
   InviteMemberMessage,
-  deleteDialogInputs,
 } from './shared-dialog-renderer.accepted.js'
 import { confirmDialogInputs } from './shared-dialog-renderer.js'
 
-const MissingDialogComposition = Block.makeDefinition('MissingDialog', {
-  Model: DeleteIssueModel,
-  Message: DeleteIssueMessage,
-}).makeComposition()
-
-MissingDialogComposition.makeView((model, h) =>
-  h.block(
-    // @ts-expect-error Owning the child field does not register its Binding.
-    DeleteDialogBinding.embedView({
-      slotId: 'missing-dialog',
-      model: model.dialog,
-      viewInputs: { toView: () => h.empty },
-    }),
-  ),
-)
-
-MissingDialogComposition.makeView.withInputs<Dialog.RenderInfo>(
-  (_model, render, h) =>
-    // @ts-expect-error Dialog Mount-bearing Attributes require the registered capability.
-    h.dialog(render.dialog),
-)
-
-MissingDialogComposition.makeView((_model, h) => {
+export const mountFreeInputs = (
+  h: HtmlBuilder<typeof DeleteIssueMessage.Type>,
+): Dialog.ViewInputs =>
   confirmDialogInputs(
     h,
     (attributes, children) =>
-      // @ts-expect-error A renderer callback cannot grant the missing Dialog Mount.
+      // @ts-expect-error A Mount-free builder cannot render the Dialog's Mount-bearing Attributes.
       h.dialog(attributes, children),
     {
       title: 'Delete issue',
@@ -48,17 +24,9 @@ MissingDialogComposition.makeView((_model, h) => {
     },
   )
 
-  return h.empty
-})
-
-MissingDialogComposition.makeView((model, h) => {
-  // @ts-expect-error A same-owner helper retains the exact registered child graph.
-  deleteDialogInputs(model, h)
-
-  return h.empty
-})
-
-DeleteIssueComposition.makeView((_model, h) => {
+export const crossOwnerInputs = (
+  h: DeleteIssueViewBuilder,
+): Dialog.ViewInputs =>
   confirmDialogInputs(
     h,
     (attributes, children) => h.dialog(attributes, children),
@@ -72,16 +40,11 @@ DeleteIssueComposition.makeView((_model, h) => {
     },
   )
 
-  return h.empty
-})
+// @ts-expect-error A Dialog view input requires a toView renderer.
+export const missingToView: Dialog.ViewInputs = { hasDescription: true }
 
-const MissingMountComposition = Block.makeDefinition('MissingMount', {
-  Model: Schema.Struct({}),
-  Message: Schema.Never,
-}).makeComposition()
-
-MissingMountComposition.makeView.withInputs<Dialog.RenderInfo>(
-  (_model, render, h) =>
-    // @ts-expect-error An unrelated owner cannot render the child's Mount-bearing Attributes.
-    h.dialog(render.dialog),
+export const dialogWithoutId = new Dialog.Dialog(
+  'dialog',
+  // @ts-expect-error Dialog constructor args require the DOM id.
+  {},
 )

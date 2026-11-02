@@ -1,57 +1,53 @@
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
-import { describe, test } from 'vitest'
 
-import { Model, update, view } from './application'
+import { describe, it } from '@effect/vitest'
 
-const initialModel = Model.make({ count: 0 })
+import { ApplicationLive } from './application'
 
 describe('view', () => {
-  test('renders the initial count and three buttons', () => {
+  it.effect('renders the initial count and three buttons', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
       expect(text('0')).toExist(),
       expect(role('button', { name: '+' })).toExist(),
       expect(role('button', { name: '-' })).toExist(),
       expect(role('button', { name: 'Reset' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clicking + increments the displayed count', () => {
+  it.effect('clicking + increments the displayed count', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
       click(role('button', { name: '+' })),
       expect(text('1')).toExist(),
       click(role('button', { name: '+' })),
       expect(text('2')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clicking - decrements the displayed count', () => {
+  it.effect('clicking - decrements the displayed count', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given({ count: 3 }),
       click(role('button', { name: '-' })),
       expect(text('2')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clicking - past zero produces a negative count', () => {
+  it.effect('clicking - past zero produces a negative count', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
       click(role('button', { name: '-' })),
       expect(text('-1')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('Reset returns the count to zero', () => {
+  it.effect('Reset returns the count to zero', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given({ count: 42 }),
       click(role('button', { name: 'Reset' })),
       expect(text('0')).toExist(),
-    )
-  })
+    ),
+  )
 })

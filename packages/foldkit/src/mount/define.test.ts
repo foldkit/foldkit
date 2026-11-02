@@ -80,15 +80,13 @@ if (false) {
   const LayerOnly = Mount.define('LayerOnlyMount', {
     messages: [Message.CompletedMeasurePanel],
   })
-  LayerOnly.toLayer<never, never, never>(
-    // @ts-expect-error toLayer accepts an Effect that constructs the handler.
-    ({ element }) =>
-      Effect.succeed(
-        Message.CompletedMeasurePanel({
-          panelId: 'panel',
-          width: measuredWidth(element),
-        }),
-      ),
+  LayerOnly.toLayer(({ element }) =>
+    Effect.succeed(
+      Message.CompletedMeasurePanel({
+        panelId: 'panel',
+        width: measuredWidth(element),
+      }),
+    ),
   )
   LayerOnly.toLayer(
     // @ts-expect-error Command handlers are unavailable while constructing a Mount handler.
@@ -103,40 +101,14 @@ if (false) {
         )
     }),
   )
-  // @ts-expect-error A host contract has no default handler Layer.
-  void LayerOnly.layer
-
-  Mount.define('DirectHandler', {
-    messages: [Message.CompletedMeasurePanel],
-    // @ts-expect-error handler is a generator constructor, not an invocation function.
-    handler: ({ element }: { readonly element: Element }) =>
-      Effect.succeed(
-        Message.CompletedMeasurePanel({
-          panelId: 'panel',
-          width: measuredWidth(element),
-        }),
-      ),
-  })
-
-  Mount.define('AttachedConstructionMount', {
-    messages: [Message.CompletedMeasurePanel],
-    // @ts-expect-error Attached Mount handlers have the same construction requirement guard.
-    handler: function* () {
-      yield* ConstructionMountCommand().effect
-      return ({ element }) =>
-        Effect.succeed(
-          Message.CompletedMeasurePanel({
-            panelId: 'guarded',
-            width: measuredWidth(element),
-          }),
-        )
-    },
-  })
 
   const EmptyArgs = Mount.define('EmptyArgs', {
     args: {},
     messages: [Message.CompletedMeasurePanel],
-    handler: function* () {
+  })
+
+  EmptyArgs.toLayer(
+    Effect.gen(function* () {
       return ({ element, viewStateChanges }) => {
         expectTypeOf(element).toEqualTypeOf<Element>()
         expectTypeOf(viewStateChanges).toEqualTypeOf<
@@ -153,15 +125,16 @@ if (false) {
           }),
         )
       }
-    },
-  })
+    }),
+  )
   // @ts-expect-error A declared empty args Schema still requires an args value.
   EmptyArgs()
   expectTypeOf(EmptyArgs).parameter(0).toEqualTypeOf<Schema.Struct.Type<{}>>()
 
   Mount.define('ExactNoArgs', {
     messages: [Message.CompletedMeasurePanel],
-    handler: function* () {
+  }).toLayer(
+    Effect.gen(function* () {
       return ({ element, viewStateChanges }) => {
         const exactElement: Element = element
         const exactViewStateChanges: Stream.Stream<Mount.ViewState> =
@@ -179,12 +152,13 @@ if (false) {
           }),
         )
       }
-    },
-  })
+    }),
+  )
 
   Mount.defineStream('ExactNoArgsStream', {
     messages: [Message.CompletedMeasurePanel],
-    handler: function* () {
+  }).toLayer(
+    Effect.gen(function* () {
       return ({ element, viewStateChanges }) => {
         const exactElement: Element = element
         const exactViewStateChanges: Stream.Stream<Mount.ViewState> =
@@ -202,8 +176,8 @@ if (false) {
           }),
         )
       }
-    },
-  })
+    }),
+  )
 
   const OptionalArgs = Mount.define('OptionalArgs', {
     args: {
@@ -213,7 +187,10 @@ if (false) {
       label: Schema.optional(Schema.String),
     },
     messages: [Message.CompletedMeasurePanel],
-    handler: function* () {
+  })
+
+  OptionalArgs.toLayer(
+    Effect.gen(function* () {
       return ({ element, panelId, count, maybeCount, label }) => {
         const exactPanelId: string = panelId
         const exactCount: number = count
@@ -238,8 +215,8 @@ if (false) {
           }),
         )
       }
-    },
-  })
+    }),
+  )
   OptionalArgs({
     panelId: 'panel',
     count: 1,
@@ -253,7 +230,10 @@ if (false) {
       label: Schema.optional(Schema.String),
     },
     messages: [Message.CompletedMeasurePanel],
-    handler: function* () {
+  })
+
+  OptionalStreamArgs.toLayer(
+    Effect.gen(function* () {
       return ({ element, panelId, count, label }) => {
         const exactCount: number = count
         void exactCount
@@ -266,8 +246,8 @@ if (false) {
           }),
         )
       }
-    },
-  })
+    }),
+  )
   OptionalStreamArgs({ panelId: 'panel', count: 1 })
 
   type TypedHandlerInput = Readonly<{
@@ -302,11 +282,14 @@ if (false) {
   const TypedEffectHandler = Mount.define('TypedEffectHandler', {
     args: { panelId: Schema.String },
     messages: [Message.CompletedMeasurePanel],
-    handler: function* () {
-      return yield* typedEffectHandler
-    },
   })
-  expectTypeOf(TypedEffectHandler.layer).toEqualTypeOf<
+
+  const TypedEffectHandlerLive = TypedEffectHandler.toLayer(
+    Effect.gen(function* () {
+      return yield* typedEffectHandler
+    }),
+  )
+  expectTypeOf(TypedEffectHandlerLive).toEqualTypeOf<
     Layer.Layer<
       Mount.RequirementsOf<typeof TypedEffectHandler>,
       never,
@@ -327,11 +310,14 @@ if (false) {
   const FailedTypedEffectHandler = Mount.define('FailedTypedEffectHandler', {
     args: { panelId: Schema.String },
     messages: [Message.CompletedMeasurePanel],
-    handler: function* () {
-      return yield* failedTypedEffectHandler
-    },
   })
-  expectTypeOf(FailedTypedEffectHandler.layer).toEqualTypeOf<
+
+  const FailedTypedEffectHandlerLive = FailedTypedEffectHandler.toLayer(
+    Effect.gen(function* () {
+      return yield* failedTypedEffectHandler
+    }),
+  )
+  expectTypeOf(FailedTypedEffectHandlerLive).toEqualTypeOf<
     Layer.Layer<
       Mount.RequirementsOf<typeof FailedTypedEffectHandler>,
       'mount-build-failure',
@@ -368,11 +354,14 @@ if (false) {
   const TypedStreamHandler = Mount.defineStream('TypedStreamHandler', {
     args: { panelId: Schema.String },
     messages: [Message.CompletedMeasurePanel],
-    handler: function* () {
-      return yield* typedStreamHandler
-    },
   })
-  expectTypeOf(TypedStreamHandler.layer).toEqualTypeOf<
+
+  const TypedStreamHandlerLive = TypedStreamHandler.toLayer(
+    Effect.gen(function* () {
+      return yield* typedStreamHandler
+    }),
+  )
+  expectTypeOf(TypedStreamHandlerLive).toEqualTypeOf<
     Layer.Layer<
       Mount.RequirementsOf<typeof TypedStreamHandler>,
       never,
@@ -382,83 +371,40 @@ if (false) {
 
   Mount.define('InvalidHandlerResult', {
     messages: [Message.CompletedMeasurePanel],
+  }).toLayer(
     // @ts-expect-error Handler results must belong to the declared Messages.
-    handler: function* () {
+    Effect.gen(function* () {
       return () => Effect.succeed(Message.ScrolledPanel({ scroll: 0 }))
-    },
-  })
+    }),
+  )
 
-  const narrowHandlerMessages: readonly [typeof Message.CompletedMeasurePanel] =
-    [Message.CompletedMeasurePanel]
-  const narrowHandlerConfig = {
-    args: { panelId: Schema.String },
-    messages: narrowHandlerMessages,
-  }
   Mount.define('NarrowHandlerArgs', {
-    ...narrowHandlerConfig,
-    // @ts-expect-error A handler must accept every value allowed by the args Schema.
-    handler: function* () {
-      return ({
-        element,
-        panelId,
-      }: {
-        readonly element: Element
-        readonly panelId: 'only'
-      }) =>
-        Effect.succeed(
-          Message.CompletedMeasurePanel({
-            panelId,
-            width: measuredWidth(element),
-          }),
-        )
-    },
-  })
-
-  const chooseMountHandler = (isNarrow: boolean) => {
-    if (isNarrow) {
-      return ({
-        element,
-        panelId,
-      }: {
-        readonly element: Element
-        readonly panelId: 'only'
-      }) =>
-        Effect.succeed(
-          Message.CompletedMeasurePanel({
-            panelId,
-            width: measuredWidth(element),
-          }),
-        )
-    } else {
-      return ({
-        element,
-        panelId,
-      }: {
-        readonly element: Element
-        readonly panelId: string
-      }) =>
-        Effect.succeed(
-          Message.CompletedMeasurePanel({
-            panelId,
-            width: measuredWidth(element),
-          }),
-        )
-    }
-  }
-  const unionHandlerConfig = {
     args: { panelId: Schema.String },
-    messages: narrowHandlerMessages,
-  }
-  Mount.define('UnionHandlerArgs', {
-    ...unionHandlerConfig,
-    // @ts-expect-error Every possible constructed handler must accept the full input.
-    handler: function* () {
-      return yield* Effect.sync(() => chooseMountHandler(true))
-    },
-  })
+    messages: [Message.CompletedMeasurePanel],
+  }).toLayer(
+    // @ts-expect-error A handler must accept every value allowed by the args Schema.
+    Effect.gen(function* () {
+      return ({
+        element,
+        panelId,
+      }: {
+        readonly element: Element
+        readonly panelId: 'only'
+      }) =>
+        Effect.succeed(
+          Message.CompletedMeasurePanel({
+            panelId,
+            width: measuredWidth(element),
+          }),
+        )
+    }),
+  )
 
-  const chooseNoArgsMountHandler = (isNarrow: boolean) => {
-    if (isNarrow) {
+  Mount.define('NarrowNoArgsHandler', {
+    messages: [Message.CompletedMeasurePanel],
+  }).toLayer(
+    // @ts-expect-error A handler must accept the full runtime input.
+    Effect.gen(function* () {
       return ({ element }: { readonly element: HTMLDivElement }) =>
         Effect.succeed(
           Message.CompletedMeasurePanel({
@@ -466,53 +412,8 @@ if (false) {
             width: measuredWidth(element),
           }),
         )
-    } else {
-      return ({ element }: { readonly element: Element }) =>
-        Effect.succeed(
-          Message.CompletedMeasurePanel({
-            panelId: 'broad',
-            width: measuredWidth(element),
-          }),
-        )
-    }
-  }
-  const unionNoArgsHandlerConfig = {
-    messages: narrowHandlerMessages,
-  }
-  Mount.define('UnionNoArgsHandler', {
-    ...unionNoArgsHandlerConfig,
-    // @ts-expect-error Every possible constructed handler must accept the full runtime input.
-    handler: function* () {
-      return yield* Effect.sync(() => chooseNoArgsMountHandler(true))
-    },
-  })
-
-  const inlineConfig = {
-    messages: [Message.CompletedMeasurePanel],
-    execute: ({ element }: { readonly element: Element }) =>
-      Effect.succeed(
-        Message.CompletedMeasurePanel({
-          panelId: 'panel',
-          width: measuredWidth(element),
-        }),
-      ),
-  }
-  // @ts-expect-error Mount definitions cannot carry inline implementations.
-  Mount.define('InlineMount', inlineConfig)
-
-  const effectHandlerConfig = {
-    messages: [Message.CompletedMeasurePanel],
-    handler: Effect.succeed(({ element }: { readonly element: Element }) =>
-      Effect.succeed(
-        Message.CompletedMeasurePanel({
-          panelId: 'panel',
-          width: measuredWidth(element),
-        }),
-      ),
-    ),
-  }
-  // @ts-expect-error handler accepts a generator function rather than a constructed Effect.
-  Mount.define('EffectHandler', effectHandlerConfig)
+    }),
+  )
 }
 
 describe('Mount.define defers its handler body', () => {
@@ -523,7 +424,10 @@ describe('Mount.define defers its handler body', () => {
       const MeasurePanel = Mount.define('MeasurePanel', {
         args: { panelId: Schema.String },
         messages: [Message.CompletedMeasurePanel],
-        handler: function* () {
+      })
+
+      const MeasurePanelLive = MeasurePanel.toLayer(
+        Effect.gen(function* () {
           return ({ element, panelId }) => {
             bodyRunCount = bodyRunCount + 1
             return Effect.succeed(
@@ -533,15 +437,15 @@ describe('Mount.define defers its handler body', () => {
               }),
             )
           }
-        },
-      })
+        }),
+      )
 
       const action = MeasurePanel({ panelId: 'panel' })
       expect(bodyRunCount).toBe(0)
 
       const maybeMessage = yield* Stream.runHead(
         action.f(panelElement(), Mount.liveViewStateChanges),
-      ).pipe(Effect.provide(MeasurePanel.layer))
+      ).pipe(Effect.provide(MeasurePanelLive))
 
       expect(bodyRunCount).toBe(1)
       expect(maybeMessage).toStrictEqual(
@@ -584,7 +488,10 @@ describe('Mount.define defers its handler body', () => {
 
     const MeasurePanel = Mount.define('MeasurePanel', {
       messages: [Message.CompletedMeasurePanel],
-      handler: function* () {
+    })
+
+    void MeasurePanel.toLayer(
+      Effect.gen(function* () {
         return ({ element }) => {
           bodyRunCount = bodyRunCount + 1
           return Effect.succeed(
@@ -594,8 +501,8 @@ describe('Mount.define defers its handler body', () => {
             }),
           )
         }
-      },
-    })
+      }),
+    )
 
     MeasurePanel()
 
@@ -608,7 +515,10 @@ describe('Mount.define defers its handler body', () => {
 
       const ObserveViewState = Mount.define('ObserveViewState', {
         messages: [Message.CompletedMeasurePanel],
-        handler: function* () {
+      })
+
+      const ObserveViewStateLive = ObserveViewState.toLayer(
+        Effect.gen(function* () {
           return ({ viewStateChanges }) =>
             Stream.take(viewStateChanges, 1).pipe(
               Stream.runForEach(viewState => {
@@ -619,12 +529,12 @@ describe('Mount.define defers its handler body', () => {
                 Message.CompletedMeasurePanel({ panelId: 'panel', width: 0 }),
               ),
             )
-        },
-      })
+        }),
+      )
 
       yield* ObserveViewState()
         .f(panelElement(), Mount.liveViewStateChanges)
-        .pipe(Stream.runHead, Effect.provide(ObserveViewState.layer))
+        .pipe(Stream.runHead, Effect.provide(ObserveViewStateLive))
 
       expect(observedViewStates).toEqual([Mount.ViewState.make('Live')])
     }),
@@ -635,7 +545,10 @@ describe('Layer-backed Mount.define handlers', () => {
   const MeasurePanel = Mount.define('MeasureLayeredPanel', {
     args: { panelId: Schema.String },
     messages: [Message.CompletedMeasurePanel],
-    handler: function* () {
+  })
+
+  const MeasurePanelLive = MeasurePanel.toLayer(
+    Effect.gen(function* () {
       return ({ element, panelId }) =>
         Effect.map(Prefix, ({ value }) =>
           Message.CompletedMeasurePanel({
@@ -643,8 +556,8 @@ describe('Layer-backed Mount.define handlers', () => {
             width: measuredWidth(element),
           }),
         )
-    },
-  })
+    }),
+  )
 
   it('carries the handler requirement and its implementation dependencies', () => {
     expectTypeOf(MeasurePanel({ panelId: 'panel' })).toMatchTypeOf<
@@ -654,7 +567,7 @@ describe('Layer-backed Mount.define handlers', () => {
         Mount.RequirementsOf<typeof MeasurePanel>
       >
     >()
-    expectTypeOf(MeasurePanel.layer).toEqualTypeOf<
+    expectTypeOf(MeasurePanelLive).toEqualTypeOf<
       Layer.Layer<Mount.RequirementsOf<typeof MeasurePanel>, never, Prefix>
     >()
 
@@ -683,7 +596,7 @@ describe('Layer-backed Mount.define handlers', () => {
   it.effect('uses invocation context over handler Layer context', () =>
     Effect.gen(function* () {
       const handlerLayer = Layer.provide(
-        MeasurePanel.layer,
+        MeasurePanelLive,
         Layer.succeed(Prefix, { value: 'construction:' }),
       )
 
@@ -712,7 +625,10 @@ describe('Layer-backed Mount.define handlers', () => {
       const BuildOnce = Mount.define('BuildOnce', {
         args: { panelId: Schema.String },
         messages: [Message.CompletedMeasurePanel],
-        handler: function* () {
+      })
+
+      const BuildOnceLive = BuildOnce.toLayer(
+        Effect.gen(function* () {
           builds += 1
 
           return ({ element, panelId }) =>
@@ -722,8 +638,8 @@ describe('Layer-backed Mount.define handlers', () => {
                 width: measuredWidth(element),
               }),
             )
-        },
-      })
+        }),
+      )
 
       const results = yield* Effect.all([
         Stream.runHead(
@@ -738,7 +654,7 @@ describe('Layer-backed Mount.define handlers', () => {
             Mount.liveViewStateChanges,
           ),
         ),
-      ]).pipe(Effect.provide(BuildOnce.layer))
+      ]).pipe(Effect.provide(BuildOnceLive))
 
       expect(builds).toBe(1)
       expect(results).toEqual([
@@ -798,7 +714,10 @@ describe('Layer-backed Mount.define handlers', () => {
     const NestedRequirements = Mount.define('NestedRequirements', {
       args: { panelId: Schema.String },
       messages: [Message.CompletedMeasurePanel],
-      handler: function* () {
+    })
+
+    const NestedRequirementsLive = NestedRequirements.toLayer(
+      Effect.gen(function* () {
         yield* Effect.scope
         const suffix = yield* Suffix
         if (suffix.value === 'unavailable') {
@@ -819,10 +738,10 @@ describe('Layer-backed Mount.define handlers', () => {
             })
           })
         }
-      },
-    })
+      }),
+    )
 
-    expectTypeOf(NestedRequirements.layer).toEqualTypeOf<
+    expectTypeOf(NestedRequirementsLive).toEqualTypeOf<
       Layer.Layer<
         Mount.RequirementsOf<typeof NestedRequirements>,
         BuildFailure,
@@ -834,22 +753,17 @@ describe('Layer-backed Mount.define handlers', () => {
   it('infers no execution requirements from a failing constructor', () => {
     const MountBuildFailure = Mount.define('MountBuildFailure', {
       messages: [Message.CompletedMeasurePanel],
-      handler: function* () {
-        return yield* Effect.fail('mount-build')
-      },
     })
 
-    expectTypeOf(MountBuildFailure.layer).toEqualTypeOf<
+    const MountBuildFailureLive = MountBuildFailure.toLayer(
+      Effect.gen(function* () {
+        return yield* Effect.fail('mount-build')
+      }),
+    )
+
+    expectTypeOf(MountBuildFailureLive).toEqualTypeOf<
       Layer.Layer<Mount.RequirementsOf<typeof MountBuildFailure>, string, never>
     >()
-  })
-
-  it('keeps host contracts external at runtime', () => {
-    const HostMount = Mount.define('HostMount', {
-      messages: [Message.CompletedMeasurePanel],
-    })
-
-    expect('layer' in HostMount).toBe(false)
   })
 })
 
@@ -861,7 +775,10 @@ describe('Mount.defineStream defers its handler body', () => {
       const WatchPanelScroll = Mount.defineStream('WatchPanelScroll', {
         args: { initialScroll: Schema.Number },
         messages: [Message.ScrolledPanel],
-        handler: function* () {
+      })
+
+      const WatchPanelScrollLive = WatchPanelScroll.toLayer(
+        Effect.gen(function* () {
           return ({ element, initialScroll }) => {
             bodyRunCount = bodyRunCount + 1
             return Stream.make(
@@ -870,15 +787,15 @@ describe('Mount.defineStream defers its handler body', () => {
               }),
             )
           }
-        },
-      })
+        }),
+      )
 
       const action = WatchPanelScroll({ initialScroll: 8 })
       expect(bodyRunCount).toBe(0)
 
       const maybeMessage = yield* Stream.runHead(
         action.f(panelElement(), Mount.liveViewStateChanges),
-      ).pipe(Effect.provide(WatchPanelScroll.layer))
+      ).pipe(Effect.provide(WatchPanelScrollLive))
 
       expect(bodyRunCount).toBe(1)
       expect(maybeMessage).toStrictEqual(
@@ -892,15 +809,18 @@ describe('Mount.defineStream defers its handler body', () => {
 
     const WatchPanelScroll = Mount.defineStream('WatchPanelScroll', {
       messages: [Message.ScrolledPanel],
-      handler: function* () {
+    })
+
+    void WatchPanelScroll.toLayer(
+      Effect.gen(function* () {
         return ({ element }) => {
           bodyRunCount = bodyRunCount + 1
           return Stream.make(
             Message.ScrolledPanel({ scroll: measuredWidth(element) }),
           )
         }
-      },
-    })
+      }),
+    )
 
     WatchPanelScroll()
 
@@ -913,7 +833,10 @@ describe('Mount.defineStream defers its handler body', () => {
 
       const WatchViewState = Mount.defineStream('WatchViewState', {
         messages: [Message.ScrolledPanel],
-        handler: function* () {
+      })
+
+      const WatchViewStateLive = WatchViewState.toLayer(
+        Effect.gen(function* () {
           return ({ viewStateChanges }) =>
             Stream.map(
               Stream.tap(viewStateChanges, viewState => {
@@ -922,14 +845,14 @@ describe('Mount.defineStream defers its handler body', () => {
               }),
               () => Message.ScrolledPanel({ scroll: 0 }),
             )
-        },
-      })
+        }),
+      )
 
       const fiber = yield* WatchViewState()
         .f(panelElement(), Mount.liveViewStateChanges)
         .pipe(
           Stream.runCollect,
-          Effect.provide(WatchViewState.layer),
+          Effect.provide(WatchViewStateLive),
           Effect.forkChild,
         )
 
@@ -949,19 +872,22 @@ describe('Layer-backed Mount.defineStream handlers', () => {
       const WatchPanelScroll = Mount.defineStream('WatchLayeredPanelScroll', {
         args: { initialScroll: Schema.Number },
         messages: [Message.ScrolledPanel],
-        handler: function* () {
+      })
+
+      const WatchPanelScrollLive = WatchPanelScroll.toLayer(
+        Effect.gen(function* () {
           return ({ element, initialScroll }) =>
             Stream.make(
               Message.ScrolledPanel({
                 scroll: initialScroll + measuredWidth(element),
               }),
             )
-        },
-      })
+        }),
+      )
 
       const maybeMessage = yield* WatchPanelScroll({ initialScroll: 8 })
         .f(panelElement(), Mount.liveViewStateChanges)
-        .pipe(Stream.runHead, Effect.provide(WatchPanelScroll.layer))
+        .pipe(Stream.runHead, Effect.provide(WatchPanelScrollLive))
 
       expect(maybeMessage).toEqual(
         Option.some(Message.ScrolledPanel({ scroll: 8 + PANEL_WIDTH })),

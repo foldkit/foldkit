@@ -12,11 +12,11 @@ import {
   indexReferences,
   isArrayExpression,
   isCallExpression,
-  isFoldkitHtmlBuilderMember,
   isIdentifier,
   isMemberExpression,
   staticMemberPath,
 } from '../guards.ts'
+import { isFoldkitHtmlBuilderMember } from '../html-builder.ts'
 
 // The builder bindings Foldkit views use: the `h` a view receives, and
 // `inertHtml` under both its own name and the `ih` it is usually imported as.

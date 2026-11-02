@@ -1,6 +1,8 @@
-import { DateTime, Option } from 'effect'
+import { DateTime, Layer, Option } from 'effect'
+import type { Resolved } from 'foldkit/block'
 import { modifyFields } from 'foldkit/struct'
 
+import { ApplicationLive, type Model, TelemetryAsyncData } from './application'
 import {
   ContributorSummary,
   DependencyEdge,
@@ -9,16 +11,15 @@ import {
   Telemetry,
   WeeklyDownloads,
   WeeklyTelemetry,
-} from './domain'
-import { Model, TelemetryAsyncData } from './model'
+} from './domain/telemetry'
 import {
   CHART_MODE_RADIO_GROUP_ID,
-  ChartModeRadioGroupBlock,
   PACKAGE_RADIO_GROUP_ID,
   PERIOD_RADIO_GROUP_ID,
-  PackageRadioGroupBlock,
-  PeriodRadioGroupBlock,
-} from './radioGroups'
+  SidebarLive,
+} from './sidebar'
+
+export const application = ApplicationLive.pipe(Layer.provide(SidebarLive))
 
 export const sampleTelemetry = Telemetry.make({
   fetchedAt: DateTime.toEpochMillis(
@@ -110,24 +111,29 @@ export const sampleTelemetry = Telemetry.make({
   warnings: [],
 })
 
-export const loadingModel = Model.make({
+export const loadingModel: Resolved<Model> = {
   telemetry: TelemetryAsyncData.Loading(),
-  chartMode: 'Adoption',
-  chartModeRadioGroup: ChartModeRadioGroupBlock.init({
-    id: CHART_MODE_RADIO_GROUP_ID,
-  }).model,
-  selectedPackageId: 'Core',
-  packageRadioGroup: PackageRadioGroupBlock.init({
-    id: PACKAGE_RADIO_GROUP_ID,
-  }).model,
-  period: 'LastSixteenWeeks',
-  periodRadioGroup: PeriodRadioGroupBlock.init({
-    id: PERIOD_RADIO_GROUP_ID,
-  }).model,
+  sidebar: {
+    chartMode: 'Adoption',
+    chartModeRadioGroup: {
+      id: CHART_MODE_RADIO_GROUP_ID,
+      maybeFocusedIndex: Option.none(),
+    },
+    selectedPackageId: 'Core',
+    packageRadioGroup: {
+      id: PACKAGE_RADIO_GROUP_ID,
+      maybeFocusedIndex: Option.none(),
+    },
+    period: 'LastSixteenWeeks',
+    periodRadioGroup: {
+      id: PERIOD_RADIO_GROUP_ID,
+      maybeFocusedIndex: Option.none(),
+    },
+  },
   maybeChartHostId: Option.none(),
   maybeChartError: Option.none(),
   maybeSelectedDatumId: Option.none(),
-})
+}
 
 export const readyModel = modifyFields(loadingModel, {
   telemetry: () => TelemetryAsyncData.Success({ data: sampleTelemetry }),

@@ -1,1 +1,0 @@
-export { RoomBlock } from './block'

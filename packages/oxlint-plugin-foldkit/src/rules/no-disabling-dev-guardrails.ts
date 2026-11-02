@@ -14,9 +14,6 @@ import {
   resolveFoldkitApiPath,
 } from '../guards.ts'
 
-const FREEZE_MODEL_MESSAGE =
-  "`freezeModel: false` turns off Foldkit's dev mutation guard. When on, the runtime deep-freezes the Model after init and after every update, so an accidental mutation throws at the exact write site during development and costs nothing in production. Fix the mutation instead of disabling the guard. A deliberate disable belongs behind an oxlint-disable comment at this line."
-
 const SLOW_MESSAGE =
   "`slow: false` turns off Foldkit's dev performance warnings, which flag update, view, and patch phases that blow their budgets. Tune instead of disabling: pass an object with thresholdOverrides, measuredPhases, show, or onSlow. A deliberate disable belongs behind an oxlint-disable comment at this line."
 
@@ -62,11 +59,8 @@ const staticKeyName = (
 const isFalseLiteral = (value: ESTree.Expression): boolean =>
   value.type === 'Literal' && value.value === false
 
-const guardrailMessageForKey = (keyName: string): Option.Option<string> => {
-  if (keyName === 'freezeModel') return Option.some(FREEZE_MODEL_MESSAGE)
-  if (keyName === 'slow') return Option.some(SLOW_MESSAGE)
-  return Option.none()
-}
+const guardrailMessageForKey = (keyName: string): Option.Option<string> =>
+  keyName === 'slow' ? Option.some(SLOW_MESSAGE) : Option.none()
 
 const disabledGuardrailMessage = (
   property: ESTree.ObjectPropertyKind,
@@ -78,13 +72,13 @@ const disabledGuardrailMessage = (
   return pipe(staticKeyName(property), Option.flatMap(guardrailMessageForKey))
 }
 
-/** Flags `freezeModel: false` and `slow: false` in config objects passed directly to Program construction. Disabling a dev guardrail hides the problem it would have surfaced; a deliberate disable belongs behind an oxlint-disable comment. */
+/** Flags `slow: false` in the options object passed directly to `Program.make` or `Program.makeElement`. Disabling a dev guardrail hides the problem it would have surfaced; a deliberate disable belongs behind an oxlint-disable comment. */
 export const noDisablingDevGuardrails = Rule.define({
   name: 'no-disabling-dev-guardrails',
   meta: Rule.meta({
     type: 'suggestion',
     description:
-      'Keep the freezeModel and slow dev guardrails enabled in Foldkit Program configs.',
+      'Keep the slow dev guardrail enabled in Foldkit Program options.',
   }),
   create: function* () {
     const ctx = yield* RuleContext

@@ -1,18 +1,23 @@
-import { Effect } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Command } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+
+const Message = defineMessageUnion({
+  CompletedSaveDraft: {},
+})
+type Message = typeof Message.Type
 
 // ❌ Bad
-// Hand-rolling the Command struct skips the identity, args, and tracing
-// metadata that Command.define attaches.
-const SaveDraft = {
+// A hand-built struct skips the identity, args, and tracing metadata that
+// Command.define attaches.
+const saveDraft = {
   name: 'SaveDraft',
-  effect: saveDraftEffect,
+  effect: Effect.succeed(Message.CompletedSaveDraft()),
 }
 
 // ✅ Good
-const FetchWeather = Command.define('FetchWeather', {
-  messages: [SucceededFetchWeather],
-  handler: function* () {
-    return () => fetchWeatherEffect
-  },
+// Declare the Command, list it on its Block, and implement it under commands.
+const SaveDraft = Command.define('SaveDraft', {
+  args: { body: Schema.String },
+  messages: [Message.CompletedSaveDraft],
 })

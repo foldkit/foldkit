@@ -1,27 +1,80 @@
-import { Match, Tuple } from 'effect'
+import { Effect, Match } from 'effect'
 import { Block } from 'foldkit'
-import type { ChildAttribute, Html, TagName } from 'foldkit/html'
+import * as Dom from 'foldkit/dom'
+import type { ChildAttribute, Html, HtmlBuilder, TagName } from 'foldkit/html'
+import * as Render from 'foldkit/render'
 
-import { Message, Model, OutMessage, TransitionState } from './schema.js'
+import { idSelector } from '../internal/selectors.js'
 import {
-  AnimationComposition,
-  EffectsLayer,
+  type AnimationArgs,
+  Message,
+  Model,
+  OutMessage,
+  TransitionState,
+} from './schema.js'
+import {
   WaitForAnimationSettled,
   WaitForPaint,
-  init,
-  update,
+  completeWaitForPaint,
+  finishTransition,
+  hideTransition,
+  resetImmediately,
+  resumeTransition,
+  showTransition,
+  toggleTransition,
+  waitForLeaveSettlement,
 } from './update.js'
 
-export type { Hid, InitConfig, Showed } from './schema.js'
-export { init, Message, Model, OutMessage, TransitionState }
+export type { AnimationArgs, Hid, Showed } from './schema.js'
+export { Message, Model, OutMessage, TransitionState }
+export { WaitForAnimationSettled, WaitForPaint }
 
-export { WaitForAnimationSettled, WaitForPaint, EffectsLayer, update }
+// VIEW HELPERS
 
-// VIEW
+/** Returns whether the transition state is a phase of the leave lifecycle. */
+export const isLeaving = (transitionState: TransitionState): boolean =>
+  transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
 
-/** Per-render view inputs passed to `view` via `h.block`'s `viewInputs` field. */
-export type ViewInputs = Readonly<{
-  /** Renders content in the boundary that embeds Animation. */
+/** Returns the data attributes that reflect a transition state:
+ *  - `data-closed`: element is in its hidden/initial state
+ *  - `data-enter`: enter animation is active
+ *  - `data-leave`: leave animation is active
+ *  - `data-transition`: any animation is active
+ *
+ *  Components that render their own animated element spread these onto it. */
+export const transitionAttributes = <ParentMessage, MountRequirements>(
+  h: HtmlBuilder<ParentMessage, MountRequirements>,
+  transitionState: TransitionState,
+): ReadonlyArray<
+  ReturnType<HtmlBuilder<ParentMessage, MountRequirements>['DataAttribute']>
+> =>
+  Match.value(transitionState).pipe(
+    Match.when('EnterStart', () => [
+      h.DataAttribute('closed', ''),
+      h.DataAttribute('enter', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    Match.when('EnterAnimating', () => [
+      h.DataAttribute('enter', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    Match.when('LeaveStart', () => [
+      h.DataAttribute('leave', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    Match.when('LeaveAnimating', () => [
+      h.DataAttribute('closed', ''),
+      h.DataAttribute('leave', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    Match.orElse(() => []),
+  )
+
+// BLOCK
+
+/** Per-render input a parent passes to `model.animation.view(...)`. */
+export type ViewInput = Readonly<{
+  /** Renders the animated content. Runs as the parent. */
   toView: () => Html
   className?: string
   attributes?: ReadonlyArray<ChildAttribute>
@@ -32,53 +85,73 @@ export type ViewInputs = Readonly<{
   animateSize?: boolean
 }>
 
-/** Renders a headless animation wrapper that coordinates CSS transitions and
- *  CSS keyframe animations via data attributes.
- *
- *  Data attributes reflect the current lifecycle phase:
- *  - `data-closed`: element is in its hidden/initial state
- *  - `data-enter`: enter animation is active
- *  - `data-leave`: leave animation is active
- *  - `data-transition`: any animation is active
- */
-export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
-  (model, viewInputs, h) => {
-    const { id, isShowing, transitionState } = model
+/** Headless animation Block that coordinates CSS transitions and CSS keyframe
+ *  animations via data attributes. Send it `Animation.Message.RequestedShow`,
+ *  `RequestedHide`, and the other `Requested*` Messages to drive the
+ *  lifecycle, and handle `StartedLeaveAnimating` and `TransitionedOut` with
+ *  `.on`. */
+export class Animation extends Block<Animation, AnimationArgs, ViewInput>()(
+  'Animation',
+  {
+    Model,
+    Message,
+    OutMessage,
+    Command: [WaitForPaint, WaitForAnimationSettled],
+  },
+) {}
+
+const elementSelector = (id: string): string => idSelector(id)
+
+/** Implements {@link Animation}. Results from an earlier transition generation
+ *  leave the Model unchanged. */
+export const AnimationLive = Animation.toLayer(() => ({
+  init: ({ id, isShowing = false }, { id: instanceId }) => ({
+    id: id ?? instanceId,
+    isShowing,
+    transitionState: 'Idle',
+    transitionGeneration: 0,
+  }),
+
+  update: {
+    Showed: showTransition,
+    Hid: hideTransition,
+    RequestedShow: showTransition,
+    RequestedHide: hideTransition,
+    RequestedWaitForLeaveSettlement: waitForLeaveSettlement,
+    RequestedFinish: (model, { generation }) =>
+      finishTransition(model, generation),
+    RequestedToggle: toggleTransition,
+    RequestedResume: resumeTransition,
+    RequestedImmediateReset: resetImmediately,
+    CompletedWaitForPaint: (model, { generation }) =>
+      completeWaitForPaint(model, generation),
+    EndedAnimation: (model, { generation }) =>
+      finishTransition(model, generation),
+  },
+
+  commands: {
+    WaitForPaint: ({ generation }) =>
+      Render.afterPaint.pipe(
+        Effect.as(Message.CompletedWaitForPaint({ generation })),
+      ),
+    WaitForAnimationSettled: ({ id: elementId, generation }) =>
+      Dom.waitForAnimationSettled(elementSelector(elementId)).pipe(
+        Effect.as(Message.EndedAnimation({ generation })),
+      ),
+  },
+
+  view: (model, h, viewInput) => {
+    const { transitionState } = model
     const {
       toView,
       className,
       attributes = [],
       element = 'div',
       animateSize = false,
-    } = viewInputs
+    } = viewInput
 
-    const isLeaving =
-      transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
-    const isVisible = isShowing || isLeaving
-
-    const transitionAttributes: ReadonlyArray<
-      ReturnType<typeof h.DataAttribute>
-    > = Match.value(transitionState).pipe(
-      Match.when('EnterStart', () => [
-        h.DataAttribute('closed', ''),
-        h.DataAttribute('enter', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('EnterAnimating', () => [
-        h.DataAttribute('enter', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('LeaveStart', () => [
-        h.DataAttribute('leave', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('LeaveAnimating', () => [
-        h.DataAttribute('closed', ''),
-        h.DataAttribute('leave', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.orElse(() => []),
-    )
+    const isVisible = model.isShowing || isLeaving(transitionState)
+    const dataAttributes = transitionAttributes(h, transitionState)
 
     if (animateSize) {
       const isClosed =
@@ -103,13 +176,13 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
             ],
             [
               h.keyed(element)(
-                id,
+                model.id,
                 [
-                  h.Id(id),
+                  h.Id(model.id),
                   ...(isClosed && transitionState === 'Idle'
                     ? [h.DataAttribute('closed', '')]
                     : []),
-                  ...transitionAttributes,
+                  ...dataAttributes,
                   ...(className ? [h.Class(className)] : []),
                   ...attributes,
                 ],
@@ -126,54 +199,14 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
     }
 
     return h.keyed(element)(
-      id,
+      model.id,
       [
-        h.Id(id),
-        ...transitionAttributes,
+        h.Id(model.id),
+        ...dataAttributes,
         ...(className ? [h.Class(className)] : []),
         ...attributes,
       ],
       [toView()],
     )
   },
-)
-
-const prepare = () =>
-  AnimationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      requestShow: Message.RequestedShow,
-      requestHide: Message.RequestedHide,
-      requestWaitForLeaveSettlement: Message.RequestedWaitForLeaveSettlement,
-      requestFinish: (generation: number) =>
-        Tuple.make(Message.RequestedFinish({ generation })),
-      requestToggle: Message.RequestedToggle,
-      requestResume: Message.RequestedResume,
-      requestImmediateReset: Message.RequestedImmediateReset,
-    },
-    EffectsLayer,
-  })
-/** Completed Animation Block contract. */
-export interface AnimationBlock extends Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> {}
-/** Complete Animation Block definition for connecting to a parent. */
-export const AnimationBlock: AnimationBlock = Block.assemble(prepare)
-
-/** Programmatically starts the enter lifecycle through Animation update. */
-export const show = AnimationBlock.operations.requestShow
-
-/** Programmatically starts the leave lifecycle through Animation update. */
-export const hide = AnimationBlock.operations.requestHide
-
-/** Completes the current transition generation through Animation update. */
-export const finish = AnimationBlock.operations.requestFinish
-
-/** Toggles between the shown and hidden states through Animation update. */
-export const toggle = AnimationBlock.operations.requestToggle
-
-/** Resumes the pending transition lifecycle through Animation update. */
-export const resume = AnimationBlock.operations.requestResume
+}))

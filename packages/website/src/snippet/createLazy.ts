@@ -1,9 +1,6 @@
-import { createLazy } from 'foldkit/html'
+import { type Document, type HtmlBuilder, createLazy } from 'foldkit/html'
 
-import {
-  ApplicationComposition,
-  type ApplicationViewBuilder,
-} from './composition'
+type ApplicationViewBuilder = HtmlBuilder<Message>
 
 // Define the view function at module level for a stable reference.
 // If defined inside the view, a new function is created each render,
@@ -37,7 +34,7 @@ const lazyStats = createLazy()
 // The builder travels through the args array like any other argument.
 // The runtime hands every render the same builder object, so it never
 // invalidates the cache.
-const view = ApplicationComposition.makeView((model, h) => ({
+export const view = (model: Model, h: ApplicationViewBuilder): Document => ({
   title: 'Dashboard',
   body: h.div(
     [],
@@ -52,4 +49,4 @@ const view = ApplicationComposition.makeView((model, h) => ({
       sidebarView(model, h),
     ],
   ),
-}))
+})

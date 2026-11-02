@@ -37,6 +37,19 @@
       }
     },
     {
+      "files": [
+        "packages/foldkit/src/blocks/block.ts",
+        "packages/foldkit/src/blocks/engine.ts",
+        "packages/foldkit/src/blocks/program.ts",
+        "packages/foldkit/src/blocks/testing.ts"
+      ],
+      "rules": {
+        "effecttsgo/any-unknown-in-error-context": "off",
+        "effecttsgo/floating-effect": "off",
+        "effecttsgo/unsafe-effect-type-assertion": "off"
+      }
+    },
+    {
       "files": ["packages/foldkit/src/runtime/resourceProvider.ts"],
       "rules": {
         "effecttsgo/any-unknown-in-error-context": "off",

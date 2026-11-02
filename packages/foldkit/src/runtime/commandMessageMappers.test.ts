@@ -44,7 +44,7 @@ type Message = typeof Message.Type
 const Model = Schema.Struct({ label: Schema.String })
 type Model = typeof Model.Type
 
-const update = Update.define((_model: Model, message: Message) =>
+const update = (_model: Model, message: Message) =>
   Message.match(message, {
     GotChildMessage: ({ message: childMessage }) =>
       Match.value(childMessage).pipe(
@@ -53,8 +53,7 @@ const update = Update.define((_model: Model, message: Message) =>
           CompletedDoChildWork: () => ({ model: { label: 'child done' } }),
         }),
       ),
-  }),
-)
+  })
 
 const h = __htmlBuilder<Message>()
 
@@ -123,7 +122,7 @@ describe('command message mappers', () => {
     }
   })
 
-  it('attributes a nested dynamic lift only after the real result resolves', async () => {
+  it('runs a nested dynamic lift and records the result only after the real result resolves', async () => {
     const ChildMessage = defineMessageUnion({
       CompletedChooseDestination: {
         target: Schema.Literals(['Editor', 'Viewer']),
@@ -236,9 +235,7 @@ describe('command message mappers', () => {
           SubscriptionRef.get(store.stateRef),
         )
         const command = pipe(state.initCommands, Array.head, Option.getOrThrow)
-        expect(command.maybeBlockPath).toEqual(
-          Option.some(['GotPanelMessage', 'GotViewerMessage']),
-        )
+        expect(command.maybeBlockPath).toEqual(Option.some([]))
       })
       expect(middleMapperCalls).toBe(1)
       expect(rootMapperCalls).toBe(1)

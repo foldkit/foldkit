@@ -1,13 +1,13 @@
 import { type Html, inertHtml as ih } from 'foldkit/html'
 
 import { Shared } from '../component'
-import type { ApplicationViewBuilder } from '../composition'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import { Message } from '../message'
 import { type Model } from '../model'
 import { getStartedRouter, homeRouter } from '../route'
 import { HeaderNav, Search, Sidebar, ThemeSelector } from '../view'
+import type { ApplicationViewBuilder } from '../view/builder'
 
 const PagefindBody = ih.DataAttribute('pagefind-body', '')
 
@@ -45,13 +45,7 @@ const headerView = (model: Model, h: ApplicationViewBuilder) =>
           Search.compactTriggerView('hidden sm:inline-flex lg:hidden', h),
           h.div(
             [h.Class('hidden md:flex')],
-            [
-              ThemeSelector.view(
-                model.themeMenu,
-                model.maybeThemePreference,
-                h,
-              ),
-            ],
+            [ThemeSelector.view(model.themeMenu, model.maybeThemePreference)],
           ),
           Shared.headerGroupDivider('hidden sm:block mx-3'),
           h.a(
@@ -68,7 +62,7 @@ const headerView = (model: Model, h: ApplicationViewBuilder) =>
               h.Class(
                 'sm:hidden -mr-2 inline-flex size-8 items-center justify-center rounded-md text-gray-700 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
               ),
-              h.AriaExpanded(model.mobileMenuDialog.isOpen),
+              h.AriaExpanded(model.mobileMenuDialog.model.isOpen),
               h.AriaLabel('Toggle menu'),
               h.OnClick(Message.ClickedOpenMobileMenu()),
             ],
@@ -122,7 +116,7 @@ export const view = (
     [
       Shared.skipNavLink,
       headerView(model, h),
-      Search.dialogView(model, h),
+      Search.dialogView(model),
       Sidebar.mobileView(model, h),
       h.main(
         [

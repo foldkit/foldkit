@@ -1,20 +1,17 @@
 import type { Html } from 'foldkit/html'
-import type { Url } from 'foldkit/url'
 
-import type { CodeBlock } from '../../component'
-import type { RenderHeadingLink } from '../../prose'
+import { demoContainer } from '../../prose'
 import * as AnchorPage from './anchorPage'
 import * as AnimationPage from './animationPage'
 import * as ButtonPage from './buttonPage'
 import * as CalendarPage from './calendarPage'
 import * as CheckboxPage from './checkboxPage'
 import * as ComboboxPage from './comboboxPage'
-import { UiComposition } from './composition'
-import type { UiViewBuilder } from './composition'
 import * as DatePickerPage from './datePickerPage'
+import type { UiView, UiViewBuilder, UiViewInput } from './definition'
+import * as VirtualListDemo from './demo/virtualList'
 import * as DialogPage from './dialogPage'
 import * as DisclosurePage from './disclosurePage'
-import type { Page } from './domain/domain'
 import * as DragAndDropPage from './dragAndDropPage'
 import * as FieldsetPage from './fieldsetPage'
 import * as FileDropPage from './fileDropPage'
@@ -39,18 +36,10 @@ import * as ToastPage from './toastPage'
 import * as TooltipPage from './tooltipPage'
 import * as VirtualListPage from './virtualListPage'
 
-type ViewInputs = Readonly<{
-  page: Page
-  url: Url
-  renderCopyButton: CodeBlock.RenderCopyButton
-  renderSnippet: CodeBlock.RenderSnippet
-  renderHeadingLink: RenderHeadingLink
-}>
-
 const pageViews: Readonly<
   globalThis.Record<
-    Page,
-    (model: Model, viewInputs: ViewInputs, h: UiViewBuilder) => Html
+    UiView,
+    (model: Model, viewInputs: UiViewInput, h: UiViewBuilder) => Html
   >
 > = {
   Anchor: (_model, { renderCopyButton, renderSnippet, renderHeadingLink }) =>
@@ -75,6 +64,14 @@ const pageViews: Readonly<
   Overview: (_model, { renderCopyButton, renderSnippet, renderHeadingLink }) =>
     OverviewPage.view(renderCopyButton, renderSnippet, renderHeadingLink),
   Popover: PopoverPage.view,
+  Release0167ChatDemo: (model, _viewInputs, h) =>
+    demoContainer(
+      ...VirtualListDemo.virtualListChatDemo(
+        model.virtualListChatDemo,
+        model.virtualListChatMessages,
+        h,
+      ),
+    ),
   Progress: ProgressPage.view,
   RadioGroup: RadioGroupPage.view,
   Select: SelectPage.view,
@@ -96,6 +93,8 @@ const pageViews: Readonly<
   VirtualList: VirtualListPage.view,
 }
 
-export const view = UiComposition.makeView.withInputs<ViewInputs>(
-  (model, viewInputs, h) => pageViews[viewInputs.page](model, viewInputs, h),
-)
+export const view = (
+  model: Model,
+  h: UiViewBuilder,
+  viewInputs: UiViewInput,
+): Html => pageViews[viewInputs.page](model, viewInputs, h)

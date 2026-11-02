@@ -1,1 +1,0 @@
-export { MemberDirectoryBlock } from './block'

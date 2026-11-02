@@ -1,9 +1,12 @@
 export {
-  AnimationBlock,
+  Animation,
+  AnimationLive,
   TransitionState,
-  type InitConfig,
-  type ViewInputs,
+  isLeaving,
+  transitionAttributes,
+  type AnimationArgs,
+  type ViewInput,
 } from './index.js'
 
-/** Original Animation Command Definitions for Story and Scene test resolution. */
+/** Animation Command Definitions for Story and Scene test resolution. */
 export * as test from './test.js'

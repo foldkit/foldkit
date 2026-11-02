@@ -823,17 +823,20 @@ export const all: <
  * import { AsyncData, Command } from 'foldkit'
  *
  * // The Command settles the fetch into a Result instead of throwing:
- * const LoadNotes = Command.define(
- *   'LoadNotes',
- *   { messages: [Message.SettledLoadNotes], handler: function* () { return () =>
- *     pipe(
- *       fetchNotes,
- *       Effect.result,
- *       Effect.map(result => Message.SettledLoadNotes({ result })),
- *     ) }},
- * )
+ * const LoadNotes = Command.define('LoadNotes', {
+ *   messages: [Message.SettledLoadNotes],
+ * })
  *
- * const EffectsLayer = LoadNotes.layer
+ * const LoadNotesLive = LoadNotes.toLayer(
+ *   Effect.gen(function* () {
+ *     return () =>
+ *       pipe(
+ *         fetchNotes,
+ *         Effect.result,
+ *         Effect.map(result => Message.SettledLoadNotes({ result })),
+ *       )
+ *   }),
+ * )
  *
  * // One update arm folds it in, whatever the previous state was:
  * SettledLoadNotes: ({ result }) => ({

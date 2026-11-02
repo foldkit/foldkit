@@ -1,5 +1,5 @@
 export {
-  makeBlock,
+  make,
   buttonId,
   ActivationTrigger,
   groupContiguous,
@@ -8,10 +8,11 @@ export {
   type ViewInputs,
   type ItemConfig,
   type GroupHeading,
-  type Completed,
+  type Menu,
+  type MenuClass,
 } from './index.js'
 
 export type { AnchorConfig } from '../anchor/index.js'
 
-/** Original Menu Command and Mount Definitions for Story and Scene test resolution. */
+/** Menu Command and Mount Definitions for Story and Scene test resolution. */
 export * as test from './test.js'

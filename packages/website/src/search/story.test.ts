@@ -1,22 +1,30 @@
-import { Command, given, message, model, story } from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
-import { toParentMessage } from 'foldkit/test'
-import { describe, expect, test } from 'vitest'
+import { Layer } from 'effect'
+import { Block } from 'foldkit'
+import { Command, message, model, story } from 'foldkit/story'
 
-import { DialogBlock } from '@foldkit/ui'
+import { describe, expect, it } from '@effect/vitest'
+import { Dialog, DialogLive } from '@foldkit/ui'
+import { test as DialogTest } from '@foldkit/ui/dialog'
 
-import { SearchBlock } from './block'
-import { DialogBinding } from './composition'
-import { SearchState } from './domain'
-import { init } from './init'
-import { Message } from './message'
+import { PagefindService } from '../pagefind'
+import { SearchLive } from './block'
 import {
   FetchSearchResults,
+  FocusSearchInput,
   NavigateToResult,
   ScrollToResult,
-  update,
-} from './update'
-const init_ = init()
+} from './command'
+import { Message } from './message'
+
+const SearchTest = SearchLive.pipe(
+  Layer.provide(DialogLive),
+  Layer.provide(
+    Layer.succeed(PagefindService, {
+      search: () => Promise.resolve({ results: [] }),
+    }),
+  ),
+)
+
 const searchResults = [
   {
     url: '/docs/commands',
@@ -33,11 +41,31 @@ const searchResults = [
     kind: '',
   },
 ]
+
+const deliverToDialog = (dialogMessage: typeof Dialog.Dialog.Message.Type) =>
+  message(Block.deliver(Dialog.Dialog, 'dialog', dialogMessage))
+
+const searchFor = (query: string, results: typeof searchResults) => [
+  message(Message.UpdatedSearchQuery({ query })),
+  Command.resolve(
+    FetchSearchResults,
+    Message.CompletedFetchSearchResults({ results, query }),
+  ),
+]
+
+const openSearch = [
+  message(Message.RequestedOpen()),
+  Command.resolve(FocusSearchInput, Message.CompletedFocusSearchInput()),
+  Command.resolve(
+    DialogTest.ShowDialog,
+    Dialog.Dialog.Message.SucceededShowDialog(),
+  ),
+]
+
 describe('search', () => {
-  test('typing a query starts a search', () => {
+  it.effect('typing a query starts a search', () =>
     story(
-      update,
-      given(init_.model),
+      SearchTest,
       message(Message.UpdatedSearchQuery({ query: 'routing' })),
       model(model => {
         expect(model.query).toBe('routing')
@@ -58,12 +86,13 @@ describe('search', () => {
         })
         expect(model.activeResultIndex).toBe(0)
       }),
-    )
-  })
-  test('clearing the query resets to Idle', () => {
+    ),
+  )
+
+  it.effect('clearing the query resets to Idle', () =>
     story(
-      update,
-      given(modifyFields(init_.model, { query: () => 'routing' })),
+      SearchTest,
+      ...searchFor('routing', searchResults),
       message(Message.UpdatedSearchQuery({ query: '' })),
       model(model => {
         expect(model.query).toBe('')
@@ -71,32 +100,31 @@ describe('search', () => {
         expect(model.activeResultIndex).toBe(-1)
       }),
       Command.expectNone(),
-    )
-  })
-  test('same query is ignored', () => {
+    ),
+  )
+
+  it.effect('same query is ignored', () =>
     story(
-      update,
-      given(modifyFields(init_.model, { query: () => 'routing' })),
+      SearchTest,
+      ...searchFor('routing', searchResults),
       message(Message.UpdatedSearchQuery({ query: 'routing' })),
       model(model => {
-        expect(model.searchState._tag).toBe('Idle')
+        expect(model.searchState).toMatchObject({
+          _tag: 'Ok',
+          results: searchResults,
+        })
       }),
       Command.expectNone(),
-    )
-  })
-  test('new query preserves previous results in Loading state', () => {
+    ),
+  )
+
+  it.effect('new query preserves previous results in Loading state', () =>
     story(
-      update,
-      given(
-        modifyFields(init_.model, {
-          query: () => 'routing',
-          searchState: () => SearchState.Ok({ results: searchResults }),
-        }),
-      ),
+      SearchTest,
+      ...searchFor('routing', searchResults),
       message(Message.UpdatedSearchQuery({ query: 'testing' })),
       model(model => {
         expect(model.query).toBe('testing')
-        expect(model.searchState._tag).toBe('Loading')
         expect(model.searchState).toMatchObject({
           _tag: 'Loading',
           results: searchResults,
@@ -106,12 +134,13 @@ describe('search', () => {
         FetchSearchResults,
         Message.CompletedFetchSearchResults({ results: [], query: 'testing' }),
       ),
-    )
-  })
-  test('stale results are ignored', () => {
+    ),
+  )
+
+  it.effect('stale results are ignored', () =>
     story(
-      update,
-      given(modifyFields(init_.model, { query: () => 'testing' })),
+      SearchTest,
+      message(Message.UpdatedSearchQuery({ query: 'testing' })),
       message(
         Message.CompletedFetchSearchResults({
           results: searchResults,
@@ -119,14 +148,21 @@ describe('search', () => {
         }),
       ),
       model(model => {
-        expect(model.searchState._tag).toBe('Idle')
+        expect(model.searchState).toMatchObject({
+          _tag: 'Loading',
+          results: [],
+        })
       }),
-    )
-  })
-  test('selecting a result navigates and resets', () => {
+      Command.resolve(
+        FetchSearchResults,
+        Message.CompletedFetchSearchResults({ results: [], query: 'testing' }),
+      ),
+    ),
+  )
+
+  it.effect('selecting a result navigates and resets', () =>
     story(
-      update,
-      given(init_.model),
+      SearchTest,
       message(Message.SelectedSearchResult({ url: '/docs/commands' })),
       model(model => {
         expect(model.query).toBe('')
@@ -137,16 +173,13 @@ describe('search', () => {
       model(model => {
         expect(model.query).toBe('')
       }),
-    )
-  })
-  test('arrow keys cycle through results', () => {
-    const modelWithResults = modifyFields(init_.model, {
-      searchState: () => SearchState.Ok({ results: searchResults }),
-      activeResultIndex: () => 0,
-    })
+    ),
+  )
+
+  it.effect('arrow keys cycle through results', () =>
     story(
-      update,
-      given(modelWithResults),
+      SearchTest,
+      ...searchFor('routing', searchResults),
       message(Message.PressedArrowKey({ direction: 'Down' })),
       model(model => {
         expect(model.activeResultIndex).toBe(1)
@@ -163,80 +196,79 @@ describe('search', () => {
         expect(model.activeResultIndex).toBe(1)
       }),
       Command.resolve(ScrollToResult, Message.CompletedScrollToResult()),
-    )
-  })
-  test('clearing the query explicitly resets state', () => {
+    ),
+  )
+
+  it.effect('clearing the query explicitly resets state', () =>
     story(
-      update,
-      given(
-        modifyFields(init_.model, {
-          query: () => 'routing',
-          searchState: () => SearchState.Ok({ results: searchResults }),
-          activeResultIndex: () => 1,
-        }),
-      ),
+      SearchTest,
+      ...searchFor('routing', searchResults),
+      message(Message.PressedArrowKey({ direction: 'Down' })),
+      Command.resolve(ScrollToResult, Message.CompletedScrollToResult()),
       message(Message.ClearedSearchQuery()),
       model(model => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
         expect(model.activeResultIndex).toBe(-1)
       }),
-    )
-  })
-  test('close completion clears Search after cleanup, including after a reopen', () => {
-    const opened = update(
-      init_.model,
-      toParentMessage(DialogBinding, DialogBlock.Message.RequestedOpen()),
-    )
-    const queried = update(
-      opened.model,
-      Message.UpdatedSearchQuery({ query: 'routing' }),
-    )
-    const transitioned = update(
-      queried.model,
-      toParentMessage(DialogBinding, DialogBlock.Message.RequestedClose()),
-    )
-    const reopened = update(
-      transitioned.model,
-      toParentMessage(DialogBinding, DialogBlock.Message.RequestedOpen()),
-    )
-    const completed = update(
-      reopened.model,
-      toParentMessage(
-        DialogBinding,
-        DialogBlock.Message.CompletedCloseDialog(),
+    ),
+  )
+
+  it.effect(
+    'close completion clears Search after cleanup, including after a reopen',
+    () =>
+      story(
+        SearchTest,
+        ...openSearch,
+        ...searchFor('routing', searchResults),
+        deliverToDialog(Dialog.Dialog.Message.RequestedClose()),
+        model(model => {
+          expect(model.query).toBe('routing')
+        }),
+        deliverToDialog(Dialog.Dialog.Message.RequestedOpen()),
+        model(model => {
+          expect(model.query).toBe('routing')
+          expect(model.dialog.isOpen).toBe(true)
+        }),
+        Command.resolve(
+          DialogTest.CloseDialog,
+          Dialog.Dialog.Message.CompletedCloseDialog(),
+        ),
+        model(model => {
+          expect(model.query).toBe('')
+          expect(model.searchState._tag).toBe('Idle')
+          expect(model.activeResultIndex).toBe(-1)
+        }),
+        Command.resolve(
+          DialogTest.ShowDialog,
+          Dialog.Dialog.Message.SucceededShowDialog(),
+        ),
       ),
-    )
-    expect(transitioned.model.query).toBe('routing')
-    expect(reopened.model.query).toBe('routing')
-    expect(reopened.model.dialog.isOpen).toBe(true)
-    expect(completed.model.query).toBe('')
-    expect(completed.model.searchState._tag).toBe('Idle')
-    expect(completed.model.activeResultIndex).toBe(-1)
-  })
-  test('route changes clear and close Search while keyboard clearing leaves it open', () => {
-    const opened = update(
-      init_.model,
-      toParentMessage(DialogBinding, DialogBlock.Message.RequestedOpen()),
-    )
-    const queried = update(
-      opened.model,
-      Message.UpdatedSearchQuery({ query: 'routing' }),
-    )
-    const cleared = update(queried.model, Message.ClearedSearchQuery())
-    const retyped = update(
-      cleared.model,
-      Message.UpdatedSearchQuery({ query: 'composition' }),
-    )
-    const changedRoute = SearchBlock.operations.informRouteChanged(
-      retyped.model,
-    )
-    expect(cleared.model.query).toBe('')
-    expect(cleared.model.dialog.isOpen).toBe(true)
-    expect(changedRoute.model.query).toBe('')
-    expect(changedRoute.model.dialog.isOpen).toBe(false)
-    expect(changedRoute.commands?.map(command => command.name)).toEqual([
-      'dialog/CloseDialog',
-    ])
-  })
+  )
+
+  it.effect(
+    'route changes clear and close Search while keyboard clearing leaves it open',
+    () =>
+      story(
+        SearchTest,
+        ...openSearch,
+        ...searchFor('routing', searchResults),
+        message(Message.ClearedSearchQuery()),
+        model(model => {
+          expect(model.query).toBe('')
+          expect(model.dialog.isOpen).toBe(true)
+        }),
+        ...searchFor('composition', searchResults),
+        message(Message.InformedOfRouteChange()),
+        model(model => {
+          expect(model.query).toBe('')
+          expect(model.dialog.isOpen).toBe(false)
+        }),
+        Command.expectExact(DialogTest.CloseDialog),
+        Command.resolve(
+          DialogTest.CloseDialog,
+          Dialog.Dialog.Message.CompletedCloseDialog(),
+        ),
+      ),
+  )
 })

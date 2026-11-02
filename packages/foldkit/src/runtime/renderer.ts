@@ -377,13 +377,9 @@ export const makeRenderer = <Model, Message>({
 
     const dispatch = { dispatchAsync, dispatchSync }
 
-    // NOTE: One boundary registry per runtime instance, shared
-    // across renders so Block wrap blocks registered by
-    // h.block persist between renders. The render function calls
-    // `beginHtmlRender` at the start of each pass; wraps for
-    // unmounted Blocks (e.g. an entry removed from a list) are
-    // dropped from the registry via snabbdom `postdestroy` hooks
-    // attached by `h.block` to each child vnode.
+    // NOTE: One boundary registry per runtime instance, shared across
+    // renders so its VNode deduplication state persists between renders.
+    // The render function calls `beginHtmlRender` at the start of each pass.
     const boundaryRegistry: BoundaryRegistry = createHtmlBoundaryRegistry()
     const registeredMounts = new Set(
       mounts.map(mount => mount[MountRegistrationTypeId]),
@@ -438,7 +434,7 @@ export const makeRenderer = <Model, Message>({
       const names = globalThis.Array.from(missing.values()).sort()
       throw new Error(
         `[foldkit] The rendered view contains Layer-backed Mounts that were not registered: ${names.join(', ')}. ` +
-          "Register each Mount Definition in the owning Composition's mounts field.",
+          "List each Mount Definition under its Block's `Mount` field.",
       )
     }
 

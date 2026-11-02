@@ -1,7 +1,10 @@
 import { Context, Effect, Layer, type Scope, Stream } from 'effect'
 
-import type { DefinitionIdentity } from '../block/identity.js'
-import type { ValidateConstructionRequirements } from '../block/scope.js'
+import type {
+  DefinitionIdentity,
+  HandlerRequirements,
+  ValidateConstructionRequirements,
+} from '../definitionIdentity.js'
 import type { Handler } from './public.js'
 
 export type { Handler } from './public.js'
@@ -49,7 +52,17 @@ export interface ToEffectLayer<Name extends string, Input, Message> {
   ): Layer.Layer<
     Handler<Name, Input, Message>,
     E,
-    Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
+    Exclude<
+      HandlerRequirements<ExecuteRequirements> | BuildRequirements,
+      Scope.Scope
+    >
+  >
+  <ExecuteRequirements>(
+    handler: EffectHandler<Input, Message, ExecuteRequirements>,
+  ): Layer.Layer<
+    Handler<Name, Input, Message>,
+    never,
+    Exclude<HandlerRequirements<ExecuteRequirements>, Scope.Scope>
   >
 }
 
@@ -73,7 +86,17 @@ export interface ToStreamLayer<Name extends string, Input, Message> {
   ): Layer.Layer<
     Handler<Name, Input, Message>,
     E,
-    Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
+    Exclude<
+      HandlerRequirements<StreamRequirements> | BuildRequirements,
+      Scope.Scope
+    >
+  >
+  <StreamRequirements>(
+    handler: StreamHandler<Input, Message, StreamRequirements>,
+  ): Layer.Layer<
+    Handler<Name, Input, Message>,
+    never,
+    Exclude<HandlerRequirements<StreamRequirements>, Scope.Scope>
   >
 }
 
@@ -109,31 +132,44 @@ export const makeEffectHandler = <Name extends string, Input, Message>(
       )
     })
 
-  const toLayer: ToEffectLayer<Name, Input, Message> = <
+  const layerFromBuild = <
     ExecuteRequirements,
     E = never,
     BuildRequirements = never,
   >(
-    build: Effect.Effect<
-      EffectHandler<Input, Message, ExecuteRequirements>,
-      E,
-      BuildRequirements
-    >,
+    build:
+      | Effect.Effect<
+          EffectHandler<Input, Message, ExecuteRequirements>,
+          E,
+          BuildRequirements
+        >
+      | EffectHandler<Input, Message, ExecuteRequirements>,
   ): Layer.Layer<
     Handler<Name, Input, Message>,
     E,
-    Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
+    Exclude<
+      HandlerRequirements<ExecuteRequirements> | BuildRequirements,
+      Scope.Scope
+    >
   > =>
     Layer.effect(
       service,
       Effect.gen(function* () {
         const context = yield* Effect.context<
-          Exclude<ExecuteRequirements, Scope.Scope> | BuildRequirements
+          | Exclude<HandlerRequirements<ExecuteRequirements>, Scope.Scope>
+          | BuildRequirements
         >()
-        const handler = yield* build
+        const handler = yield* Effect.isEffect(build)
+          ? build
+          : Effect.succeed(build)
         return { identity, context, execute: handler }
       }),
     )
+
+  // NOTE: one implementation serves both overloads: a handler or an Effect
+  // that builds one.
+  // oxlint-disable-next-line typescript/consistent-type-assertions
+  const layer = layerFromBuild as unknown as ToEffectLayer<Name, Input, Message>
 
   const definitionIdentity: DefinitionIdentity = {
     kind: 'Mount',
@@ -142,7 +178,7 @@ export const makeEffectHandler = <Name extends string, Input, Message>(
     service,
   }
 
-  return { execute, toLayer, identity: definitionIdentity }
+  return { execute, toLayer: layer, identity: definitionIdentity }
 }
 
 /** @internal Builds service-backed execution for a streaming Mount definition. */
@@ -176,31 +212,44 @@ export const makeStreamHandler = <Name extends string, Input, Message>(
       }),
     )
 
-  const toLayer: ToStreamLayer<Name, Input, Message> = <
+  const layerFromBuild = <
     StreamRequirements,
     E = never,
     BuildRequirements = never,
   >(
-    build: Effect.Effect<
-      StreamHandler<Input, Message, StreamRequirements>,
-      E,
-      BuildRequirements
-    >,
+    build:
+      | Effect.Effect<
+          StreamHandler<Input, Message, StreamRequirements>,
+          E,
+          BuildRequirements
+        >
+      | StreamHandler<Input, Message, StreamRequirements>,
   ): Layer.Layer<
     Handler<Name, Input, Message>,
     E,
-    Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
+    Exclude<
+      HandlerRequirements<StreamRequirements> | BuildRequirements,
+      Scope.Scope
+    >
   > =>
     Layer.effect(
       service,
       Effect.gen(function* () {
         const context = yield* Effect.context<
-          Exclude<StreamRequirements, Scope.Scope> | BuildRequirements
+          | Exclude<HandlerRequirements<StreamRequirements>, Scope.Scope>
+          | BuildRequirements
         >()
-        const handler = yield* build
+        const handler = yield* Effect.isEffect(build)
+          ? build
+          : Effect.succeed(build)
         return { identity, context, execute: handler }
       }),
     )
+
+  // NOTE: one implementation serves both overloads: a handler or an Effect
+  // that builds one.
+  // oxlint-disable-next-line typescript/consistent-type-assertions
+  const layer = layerFromBuild as unknown as ToStreamLayer<Name, Input, Message>
 
   const definitionIdentity: DefinitionIdentity = {
     kind: 'Mount',
@@ -209,5 +258,5 @@ export const makeStreamHandler = <Name extends string, Input, Message>(
     service,
   }
 
-  return { execute, toLayer, identity: definitionIdentity }
+  return { execute, toLayer: layer, identity: definitionIdentity }
 }

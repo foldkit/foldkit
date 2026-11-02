@@ -1,24 +1,27 @@
 export { define } from './define.js'
+export type { QueryFetcher } from './internal.js'
 export type {
-  CanonicalKeyedQuery,
   KeyedQuery,
+  KeyedQueryArgs,
+  KeyedQueryCancelFetch,
+  KeyedQueryClass,
   KeyedQueryConfig,
+  KeyedQueryFetch,
+  KeyedQueryMessage,
   KeyedQueryModel,
   KeyedQueryOutMessage,
-  KeyedQueryToLayer,
-  KeyedQueryWithOutMessage,
-  KeyedQueryWithoutOutMessage,
-  LayeredKeyedQuery,
+  KeyedQueryStatics,
   SyncFields,
 } from './keyedQuery.js'
 export type {
-  CanonicalQuery,
-  LayeredQuery,
   Query,
+  QueryArgs,
+  QueryCancelFetch,
+  QueryClass,
   QueryConfig,
+  QueryMessage,
   QueryModel,
+  QueryFetch,
   QueryOutMessage,
-  QueryToLayer,
-  QueryWithOutMessage,
-  QueryWithoutOutMessage,
+  QueryStatics,
 } from './query.js'

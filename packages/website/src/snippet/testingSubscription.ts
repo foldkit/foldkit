@@ -1,30 +1,16 @@
-import {
-  Subscription,
-  given,
-  scene,
-  subscriptions as sceneSubscriptions,
-} from 'foldkit/scene'
+import { click, deliver, expect, role, scene } from 'foldkit/scene'
 
-const rootSubscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
-  clockTicks: entry('ClockTicks', { messages: [Message.Ticked] }),
-}))
+import { it } from '@effect/vitest'
 
-const subscriptions = sceneSubscriptions(
-  ApplicationComposition,
-  rootSubscriptions,
-)
+import { Message, TimerLive } from './timer'
 
-scene(
-  { update, view, subscriptions },
-  given(initialModel),
-  Subscription.emit(subscriptions.clockTicks, Message.Ticked()),
-)
-
-scene(
-  { update, view, subscriptions },
-  given(initialModel),
-  Subscription.emit(
-    subscriptions['chat/chatServerFrames'],
-    Chat.ChatBlock.Message.ReceivedServerFrame({ frame }),
+it.effect('shows the elapsed time after two ticks', () =>
+  scene(
+    TimerLive,
+    click(role('button', { name: 'Start' })),
+    // Scene does not run the tick Stream. Deliver the Message it produces.
+    deliver(Message.Ticked()),
+    deliver(Message.Ticked()),
+    expect(role('timer')).toHaveText('2s'),
   ),
 )

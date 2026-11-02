@@ -1,16 +1,5 @@
-import type { Scoped } from '../block/scope.js'
 import type { Handler as CommandHandler } from '../command/handler.js'
-import type { Handler as ManagedResourceHandler } from '../managedResource/handler.js'
 import type { Handler as MountHandler } from '../mount/handler.js'
-import type { Handler as SubscriptionHandler } from '../subscription/handler.js'
-
-type HandlerName<Name extends string, OwnerId extends string | never> = [
-  OwnerId,
-] extends [never]
-  ? Name
-  : Name extends `${string}/${infer LocalName}`
-    ? LocalName
-    : Name
 
 interface HandlerEntryShape {
   readonly key: string
@@ -22,42 +11,16 @@ interface HandlerEntryValue<Key extends string, Contract> {
   readonly contract: Contract
 }
 
-type LocalHandlerEntry<Requirements, OwnerId extends string | never> =
+type HandlerEntry<Requirements> =
   Requirements extends CommandHandler<infer Name, infer _Args, infer _Message>
-    ? HandlerEntryValue<`Command/${HandlerName<Name, OwnerId>}`, Requirements>
-    : Requirements extends SubscriptionHandler<
+    ? HandlerEntryValue<`Command/${Name}`, Requirements>
+    : Requirements extends MountHandler<
           infer Name,
-          infer _Dependencies,
+          infer _Input,
           infer _Message
         >
-      ? HandlerEntryValue<
-          `Subscription/${HandlerName<Name, OwnerId>}`,
-          Requirements
-        >
-      : Requirements extends MountHandler<
-            infer Name,
-            infer _Input,
-            infer _Message
-          >
-        ? HandlerEntryValue<`Mount/${HandlerName<Name, OwnerId>}`, Requirements>
-        : Requirements extends ManagedResourceHandler<
-              infer Name,
-              infer _Params,
-              infer _Value
-            >
-          ? HandlerEntryValue<
-              `ManagedResource/${HandlerName<Name, OwnerId>}`,
-              Requirements
-            >
-          : never
-
-type HandlerEntry<Requirements, OwnerId extends string | never> =
-  Requirements extends Scoped<infer Path, infer Contract>
-    ? LocalHandlerEntry<Contract, OwnerId> extends infer Entry extends
-        HandlerEntryShape
-      ? HandlerEntryValue<`${Path}/${Entry['key']}`, Requirements>
+      ? HandlerEntryValue<`Mount/${Name}`, Requirements>
       : never
-    : LocalHandlerEntry<Requirements, OwnerId>
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -98,12 +61,10 @@ type ConflictingIndexedKeys<
     : never
   : never
 
-type ValidHandlerKindContracts<
-  Requirements,
-  OwnerId extends string | never = never,
-> = [Requirements] extends [never]
+/** @internal Rejects incompatible handler contracts sharing one Context key. */
+export type ValidHandlerContracts<Requirements> = [Requirements] extends [never]
   ? unknown
-  : HandlerEntry<Requirements, OwnerId> extends infer Entries
+  : HandlerEntry<Requirements> extends infer Entries
     ? [Entries] extends [HandlerEntryShape]
       ? ConflictingIndexedKeys<
           Entries,
@@ -119,9 +80,3 @@ type ValidHandlerKindContracts<
         : never
       : unknown
     : unknown
-
-/** @internal Rejects incompatible handler contracts sharing one Context key. */
-export type ValidHandlerContracts<
-  Requirements,
-  OwnerId extends string | never = never,
-> = ValidHandlerKindContracts<Requirements, OwnerId>

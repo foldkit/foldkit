@@ -60,26 +60,8 @@ describe('configs', () => {
         expect(config.rules['foldkit/block-name-matches-variable']).toBe(
           'error',
         )
-        expect(
-          config.rules['foldkit/no-child-message-construction-in-root'],
-        ).toBe('error')
-        expect(config.rules['foldkit/no-manual-composition-routing']).toBe(
-          'error',
-        )
-        expect(config.rules['foldkit/no-direct-block-state-update']).toBe(
-          'error',
-        )
-        expect(config.rules['foldkit/no-completed-block-model-in-schema']).toBe(
-          'error',
-        )
-        expect(config.rules['foldkit/no-binding-write-coordination']).toBe(
-          'error',
-        )
         expect(config.rules['foldkit/no-noop-message']).toBe('error')
         expect(config.rules['foldkit/no-empty-commands-array']).toBe('error')
-        expect(config.rules['foldkit/no-empty-to-parent-out-message']).toBe(
-          'error',
-        )
         expect(config.rules[decisionTimeRuleId]).toBe('error')
         expect(config.rules['foldkit/prefer-effect-module-names']).toBe('error')
       })

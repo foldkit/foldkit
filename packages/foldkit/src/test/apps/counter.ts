@@ -4,7 +4,6 @@ import * as Command from '../../command/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -35,19 +34,25 @@ export type Message = typeof Message.Type
 
 export const FetchCount = Command.define('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-  handler: function* () {
-    return () => Effect.sync(() => Message.SucceededFetchCount({ count: 0 }))
-  },
 })
+
+export const FetchCountLive = FetchCount.toLayer(
+  Effect.gen(function* () {
+    return () => Effect.sync(() => Message.SucceededFetchCount({ count: 0 }))
+  }),
+)
 
 export const FetchCountById = Command.define('FetchCountById', {
   args: { id: Schema.Number },
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-  handler: function* () {
+})
+
+export const FetchCountByIdLive = FetchCountById.toLayer(
+  Effect.gen(function* () {
     return ({ id }) =>
       Effect.sync(() => Message.SucceededFetchCount({ count: id }))
-  },
-})
+  }),
+)
 
 // INIT
 
@@ -55,7 +60,7 @@ export const initialModel: Model = { count: 0, log: [] }
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: Number.increment }),
@@ -94,8 +99,7 @@ export const update = Update.define((model: Model, message: Message) =>
       }),
     }),
     FailedFetchCount: () => ({ model }),
-  }),
-)
+  })
 
 // VIEW
 
@@ -116,7 +120,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-export const EffectsLayer = Layer.mergeAll(
-  FetchCount.layer,
-  FetchCountById.layer,
-)
+export const EffectsLayer = Layer.mergeAll(FetchCountLive, FetchCountByIdLive)

@@ -1,13 +1,12 @@
-import { Array, Option, Schema } from 'effect'
-import * as Block from 'foldkit/block'
+import { Array, Cause, Effect, Exit, Layer, Option, Schema } from 'effect'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
-import * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import * as Animation from '../animation/block.js'
 import * as Toast from './index.js'
 
 const FirstPayload = Schema.Struct({ body: Schema.String })
@@ -15,241 +14,164 @@ type FirstPayload = typeof FirstPayload.Type
 const SecondPayload = Schema.Struct({ count: Schema.Number })
 type SecondPayload = typeof SecondPayload.Type
 
-const FirstToast = Toast.makeBlock(FirstPayload)
-const SecondToast = Toast.makeBlock(SecondPayload)
+const FirstToast = Toast.make(FirstPayload)
+const FirstToastLive = FirstToast.pipe(Layer.provide(Animation.AnimationLive))
+const SecondToast = Toast.make(SecondPayload)
+const SecondToastLive = SecondToast.pipe(Layer.provide(Animation.AnimationLive))
 
-const ParentModel = Schema.Struct({
-  left: FirstToast.Model,
-  right: FirstToast.Model,
-  other: SecondToast.Model,
-})
-type ParentModel = typeof ParentModel.Type
-
-const ParentMessage = defineMessageUnion({
-  RequestedShowAll: {},
-})
-type ParentMessage = typeof ParentMessage.Type
-
-const ToastFixtureParentDefinition = Block.makeDefinition(
+class ToastFixtureParent extends Block<ToastFixtureParent>()(
   'ToastFixtureParent',
   {
-    Model: ParentModel,
-    Message: ParentMessage,
+    Model: Schema.Struct({
+      left: FirstToast,
+      right: FirstToast,
+      other: SecondToast,
+    }),
+    Message: defineMessageUnion({ RequestedShowAll: {} }),
   },
-)
+) {}
 
-const foldFirstToastOutMessage =
-  ToastFixtureParentDefinition.makeOutMessageFold(FirstToast, {
-    DismissedToast: () => model => ({ model }),
-  })
-
-const foldSecondToastOutMessage =
-  ToastFixtureParentDefinition.makeOutMessageFold(SecondToast, {
-    DismissedToast: () => model => ({ model }),
-  })
-
-const LeftToastBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
-  placement: 'LeftToast',
-  read: model => Option.some(model.left),
-  write: (model, left) => ({ ...model, left }),
-}).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
-
-const RightToastBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
-  placement: 'RightToast',
-  read: model => Option.some(model.right),
-  write: (model, right) => ({ ...model, right }),
-}).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
-
-const OtherToastBinding = ToastFixtureParentDefinition.makeBinding(
-  SecondToast,
-  {
-    placement: 'OtherToast',
-    read: model => Option.some(model.other),
-    write: (model, other) => ({ ...model, other }),
+const ToastFixtureParentLive = ToastFixtureParent.toLayer(() => ({
+  init: () => ({
+    left: new FirstToast('left', { id: 'toast' }),
+    right: new FirstToast('right', { id: 'toast' }),
+    other: new SecondToast('other', { id: 'toast' }),
+  }),
+  update: {
+    RequestedShowAll: model => ({
+      model,
+      messages: [
+        model.left.send(
+          FirstToast.requestShow({
+            payload: { body: 'Left' },
+            duration: 100,
+          }),
+        ),
+        model.right.send(
+          FirstToast.requestShow({
+            payload: { body: 'Right' },
+            duration: 200,
+          }),
+        ),
+        model.other.send(
+          SecondToast.requestShow({
+            payload: { count: 3 },
+            duration: 300,
+          }),
+        ),
+      ],
+    }),
   },
-).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
+})).pipe(Layer.provide(Layer.mergeAll(FirstToastLive, SecondToastLive)))
 
-const ToastFixtureParentComposition =
-  ToastFixtureParentDefinition.makeComposition({
-    bindings: [LeftToastBinding, RightToastBinding, OtherToastBinding],
-  })
-
-const requestShowAllStep = Update.combineSteps([
-  LeftToastBinding.requestShow({
-    payload: { body: 'Left' },
-    duration: 100,
-  }),
-  RightToastBinding.requestShow({
-    payload: { body: 'Right' },
-    duration: 200,
-  }),
-  OtherToastBinding.requestShow({
-    payload: { count: 3 },
-    duration: 300,
-  }),
-])
-
-const update = ToastFixtureParentComposition.makeUpdate({
-  RequestedShowAll: model => requestShowAllStep(model),
-})
-
-const initialModel: ParentModel = {
-  left: FirstToast.init({ id: 'toast' }).model,
-  right: FirstToast.init({ id: 'toast' }).model,
-  other: SecondToast.init({ id: 'toast' }).model,
-}
-
-const KeyedToastSlot = Schema.Struct({
-  key: Schema.String,
-  toast: FirstToast.Model,
-})
-type KeyedToastSlot = typeof KeyedToastSlot.Type
-const KeyedParentModel = Schema.Struct({
-  slots: Schema.Array(KeyedToastSlot),
-})
-type KeyedParentModel = typeof KeyedParentModel.Type
-const KeyedParentMessage = defineMessageUnion({ RequestedShow: {} })
-type KeyedParentMessage = typeof KeyedParentMessage.Type
-const KeyedToastFixtureParentDefinition = Block.makeDefinition(
+class KeyedToastFixtureParent extends Block<KeyedToastFixtureParent>()(
   'KeyedToastFixtureParent',
   {
-    Model: KeyedParentModel,
-    Message: KeyedParentMessage,
+    Model: Schema.Struct({ slots: Schema.Array(FirstToast) }),
+    Message: defineMessageUnion({ RequestedShow: {}, RemovedSlots: {} }),
   },
-)
-const foldKeyedToastOutMessage =
-  KeyedToastFixtureParentDefinition.makeOutMessageFold(FirstToast, {
-    DismissedToast: () => model => ({ model }),
-  })
-const KeyedToastBinding = KeyedToastFixtureParentDefinition.makeBinding(
-  FirstToast,
-  {
-    placement: 'KeyedToast',
-    readAll: model => model.slots,
-    key: slot => slot.key,
-    keySchema: Schema.String,
-    read: slot => slot.toast,
-    writeAt: (model, key, toast) =>
-      modifyFields(model, {
-        slots: Array.map(slot =>
-          slot.key === key ? KeyedToastSlot.make({ key, toast }) : slot,
+) {}
+
+const KeyedToastFixtureParentLive = KeyedToastFixtureParent.toLayer(() => ({
+  init: () => ({ slots: [new FirstToast('selected', { id: 'toast' })] }),
+  update: {
+    RequestedShow: model => ({
+      model,
+      messages: Array.map(model.slots, toast =>
+        toast.send(
+          FirstToast.requestShow({
+            payload: { body: 'Keyed' },
+            duration: 100,
+          }),
         ),
-      }),
-  },
-).withOutMessagePolicy({
-  fold: (_key, outMessage) => foldKeyedToastOutMessage(outMessage),
-})
-const KeyedToastFixtureParentComposition =
-  KeyedToastFixtureParentDefinition.makeComposition({
-    bindings: [KeyedToastBinding],
-  })
-// @ts-expect-error A keyed Toast Binding requires its occurrence key.
-const missingKeyDrain = FirstToast.test.drainEntry({
-  binding: KeyedToastBinding,
-  entryId: 'toast-entry-0',
-})
-void missingKeyDrain
-FirstToast.test.drainEntry({
-  binding: KeyedToastBinding,
-  // @ts-expect-error The occurrence key retains the keyed Binding's string type.
-  key: 1,
-  entryId: 'toast-entry-0',
-})
-const keyedUpdate = KeyedToastFixtureParentComposition.makeUpdate({
-  RequestedShow: model =>
-    KeyedToastBinding.requestShow('selected', {
-      payload: { body: 'Keyed' },
-      duration: 100,
-    })(model),
-})
-const keyedInitialModel: KeyedParentModel = {
-  slots: [
-    KeyedToastSlot.make({
-      key: 'selected',
-      toast: FirstToast.init({ id: 'toast' }).model,
+      ),
     }),
-  ],
-}
+    RemovedSlots: () => ({ model: { slots: [] } }),
+  },
+})).pipe(Layer.provide(FirstToastLive))
+
+const failureOf = <A, E>(exit: Exit.Exit<A, E>): string =>
+  Exit.isFailure(exit) ? Cause.pretty(exit.cause) : ''
 
 describe('Toast.test.drainEntry', () => {
-  it('selects an exact completed Toast Binding across repeated placements and factories', () => {
-    Story.story(
-      update,
-      Story.given(initialModel),
-      Story.message(ParentMessage.RequestedShowAll()),
-      FirstToast.test.drainEntry({
-        binding: RightToastBinding,
-        entryId: 'toast-entry-0',
-      }),
-      Story.model(model => {
-        expect(model.left.entries).toHaveLength(1)
-        expect(model.right.entries).toHaveLength(0)
-        expect(model.other.entries).toHaveLength(1)
-      }),
-      SecondToast.test.drainEntry({
-        binding: OtherToastBinding,
-        entryId: 'toast-entry-0',
-      }),
-      Story.model(model => {
-        expect(model.left.entries).toHaveLength(1)
-        expect(model.other.entries).toHaveLength(0)
-      }),
-      FirstToast.test.drainEntry({
-        binding: LeftToastBinding,
-        entryId: 'toast-entry-0',
-      }),
-      Story.Command.expectNone(),
-    )
-  })
-
-  it('does not select a stale timer version', () => {
-    expect(() =>
+  it.effect(
+    'selects one Toast instance across repeated placements and factories',
+    () =>
       Story.story(
-        update,
-        Story.given(initialModel),
-        Story.message(ParentMessage.RequestedShowAll()),
-        FirstToast.test.drainEntry({
-          binding: LeftToastBinding,
-          entryId: 'toast-entry-0',
-          version: 1,
+        ToastFixtureParentLive,
+        Story.message(ToastFixtureParent.Message.RequestedShowAll()),
+        FirstToast.test.drainEntry({ path: 'right', entryId: 'toast-entry-0' }),
+        Story.model(model => {
+          expect(model.left.entries).toHaveLength(1)
+          expect(model.right.entries).toHaveLength(0)
+          expect(model.other.entries).toHaveLength(1)
         }),
+        SecondToast.test.drainEntry({
+          path: 'other',
+          entryId: 'toast-entry-0',
+        }),
+        Story.model(model => {
+          expect(model.left.entries).toHaveLength(1)
+          expect(model.other.entries).toHaveLength(0)
+        }),
+        FirstToast.test.drainEntry({ path: 'left', entryId: 'toast-entry-0' }),
+        Story.Command.expectNone(),
       ),
-    ).toThrow('could not find the fresh auto-dismiss timer')
-  })
+  )
 
-  it('requires and selects a keyed Toast Binding occurrence', () => {
+  it.effect('does not select a stale timer version', () =>
+    Effect.gen(function* () {
+      const exit = yield* Effect.exit(
+        Story.story(
+          ToastFixtureParentLive,
+          Story.message(ToastFixtureParent.Message.RequestedShowAll()),
+          FirstToast.test.drainEntry({
+            path: 'left',
+            entryId: 'toast-entry-0',
+            version: 1,
+          }),
+        ),
+      )
+
+      expect(failureOf(exit)).toContain(
+        'could not find the fresh auto-dismiss timer',
+      )
+    }),
+  )
+
+  it.effect('selects a keyed Toast instance', () =>
     Story.story(
-      keyedUpdate,
-      Story.given(keyedInitialModel),
-      Story.message(KeyedParentMessage.RequestedShow()),
+      KeyedToastFixtureParentLive,
+      Story.message(KeyedToastFixtureParent.Message.RequestedShow()),
       FirstToast.test.drainEntry({
-        binding: KeyedToastBinding,
-        key: 'selected',
+        path: 'selected',
         entryId: 'toast-entry-0',
       }),
       Story.model(model => {
         expect(model.slots).toHaveLength(1)
-        expect(
-          Option.getOrThrow(Array.head(model.slots)).toast.entries,
-        ).toHaveLength(0)
+        expect(Option.getOrThrow(Array.head(model.slots)).entries).toHaveLength(
+          0,
+        )
       }),
       Story.Command.expectNone(),
-    )
-  })
+    ),
+  )
 
-  it('rejects a removed entry fixture even when its timer is pending', () => {
-    expect(() =>
-      Story.story(
-        keyedUpdate,
-        Story.given(keyedInitialModel),
-        Story.message(KeyedParentMessage.RequestedShow()),
-        Story.given(keyedInitialModel),
-        FirstToast.test.drainEntry({
-          binding: KeyedToastBinding,
-          key: 'selected',
-          entryId: 'toast-entry-0',
-        }),
-      ),
-    ).toThrow('no matching pending Command')
-  })
+  it.effect('rejects a removed Toast even when its Commands are pending', () =>
+    Effect.gen(function* () {
+      const exit = yield* Effect.exit(
+        Story.story(
+          KeyedToastFixtureParentLive,
+          Story.message(KeyedToastFixtureParent.Message.RequestedShow()),
+          Story.message(KeyedToastFixtureParent.Message.RemovedSlots()),
+          FirstToast.test.drainEntry({
+            path: 'selected',
+            entryId: 'toast-entry-0',
+          }),
+        ),
+      )
+
+      expect(failureOf(exit)).toContain('could not find')
+    }),
+  )
 })

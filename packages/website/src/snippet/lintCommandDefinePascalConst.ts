@@ -1,13 +1,24 @@
-// ❌ Bad: the binding must be PascalCase and match the declared Command name.
-const fetchWeather = WeatherDefinition.makeCommand('FetchWeather', {
+import { Schema } from 'effect'
+import { Command } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+
+const Message = defineMessageUnion({
+  CompletedFetchWeather: { temperature: Schema.Number },
+})
+type Message = typeof Message.Type
+
+// ❌ Bad
+// The const must be PascalCase and match the declared Command name.
+const fetchWeather = Command.define('FetchWeather', {
   messages: [Message.CompletedFetchWeather],
 })
 
-const SaveWeather = WeatherDefinition.makeCommand('FetchWeather', {
+const SaveWeather = Command.define('FetchWeather', {
   messages: [Message.CompletedFetchWeather],
 })
 
-// ✅ Good: the declaration and binding name match.
-const FetchWeather = WeatherDefinition.makeCommand('FetchWeather', {
+// ✅ Good
+// The Command name and the const name match.
+const FetchWeather = Command.define('FetchWeather', {
   messages: [Message.CompletedFetchWeather],
 })

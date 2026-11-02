@@ -1,6 +1,8 @@
-import { Array } from 'effect'
+import { Layer } from 'effect'
+import { Http } from 'foldkit'
 import {
   Command,
+  expectNoOutMessage,
   expectOutMessage,
   given,
   message,
@@ -9,71 +11,75 @@ import {
   story,
 } from 'foldkit/story'
 
-// Set the initial Model.
-given(model)
+import { expect, it } from '@effect/vitest'
 
-// Send a Message. Commands stay pending.
-message(ClickedSubmit())
+import { Note, NoteLive, Save } from './notes'
+import {
+  ApplicationLive,
+  FetchWeather,
+  Message,
+  type Weather,
+  WeatherAsyncData,
+} from './weather'
 
-// Group a reusable sequence without erasing its step types.
-steps(given(initialModel), message(ClickedSubmit()))
+const application = ApplicationLive.pipe(Layer.provide(Http.layer))
 
-// Resolve one Command with its result. A Definition matches its source identity;
-// an instance also selects its bound path and exact args.
-Command.resolve(FetchWeather, SucceededFetchWeather({ data }))
-Command.resolve(
-  FetchWeather({ zipCode: '90210' }),
-  SucceededFetchWeather({ data }),
+const beverlyHills: Weather = {
+  locationName: 'Beverly Hills',
+  region: 'California',
+  temperature: 72,
+  description: 'Clear sky',
+}
+
+const submittedZipCode = steps(
+  message(Message.UpdatedZipCode({ value: '90210' })),
+  message(Message.SubmittedWeatherForm()),
 )
 
-// Resolve many Commands at once. Each entry resolves exactly one matching
-// dispatch in declaration order.
-Command.resolveAll(
-  [FocusInput, CompletedFocusInput()],
-  [ScrollToTop, CompletedScrollToTop()],
+it.effect('loads the weather for a zip code', () =>
+  story(
+    // The Block's Layer. The story starts from the Model its constructor returns.
+    application,
+
+    // Replace the starting Model.
+    given({ zipCode: '', weatherAsyncData: WeatherAsyncData.Idle() }),
+
+    // Run a reusable group of steps.
+    submittedZipCode,
+
+    // Assert the pending Commands. A Definition matches any arguments;
+    // an instance also checks them.
+    Command.expectExact(FetchWeather({ zipCode: '90210' })),
+    Command.expectHas(FetchWeather),
+
+    // Supply a Command's result Message.
+    Command.resolve(
+      FetchWeather,
+      Message.SucceededFetchWeather({ weather: beverlyHills }),
+    ),
+
+    // Assert there are no pending Commands.
+    Command.expectNone(),
+
+    // Assert on the Model.
+    model(model => {
+      expect(model.weatherAsyncData._tag).toBe('Success')
+    }),
+  ),
 )
 
-// Resolve and assert a batch. Every listed resolver must match in this call,
-// and no actual Command may remain unresolved.
-message(ClickedSubmit())
-Command.resolveAllExact(
-  [FocusInput, CompletedFocusInput()],
-  [ScrollToTop, CompletedScrollToTop()],
-)
+it.effect('reports deletion to the parent', () =>
+  story(
+    NoteLive,
+    message(Note.Message.ClickedDelete()),
 
-// For N identical responses, compose with Array.makeBy.
-Command.resolveAll(
-  ...Array.makeBy(3, () => [AnimationTick, CompletedTick()] as const),
-)
+    // Assert the OutMessage the latest update returned.
+    expectOutMessage(Note.OutMessage.RequestedDelete()),
 
-// Assert on the Model.
-model(model => {
-  expect(model.count).toBe(0)
-})
+    message(Note.Message.ClickedSave()),
+    expectNoOutMessage(),
 
-// Assert these Commands were produced. Definition matchers retain their source
-// identity; instances also select a bound path and exact args.
-Command.expectHas(FetchWeather)
-Command.expectHas(FetchWeather({ zipCode: '90210' }))
-
-// Assert exactly these Commands were produced (mix Definition and instance).
-Command.expectExact(FetchWeather, SaveBoard)
-Command.expectExact(FetchWeather({ zipCode: '90210' }), SaveBoard)
-
-// Assert no Commands were produced.
-Command.expectNone()
-
-// Assert on the OutMessage.
-expectOutMessage(SucceededLogin({ session }))
-
-// Run the test story. Throws on unresolved Commands.
-story(
-  update,
-  given(model),
-  message(ClickedSubmit()),
-  Command.expectHas(FetchData),
-  Command.resolve(FetchData, SucceededFetch({ data })),
-  model(model => {
-    expect(model.status).toBe('loaded')
-  }),
+    // Resolve several Commands at once. Each entry resolves one dispatch.
+    Command.resolveAll([Save, Note.Message.SucceededSave()]),
+  ),
 )

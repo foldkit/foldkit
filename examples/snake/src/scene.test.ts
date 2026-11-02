@@ -1,12 +1,12 @@
 import { expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
 
-import { type Model, update, view } from './application'
-import { Snake } from './domain'
+import { describe, it } from '@effect/vitest'
+
+import { ApplicationLive, type Model, createSnake } from './application'
 
 const baseModel: Model = {
-  snake: Snake.create({ x: 10, y: 10 }),
+  snake: createSnake({ x: 10, y: 10 }),
   apple: { x: 15, y: 15 },
   direction: 'Right',
   nextDirection: 'Right',
@@ -16,46 +16,46 @@ const baseModel: Model = {
 }
 
 describe('view', () => {
-  test('initial view shows the heading, score, and start prompt', () => {
+  it.effect('initial view shows the heading, score, and start prompt', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(baseModel),
       expect(role('heading', { name: 'Snake Game' })).toExist(),
       expect(text('Score: 0')).toExist(),
       expect(text('High Score: 0')).toExist(),
       expect(text('Press SPACE to start')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('renders the keyboard instructions', () => {
+  it.effect('renders the keyboard instructions', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(baseModel),
       expect(text('Use ARROW KEYS or WASD to move')).toExist(),
       expect(text('SPACE to pause/start')).toExist(),
       expect(text('R to restart')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('shows the playing prompt while the game is active', () => {
+  it.effect('shows the playing prompt while the game is active', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(modifyFields(baseModel, { gameState: () => 'Playing' })),
       expect(text('Playing - SPACE to pause')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('shows the paused prompt while the game is paused', () => {
+  it.effect('shows the paused prompt while the game is paused', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(modifyFields(baseModel, { gameState: () => 'Paused' })),
       expect(text('Paused - SPACE to continue')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('shows the game-over prompt at the end of a run', () => {
+  it.effect('shows the game-over prompt at the end of a run', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(
         modifyFields(baseModel, {
           gameState: () => 'GameOver',
@@ -64,12 +64,12 @@ describe('view', () => {
       ),
       expect(text('Game Over - Press R to restart')).toExist(),
       expect(text('Score: 50')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('the current and high scores reflect the Model', () => {
+  it.effect('the current and high scores reflect the Model', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(
         modifyFields(baseModel, {
           gameState: () => 'Playing',
@@ -79,6 +79,6 @@ describe('view', () => {
       ),
       expect(text('Score: 120')).toExist(),
       expect(text('High Score: 200')).toExist(),
-    )
-  })
+    ),
+  )
 })

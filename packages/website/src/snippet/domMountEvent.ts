@@ -1,21 +1,36 @@
 import { Schema } from 'effect'
-import { Block, Dom } from 'foldkit'
+import { Block, Dom, Mount } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
 const Message = defineMessageUnion({
   MovedPointer: { clientX: Schema.Number, clientY: Schema.Number },
 })
-type Message = typeof Message.Type
 
-const Model = Schema.Struct({})
-type Model = typeof Model.Type
-
-const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
-
-const TrackPointer = PanelDefinition.makeMountStream('TrackPointer', {
+const TrackPointer = Mount.defineStream('TrackPointer', {
   messages: [Message.MovedPointer],
-  handler: function* () {
-    return ({ element }) =>
+})
+
+export class Panel extends Block<Panel>()('Panel', {
+  Model: Schema.Struct({ clientX: Schema.Number, clientY: Schema.Number }),
+  Message,
+  Mount: [TrackPointer],
+}) {}
+
+export const PanelLive = Panel.toLayer(() => ({
+  init: () => ({ clientX: 0, clientY: 0 }),
+
+  update: {
+    MovedPointer: (model, { clientX, clientY }) => ({
+      model: modifyFields(model, {
+        clientX: () => clientX,
+        clientY: () => clientY,
+      }),
+    }),
+  },
+
+  mounts: {
+    TrackPointer: ({ element }) =>
       Dom.streamFromEvent({
         target: element,
         type: 'pointermove',
@@ -24,16 +39,8 @@ const TrackPointer = PanelDefinition.makeMountStream('TrackPointer', {
             clientX: event.clientX,
             clientY: event.clientY,
           }),
-      })
+      }),
   },
-})
 
-const PanelComposition = PanelDefinition.makeComposition({
-  mounts: [TrackPointer],
-})
-
-const view = PanelComposition.makeView((_model, h) =>
-  h.div([h.Class('h-48'), h.OnMount(TrackPointer())]),
-)
-
-export const EffectsLayer = TrackPointer.layer
+  view: (_model, h) => h.div([h.Class('h-48'), h.OnMount(TrackPointer())]),
+}))

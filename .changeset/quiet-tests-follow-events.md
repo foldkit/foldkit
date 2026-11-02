@@ -3,8 +3,8 @@
 'create-foldkit-app': patch
 ---
 
-Add focused test steps for event ordering and Model-derived Messages.
+Add test steps for event ordering and Model-derived Messages.
 
-`Scene.Command.keepPending` lets one exact ordinary Command invocation remain active while a later interaction or Subscription Message arrives. The Command stays visible to assertions and resolution, and both `resolveAllExact` and final Scene completeness still require it.
+`Scene.Command.keepPending` lets one exact Command invocation remain pending while a later interaction or delivered Message arrives. The Command stays visible to assertions and resolution, and both `resolveAllExact` and the final Scene completeness check still require it to be resolved.
 
-`Story.messageWith` builds a Message from the Model held when its step runs. `Story.Subscription.from(CompletedBlock.subscriptions).emit(entry, message)` delivers a decoded Message through a registered Subscription's generated parent mapping. Both retain Story's existing pending Command behavior.
+`Story.messageWith(model => message)` builds a Message from the Model held when its step runs. It follows the same pending Command behavior as `Story.message`.

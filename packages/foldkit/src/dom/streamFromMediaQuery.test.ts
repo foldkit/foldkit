@@ -1,4 +1,4 @@
-import { Array, Effect, Fiber, Option, Schema, Stream } from 'effect'
+import { Array, Effect, Fiber, Option, Stream } from 'effect'
 import {
   type Mock,
   type MockInstance,
@@ -9,7 +9,6 @@ import {
   vi,
 } from 'vitest'
 
-import { make } from '../subscription/subscription.js'
 import { streamFromMediaQuery } from './streamFromMediaQuery.js'
 
 class FakeMediaQueryList extends EventTarget {
@@ -181,45 +180,21 @@ describe('streamFromMediaQuery', () => {
     expect(received).toEqual(['full'])
   })
 
-  it('reads the current value again when a gated entry restarts', async () => {
+  it('reads the current value again when a gated Stream restarts', async () => {
     const harness = stubMatchMedia(REDUCED_MOTION_QUERY)
     const received: Array<string> = []
 
-    type Model = Readonly<{ isFollowingSystem: boolean }>
-
-    const subscriptions = make<Model, string>()(entry => ({
-      reducedMotion: entry(
-        'ReducedMotion',
-        { isFollowingSystem: Schema.Boolean },
-        {
-          messages: [Schema.String],
-          modelToDependencies: model => ({
-            isFollowingSystem: model.isFollowingSystem,
-          }),
-        },
-      ),
-    }))
-    const ReducedMotionLayer = subscriptions.reducedMotion.toLayer(
-      Effect.succeed(({ isFollowingSystem }) =>
-        Stream.when(
-          streamFromMediaQuery({
-            query: REDUCED_MOTION_QUERY,
-            mapMatches: describeMatches,
-          }),
-          Effect.sync(() => isFollowingSystem),
-        ),
-      ),
-    )
-
-    const runWhile = (isFollowingSystem: boolean) => {
-      const dependencies = { isFollowingSystem }
-      return Effect.runFork(
-        drain(
-          subscriptions.reducedMotion.dependenciesToStream(dependencies),
-          received,
-        ).pipe(Effect.provide(ReducedMotionLayer)),
+    const reducedMotion = (isFollowingSystem: boolean) =>
+      Stream.when(
+        streamFromMediaQuery({
+          query: REDUCED_MOTION_QUERY,
+          mapMatches: describeMatches,
+        }),
+        Effect.sync(() => isFollowingSystem),
       )
-    }
+
+    const runWhile = (isFollowingSystem: boolean) =>
+      Effect.runFork(drain(reducedMotion(isFollowingSystem), received))
 
     const openFiber = runWhile(true)
     await settle(received, 1)

@@ -1,4 +1,13 @@
-const view = ApplicationComposition.makeView((model, h) => ({
+import type { Document, HtmlBuilder } from 'foldkit/html'
+
+import { Message, type Model } from './counterParts'
+
+const containerStyle =
+  'min-h-screen bg-cream flex flex-col items-center justify-center gap-6 p-6'
+
+const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
+
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [h.Class(containerStyle)],
@@ -27,9 +36,4 @@ const view = ApplicationComposition.makeView((model, h) => ({
       ),
     ],
   ),
-}))
-
-const containerStyle =
-  'min-h-screen bg-cream flex flex-col items-center justify-center gap-6 p-6'
-
-const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
+})

@@ -5,7 +5,6 @@ import {
   Schema,
   SchemaTransformation,
   String,
-  Types,
   pipe,
 } from 'effect'
 import { Route } from 'foldkit'
@@ -105,17 +104,19 @@ const sortingFromParam = (() => {
   )
 })()
 
+export const BrowseFields = Schema.Struct({
+  search: Schema.Option(Schema.String),
+  sorting: Sorting,
+  diet: Schema.Option(Diet),
+  period: Schema.Option(Period),
+})
+export type BrowseFields = typeof BrowseFields.Type
+
 export const ApplicationRoute = defineRouteUnion({
-  Browse: {
-    search: Schema.Option(Schema.String),
-    sorting: Sorting,
-    diet: Schema.Option(Diet),
-    period: Schema.Option(Period),
-  },
+  Browse: BrowseFields.fields,
   NotFound: { path: Schema.String },
 })
 export type ApplicationRoute = typeof ApplicationRoute.Type
-export type BrowseRoute = typeof ApplicationRoute.Browse.Type
 
 export const browseRouter = pipe(
   Route.root,
@@ -135,7 +136,6 @@ export const urlToApplicationRoute = Route.parseUrlWithFallback(
   routeParser,
   ApplicationRoute.NotFound,
 )
-export type BrowseFields = Omit<BrowseRoute, '_tag'>
 
 export const emptyBrowseFields: BrowseFields = {
   search: Option.none(),
@@ -146,29 +146,11 @@ export const emptyBrowseFields: BrowseFields = {
 
 export const routeToBrowseFields = (route: ApplicationRoute): BrowseFields =>
   Match.value(route).pipe(
-    Match.tag('Browse', route => route),
+    Match.tag('Browse', ({ search, sorting, diet, period }) => ({
+      search,
+      sorting,
+      diet,
+      period,
+    })),
     Match.orElse(() => emptyBrowseFields),
-  )
-export const columnSortDirection = (
-  sorting: Sorting,
-  column: SortColumn,
-): Types.Tags<Sorting> => {
-  const isColumnSorted =
-    sorting._tag !== 'Unsorted' && sorting.column === column
-
-  if (isColumnSorted) {
-    return sorting._tag
-  } else {
-    return 'Unsorted'
-  }
-}
-
-export const nextSorting = (sorting: Sorting, column: SortColumn): Sorting =>
-  pipe(
-    columnSortDirection(sorting, column),
-    Match.value,
-    Match.when('Unsorted', () => Sorting.Ascending({ column })),
-    Match.when('Ascending', () => Sorting.Descending({ column })),
-    Match.when('Descending', () => Sorting.Unsorted()),
-    Match.exhaustive,
   )

@@ -7,8 +7,6 @@ import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import * as Port from '../port/index.js'
 import { modifyFields } from '../struct/index.js'
-import * as Subscription from '../subscription/subscription.js'
-import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { embed } from './start.js'
 
@@ -44,7 +42,7 @@ const ReportCountLayer = ReportCount.toLayer(
   ),
 )
 
-const update = Update.define((model: Model, message: Message) =>
+const update = (model: Model, message: Message) =>
   Message.match(message, {
     ChangedStep: ({ step }) => ({
       model: modifyFields(model, { step: () => step }),
@@ -59,8 +57,7 @@ const update = Update.define((model: Model, message: Message) =>
     CompletedReportCount: () => ({ model }),
     CompletedTrackHost: () => ({ model }),
     Ticked: () => ({ model }),
-  }),
-)
+  })
 
 let isTickStreamActive = false
 let isMountActive = false
@@ -68,54 +65,36 @@ let isMountActive = false
 const TICK_INTERVAL_MS = 5
 const FLAGS_STARTUP_FAILURE = 'flags blew up on embed startup'
 
-const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  hostStep: entry('HostStep', {
-    messages: [
-      Message.ChangedStep,
-      Message.ClickedIncrement,
-      Message.CompletedReportCount,
-      Message.CompletedTrackHost,
-      Message.Ticked,
-    ],
-  }),
-  tick: entry('Tick', {
-    messages: [
-      Message.ChangedStep,
-      Message.ClickedIncrement,
-      Message.CompletedReportCount,
-      Message.CompletedTrackHost,
-      Message.Ticked,
-    ],
-  }),
-}))
-
-const HostStepLayer = subscriptions.hostStep.toLayer(
-  Effect.succeed(() =>
-    Port.stream(ports.inbound.stepChanged).pipe(
-      Stream.map(step => Message.ChangedStep({ step })),
-    ),
-  ),
-)
-
-const TickLayer = subscriptions.tick.toLayer(
-  Effect.succeed(() =>
-    Stream.callback<Message>(queue =>
-      Effect.acquireRelease(
-        Effect.sync(() => {
-          isTickStreamActive = true
-          return setInterval(() => {
-            Queue.offerUnsafe(queue, Message.Ticked())
-          }, TICK_INTERVAL_MS)
-        }),
-        intervalId =>
+const subscriptions = {
+  hostStep: {
+    dependenciesSchema: Schema.Struct({}),
+    modelToDependencies: () => ({}),
+    dependenciesToStream: () =>
+      Port.stream(ports.inbound.stepChanged).pipe(
+        Stream.map(step => Message.ChangedStep({ step })),
+      ),
+  },
+  tick: {
+    dependenciesSchema: Schema.Struct({}),
+    modelToDependencies: () => ({}),
+    dependenciesToStream: () =>
+      Stream.callback<Message>(queue =>
+        Effect.acquireRelease(
           Effect.sync(() => {
-            clearInterval(intervalId)
-            isTickStreamActive = false
+            isTickStreamActive = true
+            return setInterval(() => {
+              Queue.offerUnsafe(queue, Message.Ticked())
+            }, TICK_INTERVAL_MS)
           }),
-      ).pipe(Effect.flatMap(() => Effect.never)),
-    ),
-  ),
-)
+          intervalId =>
+            Effect.sync(() => {
+              clearInterval(intervalId)
+              isTickStreamActive = false
+            }),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      ),
+  },
+}
 
 const TrackHost = Mount.define('TrackHost', {
   messages: [Message.CompletedTrackHost],
@@ -138,12 +117,7 @@ const TrackHostLayer = TrackHost.toLayer(
   ),
 )
 
-const EffectsLayer = Layer.mergeAll(
-  ReportCountLayer,
-  HostStepLayer,
-  TickLayer,
-  TrackHostLayer,
-)
+const EffectsLayer = Layer.mergeAll(ReportCountLayer, TrackHostLayer)
 
 const h = __htmlBuilder<Message, Mount.AnyMountHandler>()
 

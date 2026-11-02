@@ -24,9 +24,9 @@ React, Vue, Svelte, and Solid solve rendering and leave the architecture to you.
 
 Foldkit uses [The Elm Architecture](https://guide.elm-lang.org/architecture/). Application state does not live in component instances or hook lifecycles. The Model is the single source of truth, and every transition stays visible in update. That discipline is a real commitment. Foldkit works best when the team wants one architecture across the application and is ready to build on Effect throughout. [Coming from React?](https://foldkit.dev/react/coming-from-react)
 
-Each feature declares the effects it needs and bundles their handlers in [Effect Layers](https://foldkit.dev/core/layers). Parent Bindings carry those handlers to the application root, where you provide the shared services they require. TypeScript checks that the completed root Block is ready before it enters a Program. Tests can provide controlled services while running the same effect handlers.
+A [Block](https://foldkit.dev/core/block) is a class that declares a feature's Model, Messages, OutMessages, and the Commands it owns. Its Layer implements it once: it yields the services the Block uses and returns the module every instance shares (init, update, Command handlers, Subscriptions, and view). An instance is plain data. A parent creates one with `new Child(id, args)` and puts it in its Model, and Foldkit starts the child's Commands and Subscriptions when it appears there and stops them when it leaves. The parent decides when the child exists, where it renders, and how to handle its OutMessages.
 
-A [Block](https://foldkit.dev/core/block) packages its Model and Message contracts, update, public operations, lifecycle registrations, view, and handler recipes. Its parent creates one Binding to a Model location. Composition derives child Message delivery and collects the child’s lifecycle entries and handlers; the parent decides when the child exists, where it renders, and how to handle its OutMessages.
+The program Layer carries every Block's implementation to the root, where you provide the shared services they require. TypeScript checks that every Block the root Model can hold has its Layer before the root enters a Program. Tests provide controlled services and run the same handlers.
 
 > [!NOTE]
 > Foldkit is pre-1.0 and under active development. The architecture is settled and the core API is stable in practice, but breaking changes may occur in minor releases. See the [roadmap](https://foldkit.dev/introduction/roadmap).
@@ -43,11 +43,11 @@ The [Get Started guide](https://foldkit.dev/get-started) covers the generated pr
 
 ## Counter
 
-This complete program defines the Model, Messages, update, init, view, and `ApplicationBlock` in `application.ts`. `entry.ts` creates and starts the Program separately, so tests can import the Block without booting it.
+This complete program declares the `Application` Block and implements it in `ApplicationLive` in `application.ts`. `entry.ts` creates and starts the Program separately, so tests can import the Block without booting it.
 
 ```ts
 // src/application.ts
-import { Schema } from 'effect'
+import { Effect, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -64,97 +64,83 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+export class Application extends Block<Application>()('Application', {
   Model,
   Message,
-}).makeComposition()
+}) {}
 
-export const update = ApplicationComposition.makeUpdate({
-  ClickedDecrement: model => ({
-    model: modifyFields(model, { count: count => count - 1 }),
+export const ApplicationLive = Application.toLayer(() => ({
+  init: () => ({ count: 0 }),
+  update: {
+    ClickedDecrement: model => ({
+      model: modifyFields(model, { count: Number.decrement }),
+    }),
+    ClickedIncrement: model => ({
+      model: modifyFields(model, { count: Number.increment }),
+    }),
+    ClickedReset: model => ({
+      model: modifyFields(model, { count: () => 0 }),
+    }),
+  },
+  view: (model, h) => ({
+    title: `Counter: ${model.count}`,
+    body: h.div(
+      [
+        h.Class(
+          'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
+        ),
+      ],
+      [
+        h.div(
+          [h.Class('text-6xl font-bold text-gray-800')],
+          [model.count.toString()],
+        ),
+        h.div(
+          [h.Class('flex flex-wrap justify-center gap-4')],
+          [
+            h.button(
+              [h.OnClick(Message.ClickedDecrement()), h.Class(buttonStyle)],
+              ['-'],
+            ),
+            h.button(
+              [h.OnClick(Message.ClickedReset()), h.Class(buttonStyle)],
+              ['Reset'],
+            ),
+            h.button(
+              [h.OnClick(Message.ClickedIncrement()), h.Class(buttonStyle)],
+              ['+'],
+            ),
+          ],
+        ),
+      ],
+    ),
   }),
-  ClickedIncrement: model => ({
-    model: modifyFields(model, { count: count => count + 1 }),
-  }),
-  ClickedReset: model => ({ model: modifyFields(model, { count: () => 0 }) }),
-})
-
-export const init = ApplicationComposition.makeInit(() => ({
-  model: { count: 0 },
-}))
-
-export const view = ApplicationComposition.makeView((model, h) => ({
-  title: `Counter: ${model.count}`,
-  body: h.div(
-    [
-      h.Class(
-        'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
-      ),
-    ],
-    [
-      h.div(
-        [h.Class('text-6xl font-bold text-gray-800')],
-        [model.count.toString()],
-      ),
-      h.div(
-        [h.Class('flex flex-wrap justify-center gap-4')],
-        [
-          h.button(
-            [h.OnClick(Message.ClickedDecrement()), h.Class(buttonStyle)],
-            ['-'],
-          ),
-          h.button(
-            [h.OnClick(Message.ClickedReset()), h.Class(buttonStyle)],
-            ['Reset'],
-          ),
-          h.button(
-            [h.OnClick(Message.ClickedIncrement()), h.Class(buttonStyle)],
-            ['+'],
-          ),
-        ],
-      ),
-    ],
-  ),
 }))
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
 ```
 
 ```ts
 // src/entry.ts
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './application'
+import { Application, ApplicationLive } from './application'
 
-const program = Program.make({
-  block: ApplicationBlock,
+const program = Program.make(Application, {
+  layer: ApplicationLive,
   container: document.getElementById('root'),
 })
 
 Runtime.run(program)
 ```
 
-The `makeComposition`, `makeInit`, `makeUpdate`, `makeView`, `prepareBlock`,
-`Block.assemble`, and `Program.make` calls return passive configuration or
-authored functions. `Block.assemble` evaluates `prepare` once while constructing
-the passive Block. `Runtime.run` starts the completed program.
+`Program.make` returns a passive description of the program, and `Runtime.run` builds its Layer and starts it.
 
 Try [Counter in the browser](https://foldkit.dev/example-apps/counter), follow the [walkthrough](https://foldkit.dev/core/counter-example), or explore the [source](https://github.com/foldkit/foldkit/tree/main/examples/counter).
 
 ## What Ships With Foldkit
 
-- **Handle side effects:** Use [Commands](https://foldkit.dev/core/commands) for one-time work, [Subscriptions](https://foldkit.dev/core/subscriptions) for external events, [Mounts](https://foldkit.dev/core/mount) for element lifecycles, and [ManagedResources](https://foldkit.dev/core/managed-resources) for stateful handles.
+- **Handle side effects:** Use [Commands](https://foldkit.dev/core/commands) for one-time work, [Subscriptions](https://foldkit.dev/core/subscriptions) for external events, [Mounts](https://foldkit.dev/core/mount) for element lifecycles, and [resources](https://foldkit.dev/core/managed-resources) such as connections that live as long as a Block instance.
 - **Build pages and embedded apps:** Add [routing](https://foldkit.dev/core/routing-and-navigation), [server rendering](https://foldkit.dev/core/server-rendering), or [embedding](https://foldkit.dev/core/embedding).
 - **Grow an interface:** Compose [Blocks](https://foldkit.dev/core/block) and [UI components](https://foldkit.dev/ui/overview).
 - **Test and debug behavior:** Use [Story and Scene testing](https://foldkit.dev/testing) and [DevTools](https://foldkit.dev/core/devtools) to trace state changes.
@@ -164,7 +150,7 @@ Try [Counter in the browser](https://foldkit.dev/example-apps/counter), follow t
 
 - [Form](https://foldkit.dev/example-apps/form): validation with an async email check
 - [Auth](https://foldkit.dev/example-apps/auth): Blocks and OutMessage
-- [WebSocket Chat](https://foldkit.dev/example-apps/websocket-chat): a ManagedResource for a live connection
+- [WebSocket Chat](https://foldkit.dev/example-apps/websocket-chat): a live WebSocket connection
 - [Pixel Art](https://foldkit.dev/example-apps/pixel-art): interactive editor with keyboard shortcuts and persistence
 - [Typing Game](packages/typing-game): multiplayer game with an Effect RPC backend ([play it live](https://typingterminal.com))
 

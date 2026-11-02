@@ -46,6 +46,10 @@ The counter starts with one field. When automatic counting becomes part of the a
 
 ::Snippet{name="counterModelPreview" label="Expanded counter Model"}
 
+### Child Blocks in the Model
+
+When an application grows into [Blocks](/core/block), each child Block instance lives in a field of its parent's Model. The field's Schema is the child class itself, such as `settings: Settings`, and the instance carries the child's own Model. The root Model still describes the whole application, because every child's state is reachable from it.
+
 #### Derived View Values
 
 :::Info{label="Model the application, not the screen"}

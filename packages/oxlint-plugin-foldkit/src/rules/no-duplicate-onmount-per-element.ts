@@ -7,11 +7,8 @@ import {
   RuleContext,
 } from 'effect-oxlint'
 
-import {
-  indexReferences,
-  isArrayExpression,
-  isFoldkitHtmlBuilderMember,
-} from '../guards.ts'
+import { indexReferences, isArrayExpression } from '../guards.ts'
+import { isFoldkitHtmlBuilderMember } from '../html-builder.ts'
 
 const DUPLICATE_ON_MOUNT_MESSAGE =
   'Only one OnMount attribute can attach to an element. Foldkit installs a single insert hook and tracks a single Mount fiber per element, so a later OnMount replaces the earlier one and its `execute` never runs. Combine the behaviors into one Mount definition.'

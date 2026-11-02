@@ -72,7 +72,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'counters',
     title: 'Counters',
     description:
-      'Add and remove independent Counter Blocks in a dynamic list. Each Counter instance is embedded through h.block and receives Messages through generated child delivery.',
+      'Add and remove independent Counter Blocks in a dynamic list. The parent renders each Counter instance, and Foldkit routes its Messages to that instance.',
     difficulty: 'Beginner',
     tags: ['Blocks'],
     hasRouting: false,
@@ -112,7 +112,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'slow-warnings',
     title: 'Slow Warnings',
     description:
-      'Trigger slow update, view, patch, and Subscription dependency warnings at their default thresholds, then inspect them in a visible log.',
+      'Trigger slow update, view, and patch warnings at their default thresholds, then inspect them in a visible log.',
     difficulty: 'Intermediate',
     tags: ['Performance', 'Diagnostics'],
     hasRouting: false,
@@ -152,7 +152,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'api-cache-query',
     title: 'API Cache Query',
     description:
-      'The API Cache app rewritten with experimental Query.define. Fetching and retained entries live in Query Blocks. The parent folds Got* Messages.',
+      'The API Cache app rewritten with experimental Query.define. Fetching and retained entries live in Query Blocks, and the parent sends them Requested* Messages to load and refresh.',
     difficulty: 'Intermediate',
     tags: [
       'Query',
@@ -288,7 +288,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'websocket-chat',
     title: 'WebSocket Chat',
     description:
-      'A ManagedResource owns a WebSocket connection lifecycle. Demonstrates connection state, reconnection, and frames entering update as Messages.',
+      'A child Block owns a WebSocket connection for as long as it is in the Model. Demonstrates connection state, reconnecting, and frames entering update as Messages.',
     difficulty: 'Advanced',
     tags: ['Managed Resources', 'WebSocket'],
     hasRouting: false,
@@ -298,7 +298,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'managed-resource-layer',
     title: 'Managed Resource Layer',
     description:
-      'A layer-backed ManagedResource starts a ComputeEngine service from an Effect Layer, exposes it to Commands, and runs Layer finalizers when the Model turns it off.',
+      "A child Block builds a ComputeEngine service from an Effect Layer, exposes it to the parent's Commands, and runs Layer finalizers when the parent removes it from the Model.",
     difficulty: 'Advanced',
     tags: ['Managed Resources', 'Effect Layer', 'Commands'],
     hasRouting: false,

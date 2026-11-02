@@ -1,1 +1,1 @@
-export { SearchBlock } from './block'
+export { Search, SearchLive } from './block'

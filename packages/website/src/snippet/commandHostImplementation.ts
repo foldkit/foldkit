@@ -1,34 +1,42 @@
-import { Array, Effect } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
+import { Block, Program, Runtime } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
-import { EditorBlock } from './commandHostContract'
+import { DocumentStore, Editor, EditorLive } from './commandHostContract'
 
-const DOCUMENT_STORAGE_KEY = 'editor-document'
+const DOCUMENT_STORAGE_KEY = 'document'
 
-const SaveDocument = Array.headNonEmpty(EditorBlock.hostHandlers)
-
-const SaveDocumentLayer = SaveDocument.toLayer(
+const BrowserDocumentStore = Layer.effect(
+  DocumentStore,
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
-    return ({ contents }) =>
-      store.set(DOCUMENT_STORAGE_KEY, contents).pipe(
-        Effect.as(EditorBlock.Message.SucceededSaveDocument()),
-        Effect.catch(() =>
-          Effect.succeed(
-            EditorBlock.Message.FailedSaveDocument({
-              reason: 'The document could not be saved.',
-            }),
-          ),
-        ),
-      )
+    return {
+      save: contents =>
+        store
+          .set(DOCUMENT_STORAGE_KEY, contents)
+          .pipe(Effect.mapError(cause => new Error(String(cause)))),
+    }
   }),
-)
+).pipe(Layer.provide(BrowserKeyValueStore.layerLocalStorage))
 
-export const editor = EditorBlock.provideHandlers(SaveDocumentLayer)
+class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({ editor: Editor }),
+}) {}
 
-const ServicesLayer = BrowserKeyValueStore.layerLocalStorage
+const ApplicationLive = Application.toLayer(() => ({
+  init: () => ({ editor: new Editor('editor') }),
+  view: model => ({ title: 'Notes', body: model.editor.view() }),
+}))
 
-export const ApplicationLayer = ServicesLayer
+const program = Program.make(Application, {
+  layer: ApplicationLive.pipe(
+    Layer.provide(EditorLive),
+    Layer.provide(BrowserDocumentStore),
+  ),
+  container: document.getElementById('root'),
+})
+
+Runtime.run(program)

@@ -1,5 +1,5 @@
 import { Array, Schema } from 'effect'
-import * as Block from 'foldkit/block'
+import { Block } from 'foldkit'
 import * as File from 'foldkit/file'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -40,50 +40,7 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const FileDropDefinition = Block.makeDefinition('FileDrop', {
-  Model,
-  Message,
-  OutMessage,
-})
-const FileDropComposition = FileDropDefinition.makeComposition()
-
-// INIT
-
-/** Configuration for creating a file-drop model with `init`. */
-export type InitConfig = Readonly<{
-  id: string
-}>
-
-/** Creates the initial FileDrop Model and Commands. Drag state starts cleared. */
-export const init = FileDropComposition.makeInit((config: InitConfig) => ({
-  model: {
-    id: config.id,
-    isDragOver: false,
-  },
-}))
-
-// UPDATE
-
-/** Processes a file-drop Message and returns the next Model, optional Commands,
- *  and an optional OutMessage. */
-export const update = FileDropComposition.makeUpdate({
-  EnteredDragZone: FileDropDefinition.makeFieldsStep(() => ({
-    isDragOver: () => true,
-  })),
-  LeftDragZone: FileDropDefinition.makeFieldsStep(() => ({
-    isDragOver: () => false,
-  })),
-  DroppedFiles: (model, { files }) => ({
-    model: modifyFields(model, { isDragOver: () => false }),
-    outMessage: OutMessage.ReceivedFiles({ files }),
-  }),
-  DroppedNonFiles: model => ({
-    model: modifyFields(model, { isDragOver: () => false }),
-    outMessage: OutMessage.RejectedNonFiles(),
-  }),
-})
-
-// VIEW
+// VIEW INPUT
 
 /** Attribute groups the file-drop component provides to the consumer's
  *  `toView` callback. */
@@ -98,13 +55,28 @@ export type FileDropAttributes = Readonly<{
   input: ReadonlyArray<ChildAttribute>
 }>
 
-/** Per-render view inputs passed to `view` via `h.block`'s `viewInputs` field. */
+/** Per-render view inputs the parent passes to `model.fileDrop.view(...)`. */
 export type ViewInputs = Readonly<{
   toView: (attributes: FileDropAttributes) => Html
   accept?: ReadonlyArray<string>
   multiple?: boolean
   isDisabled?: boolean
 }>
+
+// BLOCK
+
+/** Constructor args for a FileDrop instance. `id` is the DOM id of the
+ *  hidden file input. */
+export type InitConfig = Readonly<{
+  id: string
+}>
+
+/** An accessible file-drop zone that publishes attribute groups for a
+ *  `<label>`-wrapped hidden file input. Drag state starts cleared. */
+export class FileDrop extends Block<FileDrop, InitConfig, ViewInputs>()(
+  'FileDrop',
+  { Model, Message, OutMessage },
+) {}
 
 const dispatchDroppedFiles = (files: ReadonlyArray<File.File>) =>
   Array.match(files, {
@@ -113,11 +85,30 @@ const dispatchDroppedFiles = (files: ReadonlyArray<File.File>) =>
       Message.DroppedFiles({ files: [...nonEmptyFiles] }),
   })
 
-/** Renders an accessible file-drop zone by publishing attribute groups
- *  for a `<label>`-wrapped hidden file input. */
-export const view = FileDropComposition.makeView.withInputs<ViewInputs>(
-  (model, viewInputs, h) => {
-    const { id, isDragOver } = model
+/** The FileDrop implementation. Provide it to every parent that creates a
+ *  FileDrop instance. */
+export const FileDropLive = FileDrop.toLayer(() => ({
+  init: ({ id }) => ({ id, isDragOver: false }),
+
+  update: {
+    EnteredDragZone: model => ({
+      model: modifyFields(model, { isDragOver: () => true }),
+    }),
+    LeftDragZone: model => ({
+      model: modifyFields(model, { isDragOver: () => false }),
+    }),
+    DroppedFiles: (model, { files }) => ({
+      model: modifyFields(model, { isDragOver: () => false }),
+      outMessage: OutMessage.ReceivedFiles({ files }),
+    }),
+    DroppedNonFiles: model => ({
+      model: modifyFields(model, { isDragOver: () => false }),
+      outMessage: OutMessage.RejectedNonFiles(),
+    }),
+  },
+
+  view: (model, h, viewInputs) => {
+    const { isDragOver } = model
     const { toView, accept, multiple = false, isDisabled = false } = viewInputs
 
     const stateAttributes = [
@@ -136,7 +127,7 @@ export const view = FileDropComposition.makeView.withInputs<ViewInputs>(
         ]
 
     const inputAttributes = [
-      h.Id(id),
+      h.Id(model.id),
       h.Type('file'),
       h.Class('sr-only'),
       ...(multiple ? [h.Multiple(true)] : []),
@@ -153,18 +144,4 @@ export const view = FileDropComposition.makeView.withInputs<ViewInputs>(
       input: childAttributes(inputAttributes),
     })
   },
-)
-
-const prepare = () =>
-  FileDropComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-/** Completed FileDrop Block contract. */
-export interface FileDropBlock extends Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> {}
-/** Complete FileDrop Block definition for connecting to a parent. */
-export const FileDropBlock: FileDropBlock = Block.assemble(prepare)
+}))

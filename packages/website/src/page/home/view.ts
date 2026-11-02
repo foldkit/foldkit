@@ -15,24 +15,12 @@ import {
   examples,
   findBySlug,
 } from '../example/domain'
-import { AsyncCounterDemoBlock } from './asyncCounterDemo'
-import {
-  AsyncCounterDemoBinding,
-  DemoTabsBinding,
-  HomeComposition,
-  type HomeViewBuilder,
-  NotePlayerDemoBinding,
-  PlaygroundMenuBinding,
-} from './composition'
+import type { AsyncCounterDemo } from './asyncCounterDemo'
 import { contentView } from './content'
 import * as DemoTab from './demoTab'
-import { Message } from './message'
-import { NotePlayerDemoBlock } from './notePlayerDemo'
-import { PlaygroundMenuBlock } from './playgroundMenu'
-
-type AsyncCounterDemoBlockModel = typeof AsyncCounterDemoBlock.Model.Type
-type NotePlayerDemoBlockModel = typeof NotePlayerDemoBlock.Model.Type
-type PlaygroundMenuBlockModel = typeof PlaygroundMenuBlock.Model.Type
+import { type HomeViewBuilder, Message } from './message'
+import type { Model } from './model'
+import type { NotePlayerDemo } from './notePlayerDemo'
 
 // DEMO TABS
 
@@ -42,27 +30,11 @@ const demoTabButtonClassName =
 const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-cream dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-bl-lg lg:rounded-r-lg lg:rounded-tl-none border border-gray-300 dark:border-gray-800'
 
-const renderAsyncCounterDemo = (
-  model: AsyncCounterDemoBlockModel,
-  h: HomeViewBuilder,
-) =>
-  h.block(
-    AsyncCounterDemoBinding.embedView({
-      slotId: 'async-counter-demo',
-      model,
-    }),
-  )
+const renderAsyncCounterDemo = (asyncCounterDemo: AsyncCounterDemo) =>
+  asyncCounterDemo.view()
 
-const renderNotePlayerDemo = (
-  model: NotePlayerDemoBlockModel,
-  h: HomeViewBuilder,
-) =>
-  h.block(
-    NotePlayerDemoBinding.embedView({
-      slotId: 'note-player-demo',
-      model,
-    }),
-  )
+const renderNotePlayerDemo = (notePlayerDemo: NotePlayerDemo) =>
+  notePlayerDemo.view()
 
 const lazyAsyncCounterDemo = createLazy()
 const lazyNotePlayerDemo = createLazy()
@@ -118,60 +90,52 @@ const playgroundItemContent = (meta: ExampleMeta): Html =>
   )
 
 type PlaygroundMenuViewInput = Readonly<{
-  model: PlaygroundMenuBlockModel
+  playgroundMenu: Model['playgroundMenu']
   slugs: ReadonlyArray<ExampleSlug>
 }>
 
 const playgroundMenuView = (
-  { model, slugs }: PlaygroundMenuViewInput,
+  { playgroundMenu, slugs }: PlaygroundMenuViewInput,
   h: HomeViewBuilder,
 ) =>
-  h.block(
-    PlaygroundMenuBinding.embedView({
-      slotId: model.id,
-      model,
-      viewInputs: {
-        anchor: PLAYGROUND_MENU_ANCHOR,
-        items: slugs,
-        itemToConfig: slug => ({
-          className: playgroundItemClassName,
-          content: Option.match(findBySlug(slug), {
-            onNone: () => h.span([], [slug]),
-            onSome: playgroundItemContent,
-          }),
-        }),
-        isItemDisabled: () => false,
-        itemGroupKey: () => 'examples',
-        groupToHeading: () => ({
-          className:
-            'px-4 pt-3 pb-2 text-xs text-gray-600 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
-          content: h.span(
-            [],
-            [
-              'Run an example ',
-              h.span(
-                [h.Class('text-gray-700 dark:text-gray-200 font-medium')],
-                ['live in your browser'],
-              ),
-              '. No install.',
-            ],
-          ),
-        }),
-        buttonContent: h.span(
-          [h.Class('inline-flex items-center gap-2')],
-          [Icon.bolt('w-5 h-5'), 'Launch Playground'],
-        ),
-        buttonAttributes: childAttributes([h.Class(playgroundButtonClassName)]),
-        itemsAttributes: childAttributes([h.Class(playgroundItemsClassName)]),
-        backdropAttributes: childAttributes([
-          h.Class(playgroundBackdropClassName),
-        ]),
-        attributes: childAttributes([h.Class('relative inline-block')]),
-      },
+  playgroundMenu.view({
+    anchor: PLAYGROUND_MENU_ANCHOR,
+    items: slugs,
+    itemToConfig: slug => ({
+      className: playgroundItemClassName,
+      content: Option.match(findBySlug(slug), {
+        onNone: () => h.span([], [slug]),
+        onSome: playgroundItemContent,
+      }),
     }),
-  )
+    isItemDisabled: () => false,
+    itemGroupKey: () => 'examples',
+    groupToHeading: () => ({
+      className:
+        'px-4 pt-3 pb-2 text-xs text-gray-600 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
+      content: h.span(
+        [],
+        [
+          'Run an example ',
+          h.span(
+            [h.Class('text-gray-700 dark:text-gray-200 font-medium')],
+            ['live in your browser'],
+          ),
+          '. No install.',
+        ],
+      ),
+    }),
+    buttonContent: h.span(
+      [h.Class('inline-flex items-center gap-2')],
+      [Icon.bolt('w-5 h-5'), 'Launch Playground'],
+    ),
+    buttonAttributes: childAttributes([h.Class(playgroundButtonClassName)]),
+    itemsAttributes: childAttributes([h.Class(playgroundItemsClassName)]),
+    backdropAttributes: childAttributes([h.Class(playgroundBackdropClassName)]),
+    attributes: childAttributes([h.Class('relative inline-block')]),
+  })
 
-type ViewInputs = Readonly<{
+export type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
   renderSnippet: CodeBlock.RenderSnippet
   isNarrowViewport: boolean
@@ -181,92 +145,86 @@ type ViewInputs = Readonly<{
   newsletterEmail: string
 }>
 
-export const view = HomeComposition.makeView.withInputs<ViewInputs>(
-  (model, viewInputs, h) => {
-    const asyncCounterDemoView = lazyAsyncCounterDemo(renderAsyncCounterDemo, [
-      model.asyncCounterDemo,
-      h,
-    ])
+export const view = (
+  model: Model,
+  h: HomeViewBuilder,
+  viewInputs: ViewInputs,
+): Html => {
+  const asyncCounterDemoView = lazyAsyncCounterDemo(renderAsyncCounterDemo, [
+    model.asyncCounterDemo,
+  ])
 
-    const notePlayerDemoView = lazyNotePlayerDemo(renderNotePlayerDemo, [
-      model.notePlayerDemo,
-      h,
-    ])
+  const notePlayerDemoView = lazyNotePlayerDemo(renderNotePlayerDemo, [
+    model.notePlayerDemo,
+  ])
 
-    const playgroundMenu = playgroundMenuView(
-      {
-        model: model.playgroundMenu,
-        slugs: examples.map(example => example.slug),
-      },
-      h,
+  const playgroundMenu = playgroundMenuView(
+    {
+      playgroundMenu: model.playgroundMenu,
+      slugs: examples.map(example => example.slug),
+    },
+    h,
+  )
+
+  const buttonLabelFor = (tab: DemoTab.Tab): string =>
+    Match.value(tab).pipe(
+      Match.when('AsyncCounter', () => 'Async Counter'),
+      Match.when('Note Player', () => 'Note Player'),
+      Match.exhaustive,
     )
 
-    const buttonLabelFor = (tab: DemoTab.Tab): string =>
-      Match.value(tab).pipe(
-        Match.when('AsyncCounter', () => 'Async Counter'),
-        Match.when('Note Player', () => 'Note Player'),
-        Match.exhaustive,
-      )
+  const panelFor = (tab: DemoTab.Tab) =>
+    Match.value(tab).pipe(
+      Match.when('AsyncCounter', () => asyncCounterDemoView),
+      Match.when('Note Player', () => notePlayerDemoView),
+      Match.exhaustive,
+    )
 
-    const panelFor = (tab: DemoTab.Tab) =>
-      Match.value(tab).pipe(
-        Match.when('AsyncCounter', () => asyncCounterDemoView),
-        Match.when('Note Player', () => notePlayerDemoView),
-        Match.exhaustive,
-      )
-
-    const demoTabsView = h.block(
-      DemoTabsBinding.embedView({
-        slotId: model.demoTabs.id,
-        model: model.demoTabs,
-        viewInputs: {
-          tabs: DemoTab.all,
-          selectedValue: model.activeDemoTab,
-          ariaLabel: 'Demo tabs',
-          orientation: viewInputs.isNarrowViewport ? 'Horizontal' : 'Vertical',
-          toView: ({ tablist, tabs, activeIndex }) =>
-            h.div(
-              [h.Class('lg:flex')],
-              [
-                h.div(
-                  [...tablist, h.Class('flex lg:flex-col gap-1')],
-                  tabs.map(tab =>
-                    h.button(
-                      [...tab.tab, h.Class(demoTabButtonClassName)],
-                      [h.span([], [buttonLabelFor(tab.value)])],
-                    ),
-                  ),
-                ),
-                ...tabs
-                  .filter(tab => tab.index === activeIndex)
-                  .map(tab =>
-                    h.div(
-                      [...tab.panel, h.Class(demoTabPanelClassName)],
-                      [panelFor(tab.value)],
-                    ),
-                  ),
-              ],
+  const demoTabsView = model.demoTabs.view({
+    tabs: DemoTab.all,
+    selectedValue: model.activeDemoTab,
+    ariaLabel: 'Demo tabs',
+    orientation: viewInputs.isNarrowViewport ? 'Horizontal' : 'Vertical',
+    toView: ({ tablist, tabs, activeIndex }) =>
+      h.div(
+        [h.Class('lg:flex')],
+        [
+          h.div(
+            [...tablist, h.Class('flex lg:flex-col gap-1')],
+            tabs.map(tab =>
+              h.button(
+                [...tab.tab, h.Class(demoTabButtonClassName)],
+                [h.span([], [buttonLabelFor(tab.value)])],
+              ),
             ),
-        },
-      }),
-    )
-
-    const content = contentView(
-      viewInputs.renderCopyButton,
-      viewInputs.renderSnippet,
-      demoTabsView,
-      Shared.emailSignupContent(
-        viewInputs.newsletterEmail,
-        value => Message.UpdatedNewsletterEmail({ value }),
-        h,
+          ),
+          ...tabs
+            .filter(tab => tab.index === activeIndex)
+            .map(tab =>
+              h.div(
+                [...tab.panel, h.Class(demoTabPanelClassName)],
+                [panelFor(tab.value)],
+              ),
+            ),
+        ],
       ),
-      playgroundMenu,
-      viewInputs.maybeGitHubStarCount,
-      viewInputs.resolvedTheme,
-      viewInputs.isBrowserEnvironmentLoaded,
-      h,
-    )
+  })
 
-    return content
-  },
-)
+  const content = contentView(
+    viewInputs.renderCopyButton,
+    viewInputs.renderSnippet,
+    demoTabsView,
+    Shared.emailSignupContent(
+      viewInputs.newsletterEmail,
+      value => Message.UpdatedNewsletterEmail({ value }),
+      h,
+    ),
+    playgroundMenu,
+    viewInputs.maybeGitHubStarCount,
+    viewInputs.resolvedTheme,
+    viewInputs.isBrowserEnvironmentLoaded,
+    h,
+  )
+
+  return content
+}

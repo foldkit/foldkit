@@ -1,7 +1,7 @@
 import { slotDocPage } from '../../../markdown'
-import raw from '../block.md'
+import raw from './content.md'
 
-export const BlockPageContent = slotDocPage<'map-messages-under-hood'>(
+export const BlockPageContent = slotDocPage<'message-routing-under-hood'>(
   raw,
   'core/block',
 )

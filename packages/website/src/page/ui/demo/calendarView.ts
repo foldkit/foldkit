@@ -10,7 +10,7 @@ import type {
 } from '@foldkit/ui/calendar'
 
 import { Icon } from '../../../icon'
-import type { UiViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../definition'
 
 const headerClassName = 'flex items-center justify-between gap-2'
 

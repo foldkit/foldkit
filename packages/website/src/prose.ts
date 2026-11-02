@@ -8,9 +8,9 @@ import { type TableOfContentsEntry } from './tableOfContentsEntry'
 /**
  * Builds the copy-link control beside a section heading.
  *
- * A page rendered through `h.block` receives one of these from the boundary
- * that owns the heading-link Message. An element dispatches through the frame
- * where it is built, so the renderer keeps that ownership explicit.
+ * A page rendered by a child Block receives one of these in its view input
+ * from the Block that owns the heading-link Message. View input functions run
+ * as the parent, so the control dispatches to its owner.
  */
 export type RenderHeadingLink = (id: string, text: string) => Html
 

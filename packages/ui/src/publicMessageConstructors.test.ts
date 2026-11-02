@@ -19,13 +19,13 @@ import * as Toast from './toast/public.js'
 import * as Tooltip from './tooltip/public.js'
 import * as VirtualList from './virtualList/public.js'
 
-const TestCombobox = Combobox.makeBlock()
-const TestListbox = Listbox.makeBlock()
-const TestMenu = Menu.makeBlock()
-const TestRadioGroup = RadioGroup.makeBlock()
-const TestTabs = Tabs.makeBlock()
-const TestToast = Toast.makeBlock(Schema.String)
-const TestVirtualList = VirtualList.makeBlock<string>()
+const TestCombobox = Combobox.make()
+const TestListbox = Listbox.make()
+const TestMenu = Menu.make()
+const TestRadioGroup = RadioGroup.make()
+const TestTabs = Tabs.make()
+const TestToast = Toast.make(Schema.String)
+const TestVirtualList = VirtualList.make<string>()
 
 const statefulBarrels: ReadonlyArray<Record<string, unknown>> = [
   Animation,
@@ -47,47 +47,31 @@ const statefulBarrels: ReadonlyArray<Record<string, unknown>> = [
   VirtualList,
 ]
 
-describe('public completed Block Message Codecs', () => {
-  it('keeps local constructors on each completed Message Codec', () => {
+describe('public Block class Message Schemas', () => {
+  it('exposes Message constructors on each Block class', () => {
     const localConstructors = [
-      Animation.AnimationBlock.Message.Showed,
-      Calendar.CalendarBlock.Message.ClickedDay,
+      Animation.Animation.Message.Showed,
+      Calendar.Calendar.Message.ClickedDay,
       TestCombobox.Message.RequestedOpen,
-      DatePicker.DatePickerBlock.Message.RequestedOpen,
-      Dialog.DialogBlock.Message.RequestedOpen,
-      DragAndDrop.DragAndDropBlock.Message.PressedDraggable,
-      FileDrop.FileDropBlock.Message.EnteredDragZone,
-      HoverIntent.HoverIntentBlock.Message.EnteredTrigger,
+      DatePicker.DatePicker.Message.RequestedOpen,
+      Dialog.Dialog.Message.RequestedOpen,
+      DragAndDrop.DragAndDrop.Message.PressedDraggable,
+      FileDrop.FileDrop.Message.EnteredDragZone,
+      HoverIntent.HoverIntent.Message.EnteredTrigger,
       TestListbox.Message.RequestedOpen,
       TestMenu.Message.RequestedOpen,
-      Popover.PopoverBlock.Message.RequestedOpen,
+      Popover.Popover.Message.RequestedOpen,
       TestRadioGroup.Message.SelectedOption,
-      Slider.SliderBlock.Message.PressedThumb,
+      Slider.Slider.Message.PressedThumb,
       TestTabs.Message.SelectedTab,
       TestToast.Message.RequestedDismissAll,
-      Tooltip.TooltipBlock.Message.EnteredTrigger,
+      Tooltip.Tooltip.Message.EnteredTrigger,
       TestVirtualList.Message.RequestedScrollToEnd,
     ]
 
     expect(
       localConstructors.every(constructor => typeof constructor === 'function'),
     ).toBe(true)
-  })
-
-  it('decodes generated child delivery through the completed parent Codec', () => {
-    const decoded = Schema.decodeSync(DatePicker.DatePickerBlock.Message)({
-      _tag: 'GotCalendarMessage',
-      placement: 'calendar',
-      generation: 0,
-      message: Calendar.CalendarBlock.Message.ClickedHeading(),
-    })
-
-    expect(decoded).toEqual({
-      _tag: 'GotCalendarMessage',
-      placement: 'calendar',
-      generation: 0,
-      message: { _tag: 'ClickedHeading' },
-    })
   })
 
   it('keeps structural implementation facades out of public barrels', () => {

@@ -4,11 +4,10 @@ import { Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/menu'
 
 import { Icon } from '../../../icon'
-import type { UiViewBuilder } from '../composition'
-import { MenuAnimatedDemoBinding, MenuBasicDemoBinding } from '../composition'
-import { DemoMenuBlock, type MenuItem } from './components'
+import type { UiViewBuilder } from '../definition'
+import { DemoMenu, type MenuItem } from './components'
 
-type DemoMenuBlockModel = typeof DemoMenuBlock.Model.Type
+type DemoMenuModel = typeof DemoMenu.Type
 
 // DEMO CONTENT
 
@@ -94,27 +93,21 @@ const menuViewConfig = (itemsClassName: string) => {
   }
 }
 
-export const basicDemo = (menuModel: DemoMenuBlockModel, h: UiViewBuilder) => {
+export const basicDemo = (menuModel: DemoMenuModel, h: UiViewBuilder) => {
   return [
     h.div(
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(buttonId(menuModel.id)), h.Class('demo-label')],
+          [h.For(buttonId(menuModel.model.id)), h.Class('demo-label')],
           ['Row actions'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              MenuBasicDemoBinding.embedView({
-                slotId: menuModel.id,
-                model: menuModel,
-                viewInputs: {
-                  ...menuViewConfig(basicItemsClassName),
-                },
-              }),
-            ),
+            menuModel.view({
+              ...menuViewConfig(basicItemsClassName),
+            }),
           ],
         ),
       ],
@@ -122,30 +115,21 @@ export const basicDemo = (menuModel: DemoMenuBlockModel, h: UiViewBuilder) => {
   ]
 }
 
-export const animatedDemo = (
-  menuModel: DemoMenuBlockModel,
-  h: UiViewBuilder,
-) => {
+export const animatedDemo = (menuModel: DemoMenuModel, h: UiViewBuilder) => {
   return [
     h.div(
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(buttonId(menuModel.id)), h.Class('demo-label')],
+          [h.For(buttonId(menuModel.model.id)), h.Class('demo-label')],
           ['Row actions'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.block(
-              MenuAnimatedDemoBinding.embedView({
-                slotId: menuModel.id,
-                model: menuModel,
-                viewInputs: {
-                  ...menuViewConfig(animatedItemsClassName),
-                },
-              }),
-            ),
+            menuModel.view({
+              ...menuViewConfig(animatedItemsClassName),
+            }),
           ],
         ),
       ],

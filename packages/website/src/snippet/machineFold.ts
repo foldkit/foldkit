@@ -11,16 +11,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-const ApplicationComposition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-}).makeComposition()
-
-export const initialModel = Model.make({
-  checkout: checkoutMachine.initial,
-  isHelpOpen: false,
-})
-
 export const foldCheckout = Machine.fold({
   machine: checkoutMachine,
   read: (model: Model) => Option.some(model.checkout),
@@ -28,12 +18,23 @@ export const foldCheckout = Machine.fold({
     modifyFields(model, { checkout: () => nextCheckout }),
 })
 
-export const update = ApplicationComposition.makeUpdate({
-  ToggledHelp: (model, { isOpen }) => ({
-    model: modifyFields(model, { isHelpOpen: () => isOpen }),
+export class Application extends Block<Application>()('Application', {
+  Model,
+  Message,
+}) {}
+
+export const ApplicationLive = Application.toLayer(() => ({
+  init: () => ({
+    checkout: checkoutMachine.initial,
+    isHelpOpen: false,
   }),
-  SelectedEdition: foldCheckout,
-  ClickedContinue: foldCheckout,
-  ClickedBack: foldCheckout,
-  ClickedCancel: foldCheckout,
-})
+  update: {
+    ToggledHelp: (model, { isOpen }) => ({
+      model: modifyFields(model, { isHelpOpen: () => isOpen }),
+    }),
+    SelectedEdition: foldCheckout,
+    ClickedContinue: foldCheckout,
+    ClickedBack: foldCheckout,
+    ClickedCancel: foldCheckout,
+  },
+}))

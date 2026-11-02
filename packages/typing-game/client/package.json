@@ -19,6 +19,7 @@
     "foldkit": "workspace:*"
   },
   "devDependencies": {
+    "@effect/vitest": "4.0.0",
     "@foldkit/devtools": "workspace:*",
     "@foldkit/vite-plugin": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",

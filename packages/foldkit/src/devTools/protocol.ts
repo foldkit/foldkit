@@ -4,7 +4,7 @@ import { defineTaggedUnion } from '../schema/index.js'
 
 // SHARED
 
-/** A serialized Command produced during a Message dispatch (or `init`). `args` is `Some` when the Command declared an args record. `maybeBlockPath` is `None` until the result Message resolves, `Some([])` for a top-level result, and `Some(tags)` for a Block-routed result. */
+/** A serialized Command produced during a Message dispatch (or `init`). `args` is `Some` when the Command declared an args record. `maybeBlockPath` is `None` until the result Message resolves, `Some([])` for a result delivered to the root Block, and `Some(path)` with the child instance path for a result delivered to a child instance. */
 export const SerializedCommand = Schema.Struct({
   name: Schema.String,
   args: Schema.OptionFromNullOr(Schema.Record(Schema.String, Schema.Unknown)),
@@ -21,7 +21,7 @@ export const SerializedMount = Schema.Struct({
 /** A serialized Mount lifecycle event suitable for transmission over the WS protocol. */
 export type SerializedMount = typeof SerializedMount.Type
 
-/** A serialized history entry as it appears on the wire. `blockPath` lists `Got<Child>Message` wrapper tags from outer to inner when the entry came up through a Block chain; `maybeLeafTag` is `Some` with the innermost child Message tag when one exists. `mountStarts` lists Mounts that fired during the render after this Message; `mountEnds` lists Mounts whose elements were unmounted during that render. The Messages dispatched by mount Effects appear as their own entries elsewhere in history. */
+/** A serialized history entry as it appears on the wire. `blockPath` lists the Block instance path (instance ids from the root, with a keyed collection instance as its collection name then key) when the entry is a child instance's `BlockMessage`, and is empty for the root Block's own Messages; `maybeLeafTag` is `Some` with the child Message tag when one exists. `mountStarts` lists Mounts that fired during the render after this Message; `mountEnds` lists Mounts whose elements were unmounted during that render. The Messages dispatched by mount Effects appear as their own entries elsewhere in history. */
 export const SerializedEntry = Schema.Struct({
   index: Schema.Number,
   tag: Schema.String,

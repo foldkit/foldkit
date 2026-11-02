@@ -1,72 +1,43 @@
-import { Option, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { makeBlock } from './public.js'
+import * as Animation from '../animation/block.js'
+import { make } from './public.js'
 
-const TestListbox = makeBlock<string>()
+const TestListbox = make<string>()
+const TestListboxLive = TestListbox.pipe(Layer.provide(Animation.AnimationLive))
 
-const Model = Schema.Struct({ listbox: TestListbox.Model })
-type Model = typeof Model.Type
-const ListboxTriggerClickTestDefinition = Block.makeDefinition(
+class ListboxTriggerClickTest extends Block<ListboxTriggerClickTest>()(
   'ListboxTriggerClickTest',
   {
-    Model,
-    Message: Schema.Never,
+    Model: Schema.Struct({ listbox: TestListbox }),
   },
-)
-const foldListboxOutMessage =
-  ListboxTriggerClickTestDefinition.makeOutMessageFold(TestListbox, {
-    Selected: () => ListboxTriggerClickTestDefinition.makeNoopStep(),
-  })
-const ListboxBinding = ListboxTriggerClickTestDefinition.makeBinding(
-  TestListbox,
-  {
-    field: 'listbox',
-    init: false,
-  },
-).withOutMessagePolicy({ fold: foldListboxOutMessage })
-const ListboxTriggerClickTestComposition =
-  ListboxTriggerClickTestDefinition.makeComposition({
-    bindings: [ListboxBinding],
-  })
-const view = ListboxTriggerClickTestComposition.makeView((model, h) =>
-  h.div(
-    [],
-    [
-      h.block(
-        ListboxBinding.embedView({
-          slotId: 'listbox',
-          model: model.listbox,
-          viewInputs: {
-            items: ['Name'],
-            itemToConfig: item => ({ content: h.span([], [item]) }),
-            buttonContent: h.span([], ['Sort']),
-            maybeSelectedValue: Option.none(),
-            anchor: { placement: 'bottom-start' },
-          },
+) {}
+
+const ListboxTriggerClickTestLive = ListboxTriggerClickTest.toLayer(() => ({
+  init: () => ({
+    listbox: new TestListbox('listbox', {
+      id: 'sort',
+      isModal: true,
+    }),
+  }),
+  view: (model, h) =>
+    h.div(
+      [],
+      [
+        model.listbox.view({
+          items: ['Name'],
+          itemToConfig: item => ({ content: h.span([], [item]) }),
+          buttonContent: h.span([], ['Sort']),
+          maybeSelectedValue: Option.none(),
+          anchor: { placement: 'bottom-start' },
         }),
-      ),
-    ],
-  ),
-)
-const prepare = () =>
-  ListboxTriggerClickTestComposition.prepareBlock({
-    init: ListboxTriggerClickTestComposition.makeInit(() =>
-      ListboxBinding.init({
-        args: [{ id: 'sort', isModal: true }],
-        toParentModel: listbox => ({ listbox }),
-      }),
+      ],
     ),
-    update: ListboxTriggerClickTestComposition.makeUpdate({}),
-    view,
-  })
-const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+})).pipe(Layer.provide(TestListboxLive))
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)
@@ -99,7 +70,10 @@ describe('Listbox trigger click', () => {
     container.id = 'app'
     document.body.append(background, container)
     const handle = Runtime.embed(
-      Program.makeElement({ block: ApplicationBlock, container }),
+      Program.makeElement(ListboxTriggerClickTest, {
+        layer: ListboxTriggerClickTestLive,
+        container,
+      }),
     )
 
     try {

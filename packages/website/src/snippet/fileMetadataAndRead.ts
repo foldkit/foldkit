@@ -7,7 +7,10 @@ const describeFile = (file: File.File): string =>
 const ReadAvatarPreview = Command.define('ReadAvatarPreview', {
   args: { file: File.File },
   messages: [SucceededReadAvatarPreview, FailedReadAvatarPreview],
-  handler: function* () {
+})
+
+const ReadAvatarPreviewLive = ReadAvatarPreview.toLayer(
+  Effect.gen(function* () {
     return ({ file }) =>
       File.readAsDataUrl(file).pipe(
         Effect.map(dataUrl => SucceededReadAvatarPreview({ dataUrl })),
@@ -15,5 +18,5 @@ const ReadAvatarPreview = Command.define('ReadAvatarPreview', {
           Effect.succeed(FailedReadAvatarPreview({ reason: error.reason })),
         ),
       )
-  },
-})
+  }),
+)

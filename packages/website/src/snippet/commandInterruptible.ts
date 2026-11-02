@@ -1,10 +1,7 @@
-// application.ts
 import { Effect, Schema } from 'effect'
 import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-
-const Model = Schema.Struct({ count: Schema.Number })
-type Model = typeof Model.Type
+import { modifyFields } from 'foldkit/struct'
 
 export const Message = defineMessageUnion({
   ClickedResetAfterDelay: {},
@@ -14,42 +11,44 @@ export const Message = defineMessageUnion({
     outcome: Command.Interruptible.Outcome,
   },
 })
-export type Message = typeof Message.Type
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
+export const WaitBeforeReset = Command.define('WaitBeforeReset', {
+  messages: [Message.CompletedWaitBeforeReset],
+  interrupt: true,
+})
+
+export class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({ count: Schema.Number }),
   Message,
-})
+  Command: [WaitBeforeReset],
+}) {}
 
-const { makeFieldsStep, makeCommandsStep, makeNoopStep } = ApplicationDefinition
+export const ApplicationLive = Application.toLayer(() => ({
+  init: () => ({ count: 0 }),
 
-const ApplicationComposition = ApplicationDefinition.makeComposition()
-
-export const WaitBeforeReset = ApplicationDefinition.makeCommand(
-  'WaitBeforeReset',
-  {
-    messages: [Message.CompletedWaitBeforeReset],
-    interrupt: true,
-    handler: function* () {
-      return () =>
-        Effect.sleep('1 second').pipe(
-          Effect.as(Message.CompletedWaitBeforeReset()),
-        )
-    },
+  update: {
+    ClickedResetAfterDelay: model => ({
+      model,
+      commands: [WaitBeforeReset()],
+    }),
+    ClickedCancelReset: model => ({
+      model,
+      commands: [
+        WaitBeforeReset.Interrupt(outcome =>
+          Message.CompletedCancelWaitBeforeReset({ outcome }),
+        ),
+      ],
+    }),
+    CompletedWaitBeforeReset: model => ({
+      model: modifyFields(model, { count: () => 0 }),
+    }),
+    CompletedCancelWaitBeforeReset: model => ({ model }),
   },
-)
 
-export const EffectsLayer = WaitBeforeReset.layer
-
-const update = ApplicationComposition.makeUpdate({
-  ClickedResetAfterDelay: makeCommandsStep(() => [WaitBeforeReset()]),
-  ClickedCancelReset: makeCommandsStep(() => [
-    WaitBeforeReset.Interrupt(outcome =>
-      Message.CompletedCancelWaitBeforeReset({ outcome }),
-    ),
-  ]),
-  CompletedWaitBeforeReset: makeFieldsStep(() => ({
-    count: () => 0,
-  })),
-  CompletedCancelWaitBeforeReset: makeNoopStep(),
-})
+  commands: {
+    WaitBeforeReset: () =>
+      Effect.sleep('1 second').pipe(
+        Effect.as(Message.CompletedWaitBeforeReset()),
+      ),
+  },
+}))

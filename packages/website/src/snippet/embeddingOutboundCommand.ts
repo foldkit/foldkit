@@ -1,32 +1,62 @@
-import { Effect, Schema } from 'effect'
-import { Port } from 'foldkit'
+import { Effect, Function, Schema } from 'effect'
+import { Block, Command, Port } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { WidgetDefinition, widget } from './definition'
-import { Message } from './message'
-import { ports } from './ports'
+import { hostStepChanges } from './embeddingInboundSubscription'
+import { type Flags, ports } from './embeddingPorts'
+import { Message } from './embeddingWidgetMessage'
 
 // An outbound Port is written from a Command. Port.emit encodes the value
-// and delivers it to every host listener; the Command acknowledges with a
-// Completed* Message like any other fire-and-forget Command.
-export const ReportCount = WidgetDefinition.makeCommand('ReportCount', {
+// and delivers it to every host listener.
+const ReportCount = Command.define('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
-  handler: function* () {
-    return ({ count }) =>
+})
+
+export class Widget extends Block<Widget, Readonly<{ flags: Flags }>>()(
+  'Widget',
+  {
+    Model: Schema.Struct({ count: Schema.Number, step: Schema.Number }),
+    Message,
+    Command: [ReportCount],
+  },
+) {}
+
+export const WidgetLive = Widget.toLayer(() => ({
+  init: ({ flags }) => ({ count: flags.initialCount, step: 1 }),
+
+  subscriptions: {
+    hostStepChanges: {
+      dependencies: Function.constVoid,
+      stream: () => hostStepChanges,
+    },
+  },
+
+  update: {
+    ClickedAdvance: model => {
+      const count = model.count + model.step
+
+      return {
+        model: modifyFields(model, { count: () => count }),
+        commands: [ReportCount({ count })],
+      }
+    },
+    ChangedStep: (model, { step }) => ({
+      model: modifyFields(model, { step: () => step }),
+    }),
+    CompletedReportCount: model => ({ model }),
+  },
+
+  commands: {
+    ReportCount: ({ count }) =>
       Port.emit(ports.outbound.countChanged, count).pipe(
         Effect.as(Message.CompletedReportCount()),
-      )
+      ),
   },
-})
 
-export const EffectsLayer = ReportCount.layer
-
-// In update, emitting is just returning the Command:
-const handleAdvanceStep = widget.makeStep(model => {
-  const count = model.count + model.step
-  return {
-    model: modifyFields(model, { count: () => count }),
-    commands: [ReportCount({ count })],
-  }
-})
+  view: (model, h) =>
+    h.button(
+      [h.OnClick(Message.ClickedAdvance())],
+      [`${model.count} (advance by ${model.step})`],
+    ),
+}))

@@ -4,7 +4,6 @@ import * as Command from '../../command/index.js'
 import type { Document, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -34,11 +33,14 @@ export const SaveDraft = Command.define('SaveDraft', {
   args: SaveDraftArgs.fields,
   messages: [Message.SucceededSaveDraft],
   interrupt: true,
-  handler: function* () {
+})
+
+export const SaveDraftLive = SaveDraft.toLayer(
+  Effect.gen(function* () {
     return ({ revision }) =>
       Effect.as(Effect.never, Message.SucceededSaveDraft({ revision }))
-  },
-})
+  }),
+)
 
 // INIT
 
@@ -46,7 +48,7 @@ export const initialModel: Model = { revision: 0, status: 'Editing' }
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedSaveDraft: () => ({
       model: modifyFields(model, { status: () => 'Saving' }),
@@ -55,8 +57,7 @@ export const update = Update.define((model: Model, message: Message) =>
     SucceededSaveDraft: () => ({
       model: modifyFields(model, { status: () => 'Saved' }),
     }),
-  }),
-)
+  })
 
 // VIEW
 
@@ -72,4 +73,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   return { title: 'Drafts', body }
 }
 
-export const EffectsLayer = Layer.mergeAll(SaveDraft.layer)
+export const EffectsLayer = Layer.mergeAll(SaveDraftLive)

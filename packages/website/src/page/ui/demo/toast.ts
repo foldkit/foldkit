@@ -4,14 +4,13 @@ import type { Html } from 'foldkit/html'
 import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
 
 import { Icon } from '../../../icon'
-import type { UiViewBuilder } from '../composition'
-import { ToastDemoBinding } from '../composition'
+import type { UiViewBuilder } from '../definition'
 import { Message } from '../message'
-import { ToastBlock } from './toastModule'
+import type { DemoToast } from './toastModule'
 
-type ToastBlockModel = typeof ToastBlock.Model.Type
+type ToastModel = typeof DemoToast.Type
 
-type Entry = ToastBlockModel['entries'][number]
+type Entry = ToastModel['model']['entries'][number]
 
 // DEMO CONTENT
 
@@ -47,7 +46,7 @@ const buttonClassName =
   'demo-neutral-button inline-flex items-center gap-1.5 text-sm'
 
 export const demo = (
-  toastModel: ToastBlockModel,
+  toastModel: ToastModel,
   maybeLastDismissedTitle: Option.Option<string>,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => {
@@ -148,16 +147,10 @@ export const demo = (
         ),
       ],
     }),
-    h.block(
-      ToastDemoBinding.embedView({
-        slotId: toastModel.id,
-        model: toastModel,
-        viewInputs: {
-          position: 'BottomRight',
-          entryToView: renderToastEntry,
-          entryClassName,
-        },
-      }),
-    ),
+    toastModel.view({
+      position: 'BottomRight',
+      entryToView: renderToastEntry,
+      entryClassName,
+    }),
   ]
 }

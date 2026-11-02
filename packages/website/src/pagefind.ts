@@ -14,13 +14,13 @@ type PagefindResponse = Readonly<{
   results: ReadonlyArray<PagefindResult>
 }>
 
-type PagefindModule = Readonly<{
+export type PagefindModule = Readonly<{
   search: (query: string) => Promise<PagefindResponse>
 }>
 
 const PAGEFIND_PATH = '/pagefind/pagefind.js'
 
-const NOOP_PAGEFIND: PagefindModule = {
+export const unavailablePagefind: PagefindModule = {
   search: () => Promise.resolve({ results: [] }),
 }
 
@@ -35,5 +35,5 @@ export const PagefindLayer = Layer.effect(
     try: (): Promise<PagefindModule> =>
       new Function('path', 'return import(path)')(PAGEFIND_PATH),
     catch: () => new Error('Pagefind not available'),
-  }).pipe(Effect.catch(() => Effect.succeed(NOOP_PAGEFIND))),
+  }).pipe(Effect.catch(() => Effect.succeed(unavailablePagefind))),
 )

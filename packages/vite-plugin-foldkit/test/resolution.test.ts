@@ -49,10 +49,20 @@ const writeFiles = async (root: string, files: Files): Promise<void> => {
   }
 }
 
+// NOTE: Vite's dependency optimizer can still be writing its cache into the
+// temporary root when a test finishes, so removing it retries ENOTEMPTY.
+const CLEANUP_RETRIES = 5
+const CLEANUP_RETRY_DELAY_MILLIS = 50
+
 const makeTemporaryDirectory = async (): Promise<string> => {
   const directory = await mkdtemp(join(tmpdir(), 'foldkit-resolution-'))
   onTestFinished(async () => {
-    await rm(directory, { recursive: true, force: true })
+    await rm(directory, {
+      recursive: true,
+      force: true,
+      maxRetries: CLEANUP_RETRIES,
+      retryDelay: CLEANUP_RETRY_DELAY_MILLIS,
+    })
   })
   return directory
 }

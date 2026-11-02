@@ -1,68 +1,22 @@
 src/
-+-- definition.ts          Early Application contract
-+-- composition/
-|   +-- composition.ts     Complete root graph and ApplicationComposition
-|   +-- index.ts            Explicit root Composition barrel
-|   +-- home.ts             Substantial root-owned Home policy, if needed
-+-- services.ts            ApplicationLayer service providers
-+-- model.ts               Root Model
-+-- message.ts             Root Message
-+-- flags.ts               Startup Flags, when used
-+-- init.ts                Root initialization
-+-- command.ts             Root Commands and a small EffectsLayer
-+-- layer.ts               Substantial mixed or reused EffectsLayer
-+-- route.ts               Route union, URL parsing, and selectors
-+-- steps/
-|   +-- index.ts            Explicit shared Steps barrel
-|   +-- search.ts           Shared search transitions
-|   +-- quoteLoading.ts     Shared quote-loading transitions
-+-- update/
-|   +-- index.ts            Explicit barrel
-|   +-- update.ts           Root Message handlers
-|   +-- changedUrl.ts       Substantial navigation handler
-+-- view/
-|   +-- index.ts
-|   +-- view.ts             Primary Application view
-+-- entry.ts                Browser host config, container, and Runtime.run
-+-- story.test.ts
++-- entry.ts                    Program.make and Runtime.run
++-- application.ts              The root Block: Application and ApplicationLive
++-- services.ts                 ApplicationLayer and ApplicationTestLayer
++-- route.ts                    ApplicationRoute, shared by several Blocks
++-- story.test.ts               Root flows across Blocks
 +-- scene.test.ts
 |
-+-- page/
-|   +-- index.ts            Feature namespaces
-|   +-- counter/
-|   |   +-- index.ts        Explicit public barrel
-|   |   +-- block.ts        Small graphless feature and completion
-|   +-- dashboard/
-|   |   +-- index.ts
-|   |   +-- definition.ts   Early Model/Message contract and Definition
-|   |   +-- composition.ts  Bindings and complete registrations
-|   |   +-- init.ts
-|   |   +-- steps.ts        Transitions shared by update, composition, or init
-|   |   +-- update.ts
-|   |   +-- view.ts
-|   |   +-- block.ts        Completed Block and small EffectsLayer
-|   +-- panel/
-|   |   +-- definition.ts
-|   |   +-- mount.ts        Local Mount definitions and handlers
-|   |   +-- composition.ts  Mount-only registration
-|   |   +-- view.ts
-|   |   +-- block.ts
-|   |   +-- index.ts
-|   +-- editor/
-|       +-- index.ts
-|       +-- definition.ts
-|       +-- composition/
-|       |   +-- index.ts       Explicit barrel
-|       |   +-- composition.ts Bindings and complete registrations
-|       |   +-- dialog.ts      Substantial Dialog policy
-|       +-- command.ts
-|       +-- mount.ts
-|       +-- init.ts
-|       +-- update.ts
-|       +-- view.ts
-|       +-- layer.ts         Substantial or reused local handler bundle
-|       +-- block.ts
++-- search.ts                   The Search Block, whole
++-- search.story.test.ts
++-- search.scene.test.ts
 |
-+-- domain/
-    +-- index.ts             Domain namespaces
-    +-- cart.ts              Cart Schema and pure operations
++-- page/
+|   +-- home.ts                 The Home page Block
+|   +-- settings/               A page and the child Blocks only it uses
+|       +-- settings.ts         The Settings page Block
+|       +-- themePicker.ts      A child Block of Settings
+|       +-- settings.scene.test.ts
+|
++-- domain/                     Schemas and pure functions used by several Blocks
+    +-- item.ts
+    +-- cart.ts                 Cart Schema and pure operations

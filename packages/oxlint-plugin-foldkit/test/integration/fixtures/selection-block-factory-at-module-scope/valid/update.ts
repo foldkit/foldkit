@@ -1,13 +1,6 @@
 import { Listbox } from '@foldkit/ui'
-import { Message } from './message'
-import { Model } from './model'
 
-const sortListbox = Listbox.makeBlock()
+export const SortListbox = Listbox.make<string>()
 
-// UPDATE
-
-export const update = (model: Model, message: Message) =>
-  sortListbox.update(model.sort, message)
-
-export const createLocalSelection = (Listbox: { makeBlock: () => unknown }) =>
-  Listbox.makeBlock()
+export const createLocalSelection = (Listbox: { make: () => unknown }) =>
+  Listbox.make()

@@ -4,7 +4,6 @@ import * as Command from '../../command/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -33,11 +32,14 @@ export type Message = typeof Message.Type
 
 export const Authenticate = Command.define('Authenticate', {
   messages: [Message.SucceededAuthenticate, Message.FailedAuthenticate],
-  handler: function* () {
+})
+
+export const AuthenticateLive = Authenticate.toLayer(
+  Effect.gen(function* () {
     return () =>
       Effect.sync(() => Message.SucceededAuthenticate({ username: 'alice' }))
-  },
-})
+  }),
+)
 
 // INIT
 
@@ -51,7 +53,7 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = (model: Model, message: Message) =>
   Message.match(message, {
     UpdatedEmail: ({ value }) => ({
       model: modifyFields(model, { email: () => value }),
@@ -80,8 +82,7 @@ export const update = Update.define((model: Model, message: Message) =>
         password: () => '',
       }),
     }),
-  }),
-)
+  })
 
 // VIEW
 
@@ -165,4 +166,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-export const EffectsLayer = Layer.mergeAll(Authenticate.layer)
+export const EffectsLayer = Layer.mergeAll(AuthenticateLive)

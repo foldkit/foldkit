@@ -205,18 +205,19 @@ export const stream = <Value, Encoded>(
  * Effect:
  *
  * ```ts
- * const ReportCount = Command.define(
- *  'ReportCount',
- *  {
- *    args: { count: Schema.Number },
- *    messages: [Message.CompletedReportCount],
- *  handler: function* () { return ({ count }) =>
- *    Port.emit(ports.outbound.countChanged, count).pipe(
- *      Effect.as(Message.CompletedReportCount()),
- *    ) },
- *  },
+ * const ReportCount = Command.define('ReportCount', {
+ *   args: { count: Schema.Number },
+ *   messages: [Message.CompletedReportCount],
+ * })
+ *
+ * const ReportCountLive = ReportCount.toLayer(
+ *   Effect.gen(function* () {
+ *     return ({ count }) =>
+ *       Port.emit(ports.outbound.countChanged, count).pipe(
+ *         Effect.as(Message.CompletedReportCount()),
+ *       )
+ *   }),
  * )
- * const EffectsLayer = ReportCount.layer
  * ```
  *
  * When the program runs without an embed handle (started with `Runtime.run`),

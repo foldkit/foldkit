@@ -40,7 +40,7 @@ const REASON_HINTS: Record<LazyMissReason['_tag'], string> = {
   FunctionChanged:
     'Pass the same view function for each slot or key. Define it outside view.',
   FrameChanged:
-    'Use separate slots or keys for different Block boundaries. Replaced child occurrences must render again.',
+    'Use separate slots or keys for views rendered by different Block instances.',
   ArgumentCountChanged:
     'Pass the same number of arguments to each slot or key.',
   ArgumentsChanged:

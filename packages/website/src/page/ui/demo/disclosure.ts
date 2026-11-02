@@ -3,7 +3,7 @@ import { clsx } from 'clsx'
 import { Disclosure } from '@foldkit/ui'
 
 import { Icon } from '../../../icon'
-import type { UiViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../definition'
 import { Message } from '../message'
 
 export const DISCLOSURE_DEMO_ID = 'disclosure-demo'

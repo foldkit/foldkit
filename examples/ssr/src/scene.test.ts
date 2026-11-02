@@ -1,32 +1,38 @@
-import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { Command, click, expect, role, scene, text } from 'foldkit/scene'
 
-import { Message, Model, PersistCount, update, view } from './application'
+import { describe, it } from '@effect/vitest'
 
-const initialModel = Model.make({
-  count: 3,
+import {
+  ApplicationLive,
+  type Flags,
+  Message,
+  PersistCount,
+} from './application'
+
+const flags: Flags = {
+  initialCount: 3,
   renderedAt: '2026-07-26T00:00:00.000Z',
   renderedOn: 'Server',
-})
+}
 
 describe('view', () => {
-  test('renders the count and provenance line', () => {
+  it.effect('renders the count and provenance line', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
+      { flags },
       expect(text('3')).toExist(),
       expect(
         text('Rendered on the Server at 2026-07-26T00:00:00.000Z'),
       ).toExist(),
       expect(role('button', { name: '+' })).toExist(),
       expect(role('button', { name: '-' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clicking + increments and persists the count', () => {
+  it.effect('clicking + increments and persists the count', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
+      { flags },
       click(role('button', { name: '+' })),
       expect(text('4')).toExist(),
       Command.expectHas(PersistCount({ count: 4 })),
@@ -35,6 +41,6 @@ describe('view', () => {
         Message.CompletedPersistCount(),
       ),
       Command.expectNone(),
-    )
-  })
+    ),
+  )
 })

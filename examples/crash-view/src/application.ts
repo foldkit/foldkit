@@ -14,10 +14,43 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 type ClickedCrash = typeof Message.ClickedCrash.Type
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+export class Application extends Block<Application>()('Application', {
   Model,
   Message,
-}).makeComposition()
+}) {}
+
+export const ApplicationLive = Application.toLayer(() => ({
+  init: () => null,
+
+  update: {
+    ClickedCrash: handleClickedCrash,
+  },
+
+  view: (_model, h) => ({
+    title: 'Crash View Example',
+    body: h.div(
+      [h.Class('min-h-screen bg-white flex items-center justify-center')],
+      [
+        Button.view(
+          {
+            onClick: Message.ClickedCrash(),
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'bg-red-600 text-white text-lg font-semibold hover:bg-red-700 px-6 py-3 rounded transition cursor-pointer',
+                  ),
+                ],
+                ['Crash'],
+              ),
+          },
+          h,
+        ),
+      ],
+    ),
+  }),
+}))
 
 const handleClickedCrash = (
   _model: Model,
@@ -26,43 +59,10 @@ const handleClickedCrash = (
   throw new Error('This is a simulated crash!')
 }
 
-export const update = ApplicationComposition.makeUpdate({
-  ClickedCrash: handleClickedCrash,
-})
-
-export const init = ApplicationComposition.makeInit(() => ({
-  model: null,
-}))
-
-export const view = ApplicationComposition.makeView((_model, h) => ({
-  title: 'Crash View Example',
-  body: h.div(
-    [h.Class('min-h-screen bg-white flex items-center justify-center')],
-    [
-      Button.view(
-        {
-          onClick: Message.ClickedCrash(),
-          toView: attributes =>
-            h.button(
-              [
-                ...attributes.button,
-                h.Class(
-                  'bg-red-600 text-white text-lg font-semibold hover:bg-red-700 px-6 py-3 rounded transition cursor-pointer',
-                ),
-              ],
-              ['Crash'],
-            ),
-        },
-        h,
-      ),
-    ],
-  ),
-}))
-
 // CRASH
 
 export const crashView = (
-  { error }: Runtime.CrashContext<Model, Message>,
+  { error }: Runtime.CrashContext<unknown, Message>,
   h: HtmlBuilder<never>,
 ): Document => ({
   title: 'Crash View Example | crashed',
@@ -103,14 +103,3 @@ export const crashView = (
     ],
   ),
 })
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)

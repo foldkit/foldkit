@@ -3,42 +3,54 @@
  *
  * Run: pnpm --filter pixel-art-example exec vitest run src/comparison.bench.ts
  */
-import { Option } from 'effect'
+import { Match, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 import { test } from 'vitest'
-
-import { DialogBlock } from '@foldkit/ui'
 
 import { createEmptyGrid as createReactGrid } from '../../../comparisons/pixel-art-react/src/grid'
 import { reducer } from '../../../comparisons/pixel-art-react/src/reducer'
 import type { State } from '../../../comparisons/pixel-art-react/src/types'
-import { ThemeListboxBlock } from './components'
-import { createEmptyGrid as createFoldkitGrid } from './grid'
-import { Message } from './message'
-import type { Model } from './model'
-import { update } from './update'
+import { type Canvas, Message, canvasUpdate } from './application'
+import { createEmptyGrid as createFoldkitGrid } from './domain/grid'
 
 const GRID_SIZE = 16
 const ITERATIONS = 10_000
 const WARMUP = 500
 
-const foldkitModel: Model = {
+const foldkitModel: Canvas = {
   grid: createFoldkitGrid(GRID_SIZE),
   undoStack: [],
   redoStack: [],
   selectedColorIndex: 0,
   gridSize: GRID_SIZE,
-  tool: 'Brush' as const,
-  mirrorMode: 'None' as const,
+  tool: 'Brush',
+  mirrorMode: 'None',
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: DialogBlock.init({ id: 'error-dialog' }).model,
-  maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: DialogBlock.init({ id: 'confirm-dialog' }).model,
-  maybePendingGridSize: Option.none(),
-  themeListbox: ThemeListboxBlock.init({ id: 'themes' }).model,
 }
+
+type CanvasMessage =
+  | typeof Message.PressedCell.Type
+  | typeof Message.EnteredCell.Type
+  | typeof Message.ReleasedMouse.Type
+  | typeof Message.ClickedUndo.Type
+  | typeof Message.ClickedRedo.Type
+
+const update = (
+  model: Canvas,
+  message: CanvasMessage,
+): Readonly<{ model: Canvas }> =>
+  Match.value(message).pipe(
+    Match.withReturnType<Readonly<{ model: Canvas }>>(),
+    Match.tagsExhaustive({
+      PressedCell: pressedCell => canvasUpdate.PressedCell(model, pressedCell),
+      EnteredCell: enteredCell => canvasUpdate.EnteredCell(model, enteredCell),
+      ReleasedMouse: () => canvasUpdate.ReleasedMouse(model),
+      ClickedUndo: () => canvasUpdate.ClickedUndo(model),
+      ClickedRedo: () => canvasUpdate.ClickedRedo(model),
+    }),
+  )
 
 const reactState: State = {
   grid: createReactGrid(GRID_SIZE),
@@ -57,7 +69,7 @@ const reactState: State = {
   isGridSizeDialogOpen: false,
 }
 
-const buildFoldkitHistory = (steps: number): Model => {
+const buildFoldkitHistory = (steps: number): Canvas => {
   let model = foldkitModel
   for (let i = 0; i < steps; i++) {
     const x = i % GRID_SIZE
@@ -163,7 +175,7 @@ test('benchmark', () => {
     {
       name: 'Flood fill (16\u00d716)',
       foldkit: () => {
-        const m: Model = modifyFields(foldkitModel, {
+        const m: Canvas = modifyFields(foldkitModel, {
           tool: () => 'Fill',
         })
         update(m, Message.PressedCell({ x: 0, y: 0 }))

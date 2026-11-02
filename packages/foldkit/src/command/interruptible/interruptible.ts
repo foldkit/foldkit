@@ -5,7 +5,7 @@ import {
   InvocationIdentityTypeId,
   InvocationNameTypeId,
   registerIdentity,
-} from '../../block/identity.js'
+} from '../../definitionIdentity.js'
 import { defineTaggedUnion } from '../../schema/index.js'
 import { CommandDefinitionTypeId, brandAsDefinition } from '../brand.js'
 

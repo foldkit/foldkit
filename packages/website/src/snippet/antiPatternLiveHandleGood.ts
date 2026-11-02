@@ -1,52 +1,90 @@
-// ✅ Good: Model state controls the WebSocket's lifetime.
+// ✅ Good: a Subscription holds the WebSocket while the visitor is in the room.
 
-import { Effect, Layer, Schema } from 'effect'
-import { Block } from 'foldkit'
+import { Effect, RcMap, Schema, Stream } from 'effect'
+import { Block, Command } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
-import { Message } from './message'
-import { Model } from './model'
-
-const ChatDefinition = Block.makeDefinition('Chat', { Model, Message })
-const ChatSocket = ChatDefinition.makeResource<WebSocket>()('ChatSocket')
-
-const RoomRequirements = Schema.Struct({ roomId: Schema.String })
-type RoomRequirements = typeof RoomRequirements.Type
-
-const managedResources = ChatDefinition.makeManagedResources(entry => ({
-  chatSocket: entry('ManageChatSocket', Schema.Option(RoomRequirements), {
-    resource: ChatSocket,
-    modelToMaybeRequirements: model => model.maybeRoomRequirements,
-    onAcquired: () => Message.AcquiredChatSocket(),
-    onReleased: () => Message.ReleasedChatSocket(),
-    onAcquireError: error =>
-      Message.FailedAcquireChatSocket({ error: globalThis.String(error) }),
-    handler: function* () {
-      return {
-        acquire: ({ roomId }) =>
-          Effect.try(() => new WebSocket(`/rooms/${roomId}`)),
-        release: socket => Effect.sync(() => socket.close()),
-      }
-    },
-  }),
-}))
-
-const SendChatMessage = ChatDefinition.makeCommand('SendChatMessage', {
-  args: { text: Schema.String },
-  messages: [Message.SucceededSendChatMessage, Message.FailedSendChatMessage],
-  handler: function* () {
-    return ({ text }) =>
-      ChatSocket.get.pipe(
-        Effect.flatMap(socket => Effect.try(() => socket.send(text))),
-        Effect.match({
-          onFailure: error =>
-            Message.FailedSendChatMessage({ error: globalThis.String(error) }),
-          onSuccess: () => Message.SucceededSendChatMessage(),
-        }),
-      )
-  },
+const Message = defineMessageUnion({
+  ClickedJoin: {},
+  ClickedLeave: {},
+  SubmittedChatMessage: { text: Schema.String },
+  SucceededSendChatMessage: {},
+  FailedSendChatMessage: {},
 })
 
-export const EffectsLayer = Layer.mergeAll(
-  managedResources.chatSocket.layer,
-  SendChatMessage.layer,
+const SendChatMessage = Command.define('SendChatMessage', {
+  args: { roomId: Schema.String, text: Schema.String },
+  messages: [Message.SucceededSendChatMessage, Message.FailedSendChatMessage],
+})
+
+export class ChatRoom extends Block<ChatRoom, Readonly<{ roomId: string }>>()(
+  'ChatRoom',
+  {
+    Model: Schema.Struct({ roomId: Schema.String, isJoined: Schema.Boolean }),
+    Message,
+    Command: [SendChatMessage],
+  },
+) {}
+
+export const ChatRoomLive = ChatRoom.toLayer(
+  Effect.gen(function* () {
+    const sockets = yield* RcMap.make({
+      lookup: (roomId: string) =>
+        Effect.acquireRelease(
+          Effect.sync(() => new WebSocket(`/rooms/${roomId}`)),
+          socket => Effect.sync(() => socket.close()),
+        ),
+    })
+
+    return {
+      init: ({ roomId }) => ({ roomId, isJoined: false }),
+
+      update: {
+        ClickedJoin: model => ({
+          model: modifyFields(model, { isJoined: () => true }),
+        }),
+        ClickedLeave: model => ({
+          model: modifyFields(model, { isJoined: () => false }),
+        }),
+        SubmittedChatMessage: (model, { text }) => ({
+          model,
+          commands: [SendChatMessage({ roomId: model.roomId, text })],
+        }),
+        SucceededSendChatMessage: model => ({ model }),
+        FailedSendChatMessage: model => ({ model }),
+      },
+
+      commands: {
+        SendChatMessage: ({ roomId, text }) =>
+          RcMap.getOption(sockets, roomId).pipe(
+            Effect.flatMap(Effect.fromOption),
+            Effect.flatMap(socket => Effect.sync(() => socket.send(text))),
+            Effect.as(Message.SucceededSendChatMessage()),
+            Effect.catch(() => Effect.succeed(Message.FailedSendChatMessage())),
+            Effect.scoped,
+          ),
+      },
+
+      subscriptions: {
+        socket: {
+          dependencies: model => ({
+            roomId: model.roomId,
+            isJoined: model.isJoined,
+          }),
+          stream: ({
+            roomId,
+            isJoined,
+          }: Readonly<{ roomId: string; isJoined: boolean }>) =>
+            isJoined
+              ? Stream.fromEffect(RcMap.get(sockets, roomId)).pipe(
+                  Stream.drain,
+                  Stream.concat(Stream.never),
+                  Stream.scoped,
+                )
+              : Stream.empty,
+        },
+      },
+    }
+  }),
 )

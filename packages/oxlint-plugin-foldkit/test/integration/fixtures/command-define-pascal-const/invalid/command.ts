@@ -20,5 +20,6 @@ export const fetchWeather = Commands.define('FetchWeather', {
 const roomName = 'CreateRoom'
 export const CreateRoom = Commands.define(owner.name(roomName), {
   messages: [Message.CompletedFetchWeather],
-  handler: fetchWeatherEffect,
 })
+
+export const CreateRoomLive = CreateRoom.toLayer(Effect.succeed(() => fetchWeatherEffect))

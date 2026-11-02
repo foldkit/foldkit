@@ -1,105 +1,58 @@
-import { Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { PopoverBlock } from './block.js'
+import { Popover, PopoverLive } from './block.js'
 
 const popoverId = 'badge-popover'
 const portalRootId = 'foldkit-portal-root'
 
-const Model = Schema.Struct({
-  popover: PopoverBlock.Model,
-  isBadgeShown: Schema.Boolean,
-})
-type Model = typeof Model.Type
-
-const Message = defineMessageUnion({
-  ClickedToggleBadge: {},
-})
-type Message = typeof Message.Type
-
-const PopoverSiblingRuntimeTestDefinition = Block.makeDefinition(
+class PopoverSiblingRuntimeTest extends Block<PopoverSiblingRuntimeTest>()(
   'PopoverSiblingRuntimeTest',
   {
-    Model,
-    Message,
+    Model: Schema.Struct({ popover: Popover, isBadgeShown: Schema.Boolean }),
+    Message: defineMessageUnion({ ClickedToggleBadge: {} }),
   },
-)
+) {}
 
-const foldPopoverOutMessage =
-  PopoverSiblingRuntimeTestDefinition.makeOutMessageFold(PopoverBlock, {
-    Opened: () => PopoverSiblingRuntimeTestDefinition.makeNoopStep(),
-    Closed: () => PopoverSiblingRuntimeTestDefinition.makeNoopStep(),
-  })
-
-const PopoverBinding = PopoverSiblingRuntimeTestDefinition.makeBinding(
-  PopoverBlock,
-  {
-    field: 'popover',
-    init: false,
-  },
-).withOutMessagePolicy({ fold: foldPopoverOutMessage })
-
-const PopoverSiblingRuntimeTestComposition =
-  PopoverSiblingRuntimeTestDefinition.makeComposition({
-    bindings: [PopoverBinding],
-  })
-
-const update = PopoverSiblingRuntimeTestComposition.makeUpdate({
-  ClickedToggleBadge: model => ({
-    model: modifyFields(model, { isBadgeShown: isShown => !isShown }),
+const PopoverSiblingRuntimeTestLive = PopoverSiblingRuntimeTest.toLayer(() => ({
+  init: () => ({
+    popover: new Popover('popover', { id: popoverId }),
+    isBadgeShown: false,
   }),
-})
-
-const view = PopoverSiblingRuntimeTestComposition.makeView((model, h) =>
-  h.main(
-    [],
-    [
-      h.button(
-        [h.Id('toggle-badge'), h.OnClick(Message.ClickedToggleBadge())],
-        ['Toggle badge'],
-      ),
-      h.block(
-        PopoverBinding.embedView({
-          slotId: popoverId,
-          model: model.popover,
-          viewInputs: {
-            anchor: { placement: 'bottom-start' },
-            toView: ({ button, panel, isVisible }) =>
-              h.div(
-                [h.Id('wrapper')],
-                [
-                  h.button([...button], ['Open']),
-                  ...(model.isBadgeShown
-                    ? [h.span([h.Id('badge')], ['!'])]
-                    : []),
-                  ...(isVisible ? [h.div([...panel], ['Panel content'])] : []),
-                ],
-              ),
-          },
+  update: {
+    ClickedToggleBadge: model => ({
+      model: modifyFields(model, { isBadgeShown: isShown => !isShown }),
+    }),
+  },
+  view: (model, h) =>
+    h.main(
+      [],
+      [
+        h.button(
+          [
+            h.Id('toggle-badge'),
+            h.OnClick(PopoverSiblingRuntimeTest.Message.ClickedToggleBadge()),
+          ],
+          ['Toggle badge'],
+        ),
+        model.popover.view({
+          anchor: { placement: 'bottom-start' },
+          toView: ({ button, panel, isVisible }) =>
+            h.div(
+              [h.Id('wrapper')],
+              [
+                h.button([...button], ['Open']),
+                ...(model.isBadgeShown ? [h.span([h.Id('badge')], ['!'])] : []),
+                ...(isVisible ? [h.div([...panel], ['Panel content'])] : []),
+              ],
+            ),
         }),
-      ),
-    ],
-  ),
-)
-
-const prepare = () =>
-  PopoverSiblingRuntimeTestComposition.prepareBlock({
-    init: PopoverSiblingRuntimeTestComposition.makeInit(() =>
-      PopoverBinding.init({
-        args: [{ id: popoverId }],
-        toParentModel: popover => ({ popover, isBadgeShown: false }),
-      }),
+      ],
     ),
-    update,
-    view,
-  })
-const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+})).pipe(Layer.provide(PopoverLive))
 
 describe('Popover with a portaled panel', () => {
   afterEach(() => {
@@ -113,7 +66,10 @@ describe('Popover with a portaled panel', () => {
     container.id = 'badge-popover-app'
     document.body.append(container)
     const handle = Runtime.embed(
-      Program.makeElement({ block: ApplicationBlock, container }),
+      Program.makeElement(PopoverSiblingRuntimeTest, {
+        layer: PopoverSiblingRuntimeTestLive,
+        container,
+      }),
     )
 
     try {
