@@ -17,10 +17,10 @@
     "@foldkit/devtools": "workspace:*",
     "@foldkit/vite-plugin": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
-    "happy-dom": "^20.14.5",
+    "happy-dom": "^21.0.4",
     "tailwindcss": "^4.3.3",
     "typescript": "7.1.0-beta",
     "vite": "^8.3.3",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.3"
   }
 }

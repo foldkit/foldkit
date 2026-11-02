@@ -724,6 +724,7 @@ describe('streamFromKeyBindings', () => {
     ) => EventTarget,
   ): Promise<void> => {
     const iframe = document.createElement('iframe')
+    iframe.srcdoc = ''
     document.body.appendChild(iframe)
 
     const iframeDocument = iframe.contentDocument
@@ -779,6 +780,7 @@ describe('streamFromKeyBindings', () => {
 
   it('validates Mod against an iframe target realm', async () => {
     const iframe = document.createElement('iframe')
+    iframe.srcdoc = ''
     document.body.appendChild(iframe)
 
     const iframeWindow = iframe.contentWindow

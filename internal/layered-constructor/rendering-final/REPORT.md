@@ -1,8 +1,32 @@
-# Final rendering comparison
+# Rendering comparisons
 
-## Final reviewed candidate
+## Preceding preview baseline versus current
 
-The final balanced batch covers code commit `fd4f03253faa782eaa7f45d043127e3bf21ad572`. It restores the optimized path's benefit, while retaining a measurable gap against actual main. All 32 final samples are preserved in [final-batch.json](./final-batch.json); none were discarded. Both preceding batches remain separate and unchanged, retaining all 96 official samples.
+The incremental comparison uses the exact pre-migration preview, `be0cb38108693068da30eb835e6eb33d6d5762c8`, and reviewed current branch, `e6f141f35327b6cea47b08538b086b0bd45b19d3`. Its 32 valid samples, paired round totals, bucket medians, hashes and cleanup receipt are preserved in [incremental-preview-batch.json](./incremental-preview-batch.json). Every sample is retained.
+
+| Variant   | Preceding preview |  Current |          Change |
+| --------- | ----------------: | -------: | --------------: |
+| Naive     |          669.4 ms | 680.6 ms | +11.2 ms /+1.7% |
+| Optimized |          303.6 ms | 290.3 ms | -13.3 ms /-4.4% |
+
+For naive rendering, the animation-frame median changes from 613.5 to 624.9 ms and synchronous dispatch from 56.9 to 55.2 ms. Optimized rendering changes from 242.2 to 232.9 ms in animation-frame callbacks and from 60.1 to 57.4 ms in synchronous dispatch. Other buckets are zero. Every timed slot has 400 synchronous events and 400 animation-frame callbacks, cross-origin isolation and no browser errors.
+
+These observed changes are small relative to the separate main comparison below. One machine-specific batch does not establish statistical equivalence or a general performance improvement. It measures aggregate changes from the preceding preview under this workload. The Todo app has no InMessages, children or Commands, so their dispatch and graph costs are not directly exercised. Absolute execution totals from the separate main batches cannot be subtracted to apportion causes.
+
+The entire canonical benchmark source is unchanged between the two commits. The preview uses its original `prepareBlock`/`assemble` completion without edits. Current reuses the saved Layer-owned completion adapter in exactly two application completion modules. Todo, init, update, both view bodies, entry points, HTML, selectors, Vite configuration, driver and instrumentation are identical. Both public typechecks and all four unchanged functional preflights pass. All 624 current source/config inputs match the sealed current payload byte for byte. Both branches use identical plugin JavaScript and the same pinned toolchain.
+
+### Incremental bundle size and bounded attribution
+
+| Variant   | Preview gzip | Current gzip | Raw JS increment | Gzip increment |
+| --------- | -----------: | -----------: | ---------------: | -------------: |
+| Naive     |    131,212 B |    139,088 B |         26,919 B | 7,876 B /+6.0% |
+| Optimized |    132,606 B |    140,467 B |         26,946 B | 7,861 B /+5.9% |
+
+The unified `block/makeDefinition.ts` entry chooses between native and contracted implementations from runtime configuration. It therefore retains both implementation paths in these bundles. Splitting that entry would require an API redesign; the bounded audit found no small safe bundle fix. The additional approximately 7.9 KB gzip remains for user review and is not an approved tradeoff. The October 26 broad main attribution is historical evidence, rather than attribution of this migration-specific increment. Exact source and bundle hashes are recorded below and in the receipt.
+
+## Main baseline versus current
+
+The earlier main-versus-current balanced batch covers code commit `fd4f03253faa782eaa7f45d043127e3bf21ad572`, whose production sources match reviewed `e6f141f35327b6cea47b08538b086b0bd45b19d3`. It restores the optimized path's benefit, while retaining a measurable gap against actual main. Its 32 samples remain in [final-batch.json](./final-batch.json). The preceding initial and repaired main comparisons are unchanged. Across all four batches, all 128 official samples are retained.
 
 | Variant   | Actual main | Final candidate |            Change |
 | --------- | ----------: | --------------: | ----------------: |
@@ -60,19 +84,20 @@ The scan is a concrete contributor in this diagnostic pair. These samples cannot
 ## Method and provenance
 
 - Actual GitHub main: `a471adb24d750ab9e8d8312edad53ff6f26d961b`.
+- Preceding preview: `be0cb38108693068da30eb835e6eb33d6d5762c8`. Reviewed current: `e6f141f35327b6cea47b08538b086b0bd45b19d3`. The latter matches all 624 sealed source/config inputs used by the current bundles.
 - Harness: `03fff17ad22407115a91937ddab680e40fe0c7c7`; Chromium `153.0.8010.12`.
 - Unchanged workload: 100 additions, 100 toggles and 100 deletions. Boot settles before measurements reset and is excluded from official totals.
-- Each official batch contains eight rounds and four slots, with cyclic rotation. Each slot occupies every ordinal position twice. All 96 official samples across three batches are retained.
-- Root coordination kept the machine free of other builds, tests, checkers and browser jobs during all three timing batches and the paired profiles.
+- Each official batch contains eight rounds and four slots, with cyclic rotation. Each slot occupies every ordinal position twice. All 128 official samples across four batches are retained.
+- Root coordination kept the machine free of other builds, tests, checkers and browser jobs during all four timing batches and the paired profiles.
 - Both branches use the same cached Effect 4.1.0, Vite 8.3.5 and TypeScript 7.1 beta. This is a matched-toolchain comparison, rather than a fresh installation of each branch's lockfile.
 - The candidate uses a saved scratch-only keyed Definition / Layer-owned completion adapter. Todo/update branches, both view bodies, HTML, selectors, parameters, instrumentation and driver remain unchanged. Ordinary Program/Runtime integration typechecks.
 - The final sealed snapshot's 349 core and 11 plugin JavaScript files match the reviewed canonical artifacts byte for byte. All 624 captured source/config inputs and public declarations match the code snapshot recorded at `fd4f03253faa782eaa7f45d043127e3bf21ad572`. Driver/workload hashes remain unchanged.
 
 Receipts contain working-tree fingerprints, production JavaScript/declaration and adapter hashes, all reported totals, bucket medians and bundle hashes. The unchanged driver prints per-round totals to 0.1 ms and does not expose raw per-sample bucket data. Measurements remain machine and browser specific.
 
-Full snapshots, exact adapter patches, source maps, raw profiles, build logs and timing output remain outside the repository under `/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/`. The original workspace and benchmark repository were untouched. All three timing drivers and the diagnostic pair exited successfully; their browsers and servers closed, with no remaining listeners on ports 38377, 38378 or 38379.
+Full snapshots, exact adapter patches, source maps, raw profiles, build logs and timing output remain outside the repository under `/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/`. The original workspace and benchmark repository were untouched. All four timing drivers and the diagnostic pair exited successfully; their browsers and servers closed, with no remaining listeners on ports 38377, 38378 or 38379.
 
-## Final payload boundary
+## Sealed current payload boundary
 
 | Payload                          | SHA-256                                                            |
 | -------------------------------- | ------------------------------------------------------------------ |
@@ -85,9 +110,24 @@ Full snapshots, exact adapter patches, source maps, raw profiles, build logs and
 
 The tree fingerprint describes the captured payload, including repository metadata files present then. The later amended code commit was verified against every captured source input and built artifact before timing. Adapter file bodies are identical in all candidate snapshots; saved patch headers name their separate snapshot paths.
 
+## Incremental comparison payload boundary
+
+| Payload                                 | SHA-256                                                            |
+| --------------------------------------- | ------------------------------------------------------------------ |
+| Exact preview source archive            | `b9b05339847a670f384a28f38810cca2eafd2bac80a4cd68a769bd7d2ca47ad5` |
+| Preview source/config inputs            | `8031174e91c919b51b7f8000f44b276904940fe3d6d05aaabc627a80ce3d081d` |
+| Preview core JavaScript tree, 293 files | `79ad67f93b4d7fb009127b5c34c5c3a538dc49c9d529399cd97fd364d68a3121` |
+| Preview naive bundle                    | `78b790bd8feb0073b859f612f61bcc6b73dd3929c24a72d892fc607be760b9da` |
+| Current naive bundle                    | `e5426364fc473abdd5d6682865301701f32c2b2edc341a9f71394f39a288226c` |
+| Preview optimized bundle                | `7b9f19e1d8fd65ef5f7d0bda662e4f00b501531e5eb0eae7fd97770c43455ca0` |
+| Current optimized bundle                | `0a891c9bf84f55e41fd7a93e44879282a9fcf500bc89fb1ff5157e04484491c1` |
+| Incremental raw timing output           | `8733ff8f46d372a0ba2f28a253ce6a5288f947810b2bcd94c7161e5465ed87f8` |
+
 ## Reproduction
 
 The preserved workspace contains `time-final.mjs` (initial), `time-repaired.mjs` (repaired), `time-sealed.mjs` (final), `preflight-sealed.mjs`, `audit-sealed-coverage.mjs`, `sealed-commit.json`, `profile-pair/build-maps.mjs` and `profile-pair/analyze.mjs`, each tied to saved immutable inputs. Timing scripts refuse to overwrite results. Run official timing only after arranging a quiet machine.
+
+The additional `incremental-preview/` directory contains `PREPARATION.md`, `prepare.mjs`, `build.mjs`, `install.mjs`, `preflight.mjs`, `audit.mjs`, `time.mjs`, `curate.mjs`, the immutable preview archive and the exact two-file completion diff. Its timing wrapper invokes the same frozen `driver/run.mjs` with eight balanced rounds and 100 items; it refuses to overwrite results. No additional CPU profile was captured for this comparison.
 
 The portable [profile driver](./profile-pair.mjs) accepts the prepared frozen benchmark directory and a fresh output directory:
 

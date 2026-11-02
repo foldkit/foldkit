@@ -28,7 +28,7 @@
     "foldkit": ">=0.169.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.31.0",
+    "@modelcontextprotocol/sdk": "1.32.0",
     "ws": "^8.21.3"
   },
   "devDependencies": {
@@ -42,7 +42,7 @@
     "rolldown": "^1.2.11",
     "typescript": "7.1.0-beta",
     "vite": "^8.3.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "files": [
     "dist"

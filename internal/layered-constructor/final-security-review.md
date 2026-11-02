@@ -4,7 +4,7 @@ The initial review inspected the runtime-facing changes from `be0cb38108693068da
 
 ## Result
 
-The required exact-commit review of `7964029296e79389bc1bf55ac2cdf3b08e036c2e` subsequently found two candidate-only contract gaps: foreign Definition plans could pass erased runtime completion, and family declarations omitted input-configuration type validation. Follow-through review of the first fix found that rereading an init accessor could still substitute a foreign plan after authentication. The candidate now authenticates and compiles one body snapshot, and all three findings have the checks recorded below. The dependency audit still has 35 advisories, including one critical advisory. This result is not a clean dependency audit or release approval.
+The required exact-commit review of `7964029296e79389bc1bf55ac2cdf3b08e036c2e` subsequently found two candidate-only contract gaps: foreign Definition plans could pass erased runtime completion, and family declarations omitted input-configuration type validation. Follow-through review of the first fix found that rereading an init accessor could still substitute a foreign plan after authentication. The candidate now authenticates and compiles one body snapshot, and all three findings have the checks recorded below. The initial 35-advisory dependency snapshot remains recorded as historical evidence. Subsequent dependency stabilization, recorded in the final addendum, reduces the workspace audit to two moderate findings. This result is not a clean dependency audit or release approval.
 
 The initial local review was read-only and inspected existing focused tests and receipts. No source was transferred to Daybreak and no fresh Daybreak review was performed. The subsequent candidate fixes and verification are recorded separately below. Review of the exact amended final commit remains required.
 
@@ -138,3 +138,11 @@ Final snapshot hashes for this follow-through:
 - `packages/foldkit/dist/experimental/contracted/runtime.js`: `b810cf46a9ebdf03638775b55a6ef9d1decafa885d69c3883aa829d79124ffb4`.
 
 No production source, build, dependency, commit, or publication action was performed by this verifying agent. The 35 dependency advisories and absence of a fresh Daybreak review remain unchanged. Review of the exact amended commit is still required.
+
+## Dependency stabilization addendum
+
+After the construction review, a fresh lockfile audit reproduced the same 35 advisory records. Targeted dependency updates subsequently removed 33 records. The refreshed workspace audit now reports two moderate findings, for glob and minimatch under older build/lint/documentation tool constraints. No audit exclusion or incompatible override hides those findings.
+
+The changes, exact compatible parent ranges, Node floors, production/tooling exposure, remaining trust paths, and focused receipts are recorded in [Dependency advisory stabilization](./dependency-advisories/README.md). That report distinguishes the workspace overrides from ordinary downstream npm installation. Its strict packed MCP/scaffold consumer installs patched transitive versions without those overrides, reports zero production audit findings for that installed graph, exercises the MCP stdio protocol and CLI startup, and confirms the build-only cleanup graph is absent. A temporary tarball control restoring the former cleanup dependency fails the absence check.
+
+This later dependency task does not retroactively change the initial audit or the earlier review scope. The workspace still has the two documented findings, and there has been no fresh Daybreak review or external source transfer. Release approval and exact final-commit review remain separate gates.
