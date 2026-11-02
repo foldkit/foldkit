@@ -1,20 +1,19 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
 import { EffectsLayer } from './command'
-import { ApplicationComposition } from './composition'
+import { LoggedInBindingWithOutMessagePolicy } from './composition/loggedIn'
+import { LoggedOutBindingWithOutMessagePolicy } from './composition/loggedOut'
+import { ApplicationDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
+import * as LoggedIn from './page/loggedIn'
+import * as LoggedOut from './page/loggedOut'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const loggedOut = yield* LoggedOutBindingWithOutMessagePolicy
+    const loggedIn = yield* LoggedInBindingWithOutMessagePolicy
+    return { children: [loggedOut, loggedIn], init, update, view, EffectsLayer }
+  }),
+).provide(Layer.mergeAll(LoggedIn.layer, LoggedOut.layer))

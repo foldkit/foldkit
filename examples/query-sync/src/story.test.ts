@@ -1,18 +1,18 @@
-import { Option } from 'effect'
+import { Effect, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { messageFrom } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { toParentMessage } from 'foldkit/test'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
 
+import { ApplicationBlock } from './block'
 import { ReplaceFilters } from './command'
 import { DietListboxBinding } from './composition'
 import { Message } from './message'
 import { DietListboxBlock, type Model, PeriodListboxBlock } from './model'
 import { ApplicationRoute, Sorting, browseRouter } from './route'
-import { update } from './update'
 
 type DietListboxMessage = typeof DietListboxBlock.Message.Type
 
@@ -23,12 +23,48 @@ const browseModel: Model = {
     diet: Option.none(),
     period: Option.none(),
   }),
-  dietListbox: DietListboxBlock.init({ id: 'diet-filter' }).model,
-  periodListbox: PeriodListboxBlock.init({ id: 'period-filter' }).model,
+  dietListbox: DietListboxBlock.Model.make({
+    id: 'diet-filter',
+    isOpen: false,
+    isAnimated: false,
+    isModal: false,
+    orientation: 'Vertical',
+    animation: {
+      id: 'diet-filter' + '-listbox',
+      isShowing: false,
+      transitionState: 'Idle',
+      transitionGeneration: 0,
+    },
+    maybeActiveItemIndex: Option.none(),
+    activationTrigger: 'Keyboard',
+    searchQuery: '',
+    searchVersion: 0,
+    maybeLastPointerPosition: Option.none(),
+    maybeLastButtonPointerType: Option.none(),
+  }),
+  periodListbox: PeriodListboxBlock.Model.make({
+    id: 'period-filter',
+    isOpen: false,
+    isAnimated: false,
+    isModal: false,
+    orientation: 'Vertical',
+    animation: {
+      id: 'period-filter' + '-listbox',
+      isShowing: false,
+      transitionState: 'Idle',
+      transitionGeneration: 0,
+    },
+    maybeActiveItemIndex: Option.none(),
+    activationTrigger: 'Keyboard',
+    searchQuery: '',
+    searchVersion: 0,
+    maybeLastPointerPosition: Option.none(),
+    maybeLastButtonPointerType: Option.none(),
+  }),
 }
 
 const dietMessage = (message: DietListboxMessage) =>
-  toParentMessage(DietListboxBinding, message)
+  messageFrom(DietListboxBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -51,118 +87,126 @@ describe('routing', () => {
 
 describe('update', () => {
   describe('ChangedUrl', () => {
-    test('parses search, sorting, diet, and period from the URL', () => {
-      story(
-        update,
-        given(browseModel),
-        message(
-          Message.ChangedUrl({
-            url: urlOrThrow(
-              'http://localhost/?search=raptor&sorting=Length:Ascending&diet=Carnivore&period=Cretaceous',
-            ),
+    test('parses search, sorting, diet, and period from the URL', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(browseModel),
+          message(
+            Message.ChangedUrl({
+              url: urlOrThrow(
+                'http://localhost/?search=raptor&sorting=Length:Ascending&diet=Carnivore&period=Cretaceous',
+              ),
+            }),
+          ),
+          model(model => {
+            if (model.route._tag !== 'Browse') {
+              throw new Error('Expected Browse route')
+            }
+            expect(model.route.search).toStrictEqual(Option.some('raptor'))
+            expect(model.route.sorting).toStrictEqual(
+              Sorting.Ascending({ column: 'Length' }),
+            )
+            expect(model.route.diet).toStrictEqual(Option.some('Carnivore'))
+            expect(model.route.period).toStrictEqual(Option.some('Cretaceous'))
           }),
         ),
-        model(model => {
-          if (model.route._tag !== 'Browse') {
-            throw new Error('Expected Browse route')
-          }
-          expect(model.route.search).toStrictEqual(Option.some('raptor'))
-          expect(model.route.sorting).toStrictEqual(
-            Sorting.Ascending({ column: 'Length' }),
-          )
-          expect(model.route.diet).toStrictEqual(Option.some('Carnivore'))
-          expect(model.route.period).toStrictEqual(Option.some('Cretaceous'))
-        }),
       )
     })
 
-    test('an unknown path falls through to NotFound', () => {
-      story(
-        update,
-        given(browseModel),
-        message(
-          Message.ChangedUrl({
-            url: urlOrThrow('http://localhost/somewhere/else'),
+    test('an unknown path falls through to NotFound', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(browseModel),
+          message(
+            Message.ChangedUrl({
+              url: urlOrThrow('http://localhost/somewhere/else'),
+            }),
+          ),
+          model(model => {
+            expect(model.route._tag).toBe('NotFound')
           }),
         ),
-        model(model => {
-          expect(model.route._tag).toBe('NotFound')
-        }),
       )
     })
   })
 
   describe('ChangedSearchInput', () => {
-    test('typing search text fires a URL replacement with the new value', () => {
-      story(
-        update,
-        given(browseModel),
-        message(Message.ChangedSearchInput({ value: 'rex' })),
-        Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+    test('typing search text fires a URL replacement with the new value', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(browseModel),
+          message(Message.ChangedSearchInput({ value: 'rex' })),
+          Command.expectHas(ReplaceFilters),
+          Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+        ),
       )
     })
 
-    test('clearing the search input fires a replacement', () => {
-      story(
-        update,
-        given(
-          modifyFields(browseModel, {
-            route: () =>
-              ApplicationRoute.Browse({
-                search: Option.some('foo'),
-                sorting: Sorting.Unsorted(),
-                diet: Option.none(),
-                period: Option.none(),
-              }),
-          }),
+    test('clearing the search input fires a replacement', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(
+            modifyFields(browseModel, {
+              route: () =>
+                ApplicationRoute.Browse({
+                  search: Option.some('foo'),
+                  sorting: Sorting.Unsorted(),
+                  diet: Option.none(),
+                  period: Option.none(),
+                }),
+            }),
+          ),
+          message(Message.ChangedSearchInput({ value: '' })),
+          Command.expectHas(ReplaceFilters),
+          Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
         ),
-        message(Message.ChangedSearchInput({ value: '' })),
-        Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
       )
     })
   })
 
   describe('ClickedColumnHeader', () => {
-    test('first click on an Unsorted column produces an Ascending sort', () => {
-      story(
-        update,
-        given(browseModel),
-        message(Message.ClickedColumnHeader({ column: 'Name' })),
-        Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+    test('first click on an Unsorted column produces an Ascending sort', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(browseModel),
+          message(Message.ClickedColumnHeader({ column: 'Name' })),
+          Command.expectHas(ReplaceFilters),
+          Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+        ),
       )
     })
   })
 
   describe('Listbox SelectedItem', () => {
-    test('selecting a diet refocuses the listbox button and replaces the URL', () => {
-      story(
-        update,
-        given(browseModel),
-        message(
+    test('selecting a diet refocuses the listbox button and replaces the URL', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(browseModel),
           dietMessage(
             DietListboxBlock.Message.Opened({
               maybeActiveItemIndex: Option.none(),
             }),
           ),
-        ),
-        Command.resolve(
-          Listbox.test.FocusListboxItems,
-          DietListboxBlock.Message.CompletedFocusListboxItems(),
-        ),
-        message(
+          Command.resolve(
+            Listbox.test.FocusListboxItems,
+            DietListboxBlock.Message.CompletedFocusListboxItems(),
+          ),
           dietMessage(
             DietListboxBlock.Message.SelectedItem({ item: 'Carnivore' }),
           ),
+          Command.resolve(
+            Listbox.test.FocusListboxButton,
+            DietListboxBlock.Message.CompletedFocusListboxButton(),
+          ),
+          Command.expectHas(ReplaceFilters),
+          Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
         ),
-        Command.resolve(
-          Listbox.test.FocusListboxButton,
-          DietListboxBlock.Message.CompletedFocusListboxButton(),
-        ),
-        Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
       )
     })
   })

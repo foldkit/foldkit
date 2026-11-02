@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -15,7 +15,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+export const CoverLetterKey = Symbol('CoverLetter')
 const CoverLetterDefinition = Block.makeDefinition('CoverLetter', {
+  key: CoverLetterKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -96,13 +100,9 @@ export const view = CoverLetterComposition.makeView((model, h) => {
   )
 })
 
-const prepare = () =>
-  CoverLetterComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const CoverLetterBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const CoverLetterBlock = CoverLetterDefinition.contract
+export const layer = CoverLetterDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+).layer

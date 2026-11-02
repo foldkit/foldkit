@@ -1,14 +1,13 @@
-import { Option } from 'effect'
+import { Effect, Option } from 'effect'
 import { Scene } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import {
+  ApplicationBlock,
   ApplicationRoute,
   Message,
   Model,
-  update,
-  view,
   viewTransition,
 } from './application'
 
@@ -26,61 +25,75 @@ const notFound = Model.make({
 const FILTER_PLACEHOLDER = 'Filter by title or medium…'
 
 describe('gallery', () => {
-  test('renders a card for every artwork', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(gallery),
-      Scene.expect(Scene.text('Dawn Chorus')).toExist(),
-      Scene.expect(Scene.text('Deep Water')).toExist(),
-      Scene.expect(Scene.text('Pollen')).toExist(),
+  test('renders a card for every artwork', async () => {
+    await Effect.runPromise(
+      Scene.scene(
+        ApplicationBlock,
+        Scene.given(gallery),
+        Scene.expect(Scene.text('Dawn Chorus')).toExist(),
+        Scene.expect(Scene.text('Deep Water')).toExist(),
+        Scene.expect(Scene.text('Pollen')).toExist(),
+      ),
     )
   })
 
-  test('typing in the filter narrows the grid', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(gallery),
-      Scene.type(Scene.placeholder(FILTER_PLACEHOLDER), 'graphite'),
-      Scene.expect(Scene.text('Graphite')).toExist(),
-      Scene.expect(Scene.text('Dawn Chorus')).toBeAbsent(),
+  test('typing in the filter narrows the grid', async () => {
+    await Effect.runPromise(
+      Scene.scene(
+        ApplicationBlock,
+        Scene.given(gallery),
+        Scene.type(Scene.placeholder(FILTER_PLACEHOLDER), 'graphite'),
+        Scene.expect(Scene.text('Graphite')).toExist(),
+        Scene.expect(Scene.text('Dawn Chorus')).toBeAbsent(),
+      ),
     )
   })
 
-  test('a filter with no matches shows the empty state', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(gallery),
-      Scene.type(Scene.placeholder(FILTER_PLACEHOLDER), 'watercolor'),
-      Scene.expect(Scene.text('No artworks match the filter.')).toExist(),
+  test('a filter with no matches shows the empty state', async () => {
+    await Effect.runPromise(
+      Scene.scene(
+        ApplicationBlock,
+        Scene.given(gallery),
+        Scene.type(Scene.placeholder(FILTER_PLACEHOLDER), 'watercolor'),
+        Scene.expect(Scene.text('No artworks match the filter.')).toExist(),
+      ),
     )
   })
 })
 
 describe('artwork detail', () => {
-  test('renders the artwork with its description and a back link', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(artworkDetail(2)),
-      Scene.expect(Scene.text('Deep Water')).toExist(),
-      Scene.expect(Scene.role('link', { name: '← Back to gallery' })).toExist(),
+  test('renders the artwork with its description and a back link', async () => {
+    await Effect.runPromise(
+      Scene.scene(
+        ApplicationBlock,
+        Scene.given(artworkDetail(2)),
+        Scene.expect(Scene.text('Deep Water')).toExist(),
+        Scene.expect(
+          Scene.role('link', { name: '← Back to gallery' }),
+        ).toExist(),
+      ),
     )
   })
 
-  test('renders a missing state for an unknown artwork ID', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(artworkDetail(999)),
-      Scene.expect(Scene.text('Artwork not found')).toExist(),
+  test('renders a missing state for an unknown artwork ID', async () => {
+    await Effect.runPromise(
+      Scene.scene(
+        ApplicationBlock,
+        Scene.given(artworkDetail(999)),
+        Scene.expect(Scene.text('Artwork not found')).toExist(),
+      ),
     )
   })
 })
 
 describe('not found', () => {
-  test('renders the missing path', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(notFound),
-      Scene.expect(Scene.text('Page not found')).toExist(),
+  test('renders the missing path', async () => {
+    await Effect.runPromise(
+      Scene.scene(
+        ApplicationBlock,
+        Scene.given(notFound),
+        Scene.expect(Scene.text('Page not found')).toExist(),
+      ),
     )
   })
 })

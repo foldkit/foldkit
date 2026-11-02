@@ -1,1 +1,1 @@
-export { EducationEntryBlock } from './block'
+export { EducationEntryBlock, layer } from './block'

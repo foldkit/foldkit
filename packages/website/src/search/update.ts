@@ -1,20 +1,12 @@
 import { Array, Effect, Match, Number, Schema, String } from 'effect'
-import { Update } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
 import { PagefindService } from '../pagefind'
-import { SEARCH_INPUT_ID } from '../searchDom'
 import { clearSearchQuery } from './clear'
-import { DialogBinding, SearchComposition } from './composition'
-import {
-  SearchDefinition,
-  makeCommandsStep,
-  makeFieldsStep,
-  makeNoopStep,
-  makeStep,
-} from './definition'
+import { SearchComposition } from './composition'
+import { SearchDefinition, makeFieldsStep, makeNoopStep } from './definition'
 import { SearchResult, SearchState, resultsFromState } from './domain'
 import { Message } from './message'
 
@@ -90,26 +82,6 @@ export const NavigateToResult = SearchDefinition.makeCommand(
   },
 )
 
-export const FocusSearchInput = SearchDefinition.makeCommand(
-  'FocusSearchInput',
-  {
-    messages: [Message.CompletedFocusSearchInput],
-    handler: function* () {
-      return () =>
-        Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusSearchInput()),
-        )
-    },
-  },
-)
-
-const focusSearchInput = makeCommandsStep(() => [FocusSearchInput()])
-
-const open = makeStep(() =>
-  Update.combineSteps([DialogBinding.requestOpen(), focusSearchInput]),
-)
-
 export const update = SearchComposition.makeUpdate({
   UpdatedSearchQuery: (model, { query }) => {
     if (query === model.query) {
@@ -159,13 +131,6 @@ export const update = SearchComposition.makeUpdate({
   }),
 
   ClearedSearchQuery: clearSearchQuery,
-
-  RequestedOpen: open,
-
-  InformedOfRouteChange: Update.combineSteps([
-    clearSearchQuery,
-    DialogBinding.requestClose(),
-  ]),
 
   PressedArrowKey: (model, { direction }) => {
     const results = resultsFromState(model.searchState)

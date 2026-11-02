@@ -31,7 +31,7 @@ import { handleChangedUrl } from './handleChangedUrl'
 import { handleClickedDeleteSavedView } from './handleClickedDeleteSavedView'
 import { initChildren } from './initChildren'
 import {
-  informIssueChanged,
+  informIssueChange,
   informRetainedIssueDetails,
   receiveIssueSnapshot,
   receiveSavedIssue,
@@ -172,7 +172,7 @@ export const update = ApplicationComposition.makeUpdate({
         issueMoveState: () => IssueMoveState.Idle(),
         maybeNotice: () => Option.some('Issue moved'),
       })),
-      informIssueChanged(movedIssue.issueId),
+      informIssueChange(movedIssue.issueId),
     ]),
   FailedMoveIssue: (model, { issueId, status, insertionIndex, error }) => {
     const failIssueMove = makeFieldsStep(() => ({

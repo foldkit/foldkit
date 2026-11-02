@@ -34,6 +34,7 @@ export {
   TooltipNoDelayDemoBinding,
   UiComposition,
   type UiViewBuilder,
+  type UiMessage,
   VerticalRadioGroupDemoBinding,
   VerticalTabsDemoBinding,
   VirtualListDemoBinding,

@@ -21,11 +21,13 @@ import {
   DEFAULT_DURATION,
   DEFAULT_SWIPE_DIRECTION,
   DEFAULT_SWIPE_THRESHOLD,
+  InMessage,
   type InitConfig,
   SWIPE_SETTLE_DURATION,
   type SwipeDirection,
   SwipeState,
   type Variant,
+  type ViewInputs,
   makeEntry,
   makeMessage,
   makeModel,
@@ -100,15 +102,46 @@ const documentStylesWhileSwiping = Stream.callback<never>(() =>
  *  @internal Consumers should use `Toast.makeBlock(PayloadSchema)`. This is
  *  only exported so `toast.ts` can wire the view into the runtime.
  */
+/** @internal Nominal identity shared by all payload-specific Toast declarations. */
+export const ToastKey = Symbol('Toast')
+
 export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const EntrySchema = makeEntry(payloadSchema)
   const ModelSchema = makeModel(payloadSchema)
   const MessageSchema = makeMessage(payloadSchema)
   const OutMessageSchema = makeOutMessage(payloadSchema)
   type RequestedShow = typeof MessageSchema.RequestedShow.Type
-  const ToastDefinition = Block.makeDefinition('Toast', {
+  const operations = {
+    /** Requests a new entry. The update allocates its identity and applies the
+     * container's default duration when no duration is supplied. */
+    requestShow: (input: ShowInput<A>) =>
+      Tuple.make(
+        MessageSchema.RequestedShow({
+          payload: input.payload,
+          variant: input.variant ?? DEFAULT_VARIANT,
+          maybeDuration: pipe(
+            Option.fromNullishOr(input.duration),
+            Option.map(Duration.fromInputUnsafe),
+          ),
+          isSticky: input.sticky ?? false,
+        }),
+      ),
+    /** Begins the selected entry's leave animation. Missing entries are ignored. */
+    requestDismiss: (entryId: string) =>
+      Tuple.make(MessageSchema.RequestedDismiss({ entryId })),
+  }
+
+  const ToastDefinition = Block.makeFamilyDefinition('Toast', {
+    key: ToastKey,
+    Init: Block.makeInputContract<readonly [config: InitConfig]>(),
+    view: {
+      kind: 'Element',
+      Inputs: Block.makeInputContract<ViewInputs<A, I>>(),
+    },
+    operations,
     Model: ModelSchema,
     Message: MessageSchema,
+    InMessage,
     OutMessage: OutMessageSchema,
   })
 
@@ -263,7 +296,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       key: 'id',
       childField: 'animation',
     },
-  )
+  ).withOutMessagePolicy({
+    fold: (entryId, outMessage) =>
+      makeEntryAnimationOutMessageFold(entryId)(outMessage),
+  })
 
   const makeEntryAnimationOutMessageFold = (entryId: string) =>
     ToastDefinition.makeOutMessageFold(Animation.AnimationBlock, {
@@ -287,12 +323,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     })
 
   const ToastComposition = ToastDefinition.makeComposition({
-    bindings: [
-      EntryAnimationBinding.withOutMessagePolicy({
-        fold: (entryId, outMessage) =>
-          makeEntryAnimationOutMessageFold(entryId)(outMessage),
-      }),
-    ],
+    bindings: [EntryAnimationBinding],
   })
 
   const showEntryAnimation = (entry: Entry) =>
@@ -301,19 +332,15 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const hideEntryAnimation = (entry: Entry) =>
     EntryAnimationBinding.requestHide(entry.id)
 
-  const createEntry = (
+  const createEntryFields = (
     model: Model,
     { payload, variant, maybeDuration, isSticky }: RequestedShow,
-  ): Entry => {
+  ): Omit<Entry, 'animation'> => {
     const entryId = `${model.id}-entry-${model.nextEntryKey}`
 
     return {
       id: entryId,
       variant,
-      animation: Animation.AnimationBlock.init({
-        id: entryId,
-        isShowing: false,
-      }).model,
       maybeDuration: isSticky
         ? Option.none()
         : Option.orElse(maybeDuration, () =>
@@ -345,7 +372,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   })
   /** Creates an initial Toast Model and Commands from a config. Starts empty
    *  with swipe disabled unless `swipeToDismiss` opts in. */
-  const init = ToastComposition.makeInit((config: InitConfig) => ({
+  const init = ToastComposition.makeInit(config => ({
     model: makeInitialModel(config),
   }))
 
@@ -365,6 +392,33 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     return Update.combineSteps([
       appendEntry,
       showEntryAnimation(entry),
+      scheduleDismissal,
+    ])
+  }
+
+  const addNewEntry = (fields: Omit<Entry, 'animation'>) => {
+    const initEntryAnimation = ToastDefinition.makeStep(model =>
+      EntryAnimationBinding.init({
+        key: fields.id,
+        args: [{ id: fields.id }],
+        toParentModel: animation =>
+          modifyFields(model, {
+            entries: Array.append({ ...fields, animation }),
+            nextEntryKey: Number.increment,
+          }),
+      }),
+    )
+    const scheduleDismissal = ToastDefinition.makeCommandsStep(model =>
+      pipe(
+        Array.findFirst(model.entries, ({ id }) => id === fields.id),
+        Option.flatMap(scheduleWaitBeforeDismissal),
+        Array.fromOption,
+      ),
+    )
+
+    return Update.combineSteps([
+      initEntryAnimation,
+      EntryAnimationBinding.requestShow(fields.id),
       scheduleDismissal,
     ])
   }
@@ -389,16 +443,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       return dismiss
     })
 
-  /** Processes a Toast Message and returns the next Model, optional Commands,
-   *  and an optional `DismissedToast` OutMessage emitted once an entry has
-   *  finished its leave animation. */
-  const update = ToastComposition.makeUpdate({
-    RequestedShow: (model, input) => addEntry(createEntry(model, input))(model),
-
-    Added: (model, { entry }) => addEntry(entry)(model),
-
-    RequestedDismiss: (model, { entryId }) => dismissEntry(entryId)(model),
-
+  const receive = ToastComposition.makeReceive({
     RequestedDismissAll: model => {
       const dismissVisibleEntries = pipe(
         model.entries,
@@ -408,6 +453,18 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
       return dismissVisibleEntries(model)
     },
+  })
+
+  /** Processes a Toast Message and returns the next Model, optional Commands,
+   *  and an optional `DismissedToast` OutMessage emitted once an entry has
+   *  finished its leave animation. */
+  const update = ToastComposition.makeUpdate({
+    RequestedShow: (model, input) =>
+      addNewEntry(createEntryFields(model, input))(model),
+
+    Added: (model, { entry }) => addEntry(entry)(model),
+
+    RequestedDismiss: (model, { entryId }) => dismissEntry(entryId)(model),
 
     Dismissed: (model, { entryId }) => dismissEntry(entryId)(model),
 
@@ -605,28 +662,6 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       ),
   })
 
-  const operations = {
-    /** Requests a new entry. The update allocates its identity and applies the
-     * container's default duration when no duration is supplied. */
-    requestShow: (input: ShowInput<A>) =>
-      Tuple.make(
-        MessageSchema.RequestedShow({
-          payload: input.payload,
-          variant: input.variant ?? DEFAULT_VARIANT,
-          maybeDuration: pipe(
-            Option.fromNullishOr(input.duration),
-            Option.map(Duration.fromInputUnsafe),
-          ),
-          isSticky: input.sticky ?? false,
-        }),
-      ),
-    /** Begins the selected entry's leave animation. Missing entries are ignored. */
-    requestDismiss: (entryId: string) =>
-      Tuple.make(MessageSchema.RequestedDismiss({ entryId })),
-    /** Begins leave animations for every visible entry. */
-    requestDismissAll: MessageSchema.RequestedDismissAll,
-  }
-
   const swipeDependencies = (model: Model) => ({
     isSwipeEnabled: Option.isSome(model.maybeSwipeConfig),
     isAnyDragging: isAnyDragging(model),
@@ -726,6 +761,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const EffectsLayer = Layer.mergeAll(SharedEffectsLayer, subscriptions.layer)
 
   return {
+    ToastDefinition,
     ToastComposition,
     EntryAnimationBinding,
     Entry: EntrySchema,
@@ -734,6 +770,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     OutMessage: OutMessageSchema,
     init,
     update,
+    receive,
     operations,
     subscriptions,
     EffectsLayer,

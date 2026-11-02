@@ -10,7 +10,11 @@ type Submitted = typeof Submitted.Type
 const Model = Schema.Union([EditorBlock.Model, Submitted])
 type Model = typeof Model.Type
 
+const ProfileKey = Symbol('Profile')
+
 const ProfileDefinition = Block.makeDefinition('Profile', {
+  key: ProfileKey,
+  Init: Schema.Tuple([Schema.String]),
   Model,
   Message: Schema.Never,
 })
@@ -18,7 +22,7 @@ export const EditorBinding = makeVariantBinding(ProfileDefinition, EditorBlock)
 export const ProfileComposition = ProfileDefinition.makeComposition({
   bindings: [EditorBinding],
 })
-export const init = ProfileComposition.makeInit((displayName: string) =>
+export const init = ProfileComposition.makeInit(displayName =>
   EditorBinding.init({
     args: [displayName],
     toParentModel: nextEditor => nextEditor,

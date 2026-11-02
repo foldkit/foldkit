@@ -10,21 +10,22 @@ import {
   ParentModel,
   PlainWindows,
   QuoteWindows,
-  parentInit,
 } from './query-policy.accepted.js'
 
-QuoteWindows.requestLoadIfStale(
-  QuoteWindows.init().model,
+declare const quotes: Block.ExecutableOf<typeof QuoteWindows>
+declare const ordinary: Block.ExecutableOf<typeof Ordinary>
+quotes.operations.requestLoadIfStale(
+  quotes.init().model,
   // @ts-expect-error Fetch arguments preserve the declared numeric offset.
   { label: 'devin', offset: '0', limit: 60 },
   0,
 )
 // @ts-expect-error A freshness timestamp is required and numeric.
-QuoteWindows.requestLoadIfStale({ label: 'devin', offset: 0, limit: 60 })
+quotes.operations.requestLoadIfStale({ label: 'devin', offset: 0, limit: 60 })
 // @ts-expect-error Cancellation keeps the declared argument contract.
-QuoteWindows.requestCancel(QuoteWindows.init().model, { label: 'devin' })
+quotes.operations.requestCancel(quotes.init().model, { label: 'devin' })
 // @ts-expect-error An unkeyed Query has no keyed cancellation argument.
-Ordinary.requestCancel(Ordinary.init().model, { label: 'devin' })
+ordinary.operations.requestCancel(ordinary.init().model, { label: 'devin' })
 
 const WithoutPolicy = ParentDefinition.makeBinding(QuoteWindows, {
   field: 'quotes',
@@ -44,14 +45,18 @@ HostWindows.toLayer(
   Effect.succeed((_args: { label: number }) => Effect.succeed('invalid')),
 )
 
+const UnregisteredKey = Symbol('UnregisteredQueryPolicy')
 const Unregistered = Block.makeDefinition('UnregisteredQueryPolicy', {
+  key: UnregisteredKey,
+  Init: Schema.Tuple([]),
   Model: ParentModel,
   Message: ParentMessage,
 }).makeComposition()
+declare const existingParentModel: typeof ParentModel.Type
+// @ts-expect-error Connected operations require the exact registered Binding.
 Unregistered.makeInit(() => ({
-  model: parentInit().model,
+  model: existingParentModel,
   steps: [
-    // @ts-expect-error Connected operations require the exact registered Binding.
     WithoutPolicy.requestCancel({ label: 'devin', offset: 0, limit: 60 }),
   ],
 }))
@@ -90,7 +95,10 @@ const dynamicOrdinary = Query.define({
   error: Schema.String,
   notifyOnCompletion: Math.random() > 0.5,
 })
+const DynamicParentKey = Symbol('DynamicOrdinaryPolicyParent')
 const DynamicParent = Block.makeDefinition('DynamicOrdinaryPolicyParent', {
+  key: DynamicParentKey,
+  Init: Schema.Tuple([]),
   Model: Schema.Struct({ query: dynamicOrdinary.Model }),
   Message: Schema.Never,
 })

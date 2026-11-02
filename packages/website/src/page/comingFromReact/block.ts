@@ -1,18 +1,15 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { ComingFromReactComposition } from './composition'
+import { ComingFromReactDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ComingFromReactComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ComingFromReactBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ComingFromReactBlock = ComingFromReactDefinition.contract
+
+const block = ComingFromReactDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+)
+export const layer = block.layer

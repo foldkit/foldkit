@@ -1,0 +1,388 @@
+{
+  "coveredCodeCommit": "fd4f03253faa782eaa7f45d043127e3bf21ad572",
+  "postReview": {
+    "javaScriptChanges": [
+      {
+        "file": "experimental/contracted/runtime.js",
+        "before": {
+          "file": "experimental/contracted/runtime.js",
+          "bytes": 9762,
+          "sha256": "871659f7a21ced2108f9db3de443ca2cd7f5e52707a584eb76153c9524350a42"
+        },
+        "after": {
+          "file": "experimental/contracted/runtime.js",
+          "bytes": 10137,
+          "sha256": "b810cf46a9ebdf03638775b55a6ef9d1decafa885d69c3883aa829d79124ffb4"
+        }
+      }
+    ],
+    "declarations": {
+      "foldkit": {
+        "files": 349,
+        "sha256": "0e79db2733bb760b9cd69d973f31702bce6e8bdcef5da8464a8064e0981c37ea",
+        "matchesCanonical": true
+      },
+      "vite-plugin-foldkit": {
+        "files": 11,
+        "sha256": "d480d9aa616c98b1a412a30c249ac9c850c94f124ba1b2ff75b86b58e51c1773",
+        "matchesCanonical": true
+      }
+    },
+    "declarationDifferencesFromRepaired": [
+      "experimental/contracted/family.d.ts"
+    ],
+    "adapter": "Exact same adapter bytes as both preceding batches",
+    "runtimeBoundary": "Only contracted/runtime.js changed from repaired; original-Definition authentication and stable constructor-body capture run during graph construction before the official post-boot measurement; every other core/plugin JS file matches repaired"
+  },
+  "label": "Exact post-review final candidate; third balanced batch after original-Definition construction authentication with one stable constructor-body snapshot",
+  "startedAt": "2026-11-02T04:38:27.654Z",
+  "completedAt": "2026-11-02T04:45:39.402Z",
+  "status": "valid",
+  "retainedSamples": 32,
+  "discardedSamples": 0,
+  "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "candidate": {
+    "gitHead": "d9a8c552e607c4f0089c02f9f19f635ecbbd4ba9",
+    "workingTreeSha256": "34c546abd625a4691f93220150b30c58457d0f1144460df883e540322f9ccd8b",
+    "workingTreeScope": "Git-visible tracked + nonignored untracked paths at snapshot; uncommitted candidate",
+    "productionJavaScript": {
+      "foldkit": {
+        "files": 349,
+        "sha256": "214a35409ee176ca890ec9f869e8eb056fd345982e3452e9ea3bc2bd16a73f4a"
+      },
+      "vite-plugin-foldkit": {
+        "files": 11,
+        "sha256": "02f4bee0817121fb2bef25cfc7d3110681af0d13f303fd15d0cd9b9604ff5e24"
+      }
+    },
+    "adapterSha256": "b05c146a439f925db143da4622879635067fe5a42c64f08de9014058fc5613ec"
+  },
+  "harnessCommit": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+  "chromiumVersion": "153.0.8010.12",
+  "driverHashes": {
+    "run.mjs": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0",
+    "runner.html": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1",
+    "server.mjs": "fb76bfaf628dd7ecd9932c008604b566a0cafaa20fc9f88f8f35bfa3ac980398",
+    "verify.mjs": "8b85d2c9a8695bfcc6d3cb2de4a89cee332550bb08f63381d62d1276528d4cd9",
+    "install.mjs": "909827f1f1f4570c90f7e97df9b17515a62be144a08c89752a7bf54f237c4215"
+  },
+  "instrumentationSha256": "6e3597e81ef7276d99f17cfa4c3430e05beb7768411a1a34bffa0026343f7f69",
+  "parameters": {
+    "runs": 8,
+    "itemCount": 100,
+    "port": 38377,
+    "order": [
+      "foldkit-main-a471adb",
+      "foldkit-candidate-sealed",
+      "foldkit-main-a471adb-optimised",
+      "foldkit-candidate-sealed-optimised"
+    ],
+    "rotation": "Cyclic by round, each slot in every ordinal position twice",
+    "boot": "Settled before reset and excluded"
+  },
+  "correctness": "Unchanged functional verifier passed for all four slots before timing; no page errors or cross-origin-isolation failures",
+  "samplePrecision": "Printed per-round totals rounded by the unchanged driver to0.1ms; raw per-sample bucket values are not exposed by that driver",
+  "samples": [
+    {
+      "round": 1,
+      "slot": "foldkit-main-a471adb",
+      "totalMs": 549.8
+    },
+    {
+      "round": 1,
+      "slot": "foldkit-candidate-sealed",
+      "totalMs": 661.6
+    },
+    {
+      "round": 1,
+      "slot": "foldkit-main-a471adb-optimised",
+      "totalMs": 197.8
+    },
+    {
+      "round": 1,
+      "slot": "foldkit-candidate-sealed-optimised",
+      "totalMs": 263.1
+    },
+    {
+      "round": 2,
+      "slot": "foldkit-candidate-sealed",
+      "totalMs": 616.3
+    },
+    {
+      "round": 2,
+      "slot": "foldkit-main-a471adb-optimised",
+      "totalMs": 185.3
+    },
+    {
+      "round": 2,
+      "slot": "foldkit-candidate-sealed-optimised",
+      "totalMs": 262.3
+    },
+    {
+      "round": 2,
+      "slot": "foldkit-main-a471adb",
+      "totalMs": 535.4
+    },
+    {
+      "round": 3,
+      "slot": "foldkit-main-a471adb-optimised",
+      "totalMs": 146.7
+    },
+    {
+      "round": 3,
+      "slot": "foldkit-candidate-sealed-optimised",
+      "totalMs": 250.7
+    },
+    {
+      "round": 3,
+      "slot": "foldkit-main-a471adb",
+      "totalMs": 554.7
+    },
+    {
+      "round": 3,
+      "slot": "foldkit-candidate-sealed",
+      "totalMs": 685.1
+    },
+    {
+      "round": 4,
+      "slot": "foldkit-candidate-sealed-optimised",
+      "totalMs": 243.6
+    },
+    {
+      "round": 4,
+      "slot": "foldkit-main-a471adb",
+      "totalMs": 543.4
+    },
+    {
+      "round": 4,
+      "slot": "foldkit-candidate-sealed",
+      "totalMs": 616.2
+    },
+    {
+      "round": 4,
+      "slot": "foldkit-main-a471adb-optimised",
+      "totalMs": 203.6
+    },
+    {
+      "round": 5,
+      "slot": "foldkit-main-a471adb",
+      "totalMs": 544.3
+    },
+    {
+      "round": 5,
+      "slot": "foldkit-candidate-sealed",
+      "totalMs": 592.3
+    },
+    {
+      "round": 5,
+      "slot": "foldkit-main-a471adb-optimised",
+      "totalMs": 205.5
+    },
+    {
+      "round": 5,
+      "slot": "foldkit-candidate-sealed-optimised",
+      "totalMs": 262.9
+    },
+    {
+      "round": 6,
+      "slot": "foldkit-candidate-sealed",
+      "totalMs": 386.5
+    },
+    {
+      "round": 6,
+      "slot": "foldkit-main-a471adb-optimised",
+      "totalMs": 210
+    },
+    {
+      "round": 6,
+      "slot": "foldkit-candidate-sealed-optimised",
+      "totalMs": 266.1
+    },
+    {
+      "round": 6,
+      "slot": "foldkit-main-a471adb",
+      "totalMs": 543.5
+    },
+    {
+      "round": 7,
+      "slot": "foldkit-main-a471adb-optimised",
+      "totalMs": 193.9
+    },
+    {
+      "round": 7,
+      "slot": "foldkit-candidate-sealed-optimised",
+      "totalMs": 240.2
+    },
+    {
+      "round": 7,
+      "slot": "foldkit-main-a471adb",
+      "totalMs": 551.7
+    },
+    {
+      "round": 7,
+      "slot": "foldkit-candidate-sealed",
+      "totalMs": 630.2
+    },
+    {
+      "round": 8,
+      "slot": "foldkit-candidate-sealed-optimised",
+      "totalMs": 256.8
+    },
+    {
+      "round": 8,
+      "slot": "foldkit-main-a471adb",
+      "totalMs": 538.4
+    },
+    {
+      "round": 8,
+      "slot": "foldkit-candidate-sealed",
+      "totalMs": 634.1
+    },
+    {
+      "round": 8,
+      "slot": "foldkit-main-a471adb-optimised",
+      "totalMs": 193.4
+    }
+  ],
+  "reportedMedians": {
+    "foldkit-main-a471adb": {
+      "crossOriginIsolated": true,
+      "total": 543.9,
+      "sync": 34.9,
+      "timeout": 0,
+      "animationFrame": 509.5,
+      "microtask": 0,
+      "promise": 0,
+      "boot": 0,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      },
+      "relativeToFastest": 2.78
+    },
+    "foldkit-candidate-sealed": {
+      "crossOriginIsolated": true,
+      "total": 623.3,
+      "sync": 43.4,
+      "timeout": 0,
+      "animationFrame": 581,
+      "microtask": 0,
+      "promise": 0,
+      "boot": 0,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      },
+      "relativeToFastest": 3.18
+    },
+    "foldkit-main-a471adb-optimised": {
+      "crossOriginIsolated": true,
+      "total": 195.8,
+      "sync": 39.1,
+      "timeout": 0,
+      "animationFrame": 156.9,
+      "microtask": 0,
+      "promise": 0,
+      "boot": 0,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      },
+      "relativeToFastest": 1
+    },
+    "foldkit-candidate-sealed-optimised": {
+      "crossOriginIsolated": true,
+      "total": 259.6,
+      "sync": 47.8,
+      "timeout": 0,
+      "animationFrame": 211.5,
+      "microtask": 0,
+      "promise": 0,
+      "boot": 0,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      },
+      "relativeToFastest": 1.33
+    }
+  },
+  "comparison": {
+    "naive": {
+      "baseline": "foldkit-main-a471adb",
+      "candidate": "foldkit-candidate-sealed",
+      "addedTotalMs": 79.39999999999998,
+      "ratio": 1.1459827174112889,
+      "percentChange": 14.598271741128887,
+      "addedAnimationFrameMs": 71.5,
+      "addedSyncMs": 8.5,
+      "addedGzipBytes": 40058,
+      "gzipPercentChange": 40.450368575179226
+    },
+    "optimized": {
+      "baseline": "foldkit-main-a471adb-optimised",
+      "candidate": "foldkit-candidate-sealed-optimised",
+      "addedTotalMs": 63.80000000000001,
+      "ratio": 1.3258426966292136,
+      "percentChange": 32.58426966292136,
+      "addedAnimationFrameMs": 54.599999999999994,
+      "addedSyncMs": 8.699999999999996,
+      "addedGzipBytes": 40730,
+      "gzipPercentChange": 40.83740236822844
+    }
+  },
+  "bundles": {
+    "foldkit-main-a471adb": [
+      {
+        "file": "assets/index-C6YnFtEw.js",
+        "bytes": 304178,
+        "gzipBytes": 99030,
+        "sha256": "8a553e2d805f297e743cdda30a8c8ef12c34f6276b1cc64920c42d47bde1221e"
+      }
+    ],
+    "foldkit-main-a471adb-optimised": [
+      {
+        "file": "assets/index.optimised-k8w2GCHY.js",
+        "bytes": 306581,
+        "gzipBytes": 99737,
+        "sha256": "a85d218cb4309a1bff498e0a74e846bdc85ddfaf029c1aad06fe959d7e7ab005"
+      }
+    ],
+    "foldkit-candidate-sealed": [
+      {
+        "file": "assets/index-BUk_3u7d.js",
+        "bytes": 446329,
+        "gzipBytes": 139088,
+        "sha256": "e5426364fc473abdd5d6682865301701f32c2b2edc341a9f71394f39a288226c"
+      }
+    ],
+    "foldkit-candidate-sealed-optimised": [
+      {
+        "file": "assets/index.optimised-BZstrl68.js",
+        "bytes": 452992,
+        "gzipBytes": 140467,
+        "sha256": "0a891c9bf84f55e41fd7a93e44879282a9fcf500bc89fb1ff5157e04484491c1"
+      }
+    ]
+  },
+  "logSha256": "a7ce6eb9a01eab45e99cf4e325bb554dfa3a9fb5267863fffeb45c4bb4c4a40e",
+  "limits": [
+    "Same-batch machine/browser-specific measurements",
+    "Animation-frame callbacks include view construction, runtime processing and DOM patching; these totals do not separate them",
+    "Bucket medians are computed independently and need not sum to median total",
+    "No profiler or added scenarios ran inside this official batch; a separate one-pair optimized CPU diagnostic is recorded separately",
+    "Main and candidate use matched cached Effect4.1.0/Vite8.3.5/TypeScript7.1beta tools rather than independent fresh lockfile installations"
+  ],
+  "localEvidenceDirectory": "/private/tmp/foldkit-rendering-final-20261101-k5puc9oc"
+}

@@ -1,12 +1,13 @@
-import { Match, Option } from 'effect'
+import { Effect, Match, Option } from 'effect'
 import * as Calendar from 'foldkit/calendar'
 import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
+import { it as baseIt } from 'vitest'
 
-import { describe, it } from '@effect/vitest'
+import { describe } from '@effect/vitest'
 
 import type { CalendarAttributes } from './block.js'
-import { FocusGrid, Message, init, update, view } from './block.js'
+import { FocusGrid, Message, block } from './block.js'
 
 const resolveFocusGrid = Scene.Command.resolve(
   FocusGrid,
@@ -95,9 +96,21 @@ const testToView = (attrs: CalendarAttributes) =>
     }),
   )
 
-const sceneView = Scene.withViewInputs(view, {
-  maybeSelectedDate: Option.none(),
-  toView: testToView,
+const makeFixture = (calendar: Scene.TestBlock<typeof block>) => ({
+  init: calendar.init,
+  update: calendar.update,
+  sceneView: Scene.withViewInputs(calendar.view, {
+    maybeSelectedDate: Option.none(),
+    toView: testToView,
+  }),
+})
+const it = baseIt.extend<{ calendar: ReturnType<typeof makeFixture> }>({
+  calendar: async ({}, use) =>
+    Effect.runPromise(
+      Scene.withBlock(block, calendar =>
+        Effect.promise(() => use(makeFixture(calendar))),
+      ),
+    ),
 })
 
 const germanLocale: Calendar.LocaleConfig = {
@@ -187,7 +200,9 @@ const yearCellById = (modelId: string, year: number) =>
 
 describe('Calendar', () => {
   describe('rendering', () => {
-    it('renders the grid with role, tabindex, and an explicit aria-label that leads with a non-numeric word', () => {
+    it('renders the grid with role, tabindex, and an explicit aria-label that leads with a non-numeric word', ({
+      calendar: { update, sceneView, init },
+    }) => {
       // NOTE: The aria-label must lead with "Calendar," so VoiceOver's TTS
       // engine can't pattern-match "row 4 April 2026" into a date literal
       // and speak it as "row April 4, 2026". Do not switch this to
@@ -202,7 +217,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('renders the formatted month and year in the heading', () => {
+    it('renders the formatted month and year in the heading', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -210,7 +227,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('renders the previous and next month buttons with aria-labels', () => {
+    it('renders the previous and next month buttons with aria-labels', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -219,7 +238,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('emits type="button" on prev, next, and day-cell buttons so they do not submit a surrounding form', () => {
+    it('emits type="button" on prev, next, and day-cell buttons so they do not submit a surrounding form', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -232,7 +253,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('renders 42 day-cell buttons (6 weeks of 7)', () => {
+    it('renders 42 day-cell buttons (6 weeks of 7)', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -240,7 +263,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('marks the today cell with data-today', () => {
+    it('marks the today cell with data-today', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -251,7 +276,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('marks outside-month cells with data-outside-month', () => {
+    it('marks outside-month cells with data-outside-month', ({
+      calendar: { update, sceneView, init },
+    }) => {
       // 2026-04-01 is a Wednesday; the Sunday before (2026-03-29) is outside-month
       Scene.scene(
         { update, view: sceneView() },
@@ -263,7 +290,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('marks the selected cell with aria-selected and data-selected', () => {
+    it('marks the selected cell with aria-selected and data-selected', ({
+      calendar: { update, sceneView, init },
+    }) => {
       const selected = Calendar.make(2026, 4, 20)
       Scene.scene(
         {
@@ -284,7 +313,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('marks disabled cells with data-disabled and aria-disabled on the button', () => {
+    it('marks disabled cells with data-disabled and aria-disabled on the button', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(
@@ -305,7 +336,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('points aria-activedescendant at the focused cell id', () => {
+    it('points aria-activedescendant at the focused cell id', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -316,7 +349,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('emits WAI-ARIA grid positional attributes (aria-rowcount, aria-colcount, aria-rowindex, aria-colindex)', () => {
+    it('emits WAI-ARIA grid positional attributes (aria-rowcount, aria-colcount, aria-rowindex, aria-colindex)', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -329,7 +364,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('labels each week row so VoiceOver does not auto-compute the row name from its 7 descendant day labels', () => {
+    it('labels each week row so VoiceOver does not auto-compute the row name from its 7 descendant day labels', ({
+      calendar: { update, sceneView, init },
+    }) => {
       // NOTE: Without this explicit aria-label, VoiceOver computes the row's
       // accessible name from its descendants, a concatenation of all 7
       // day-button labels, and reads the whole row on cross-row navigation.
@@ -342,7 +379,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('rotates column headers when locale firstDayOfWeek is Monday', () => {
+    it('rotates column headers when locale firstDayOfWeek is Monday', ({
+      calendar: { update, sceneView, init },
+    }) => {
       const mondayLocale: Calendar.LocaleConfig = {
         ...Calendar.defaultEnglishLocale,
         firstDayOfWeek: 'Monday',
@@ -358,7 +397,9 @@ describe('Calendar', () => {
   })
 
   describe('localization', () => {
-    it('draws column header names from the locale rather than English', () => {
+    it('draws column header names from the locale rather than English', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today, locale: germanLocale }).model),
@@ -367,7 +408,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('orders day cell labels the way the locale orders them', () => {
+    it('orders day cell labels the way the locale orders them', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today, locale: germanLocale }).model),
@@ -375,7 +418,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('builds the heading and month cells from monthYearFormat', () => {
+    it('builds the heading and month cells from monthYearFormat', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today, locale: yearFirstLocale }).model),
@@ -386,7 +431,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('takes the day grid and week row labels from view inputs', () => {
+    it('takes the day grid and week row labels from view inputs', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         {
           update,
@@ -402,7 +449,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('takes the month and year grid labels from view inputs', () => {
+    it('takes the month and year grid labels from view inputs', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         {
           update,
@@ -424,7 +473,9 @@ describe('Calendar', () => {
   })
 
   describe('interactions', () => {
-    it('clicking a day moves the focus cursor onto it', () => {
+    it('clicking a day moves the focus cursor onto it', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -436,7 +487,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking the next month button advances the heading to May 2026', () => {
+    it('clicking the next month button advances the heading to May 2026', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -445,7 +498,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking the previous month button retreats the heading to March 2026', () => {
+    it('clicking the previous month button retreats the heading to March 2026', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -454,7 +509,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking next month moves the focus cursor to the same day in the new month', () => {
+    it('clicking next month moves the focus cursor to the same day in the new month', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -466,7 +523,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking previous month moves the focus cursor to the same day in the new month', () => {
+    it('clicking previous month moves the focus cursor to the same day in the new month', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -478,7 +537,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking next month clamps the focus cursor when the day does not exist in the new month', () => {
+    it('clicking next month clamps the focus cursor when the day does not exist in the new month', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(
@@ -492,7 +553,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('after clicking next month, the cell referenced by aria-activedescendant is rendered in the DOM', () => {
+    it('after clicking next month, the cell referenced by aria-activedescendant is rendered in the DOM', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -501,7 +564,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking an outside-month day moves both the view and the cursor to that day', () => {
+    it('clicking an outside-month day moves both the view and the cursor to that day', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -515,7 +580,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('ArrowLeft at minDate boundary clamps the cursor to minDate', () => {
+    it('ArrowLeft at minDate boundary clamps the cursor to minDate', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(
@@ -533,7 +600,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('ArrowRight at maxDate boundary clamps the cursor to maxDate', () => {
+    it('ArrowRight at maxDate boundary clamps the cursor to maxDate', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(
@@ -551,7 +620,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('ArrowRight skips a range of consecutive disabled days', () => {
+    it('ArrowRight skips a range of consecutive disabled days', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(
@@ -573,7 +644,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('tabbing out of the grid and back preserves the focus cursor', () => {
+    it('tabbing out of the grid and back preserves the focus cursor', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -588,7 +661,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking previous month after the focus has drifted puts the cursor back inside the visible grid', () => {
+    it('clicking previous month after the focus has drifted puts the cursor back inside the visible grid', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -604,7 +679,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('pressing ArrowRight moves the keyboard cursor forward by one day', () => {
+    it('pressing ArrowRight moves the keyboard cursor forward by one day', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -616,7 +693,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('pressing PageDown advances to next month and emits ChangedViewMonth', () => {
+    it('pressing PageDown advances to next month and emits ChangedViewMonth', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -625,7 +704,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('focusing the grid sets isGridFocused (data-focused appears on focused cell)', () => {
+    it('focusing the grid sets isGridFocused (data-focused appears on focused cell)', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -637,7 +718,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('blurring the grid clears data-focused on the focused cell', () => {
+    it('blurring the grid clears data-focused on the focused cell', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -651,7 +734,9 @@ describe('Calendar', () => {
   })
 
   describe('mode transitions', () => {
-    it('clicking the heading in Days mode switches to Months mode', () => {
+    it('clicking the heading in Days mode switches to Months mode', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -662,7 +747,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking the heading in Months mode switches to Years mode', () => {
+    it('clicking the heading in Months mode switches to Years mode', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -676,7 +763,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('Months mode renders 12 month-cell buttons', () => {
+    it('Months mode renders 12 month-cell buttons', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -686,7 +775,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('Years mode renders 12 year-cell buttons', () => {
+    it('Years mode renders 12 year-cell buttons', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -698,7 +789,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking a month cell returns to Days mode at that month', () => {
+    it('clicking a month cell returns to Days mode at that month', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -710,7 +803,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking a year cell returns to Months mode at that year', () => {
+    it('clicking a year cell returns to Months mode at that year', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -724,7 +819,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking the next-page button in Years mode advances the window by 12 years', () => {
+    it('clicking the next-page button in Years mode advances the window by 12 years', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -737,7 +834,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('clicking the previous-page button in Years mode retreats the window by 12 years', () => {
+    it('clicking the previous-page button in Years mode retreats the window by 12 years', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -750,7 +849,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('Months grid marks the calendar viewMonth with aria-selected and data-selected', () => {
+    it('Months grid marks the calendar viewMonth with aria-selected and data-selected', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -764,7 +865,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('Years grid marks the calendar viewYear with aria-selected and data-selected', () => {
+    it('Years grid marks the calendar viewYear with aria-selected and data-selected', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -783,7 +886,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('completes the full year-jump round trip: Days → Months → Years → pick year → pick month → Days', () => {
+    it('completes the full year-jump round trip: Days → Months → Years → pick year → pick month → Days', ({
+      calendar: { update, sceneView, init },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(init({ id: 'test', today }).model),
@@ -799,7 +904,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('pressing Enter on a disabled focused month does not commit (view-layer filter)', () => {
+    it('pressing Enter on a disabled focused month does not commit (view-layer filter)', ({
+      calendar: { update, sceneView, init },
+    }) => {
       // maxDate clamps the calendar to April 2026; September 2026 is fully
       // disabled. Focus stays on April after Enter, with no transition to Days.
       const maxDate = Calendar.make(2026, 4, 30)
@@ -816,7 +923,9 @@ describe('Calendar', () => {
       )
     })
 
-    it('pressing Enter on a disabled focused year does not commit (view-layer filter)', () => {
+    it('pressing Enter on a disabled focused year does not commit (view-layer filter)', ({
+      calendar: { update, sceneView, init },
+    }) => {
       // minDate clamps to 2020; arrowing back past 2020 lands the cursor on a
       // disabled year. Enter should be a no-op. Cursor stays in Years mode.
       const minDate = Calendar.make(2020, 1, 1)

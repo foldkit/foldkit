@@ -1,22 +1,19 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
 import { EffectsLayer } from './command'
-import { WorkHistoryComposition } from './composition'
-import type { Model } from './definition'
-import { Message } from './definition'
+import { EntriesBinding } from './composition'
+import { WorkHistoryDefinition } from './definition'
+import * as Entry from './entry'
 import { init } from './init'
+import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  WorkHistoryComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: { requestRevealErrors: Message.RequestedRevealErrors },
-    EffectsLayer,
-  })
-export const WorkHistoryBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const WorkHistoryBlock = WorkHistoryDefinition.contract
+export const layer = WorkHistoryDefinition.makeBlock(
+  Effect.gen(function* () {
+    const entries = yield* EntriesBinding
+
+    return { children: [entries], init, update, receive, view, EffectsLayer }
+  }),
+).provide(Layer.mergeAll(Entry.layer)).layer

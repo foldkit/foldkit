@@ -18,7 +18,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const AttachmentsKey = Symbol('Attachments')
+
 export const AttachmentsDefinition = Block.makeDefinition('Attachments', {
+  key: AttachmentsKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })

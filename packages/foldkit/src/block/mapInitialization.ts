@@ -2,7 +2,10 @@ import { HashMap, Predicate, Record } from 'effect'
 
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
-import { makeResultRecipe } from '../update/operationRecipe.js'
+import {
+  makeResultRecipe,
+  resolveOperationOutput,
+} from '../update/operationRecipe.js'
 import type {
   AnyBinding,
   BlockOfBinding,
@@ -10,10 +13,16 @@ import type {
   RequirementOfBinding,
   StorageOfBinding,
 } from './binding.js'
+import { bindingResolverOf } from './bindingConnection.js'
 import { canonicalBindingOf, runtimeBindingOf } from './composition.js'
 import type { RuntimeBindingStorage } from './composition.js'
 import type { OutgoingMessageOfBinding } from './delivery.js'
-import { type BindingInitRecipe, runBindingInitRecipe } from './initRecipe.js'
+import {
+  type BindingInitRecipe,
+  isBindingInitRecipe,
+  makeBindingInitRecipe,
+  runBindingInitRecipe,
+} from './initRecipe.js'
 import {
   assertRegisteredBinding,
   isRegisteredBinding,
@@ -74,6 +83,21 @@ type MapInitConfig<BindingValue extends AnyBinding> = Readonly<{
 }>
 
 type MapStorage = Extract<RuntimeBindingStorage, { kind: 'Map' }>
+
+const snapshotConfig = (config: unknown): unknown => {
+  if (!Predicate.isObject(config)) {
+    return config
+  }
+
+  const args = Reflect.get(config, 'args')
+
+  return Object.freeze({
+    ...config,
+    ...(globalThis.Array.isArray(args)
+      ? { args: Object.freeze([...args]) }
+      : {}),
+  })
+}
 
 const mapInitConfig = (
   binding: AnyBinding,
@@ -215,6 +239,28 @@ export function initAndInsert(
   config: unknown,
   ..._validation: ReadonlyArray<unknown>
 ): unknown {
+  const resolveBinding = bindingResolverOf(binding)
+
+  if (resolveBinding !== undefined) {
+    const capturedConfig = snapshotConfig(config)
+
+    return makeBindingInitRecipe(binding, environment => {
+      const recipe = Reflect.apply(initAndInsert, undefined, [
+        resolveBinding(environment),
+        model,
+        capturedConfig,
+      ])
+
+      if (!isBindingInitRecipe(recipe)) {
+        throw new Error(
+          '[foldkit] Map insertion did not produce an initialization recipe.',
+        )
+      }
+
+      return runBindingInitRecipe(recipe, environment)
+    })
+  }
+
   const { storage, key, args } = mapInitConfig(binding, config, 'initAndInsert')
 
   assertParentModel(binding, model, 'initAndInsert')
@@ -272,6 +318,22 @@ export function makeInitIfMissingStep(
   config: unknown,
   ..._validation: ReadonlyArray<unknown>
 ): unknown {
+  const resolveBinding = bindingResolverOf(binding)
+
+  if (resolveBinding !== undefined) {
+    const capturedConfig = snapshotConfig(config)
+
+    return (model: unknown) =>
+      makeResultRecipe((_model, environment) => {
+        const step = Reflect.apply(makeInitIfMissingStep, undefined, [
+          resolveBinding(environment),
+          capturedConfig,
+        ])
+
+        return resolveOperationOutput(step(model), model, environment)
+      })
+  }
+
   const { storage, key, args } = mapInitConfig(
     binding,
     config,
@@ -302,5 +364,5 @@ export function makeInitIfMissingStep(
   return (model: unknown) =>
     isRegisteredBinding(originalBinding)
       ? execute(model)
-      : makeResultRecipe(execute)
+      : makeResultRecipe(() => execute(model))
 }

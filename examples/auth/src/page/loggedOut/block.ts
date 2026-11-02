@@ -1,18 +1,17 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { LoggedOutComposition } from './composition'
+import { LoginBinding } from './composition'
+import { LoggedOutDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
+import * as Login from './page/login'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  LoggedOutComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const LoggedOutBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const LoggedOutBlock = LoggedOutDefinition.contract
+
+export const layer = LoggedOutDefinition.makeBlock(
+  Effect.gen(function* () {
+    const login = yield* LoginBinding
+    return { children: [login], init, update, view }
+  }),
+).provide(Login.layer).layer

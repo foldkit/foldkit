@@ -5,10 +5,8 @@ import { Disclosure } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
 import { UiComposition } from '../composition'
-import type { UiViewBuilder } from '../composition'
+import type { UiMessage, UiViewBuilder } from '../composition'
 import { Message } from '../message'
-
-type UiMessage = typeof UiComposition.Message.Type
 
 const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'
 const DISCLOSURE_ANIMATED_DEMO_ID = 'disclosure-animated-demo'

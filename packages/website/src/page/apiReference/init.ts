@@ -1,9 +1,9 @@
 import { Option } from 'effect'
 
+import { LoadApiData } from './command'
 import { ApiReferenceComposition } from './composition'
 import { type ApiData, ApiDataAsyncData } from './domain'
 import { Model, disclosuresForApiData } from './model'
-import { LoadApiData } from './update'
 
 export const init = ApiReferenceComposition.makeInit(
   (maybeApiData: Option.Option<ApiData> = Option.none()) => ({

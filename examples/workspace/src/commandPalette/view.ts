@@ -1,10 +1,9 @@
-import { Array, Match, Option, Schema } from 'effect'
+import { Array, Match, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Input } from '@foldkit/ui'
 import type { RenderInfo } from '@foldkit/ui/dialog'
 
-import { Issue, Project } from '../domain'
 import {
   CommandPaletteComposition,
   type CommandPaletteViewBuilder,
@@ -13,12 +12,6 @@ import {
 import { Message } from './message'
 import type { Model } from './model'
 import { SearchResult, searchResults } from './search'
-
-const ViewInputs = Schema.Struct({
-  issues: Schema.Array(Issue),
-  projects: Schema.Array(Project),
-})
-type ViewInputs = typeof ViewInputs.Type
 
 const INPUT_ID = 'workspace-command-search'
 const RESULTS_ID = 'workspace-command-results'
@@ -141,7 +134,7 @@ const resultList = (
     ),
   )
 
-export const view = CommandPaletteComposition.makeView.withInputs<ViewInputs>(
+export const view = CommandPaletteComposition.makeView.withInputs(
   (model, viewInputs, h) => {
     const results = searchResults(
       model.query,

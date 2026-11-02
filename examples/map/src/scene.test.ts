@@ -1,4 +1,4 @@
-import { Option } from 'effect'
+import { Effect, Option } from 'effect'
 import {
   Command,
   Mount,
@@ -14,13 +14,12 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
+import { ApplicationBlock } from './block'
 import { FlyTo, Geolocate, LockBodyScroll, UnlockBodyScroll } from './command'
 import { Message } from './message'
 import { GeolocateState } from './model'
 import { initialModel, mountedModel } from './model.fixture'
 import { MountMap } from './mount'
-import { update } from './update'
-import { view } from './view'
 
 const acknowledgeMapMount = Mount.resolve(
   MountMap,
@@ -36,104 +35,118 @@ const acknowledgeBodyUnlock = Command.resolve(
 )
 
 describe('view', () => {
-  test('initial view lists every featured location in the sidebar', () => {
-    scene(
-      { update, view },
-      given(initialModel),
-      expect(role('button', { name: /Eiffel Tower/ })).toExist(),
-      expect(role('button', { name: /Sydney Opera House/ })).toExist(),
-      expect(role('button', { name: 'Find my location' })).toExist(),
-      acknowledgeMapMount,
-    )
-  })
-
-  test('typing in the filter input filters the visible locations', () => {
-    scene(
-      { update, view },
-      given(initialModel),
-      acknowledgeMapMount,
-      type(label('Filter locations'), 'Paris'),
-      expect(role('button', { name: /Eiffel Tower/ })).toExist(),
-      expect(role('button', { name: /Sydney Opera House/ })).toBeAbsent(),
-    )
-  })
-
-  test('clicking a sidebar location selects it and dispatches FlyTo', () => {
-    scene(
-      { update, view },
-      given(mountedModel),
-      acknowledgeMapMount,
-      click(role('button', { name: /Eiffel Tower/ })),
-      Command.expectHas(FlyTo),
-      Command.resolve(FlyTo, Message.SucceededFlyTo()),
-    )
-  })
-
-  test('clicking find-me shows the locating overlay', () => {
-    scene(
-      { update, view },
-      given(mountedModel),
-      acknowledgeMapMount,
-      click(role('button', { name: 'Find my location' })),
-      expect(role('button', { name: 'Locating…' })).toExist(),
-      acknowledgeBodyLock,
-      Command.resolve(
-        Geolocate,
-        Message.FailedGeolocate({ reason: 'Test cleanup' }),
+  test('initial view lists every featured location in the sidebar', async () => {
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(initialModel),
+        expect(role('button', { name: /Eiffel Tower/ })).toExist(),
+        expect(role('button', { name: /Sydney Opera House/ })).toExist(),
+        expect(role('button', { name: 'Find my location' })).toExist(),
+        acknowledgeMapMount,
       ),
     )
   })
 
-  test('the failed-geolocation overlay shows a Dismiss button that returns to idle', () => {
-    scene(
-      { update, view },
-      given(
-        modifyFields(mountedModel, {
-          geolocateState: () =>
-            GeolocateState.Failed({
-              reason: 'Permission denied',
-            }),
-        }),
+  test('typing in the filter input filters the visible locations', async () => {
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(initialModel),
+        acknowledgeMapMount,
+        type(label('Filter locations'), 'Paris'),
+        expect(role('button', { name: /Eiffel Tower/ })).toExist(),
+        expect(role('button', { name: /Sydney Opera House/ })).toBeAbsent(),
       ),
-      acknowledgeMapMount,
-      expect(role('button', { name: 'Dismiss' })).toExist(),
-      click(role('button', { name: 'Dismiss' })),
-      acknowledgeBodyUnlock,
-      expect(role('button', { name: 'Dismiss' })).toBeAbsent(),
     )
   })
 
-  test('a failed map mount renders the error banner', () => {
-    scene(
-      { update, view },
-      given(
-        modifyFields(initialModel, {
-          maybeMapError: () => Option.some('Network timeout'),
-        }),
+  test('clicking a sidebar location selects it and dispatches FlyTo', async () => {
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(mountedModel),
+        acknowledgeMapMount,
+        click(role('button', { name: /Eiffel Tower/ })),
+        Command.expectHas(FlyTo),
+        Command.resolve(FlyTo, Message.SucceededFlyTo()),
       ),
-      expect(label('Map failed to load')).toExist(),
-      expect(text('Network timeout')).toExist(),
-      acknowledgeMapMount,
     )
   })
 
-  test('the bounds badge shows after the map reports its first move', () => {
-    scene(
-      { update, view },
-      given(
-        modifyFields(mountedModel, {
-          maybeBounds: () =>
-            Option.some({
-              west: -180,
-              south: -85,
-              east: 180,
-              north: 85,
-            }),
-        }),
+  test('clicking find-me shows the locating overlay', async () => {
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(mountedModel),
+        acknowledgeMapMount,
+        click(role('button', { name: 'Find my location' })),
+        expect(role('button', { name: 'Locating…' })).toExist(),
+        acknowledgeBodyLock,
+        Command.resolve(
+          Geolocate,
+          Message.FailedGeolocate({ reason: 'Test cleanup' }),
+        ),
       ),
-      expect(text('N 85.00')).toExist(),
-      expect(text('S -85.00')).toExist(),
-      acknowledgeMapMount,
+    )
+  })
+
+  test('the failed-geolocation overlay shows a Dismiss button that returns to idle', async () => {
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(
+          modifyFields(mountedModel, {
+            geolocateState: () =>
+              GeolocateState.Failed({
+                reason: 'Permission denied',
+              }),
+          }),
+        ),
+        acknowledgeMapMount,
+        expect(role('button', { name: 'Dismiss' })).toExist(),
+        click(role('button', { name: 'Dismiss' })),
+        acknowledgeBodyUnlock,
+        expect(role('button', { name: 'Dismiss' })).toBeAbsent(),
+      ),
+    )
+  })
+
+  test('a failed map mount renders the error banner', async () => {
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(
+          modifyFields(initialModel, {
+            maybeMapError: () => Option.some('Network timeout'),
+          }),
+        ),
+        expect(label('Map failed to load')).toExist(),
+        expect(text('Network timeout')).toExist(),
+        acknowledgeMapMount,
+      ),
+    )
+  })
+
+  test('the bounds badge shows after the map reports its first move', async () => {
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(
+          modifyFields(mountedModel, {
+            maybeBounds: () =>
+              Option.some({
+                west: -180,
+                south: -85,
+                east: 180,
+                north: 85,
+              }),
+          }),
+        ),
+        expect(text('N 85.00')).toExist(),
+        expect(text('S -85.00')).toExist(),
+        acknowledgeMapMount,
+      ),
     )
   })
 })

@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -21,10 +18,17 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const TermsFormComposition = Block.makeDefinition('TermsForm', {
+const TermsFormKey = Symbol('TermsForm')
+
+const TermsFormDefinition = Block.makeDefinition('TermsForm', {
+  key: TermsFormKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
-}).makeComposition()
+})
+
+const TermsFormComposition = TermsFormDefinition.makeComposition()
 
 // In your init function, start it unchecked:
 const init = TermsFormComposition.makeInit(() => ({
@@ -80,3 +84,9 @@ const view = TermsFormComposition.makeView((model, h) => {
     h,
   )
 })
+
+export const ApplicationBlock = TermsFormDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+)

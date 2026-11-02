@@ -11,7 +11,7 @@ export type ViewInputs = Readonly<{
   cart: Cart.Cart
 }>
 
-export const view = ProductsComposition.makeView.withInputs<ViewInputs>(
+export const view = ProductsComposition.makeView.withInputs(
   (model, { cart }, h) => {
     const filteredProducts = model.searchText
       ? model.products.filter(product =>

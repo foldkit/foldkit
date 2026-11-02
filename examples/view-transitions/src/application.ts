@@ -31,10 +31,19 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Url]),
+  view: { kind: 'Document' },
   Model,
   Message,
 })
+
+type ApplicationMessage = Block.ExecutableOf<
+  typeof ApplicationDefinition.contract
+>['Message']['Type']
 
 const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
 
@@ -99,11 +108,10 @@ export const update = ApplicationComposition.makeUpdate({
 // `true` is "animate, with no direction to declare": the root fade in
 // `styles.css` is not type-scoped, so an untyped transition still cross-fades,
 // it just does not slide.
-export const viewTransition: Runtime.ViewTransitionConfig<Model, Message> = ({
-  previousModel,
-  model,
-  message,
-}) => {
+export const viewTransition: Runtime.ViewTransitionConfig<
+  Model,
+  ApplicationMessage
+> = ({ previousModel, model, message }) => {
   if (message._tag !== 'ChangedUrl') {
     return false
   }
@@ -352,14 +360,8 @@ export const view = ApplicationComposition.makeView((model, h) => {
   }
 })
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view, EffectsLayer }
+  }),
+)

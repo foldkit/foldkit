@@ -1,22 +1,31 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
+
+import { DatePicker, Listbox } from '@foldkit/ui'
 
 import { EffectsLayer } from './command'
-import { PersonalInfoComposition } from './composition'
-import type { Model } from './definition'
-import { Message } from './definition'
+import {
+  AvailableDatePickerBinding,
+  PronounsListboxBinding,
+} from './composition'
+import { PersonalInfoDefinition } from './definition'
 import { init } from './init'
+import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  PersonalInfoComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: { requestRevealErrors: Message.RequestedRevealErrors },
-    EffectsLayer,
-  })
-export const PersonalInfoBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const PersonalInfoBlock = PersonalInfoDefinition.contract
+export const layer = PersonalInfoDefinition.makeBlock(
+  Effect.gen(function* () {
+    const pronounsListbox = yield* PronounsListboxBinding
+    const availableDatePicker = yield* AvailableDatePickerBinding
+
+    return {
+      children: [pronounsListbox, availableDatePicker],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
+  }),
+).provide(Layer.mergeAll(Listbox.layer, DatePicker.layer)).layer

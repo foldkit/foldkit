@@ -1,1 +1,1 @@
-export { LoggedOutBlock } from './block'
+export { LoggedOutBlock, layer } from './block'

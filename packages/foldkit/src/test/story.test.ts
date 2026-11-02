@@ -37,6 +37,44 @@ import * as Story from './story.js'
 
 // TEST
 
+describe('initialization', () => {
+  test('retains initial Commands and OutMessage for explicit assertions and resolution', () => {
+    const formInit = childUpdate(
+      { status: 'Submitting' },
+      FormChildJsChildMessage.SucceededSubmitForm({ id: 'initial' }),
+    )
+
+    Story.story(
+      childUpdate,
+      Story.__givenInit(formInit),
+      Story.expectOutMessage(
+        FormChildJsChildOutMessage.RequestedSave({ id: 'initial' }),
+      ),
+      Story.Command.expectExact(ResetForm),
+      Story.Command.resolve(
+        ResetForm,
+        FormChildJsChildMessage.CompletedResetForm(),
+      ),
+      Story.expectNoOutMessage(),
+      Story.model(model => {
+        expect(model.status).toBe('Idle')
+      }),
+    )
+  })
+
+  test('accepts an initialization result with only a Model', () => {
+    Story.story(
+      update,
+      Story.__givenInit({ model: { count: 3, log: [] } }),
+      Story.Command.expectNone(),
+      Story.expectNoOutMessage(),
+      Story.model(model => {
+        expect(model.count).toBe(3)
+      }),
+    )
+  })
+})
+
 describe('message', () => {
   test('multiple Messages update the Model sequentially', () => {
     Story.story(

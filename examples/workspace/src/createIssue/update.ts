@@ -54,24 +54,6 @@ const handleUpdatedDescription = (
   editDraft(draft => modifyFields(draft, { description: () => value }))(model)
 
 export const update = CreateIssueComposition.makeUpdate({
-  RequestedOpen: (model, { projectId, status = 'Todo' }) => {
-    if (CreateState.guards.Creating(model.createState)) {
-      return DialogBinding.requestOpen()(model)
-    }
-
-    return Update.combineSteps(model, [
-      makeFieldsStep(() => ({
-        title: () => '',
-        description: () => '',
-        projectId: () => projectId,
-        status: () => status,
-        priority: () => 'Medium',
-        createState: () => CreateState.Idle(),
-      })),
-      DialogBinding.requestOpen(),
-    ])
-  },
-  RequestedClose: DialogBinding.requestClose(),
   UpdatedTitle: (model, { value }) =>
     editDraft(draftModel => modifyFields(draftModel, { title: () => value }))(
       model,

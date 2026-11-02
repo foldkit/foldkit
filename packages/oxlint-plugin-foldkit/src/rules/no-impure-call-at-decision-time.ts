@@ -21,6 +21,7 @@ import {
   isMemberExpression,
   isObjectExpression,
   isObjectProperty,
+  isOwnedDefinitionCallee,
   isUnshadowedReference,
   isVariableDeclarator,
   resolveImportedPath,
@@ -1134,22 +1135,166 @@ const isDeferredFunction = (
   isEffectOrStreamCallback(references, fn) ||
   isConstructedHandlerFunction(references, definitions, fn)
 
+const pureAuthoringMethods = [
+  'makeInit',
+  'makeUpdate',
+  'makeReceive',
+  'makeView',
+  'makeStep',
+  'makeFieldsStep',
+  'makeCommandsStep',
+  'makeOutMessageStep',
+]
+
+const isPureAuthoringArgument = (
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  filename: string | undefined,
+  node: ESTree.Node,
+): boolean => {
+  const maybeCall = enclosingCallArgument(node)
+  if (Option.isSome(maybeCall)) {
+    const { callee } = maybeCall.value.call
+
+    return pureAuthoringMethods.some(
+      method =>
+        isOwnedDefinitionCallee(callee, method, references, filename) ||
+        ((method === 'makeUpdate' || method === 'makeReceive') &&
+          isMemberExpression(callee) &&
+          Option.contains(staticMemberName(callee), 'withContext') &&
+          isOwnedDefinitionCallee(callee.object, method, references, filename)),
+    )
+  }
+
+  const maybeProperty = enclosingPropertyValue(node)
+  if (Option.isNone(maybeProperty)) {
+    return false
+  }
+
+  const object = maybeProperty.value.parent
+  return (
+    isObjectExpression(object) &&
+    isPureAuthoringArgument(references, filename, object)
+  )
+}
+
+const pureAuthoringValueContainsFunction = (
+  references: WeakMap<ESTree.Node, Reference>,
+  node: ESTree.Node,
+  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
+  visited: ReadonlySet<ESTree.Node> = new Set(),
+): boolean =>
+  Option.exists(resolveLocalValue(node, references), value => {
+    if (value === fn) {
+      return true
+    }
+
+    if (visited.has(value)) {
+      return false
+    }
+
+    const path = new Set([...visited, value])
+    if (isObjectExpression(value)) {
+      return value.properties.some(
+        property =>
+          isObjectProperty(property) &&
+          pureAuthoringValueContainsFunction(
+            references,
+            property.value,
+            fn,
+            path,
+          ),
+      )
+    }
+
+    if (!isFunction(value) || value.body === null) {
+      return false
+    }
+
+    if (value.body.type !== 'BlockStatement') {
+      return pureAuthoringValueContainsFunction(
+        references,
+        value.body,
+        fn,
+        path,
+      )
+    }
+
+    return value.body.body.some(
+      statement =>
+        statement.type === 'ReturnStatement' &&
+        statement.argument !== null &&
+        pureAuthoringValueContainsFunction(
+          references,
+          statement.argument,
+          fn,
+          path,
+        ),
+    )
+  })
+
+const isPureAuthoringFunction = (
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  definitions: WeakMap<ESTree.Node, Variable> | undefined,
+  filename: string | undefined,
+  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
+): boolean => {
+  if (isPureAuthoringArgument(references, filename, fn)) {
+    return true
+  }
+
+  if (references === undefined || definitions === undefined) {
+    return false
+  }
+
+  const hasPureUse = (
+    variable: Variable,
+    visited: ReadonlySet<Variable> = new Set(),
+  ): boolean => {
+    if (!isImmutableLocalVariable(variable) || visited.has(variable)) {
+      return false
+    }
+
+    return variable.references.some(reference => {
+      if (!reference.isRead()) {
+        return false
+      }
+
+      if (isPureAuthoringArgument(references, filename, reference.identifier)) {
+        return true
+      }
+
+      return Option.exists(
+        enclosingLocalValueVariable(definitions, reference.identifier),
+        alias =>
+          Option.exists(immutableLocalVariableValue(alias), value =>
+            pureAuthoringValueContainsFunction(references, value, fn),
+          ) && hasPureUse(alias, new Set([...visited, variable])),
+      )
+    })
+  }
+
+  return Option.exists(localValueVariable(definitions, fn), hasPureUse)
+}
+
 const isInsideEffectBoundary = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   definitions: WeakMap<ESTree.Node, Variable> | undefined,
+  filename: string | undefined,
   node: ESTree.Node,
 ): boolean => {
   const parent = node.parent
   if (parent === null) {
     return false
   }
-  if (
-    isFunction(parent) &&
-    isDeferredFunction(references, definitions, parent)
-  ) {
-    return true
+  if (isFunction(parent)) {
+    if (isDeferredFunction(references, definitions, parent)) {
+      return true
+    }
+    if (isPureAuthoringFunction(references, definitions, filename, parent)) {
+      return false
+    }
   }
-  return isInsideEffectBoundary(references, definitions, parent)
+  return isInsideEffectBoundary(references, definitions, filename, parent)
 }
 
 const callOperation = (
@@ -1199,7 +1344,7 @@ export const noImpureCallAtDecisionTime = Rule.define({
       Option.match(maybeOperation, {
         onNone: () => Effect.void,
         onSome: operation =>
-          isInsideEffectBoundary(references, definitions, node)
+          isInsideEffectBoundary(references, definitions, ctx.filename, node)
             ? Effect.void
             : ctx.report(
                 Diagnostic.make({

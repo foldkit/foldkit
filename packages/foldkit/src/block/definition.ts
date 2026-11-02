@@ -33,6 +33,7 @@ import {
   makeResultRecipe,
   resolveOperationOutput,
 } from '../update/operationRecipe.js'
+import type { OperationEnvironment } from '../update/operationRecipe.js'
 import type * as PublicUpdate from '../update/public.js'
 import type { VNode } from '../vdom.js'
 import {
@@ -64,6 +65,13 @@ import {
   makeDispatchSchema,
 } from './childEnvelope.js'
 import { type MakeCommandsStep, makeCommandsStep } from './commandsStep.js'
+import {
+  type CompiledOperation,
+  type InputOperationResult,
+  assertCompiledOperationSource,
+  isCompiledOperation,
+  registerCompiledOperationSource,
+} from './compiledOperation.js'
 import {
   assertBindingParentContracts,
   descendantOwnersOf,
@@ -115,7 +123,12 @@ import { makeInit } from './initializationRuntime.js'
 import { type MakeMapBinding, makeMapBinding } from './mapBinding.js'
 import { isOperationMessageConstructor, prepareOperation } from './operation.js'
 import type { OperationEmission } from './operationEmission.js'
-import { withOperationGraph } from './operationGraph.js'
+import {
+  ExecutionEnvironmentTypeId,
+  compositionOperationGraphOf,
+  registerCompositionOperationGraph,
+  withOperationGraph,
+} from './operationGraph.js'
 import { makeOperationMessageValidator } from './operationMessage.js'
 import type { OperationOutputOf } from './operationOutputs.js'
 import {
@@ -496,11 +509,20 @@ export interface DefineView<
  * entries returned by `makeUpdate.withContext`. Extracted producers and other
  * operation arguments retain their own precise parameter contracts.
  *
+ * `InputMessage` defaults to the local Message contract. An authoring surface
+ * can supply a separate input union without permitting those inputs as Command
+ * result Messages.
+ *
  * Public parent-driven operations belong in `prepareBlock({ operations })`. Each
  * exposed producer returns a local Message and its update context instead of a
  * Model transformation.
  */
-export interface DefineStep<Model, Message, OutMessage> {
+export interface DefineStep<
+  Model,
+  Message,
+  OutMessage,
+  InputMessage = Message,
+> {
   <
     const Context extends ReadonlyArray<unknown>,
     const Output extends
@@ -541,7 +563,7 @@ export interface DefineStep<Model, Message, OutMessage> {
    * the incoming Model, preserving its requirements and graph obligations.
    */
   readonly fromMessage: <
-    ExactMessage extends Message,
+    ExactMessage extends InputMessage,
     const Producer extends ContextualMessageProducer<
       ExactMessage,
       | OwnedReturn<Model, Message, OutMessage>
@@ -565,7 +587,7 @@ export interface DefineStep<Model, Message, OutMessage> {
       >,
     ...validation: FocusedStepValidation<
       ValidateKnownStepOutput<ReturnType<NoInfer<Producer>>> &
-        ValidateMessageProducer<Message, ExactMessage, NoInfer<Producer>> &
+        ValidateMessageProducer<InputMessage, ExactMessage, NoInfer<Producer>> &
         (Parameters<Producer>['length'] extends 0
           ? unknown
           : [Parameters<Producer>[0]] extends [never]
@@ -578,7 +600,7 @@ export interface DefineStep<Model, Message, OutMessage> {
     readonly [
       message: Parameters<Producer>['length'] extends 0
         ? ExactMessage
-        : FocusedMessageOf<Message, ExactMessage, Producer, 0>,
+        : FocusedMessageOf<InputMessage, ExactMessage, Producer, 0>,
     ],
     OutMessageOfReturn<DeferredStepReturn<ReturnType<Producer>>>,
     CommandRequirements<DeferredStepReturn<ReturnType<Producer>>>,
@@ -1483,9 +1505,36 @@ type ExposedUpdateInput<UpdateFunction, Message> =
     ? MessageFoldInput<Message, Context>
     : never
 
-type ValidateExposedOperation<Source, UpdateFunction, Message> =
-  unknown extends Source
-    ? never
+type ValidateExposedOperation<
+  Source,
+  UpdateFunction,
+  Message,
+  DispatchMessage,
+  OutMessage,
+> = unknown extends Source
+  ? never
+  : Source extends CompiledOperation<infer Execute, infer _Composition>
+    ? Execute extends (
+        model: infer Model,
+        ...args: ReadonlyArray<any>
+      ) => infer Output
+      ? UpdateFunction extends AnyFunction
+        ? true extends
+            | IsAny<Model>
+            | IsUnknown<Model>
+            | IsAny<Output>
+            | IsUnknown<Output>
+          ? never
+          : [Model, Parameters<UpdateFunction>[0]] extends [
+                Parameters<UpdateFunction>[0],
+                Model,
+              ]
+            ? Output extends OwnedReturn<Model, DispatchMessage, OutMessage>
+              ? ValidateKnownStepOutput<Output>
+              : never
+            : never
+        : never
+      : never
     : Source extends AnyFunction &
           Readonly<{ '~type.make.in': unknown; Type: infer Output }>
       ? unknown extends Output
@@ -1504,7 +1553,12 @@ type ValidateExposedOperation<Source, UpdateFunction, Message> =
             : never
         : never
 
-type ValidateExposedOperations<ImplementationValue, Message> =
+type ValidateExposedOperations<
+  ImplementationValue,
+  Message,
+  DispatchMessage,
+  OutMessage,
+> =
   ImplementationValue extends Readonly<{
     update: infer UpdateFunction extends AnyFunction
     operations: infer ExposedOperations extends Readonly<
@@ -1518,16 +1572,18 @@ type ValidateExposedOperations<ImplementationValue, Message> =
             [Name in keyof ExposedOperations]: ValidateExposedOperation<
               ExposedOperations[Name],
               UpdateFunction,
-              Message
+              Message,
+              DispatchMessage,
+              OutMessage
             >
           }>
         }>
     : unknown
 
 interface ExposedMessageOperations<Message> {
-  readonly [name: string]: (
-    ...args: ReadonlyArray<any>
-  ) => MessageFoldInput<Message> | Message
+  readonly [name: string]:
+    | ((...args: ReadonlyArray<any>) => MessageFoldInput<Message> | Message)
+    | InputOperationResult<unknown>
 }
 
 interface InferredExposedMessageOperations<Message> {
@@ -1538,6 +1594,7 @@ interface InferredExposedMessageOperations<Message> {
         Type: Readonly<{ _tag: string }>
       }>
     | ((...args: ReadonlyArray<any>) => MessageFoldInput<Message>)
+    | InputOperationResult<unknown>
 }
 
 type PublicProducerReturn<Output, Model, Message> = [
@@ -1635,55 +1692,58 @@ type ProjectedOperation<Args extends ReadonlyArray<unknown>, Output> = ((
   >
 
 type PublicExposedProducer<Producer, UpdateFunction, Model> =
-  Producer extends Readonly<{
-    fields: Readonly<Record<infer FieldName, unknown>>
-    '~type.make.in': infer Input
-    Type: infer Output extends Readonly<{ _tag: string }>
-  }>
-    ? UpdateFunction extends AnyFunction
-      ? Parameters<UpdateFunction> extends readonly [
-          unknown,
-          unknown,
-          ...infer Context,
-        ]
-        ? ProjectedOperation<
-            readonly [
-              model: Model,
-              ...([FieldName] extends ['_tag']
-                ? readonly []
-                : readonly [
-                    payload:
-                      | Input
-                      | (Omit<Output, '_tag'> &
-                          Readonly<{ _tag?: Output['_tag'] }>),
-                  ]),
-              ...Context,
-            ],
-            OperationOutputOf<UpdateFunction, Output>
-          >
-        : never
-      : never
-    : Producer extends AnyFunction
-      ? ReturnType<Producer> extends readonly [
-          unknown,
-          ...ReadonlyArray<unknown>,
-        ]
-        ? UpdateFunction extends AnyFunction
+  Producer extends CompiledOperation<infer Execute, infer _Composition>
+    ? ProjectedOperation<Parameters<Execute>, ReturnType<Execute>> &
+        InputOperationResult<ReturnType<Execute>>
+    : Producer extends Readonly<{
+          fields: Readonly<Record<infer FieldName, unknown>>
+          '~type.make.in': infer Input
+          Type: infer Output extends Readonly<{ _tag: string }>
+        }>
+      ? UpdateFunction extends AnyFunction
+        ? Parameters<UpdateFunction> extends readonly [
+            unknown,
+            unknown,
+            ...infer Context,
+          ]
           ? ProjectedOperation<
-              readonly [model: Model, ...ExposedProducerParameters<Producer>],
-              OperationOutputOf<
-                UpdateFunction,
-                ReturnType<Producer> extends readonly [
-                  infer Message,
-                  ...ReadonlyArray<unknown>,
-                ]
-                  ? Message
-                  : never
-              >
+              readonly [
+                model: Model,
+                ...([FieldName] extends ['_tag']
+                  ? readonly []
+                  : readonly [
+                      payload:
+                        | Input
+                        | (Omit<Output, '_tag'> &
+                            Readonly<{ _tag?: Output['_tag'] }>),
+                    ]),
+                ...Context,
+              ],
+              OperationOutputOf<UpdateFunction, Output>
             >
           : never
-        : Producer
-      : never
+        : never
+      : Producer extends AnyFunction
+        ? ReturnType<Producer> extends readonly [
+            unknown,
+            ...ReadonlyArray<unknown>,
+          ]
+          ? UpdateFunction extends AnyFunction
+            ? ProjectedOperation<
+                readonly [model: Model, ...ExposedProducerParameters<Producer>],
+                OperationOutputOf<
+                  UpdateFunction,
+                  ReturnType<Producer> extends readonly [
+                    infer Message,
+                    ...ReadonlyArray<unknown>,
+                  ]
+                    ? Message
+                    : never
+                >
+              >
+            : never
+          : Producer
+        : never
 
 type PublicImplementationValue<Model, Message, ImplementationValue> = Readonly<{
   [Key in keyof ImplementationValue]: Key extends 'init'
@@ -1952,6 +2012,7 @@ type ImplementationForValidation<
   bindings: Children
   init: ImplementationValue['init']
   update: ImplementationValue['update']
+  operations: ImplementationExposedOperations<ImplementationValue>
   subscriptions: ImplementationSubscriptions<ImplementationValue>
   managedResources: ImplementationManagedResources<ImplementationValue>
   EffectsLayer: CompleteEffectsLayer<
@@ -2720,9 +2781,11 @@ type ValidatePrepareBlockComposition<
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue,
+  HandlerValidation extends 'Indexed' | 'Equivalent' = 'Indexed',
 > = ValidateImplementationComposition<
   PrepareBlockDefinition<OwnerValue>,
-  PrepareBlockCompositionForValidation<Mounts, Children, ImplementationValue>
+  PrepareBlockCompositionForValidation<Mounts, Children, ImplementationValue>,
+  HandlerValidation
 > &
   ValidateBindingOperationNames<
     ImplementationExposedOperations<ImplementationValue>
@@ -2730,7 +2793,9 @@ type ValidatePrepareBlockComposition<
   ('operations' extends keyof ImplementationValue
     ? ValidateExposedOperations<
         ImplementationValue,
-        AuthoredMessage<_MessageSchema['Type'], Children>
+        AuthoredMessage<_MessageSchema['Type'], Children>,
+        _MessageSchema['Type'],
+        _OutMessageSchema extends AnySchema ? _OutMessageSchema['Type'] : never
       >
     : unknown)
 
@@ -2797,6 +2862,7 @@ type ImplementationRecipeValidation<
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue extends object,
+  HandlerValidation extends 'Indexed' | 'Equivalent' = 'Indexed',
 > = ImplementationInput<ModelSchema, MessageSchema, OutMessageSchema> &
   ExactImplementationKeys<ImplementationValue> &
   ValidateImplementationLayerPresence<ImplementationValue> &
@@ -2816,7 +2882,8 @@ type ImplementationRecipeValidation<
     OutMessageSchema,
     Mounts,
     Children,
-    CompletedImplementationValue<ImplementationValue>
+    CompletedImplementationValue<ImplementationValue>,
+    HandlerValidation
   >
 
 type ImplementationRecipeArguments<ImplementationValue, Validation> =
@@ -4225,11 +4292,12 @@ const makeDefineView = <
   return defineView
 }
 
-function makeDefineStep<Model, Message, OutMessage>(): DefineStep<
+function makeDefineStep<
   Model,
   Message,
-  OutMessage
->
+  OutMessage,
+  InputMessage = Message,
+>(): DefineStep<Model, Message, OutMessage, InputMessage>
 function makeDefineStep(): unknown {
   function defineStep(step: AnyFunction): AnyFunction {
     return (model: unknown, ...context: ReadonlyArray<unknown>) => {
@@ -4243,7 +4311,9 @@ function makeDefineStep(): unknown {
         return runBindingInitRecipe(deferred)
       }
 
-      return makeResultRecipe(() => runBindingInitRecipe(deferred))
+      return makeResultRecipe((_model, environment) =>
+        runBindingInitRecipe(deferred, environment),
+      )
     }
   }
 
@@ -4531,6 +4601,7 @@ export const makeDefinition = (
     ChildInitContext?: AnySchema
     mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
     bindings?: ReadonlyArray<AnyBinding>
+    [ExecutionEnvironmentTypeId]?: OperationEnvironment
   }>,
   authoring?: Readonly<{
     makeStep: AnyFunction
@@ -4568,11 +4639,13 @@ export const makeDefinition = (
 
   const assertOperationMessage = makeOperationMessageValidator(config.Message)
   const defineView = makeDefineView(owner, localMounts, bindings)
-  const init = makeInit(config.Model, bindings)
+  const environment = config[ExecutionEnvironmentTypeId]
+  const init = makeInit(config.Model, bindings, environment)
   const update = makeCompositionUpdate(
     dispatchMessage,
     bindings,
     authoring !== undefined,
+    environment,
   )
   const defineStep = authoring?.makeStep ?? makeDefineStep()
   const defineOutMessageFold = makeOutMessageFold()
@@ -4610,6 +4683,20 @@ export const makeDefinition = (
       [config.Message],
     )
     const completed = Record.map(source, (operation, name) => {
+      if (isCompiledOperation(operation)) {
+        assertCompiledOperationSource(operation, composition)
+
+        return (model: unknown, ...args: ReadonlyArray<unknown>) =>
+          withOperationGraph(bindings, () => {
+            const output = operation(model, ...args)
+            const resolved = resolveOperationOutput(output, model, environment)
+
+            return isBindingInitRecipe(resolved)
+              ? runBindingInitRecipe(resolved, environment)
+              : resolved
+          })
+      }
+
       if (isOperationMessageConstructor(operation)) {
         assertOperationMessage(operation)
         assertLocalOperationMessage(operation, bindings)
@@ -4639,9 +4726,9 @@ export const makeDefinition = (
           }
           assertLocalOperationTag(Reflect.get(message, '_tag'), bindings)
           const output = update(model, ...input)
-          const resolved = resolveOperationOutput(output, model)
+          const resolved = resolveOperationOutput(output, model, environment)
           return isBindingInitRecipe(resolved)
-            ? runBindingInitRecipe(resolved)
+            ? runBindingInitRecipe(resolved, environment)
             : resolved
         })
     })
@@ -4791,7 +4878,7 @@ export const makeDefinition = (
     return block
   }
 
-  return {
+  const composition = {
     owner,
     Model: config.Model,
     Message: dispatchMessage,
@@ -4822,8 +4909,12 @@ export const makeDefinition = (
     makeMapBinding: makeMapBinding(bindChild),
     prepareBlock,
   }
+
+  registerCompositionOperationGraph(composition, bindings)
+  return composition
 }
 type RuntimeCompositionGraph = Readonly<{
+  [ExecutionEnvironmentTypeId]?: OperationEnvironment
   mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
   bindings?: ReadonlyArray<AnyBinding>
 }>
@@ -4920,6 +5011,11 @@ export const makeBaseDefinition = (
         makeAssemblyDraft(composition.prepareBlock(implementation)),
     }
 
+    registerCompiledOperationSource(publicComposition, composition)
+    registerCompositionOperationGraph(
+      publicComposition,
+      compositionOperationGraphOf(composition),
+    )
     compositions.add(publicComposition)
     return publicComposition
   }
@@ -4954,3 +5050,9 @@ export const makeBaseDefinition = (
   }
 }
 // oxlint-enable effecttsgo/any-unknown-in-error-context
+
+export type {
+  ImplementationRecipeArguments,
+  ImplementationRecipeValidation,
+  ValidateProvidedHandlers,
+}

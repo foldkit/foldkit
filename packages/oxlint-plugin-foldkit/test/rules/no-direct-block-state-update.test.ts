@@ -434,9 +434,7 @@ describe('no-direct-block-state-update', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('`settings`')
-    expect(result[0]?.diagnostic.message).toContain(
-      "child Block's `operations` record",
-    )
+    expect(result[0]?.diagnostic.message).toContain('public child InMessage')
     expect(result[0]?.diagnostic.message).toContain('registered Binding')
   })
 
@@ -612,7 +610,7 @@ describe('no-direct-block-state-update', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      'child update handles the transition',
+      'child receive handler owns the transition',
     )
   })
 

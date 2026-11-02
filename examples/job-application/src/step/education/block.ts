@@ -1,22 +1,19 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
 import { EffectsLayer } from './command'
-import { EducationComposition } from './composition'
-import type { Model } from './definition'
-import { Message } from './definition'
+import { EntriesBinding } from './composition'
+import { EducationDefinition } from './definition'
+import * as Entry from './entry'
 import { init } from './init'
+import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  EducationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: { requestRevealErrors: Message.RequestedRevealErrors },
-    EffectsLayer,
-  })
-export const EducationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const EducationBlock = EducationDefinition.contract
+export const layer = EducationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const entries = yield* EntriesBinding
+
+    return { children: [entries], init, update, receive, view, EffectsLayer }
+  }),
+).provide(Layer.mergeAll(Entry.layer)).layer

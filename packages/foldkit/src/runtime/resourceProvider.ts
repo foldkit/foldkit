@@ -64,13 +64,15 @@ export const makeResourceProvider = <
   runtimeScope,
   maybePortChannels,
   applicationLayer,
+  applicationMemoMap,
 }: Readonly<{
   managedResources:
     | ManagedResources<Model, Message, ManagedResourceServices>
     | undefined
   runtimeScope: Scope.Scope
   maybePortChannels: Option.Option<PortChannelsBundle>
-  applicationLayer: Layer.Layer<any, any, any> | undefined
+  applicationLayer: Layer.Layer<never, any, any> | undefined
+  applicationMemoMap?: Layer.MemoMap | undefined
 }>): Effect.Effect<
   ResourceProvider<Model, Message, Resources, ManagedResourceServices>
 > =>
@@ -142,10 +144,15 @@ export const makeResourceProvider = <
       interruptRegistry,
     )
     const applicationContext = applicationLayer
-      ? yield* Layer.buildWithScope(applicationLayer, runtimeScope).pipe(
-          Effect.provideContext(runtimeContext),
-          Effect.orDie,
-        )
+      ? yield* (
+          applicationMemoMap === undefined
+            ? Layer.buildWithScope(applicationLayer, runtimeScope)
+            : Layer.buildWithMemoMap(
+                applicationLayer,
+                applicationMemoMap,
+                runtimeScope,
+              )
+        ).pipe(Effect.provideContext(runtimeContext), Effect.orDie)
       : Context.empty()
     const providedContext = Context.merge(runtimeContext, applicationContext)
 

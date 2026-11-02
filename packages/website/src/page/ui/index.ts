@@ -1,1 +1,1 @@
-export { UiBlock } from './block'
+export { UiBlock, layer } from './block'

@@ -11,8 +11,6 @@ export const Message = defineMessageUnion({
   },
   SelectedSearchResult: { url: Schema.String },
   ClearedSearchQuery: {},
-  RequestedOpen: {},
-  InformedOfRouteChange: {},
   CompletedNavigateToResult: {},
   CompletedScrollToResult: {},
   CompletedFocusSearchInput: {},

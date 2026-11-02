@@ -2,12 +2,11 @@ import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Theme } from './blockDefinition'
-import * as Settings from './blockSettings'
+import { SettingsBlock, SettingsStore, Theme } from './blockDefinition'
 
 export const Model = Schema.Struct({
   displayName: Schema.String,
-  settings: Settings.SettingsBlock.Model,
+  settings: SettingsBlock.Model,
   previewTheme: Theme,
 })
 export type Model = typeof Model.Type
@@ -15,7 +14,13 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({})
 export type Message = typeof Message.Type
 
+const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+  effects: { services: [SettingsStore] },
   Model,
   Message,
 })

@@ -554,6 +554,12 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'view-plans',
+    accepted: ['view-plans.accepted.ts'],
+    rejected: ['view-plans.rejected.ts'],
+    consumers: ['view-plans.consume.ts'],
+  },
+  {
     name: 'mandatory-completion',
     accepted: ['mandatory-completion.accepted.ts'],
     rejected: ['mandatory-completion.rejected.ts'],
@@ -659,6 +665,12 @@ const checks: ReadonlyArray<
     consumers: ['outmessage-fold.consume.ts'],
   },
   {
+    name: 'descriptor-fold',
+    accepted: ['descriptor-fold.accepted.ts'],
+    rejected: ['descriptor-fold.rejected.ts'],
+    consumers: ['descriptor-fold.consume.ts'],
+  },
+  {
     name: 'program-server',
     accepted: ['program-server.accepted.ts'],
     rejected: ['program-server.rejected.ts'],
@@ -668,12 +680,14 @@ const checks: ReadonlyArray<
     name: 'program',
     accepted: [
       'program.accepted.ts',
+      'program-construction-portability.accepted.ts',
       'program-inferred-portability.accepted.ts',
       'program-union-services.accepted.ts',
     ],
     rejected: ['program.rejected.ts', 'program-union-services.rejected.ts'],
     consumers: [
       'program.consume.ts',
+      'program-construction-portability.consume.ts',
       'program-inferred-portability.consume.ts',
       'program-union-services.consume.ts',
     ],
@@ -756,6 +770,18 @@ const checks: ReadonlyArray<
     ],
     rejected: ['machine.rejected.ts'],
     consumers: ['machine.consume.ts'],
+  },
+  {
+    name: 'helper-inputs',
+    accepted: ['helper-inputs.accepted.ts', 'helper-inputs.definition.ts'],
+    rejected: ['helper-inputs.rejected.ts'],
+    consumers: ['helper-inputs.consume.ts'],
+  },
+  {
+    name: 'inmessages',
+    accepted: ['inmessages.accepted.ts'],
+    rejected: ['inmessages.rejected.ts'],
+    consumers: ['inmessages.consume.ts'],
   },
   {
     name: 'message-steps',
@@ -910,6 +936,7 @@ const checks: ReadonlyArray<
       'parent-owned-binding.accepted.ts',
       'query-block.accepted.ts',
       'query-policy.accepted.ts',
+      'query-modes.accepted.ts',
     ],
     rejected: [
       'parent-owned-binding.rejected.ts',
@@ -920,6 +947,7 @@ const checks: ReadonlyArray<
       'parent-owned-binding.consume.ts',
       'query-block.consume.ts',
       'query-policy.consume.ts',
+      'query-modes.consume.ts',
     ],
   },
   {

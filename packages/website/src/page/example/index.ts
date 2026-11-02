@@ -1,1 +1,1 @@
-export { ExampleDetailBlock } from './block'
+export { ExampleDetailBlock, layer } from './block'

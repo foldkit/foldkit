@@ -1,4 +1,4 @@
-import { Array, Schema } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -20,10 +20,18 @@ const AccountSettingsMessage = defineMessageUnion({
 })
 type AccountSettingsMessage = typeof AccountSettingsMessage.Type
 
-const AccountSettingsComposition = Block.makeDefinition('AccountSettings', {
+const AccountSettingsKey = Symbol('AccountSettings')
+
+const AccountSettingsDefinition = Block.makeDefinition('AccountSettings', {
+  key: AccountSettingsKey,
+  Init: Schema.Tuple([]),
+  Context: Schema.Tuple([CurrentUser]),
+  view: { kind: 'Element' },
   Model: AccountSettingsModel,
   Message: AccountSettingsMessage,
-}).makeComposition()
+})
+
+const AccountSettingsComposition = AccountSettingsDefinition.makeComposition()
 
 const accountSettingsInit = AccountSettingsComposition.makeInit(() => ({
   model: AccountSettingsModel.make({
@@ -44,13 +52,18 @@ const accountSettingsUpdate = AccountSettingsComposition.makeUpdate.withContext(
 const accountSettingsView = AccountSettingsComposition.makeView((model, h) =>
   h.p([], [`${model.theme}; audit: ${Array.join(model.auditTrail, ', ')}`]),
 )
-const prepare = () =>
-  AccountSettingsComposition.prepareBlock({
-    init: accountSettingsInit,
-    update: accountSettingsUpdate,
-    view: accountSettingsView,
-  })
-const AccountSettingsBlock = Block.assemble(prepare)
+const AccountSettingsBlock = AccountSettingsDefinition.contract
+
+const layer = AccountSettingsDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init: accountSettingsInit,
+      update: accountSettingsUpdate,
+      view: accountSettingsView,
+    }
+  }),
+).layer
 
 const ProfileModel = Schema.Struct({
   currentUser: CurrentUser,
@@ -61,7 +74,11 @@ type ProfileModel = typeof ProfileModel.Type
 const ProfileMessage = defineMessageUnion({})
 type ProfileMessage = typeof ProfileMessage.Type
 
+const ProfileKey = Symbol('Profile')
+
 const ProfileDefinition = Block.makeDefinition('Profile', {
+  key: ProfileKey,
+  Init: Schema.Tuple([]),
   Model: ProfileModel,
   Message: ProfileMessage,
 })

@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -18,9 +15,14 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const HoverIntentExampleKey = Symbol('HoverIntentExample')
+
 const HoverIntentExampleDefinition = Block.makeDefinition(
   'HoverIntentExample',
   {
+    key: HoverIntentExampleKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },
@@ -107,3 +109,10 @@ const view = HoverIntentExampleComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = HoverIntentExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const hoverIntent = yield* HoverIntentBinding
+    return { children: [hoverIntent], init, update, view }
+  }),
+).provide(HoverIntent.layer)

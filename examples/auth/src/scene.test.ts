@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import { Valid } from 'foldkit/fieldValidation'
 import {
   Command,
@@ -11,6 +12,7 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
+import { ApplicationBlock } from './block'
 import { RedirectToDashboard, SaveSession } from './command'
 import { Session } from './domain/session'
 import { Message } from './message'
@@ -21,8 +23,6 @@ import {
   initModel as initLoginModel,
 } from './page/loggedOut/page/login/login'
 import { ApplicationRoute } from './route'
-import { update } from './update'
-import { view } from './view'
 
 const validModel = LoggedOutModel({
   route: ApplicationRoute.Login(),
@@ -39,24 +39,26 @@ const aliceSession = Session.make({
 })
 
 describe('login flow', () => {
-  test('successful login saves the session and lands on the dashboard', () => {
-    scene(
-      { update, view },
-      given(validModel),
-      submit(role('form')),
-      Command.expectExact(SimulateAuthRequest),
-      Command.resolve(
-        SimulateAuthRequest,
-        LoginBlock.Message.SucceededSimulateAuthRequest({
-          session: aliceSession,
-        }),
+  test('successful login saves the session and lands on the dashboard', async () => {
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(validModel),
+        submit(role('form')),
+        Command.expectExact(SimulateAuthRequest),
+        Command.resolve(
+          SimulateAuthRequest,
+          LoginBlock.Message.SucceededSimulateAuthRequest({
+            session: aliceSession,
+          }),
+        ),
+        Command.expectExact(SaveSession, RedirectToDashboard),
+        Command.resolveAll(
+          [SaveSession, Message.SucceededSaveSession()],
+          [RedirectToDashboard, Message.CompletedRedirectToDashboard()],
+        ),
+        expect(text('Welcome back, alice!')).toExist(),
       ),
-      Command.expectExact(SaveSession, RedirectToDashboard),
-      Command.resolveAll(
-        [SaveSession, Message.SucceededSaveSession()],
-        [RedirectToDashboard, Message.CompletedRedirectToDashboard()],
-      ),
-      expect(text('Welcome back, alice!')).toExist(),
     )
   })
 })

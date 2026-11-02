@@ -19,7 +19,15 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const Flags = Schema.Struct({ initialCount: Schema.Number })
+export type Flags = typeof Flags.Type
+
+export const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Flags]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -34,9 +42,6 @@ export const ports = {
   inbound: { stepChanged: Port.inbound(Schema.Number) },
   outbound: { countChanged: Port.outbound(Schema.Number) },
 }
-
-export const Flags = Schema.Struct({ initialCount: Schema.Number })
-export type Flags = typeof Flags.Type
 
 export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({ count: flags.initialCount, step: 1 }),
@@ -143,15 +148,8 @@ export const view = ApplicationComposition.makeView((model, h) =>
   ),
 )
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view, subscriptions, EffectsLayer }
+  }),
+)

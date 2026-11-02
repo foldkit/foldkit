@@ -1,5 +1,8 @@
-import { Option, Result, Schema } from 'effect'
+import { Effect, Option, Result, Schema } from 'effect'
 import { Block } from 'foldkit'
+import { Query } from 'foldkit/experimental'
+
+import { postQuery } from './queryKeyedDefine'
 
 const Model = Schema.Struct({
   postDetails: postQuery.Model,
@@ -7,7 +10,12 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+
   Model,
   Message: Schema.Never,
 })
@@ -27,3 +35,19 @@ const PostDetailsBinding = ApplicationDefinition.makeBinding(postQuery, {
         : ApplicationDefinition.makeNoopStep(),
   }),
 })
+
+const ApplicationComposition = ApplicationDefinition.makeComposition({
+  bindings: [PostDetailsBinding],
+})
+const init = ApplicationComposition.makeInit(() => ({
+  model: { maybeNotice: Option.none() },
+}))
+const update = ApplicationComposition.makeUpdate({})
+
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const postDetails = yield* PostDetailsBinding
+
+    return { children: [postDetails], init, update }
+  }),
+).provide(Query.layer)

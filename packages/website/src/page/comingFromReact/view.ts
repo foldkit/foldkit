@@ -3,9 +3,7 @@ import { Html, inertHtml as ih } from 'foldkit/html'
 
 import { Disclosure } from '@foldkit/ui'
 
-import { type CodeBlock } from '../../component'
 import { Icon } from '../../icon'
-import { type RenderHeadingLink } from '../../prose'
 import {
   ComingFromReactComposition,
   type ComingFromReactViewBuilder,
@@ -13,6 +11,7 @@ import {
 import { ComingFromReactContent } from './content'
 import { Message } from './message'
 import type { Model } from './model'
+import type { ViewInputs } from './viewInputs'
 
 // FAQ SHELL
 
@@ -88,11 +87,6 @@ export { tableOfContents }
 // than being built here. They establish the shared snippet controls and
 // dispatch the parent's heading-link Message. As top-level `viewInputs`
 // functions they run in the parent's boundary.
-type ViewInputs = Readonly<{
-  renderCopyButton: CodeBlock.RenderCopyButton
-  renderSnippet: CodeBlock.RenderSnippet
-  renderHeadingLink: RenderHeadingLink
-}>
 
 export const view = ComingFromReactComposition.makeView.withInputs<ViewInputs>(
   (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>

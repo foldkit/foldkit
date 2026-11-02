@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -13,7 +13,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const CounterKey = Symbol('Counter')
 const CounterDefinition = Block.makeDefinition('Counter', {
+  key: CounterKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -66,13 +70,9 @@ const view = CounterComposition.makeView((model, h) =>
   ),
 )
 
-const prepare = () =>
-  CounterComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const CounterBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const CounterBlock = CounterDefinition.contract
+export const layer = CounterDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+).layer

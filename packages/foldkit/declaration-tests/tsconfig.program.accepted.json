@@ -12,6 +12,7 @@
     "../src/vite-env.d.ts",
     "program.accepted.ts",
     "program-inferred-portability.accepted.ts",
+    "program-construction-portability.accepted.ts",
     "program-union-services.accepted.ts"
   ]
 }

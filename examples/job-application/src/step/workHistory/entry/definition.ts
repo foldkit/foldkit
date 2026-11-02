@@ -24,21 +24,31 @@ export const Message = defineMessageUnion({
   UpdatedTitle: { value: Schema.String },
   ToggledCurrentlyEmployed: { isChecked: Schema.Boolean },
   UpdatedDescription: { value: Schema.String },
-  RequestedRevealErrors: {},
   ClickedRemoveSelf: {},
 })
 export type Message = typeof Message.Type
+
+export const InMessage = defineMessageUnion({
+  RequestedRevealErrors: {},
+})
+export type InMessage = typeof InMessage.Type
 
 export const OutMessage = defineMessageUnion({
   Removed: {},
 })
 export type OutMessage = typeof OutMessage.Type
 
+export const WorkHistoryEntryKey = Symbol('WorkHistoryEntry')
+
 export const WorkHistoryEntryDefinition = Block.makeDefinition(
   'WorkHistoryEntry',
   {
+    key: WorkHistoryEntryKey,
+    Init: Schema.Tuple([Schema.String, CalendarDate]),
+    view: { kind: 'Element' },
     Model,
     Message,
+    InMessage,
     OutMessage,
     ChildInitContext: Schema.Struct({
       entryId: Schema.String,

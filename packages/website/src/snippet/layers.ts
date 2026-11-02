@@ -23,11 +23,6 @@ export type UserState = typeof UserState.Type
 export const Model = Schema.Struct({ user: UserState })
 export type Model = typeof Model.Type
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-
 type ApiClient = Readonly<{
   getUser: (userId: string) => Effect.Effect<User, unknown>
 }>
@@ -35,6 +30,17 @@ type ApiClient = Readonly<{
 class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
 ) {}
+
+const ApplicationKey = Symbol('Application')
+
+export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+  effects: { services: [ApiClientService] },
+  Model,
+  Message,
+})
 
 export const LoadUser = ApplicationDefinition.makeCommand('LoadUser', {
   args: { userId: Schema.String },

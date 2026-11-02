@@ -1,22 +1,13 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import {
-  AsyncCounterDemoComposition,
-  EffectsLayer,
-  init,
-  update,
-  view,
-} from './asyncCounterDemo'
-import type { Model } from './definition'
+import { EffectsLayer, init, update, view } from './asyncCounterDemo'
+import { AsyncCounterDemoDefinition } from './definition'
 
-const prepare = () =>
-  AsyncCounterDemoComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const AsyncCounterDemoBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const AsyncCounterDemoBlock = AsyncCounterDemoDefinition.contract
+
+const block = AsyncCounterDemoDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view, EffectsLayer }
+  }),
+)
+export const layer = block.layer

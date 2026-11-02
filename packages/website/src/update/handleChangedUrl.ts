@@ -45,7 +45,7 @@ export const handleChangedUrl = makeStep((model, { url }: ChangedUrl) => {
     reconcilePlayground(transition),
     MobileMenuDialogBinding.requestClose(),
     ThemeMenuBinding.requestClose(),
-    SearchBinding.informRouteChanged(),
+    SearchBinding.informRouteChange(),
     loadRouteData(transition),
     scrollAfterUrlChange(url, isDifferentPathname),
   ])
@@ -116,7 +116,7 @@ const loadRouteData = (transition: ApplicationTransition) =>
             return { model }
           }
 
-          return ApiReferenceBinding.informRouteChanged()
+          return ApiReferenceBinding.informRouteChange()
         },
         ExampleDetail: ({ exampleSlug }) => {
           if (
@@ -129,7 +129,7 @@ const loadRouteData = (transition: ApplicationTransition) =>
             return { model }
           }
 
-          return ExampleDetailBinding.informRouteChanged({ slug: exampleSlug })
+          return ExampleDetailBinding.informRouteChange({ slug: exampleSlug })
         },
       },
       () => ({ model }),

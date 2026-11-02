@@ -3,11 +3,9 @@ import type { Html } from 'foldkit/html'
 import { Checkbox } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
-import type { UiViewBuilder } from '../composition'
+import type { UiMessage, UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
-
-type UiMessage = typeof UiComposition.Message.Type
 
 const CHECKBOX_BASIC_DEMO_ID = 'checkbox-basic-demo'
 const CHECKBOX_ALL_DEMO_ID = 'checkbox-all-demo'

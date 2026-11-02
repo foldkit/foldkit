@@ -53,7 +53,7 @@ export const requestIssueMove = (
             onSome: issue =>
               Update.combineSteps([
                 beginIssueMove(issue, status, insertionIndex),
-                IssueBoardBinding.informIssueMoved(issue.projectId, {
+                IssueBoardBinding.informIssueMove(issue.projectId, {
                   status,
                   insertionIndex,
                 }),

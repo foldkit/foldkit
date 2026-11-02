@@ -190,6 +190,8 @@ export interface NamespaceMakeDefinition<
       OutMessage: OutMessageSchema
       /** Schema for the parent-prepared context shared with its child Binding init policies. */
       ChildInitContext?: ChildInitContextSchema
+      key?: never
+      Init?: never
       mounts?: never
       bindings?: never
     }>,
@@ -214,6 +216,8 @@ export interface NamespaceMakeDefinition<
       /** Schema for the parent-prepared context shared with its child Binding init policies. */
       ChildInitContext?: ChildInitContextSchema
       OutMessage?: never
+      key?: never
+      Init?: never
       mounts?: never
       bindings?: never
     }>,
@@ -295,6 +299,8 @@ export function makeDefinition<
     OutMessage: OutMessageSchema
     /** Schema for the parent-prepared context shared with its child Binding init policies. */
     ChildInitContext?: ChildInitContextSchema
+    key?: never
+    Init?: never
     mounts?: never
     bindings?: never
   }>,
@@ -324,6 +330,8 @@ export function makeDefinition<
     /** Schema for the parent-prepared context shared with its child Binding init policies. */
     ChildInitContext?: ChildInitContextSchema
     OutMessage?: never
+    key?: never
+    Init?: never
     mounts?: never
     bindings?: never
   }>,
@@ -353,6 +361,8 @@ export function makeDefinition<
     OutMessage: OutMessageSchema
     /** Schema for the parent-prepared context shared with its child Binding init policies. */
     ChildInitContext?: ChildInitContextSchema
+    key?: never
+    Init?: never
     mounts?: never
     bindings?: never
   }>,
@@ -381,6 +391,8 @@ export function makeDefinition<
     /** Schema for the parent-prepared context shared with its child Binding init policies. */
     ChildInitContext?: ChildInitContextSchema
     OutMessage?: never
+    key?: never
+    Init?: never
     mounts?: never
     bindings?: never
   }>,

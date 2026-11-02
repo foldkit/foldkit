@@ -1,9 +1,17 @@
+import { KeyValueStore } from 'effect/persistence'
 import { Block } from 'foldkit'
+import type { Url } from 'foldkit/url'
 
 import { Message } from './message'
 import { Model } from './model'
+import { RoomsClient } from './rpc'
 
+export const ApplicationKey = Symbol('Application')
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Block.makeInputContract<readonly [url: Url]>(),
+  view: { kind: 'Document' },
+  effects: { services: [RoomsClient, KeyValueStore.KeyValueStore] },
   Model,
   Message,
 })

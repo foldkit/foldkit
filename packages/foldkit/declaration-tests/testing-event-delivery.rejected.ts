@@ -24,7 +24,8 @@ subscriptionEmitter.emit(
   ChildMessage.ReceivedReading({ count: 4 }),
 )
 
-Story.story(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidMessageModel = Story.story(
   SubscriptionHostBlock.update,
   Story.given(SubscriptionHostBlock.init().model),
   // @ts-expect-error messageWith receives the tested update's precise Model.

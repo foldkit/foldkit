@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 // src/init.ts
 
 import { ApplicationComposition } from './composition'
@@ -28,16 +29,11 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+)
 
 // src/entry.ts
 

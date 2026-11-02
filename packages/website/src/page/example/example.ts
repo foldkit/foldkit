@@ -32,6 +32,7 @@ import {
   ExampleSources,
   loadSourcesForSlug,
 } from './sources'
+import type { ViewInputs } from './viewInputs'
 
 type SourceFileTabsBlockModel = typeof SourceFileTabsBlock.Model.Type
 
@@ -151,8 +152,6 @@ const clearExampleSources = makeStep(model => {
 })
 
 export const update = ExampleDetailComposition.makeUpdate({
-  InformedOfRouteChange: (model, { slug }) => changeExampleRoute(model, slug),
-
   ChangedExampleUrl: makeFieldsStep.fromMessage(({ url }) => ({
     maybeExampleUrl: () => Option.some(url),
   })),
@@ -176,6 +175,10 @@ const changeExampleRoute = makeStep((_model, slug: string) => {
   }
 
   return clearExampleSources
+})
+
+export const receive = ExampleDetailComposition.makeReceive({
+  InformedOfRouteChange: (model, { slug }) => changeExampleRoute(model, slug),
 })
 
 const featureTag = (text: string): Html =>
@@ -612,12 +615,6 @@ const availableExampleContentView = (
     ],
   ),
 ]
-
-type ViewInputs = Readonly<{
-  slug: string
-  isNarrowViewport: boolean
-  renderSnippet: CodeBlock.RenderSnippet
-}>
 
 /**
  * Renders one example app: its header, the live preview, and the source files

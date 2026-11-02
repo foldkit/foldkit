@@ -4431,6 +4431,37 @@ const multipleMountOutMessagesUpdate = (
 }
 
 describe('Scene OutMessage assertions', () => {
+  test('retains an initial Command and OutMessage until explicit resolution', () => {
+    const counterInit = {
+      ...counterUpdate(counterInitialModel, CounterMessage.ClickedFetch()),
+      outMessage: OutMessage.RequestedLogout(),
+    }
+
+    Scene.scene<CounterModel, CounterMessage, LogoutOutMessage>(
+      { update: counterUpdate, view: counterView },
+      Scene.__givenInit(counterInit),
+      Scene.expectOutMessage(OutMessage.RequestedLogout()),
+      Scene.Command.expectExact(FetchCount),
+      Scene.expect(Scene.role('status')).toHaveText('count: 0'),
+      Scene.Command.resolve(
+        FetchCount,
+        CounterMessage.SucceededFetchCount({ count: 42 }),
+      ),
+      Scene.expectNoOutMessage(),
+      Scene.expect(Scene.role('status')).toHaveText('count: 42'),
+    )
+  })
+
+  test('renders an initialization result with only a Model', () => {
+    Scene.scene(
+      { update: counterUpdate, view: counterView },
+      Scene.__givenInit({ model: counterInitialModel }),
+      Scene.expectNoOutMessage(),
+      Scene.Command.expectNone(),
+      Scene.expect(Scene.role('status')).toHaveText('count: 0'),
+    )
+  })
+
   test('retains the explicit generic call shape', () => {
     Scene.scene<CounterModel, CounterMessage>(
       { update: counterUpdate, view: counterView },
@@ -5908,6 +5939,26 @@ describe('scene mounts', () => {
       Scene.Mount.expectEnded(MeasurePanel),
       Scene.Mount.expectNone(),
     )
+  })
+
+  test('a reused ended Mount Step acknowledges each independent Scene', () => {
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
+    const expectPanelEnded = Scene.Mount.expectEnded(MeasurePanel)
+
+    for (const width of [100, 200]) {
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.given(openModel),
+        Scene.Mount.resolve(
+          MeasurePanel,
+          MountPanelMessage.MeasuredPanel({ width }),
+        ),
+        acknowledgeFocusButton,
+        Scene.click(Scene.role('button')),
+        expectPanelEnded,
+        Scene.Mount.expectNone(),
+      )
+    }
   })
 
   test('an interaction with an unresolved mount throws a clear error', () => {

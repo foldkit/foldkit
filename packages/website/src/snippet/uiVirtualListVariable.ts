@@ -1,7 +1,3 @@
-// Pseudocode walkthrough for variable-height rows. Builds on the basic
-// example: same Model, init, Message, and update wiring. The difference is in
-// the view. Fit the excerpts into your own definitions.
-
 // Keep the basic example's Binding initialization policy and initializer. This
 // view supplies exact per-item heights instead of a single fixed height.
 

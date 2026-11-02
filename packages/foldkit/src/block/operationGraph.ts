@@ -1,6 +1,41 @@
 import { outMessagePoliciesOf } from './outMessagePolicyRuntime.js'
 
+/** @internal Supplies constructor-owned recipe connections to an executable Composition. */
+export const ExecutionEnvironmentTypeId = Symbol(
+  'foldkit/Block/ExecutionEnvironment',
+)
+
 let currentChildBindings: ReadonlyArray<object> | undefined
+const compositionGraphs = new WeakMap<object, ReadonlyArray<object>>()
+
+/** @internal Associates a Composition with its frozen normalized child graph. */
+export const registerCompositionOperationGraph = (
+  composition: object,
+  bindings: ReadonlyArray<object>,
+): void => {
+  if (!Object.isFrozen(bindings) || compositionGraphs.has(composition)) {
+    throw new Error(
+      '[foldkit] A Composition must retain one frozen operation graph.',
+    )
+  }
+
+  compositionGraphs.set(composition, bindings)
+}
+
+/** @internal Reuses the original child identities and policies for every executor. */
+export const compositionOperationGraphOf = (
+  composition: object,
+): ReadonlyArray<object> => {
+  const graph = compositionGraphs.get(composition)
+
+  if (graph === undefined) {
+    throw new Error(
+      '[foldkit] Operation execution requires an original Composition graph.',
+    )
+  }
+
+  return graph
+}
 
 /** @internal Reads a Binding's policy from the active exact Composition graph. */
 export const activeBindingOutMessagePolicy = (

@@ -1,6 +1,4 @@
 import {
-  Clock,
-  Duration,
   Effect,
   Function,
   Layer,
@@ -9,205 +7,182 @@ import {
   Result,
   Schema,
   type Scope,
-  Tuple,
-  pipe,
 } from 'effect'
 
 import * as AsyncData from '../../asyncData/public.js'
 import * as Block from '../../block/public.js'
 import type { ValidateConstructionRequirements } from '../../block/scope.js'
 import * as Command from '../../command/index.js'
-import type * as Interruptible from '../../command/interruptible/public.js'
-import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
+import { type QueryStore, applyTransition } from './internal.js'
+import { cancelData } from './policy.js'
 import {
-  type CompletedFetchOf,
-  type QueryStore,
-  applyTransition,
-} from './internal.js'
-import { cancelData, isFresh, resolveStaleTime } from './policy.js'
+  type QueryAccessors,
+  type QueryConfig,
+  type QueryFetchApi,
+  type QueryFetchCommand,
+  type QueryFetchDefinition,
+  type QueryFetchHandler,
+  type QueryMessage,
+  type QueryModel,
+  type QueryOutMessage,
+  type QueryToLayer,
+  type QueryTransitionMessages,
+  makeQueryAccessors,
+  makeQueryFetchApi,
+  makeQueryMessage,
+  makeQueryModel,
+  makeQueryOperations,
+  makeQueryOutMessage,
+} from './queryContract.js'
 
 type AnyLayer =
   | Layer.Layer<never, unknown, unknown>
   | Layer.Layer<unknown, unknown, unknown>
 
-/** Schemas and identity used to define an unkeyed Query. */
-export type QueryConfig<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Notify extends boolean = false,
-> = Readonly<{
-  /** Block identity and prefix for the Query's Fetch Command. */
-  name: Name
-  /** Schema for successfully fetched data. */
-  data: Schema.Codec<A, AI, never, never>
-  /** Schema for expected fetch failures retained in AsyncData. */
-  error: Schema.Codec<E, EI, never, never>
-  /** Successful data's fresh lifetime. Defaults to Infinity. Expiry does not
-   * remove retained data; freshness-aware operations take an explicit Clock time. */
-  staleTime?: Duration.Input
-  /** Exposes accepted Fetch completions through an OutMessage contract. */
-  notifyOnCompletion?: Notify
-  execute?: never
-}> &
-  ([Notify] extends [true] ? Readonly<{ notifyOnCompletion: true }> : unknown)
+export type {
+  QueryConfig,
+  QueryToLayer,
+  QueryMessage,
+  QueryOutMessage,
+  QueryModel,
+  QueryOperationDeclarations,
+} from './queryContract.js'
+export {
+  makeQueryMessage,
+  makeQueryOutMessage,
+  makeQueryModel,
+  makeQueryOperations,
+} from './queryContract.js'
 
-type QueryFetchArgs = Readonly<{ generation: number }>
-
-type QueryFetchHandler<Name extends string, A, AI, E, EI> = Command.Handler<
-  `${Name}/Fetch`,
-  QueryFetchArgs,
-  CompletedFetchOf<QueryMessage<A, AI, E, EI>>
+type QueryMessageAt<Message, Tag extends string> = Extract<
+  Message,
+  Readonly<{ _tag: Tag }>
 >
 
-type QueryFetchDefinition<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-> = Interruptible.DefinitionWithArgs<
-  `${Name}/Fetch`,
-  { readonly generation: typeof Schema.Number },
-  Readonly<{ generation: number }>,
-  Effect.Effect<
-    CompletedFetchOf<QueryMessage<A, AI, E, EI>>,
-    never,
-    QueryFetchHandler<Name, A, AI, E, EI>
-  >
-> &
-  Readonly<{
-    toLayer: Command.ToLayer<
-      `${Name}/Fetch`,
-      QueryFetchArgs,
-      CompletedFetchOf<QueryMessage<A, AI, E, EI>>
-    >
-  }>
+type QueryCommandMessage<Message> = Extract<
+  Message,
+  Readonly<{ _tag: 'CompletedFetch' | 'CompletedCancelFetch' }>
+>
 
-/** Builds a Query fetch handler Layer from an Effect that constructs a fetch. */
-export interface QueryToLayer<Name extends string, A, AI, E, EI> {
-  <R, BuildE = never, BuildR = never>(
-    build: Effect.Effect<() => Effect.Effect<A, E, R>, BuildE, BuildR> &
-      ValidateConstructionRequirements<BuildR>,
-  ): Layer.Layer<
-    QueryFetchHandler<Name, A, AI, E, EI>,
-    BuildE,
-    Exclude<R | BuildR, Scope.Scope>
-  >
+type QueryApiHandlers<Model, Message, Requirements> = Readonly<{
+  RequestedReset: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>>
+  RequestedRevalidation: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>, Requirements>
+  RequestedRevalidationOrLoad: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>, Requirements>
+  RequestedLoadIfMissing: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>, Requirements>
+  RequestedLoadIfStale: (
+    model: Model,
+    message: QueryMessageAt<Message, 'RequestedLoadIfStale'>,
+  ) => Update.Return<Model, QueryCommandMessage<Message>, Requirements>
+  RequestedCancel: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>>
+  CompletedCancelFetch: (model: Model) => Readonly<{ model: Model }>
+  CompletedFetch: (
+    model: Model,
+    message: QueryMessageAt<Message, 'CompletedFetch'>,
+  ) => Readonly<{ model: Model }>
+}>
+
+/** @internal Named shared Query transitions preserving their individual result channels. */
+export interface QueryApi<
+  Model,
+  Message,
+  OutMessageSchema extends Schema.Codec<any, any, any, any>,
+  A,
+  E,
+  Requirements,
+>
+  extends QueryAccessors<Model, A, E>, QueryFetchApi<A, E, Requirements> {
+  readonly init: () => Readonly<{ model: Model }>
+  readonly reset: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>>
+  readonly updateHandlers: QueryApiHandlers<Model, Message, Requirements>
+  readonly notifyingUpdateHandlers: Omit<
+    QueryApiHandlers<Model, Message, Requirements>,
+    'CompletedFetch'
+  > &
+    Readonly<{
+      CompletedFetch: (
+        model: Model,
+        message: QueryMessageAt<Message, 'CompletedFetch'>,
+      ) => Update.ReturnWithOutMessage<
+        Model,
+        QueryCommandMessage<Message>,
+        OutMessageSchema['Type']
+      >
+    }>
+  readonly OutMessage: OutMessageSchema
+  readonly revalidate: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>, Requirements>
+  readonly revalidateOrLoad: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>, Requirements>
+  readonly loadIfMissing: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>, Requirements>
+  readonly loadIfStale: (
+    model: Model,
+    nowMillis: number,
+  ) => Update.Return<Model, QueryCommandMessage<Message>, Requirements>
+  readonly cancel: (
+    model: Model,
+  ) => Update.Return<Model, QueryCommandMessage<Message>>
 }
 
-const makeQueryMessage = <A, AI, E, EI>(
-  data: Schema.Codec<A, AI>,
-  error: Schema.Codec<E, EI>,
-) =>
-  defineMessageUnion({
-    RequestedReset: {},
-    RequestedRevalidation: {},
-    RequestedRevalidationOrLoad: {},
-    RequestedLoadIfMissing: {},
-    RequestedLoadIfStale: { nowMillis: Schema.Number },
-    RequestedCancel: {},
-    CompletedFetch: {
-      generation: Schema.Number,
-      result: Schema.Result(data, error),
-      completedAtMillis: Schema.optionalKey(Schema.Number),
-    },
-    CompletedCancelFetch: {},
-  })
-
-const makeQueryOutMessage = <A, AI, E, EI>(
-  data: Schema.Codec<A, AI>,
-  error: Schema.Codec<E, EI>,
-) =>
-  defineMessageUnion({
-    CompletedFetch: {
-      generation: Schema.Number,
-      result: Schema.Result(data, error),
-      completedAtMillis: Schema.optionalKey(Schema.Number),
-    },
-  })
-
-/**
- * Schema-backed Message union for requested Query operations and Fetch completions.
- *
- * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
- */
-export type QueryMessage<A, AI, E, EI> = ReturnType<
-  typeof makeQueryMessage<A, AI, E, EI>
->
-
-/** Schema-backed notification for an accepted Query Fetch completion. */
-export type QueryOutMessage<A, AI, E, EI> = ReturnType<
-  typeof makeQueryOutMessage<A, AI, E, EI>
->
-
-/** Builds the Model Schema for a Query. */
-export const makeQueryModel = <A, AI, E, EI>(
-  data: Schema.Codec<A, AI>,
-  error: Schema.Codec<E, EI>,
-): QueryModel<A, AI, E, EI> =>
-  Schema.Struct({
-    data: AsyncData.Schema(data, error).schema,
-    generation: Schema.Number,
-    maybeCompletedAtMillis: Schema.Option(Schema.Number).pipe(
-      Schema.withConstructorDefault(Effect.succeed(Option.none())),
-    ),
-  })
-
-/**
- * Model Schema for a Query containing one `AsyncData` value.
- *
- * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
- */
-export interface QueryModel<A, AI, E, EI> extends Schema.Struct<
-  Readonly<{
-    data: Schema.Codec<
-      AsyncData.AsyncData<A, E>,
-      AsyncData.AsyncDataEncoded<AI, EI>
-    >
-    generation: typeof Schema.Number
-    maybeCompletedAtMillis: Schema.withConstructorDefault<
-      Schema.Option<typeof Schema.Number>
-    >
-  }>
-> {}
-
-const makeQueryApi = <
+/** @internal Shares Query transitions and fetch recipes without completing a Block. */
+export const makeQueryApi = <
   Name extends string,
   A,
   AI,
   E,
   EI,
-  Fetch extends QueryFetchDefinition<Name, A, AI, E, EI>,
+  FetchName extends string,
 >(
   config: QueryConfig<Name, A, AI, E, EI, boolean>,
   Model: QueryModel<A, AI, E, EI>,
-  Message: QueryMessage<A, AI, E, EI>,
-  Fetch: Fetch,
-) => {
-  const staleTimeMillis = resolveStaleTime(config.name, config.staleTime)
-  const OutMessage = makeQueryOutMessage(config.data, config.error)
+  Message: QueryTransitionMessages<A, AI, E, EI>,
+  Fetch: QueryFetchCommand<FetchName, A, AI, E, EI>,
+  OutMessage: QueryOutMessage<A, AI, E, EI> = makeQueryOutMessage(
+    config.data,
+    config.error,
+  ),
+): QueryApi<
+  QueryModelType<A, AI, E, EI>,
+  QueryMessageType<A, AI, E, EI>,
+  QueryOutMessage<A, AI, E, EI>,
+  A,
+  E,
+  Command.HandlerOf<QueryFetchCommand<FetchName, A, AI, E, EI>>
+> => {
   type Model = typeof Model.Type
-  type Message = typeof Message.Type
+  type Message = QueryMessageType<A, AI, E, EI>
   type UpdateReturn = Update.Return<
     Model,
-    Message,
-    QueryFetchHandler<Name, A, AI, E, EI>
+    QueryCommandMessage<Message>,
+    Command.HandlerOf<typeof Fetch>
   >
-  type PureUpdateReturn = Update.Return<Model, Message>
-  type CancelReturn = Update.Return<Model, Message>
+  type PureUpdateReturn = Update.Return<Model, QueryCommandMessage<Message>>
+  type CancelReturn = Update.Return<Model, QueryCommandMessage<Message>>
 
   const store: QueryStore<
     Model,
     undefined,
     A,
     E,
-    Message,
-    QueryFetchHandler<Name, A, AI, E, EI>
+    QueryCommandMessage<Message>,
+    Command.HandlerOf<typeof Fetch>
   > = {
     read: model => model.data,
     start: (model, _args, data) => {
@@ -234,20 +209,13 @@ const makeQueryApi = <
   const reset = (model: Model): PureUpdateReturn => ({
     model: modifyFields(model, { data: () => AsyncData.Idle() }),
   })
-  const read = (model: Model): AsyncData.AsyncData<A, E> => model.data
+  const { read, isFresh: isQueryFresh } = makeQueryAccessors(config)
   const revalidate = (model: Model): UpdateReturn =>
     applyTransition(store, model, undefined, AsyncData.revalidate)
   const revalidateOrLoad = (model: Model): UpdateReturn =>
     applyTransition(store, model, undefined, AsyncData.revalidateOrLoad)
   const loadIfMissing = (model: Model): UpdateReturn =>
     applyTransition(store, model, undefined, AsyncData.loadIfMissing)
-  const isQueryFresh = (model: Model, nowMillis: number): boolean =>
-    isFresh(
-      model.data,
-      model.maybeCompletedAtMillis,
-      nowMillis,
-      staleTimeMillis,
-    )
   const loadIfStale = (model: Model, nowMillis: number): UpdateReturn =>
     isQueryFresh(model, nowMillis) ? { model } : revalidateOrLoad(model)
   const cancel = (model: Model): CancelReturn => {
@@ -318,7 +286,11 @@ const makeQueryApi = <
     CompletedFetch: (
       model: Model,
       message: typeof Message.CompletedFetch.Type,
-    ): Update.ReturnWithOutMessage<Model, Message, typeof OutMessage.Type> => {
+    ): Update.ReturnWithOutMessage<
+      Model,
+      QueryCommandMessage<Message>,
+      typeof OutMessage.Type
+    > => {
       return Option.match(completeFetch(model, message), {
         onNone: () => ({ model }),
         onSome: nextModel => ({
@@ -334,44 +306,7 @@ const makeQueryApi = <
       })
     },
   }
-  const operations = {
-    requestLoadIfStale: (nowMillis: number) =>
-      Tuple.make(Message.RequestedLoadIfStale({ nowMillis })),
-    requestCancel: () => Tuple.make(Message.RequestedCancel()),
-  }
-  const run = pipe(
-    Fetch({ generation: 0 }).effect,
-    Effect.map(({ result }) => AsyncData.settle(AsyncData.Loading(), result)),
-  )
-  const toLayer: QueryToLayer<Name, A, AI, E, EI> = <
-    HandlerR,
-    BuildE = never,
-    BuildR = never,
-  >(
-    build: Effect.Effect<() => Effect.Effect<A, E, HandlerR>, BuildE, BuildR> &
-      ValidateConstructionRequirements<BuildR>,
-  ) =>
-    Fetch.toLayer<HandlerR, BuildE, BuildR>(
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      Effect.map(
-        build,
-        execute =>
-          ({ generation }: QueryFetchArgs) =>
-            pipe(
-              execute(),
-              Effect.result,
-              Effect.flatMap(result =>
-                Effect.map(Clock.currentTimeMillis, completedAtMillis =>
-                  Message.CompletedFetch({
-                    generation,
-                    result,
-                    completedAtMillis,
-                  }),
-                ),
-              ),
-            ),
-      ) as never,
-    )
+  const { run, toLayer } = makeQueryFetchApi(Message, Fetch)
 
   return {
     init,
@@ -386,7 +321,6 @@ const makeQueryApi = <
     loadIfMissing,
     loadIfStale,
     cancel,
-    operations,
     run,
     toLayer,
   }
@@ -710,13 +644,7 @@ const makeQueryParts = <Name extends string, A, AI, E, EI>(
       Composition.prepareBlock({
         init,
         update: Composition.makeUpdate(api.updateHandlers),
-        operations: {
-          requestReset: Message.RequestedReset,
-          requestRevalidation: Message.RequestedRevalidation,
-          requestRevalidationOrLoad: Message.RequestedRevalidationOrLoad,
-          requestLoadIfMissing: Message.RequestedLoadIfMissing,
-          ...api.operations,
-        },
+        operations: makeQueryOperations(Message),
         EffectsLayer: Layer.empty,
         hostHandlers: [Fetch],
       })
@@ -756,20 +684,14 @@ const makeQueryParts = <Name extends string, A, AI, E, EI>(
         toKey: ({ generation }) => `${generation}`,
       },
     })
-    const api = makeQueryApi(config, Model, Message, Fetch)
+    const api = makeQueryApi(config, Model, Message, Fetch, OutMessage)
     const Composition = Definition.makeComposition()
     const init = Composition.makeInit(api.init)
     const prepare = () =>
       Composition.prepareBlock({
         init,
         update: Composition.makeUpdate(api.notifyingUpdateHandlers),
-        operations: {
-          requestReset: Message.RequestedReset,
-          requestRevalidation: Message.RequestedRevalidation,
-          requestRevalidationOrLoad: Message.RequestedRevalidationOrLoad,
-          requestLoadIfMissing: Message.RequestedLoadIfMissing,
-          ...api.operations,
-        },
+        operations: makeQueryOperations(Message),
         EffectsLayer: Layer.empty,
         hostHandlers: [Fetch],
       })

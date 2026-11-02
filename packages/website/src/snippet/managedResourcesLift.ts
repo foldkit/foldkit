@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 
 import { init } from './init'
@@ -9,7 +9,14 @@ import * as VideoCall from './videoCall'
 
 const SIGNALING_URL = 'wss://example.com/call/signaling'
 
-const CallDefinition = Block.makeDefinition('Call', { Model, Message })
+const CallKey = Symbol('Call')
+
+const CallDefinition = Block.makeDefinition('Call', {
+  key: CallKey,
+  Init: Schema.Tuple([]),
+  Model,
+  Message,
+})
 const SignalingSocket =
   CallDefinition.makeResource<WebSocket>()('SignalingSocket')
 
@@ -38,14 +45,18 @@ export const managedResources = CallDefinition.makeManagedResources(entry => ({
   }),
 }))
 
-const prepare = () =>
-  CallComposition.prepareBlock({
-    init,
-    update,
-    managedResources,
-    EffectsLayer: managedResources.signalingSocket.layer,
-  })
-export const CallBlock: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const CallBlock = CallDefinition.contract
+
+export const layer = CallDefinition.makeBlock(
+  Effect.gen(function* () {
+    const videoCall = yield* VideoCallBinding
+
+    return {
+      children: [videoCall],
+      init,
+      update,
+      managedResources,
+      EffectsLayer: managedResources.signalingSocket.layer,
+    }
+  }),
+).provide(VideoCall.layer).layer

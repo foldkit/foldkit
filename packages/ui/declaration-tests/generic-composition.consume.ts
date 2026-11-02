@@ -1,6 +1,7 @@
-import { Duration } from 'effect'
+import { Duration, Effect, Layer } from 'effect'
 import type * as Block from 'foldkit/block'
 
+import * as Animation from '@foldkit/ui/animation'
 import * as DragAndDrop from '@foldkit/ui/dragAndDrop'
 import * as Slider from '@foldkit/ui/slider'
 import * as Tooltip from '@foldkit/ui/tooltip'
@@ -13,13 +14,34 @@ import {
   Picker,
   PickerBinding,
   RootSlider,
+  type RootSliderExecutable,
+  type SliderExecutable,
   ToastBlock,
   WithOutMessageOnly,
   WithViewAndOutMessage,
   WithViewOnly,
   WithoutViewOrOutMessage,
   createComposition,
+  receiveAnimationShow,
+  receiveAnimationShowStep,
+  receiveDismissAllToasts,
 } from './generic-composition.accepted.js'
+
+export const exerciseReceivedInputs = (
+  animation: Block.ExecutableOf<typeof Animation.AnimationBlock>,
+  toast: Block.ExecutableOf<typeof ToastBlock>,
+) => {
+  const animationInit = animation.init({ id: 'relocated-animation' })
+  const toastInit = toast.init({ id: 'relocated-toast' })
+  const shown = receiveAnimationShow(animation, animationInit.model)
+  const shownByStep = receiveAnimationShowStep(animation)(animationInit.model)
+  const dismissed = receiveDismissAllToasts(toast, toastInit.model)
+
+  // @ts-expect-error A relocated consumer cannot construct retired local requests.
+  Animation.AnimationBlock.Message.RequestedShow()
+
+  return { shown, shownByStep, dismissed }
+}
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -51,7 +73,7 @@ export type RelocatedAssertions = [
     Equal<
       Exclude<
         ReturnType<
-          typeof Slider.SliderBlock.operations.informRangeChanged
+          SliderExecutable['operations']['informRangeChange']
         >['outMessage'],
         undefined
       >,
@@ -62,7 +84,7 @@ export type RelocatedAssertions = [
     Equal<
       Exclude<
         ReturnType<
-          typeof RootSlider.operations.informRangeChanged
+          RootSliderExecutable['operations']['informRangeChange']
         >['outMessage'],
         undefined
       >,
@@ -98,31 +120,33 @@ DialogBinding.requestOpen('unexpected')
 
 PickerBinding.requestSelectItem('Apple', 'Apple')
 
-Slider.SliderBlock.operations.informRangeChanged(
-  Slider.SliderBlock.init({ id: 'relocated-range', min: 0, max: 100, step: 1 })
-    .model,
-  { min: 10, max: 90 },
-)
-RootSlider.operations.informRangeChanged(
-  Slider.SliderBlock.init({
-    id: 'relocated-root-range',
-    min: 0,
-    max: 100,
-    step: 1,
-  }).model,
-  { min: 20, max: 80 },
-)
-Tooltip.TooltipBlock.operations.informShowDelayChanged(
-  Tooltip.TooltipBlock.init({ id: 'relocated-tooltip' }).model,
-  Duration.millis(250),
-)
-ToastBlock.operations.requestShow(
-  ToastBlock.init({ id: 'relocated-toast' }).model,
-  {
+export const relocatedOperations = Effect.gen(function* () {
+  const slider = yield* Slider.SliderBlock.get
+  const rootSlider = yield* RootSlider.get
+  const tooltip = yield* Tooltip.TooltipBlock.get
+  const toast = yield* ToastBlock.get
+  slider.operations.informRangeChange(
+    slider.init({ id: 'relocated-range', min: 0, max: 100, step: 1 }).model,
+    { min: 10, max: 90 },
+  )
+  rootSlider.operations.informRangeChange(
+    slider.init({
+      id: 'relocated-root-range',
+      min: 0,
+      max: 100,
+      step: 1,
+    }).model,
+    { min: 20, max: 80 },
+  )
+  tooltip.operations.informShowDelayChanged(
+    tooltip.init({ id: 'relocated-tooltip' }).model,
+    Duration.millis(250),
+  )
+  toast.operations.requestShow(toast.init({ id: 'relocated-toast' }).model, {
     payload: { kind: 'Saved' },
     duration: '1 second',
-  },
-)
+  })
+})
 
 // @ts-expect-error The emitted generic operation rejects an unrelated item.
 PickerBinding.requestSelectItem('Banana', 'Banana')
@@ -134,12 +158,10 @@ Picker.Message.SelectedItem({
   wasSelected: false,
 })
 
-WithViewAndOutMessage.replaceEffectsLayer(WithViewAndOutMessage.EffectsLayer)
-WithOutMessageOnly.replaceEffectsLayer(WithOutMessageOnly.EffectsLayer)
-WithViewOnly.replaceEffectsLayer(WithViewOnly.EffectsLayer)
-WithoutViewOrOutMessage.replaceEffectsLayer(
-  WithoutViewOrOutMessage.EffectsLayer,
-)
+WithViewAndOutMessage.provide(Layer.empty)
+WithOutMessageOnly.provide(Layer.empty)
+WithViewOnly.provide(Layer.empty)
+WithoutViewOrOutMessage.provide(Layer.empty)
 
 // @ts-expect-error A keyboard pickup includes its starting position.
 DragAndDrop.DragAndDropBlock.OutMessage.StartedKeyboardDrag({

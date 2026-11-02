@@ -8,7 +8,11 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ CompletedWaitBeforeDismissal: {} })
 type Message = typeof Message.Type
 
+const NotificationKey = Symbol('Notification')
+
 const NotificationDefinition = Block.makeDefinition('Notification', {
+  key: NotificationKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })

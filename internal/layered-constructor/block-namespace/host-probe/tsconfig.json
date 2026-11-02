@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "skipLibCheck": false,
+    "noEmit": true,
+    "types": []
+  },
+  "files": ["handler.ts"]
+}

@@ -4,10 +4,8 @@ import type { Html } from 'foldkit/html'
 import { Switch } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
-import type { UiViewBuilder } from '../composition'
+import type { UiMessage, UiViewBuilder } from '../composition'
 import { Message } from '../message'
-
-type UiMessage = typeof UiComposition.Message.Type
 
 const SWITCH_DEMO_ID = 'switch-demo'
 

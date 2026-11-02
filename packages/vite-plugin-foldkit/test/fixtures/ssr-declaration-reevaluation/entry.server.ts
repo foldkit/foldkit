@@ -1,5 +1,4 @@
 import { Effect, Layer } from 'effect'
-import { Block } from 'foldkit'
 import { Server } from 'foldkit/experimental'
 
 import { revision, subscriptions } from './declarations'
@@ -7,24 +6,34 @@ import { ApplicationDefinition, Model } from './definition'
 
 const composition = ApplicationDefinition.makeComposition()
 
-const prepareBlock = () =>
-  composition.prepareBlock({
-    init: () => ({ model: Model.make({ isTicking: false }) }),
-    update: composition.makeUpdate({
-      Ticked: model => ({ model }),
-      CompletedLoadPreferences: model => ({ model }),
-    }),
-    subscriptions,
-    EffectsLayer: subscriptions.layer,
-  })
-
-const block: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof Model,
-  typeof prepareBlock
-> = Block.assemble(prepareBlock)
+const init = composition.makeInit(() => ({
+  model: Model.make({ isTicking: false }),
+}))
+const update = composition.makeUpdate({
+  Ticked: model => ({ model }),
+  CompletedLoadPreferences: model => ({ model }),
+})
+const block = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      subscriptions,
+      EffectsLayer: subscriptions.layer,
+    }
+  }),
+)
 
 export const renderPage = async (): Promise<Server.EntryResult> => {
-  await Effect.runPromise(Effect.scoped(Layer.build(block.EffectsLayer)))
+  await Effect.runPromise(
+    Effect.scoped(
+      Effect.gen(function* () {
+        const application = yield* block.get
+        yield* Layer.build(application.EffectsLayer)
+      }),
+    ).pipe(Effect.provide(block.layer)),
+  )
 
   return Server.Responded(new Response(`revision ${revision}`))
 }

@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array, Option, Schema, pipe } from 'effect'
+import { Array, Option, pipe } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
@@ -12,7 +12,7 @@ import {
   maybeDropTarget,
 } from '@foldkit/ui/dragAndDrop'
 
-import { Issue, IssueStatus, Member, issueStatusLabel } from '../domain'
+import { Issue, IssueStatus, issueStatusLabel } from '../domain'
 import {
   DragAndDropBinding,
   IssueBoardComposition,
@@ -25,14 +25,7 @@ import {
 } from './dragAndDrop'
 import { Message } from './message'
 import type { Model } from './model'
-
-const ViewInputs = Schema.Struct({
-  issues: Schema.Array(Issue),
-  members: Schema.Array(Member),
-  issueHrefs: Schema.Record(Schema.String, Schema.String),
-  isSaving: Schema.optionalKey(Schema.Boolean),
-})
-type ViewInputs = typeof ViewInputs.Type
+import type { ViewInputs } from './viewInputs'
 
 const STATUSES: ReadonlyArray<IssueStatus> = [
   'Backlog',
@@ -412,7 +405,7 @@ const ghost = (
     },
   )
 
-export const view = IssueBoardComposition.makeView.withInputs<ViewInputs>(
+export const view = IssueBoardComposition.makeView.withInputs(
   (model, viewInputs, h) =>
     h.section(
       [

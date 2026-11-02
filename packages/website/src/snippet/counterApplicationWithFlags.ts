@@ -1,15 +1,9 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import type { Model } from './counterFlagsRoot'
-import { ApplicationComposition, init, update, view } from './counterFlagsRoot'
+import { ApplicationDefinition, init, update, view } from './counterFlagsRoot'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+)

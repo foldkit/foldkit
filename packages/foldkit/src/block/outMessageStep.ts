@@ -134,19 +134,26 @@ interface MessageFreeMakeOutMessageStep<Model, OutMessage> {
   >['fromMessage']
 }
 
-/** The focused OutMessage Step producer owned by a Definition. */
-export type MakeOutMessageStep<Model, Message, OutMessage> = [Message] extends [
-  never,
-]
+/**
+ * The focused OutMessage Step producer owned by a Definition. `InputMessage`
+ * defaults to `Message` and may describe a separate input union.
+ */
+export type MakeOutMessageStep<
+  Model,
+  Message,
+  OutMessage,
+  InputMessage = Message,
+> = [InputMessage] extends [never]
   ? MessageFreeMakeOutMessageStep<Model, OutMessage>
-  : FocusedMakeOutMessageStep<Model, Message, OutMessage>
+  : FocusedMakeOutMessageStep<Model, InputMessage, OutMessage>
 
 /** @internal Creates the OutMessage-only Step authoring helper. */
 export function makeOutMessageStep<
   Model,
   Message,
   OutMessage,
->(): MakeOutMessageStep<Model, Message, OutMessage>
+  InputMessage = Message,
+>(): MakeOutMessageStep<Model, Message, OutMessage, InputMessage>
 export function makeOutMessageStep(): unknown {
   function outMessageStep(
     toOutMessage: (model: unknown, message: unknown) => unknown,

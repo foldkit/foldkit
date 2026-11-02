@@ -89,7 +89,7 @@ The ids are framework-managed (the `-dialog-title`, `-dialog-description`, and `
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Dialog Binding's child initializer. Direct completed Block calls use `Dialog.DialogBlock.init()`.
+Configuration passed to the Dialog Binding's child initializer. Scoped tests pass the same config to `Story.init(...)` or `Scene.init(...)` and provide the component implementation Layer.
 
 | Name            | Type      | Default | Description                                                                                                                                                                                                                                                                                          |
 | --------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

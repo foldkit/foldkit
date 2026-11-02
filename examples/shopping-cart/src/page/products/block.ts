@@ -1,18 +1,19 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { ProductsComposition } from './composition'
-import type { Model } from './definition'
+import { ProductsDefinition } from './definition'
 import { ReplaceSearchUrl, init, update } from './products'
 import { view } from './view'
 
-const prepare = () =>
-  ProductsComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer: ReplaceSearchUrl.layer,
-  })
-export const ProductsBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ProductsBlock = ProductsDefinition.contract
+
+export const layer = ProductsDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer: ReplaceSearchUrl.layer,
+    }
+  }),
+).layer

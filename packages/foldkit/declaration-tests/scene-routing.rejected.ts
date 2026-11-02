@@ -23,20 +23,23 @@ import {
   view,
 } from './scene-routing.accepted.js'
 
-scene(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidUnroutedNavigation = scene(
   { update, view },
   given(initial),
   // @ts-expect-error navigation requires routing configuration
   Navigation.changedUrl('/'),
 )
-scene(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidNestedUnroutedNavigation = scene(
   { update, view },
   given(initial),
   // @ts-expect-error nesting does not grant routing configuration
   inside(role('region'), Navigation.changedUrl('/')),
 )
 const ForeignMessage = defineMessageUnion({ Other: {} })
-scene(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidRoutingMessage = scene(
   {
     update,
     view,
@@ -48,7 +51,8 @@ scene(
   given(initial),
 )
 const WrongPayload = defineMessageUnion({ ChangedUrl: { url: Schema.String } })
-scene(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidRoutingPayload = scene(
   {
     update,
     view,
@@ -60,7 +64,8 @@ scene(
   given(initial),
 )
 declare const routing: SceneRouting<typeof Message.Type> | undefined
-scene(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidOptionalRouting = scene(
   { update, view, routing },
   given(initial),
   // @ts-expect-error routing must be definitely configured
@@ -70,7 +75,8 @@ scene(
 const WrongOriginMessage = defineMessageUnion({
   ChangedUrl: { url: Schema.Number },
 })
-scene(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidRoutingCallbackInput = scene(
   {
     update,
     view,

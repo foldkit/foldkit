@@ -1,0 +1,14 @@
+# Regenerated proof packages, logs, and diagnostic copies.
+**/verification/
+**/verification-*/
+**/diagnosis-*/
+**/compiler-diagnosis/
+**/resource-compiler-diagnosis/
+**/.output/
+**/.relocated/
+generic-identity/package-core/
+listbox-contract/production/
+emission-boundary/boundaries-??????/
+emission-boundary/overloads-??????/
+emission-boundary/reflection-performance-??????/
+emission-boundary/program-??????/

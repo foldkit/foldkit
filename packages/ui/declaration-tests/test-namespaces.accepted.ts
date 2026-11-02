@@ -1,3 +1,5 @@
+import { Layer } from 'effect'
+
 import * as UI from '@foldkit/ui'
 import * as Animation from '@foldkit/ui/animation'
 import * as Calendar from '@foldkit/ui/calendar'
@@ -79,3 +81,15 @@ export const virtualListDefinitions = [
   VirtualList.test.ApplyScroll,
   VirtualList.test.ObserveVirtualList,
 ]
+
+export const implementationLayers = Layer.mergeAll(
+  Animation.layer,
+  Calendar.layer,
+  Combobox.layer,
+  DragAndDrop.layer,
+  HoverIntent.layer,
+  Listbox.layer,
+  Popover.layer,
+  Tooltip.layer,
+  VirtualList.layer,
+)

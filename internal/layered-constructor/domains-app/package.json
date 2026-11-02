@@ -1,0 +1,59 @@
+{
+  "name": "foldkit-domains-layered-spike",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "wrangler dev --local",
+    "typecheck": "tsc --noEmit",
+    "format": "oxfmt --disable-nested-config",
+    "test": "vitest run",
+    "lint": "oxlint src && effect-tsgo patch --no-typescript --oxlint && oxlint --config .oxlintrc.effect.json --deny-warnings src",
+    "format:check": "oxfmt --check --disable-nested-config",
+    "test:e2e": "playwright test",
+    "test:e2e:dev": "playwright test --config playwright.dev.config.ts",
+    "plan": "pnpm --dir infra exec alchemy plan",
+    "deploy": "pnpm --dir infra exec alchemy deploy",
+    "dev:cloudflare": "pnpm --dir infra exec alchemy dev",
+    "test:e2e:worker": "playwright test --config playwright.worker.config.ts",
+    "test:e2e:preview": "playwright test --config playwright.preview.config.ts",
+    "generate:social": "node scripts/generate-social-assets.ts",
+    "verify": "node verify.mjs"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.1.0",
+    "@foldkit/devtools": "file:../../../packages/devtools",
+    "@foldkit/ui": "file:../../../packages/ui",
+    "@fontsource-variable/geist": "^5.3.0",
+    "effect": "4.1.0",
+    "foldkit": "file:../../../packages/foldkit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@effect/tsgo": "0.50.0",
+    "@foldkit/devtools-mcp": "file:../../../packages/devtools-mcp",
+    "@foldkit/oxlint-plugin": "file:../../../packages/oxlint-plugin-foldkit",
+    "@foldkit/vite-plugin": "file:../../../packages/vite-plugin-foldkit",
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "26.4.0",
+    "happy-dom": "^20.14.5",
+    "oxfmt": "^0.66.0",
+    "oxlint": "1.85.0",
+    "oxlint-tsgolint": "7.0.2003",
+    "sharp": "0.35.5",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.1.0-beta",
+    "vite": "^8.3.3",
+    "vitest": "^5.0.2",
+    "wrangler": "4.152.0"
+  },
+  "private": true,
+  "description": "A domain-search showcase built with Cloudflare, Alchemy, Foldkit, and Effect",
+  "license": "MIT",
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=24.11.1"
+  }
+}

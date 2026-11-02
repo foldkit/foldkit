@@ -1,1 +1,2 @@
-export { NotificationCenterBlock } from './block'
+export { NotificationCenterBlock } from './definition'
+export { layer } from './block'

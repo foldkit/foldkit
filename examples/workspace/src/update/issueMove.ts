@@ -25,7 +25,7 @@ export const informBoardMoveFailure = (issueId: string) =>
       Option.match({
         onNone: () => ({ model }),
         onSome: issue =>
-          IssueBoardBinding.informIssueMoveFailed(issue.projectId),
+          IssueBoardBinding.informIssueMoveFailure(issue.projectId),
       }),
     ),
   )

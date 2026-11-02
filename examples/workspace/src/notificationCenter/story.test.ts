@@ -1,8 +1,9 @@
-import { Array, Option } from 'effect'
+import { Array, Effect, Option } from 'effect'
+import { inMessage } from 'foldkit/story'
+import * as Story from 'foldkit/story'
 import {
   expectNoOutMessage,
   expectOutMessage,
-  given,
   message,
   model,
   story,
@@ -10,10 +11,11 @@ import {
 import { describe, expect, test } from 'vitest'
 
 import { Comment, Issue, NotificationActivity } from '../domain'
-import { NotificationCenterBlock } from './block'
+import { layer } from './block'
+import { NotificationCenterBlock } from './definition'
+import { InMessage } from './inMessage'
 import { Message } from './message'
 import { OutMessage } from './outMessage'
-import { update } from './update'
 
 const previousComment = Comment.make({
   id: 'comment-previous',
@@ -44,60 +46,64 @@ const activity = NotificationActivity.Commented({ issue, comment: newComment })
 
 describe('NotificationCenterBlock', () => {
   test('deduplicates activity and retains each recipient read state', () => {
-    story(
-      update,
-      given(NotificationCenterBlock.init().model),
-      message(Message.InformedOfActivity({ activity })),
-      message(
-        Message.ClickedNotificationReadState({
-          notificationId: 'comment:comment-new:member-assignee',
+    return Effect.runPromise(
+      story(
+        NotificationCenterBlock,
+        Story.init(),
+        inMessage(InMessage.InformedOfActivity({ activity })),
+        message(
+          Message.ClickedNotificationReadState({
+            notificationId: 'comment:comment-new:member-assignee',
+          }),
+        ),
+        inMessage(InMessage.InformedOfActivity({ activity })),
+        model(model => {
+          expect(model.notifications).toHaveLength(2)
+          expect(
+            Array.findFirst(
+              model.notifications,
+              notification => notification.recipientId === 'member-assignee',
+            ).pipe(Option.getOrThrow).isRead,
+          ).toBe(true)
+          expect(
+            Array.findFirst(
+              model.notifications,
+              notification => notification.recipientId === 'member-participant',
+            ).pipe(Option.getOrThrow).isRead,
+          ).toBe(false)
         }),
-      ),
-      message(Message.InformedOfActivity({ activity })),
-      model(model => {
-        expect(model.notifications).toHaveLength(2)
-        expect(
-          Array.findFirst(
-            model.notifications,
-            notification => notification.recipientId === 'member-assignee',
-          ).pipe(Option.getOrThrow).isRead,
-        ).toBe(true)
-        expect(
-          Array.findFirst(
-            model.notifications,
-            notification => notification.recipientId === 'member-participant',
-          ).pipe(Option.getOrThrow).isRead,
-        ).toBe(false)
-      }),
-      expectNoOutMessage(),
+        expectNoOutMessage(),
+      ).pipe(Effect.provide(layer)),
     )
   })
 
   test('marks the selected notification read without changing another recipient', () => {
-    story(
-      update,
-      given(NotificationCenterBlock.init().model),
-      message(Message.InformedOfActivity({ activity })),
-      message(
-        Message.ClickedNotification({
-          notificationId: 'comment:comment-new:member-assignee',
+    return Effect.runPromise(
+      story(
+        NotificationCenterBlock,
+        Story.init(),
+        inMessage(InMessage.InformedOfActivity({ activity })),
+        message(
+          Message.ClickedNotification({
+            notificationId: 'comment:comment-new:member-assignee',
+          }),
+        ),
+        expectOutMessage(OutMessage.SelectedIssue({ issueId: issue.id })),
+        model(model => {
+          expect(
+            Array.findFirst(
+              model.notifications,
+              notification => notification.recipientId === 'member-assignee',
+            ).pipe(Option.getOrThrow).isRead,
+          ).toBe(true)
+          expect(
+            Array.findFirst(
+              model.notifications,
+              notification => notification.recipientId === 'member-participant',
+            ).pipe(Option.getOrThrow).isRead,
+          ).toBe(false)
         }),
-      ),
-      expectOutMessage(OutMessage.SelectedIssue({ issueId: issue.id })),
-      model(model => {
-        expect(
-          Array.findFirst(
-            model.notifications,
-            notification => notification.recipientId === 'member-assignee',
-          ).pipe(Option.getOrThrow).isRead,
-        ).toBe(true)
-        expect(
-          Array.findFirst(
-            model.notifications,
-            notification => notification.recipientId === 'member-participant',
-          ).pipe(Option.getOrThrow).isRead,
-        ).toBe(false)
-      }),
+      ).pipe(Effect.provide(layer)),
     )
   })
 })

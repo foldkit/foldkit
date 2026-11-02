@@ -1,13 +1,14 @@
+import { Effect } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
+  ApplicationBlock,
   DetermineStartTime,
   DetermineTickTime,
   Message,
   type Model,
-  update,
 } from './application'
 
 const idleModel: Model = {
@@ -24,103 +25,117 @@ const runningModel: Model = {
 
 describe('update', () => {
   describe('start', () => {
-    test('ClickedStart fires DetermineStartTime with current elapsed time', () => {
-      story(
-        update,
-        given(modifyFields(idleModel, { elapsedMs: () => 2000 })),
-        message(Message.ClickedStart()),
-        Command.expectHas(DetermineStartTime),
-        model(model => {
-          expect(model.isRunning).toBe(false)
-        }),
-        Command.resolve(
-          DetermineStartTime,
-          Message.CompletedDetermineStartTime({ startTime: 500 }),
+    test('ClickedStart fires DetermineStartTime with current elapsed time', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(modifyFields(idleModel, { elapsedMs: () => 2000 })),
+          message(Message.ClickedStart()),
+          Command.expectHas(DetermineStartTime),
+          model(model => {
+            expect(model.isRunning).toBe(false)
+          }),
+          Command.resolve(
+            DetermineStartTime,
+            Message.CompletedDetermineStartTime({ startTime: 500 }),
+          ),
+          model(model => {
+            expect(model.isRunning).toBe(true)
+            expect(model.startTime).toBe(500)
+          }),
         ),
-        model(model => {
-          expect(model.isRunning).toBe(true)
-          expect(model.startTime).toBe(500)
-        }),
       )
     })
 
-    test('CompletedDetermineStartTime stores the offset start time and starts running', () => {
-      story(
-        update,
-        given(idleModel),
-        message(Message.CompletedDetermineStartTime({ startTime: 1000 })),
-        model(model => {
-          expect(model.isRunning).toBe(true)
-          expect(model.startTime).toBe(1000)
-        }),
+    test('CompletedDetermineStartTime stores the offset start time and starts running', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(idleModel),
+          message(Message.CompletedDetermineStartTime({ startTime: 1000 })),
+          model(model => {
+            expect(model.isRunning).toBe(true)
+            expect(model.startTime).toBe(1000)
+          }),
+        ),
       )
     })
   })
 
   describe('stop and reset', () => {
-    test('ClickedStop pauses the stopwatch without zeroing time', () => {
-      story(
-        update,
-        given(runningModel),
-        message(Message.ClickedStop()),
-        model(model => {
-          expect(model.isRunning).toBe(false)
-          expect(model.elapsedMs).toBe(5000)
-          expect(model.startTime).toBe(1000)
-        }),
+    test('ClickedStop pauses the stopwatch without zeroing time', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(runningModel),
+          message(Message.ClickedStop()),
+          model(model => {
+            expect(model.isRunning).toBe(false)
+            expect(model.elapsedMs).toBe(5000)
+            expect(model.startTime).toBe(1000)
+          }),
+        ),
       )
     })
 
-    test('ClickedReset zeros elapsedMs, isRunning, and startTime', () => {
-      story(
-        update,
-        given(runningModel),
-        message(Message.ClickedReset()),
-        model(model => {
-          expect(model.elapsedMs).toBe(0)
-          expect(model.isRunning).toBe(false)
-          expect(model.startTime).toBe(0)
-        }),
+    test('ClickedReset zeros elapsedMs, isRunning, and startTime', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(runningModel),
+          message(Message.ClickedReset()),
+          model(model => {
+            expect(model.elapsedMs).toBe(0)
+            expect(model.isRunning).toBe(false)
+            expect(model.startTime).toBe(0)
+          }),
+        ),
       )
     })
 
-    test('ClickedReset on an idle stopwatch is a no-op', () => {
-      story(
-        update,
-        given(idleModel),
-        message(Message.ClickedReset()),
-        model(model => {
-          expect(model).toEqual(idleModel)
-        }),
+    test('ClickedReset on an idle stopwatch is a no-op', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(idleModel),
+          message(Message.ClickedReset()),
+          model(model => {
+            expect(model).toEqual(idleModel)
+          }),
+        ),
       )
     })
   })
 
   describe('ticking', () => {
-    test('Ticked fires DetermineTickTime with the stored startTime', () => {
-      story(
-        update,
-        given(runningModel),
-        message(Message.Ticked()),
-        Command.expectHas(DetermineTickTime),
-        Command.resolve(
-          DetermineTickTime,
-          Message.CompletedDetermineTickTime({ elapsedMs: 6000 }),
+    test('Ticked fires DetermineTickTime with the stored startTime', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(runningModel),
+          message(Message.Ticked()),
+          Command.expectHas(DetermineTickTime),
+          Command.resolve(
+            DetermineTickTime,
+            Message.CompletedDetermineTickTime({ elapsedMs: 6000 }),
+          ),
+          model(model => {
+            expect(model.elapsedMs).toBe(6000)
+          }),
         ),
-        model(model => {
-          expect(model.elapsedMs).toBe(6000)
-        }),
       )
     })
 
-    test('CompletedDetermineTickTime stores the new elapsed time', () => {
-      story(
-        update,
-        given(runningModel),
-        message(Message.CompletedDetermineTickTime({ elapsedMs: 7500 })),
-        model(model => {
-          expect(model.elapsedMs).toBe(7500)
-        }),
+    test('CompletedDetermineTickTime stores the new elapsed time', async () => {
+      await Effect.runPromise(
+        story(
+          ApplicationBlock,
+          given(runningModel),
+          message(Message.CompletedDetermineTickTime({ elapsedMs: 7500 })),
+          model(model => {
+            expect(model.elapsedMs).toBe(7500)
+          }),
+        ),
       )
     })
   })

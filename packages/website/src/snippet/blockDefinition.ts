@@ -10,27 +10,21 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ChangedTheme: { theme: Theme },
-  RequestedThemeChange: { theme: Theme },
-  RequestedReset: {},
   CompletedSaveTheme: {},
   FailedSaveTheme: {},
 })
 export type Message = typeof Message.Type
 
+export const InMessage = defineMessageUnion({
+  RequestedThemeChange: { theme: Theme },
+  RequestedReset: {},
+})
+export type InMessage = typeof InMessage.Type
+
 export const OutMessage = defineMessageUnion({
   ChangedTheme: { theme: Theme },
 })
 export type OutMessage = typeof OutMessage.Type
-
-export const SettingsDefinition = Block.makeDefinition('Settings', {
-  Model,
-  Message,
-  OutMessage,
-})
-
-export const { makeStep, makeNoopStep } = SettingsDefinition
-
-export const SettingsComposition = SettingsDefinition.makeComposition()
 
 export class SettingsStore extends Context.Service<
   SettingsStore,
@@ -38,6 +32,28 @@ export class SettingsStore extends Context.Service<
     saveTheme: (theme: Theme) => Effect.Effect<void, Error>
   }>
 >()('SettingsStore') {}
+
+const SettingsKey = Symbol('Settings')
+
+export const SettingsDefinition = Block.makeDefinition('Settings', {
+  key: SettingsKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  effects: { services: [SettingsStore] },
+  inMessageOutputs: {
+    RequestedThemeChange: { outMessage: OutMessage },
+    RequestedReset: { outMessage: OutMessage },
+  },
+
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+})
+
+export const { makeStep, makeNoopStep } = SettingsDefinition
+
+export const SettingsComposition = SettingsDefinition.makeComposition()
 
 export const SaveTheme = SettingsDefinition.makeCommand('SaveTheme', {
   args: { theme: Theme },
@@ -52,3 +68,5 @@ export const SaveTheme = SettingsDefinition.makeCommand('SaveTheme', {
       )
   },
 })
+
+export const SettingsBlock = SettingsDefinition.contract

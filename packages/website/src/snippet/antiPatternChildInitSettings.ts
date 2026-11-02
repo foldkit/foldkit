@@ -1,5 +1,5 @@
 // definition.ts
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -7,10 +7,14 @@ export const Theme = Schema.Literals(['Light', 'Dark'])
 export type Theme = typeof Theme.Type
 
 export const Message = defineMessageUnion({
-  RequestedRestore: { theme: Theme },
   CompletedRefreshAvailableThemes: {},
 })
 export type Message = typeof Message.Type
+
+export const InMessage = defineMessageUnion({
+  RequestedRestore: { theme: Theme },
+})
+export type InMessage = typeof InMessage.Type
 
 export const OutMessage = defineMessageUnion({
   RestoredTheme: { theme: Theme },
@@ -20,9 +24,18 @@ export type OutMessage = typeof OutMessage.Type
 export const Model = Schema.Struct({ theme: Theme })
 export type Model = typeof Model.Type
 
+const SettingsKey = Symbol('Settings')
+
 export const SettingsDefinition = Block.makeDefinition('Settings', {
+  key: SettingsKey,
+  Init: Schema.Tuple([]),
+  inMessageOutputs: {
+    RequestedRestore: { outMessage: OutMessage.RestoredTheme },
+  },
+
   Model,
   Message,
+  InMessage,
   OutMessage,
 })
 
@@ -34,29 +47,27 @@ import { EffectsLayer, RefreshAvailableThemes } from './command'
 import { Message, Model, OutMessage, SettingsDefinition } from './definition'
 
 const SettingsComposition = SettingsDefinition.makeComposition()
-const requestRestore = Message.RequestedRestore
 
 export const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'Light' }),
 }))
 
 export const update = SettingsComposition.makeUpdate({
+  CompletedRefreshAvailableThemes: model => ({ model }),
+})
+
+export const receive = SettingsComposition.makeReceive({
   RequestedRestore: (model, { theme }) => ({
     model: modifyFields(model, { theme: () => theme }),
     commands: [RefreshAvailableThemes()],
     outMessage: OutMessage.RestoredTheme({ theme }),
   }),
-  CompletedRefreshAvailableThemes: model => ({ model }),
 })
 
-const prepare = () =>
-  SettingsComposition.prepareBlock({
-    init,
-    update,
-    operations: { requestRestore },
-    EffectsLayer,
-  })
-export const block: Block.FromAssemblyWithOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const block = SettingsDefinition.contract
+
+export const layer = SettingsDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, receive, EffectsLayer }
+  }),
+).layer

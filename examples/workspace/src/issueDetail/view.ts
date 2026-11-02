@@ -1,10 +1,9 @@
-import { Array, Option, Schema, String } from 'effect'
+import { Array, Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Button, Fieldset, Input, Textarea } from '@foldkit/ui'
 import { buttonId } from '@foldkit/ui/listbox'
 
-import { Issue, Member, Project } from '../domain'
 import {
   PriorityListboxOption,
   StatusListboxOption,
@@ -23,14 +22,8 @@ import { CONFLICT_MESSAGE, isDirty } from './draft'
 import { encodeAssigneeSelection } from './field'
 import { Message } from './message'
 import { type Model, SaveState } from './model'
+import type { ViewInputs } from './viewInputs'
 
-const ViewInputs = Schema.Struct({
-  issue: Issue,
-  members: Schema.Array(Member),
-  projects: Schema.Array(Project),
-  authorId: Schema.String,
-})
-type ViewInputs = typeof ViewInputs.Type
 const STATUS_OPTIONS: ReadonlyArray<StatusListboxOption> = [
   { value: 'Backlog', label: 'Backlog' },
   { value: 'Todo', label: 'Todo' },
@@ -350,7 +343,7 @@ const submitButton = (model: Model, h: IssueDetailViewBuilder): Html => {
   )
 }
 
-export const view = IssueDetailComposition.makeView.withInputs<ViewInputs>(
+export const view = IssueDetailComposition.makeView.withInputs(
   (model, viewInputs, h) =>
     h.section(
       [

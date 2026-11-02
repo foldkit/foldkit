@@ -4,6 +4,13 @@ type AnyFunction = (...args: ReadonlyArray<any>) => any
 type HandlerCases = Readonly<Record<string, unknown>>
 type AuthoringMethod = 'makeOutMessageFold' | 'makeOutMessageForward'
 
+const authoringContracts = new WeakSet<object>()
+
+/** @internal Allows policy authoring against known passive constructor contracts. */
+export const registerAuthoringChildContract = (contract: object): void => {
+  authoringContracts.add(contract)
+}
+
 const handlerConfigurations = new WeakMap<
   object,
   Readonly<{ method: AuthoringMethod; cases: HandlerCases }>
@@ -45,10 +52,11 @@ export const assertChildOutMessageHandlers: (
     !Predicate.isObject(child) ||
     !Schema.isSchema(Reflect.get(child, 'Model')) ||
     !Schema.isSchema(Reflect.get(child, 'Message')) ||
-    !Predicate.isFunction(Reflect.get(child, 'init')) ||
-    !Predicate.isFunction(Reflect.get(child, 'update')) ||
-    !Array.isArray(Reflect.get(child, 'bindings')) ||
-    !Array.isArray(Reflect.get(child, 'hostHandlers'))
+    (!authoringContracts.has(child) &&
+      (!Predicate.isFunction(Reflect.get(child, 'init')) ||
+        !Predicate.isFunction(Reflect.get(child, 'update')) ||
+        !Array.isArray(Reflect.get(child, 'bindings')) ||
+        !Array.isArray(Reflect.get(child, 'hostHandlers'))))
   ) {
     throw new Error(
       `[foldkit] Definition.${method} requires a completed child Block.`,

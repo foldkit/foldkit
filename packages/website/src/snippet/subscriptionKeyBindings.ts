@@ -21,7 +21,14 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const SearchDefinition = Block.makeDefinition('Search', { Model, Message })
+const SearchKey = Symbol('Search')
+
+const SearchDefinition = Block.makeDefinition('Search', {
+  key: SearchKey,
+  Init: Schema.Tuple([]),
+  Model,
+  Message,
+})
 
 const subscriptions = SearchDefinition.makeSubscriptions(entry => ({
   keyBindings: entry(

@@ -23,7 +23,7 @@ export type ViewInputs = Readonly<{
   today: CalendarDate
 }>
 
-export const view = EducationEntryComposition.makeView.withInputs<ViewInputs>(
+export const view = EducationEntryComposition.makeView.withInputs(
   (model, viewInputs, h) => {
     const { today } = viewInputs
 

@@ -160,25 +160,29 @@ type ValidateFieldStep<
  * constraints. Unknown fields are rejected. An empty transformation record
  * returns the identical incoming Model.
  *
+ * `InputMessage` defaults to `Message` and may describe a separate input union.
+ *
  * Use Binding operations for child Block transitions. This helper authors
  * changes to the owning Block's fields and returns no Commands or OutMessage.
  */
-export type DefineStepFields<Model, Message> = [Model] extends [
-  ReadonlyArray<unknown>,
-]
+export type DefineStepFields<Model, Message, InputMessage = Message> = [
+  Model,
+] extends [ReadonlyArray<unknown>]
   ? never
   : [Model] extends [object]
-    ? [Message] extends [never]
+    ? [InputMessage] extends [never]
       ? MessageFreeObjectStepFields<Extract<Model, object>>
-      : FocusedObjectStepFields<Extract<Model, object>, Message>
+      : FocusedObjectStepFields<Extract<Model, object>, InputMessage>
     : never
 
 /** @internal Creates the field Step authoring helper without running its callback. */
-export function makeStepFields<Model extends object, Message>(): [
+export function makeStepFields<
+  Model extends object,
   Message,
-] extends [never]
+  InputMessage = Message,
+>(): [InputMessage] extends [never]
   ? MessageFreeObjectStepFields<Model>
-  : FocusedObjectStepFields<Model, Message>
+  : FocusedObjectStepFields<Model, InputMessage>
 export function makeStepFields(): unknown {
   function stepFields(
     evolve: (model: object, message: unknown) => FieldTransforms<object>,

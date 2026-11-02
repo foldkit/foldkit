@@ -1,1 +1,1 @@
-export { ProductsBlock } from './block'
+export { ProductsBlock, layer } from './block'

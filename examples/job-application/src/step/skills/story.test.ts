@@ -1,83 +1,77 @@
+import { Effect } from 'effect'
 import { Array, Option, pipe } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { toParentMessage } from 'foldkit/test'
+import { init, messageFrom } from 'foldkit/story'
+import { Command, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
+import { SkillsBlock, layer } from './block'
 import { GenerateSkillsEntryId } from './command'
 import { EntriesBinding } from './composition'
 import { Message } from './definition'
 import { SkillsEntryBlock } from './entry'
-import { init } from './init'
-import { update } from './update'
 
 type SkillsEntryMessage = typeof SkillsEntryBlock.Message.Type
 
-const givenInitial = given(init('skills-entry-1').model)
+const givenInitial = init('skills-entry-1')
 
 const entryMessage = (entryId: string, message: SkillsEntryMessage) =>
-  toParentMessage(EntriesBinding, entryId, message)
+  messageFrom(EntriesBinding, entryId, message)
 
 describe('skills', () => {
-  test('ClickedAddEntry generates an id and appends an entry', () => {
-    story(
-      update,
-      givenInitial,
-      message(Message.ClickedAddEntry()),
-      Command.expectHas(GenerateSkillsEntryId),
-      Command.resolve(
-        GenerateSkillsEntryId,
-        Message.CompletedGenerateSkillsEntryId({ entryId: 'test-skill-1' }),
-      ),
-      model(model => {
-        expect(model.entries).toHaveLength(2)
-      }),
+  test('ClickedAddEntry generates an id and appends an entry', async () => {
+    await Effect.runPromise(
+      story(
+        SkillsBlock,
+        givenInitial,
+        message(Message.ClickedAddEntry()),
+        Command.expectHas(GenerateSkillsEntryId),
+        Command.resolve(
+          GenerateSkillsEntryId,
+          Message.CompletedGenerateSkillsEntryId({ entryId: 'test-skill-1' }),
+        ),
+        model(model => {
+          expect(model.entries).toHaveLength(2)
+        }),
+      ).pipe(Effect.provide(layer)),
     )
   })
 
-  test('an entry OutMessage.Removed removes that entry', () => {
-    const firstEntry = Option.getOrThrow(
-      Array.head(init('skills-entry-1').model.entries),
-    )
-
-    story(
-      update,
-      givenInitial,
-      message(
+  test('an entry OutMessage.Removed removes that entry', async () => {
+    await Effect.runPromise(
+      story(
+        SkillsBlock,
+        givenInitial,
         entryMessage(
-          firstEntry.id,
+          'skills-entry-1',
           SkillsEntryBlock.Message.ClickedRemoveSelf(),
         ),
-      ),
-      model(model => {
-        expect(model.entries).toHaveLength(0)
-      }),
+        model(model => {
+          expect(model.entries).toHaveLength(0)
+        }),
+      ).pipe(Effect.provide(layer)),
     )
   })
 
-  test('a generated entry Message updates the matching entry', () => {
-    const firstEntry = Option.getOrThrow(
-      Array.head(init('skills-entry-1').model.entries),
-    )
-
-    story(
-      update,
-      givenInitial,
-      message(
+  test('a generated entry Message updates the matching entry', async () => {
+    await Effect.runPromise(
+      story(
+        SkillsBlock,
+        givenInitial,
         entryMessage(
-          firstEntry.id,
+          'skills-entry-1',
           SkillsEntryBlock.Message.UpdatedName({ value: 'TypeScript' }),
         ),
-      ),
-      model(model => {
-        expect(
-          pipe(
-            model.entries,
-            Array.head,
-            Option.map(entry => entry.name.value),
-            Option.getOrThrow,
-          ),
-        ).toBe('TypeScript')
-      }),
+        model(model => {
+          expect(
+            pipe(
+              model.entries,
+              Array.head,
+              Option.map(entry => entry.name.value),
+              Option.getOrThrow,
+            ),
+          ).toBe('TypeScript')
+        }),
+      ).pipe(Effect.provide(layer)),
     )
   })
 })

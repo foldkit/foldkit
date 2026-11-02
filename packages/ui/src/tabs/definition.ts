@@ -1,4 +1,26 @@
+import { Schema } from 'effect'
 import * as Block from 'foldkit/block'
 
-/** @internal Shared Tabs namespace for refined definitions and effects. */
-export const TabsNamespace = Block.makeNamespace('Tabs')
+import { TabsNamespace } from './namespace.js'
+import {
+  InitConfig,
+  Message,
+  Model,
+  OutMessage,
+  type ViewInputs,
+} from './types.js'
+
+/** @internal Stable identity of the Tabs contract. */
+export const TabsKey = Symbol('Tabs')
+/** @internal Canonical Tabs authoring contracts. */
+export const TabsDefinition = TabsNamespace.makeDefinition({
+  key: TabsKey,
+  Model,
+  Message,
+  OutMessage,
+  Init: Schema.Tuple([InitConfig]),
+  view: {
+    kind: 'Element',
+    Inputs: Block.makeInputContract<ViewInputs>(),
+  },
+})

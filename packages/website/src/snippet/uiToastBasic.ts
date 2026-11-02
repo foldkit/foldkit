@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -17,9 +14,7 @@ const ToastPayload = Schema.Struct({
   ),
 })
 type ToastPayload = typeof ToastPayload.Type
-// Bind a Toast module to your payload schema. The factory returns Model,
-// Message, OutMessage, update, view, show/dismiss/dismissAll, and the
-// DismissedToast OutMessage variant:
+// The payload Schema refines Toast's Model, OutMessage, and public operations.
 export const Toast = UiToast.makeBlock(ToastPayload)
 
 // Add Toast.Model to your app Model. Track anything you want to lift from
@@ -38,7 +33,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const NotificationsKey = Symbol('Notifications')
+
 const NotificationsDefinition = Block.makeDefinition('Notifications', {
+  key: NotificationsKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -56,8 +56,7 @@ const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
     })),
 })
 
-// The Binding delegates Toast Messages, writes the next Toast Model, maps its
-// Commands, handles its OutMessages, and collects its Subscriptions.
+// The Binding retains the child contract; construction supplies its implementation.
 const ToastBinding = NotificationsDefinition.makeBinding(Toast, {
   field: 'toast',
   init: {
@@ -143,3 +142,10 @@ const view = NotificationsComposition.makeView((model, h) =>
     }),
   ),
 )
+
+export const ApplicationBlock = NotificationsDefinition.makeBlock(
+  Effect.gen(function* () {
+    const toast = yield* ToastBinding
+    return { children: [toast], init, update, view }
+  }),
+).provide(UiToast.layer)

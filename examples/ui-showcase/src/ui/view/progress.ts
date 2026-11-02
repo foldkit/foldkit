@@ -2,9 +2,8 @@ import type { Html } from 'foldkit/html'
 
 import { Progress } from '@foldkit/ui'
 
+import type { UiMessage } from '../composition'
 import { UiComposition } from '../composition'
-
-type UiMessage = typeof UiComposition.Message.Type
 
 const rowClassName = 'flex flex-col gap-2 w-full max-w-sm'
 const headerClassName = 'flex items-center justify-between text-sm'

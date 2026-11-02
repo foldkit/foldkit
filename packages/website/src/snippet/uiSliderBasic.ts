@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit each into your own Model, init, Message,
-// update, view, and subscription definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -21,7 +18,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const VolumeSliderKey = Symbol('VolumeSlider')
+
 const VolumeSliderDefinition = Block.makeDefinition('VolumeSlider', {
+  key: VolumeSliderKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -46,9 +48,8 @@ const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs Slider.SliderBlock.update,
-// writes the next Slider Model back, routes generated delivery and Command
-// results, and hands any OutMessage to the OutMessage fold.
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
 const SliderBinding = VolumeSliderDefinition.makeBinding(Slider.SliderBlock, {
   field: 'ratingDemo',
   init: {
@@ -132,3 +133,10 @@ const view = VolumeSliderComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = VolumeSliderDefinition.makeBlock(
+  Effect.gen(function* () {
+    const slider = yield* SliderBinding
+    return { children: [slider], init, update, view }
+  }),
+).provide(Slider.layer)

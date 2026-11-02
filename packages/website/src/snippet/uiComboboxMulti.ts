@@ -1,4 +1,4 @@
-import { Array, Schema, Tuple } from 'effect'
+import { Array, Effect, Layer, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -20,7 +20,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const CitiesPickerKey = Symbol('CitiesPicker')
+
 const CitiesPickerDefinition = Block.makeDefinition('CitiesPicker', {
+  key: CitiesPickerKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -124,13 +129,12 @@ const view = CitiesPickerComposition.makeView((model, h) => {
   )
 })
 
-const prepare = () =>
-  CitiesPickerComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const CitiesPickerBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const CitiesPickerBlock = CitiesPickerDefinition.contract
+
+export const layer = CitiesPickerDefinition.makeBlock(
+  Effect.gen(function* () {
+    const combobox = yield* ComboboxBinding
+
+    return { children: [combobox], init, update, view }
+  }),
+).provide(Combobox.Multi.layer).layer

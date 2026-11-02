@@ -1,5 +1,4 @@
 import { Array } from 'effect'
-import { Update } from 'foldkit'
 import { initAndAppend } from 'foldkit/bindingInit'
 
 import { GenerateEducationEntryId } from './command'
@@ -22,14 +21,6 @@ export const update = EducationComposition.makeUpdate({
   RemovedEntry: makeFieldsStep.fromMessage(({ entryId }) => ({
     entries: Array.filter(entry => entry.id !== entryId),
   })),
-
-  RequestedRevealErrors: model =>
-    Update.combineSteps(
-      model,
-      Array.map(model.entries, entry =>
-        EntriesBinding.requestRevealErrors(entry.id),
-      ),
-    ),
 })
 
 export const hasErrors = (model: Model): boolean =>

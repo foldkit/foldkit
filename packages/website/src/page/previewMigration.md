@@ -42,24 +42,27 @@ Inventory these boundaries:
 - Every OutMessage fold, forwarded OutMessage, child initialization path, keyed collection, optional child, Mount registration, and alternate view.
 - Every Story or Scene test that constructs a child wrapper Message, compares a qualified Command name, or manually supplies child lifecycle declarations.
 
-Write down the intended child graph as parent → placement → completed child. The graph is the migration plan. Migrate leaf features first, then their parents, and finish with `ApplicationBlock` and the host entry.
+Write down the intended child graph as parent → placement → child contract. The graph is the migration plan. Migrate leaf features first, then their parents, and finish with `ApplicationBlock` and the host entry.
 
 ## The New Assembly Model
 
-The final API separates four responsibilities:
+The candidate keeps typed Definition and Composition builders and completes the implementation through an Effect constructor.
 
-| Stage           | What it owns                                                                                                                  | What it does not do                                                              |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Definition      | Model, local Message, optional OutMessage and child init contracts; local effects, lifecycle definitions, Steps, and Bindings | It does not fix the complete child graph or implement init, update, or view.     |
-| Composition     | Registered Bindings and Mounts; graph-aware init, update, and primary view authoring                                          | It does not start effects or choose a browser host.                              |
-| Completed Block | The fixed graph plus init, update, view, local lifecycle declarations, operations, and local `EffectsLayer`                   | It does not choose a container, request Flags, or application Service providers. |
-| Program         | Page or element host configuration, including the container, Flags Schema, routing, Ports, and DevTools                       | It does not own feature behavior or handler definitions.                         |
+| Value                 | Responsibility                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Definition            | Declare the public Model, Message, Init, optional OutMessage, Context, view, operation, and effect contracts once.             |
+| Composition           | Register parent-owned Bindings and Mounts, then author init, update, and views with exact graph context.                       |
+| Public Block contract | Expose the declared boundary without expanding update, view, and descendant implementations.                                   |
+| Implementation Layer  | Acquire children by yielding Bindings and return `children`, init, update, view, and local handler and lifecycle declarations. |
+| Program               | Select page or element hosting, Flags, routing, Ports, and DevTools.                                                           |
 
-`Block.makeDefinition`, `makeComposition`, `prepareBlock`, `Program.make`, and `Program.makeElement` all return passive values. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected Layers and starts the application.
+Add a module-level unique `key` and an `Init` tuple to each Definition. Export `Definition.contract` as the child's public Block and export its implementation `layer`. Parents bind the contract; the root supplies the child implementation Layers.
 
-For ordinary source Blocks, name the single private zero-argument preparation producer `prepare` and put the matching four-shape export header immediately after it with no blank line. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. Keep the feature barrel focused on its completed Block, and compose parent state with `ChildBlock.Model`. The recommended `foldkit/no-completed-block-model-in-schema` rule guards inferred assembly dependencies while accepting the recognized checked boundary. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small). A package shipping declaration files uses a named interface over the same checked header for each public Block and verifies its emitted public entrypoints; a JavaScript-only application can keep the checked value annotation. See [public Block declarations](/patterns/project-organization#declaration-emission).
+::Snippet{name="blockFeatureExports" label="Public contract and implementation Layer"}
 
-The completed Block is the boundary that parents consume. It carries its Model Schema, complete Message Codec, optional OutMessage matcher, operations, view contract, lifecycle declarations, handler graph, and child graph together.
+`Definition.makeBlock` checks the constructor without running it. The host acquires the graph under its Scope. Construction does not initialize a Model, evaluate deferred child arguments, construct handler Layers, or start lifecycle work. Acquired init, update, and operations remain pure and synchronous.
+
+Complete builder expressions retain inference inline, in constructor-local values, and in extracted modules. Remove private `prepare` functions and application assembly annotations after moving to the declared contract. Keep the existing child storage, policies, operations, and lifecycle ownership. See [Block](/core/block) for the full authoring flow.
 
 ## 1. Move Effect Implementations into Layers
 
@@ -89,7 +92,7 @@ Apply the same ownership to every effect primitive:
 
 Collect all Subscriptions owned by one Block in one `makeSubscriptions` registry and compose its `subscriptions.layer`. Extract substantial Stream implementations into helpers instead of creating another registry for the same owner. Child Blocks retain their own registries; `Subscription.aggregate` remains appropriate at graph, adapter, and test boundaries that join independent records.
 
-Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then pass that bundle to `prepareBlock`. Registered child Bindings contribute their own handler graphs automatically.
+Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then return that bundle from `Definition.makeBlock`. The acquired child connections contribute their own handler graphs automatically.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
@@ -97,7 +100,7 @@ Keep ordinary Effect Service providers separate. `ApplicationLayer` supplies HTT
 
 ::Snippet{name="applicationRootLayer" label="Application Service providers"}
 
-Omit `handler` only when an external host intentionally owns that implementation. Build the host alternative through the original definition's `toLayer` so it retains source identity, and complete or replace the Block's handler graph through its public handler APIs. Do not recreate a same-shaped definition.
+Omit `handler` when its implementation is authored separately. Build the provider through the original definition's `toLayer` so it retains source identity, and include it in the implementation's local `EffectsLayer` before completion. When the feature owns the handler workflow, prefer an attached handler against an ordinary host-provided Service. APIs such as Query deliberately expose their own checked host-handler selector. Do not recreate a same-shaped definition.
 
 ## 2. Complete Every Feature as a Block
 
@@ -116,7 +119,7 @@ A graphless feature still has a Composition. This compact example shows the comp
 
 Name a Definition `SearchDefinition`, its Composition `SearchComposition`, and its completed value `SearchBlock`. Keep the runtime ID `Search`. Export the completed Block from the feature barrel; parents should not assemble the feature from loose Model, Message, update, and view exports.
 
-When a named Definition is used only to call `makeComposition`, chain the two calls at module scope. Retain the named Definition when Commands, Mounts, ManagedResources, Subscriptions, Steps, OutMessage folds, or Bindings use its authoring methods.
+Keep the named Definition at module scope. Its public contract supports parent authorship, its helpers author local effects and Steps, and its `makeBlock` method completes the implementation. Create the named Composition from that same Definition, including for a leaf without children or Mounts.
 
 Pass local implementation fields to completion:
 
@@ -135,7 +138,7 @@ Stable parent wiring repeats a child's Message contract and routes it through an
 
 ::Snippet{name="previewMigrationStableChildBefore" label="Stable Before: authored child Message routing"}
 
-In the candidate API, the child's local `Message` union contains only facts owned by that child. The parent creates a Binding from the completed child Block and registers it under `bindings`:
+In the candidate API, the child's local `Message` union contains only facts owned by that child. The parent creates a Binding from the child's public contract and registers it under `bindings`:
 
 ::Snippet{name="organizationChildComposition" label="Candidate: Binding registration"}
 
@@ -147,7 +150,7 @@ Make these changes together:
 4. Register that Binding with `ParentDefinition.makeComposition({ bindings: [SettingsBinding] })`.
 5. Delete `toParentMessage` and the local update branch that unpacks the child Message. Author the parent update with `ParentComposition.makeUpdate`; it matches only the parent's local Message union.
 
-Composition derives a private delivery envelope for each registered placement and routes it before the local update callback. Use `ParentComposition.Message` while authoring against the graph, and `ParentBlock.Message` after completion, whenever serialization, replay, DevTools, routing, or crash reporting needs the complete Message Codec. Do not construct generated `Got<Placement>Message` envelopes yourself.
+Composition routes a private delivery envelope for each registered placement before the local update handlers. Use the acquired implementation's `Message` Codec for serialization, replay, DevTools, and crash reporting. `ParentBlock.Message` exposes the local union, independently of the implementation graph. Use `Block.ExecutableOf<typeof ParentBlock>` when a callback needs the complete dispatch type. Do not construct generated `Got<Placement>Message` envelopes yourself.
 
 Use `delivery.when` to accept child delivery conditionally and `delivery.toUpdateContext` when the child's update needs parent-supplied dispatch context. Those fields control delivery. They do not recreate an authored wrapper.
 
@@ -177,7 +180,7 @@ Never key repeated occurrences by array position. Generated delivery records the
 
 ### Fold OutMessages in the Parent
 
-A child OutMessage reports a fact across the boundary. The parent owns the response. Pass the completed child explicitly whether a fold is inline or named: `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`.
+A child OutMessage reports a fact across the boundary. The parent owns the response. Pass the child contract explicitly whether a fold is inline or named: `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`.
 
 ::Snippet{name="blockOutMessagePolicy" label="Parent-owned child OutMessage policy"}
 
@@ -239,11 +242,11 @@ Stable `Runtime.makeApplication` combines the application state machine, lifecyc
 
 Make the root an ordinary completed Block named `Application`:
 
-1. Replace the loose root contracts passed to `Runtime.makeApplication` with `Block.makeDefinition('Application', { Model, Message })`.
+1. Declare `ApplicationDefinition` with its stable key, Model, local Message, Init, view, and effect contracts.
 2. Rename a root route union named `AppRoute` to `ApplicationRoute`, including its imports and type queries.
 3. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
 4. Author root init, update, and view through that Composition.
-5. Return `ApplicationComposition.prepareBlock(...)` from the private `prepare` producer, then complete `ApplicationBlock` with `Block.assemble(prepare)`.
+5. Complete `ApplicationBlock` through `ApplicationDefinition.makeBlock`. Yield each registered child Binding, return those connections under `children`, and provide their implementation Layers.
 6. Move container, Flags, routing, Ports, DevTools, and other browser host fields into `Program.make`.
 7. Supply ordinary application Services with `program.provide(ApplicationLayer)` before starting the Runtime.
 
@@ -279,13 +282,13 @@ Split a growing feature by ownership:
 | `command.ts`, `subscription.ts`, `mount.ts`, `managedResource.ts` | Local effect and lifecycle declarations                                                       |
 | `composition.ts` or `composition/`                                | Bindings, OutMessage policy, Mount registration, Composition, and optional view builder alias |
 | `init.ts`, `update.ts`, `view.ts`                                 | Behavior authored through that Composition                                                    |
-| `block.ts`                                                        | `prepareBlock` and the local `EffectsLayer` selection                                         |
+| `block.ts`                                                        | Effectful completion, child implementation provision, and the local `EffectsLayer`            |
 | `services.ts`                                                     | Root `ApplicationLayer` and test providers for ordinary Services                              |
 | `entry.ts`                                                        | Program host configuration and Runtime startup                                                |
 
-Keep imports moving in that direction. Composition may import completed children and local policy declarations. It must not import its own init, update, view, completed Block, or feature barrel. Implementation modules may import the Definition, Composition, and Bindings. `block.ts` may import every implementation field to complete the feature.
+Keep imports moving in that direction. Composition may import child contracts and local policy declarations. It must not import its own init, update, view, completed Block, or feature barrel. Implementation modules may import the Definition, Composition, and Bindings. `block.ts` may import every implementation field to complete the feature.
 
-Use `index.ts` only as an explicit barrel. Export `SettingsBlock`, not every private effect registry and policy helper. Internal modules import real owning files instead of importing their own barrel.
+Use `index.ts` only as an explicit barrel. Export the public `SettingsBlock` contract and its implementation `layer`. Keep private effect registries and policy helpers in their owning modules. Internal modules import real owning files instead of importing their own barrel.
 
 If TypeScript reports a recursive initializer or a value is undefined during module evaluation, inspect the Binding stages and import graph. Name the ordinary Bindings before authoring self-referential or reciprocal folds, then select and register `<Child>BindingWithOutMessagePolicy`. Common import causes are `composition.ts` importing `block.ts`, a child importing its parent's barrel, or an extracted policy importing the completed parent. Keep reciprocal sibling policies in the same parent composition module, and move a shared pure Step into a leaf module when both sides need it. Do not add annotations, casts, generic argument lists, or raw child matchers to break the cycle.
 
@@ -300,7 +303,7 @@ Keep Story and Scene at the same behavioral boundary:
 - A child Story still sends the child's local Messages to its authored update.
 - A parent Story or Scene resolves a child Command with the raw child result Message. The pending Command retains the generated delivery path.
 - Match Commands and Mounts by the original Definition's source identity, not by placement-qualified display strings.
-- Build Scene Subscription declarations from `Scene.subscriptions(ApplicationComposition, localSubscriptions?)` instead of manually wrapping child emissions.
+- Use the selected implementation in a Block-aware Scene for private Subscription emissions. An acquired advanced fixture can use its concrete registered Subscription graph; do not fabricate generated envelopes.
 - Test a completed UI Block through its public Model, Message, OutMessage, operations, and test Definitions.
 
 If a parent Story constructed a `Got*` wrapper to simulate a child UI event, move that interaction to a parent Scene. Click the rendered control, then resolve or assert the resulting Commands. Keep child-local facts in a child Story. Do not add a production operation solely for a test or fabricate a generated envelope; parent-driven operations remain appropriate when the production parent actually initiates the transition.

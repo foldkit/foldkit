@@ -1,8 +1,27 @@
-import { Option, Predicate, Schema, SchemaAST } from 'effect'
+import { type Effect, Option, Predicate, Schema, SchemaAST } from 'effect'
 
-import type { BindChild, BindChildConstructorResult } from './bindChild.js'
+import type {
+  AnyDescriptor,
+  BindingParent,
+  MakeBinding,
+  YieldableBinding,
+} from '../experimental/constructed/authoring.js'
+import type {
+  ConstructorEffectOf,
+  CoreContract,
+} from '../experimental/constructed/contract.js'
+import type {
+  BindChild,
+  BindChildConstructorResult,
+  PlacementOfConfig,
+} from './bindChild.js'
 import type { BindableBlock, BindingStorageEvidence } from './binding.js'
+import {
+  type ConnectExecutable,
+  bindingResolverOf,
+} from './bindingConnection.js'
 import { runtimeBindingOf } from './composition.js'
+import type { Owner } from './owner.js'
 import type { ValidateConcreteComposition } from './requirements.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
@@ -246,7 +265,7 @@ type VariantBinding<
 
 /** Binds a completed child whose Model Schema is one complete tagged member
  * of the parent's Schema.Union. Other variants remain parent-owned. */
-export interface MakeVariantBinding {
+interface MakeNativeVariantBinding {
   <
     const Definition extends VariantDefinition,
     const BlockValue extends BindableBlock,
@@ -276,6 +295,98 @@ export interface MakeVariantBinding {
     ]
   ): VariantBinding<Definition, BlockValue, Config>
 }
+
+type ContractVariantDefinition = VariantDefinition &
+  Readonly<{ owner: Owner<string> }>
+
+type ChildInitContextSchemaOf<Definition> =
+  Definition extends Readonly<{
+    ChildInitContext: infer Context extends AnySchema
+  }>
+    ? Context
+    : undefined
+
+type ContractBindingMethod<Definition extends ContractVariantDefinition> =
+  MakeBinding<
+    Definition['Model'],
+    Definition['Message'],
+    OutMessageOf<Definition>,
+    ChildInitContextSchemaOf<Definition>,
+    'Provided',
+    Definition['owner']
+  >
+
+type ChildContract = AnyDescriptor &
+  Readonly<{
+    get: Effect.Effect<object, any, any>
+    layer?: never
+    construct?: never
+  }>
+
+type ContractVariantBinding<
+  Definition extends ContractVariantDefinition,
+  Child extends ChildContract,
+  Config,
+> = BindChildConstructorResult<
+  CoreContract<Child>,
+  Definition['Model'],
+  Definition['Message'],
+  OutMessageOf<Definition>,
+  Config & BindingStorageEvidence<Readonly<{ kind: 'Variant' }>>,
+  ChildInitContextOf<Definition>,
+  BindingParent<Definition['owner']> &
+    Readonly<{
+      connect: ConnectExecutable<
+        CoreContract<Child>,
+        PlacementOfConfig<CoreContract<Child>, Config>
+      >
+    }> &
+    YieldableBinding<
+      CoreContract<Child>,
+      PlacementOfConfig<CoreContract<Child>, Config>,
+      Effect.Error<ConstructorEffectOf<Child>>,
+      Effect.Services<ConstructorEffectOf<Child>>
+    >
+>
+
+interface MakeContractVariantBinding {
+  <
+    const Definition extends ContractVariantDefinition,
+    const Child extends ChildContract,
+  >(
+    definition: Definition &
+      Readonly<{ makeBinding: ContractBindingMethod<Definition> }>,
+    child: Child,
+    ...validation: readonly [
+      ...Validate<Definition, CoreContract<Child>>,
+      ...([UpdateContext<CoreContract<Child>>] extends [readonly []]
+        ? readonly []
+        : Invalid<'This child requires delivery.toUpdateContext'>),
+    ]
+  ): ContractVariantBinding<Definition, Child, Readonly<{}>>
+  <
+    const Definition extends ContractVariantDefinition,
+    const Child extends ChildContract,
+    const Config extends object,
+  >(
+    definition: Definition &
+      Readonly<{ makeBinding: ContractBindingMethod<Definition> }>,
+    child: Child,
+    config: Config & Options<CoreContract<Child>, Definition['Model']['Type']>,
+    ...validation: readonly [
+      ...Validate<Definition, CoreContract<Child>>,
+      ...ValidateOptions<
+        Config,
+        CoreContract<Child>,
+        Definition['Model']['Type']
+      >,
+    ]
+  ): ContractVariantBinding<Definition, Child, Config>
+}
+
+/** Binds an exact complete tagged child Model with native or Layer-owned construction. */
+export type MakeVariantBinding = MakeContractVariantBinding &
+  MakeNativeVariantBinding
 
 const tagOf = (ast: SchemaAST.AST): string | undefined => {
   if (!SchemaAST.isObjects(ast) || ast.indexSignatures.length !== 0) {
@@ -322,7 +433,7 @@ const variantTag = (parent: Schema.Top, child: Schema.Top): string => {
 
 const assertOptionsRecord: (
   value: unknown,
-  keys: ReadonlyArray<string>,
+  keys: ReadonlyArray<string> | undefined,
   label: string,
 ) => asserts value is object = (value, keys, label) => {
   if (
@@ -337,7 +448,8 @@ const assertOptionsRecord: (
   }
   if (
     Reflect.ownKeys(value).some(
-      key => !Predicate.isString(key) || !keys.includes(key),
+      key =>
+        !Predicate.isString(key) || (keys !== undefined && !keys.includes(key)),
     )
   ) {
     throw new Error(
@@ -391,7 +503,9 @@ export const makeVariantBinding = ((): MakeVariantBinding =>
     if (gates !== undefined && !Predicate.isFunction(gates)) {
       assertOptionsRecord(
         gates,
-        Object.keys(block.subscriptions),
+        block.subscriptions === undefined
+          ? undefined
+          : Object.keys(block.subscriptions),
         'Subscription gates',
       )
       if (
@@ -421,6 +535,8 @@ export const makeVariantBinding = ((): MakeVariantBinding =>
         '[foldkit] makeVariantBinding requires a native child Binding.',
       )
     }
-    runtimeBindingOf(binding)
+    if (bindingResolverOf(binding) === undefined) {
+      runtimeBindingOf(binding)
+    }
     return binding
   }) as unknown as MakeVariantBinding)()

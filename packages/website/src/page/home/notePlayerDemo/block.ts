@@ -1,7 +1,9 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
-import { NotePlayerDemoComposition } from './composition'
-import type { Model } from './definition'
+import { RadioGroup } from '@foldkit/ui'
+
+import { NoteDurationRadioGroupBinding } from './composition'
+import { NotePlayerDemoDefinition } from './definition'
 import {
   EffectsLayer,
   init,
@@ -10,15 +12,20 @@ import {
   view,
 } from './notePlayerDemo'
 
-const prepare = () =>
-  NotePlayerDemoComposition.prepareBlock({
-    init,
-    update,
-    view,
-    managedResources,
-    EffectsLayer,
-  })
-export const NotePlayerDemoBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const NotePlayerDemoBlock = NotePlayerDemoDefinition.contract
+
+const block = NotePlayerDemoDefinition.makeBlock(
+  Effect.gen(function* () {
+    const noteDurationRadioGroup = yield* NoteDurationRadioGroupBinding
+
+    return {
+      children: [noteDurationRadioGroup],
+      init,
+      update,
+      view,
+      managedResources,
+      EffectsLayer,
+    }
+  }),
+).provide(Layer.mergeAll(RadioGroup.layer))
+export const layer = block.layer

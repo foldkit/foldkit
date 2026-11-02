@@ -1,12 +1,12 @@
+import { SettingsComposition } from './blockDefinition'
 import { ApplicationComposition, SettingsBinding } from './blockProfile'
-import * as Settings from './blockSettings'
 
 type CompactViewInputs = Readonly<{
   heading: string
 }>
 
 const compactSettingsView =
-  Settings.SettingsBlock.makeView.withInputs<CompactViewInputs>(
+  SettingsComposition.makeView.withInputs<CompactViewInputs>(
     (model, { heading }, h) =>
       h.section([], [h.h2([], [heading]), h.p([], [`Theme: ${model.theme}`])]),
   )

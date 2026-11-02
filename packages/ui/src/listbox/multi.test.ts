@@ -1,12 +1,12 @@
-import { Option } from 'effect'
+import { Effect, Option } from 'effect'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
-import { expect } from 'vitest'
+import { it as baseIt, expect } from 'vitest'
 
-import { describe, it } from '@effect/vitest'
+import { describe } from '@effect/vitest'
 
-import * as Animation from '../animation/block.js'
-import { init, update } from './multi.js'
+import { makeInitialModel } from '../animation/schema.js'
+import { block } from './multi.js'
 import type { Model, ViewInputs } from './multi.js'
 import {
   AnchorListbox,
@@ -32,27 +32,61 @@ const acknowledgeBackdrop = Scene.Mount.resolve(
   Message.CompletedPortalListboxBackdrop(),
 )
 
-const givenClosed = Story.given(init({ id: 'test' }).model)
+type ListboxOperations = Pick<
+  Effect.Success<typeof block.get>,
+  'init' | 'update' | 'operations'
+>
 
-const givenOpenMulti = Story.steps(
-  givenClosed,
-  Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.Command.resolve(
-    FocusListboxItems,
-    Message.CompletedFocusListboxItems(),
-  ),
-)
+const makeFixture = (listbox: ListboxOperations) => {
+  const { init, update } = listbox
+  const givenClosed = Story.given(init({ id: 'test' }).model)
+
+  const givenOpenMulti = Story.steps(
+    givenClosed,
+    Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+    Story.Command.resolve(
+      FocusListboxItems,
+      Message.CompletedFocusListboxItems(),
+    ),
+  )
+
+  const closedModel = () => init({ id: 'test' }).model
+
+  const openMultiModel = (): Model =>
+    update(
+      closedModel(),
+      Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+    ).model
+
+  return {
+    init,
+    update,
+    givenClosed,
+    givenOpenMulti,
+    closedModel,
+    openMultiModel,
+  }
+}
+
+const it = baseIt.extend<{ listbox: ReturnType<typeof makeFixture> }>({
+  listbox: async ({}, use) =>
+    Effect.runPromise(
+      Story.withBlock(block, listbox =>
+        Effect.promise(() => use(makeFixture(listbox))),
+      ),
+    ),
+})
 
 describe('Listbox.Multi', () => {
   describe('init', () => {
-    it('defaults to closed with no active item', () => {
+    it('defaults to closed with no active item', ({ listbox: { init } }) => {
       expect(init({ id: 'test' }).model).toStrictEqual({
         id: 'test',
         isOpen: false,
         isAnimated: false,
         isModal: false,
         orientation: 'Vertical',
-        animation: Animation.init({ id: 'test-listbox' }).model,
+        animation: makeInitialModel({ id: 'test-listbox' }),
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',
@@ -65,7 +99,9 @@ describe('Listbox.Multi', () => {
 
   describe('update', () => {
     describe('SelectedItem (multiple)', () => {
-      it('emits Selected with the item value', () => {
+      it('emits Selected with the item value', ({
+        listbox: { update, givenOpenMulti },
+      }) => {
         Story.story(
           update,
           givenOpenMulti,
@@ -74,7 +110,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('stays open after selection', () => {
+      it('stays open after selection', ({
+        listbox: { update, givenOpenMulti },
+      }) => {
         Story.story(
           update,
           givenOpenMulti,
@@ -85,7 +123,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('emits Selected again when the same item is activated (parent toggles off)', () => {
+      it('emits Selected again when the same item is activated (parent toggles off)', ({
+        listbox: { update, givenOpenMulti },
+      }) => {
         Story.story(
           update,
           givenOpenMulti,
@@ -96,7 +136,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('emits Selected for each activated item', () => {
+      it('emits Selected for each activated item', ({
+        listbox: { update, givenOpenMulti },
+      }) => {
         Story.story(
           update,
           givenOpenMulti,
@@ -107,7 +149,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('preserves active item after selection', () => {
+      it('preserves active item after selection', ({
+        listbox: { update, givenOpenMulti },
+      }) => {
         Story.story(
           update,
           givenOpenMulti,
@@ -128,20 +172,6 @@ describe('Listbox.Multi', () => {
   })
 
   describe('view', () => {
-    const closedModel = () => init({ id: 'test' }).model
-
-    const openMultiModel = (): Model => {
-      let model!: Model
-      Story.story(
-        update,
-        givenOpenMulti,
-        Story.model(extractedModel => {
-          model = extractedModel
-        }),
-      )
-      return model
-    }
-
     const sceneView =
       (
         overrides: Omit<
@@ -165,7 +195,9 @@ describe('Listbox.Multi', () => {
         )
 
     describe('aria-multiselectable', () => {
-      it('items container has aria-multiselectable', () => {
+      it('items container has aria-multiselectable', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openMultiModel()),
@@ -185,7 +217,9 @@ describe('Listbox.Multi', () => {
       const itemsContainer = Scene.selector('#test-items')
       const item = (index: number) => Scene.selector(`#test-item-${index}`)
 
-      it('emits aria-readonly alongside aria-multiselectable', () => {
+      it('emits aria-readonly alongside aria-multiselectable', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(openMultiModel()),
@@ -200,7 +234,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('drops the item click handler so membership cannot be toggled', () => {
+      it('drops the item click handler so membership cannot be toggled', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -216,7 +252,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('does not commit the active item on Enter', () => {
+      it('does not commit the active item on Enter', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(openMultiModel()),
@@ -231,7 +269,9 @@ describe('Listbox.Multi', () => {
     })
 
     describe('button labeling', () => {
-      it('no aria-label or aria-labelledby on the trigger by default', () => {
+      it('no aria-label or aria-labelledby on the trigger by default', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(closedModel()),
@@ -243,7 +283,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('applies aria-label to the trigger when ariaLabel is provided', () => {
+      it('applies aria-label to the trigger when ariaLabel is provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ ariaLabel: 'Fruit' }) },
           Scene.given(closedModel()),
@@ -255,7 +297,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', () => {
+      it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ ariaLabelledBy: 'fruit-label' }) },
           Scene.given(closedModel()),
@@ -267,7 +311,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('prefers aria-label over aria-labelledby when both are provided', () => {
+      it('prefers aria-label over aria-labelledby when both are provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -291,7 +337,9 @@ describe('Listbox.Multi', () => {
     })
 
     describe('multiple data-selected', () => {
-      it('multiple items have data-selected', () => {
+      it('multiple items have data-selected', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -315,7 +363,9 @@ describe('Listbox.Multi', () => {
     })
 
     describe('form integration', () => {
-      it('renders multiple hidden inputs for multi-select', () => {
+      it('renders multiple hidden inputs for multi-select', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -334,7 +384,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('renders empty hidden input when no items selected', () => {
+      it('renders empty hidden input when no items selected', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ name: 'fruit' }) },
           Scene.given(closedModel()),

@@ -1,1 +1,1 @@
-export { SkillsBlock } from './block'
+export { SkillsBlock, layer } from './block'

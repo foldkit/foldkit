@@ -1,1 +1,1 @@
-export { PersonalInfoBlock } from './block'
+export { PersonalInfoBlock, layer } from './block'

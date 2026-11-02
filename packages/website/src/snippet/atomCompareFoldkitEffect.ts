@@ -5,7 +5,14 @@ import { Api, ApiLayer } from './api'
 import { Message } from './message'
 import { Model } from './model'
 
-const TodoDefinition = Block.makeDefinition('Todo', { Model, Message })
+const TodoKey = Symbol('Todo')
+
+const TodoDefinition = Block.makeDefinition('Todo', {
+  key: TodoKey,
+  Init: Schema.Tuple([]),
+  Model,
+  Message,
+})
 
 // A side effect is a Command returned from update. It has a name, shows up
 // in DevTools next to the Message that produced it, and is assertable in

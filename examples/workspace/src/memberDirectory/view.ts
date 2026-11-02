@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array, Option, Schema } from 'effect'
+import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Button, Input } from '@foldkit/ui'
@@ -11,13 +11,7 @@ import {
 } from './composition'
 import { Message } from './message'
 import type { Model } from './model'
-
-const ViewInputs = Schema.Struct({
-  members: Schema.Array(Member),
-  issues: Schema.Array(Issue),
-  issueHrefs: Schema.Record(Schema.String, Schema.String),
-})
-type ViewInputs = typeof ViewInputs.Type
+import type { ViewInputs } from './viewInputs'
 
 const MEMBER_CARD_CLASS =
   'flex w-full cursor-pointer flex-col items-start gap-3 rounded-xl border p-5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500'
@@ -214,7 +208,7 @@ const memberProfile = (
   )
 }
 
-export const view = MemberDirectoryComposition.makeView.withInputs<ViewInputs>(
+export const view = MemberDirectoryComposition.makeView.withInputs(
   (model, viewInputs, h) => {
     const searchText = model.query.trim().toLowerCase()
 

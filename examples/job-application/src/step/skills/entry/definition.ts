@@ -20,19 +20,29 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   UpdatedName: { value: Schema.String },
-  RequestedRevealErrors: {},
   ClickedRemoveSelf: {},
 })
 export type Message = typeof Message.Type
+
+export const InMessage = defineMessageUnion({
+  RequestedRevealErrors: {},
+})
+export type InMessage = typeof InMessage.Type
 
 export const OutMessage = defineMessageUnion({
   Removed: {},
 })
 export type OutMessage = typeof OutMessage.Type
 
+export const SkillsEntryKey = Symbol('SkillsEntry')
+
 export const SkillsEntryDefinition = Block.makeDefinition('SkillsEntry', {
+  key: SkillsEntryKey,
+  Init: Schema.Tuple([Schema.String]),
+  view: { kind: 'Element' },
   Model,
   Message,
+  InMessage,
   OutMessage,
   ChildInitContext: Schema.String,
 })

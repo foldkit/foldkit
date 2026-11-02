@@ -174,6 +174,24 @@ beforeEach(() => {
 })
 
 describe('makeInitIfMissingStep', () => {
+  it('retains the supplied parent Model when initialization is resolved later', () => {
+    const { model } = makeModel()
+    const nextModel = modifyFields(model, { label: () => 'changed' })
+    const initChild = makeInitIfMissingStep(ChildrenByIdBinding, {
+      key: secondId,
+      args: [4],
+    })
+    const recipe = Reflect.apply(initChild, undefined, [nextModel])
+    const inserted = withOperationGraph([ChildrenByIdBinding], () =>
+      resolveOperationOutput(recipe, model),
+    )
+
+    expect(inserted.model.label).toBe('changed')
+    expect(Reflect.get(inserted.model.childrenById, secondId)).toEqual({
+      count: 4,
+    })
+  })
+
   it('defers initialization and captures the key and argument tuple at construction', () => {
     const { model } = makeModel()
     const args: [number] = [4]

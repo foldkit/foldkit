@@ -2,7 +2,7 @@ import { Option, Schema } from 'effect'
 import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { CommentComposerBlock } from '../commentComposer'
+import { CommentComposerBlock } from '../commentComposer/definition'
 import { IssuePriority, IssueStatus } from '../domain'
 import {
   PriorityListboxBlock,

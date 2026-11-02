@@ -255,8 +255,16 @@ const writeConsumerFixtures = (projectDir: string): void => {
 type Manifest = Readonly<{
   name?: string
   version?: string
+  dependencies?: Readonly<Record<string, string>>
   peerDependencies?: Readonly<Record<string, string>>
   devDependencies?: Readonly<Record<string, string>>
+}>
+
+type EffectVersions = Readonly<{
+  effect: string
+  platformBrowser: string
+  platformNode: string
+  platformNodeShared: string
 }>
 
 type PackedTarballs = Readonly<{
@@ -272,12 +280,15 @@ type PackedTarballs = Readonly<{
 const writeConsumerProject = (
   projectDir: string,
   tarballs: PackedTarballs,
-): string => {
+): EffectVersions => {
   const foldkitManifest = readJson<Manifest>(
     join(REPO_ROOT, FOLDKIT_DIR, 'package.json'),
   )
   const exampleManifest = readJson<Manifest>(
     join(REPO_ROOT, 'examples/ssr/package.json'),
+  )
+  const nodeManifest = readJson<Manifest>(
+    join(REPO_ROOT, NODE_DIR, 'package.json'),
   )
   const platformBrowserVersion =
     versionArgument('platform-browser-version') ??
@@ -285,12 +296,32 @@ const writeConsumerProject = (
   const effectVersion =
     versionArgument('effect-version') ??
     foldkitManifest.devDependencies?.['effect']
+  const platformNodeVersion =
+    versionArgument('platform-node-version') ??
+    nodeManifest.dependencies?.['@effect/platform-node']?.replace(/^~/, '')
+  const platformNodeSharedVersion =
+    versionArgument('platform-node-shared-version') ??
+    nodeManifest.dependencies?.['@effect/platform-node-shared']?.replace(
+      /^~/,
+      '',
+    )
   const viteVersion = exampleManifest.devDependencies?.['vite']
   assertConsumer(
     platformBrowserVersion !== undefined &&
       effectVersion !== undefined &&
+      platformNodeVersion !== undefined &&
+      platformNodeSharedVersion !== undefined &&
       viteVersion !== undefined,
-    'could not read the platform-browser, effect, and vite versions the consumer must install',
+    'could not read the Effect, platform-browser, platform-node, platform-node-shared, and Vite versions the consumer must install',
+  )
+  assertConsumer(
+    [
+      effectVersion,
+      platformBrowserVersion,
+      platformNodeVersion,
+      platformNodeSharedVersion,
+    ].every(version => /^\d+\.\d+\.\d+$/.test(version)),
+    'the consumer must install exact stable Effect and platform versions',
   )
 
   writeFileSync(
@@ -305,6 +336,8 @@ const writeConsumerProject = (
         scripts: { build: 'vite build' },
         dependencies: {
           '@effect/platform-browser': platformBrowserVersion,
+          '@effect/platform-node': platformNodeVersion,
+          '@effect/platform-node-shared': platformNodeSharedVersion,
           '@foldkit/devtools': `file:${tarballs.devtools}`,
           '@foldkit/devtools-mcp': `file:${tarballs.devtoolsMcp}`,
           '@foldkit/markdown': `file:${tarballs.markdown}`,
@@ -361,9 +394,14 @@ const writeConsumerProject = (
   }
 
   log(
-    `Consumer uses Effect ${effectVersion} and platform-browser ${platformBrowserVersion}`,
+    `Consumer uses Effect ${effectVersion}, platform-browser ${platformBrowserVersion}, platform-node ${platformNodeVersion}, and platform-node-shared ${platformNodeSharedVersion}`,
   )
-  return effectVersion
+  return {
+    effect: effectVersion,
+    platformBrowser: platformBrowserVersion,
+    platformNode: platformNodeVersion,
+    platformNodeShared: platformNodeSharedVersion,
+  }
 }
 
 // Every name the published documentation says ships from
@@ -1552,7 +1590,7 @@ const main = async (): Promise<void> => {
     }
 
     await withTempDir('foldkit-packed-ssr-', async projectDir => {
-      const effectVersion = writeConsumerProject(projectDir, tarballs)
+      const versions = writeConsumerProject(projectDir, tarballs)
 
       runRequired(
         'Installing the packed tarballs outside the monorepo...',
@@ -1564,7 +1602,13 @@ const main = async (): Promise<void> => {
       runRequired(
         'Checking one Effect runtime and valid platform peers...',
         'node',
-        ['scripts/effect-runtime.mjs', effectVersion],
+        [
+          'scripts/effect-runtime.mjs',
+          versions.effect,
+          versions.platformBrowser,
+          versions.platformNode,
+          versions.platformNodeShared,
+        ],
         { cwd: projectDir, inherit: true },
       )
 

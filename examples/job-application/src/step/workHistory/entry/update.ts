@@ -1,11 +1,5 @@
-import {
-  allValid,
-  anyInvalid,
-  makeRules,
-  validate,
-} from 'foldkit/fieldValidation'
+import { allValid, anyInvalid, validate } from 'foldkit/fieldValidation'
 
-import { revealFieldErrors } from '../../validation'
 import { WorkHistoryEntryComposition } from './composition'
 import {
   type Model,
@@ -13,14 +7,7 @@ import {
   makeFieldsStep,
   makeOutMessageStep,
 } from './definition'
-
-export const companyRules = makeRules({
-  required: 'Company is required',
-})
-
-export const titleRules = makeRules({
-  required: 'Job title is required',
-})
+import { companyRules, titleRules } from './validation'
 
 const validateCompany = validate(companyRules)
 const validateTitle = validate(titleRules)
@@ -40,11 +27,6 @@ export const update = WorkHistoryEntryComposition.makeUpdate({
 
   UpdatedDescription: makeFieldsStep.fromMessage(({ value }) => ({
     description: () => value,
-  })),
-
-  RequestedRevealErrors: makeFieldsStep(() => ({
-    company: revealFieldErrors(companyRules),
-    title: revealFieldErrors(titleRules),
   })),
 
   ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),

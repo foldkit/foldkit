@@ -1,4 +1,5 @@
 import { Option } from 'effect'
+import * as Story from 'foldkit/story'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import type { Listbox } from '@foldkit/ui'
@@ -41,14 +42,25 @@ describe('Workspace Listbox types', () => {
 })
 
 if (false) {
-  const statusInit = StatusListboxBlock.init({ id: 'typed-status' })
-  const priorityInit = PriorityListboxBlock.init({ id: 'typed-priority' })
+  const invalidStatusSelection = Story.withBlock(
+    StatusListboxBlock,
+    statusListbox => {
+      const statusInit = statusListbox.init({ id: 'typed-status' })
+      // @ts-expect-error Status operations retain the domain value type.
+      statusListbox.operations.requestSelectItem(statusInit.model, 'Blocked')
+    },
+  )
+  const invalidPrioritySelection = Story.withBlock(
+    PriorityListboxBlock,
+    priorityListbox => {
+      const priorityInit = priorityListbox.init({ id: 'typed-priority' })
+      // @ts-expect-error Priority operations reject status values.
+      priorityListbox.operations.requestSelectItem(priorityInit.model, 'Done')
+    },
+  )
 
-  // @ts-expect-error Status operations retain the domain value type.
-  StatusListboxBlock.operations.requestSelectItem(statusInit.model, 'Blocked')
-
-  // @ts-expect-error Priority operations reject status values.
-  PriorityListboxBlock.operations.requestSelectItem(priorityInit.model, 'Done')
+  void invalidStatusSelection
+  void invalidPrioritySelection
 
   const acceptStatusView = (
     inputs: Listbox.ViewInputs<

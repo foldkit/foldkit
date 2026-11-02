@@ -1,20 +1,66 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
+
+import { Menu, Tabs } from '@foldkit/ui'
 
 import { EffectsLayer } from './command'
-import { ApplicationComposition } from './composition'
+import {
+  AttachmentsBinding,
+  CoverLetterBinding,
+  EducationBinding,
+  PersonalInfoBinding,
+  SkillsBinding,
+  StepMenuBinding,
+  StepTabsBinding,
+  WorkHistoryBinding,
+} from './composition'
+import { ApplicationDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
+import * as Attachments from './step/attachments'
+import * as CoverLetter from './step/coverLetter'
+import * as Education from './step/education'
+import * as PersonalInfo from './step/personalInfo'
+import * as Skills from './step/skills'
+import * as WorkHistory from './step/workHistory'
 import { update } from './update'
 import { view } from './view/view'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const personalInfo = yield* PersonalInfoBinding
+    const workHistory = yield* WorkHistoryBinding
+    const education = yield* EducationBinding
+    const skills = yield* SkillsBinding
+    const coverLetter = yield* CoverLetterBinding
+    const attachments = yield* AttachmentsBinding
+    const stepMenu = yield* StepMenuBinding
+    const stepTabs = yield* StepTabsBinding
+
+    return {
+      children: [
+        personalInfo,
+        workHistory,
+        education,
+        skills,
+        coverLetter,
+        attachments,
+        stepMenu,
+        stepTabs,
+      ],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
+  }),
+).provide(
+  Layer.mergeAll(
+    PersonalInfo.layer,
+    WorkHistory.layer,
+    Education.layer,
+    Skills.layer,
+    CoverLetter.layer,
+    Attachments.layer,
+    Menu.layer,
+    Tabs.layer,
+  ),
+)

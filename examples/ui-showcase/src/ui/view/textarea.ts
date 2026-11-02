@@ -2,10 +2,9 @@ import type { Html } from 'foldkit/html'
 
 import { Textarea } from '@foldkit/ui'
 
+import type { UiMessage } from '../composition'
 import { UiComposition } from '../composition'
 import { Message } from '../message'
-
-type UiMessage = typeof UiComposition.Message.Type
 
 const textareaClassName =
   'block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 transition-colors placeholder:text-gray-400 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'

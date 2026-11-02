@@ -1,5 +1,7 @@
 import { Layer } from 'effect'
 
+import { Tabs } from '@foldkit/ui'
+
 import { FetchPostDetail, FetchPosts, FetchStats } from './command'
 import { subscriptions } from './subscription'
 
@@ -9,3 +11,5 @@ export const EffectsLayer = Layer.mergeAll(
   FetchStats.layer,
   subscriptions.layer,
 )
+
+export const AppLayer = Tabs.layer

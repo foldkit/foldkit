@@ -1,4 +1,4 @@
-import { Schema, Tuple } from 'effect'
+import { Effect, Layer, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -22,7 +22,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedJumpToLastInvoice: {} })
 type Message = typeof Message.Type
 
+const InvoiceTableKey = Symbol('InvoiceTable')
+
 const InvoiceTableDefinition = Block.makeDefinition('InvoiceTable', {
+  key: InvoiceTableKey,
+  Init: Schema.Tuple([Schema.Array(Invoice)]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -53,9 +58,9 @@ const InvoiceRowsBinding = InvoiceTableDefinition.makeBinding(
 const InvoiceTableComposition = InvoiceTableDefinition.makeComposition({
   bindings: [InvoiceRowsBinding],
 })
-const init = InvoiceTableComposition.makeInit(
-  (invoices: ReadonlyArray<Invoice>) => ({ model: { invoices } }),
-)
+const init = InvoiceTableComposition.makeInit(invoices => ({
+  model: { invoices },
+}))
 const update = InvoiceTableComposition.makeUpdate({
   ClickedJumpToLastInvoice: InvoiceRowsBinding.requestScrollToEnd(),
 })
@@ -125,9 +130,12 @@ const view = InvoiceTableComposition.makeView((model, h) =>
   ),
 )
 
-const prepare = () =>
-  InvoiceTableComposition.prepareBlock({ init, update, view })
-export const InvoiceTableBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const InvoiceTableBlock = InvoiceTableDefinition.contract
+
+export const layer = InvoiceTableDefinition.makeBlock(
+  Effect.gen(function* () {
+    const invoiceRows = yield* InvoiceRowsBinding
+
+    return { children: [invoiceRows], init, update, view }
+  }),
+).provide(VirtualList.layer).layer

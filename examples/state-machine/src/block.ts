@@ -1,20 +1,17 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
+
+import { RadioGroup } from '@foldkit/ui'
 
 import { EffectsLayer } from './command'
-import { ApplicationComposition } from './composition'
+import { EditionRadioGroupBinding } from './composition'
+import { ApplicationDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const editionRadioGroup = yield* EditionRadioGroupBinding
+    return { children: [editionRadioGroup], init, update, view, EffectsLayer }
+  }),
+).provide(Layer.mergeAll(RadioGroup.layer))

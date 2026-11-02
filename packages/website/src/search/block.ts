@@ -1,25 +1,22 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
-import { SearchComposition } from './composition'
+import { Dialog } from '@foldkit/ui'
+
+import { DialogBinding } from './composition'
+import { SearchDefinition } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
-import { Message } from './message'
-import type { Model } from './model'
+import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  SearchComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      requestOpen: Message.RequestedOpen,
-      informRouteChanged: Message.InformedOfRouteChange,
-    },
-    EffectsLayer,
-  })
-export const SearchBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const SearchBlock = SearchDefinition.contract
+
+const block = SearchDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+
+    return { children: [dialog], init, update, receive, view, EffectsLayer }
+  }),
+).provide(Layer.mergeAll(Dialog.layer))
+export const layer = block.layer

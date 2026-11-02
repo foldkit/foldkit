@@ -20,6 +20,7 @@ import type {
   ResolvedSlowPhaseConfig,
   SlowSubscriptionDependenciesContext,
 } from '../runtime/slowPhase.js'
+import { withBlock } from '../story/public.js'
 import * as Struct from '../struct/public.js'
 import type { BindableBlock } from './binding.js'
 import { canonicalBindingOf } from './composition.js'
@@ -27,6 +28,165 @@ import { type ActiveInstance, CurrentInstance } from './instanceContext.js'
 import * as Block from './public.js'
 import { qualifyLayer } from './scope.js'
 import { makeVariantBinding } from './variantBinding.js'
+
+it('uses each child id as the default placement for whole-variant relationships', () => {
+  const ActiveKey = Symbol('DefaultActiveVariant')
+  const ActiveDefinition = Block.makeDefinition('DefaultActiveVariant', {
+    key: ActiveKey,
+    Model: Active,
+    Message: Schema.Never,
+    Init: Schema.Tuple([]),
+    isMessageFree: true,
+  })
+  const InactiveKey = Symbol('DefaultInactiveVariant')
+  const InactiveDefinition = Block.makeDefinition('DefaultInactiveVariant', {
+    key: InactiveKey,
+    Model: Inactive,
+    Message: Schema.Never,
+    Init: Schema.Tuple([]),
+    isMessageFree: true,
+  })
+  const ParentKey = Symbol('DefaultVariantPlacements')
+  const ParentDefinition = Block.makeDefinition('DefaultVariantPlacements', {
+    key: ParentKey,
+    Model: ParentModel,
+    Message: Schema.Never,
+    Init: Schema.Tuple([]),
+    isMessageFree: true,
+  })
+  const ActiveBinding = makeVariantBinding(
+    ParentDefinition,
+    ActiveDefinition.contract,
+  )
+  const InactiveBinding = makeVariantBinding(
+    ParentDefinition,
+    InactiveDefinition.contract,
+  )
+
+  assert.doesNotThrow(() =>
+    ParentDefinition.makeComposition({
+      bindings: [ActiveBinding, InactiveBinding],
+    }),
+  )
+})
+
+it('connects a Layer-owned whole-variant child without changing parent membership', async () => {
+  const ChildKey = Symbol('ConstructedVariantChild')
+  const ChildDefinition = Block.makeDefinition('ConstructedVariantChild', {
+    key: ChildKey,
+    Model: Active,
+    Message: ChildMessage,
+    OutMessage: ChildOutMessage,
+    Init: Schema.Tuple([Schema.Number]),
+    operations: {
+      setCount: (count: number) =>
+        Tuple.make(ChildMessage.UpdatedCount({ count })),
+      notify: {
+        message: ChildMessage.RequestedNotify,
+        outMessage: ChildOutMessage.NotifiedCount,
+      },
+    },
+  })
+  const ChildComposition = ChildDefinition.makeComposition()
+  const ChildBlock = ChildDefinition.makeBlock(
+    Effect.gen(function* () {
+      return {
+        children: [],
+        init: ChildComposition.makeInit(count => ({
+          model: Active.make({ _tag: 'Active', count }),
+        })),
+        update: ChildComposition.makeUpdate({
+          UpdatedCount: ChildDefinition.makeFieldsStep.fromMessage(
+            ({ count }) => ({ count: () => count }),
+          ),
+          CompletedInitialization: ChildDefinition.makeNoopStep(),
+          RequestedNotify: ChildDefinition.makeOutMessageStep(model =>
+            ChildOutMessage.NotifiedCount({ count: model.count }),
+          ),
+        }),
+      }
+    }),
+  )
+
+  const ParentKey = Symbol('ConstructedVariantParent')
+  const ParentOutMessage = Message.defineMessageUnion({
+    Notified: { count: Schema.Number },
+  })
+  const ParentDefinition = Block.makeDefinition('ConstructedVariantParent', {
+    key: ParentKey,
+    Model: ParentModel,
+    Message: ParentMessage,
+    OutMessage: ParentOutMessage,
+    Init: Schema.Tuple([Schema.Number]),
+  })
+  const ChildBinding = makeVariantBinding(
+    ParentDefinition,
+    ChildDefinition.contract,
+  ).withOutMessagePolicy({
+    fold: ParentDefinition.makeOutMessageFold(ChildDefinition.contract, {
+      NotifiedCount: ({ count }) =>
+        ParentDefinition.makeOutMessageStep(() =>
+          ParentOutMessage.Notified({ count }),
+        ),
+    }),
+  })
+  const ParentComposition = ParentDefinition.makeComposition({
+    bindings: [ChildBinding],
+  })
+  const ParentBlock = ParentDefinition.makeBlock(
+    Effect.gen(function* () {
+      const child = yield* ChildBinding
+
+      return {
+        children: [child],
+        init: ParentComposition.makeInit(count =>
+          ChildBinding.init({ args: [count], toParentModel: child => child }),
+        ),
+        update: ParentComposition.makeUpdate({
+          RequestedSetCount: (model, { count }) =>
+            ChildBinding.setCount(count)(model),
+          RequestedNotify: ChildBinding.notify(),
+        }),
+      }
+    }),
+  ).provide(ChildBlock.layer)
+
+  await Effect.runPromise(
+    withBlock(ParentBlock, block => {
+      const parentInit = block.init(3)
+      assert.deepEqual(
+        parentInit.model,
+        Active.make({ _tag: 'Active', count: 3 }),
+      )
+
+      const setCount = block.update(
+        parentInit.model,
+        ParentMessage.RequestedSetCount({ count: 8 }),
+      )
+      assert.deepEqual(
+        setCount.model,
+        Active.make({ _tag: 'Active', count: 8 }),
+      )
+
+      const notify = block.update(
+        setCount.model,
+        ParentMessage.RequestedNotify(),
+      )
+      assert.deepEqual(notify.model, Active.make({ _tag: 'Active', count: 8 }))
+      assert.deepEqual(
+        notify.outMessage,
+        ParentOutMessage.Notified({ count: 8 }),
+      )
+
+      const inactive = Inactive.make({ _tag: 'Inactive', reason: 'Signed out' })
+      assert.equal(
+        block.update(inactive, ParentMessage.RequestedSetCount({ count: 4 }))
+          .model,
+        inactive,
+      )
+    }),
+  )
+})
 
 const Active = Schema.Struct({
   _tag: Schema.Literal('Active'),

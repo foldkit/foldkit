@@ -26,7 +26,13 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
+export const LoginKey = Symbol('Login')
+
 export const LoginDefinition = Block.makeDefinition('Login', {
+  key: LoginKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+
   Model,
   Message,
   OutMessage,

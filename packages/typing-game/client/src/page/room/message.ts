@@ -33,7 +33,6 @@ export const Message = defineMessageUnion({
   SucceededCopyRoomId: {},
   CompletedWaitBeforeHidingRoomIdCopiedIndicator: {},
   CompletedWaitForExitCountdownInterval: {},
-  InformedOfJoin: { player: Shared.Player },
   SucceededJoinRoom: { player: Shared.Player },
 })
 export type Message = typeof Message.Type

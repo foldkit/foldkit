@@ -6,6 +6,7 @@ import { Url } from 'foldkit/url'
 
 import * as People from './informingBlocksIndex'
 import { ApplicationRoute, urlToApplicationRoute } from './informingBlocksRoute'
+import { PeopleDirectory } from './informingBlocksService'
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,
@@ -18,7 +19,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  effects: { services: [PeopleDirectory] },
   Model,
   Message,
 })
@@ -44,7 +50,7 @@ const keepModel = makeNoopStep()
 
 type InformPeopleRouteStep =
   | typeof keepModel
-  | ReturnType<typeof PeopleBinding.informRouteChanged>
+  | ReturnType<typeof PeopleBinding.informRouteChange>
 
 export const update = ApplicationComposition.makeUpdate({
   ChangedUrl: (model, { url }) => {
@@ -56,9 +62,9 @@ export const update = ApplicationComposition.makeUpdate({
       'People',
       {
         Entered: peopleRoute =>
-          PeopleBinding.informRouteChanged({ route: peopleRoute }),
+          PeopleBinding.informRouteChange({ route: peopleRoute }),
         Stayed: ({ nextRoute }) =>
-          PeopleBinding.informRouteChanged({ route: nextRoute }),
+          PeopleBinding.informRouteChange({ route: nextRoute }),
       },
       () => keepModel,
     )

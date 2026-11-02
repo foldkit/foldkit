@@ -1,1 +1,1 @@
-export { ApiReferenceBlock } from './block'
+export { ApiReferenceBlock, layer } from './block'

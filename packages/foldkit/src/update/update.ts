@@ -3,6 +3,7 @@ import { Array, type Effect, Function, Option, pipe } from 'effect'
 import { type AsyncData } from '../asyncData/index.js'
 import { type Command, mapMessage, mapMessages } from '../command/index.js'
 import {
+  type OperationEnvironment,
   assertResolvedStep,
   isResultRecipe,
   makeResultRecipe,
@@ -712,8 +713,12 @@ export const withOutMessage: {
     outMessage: OutMessage | undefined,
   ) => {
     if (isResultRecipe(updateReturn)) {
-      return makeResultRecipe(model => {
-        const resolved = resolveOperationOutput(updateReturn, model)
+      return makeResultRecipe((model, environment) => {
+        const resolved = resolveOperationOutput(
+          updateReturn,
+          model,
+          environment,
+        )
         return outMessage === undefined
           ? resolved
           : {
@@ -1095,6 +1100,7 @@ export const combineSteps: {
     steps: ReadonlyArray<AnyStep>,
     startIndex: number,
     resolvePending = false,
+    environment?: OperationEnvironment,
   ):
     | Return<Model, Message, R>
     | ResultRecipeFor<Model, Return<Model, Message, R>> => {
@@ -1109,17 +1115,18 @@ export const combineSteps: {
       const output = step(current.model)
       if (isResultRecipe(output) && !resolvePending) {
         return makeResultRecipe<Model, Return<Model, Message, R>>(
-          model =>
+          (model, environment) =>
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
             resolveOperationOutput(
-              continueRun({ model }, steps, 0, true),
+              continueRun({ model }, steps, 0, true, environment),
               model,
+              environment,
             ) as Return<Model, Message, R>,
         )
       }
 
       const next = resolvePending
-        ? resolveOperationOutput(output, current.model)
+        ? resolveOperationOutput(output, current.model, environment)
         : output
       if (!resolvePending) {
         assertResolvedStep(next)

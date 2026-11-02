@@ -24,7 +24,7 @@ The counter starts at zero and has no startup work:
 
 ::Snippet{name="initSimple" label="Using init"}
 
-A non-routing Program calls `init` with no arguments. A routing Program passes the current URL, so its first Model can reflect the route. When the Program declares Flags, they become the first argument in either form. `ApplicationComposition.prepareBlock` receives `init` explicitly and checks it against the registered child and handler graph. `Program.make` or `Program.makeElement` then checks the initializer's arguments against its Flags and routing configuration.
+A non-routing Program calls `init` with no arguments. A routing Program passes the current URL, so its first Model can reflect the route. When the Program declares Flags, they become the first argument in either form. `ApplicationDefinition.makeBlock` receives `init` explicitly and checks it against the registered child and handler graph. `Program.make` or `Program.makeElement` then checks the initializer's arguments against its Flags and routing configuration.
 
 Give `ApplicationComposition.makeInit` one concrete function signature. Optional, default, and rest parameters are supported. Wrap an overloaded domain helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete.
 
@@ -143,9 +143,9 @@ Use startup Steps when initial child Models must exist before a parent transitio
 
 Put initial Steps in the plan's `steps` array. The Composition assembles the complete parent Model first, then passes each Step the Model returned by the preceding Step. It retains the child init Commands and adds the Commands returned by those Steps.
 
-An optional `boot` helper is a public Message-producing operation called through the Binding after the child Model is stored. It may accept Flags, the current URL, or prerendered data, and update returns the normal next Model and Commands through that Binding. The Runtime later performs those Commands through their handlers. A feature need not define both init and `boot` helpers.
+An optional `boot` helper is an ordinary initial Step called through the Binding after the child Model is stored. A generated InMessage method can accept Flags, the current URL, or prerendered data, and receive returns the normal next Model and Commands through that Binding. The Runtime later performs those Commands through their handlers. A feature need not define both init and `boot` helpers.
 
-When an existing domain operation such as `requestRestore` or `requestOpen` already describes the transition, put its existing Message constructor directly under `operations`. Use a tuple producer there when the public inputs need mapping, refinement, defaults, or an exact update context tuple. Do not create a separate startup-only Message.
+When an existing request such as `RequestedRestore` or `RequestedOpen` already describes the transition, call its generated Binding method. Keep explicit `operations` for existing positional, generic, or defaulting adapters. Do not create a separate startup-only Message.
 
 The following excerpt assumes `SettingsBinding` and `SessionBinding` have init policies and provide startup operations. The `steps` array is sequential, so `SessionBinding.requestResume` receives the Model returned by `SettingsBinding.requestRestore`. The result retains Commands from both child initializers and both Steps:
 

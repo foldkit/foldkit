@@ -12,7 +12,11 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
+const MotionPreferencesKey = Symbol('MotionPreferences')
+
 const MotionPreferencesDefinition = Block.makeDefinition('MotionPreferences', {
+  key: MotionPreferencesKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })

@@ -1,5 +1,7 @@
 export {
+  InMessage,
   DialogBlock,
+  layer,
   titleId,
   descriptionId,
   initialFocusMarkerAttribute,
@@ -11,3 +13,5 @@ export {
 
 /** Original Dialog Command Definitions for Story and Scene test resolution. */
 export * as test from './test.js'
+
+export type { DialogKey } from './block.js'

@@ -1,8 +1,5 @@
 import type { Html } from 'foldkit/html'
-import type { Url } from 'foldkit/url'
 
-import type { CodeBlock } from '../../component'
-import type { RenderHeadingLink } from '../../prose'
 import * as AnchorPage from './anchorPage'
 import * as AnimationPage from './animationPage'
 import * as ButtonPage from './buttonPage'
@@ -37,15 +34,8 @@ import * as TabsPage from './tabsPage'
 import * as TextareaPage from './textareaPage'
 import * as ToastPage from './toastPage'
 import * as TooltipPage from './tooltipPage'
+import type { ViewInputs } from './viewInputs'
 import * as VirtualListPage from './virtualListPage'
-
-type ViewInputs = Readonly<{
-  page: Page
-  url: Url
-  renderCopyButton: CodeBlock.RenderCopyButton
-  renderSnippet: CodeBlock.RenderSnippet
-  renderHeadingLink: RenderHeadingLink
-}>
 
 const pageViews: Readonly<
   globalThis.Record<

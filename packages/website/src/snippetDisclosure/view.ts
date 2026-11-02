@@ -1,11 +1,9 @@
 import { clsx } from 'clsx'
 import { HashMap, HashSet, Option, Predicate } from 'effect'
-import { type Html } from 'foldkit/html'
 import { twMerge } from 'tailwind-merge'
 
 import { Disclosure } from '@foldkit/ui'
 
-import { type CodeBlock } from '../component'
 import { SnippetDisclosureComposition } from './composition'
 import { Message } from './message'
 import { type Model, SnippetSize } from './model'
@@ -14,20 +12,10 @@ import {
   MINIMUM_EXPANSION_HEIGHT_PX,
   MeasureSnippetHeight,
 } from './mount'
+import type { ViewInputs } from './viewInputs'
 
 const CODE_LINE_HEIGHT_PX = 24
 const CODE_VERTICAL_PADDING_PX = 32
-
-export type ViewInputs = Readonly<{
-  id: string
-  disclosureGroupId?: string
-  title?: string
-  content: Html
-  rawCode: string
-  copyAriaLabel: string
-  className?: string
-  renderCopyButton: CodeBlock.RenderCopyButton
-}>
 
 const isEstimatedToOverflow = (rawCode: string): boolean =>
   rawCode.split('\n').length * CODE_LINE_HEIGHT_PX + CODE_VERTICAL_PADDING_PX >

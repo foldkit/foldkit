@@ -33,7 +33,7 @@ const keepModel = makeNoopStep()
 
 type InformPeopleRouteStep =
   | typeof keepModel
-  | ReturnType<typeof PeoplePageBinding.informRouteChanged>
+  | ReturnType<typeof PeoplePageBinding.informRouteChange>
 
 export const update = ApplicationComposition.makeUpdate({
   CompletedNavigateInternal: makeNoopStep(),
@@ -60,9 +60,9 @@ export const update = ApplicationComposition.makeUpdate({
       'People',
       {
         Entered: peopleRoute =>
-          PeoplePageBinding.informRouteChanged({ route: peopleRoute }),
+          PeoplePageBinding.informRouteChange({ route: peopleRoute }),
         Stayed: ({ nextRoute }) =>
-          PeoplePageBinding.informRouteChanged({ route: nextRoute }),
+          PeoplePageBinding.informRouteChange({ route: nextRoute }),
       },
       () => keepModel,
     )

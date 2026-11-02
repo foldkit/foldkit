@@ -1,5 +1,6 @@
 export {
   makeBlock,
+  layer,
   Orientation,
   ActivationMode,
   type InitConfig,
@@ -11,3 +12,5 @@ export {
 
 /** Original Tabs Command Definitions for Story and Scene test resolution. */
 export * as test from './test.js'
+
+export type { TabsKey } from './index.js'

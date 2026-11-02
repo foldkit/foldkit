@@ -4,7 +4,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import { ApiData } from './domain'
 
 export const Message = defineMessageUnion({
-  InformedOfRouteChange: {},
   SucceededLoadApiData: { apiData: ApiData },
   FailedLoadApiData: { error: Schema.String },
   ToggledSignature: {

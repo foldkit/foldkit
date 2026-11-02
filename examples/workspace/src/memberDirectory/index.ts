@@ -1,1 +1,2 @@
-export { MemberDirectoryBlock } from './block'
+export { MemberDirectoryBlock } from './definition'
+export { layer } from './block'

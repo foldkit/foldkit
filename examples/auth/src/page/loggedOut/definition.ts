@@ -1,9 +1,17 @@
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 
+import { LoggedOutRoute } from '../../route'
 import { Message, OutMessage } from './message'
 import { Model } from './model'
 
+export const LoggedOutKey = Symbol('LoggedOut')
+
 export const LoggedOutDefinition = Block.makeDefinition('LoggedOut', {
+  key: LoggedOutKey,
+  Init: Schema.Tuple([LoggedOutRoute]),
+  view: { kind: 'Element' },
+
   Model,
   Message,
   OutMessage,

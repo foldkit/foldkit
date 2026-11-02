@@ -1,23 +1,25 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { IssueBoardComposition } from './composition'
+import * as DragAndDrop from '@foldkit/ui/dragAndDrop'
+
+import { DragAndDropBinding } from './composition'
+import { IssueBoardDefinition } from './definition'
 import { init } from './init'
-import { Message } from './message'
-import type { Model } from './model'
+import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  IssueBoardComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      informIssueMoved: Message.InformedOfIssueMove,
-      informIssueMoveFailed: Message.InformedOfIssueMoveFailure,
-    },
-  })
-export const IssueBoardBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+const block = IssueBoardDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dragAndDrop = yield* DragAndDropBinding
+    return {
+      children: [dragAndDrop],
+      init,
+      update,
+      receive,
+      view,
+    }
+  }),
+).provide(DragAndDrop.layer)
+
+export const layer = block.layer

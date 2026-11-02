@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "."
+  },
+  "include": ["host.ts", "hostContract.ts", "hostProvider.ts", "channels.ts"]
+}

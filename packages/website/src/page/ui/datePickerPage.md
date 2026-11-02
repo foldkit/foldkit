@@ -12,7 +12,7 @@ The parent owns the selected date. Store it in the parent Model, pass it to the 
 
 ### Programmatic Control
 
-For programmatic control in a parent update, call the Binding’s `requestOpen()` and `requestClose()` operations. They update the child through DatePicker update and do not emit an OutMessage.
+For programmatic control in a parent update, call the Binding’s `requestOpen()` and `requestClose()` operations. These generated InMessage methods run DatePicker receive and do not emit an OutMessage. `requestClear()` also uses receive and emits `ClearedDate`; date and constraint adapters keep their existing signatures.
 
 ### Calendar Views
 
@@ -73,7 +73,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the DatePicker Binding's child initializer. Direct completed Block calls use `DatePicker.DatePickerBlock.init()`. Calendar constraints (min/max, disabled dates) are forwarded to the embedded Calendar Block.
+Configuration passed to the DatePicker Binding's child initializer. Scoped tests pass the same config to `Story.init(...)` or `Scene.init(...)` and provide the component implementation Layer. Calendar constraints (min/max, disabled dates) are forwarded to the embedded Calendar Block.
 
 | Name                 | Type                          | Default                | Description                                                                                                                                                                                      |
 | -------------------- | ----------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -139,7 +139,7 @@ Messages emitted to the parent through the optional `outMessage` field. Handle t
 
 ### Programmatic Helpers
 
-These child entry points let a parent request a controlled selection, focus change, open, or close, and inform the DatePicker when constraints derived from other Model state change. Each Binding call returns a connected parent Step, so return it from the parent handler or compose it with `Update.combineSteps`. Every child Model change then runs through DatePicker update.
+These child entry points let a parent request a controlled selection, focus change, open, or close, and inform the DatePicker when constraints derived from other Model state change. Each Binding call returns a connected parent Step, so return it from the parent handler or compose it with `Update.combineSteps`. The child owns every transition. Open, close, and clear enter receive; date and constraint adapters retain their local Message paths.
 
 The four `inform*Changed` operations implement cross-field date validation. Constraints are set at init time and updated through `InformedOf*Change` Messages. They do not live in ViewInputs, because update needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call `EndDatePickerBinding.informMinDateChanged(maybeStartDate)` in the parent handler that processes the start date change. The notification branch returns `{ model }` and does not echo an OutMessage.
 

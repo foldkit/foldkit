@@ -1,1 +1,1 @@
-export { HomeBlock } from './block'
+export { HomeBlock, layer } from './block'

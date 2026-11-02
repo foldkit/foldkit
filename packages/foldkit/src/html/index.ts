@@ -5740,6 +5740,19 @@ type MessageUniverse<Message> = Readonly<{
   [messageUniverse]: (message: Message) => Message
 }>
 
+/**
+ * The exact Message union accepted by an Html builder. Derive feature-local
+ * callback attribute types from its Composition builder without importing the
+ * completed implementation or replacing generated delivery with local facts.
+ *
+ * @example
+ * ```ts
+ * type SearchMessage = MessageOf<SearchViewBuilder>
+ * ```
+ */
+export type MessageOf<Builder> =
+  Builder extends MessageUniverse<infer Message> ? Message : never
+
 type MountRequirementsUniverse<AllowedMountRequirements> = Readonly<{
   [allowedMountRequirements]: (requirements: AllowedMountRequirements) => void
 }>

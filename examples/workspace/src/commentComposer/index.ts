@@ -1,1 +1,2 @@
-export { CommentComposerBlock } from './block'
+export { CommentComposerBlock } from './definition'
+export { layer } from './block'

@@ -108,15 +108,15 @@ After the record is complete, diagnose any remaining result-channel or registrat
 
 An authored update supports both call directions. The Runtime calls `update(model, message, ...context)`. Application code can call `update(message)(model, ...context)` to turn one truthful Message into a Step. The curried form retains the same Command requirements, OutMessage type, and registered graph evidence.
 
-Use the curried form for internal Step composition. A Block's `operations` record has a narrower purpose: each named operation produces a Message and any update context. Put the local Message constructor directly under `operations` when the public arguments map directly to its payload. Completion creates the operation without constructing a Message. The completed Block or a registered Binding passes that Message through the Block's update synchronously as part of the pure transition. It does not enqueue another Runtime Message or add a startup phase. The same Message branch owns the child invariant, Model change, Command, and OutMessage. This `informRouteChanged` operation records that a parent informed the child of a route change:
+Use the curried form for internal Step composition. Declare parent requests and notifications separately through [InMessage and receive](/core/block#inmessages). The Definition generates Binding methods for those inputs. This Block receives a route notification through `informRouteChange`; its local reset button remains in update:
 
-::Snippet{name="updateCurriedStep" label="Declaring a Message-producing operation"}
+::Snippet{name="updateCurriedStep" label="Separating parent notifications from local facts"}
 
-A constructor-backed operation takes one constructor payload object for a constructor with fields, with constructor defaults honored, followed by the update context. An empty-fields constructor takes no payload placeholder. Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. Inline tuple producers receive context from `prepareBlock`; use `Tuple.make(Message.Fact(...), ...context)` when extracting one so TypeScript preserves the tuple. Both forms complete through the same update path. The update preserves the selected Message handler's output, while update utilities retain the union across handlers. A producer that can select several Messages retains all their possible outputs. Calling a pure operation does not run effects returned by another branch. Keep standalone and Definition-owned Steps for internal composition that does not form part of the Block's public operation API.
+The explicit `operations` record remains available for positional arguments, generic adapters, defaults, or mappings to existing local Messages. A constructor-backed operation takes the constructor payload followed by update context; an empty-fields constructor takes no payload placeholder. A tuple producer returns `[Message, ...context]`; inline arrays receive tuple context, and an extracted producer uses `Tuple.make`. These adapters enter update synchronously and preserve the selected handler's result channels. Keep standalone and Definition-owned Steps for internal composition that does not form part of the Block's public input API.
 
 The context rule is exact: `update(message)(model, ...context)`. `Update.combineSteps` accepts unary Steps, so an update with required dispatch context needs an explicit unary adapter that supplies that context, as `refresh` does in the dispatch-context example above.
 
-`Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. Author an OutMessage fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)` whether the fold is inline in a Binding policy or extracted to a named value. The completed child and parent Definition supply the child payloads, parent Model, result channels, and `FoldContext`. Callers can compose Steps that do not emit OutMessages through `Update.combineSteps` without naming a service union by hand.
+`Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. Author an OutMessage fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)` whether the fold is inline in a Binding policy or extracted to a named value. The child contract and parent Definition supply the child payloads, parent Model, result channels, and `FoldContext`. Callers can compose Steps that do not emit OutMessages through `Update.combineSteps` without naming a service union by hand.
 
 `Update.RequirementsOf<typeof update>` extracts the inferred handler service union from an update. Use it when a parent or exported type needs to name those requirements. Application assembly reads the requirements from the update return type directly.
 
@@ -206,7 +206,7 @@ For example, a Workspace Block contains Search and Editor Blocks. Their required
 
 ::Snippet{name="updateIndependentInits" label="Initializing Search and Editor Blocks"}
 
-#### Parent Construction and Fold Order
+#### Parent initialization
 
 The Composition combines the Search and Editor Models with the Workspace Block's own fields. It retains each child's init Commands and appends the Commands returned by the restoration Steps.
 

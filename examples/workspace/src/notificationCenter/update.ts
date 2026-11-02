@@ -2,34 +2,13 @@ import { Array, Option, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { makeNotifications } from '../domain'
 import { NotificationCenterComposition, PopoverBinding } from './composition'
 import { makeFieldsStep, makeNoopStep } from './definition'
 import type {
   ClickedMarkAllAsRead,
   ClickedNotificationReadState,
-  InformedOfActivity,
 } from './message'
 import { OutMessage } from './outMessage'
-
-const handleInformedOfActivity = makeFieldsStep.fromMessage(
-  ({ activity }: InformedOfActivity) => ({
-    notifications: notifications => {
-      const incomingNotifications = makeNotifications(activity)
-
-      const unseenNotifications = Array.filter(
-        incomingNotifications,
-        notification =>
-          !Array.some(
-            notifications,
-            existingNotification => existingNotification.id === notification.id,
-          ),
-      )
-
-      return [...unseenNotifications, ...notifications]
-    },
-  }),
-)
 
 const handleClickedMarkAllAsRead = makeFieldsStep.fromMessage(
   ({ recipientId }: ClickedMarkAllAsRead) => ({
@@ -63,7 +42,6 @@ const markAsRead = (notificationId: string) =>
   }))
 
 export const update = NotificationCenterComposition.makeUpdate({
-  InformedOfActivity: handleInformedOfActivity,
   TickedClock: makeFieldsStep.fromMessage(({ timestamp }) => ({
     now: () => timestamp,
   })),

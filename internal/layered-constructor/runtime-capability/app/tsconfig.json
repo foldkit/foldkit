@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "moduleResolution": "Bundler",
+    "skipLibCheck": false,
+    "noEmit": true
+  },
+  "include": ["src"]
+}

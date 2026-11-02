@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -20,7 +17,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const AccountMenuKey = Symbol('AccountMenu')
+
 const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
+  key: AccountMenuKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -158,3 +160,16 @@ const view = AccountMenuComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = AccountMenuDefinition.makeBlock(
+  Effect.gen(function* () {
+    const accountPopover = yield* AccountPopoverBinding
+    const accountDetailsPopover = yield* AccountDetailsPopoverBinding
+    return {
+      children: [accountPopover, accountDetailsPopover],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(Popover.layer)

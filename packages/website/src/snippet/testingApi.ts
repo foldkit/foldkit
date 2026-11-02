@@ -1,4 +1,4 @@
-import { Array } from 'effect'
+import { Array, Effect } from 'effect'
 import {
   Command,
   expectOutMessage,
@@ -8,6 +8,8 @@ import {
   steps,
   story,
 } from 'foldkit/story'
+
+import { ApplicationBlock } from './application'
 
 // Set the initial Model.
 given(model)
@@ -66,14 +68,16 @@ Command.expectNone()
 // Assert on the OutMessage.
 expectOutMessage(SucceededLogin({ session }))
 
-// Run the test story. Throws on unresolved Commands.
-story(
-  update,
-  given(model),
-  message(ClickedSubmit()),
-  Command.expectHas(FetchData),
-  Command.resolve(FetchData, SucceededFetch({ data })),
-  model(model => {
-    expect(model.status).toBe('loaded')
-  }),
+// Run the scoped Story. Every pending Command must be resolved.
+await Effect.runPromise(
+  story(
+    ApplicationBlock,
+    given(model),
+    message(ClickedSubmit()),
+    Command.expectHas(FetchData),
+    Command.resolve(FetchData, SucceededFetch({ data })),
+    model(model => {
+      expect(model.status).toBe('loaded')
+    }),
+  ),
 )

@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -19,7 +16,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const PopoverExampleKey = Symbol('PopoverExample')
+
 const PopoverExampleDefinition = Block.makeDefinition('PopoverExample', {
+  key: PopoverExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -45,9 +47,8 @@ const foldPopoverOutMessage = PopoverExampleDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs Popover.PopoverBlock.update,
-// writes the next Popover Model back, routes generated delivery and Command
-// results, and hands any OutMessage to the OutMessage fold.
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
 const PopoverBinding = PopoverExampleDefinition.makeBinding(
   Popover.PopoverBlock,
   {
@@ -124,3 +125,10 @@ const view = PopoverExampleComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = PopoverExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const popover = yield* PopoverBinding
+    return { children: [popover], init, update, view }
+  }),
+).provide(Popover.layer)

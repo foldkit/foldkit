@@ -1,4 +1,4 @@
-import { Option, Predicate, Schema, Tuple } from 'effect'
+import { Effect, Layer, Option, Predicate, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
@@ -9,7 +9,6 @@ import * as Update from 'foldkit/update'
 import type { AnchorConfig } from '../anchor/index.js'
 import * as UiCalendar from '../calendar/index.js'
 import { idSelector } from '../internal/selectors.js'
-import { Model as PopoverModel } from '../popover/block.js'
 import * as Popover from '../popover/index.js'
 
 // MODEL
@@ -22,7 +21,7 @@ import * as Popover from '../popover/index.js'
 export const Model = Schema.Struct({
   id: Schema.String,
   calendar: UiCalendar.CalendarBlock.Model,
-  popover: PopoverModel,
+  popover: Popover.PopoverBlock.Model,
 })
 export type Model = typeof Model.Type
 
@@ -30,10 +29,7 @@ export type Model = typeof Model.Type
 
 /** Union of all messages the date picker component can produce. */
 export const Message = defineMessageUnion({
-  RequestedOpen: {},
-  RequestedClose: {},
   RequestedSelectDate: { date: Calendar.CalendarDate },
-  RequestedClear: {},
   Cleared: {},
   Opened: {},
   Closed: {},
@@ -53,6 +49,14 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+/** Parent requests handled independently of local UI facts. */
+export const InMessage = defineMessageUnion({
+  RequestedOpen: {},
+  RequestedClose: {},
+  RequestedClear: {},
+})
+export type InMessage = typeof InMessage.Type
+
 // OUT MESSAGE
 
 /** Union of out-messages the date picker can produce. */
@@ -70,64 +74,106 @@ export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
 export type ClearedDate = typeof OutMessage.ClearedDate.Type
 
-const DatePickerDefinition = Block.makeDefinition('DatePicker', {
-  Model,
-  Message,
-  OutMessage,
-})
-
 // INIT
 
-/** Configuration for creating a date picker model with `init`. */
-export type InitConfig = Readonly<{
-  id: string
-  today: CalendarDate
-  initialViewDate?: CalendarDate
-  isAnimated?: boolean
-  locale?: Calendar.LocaleConfig
-  minDate?: CalendarDate
-  maxDate?: CalendarDate
-  disabledDaysOfWeek?: ReadonlyArray<Calendar.DayOfWeek>
-  disabledDates?: ReadonlyArray<CalendarDate>
-}>
+/** Configuration for creating a date picker Model. */
+export const InitConfig = Schema.Struct({
+  id: Schema.String,
+  today: Calendar.CalendarDate,
+  initialViewDate: Schema.optionalKey(Calendar.CalendarDate),
+  isAnimated: Schema.optionalKey(Schema.Boolean),
+  locale: Schema.optionalKey(Calendar.LocaleConfig),
+  minDate: Schema.optionalKey(Calendar.CalendarDate),
+  maxDate: Schema.optionalKey(Calendar.CalendarDate),
+  disabledDaysOfWeek: Schema.optionalKey(Schema.Array(Calendar.DayOfWeek)),
+  disabledDates: Schema.optionalKey(Schema.Array(Calendar.CalendarDate)),
+})
+export type InitConfig = typeof InitConfig.Type
 
-const makeInitialModel = (config: InitConfig): Model => ({
-  id: config.id,
-  calendar: UiCalendar.CalendarBlock.init({
-    id: `${config.id}-calendar`,
-    today: config.today,
-    ...(config.initialViewDate !== undefined && {
-      initialViewDate: config.initialViewDate,
-    }),
-    ...(config.locale !== undefined && { locale: config.locale }),
-    ...(config.minDate !== undefined && { minDate: config.minDate }),
-    ...(config.maxDate !== undefined && { maxDate: config.maxDate }),
-    ...(config.disabledDaysOfWeek !== undefined && {
-      disabledDaysOfWeek: config.disabledDaysOfWeek,
-    }),
-    ...(config.disabledDates !== undefined && {
-      disabledDates: config.disabledDates,
-    }),
-  }).model,
-  popover: Popover.PopoverBlock.init({
-    id: `${config.id}-popover`,
-    contentFocus: true,
-    ...(config.isAnimated !== undefined && { isAnimated: config.isAnimated }),
-  }).model,
+/** @internal Stable identity of the DatePicker contract. */
+export const DatePickerKey = Symbol('DatePicker')
+
+const DatePickerDefinition = Block.makeDefinition('DatePicker', {
+  key: DatePickerKey,
+  Init: Schema.Tuple([InitConfig]),
+  ChildInitContext: InitConfig,
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+  inMessageOutputs: {
+    RequestedClear: { outMessage: OutMessage.ClearedDate },
+  },
+  operations: {
+    requestSelectDate: {
+      message: (date: CalendarDate) =>
+        Tuple.make(Message.RequestedSelectDate({ date })),
+      outMessage: OutMessage,
+    },
+    requestFocusDate: (date: CalendarDate) =>
+      Tuple.make(Message.RequestedFocusDate({ date })),
+    informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
+      Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
+    informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
+      Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
+    informDisabledDatesChanged: (disabledDates: ReadonlyArray<CalendarDate>) =>
+      Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
+    informDisabledDaysOfWeekChanged: (
+      disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
+    ) =>
+      Tuple.make(
+        Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
+      ),
+  },
 })
 
 // UPDATE
 
-const PopoverBinding = DatePickerDefinition.makeBinding(Popover.PopoverBlock, {
-  field: 'popover',
-  init: false,
-})
+/** @internal DatePicker's Popover relationship for typed test delivery. */
+export const PopoverBinding = DatePickerDefinition.makeBinding(
+  Popover.PopoverBlock,
+  {
+    field: 'popover',
+    init: {
+      contextToArgs: config => [
+        {
+          id: `${config.id}-popover`,
+          contentFocus: true,
+          ...(config.isAnimated !== undefined && {
+            isAnimated: config.isAnimated,
+          }),
+        },
+      ],
+    },
+  },
+)
 
-const CalendarBinding = DatePickerDefinition.makeBinding(
+/** @internal DatePicker's Calendar relationship for typed test delivery. */
+export const CalendarBinding = DatePickerDefinition.makeBinding(
   UiCalendar.CalendarBlock,
   {
     field: 'calendar',
-    init: false,
+    init: {
+      contextToArgs: config => [
+        {
+          id: `${config.id}-calendar`,
+          today: config.today,
+          ...(config.initialViewDate !== undefined && {
+            initialViewDate: config.initialViewDate,
+          }),
+          ...(config.locale !== undefined && { locale: config.locale }),
+          ...(config.minDate !== undefined && { minDate: config.minDate }),
+          ...(config.maxDate !== undefined && { maxDate: config.maxDate }),
+          ...(config.disabledDaysOfWeek !== undefined && {
+            disabledDaysOfWeek: config.disabledDaysOfWeek,
+          }),
+          ...(config.disabledDates !== undefined && {
+            disabledDates: config.disabledDates,
+          }),
+        },
+      ],
+    },
   },
 )
 
@@ -166,17 +212,7 @@ const CalendarBindingWithOutMessagePolicy =
     forward: forwardCalendarOutMessage,
   })
 
-const DatePickerComposition: Block.Composition<
-  typeof DatePickerDefinition.owner,
-  typeof Model,
-  typeof Message,
-  typeof OutMessage,
-  readonly [],
-  readonly [
-    typeof PopoverBindingWithOutMessagePolicy,
-    typeof CalendarBindingWithOutMessagePolicy,
-  ]
-> = DatePickerDefinition.makeComposition({
+const DatePickerComposition = DatePickerDefinition.makeComposition({
   bindings: [
     PopoverBindingWithOutMessagePolicy,
     CalendarBindingWithOutMessagePolicy,
@@ -190,11 +226,9 @@ const DatePickerComposition: Block.Composition<
  * opened in `contentFocus` mode so focus lands on the calendar grid instead of
  * the panel. */
 export const init = DatePickerComposition.makeInit((config: InitConfig) => ({
-  model: makeInitialModel(config),
+  model: { id: config.id },
+  childInitContext: config,
 }))
-
-/** Mount Definitions rendered by DatePicker's Popover child. */
-export const mounts = DatePickerComposition.mounts
 
 const openDatePicker = Update.combineSteps([
   PopoverBinding.requestOpen(),
@@ -211,9 +245,6 @@ const clearDatePicker = DatePickerDefinition.makeOutMessageStep(() =>
 /** Processes a DatePicker Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. */
 export const update = DatePickerComposition.makeUpdate({
-  RequestedOpen: openDatePicker,
-  RequestedClose: closeDatePicker,
-  RequestedClear: clearDatePicker,
   Opened: openDatePicker,
   Closed: closeDatePicker,
 
@@ -236,6 +267,13 @@ export const update = DatePickerComposition.makeUpdate({
 
   InformedOfDisabledDaysOfWeekChange: (model, { disabledDaysOfWeek }) =>
     CalendarBinding.informDisabledDaysOfWeekChanged(disabledDaysOfWeek)(model),
+})
+
+/** Applies parent requests through the shared date-picker transitions. */
+export const receive = DatePickerComposition.makeReceive({
+  RequestedOpen: openDatePicker,
+  RequestedClose: closeDatePicker,
+  RequestedClear: clearDatePicker,
 })
 
 // SELECTORS
@@ -293,7 +331,7 @@ export type ViewInputs = Readonly<{
  * embedded Calendar and Popover components into one flat API. Consumers
  * provide the trigger face and the calendar grid layout, DatePicker handles
  * focus choreography, open/close state, and form submission. */
-export const view = DatePickerComposition.makeView.withInputs<ViewInputs>(
+export const view = DatePickerComposition.makeView.withInputs(
   (model, viewInputs, h) => {
     const {
       anchor,
@@ -440,41 +478,19 @@ export const view = DatePickerComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-const implementation = {
-  init,
-  update,
-  view,
-  operations: {
-    requestOpen: Message.RequestedOpen,
-    requestClose: Message.RequestedClose,
-    requestSelectDate: (date: CalendarDate) =>
-      Tuple.make(Message.RequestedSelectDate({ date })),
-    requestClear: Message.RequestedClear,
-    requestFocusDate: (date: CalendarDate) =>
-      Tuple.make(Message.RequestedFocusDate({ date })),
-    informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
-      Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
-    informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
-      Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
-    informDisabledDatesChanged: (disabledDates: ReadonlyArray<CalendarDate>) =>
-      Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
-    informDisabledDaysOfWeekChanged: (
-      disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
-    ) =>
-      Tuple.make(
-        Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
-      ),
-  },
-}
+type DatePickerContract = typeof DatePickerDefinition.contract
+/** Public DatePicker contract independent of its Calendar and Popover implementations. */
+export interface DatePickerBlock extends DatePickerContract {}
+/** Passive DatePicker contract selected through the module implementation Layer. */
+export const DatePickerBlock: DatePickerBlock = DatePickerDefinition.contract
 
-const prepare = () => DatePickerComposition.prepareBlock(implementation)
-/** Completed DatePicker Block contract. */
-export interface DatePickerBlock extends Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> {}
-/** Complete DatePicker Block definition. */
-export const DatePickerBlock: DatePickerBlock = Block.assemble(prepare)
+const block = DatePickerDefinition.makeBlock(
+  Effect.gen(function* () {
+    const popover = yield* PopoverBindingWithOutMessagePolicy
+    const calendar = yield* CalendarBindingWithOutMessagePolicy
+    return { children: [popover, calendar], init, update, receive, view }
+  }),
+).provide(Layer.mergeAll(Popover.layer, UiCalendar.layer))
 
-/** Moves the embedded Calendar view and cursor through DatePicker update. */
-export const focusDate = DatePickerBlock.operations.requestFocusDate
+/** Supplies DatePicker and both child implementations without initializing their Models. */
+export const layer = block.layer

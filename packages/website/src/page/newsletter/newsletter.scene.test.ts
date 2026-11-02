@@ -1,12 +1,12 @@
+import { Effect } from 'effect'
 import { Option, pipe } from 'effect'
 import { Calendar, Url } from 'foldkit'
 import { expect, given, role, scene, selector, type } from 'foldkit/scene'
+import { type TestBlock, withBlock } from 'foldkit/story'
 import { describe, test } from 'vitest'
 
+import { ApplicationBlock } from '../../block'
 import { Deployment } from '../../deployment'
-import { init } from '../../init'
-import { update } from '../../update'
-import { view } from '../../view/view'
 
 const url = pipe(
   Url.fromString('https://foldkit.dev/newsletter'),
@@ -21,22 +21,36 @@ const flags = {
   maybeExampleSources: Option.none(),
 }
 
-describe('newsletter', () => {
-  test('the email field reflects input while the form uses native submission', () => {
-    const emailField = role('textbox', { name: 'Email address' })
+const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
+  const init = block.init
+  const update = block.update
+  const view = block.view
 
-    scene(
-      { update, view },
-      given(init(flags, url).model),
-      expect(selector('form')).toHaveAttr(
-        'action',
-        'https://buttondown.com/api/emails/embed-subscribe/foldkit',
-      ),
-      expect(selector('form')).toHaveAttr('method', 'post'),
-      expect(selector('form')).toHaveAttr('target', 'popupwindow'),
-      expect(emailField).toHaveValue(''),
-      type(emailField, 'alice@example.com'),
-      expect(emailField).toHaveValue('alice@example.com'),
+  return { block, init, update, view }
+}
+
+describe('newsletter', () => {
+  test('the email field reflects input while the form uses native submission', async () => {
+    await Effect.runPromise(
+      withBlock(ApplicationBlock, executable => {
+        const { init, update, view } = makeFixture(executable)
+
+        const emailField = role('textbox', { name: 'Email address' })
+
+        scene(
+          { update, view },
+          given(init(flags, url).model),
+          expect(selector('form')).toHaveAttr(
+            'action',
+            'https://buttondown.com/api/emails/embed-subscribe/foldkit',
+          ),
+          expect(selector('form')).toHaveAttr('method', 'post'),
+          expect(selector('form')).toHaveAttr('target', 'popupwindow'),
+          expect(emailField).toHaveValue(''),
+          type(emailField, 'alice@example.com'),
+          expect(emailField).toHaveValue('alice@example.com'),
+        )
+      }),
     )
   })
 })

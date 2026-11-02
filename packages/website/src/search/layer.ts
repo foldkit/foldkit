@@ -1,11 +1,7 @@
 import { Layer } from 'effect'
 
-import {
-  FetchSearchResults,
-  FocusSearchInput,
-  NavigateToResult,
-  ScrollToResult,
-} from './update'
+import { FocusSearchInput } from './command'
+import { FetchSearchResults, NavigateToResult, ScrollToResult } from './update'
 
 export const EffectsLayer = Layer.mergeAll(
   FetchSearchResults.layer,

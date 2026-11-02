@@ -1,6 +1,5 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import type { Model } from './blockProfileContract'
 import { ApplicationDefinition, makeFieldsStep } from './blockProfileContract'
 import * as Settings from './blockSettings'
 
@@ -41,13 +40,10 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const settings = yield* SettingsBinding
+
+    return { children: [settings], init, update, view }
+  }),
+).provide(Settings.layer)

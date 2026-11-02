@@ -6,7 +6,7 @@ import { makeStep } from '../definition'
 import type { Issue, SavedIssue } from '../domain'
 import { applyIssueSnapshot, applySavedIssue } from '../steps'
 
-export const informIssueChanged = (issueId: string) =>
+export const informIssueChange = (issueId: string) =>
   makeStep(model =>
     Option.match(
       Option.flatMap(AsyncData.getData(model.workspaceAsyncData), workspace =>
@@ -15,18 +15,18 @@ export const informIssueChanged = (issueId: string) =>
       {
         onNone: () => ({ model }),
         onSome: issue =>
-          IssueDetailBinding.informIssueChanged(issue.id, { issue }),
+          IssueDetailBinding.informIssueChange(issue.id, { issue }),
       },
     ),
   )
 
 export const receiveIssueSnapshot = (issue: Issue) =>
-  Update.combineSteps([applyIssueSnapshot(issue), informIssueChanged(issue.id)])
+  Update.combineSteps([applyIssueSnapshot(issue), informIssueChange(issue.id)])
 
 export const receiveSavedIssue = (savedIssue: SavedIssue) =>
   Update.combineSteps([
     applySavedIssue(savedIssue),
-    informIssueChanged(savedIssue.issueId),
+    informIssueChange(savedIssue.issueId),
   ])
 
 export const informRetainedIssueDetails = makeStep(model =>
@@ -35,7 +35,7 @@ export const informRetainedIssueDetails = makeStep(model =>
     onSome: workspace =>
       Update.combineSteps(
         Array.map(workspace.issues, issue =>
-          IssueDetailBinding.informIssueChanged(issue.id, { issue }),
+          IssueDetailBinding.informIssueChange(issue.id, { issue }),
         ),
       ),
   }),

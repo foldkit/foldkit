@@ -1,10 +1,10 @@
-import { Array, Number, Option } from 'effect'
+import { Array, Number, Option, Tuple } from 'effect'
 import { AsyncData, type Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { NavigateInternal, ReplaceInternalUrl } from './command'
-import { CommandPaletteBlock } from './commandPalette'
-import { CreateIssueBlock } from './createIssue'
+import { CommandPaletteBlock } from './commandPalette/definition'
+import { CreateIssueBlock } from './createIssue/definition'
 import {
   makeBinding,
   makeCommandsStep,
@@ -16,14 +16,14 @@ import {
   makeStep,
 } from './definition'
 import { type IssueFilters, SavedView } from './domain'
-import { IssueBoardBlock } from './issueBoard'
-import { IssueDetailBlock } from './issueDetail'
+import { IssueBoardBlock } from './issueBoard/definition'
+import { IssueDetailBlock } from './issueDetail/definition'
 import { issueFiltersHref, issueHref } from './issueLinks'
-import { IssueListBlock } from './issueList'
+import { IssueListBlock } from './issueList/definition'
 import { WorkspaceListboxBlock } from './listbox'
-import { MemberDirectoryBlock } from './memberDirectory'
-import { NotificationCenterBlock } from './notificationCenter'
-import { ProjectSettingsBlock } from './projectSettings'
+import { MemberDirectoryBlock } from './memberDirectory/definition'
+import { NotificationCenterBlock } from './notificationCenter/definition'
+import { ProjectSettingsBlock } from './projectSettings/definition'
 import {
   ApplicationRoute,
   isPageRoute,
@@ -197,7 +197,7 @@ export const IssueBoardBinding = makeMapBinding(IssueBoardBlock, {
   field: 'issueBoards',
 })
 
-const IssueBoardBindingWithOutMessagePolicy =
+export const IssueBoardBindingWithOutMessagePolicy =
   IssueBoardBinding.withOutMessagePolicy({
     fold: (projectId, outMessage) =>
       makeOutMessageFold(IssueBoardBlock, {
@@ -227,7 +227,7 @@ export const MemberDirectoryBinding = makeBinding(MemberDirectoryBlock, {
   field: 'memberDirectory',
 })
 
-const IssueDetailBindingWithOutMessagePolicy =
+export const IssueDetailBindingWithOutMessagePolicy =
   IssueDetailBinding.withOutMessagePolicy({
     fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
   })
@@ -250,19 +250,7 @@ export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
     })(outMessage),
 })
 
-export type ApplicationBindings = readonly [
-  typeof ActiveMemberBinding,
-  typeof ProjectSettingsBinding,
-  typeof IssueListBinding,
-  typeof CreateIssueBinding,
-  typeof IssueBoardBindingWithOutMessagePolicy,
-  typeof CommandPaletteBinding,
-  typeof MemberDirectoryBinding,
-  typeof NotificationCenterBinding,
-  typeof IssueDetailBindingWithOutMessagePolicy,
-]
-
-const bindings: ApplicationBindings = [
+export const bindings = Tuple.make(
   ActiveMemberBinding,
   ProjectSettingsBinding,
   IssueListBinding,
@@ -272,7 +260,7 @@ const bindings: ApplicationBindings = [
   MemberDirectoryBinding,
   NotificationCenterBinding,
   IssueDetailBindingWithOutMessagePolicy,
-]
+)
 
 export const ApplicationComposition = makeComposition({
   bindings,

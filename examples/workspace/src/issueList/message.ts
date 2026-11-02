@@ -9,7 +9,7 @@ export const Message = defineMessageUnion({
   UpdatedStatusFilter: { value: StatusFilterValue },
   UpdatedSort: { value: IssueFilters.fields.sort },
   ClickedCreateIssue: {},
-  RequestedClearFilters: {},
+  ClickedClearFilters: {},
   UpdatedGrouping: { value: GroupBy },
   UpdatedSavedViewName: { value: Schema.String },
   SubmittedSavedView: { filters: IssueFilters },

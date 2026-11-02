@@ -1,4 +1,13 @@
-import { Array, Effect, Fiber, Option, Predicate, Schema, Stream } from 'effect'
+import {
+  Array,
+  Effect,
+  Fiber,
+  Layer,
+  Option,
+  Predicate,
+  Schema,
+  Stream,
+} from 'effect'
 import { Block, Scene, Story } from 'foldkit'
 import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
@@ -10,10 +19,12 @@ import { expect } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/block.js'
+import { makeInitialModel as makeAnimationModel } from '../animation/schema.js'
 import {
   AcquireResources,
   CloseDialog,
   DialogBlock,
+  InMessage,
   type InitConfig,
   Message,
   Model,
@@ -21,19 +32,16 @@ import {
   ReleaseDialogResources,
   type RenderInfo,
   ShowDialog,
-  DialogBlock as block,
   descriptionId,
-  init,
   initialFocusMarkerAttribute,
   initialFocusMarkerSelector,
+  layer,
   titleId,
-  update,
-  view,
 } from './block.js'
 
-type TestHtmlBuilder = Parameters<typeof view>[2]
-
-const provideEffects = Effect.provide(block.EffectsLayer)
+type TestHtmlBuilder = Parameters<
+  Story.TestBlock<typeof DialogBlock>['view']
+>[2]
 
 const acknowledgeAcquireResources = Scene.Mount.resolve(
   AcquireResources,
@@ -54,7 +62,10 @@ const ParentMessage = defineMessageUnion({
 })
 type ParentMessage = typeof ParentMessage.Type
 
+const DialogParentTestKey = Symbol('DialogParentTest')
 const DialogParentTestDefinition = Block.makeDefinition('DialogParentTest', {
+  key: DialogParentTestKey,
+  Init: Schema.Tuple([]),
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -80,6 +91,9 @@ const LoadParentData = DialogParentTestDefinition.makeCommand(
   'LoadParentData',
   {
     messages: [ParentMessage.CompletedLoadParentData],
+    handler: function* () {
+      return () => Effect.succeed(ParentMessage.CompletedLoadParentData())
+    },
   },
 )
 
@@ -100,100 +114,137 @@ const parentInit = DialogParentTestComposition.makeInit(() => ({
   model: { dialogEvents: [] },
   steps: [loadParentData, DialogBinding.requestOpen()],
 }))
+const ParentBlock = DialogParentTestDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+    return {
+      children: [dialog],
+      init: parentInit,
+      update: DialogParentTestComposition.makeUpdate({
+        CompletedLoadParentData: DialogParentTestDefinition.makeNoopStep(),
+      }),
+      EffectsLayer: LoadParentData.layer,
+    }
+  }),
+).provide(layer)
 
-const openDialog = (config: InitConfig) =>
-  update(init(config).model, Message.RequestedOpen())
+const makeFixture = (block: Story.TestBlock<typeof DialogBlock>) => {
+  const { init, update, view } = block
+  const provideEffects = Effect.provide(
+    Layer.mergeAll(
+      ShowDialog.layer,
+      CloseDialog.layer,
+      ReleaseDialogResources.layer,
+      AcquireResources.layer,
+    ),
+  )
+  const openDialog = (config: InitConfig) =>
+    block.receive(init(config).model, InMessage.RequestedOpen())
 
-const isDialogVisible = (model: Model): boolean =>
-  model.isOpen || model.animation.transitionState !== 'Idle'
+  const isDialogVisible = (model: Model): boolean =>
+    model.isOpen || model.animation.transitionState !== 'Idle'
 
-const isOnUnmount = <RequiredMountRequirements>(
-  childAttribute: ChildAttribute<RequiredMountRequirements>,
-): boolean => Predicate.isTagged(childAttribute.attribute, 'OnUnmount')
+  const isOnUnmount = <RequiredMountRequirements>(
+    childAttribute: ChildAttribute<RequiredMountRequirements>,
+  ): boolean => Predicate.isTagged(childAttribute.attribute, 'OnUnmount')
 
-// Renders the dialog view through the Scene harness (which manages the runtime
-// frame) and reports whether the published `dialog` attribute group carries the
-// OnUnmount backstop.
-const dialogHasOnUnmount = (model: Model): boolean => {
-  let hasOnUnmount = false
-  const sceneView = (currentModel: Model, h: TestHtmlBuilder) =>
-    view(
-      currentModel,
-      {
-        toView: ({ dialog }) => {
-          hasOnUnmount = dialog.some(isOnUnmount)
-          return h.dialog([...dialog])
+  // Renders the dialog view through the Scene harness (which manages the runtime
+  // frame) and reports whether the published `dialog` attribute group carries the
+  // OnUnmount backstop.
+  const dialogHasOnUnmount = (model: Model): boolean => {
+    let hasOnUnmount = false
+    const sceneView = (currentModel: Model, h: TestHtmlBuilder) =>
+      view(
+        currentModel,
+        {
+          toView: ({ dialog }) => {
+            hasOnUnmount = dialog.some(isOnUnmount)
+            return h.dialog([...dialog])
+          },
         },
-      },
-      h,
-    )
+        h,
+      )
 
-  if (isDialogVisible(model)) {
-    Scene.scene(
-      { update, view: sceneView },
-      Scene.given(model),
-      acknowledgeAcquireResources,
-    )
-  } else {
-    Scene.scene({ update, view: sceneView }, Scene.given(model))
-  }
-  return hasOnUnmount
-}
-
-// Renders the dialog view through the Scene harness and returns the chosen
-// RenderInfo attribute group so a test can inspect what the consumer receives.
-const renderGroup = <RequiredMountRequirements>(
-  model: Model,
-  selectGroup: (
-    render: RenderInfo,
-  ) => ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
-  hasDescription = false,
-): ReadonlyArray<ChildAttribute<RequiredMountRequirements>> => {
-  let captured: ReadonlyArray<ChildAttribute<RequiredMountRequirements>> = []
-  const sceneView = (currentModel: Model, h: TestHtmlBuilder) =>
-    view(
-      currentModel,
-      {
-        hasDescription,
-        toView: render => {
-          captured = selectGroup(render)
-          return h.dialog([...render.dialog])
-        },
-      },
-      h,
-    )
-
-  if (isDialogVisible(model)) {
-    if (model.animation.transitionState === 'LeaveStart') {
+    if (isDialogVisible(model)) {
       Scene.scene(
         { update, view: sceneView },
         Scene.given(model),
         acknowledgeAcquireResources,
-        Scene.Command.resolve(
-          Animation.WaitForPaint,
-          Animation.Message.CompletedWaitForPaint({
-            generation: model.animation.transitionGeneration,
-          }),
-        ),
-        Scene.Command.resolve(
-          Animation.WaitForAnimationSettled,
-          Animation.Message.EndedAnimation({
-            generation: model.animation.transitionGeneration,
-          }),
-        ),
-        Scene.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
       )
     } else {
-      Scene.scene(
-        { update, view: sceneView },
-        Scene.given(model),
-        acknowledgeAcquireResources,
-      )
+      Scene.scene({ update, view: sceneView }, Scene.given(model))
     }
-  } else {
-    Scene.scene({ update, view: sceneView }, Scene.given(model))
+    return hasOnUnmount
   }
-  return captured
+
+  // Renders the dialog view through the Scene harness and returns the chosen
+  // RenderInfo attribute group so a test can inspect what the consumer receives.
+  const renderGroup = <RequiredMountRequirements>(
+    model: Model,
+    selectGroup: (
+      render: RenderInfo,
+    ) => ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
+    hasDescription = false,
+  ): ReadonlyArray<ChildAttribute<RequiredMountRequirements>> => {
+    let captured: ReadonlyArray<ChildAttribute<RequiredMountRequirements>> = []
+    const sceneView = (currentModel: Model, h: TestHtmlBuilder) =>
+      view(
+        currentModel,
+        {
+          hasDescription,
+          toView: render => {
+            captured = selectGroup(render)
+            return h.dialog([...render.dialog])
+          },
+        },
+        h,
+      )
+
+    if (isDialogVisible(model)) {
+      if (model.animation.transitionState === 'LeaveStart') {
+        Scene.scene(
+          { update, view: sceneView },
+          Scene.given(model),
+          acknowledgeAcquireResources,
+          Scene.Command.resolve(
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({
+              generation: model.animation.transitionGeneration,
+            }),
+          ),
+          Scene.Command.resolve(
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation({
+              generation: model.animation.transitionGeneration,
+            }),
+          ),
+          Scene.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
+        )
+      } else {
+        Scene.scene(
+          { update, view: sceneView },
+          Scene.given(model),
+          acknowledgeAcquireResources,
+        )
+      }
+    } else {
+      Scene.scene({ update, view: sceneView }, Scene.given(model))
+    }
+    return captured
+  }
+
+  const sceneView = (model: Model, h: TestHtmlBuilder) =>
+    view(model, { toView: ({ dialog }) => h.dialog([...dialog]) }, h)
+  return {
+    sceneView,
+    init,
+    update,
+    view,
+    openDialog,
+    dialogHasOnUnmount,
+    renderGroup,
+    provideEffects,
+  }
 }
 
 const hasIdAttribute = <RequiredMountRequirements>(
@@ -256,1080 +307,1387 @@ const hasEscapeCancelMapping = <RequiredMountRequirements>(
       Predicate.isTagged(attribute.maybeCustomEventMessage, 'Some'),
   )
 
-describe('Dialog', () => {
-  describe('init', () => {
-    it('defaults isOpen to false', () => {
-      expect(init({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        isOpen: false,
-        isAnimated: false,
-        animation: Animation.init({ id: 'test-panel' }).model,
-        maybeFocusSelector: Option.none(),
-      })
-    })
+it.layer(layer, { buildPerTest: true })(it => {
+  describe('Dialog', () => {
+    describe('init', () => {
+      it.effect('defaults isOpen to false', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { init } = makeFixture(block)
 
-    it('opens through the update path with the ShowDialog Command and Opened OutMessage', () => {
-      const dialogOpen = openDialog({ id: 'test' })
-
-      expect(dialogOpen.model).toStrictEqual({
-        id: 'test',
-        isOpen: true,
-        isAnimated: false,
-        animation: Animation.init({ id: 'test-panel' }).model,
-        maybeFocusSelector: Option.none(),
-      })
-      expect(
-        dialogOpen.commands?.map(({ name, args }) => ({ name, args })),
-      ).toStrictEqual([
-        {
-          name: 'Dialog/ShowDialog',
-          args: {
+          expect(init({ id: 'test' }).model).toStrictEqual({
             id: 'test',
-            focusSelector: initialFocusMarkerSelector,
-          },
-        },
-      ])
-      expect(dialogOpen.outMessage).toStrictEqual(OutMessage.Opened())
-    })
+            isOpen: false,
+            isAnimated: false,
+            animation: makeAnimationModel({ id: 'test-panel' }),
+            maybeFocusSelector: Option.none(),
+          })
+        }),
+      )
 
-    it('opens through the Binding while preserving root Commands and folding Opened', () => {
-      const parentOpen = parentInit()
+      it.effect(
+        'opens through the update path with the ShowDialog Command and Opened OutMessage',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
 
-      expect(parentOpen.model.dialog.isOpen).toBe(true)
-      expect(parentOpen.model.dialogEvents).toStrictEqual(['Opened'])
-      expect(
-        parentOpen.commands?.map(({ name, args }) => ({ name, args })),
-      ).toStrictEqual([
-        {
-          name: 'DialogParentTest/LoadParentData',
-          args: undefined,
-        },
-        {
-          name: 'dialog/ShowDialog',
-          args: {
-            id: 'initial-dialog',
-            focusSelector: initialFocusMarkerSelector,
-          },
-        },
-      ])
-    })
+            const dialogOpen = openDialog({ id: 'test' })
 
-    it('accepts a focusSelector', () => {
-      expect(
-        init({ id: 'test', focusSelector: '#search-input' }).model,
-      ).toStrictEqual({
-        id: 'test',
-        isOpen: false,
-        isAnimated: false,
-        animation: Animation.init({ id: 'test-panel' }).model,
-        maybeFocusSelector: Option.some('#search-input'),
-      })
-    })
-  })
-
-  describe('update', () => {
-    describe('non-animated', () => {
-      it('opens when closed on RequestedOpen and emits Opened', () => {
-        Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
-          Story.message(Message.RequestedOpen()),
-          Story.expectOutMessage(OutMessage.Opened()),
-          Story.Command.resolve(ShowDialog, Message.SucceededShowDialog()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-          }),
-        )
-      })
-
-      it('shows with the initialFocus marker selector when no focusSelector is configured', () => {
-        Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
-          Story.message(Message.RequestedOpen()),
-          Story.Command.resolve(
-            ShowDialog({
+            expect(dialogOpen.model).toStrictEqual({
               id: 'test',
-              focusSelector: initialFocusMarkerSelector,
-            }),
-            Message.SucceededShowDialog(),
-          ),
-        )
-      })
-
-      it('shows with the configured focusSelector, which wins over the marker', () => {
-        Story.story(
-          update,
-          Story.given(
-            init({ id: 'test', focusSelector: '#search-input' }).model,
-          ),
-          Story.message(Message.RequestedOpen()),
-          Story.Command.resolve(
-            ShowDialog({ id: 'test', focusSelector: '#search-input' }),
-            Message.SucceededShowDialog(),
-          ),
-        )
-      })
-
-      it('opens without command or OutMessage when already open on RequestedOpen', () => {
-        Story.story(
-          update,
-          Story.given(openDialog({ id: 'test' }).model),
-          Story.message(Message.RequestedOpen()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-          }),
-        )
-      })
-
-      it('closes when open on RequestedClose and emits Closed', () => {
-        Story.story(
-          update,
-          Story.given(openDialog({ id: 'test' }).model),
-          Story.message(Message.RequestedClose()),
-          Story.expectOutMessage(OutMessage.Closed()),
-          Story.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
-
-      it('closes without command or OutMessage when already closed on RequestedClose', () => {
-        Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
-          Story.message(Message.RequestedClose()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
-
-      it('returns model unchanged on SucceededShowDialog while open', () => {
-        const originalModel = openDialog({ id: 'test' }).model
-        Story.story(
-          update,
-          Story.given(originalModel),
-          Story.message(Message.SucceededShowDialog()),
-          Story.model(model => {
-            expect(model).toBe(originalModel)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-
-      it('dispatches CloseDialog when the show succeeds after the dialog closed', () => {
-        Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
-          Story.message(Message.SucceededShowDialog()),
-          Story.expectNoOutMessage(),
-          Story.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
-
-      it('dispatches CloseDialog when Mount acquisition succeeds after the dialog closed', () => {
-        Story.story(
-          update,
-          Story.given(init({ id: 'test' }).model),
-          Story.message(Message.SucceededAcquireResources()),
-          Story.expectNoOutMessage(),
-          Story.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
-
-      it('closes the model when Mount acquisition fails while open', () => {
-        Story.story(
-          update,
-          Story.given(openDialog({ id: 'test' }).model),
-          Story.message(Message.FailedAcquireResources()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-
-      it('immediately resets an entering animation when Mount acquisition fails', () => {
-        const enteringModel = modifyFields(
-          openDialog({ id: 'test', isAnimated: true }).model,
-          {
-            animation: () =>
-              modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: true }).model,
-                {
-                  transitionState: () => 'EnterAnimating',
-                  transitionGeneration: () => 1,
-                },
-              ),
-          },
-        )
-
-        Story.story(
-          update,
-          Story.given(enteringModel),
-          Story.message(Message.FailedAcquireResources()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.animation.isShowing).toBe(false)
-            expect(model.animation.transitionState).toBe('Idle')
-            expect(model.animation.transitionGeneration).toBe(1)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-    })
-
-    describe('animated', () => {
-      it('opens with enter animation on RequestedOpen', () => {
-        Story.story(
-          update,
-          Story.given(init({ id: 'test', isAnimated: true }).model),
-          Story.message(Message.RequestedOpen()),
-          Story.Command.expectHas(ShowDialog, Animation.WaitForPaint),
-          Story.Command.resolveAll(
-            [ShowDialog, Message.SucceededShowDialog()],
-            [
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-            ],
-            [
-              Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ generation: 1 }),
-            ],
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-            expect(model.animation.transitionState).toBe('Idle')
-          }),
-        )
-      })
-
-      it('closes with leave animation and CloseDialog on RequestedClose', () => {
-        Story.story(
-          update,
-          Story.given(openDialog({ id: 'test', isAnimated: true }).model),
-          Story.message(Message.RequestedClose()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.animation.transitionState).toBe('LeaveStart')
-          }),
-          Story.Command.resolveAll(
-            [
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ generation: 2 }),
-            ],
-            [
-              Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ generation: 2 }),
-            ],
-            [CloseDialog, Message.CompletedCloseDialog()],
-          ),
-          Story.model(model => {
-            expect(model.animation.transitionState).toBe('Idle')
-          }),
-        )
-      })
-
-      it('resumes EnterStart after lifecycle acquisition', () => {
-        Story.story(
-          update,
-          Story.given(openDialog({ id: 'test', isAnimated: true }).model),
-          Story.message(Message.SucceededAcquireResources()),
-          Story.Command.expectHas(Animation.WaitForPaint({ generation: 1 })),
-          Story.Command.resolveAll(
-            [
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-            ],
-            [
-              Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ generation: 1 }),
-            ],
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-            expect(model.animation.transitionState).toBe('Idle')
-          }),
-        )
-      })
-
-      it('resumes EnterAnimating after lifecycle acquisition', () => {
-        const enteringModel = modifyFields(
-          openDialog({ id: 'test', isAnimated: true }).model,
-          {
-            animation: animation =>
-              modifyFields(animation, {
-                transitionState: () => 'EnterAnimating',
-              }),
-          },
-        )
-
-        Story.story(
-          update,
-          Story.given(enteringModel),
-          Story.message(Message.SucceededAcquireResources()),
-          Story.Command.expectHas(
-            Animation.WaitForAnimationSettled({
-              id: 'test-panel',
-              generation: 1,
-            }),
-          ),
-          Story.Command.resolve(
-            Animation.WaitForAnimationSettled,
-            Animation.Message.EndedAnimation({ generation: 1 }),
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-            expect(model.animation.transitionState).toBe('Idle')
-          }),
-        )
-      })
-
-      it('resumes LeaveStart after lifecycle acquisition', () => {
-        const dialogClose = update(
-          openDialog({ id: 'test', isAnimated: true }).model,
-          Message.RequestedClose(),
-        )
-
-        Story.story(
-          update,
-          Story.given(dialogClose.model),
-          Story.message(Message.SucceededAcquireResources()),
-          Story.Command.expectHas(Animation.WaitForPaint({ generation: 2 })),
-          Story.Command.resolveAll(
-            [
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ generation: 2 }),
-            ],
-            [
-              Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ generation: 2 }),
-            ],
-            [CloseDialog, Message.CompletedCloseDialog()],
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.animation.transitionState).toBe('Idle')
-          }),
-        )
-      })
-
-      it('resumes LeaveAnimating after lifecycle acquisition', () => {
-        const leavingModel = modifyFields(
-          update(
-            openDialog({ id: 'test', isAnimated: true }).model,
-            Message.RequestedClose(),
-          ).model,
-          {
-            animation: animation =>
-              modifyFields(animation, {
-                transitionState: () => 'LeaveAnimating',
-              }),
-          },
-        )
-
-        Story.story(
-          update,
-          Story.given(leavingModel),
-          Story.message(Message.SucceededAcquireResources()),
-          Story.Command.expectHas(
-            Animation.WaitForAnimationSettled({
-              id: 'test-panel',
-              generation: 2,
-            }),
-          ),
-          Story.Command.resolveAll(
-            [
-              Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ generation: 2 }),
-            ],
-            [CloseDialog, Message.CompletedCloseDialog()],
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.animation.transitionState).toBe('Idle')
-          }),
-        )
-      })
-
-      it('ignores RequestedClose when already in LeaveStart', () => {
-        const leavingModel = modifyFields(
-          openDialog({ id: 'test', isAnimated: true }).model,
-          {
-            isOpen: () => false,
-            animation: () =>
-              modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }).model,
-                {
-                  transitionState: () => 'LeaveStart',
-                },
-              ),
-          },
-        )
-        Story.story(
-          update,
-          Story.given(leavingModel),
-          Story.message(Message.RequestedClose()),
-          Story.model(model => {
-            expect(model).toBe(leavingModel)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-
-      it('dispatches no CloseDialog when the show succeeds during the leave animation', () => {
-        const leavingModel = modifyFields(
-          openDialog({ id: 'test', isAnimated: true }).model,
-          {
-            isOpen: () => false,
-            animation: () =>
-              modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }).model,
-                {
-                  transitionState: () => 'LeaveStart',
-                },
-              ),
-          },
-        )
-        Story.story(
-          update,
-          Story.given(leavingModel),
-          Story.message(Message.SucceededShowDialog()),
-          Story.model(model => {
-            expect(model).toBe(leavingModel)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-
-      it('ignores RequestedClose when already in LeaveAnimating', () => {
-        const leavingModel = modifyFields(
-          openDialog({ id: 'test', isAnimated: true }).model,
-          {
-            isOpen: () => false,
-            animation: () =>
-              modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }).model,
-                {
-                  transitionState: () => 'LeaveAnimating',
-                },
-              ),
-          },
-        )
-        Story.story(
-          update,
-          Story.given(leavingModel),
-          Story.message(Message.RequestedClose()),
-          Story.model(model => {
-            expect(model).toBe(leavingModel)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-    })
-
-    describe('Unmounted', () => {
-      it('resets the model to closed and releases resources without emitting Closed', () => {
-        Story.story(
-          update,
-          Story.given(openDialog({ id: 'test' }).model),
-          Story.message(Message.Unmounted()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-          Story.Command.resolve(
-            ReleaseDialogResources,
-            Message.CompletedReleaseDialogResources(),
-          ),
-        )
-      })
-
-      it('resets an in-flight leave animation to Idle without emitting Closed', () => {
-        const leavingModel = modifyFields(
-          openDialog({ id: 'test', isAnimated: true }).model,
-          {
-            isOpen: () => false,
-            animation: () =>
-              modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }).model,
-                {
-                  transitionState: () => 'LeaveAnimating',
-                  transitionGeneration: () => 2,
-                },
-              ),
-          },
-        )
-        Story.story(
-          update,
-          Story.given(leavingModel),
-          Story.message(Message.Unmounted()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.animation.isShowing).toBe(false)
-            expect(model.animation.transitionState).toBe('Idle')
-            expect(model.animation.transitionGeneration).toBe(2)
-          }),
-          Story.Command.resolve(
-            ReleaseDialogResources,
-            Message.CompletedReleaseDialogResources(),
-          ),
-        )
-      })
-
-      it('is a no-op when the dialog is already closed', () => {
-        const closedModel = init({ id: 'test' }).model
-        Story.story(
-          update,
-          Story.given(closedModel),
-          Story.message(Message.Unmounted()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model).toBe(closedModel)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-
-      it('returns the model unchanged on CompletedReleaseDialogResources', () => {
-        const originalModel = init({ id: 'test' }).model
-        Story.story(
-          update,
-          Story.given(originalModel),
-          Story.message(Message.CompletedReleaseDialogResources()),
-          Story.model(model => {
-            expect(model).toBe(originalModel)
-          }),
-        )
-      })
-    })
-
-    describe('FailedShowDialog', () => {
-      it('closes the model without emitting Closed or releasing resources', () => {
-        Story.story(
-          update,
-          Story.given(openDialog({ id: 'test' }).model),
-          Story.message(Message.FailedShowDialog()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-
-      it('resets a running enter animation to Idle', () => {
-        const enteringModel = modifyFields(
-          openDialog({ id: 'test', isAnimated: true }).model,
-          {
-            animation: () =>
-              modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: true }).model,
-                {
-                  transitionState: () => 'EnterAnimating',
-                  transitionGeneration: () => 1,
-                },
-              ),
-          },
-        )
-        Story.story(
-          update,
-          Story.given(enteringModel),
-          Story.message(Message.FailedShowDialog()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.animation.isShowing).toBe(false)
-            expect(model.animation.transitionState).toBe('Idle')
-            expect(model.animation.transitionGeneration).toBe(1)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-
-      it('resets a running leave animation to Idle', () => {
-        const leavingModel = modifyFields(
-          openDialog({ id: 'test', isAnimated: true }).model,
-          {
-            isOpen: () => false,
-            animation: () =>
-              modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }).model,
-                {
-                  transitionState: () => 'LeaveAnimating',
-                },
-              ),
-          },
-        )
-        Story.story(
-          update,
-          Story.given(leavingModel),
-          Story.message(Message.FailedShowDialog()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.animation.isShowing).toBe(false)
-            expect(model.animation.transitionState).toBe('Idle')
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-
-      it('does nothing when the dialog is already closed', () => {
-        const closedModel = init({ id: 'test' }).model
-        Story.story(
-          update,
-          Story.given(closedModel),
-          Story.message(Message.FailedShowDialog()),
-          Story.expectNoOutMessage(),
-          Story.model(model => {
-            expect(model).toBe(closedModel)
-          }),
-          Story.Command.expectNone(),
-        )
-      })
-
-      it('dispatches no CloseDialog when the dialog is closed after a failed show', () => {
-        Story.story(
-          update,
-          Story.given(openDialog({ id: 'test' }).model),
-          Story.message(Message.FailedShowDialog()),
-          Story.message(Message.RequestedClose()),
-          Story.expectNoOutMessage(),
-          Story.Command.expectNone(),
-        )
-      })
-    })
-  })
-
-  describe('titleId', () => {
-    it('returns the id suffixed with -dialog-title', () => {
-      const model = init({ id: 'my-dialog' }).model
-      expect(titleId(model)).toBe('my-dialog-dialog-title')
-    })
-  })
-
-  describe('descriptionId', () => {
-    it('returns the id suffixed with -dialog-description', () => {
-      const model = init({ id: 'my-dialog' }).model
-      expect(descriptionId(model)).toBe('my-dialog-dialog-description')
-    })
-  })
-
-  describe('RenderInfo title and description', () => {
-    it('publishes the title id the dialog labels itself by', () => {
-      const model = init({ id: 'my-dialog' }).model
-      expect(
-        hasIdAttribute(
-          renderGroup(model, render => render.title),
-          titleId(model),
-        ),
-      ).toBe(true)
-    })
-
-    it('publishes the description id the dialog describes itself by', () => {
-      const model = init({ id: 'my-dialog' }).model
-      expect(
-        hasIdAttribute(
-          renderGroup(model, render => render.description),
-          descriptionId(model),
-        ),
-      ).toBe(true)
-    })
-  })
-
-  describe('RenderInfo dialog', () => {
-    it('omits aria-describedby by default', () => {
-      expect(
-        hasAriaDescribedBy(
-          renderGroup(init({ id: 'my-dialog' }).model, render => render.dialog),
-          'my-dialog-dialog-description',
-        ),
-      ).toBe(false)
-    })
-
-    it('references the description when opted in', () => {
-      expect(
-        hasAriaDescribedBy(
-          renderGroup(
-            init({ id: 'my-dialog' }).model,
-            render => render.dialog,
-            true,
-          ),
-          'my-dialog-dialog-description',
-        ),
-      ).toBe(true)
-    })
-
-    it('suppresses native cancel events', () => {
-      expect(
-        hasCancelPrevention(
-          renderGroup(init({ id: 'my-dialog' }).model, render => render.dialog),
-        ),
-      ).toBe(true)
-    })
-
-    it('maps the showDialog Escape signal', () => {
-      expect(
-        hasEscapeCancelMapping(
-          renderGroup(init({ id: 'my-dialog' }).model, render => render.dialog),
-        ),
-      ).toBe(true)
-    })
-  })
-
-  describe('RenderInfo closeButton', () => {
-    it('publishes type button so a close control does not submit a form', () => {
-      const model = openDialog({ id: 'my-dialog' }).model
-      expect(
-        hasButtonType(renderGroup(model, render => render.closeButton)),
-      ).toBe(true)
-    })
-
-    it('publishes type button while the leave animation runs', () => {
-      const leavingModel = modifyFields(
-        openDialog({ id: 'my-dialog', isAnimated: true }).model,
-        {
-          isOpen: () => false,
-          animation: () =>
-            modifyFields(
-              Animation.init({ id: 'my-dialog-panel', isShowing: false }).model,
+              isOpen: true,
+              isAnimated: false,
+              animation: makeAnimationModel({ id: 'test-panel' }),
+              maybeFocusSelector: Option.none(),
+            })
+            expect(
+              dialogOpen.commands?.map(({ name, args }) => ({ name, args })),
+            ).toStrictEqual([
               {
-                transitionState: () => 'LeaveStart',
-                transitionGeneration: () => 2,
+                name: 'Dialog/ShowDialog',
+                args: {
+                  id: 'test',
+                  focusSelector: initialFocusMarkerSelector,
+                },
               },
-            ),
-        },
+            ])
+            expect(dialogOpen.outMessage).toStrictEqual(OutMessage.Opened())
+          }),
       )
-      expect(
-        hasButtonType(renderGroup(leavingModel, render => render.closeButton)),
-      ).toBe(true)
-    })
-  })
 
-  describe('RenderInfo initialFocus', () => {
-    it('publishes the marker the dialog focuses on open', () => {
-      const model = init({ id: 'my-dialog' }).model
-      expect(
-        hasDataAttribute(
-          renderGroup(model, render => render.initialFocus),
-          initialFocusMarkerAttribute,
-        ),
-      ).toBe(true)
-    })
+      it.effect(
+        'opens through the Binding while preserving root Commands and folding Opened',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const {} = makeFixture(block)
+            return Story.withBlock(ParentBlock, parent => {
+              const parentOpen = parent.init()
 
-    it.effect(
-      'focuses the element carrying the marker when the dialog opens',
-      () =>
-        Effect.gen(function* () {
-          const dialog = document.createElement('dialog')
-          dialog.id = 'focus-dialog'
-          const before = document.createElement('input')
-          const marked = document.createElement('input')
-          marked.setAttribute(`data-${initialFocusMarkerAttribute}`, '')
-          dialog.append(before, marked)
-          document.body.appendChild(dialog)
+              expect(parentOpen.model.dialog.isOpen).toBe(true)
+              expect(parentOpen.model.dialogEvents).toStrictEqual(['Opened'])
+              expect(
+                parentOpen.commands?.map(({ name, args }) => ({ name, args })),
+              ).toStrictEqual([
+                {
+                  name: 'DialogParentTest/LoadParentData',
+                  args: undefined,
+                },
+                {
+                  name: 'dialog/ShowDialog',
+                  args: {
+                    id: 'initial-dialog',
+                    focusSelector: initialFocusMarkerSelector,
+                  },
+                },
+              ])
+            })
+          }),
+      )
 
-          yield* Dom.showDialog('#focus-dialog', {
-            focusSelector: initialFocusMarkerSelector,
+      it.effect('accepts a focusSelector', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { init } = makeFixture(block)
+
+          expect(
+            init({ id: 'test', focusSelector: '#search-input' }).model,
+          ).toStrictEqual({
+            id: 'test',
+            isOpen: false,
+            isAnimated: false,
+            animation: makeAnimationModel({ id: 'test-panel' }),
+            maybeFocusSelector: Option.some('#search-input'),
           })
-
-          expect(document.activeElement).toBe(marked)
-
-          yield* Dom.closeDialog('#focus-dialog')
-          document.body.innerHTML = ''
         }),
-    )
-  })
+      )
+    })
 
-  describe('Command resource cleanup', () => {
-    it.effect(
-      'ShowDialog reports FailedShowDialog and releases the scroll lock when the dialog is gone before it shows',
-      () =>
-        Effect.gen(function* () {
-          const showDialog = yield* ShowDialog({
-            id: 'missing-dialog',
-            focusSelector: initialFocusMarkerSelector,
-          }).effect.pipe(provideEffects)
+    describe('update', () => {
+      describe('non-animated', () => {
+        it.effect('opens when closed on RequestedOpen and emits Opened', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { init } = makeFixture(block)
 
-          expect(showDialog).toEqual(Message.FailedShowDialog())
-          expect(document.documentElement.style.overflow).not.toBe('hidden')
-        }),
-    )
+            return Story.story(
+              DialogBlock,
+              Story.given(init({ id: 'test' }).model),
+              Story.inMessage(InMessage.RequestedOpen()),
+              Story.expectOutMessage(OutMessage.Opened()),
+              Story.Command.resolve(ShowDialog, Message.SucceededShowDialog()),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+              }),
+            )
+          }),
+        )
 
-    it.effect(
-      'ShowDialog keeps scroll unlocked when it is interrupted before the dialog shows',
-      () =>
-        Effect.gen(function* () {
-          const showDialog = yield* Effect.forkChild(
-            ShowDialog({
-              id: 'missing-dialog',
-              focusSelector: initialFocusMarkerSelector,
-            }).effect.pipe(provideEffects),
-          )
+        it.effect(
+          'shows with the initialFocus marker selector when no focusSelector is configured',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { init } = makeFixture(block)
 
-          yield* Effect.yieldNow
-          expect(document.documentElement.style.overflow).not.toBe('hidden')
+              return Story.story(
+                DialogBlock,
+                Story.given(init({ id: 'test' }).model),
+                Story.inMessage(InMessage.RequestedOpen()),
+                Story.Command.resolve(
+                  ShowDialog({
+                    id: 'test',
+                    focusSelector: initialFocusMarkerSelector,
+                  }),
+                  Message.SucceededShowDialog(),
+                ),
+              )
+            }),
+        )
 
-          yield* Fiber.interrupt(showDialog)
+        it.effect(
+          'shows with the configured focusSelector, which wins over the marker',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { init } = makeFixture(block)
 
-          expect(document.documentElement.style.overflow).not.toBe('hidden')
-        }),
-    )
+              return Story.story(
+                DialogBlock,
+                Story.given(
+                  init({ id: 'test', focusSelector: '#search-input' }).model,
+                ),
+                Story.inMessage(InMessage.RequestedOpen()),
+                Story.Command.resolve(
+                  ShowDialog({ id: 'test', focusSelector: '#search-input' }),
+                  Message.SucceededShowDialog(),
+                ),
+              )
+            }),
+        )
 
-    it.effect(
-      'isolates the page while open and restores it before return focus',
-      () => {
-        const background = document.createElement('main')
-        const trigger = document.createElement('button')
-        background.appendChild(trigger)
+        it.effect(
+          'opens without command or OutMessage when already open on RequestedOpen',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
 
-        const dialog = document.createElement('dialog')
-        dialog.id = 'modal-dialog'
-        dialog.appendChild(document.createElement('button'))
+              return Story.story(
+                DialogBlock,
+                Story.given(openDialog({ id: 'test' }).model),
+                Story.inMessage(InMessage.RequestedOpen()),
+                Story.expectNoOutMessage(),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(true)
+                }),
+              )
+            }),
+        )
 
-        const devToolsHost = document.createElement('div')
-        devToolsHost.id = DEVTOOLS_HOST_ID
+        it.effect('closes when open on RequestedClose and emits Closed', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
 
-        document.body.append(background, dialog, devToolsHost)
-        trigger.focus()
+            return Story.story(
+              DialogBlock,
+              Story.given(openDialog({ id: 'test' }).model),
+              Story.inMessage(InMessage.RequestedClose()),
+              Story.expectOutMessage(OutMessage.Closed()),
+              Story.Command.resolve(
+                CloseDialog,
+                Message.CompletedCloseDialog(),
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+              }),
+            )
+          }),
+        )
 
-        return Effect.gen(function* () {
-          const dialogBoot = openDialog({ id: 'modal-dialog' })
-          const showDialogCommand = Option.getOrThrow(
-            Array.head(dialogBoot.commands ?? []),
-          )
-          const showDialog =
-            yield* showDialogCommand.effect.pipe(provideEffects)
+        it.effect(
+          'closes without command or OutMessage when already closed on RequestedClose',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { init } = makeFixture(block)
 
-          expect(dialogBoot.model.isOpen).toBe(true)
-          expect(showDialog).toEqual(Message.SucceededShowDialog())
-          expect(background.inert).toBe(true)
-          expect(background.getAttribute('aria-hidden')).toBe('true')
-          expect(devToolsHost.inert).toBe(false)
+              return Story.story(
+                DialogBlock,
+                Story.given(init({ id: 'test' }).model),
+                Story.inMessage(InMessage.RequestedClose()),
+                Story.expectNoOutMessage(),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                }),
+              )
+            }),
+        )
 
-          yield* CloseDialog({ id: 'modal-dialog' }).effect.pipe(provideEffects)
+        it.effect(
+          'returns model unchanged on SucceededShowDialog while open',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
 
-          expect(background.inert).toBe(false)
-          expect(background.hasAttribute('aria-hidden')).toBe(false)
-          expect(document.activeElement).toBe(trigger)
-        }).pipe(
-          Effect.ensuring(
-            Dom.releaseDialogResources('modal-dialog').pipe(
-              Effect.andThen(
-                Effect.sync(() => {
-                  background.remove()
-                  dialog.remove()
-                  devToolsHost.remove()
+              const originalModel = openDialog({ id: 'test' }).model
+              return Story.story(
+                DialogBlock,
+                Story.given(originalModel),
+                Story.message(Message.SucceededShowDialog()),
+                Story.model(model => {
+                  expect(model).toBe(originalModel)
+                }),
+                Story.Command.expectNone(),
+              )
+            }),
+        )
+
+        it.effect(
+          'dispatches CloseDialog when the show succeeds after the dialog closed',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { init } = makeFixture(block)
+
+              return Story.story(
+                DialogBlock,
+                Story.given(init({ id: 'test' }).model),
+                Story.message(Message.SucceededShowDialog()),
+                Story.expectNoOutMessage(),
+                Story.Command.resolve(
+                  CloseDialog,
+                  Message.CompletedCloseDialog(),
+                ),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                }),
+              )
+            }),
+        )
+
+        it.effect(
+          'dispatches CloseDialog when Mount acquisition succeeds after the dialog closed',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { init } = makeFixture(block)
+
+              return Story.story(
+                DialogBlock,
+                Story.given(init({ id: 'test' }).model),
+                Story.message(Message.SucceededAcquireResources()),
+                Story.expectNoOutMessage(),
+                Story.Command.resolve(
+                  CloseDialog,
+                  Message.CompletedCloseDialog(),
+                ),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                }),
+              )
+            }),
+        )
+
+        it.effect(
+          'closes the model when Mount acquisition fails while open',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
+
+              return Story.story(
+                DialogBlock,
+                Story.given(openDialog({ id: 'test' }).model),
+                Story.message(Message.FailedAcquireResources()),
+                Story.expectNoOutMessage(),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                }),
+                Story.Command.expectNone(),
+              )
+            }),
+        )
+
+        it.effect(
+          'immediately resets an entering animation when Mount acquisition fails',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
+
+              const enteringModel = modifyFields(
+                openDialog({ id: 'test', isAnimated: true }).model,
+                {
+                  animation: () =>
+                    modifyFields(
+                      makeAnimationModel({ id: 'test-panel', isShowing: true }),
+                      {
+                        transitionState: () => 'EnterAnimating',
+                        transitionGeneration: () => 1,
+                      },
+                    ),
+                },
+              )
+
+              return Story.story(
+                DialogBlock,
+                Story.given(enteringModel),
+                Story.message(Message.FailedAcquireResources()),
+                Story.expectNoOutMessage(),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                  expect(model.animation.isShowing).toBe(false)
+                  expect(model.animation.transitionState).toBe('Idle')
+                  expect(model.animation.transitionGeneration).toBe(1)
+                }),
+                Story.Command.expectNone(),
+              )
+            }),
+        )
+      })
+
+      describe('animated', () => {
+        it.effect('opens with enter animation on RequestedOpen', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { init } = makeFixture(block)
+
+            return Story.story(
+              DialogBlock,
+              Story.given(init({ id: 'test', isAnimated: true }).model),
+              Story.inMessage(InMessage.RequestedOpen()),
+              Story.Command.expectHas(ShowDialog, Animation.WaitForPaint),
+              Story.Command.resolveAll(
+                [ShowDialog, Message.SucceededShowDialog()],
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+                ],
+                [
+                  Animation.WaitForAnimationSettled,
+                  Animation.Message.EndedAnimation({ generation: 1 }),
+                ],
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
+            )
+          }),
+        )
+
+        it.effect(
+          'closes with leave animation and CloseDialog on RequestedClose',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
+
+              return Story.story(
+                DialogBlock,
+                Story.given(openDialog({ id: 'test', isAnimated: true }).model),
+                Story.inMessage(InMessage.RequestedClose()),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                  expect(model.animation.transitionState).toBe('LeaveStart')
+                }),
+                Story.Command.resolveAll(
+                  [
+                    Animation.WaitForPaint,
+                    Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+                  ],
+                  [
+                    Animation.WaitForAnimationSettled,
+                    Animation.Message.EndedAnimation({ generation: 2 }),
+                  ],
+                  [CloseDialog, Message.CompletedCloseDialog()],
+                ),
+                Story.model(model => {
+                  expect(model.animation.transitionState).toBe('Idle')
+                }),
+              )
+            }),
+        )
+
+        it.effect('resumes EnterStart after lifecycle acquisition', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
+
+            return Story.story(
+              DialogBlock,
+              Story.given(openDialog({ id: 'test', isAnimated: true }).model),
+              Story.message(Message.SucceededAcquireResources()),
+              Story.Command.expectHas(
+                Animation.WaitForPaint({ generation: 1 }),
+              ),
+              Story.Command.resolveAll(
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+                ],
+                [
+                  Animation.WaitForAnimationSettled,
+                  Animation.Message.EndedAnimation({ generation: 1 }),
+                ],
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
+            )
+          }),
+        )
+
+        it.effect('resumes EnterAnimating after lifecycle acquisition', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
+
+            const enteringModel = modifyFields(
+              openDialog({ id: 'test', isAnimated: true }).model,
+              {
+                animation: animation =>
+                  modifyFields(animation, {
+                    transitionState: () => 'EnterAnimating',
+                  }),
+              },
+            )
+
+            return Story.story(
+              DialogBlock,
+              Story.given(enteringModel),
+              Story.message(Message.SucceededAcquireResources()),
+              Story.Command.expectHas(
+                Animation.WaitForAnimationSettled({
+                  id: 'test-panel',
+                  generation: 1,
                 }),
               ),
-            ),
-          ),
+              Story.Command.resolve(
+                Animation.WaitForAnimationSettled,
+                Animation.Message.EndedAnimation({ generation: 1 }),
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
+            )
+          }),
         )
-      },
-    )
 
-    it.effect(
-      'keeps Command-owned resources when a concurrent Mount ends',
-      () => {
-        const background = document.createElement('main')
-        const dialog = document.createElement('dialog')
-        dialog.id = 'command-owned-dialog'
-        document.body.append(background, dialog)
+        it.effect('resumes LeaveStart after lifecycle acquisition', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
 
-        return Effect.gen(function* () {
-          const showDialog = yield* ShowDialog({
-            id: 'command-owned-dialog',
-            focusSelector: initialFocusMarkerSelector,
-          }).effect.pipe(provideEffects)
+            const dialogClose = block.receive(
+              openDialog({ id: 'test', isAnimated: true }).model,
+              InMessage.RequestedClose(),
+            )
 
-          const mount = AcquireResources({
-            id: 'command-owned-dialog',
-            focusSelector: initialFocusMarkerSelector,
-          })
-          const mountMessage = yield* Stream.runHead(
-            mount.f(dialog, Stream.make('Live')),
-          ).pipe(provideEffects)
+            return Story.story(
+              DialogBlock,
+              Story.given(dialogClose.model),
+              Story.message(Message.SucceededAcquireResources()),
+              Story.Command.expectHas(
+                Animation.WaitForPaint({ generation: 2 }),
+              ),
+              Story.Command.resolveAll(
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+                ],
+                [
+                  Animation.WaitForAnimationSettled,
+                  Animation.Message.EndedAnimation({ generation: 2 }),
+                ],
+                [CloseDialog, Message.CompletedCloseDialog()],
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
+            )
+          }),
+        )
 
-          expect(showDialog).toEqual(Message.SucceededShowDialog())
-          expect(mountMessage).toEqual(
-            Option.some(Message.SucceededAcquireResources()),
-          )
-          expect(background.inert).toBe(true)
-          expect(document.documentElement.style.overflow).toBe('hidden')
-        }).pipe(
-          Effect.ensuring(
-            Dom.releaseDialogResources('command-owned-dialog').pipe(
-              Effect.andThen(
-                Effect.sync(() => {
-                  background.remove()
-                  dialog.remove()
+        it.effect('resumes LeaveAnimating after lifecycle acquisition', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
+
+            const leavingModel = modifyFields(
+              block.receive(
+                openDialog({ id: 'test', isAnimated: true }).model,
+                InMessage.RequestedClose(),
+              ).model,
+              {
+                animation: animation =>
+                  modifyFields(animation, {
+                    transitionState: () => 'LeaveAnimating',
+                  }),
+              },
+            )
+
+            return Story.story(
+              DialogBlock,
+              Story.given(leavingModel),
+              Story.message(Message.SucceededAcquireResources()),
+              Story.Command.expectHas(
+                Animation.WaitForAnimationSettled({
+                  id: 'test-panel',
+                  generation: 2,
                 }),
               ),
-            ),
-          ),
+              Story.Command.resolveAll(
+                [
+                  Animation.WaitForAnimationSettled,
+                  Animation.Message.EndedAnimation({ generation: 2 }),
+                ],
+                [CloseDialog, Message.CompletedCloseDialog()],
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
+            )
+          }),
         )
-      },
-    )
 
-    it.effect(
-      'CloseDialog releases the dialog resources when the dialog is gone before it closes',
-      () => {
-        const dialog = document.createElement('dialog')
-        dialog.id = 'vanishing-dialog'
-        document.body.appendChild(dialog)
+        it.effect('ignores RequestedClose when already in LeaveStart', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
 
-        return Effect.gen(function* () {
-          const showDialog = yield* ShowDialog({
-            id: 'vanishing-dialog',
-            focusSelector: initialFocusMarkerSelector,
-          }).effect.pipe(provideEffects)
-
-          expect(showDialog).toEqual(Message.SucceededShowDialog())
-          expect(document.documentElement.style.overflow).toBe('hidden')
-
-          dialog.remove()
-
-          const closeDialog = yield* CloseDialog({
-            id: 'vanishing-dialog',
-          }).effect.pipe(provideEffects)
-
-          expect(closeDialog).toEqual(Message.CompletedCloseDialog())
-          expect(document.documentElement.style.overflow).not.toBe('hidden')
-        }).pipe(
-          Effect.ensuring(
-            Dom.releaseDialogResources('vanishing-dialog').pipe(
-              Effect.andThen(Effect.sync(() => dialog.remove())),
-            ),
-          ),
+            const leavingModel = modifyFields(
+              openDialog({ id: 'test', isAnimated: true }).model,
+              {
+                isOpen: () => false,
+                animation: () =>
+                  modifyFields(
+                    makeAnimationModel({ id: 'test-panel', isShowing: false }),
+                    {
+                      transitionState: () => 'LeaveStart',
+                    },
+                  ),
+              },
+            )
+            return Story.story(
+              DialogBlock,
+              Story.given(leavingModel),
+              Story.inMessage(InMessage.RequestedClose()),
+              Story.model(model => {
+                expect(model).toBe(leavingModel)
+              }),
+              Story.Command.expectNone(),
+            )
+          }),
         )
-      },
-    )
 
-    it.effect(
-      'CloseDialog leaves the scroll lock alone when the dialog holds no resources',
-      () => {
-        const dialog = document.createElement('dialog')
-        dialog.id = 'phantom-dialog'
-        dialog.open = true
-        document.body.appendChild(dialog)
+        it.effect(
+          'dispatches no CloseDialog when the show succeeds during the leave animation',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
 
-        return Effect.gen(function* () {
-          yield* Dom.lockScroll
-
-          const closeDialog = yield* CloseDialog({
-            id: 'phantom-dialog',
-          }).effect.pipe(provideEffects)
-
-          expect(closeDialog).toEqual(Message.CompletedCloseDialog())
-          expect(document.documentElement.style.overflow).toBe('hidden')
-        }).pipe(
-          Effect.ensuring(
-            Dom.unlockScroll.pipe(
-              Effect.andThen(Effect.sync(() => dialog.remove())),
-            ),
-          ),
+              const leavingModel = modifyFields(
+                openDialog({ id: 'test', isAnimated: true }).model,
+                {
+                  isOpen: () => false,
+                  animation: () =>
+                    modifyFields(
+                      makeAnimationModel({
+                        id: 'test-panel',
+                        isShowing: false,
+                      }),
+                      {
+                        transitionState: () => 'LeaveStart',
+                      },
+                    ),
+                },
+              )
+              return Story.story(
+                DialogBlock,
+                Story.given(leavingModel),
+                Story.message(Message.SucceededShowDialog()),
+                Story.model(model => {
+                  expect(model).toBe(leavingModel)
+                }),
+                Story.Command.expectNone(),
+              )
+            }),
         )
-      },
-    )
 
-    it.effect(
-      'CloseDialog leaves the scroll lock alone when it runs before the show completes',
-      () => {
-        const dialog = document.createElement('dialog')
-        dialog.id = 'racing-dialog'
-        document.body.appendChild(dialog)
+        it.effect('ignores RequestedClose when already in LeaveAnimating', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
 
-        return Effect.gen(function* () {
-          yield* Dom.lockScroll
-
-          const showDialog = yield* Effect.forkChild(
-            ShowDialog({
-              id: 'racing-dialog',
-              focusSelector: initialFocusMarkerSelector,
-            }).effect.pipe(provideEffects),
-          )
-
-          yield* Effect.yieldNow
-          yield* CloseDialog({ id: 'racing-dialog' }).effect.pipe(
-            provideEffects,
-          )
-
-          expect(document.documentElement.style.overflow).toBe('hidden')
-
-          dialog.remove()
-
-          const showDialogMessage = yield* Fiber.join(showDialog)
-
-          expect(showDialogMessage).toEqual(Message.FailedShowDialog())
-          expect(document.documentElement.style.overflow).toBe('hidden')
-        }).pipe(
-          Effect.ensuring(
-            Dom.unlockScroll.pipe(
-              Effect.andThen(Effect.sync(() => dialog.remove())),
-            ),
-          ),
+            const leavingModel = modifyFields(
+              openDialog({ id: 'test', isAnimated: true }).model,
+              {
+                isOpen: () => false,
+                animation: () =>
+                  modifyFields(
+                    makeAnimationModel({ id: 'test-panel', isShowing: false }),
+                    {
+                      transitionState: () => 'LeaveAnimating',
+                    },
+                  ),
+              },
+            )
+            return Story.story(
+              DialogBlock,
+              Story.given(leavingModel),
+              Story.inMessage(InMessage.RequestedClose()),
+              Story.model(model => {
+                expect(model).toBe(leavingModel)
+              }),
+              Story.Command.expectNone(),
+            )
+          }),
         )
-      },
-    )
-  })
+      })
 
-  describe('view OnUnmount gating', () => {
-    it('includes the OnUnmount backstop on the dialog while it is open', () => {
-      expect(dialogHasOnUnmount(openDialog({ id: 'test' }).model)).toBe(true)
+      describe('Unmounted', () => {
+        it.effect(
+          'resets the model to closed and releases resources without emitting Closed',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
+
+              return Story.story(
+                DialogBlock,
+                Story.given(openDialog({ id: 'test' }).model),
+                Story.message(Message.Unmounted()),
+                Story.expectNoOutMessage(),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                }),
+                Story.Command.resolve(
+                  ReleaseDialogResources,
+                  Message.CompletedReleaseDialogResources(),
+                ),
+              )
+            }),
+        )
+
+        it.effect(
+          'resets an in-flight leave animation to Idle without emitting Closed',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
+
+              const leavingModel = modifyFields(
+                openDialog({ id: 'test', isAnimated: true }).model,
+                {
+                  isOpen: () => false,
+                  animation: () =>
+                    modifyFields(
+                      makeAnimationModel({
+                        id: 'test-panel',
+                        isShowing: false,
+                      }),
+                      {
+                        transitionState: () => 'LeaveAnimating',
+                        transitionGeneration: () => 2,
+                      },
+                    ),
+                },
+              )
+              return Story.story(
+                DialogBlock,
+                Story.given(leavingModel),
+                Story.message(Message.Unmounted()),
+                Story.expectNoOutMessage(),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                  expect(model.animation.isShowing).toBe(false)
+                  expect(model.animation.transitionState).toBe('Idle')
+                  expect(model.animation.transitionGeneration).toBe(2)
+                }),
+                Story.Command.resolve(
+                  ReleaseDialogResources,
+                  Message.CompletedReleaseDialogResources(),
+                ),
+              )
+            }),
+        )
+
+        it.effect('is a no-op when the dialog is already closed', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { init } = makeFixture(block)
+
+            const closedModel = init({ id: 'test' }).model
+            return Story.story(
+              DialogBlock,
+              Story.given(closedModel),
+              Story.message(Message.Unmounted()),
+              Story.expectNoOutMessage(),
+              Story.model(model => {
+                expect(model).toBe(closedModel)
+              }),
+              Story.Command.expectNone(),
+            )
+          }),
+        )
+
+        it.effect(
+          'returns the model unchanged on CompletedReleaseDialogResources',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { init } = makeFixture(block)
+
+              const originalModel = init({ id: 'test' }).model
+              return Story.story(
+                DialogBlock,
+                Story.given(originalModel),
+                Story.message(Message.CompletedReleaseDialogResources()),
+                Story.model(model => {
+                  expect(model).toBe(originalModel)
+                }),
+              )
+            }),
+        )
+      })
+
+      describe('FailedShowDialog', () => {
+        it.effect(
+          'closes the model without emitting Closed or releasing resources',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
+
+              return Story.story(
+                DialogBlock,
+                Story.given(openDialog({ id: 'test' }).model),
+                Story.message(Message.FailedShowDialog()),
+                Story.expectNoOutMessage(),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                }),
+                Story.Command.expectNone(),
+              )
+            }),
+        )
+
+        it.effect('resets a running enter animation to Idle', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
+
+            const enteringModel = modifyFields(
+              openDialog({ id: 'test', isAnimated: true }).model,
+              {
+                animation: () =>
+                  modifyFields(
+                    makeAnimationModel({ id: 'test-panel', isShowing: true }),
+                    {
+                      transitionState: () => 'EnterAnimating',
+                      transitionGeneration: () => 1,
+                    },
+                  ),
+              },
+            )
+            return Story.story(
+              DialogBlock,
+              Story.given(enteringModel),
+              Story.message(Message.FailedShowDialog()),
+              Story.expectNoOutMessage(),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.isShowing).toBe(false)
+                expect(model.animation.transitionState).toBe('Idle')
+                expect(model.animation.transitionGeneration).toBe(1)
+              }),
+              Story.Command.expectNone(),
+            )
+          }),
+        )
+
+        it.effect('resets a running leave animation to Idle', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog } = makeFixture(block)
+
+            const leavingModel = modifyFields(
+              openDialog({ id: 'test', isAnimated: true }).model,
+              {
+                isOpen: () => false,
+                animation: () =>
+                  modifyFields(
+                    makeAnimationModel({ id: 'test-panel', isShowing: false }),
+                    {
+                      transitionState: () => 'LeaveAnimating',
+                    },
+                  ),
+              },
+            )
+            return Story.story(
+              DialogBlock,
+              Story.given(leavingModel),
+              Story.message(Message.FailedShowDialog()),
+              Story.expectNoOutMessage(),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.isShowing).toBe(false)
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
+              Story.Command.expectNone(),
+            )
+          }),
+        )
+
+        it.effect('does nothing when the dialog is already closed', () =>
+          Story.withBlock(DialogBlock, block => {
+            const { init } = makeFixture(block)
+
+            const closedModel = init({ id: 'test' }).model
+            return Story.story(
+              DialogBlock,
+              Story.given(closedModel),
+              Story.message(Message.FailedShowDialog()),
+              Story.expectNoOutMessage(),
+              Story.model(model => {
+                expect(model).toBe(closedModel)
+              }),
+              Story.Command.expectNone(),
+            )
+          }),
+        )
+
+        it.effect(
+          'dispatches no CloseDialog when the dialog is closed after a failed show',
+          () =>
+            Story.withBlock(DialogBlock, block => {
+              const { openDialog } = makeFixture(block)
+
+              return Story.story(
+                DialogBlock,
+                Story.given(openDialog({ id: 'test' }).model),
+                Story.message(Message.FailedShowDialog()),
+                Story.inMessage(InMessage.RequestedClose()),
+                Story.expectNoOutMessage(),
+                Story.Command.expectNone(),
+              )
+            }),
+        )
+      })
     })
 
-    it('omits the OnUnmount backstop while the dialog is closed', () => {
-      expect(dialogHasOnUnmount(init({ id: 'test' }).model)).toBe(false)
+    describe('titleId', () => {
+      it.effect('returns the id suffixed with -dialog-title', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { init } = makeFixture(block)
+
+          const model = init({ id: 'my-dialog' }).model
+          expect(titleId(model)).toBe('my-dialog-dialog-title')
+        }),
+      )
     })
 
-    it('renders the dialog closed with no OnUnmount backstop after a failed show', () => {
-      const dialogShowFailed = update(
-        openDialog({ id: 'test' }).model,
-        Message.FailedShowDialog(),
+    describe('descriptionId', () => {
+      it.effect('returns the id suffixed with -dialog-description', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { init } = makeFixture(block)
+
+          const model = init({ id: 'my-dialog' }).model
+          expect(descriptionId(model)).toBe('my-dialog-dialog-description')
+        }),
+      )
+    })
+
+    describe('RenderInfo title and description', () => {
+      it.effect('publishes the title id the dialog labels itself by', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { init, renderGroup } = makeFixture(block)
+
+          const model = init({ id: 'my-dialog' }).model
+          expect(
+            hasIdAttribute(
+              renderGroup(model, render => render.title),
+              titleId(model),
+            ),
+          ).toBe(true)
+        }),
       )
 
-      expect(
-        hasDataAttribute(
-          renderGroup(dialogShowFailed.model, render => render.dialog),
-          'open',
-        ),
-      ).toBe(false)
-      expect(dialogHasOnUnmount(dialogShowFailed.model)).toBe(false)
-    })
-  })
+      it.effect(
+        'publishes the description id the dialog describes itself by',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { init, renderGroup } = makeFixture(block)
 
-  describe('view modal semantics', () => {
-    const sceneView = (model: Model, h: TestHtmlBuilder) =>
-      view(model, { toView: ({ dialog }) => h.dialog([...dialog]) }, h)
-
-    it('marks a visible dialog as modal to assistive technology', () => {
-      Scene.scene(
-        { update, view: sceneView },
-        Scene.given(openDialog({ id: 'test' }).model),
-        acknowledgeAcquireResources,
-        Scene.expect(Scene.selector('dialog')).toHaveAttr('aria-modal', 'true'),
+            const model = init({ id: 'my-dialog' }).model
+            expect(
+              hasIdAttribute(
+                renderGroup(model, render => render.description),
+                descriptionId(model),
+              ),
+            ).toBe(true)
+          }),
       )
     })
 
-    it('omits modal semantics while closed', () => {
-      Scene.scene(
-        { update, view: sceneView },
-        Scene.given(init({ id: 'test' }).model),
-        Scene.expect(Scene.selector('dialog')).not.toHaveAttr('aria-modal'),
+    describe('RenderInfo dialog', () => {
+      it.effect('omits aria-describedby by default', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { renderGroup, init } = makeFixture(block)
+
+          expect(
+            hasAriaDescribedBy(
+              renderGroup(
+                init({ id: 'my-dialog' }).model,
+                render => render.dialog,
+              ),
+              'my-dialog-dialog-description',
+            ),
+          ).toBe(false)
+        }),
+      )
+
+      it.effect('references the description when opted in', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { renderGroup, init } = makeFixture(block)
+
+          expect(
+            hasAriaDescribedBy(
+              renderGroup(
+                init({ id: 'my-dialog' }).model,
+                render => render.dialog,
+                true,
+              ),
+              'my-dialog-dialog-description',
+            ),
+          ).toBe(true)
+        }),
+      )
+
+      it.effect('suppresses native cancel events', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { renderGroup, init } = makeFixture(block)
+
+          expect(
+            hasCancelPrevention(
+              renderGroup(
+                init({ id: 'my-dialog' }).model,
+                render => render.dialog,
+              ),
+            ),
+          ).toBe(true)
+        }),
+      )
+
+      it.effect('maps the showDialog Escape signal', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { renderGroup, init } = makeFixture(block)
+
+          expect(
+            hasEscapeCancelMapping(
+              renderGroup(
+                init({ id: 'my-dialog' }).model,
+                render => render.dialog,
+              ),
+            ),
+          ).toBe(true)
+        }),
+      )
+    })
+
+    describe('RenderInfo closeButton', () => {
+      it.effect(
+        'publishes type button so a close control does not submit a form',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog, renderGroup } = makeFixture(block)
+
+            const model = openDialog({ id: 'my-dialog' }).model
+            expect(
+              hasButtonType(renderGroup(model, render => render.closeButton)),
+            ).toBe(true)
+          }),
+      )
+
+      it.effect('publishes type button while the leave animation runs', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { openDialog, renderGroup } = makeFixture(block)
+
+          const leavingModel = modifyFields(
+            openDialog({ id: 'my-dialog', isAnimated: true }).model,
+            {
+              isOpen: () => false,
+              animation: () =>
+                modifyFields(
+                  makeAnimationModel({
+                    id: 'my-dialog-panel',
+                    isShowing: false,
+                  }),
+                  {
+                    transitionState: () => 'LeaveStart',
+                    transitionGeneration: () => 2,
+                  },
+                ),
+            },
+          )
+          expect(
+            hasButtonType(
+              renderGroup(leavingModel, render => render.closeButton),
+            ),
+          ).toBe(true)
+        }),
+      )
+    })
+
+    describe('RenderInfo initialFocus', () => {
+      it.effect('publishes the marker the dialog focuses on open', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { init, renderGroup } = makeFixture(block)
+
+          const model = init({ id: 'my-dialog' }).model
+          expect(
+            hasDataAttribute(
+              renderGroup(model, render => render.initialFocus),
+              initialFocusMarkerAttribute,
+            ),
+          ).toBe(true)
+        }),
+      )
+
+      it.effect(
+        'focuses the element carrying the marker when the dialog opens',
+        () =>
+          Story.withBlock(DialogBlock, () => {
+            return Effect.gen(function* () {
+              const dialog = document.createElement('dialog')
+              dialog.id = 'focus-dialog'
+              const before = document.createElement('input')
+              const marked = document.createElement('input')
+              marked.setAttribute(`data-${initialFocusMarkerAttribute}`, '')
+              dialog.append(before, marked)
+              document.body.appendChild(dialog)
+
+              yield* Dom.showDialog('#focus-dialog', {
+                focusSelector: initialFocusMarkerSelector,
+              })
+
+              expect(document.activeElement).toBe(marked)
+
+              yield* Dom.closeDialog('#focus-dialog')
+              document.body.innerHTML = ''
+            })
+          }),
+      )
+    })
+
+    describe('Command resource cleanup', () => {
+      it.effect(
+        'ShowDialog reports FailedShowDialog and releases the scroll lock when the dialog is gone before it shows',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { provideEffects } = makeFixture(block)
+            return Effect.gen(function* () {
+              const showDialog = yield* ShowDialog({
+                id: 'missing-dialog',
+                focusSelector: initialFocusMarkerSelector,
+              }).effect.pipe(provideEffects)
+
+              expect(showDialog).toEqual(Message.FailedShowDialog())
+              expect(document.documentElement.style.overflow).not.toBe('hidden')
+            })
+          }),
+      )
+
+      it.effect(
+        'ShowDialog keeps scroll unlocked when it is interrupted before the dialog shows',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { provideEffects } = makeFixture(block)
+            return Effect.gen(function* () {
+              const showDialog = yield* Effect.forkChild(
+                ShowDialog({
+                  id: 'missing-dialog',
+                  focusSelector: initialFocusMarkerSelector,
+                }).effect.pipe(provideEffects),
+              )
+
+              yield* Effect.yieldNow
+              expect(document.documentElement.style.overflow).not.toBe('hidden')
+
+              yield* Fiber.interrupt(showDialog)
+
+              expect(document.documentElement.style.overflow).not.toBe('hidden')
+            })
+          }),
+      )
+
+      it.effect(
+        'isolates the page while open and restores it before return focus',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { openDialog, provideEffects } = makeFixture(block)
+
+            const background = document.createElement('main')
+            const trigger = document.createElement('button')
+            background.appendChild(trigger)
+
+            const dialog = document.createElement('dialog')
+            dialog.id = 'modal-dialog'
+            dialog.appendChild(document.createElement('button'))
+
+            const devToolsHost = document.createElement('div')
+            devToolsHost.id = DEVTOOLS_HOST_ID
+
+            document.body.append(background, dialog, devToolsHost)
+            trigger.focus()
+
+            return Effect.gen(function* () {
+              const dialogBoot = openDialog({ id: 'modal-dialog' })
+              const showDialogCommand = Option.getOrThrow(
+                Array.head(dialogBoot.commands ?? []),
+              )
+              const showDialog = yield* ShowDialog(
+                Option.getOrThrow(
+                  Story.Command.argsOf(ShowDialog)(showDialogCommand),
+                ),
+              ).effect.pipe(provideEffects)
+
+              expect(dialogBoot.model.isOpen).toBe(true)
+              expect(showDialog).toEqual(Message.SucceededShowDialog())
+              expect(background.inert).toBe(true)
+              expect(background.getAttribute('aria-hidden')).toBe('true')
+              expect(devToolsHost.inert).toBe(false)
+
+              yield* CloseDialog({ id: 'modal-dialog' }).effect.pipe(
+                provideEffects,
+              )
+
+              expect(background.inert).toBe(false)
+              expect(background.hasAttribute('aria-hidden')).toBe(false)
+              expect(document.activeElement).toBe(trigger)
+            }).pipe(
+              Effect.ensuring(
+                Dom.releaseDialogResources('modal-dialog').pipe(
+                  Effect.andThen(
+                    Effect.sync(() => {
+                      background.remove()
+                      dialog.remove()
+                      devToolsHost.remove()
+                    }),
+                  ),
+                ),
+              ),
+            )
+          }),
+      )
+
+      it.effect(
+        'keeps Command-owned resources when a concurrent Mount ends',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { provideEffects } = makeFixture(block)
+
+            const background = document.createElement('main')
+            const dialog = document.createElement('dialog')
+            dialog.id = 'command-owned-dialog'
+            document.body.append(background, dialog)
+
+            return Effect.gen(function* () {
+              const showDialog = yield* ShowDialog({
+                id: 'command-owned-dialog',
+                focusSelector: initialFocusMarkerSelector,
+              }).effect.pipe(provideEffects)
+
+              const mount = AcquireResources({
+                id: 'command-owned-dialog',
+                focusSelector: initialFocusMarkerSelector,
+              })
+              const mountMessage = yield* Stream.runHead(
+                mount.f(dialog, Stream.make('Live')),
+              ).pipe(provideEffects)
+
+              expect(showDialog).toEqual(Message.SucceededShowDialog())
+              expect(mountMessage).toEqual(
+                Option.some(Message.SucceededAcquireResources()),
+              )
+              expect(background.inert).toBe(true)
+              expect(document.documentElement.style.overflow).toBe('hidden')
+            }).pipe(
+              Effect.ensuring(
+                Dom.releaseDialogResources('command-owned-dialog').pipe(
+                  Effect.andThen(
+                    Effect.sync(() => {
+                      background.remove()
+                      dialog.remove()
+                    }),
+                  ),
+                ),
+              ),
+            )
+          }),
+      )
+
+      it.effect(
+        'CloseDialog releases the dialog resources when the dialog is gone before it closes',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { provideEffects } = makeFixture(block)
+
+            const dialog = document.createElement('dialog')
+            dialog.id = 'vanishing-dialog'
+            document.body.appendChild(dialog)
+
+            return Effect.gen(function* () {
+              const showDialog = yield* ShowDialog({
+                id: 'vanishing-dialog',
+                focusSelector: initialFocusMarkerSelector,
+              }).effect.pipe(provideEffects)
+
+              expect(showDialog).toEqual(Message.SucceededShowDialog())
+              expect(document.documentElement.style.overflow).toBe('hidden')
+
+              dialog.remove()
+
+              const closeDialog = yield* CloseDialog({
+                id: 'vanishing-dialog',
+              }).effect.pipe(provideEffects)
+
+              expect(closeDialog).toEqual(Message.CompletedCloseDialog())
+              expect(document.documentElement.style.overflow).not.toBe('hidden')
+            }).pipe(
+              Effect.ensuring(
+                Dom.releaseDialogResources('vanishing-dialog').pipe(
+                  Effect.andThen(Effect.sync(() => dialog.remove())),
+                ),
+              ),
+            )
+          }),
+      )
+
+      it.effect(
+        'CloseDialog leaves the scroll lock alone when the dialog holds no resources',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { provideEffects } = makeFixture(block)
+
+            const dialog = document.createElement('dialog')
+            dialog.id = 'phantom-dialog'
+            dialog.open = true
+            document.body.appendChild(dialog)
+
+            return Effect.gen(function* () {
+              yield* Dom.lockScroll
+
+              const closeDialog = yield* CloseDialog({
+                id: 'phantom-dialog',
+              }).effect.pipe(provideEffects)
+
+              expect(closeDialog).toEqual(Message.CompletedCloseDialog())
+              expect(document.documentElement.style.overflow).toBe('hidden')
+            }).pipe(
+              Effect.ensuring(
+                Dom.unlockScroll.pipe(
+                  Effect.andThen(Effect.sync(() => dialog.remove())),
+                ),
+              ),
+            )
+          }),
+      )
+
+      it.effect(
+        'CloseDialog leaves the scroll lock alone when it runs before the show completes',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { provideEffects } = makeFixture(block)
+
+            const dialog = document.createElement('dialog')
+            dialog.id = 'racing-dialog'
+            document.body.appendChild(dialog)
+
+            return Effect.gen(function* () {
+              yield* Dom.lockScroll
+
+              const showDialog = yield* Effect.forkChild(
+                ShowDialog({
+                  id: 'racing-dialog',
+                  focusSelector: initialFocusMarkerSelector,
+                }).effect.pipe(provideEffects),
+              )
+
+              yield* Effect.yieldNow
+              yield* CloseDialog({ id: 'racing-dialog' }).effect.pipe(
+                provideEffects,
+              )
+
+              expect(document.documentElement.style.overflow).toBe('hidden')
+
+              dialog.remove()
+
+              const showDialogMessage = yield* Fiber.join(showDialog)
+
+              expect(showDialogMessage).toEqual(Message.FailedShowDialog())
+              expect(document.documentElement.style.overflow).toBe('hidden')
+            }).pipe(
+              Effect.ensuring(
+                Dom.unlockScroll.pipe(
+                  Effect.andThen(Effect.sync(() => dialog.remove())),
+                ),
+              ),
+            )
+          }),
+      )
+    })
+
+    describe('view OnUnmount gating', () => {
+      it.effect(
+        'includes the OnUnmount backstop on the dialog while it is open',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { dialogHasOnUnmount, openDialog } = makeFixture(block)
+
+            expect(dialogHasOnUnmount(openDialog({ id: 'test' }).model)).toBe(
+              true,
+            )
+          }),
+      )
+
+      it.effect('omits the OnUnmount backstop while the dialog is closed', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { dialogHasOnUnmount, init } = makeFixture(block)
+
+          expect(dialogHasOnUnmount(init({ id: 'test' }).model)).toBe(false)
+        }),
+      )
+
+      it.effect(
+        'renders the dialog closed with no OnUnmount backstop after a failed show',
+        () =>
+          Story.withBlock(DialogBlock, block => {
+            const { update, openDialog, renderGroup, dialogHasOnUnmount } =
+              makeFixture(block)
+
+            const dialogShowFailed = update(
+              openDialog({ id: 'test' }).model,
+              Message.FailedShowDialog(),
+            )
+
+            expect(
+              hasDataAttribute(
+                renderGroup(dialogShowFailed.model, render => render.dialog),
+                'open',
+              ),
+            ).toBe(false)
+            expect(dialogHasOnUnmount(dialogShowFailed.model)).toBe(false)
+          }),
+      )
+    })
+
+    describe('view modal semantics', () => {
+      it.effect('marks a visible dialog as modal to assistive technology', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { update, sceneView, openDialog } = makeFixture(block)
+
+          Scene.scene(
+            { update, view: sceneView },
+            Scene.given(openDialog({ id: 'test' }).model),
+            acknowledgeAcquireResources,
+            Scene.expect(Scene.selector('dialog')).toHaveAttr(
+              'aria-modal',
+              'true',
+            ),
+          )
+        }),
+      )
+
+      it.effect('omits modal semantics while closed', () =>
+        Story.withBlock(DialogBlock, block => {
+          const { update, sceneView, init } = makeFixture(block)
+
+          Scene.scene(
+            { update, view: sceneView },
+            Scene.given(init({ id: 'test' }).model),
+            Scene.expect(Scene.selector('dialog')).not.toHaveAttr('aria-modal'),
+          )
+        }),
       )
     })
   })

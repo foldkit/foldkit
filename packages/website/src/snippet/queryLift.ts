@@ -1,16 +1,25 @@
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
+import { Query } from 'foldkit/experimental'
+import { defineMessageUnion } from 'foldkit/message'
 
-const Model = Schema.Struct({
+import { postsQuery } from './queryDefine'
+
+export const Model = Schema.Struct({
   posts: postsQuery.Model,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
-const Message = defineMessageUnion({
+export const Message = defineMessageUnion({
   ClickedRefreshPosts: {},
 })
-type Message = typeof Message.Type
+export type Message = typeof Message.Type
+
+const ApplicationKey = Symbol('Application')
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })
@@ -33,3 +42,11 @@ const update = ApplicationComposition.makeUpdate({
   // Return the transition and Command for either missing or retained data.
   ClickedRefreshPosts: model => PostsBinding.requestRevalidationOrLoad()(model),
 })
+
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const posts = yield* PostsBinding
+
+    return { children: [posts], init, update }
+  }),
+).provide(Query.layer)

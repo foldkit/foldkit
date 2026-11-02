@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -19,7 +16,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const HoverMenuKey = Symbol('HoverMenu')
+
 const HoverMenuDefinition = Block.makeDefinition('HoverMenu', {
+  key: HoverMenuKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -124,3 +126,10 @@ const view = HoverMenuComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = HoverMenuDefinition.makeBlock(
+  Effect.gen(function* () {
+    const hoverMenu = yield* HoverMenuBinding
+    return { children: [hoverMenu], init, update, view }
+  }),
+).provide(HoverIntent.layer)

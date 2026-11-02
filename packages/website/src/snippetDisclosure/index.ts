@@ -1,1 +1,1 @@
-export { SnippetDisclosureBlock } from './block'
+export { SnippetDisclosureBlock, layer } from './block'

@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Array, Schema, Tuple } from 'effect'
+import { Array, Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -29,7 +26,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const PeoplePickerKey = Symbol('PeoplePicker')
+
 const PeoplePickerDefinition = Block.makeDefinition('PeoplePicker', {
+  key: PeoplePickerKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -55,10 +57,8 @@ const foldListboxMultiOutMessage = PeoplePickerDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it delegates keyboard
-// navigation, typeahead, and open/close to PeopleListbox.update, writes the
-// next Listbox Model back, routes generated delivery and Command results, and
-// hands any OutMessage to the OutMessage fold.
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
 const PeopleListboxBinding = PeoplePickerDefinition.makeBinding(PeopleListbox, {
   field: 'listboxMulti',
   init: { contextToArgs: () => Tuple.make({ id: 'people' }) },
@@ -122,3 +122,10 @@ const view = PeoplePickerComposition.makeView((model, h) =>
     }),
   ),
 )
+
+export const ApplicationBlock = PeoplePickerDefinition.makeBlock(
+  Effect.gen(function* () {
+    const peopleListbox = yield* PeopleListboxBinding
+    return { children: [peopleListbox], init, update, view }
+  }),
+).provide(Listbox.Multi.layer)

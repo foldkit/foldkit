@@ -1,23 +1,23 @@
-import { Layer } from 'effect'
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
 import { SaveProject } from './command'
-import { ProjectSettingsComposition } from './composition'
+import { ProjectSettingsDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ProjectSettingsComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer: Layer.mergeAll(SaveProject.layer, subscriptions.layer),
-  })
-export const ProjectSettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+const block = ProjectSettingsDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer: Layer.mergeAll(SaveProject.layer, subscriptions.layer),
+    }
+  }),
+)
+
+export const layer = block.layer

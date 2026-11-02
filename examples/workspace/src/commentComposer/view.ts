@@ -1,4 +1,4 @@
-import { Array, Option, Schema, String } from 'effect'
+import { Array, Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Button, Textarea } from '@foldkit/ui'
@@ -11,13 +11,6 @@ import {
 import { isDraftEditable } from './draft'
 import { Message } from './message'
 import { type Model, PostState } from './model'
-
-const ViewInputs = Schema.Struct({
-  members: Schema.Array(Member),
-  comments: Schema.Array(Comment),
-  authorId: Schema.String,
-})
-type ViewInputs = typeof ViewInputs.Type
 
 const commentView = (
   comment: Comment,
@@ -95,7 +88,7 @@ const feedback = (model: Model, h: CommentComposerViewBuilder): Html =>
       ),
   })
 
-export const view = CommentComposerComposition.makeView.withInputs<ViewInputs>(
+export const view = CommentComposerComposition.makeView.withInputs(
   (model, viewInputs, h) => {
     const textareaId = `issue-${model.issueId}-comment`
 

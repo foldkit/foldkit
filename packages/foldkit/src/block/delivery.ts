@@ -7,6 +7,7 @@ import type {
   GeneratedMessageOfRequirement,
   RequirementsOfBindings,
 } from './binding.js'
+import { executeBindingOperation } from './bindingConnection.js'
 import type { GeneratedEnvelopeOf } from './childEnvelope.js'
 import type {
   HasInvalidCombinedStepsRegistration,
@@ -1123,9 +1124,15 @@ type RuntimeDefineCompositionUpdate = {
 const assertUnambiguousSource = (
   message: object,
   route: RuntimeRoute,
+  sourceAliases: ReadonlyMap<object, object>,
 ): void => {
   const source = messageSources.get(message)
-  if (source !== undefined && source !== route.source) {
+  if (
+    source !== undefined &&
+    source !== route.source &&
+    (source === ambiguousMessageSource ||
+      sourceAliases.get(source) !== route.source)
+  ) {
     throw new Error(
       `[foldkit] Parent Message "${Reflect.get(message, '_tag')}" is reserved by child Binding "${route.binding.placement}" but was emitted by another child Binding. Give each Binding a distinct parent Message variant.`,
     )
@@ -1137,8 +1144,22 @@ export const makeCompositionUpdate = (
   parentMessageSchema: Schema.Top,
   bindings: ReadonlyArray<Readonly<{ placement: string; fold: AnyFunction }>>,
   validateCoverage = true,
+  environment?: ReadonlyMap<object, object>,
 ): RuntimeDefineCompositionUpdate => {
   const messageContract = runtimeMessageSchemaContract(parentMessageSchema)
+  const sourceAliases = new Map<object, object>()
+
+  if (environment !== undefined) {
+    for (const [declaration, connection] of environment) {
+      const declaredDelivery = bindingDeliveries.get(declaration)
+      const connectedDelivery = bindingDeliveries.get(connection)
+
+      if (declaredDelivery !== undefined && connectedDelivery !== undefined) {
+        sourceAliases.set(declaredDelivery.source, connectedDelivery.source)
+      }
+    }
+  }
+
   const routes = new Map<string, RuntimeRoute>()
   const outgoingTags = new Map<
     string,
@@ -1258,13 +1279,13 @@ export const makeCompositionUpdate = (
             )
           }
           const output = applyCases(createCases(...context), model, message)
-          const resolved = resolveOperationOutput(output, model)
+          const resolved = resolveOperationOutput(output, model, environment)
           return isBindingInitRecipe(resolved)
-            ? runBindingInitRecipe(resolved)
+            ? runBindingInitRecipe(resolved, environment)
             : resolved
         }
 
-        assertUnambiguousSource(message, route)
+        assertUnambiguousSource(message, route, sourceAliases)
         const maybeArguments = route.args(model, message)
         if (!Option.isOption(maybeArguments)) {
           throw new Error(
@@ -1281,8 +1302,17 @@ export const makeCompositionUpdate = (
         }
 
         return resolveOperationOutput(
-          route.binding.fold(model, ...maybeArguments.value),
+          environment === undefined
+            ? route.binding.fold(model, ...maybeArguments.value)
+            : executeBindingOperation(
+                route.binding,
+                'fold',
+                model,
+                maybeArguments.value,
+                environment,
+              ),
           model,
+          environment,
         )
       })
 
@@ -1328,4 +1358,20 @@ export const makeCompositionUpdate = (
       return update
     },
   })
+}
+
+/** @internal Existing contextual contracts reused by experimental plan authoring. */
+export type {
+  AuthoredMessageArguments,
+  AuthoredMessageTag,
+  AuthoredUpdateCases,
+  CaseOutputChannels,
+  CompositionDefinedUpdate,
+  ContextualUpdateCases,
+  ContextualUpdateCasesFactory,
+  ContextualUpdateOutputs,
+  RoutedOnlyUpdate,
+  ResolvedAuthoredOutput,
+  ValidateAnnotatedContext,
+  ValidatedContextualUpdateCases,
 }

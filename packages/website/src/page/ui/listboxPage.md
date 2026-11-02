@@ -12,7 +12,7 @@ What the factory returns is typed [`Completed<Item, Value>` from `@foldkit/ui/li
 
 ### Programmatic Helpers
 
-Programmatic operations are exposed through the Binding. Call `listbox.requestOpen()` and `listbox.requestClose()`. Call `listbox.requestSelectItem(item)` with the selected item.
+Programmatic operations are exposed through the Binding. `requestOpen()` and `requestClose()` are generated from the Listbox InMessage contract and run receive. `requestSelectItem(item)` retains its refined scalar Value adapter. The parent still owns selection.
 
 :::Info{label="See it in an app"}
 Check out how Listbox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/listbox.ts).

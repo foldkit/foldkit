@@ -54,9 +54,11 @@ import {
   makePortChannels,
   validatePorts,
 } from './hostConnector.js'
+import { assertRuntimeId } from './hostContainer.js'
 import {
   type BootMode,
   type HydrationConfig,
+  type ResolvedHydrationHandoff,
   resolveHydrationHandoff,
 } from './hydrationHandoff.js'
 import { forkManagedResourceFibers } from './managedResourceFibers.js'
@@ -257,9 +259,11 @@ type RuntimeInternals = {
     bootMode: BootMode,
     flags: Effect.Effect<any, never, any> | undefined,
     buildId: string | undefined,
-    applicationLayer: Layer.Layer<any, any, any>,
+    applicationLayer: Layer.Layer<never, any, any>,
+    preparedHandoff?: ResolvedHydrationHandoff<any, any>,
+    applicationMemoMap?: Layer.MemoMap,
   ) => Effect.Effect<void>
-  applicationLayer?: Layer.Layer<any, any, any>
+  applicationLayer?: Layer.Layer<never, any, any>
   compositionRoot?: BindableBlock
   kind: 'Application' | 'Element'
   embedLifecycle: EmbedLifecycle
@@ -371,7 +375,9 @@ export const makeRuntime = <
     bootMode: BootMode = 'Fresh',
     bootFlags?: Effect.Effect<Flags, never, Resources>,
     buildId?: string,
-    applicationLayer?: Layer.Layer<any, any, any>,
+    applicationLayer?: Layer.Layer<never, any, any>,
+    preparedHandoff?: ResolvedHydrationHandoff<Flags, Resources>,
+    applicationMemoMap?: Layer.MemoMap,
   ): Effect.Effect<void> => {
     // NOTE: one notifier per runtime, provided across the whole runtime
     // Effect so Commands, Subscriptions, and Mount-forked Effects all resolve
@@ -382,15 +388,7 @@ export const makeRuntime = <
 
     return Effect.scoped(
       Effect.gen(function* () {
-        if (runtimeId === '') {
-          return yield* Effect.die(
-            new Error(
-              '[foldkit] Runtime container must have an `id` for Model preservation across reloads. ' +
-                'Set `container.id = "app"` (or any unique string) before passing it to makeApplication or makeElement. ' +
-                'On a server-rendered page the id comes from the `data-foldkit-app` root stamp instead.',
-            ),
-          )
-        }
+        assertRuntimeId(runtimeId)
 
         // NOTE: every perpetual fiber (for example, Subscription streams
         // and ManagedResource lifecycles) and every Command fiber forks
@@ -400,7 +398,8 @@ export const makeRuntime = <
         const runtimeScope = yield* Effect.scope
 
         const { maybeHydrationRoot, resolveFlags } =
-          yield* resolveHydrationHandoff({
+          preparedHandoff ??
+          (yield* resolveHydrationHandoff({
             bootMode,
             hydration,
             bootFlags,
@@ -410,7 +409,7 @@ export const makeRuntime = <
             preservedModel,
             container,
             buildId,
-          })
+          }))
 
         const maybePortChannels: Option.Option<PortChannelsBundle> = pipe(
           Option.fromNullishOr(ports),
@@ -444,6 +443,7 @@ export const makeRuntime = <
           runtimeScope,
           maybePortChannels,
           applicationLayer,
+          applicationMemoMap,
         })
 
         const declaredComposition =
@@ -1069,6 +1069,8 @@ export const makeRuntime = <
       flags,
       buildId,
       applicationLayer,
+      preparedHandoff,
+      applicationMemoMap,
     ) =>
       startWith(
         maybeConnector,
@@ -1077,6 +1079,8 @@ export const makeRuntime = <
         flags,
         buildId,
         applicationLayer,
+        preparedHandoff,
+        applicationMemoMap,
       ),
     kind,
     embedLifecycle: {

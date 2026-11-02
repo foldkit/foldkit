@@ -37,9 +37,14 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const AsyncCounterDemoKey = Symbol('AsyncCounterDemo')
+
 export const AsyncCounterDemoDefinition = Block.makeDefinition(
   'AsyncCounterDemo',
   {
+    key: AsyncCounterDemoKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },

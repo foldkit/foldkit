@@ -9,7 +9,13 @@ type SaveState = typeof SaveState.Type
 const Model = Schema.Struct({ title: Schema.String, saveState: SaveState })
 type Model = typeof Model.Type
 
+const DraftKey = Symbol('Draft')
+
 const DraftDefinition = Block.makeDefinition('Draft', {
+  key: DraftKey,
+  Init: Schema.Tuple([]),
+  isMessageFree: true,
+
   Model,
   Message: Schema.Never,
 })

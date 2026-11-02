@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -20,9 +17,14 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const AnimatedDialogExampleKey = Symbol('AnimatedDialogExample')
+
 const AnimatedDialogExampleDefinition = Block.makeDefinition(
   'AnimatedDialogExample',
   {
+    key: AnimatedDialogExampleKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },
@@ -131,3 +133,10 @@ const view = AnimatedDialogExampleComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = AnimatedDialogExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+    return { children: [dialog], init, update, view }
+  }),
+).provide(Dialog.layer)

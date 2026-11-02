@@ -1,15 +1,8 @@
-import { Block } from 'foldkit'
+import type { Block } from 'foldkit'
 
-import { Message } from './message'
-import { Model } from './model'
-
-export const ComingFromReactComposition = Block.makeDefinition(
-  'ComingFromReact',
-  {
-    Model,
-    Message,
-  },
-).makeComposition()
+import { ComingFromReactDefinition } from './definition'
+export const ComingFromReactComposition =
+  ComingFromReactDefinition.makeComposition()
 export type ComingFromReactViewBuilder = Block.ViewBuilderFor<
   typeof ComingFromReactComposition
 >

@@ -1,22 +1,44 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
-import { ApplicationComposition } from './composition'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
+
+import {
+  ErrorDialogBinding,
+  GridSizeConfirmDialogBinding,
+  GridSizeRadioGroupBinding,
+  PaletteRadioGroupBinding,
+  ThemeListboxBinding,
+  ToolRadioGroupBinding,
+} from './composition'
+import { ApplicationDefinition } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
-import type { Model } from './model'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const errorDialog = yield* ErrorDialogBinding
+    const themeListbox = yield* ThemeListboxBinding
+    const gridSizeConfirmDialog = yield* GridSizeConfirmDialogBinding
+    const toolRadioGroup = yield* ToolRadioGroupBinding
+    const gridSizeRadioGroup = yield* GridSizeRadioGroupBinding
+    const paletteRadioGroup = yield* PaletteRadioGroupBinding
+    return {
+      children: [
+        errorDialog,
+        themeListbox,
+        gridSizeConfirmDialog,
+        toolRadioGroup,
+        gridSizeRadioGroup,
+        paletteRadioGroup,
+      ],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
+  }),
+).provide(Layer.mergeAll(Dialog.layer, Listbox.layer, RadioGroup.layer))

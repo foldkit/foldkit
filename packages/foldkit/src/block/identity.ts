@@ -36,6 +36,9 @@ const resourceKeys = new Set<string>()
  * Mounts collected through child Bindings. */
 export const LocalMountsTypeId = Symbol('foldkit/Block/LocalMounts')
 
+/** @internal Carries flat view capabilities across an inferred private graph boundary. */
+export declare const PublicMountRequirementsTypeId: unique symbol
+
 /** @internal Preserves an operation's definition identity through Message lifts. */
 export const InvocationIdentityTypeId = Symbol('foldkit/Operation/Identity')
 

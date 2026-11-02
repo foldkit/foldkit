@@ -1,70 +1,10 @@
-import { Effect, Layer, Match, Number, Schema } from 'effect'
-import * as Block from 'foldkit/block'
-import * as Dom from 'foldkit/dom'
-import * as Render from 'foldkit/render'
+import { Match, Number } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { idSelector } from '../internal/selectors.js'
-import {
-  type InitConfig,
-  Message,
-  Model,
-  OutMessage,
-  makeInitialModel,
-} from './schema.js'
-
-/** Authored Animation Block definition shared by its implementation modules. */
-export const AnimationDefinition = Block.makeDefinition('Animation', {
-  Model,
-  Message,
-  OutMessage,
-})
-
-export const AnimationComposition = AnimationDefinition.makeComposition()
-
-/** Creates the initial Animation Model and Commands. Defaults to hidden. */
-export const init = AnimationComposition.makeInit((config: InitConfig) => ({
-  model: makeInitialModel(config),
-}))
-
-// UPDATE
-
-const elementSelector = (id: string): string => idSelector(id)
-
-/** Waits for paint via double-rAF, then reports the transition generation that
- *  scheduled the wait. */
-export const WaitForPaint = AnimationDefinition.makeCommand('WaitForPaint', {
-  args: { generation: Schema.Number },
-  messages: [Message.CompletedWaitForPaint],
-  handler: function* () {
-    return ({ generation }) =>
-      Render.afterPaint.pipe(
-        Effect.as(Message.CompletedWaitForPaint({ generation })),
-      )
-  },
-})
-
-/** Waits for all CSS transitions and keyframe animations on the element to
- *  settle, then reports the transition generation that scheduled the wait. */
-export const WaitForAnimationSettled = AnimationDefinition.makeCommand(
-  'WaitForAnimationSettled',
-  {
-    args: { id: Schema.String, generation: Schema.Number },
-    messages: [Message.EndedAnimation],
-    handler: function* () {
-      return ({ id, generation }) =>
-        Dom.waitForAnimationSettled(elementSelector(id)).pipe(
-          Effect.as(Message.EndedAnimation({ generation })),
-        )
-    },
-  },
-)
-
-/** Effect providers used by the Animation component. */
-export const EffectsLayer = Layer.mergeAll(
-  WaitForPaint.layer,
-  WaitForAnimationSettled.layer,
-)
+import { WaitForAnimationSettled, WaitForPaint } from './command.js'
+import { AnimationComposition } from './composition.js'
+import { AnimationDefinition } from './definition.js'
+import { type Model, OutMessage } from './schema.js'
 
 const showTransition = (model: Model) => {
   if (model.isShowing) {
@@ -179,20 +119,8 @@ export const update = AnimationComposition.makeUpdate({
 
   Hid: hideTransition,
 
-  RequestedShow: showTransition,
-
-  RequestedHide: hideTransition,
-
-  RequestedWaitForLeaveSettlement: waitForLeaveSettlement,
-
   RequestedFinish: (model, { generation }) =>
     finishTransition(model, generation),
-
-  RequestedToggle: toggleTransition,
-
-  RequestedResume: resumeTransition,
-
-  RequestedImmediateReset: resetImmediately,
 
   CompletedWaitForPaint: (model, { generation }) => {
     if (generation !== model.transitionGeneration) {
@@ -226,3 +154,24 @@ export const update = AnimationComposition.makeUpdate({
   EndedAnimation: (model, { generation }) =>
     finishTransition(model, generation),
 })
+
+/** Applies parent requests through the same owned transition Steps. */
+export const receive = AnimationComposition.makeReceive({
+  RequestedShow: showTransition,
+
+  RequestedHide: hideTransition,
+
+  RequestedWaitForLeaveSettlement: waitForLeaveSettlement,
+
+  RequestedToggle: toggleTransition,
+
+  RequestedResume: resumeTransition,
+
+  RequestedImmediateReset: resetImmediately,
+})
+
+export {
+  WaitForPaint,
+  WaitForAnimationSettled,
+  EffectsLayer,
+} from './command.js'

@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import { CommentComposerBlock } from '../commentComposer'
+import { CommentComposerBlock } from '../commentComposer/definition'
 import { IssueDraft, IssueRevision } from '../domain'
 import {
   PriorityListboxBlock,

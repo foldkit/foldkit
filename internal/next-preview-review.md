@@ -136,3 +136,48 @@ Use only the preview integration branch, never main. Verify the published packag
 Include Machine, Query/KeyedQuery and VirtualList in the next preview update, PR release notes and announcement handoff. Machine tests consistent Definition-based authoring alongside Blocks. Query and VirtualList support `foldkit-domains` and are separate from Block/Layer migration requirements. The user's October 28 clarification supersedes the earlier VirtualList announcement exclusion.
 
 PR #1633 and issue #1722 are integrated on the follow-up branch with targeted verification. [VirtualList scope, browser/editor evidence and limitations](virtual-list-preview-integration-20261027.md). The [Machine report](machine-authoring-20261027.md) and [Query report](keyed-query-capabilities-20261028.md) retain their own verification scope. Preserve the published Ready snapshot, the PR's three starting paths and the publication hold. Final integrated release checks must cover the committed candidate.
+
+## Isolated constructor adoption review
+
+- [x] Verify generic Query and KeyedQuery Services and errors without app casts,
+      extra handler annotations, duplicated state or weakened native checks.
+- [x] Check strict emitted and relocated consumers, not only successful emission.
+      Detect the deliberately restored unbound-generics regression and erased
+      channel, foreign recipe and unprovided-host failures.
+- [x] Keep ordinary compiler validation on its existing path and pass the seven
+      unchanged compiler budgets.
+- [x] Review descriptor factories, host/attached and notification modes, raw
+      direct fetches, original handler identity, and exact selected channels.
+- [x] Verify direct family-contract Story/Scene tests through supplied Layers,
+      including compact declarations and Scope ownership.
+- [x] Review actual generic UI and representative application adoption before
+      selecting the repository-wide migration.
+
+[Scope and code](layered-constructor/query-contract/README.md). The subsequent
+repository migration below supersedes this isolated-proof checkpoint.
+
+## Construction and InMessage migration review
+
+- [x] Inspect portable authoring in actual Workspace, Job Application, Website,
+      Typing Game and generic UI/Query consumers, preserving useful adapters.
+- [x] Verify scoped tests, deferred initialization, synchronous transitions,
+      child delivery, original registration and occurrence cleanup.
+- [x] Emit all configured exports of three complete applications and consume
+      roots and intermediate builders from strict source-free copies. Require
+      copied root/Composition/update/view contract-erasure controls to fail.
+- [x] Preserve all seven compiler fixtures and ceilings unchanged.
+- [x] Fix the rendering workload's Html builder identity regression and verify
+      lazy reuse and separate-acquisition isolation with mutation controls.
+- [x] Address the first exact-commit review's generic-family input validation
+      and cross-Definition construction-plan findings.
+- [x] Independently approve the amended exact source commit before push or integration. `fd4f03253faa782eaa7f45d043127e3bf21ad572` passes after the constructor snapshot correction; final report changes retain their own exact-commit gate.
+- [ ] Inspect the final rendering comparison and remaining bundle growth. The
+      earlier repaired batch retains a whole-preview gap against actual main.
+- [ ] Complete authorized Daybreak review and dependency-advisory disposition.
+- [ ] Obtain separate publication approval after candidate review.
+
+[Current adoption](layered-constructor/ADOPTION.md),
+[rendering evidence](layered-constructor/rendering-final/REPORT.md), and
+[local security review](layered-constructor/final-security-review.md) describe
+the exact verification scopes. The migration remains on its isolated local
+branch; no public release or updated Ready snapshot is claimed.

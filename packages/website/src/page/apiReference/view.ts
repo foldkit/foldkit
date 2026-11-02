@@ -30,6 +30,7 @@ import {
   sectionId,
 } from './domain'
 import { Message } from './message'
+import type { ViewInputs } from './viewInputs'
 
 type Highlights = ApiData['highlights']
 
@@ -747,11 +748,6 @@ export const failureView = (error: string): Html =>
       ih.div([ih.Class('text-sm text-gray-700 dark:text-gray-400')], [error]),
     ],
   )
-
-type ViewInputs = Readonly<{
-  moduleSlug: string
-  renderHeadingLink: RenderHeadingLink
-}>
 
 export const view = ApiReferenceComposition.makeView.withInputs<ViewInputs>(
   (model, { moduleSlug, renderHeadingLink }, h) =>

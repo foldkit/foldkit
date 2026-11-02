@@ -1,9 +1,8 @@
 import { Option } from 'effect'
-import { Calendar } from 'foldkit'
 
 import { UiComposition } from './composition'
 
-export const init = UiComposition.makeInit((today: Calendar.CalendarDate) => ({
+export const init = UiComposition.makeInit(today => ({
   childInitContext: today,
   model: {
     buttonClickCount: 0,

@@ -2,36 +2,32 @@
 
 ## Overview
 
-Organize a Foldkit application around ownership. A feature owns its state machine and local effects. Its parent owns the policy that connects it to siblings and the application. The browser entry owns host configuration, Service provision, and Runtime startup.
+Organize a Foldkit application around ownership. A feature owns its state machine and local effects. The parent owns its child relationships and integration policy. The browser entry owns host configuration, ordinary Service provision, and Runtime startup.
 
 :::tip A complete workspace
-The [Workspace example](/example-apps/workspace) applies these conventions to shared issue data, routed editors, a project board, comments, and a command palette. Its source shows parent-owned coordination, optional keyed children, and nested Dialog and DragAndDrop Blocks.
+The [Workspace example](/example-apps/workspace) applies these conventions to shared issue data, retained editors, keyed Boards, notifications, and a command palette. It includes nested UI Blocks and scoped Story and Scene tests.
 :::
 
-Keep these ownership boundaries visible as the application grows:
+| Boundary       | Typical home                           | Responsibility                                                                                                                   |
+| -------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Definition     | `definition.ts`                        | Declare the public contracts and author local effects and Steps.                                                                 |
+| Composition    | `composition.ts` or `composition/`     | Declare Bindings, OutMessage policy, Mount registration, and graph-aware builders.                                               |
+| Implementation | `block.ts` or compact `application.ts` | Acquire child implementations through the constructor and return init, update, view, lifecycle declarations, and local handlers. |
+| Host           | `entry.ts`                             | Select the Program, supply Services, and start Runtime.                                                                          |
 
-| Boundary    | Typical home                                                 | Responsibility                                                                             |
-| ----------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| Definition  | `definition.ts`, or the top of `composition.ts` when unnamed | Early Model, Message, OutMessage, ChildInitContext, Command, lifecycle, and Step contracts |
-| Composition | `composition.ts` or `composition/`                           | Parent-owned Bindings, Mount registrations, and graph-aware authoring                      |
-| Assembly    | `block.ts` or compact `application.ts`                       | Produces an opaque draft and assembles it as a completed Block                             |
-| Host        | `entry.ts`                                                   | Chooses page or element ownership, supplies Services, and starts Runtime                   |
-
-`makeBinding` configures one parent-child relationship. A child with OutMessages then selects its parent-owned policy through `withOutMessagePolicy`. Including that full Binding in `makeComposition({ bindings })` registers it. These calls and `prepareBlock` are passive: they do not build Layers, run handlers, or start lifecycle work. `Program.make` or `Program.makeElement` adds host behavior without starting anything. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
+`makeBinding` declares a relationship against the child's public contract. `makeComposition` registers it. `Definition.makeBlock` checks the effectful constructor without running it. The host later acquires that implementation Layer; init and update remain synchronous pure functions.
 
 ## Starting Simple
 
-Start with one cohesive module. The smallest application keeps Model, Message, Composition-owned init, update, view, `ApplicationDefinition`, `ApplicationComposition`, and `ApplicationBlock` together in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, creates the Program, supplies shared Services, and starts the Runtime. Tests and server tooling can import the passive Block without starting a browser Runtime.
+A compact root keeps the Definition, Composition, init, update, view, and checked `ApplicationBlock` in `application.ts`. A separate `entry.ts` chooses the container and startup inputs, creates the Program, and starts the Runtime.
 
-Split when those responsibilities become easier to navigate separately. Once one root responsibility moves out of `application.ts`, move the rest to files named for what they own. Retain `definition.ts` and a named `ApplicationDefinition` when Commands, Mounts, resources, child Bindings, or Steps use its authoring methods. When the factory's only use is `makeComposition`, place the top-level `Block.makeDefinition('Application', ...).makeComposition()` chain in `composition.ts` instead. That file owns Bindings, OutMessage folds, complete child and Mount registration, `ApplicationComposition`, and an optional `ApplicationViewBuilder`. `init.ts`, `update.ts`, and `view.ts` own behavior authored through that Composition. `block.ts` assembles `ApplicationBlock`. Even a graphless split root has a `composition.ts` so every root follows the same passive Definition → Composition → Block sequence.
+Once one structural responsibility moves out, use the complete split layout. `definition.ts` declares `ApplicationDefinition`, `composition.ts` registers the graph, and `init.ts`, `update.ts`, and `view.ts` author behavior through its builders. `block.ts` imports those pieces and completes the constructor. Remove the emptied `application.ts`.
 
-Use `composition/composition.ts` and an explicit `composition/index.ts` barrel only when substantial Binding policies need their own modules. Remove the emptied `application.ts` instead of retaining it as a forwarding barrel.
+A small child can keep its whole implementation in a file named for the feature. A split child uses the same named structural files as the root. Its barrel exports the public contract and implementation `layer`. Feature directories match their Block name in camelCase, such as `IssueBoardBlock` in `issueBoard/`.
 
-Add `story.test.ts` and `scene.test.ts` beside the behavior they test. The [Counter example](/example-apps/counter) shows a compact root.
+::Snippet{name="organizationGraphlessBlock" label="Small feature without children"}
 
-A compact feature with no children or Mounts can stay in one file. Name its empty Composition before authoring the primary view, then complete that same value. Once that feature has a separate `definition.ts`, put even its empty Composition in `composition.ts`, so contracts and graph assembly retain distinct import directions:
-
-::Snippet{name="organizationGraphlessBlock" label="Small graphless feature"}
+Put `story.test.ts` and `scene.test.ts` beside the behavior they drive. The [Counter example](/example-apps/counter) shows a compact root. Use `composition/composition.ts` and an explicit barrel when substantial Binding policies need their own modules.
 
 ## File Layout
 
@@ -39,17 +35,17 @@ Split a module when separate responsibilities make it easier to navigate. The fo
 
 ::Snippet{name="fileLayout" label="Application and feature file structure"}
 
-Use standard structural names within each feature: `Model`, `Message`, `OutMessage`, `Flags`, `init`, `update`, `view`, `subscriptions`, `managedResources`, `mounts`, and `EffectsLayer`. The completed Block supplies context in parent code, such as `HomeBlock.Model` and `HomeBlock.Message`. Declare only local facts in a feature's `Message`; Composition adds child delivery to its complete Message Schema. Domain Schemas and individual effects retain descriptive names such as `Person`, `FetchPeople`, and `FocusSearchInput`.
+Use standard structural names within each feature: `Model`, `Message`, `OutMessage`, `Flags`, `init`, `update`, `view`, `subscriptions`, `managedResources`, `mounts`, and `EffectsLayer`. The public Block contract supplies context in parent code, such as `HomeBlock.Model` and `HomeBlock.Message`. Declare only local facts in a feature's `Message`; Composition adds child delivery to the acquired executable's complete Message Schema. Domain Schemas and individual effects retain descriptive names such as `Person`, `FetchPeople`, and `FocusSearchInput`.
 
 Declare each Schema's decoded type immediately below it, using the same name and no blank line. Use the short name in explicit annotations, such as `Model`, `Message`, or a domain type. The value name refers to the runtime Schema; the type name refers to its decoded values. Use `typeof Model` when an API needs the Schema type itself.
 
 ::Snippet{name="schemaTypeAlias" label="Schema and decoded type"}
 
-Keep local Schema aliases inside the feature's implementation modules, so those modules do not import their own completed Block. A consumer can name a type derived from the completed child, such as `type SearchModel = typeof SearchBlock.Model.Type`, without importing its implementation, and use `SearchModel` in annotations. Keep feature barrels focused on the completed Block and intentional public domain contracts. Definition callbacks and Composition-owned handlers infer their parameters.
+Keep local Schema aliases inside the feature's implementation modules. A consumer can name a type derived from the passive child contract, such as `type SearchModel = typeof SearchBlock.Model.Type`, without importing its implementation, and use `SearchModel` in annotations. Feature barrels export the public contract, implementation `layer`, and intentional public domain contracts. Definition callbacks and Composition-owned handlers infer their parameters.
 
 ### Early Contracts and Local Effects
 
-Keep `definition.ts` focused on the early typed `FooDefinition` and its Model, Message, OutMessage, and ChildInitContext contracts when Definition authoring methods need that named value. Export the Step helpers used by split implementation modules from this file and named-import those helpers where they are used. Keep them out of the feature barrel. A compact feature destructures its Step helpers beside its Definition; a module with several Definitions can keep qualified calls when the qualifier identifies the owner. Never put a Composition or owner-specific ViewBuilder in `definition.ts`. When no authoring method needs a named Definition, move its contract imports into `composition.ts`, chain `makeComposition()` directly from the top-level factory call, and omit `definition.ts`. Do not move that call into a function, callback, loop, or conditional because its owner identity must remain a module singleton. Split implementation files import retained Definitions without loading the completed feature, and import graph-aware authoring values from `composition.ts`. A compact feature need not extract them.
+Keep `definition.ts` focused on `FooDefinition` and its public contracts. Export the Step helpers used by split implementation modules from this file and named-import them where they are used. Keep those helpers out of the feature barrel. A compact feature destructures its helpers beside its Definition; a module with several Definitions can keep qualified calls when the qualifier identifies the owner. Keep the Composition and its ViewBuilder alias in `composition.ts`. Declare the Definition once at module scope, including for a leaf: completion uses `FooDefinition.makeBlock`, and the public export uses `FooDefinition.contract`. Split implementation files import the Definition without loading the completed feature, and import graph-aware authoring values from `composition.ts`.
 
 Commands belong to the feature whose update returns them. Keep small definitions beside update; extract `command.ts` when several definitions or substantial handlers make a separate file useful. Extract `message.ts` when handlers need result constructors and importing the update would create a cycle.
 
@@ -69,9 +65,9 @@ For a split feature, `composition.ts` owns its child Bindings, complete child an
 
 ::Snippet{name="organizationChildComposition" label="Child Binding and registration"}
 
-An update can import `CounterBinding` to invoke its operations. Generated child envelopes route through the Binding automatically. The view imports `DashboardComposition`. Including `CounterBinding` under `bindings` also includes the completed child's handler graph and lifecycle declarations.
+An update can import `CounterBinding` to invoke its operations. Generated child envelopes route through the Binding automatically. The view imports `DashboardComposition`. Registering `CounterBinding` under `bindings` gives those builders its static contract. Acquiring that Binding in the constructor supplies the child's executable graph, including handlers and lifecycle declarations.
 
-`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, returns `DashboardComposition.prepareBlock(...)` from its private producer, then calls `Block.assemble(prepare)`. Its explicit `index.ts` exports the completed `DashboardBlock` with the checked producer/header boundary; parent Schemas use `DashboardBlock.Model`. Shared domain Schemas and selectors have a separate `domain/` barrel. Internal implementation files do not import their own completed barrel.
+`block.ts` imports the portable builders and child implementation Layers. Its constructor yields `CounterBinding`, then returns that connection under `children` together with init, update, view, and local handlers. The barrel exports `DashboardDefinition.contract` as `DashboardBlock` and the implementation `layer`. Parent Schemas use `DashboardBlock.Model`. Internal implementation modules import their own contracts directly rather than through the completed feature barrel.
 
 ### A Feature with Mounts Only
 
@@ -83,13 +79,13 @@ The view imports both the Composition and the local Mount definition:
 
 ::Snippet{name="organizationMountView" label="View using its registered Mount"}
 
-This Panel Definition declares Model and Message, without an OutMessage. Registration grants its view permission to use the Mount. The completed export therefore uses `FromAssemblyWithView` and supplies the handler recipe through its local `EffectsLayer`:
+This Panel Definition declares Model and Message. Its Composition registers the Mount, and its constructor returns `children: []`, the portable builders, and the local `EffectsLayer`:
 
 ::Snippet{name="organizationMountBlock" label="Mount handler at Block completion"}
 
 ### Substantial Binding Policy
 
-A Binding also contains the parent's integration policy for its child. Inline a short unkeyed policy with `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`. A fold always names its completed child, including when it is inline. Use contextual `makeOutMessageForward(handlers)` when the parent declares OutMessages and forwards at least one variant; pass the completed child explicitly when extracting the forward. Extract a supporting file when the policy includes substantial OutMessage handling, custom Model writes, or Command lifting. For example, an Editor's Dialog policy may save the draft when the Dialog closes:
+A Binding also contains the parent's integration policy for its child. Inline a short unkeyed policy with `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`. A fold always names its child contract, including when it is inline. Use contextual `makeOutMessageForward(handlers)` when the parent declares OutMessages and forwards at least one variant; pass the child contract explicitly when extracting the forward. Extract a supporting file when the policy includes substantial OutMessage handling, custom Model writes, or Command lifting. For example, an Editor's Dialog policy may save the draft when the Dialog closes:
 
 ::Snippet{name="organizationDialogPolicy" label="Extracted Dialog integration policy"}
 
@@ -123,11 +119,11 @@ Changing Routes need not remove child state. Keep retained editors in parent sto
 
 ## Root Application Assembly
 
-In a split root, `composition.ts` owns the complete child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings and their OutMessage folds directly beside its `ApplicationDefinition.makeComposition` call. Register the policy-selected Binding when a child declares OutMessages. Extract substantial policies to files such as `composition/home.ts`; then `composition/composition.ts` owns assembly, `composition/index.ts` is an explicit barrel, and the assembly module imports those policies directly from sibling modules. Composition depends on `definition.ts`, completed children, and local policy declarations. It never imports root init, update, or view.
+In a split root, `composition.ts` owns the complete static child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings and their OutMessage folds directly beside its `ApplicationDefinition.makeComposition` call. Register the policy-selected Binding when a child declares OutMessages. Extract substantial policies to files such as `composition/home.ts`; then `composition/composition.ts` owns assembly, `composition/index.ts` is an explicit barrel, and the assembly module imports those policies directly from sibling modules. Composition depends on `definition.ts`, child contracts, and local policy declarations. It never imports root init, update, or view.
 
 ::Snippet{name="applicationRegistrations" label="Root child graph"}
 
-When root authoring methods need it, `definition.ts` imports the split root's Model and Message Schemas and exports `ApplicationDefinition`. Root Commands, Subscriptions, and composition import that contract directly. A graphless root whose factory only creates the Composition places the factory chain in `composition.ts` instead. A simple root `EffectsLayer` stays with its Command definitions in `command.ts`; extract `layer.ts` only when Layer composition is substantial or reused.
+When root authoring methods need it, `definition.ts` imports the split root's Model and Message Schemas and exports `ApplicationDefinition`. Root Commands, Subscriptions, and composition import that contract directly. Keep the root Definition named even when the Composition has no children; completion uses that same contract. A simple root `EffectsLayer` stays with its Command definitions in `command.ts`; extract `layer.ts` only when Layer composition is substantial or reused.
 
 Root `services.ts` composes `ApplicationLayer`. `block.ts` imports each implementation field from its real owner and assembles `ApplicationBlock`. The entry imports the Block and Layer, chooses browser inputs, creates the Program, and invokes the Runtime:
 
@@ -141,7 +137,7 @@ Foldkit handlers and ordinary application Services solve different problems. A C
 
 Keep canonical handlers attached to their Command, Subscription, Mount, and ManagedResource definitions. Compose attached recipes such as `LoadProducts.layer` in the feature's local `EffectsLayer`. Name a standalone `LoadProductsLayer` only when that individual provider is intentionally public or independently reused, and an external alternative `LoadProductsTestLayer`.
 
-Compose a small local bundle in `block.ts`. Extract `layer.ts` when the composition is substantial or independently reused. Pass the local bundle to `FeatureComposition.prepareBlock`. A feature can provide business services that it owns while leaving HTTP, storage, RPC, and browser providers open for the root.
+Compose a small local handler bundle in `block.ts`. Extract `layer.ts` when that bundle is substantial or reused. Return it as `EffectsLayer` from `FeatureDefinition.makeBlock`. Export the Block implementation separately as `layer`; these Layers have different jobs.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
@@ -153,7 +149,7 @@ Effect represents each required Service in an Effect's requirements type and use
 
 At a split root, `command.ts` owns the root Command Definitions and exports `EffectsLayer` when those recipes are the complete root-local handler bundle. The entry imports that value directly. When the root combines Command recipes with other local handler bundles and the aggregate is substantial or reused, `layer.ts` owns the final `EffectsLayer` instead. Neither file imports or relists child handlers.
 
-Registered child Blocks contribute their own selected `EffectsLayer` recursively. Completing the Application includes that transitive handler graph automatically. Do not manually import or relist every child Command at root, and do not merge a registered child's handler bundle a second time.
+The constructor acquires child implementations from the supplied Layers. Those implementations contribute their selected handler recipes recursively. The Runtime constructs that complete handler graph after construction. Do not manually import or relist every child Command at root, and do not merge a registered child's handler bundle a second time.
 
 There is no flattened, human-readable list of every Command Layer in an Application today. To inspect the handlers, follow `ApplicationComposition`'s registered children into each completed Block and its local `EffectsLayer`. Keep that graph as the source of truth rather than maintaining a second global list.
 
@@ -219,44 +215,27 @@ Consumers use `Products.ProductsBlock.Model` when composing parent Model Schemas
 
 ### Keep Model Schema dependencies small
 
-Reading `ProductsBlock.Model` from an inferred source Block can make TypeScript resolve init, update, views and the child graph before checking the parent Schema. An explicit export header gives the completed value a directly named Model member while preserving its checked implementation contract.
+Define parent fields through the child's independent public contract: `ProductsBlock.Model`. The Definition exposes that Schema before update, view, and child implementations are completed. Reading it does not require TypeScript to reconstruct the implementation graph.
 
-::Snippet{name="blockFeatureExports" label="A checked preparation producer and export header"}
+::Snippet{name="blockFeatureExports" label="Public contract and implementation Layer"}
 
-Choose the helper from the Definition's declared OutMessage and the assembled view:
+The feature barrel exports the public Block contract and its implementation `layer`. Implementation files import Model from its owning module. Keep shared domain Schemas independent of Composition and completion.
 
-| Assembled view | Declared OutMessage | Export annotation                           |
-| -------------- | ------------------- | ------------------------------------------- |
-| Yes            | No                  | `Block.FromAssemblyWithView`                |
-| Yes            | Yes                 | `Block.FromAssemblyWithViewAndOutMessage`   |
-| No             | Yes                 | `Block.FromAssemblyWithOutMessage`          |
-| No             | No                  | `Block.FromAssemblyWithoutViewOrOutMessage` |
+Do not add casts, broad Block annotations, repeated factory calls, or copied Schemas to hide a type expansion. The public declaration supplies the boundary. The Schema performance lint rule also retains recognition of older checked native assemblies for low-level fixtures; new application code uses the independent contract.
 
-Each helper takes `typeof Model` and `typeof prepare`. Name the single private zero-argument producer `prepare`, and put the checked export immediately after it with no blank line. Initialize it with `Block.assemble(prepare)`. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. The four helper names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer infers the opaque draft, and the helper checks the exact completed contract and Model Schema at the assembly boundary. A cast, broad Block annotation, `satisfies`, raw producer invocation, or annotation without the matching `Block.assemble` call does not establish this boundary.
+::Snippet{name="parentSchemaCompletedBlockBad" label="❌ Parent Schema through implementation completion"}
 
-`provideHandlers` and `replaceEffectsLayer` preserve completed Blocks, but the Schema performance lint exemption does not extend to their full return contracts. Use the original checked `ChildBlock.Model` in the parent Schema and apply handler changes when creating its Binding. Both methods preserve the same Model Schema.
-
-Parents can use the checked completed Block's Model directly; the feature barrel needs only the completed Block. Local implementation modules import Model from its owning module, never from their own completed barrel. Shared domain Schemas still belong in independent domain modules. Do not reconstruct a Schema, repeat a generic factory call, or erase Codec channels to create this boundary.
-
-::Snippet{name="parentSchemaCompletedBlockBad" label="❌ Parent Schema through inferred assembly"}
-
-::Snippet{name="parentSchemaGuardedModel" label="✅ Parent Schema through a checked Block boundary"}
-
-The recommended `foldkit/no-completed-block-model-in-schema` rule follows proven Foldkit assemblies, immutable aliases and nested Schema wrappers. It accepts the four actual helper imports with a matching value annotation or same-name empty interface, matching zero-argument producer and `Block.assemble` finisher. A cast, `satisfies`, helper-shaped name or unannotated producer is insufficient. Ordinary `.Model` access, decoders and a named alias derived from `ChildBlock.Model` remain allowed.
-
-This is a performance guardrail. It does not replace compiler checking or establish a response-time bound. The lint exemption is deliberately narrower than TypeScript: helper type aliases and reexport barrels, imported producer functions, arbitrary factories and dynamic aliases are outside its recognized boundary. Import the helper directly from `foldkit` or `foldkit/block` and keep the producer beside the completed export. Published generic UI contracts remain separate from this ordinary source authoring pattern.
+::Snippet{name="parentSchemaGuardedModel" label="✅ Parent Schema through the public contract"}
 
 ### Emit Public Block Declarations {#declaration-emission}
 
-A package that ships declaration files should give each public completed Block a named interface over its matching checked `FromAssembly*` header. Keep the private `prepare` producer, interface, and same-name value together as one assembly unit:
+Published Blocks expose a contract whose size is independent of the implementation graph. Ordinary feature exports need no preparation function or `FromAssembly*` annotation.
 
-::Snippet{name="blockDeclarationBoundary" label="Naming a public Block declaration boundary"}
+::Snippet{name="blockDeclarationBoundary" label="Public contract declaration boundary"}
 
-The feature barrel still re-exports one name, `CounterBlock`; TypeScript re-exports its type and value together. This changes no Runtime behavior. It gives declaration serialization a reusable name rather than repeatedly expanding the child producer through each parent.
+Generic libraries may retain a named interface to describe their Schema refinement. Keep nominal key types reachable through the owning public subpath, using a type-only export when the runtime token is internal.
 
-JavaScript-only applications can retain the checked value annotation. There is no dependable child-count threshold for needing a serialization boundary: run declaration emission for the package's actual public entrypoints and check the resulting declarations as an external consumer. A passing `noEmit` check does not establish that they can be emitted. TS7056 reports a type that cannot be serialized under the compiler's limit; even a named child boundary does not guarantee that an arbitrarily large root producer will serialize. The interface is a compiler-work boundary, not a sealed contract against deliberate ambient declaration augmentation.
-
-The [Workspace example](/example-apps/workspace) retains an exact named Binding tuple in `src/composition.ts` after an observed root TS7056 failure. Exporting that type lets other modules name the graph in emitted declarations, so `src/block.ts` keeps the ordinary checked assembly shown above. The tuple type and value must both change with the graph. Use this targeted boundary after reproducing a serialization failure; it does not establish unlimited declaration scaling. Editor performance needs its own measurement.
+Run declaration emission for the package's real entrypoints and compile a relocated consumer without access to source. A passing `noEmit` check does not establish declaration portability. Check Services, constructor errors, operation channels, initialization inputs, and view inputs in that consumer. Editor latency and compiler cost need their own measurements.
 
 ### Keep Barrel Dependencies Pointing Inward
 

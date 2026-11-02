@@ -92,13 +92,13 @@ The two flags are independent. Setting both emits both sets of attributes, and e
 
 ## Informing Slider about a Range Change
 
-When parent-owned configuration changes the minimum or maximum, call `SliderBinding.informRangeChanged({ min, max })`. The operation dispatches `InformedOfRangeChange` through Slider update, which keeps every child Model change inside the child. Its notification branch returns `{ model }` and emits no OutMessage.
+When parent-owned configuration changes the minimum or maximum, call `SliderBinding.informRangeChange({ min, max })`. The operation delivers `InformedOfRangeChange` through Slider receive, which keeps every child Model change inside the child. Its notification branch returns `{ model }` and emits no OutMessage.
 
 ## API Reference
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Slider Binding's child initializer. Direct completed Block calls use `Slider.SliderBlock.init()`.
+Configuration passed to the Slider Binding's child initializer. Scoped tests pass the same config to `Story.init(...)` or `Scene.init(...)` and provide the component implementation Layer.
 
 | Name   | Type     | Default | Description                                                                                                                   |
 | ------ | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |

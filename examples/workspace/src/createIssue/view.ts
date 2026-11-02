@@ -1,11 +1,10 @@
-import { Array, Schema, String } from 'effect'
+import { Array, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Button, Fieldset, Input, Textarea } from '@foldkit/ui'
 import type { RenderInfo } from '@foldkit/ui/dialog'
 import { buttonId } from '@foldkit/ui/listbox'
 
-import { Project } from '../domain'
 import {
   PriorityListboxOption,
   StatusListboxOption,
@@ -22,12 +21,11 @@ import {
 import { isDraftEditable } from './draft'
 import { Message } from './message'
 import { CreateState, type Model } from './model'
+import type { ViewInputs } from './viewInputs'
 
 const FIELD_CLASS = 'grid gap-2'
 const LABEL_CLASS = 'text-[13px] font-medium text-slate-600'
 
-const ViewInputs = Schema.Struct({ projects: Schema.Array(Project) })
-type ViewInputs = typeof ViewInputs.Type
 const STATUS_OPTIONS: ReadonlyArray<StatusListboxOption> = [
   { value: 'Backlog', label: 'Backlog' },
   { value: 'Todo', label: 'Todo' },
@@ -239,7 +237,7 @@ const submitButton = (model: Model, h: CreateIssueViewBuilder): Html => {
   )
 }
 
-export const view = CreateIssueComposition.makeView.withInputs<ViewInputs>(
+export const view = CreateIssueComposition.makeView.withInputs(
   (model, viewInputs, h) =>
     h.block(
       DialogBinding.embedView({

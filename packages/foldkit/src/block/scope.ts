@@ -25,6 +25,10 @@ import {
   commandInstances,
   enterInstance,
 } from './instanceContext.js'
+import type {
+  RuntimeCapability,
+  RuntimeCapabilityIdentity,
+} from './runtimeCapability.js'
 
 declare const ScopedTypeId: unique symbol
 
@@ -58,8 +62,10 @@ type LocalCapability<Requirements> =
               infer Value
             >
           ? ResourceHandler<Name, Params, Value>
-          : Requirements extends ManagedResourceService<infer Key>
-            ? ManagedResourceService<Key>
+          : Requirements extends
+                | ManagedResourceService<any>
+                | RuntimeCapabilityIdentity
+            ? Requirements
             : never
 
 /** @internal Constructor requirements that depend on a placement's capabilities. */
@@ -100,17 +106,16 @@ type CapabilityName<Requirements> =
             : never
 
 /** @internal Qualifies child capabilities lifted by an OutMessage policy. */
-export type QualifyOwned<
-  Path extends string,
-  Id extends string,
-  Requirements,
-> = Requirements extends unknown
-  ? [CapabilityName<Requirements>] extends [never]
-    ? Requirements
-    : CapabilityName<Requirements> extends `${Id}/${string}`
+export type QualifyOwned<Path extends string, Id extends string, Requirements> =
+  Requirements extends RuntimeCapability<infer CapabilityOwner>
+    ? CapabilityOwner extends Readonly<{ id: Id }>
       ? Qualify<Path, Requirements>
       : Requirements
-  : never
+    : [CapabilityName<Requirements>] extends [never]
+      ? Requirements
+      : CapabilityName<Requirements> extends `${Id}/${string}`
+        ? Qualify<Path, Requirements>
+        : Requirements
 
 const scopedPrefix = '@foldkit/Block/'
 const separator = '::'
@@ -162,6 +167,10 @@ export const assertSegment = (segment: string): void => {
     )
   }
 }
+
+/** @internal Identifies handler/resource Context keys, including qualified placements. */
+export const isCapabilityContextKey = (key: string): boolean =>
+  isHandlerKey(key) || isResourceKey(key) || key.startsWith(scopedPrefix)
 
 /** @internal Derives the Context key for a bound capability. */
 export const qualifyKey = (segment: string, key: string): string => {

@@ -1,1 +1,1 @@
-export { PlaygroundBlock } from './block'
+export { PlaygroundBlock, layer } from './block'

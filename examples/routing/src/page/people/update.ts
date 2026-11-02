@@ -1,5 +1,4 @@
 import { Option } from 'effect'
-import { modifyFields } from 'foldkit/struct'
 
 import type { PeopleRoute } from '../../route'
 import { FetchPeople, PushSearchUrl } from './command'
@@ -33,19 +32,6 @@ export const update = PeopleComposition.makeUpdate({
       searchText: Option.fromNullishOr(model.searchInput || null),
     }),
   ]),
-
-  InformedOfRouteChange: (model, { route }) => {
-    const searchText = routeSearchText(route)
-    return {
-      model: modifyFields(model, {
-        searchInput: () => searchText,
-        searchHistory: searchHistory =>
-          addSearchToHistory(searchHistory, searchText),
-        results: () => SearchResults.Loading(),
-      }),
-      commands: [FetchPeople({ searchText })],
-    }
-  },
 
   CompletedFetchPeople: makeFieldsStep.fromMessage(
     ({ query, people: fetchedPeople }) => ({

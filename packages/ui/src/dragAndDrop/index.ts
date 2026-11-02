@@ -1,5 +1,6 @@
 export {
   DragAndDropBlock,
+  layer,
   DragState,
   droppable,
   sortable,
@@ -12,3 +13,5 @@ export {
   type RenderInfo,
   type ViewInputs,
 } from './block.js'
+
+export type { DragAndDropKey } from './block.js'

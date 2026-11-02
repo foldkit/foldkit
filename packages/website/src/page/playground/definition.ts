@@ -5,6 +5,7 @@ import { defineTaggedUnion } from 'foldkit/schema'
 
 import * as PlaygroundPreview from '../playgroundPreview'
 import { PlaygroundFileTabsBlock } from './fileTabs'
+import type { ViewInputs } from './viewInputs'
 
 export const PlaygroundState = defineTaggedUnion({
   Idle: {},
@@ -34,7 +35,6 @@ export const Model = Schema.Struct({
 export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
-  InformedOfSupport: { isSupported: Schema.Boolean },
   BootedPlayground: { previewUrl: Schema.String },
   FailedBootPlayground: { reason: Schema.String },
   ReleasedPlayground: {},
@@ -52,9 +52,24 @@ export type SucceededMountPlaygroundEditor =
   typeof Message.SucceededMountPlaygroundEditor.Type
 export type FailedMountPlaygroundEditor =
   typeof Message.FailedMountPlaygroundEditor.Type
+
+export const InMessage = defineMessageUnion({
+  InformedOfSupport: { isSupported: Schema.Boolean },
+})
+export type InMessage = typeof InMessage.Type
+
+export const PlaygroundKey = Symbol('Playground')
+
 export const PlaygroundDefinition = Block.makeDefinition('Playground', {
+  key: PlaygroundKey,
+  Init: Schema.Tuple([
+    Schema.String,
+    Schema.optional(Schema.Option(Schema.Boolean)),
+  ]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
+  InMessage,
 })
 
 export const { makeFieldsStep, makeNoopStep } = PlaygroundDefinition

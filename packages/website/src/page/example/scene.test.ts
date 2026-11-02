@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import { Array, Option, pipe } from 'effect'
 import { Calendar, Url } from 'foldkit'
 import {
@@ -10,17 +11,16 @@ import {
   scene,
   within,
 } from 'foldkit/scene'
+import { type TestBlock, withBlock } from 'foldkit/story'
 import { describe, test } from 'vitest'
 
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
+import { ApplicationBlock } from '../../block'
 import { Deployment } from '../../deployment'
-import { init } from '../../init'
 import { SnippetDisclosureBlock } from '../../snippetDisclosure'
 import { SnippetSize } from '../../snippetDisclosure/model'
 import { MeasureSnippetHeight } from '../../snippetDisclosure/mount'
-import { update } from '../../update'
-import { view } from '../../view/view'
 import { SourceFileTabsBlock } from './fileTabs'
 import { type ExampleSources } from './sources'
 
@@ -58,47 +58,61 @@ const flags = {
   maybeExampleSources: Option.some(sources),
 }
 
+const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
+  const init = block.init
+  const update = block.update
+  const view = block.view
+
+  return { block, init, update, view }
+}
+
 describe('example detail', () => {
-  test('source files share their code disclosure state', () => {
-    scene(
-      { update, view },
-      given(init(flags, url).model),
-      Mount.resolve(
-        MeasureSnippetHeight({
-          snippetId: 'example-ssr-source-src/application.ts',
-        }),
-        SnippetDisclosureBlock.Message.CompletedMeasureSnippetHeight({
-          snippetId: 'example-ssr-source-src/application.ts',
-          snippetSize: SnippetSize.Overflows(),
-        }),
-      ),
-      click(
-        within(
-          role('tabpanel', { name: /application\.ts$/ }),
-          role('button', { name: 'Show code' }),
-        ),
-      ),
-      expect(
-        within(
-          role('tabpanel', { name: /application\.ts$/ }),
-          role('button', { name: 'Hide code' }),
-        ),
-      ).toExist(),
-      click(role('tab', { name: /entry\.server\.ts$/ })),
-      expect(role('tab', { name: /entry\.server\.ts$/ })).toHaveAttr(
-        'aria-selected',
-        'true',
-      ),
-      Command.resolve(
-        TabsTest.FocusTab,
-        SourceFileTabsBlock.Message.CompletedFocusTab(),
-      ),
-      expect(
-        within(
-          role('tabpanel', { name: /entry\.server\.ts$/ }),
-          role('button', { name: 'Hide code' }),
-        ),
-      ).toExist(),
+  test('source files share their code disclosure state', async () => {
+    await Effect.runPromise(
+      withBlock(ApplicationBlock, executable => {
+        const { init, update, view } = makeFixture(executable)
+
+        scene(
+          { update, view },
+          given(init(flags, url).model),
+          Mount.resolve(
+            MeasureSnippetHeight({
+              snippetId: 'example-ssr-source-src/application.ts',
+            }),
+            SnippetDisclosureBlock.Message.CompletedMeasureSnippetHeight({
+              snippetId: 'example-ssr-source-src/application.ts',
+              snippetSize: SnippetSize.Overflows(),
+            }),
+          ),
+          click(
+            within(
+              role('tabpanel', { name: /application\.ts$/ }),
+              role('button', { name: 'Show code' }),
+            ),
+          ),
+          expect(
+            within(
+              role('tabpanel', { name: /application\.ts$/ }),
+              role('button', { name: 'Hide code' }),
+            ),
+          ).toExist(),
+          click(role('tab', { name: /entry\.server\.ts$/ })),
+          expect(role('tab', { name: /entry\.server\.ts$/ })).toHaveAttr(
+            'aria-selected',
+            'true',
+          ),
+          Command.resolve(
+            TabsTest.FocusTab,
+            SourceFileTabsBlock.Message.CompletedFocusTab(),
+          ),
+          expect(
+            within(
+              role('tabpanel', { name: /entry\.server\.ts$/ }),
+              role('button', { name: 'Hide code' }),
+            ),
+          ).toExist(),
+        )
+      }),
     )
   })
 })

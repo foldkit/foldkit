@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -20,7 +17,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const AnimationExampleKey = Symbol('AnimationExample')
+
 const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
+  key: AnimationExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -55,10 +57,12 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
   },
 )
 
+const AnimatedContentBinding = AnimationBinding.withOutMessagePolicy({
+  fold: foldAnimationOutMessage,
+})
+
 const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
-  bindings: [
-    AnimationBinding.withOutMessagePolicy({ fold: foldAnimationOutMessage }),
-  ],
+  bindings: [AnimatedContentBinding],
 })
 
 // In your init function, specify the fields the parent owns. The Composition
@@ -107,3 +111,11 @@ const view = AnimationExampleComposition.makeView((model, h) =>
     ],
   ),
 )
+
+export const ApplicationBlock = AnimationExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const animation = yield* AnimatedContentBinding
+
+    return { children: [animation], init, update, view }
+  }),
+).provide(Animation.layer)

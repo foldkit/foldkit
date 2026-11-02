@@ -1,24 +1,16 @@
-import { Effect } from 'effect'
+import { Effect, Layer } from 'effect'
+import { Program } from 'foldkit'
 
-import { SaveTheme } from './blockDefinition'
-import { ApplicationDefinition, makeFieldsStep } from './blockProfileContract'
-import * as Settings from './blockSettings'
+import { SettingsStore } from './blockDefinition'
+import { ApplicationBlock } from './blockProfile'
 
-const SettingsDemo = Settings.SettingsBlock.replaceEffectsLayer(
-  SaveTheme.toLayer(
-    Effect.succeed(() =>
-      Effect.succeed(Settings.SettingsBlock.Message.CompletedSaveTheme()),
-    ),
-  ),
-)
-
-export const SettingsBinding = ApplicationDefinition.makeBinding(SettingsDemo, {
-  field: 'settings',
-}).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(SettingsDemo, {
-    ChangedTheme: ({ theme }) =>
-      makeFieldsStep(() => ({
-        previewTheme: () => theme,
-      })),
-  }),
+const SettingsStoreTestLayer = Layer.succeed(SettingsStore, {
+  saveTheme: () => Effect.void,
 })
+
+// Graph construction uses the same Settings implementation. The host chooses
+// the storage Service consumed by its Command handler constructor.
+export const program = Program.make({
+  block: ApplicationBlock,
+  container: document.getElementById('root'),
+}).provide(SettingsStoreTestLayer)

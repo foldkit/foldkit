@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -831,4 +831,354 @@ void importedCommandsStep
       ),
     ).toHaveLength(1)
   })
+})
+
+describe('receive handler ownership through real oxlint', () => {
+  const receiveCases = [
+    [
+      'inline',
+      `ParentComposition.makeReceive({ RequestedChange: model => ({ model: modifyFields(model, { child: ${childTransform} }) }) })`,
+    ],
+    [
+      'named-record',
+      `const handleRequest = model => ({ model: modifyFields(model, { child: ${childTransform} }) })
+const receiveCases = { RequestedChange: handleRequest }
+ParentComposition.makeReceive(receiveCases)`,
+    ],
+    [
+      'contextual',
+      `const makeCases = context => ({ RequestedChange: model => ({ model: modifyFields(model, { child: ${childTransform} }) }) })
+ParentComposition.makeReceive.withContext(makeCases)`,
+    ],
+    [
+      'fields-helper',
+      `ParentComposition.makeReceive({ RequestedChange: ParentDefinition.makeFieldsStep.fromMessage(input => ({ child: ${childTransform} })) })`,
+    ],
+  ] satisfies ReadonlyArray<readonly [string, string]>
+
+  for (const [name, source] of receiveCases) {
+    it(`rejects direct child Model changes in ${name} receive handlers`, () => {
+      expect(
+        diagnosticsFor(
+          `receive-state-${name}`,
+          'no-direct-block-state-update',
+          parentSource + source,
+        ),
+      ).toHaveLength(1)
+    })
+  }
+
+  it('accepts bound operations, parent fields, and payload fields without attributing them to the child Model', () => {
+    const source =
+      parentSource +
+      `
+const renameParent = ParentDefinition.makeFieldsStep.fromMessage(input => ({ label: () => input.label }))
+ParentComposition.makeReceive({ RequestedChange: ChildBinding.requestChange() })
+ParentComposition.makeReceive.withContext(context => ({ RequestedChange: renameParent }))
+ParentComposition.makeReceive({ RequestedChange: (model, input) => {
+  const changedInput = modifyFields(input, { child: ${childTransform} })
+  return { model: modifyFields(model, { label: () => changedInput.label }) }
+} })
+const unrelated = { makeReceive: handlers => handlers }
+unrelated.makeReceive({ RequestedChange: model => ({ model: modifyFields(model, { child: ${childTransform} }) }) })
+`
+    expect(
+      diagnosticsFor(
+        'receive-parent-fields',
+        'no-direct-block-state-update',
+        source,
+      ),
+    ).toEqual([])
+  })
+
+  for (const method of ['makeReceive', 'makeReceive.withContext']) {
+    it(`retains parent Message ownership in ${method}`, () => {
+      const handlers = `{ RequestedChange: model => {
+  Child.Message.ClickedSave()
+  return { model }
+} }`
+      const argument = method.endsWith('withContext')
+        ? `context => (${handlers})`
+        : handlers
+      expect(
+        diagnosticsFor(
+          `receive-message-parent-${method}`,
+          'no-child-message-construction-in-root',
+          parentSource + `ParentComposition.${method}(${argument})`,
+        ),
+      ).toHaveLength(1)
+    })
+
+    it(`allows the child's own local Message in ${method}`, () => {
+      const handlers = `{ RequestedChange: handleRequest }`
+      const argument = method.endsWith('withContext')
+        ? `context => (${handlers})`
+        : handlers
+      const source =
+        parentSource +
+        `
+const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
+const ChildComposition = ChildDefinition.makeComposition()
+const handleRequest = model => {
+  Child.Message.ClickedSave()
+  return { model }
+}
+ChildComposition.${method}(${argument})
+`
+      expect(
+        diagnosticsFor(
+          `receive-message-child-${method}`,
+          'no-child-message-construction-in-root',
+          source,
+        ),
+      ).toEqual([])
+    })
+
+    it(`keeps ${method} pure inside an effectful Block constructor`, () => {
+      const handlers = `{ RequestedChange: model => ({ model, commands: [Save({ timestamp: Date.now() })] }) }`
+      const argument = method.endsWith('withContext')
+        ? `context => (${handlers})`
+        : handlers
+      const source =
+        parentSource +
+        `
+import { Effect } from 'effect'
+const Save = ParentDefinition.makeCommand('Save', {})
+export const construct = Effect.gen(function* () {
+  return { receive: ParentComposition.${method}(${argument}) }
+})
+
+
+`
+      expect(
+        diagnosticsFor(
+          `receive-purity-${method}`,
+          'no-impure-call-at-decision-time',
+          source,
+        ),
+      ).toHaveLength(1)
+    })
+  }
+
+  for (const method of ['makeReceive', 'makeReceive.withContext']) {
+    it(`keeps extracted ${method} callbacks pure while actual Command handler execution stays deferred`, () => {
+      const argument = method.endsWith('withContext') ? 'makeCases' : 'cases'
+      const source =
+        parentSource +
+        `
+import { Effect } from 'effect'
+export const construct = Effect.gen(function* () {
+  const Save = ParentDefinition.makeCommand('Save', {
+    handler: function* () { return () => Effect.sync(() => Date.now()) },
+  })
+  const handleRequest = model => ({ model, commands: [Save({ timestamp: Date.now() })] })
+  const cases = { RequestedChange: handleRequest }
+  const makeCases = context => cases
+  return { receive: ParentComposition.${method}(${argument}) }
+})
+`
+      expect(
+        diagnosticsFor(
+          `receive-extracted-purity-${method}`,
+          'no-impure-call-at-decision-time',
+          source,
+        ),
+      ).toHaveLength(1)
+    })
+  }
+
+  it('retains deferred Effect execution and constructor-time effects without treating lookalike receivers as pure boundaries', () => {
+    const source =
+      parentSource +
+      `
+import { Effect } from 'effect'
+export const construct = Effect.gen(function* () {
+  const constructedAt = Date.now()
+  const Foreign = { makeReceive: cases => cases }
+  Foreign.makeReceive({ RequestedChange: model => ({ model, constructedAt: Date.now() }) })
+  const Save = ParentDefinition.makeCommand('Save', {
+    handler: function* () { return () => Effect.sync(() => Date.now()) },
+  })
+  return {
+    receive: ParentComposition.makeReceive({ RequestedChange: model => ({
+      model,
+      commands: [Save({ timestamp: Effect.sync(() => Date.now()) })],
+    }) }),
+  }
+})
+`
+    expect(
+      diagnosticsFor(
+        'receive-deferred-effects',
+        'no-impure-call-at-decision-time',
+        source,
+      ),
+    ).toEqual([])
+  })
+
+  it('does not give a lookalike receiver ownership of child Messages or reject input construction', () => {
+    const source =
+      parentSource +
+      `
+const Foreign = { makeReceive: Object.assign(cases => cases, { withContext: createCases => createCases }) }
+const ChildDefinition = Foreign
+const handleRequest = model => {
+  Child.Message.ClickedSave()
+  Child.InMessage.RequestedSave()
+  return { model }
+}
+ChildDefinition.makeReceive.withContext(() => ({ RequestedChange: handleRequest }))
+`
+    expect(
+      diagnosticsFor(
+        'receive-lookalike-message-owner',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toHaveLength(1)
+  })
+})
+
+describe('test Command result authorship through real oxlint', () => {
+  const imports = [
+    [
+      'story-namespace',
+      "import * as Story from 'foldkit/story'",
+      'Story.Command',
+    ],
+    [
+      'story-named',
+      "import { Command as PendingCommand } from 'foldkit/story'",
+      'PendingCommand',
+    ],
+    [
+      'scene-root',
+      "import { Scene as TestScene } from 'foldkit'",
+      'TestScene.Command',
+    ],
+    [
+      'scene-namespace',
+      "import * as Scene from 'foldkit/scene'",
+      'Scene.Command',
+    ],
+  ] satisfies ReadonlyArray<readonly [string, string, string]>
+
+  for (const [name, imported, command] of imports) {
+    for (const method of ['resolve', 'resolveAll', 'resolveAllExact']) {
+      it(`accepts result Messages in ${name} ${method}`, () => {
+        const result = 'Child.Message.CompletedFetch({ value: 1 })'
+        const args =
+          method === 'resolve'
+            ? `Child.Fetch, ${result}`
+            : `[Child.Fetch, ${result}]`
+        const source = `
+${imported}
+import * as Child from './child'
+export const completion = ${command}.${method}(${args})
+`
+        expect(
+          diagnosticsFor(
+            `test-result-${name}-${method}`,
+            'no-child-message-construction-in-root',
+            source,
+          ),
+        ).toEqual([])
+      })
+    }
+  }
+
+  it('accepts the actual standalone Query input-testing snippet', () => {
+    const source = readFileSync(
+      join(
+        pluginRoot,
+        '..',
+        'website',
+        'src',
+        'snippet',
+        'queryInputTesting.ts',
+      ),
+      'utf8',
+    )
+    expect(
+      diagnosticsFor(
+        'query-input-testing',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toEqual([])
+  })
+
+  it('accepts immutable resolver aliases without granting ownership to other test steps', () => {
+    const source = `
+import * as Story from 'foldkit/story'
+import * as Child from './child'
+const resolveCommand = Story.Command.resolve
+const completion = resolveCommand(Child.Fetch, Child.Message.CompletedFetch())
+export const fixture = Story.story(Child.Block, Story.init(), completion)
+Story.message(Child.Message.ClickedSave())
+`
+    expect(
+      diagnosticsFor(
+        'test-result-alias',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('rejects child construction in matcher positions', () => {
+    const source = `
+import * as Story from 'foldkit/story'
+import * as Child from './child'
+Story.Command.resolve(Child.Message.ClickedSave(), {})
+Story.Command.resolveAll([Child.Message.ClickedSave(), {}])
+Story.Command.resolveAllExact([Child.Message.ClickedSave(), {}])
+`
+    expect(
+      diagnosticsFor(
+        'test-result-matcher',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toHaveLength(3)
+  })
+
+  it('rejects spoofed and shadowed resolver APIs', () => {
+    const source = `
+import * as ImportedStory from 'foldkit/story'
+import * as Child from './child'
+const Story = { Command: { resolve: (matcher, result) => result } }
+Story.Command.resolve(Child.Fetch, Child.Message.CompletedFetch())
+const resolve = ImportedStory => ImportedStory.Command.resolve(Child.Fetch, Child.Message.CompletedFetch())
+void resolve
+`
+    expect(
+      diagnosticsFor(
+        'test-result-spoof',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toHaveLength(2)
+  })
+
+  for (const method of ['makeUpdate', 'makeReceive']) {
+    it(`rejects resolver arguments inside parent ${method} handlers`, () => {
+      const source =
+        parentSource +
+        `
+import * as Story from 'foldkit/story'
+ParentComposition.${method}({ RequestedChange: model => {
+  const completion = Story.Command.resolve(Child.Fetch, Child.Message.CompletedFetch())
+  return { model, completion }
+} })
+`
+      expect(
+        diagnosticsFor(
+          `test-result-parent-${method}`,
+          'no-child-message-construction-in-root',
+          source,
+        ),
+      ).toHaveLength(1)
+    })
+  }
 })

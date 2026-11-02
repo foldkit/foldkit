@@ -18,7 +18,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Schema.String]),
   Model,
   Message,
 })
@@ -48,11 +52,9 @@ const restoreBaseline = makeStep(model =>
   }),
 )
 
-export const init = ApplicationComposition.makeInit(
-  (applicationId: string) => ({
-    model: { applicationId, draft: '' },
-  }),
-)
+export const init = ApplicationComposition.makeInit(applicationId => ({
+  model: { applicationId, draft: '' },
+}))
 export const update = ApplicationComposition.makeUpdate({
   ClickedReset: reset,
   ClickedRestoreBaseline: restoreBaseline,

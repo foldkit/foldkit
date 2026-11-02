@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -21,13 +18,21 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const NotificationSettingsComposition = Block.makeDefinition(
+const NotificationSettingsKey = Symbol('NotificationSettings')
+
+const NotificationSettingsDefinition = Block.makeDefinition(
   'NotificationSettings',
   {
+    key: NotificationSettingsKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },
-).makeComposition()
+)
+
+const NotificationSettingsComposition =
+  NotificationSettingsDefinition.makeComposition()
 
 // In your init function, start it off:
 const init = NotificationSettingsComposition.makeInit(() => ({
@@ -96,3 +101,9 @@ const view = NotificationSettingsComposition.makeView((model, h) => {
     h,
   )
 })
+
+export const ApplicationBlock = NotificationSettingsDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+)

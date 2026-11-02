@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block, Runtime } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -14,10 +14,21 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 type ClickedCrash = typeof Message.ClickedCrash.Type
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+export const ApplicationKey = Symbol('Application')
+
+export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
   Model,
   Message,
-}).makeComposition()
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+})
+
+type ApplicationMessage = Block.ExecutableOf<
+  typeof ApplicationDefinition.contract
+>['Message']['Type']
+
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const handleClickedCrash = (
   _model: Model,
@@ -62,7 +73,7 @@ export const view = ApplicationComposition.makeView((_model, h) => ({
 // CRASH
 
 export const crashView = (
-  { error }: Runtime.CrashContext<Model, Message>,
+  { error }: Runtime.CrashContext<Model, ApplicationMessage>,
   h: HtmlBuilder<never>,
 ): Document => ({
   title: 'Crash View Example | crashed',
@@ -104,13 +115,8 @@ export const crashView = (
   ),
 })
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+)

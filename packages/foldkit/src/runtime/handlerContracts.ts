@@ -70,6 +70,17 @@ type Equal<Left, Right> =
       : false
     : false
 
+type EquivalentHandlerContracts<
+  Entries extends HandlerEntryShape,
+  Whole extends HandlerEntryShape = Entries,
+> = Entries extends infer Left extends HandlerEntryShape
+  ? Whole extends infer Right extends HandlerEntryShape
+    ? Equal<Left['key'], Right['key']> extends true
+      ? Equal<Left['contract'], Right['contract']>
+      : false
+    : never
+  : never
+
 type HasConflictingEntry<
   Left extends HandlerEntryShape,
   Group extends HandlerEntryShape,
@@ -98,19 +109,32 @@ type ConflictingIndexedKeys<
     : never
   : never
 
+type IndexedHandlerConflicts<Entries extends HandlerEntryShape> =
+  ConflictingIndexedKeys<
+    Entries,
+    {
+      [Entry in Entries as Entry['key']]: Entry
+    }
+  >
+
+type HandlerConflicts<
+  Entries extends HandlerEntryShape,
+  Validation extends 'Indexed' | 'Equivalent',
+> = Validation extends 'Equivalent'
+  ? EquivalentHandlerContracts<Entries> extends true
+    ? never
+    : IndexedHandlerConflicts<Entries>
+  : IndexedHandlerConflicts<Entries>
+
 type ValidHandlerKindContracts<
   Requirements,
-  OwnerId extends string | never = never,
+  OwnerId extends string | never,
+  Validation extends 'Indexed' | 'Equivalent',
 > = [Requirements] extends [never]
   ? unknown
   : HandlerEntry<Requirements, OwnerId> extends infer Entries
     ? [Entries] extends [HandlerEntryShape]
-      ? ConflictingIndexedKeys<
-          Entries,
-          {
-            [Entry in Entries as Entry['key']]: Entry
-          }
-        > extends infer Conflicts
+      ? HandlerConflicts<Entries, Validation> extends infer Conflicts
         ? [Conflicts] extends [never]
           ? unknown
           : Readonly<{
@@ -124,4 +148,5 @@ type ValidHandlerKindContracts<
 export type ValidHandlerContracts<
   Requirements,
   OwnerId extends string | never = never,
-> = ValidHandlerKindContracts<Requirements, OwnerId>
+  Validation extends 'Indexed' | 'Equivalent' = 'Indexed',
+> = ValidHandlerKindContracts<Requirements, OwnerId, Validation>

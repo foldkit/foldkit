@@ -782,11 +782,15 @@ export const HorizontalRadioGroupDemoBinding = UiDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldHorizontalRadioGroupDemoOutMessage })
 
+export const AnimationDemoBindingWithOutMessagePolicy =
+  AnimationDemoBinding.withOutMessagePolicy({
+    fold: foldAnimationDemoOutMessage,
+  })
+export { VirtualListChatDemoBindingWithOutMessagePolicy }
+
 export const UiComposition = UiDefinition.makeComposition({
   bindings: [
-    AnimationDemoBinding.withOutMessagePolicy({
-      fold: foldAnimationDemoOutMessage,
-    }),
+    AnimationDemoBindingWithOutMessagePolicy,
     CalendarBasicDemoBinding,
     ComboboxDemoBinding,
     ComboboxMultiDemoBinding,

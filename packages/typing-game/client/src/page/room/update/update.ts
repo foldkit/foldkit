@@ -12,13 +12,13 @@ import {
   CopyRoomId,
   FocusRoomPageUsernameInput,
   JoinRoom,
-  SavePlayerSession,
   StartGame,
   UpdatePlayerProgress,
   WaitBeforeHidingRoomIdCopiedIndicator,
   WaitForExitCountdownInterval,
 } from '../command'
 import { RoomComposition } from '../composition'
+import type { Context } from '../context'
 import {
   RoomDefinition,
   makeCommandsStep,
@@ -26,7 +26,8 @@ import {
   makeNoopStep,
 } from '../definition'
 import { Message } from '../message'
-import { Model, RoomAsyncData, RoomPlayerSession } from '../model'
+import { Model, RoomAsyncData } from '../model'
+import { recordJoinedPlayer } from '../steps'
 import { validateUserTextInput } from '../userGameText'
 import { handleUpdatedRoom } from './handleUpdatedRoom'
 
@@ -37,15 +38,6 @@ export const NavigateHome = RoomDefinition.makeCommand('NavigateHome', {
       pushUrl(homeRouter()).pipe(Effect.as(Message.CompletedNavigateHome()))
   },
 })
-
-/**
- * The Room occurrence handling this dispatch. The parent supplies the captured
- * binding key after checking it against the active Route, or the known room ID
- * when preparing a newly joined Room from Home.
- */
-export type Context = Readonly<{
-  roomId: string
-}>
 
 export const update = RoomComposition.makeUpdate.withContext(
   (context: Context) => ({
@@ -173,8 +165,6 @@ export const update = RoomComposition.makeUpdate.withContext(
       }
     },
 
-    InformedOfJoin: (model, { player }) =>
-      recordJoinedPlayer(model, player, context),
     SucceededJoinRoom: (model, { player }) =>
       recordJoinedPlayer(model, player, context),
     CompletedFocusRoomPageUsernameInput: makeNoopStep(),
@@ -202,24 +192,6 @@ const handlePressedKey =
           Match.orElse(() => ({ model })),
         ),
     })
-
-const recordJoinedPlayer = (
-  model: Model,
-  player: Shared.Player,
-  context: Context,
-) => {
-  const session = RoomPlayerSession.make({
-    roomId: context.roomId,
-    player,
-  })
-
-  return {
-    model: modifyFields(model, {
-      maybeSession: () => Option.some(session),
-    }),
-    commands: [SavePlayerSession({ session })],
-  }
-}
 
 const whenWaiting = (
   model: Model,

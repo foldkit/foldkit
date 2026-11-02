@@ -1,1 +1,1 @@
-export { SnippetCopyBlock } from './block'
+export { SnippetCopyBlock, layer } from './block'

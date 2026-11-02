@@ -24,12 +24,18 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationComposition = Block.makeDefinition('Application', {
+const ApplicationKey = Symbol('Application')
+
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Schema.String]),
   Model,
   Message,
-}).makeComposition()
+})
 
-const init = ApplicationComposition.makeInit((accessToken: string) => ({
+const ApplicationComposition = ApplicationDefinition.makeComposition()
+
+const init = ApplicationComposition.makeInit(accessToken => ({
   model: { accessToken: makeAccessToken(accessToken) },
 }))
 

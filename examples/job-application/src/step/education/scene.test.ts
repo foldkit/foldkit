@@ -1,21 +1,23 @@
+import { Effect } from 'effect'
 import { Calendar } from 'foldkit'
-import { expect, given, label, role, scene } from 'foldkit/scene'
+import { init } from 'foldkit/scene'
+import { expect, label, role, scene } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { EducationBlock, layer } from './block'
 
 const today = Calendar.make(2026, 4, 16)
 
 describe('education', () => {
-  test('renders the first school fields and the add control', () => {
-    scene(
-      { update, view },
-      given(init(today, 'education-entry-1').model),
-      expect(label('School')).toExist(),
-      expect(label('Degree')).toExist(),
-      expect(role('button', { name: '+ Add Education' })).toExist(),
+  test('renders the first school fields and the add control', async () => {
+    await Effect.runPromise(
+      scene(
+        EducationBlock,
+        init(today, 'education-entry-1'),
+        expect(label('School')).toExist(),
+        expect(label('Degree')).toExist(),
+        expect(role('button', { name: '+ Add Education' })).toExist(),
+      ).pipe(Effect.provide(layer)),
     )
   })
 })

@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import { Valid } from 'foldkit/fieldValidation'
 import {
   Command,
@@ -11,8 +12,9 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
+import { LoginBlock, layer } from './block'
 import { Message, OutMessage } from './definition'
-import { SimulateAuthRequest, initModel, update } from './login'
+import { SimulateAuthRequest, initModel } from './login'
 
 const validModel = modifyFields(initModel(), {
   email: () => Valid({ value: 'alice@example.com' }),
@@ -22,85 +24,95 @@ const validModel = modifyFields(initModel(), {
 const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
 
 describe('login', () => {
-  test('typing an email validates the field', () => {
-    story(
-      update,
-      given(initModel()),
-      message(Message.ChangedEmail({ value: '' })),
-      model(model => {
-        expect(model.email._tag).toBe('Invalid')
-      }),
-      message(Message.ChangedEmail({ value: 'alice@example.com' })),
-      model(model => {
-        expect(model.email._tag).toBe('Valid')
-        expect(model.email.value).toBe('alice@example.com')
-      }),
-    )
-  })
-
-  test('typing a password validates the field', () => {
-    story(
-      update,
-      given(initModel()),
-      message(Message.ChangedPassword({ value: '' })),
-      model(model => {
-        expect(model.password._tag).toBe('Invalid')
-      }),
-      message(Message.ChangedPassword({ value: 'secret' })),
-      model(model => {
-        expect(model.password._tag).toBe('Valid')
-      }),
-    )
-  })
-
-  test('submitting with invalid fields does nothing', () => {
-    story(
-      update,
-      given(initModel()),
-      message(Message.SubmittedForm()),
-      model(model => {
-        expect(model.isSubmitting).toBe(false)
-      }),
-      Command.expectNone(),
-    )
-  })
-
-  test('submitting with valid fields sends an auth request', () => {
-    story(
-      update,
-      given(validModel),
-      message(Message.SubmittedForm()),
-      model(model => {
-        expect(model.isSubmitting).toBe(true)
-      }),
-      Command.expectHas(SimulateAuthRequest),
-      Command.resolve(
-        SimulateAuthRequest,
-        Message.SucceededSimulateAuthRequest({ session: aliceSession }),
-      ),
-      expectOutMessage(OutMessage.SucceededLogin({ session: aliceSession })),
-    )
-  })
-
-  test('failed auth marks the password field invalid and stops submitting', () => {
-    story(
-      update,
-      given(validModel),
-      message(Message.SubmittedForm()),
-      model(model => {
-        expect(model.isSubmitting).toBe(true)
-      }),
-      Command.resolve(
-        SimulateAuthRequest,
-        Message.FailedSimulateAuthRequest({
-          error: 'Invalid credentials',
+  test('typing an email validates the field', async () => {
+    await Effect.runPromise(
+      story(
+        LoginBlock,
+        given(initModel()),
+        message(Message.ChangedEmail({ value: '' })),
+        model(model => {
+          expect(model.email._tag).toBe('Invalid')
         }),
-      ),
-      model(model => {
-        expect(model.isSubmitting).toBe(false)
-        expect(model.password._tag).toBe('Invalid')
-      }),
-      expectNoOutMessage(),
+        message(Message.ChangedEmail({ value: 'alice@example.com' })),
+        model(model => {
+          expect(model.email._tag).toBe('Valid')
+          expect(model.email.value).toBe('alice@example.com')
+        }),
+      ).pipe(Effect.provide(layer)),
+    )
+  })
+
+  test('typing a password validates the field', async () => {
+    await Effect.runPromise(
+      story(
+        LoginBlock,
+        given(initModel()),
+        message(Message.ChangedPassword({ value: '' })),
+        model(model => {
+          expect(model.password._tag).toBe('Invalid')
+        }),
+        message(Message.ChangedPassword({ value: 'secret' })),
+        model(model => {
+          expect(model.password._tag).toBe('Valid')
+        }),
+      ).pipe(Effect.provide(layer)),
+    )
+  })
+
+  test('submitting with invalid fields does nothing', async () => {
+    await Effect.runPromise(
+      story(
+        LoginBlock,
+        given(initModel()),
+        message(Message.SubmittedForm()),
+        model(model => {
+          expect(model.isSubmitting).toBe(false)
+        }),
+        Command.expectNone(),
+      ).pipe(Effect.provide(layer)),
+    )
+  })
+
+  test('submitting with valid fields sends an auth request', async () => {
+    await Effect.runPromise(
+      story(
+        LoginBlock,
+        given(validModel),
+        message(Message.SubmittedForm()),
+        model(model => {
+          expect(model.isSubmitting).toBe(true)
+        }),
+        Command.expectHas(SimulateAuthRequest),
+        Command.resolve(
+          SimulateAuthRequest,
+          Message.SucceededSimulateAuthRequest({ session: aliceSession }),
+        ),
+        expectOutMessage(OutMessage.SucceededLogin({ session: aliceSession })),
+      ).pipe(Effect.provide(layer)),
+    )
+  })
+
+  test('failed auth marks the password field invalid and stops submitting', async () => {
+    await Effect.runPromise(
+      story(
+        LoginBlock,
+        given(validModel),
+        message(Message.SubmittedForm()),
+        model(model => {
+          expect(model.isSubmitting).toBe(true)
+        }),
+        Command.resolve(
+          SimulateAuthRequest,
+          Message.FailedSimulateAuthRequest({
+            error: 'Invalid credentials',
+          }),
+        ),
+        model(model => {
+          expect(model.isSubmitting).toBe(false)
+          expect(model.password._tag).toBe('Invalid')
+        }),
+        expectNoOutMessage(),
+      ).pipe(Effect.provide(layer)),
     )
   })
 })

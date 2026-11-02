@@ -1,19 +1,14 @@
-import { Option, String } from 'effect'
+import { Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { RepositoryError } from '../repository'
-import { SaveIssue } from './command'
 import { IssueDetailComposition } from './composition'
 import { makeOutMessageStep, makeStep } from './definition'
-import { isDirty, latestRevision, reconcileIssue } from './draft'
-import type {
-  FailedSaveIssue,
-  InformedOfIssueChange,
-  SucceededSaveIssue,
-} from './message'
+import { latestRevision, reconcileIssue } from './draft'
+import type { FailedSaveIssue, SucceededSaveIssue } from './message'
 import { type Model, SaveState } from './model'
 import { OutMessage } from './outMessage'
-import { editDraft } from './steps'
+import { editDraft, saveIssue } from './steps'
 
 const resetDraftFields = (model: Model) => {
   const nextBaseline = latestRevision(model)
@@ -33,44 +28,6 @@ const resetDraft = makeStep(model => {
 
   return { model: modifyFields(model, resetDraftFields(model)) }
 })
-
-const saveIssue = makeStep(model => {
-  if (
-    SaveState.guards.Saving(model.saveState) ||
-    Option.isSome(model.maybeIncomingRevision) ||
-    !isDirty(model)
-  ) {
-    return { model }
-  }
-
-  if (String.isEmpty(String.trim(model.draft.title))) {
-    return {
-      model: modifyFields(model, {
-        saveState: () =>
-          SaveState.Failed({ error: 'Enter an issue title before saving.' }),
-      }),
-    }
-  }
-
-  return {
-    model: modifyFields(model, {
-      saveState: () =>
-        SaveState.Saving({ expectedVersion: model.baseline.version }),
-    }),
-    commands: [
-      SaveIssue({
-        issueId: model.issueId,
-        draft: model.draft,
-        expectedVersion: model.baseline.version,
-      }),
-    ],
-  }
-})
-
-const handleInformedOfIssueChange = (
-  model: Model,
-  { issue }: InformedOfIssueChange,
-) => ({ model: reconcileIssue(model, issue) })
 
 const isCurrentSave = (
   model: Model,
@@ -150,8 +107,6 @@ export const update = IssueDetailComposition.makeUpdate({
     ),
   SubmittedIssueForm: saveIssue,
   ClickedRetrySave: saveIssue,
-  RequestedSave: saveIssue,
-  InformedOfIssueChange: handleInformedOfIssueChange,
   ClickedReloadIssue: resetDraft,
   ClickedDiscardChanges: resetDraft,
   ClickedClose: makeOutMessageStep(() => OutMessage.Closed()),

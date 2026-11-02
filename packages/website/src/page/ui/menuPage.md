@@ -6,7 +6,7 @@ A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget:
 
 ### Programmatic API and Completed Type
 
-Programmatic operations are exposed through the Binding. Call `menu.requestOpen()` and `menu.requestClose()`. Call `menu.requestSelectItem(item, index)` with the selected item and index.
+Programmatic operations are exposed through the Binding. `requestOpen()` and `requestClose()` are generated from Menu InMessages and run receive. `requestSelectItem(item, index)` retains its positional adapter and exact item type.
 
 What `Menu.makeBlock<Item>()` returns is typed [`Completed<Item>` from `@foldkit/ui/menu`](/ui/selection-blocks#completed-type), for the cases where a created Block has to be named rather than called directly.
 

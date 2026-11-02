@@ -30,11 +30,14 @@ type Model = typeof Model.Type
 const Message = Foldkit.Message.defineMessageUnion({ CompletedWait: {} })
 type Message = typeof Message.Type
 
+export const PackedEffectConsumerKey = Symbol('PackedEffectConsumer')
 const PackedEffectConsumerDefinition = Foldkit.Block.makeDefinition(
   'PackedEffectConsumer',
   {
+    key: PackedEffectConsumerKey,
     Model,
     Message,
+    Init: Schema.Tuple([]),
   },
 )
 

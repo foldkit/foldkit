@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import {
   Command,
   changeFiles,
@@ -12,36 +13,45 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
+import { ApplicationBlock } from './application'
+
 describe('resume upload flow', () => {
   const resume = new File(['%PDF-'], 'resume.pdf', {
     type: 'application/pdf',
   })
 
-  test('inline file input: changeFiles simulates selection', () => {
-    scene(
-      { update, view },
-      given(initialModel),
-      changeFiles(label('resume'), [resume]),
-      expect(text('resume.pdf')).toExist(),
+  test('inline file input: changeFiles simulates selection', async () => {
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(initialModel),
+        changeFiles(label('resume'), [resume]),
+        expect(text('resume.pdf')).toExist(),
+      ),
     )
   })
 
-  test('button-triggered picker: resolve the SelectResume Command', () => {
+  test('button-triggered picker: resolve the SelectResume Command', async () => {
     const previewDataUrl = 'data:application/pdf;base64,JVBERi0='
 
-    scene(
-      { update, view },
-      given(initialModel),
-      click(role('button', { name: 'Choose resume' })),
-      Command.resolveAll(
-        [SelectResume, CompletedSelectResume({ file: resume })],
-        [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(initialModel),
+        click(role('button', { name: 'Choose resume' })),
+        Command.resolveAll(
+          [SelectResume, CompletedSelectResume({ file: resume })],
+          [
+            ReadResumePreview,
+            SucceededReadPreview({ dataUrl: previewDataUrl }),
+          ],
+        ),
+        expect(role('img', { name: 'Resume preview' })).toExist(),
       ),
-      expect(role('img', { name: 'Resume preview' })).toExist(),
     )
   })
 
-  test('drop zone: dropFiles simulates a drag-and-drop', () => {
+  test('drop zone: dropFiles simulates a drag-and-drop', async () => {
     const coverLetter = new File(['cover'], 'cover.txt', {
       type: 'text/plain',
     })
@@ -49,11 +59,13 @@ describe('resume upload flow', () => {
       type: 'image/svg+xml',
     })
 
-    scene(
-      { update, view },
-      given(initialModel),
-      dropFiles(label('attachments'), [coverLetter, portfolio]),
-      expect(text('2 attachments selected')).toExist(),
+    await Effect.runPromise(
+      scene(
+        ApplicationBlock,
+        given(initialModel),
+        dropFiles(label('attachments'), [coverLetter, portfolio]),
+        expect(text('2 attachments selected')).toExist(),
+      ),
     )
   })
 })

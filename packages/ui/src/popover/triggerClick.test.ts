@@ -1,16 +1,20 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { PopoverBlock } from './block.js'
+import { PopoverBlock, layer } from './block.js'
 
 const Model = Schema.Struct({ popover: PopoverBlock.Model })
 type Model = typeof Model.Type
+const PopoverTriggerClickTestKey = Symbol('PopoverTriggerClickTest')
 const PopoverTriggerClickTestDefinition = Block.makeDefinition(
   'PopoverTriggerClickTest',
   {
+    key: PopoverTriggerClickTestKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message: Schema.Never,
   },
@@ -70,19 +74,22 @@ const view = PopoverTriggerClickTestComposition.makeView((model, h) =>
 )
 
 const makeProgram = (container: HTMLElement, isModal: boolean) => {
-  const prepare = () =>
-    PopoverTriggerClickTestComposition.prepareBlock({
-      init: PopoverTriggerClickTestComposition.makeInit(() =>
-        PopoverBinding.init({
-          args: [{ id: 'sort', isModal }],
-          toParentModel: popover => ({ popover }),
-        }),
-      ),
-      update: PopoverTriggerClickTestComposition.makeUpdate({}),
-      view,
-    })
-  const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
-    Block.assemble(prepare)
+  const block = PopoverTriggerClickTestDefinition.makeBlock(
+    Effect.gen(function* () {
+      const popover = yield* PopoverBinding
+      return {
+        children: [popover],
+        init: PopoverTriggerClickTestComposition.makeInit(() =>
+          PopoverBinding.init({
+            args: [{ id: 'sort', isModal }],
+            toParentModel: popover => ({ popover }),
+          }),
+        ),
+        update: PopoverTriggerClickTestComposition.makeUpdate({}),
+        view,
+      }
+    }),
+  ).provide(layer)
 
   return Program.makeElement({
     block,

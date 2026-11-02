@@ -1,4 +1,4 @@
-import { Option, Schema, Tuple } from 'effect'
+import { Effect, Layer, Option, Schema, Tuple } from 'effect'
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
@@ -34,7 +34,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const FilterDialogKey = Symbol('FilterDialog')
+
 const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
+  key: FilterDialogKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -144,3 +149,11 @@ const view = FilterDialogComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = FilterDialogDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+    const combobox = yield* ComboboxBinding
+    return { children: [dialog, combobox], init, update, view }
+  }),
+).provide(Layer.mergeAll(Dialog.layer, Combobox.layer))

@@ -40,6 +40,7 @@ import {
   makeNoopStep,
 } from './definition'
 import { MountPlaygroundEditor } from './mount'
+import type { ViewInputs } from './viewInputs'
 
 const PREFERRED_INITIAL_FILES: ReadonlyArray<string> = ['src/application.ts']
 
@@ -118,6 +119,7 @@ export const WaitForPlaygroundServerFailure = PlaygroundDefinition.makeCommand(
       return () =>
         Effect.gen(function* () {
           const { serverFailure } = yield* WebContainerPlayground.get
+
           return yield* Deferred.await(serverFailure).pipe(
             Effect.catch(error =>
               Effect.succeed(
@@ -266,10 +268,13 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
-export const update = PlaygroundComposition.makeUpdate({
+export const receive = PlaygroundComposition.makeReceive({
   InformedOfSupport: makeFieldsStep.fromMessage(({ isSupported }) => ({
     maybeIsSupported: () => Option.some(isSupported),
   })),
+})
+
+export const update = PlaygroundComposition.makeUpdate({
   BootedPlayground: (model, { previewUrl }) => ({
     model: modifyFields(model, {
       state: () =>
@@ -633,10 +638,6 @@ const editorLayoutView = (model: Model, h: PlaygroundViewBuilder): Html => {
     ],
   )
 }
-
-type ViewInputs = Readonly<{
-  maybeIsPlaygroundSupported: Option.Option<boolean>
-}>
 
 export const view = PlaygroundComposition.makeView.withInputs<ViewInputs>(
   (model, { maybeIsPlaygroundSupported }, h) => {

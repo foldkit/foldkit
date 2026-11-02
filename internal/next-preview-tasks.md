@@ -834,3 +834,53 @@ Breaking beta changes may require a complete application migration. Provide accu
 Review the exact final commit independently before pushing or integrating it.
 
 - [x] Include this work in the preview PR update and announcement handoff, following the user's October 28 clarification. It supports `foldkit-domains` and is separate from the Block/Layer migration requirements. Publication remains held for approval.
+
+## Isolated Layer-owned constructor adoption proof
+
+- [x] Integrate generic family construction with current nominal identity and
+      authenticated execution capabilities. Reuse Query and KeyedQuery behavior
+      rather than maintaining another cache or fetch state implementation.
+- [x] Preserve generic handler Services, constructor errors, original host
+      contracts, generic names and synchronous Codec guarantees. Check source,
+      strict emitted and source-free relocated consumers, actual Programs and
+      deliberately failing declaration/runtime controls.
+- [x] Keep all seven compiler fixtures and their budgets unchanged. Apply the
+      equivalent generic contract check only at family completion, preserving
+      the ordinary validation path.
+- [x] Prove registered descriptor factories, silent/default and notifying modes,
+      host-owned selection, canonical direct fetches, and exact handler channels.
+- [x] Support direct family-contract Story/Scene tests with ordinary Layer
+      provision, precise Effect headers and checked Scope ownership.
+- [x] Separate Query contracts, accessors and Fetch recipes from transitions.
+- [x] Apply the same authoring shape to an actual generic UI component and
+      representative application before selecting repository-wide migration.
+
+[Runnable proof and remaining adoption work](layered-constructor/query-contract/README.md).
+This isolated work has not been selected for a release or publication.
+
+## Contract-first construction adoption
+
+The user authorized repository-wide migration after the recursive contract/Layer proof. Work remains isolated in `/private/tmp/foldkit-incremental-constructor-20261031`; the shared checkout and its concurrent DOM changes are preserved. Construction and the subsequent InMessage migration are implemented together. Publication remains held.
+
+- [x] Prove constructor-authored children consumed only through independent public contracts, selected with ordinary Layers. Retain portable builders, deferred initialization, pure updates, original identities, and Model-owned lifecycle.
+- [x] Adopt the canonical public API, scoped Story/Scene entry points, Query family providers, and UI component contracts.
+- [x] Migrate Workspace and verify its existing 154 tests plus production browser navigation/editor/Board behavior.
+- [x] Migrate the Job Application wizard and retain all 66 tests, including actual nested FileDrop delivery through the selected graph.
+- [x] Migrate Website product code and preserve all 1,520 tests, same-owner alternate-view inference, production build and prerender.
+- [x] Verify generated CSR, SSG and SSR projects, Vite application fixtures, VirtualList browser fixtures, and DevTools construction.
+- [x] Finish active snippets and guide review, preserving published and correctly labelled historical examples.
+- [x] Finish the repository source/build matrix, all 35 existing app test scripts, current public source/emitted/relocated gates, and canonical lint recognition.
+- [x] Resolve compiler-cost regressions without changing fixture sources or budgets and pass the integrated verifier. Earlier paired editor measurements retain their original scope; rendering has its own matched main comparison below.
+- [x] Review the adopted API and migration through independent runtime, contract, consumer and real-app declaration checks; address the resulting nameability, view inference, compiler-cost and Website dependency findings.
+- [x] Remove the intermediate declaration-size failure in the framework representation. Verify complete Workspace, Job Application and Website emission and strict source-free consumers of their roots, Compositions, init, update and views without application annotations.
+- [x] Migrate ordinary parent input aliases to InMessage receive plans. Retain the documented positional, generic and defaulted operation adapters where they express useful public contracts.
+- [x] Summarize the implemented API, verified coverage and deliberate historical exceptions in the adoption report. Do not publish without approval.
+- [x] Repair the per-render Html builder identity regression found by the unchanged rendering workload. Preserve cached lazy work and isolation between acquired implementations, with failing mutation controls.
+- [x] Repair the independent commit review's exact-Definition completion and generic-family input-validation findings. Verify foreign-plan refusal, constructor cleanup and source/emitted rejected configurations.
+- [x] Complete independent review of the amended exact source commit before any push or integration. `fd4f03253faa782eaa7f45d043127e3bf21ad572` passes after the constructor snapshot follow-through.
+- [x] Record the final quiet rendering batch against actual main. Preserve all 96 samples across three batches and report the remaining whole-preview gap and bundle cost: +14.6% naive, +32.6% optimized, about 40 KB gzip.
+- [ ] Obtain fresh authorized Daybreak review of this candidate and resolve or explicitly assess the inherited dependency advisories before release approval.
+
+Actual Workspace, Job Application and Website whole projects now emit, including their intermediate authoring exports. Strict relocated consumers pass with zero reads from original application or framework source, and copied contract-erasure controls fail as expected. [Adoption scope and evidence](layered-constructor/ADOPTION.md).
+
+The work is committed locally. Independent review passes after the candidate-only validation and constructor snapshot corrections. Final report changes also require exact-commit review. The remaining rendering/bundle costs and dependency advisories are explicit release-review items, not approved deferrals. [Local security review and its limits](layered-constructor/final-security-review.md). No push or publication is authorized by this preparation.

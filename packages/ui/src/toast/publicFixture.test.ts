@@ -1,12 +1,11 @@
-import { Array, Option, Schema } from 'effect'
+import { Array, Effect, Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
-import { expect } from 'vitest'
+import { it as baseIt, expect } from 'vitest'
 
-import { describe, it } from '@effect/vitest'
+import { describe } from '@effect/vitest'
 
 import * as Toast from './index.js'
 
@@ -30,11 +29,15 @@ const ParentMessage = defineMessageUnion({
 })
 type ParentMessage = typeof ParentMessage.Type
 
+const ToastFixtureParentKey = Symbol('ToastFixtureParent')
 const ToastFixtureParentDefinition = Block.makeDefinition(
   'ToastFixtureParent',
   {
+    key: ToastFixtureParentKey,
     Model: ParentModel,
     Message: ParentMessage,
+    Init: Schema.Tuple([]),
+    ChildInitContext: Schema.String,
   },
 )
 
@@ -50,22 +53,22 @@ const foldSecondToastOutMessage =
 
 const LeftToastBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
   placement: 'LeftToast',
-  read: model => Option.some(model.left),
-  write: (model, left) => ({ ...model, left }),
+  field: 'left',
+  init: { contextToArgs: id => [{ id }] },
 }).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
 const RightToastBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
   placement: 'RightToast',
-  read: model => Option.some(model.right),
-  write: (model, right) => ({ ...model, right }),
+  field: 'right',
+  init: { contextToArgs: id => [{ id }] },
 }).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
 const OtherToastBinding = ToastFixtureParentDefinition.makeBinding(
   SecondToast,
   {
     placement: 'OtherToast',
-    read: model => Option.some(model.other),
-    write: (model, other) => ({ ...model, other }),
+    field: 'other',
+    init: { contextToArgs: id => [{ id }] },
   },
 ).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
 
@@ -93,11 +96,19 @@ const update = ToastFixtureParentComposition.makeUpdate({
   RequestedShowAll: model => requestShowAll(model),
 })
 
-const initialModel: ParentModel = {
-  left: FirstToast.init({ id: 'toast' }).model,
-  right: FirstToast.init({ id: 'toast' }).model,
-  other: SecondToast.init({ id: 'toast' }).model,
-}
+const parentInit = ToastFixtureParentComposition.makeInit(() => ({
+  model: {},
+  childInitContext: 'toast',
+}))
+const ParentBlock = ToastFixtureParentDefinition.makeBlock(
+  Effect.gen(function* () {
+    const left = yield* LeftToastBinding
+    const right = yield* RightToastBinding
+    const other = yield* OtherToastBinding
+
+    return { children: [left, right, other], init: parentInit, update }
+  }),
+).provide(Toast.layer)
 
 const KeyedToastSlot = Schema.Struct({
   key: Schema.String,
@@ -110,11 +121,15 @@ const KeyedParentModel = Schema.Struct({
 type KeyedParentModel = typeof KeyedParentModel.Type
 const KeyedParentMessage = defineMessageUnion({ RequestedShow: {} })
 type KeyedParentMessage = typeof KeyedParentMessage.Type
+const KeyedToastFixtureParentKey = Symbol('KeyedToastFixtureParent')
 const KeyedToastFixtureParentDefinition = Block.makeDefinition(
   'KeyedToastFixtureParent',
   {
+    key: KeyedToastFixtureParentKey,
     Model: KeyedParentModel,
     Message: KeyedParentMessage,
+    Init: Schema.Tuple([]),
+    ChildInitContext: Schema.String,
   },
 )
 const foldKeyedToastOutMessage =
@@ -125,16 +140,13 @@ const KeyedToastBinding = KeyedToastFixtureParentDefinition.makeBinding(
   FirstToast,
   {
     placement: 'KeyedToast',
-    readAll: model => model.slots,
-    key: slot => slot.key,
-    keySchema: Schema.String,
-    read: slot => slot.toast,
-    writeAt: (model, key, toast) =>
-      modifyFields(model, {
-        slots: Array.map(slot =>
-          slot.key === key ? KeyedToastSlot.make({ key, toast }) : slot,
-        ),
-      }),
+    field: 'slots',
+    key: 'key',
+    childField: 'toast',
+    init: {
+      instances: id => [{ key: 'selected', args: [{ id }] }],
+      toItem: ({ key }, toast) => ({ key, toast }),
+    },
   },
 ).withOutMessagePolicy({
   fold: (_key, outMessage) => foldKeyedToastOutMessage(outMessage),
@@ -162,17 +174,48 @@ const keyedUpdate = KeyedToastFixtureParentComposition.makeUpdate({
       duration: 100,
     })(model),
 })
-const keyedInitialModel: KeyedParentModel = {
-  slots: [
-    KeyedToastSlot.make({
-      key: 'selected',
-      toast: FirstToast.init({ id: 'toast' }).model,
-    }),
-  ],
-}
+const keyedInit = KeyedToastFixtureParentComposition.makeInit(() => ({
+  model: {},
+  childInitContext: 'toast',
+}))
+const KeyedParentBlock = KeyedToastFixtureParentDefinition.makeBlock(
+  Effect.gen(function* () {
+    const toast = yield* KeyedToastBinding
+
+    return { children: [toast], init: keyedInit, update: keyedUpdate }
+  }),
+).provide(Toast.layer)
+
+const makeParentFixture = (block: Story.TestBlock<typeof ParentBlock>) => ({
+  update: block.update,
+  initialModel: block.init().model,
+})
+const makeKeyedFixture = (block: Story.TestBlock<typeof KeyedParentBlock>) => ({
+  keyedUpdate: block.update,
+  keyedInitialModel: block.init().model,
+})
+const it = baseIt.extend<{
+  parent: ReturnType<typeof makeParentFixture>
+  keyedParent: ReturnType<typeof makeKeyedFixture>
+}>({
+  parent: async ({}, use) =>
+    Effect.runPromise(
+      Story.withBlock(ParentBlock, block =>
+        Effect.promise(() => use(makeParentFixture(block))),
+      ),
+    ),
+  keyedParent: async ({}, use) =>
+    Effect.runPromise(
+      Story.withBlock(KeyedParentBlock, block =>
+        Effect.promise(() => use(makeKeyedFixture(block))),
+      ),
+    ),
+})
 
 describe('Toast.test.drainEntry', () => {
-  it('selects an exact completed Toast Binding across repeated placements and factories', () => {
+  it('selects an exact completed Toast Binding across repeated placements and factories', ({
+    parent: { update, initialModel },
+  }) => {
     Story.story(
       update,
       Story.given(initialModel),
@@ -202,7 +245,9 @@ describe('Toast.test.drainEntry', () => {
     )
   })
 
-  it('does not select a stale timer version', () => {
+  it('does not select a stale timer version', ({
+    parent: { update, initialModel },
+  }) => {
     expect(() =>
       Story.story(
         update,
@@ -217,7 +262,9 @@ describe('Toast.test.drainEntry', () => {
     ).toThrow('could not find the fresh auto-dismiss timer')
   })
 
-  it('requires and selects a keyed Toast Binding occurrence', () => {
+  it('requires and selects a keyed Toast Binding occurrence', ({
+    keyedParent: { keyedUpdate, keyedInitialModel },
+  }) => {
     Story.story(
       keyedUpdate,
       Story.given(keyedInitialModel),
@@ -227,7 +274,7 @@ describe('Toast.test.drainEntry', () => {
         key: 'selected',
         entryId: 'toast-entry-0',
       }),
-      Story.model(model => {
+      Story.model((model: KeyedParentModel) => {
         expect(model.slots).toHaveLength(1)
         expect(
           Option.getOrThrow(Array.head(model.slots)).toast.entries,
@@ -237,7 +284,9 @@ describe('Toast.test.drainEntry', () => {
     )
   })
 
-  it('rejects a removed entry fixture even when its timer is pending', () => {
+  it('rejects a removed entry fixture even when its timer is pending', ({
+    keyedParent: { keyedUpdate, keyedInitialModel },
+  }) => {
     expect(() =>
       Story.story(
         keyedUpdate,

@@ -1,1 +1,1 @@
-export { FocusTab } from './tabs.js'
+export { FocusTab } from './command.js'

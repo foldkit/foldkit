@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Schema, Tuple } from 'effect'
+import { Array, Effect, Layer, Option, Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -45,9 +45,14 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const MessageListExampleKey = Symbol('MessageListExample')
+
 const MessageListExampleDefinition = Block.makeDefinition(
   'MessageListExample',
   {
+    key: MessageListExampleKey,
+    Init: Schema.Tuple([Schema.Array(ChatMessage)]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },
@@ -128,11 +133,9 @@ const MessageListExampleComposition =
   MessageListExampleDefinition.makeComposition({
     bindings: [MessageListBinding],
   })
-const init = MessageListExampleComposition.makeInit(
-  (initialMessages: ReadonlyArray<ChatMessage>) => ({
-    model: { messages: initialMessages, historyLoad: HistoryLoad.Idle() },
-  }),
-)
+const init = MessageListExampleComposition.makeInit(initialMessages => ({
+  model: { messages: initialMessages, historyLoad: HistoryLoad.Idle() },
+}))
 const update = MessageListExampleComposition.makeUpdate({
   ReceivedMessage: (model, { message }) => {
     const nextMessages = Array.append(model.messages, message)
@@ -208,14 +211,18 @@ const view = MessageListExampleComposition.makeView((model, h) =>
   ),
 )
 
-const prepare = () =>
-  MessageListExampleComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer: FetchHistory.layer,
-  })
-export const MessageListExampleBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const MessageListExampleBlock = MessageListExampleDefinition.contract
+
+export const layer = MessageListExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const messageList = yield* MessageListBinding
+
+    return {
+      children: [messageList],
+      init,
+      update,
+      view,
+      EffectsLayer: FetchHistory.layer,
+    }
+  }),
+).provide(VirtualList.layer).layer

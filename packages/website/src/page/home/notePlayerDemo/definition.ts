@@ -68,7 +68,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 export type CompletedPlayNote = typeof Message.CompletedPlayNote.Type
+export const NotePlayerDemoKey = Symbol('NotePlayerDemo')
+
 export const NotePlayerDemoDefinition = Block.makeDefinition('NotePlayerDemo', {
+  key: NotePlayerDemoKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })

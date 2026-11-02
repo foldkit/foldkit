@@ -12,7 +12,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedConfirmDeletion: {} })
 type Message = typeof Message.Type
 
+const DeleteIssueKey = Symbol('DeleteIssue')
+
 const DeleteIssueDefinition = Block.makeDefinition('DeleteIssue', {
+  key: DeleteIssueKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })

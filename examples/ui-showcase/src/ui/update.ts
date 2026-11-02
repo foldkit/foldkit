@@ -4,7 +4,6 @@ import {
   AnimationDemoBinding,
   DialogAnimatedDemoBinding,
   DialogDemoBinding,
-  MobileMenuDialogBinding,
   NestedDialogChildDemoBinding,
   NestedDialogParentDemoBinding,
   OverlayDialogDemoBinding,
@@ -17,10 +16,6 @@ import { makeFieldsStep } from './definition'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './virtualList'
 
 export const update = UiComposition.makeUpdate({
-  RequestedOpenMobileMenu: MobileMenuDialogBinding.requestOpen(),
-
-  RequestedCloseMobileMenu: MobileMenuDialogBinding.requestClose(),
-
   UpdatedInputDemoValue: makeFieldsStep.fromMessage(({ value }) => ({
     inputDemoValue: () => value,
   })),

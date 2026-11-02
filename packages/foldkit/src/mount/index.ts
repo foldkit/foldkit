@@ -436,8 +436,9 @@ const wrapEffectAsStream =
  * `handler` is a generator function that constructs the handler. Foldkit
  * applies `Effect.gen` to the generator. Include the Definition in the owning
  * Block's `makeComposition({ mounts: [...] })` call and include its `layer`
- * recipe in the local Effects Layer passed to `prepareBlock`. The returned
- * handler receives the live `Element` as `element` and the runtime's
+ * recipe in the local `EffectsLayer` returned by the `Definition.makeBlock`
+ * constructor. The returned handler receives the live `Element` as `element`
+ * and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns an
  * `Effect<Message>` that runs once when the element mounts.
  * The completed Block carries the recipe without building it; a Runtime builds
@@ -445,8 +446,9 @@ const wrapEffectAsStream =
  * acquisition and release.
  *
  * Omit `handler` to declare a host contract. A host contract has no
- * `layer`; use its `toLayer` method to supply an implementation at the
- * application boundary or in a test.
+ * `layer`; use its `toLayer` method to supply an implementation. Include the
+ * selected provider in the Block constructor's `EffectsLayer`, or supply it
+ * through a native host or test boundary.
  *
  * `args` is optional. Omit it and the Definition is callable as `Definition()`;
  * declare it and the Definition is callable as `Definition(args)`. The handler
@@ -746,10 +748,10 @@ export function define<
  * constructs a Stream handler. Foldkit applies `Effect.gen` to the generator.
  * Include the Definition in the owning Block's
  * `makeComposition({ mounts: [...] })` call and include its `layer` recipe in the
- * local Effects Layer passed to `prepareBlock`. The completed Block carries the
- * recipe without building it; a Runtime builds it once for the application.
- * The returned handler receives the
- * live `Element` as `element` and the runtime's
+ * local `EffectsLayer` returned by the `Definition.makeBlock` constructor. The
+ * completed Block carries the recipe without building it; a Runtime builds it
+ * once for the application. The returned handler receives the live `Element`
+ * as `element` and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns a
  * `Stream<Message>` whose lifetime is bound to the element's lifetime: each
  * emitted Message is dispatched, and the Stream's scope is closed (running any
@@ -758,8 +760,9 @@ export function define<
  * listeners attached to the element.
  *
  * Omit `handler` to declare a host contract. A host contract has no
- * `layer`; use its `toLayer` method to supply an implementation at the
- * application boundary or in a test.
+ * `layer`; use its `toLayer` method to supply an implementation. Include the
+ * selected provider in the Block constructor's `EffectsLayer`, or supply it
+ * through a native host or test boundary.
  *
  * `args` is optional. Omit it and the Definition is callable as `Definition()`;
  * declare it and the Definition is callable as `Definition(args)`. The handler

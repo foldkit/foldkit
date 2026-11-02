@@ -73,10 +73,10 @@ const foldEndDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   },
 )
 
-const StartDatePickerBindingWithOutMessagePolicy =
+export const StartDatePickerBindingWithOutMessagePolicy =
   StartDatePickerBinding.withOutMessagePolicy({ fold: foldStartDateOutMessage })
 
-const EndDatePickerBindingWithOutMessagePolicy =
+export const EndDatePickerBindingWithOutMessagePolicy =
   EndDatePickerBinding.withOutMessagePolicy({ fold: foldEndDateOutMessage })
 
 export const WorkHistoryEntryComposition =

@@ -43,15 +43,17 @@ const managedResources = CameraDefinition.makeManagedResources(entry => ({
   ),
 }))
 
-const prepare = () =>
-  CameraComposition.prepareBlock({
-    init,
-    update,
-    view,
-    managedResources,
-    EffectsLayer: Layer.mergeAll(TakePhoto.layer, managedResources.layer),
-  })
-export const CameraBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const CameraBlock = CameraDefinition.contract
+
+export const layer = CameraDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      managedResources,
+      EffectsLayer: Layer.mergeAll(TakePhoto.layer, managedResources.layer),
+    }
+  }),
+).layer

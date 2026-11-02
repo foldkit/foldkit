@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -18,7 +15,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const TooltipExampleKey = Symbol('TooltipExample')
+
 const TooltipExampleDefinition = Block.makeDefinition('TooltipExample', {
+  key: TooltipExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -44,9 +46,8 @@ const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs Tooltip.TooltipBlock.update,
-// writes the next Tooltip Model back, routes generated delivery and Command
-// results, and hands any OutMessage to the OutMessage fold.
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
 const TooltipBinding = TooltipExampleDefinition.makeBinding(
   Tooltip.TooltipBlock,
   {
@@ -111,3 +112,10 @@ const view = TooltipExampleComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = TooltipExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const tooltip = yield* TooltipBinding
+    return { children: [tooltip], init, update, view }
+  }),
+).provide(Tooltip.layer)

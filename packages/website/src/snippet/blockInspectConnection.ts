@@ -1,15 +1,14 @@
-import { Block } from 'foldkit'
+import { SettingsBlock } from './blockDefinition'
+import { SettingsBinding } from './blockProfile'
 
-import { ApplicationDefinition } from './definition'
-import { Room } from './page'
+export const SettingsModel = SettingsBlock.Model
+export type SettingsModel = typeof SettingsModel.Type
 
-const RoomBinding = ApplicationDefinition.makeBinding(Room.RoomBlock, {
-  field: 'room',
-})
+export const SettingsMessage = SettingsBlock.Message
+export type SettingsMessage = typeof SettingsMessage.Type
 
-const roomInspection = Block.inspectBinding(RoomBinding)
+export const SettingsOutMessage = SettingsBlock.OutMessage
+export type SettingsOutMessage = typeof SettingsOutMessage.Type
 
-export const roomSubscriptions = roomInspection.subscriptions
-export const roomManagedResources = roomInspection.managedResources
-export const roomMounts = roomInspection.mounts
-export const RoomEffectsLayer = roomInspection.EffectsLayer
+export const resetSettings = SettingsBinding.requestReset()
+export const requestThemeChange = SettingsBinding.requestThemeChange

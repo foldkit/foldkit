@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit each into your own Model, init, Message,
-// update, subscriptions, and view definitions.
-import { Array, Schema, Tuple } from 'effect'
+import { Array, Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -26,7 +23,12 @@ declare const reorder: (
   toIndex: number,
 ) => Model['items']
 
+const SortableListKey = Symbol('SortableList')
+
 const SortableListDefinition = Block.makeDefinition('SortableList', {
+  key: SortableListKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -55,8 +57,7 @@ const foldDragAndDropOutMessage = SortableListDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding delegates the child update, writes the next DragAndDrop Model,
-// routes generated delivery, handles OutMessages, and collects Subscriptions.
+// The Binding retains the child contract; construction supplies its implementation.
 const DragAndDropBinding = SortableListDefinition.makeBinding(
   DragAndDrop.DragAndDropBlock,
   {
@@ -118,3 +119,10 @@ const view = SortableListComposition.makeView((model, h) =>
     }),
   ),
 )
+
+export const ApplicationBlock = SortableListDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dragAndDrop = yield* DragAndDropBinding
+    return { children: [dragAndDrop], init, update, view }
+  }),
+).provide(DragAndDrop.layer)

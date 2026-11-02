@@ -12,9 +12,9 @@ Embedded apps are usually built with `Program.makeElement`: the root Block view 
 
 ## Providing Host Implementations
 
-An embedded feature can declare a Command whose implementation belongs to its host. For example, an editor can request `SaveDocument` while the host supplies the persistence handler through `SaveDocument.toLayer`. The handler returns the editor's declared result Messages, which its update handles through the usual data flow.
+An embedded feature can own a Command's workflow while its host supplies the external capability. For example, an editor can define `SaveDocument` against an `EditorStorage` Service. Its attached handler maps the storage result to the editor's declared Messages, and update handles those results through the usual data flow.
 
-Declare the handler contract in the feature’s `hostHandlers` and supply it through `block.provideHandlers` before composition. Supply its ordinary service dependencies through `program.provide(layer)` before calling `Runtime.embed`. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows the feature contract and a browser-storage host. When the feature owns the handler's workflow, include its attached `.layer` in its local `EffectsLayer` and choose the underlying services at the host boundary.
+Include the attached handler's `.layer` in the feature's `EffectsLayer`. Supply the host's `EditorStorage` implementation through `program.provide(layer)` before calling `Runtime.embed`. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows the feature and a browser-storage host. The same feature can run against a document API or a controlled storage Service in an execution test.
 
 ## Declaring Ports
 
@@ -36,7 +36,7 @@ Data the host pushes while the app runs arrives on an inbound Port, which the ap
 
 ::Snippet{name="embeddingInboundSubscription" label="Inbound Subscription"}
 
-The Subscription module exports its registry. Pass `EffectsLayer: subscriptions.layer` to the widget's Block assembly, or compose the registry Layer with other local handler recipes in `EffectsLayer`.
+The Subscription module exports its registry. Return `EffectsLayer: subscriptions.layer` from the widget's Block constructor, or compose the registry Layer with other local handler recipes in `EffectsLayer`.
 
 Values sent while no Stream for the Port is running are dropped, with one exception: values sent before the first Stream attaches are buffered and delivered to it in order, so sends issued right after `embed` are not lost during startup.
 
@@ -46,7 +46,7 @@ Values the app announces to the host leave through an outbound Port, written fro
 
 ::Snippet{name="embeddingOutboundCommand" label="Outbound Command"}
 
-The feature Definition’s `makeStep` infers the helper's Command handler requirement. Include `ReportCount.layer` in the local `EffectsLayer` passed to `FeatureComposition.prepareBlock`; `Block.assemble` carries that bundle from the opaque draft onto the completed Block and into the Element.
+The feature Definition’s `makeStep` retains the helper’s Command requirements. Return `EffectsLayer: ReportCount.layer` from `FeatureDefinition.makeBlock`. The Element host acquires that implementation and its child graph under the host lifetime.
 
 When the program runs without an embed handle (started with `Runtime.run`), emitting is a no-op, so the same app works embedded and standalone.
 

@@ -1,5 +1,7 @@
 export {
+  InMessage,
   makeBlock,
+  layer,
   buttonId,
   ActivationTrigger,
   groupContiguous,
@@ -10,3 +12,5 @@ export {
   type GroupHeading,
   type Completed,
 } from './menu.js'
+
+export type { MenuKey } from './menu.js'

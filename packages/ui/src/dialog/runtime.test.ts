@@ -1,5 +1,5 @@
 import { Array, Effect, Fiber, Schema } from 'effect'
-import { Block, Program } from 'foldkit'
+import { Block, Program, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,12 +11,16 @@ const DialogEvent = Schema.Literals(['Opened', 'Closed'])
 type DialogEvent = typeof DialogEvent.Type
 
 const Model = Schema.Struct({
-  dialog: Dialog.Model,
+  dialog: Dialog.DialogBlock.Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
 type Model = typeof Model.Type
 
+const ApplicationKey = Symbol('DialogRuntimeApplication')
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message: Schema.Never,
 })
@@ -89,24 +93,28 @@ const preservedModel = (dialogModel: Dialog.Model): Model => ({
   dialogEvents: [],
 })
 
-const preservedOpenModel = (config: Dialog.InitConfig): Dialog.Model =>
-  Dialog.update(Dialog.init(config).model, Dialog.Message.RequestedOpen()).model
+const preservedOpenModel = (config: Dialog.InitConfig) =>
+  Story.withBlock(
+    Dialog.DialogBlock,
+    dialog =>
+      dialog.receive(
+        dialog.init(config).model,
+        Dialog.InMessage.RequestedOpen(),
+      ).model,
+  ).pipe(Effect.provide(Dialog.layer))
 
-const makeDialogProgram = (container: HTMLElement) => {
-  const prepare = () =>
-    ApplicationComposition.prepareBlock({
-      init,
-      update,
-      view,
-    })
-  const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
-    Block.assemble(prepare)
+const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+    return { children: [dialog], init, update, view }
+  }),
+).provide(Dialog.layer)
 
-  return Program.makeElement({
-    block,
+const makeDialogProgram = (container: HTMLElement) =>
+  Program.makeElement({
+    block: ApplicationBlock,
     container,
   })
-}
 
 describe('Dialog runtime lifecycle', () => {
   beforeEach(() => {
@@ -133,7 +141,11 @@ describe('Dialog runtime lifecycle', () => {
     const program = makeDialogProgram(container)
     const encodedOpenModel = Schema.encodeUnknownSync(
       Schema.toCodecJson(Model),
-    )(preservedModel(preservedOpenModel({ id: dialogId })))
+    )(
+      preservedModel(
+        await Effect.runPromise(preservedOpenModel({ id: dialogId })),
+      ),
+    )
     const freshRuntime = Effect.runFork(program.start())
     let restoredRuntime: Fiber.Fiber<void, never> | undefined
 
@@ -191,7 +203,13 @@ describe('Dialog runtime lifecycle', () => {
     const program = makeDialogProgram(container)
     const encodedEnteringModel = Schema.encodeUnknownSync(
       Schema.toCodecJson(Model),
-    )(preservedModel(preservedOpenModel({ id: dialogId, isAnimated: true })))
+    )(
+      preservedModel(
+        await Effect.runPromise(
+          preservedOpenModel({ id: dialogId, isAnimated: true }),
+        ),
+      ),
+    )
     const runtime = Effect.runFork(program.start(encodedEnteringModel))
 
     try {
@@ -224,9 +242,13 @@ describe('Dialog runtime lifecycle', () => {
     trigger.focus()
 
     const program = makeDialogProgram(container)
-    const dialogClose = Dialog.update(
+    const openModel = await Effect.runPromise(
       preservedOpenModel({ id: dialogId, isAnimated: true }),
-      Dialog.Message.RequestedClose(),
+    )
+    const dialogClose = await Effect.runPromise(
+      Story.withBlock(Dialog.DialogBlock, dialog =>
+        dialog.receive(openModel, Dialog.InMessage.RequestedClose()),
+      ).pipe(Effect.provide(Dialog.layer)),
     )
     const leavingModel = modifyFields(dialogClose.model, {
       animation: animation =>

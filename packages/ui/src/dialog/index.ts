@@ -1,5 +1,7 @@
 export {
+  InMessage,
   DialogBlock,
+  layer,
   titleId,
   descriptionId,
   initialFocusMarkerAttribute,
@@ -8,3 +10,5 @@ export {
   type ViewInputs,
   type RenderInfo,
 } from './block.js'
+
+export type { DialogKey } from './block.js'

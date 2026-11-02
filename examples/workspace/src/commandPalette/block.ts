@@ -1,28 +1,32 @@
-import { Layer } from 'effect'
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
+
+import * as Dialog from '@foldkit/ui/dialog'
 
 import { ScrollActiveResult } from './command'
-import { CommandPaletteComposition } from './composition'
+import { DialogBinding } from './composition'
+import { CommandPaletteDefinition } from './definition'
 import { init } from './init'
-import { Message } from './message'
-import type { Model } from './model'
+import { receive } from './receive'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  CommandPaletteComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer: Layer.mergeAll(subscriptions.layer, ScrollActiveResult.layer),
-    operations: {
-      requestOpen: Message.RequestedOpen,
-      requestClose: Message.RequestedClose,
-    },
-  })
-export const CommandPaletteBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const CommandPaletteImplementation = CommandPaletteDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+    return {
+      children: [dialog],
+      init,
+      update,
+      receive,
+      view,
+      subscriptions,
+      EffectsLayer: Layer.mergeAll(
+        subscriptions.layer,
+        ScrollActiveResult.layer,
+      ),
+    }
+  }),
+).provide(Dialog.layer)
+
+export const layer = CommandPaletteImplementation.layer

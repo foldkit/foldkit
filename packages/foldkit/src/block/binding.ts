@@ -17,10 +17,21 @@ import type {
 import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
 import {
+  type OperationEnvironment,
   makeResultRecipe,
   resolveOperationOutput,
 } from '../update/operationRecipe.js'
 import type { CompletionProof } from './assemblyState.js'
+import {
+  ConnectBindingTypeId,
+  type ConstructedChild,
+  type ExecutableBinding,
+  executeBindingOperation,
+  executeRegisteredBindingOperation,
+  makeConnection,
+  registerBindingOperation,
+  registerBindingViewRecipe,
+} from './bindingConnection.js'
 import {
   assertInitializedParentModel,
   registerBinding,
@@ -41,11 +52,17 @@ import type { DirectConnection } from './directConnection.js'
 import {
   type DefinitionIdentity,
   LocalMountsTypeId,
+  type PublicMountRequirementsTypeId,
   ViewScopeTypeId,
   copyIdentity,
   hostIdentitiesOf,
 } from './identity.js'
-import { type BindingInitRecipe, makeBindingInitRecipe } from './initRecipe.js'
+import {
+  type BindingInitRecipe,
+  isBindingInitRecipe,
+  makeBindingInitRecipe,
+  runBindingInitRecipe,
+} from './initRecipe.js'
 import type { InstanceFrame } from './instanceContext.js'
 import type { IsSilentOperation } from './operationEmission.js'
 import {
@@ -58,6 +75,7 @@ import type { Owner } from './owner.js'
 import type { BindingPolicyEvidence } from './policyEvidence.js'
 import type {
   HandlerEvidenceOfBlock,
+  SubscriptionRequirementsEvidence,
   ValidateConcreteComposition,
 } from './requirements.js'
 import {
@@ -71,6 +89,7 @@ import {
   qualifyLayer,
   qualifyStream,
 } from './scope.js'
+import { resolveEmbeddedView } from './viewScope.js'
 
 export type { LocalMountsTypeId } from './definition.js'
 
@@ -985,13 +1004,24 @@ export type Binding<
               layer: infer EntryLayer
             }>
               ? Readonly<{ layer: EntryLayer }>
+              : unknown) &
+            (BlockValue['subscriptions'][Key] extends SubscriptionRequirementsEvidence<
+              infer Requirements
+            >
+              ? SubscriptionRequirementsEvidence<
+                  Qualify<Placement, Requirements>
+                >
               : unknown)
         : never
     },
     {
       readonly [
-        Key in keyof BlockValue['managedResources']
-      ]: BlockValue['managedResources'][Key] extends ManagedResource.Entry<
+        Key in keyof ManagedResource.RegistryEntries<
+          BlockValue['managedResources']
+        >
+      ]: ManagedResource.RegistryEntries<
+        BlockValue['managedResources']
+      >[Key] extends ManagedResource.Entry<
         any,
         any,
         infer Requirements,
@@ -1011,13 +1041,17 @@ export type Binding<
             Qualify<Placement, LifecycleServices>,
             Params
           > &
-            (BlockValue['managedResources'][Key] extends Readonly<{
+            (ManagedResource.RegistryEntries<
+              BlockValue['managedResources']
+            >[Key] extends Readonly<{
               name: infer Name
               toLayer: infer ToLayer
             }>
               ? Readonly<{ name: Name; toLayer: ToLayer }>
               : unknown) &
-            (BlockValue['managedResources'][Key] extends Readonly<{
+            (ManagedResource.RegistryEntries<
+              BlockValue['managedResources']
+            >[Key] extends Readonly<{
               layer: infer EntryLayer
             }>
               ? Readonly<{ layer: EntryLayer }>
@@ -1035,6 +1069,7 @@ export type Binding<
 > &
   BindingDeliveryEvidence<OutgoingMessage, IncomingMessage, GeneratedSchema> &
   BindingPolicyEvidence<Policy> &
+  ExecutableBinding<BlockValue, Placement> &
   Readonly<{
     /** The stable identity of this Binding in the parent's composition graph. It
      * is independent of DOM position and child presence. */
@@ -1316,7 +1351,11 @@ export type BindingRequirement<
           mountRequirements: () => BlockValue extends Readonly<{
             owner: unknown
           }>
-            ? MountRequirementsOf<Mounts>
+            ? BlockValue extends Readonly<{
+                [PublicMountRequirementsTypeId]: infer Requirements
+              }>
+              ? Requirements
+              : MountRequirementsOf<Mounts>
             : AnyMountHandler
         }>
       : never
@@ -1513,12 +1552,18 @@ const makeFold = (
   producer: AnyProducer,
   config: RuntimeBindingConfig,
   frame: InstanceFrame,
+  operationName = 'fold',
 ): AnyFunction => {
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const makeChildFold = Update.foldChild as unknown as (
     childFold: ReturnType<typeof toChildFold>,
   ) => AnyFunction
-  const execute = (model: any, args: ReadonlyArray<any>) => {
+  const execute = (
+    model: any,
+    args: ReadonlyArray<any>,
+    environment?: OperationEnvironment,
+  ) => {
+    assertRegisteredBinding(frame.binding, config.placement)
     const contextualConfig =
       config.outMessage?.fold === undefined
         ? config
@@ -1538,6 +1583,7 @@ const makeFold = (
                   resolveOperationOutput(
                     policyStep(modelWithChild),
                     modelWithChild,
+                    environment,
                   )
               },
             },
@@ -1545,24 +1591,48 @@ const makeFold = (
     return makeChildFold(toChildFold(producer, contextualConfig))(model, args)
   }
 
-  return (model: any, ...args: ReadonlyArray<any>) =>
+  const fold = (model: any, ...args: ReadonlyArray<any>) =>
     isRegisteredBinding(frame.binding)
       ? execute(model, args)
-      : makeResultRecipe(activeModel => {
+      : makeResultRecipe((activeModel, environment) => {
+          const connection = environment?.get(frame.binding)
+
+          if (connection !== undefined) {
+            return executeBindingOperation(
+              connection,
+              operationName,
+              activeModel,
+              args,
+              environment,
+            )
+          }
+
           assertRegisteredBinding(frame.binding, config.placement)
-          return execute(activeModel, args)
+          return execute(activeModel, args, environment)
         })
+
+  registerBindingOperation(fold, execute)
+
+  return fold
 }
 
 const makeBoundOperation = (
   producer: AnyProducer,
   config: RuntimeBindingConfig,
   frame: InstanceFrame,
+  name: string,
 ): AnyFunction => {
-  const fold = makeFold(producer, config, frame)
-  return (...args: ReadonlyArray<any>) =>
+  const fold = makeFold(producer, config, frame, name)
+  const operation =
+    (...args: ReadonlyArray<any>) =>
     (model: any) =>
       fold(model, ...args)
+
+  registerBindingOperation(operation, (model, args, environment) =>
+    executeRegisteredBindingOperation(fold, model, args, environment),
+  )
+
+  return operation
 }
 
 const makeBoundOperations = (
@@ -1576,7 +1646,7 @@ const makeBoundOperations = (
 
   for (const [name, operation] of Object.entries(operations)) {
     Object.defineProperty(boundOperations, name, {
-      value: makeBoundOperation(operation, config, frame),
+      value: makeBoundOperation(operation, config, frame, name),
       enumerable: true,
     })
   }
@@ -1687,11 +1757,14 @@ const bindRuntime = <
   ): BoundBlockConfig<
     BoundBlockView<View, BindingRequirement<Placement, BlockValue>>,
     ParentMessage
-  > =>
+  > => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    ({
+    const embedded = {
       ...embedConfig,
-      view: embedConfig.view ?? defaultViewOf(block),
+      view: resolveEmbeddedView(
+        block,
+        embedConfig.view ?? defaultViewOf(block),
+      ),
       [ViewScopeTypeId]: {
         placement,
         binding,
@@ -1702,10 +1775,15 @@ const bindRuntime = <
         },
       },
       toParentMessage: config.toParentMessage,
-    }) as unknown as BoundBlockConfig<
+    } as unknown as BoundBlockConfig<
       BoundBlockView<View, BindingRequirement<Placement, BlockValue>>,
       ParentMessage
     >
+
+    registerBindingViewRecipe(embedded, binding, embedConfig)
+
+    return embedded
+  }
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const boundOperations = makeBoundOperations(
@@ -1741,13 +1819,41 @@ const bindRuntime = <
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const binding = {
     placement,
+    [ConnectBindingTypeId](
+      this: Readonly<{ placement: Placement }>,
+      child: ConstructedChild<BlockValue, Placement>,
+    ) {
+      return makeConnection(this, child)
+    },
     init: (initial: unknown) => {
       assertBindingInitConfig(initial, placement)
       const { toParentModel } = initial
       const args = [...initial.args]
       const commands = [...(initial.commands ?? [])]
 
-      return makeBindingInitRecipe(binding, () => {
+      return makeBindingInitRecipe(binding, environment => {
+        const connection = environment?.get(binding)
+
+        if (connection !== undefined && connection !== binding) {
+          const initialize = Reflect.get(connection, 'init')
+
+          if (!Predicate.isFunction(initialize)) {
+            throw new Error('[foldkit] Connected Binding init is unavailable.')
+          }
+
+          const initialized = Reflect.apply(initialize, connection, [
+            { args, commands, toParentModel },
+          ])
+
+          if (!isBindingInitRecipe(initialized)) {
+            throw new Error(
+              '[foldkit] Connected Binding init must produce an initialization recipe.',
+            )
+          }
+
+          return runBindingInitRecipe(initialized, environment)
+        }
+
         const childInit = initChild(...args)
         const isChildModel = Reflect.apply(Schema.is, undefined, [block.Model])
         const equivalentChildModel = Reflect.apply(

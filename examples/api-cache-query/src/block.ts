@@ -1,21 +1,32 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { ApplicationComposition } from './composition'
+import {
+  PostDetailsBinding,
+  PostsBinding,
+  StatsBinding,
+  TabsBinding,
+} from './composition'
+import { ApplicationDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
+import { EffectsLayer } from './layer'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer: subscriptions.layer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const tabs = yield* TabsBinding
+    const posts = yield* PostsBinding
+    const stats = yield* StatsBinding
+    const postDetails = yield* PostDetailsBinding
+
+    return {
+      children: [tabs, posts, stats, postDetails],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
+  }),
+)

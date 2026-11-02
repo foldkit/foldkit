@@ -1,4 +1,4 @@
-import { Number, Schema } from 'effect'
+import { Effect, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -6,21 +6,35 @@ import { modifyFields } from 'foldkit/struct'
 const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 
-const Message = defineMessageUnion({ ClickedIncrement: {}, RequestedReset: {} })
+const Message = defineMessageUnion({ ClickedIncrement: {} })
 type Message = typeof Message.Type
 
-const CounterComposition = Block.makeDefinition('Counter', {
+const InMessage = defineMessageUnion({ RequestedReset: {} })
+type InMessage = typeof InMessage.Type
+
+const CounterKey = Symbol('Counter')
+
+const CounterDefinition = Block.makeDefinition('Counter', {
+  key: CounterKey,
+  Init: Schema.Tuple([Schema.Number]),
+  view: { kind: 'Element' },
+  InMessage,
+
   Model,
   Message,
-}).makeComposition()
+})
 
-const init = CounterComposition.makeInit((initialCount: number) => ({
+const CounterComposition = CounterDefinition.makeComposition()
+
+const init = CounterComposition.makeInit(initialCount => ({
   model: { count: initialCount },
 }))
 const update = CounterComposition.makeUpdate({
   ClickedIncrement: model => ({
     model: modifyFields(model, { count: Number.increment }),
   }),
+})
+const receive = CounterComposition.makeReceive({
   RequestedReset: model => ({
     model: modifyFields(model, { count: () => 0 }),
   }),
@@ -29,14 +43,10 @@ const view = CounterComposition.makeView((model, h) =>
   h.button([h.OnClick(Message.ClickedIncrement())], [`Count: ${model.count}`]),
 )
 
-const prepare = () =>
-  CounterComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: { requestReset: Message.RequestedReset },
-  })
-export const CounterBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const CounterBlock = CounterDefinition.contract
+
+export const layer = CounterDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, receive, view }
+  }),
+).layer

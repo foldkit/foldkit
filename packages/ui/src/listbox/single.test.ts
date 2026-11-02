@@ -1,11 +1,12 @@
-import { Option, Schema } from 'effect'
+import { Effect, Option } from 'effect'
 import { Scene, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
-import { expect } from 'vitest'
+import { it as baseIt, expect } from 'vitest'
 
-import { describe, it } from '@effect/vitest'
+import { describe } from '@effect/vitest'
 
 import * as Animation from '../animation/block.js'
+import { makeInitialModel } from '../animation/schema.js'
 import {
   AnchorListbox,
   ClickListboxItem,
@@ -24,20 +25,10 @@ import {
   buttonId,
   makeView,
 } from './shared.js'
-import { init, makeBlock, update } from './single.js'
+import { AnimationBinding, block } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
 const render = makeView<Model>({ ariaMultiSelectable: false })<string, string>()
-const TestListbox = makeBlock()
-const gotAnimationMessage = ({
-  message,
-}: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
-  Schema.decodeSync(TestListbox.Message)({
-    _tag: 'GotAnimationMessage',
-    placement: 'animation',
-    generation: 0,
-    message,
-  })
 const view = (
   model: Model,
   { maybeSelectedValue, ...baseInputs }: ViewInputs<string>,
@@ -70,50 +61,103 @@ const STALE_CLEAR_SEARCH_VERSION = 9999
 
 const STALE_ANIMATION_GENERATION = -1
 
-const givenClosed = Story.given(init({ id: 'test' }).model)
+type ListboxOperations = Pick<
+  Effect.Success<typeof block.get>,
+  'init' | 'update' | 'operations'
+>
 
-const givenOpen = Story.steps(
-  givenClosed,
-  Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.Command.resolve(
-    FocusListboxItems,
-    Message.CompletedFocusListboxItems(),
-  ),
-)
+const makeFixture = (listbox: ListboxOperations) => {
+  const { init, update } = listbox
+  const { operations } = listbox
+  const givenClosed = Story.given(init({ id: 'test' }).model)
 
-const givenClosedAnimated = Story.given(
-  init({ id: 'test', isAnimated: true }).model,
-)
+  const givenOpen = Story.steps(
+    givenClosed,
+    Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+    Story.Command.resolve(
+      FocusListboxItems,
+      Message.CompletedFocusListboxItems(),
+    ),
+  )
 
-const givenOpenAnimated = Story.steps(
-  givenClosedAnimated,
-  Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.Command.resolveAll(
-    [FocusListboxItems, Message.CompletedFocusListboxItems()],
-    [
-      Animation.WaitForPaint,
-      Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-    ],
-    [
-      Animation.WaitForAnimationSettled,
-      Animation.Message.EndedAnimation({ generation: 1 }),
-    ],
-  ),
-  Story.model((model: Model) => {
-    expect(model.animation.transitionState).toBe('Idle')
-  }),
-)
+  const givenClosedAnimated = Story.given(
+    init({ id: 'test', isAnimated: true }).model,
+  )
+
+  const givenOpenAnimated = Story.steps(
+    givenClosedAnimated,
+    Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+    Story.Command.resolveAll(
+      [FocusListboxItems, Message.CompletedFocusListboxItems()],
+      [
+        Animation.WaitForPaint,
+        Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+      ],
+      [
+        Animation.WaitForAnimationSettled,
+        Animation.Message.EndedAnimation({ generation: 1 }),
+      ],
+    ),
+    Story.model((model: Model) => {
+      expect(model.animation.transitionState).toBe('Idle')
+    }),
+  )
+
+  const givenClosedModal = Story.given(
+    init({ id: 'test', isModal: true }).model,
+  )
+
+  const givenOpenModal = Story.steps(
+    givenClosedModal,
+    Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+    Story.Command.resolveAll(
+      [FocusListboxItems, Message.CompletedFocusListboxItems()],
+      [LockListboxScroll, Message.CompletedLockListboxScroll()],
+      [InertListboxOthers, Message.CompletedInertListboxOthers()],
+    ),
+  )
+
+  const closedModel = () => init({ id: 'test' }).model
+  const openModel = (): Model =>
+    update(
+      closedModel(),
+      Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+    ).model
+
+  return {
+    init,
+    update,
+    operations,
+    givenClosed,
+    givenOpen,
+    givenClosedAnimated,
+    givenOpenAnimated,
+    givenClosedModal,
+    givenOpenModal,
+    closedModel,
+    openModel,
+  }
+}
+
+const it = baseIt.extend<{ listbox: ReturnType<typeof makeFixture> }>({
+  listbox: async ({}, use) =>
+    Effect.runPromise(
+      Story.withBlock(block, listbox =>
+        Effect.promise(() => use(makeFixture(listbox))),
+      ),
+    ),
+})
 
 describe('Listbox', () => {
   describe('init', () => {
-    it('defaults to closed with no active item', () => {
+    it('defaults to closed with no active item', ({ listbox: { init } }) => {
       expect(init({ id: 'test' }).model).toStrictEqual({
         id: 'test',
         isOpen: false,
         isAnimated: false,
         isModal: false,
         orientation: 'Vertical',
-        animation: Animation.init({ id: 'test-listbox' }).model,
+        animation: makeInitialModel({ id: 'test-listbox' }),
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',
@@ -123,28 +167,28 @@ describe('Listbox', () => {
       })
     })
 
-    it('accepts isAnimated option', () => {
+    it('accepts isAnimated option', ({ listbox: { init } }) => {
       const model = init({ id: 'test', isAnimated: true }).model
       expect(model.isAnimated).toBe(true)
       expect(model.animation.transitionState).toBe('Idle')
     })
 
-    it('defaults isModal to false', () => {
+    it('defaults isModal to false', ({ listbox: { init } }) => {
       const model = init({ id: 'test' }).model
       expect(model.isModal).toBe(false)
     })
 
-    it('accepts isModal option', () => {
+    it('accepts isModal option', ({ listbox: { init } }) => {
       const model = init({ id: 'test', isModal: true }).model
       expect(model.isModal).toBe(true)
     })
 
-    it('defaults orientation to Vertical', () => {
+    it('defaults orientation to Vertical', ({ listbox: { init } }) => {
       const model = init({ id: 'test' }).model
       expect(model.orientation).toBe('Vertical')
     })
 
-    it('accepts orientation option', () => {
+    it('accepts orientation option', ({ listbox: { init } }) => {
       const model = init({ id: 'test', orientation: 'Horizontal' }).model
       expect(model.orientation).toBe('Horizontal')
     })
@@ -152,7 +196,9 @@ describe('Listbox', () => {
 
   describe('update', () => {
     describe('Opened', () => {
-      it('opens the listbox with the given active item', () => {
+      it('opens the listbox with the given active item', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -170,7 +216,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('resets search state on open', () => {
+      it('resets search state on open', ({ listbox: { update, init } }) => {
         Story.story(
           update,
           Story.given(
@@ -193,7 +239,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('sets trigger to Keyboard when opened with active item', () => {
+      it('sets trigger to Keyboard when opened with active item', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -210,7 +258,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('sets trigger to Pointer when opened without active item', () => {
+      it('sets trigger to Pointer when opened without active item', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -228,7 +278,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('resets pointer position on open', () => {
+      it('resets pointer position on open', ({ listbox: { update, init } }) => {
         Story.story(
           update,
           Story.given(
@@ -255,7 +305,9 @@ describe('Listbox', () => {
     })
 
     describe('Closed', () => {
-      it('closes the listbox and resets state', () => {
+      it('closes the listbox and resets state', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -278,7 +330,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('returns no Command and no OutMessage when already closed', () => {
+      it('returns no Command and no OutMessage when already closed', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -293,7 +347,9 @@ describe('Listbox', () => {
     })
 
     describe('BlurredItems', () => {
-      it('closes the listbox without restoring button focus', () => {
+      it('closes the listbox without restoring button focus', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -308,7 +364,9 @@ describe('Listbox', () => {
     })
 
     describe('PressedPointerOnButton', () => {
-      it('records pointer type for touch without toggling', () => {
+      it('records pointer type for touch without toggling', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -324,7 +382,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('records pointer type for pen without toggling', () => {
+      it('records pointer type for pen without toggling', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -340,7 +400,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('opens the listbox on mouse left button when closed', () => {
+      it('opens the listbox on mouse left button when closed', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -362,7 +424,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('closes the listbox on mouse left button when open and preserves pointer type', () => {
+      it('closes the listbox on mouse left button when open and preserves pointer type', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -382,7 +446,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('does not toggle on mouse right button', () => {
+      it('does not toggle on mouse right button', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -398,7 +464,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('always records maybeLastButtonPointerType', () => {
+      it('always records maybeLastButtonPointerType', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -427,7 +495,7 @@ describe('Listbox', () => {
     })
 
     describe('ActivatedItem', () => {
-      it('sets the active item index', () => {
+      it('sets the active item index', ({ listbox: { update, givenOpen } }) => {
         Story.story(
           update,
           givenOpen,
@@ -444,7 +512,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('replaces the previous active item', () => {
+      it('replaces the previous active item', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -468,7 +538,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('stores activation trigger in model', () => {
+      it('stores activation trigger in model', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -481,7 +553,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('returns scroll command for keyboard activation', () => {
+      it('returns scroll command for keyboard activation', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -500,7 +574,9 @@ describe('Listbox', () => {
     })
 
     describe('DeactivatedItem', () => {
-      it('clears active item when pointer-activated', () => {
+      it('clears active item when pointer-activated', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -514,7 +590,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('preserves active item when keyboard-activated', () => {
+      it('preserves active item when keyboard-activated', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -534,7 +612,9 @@ describe('Listbox', () => {
     })
 
     describe('MovedPointerOverItem', () => {
-      it('activates item on first pointer move', () => {
+      it('activates item on first pointer move', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -555,7 +635,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('activates when position differs from stored', () => {
+      it('activates when position differs from stored', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -582,7 +664,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('returns model unchanged when position matches', () => {
+      it('returns model unchanged when position matches', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -608,7 +692,9 @@ describe('Listbox', () => {
     })
 
     describe('SelectedItem', () => {
-      it('emits Selected with the item value', () => {
+      it('emits Selected with the item value', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -621,7 +707,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('closes the listbox on selection', () => {
+      it('closes the listbox on selection', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -637,7 +725,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('returns a focus button command', () => {
+      it('returns a focus button command', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -650,7 +740,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('emits Selected with the newly chosen value across selections', () => {
+      it('emits Selected with the newly chosen value across selections', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -670,7 +762,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('returns no Command when an item is selected while already closed', () => {
+      it('returns no Command when an item is selected while already closed', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -685,7 +779,9 @@ describe('Listbox', () => {
     })
 
     describe('RequestedItemClick', () => {
-      it('returns model unchanged with a click command', () => {
+      it('returns model unchanged with a click command', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -702,7 +798,9 @@ describe('Listbox', () => {
     })
 
     describe('Searched', () => {
-      it('appends the key to the search query', () => {
+      it('appends the key to the search query', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -733,7 +831,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('bumps the search version', () => {
+      it('bumps the search version', ({ listbox: { update, givenOpen } }) => {
         Story.story(
           update,
           givenOpen,
@@ -764,7 +862,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('updates active item when a match is found', () => {
+      it('updates active item when a match is found', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -783,7 +883,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('keeps existing active item when no match is found', () => {
+      it('keeps existing active item when no match is found', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -802,7 +904,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('returns a delay command for debounce', () => {
+      it('returns a delay command for debounce', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -823,7 +927,9 @@ describe('Listbox', () => {
     })
 
     describe('CompletedDelayClearListboxSearch', () => {
-      it('clears search query when version matches', () => {
+      it('clears search query when version matches', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -848,7 +954,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('ignores stale version', () => {
+      it('ignores stale version', ({ listbox: { update, givenOpen } }) => {
         Story.story(
           update,
           givenOpen,
@@ -884,7 +990,9 @@ describe('Listbox', () => {
     })
 
     describe('completed and view-dispatched messages', () => {
-      it('returns model unchanged for CompletedLockListboxScroll', () => {
+      it('returns model unchanged for CompletedLockListboxScroll', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -895,7 +1003,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('resets maybeLastButtonPointerType for IgnoredMouseClick', () => {
+      it('resets maybeLastButtonPointerType for IgnoredMouseClick', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -921,7 +1031,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('keeps the listbox open after ClickedButton follows a mouse press', () => {
+      it('keeps the listbox open after ClickedButton follows a mouse press', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -945,7 +1057,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('opens on ClickedButton when the click did not follow a mouse press', () => {
+      it('opens on ClickedButton when the click did not follow a mouse press', ({
+        listbox: { update, givenClosed },
+      }) => {
         Story.story(
           update,
           givenClosed,
@@ -961,7 +1075,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('closes an open listbox on ClickedButton when the click did not follow a mouse press', () => {
+      it('closes an open listbox on ClickedButton when the click did not follow a mouse press', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -976,7 +1092,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('returns model unchanged for SuppressedSpaceScroll', () => {
+      it('returns model unchanged for SuppressedSpaceScroll', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -987,7 +1105,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('returns model unchanged for SuppressedItemCommit', () => {
+      it('returns model unchanged for SuppressedItemCommit', ({
+        listbox: { update, givenOpen },
+      }) => {
         Story.story(
           update,
           givenOpen,
@@ -1001,7 +1121,9 @@ describe('Listbox', () => {
 
     describe('transitions', () => {
       describe('enter flow', () => {
-        it('sets EnterStart and emits focus + afterPaint on Opened', () => {
+        it('sets EnterStart and emits focus + afterPaint on Opened', ({
+          listbox: { update, givenClosedAnimated },
+        }) => {
           Story.story(
             update,
             givenClosedAnimated,
@@ -1026,7 +1148,9 @@ describe('Listbox', () => {
           )
         })
 
-        it('advances EnterStart to EnterAnimating on GotAnimationMessage(CompletedWaitForPaint)', () => {
+        it('advances EnterStart to EnterAnimating on GotAnimationMessage(CompletedWaitForPaint)', ({
+          listbox: { update, givenClosedAnimated },
+        }) => {
           Story.story(
             update,
             givenClosedAnimated,
@@ -1050,7 +1174,9 @@ describe('Listbox', () => {
           )
         })
 
-        it('completes EnterAnimating to Idle on GotAnimationMessage(EndedAnimation)', () => {
+        it('completes EnterAnimating to Idle on GotAnimationMessage(EndedAnimation)', ({
+          listbox: { update, givenClosedAnimated },
+        }) => {
           Story.story(
             update,
             givenClosedAnimated,
@@ -1076,7 +1202,9 @@ describe('Listbox', () => {
       })
 
       describe('leave flow', () => {
-        it('starts no leave cascade on Closed when already closed', () => {
+        it('starts no leave cascade on Closed when already closed', ({
+          listbox: { update, givenClosedAnimated },
+        }) => {
           Story.story(
             update,
             givenClosedAnimated,
@@ -1090,7 +1218,9 @@ describe('Listbox', () => {
           )
         })
 
-        it('sets LeaveStart on Closed', () => {
+        it('sets LeaveStart on Closed', ({
+          listbox: { update, givenOpenAnimated },
+        }) => {
           Story.story(
             update,
             givenOpenAnimated,
@@ -1113,7 +1243,9 @@ describe('Listbox', () => {
           )
         })
 
-        it('begins the leave animation when the items container blurs', () => {
+        it('begins the leave animation when the items container blurs', ({
+          listbox: { update, givenOpenAnimated },
+        }) => {
           Story.story(
             update,
             givenOpenAnimated,
@@ -1135,7 +1267,9 @@ describe('Listbox', () => {
           )
         })
 
-        it('sets LeaveStart on SelectedItem', () => {
+        it('sets LeaveStart on SelectedItem', ({
+          listbox: { update, givenOpenAnimated },
+        }) => {
           Story.story(
             update,
             givenOpenAnimated,
@@ -1159,7 +1293,9 @@ describe('Listbox', () => {
           )
         })
 
-        it('advances LeaveStart to LeaveAnimating on GotAnimationMessage(CompletedWaitForPaint)', () => {
+        it('advances LeaveStart to LeaveAnimating on GotAnimationMessage(CompletedWaitForPaint)', ({
+          listbox: { update, givenOpenAnimated },
+        }) => {
           Story.story(
             update,
             givenOpenAnimated,
@@ -1187,7 +1323,9 @@ describe('Listbox', () => {
           )
         })
 
-        it('completes LeaveAnimating to Idle on GotAnimationMessage(EndedAnimation)', () => {
+        it('completes LeaveAnimating to Idle on GotAnimationMessage(EndedAnimation)', ({
+          listbox: { update, givenOpenAnimated },
+        }) => {
           Story.story(
             update,
             givenOpenAnimated,
@@ -1211,7 +1349,9 @@ describe('Listbox', () => {
       })
 
       describe('non-animated', () => {
-        it('keeps transitionState Idle on Opened', () => {
+        it('keeps transitionState Idle on Opened', ({
+          listbox: { update, givenClosed },
+        }) => {
           Story.story(
             update,
             givenClosed,
@@ -1228,7 +1368,9 @@ describe('Listbox', () => {
           )
         })
 
-        it('keeps transitionState Idle on Closed', () => {
+        it('keeps transitionState Idle on Closed', ({
+          listbox: { update, givenOpen },
+        }) => {
           Story.story(
             update,
             givenOpen,
@@ -1246,24 +1388,32 @@ describe('Listbox', () => {
 
       describe('stale messages', () => {
         it('ignores GotAnimationMessage with CompletedWaitForPaint when Idle', () => {
-          Story.story(
-            update,
-            givenOpen,
-            Story.message(
-              gotAnimationMessage({
-                message: Animation.Message.CompletedWaitForPaint({
-                  generation: 0,
-                }),
+          return Effect.runPromise(
+            Story.story(
+              block,
+              Story.init({ id: 'test' }),
+              Story.message(
+                Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+              ),
+              Story.Command.resolve(
+                FocusListboxItems,
+                Message.CompletedFocusListboxItems(),
+              ),
+              Story.messageFrom(
+                AnimationBinding,
+                Animation.Message.CompletedWaitForPaint({ generation: 0 }),
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+                expect(model.animation.transitionState).toBe('Idle')
               }),
             ),
-            Story.model(model => {
-              expect(model.isOpen).toBe(true)
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
           )
         })
 
-        it('ignores CompletedDetectListboxMovementOrAnimationEnd when Idle', () => {
+        it('ignores CompletedDetectListboxMovementOrAnimationEnd when Idle', ({
+          listbox: { update, givenOpen },
+        }) => {
           Story.story(
             update,
             givenOpen,
@@ -1277,7 +1427,9 @@ describe('Listbox', () => {
       })
 
       describe('interruptions', () => {
-        it('transitions to LeaveStart when Closed during EnterStart', () => {
+        it('transitions to LeaveStart when Closed during EnterStart', ({
+          listbox: { update, givenClosedAnimated },
+        }) => {
           Story.story(
             update,
             givenClosedAnimated,
@@ -1318,7 +1470,9 @@ describe('Listbox', () => {
           )
         })
 
-        it('transitions to LeaveStart when Closed during EnterAnimating', () => {
+        it('transitions to LeaveStart when Closed during EnterAnimating', ({
+          listbox: { update, givenClosedAnimated },
+        }) => {
           Story.story(
             update,
             givenClosedAnimated,
@@ -1367,21 +1521,9 @@ describe('Listbox', () => {
   })
 
   describe('modal commands', () => {
-    const givenClosedModal = Story.given(
-      init({ id: 'test', isModal: true }).model,
-    )
-
-    const givenOpenModal = Story.steps(
-      givenClosedModal,
-      Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
-      Story.Command.resolveAll(
-        [FocusListboxItems, Message.CompletedFocusListboxItems()],
-        [LockListboxScroll, Message.CompletedLockListboxScroll()],
-        [InertListboxOthers, Message.CompletedInertListboxOthers()],
-      ),
-    )
-
-    it('emits lockScroll and inertOthers commands on Opened when isModal is true', () => {
+    it('emits lockScroll and inertOthers commands on Opened when isModal is true', ({
+      listbox: { update, givenClosedModal },
+    }) => {
       Story.story(
         update,
         givenClosedModal,
@@ -1397,7 +1539,9 @@ describe('Listbox', () => {
       )
     })
 
-    it('emits unlockScroll and restoreInert commands on Closed when isModal is true', () => {
+    it('emits unlockScroll and restoreInert commands on Closed when isModal is true', ({
+      listbox: { update, givenOpenModal },
+    }) => {
       Story.story(
         update,
         givenOpenModal,
@@ -1413,7 +1557,9 @@ describe('Listbox', () => {
       )
     })
 
-    it('emits no Commands on Closed when already closed in modal mode', () => {
+    it('emits no Commands on Closed when already closed in modal mode', ({
+      listbox: { update, givenClosedModal },
+    }) => {
       Story.story(
         update,
         givenClosedModal,
@@ -1426,7 +1572,9 @@ describe('Listbox', () => {
       )
     })
 
-    it('emits no Commands when requestOpen receives an open modal Model', () => {
+    it('emits no Commands when requestOpen receives an open modal Model', ({
+      listbox: { init, operations, update },
+    }) => {
       const openModal = modifyFields(
         init({ id: 'test', isModal: true }).model,
         {
@@ -1438,7 +1586,7 @@ describe('Listbox', () => {
       )
 
       for (const reopened of [
-        TestListbox.operations.requestOpen(openModal),
+        operations.requestOpen(openModal),
         update(
           openModal,
           Message.Opened({ maybeActiveItemIndex: Option.none() }),
@@ -1455,7 +1603,9 @@ describe('Listbox', () => {
       }
     })
 
-    it('emits unlockScroll and restoreInert commands when the items container blurs in modal mode', () => {
+    it('emits unlockScroll and restoreInert commands when the items container blurs in modal mode', ({
+      listbox: { update, givenOpenModal },
+    }) => {
       Story.story(
         update,
         givenOpenModal,
@@ -1470,7 +1620,9 @@ describe('Listbox', () => {
       )
     })
 
-    it('emits no Commands when the items container blurs on a closed listbox in modal mode', () => {
+    it('emits no Commands when the items container blurs on a closed listbox in modal mode', ({
+      listbox: { update, givenClosedModal },
+    }) => {
       Story.story(
         update,
         givenClosedModal,
@@ -1483,7 +1635,9 @@ describe('Listbox', () => {
       )
     })
 
-    it('emits unlockScroll and restoreInert commands on SelectedItem when isModal is true', () => {
+    it('emits unlockScroll and restoreInert commands on SelectedItem when isModal is true', ({
+      listbox: { update, givenOpenModal },
+    }) => {
       Story.story(
         update,
         givenOpenModal,
@@ -1499,7 +1653,9 @@ describe('Listbox', () => {
       )
     })
 
-    it('does not emit modal commands when isModal is false', () => {
+    it('does not emit modal commands when isModal is false', ({
+      listbox: { update, givenClosed },
+    }) => {
       Story.story(
         update,
         givenClosed,
@@ -1524,19 +1680,6 @@ describe('Listbox', () => {
   })
 
   describe('view', () => {
-    const closedModel = () => init({ id: 'test' }).model
-    const openModel = (): Model => {
-      let model!: Model
-      Story.story(
-        update,
-        givenOpen,
-        Story.model(extractedModel => {
-          model = extractedModel
-        }),
-      )
-      return model
-    }
-
     const sceneView =
       (overrides: Omit<Partial<ViewInputs<string>>, 'buttonContent'> = {}) =>
       (model: Model, h: TestHtmlBuilder) =>
@@ -1553,7 +1696,9 @@ describe('Listbox', () => {
         )
 
     describe('ARIA', () => {
-      it('only points at the items panel while it is rendered', () => {
+      it('only points at the items panel while it is rendered', ({
+        listbox: { update, closedModel, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(closedModel()),
@@ -1570,7 +1715,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('keeps the items panel out of the Tab order', () => {
+      it('keeps the items panel out of the Tab order', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openModel()),
@@ -1583,7 +1730,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('button has aria-haspopup="listbox"', () => {
+      it('button has aria-haspopup="listbox"', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openModel()),
@@ -1598,7 +1747,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('items container has role="listbox"', () => {
+      it('items container has role="listbox"', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openModel()),
@@ -1613,7 +1764,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('items have role="option"', () => {
+      it('items have role="option"', ({ listbox: { update, openModel } }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openModel()),
@@ -1632,7 +1783,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('selected item has aria-selected="true"', () => {
+      it('selected item has aria-selected="true"', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1650,7 +1803,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('non-selected items have aria-selected="false"', () => {
+      it('non-selected items have aria-selected="false"', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1668,7 +1823,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('data-selected attribute on selected item', () => {
+      it('data-selected attribute on selected item', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1689,7 +1846,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('items container has no aria-multiselectable', () => {
+      it('items container has no aria-multiselectable', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openModel()),
@@ -1709,7 +1868,9 @@ describe('Listbox', () => {
       const itemsContainer = Scene.selector('#test-items')
       const item = (index: number) => Scene.selector(`#test-item-${index}`)
 
-      it('emits aria-readonly and data-readonly on the items container, and data-readonly on the button and every item', () => {
+      it('emits aria-readonly and data-readonly on the items container, and data-readonly on the button and every item', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(openModel()),
@@ -1723,7 +1884,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('emits data-readonly on the wrapper', () => {
+      it('emits data-readonly on the wrapper', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1739,7 +1902,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('emits no read-only attributes by default', () => {
+      it('emits no read-only attributes by default', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openModel()),
@@ -1752,7 +1917,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('passes isReadOnly to itemToConfig', () => {
+      it('passes isReadOnly to itemToConfig', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1771,7 +1938,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('emits both aria-readonly/data-readonly and aria-disabled/data-disabled when set together', () => {
+      it('emits both aria-readonly/data-readonly and aria-disabled/data-disabled when set together', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1789,7 +1958,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('drops the item click handler while keeping the keydown handler', () => {
+      it('drops the item click handler while keeping the keydown handler', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(openModel()),
@@ -1803,7 +1974,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('does not commit the active item on Enter', () => {
+      it('does not commit the active item on Enter', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(openModel()),
@@ -1816,7 +1989,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('does not commit the active item on Space', () => {
+      it('does not commit the active item on Space', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(openModel()),
@@ -1829,7 +2004,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('runs typeahead on Space while a search query is pending', () => {
+      it('runs typeahead on Space while a search query is pending', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1862,7 +2039,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('keeps arrow, Home, and End navigation live', () => {
+      it('keeps arrow, Home, and End navigation live', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(openModel()),
@@ -1890,7 +2069,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('moves the active item off the selection without changing it', () => {
+      it('moves the active item off the selection without changing it', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1921,7 +2102,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('consumes Enter on the active item without committing', () => {
+      it('consumes Enter on the active item without committing', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1937,7 +2120,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('consumes Space on the active item without committing', () => {
+      it('consumes Space on the active item without committing', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -1953,7 +2138,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('still opens from the button and closes on Escape', () => {
+      it('still opens from the button and closes on Escape', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(closedModel()),
@@ -1977,7 +2164,9 @@ describe('Listbox', () => {
     })
 
     describe('form integration', () => {
-      it('renders hidden input when name is provided', () => {
+      it('renders hidden input when name is provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ name: 'fruit' }) },
           Scene.given(closedModel()),
@@ -1989,7 +2178,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('hidden input value matches selected item', () => {
+      it('hidden input value matches selected item', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -2008,7 +2199,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('no hidden input when name is not provided', () => {
+      it('no hidden input when name is not provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(closedModel()),
@@ -2018,7 +2211,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('no value attribute on hidden input when nothing selected', () => {
+      it('no value attribute on hidden input when nothing selected', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ name: 'fruit' }) },
           Scene.given(closedModel()),
@@ -2032,7 +2227,9 @@ describe('Listbox', () => {
     })
 
     describe('button labeling', () => {
-      it('no aria-label or aria-labelledby on the trigger by default', () => {
+      it('no aria-label or aria-labelledby on the trigger by default', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(closedModel()),
@@ -2044,7 +2241,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('applies aria-label to the trigger when ariaLabel is provided', () => {
+      it('applies aria-label to the trigger when ariaLabel is provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ ariaLabel: 'Fruit' }) },
           Scene.given(closedModel()),
@@ -2056,7 +2255,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', () => {
+      it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ ariaLabelledBy: 'fruit-label' }) },
           Scene.given(closedModel()),
@@ -2068,7 +2269,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('prefers aria-label over aria-labelledby when both are provided', () => {
+      it('prefers aria-label over aria-labelledby when both are provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -2092,7 +2295,9 @@ describe('Listbox', () => {
     })
 
     describe('item context', () => {
-      it('itemToConfig receives isSelected: true for selected item', () => {
+      it('itemToConfig receives isSelected: true for selected item', ({
+        listbox: { update, openModel },
+      }) => {
         const contexts: Array<
           Parameters<ViewInputs<string>['itemToConfig']>[1]
         > = []
@@ -2116,7 +2321,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('itemToConfig receives isSelected: false for non-selected items', () => {
+      it('itemToConfig receives isSelected: false for non-selected items', ({
+        listbox: { update, openModel },
+      }) => {
         const contexts: Array<
           Parameters<ViewInputs<string>['itemToConfig']>[1]
         > = []
@@ -2142,7 +2349,9 @@ describe('Listbox', () => {
     })
 
     describe('anchor', () => {
-      it('adds absolute positioning, initial visibility hidden, and hooks when anchor is provided', () => {
+      it('adds absolute positioning, initial visibility hidden, and hooks when anchor is provided', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -2167,7 +2376,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('applies anchor positioning by default when anchor is absent', () => {
+      it('applies anchor positioning by default when anchor is absent', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openModel()),
@@ -2189,7 +2400,9 @@ describe('Listbox', () => {
     })
 
     describe('orientation', () => {
-      it('items container has aria-orientation="vertical" by default', () => {
+      it('items container has aria-orientation="vertical" by default', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openModel()),
@@ -2204,7 +2417,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('items container has aria-orientation="horizontal" when horizontal', () => {
+      it('items container has aria-orientation="horizontal" when horizontal', ({
+        listbox: { openModel, update },
+      }) => {
         const model = modifyFields(openModel(), {
           orientation: () => 'Horizontal',
         })
@@ -2224,7 +2439,9 @@ describe('Listbox', () => {
     })
 
     describe('whole-listbox disabled', () => {
-      it('wrapper has data-disabled when isDisabled is true', () => {
+      it('wrapper has data-disabled when isDisabled is true', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isDisabled: true }) },
           Scene.given(closedModel()),
@@ -2234,7 +2451,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('wrapper does not have data-disabled when isDisabled is false', () => {
+      it('wrapper does not have data-disabled when isDisabled is false', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(closedModel()),
@@ -2244,7 +2463,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('button has aria-disabled when isDisabled is true', () => {
+      it('button has aria-disabled when isDisabled is true', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isDisabled: true }) },
           Scene.given(closedModel()),
@@ -2261,7 +2482,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('button has no event handlers when isDisabled is true', () => {
+      it('button has no event handlers when isDisabled is true', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isDisabled: true }) },
           Scene.given(closedModel()),
@@ -2275,7 +2498,9 @@ describe('Listbox', () => {
     })
 
     describe('invalid state', () => {
-      it('wrapper has data-invalid when isInvalid is true', () => {
+      it('wrapper has data-invalid when isInvalid is true', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isInvalid: true }) },
           Scene.given(closedModel()),
@@ -2285,7 +2510,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('wrapper does not have data-invalid when isInvalid is false', () => {
+      it('wrapper does not have data-invalid when isInvalid is false', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(closedModel()),
@@ -2295,7 +2522,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('button has data-invalid when isInvalid is true', () => {
+      it('button has data-invalid when isInvalid is true', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isInvalid: true }) },
           Scene.given(closedModel()),
@@ -2310,7 +2539,9 @@ describe('Listbox', () => {
     })
 
     describe('form prop', () => {
-      it('hidden input has form attribute when form is provided', () => {
+      it('hidden input has form attribute when form is provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -2326,7 +2557,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('hidden input has no form attribute when form is not provided', () => {
+      it('hidden input has no form attribute when form is not provided', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ name: 'fruit' }) },
           Scene.given(closedModel()),
@@ -2378,7 +2611,9 @@ describe('Listbox', () => {
           )
         }
 
-      it('items have click handlers with object items', () => {
+      it('items have click handlers with object items', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           { update, view: personSceneView() },
           Scene.given(openModel()),
@@ -2392,7 +2627,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('selected item matches by itemToValue', () => {
+      it('selected item matches by itemToValue', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -2414,7 +2651,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('non-selected item has aria-selected false', () => {
+      it('non-selected item has aria-selected false', ({
+        listbox: { update, openModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -2435,7 +2674,9 @@ describe('Listbox', () => {
         )
       })
 
-      it('hidden input uses itemToValue for value', () => {
+      it('hidden input uses itemToValue for value', ({
+        listbox: { update, closedModel },
+      }) => {
         Scene.scene(
           {
             update,

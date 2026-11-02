@@ -1,0 +1,9 @@
+{
+  "name": "foldkit-contracted-chat-proof",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "test": "node node_modules/vitest/vitest.mjs run --config vitest.config.ts"
+  }
+}

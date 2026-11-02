@@ -1,7 +1,8 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import {
+  SettingsDefinition,
   Message,
   Model,
   OutMessage,
@@ -20,10 +21,13 @@ const changeTheme = makeStep((model, theme: Theme) => ({
 
 const update = SettingsComposition.makeUpdate({
   ChangedTheme: (model, { theme }) => changeTheme(model, theme),
-  RequestedThemeChange: (model, { theme }) => changeTheme(model, theme),
-  RequestedReset: model => changeTheme(model, 'System'),
   CompletedSaveTheme: makeNoopStep(),
   FailedSaveTheme: makeNoopStep(),
+})
+
+const receive = SettingsComposition.makeReceive({
+  RequestedThemeChange: (model, { theme }) => changeTheme(model, theme),
+  RequestedReset: model => changeTheme(model, 'System'),
 })
 
 const view = SettingsComposition.makeView((model, h) =>
@@ -43,18 +47,17 @@ const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'System' }),
 }))
 
-const prepare = () =>
-  SettingsComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      requestThemeChange: Message.RequestedThemeChange,
-      requestReset: Message.RequestedReset,
-    },
-    EffectsLayer: SaveTheme.layer,
-  })
-export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export { SettingsBlock } from './blockDefinition'
+
+export const layer = SettingsDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer: SaveTheme.layer,
+    }
+  }),
+).layer

@@ -3,11 +3,9 @@ import type { Html } from 'foldkit/html'
 import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
-import type { UiViewBuilder } from '../composition'
+import type { UiMessage, UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
-
-type UiMessage = typeof UiComposition.Message.Type
 
 const FIELDSET_CHECKBOX_DEMO_ID = 'fieldset-checkbox-demo'
 const FIELDSET_DISABLED_CHECKBOX_ID = 'fieldset-disabled-checkbox'

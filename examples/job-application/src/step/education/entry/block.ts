@@ -1,20 +1,19 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
-import { EducationEntryComposition } from './composition'
-import type { Model } from './definition'
-import { Message } from './definition'
+import { Listbox } from '@foldkit/ui'
+
+import { GraduationYearListboxBinding } from './composition'
+import { EducationEntryDefinition } from './definition'
 import { init } from './init'
+import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  EducationEntryComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: { requestRevealErrors: Message.RequestedRevealErrors },
-  })
-export const EducationEntryBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const EducationEntryBlock = EducationEntryDefinition.contract
+export const layer = EducationEntryDefinition.makeBlock(
+  Effect.gen(function* () {
+    const graduationYearListbox = yield* GraduationYearListboxBinding
+
+    return { children: [graduationYearListbox], init, update, receive, view }
+  }),
+).provide(Layer.mergeAll(Listbox.layer)).layer

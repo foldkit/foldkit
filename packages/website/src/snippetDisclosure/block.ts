@@ -1,22 +1,18 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { SnippetDisclosureComposition } from './composition'
+import { SnippetDisclosureDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
 import { MeasureSnippetHeight } from './mount'
 import { update } from './update'
 import { view } from './view'
 
 export const EffectsLayer = MeasureSnippetHeight.layer
 
-const prepare = () =>
-  SnippetDisclosureComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const SnippetDisclosureBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const SnippetDisclosureBlock = SnippetDisclosureDefinition.contract
+
+const block = SnippetDisclosureDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view, EffectsLayer }
+  }),
+)
+export const layer = block.layer

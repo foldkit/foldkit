@@ -5,6 +5,8 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import { Listbox } from '@foldkit/ui'
 
+import type { ViewInputs } from './view'
+
 export const GraduationYearListboxBlock = Listbox.makeBlock()
 
 export const Model = Schema.Struct({
@@ -23,19 +25,29 @@ export const Message = defineMessageUnion({
   UpdatedDegree: { value: Schema.String },
   UpdatedFieldOfStudy: { value: Schema.String },
   ToggledCurrentlyEnrolled: { isChecked: Schema.Boolean },
-  RequestedRevealErrors: {},
   ClickedRemoveSelf: {},
 })
 export type Message = typeof Message.Type
+
+export const InMessage = defineMessageUnion({
+  RequestedRevealErrors: {},
+})
+export type InMessage = typeof InMessage.Type
 
 export const OutMessage = defineMessageUnion({
   Removed: {},
 })
 export type OutMessage = typeof OutMessage.Type
 
+export const EducationEntryKey = Symbol('EducationEntry')
+
 export const EducationEntryDefinition = Block.makeDefinition('EducationEntry', {
+  key: EducationEntryKey,
+  Init: Schema.Tuple([Schema.String]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
+  InMessage,
   OutMessage,
   ChildInitContext: Schema.String,
 })

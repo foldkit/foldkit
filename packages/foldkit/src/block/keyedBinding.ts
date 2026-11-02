@@ -8,7 +8,11 @@ import type {
   BoundBlockView,
 } from '../html/block.js'
 import * as Update from '../update/index.js'
-import { makeResultRecipe } from '../update/operationRecipe.js'
+import {
+  type OperationEnvironment,
+  makeResultRecipe,
+  resolveOperationOutput,
+} from '../update/operationRecipe.js'
 import type {
   AnyBinding,
   BindableBlock,
@@ -25,6 +29,14 @@ import type {
   WithoutBindingEvidence,
 } from './binding.js'
 import { assertValidBindingOperationNames } from './binding.js'
+import {
+  ConnectBindingTypeId,
+  type ConstructedChild,
+  executeBindingOperation,
+  executeRegisteredBindingOperation,
+  makeConnection,
+  registerBindingOperation,
+} from './bindingConnection.js'
 import {
   assertInitializedParentModel,
   registerBinding,
@@ -53,6 +65,7 @@ import {
 } from './operationGraph.js'
 import type { ValidateConcreteComposition } from './requirements.js'
 import { assertSegment, qualifyCommand, qualifyLayer } from './scope.js'
+import { resolveEmbeddedView } from './viewScope.js'
 
 /** Defines how a parent handles every OutMessage from one occurrence in a
  * keyed child collection. */
@@ -762,6 +775,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   const toChildFoldAt = (
     producer: AnyProducer,
     modelBeforeUpdate: any,
+    environment?: OperationEnvironment,
   ): RuntimeKeyedChildFold => ({
     update: (childModel, operation) =>
       scopeReturn(
@@ -778,12 +792,20 @@ export const bindEach = <const BlockValue extends BindableBlock>(
       : {
           foldOutMessage:
             (key: InstanceKey, context: Update.FoldContext<any, any>) =>
-            (outMessage: any) =>
-              config.outMessage!.fold!(
+            (outMessage: any) => {
+              const policyStep = config.outMessage!.fold!(
                 key,
                 outMessage,
                 liftContext(key, context, modelBeforeUpdate),
-              ),
+              )
+
+              return (modelWithChild: any) =>
+                resolveOperationOutput(
+                  policyStep(modelWithChild),
+                  modelWithChild,
+                  environment,
+                )
+            },
         }),
     ...(config.outMessage?.forward === undefined
       ? {}
@@ -796,32 +818,66 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   const makeChildFoldAt = Update.foldChildAt as unknown as (
     childFold: RuntimeKeyedChildFold,
   ) => RuntimeKeyedFold
-  const makeFold = (producer: AnyProducer): RuntimeBoundKeyedFold => {
+  const makeFold = (
+    producer: AnyProducer,
+    operationName = 'fold',
+  ): RuntimeBoundKeyedFold => {
     const execute = (
       model: any,
-      key: InstanceKey,
       args: ReadonlyArray<any>,
+      environment?: OperationEnvironment,
     ) => {
-      return makeChildFoldAt(toChildFoldAt(producer, model))(model, key, {
+      assertRegisteredBinding(binding, placement)
+
+      const [key, ...operationArgs] = args
+
+      return makeChildFoldAt(toChildFoldAt(producer, model, environment))(
+        model,
         key,
-        args,
-      })
+        {
+          key,
+          args: operationArgs,
+        },
+      )
     }
 
-    return (model, key, ...args) =>
+    const fold: RuntimeBoundKeyedFold = (model, key, ...args) =>
       isRegisteredBinding(binding)
-        ? execute(model, key, args)
-        : makeResultRecipe(activeModel => {
+        ? execute(model, [key, ...args])
+        : makeResultRecipe((activeModel, environment) => {
+            const connection = environment?.get(binding)
+
+            if (connection !== undefined) {
+              return executeBindingOperation(
+                connection,
+                operationName,
+                activeModel,
+                [key, ...args],
+                environment,
+              )
+            }
+
             assertRegisteredBinding(binding, placement)
-            return execute(activeModel, key, args)
+            return execute(activeModel, [key, ...args], environment)
           })
+
+    registerBindingOperation(fold, execute)
+
+    return fold
   }
   const fold = makeFold(block.update)
-  const exposedOperations = Record.map(block.operations, producer => {
-    const foldStep = makeFold(producer)
-    return (key: InstanceKey, ...args: ReadonlyArray<any>) =>
+  const exposedOperations = Record.map(block.operations, (producer, name) => {
+    const foldStep = makeFold(producer, name)
+    const operation =
+      (key: InstanceKey, ...args: ReadonlyArray<any>) =>
       (model: any) =>
         foldStep(model, key, ...args)
+
+    registerBindingOperation(operation, (model, args, environment) =>
+      executeRegisteredBindingOperation(foldStep, model, args, environment),
+    )
+
+    return operation
   })
   const requireKey = (key: InstanceKey | undefined): InstanceKey => {
     if (key === undefined) {
@@ -855,6 +911,12 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   }
   const binding = {
     placement,
+    [ConnectBindingTypeId](
+      this: Readonly<{ placement: string }>,
+      child: ConstructedChild<BlockValue, string>,
+    ) {
+      return makeConnection(this, child)
+    },
     init: (initial: unknown) => {
       assertKeyedBindingInitConfig(initial, placement)
       const { key, toParentModel } = initial
@@ -913,7 +975,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       const boundConfig = {
         ...fields,
-        view: fields.view ?? defaultViewOf(block),
+        view: resolveEmbeddedView(block, fields.view ?? defaultViewOf(block)),
         toParentMessage: (message: any) => config.toParentMessage(key, message),
         [ViewScopeTypeId]: {
           placement,

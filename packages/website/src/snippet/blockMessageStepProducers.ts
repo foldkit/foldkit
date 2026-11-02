@@ -17,7 +17,11 @@ type Message = typeof Message.Type
 const OutMessage = defineMessageUnion({ Closed: { reason: Schema.String } })
 type OutMessage = typeof OutMessage.Type
 
+const EditorKey = Symbol('Editor')
+
 const EditorDefinition = Block.makeDefinition('Editor', {
+  key: EditorKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
   OutMessage,

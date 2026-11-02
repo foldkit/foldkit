@@ -1,4 +1,4 @@
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
@@ -16,7 +16,11 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ RequestedShowToast: {} })
 type Message = typeof Message.Type
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })
@@ -44,13 +48,23 @@ const update = ApplicationComposition.makeUpdate({
   RequestedShowToast: ToastBinding.requestShow({ payload: { body: 'Saved' } }),
 })
 
-Story.story(
-  update,
-  Story.given(init().model),
-  Story.message(Message.RequestedShowToast()),
-  ToastBlock.test.drainEntry({
-    binding: ToastBinding,
-    entryId: 'notifications-entry-0',
+const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const toast = yield* ToastBinding
+
+    return { children: [toast], init, update }
   }),
-  Story.Command.expectNone(),
+).provide(Toast.layer)
+
+await Effect.runPromise(
+  Story.story(
+    ApplicationBlock,
+    Story.init(),
+    Story.message(Message.RequestedShowToast()),
+    ToastBlock.test.drainEntry({
+      binding: ToastBinding,
+      entryId: 'notifications-entry-0',
+    }),
+    Story.Command.expectNone(),
+  ),
 )

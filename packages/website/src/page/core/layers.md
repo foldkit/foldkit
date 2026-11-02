@@ -29,17 +29,17 @@ The completed Block carries the local handler recipe. The entry provides its rem
 
 ::Snippet{name="layersEntry" label="Provide Services and run the application"}
 
-When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureComposition.prepareBlock` instead. Registering its Binding carries the checked handler graph upward. The root still supplies shared services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
+When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureDefinition.makeBlock` instead. Registering its Binding carries the checked handler graph upward. The root still supplies shared services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
 
 Defining handlers, binding features, completing the Application, and calling `provide` all describe configuration. `Runtime.run` builds the Layers and starts execution. Attaching `handler` makes `.layer` available; the completed graph still needs to include that recipe.
 
-For several local handlers, compose their recipes with Effect's `Layer.mergeAll` and pass the result as `EffectsLayer` to `prepareBlock`:
+For several local handlers, compose their recipes with Effect's `Layer.mergeAll` and pass the result as `EffectsLayer` to `Definition.makeBlock`:
 
 ::Snippet{name="blockLocalHandlerLayers" label="Combining local Command handlers"}
 
 Use `subscriptions.layer` and `managedResources.layer` for a registry whose entries all have attached handlers. There is no aggregate Command registry; merge the individual Command definitions' `.layer` recipes. Registered child Bindings contribute their own handler Layers automatically.
 
-Compose the concrete definitions' `.layer` values, whose types retain their Services and constructor errors, and let `prepareBlock` infer the recipe. The completed Block carries both local and child handler Layers. Do not annotate the recipe as `unknown` or merge child `EffectsLayer` values again at the root.
+Compose the concrete definitions' `.layer` values, whose types retain their Services and constructor errors, and let `Definition.makeBlock` infer the recipe. The completed Block carries both local and child handler Layers. Do not annotate the recipe as `unknown` or merge child `EffectsLayer` values again at the root.
 
 `ApplicationTestLayer` supplies `ApiTestLayer` beneath the same real handler. The `LoadUser` result mapping and error policy still execute. The replaced API implementation is outside that test path; [Testing Through Service Boundaries](#testing-through-service-boundaries) explains how to choose what a test exercises.
 
@@ -85,25 +85,19 @@ For a Subscription, the test service supplies the upstream events while the real
 
 A handler stub can drive a result path directly, but it does not test the handler that was replaced. Ordinary execution tests need no new testing DSL: compose the production `.layer` recipes with test Layers for the external services, then execute the application or operation through Effect.
 
-## Host Implementations for Reusable Features
+## Host implementations for reusable features
 
-A reusable feature can define an operation and require the application using it to supply the implementation. The feature owns the Command's args and result Messages. Its update returns that Command, and the host decides how to perform the operation.
+A reusable feature can own its save workflow while the application supplies storage. Define an ordinary `EditorStorage` Service for that capability and acquire it in the attached `SaveDocument` handler constructor. The feature owns the Command args, result Messages, and update transitions.
 
-For example, an editor feature can declare `SaveDocument` without choosing where documents are stored:
+::Snippet{name="commandHostContract" label="Editor owning the save workflow"}
 
-::Snippet{name="commandHostContract" label="Editor declaring its save operation"}
+The host implements that Service with browser storage or a document API:
 
-The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. At completion, `hostHandlers: [SaveDocument]` explicitly delegates that missing implementation to the host. Without a local recipe or that declaration, `prepareBlock` rejects the incomplete feature.
+::Snippet{name="commandHostImplementation" label="Host providing editor storage"}
 
-A standalone host can implement this contract using browser storage:
+The implementation Layer retains the real Command handler. The host’s provider supplies the storage dependency. An execution test can replace the storage transport and still exercise request construction, error handling, and result mapping.
 
-::Snippet{name="commandHostImplementation" label="Host saving a document to browser storage"}
-
-The host constructs `SaveDocumentLayer` from the original contract definition and calls `EditorBlock.provideHandlers(SaveDocumentLayer)` on the completed Block. Bind the resulting `editor` value in the parent. `ApplicationLayer` supplies the storage service beneath that handler. If the host leaves the handler unsupplied, its requirement reaches application assembly and TypeScript rejects running the application.
-
-The same editor could be used inside a publishing application whose host saves through its document API. Both hosts use the editor's Command definition and report its declared result Messages, so the editor's Model and update need no storage-specific branches.
-
-Use a host implementation when the operation's behavior belongs to the host. If the feature owns the save workflow and its result mapping, attach its constructor and let the host provide the storage or API service beneath that handler. Ordinary execution tests retain whichever handler the application uses and substitute its underlying services.
+Some generic family APIs, including Query, deliberately publish an original host-handler contract and a `provideHandlers` selector. Those APIs validate provider definitions and retain their constructor errors and Services. Ordinary Block contracts use the declared Service boundary above; they do not expose their private handler inventory.
 
 ## State in Handlers
 
@@ -184,7 +178,7 @@ The root Block collects the split implementation from each owner. The entry supp
 
 If the service Layer fails to build, startup cannot reach init or the first render. There is no Model for a crash view yet. A service used only by one Flags Effect may be private to that Effect when the application should never select or share it. Shared services stay exposed from the root Layer with `Layer.provideMerge` so Flags and handlers receive the same instance.
 
-`ApplicationComposition.prepareBlock` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Program.make` carries them into the Program, and `Runtime.run` requires them to be supplied. A Flags Effect can use a Service produced by a Layer passed to `program.provide(layer)`, as shown above.
+`ApplicationDefinition.makeBlock` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Program.make` carries them into the Program, and `Runtime.run` requires them to be supplied. A Flags Effect can use a Service produced by a Layer passed to `program.provide(layer)`, as shown above.
 
 A hydrating start validates the server handoff before acquiring the application Layer. [Init & Flags](/core/init-and-flags#server-rendering-and-hydration) covers server-supplied startup data.
 
@@ -207,7 +201,7 @@ Commands remain explicit because they have no closed owner registry: list each s
 
 `Layer.mergeAll` and Block completion build passive recipes. The Runtime constructs the handlers when the Program starts. A ManagedResource acquires its handle when its Model condition becomes active; including its handler Layer does not acquire the handle.
 
-A Block passes its local bundle to `FeatureComposition.prepareBlock({ EffectsLayer })`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
+A Block passes its local bundle to `FeatureDefinition.makeBlock`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
 
 A feature can provide a business service it owns beneath its local `EffectsLayer`. Leave concrete environment providers open for the root to select. Those ordinary requirements flow through parents until `program.provide(ApplicationLayer)` satisfies them. `ServicesLayer` is a useful name for an intermediate service bundle when root composition needs one.
 
@@ -221,9 +215,17 @@ When separate Blocks need the same HTTP, storage, or domain operation, share an 
 
 Keep a small feature bundle in `block.ts`, or beside root Command definitions in `command.ts`. Extract `layer.ts` when composition is substantial or reused. Root `services.ts` exports `ApplicationLayer`; `block.ts` assembles `ApplicationBlock`, and `entry.ts` supplies the Layer to the Program. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete compact and split layouts.
 
-Select an alternative local recipe with `block.replaceEffectsLayer(recipe)` before binding. It preserves selected descendant recipes and stays passive until startup. Use the original definitions' `toLayer` methods to retain their contracts and identities. See [Selecting a local handler recipe](/core/block#select-a-local-handler-recipe).
+Choose an implementation through its Layer and provide controlled ordinary Services beneath its real handlers. APIs that deliberately publish host-handler contracts, such as Query, expose their checked provider selector. See [handler providers](/core/block#select-a-local-handler-recipe).
 
-There is no flattened handler inventory today. Inspect the registered children, completed Blocks, and their local `EffectsLayer` bundles; avoid maintaining a second global list.
+Keep handler declarations and their local `EffectsLayer` with the owning implementation. A public Block contract does not expose its private descendant inventory; avoid maintaining a second global list.
+
+### Construction and runtime providers
+
+A Block implementation Layer constructs its executable graph. Its `EffectsLayer` constructs handlers for Commands and lifecycle work. Keep ordinary request dependencies in those handler constructors. Provide child implementation Layers through the parent descriptor’s `.provide(...)` or ordinary `Layer.provide`.
+
+A Program’s `provide(layer)` supplies runtime providers. If a host Service is also needed while constructing the graph, use `provide({ services: ServicesLayer, runtime: RuntimeLayer })`. The shared `services` build before graph construction and remain available to handlers and Flags. The optional `runtime` providers build after ManagedResource handles exist. Both remain under the host Scope; runtime-only outputs cannot satisfy an earlier construction requirement.
+
+Declaring any of these Layers is passive. Constructing the graph does not initialize Models or start Model-driven occurrence lifecycles.
 
 ## Explicit Handler Requirements
 
@@ -238,7 +240,7 @@ Most authored pieces infer their requirements. When a standalone signature needs
 
 The expanded forms require every protocol argument. Definitions, update helpers, Bindings, and handler recipes carry the same information without explicit annotations.
 
-`FeatureComposition.prepareBlock` checks local requirements against `EffectsLayer` and definitions explicitly delegated through `hostHandlers`. Parent Bindings carry that checked graph. The Program's `provide` method supplies the root Block's remaining ordinary service requirements.
+`FeatureDefinition.makeBlock` checks local handler coverage against `EffectsLayer` and checks its remaining Services and errors against the declared effect contract. Parent Bindings carry the selected implementation's checked graph. The Program's `provide` method supplies the root Block's remaining ordinary Service requirements.
 
 Owned definitions include the Block's name and local operation name. Each definition also retains a private runtime identity, checked when its handler runs. Create alternative implementations through that original definition's `toLayer` so the implementation retains the declared identity.
 

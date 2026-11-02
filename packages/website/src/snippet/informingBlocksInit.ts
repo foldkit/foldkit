@@ -6,9 +6,8 @@ import {
   addSearchToHistory,
   routeSearchText,
 } from './informingBlocksModel'
-import type { PeopleRoute } from './informingBlocksRoute'
 
-export const init = PeopleComposition.makeInit((route: PeopleRoute) => {
+export const init = PeopleComposition.makeInit(route => {
   const searchText = routeSearchText(route.searchText)
 
   return {

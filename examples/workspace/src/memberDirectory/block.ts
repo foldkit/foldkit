@@ -1,14 +1,19 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { MemberDirectoryComposition } from './composition'
+import { MemberDirectoryDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  MemberDirectoryComposition.prepareBlock({ init, update, view })
-export const MemberDirectoryBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+const block = MemberDirectoryDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
+  }),
+)
+
+export const layer = block.layer

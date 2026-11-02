@@ -1,1 +1,2 @@
-export { IssueListBlock } from './block'
+export { IssueListBlock } from './definition'
+export { layer } from './block'

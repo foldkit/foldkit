@@ -1,6 +1,3 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, Message, update,
-// and view definitions.
 import { Match } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 

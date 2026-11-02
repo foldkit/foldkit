@@ -70,7 +70,6 @@ export const Message = defineMessageUnion({
   CompletedFocusGrid: {},
   RequestedSelectDate: { date: CalendarDomain.CalendarDate },
   RequestedFocusDate: { date: CalendarDomain.CalendarDate },
-  RequestedDropToDays: {},
   InformedOfMinDateChange: {
     maybeMinDate: Schema.Option(CalendarDomain.CalendarDate),
   },
@@ -85,6 +84,12 @@ export const Message = defineMessageUnion({
   },
 })
 export type Message = typeof Message.Type
+
+/** Parent requests handled independently of local UI facts. */
+export const InMessage = defineMessageUnion({
+  RequestedDropToDays: {},
+})
+export type InMessage = typeof InMessage.Type
 
 export type ClickedDay = typeof Message.ClickedDay.Type
 export type PressedKeyOnGrid = typeof Message.PressedKeyOnGrid.Type
@@ -106,9 +111,41 @@ export type OutMessage = typeof OutMessage.Type
 export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
 
+/** @internal Stable identity of the Calendar contract. */
+export const CalendarKey = Symbol('Calendar')
+
 const CalendarDefinition = Block.makeDefinition('Calendar', {
+  key: CalendarKey,
+  Init: Block.makeInputContract<readonly [config: InitConfig]>(),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  operations: {
+    requestSelectDate: {
+      message: (date: CalendarDate) =>
+        Tuple.make(Message.RequestedSelectDate({ date })),
+      outMessage: OutMessage.SelectedDate,
+    },
+    requestFocusDate: (date: CalendarDate) =>
+      Tuple.make(Message.RequestedFocusDate({ date })),
+    /** Supplies a new minimum selectable date without reconciling selection. */
+    informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
+      Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
+    /** Supplies a new maximum selectable date without reconciling selection. */
+    informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
+      Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
+    /** Supplies the individually disabled dates without reconciling selection. */
+    informDisabledDatesChanged: (disabledDates: ReadonlyArray<CalendarDate>) =>
+      Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
+    /** Supplies the disabled weekdays without reconciling selection. */
+    informDisabledDaysOfWeekChanged: (
+      disabledDaysOfWeek: ReadonlyArray<CalendarDomain.DayOfWeek>,
+    ) =>
+      Tuple.make(
+        Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
+      ),
+  },
   Model,
   Message,
+  InMessage,
   OutMessage,
 })
 
@@ -639,8 +676,6 @@ export const update = CalendarComposition.makeUpdate({
 
   RequestedFocusDate: (model, { date }) => focusDateTransition(model, date),
 
-  RequestedDropToDays: dropToDaysTransition,
-
   InformedOfMinDateChange: (model, { maybeMinDate }) =>
     informMinDateChangedTransition(model, maybeMinDate),
 
@@ -652,6 +687,11 @@ export const update = CalendarComposition.makeUpdate({
 
   InformedOfDisabledDaysOfWeekChange: (model, { disabledDaysOfWeek }) =>
     informDisabledDaysOfWeekChangedTransition(model, disabledDaysOfWeek),
+})
+
+/** Applies the parent request through the existing cursor transition. */
+export const receive = CalendarComposition.makeReceive({
+  RequestedDropToDays: dropToDaysTransition,
 })
 
 // VIEW
@@ -1366,7 +1406,7 @@ const buildYearsAttributes = (
  *  bundles + derived cell data, then delegates layout to the consumer's
  *  `toView` callback. The variant of `CalendarAttributes` passed to
  *  `toView` matches `model.viewMode`. */
-export const view = CalendarComposition.makeView.withInputs<ViewInputs>(
+export const view = CalendarComposition.makeView.withInputs(
   (model, viewInputs, h) =>
     viewInputs.toView(
       Match.value(model.viewMode).pipe(
@@ -1379,49 +1419,18 @@ export const view = CalendarComposition.makeView.withInputs<ViewInputs>(
     ),
 )
 
-const prepare = () =>
-  CalendarComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      requestSelectDate: (date: CalendarDate) =>
-        Tuple.make(Message.RequestedSelectDate({ date })),
-      requestFocusDate: (date: CalendarDate) =>
-        Tuple.make(Message.RequestedFocusDate({ date })),
-      requestDropToDays: Message.RequestedDropToDays,
-      /** Supplies a new minimum selectable date without reconciling selection. */
-      informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
-        Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
-      /** Supplies a new maximum selectable date without reconciling selection. */
-      informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
-        Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
-      /** Supplies the individually disabled dates without reconciling selection. */
-      informDisabledDatesChanged: (
-        disabledDates: ReadonlyArray<CalendarDate>,
-      ) => Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
-      /** Supplies the disabled weekdays without reconciling selection. */
-      informDisabledDaysOfWeekChanged: (
-        disabledDaysOfWeek: ReadonlyArray<CalendarDomain.DayOfWeek>,
-      ) =>
-        Tuple.make(
-          Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
-        ),
-    },
-    EffectsLayer,
-  })
-/** Completed Calendar Block contract. */
-export interface CalendarBlock extends Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> {}
-/** Complete Calendar Block definition for connecting to a parent. */
-export const CalendarBlock: CalendarBlock = Block.assemble(prepare)
+type CalendarContract = typeof CalendarDefinition.contract
+/** Independent Calendar contract for parent Bindings. */
+export interface CalendarBlock extends CalendarContract {}
+/** Passive Calendar contract supplied through the module implementation Layer. */
+export const CalendarBlock: CalendarBlock = CalendarDefinition.contract
 
-/** Moves the Calendar view and cursor to a date without changing the
- * parent-owned selection. */
-export const focusDate = CalendarBlock.operations.requestFocusDate
+/** @internal Checked Calendar implementation used as a scoped testing root. */
+export const block = CalendarDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, receive, view, EffectsLayer }
+  }),
+)
 
-/** Returns the Calendar to Days mode and rebuilds its focused date from the
- * visible year and month. */
-export const dropToDays = CalendarBlock.operations.requestDropToDays
+/** Supplies the Calendar implementation without starting occurrence effects. */
+export const layer = block.layer

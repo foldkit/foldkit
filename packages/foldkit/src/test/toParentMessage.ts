@@ -16,7 +16,8 @@ type IsUnion<Value, Whole = Value> = Value extends unknown
     : true
   : never
 
-type ChildMessageOf<BindingValue> =
+/** @internal The decoded dispatch Message accepted by a child Binding. */
+export type ChildMessageOf<BindingValue> =
   BlockOfBinding<BindingValue> extends Readonly<{
     Message: Readonly<{ Type: infer Message }>
   }>
@@ -30,7 +31,8 @@ type GeneratedParentMessageOf<BindingValue> =
     ? GeneratedEnvelopeSchemaOf<BindingValue>['Type']
     : never
 
-type GeneratedBindingConstraint<BindingValue> =
+/** @internal Requires one narrowed Binding with generated delivery. */
+export type GeneratedBindingConstraint<BindingValue> =
   IsAny<GeneratedEnvelopeSchemaOf<BindingValue>> extends true
     ? never
     : true extends IsUnion<BindingValue>
@@ -39,7 +41,8 @@ type GeneratedBindingConstraint<BindingValue> =
         ? never
         : unknown
 
-type StaticBindingConstraint<BindingValue> =
+/** @internal Requires generated delivery without a collection key. */
+export type StaticBindingConstraint<BindingValue> =
   Extract<
     GeneratedParentMessageOf<BindingValue>,
     Readonly<{ key: unknown }>
@@ -47,7 +50,8 @@ type StaticBindingConstraint<BindingValue> =
     ? unknown
     : never
 
-type KeyedBindingConstraint<BindingValue> =
+/** @internal Requires keyed generated delivery. */
+export type KeyedBindingConstraint<BindingValue> =
   Exclude<
     GeneratedParentMessageOf<BindingValue>,
     Readonly<{ key: unknown }>
@@ -55,7 +59,8 @@ type KeyedBindingConstraint<BindingValue> =
     ? unknown
     : never
 
-type KeyOfBinding<BindingValue> =
+/** @internal The decoded occurrence key retained by generated delivery. */
+export type KeyOfBinding<BindingValue> =
   GeneratedParentMessageOf<BindingValue> extends Readonly<{ key: infer Key }>
     ? Key
     : never

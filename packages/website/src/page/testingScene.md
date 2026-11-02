@@ -1,5 +1,11 @@
 # Scene
 
+## Overview
+
+A Block-aware `scene(Block, init(...args), ...steps)` returns an Effect that acquires and scopes the implementation graph. Supply the feature's construction Layer through ordinary test Layers. A checked application descriptor carries its selected default Layer. Use `given(model)` for an existing Model, and pass `{ block, viewInputs, updateContext, routing }` when the view or test requires those inputs. Handler Services are unnecessary for pure Scenes because handlers do not run.
+
+Use `withBlock` for an advanced fixture that needs acquired pure functions or a custom test view. Keep the Scope alive throughout the test.
+
 ## Testing Through the View
 
 `Scene` runs update and view together. It clicks buttons, types into inputs, presses keys, and checks the rendered VNode tree. The view runs after every step, so the test sees both state transitions and their rendered result.
@@ -280,7 +286,7 @@ UI components expose their Mount Definitions as `Popover.test.AnchorPopover`, `L
 
 ## Subscriptions
 
-`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Register the complete application's Subscriptions in the `scene` config, then pass the exact entry and its raw Message to run update and render the next view. `Scene.subscriptions(ApplicationComposition, localSubscriptions?)` combines the root declarations with the registered children's placement-qualified entries without building Layers or running Streams. A completed feature Block already exposes its complete `.subscriptions` registry. A Scene with no `subscriptions` config accepts no Subscription Message.
+`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Test the selected implementation that owns the registry and pass its exact entry and raw Message. Block-aware Scenes acquire that registered graph. An advanced `withBlock` fixture can supply its concrete `subscriptions` to a synchronous Scene. A public contract does not expose private registry entries, and an unregistered source is rejected.
 
 ::Snippet{name="testingSubscription" label="Emitting declared Subscription Messages"}
 
@@ -342,11 +348,11 @@ Scene replaces the tracked sequence after every step that drives update. A step 
 
 ## Blocks with ViewInputs
 
-To test a completed UI Block with render inputs, embed it through a local parent Binding and supply those inputs in the parent view. Author the parent view with `makeView.withInputs` when tests need to vary its inputs. `withViewInputs(view, defaults)` adapts that parent-owned view to Scene's `(model, h)` signature.
+To test a UI Block with render inputs, embed it through a local parent Binding and supply those inputs in the parent view. Declare the parent's view inputs, then pass `viewInputs` with its Block in the Scene config. Scene acquires and renders the selected implementation with those inputs.
 
 ::Snippet{name="sceneWithViewInputs" label="Testing an embedded Block with view inputs"}
 
-Each test can override the parent view inputs. Keep the embedded Block's `toView` callback in the parent renderer so the same markup and dispatch boundary are used across cases. A feature's own tests may adapt its private authored view directly.
+Each test can choose the parent view inputs. Keep the embedded Block's `toView` callback in the parent renderer so the same markup and dispatch boundary are used across cases.
 
 ## A Complete Scene
 

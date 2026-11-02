@@ -1,1 +1,2 @@
-export { CommandPaletteBlock } from './block'
+export { CommandPaletteBlock } from './definition'
+export { layer } from './block'

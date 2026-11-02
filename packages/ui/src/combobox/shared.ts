@@ -69,8 +69,20 @@ export type BaseInitConfig = Readonly<{
   selectInputOnFocus?: boolean
 }>
 
+/** Shared occurrence startup Schema used by deferred Animation initialization. */
+export const InitConfig = Schema.Struct({
+  id: Schema.String,
+  isAnimated: Schema.optionalKey(Schema.Boolean),
+  isModal: Schema.optionalKey(Schema.Boolean),
+  nullable: Schema.optionalKey(Schema.Boolean),
+  immediate: Schema.optionalKey(Schema.Boolean),
+  selectInputOnFocus: Schema.optionalKey(Schema.Boolean),
+})
+
 /** Creates the shared base fields for a combobox model from a config. Each variant spreads this and adds its selection fields. */
-export const baseInit = (config: BaseInitConfig): BaseModel => ({
+export const baseInit = (
+  config: BaseInitConfig,
+): Omit<BaseModel, 'animation'> => ({
   id: config.id,
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
@@ -78,7 +90,6 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
   nullable: config.nullable ?? false,
   immediate: config.immediate ?? false,
   selectInputOnFocus: config.selectInputOnFocus ?? false,
-  animation: Animation.AnimationBlock.init({ id: `${config.id}-items` }).model,
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   inputValue: '',
@@ -103,7 +114,6 @@ export const makeMessage = <Item extends string, ItemEncoded = Item>(
   Item: ItemSchema<Item, ItemEncoded>,
 ) =>
   defineMessageUnion({
-    RequestedOpen: {},
     RequestedClose: {
       restingInputValue: Schema.String,
       isClearable: Schema.Boolean,
@@ -162,9 +172,13 @@ export const makeMessage = <Item extends string, ItemEncoded = Item>(
 /** Union of all Messages the broad string Combobox component can produce. */
 export const Message = makeMessage(Schema.String)
 
+/** Parent requests that need no selection or display-value adaptation. */
+export const InMessage = defineMessageUnion({ RequestedOpen: {} })
+export type InMessage = typeof InMessage.Type
+
 export type Opened = typeof Message.Opened.Type
 export type Closed = typeof Message.Closed.Type
-export type RequestedOpen = typeof Message.RequestedOpen.Type
+export type RequestedOpen = typeof InMessage.RequestedOpen.Type
 export type RequestedClose = typeof Message.RequestedClose.Type
 export type RequestedSelectItem = typeof Message.RequestedSelectItem.Type
 export type BlurredInput = typeof Message.BlurredInput.Type
@@ -411,13 +425,17 @@ export const makeUpdateHandlers = <
   Item extends string,
   ItemEncoded,
   ParentOutMessageSchema extends Schema.Top,
+  ParentOwner,
 >(
-  bindChild: Block.BindChild<
+  bindChild: Block.MakeBinding<
     typeof BaseModel,
     MessageSchema<Item, ItemEncoded>,
-    ParentOutMessageSchema
+    ParentOutMessageSchema,
+    typeof InitConfig,
+    'Provided',
+    ParentOwner
   >,
-  makeOutMessageFold: Block.MakeOutMessageFold<
+  makeOutMessageFold: Block.MakeDescriptorOutMessageFold<
     BaseModel,
     Message<Item>,
     OutMessage<Item>
@@ -460,7 +478,7 @@ export const makeUpdateHandlers = <
 
   const AnimationBinding = bindChild(Animation.AnimationBlock, {
     field: 'animation',
-    init: false,
+    init: { contextToArgs: config => [{ id: `${config.id}-items` }] },
   }).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
   const openCommands = (model: Model) =>
@@ -629,8 +647,6 @@ export const makeUpdateHandlers = <
     CompletedAttachPreventBlur: model => ({ model }),
     CompletedAttachSelectOnFocus: model => ({ model }),
     CompletedPortalBackdrop: model => ({ model }),
-    RequestedOpen: model => openWithActiveItem(model, Option.none()),
-
     RequestedClose: (model, { restingInputValue, isClearable }) =>
       closeIfOpen(
         model,
@@ -797,9 +813,11 @@ export const makeUpdateHandlers = <
   }>
 
   return {
+    receiveHandlers: {
+      RequestedOpen: step(model => openWithActiveItem(model, Option.none())),
+    },
     handlers: {
       ...cases,
-      RequestedOpen: step(cases.RequestedOpen),
       RequestedClose: step(cases.RequestedClose),
       RequestedSelectItem: step(cases.RequestedSelectItem),
       Opened: step(cases.Opened),

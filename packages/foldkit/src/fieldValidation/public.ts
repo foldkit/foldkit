@@ -16,5 +16,6 @@ export {
 } from './index.js'
 
 export type { Rules, MakeRulesOptions } from './index.js'
+export type { Rule as FieldRule, RuleMessage } from './ruleContract.js'
 
 export * as Rule from './rule.js'

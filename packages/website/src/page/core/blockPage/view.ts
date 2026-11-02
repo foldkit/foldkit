@@ -5,20 +5,15 @@ import { Disclosure } from '@foldkit/ui'
 
 import { CodeBlock } from '../../../component'
 import { Icon } from '../../../icon'
-import { type RenderHeadingLink, inlineCode } from '../../../prose'
+import { inlineCode } from '../../../prose'
 import * as Snippet from '../../../snippet'
 import { BlockPageComposition, type BlockPageViewBuilder } from './composition'
 import { BlockPageContent } from './content'
 import { Message } from './message'
 import { type Model } from './model'
+import type { ViewInputs } from './viewInputs'
 
 const MAP_MESSAGES_DISCLOSURE_ID = 'block-map-messages-disclosure'
-
-export type ViewInputs = Readonly<{
-  renderCopyButton: CodeBlock.RenderCopyButton
-  renderSnippet: CodeBlock.RenderSnippet
-  renderHeadingLink: RenderHeadingLink
-}>
 
 const mapMessagesUnderHoodDemo = (
   model: Model,

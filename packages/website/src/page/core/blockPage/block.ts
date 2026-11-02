@@ -1,18 +1,15 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { BlockPageComposition } from './composition'
+import { BlockPageDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  BlockPageComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const BlockPageBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const BlockPageBlock = BlockPageDefinition.contract
+
+const block = BlockPageDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+)
+export const layer = block.layer

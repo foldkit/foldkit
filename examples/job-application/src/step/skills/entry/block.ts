@@ -1,20 +1,19 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
-import { SkillsEntryComposition } from './composition'
-import type { Model } from './definition'
-import { Message } from './definition'
+import { RadioGroup } from '@foldkit/ui'
+
+import { ProficiencyRadioGroupBinding } from './composition'
+import { SkillsEntryDefinition } from './definition'
 import { init } from './init'
+import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  SkillsEntryComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: { requestRevealErrors: Message.RequestedRevealErrors },
-  })
-export const SkillsEntryBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const SkillsEntryBlock = SkillsEntryDefinition.contract
+export const layer = SkillsEntryDefinition.makeBlock(
+  Effect.gen(function* () {
+    const proficiencyRadioGroup = yield* ProficiencyRadioGroupBinding
+
+    return { children: [proficiencyRadioGroup], init, update, receive, view }
+  }),
+).provide(Layer.mergeAll(RadioGroup.layer)).layer

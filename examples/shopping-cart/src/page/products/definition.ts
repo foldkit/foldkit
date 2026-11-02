@@ -2,7 +2,7 @@ import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Item } from '../../domain'
+import { Cart, Item } from '../../domain'
 
 export const Model = Schema.Struct({
   products: Schema.Array(Item.Item),
@@ -26,7 +26,13 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
+export const ProductsKey = Symbol('Products')
+
 export const ProductsDefinition = Block.makeDefinition('Products', {
+  key: ProductsKey,
+  Init: Schema.Tuple([Schema.Array(Item.Item)]),
+  view: { kind: 'Element', Inputs: Schema.Struct({ cart: Cart.Cart }) },
+
   Model,
   Message,
   OutMessage,

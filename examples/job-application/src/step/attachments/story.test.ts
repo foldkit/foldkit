@@ -1,59 +1,57 @@
-import { given, message, model, story } from 'foldkit/story'
-import { toParentMessage } from 'foldkit/test'
+import { Effect } from 'effect'
+import { init, messageFrom } from 'foldkit/story'
+import { model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
 import { FileDropBlock } from '@foldkit/ui'
 
+import { AttachmentsBlock, layer } from './block'
 import { AdditionalFilesDropBinding, ResumeDropBinding } from './composition'
-import { init } from './init'
-import { update } from './update'
 
 type FileDropMessage = typeof FileDropBlock.Message.Type
 
-const initialModel = init().model
-
 const resumeDropMessage = (message: FileDropMessage) =>
-  toParentMessage(ResumeDropBinding, message)
+  messageFrom(ResumeDropBinding, message)
 
 const additionalFilesDropMessage = (message: FileDropMessage) =>
-  toParentMessage(AdditionalFilesDropBinding, message)
+  messageFrom(AdditionalFilesDropBinding, message)
 
 describe('attachments', () => {
-  test('a dropped resume is stored as maybeResume', () => {
+  test('a dropped resume is stored as maybeResume', async () => {
     const resume = new globalThis.File(['pdf-bytes'], 'resume.pdf', {
       type: 'application/pdf',
     })
 
-    story(
-      update,
-      given(initialModel),
-      message(
+    await Effect.runPromise(
+      story(
+        AttachmentsBlock,
+        init(),
         resumeDropMessage(
           FileDropBlock.Message.DroppedFiles({ files: [resume] }),
         ),
-      ),
-      model(model => {
-        expect(model.maybeResume._tag).toBe('Some')
-      }),
+        model(model => {
+          expect(model.maybeResume._tag).toBe('Some')
+        }),
+      ).pipe(Effect.provide(layer)),
     )
   })
 
-  test('dropped additional files are appended to the list', () => {
+  test('dropped additional files are appended to the list', async () => {
     const file = new globalThis.File(['content'], 'portfolio.pdf', {
       type: 'application/pdf',
     })
 
-    story(
-      update,
-      given(initialModel),
-      message(
+    await Effect.runPromise(
+      story(
+        AttachmentsBlock,
+        init(),
         additionalFilesDropMessage(
           FileDropBlock.Message.DroppedFiles({ files: [file] }),
         ),
-      ),
-      model(model => {
-        expect(model.additionalFiles).toHaveLength(1)
-      }),
+        model(model => {
+          expect(model.additionalFiles).toHaveLength(1)
+        }),
+      ).pipe(Effect.provide(layer)),
     )
   })
 })

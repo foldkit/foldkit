@@ -1,5 +1,7 @@
 export {
+  InMessage,
   makeBlock,
+  layer,
   ScrollAlignment,
   ScrollTarget,
   ScrollContainer,
@@ -17,3 +19,5 @@ export {
   type ViewInputs,
   type Completed,
 } from './virtualList.js'
+
+export type { VirtualListKey } from './virtualList.js'

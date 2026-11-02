@@ -1,1 +1,1 @@
-export { NotePlayerDemoBlock } from './block'
+export { NotePlayerDemoBlock, layer } from './block'

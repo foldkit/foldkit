@@ -18,7 +18,7 @@ import { waiting } from './waiting'
 
 export type ViewInputs = Readonly<{ roomId: string }>
 
-export const view = RoomComposition.makeView.withInputs<ViewInputs>(
+export const view = RoomComposition.makeView.withInputs(
   (model, viewInputs, h) => {
     const { roomId } = viewInputs
 

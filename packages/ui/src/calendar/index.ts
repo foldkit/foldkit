@@ -1,5 +1,7 @@
 export {
+  InMessage,
   CalendarBlock,
+  layer,
   ViewMode,
   type InitConfig,
   type DayCell,
@@ -14,3 +16,5 @@ export {
   type ViewLabels,
   type ViewInputs,
 } from './block.js'
+
+export type { CalendarKey } from './block.js'

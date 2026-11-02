@@ -1,11 +1,13 @@
-import { Array } from 'effect'
+import { Array, Effect } from 'effect'
 import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
+import * as Story from 'foldkit/story'
+import { it as baseIt } from 'vitest'
 
-import { describe, it } from '@effect/vitest'
+import { describe } from '@effect/vitest'
 
 import type { SliderAttributes } from './slider.js'
-import { Message, init, update, view } from './slider.js'
+import { Message, SliderBlock, layer } from './slider.js'
 
 const testToView = (attributes: SliderAttributes) =>
   ih.div(
@@ -20,17 +22,33 @@ const testToView = (attributes: SliderAttributes) =>
     ],
   )
 
-const sceneView = Scene.withViewInputs(view, {
-  value: 5,
-  toView: testToView,
-})
+const makeFixture = ({
+  init,
+  update,
+  view,
+}: Story.TestBlock<typeof SliderBlock>) => {
+  const sceneView = Scene.withViewInputs(view, {
+    value: 5,
+    toView: testToView,
+  })
 
-const defaultModel = init({
-  id: 'test',
-  min: 0,
-  max: 10,
-  step: 1,
-}).model
+  const defaultModel = init({
+    id: 'test',
+    min: 0,
+    max: 10,
+    step: 1,
+  }).model
+
+  return { update, sceneView, defaultModel }
+}
+const it = baseIt.extend<{ slider: ReturnType<typeof makeFixture> }>({
+  slider: async ({}, use) =>
+    Effect.runPromise(
+      Story.withBlock(SliderBlock, slider =>
+        Effect.promise(() => use(makeFixture(slider))),
+      ).pipe(Effect.provide(layer)),
+    ),
+})
 
 const root = Scene.selector('[data-slider-id="test"]')
 const track = Scene.selector('[data-slider-track-id="test"]')
@@ -40,7 +58,9 @@ const hiddenInput = Scene.selector('[type="hidden"]')
 
 describe('Slider', () => {
   describe('rendering', () => {
-    it('renders the root with data-slider-id and data-orientation', () => {
+    it('renders the root with data-slider-id and data-orientation', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(defaultModel),
@@ -49,7 +69,9 @@ describe('Slider', () => {
       )
     })
 
-    it('renders the track with the data-slider-track-id selector the pointer subscription relies on', () => {
+    it('renders the track with the data-slider-track-id selector the pointer subscription relies on', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(defaultModel),
@@ -57,7 +79,9 @@ describe('Slider', () => {
       )
     })
 
-    it('renders the thumb with role=slider and aria value / orientation attributes', () => {
+    it('renders the thumb with role=slider and aria value / orientation attributes', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(defaultModel),
@@ -71,7 +95,9 @@ describe('Slider', () => {
   })
 
   describe('thumb labeling', () => {
-    it('falls back to aria-labelledby pointing at the label id', () => {
+    it('falls back to aria-labelledby pointing at the label id', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(defaultModel),
@@ -79,7 +105,9 @@ describe('Slider', () => {
       )
     })
 
-    it('uses explicit ariaLabel when provided', () => {
+    it('uses explicit ariaLabel when provided', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ ariaLabel: 'Volume' }) },
         Scene.given(defaultModel),
@@ -88,7 +116,9 @@ describe('Slider', () => {
       )
     })
 
-    it('uses explicit ariaLabelledBy when provided, overriding the default', () => {
+    it('uses explicit ariaLabelledBy when provided, overriding the default', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ ariaLabelledBy: 'external-label' }) },
         Scene.given(defaultModel),
@@ -98,7 +128,9 @@ describe('Slider', () => {
   })
 
   describe('aria-valuetext', () => {
-    it('is absent by default', () => {
+    it('is absent by default', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(defaultModel),
@@ -106,7 +138,9 @@ describe('Slider', () => {
       )
     })
 
-    it('announces the formatted string when formatValue is provided', () => {
+    it('announces the formatted string when formatValue is provided', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         {
           update,
@@ -119,7 +153,9 @@ describe('Slider', () => {
   })
 
   describe('state attributes', () => {
-    it('marks the root, track, and thumb with data-dragging while Dragging', () => {
+    it('marks the root, track, and thumb with data-dragging while Dragging', ({
+      slider: { update, defaultModel, sceneView },
+    }) => {
       const dragStart = update(
         defaultModel,
         Message.PressedThumb({ originValue: 5 }),
@@ -133,7 +169,9 @@ describe('Slider', () => {
       )
     })
 
-    it('marks disabled with aria-disabled and data-disabled', () => {
+    it('marks disabled with aria-disabled and data-disabled', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ isDisabled: true }) },
         Scene.given(defaultModel),
@@ -145,7 +183,9 @@ describe('Slider', () => {
   })
 
   describe('read-only', () => {
-    it('marks the root, track, and thumb with data-readonly and the thumb with aria-readonly', () => {
+    it('marks the root, track, and thumb with data-readonly and the thumb with aria-readonly', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ isReadOnly: true }) },
         Scene.given(defaultModel),
@@ -158,7 +198,9 @@ describe('Slider', () => {
       )
     })
 
-    it('emits both attribute sets when disabled and read-only are combined', () => {
+    it('emits both attribute sets when disabled and read-only are combined', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         {
           update,
@@ -172,7 +214,9 @@ describe('Slider', () => {
       )
     })
 
-    it('drops the track and thumb pointer handlers when read-only', () => {
+    it('drops the track and thumb pointer handlers when read-only', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ isReadOnly: true }) },
         Scene.given(defaultModel),
@@ -181,7 +225,9 @@ describe('Slider', () => {
       )
     })
 
-    it('drops the keyboard handler when read-only', () => {
+    it('drops the keyboard handler when read-only', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ isReadOnly: true }) },
         Scene.given(defaultModel),
@@ -189,7 +235,9 @@ describe('Slider', () => {
       )
     })
 
-    it('keeps the thumb focusable when read-only', () => {
+    it('keeps the thumb focusable when read-only', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ isReadOnly: true }) },
         Scene.given(defaultModel),
@@ -199,30 +247,33 @@ describe('Slider', () => {
   })
 
   describe('vertical Slider geometry', () => {
-    it.each([
+    it.for([
       { value: 0, bottom: '0%' },
       { value: 5, bottom: '50%' },
       { value: 10, bottom: '100%' },
-    ])('positions the centered thumb at value $value', ({ value, bottom }) => {
-      Scene.scene(
-        { update, view: sceneView({ orientation: 'Vertical', value }) },
-        Scene.given(defaultModel),
-        Scene.expect(thumb).toHaveStyle('bottom', bottom),
-        Scene.expect(thumb).toHaveStyle('left', '50%'),
-        Scene.expect(thumb).toHaveStyle(
-          'transform',
-          'translateX(-50%) translateY(50%)',
-        ),
-      )
-    })
+    ])(
+      'positions the centered thumb at value $value',
+      ({ value, bottom }, { slider: { update, sceneView, defaultModel } }) => {
+        Scene.scene(
+          { update, view: sceneView({ orientation: 'Vertical', value }) },
+          Scene.given(defaultModel),
+          Scene.expect(thumb).toHaveStyle('bottom', bottom),
+          Scene.expect(thumb).toHaveStyle('left', '50%'),
+          Scene.expect(thumb).toHaveStyle(
+            'transform',
+            'translateX(-50%) translateY(50%)',
+          ),
+        )
+      },
+    )
 
-    it.each([
+    it.for([
       { value: 0, bottom: 'calc((100% - 0.75rem) * 0)' },
       { value: 5, bottom: 'calc((100% - 0.75rem) * 0.5)' },
       { value: 10, bottom: 'calc((100% - 0.75rem) * 1)' },
     ])(
       'positions the edge-aligned thumb at value $value',
-      ({ value, bottom }) => {
+      ({ value, bottom }, { slider: { update, sceneView, defaultModel } }) => {
         Scene.scene(
           {
             update,
@@ -239,7 +290,9 @@ describe('Slider', () => {
       },
     )
 
-    it('uses thumbSize to position the edge-aligned thumb', () => {
+    it('uses thumbSize to position the edge-aligned thumb', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         {
           update,
@@ -255,7 +308,9 @@ describe('Slider', () => {
       )
     })
 
-    it('sizes the edge-aligned fill to the thumb center', () => {
+    it('sizes the edge-aligned fill to the thumb center', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         {
           update,
@@ -275,7 +330,9 @@ describe('Slider', () => {
   })
 
   describe('thumb alignment attributes', () => {
-    it('marks the track with data-thumb-alignment="center" by default', () => {
+    it('marks the track with data-thumb-alignment="center" by default', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(defaultModel),
@@ -283,7 +340,9 @@ describe('Slider', () => {
       )
     })
 
-    it('marks the track with data-thumb-alignment="edge" for pointer mapping', () => {
+    it('marks the track with data-thumb-alignment="edge" for pointer mapping', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ thumbAlignment: 'Edge' }) },
         Scene.given(defaultModel),
@@ -293,7 +352,9 @@ describe('Slider', () => {
   })
 
   describe('hidden input', () => {
-    it('is absent when no name is provided', () => {
+    it('is absent when no name is provided', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(defaultModel),
@@ -301,7 +362,9 @@ describe('Slider', () => {
       )
     })
 
-    it('renders with the name and current value when name is provided', () => {
+    it('renders with the name and current value when name is provided', ({
+      slider: { update, sceneView, defaultModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ name: 'volume' }) },
         Scene.given(defaultModel),

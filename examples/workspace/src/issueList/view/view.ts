@@ -5,11 +5,10 @@ import { Button } from '@foldkit/ui'
 import { IssueListComposition } from '../composition'
 import { filterAndSortIssues } from '../filter'
 import { Message } from '../message'
-import type { ViewInputs } from '../viewInputs'
 import { issueGroupsView } from './rows'
 import { filterToolbarView, listSummaryView } from './toolbar'
 
-export const view = IssueListComposition.makeView.withInputs<ViewInputs>(
+export const view = IssueListComposition.makeView.withInputs(
   (model, viewInputs, h) => {
     const issues = filterAndSortIssues(viewInputs.filters, viewInputs.issues)
 
@@ -44,7 +43,7 @@ export const view = IssueListComposition.makeView.withInputs<ViewInputs>(
                 h.p([], ['Try another search or status filter.']),
                 Button.view(
                   {
-                    onClick: Message.RequestedClearFilters(),
+                    onClick: Message.ClickedClearFilters(),
                     toView: attributes =>
                       h.button(
                         [...attributes.button, h.Class('button-compact')],

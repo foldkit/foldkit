@@ -1,5 +1,6 @@
 import { Array, Option } from 'effect'
 import { type Block, Calendar as FoldkitCalendar } from 'foldkit'
+import type * as Html from 'foldkit/html'
 
 import {
   CalendarBlock,
@@ -556,3 +557,4 @@ export const UiComposition = UiDefinition.makeComposition({
   ],
 })
 export type UiViewBuilder = Block.ViewBuilderFor<typeof UiComposition>
+export type UiMessage = Html.MessageOf<UiViewBuilder>

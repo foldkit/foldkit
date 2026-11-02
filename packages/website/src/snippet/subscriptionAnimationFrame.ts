@@ -14,7 +14,14 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const SpinnerDefinition = Block.makeDefinition('Spinner', { Model, Message })
+const SpinnerKey = Symbol('Spinner')
+
+const SpinnerDefinition = Block.makeDefinition('Spinner', {
+  key: SpinnerKey,
+  Init: Schema.Tuple([]),
+  Model,
+  Message,
+})
 
 const subscriptions = SpinnerDefinition.makeSubscriptions(entry => ({
   animationFrameTicks: entry(

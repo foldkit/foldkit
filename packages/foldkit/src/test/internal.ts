@@ -35,6 +35,21 @@ import {
   sameOperation,
 } from './bindingMatcher.js'
 
+/** Deferred initializer arguments for a Block-aware Story or Scene. */
+export interface InitStep<Args extends ReadonlyArray<unknown>> {
+  readonly _tag: 'BlockInitStep'
+  readonly args: Readonly<Args>
+}
+
+/**
+ * Selects a Block's initializer without running it. The test constructs its
+ * graph first, then retains the initializer's Model and Commands.
+ * Arguments are checked against the Block passed to `story` or `scene`.
+ */
+export const init = <const Args extends ReadonlyArray<unknown>>(
+  ...args: Args
+): InitStep<Args> => ({ _tag: 'BlockInitStep', args })
+
 /** A Command in a test simulation. Carries `name` and optionally the `args`
  *  the runtime captured at construction. Instance matchers (Command values
  *  produced by calling a Definition) are matched against this shape; the

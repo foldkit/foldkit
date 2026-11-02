@@ -1,22 +1,22 @@
 import { Duration, Effect, Fiber, Option, Schema, Stream } from 'effect'
+import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { expect, vi } from 'vitest'
+import { it as baseIt, expect, vi } from 'vitest'
 
-import { describe, it } from '@effect/vitest'
+import { describe } from '@effect/vitest'
 
-import * as Animation from '../animation/block.js'
+import { makeInitialModel } from '../animation/schema.js'
 import { Message, SwipeState } from './toast.js'
-import { makeFixture } from './toast.js'
+import { layer, makeFixture } from './toast.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
 type TestPayload = typeof TestPayload.Type
 const ToastFixture = makeFixture(TestPayload)
-const block = ToastFixture.block
-const toastInit = ToastFixture.init
+const ToastBlock = ToastFixture.block
 
-type Model = typeof block.Model.Type
+type Model = typeof ToastBlock.Model.Type
 type Entry = typeof ToastFixture.Entry.Type
-type ToastMessage = typeof block.Message.Type
+type ToastMessage = typeof ToastFixture.Message.Type
 
 const POINTER_ID = 1
 const OTHER_POINTER_ID = 2
@@ -28,7 +28,7 @@ const makeDraggingEntry = (
 ): Entry => ({
   id,
   variant: 'Info',
-  animation: Animation.init({ id, isShowing: true }).model,
+  animation: makeInitialModel({ id, isShowing: true }),
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
@@ -37,32 +37,48 @@ const makeDraggingEntry = (
   payload: { body: 'Hello' },
 })
 
-const withDraggingEntries = (entries: ReadonlyArray<Entry>): Model =>
-  modifyFields(toastInit({ id: 'test', swipeToDismiss: {} }).model, {
-    entries: () => entries,
-    nextEntryKey: () => entries.length,
-  })
-
 const waitForNextTurn = (): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, 0))
 
+const makeTestFixture = (block: Story.TestBlock<typeof ToastBlock>) => {
+  const toastInit = block.init
+  const withDraggingEntries = (entries: ReadonlyArray<Entry>): Model =>
+    modifyFields(toastInit({ id: 'test', swipeToDismiss: {} }).model, {
+      entries: () => entries,
+      nextEntryKey: () => entries.length,
+    })
+
+  return { toastInit, withDraggingEntries }
+}
+
+const it = baseIt.extend<{ toast: ReturnType<typeof makeTestFixture> }>({
+  toast: async ({}, use) =>
+    Effect.runPromise(
+      Story.withBlock(ToastBlock, block =>
+        Effect.promise(() => use(makeTestFixture(block))),
+      ).pipe(Effect.provide(layer)),
+    ),
+})
+
 describe('Toast Subscriptions', () => {
-  it('emits PressedEscape only for the Escape key', async () => {
+  it('emits PressedEscape only for the Escape key', async ({
+    toast: { withDraggingEntries },
+  }) => {
     const model = withDraggingEntries([
       makeDraggingEntry('test-entry-0', POINTER_ID, 100),
       makeDraggingEntry('test-entry-1', OTHER_POINTER_ID, 200),
     ])
     const dependencies =
-      block.subscriptions.swipeEscape.modelToDependencies(model)
+      ToastFixture.subscriptions.swipeEscape.modelToDependencies(model)
     const stream =
-      block.subscriptions.swipeEscape.dependenciesToStream(dependencies)
+      ToastFixture.subscriptions.swipeEscape.dependenciesToStream(dependencies)
     const received: Array<ToastMessage> = []
     const fiber = Effect.runFork(
       Stream.runForEach(stream, message =>
         Effect.sync(() => {
           received.push(message)
         }),
-      ).pipe(Effect.provide(block.EffectsLayer)),
+      ).pipe(Effect.provide(ToastFixture.EffectsLayer)),
     )
 
     try {
@@ -82,7 +98,9 @@ describe('Toast Subscriptions', () => {
     }
   })
 
-  it('leaves existing document selection styles intact while dragging', async () => {
+  it('leaves existing document selection styles intact while dragging', async ({
+    toast: { withDraggingEntries },
+  }) => {
     const documentElement = document.documentElement
     const previousStyle = documentElement.getAttribute('style')
     const previousStyleCount = document.head.querySelectorAll('style').length
@@ -93,12 +111,12 @@ describe('Toast Subscriptions', () => {
       makeDraggingEntry('test-entry-0', POINTER_ID, 100),
     ])
     const dependencies =
-      block.subscriptions.swipePointer.modelToDependencies(model)
+      ToastFixture.subscriptions.swipePointer.modelToDependencies(model)
     expect(dependencies.isAnyDragging).toBe(true)
     const stream =
-      block.subscriptions.swipePointer.dependenciesToStream(dependencies)
+      ToastFixture.subscriptions.swipePointer.dependenciesToStream(dependencies)
     const fiber = Effect.runFork(
-      Stream.runDrain(stream).pipe(Effect.provide(block.EffectsLayer)),
+      Stream.runDrain(stream).pipe(Effect.provide(ToastFixture.EffectsLayer)),
     )
 
     try {

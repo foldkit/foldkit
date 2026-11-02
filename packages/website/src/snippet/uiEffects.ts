@@ -1,3 +1,5 @@
+import { Effect, Layer } from 'effect'
+
 // composition.ts
 import { Dialog, Menu } from '@foldkit/ui'
 
@@ -64,16 +66,14 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+    const menu = yield* MenuBinding
+
+    return { children: [dialog, menu], init, update, view }
+  }),
+).provide(Layer.mergeAll(Dialog.layer, Menu.layer))
 
 // entry.ts
 import { Program, Runtime } from 'foldkit'

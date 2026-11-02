@@ -1,1 +1,1 @@
-export { AttachmentsBlock } from './block'
+export { AttachmentsBlock, layer } from './block'

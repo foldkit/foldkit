@@ -15,7 +15,11 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
   Model,
   Message: Schema.Never,
 })

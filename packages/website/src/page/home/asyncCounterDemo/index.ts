@@ -1,1 +1,1 @@
-export { AsyncCounterDemoBlock } from './block'
+export { AsyncCounterDemoBlock, layer } from './block'

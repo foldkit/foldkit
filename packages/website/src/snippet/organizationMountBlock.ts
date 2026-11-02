@@ -1,22 +1,17 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { PanelComposition } from './composition'
+import { PanelDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
 import { MeasurePanel } from './mount'
 import { update } from './update'
 import { view } from './view'
 
 export const EffectsLayer = MeasurePanel.layer
 
-const prepare = () =>
-  PanelComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const PanelBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const PanelBlock = PanelDefinition.contract
+
+export const layer = PanelDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view, EffectsLayer }
+  }),
+).layer

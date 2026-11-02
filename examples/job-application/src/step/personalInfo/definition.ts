@@ -32,15 +32,25 @@ export const Message = defineMessageUnion({
     field: Field(Schema.String),
   },
   UpdatedPhone: { value: Schema.String },
-  RequestedRevealErrors: {},
   UpdatedCustomPronouns: { value: Schema.String },
   UpdatedPortfolioUrl: { value: Schema.String },
 })
 export type Message = typeof Message.Type
 
+export const InMessage = defineMessageUnion({
+  RequestedRevealErrors: {},
+})
+export type InMessage = typeof InMessage.Type
+
+export const PersonalInfoKey = Symbol('PersonalInfo')
+
 export const PersonalInfoDefinition = Block.makeDefinition('PersonalInfo', {
+  key: PersonalInfoKey,
+  Init: Schema.Tuple([CalendarDate]),
+  view: { kind: 'Element' },
   Model,
   Message,
+  InMessage,
   ChildInitContext: CalendarDate,
 })
 

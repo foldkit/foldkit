@@ -4,11 +4,21 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const expectedVersion = process.argv[2]
+const [
+  expectedVersion,
+  expectedPlatformBrowserVersion,
+  expectedPlatformNodeVersion,
+  expectedPlatformNodeSharedVersion,
+] = process.argv.slice(2)
 
-if (expectedVersion === undefined) {
+if (
+  expectedVersion === undefined ||
+  expectedPlatformBrowserVersion === undefined ||
+  expectedPlatformNodeVersion === undefined ||
+  expectedPlatformNodeSharedVersion === undefined
+) {
   throw new Error(
-    'Usage: node scripts/effect-runtime.mjs <expected-effect-version>',
+    'Usage: node scripts/effect-runtime.mjs <effect-version> <platform-browser-version> <platform-node-version> <platform-node-shared-version>',
   )
 }
 
@@ -45,6 +55,28 @@ if (
 const consumerRequire = createRequire(resolve(process.cwd(), 'package.json'))
 const rootEffectPath = realpathSync(
   consumerRequire.resolve('effect/package.json'),
+)
+const platformVersions = Object.fromEntries(
+  Object.entries({
+    '@effect/platform-browser': expectedPlatformBrowserVersion,
+    '@effect/platform-node': expectedPlatformNodeVersion,
+    '@effect/platform-node-shared': expectedPlatformNodeSharedVersion,
+  }).map(([packageName, expectedPlatformVersion]) => {
+    const installed = JSON.parse(
+      readFileSync(
+        consumerRequire.resolve(`${packageName}/package.json`),
+        'utf8',
+      ),
+    )
+
+    if (installed.version !== expectedPlatformVersion) {
+      throw new Error(
+        `Expected installed ${packageName} ${expectedPlatformVersion}, found ${installed.version}`,
+      )
+    }
+
+    return [packageName, installed.version]
+  }),
 )
 const packages = [
   'foldkit',
@@ -127,6 +159,7 @@ if (installedEffect.version !== expectedVersion) {
 console.log(
   JSON.stringify({
     effectVersion: expectedVersion,
+    platformVersions,
     effectPath: rootEffectPath,
     resolvedPackages: resolutions.length,
     npmLs: 'ok',

@@ -1,9 +1,10 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
 
-import { ExampleDetailComposition } from './composition'
-import { EffectsLayer, init, update, view } from './example'
-import { Message } from './message'
-import type { Model } from './model'
+import { Tabs } from '@foldkit/ui'
+
+import { SourceFileTabsBinding } from './composition'
+import { ExampleDetailDefinition } from './definition'
+import { EffectsLayer, init, receive, update, view } from './example'
 
 export { mounts } from './composition'
 export {
@@ -18,17 +19,20 @@ export {
   view,
 } from './example'
 
-const prepare = () =>
-  ExampleDetailComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      informRouteChanged: Message.InformedOfRouteChange,
-    },
-    EffectsLayer,
-  })
-export const ExampleDetailBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ExampleDetailBlock = ExampleDetailDefinition.contract
+
+const block = ExampleDetailDefinition.makeBlock(
+  Effect.gen(function* () {
+    const sourceFileTabs = yield* SourceFileTabsBinding
+
+    return {
+      children: [sourceFileTabs],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
+  }),
+).provide(Layer.mergeAll(Tabs.layer))
+export const layer = block.layer

@@ -1,22 +1,46 @@
+import { Effect } from 'effect'
 import * as Story from 'foldkit/story'
-import { describe, expect, it } from 'vitest'
+import { it as baseIt, describe, expect } from 'vitest'
 
 import {
+  InMessage,
   Message,
   OutMessage,
   SliderBlock as block,
   fractionOfValue,
-  init,
+  layer,
   snapAndClamp,
-  update,
   valueFromPointer,
 } from './slider.js'
 
-const defaultInit = () => init({ id: 'test', min: 0, max: 10, step: 1 }).model
+type SliderOperations = Pick<
+  Effect.Success<typeof block.get>,
+  'init' | 'update' | 'receive' | 'operations'
+>
+const makeFixture = ({
+  init,
+  update,
+  receive,
+  operations,
+}: SliderOperations) => {
+  const defaultInit = () => init({ id: 'test', min: 0, max: 10, step: 1 }).model
+
+  return { init, update, receive, operations, defaultInit }
+}
+const it = baseIt.extend<{ slider: ReturnType<typeof makeFixture> }>({
+  slider: async ({}, use) =>
+    Effect.runPromise(
+      Story.withBlock(block, slider =>
+        Effect.promise(() => use(makeFixture(slider))),
+      ).pipe(Effect.provide(layer)),
+    ),
+})
 
 describe('Slider', () => {
   describe('init', () => {
-    it('starts Idle with the configured range', () => {
+    it('starts Idle with the configured range', ({
+      slider: { defaultInit },
+    }) => {
       const model = defaultInit()
       expect(model.id).toBe('test')
       expect(model.min).toBe(0)
@@ -45,7 +69,9 @@ describe('Slider', () => {
   })
 
   describe('keyboard navigation', () => {
-    it('increments by step on StepIncrement', () => {
+    it('increments by step on StepIncrement', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -59,7 +85,9 @@ describe('Slider', () => {
       )
     })
 
-    it('decrements by step on StepDecrement', () => {
+    it('decrements by step on StepDecrement', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -73,7 +101,9 @@ describe('Slider', () => {
       )
     })
 
-    it('increments by 10 steps on PageIncrement', () => {
+    it('increments by 10 steps on PageIncrement', ({
+      slider: { update, init },
+    }) => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 100, step: 1 }).model),
@@ -87,7 +117,9 @@ describe('Slider', () => {
       )
     })
 
-    it('decrements by 10 steps on PageDecrement', () => {
+    it('decrements by 10 steps on PageDecrement', ({
+      slider: { update, init },
+    }) => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 100, step: 1 }).model),
@@ -101,7 +133,7 @@ describe('Slider', () => {
       )
     })
 
-    it('jumps to min on Min', () => {
+    it('jumps to min on Min', ({ slider: { update, init } }) => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 2, max: 20, step: 1 }).model),
@@ -115,7 +147,7 @@ describe('Slider', () => {
       )
     })
 
-    it('jumps to max on Max', () => {
+    it('jumps to max on Max', ({ slider: { update, init } }) => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 99, step: 1 }).model),
@@ -129,7 +161,9 @@ describe('Slider', () => {
       )
     })
 
-    it('emits no OutMessage when a step increment is clamped to the same value', () => {
+    it('emits no OutMessage when a step increment is clamped to the same value', ({
+      slider: { update, init },
+    }) => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 10, step: 1 }).model),
@@ -143,7 +177,9 @@ describe('Slider', () => {
       )
     })
 
-    it('emits no OutMessage when a step decrement is clamped to the same value', () => {
+    it('emits no OutMessage when a step decrement is clamped to the same value', ({
+      slider: { update, init },
+    }) => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 10, step: 1 }).model),
@@ -157,7 +193,7 @@ describe('Slider', () => {
       )
     })
 
-    it('respects fractional step (0.1)', () => {
+    it('respects fractional step (0.1)', ({ slider: { update, init } }) => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 1, step: 0.1 }).model),
@@ -173,7 +209,9 @@ describe('Slider', () => {
   })
 
   describe('thumb press', () => {
-    it('starts a drag without emitting an OutMessage', () => {
+    it('starts a drag without emitting an OutMessage', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -188,7 +226,9 @@ describe('Slider', () => {
       )
     })
 
-    it('ignores a bubbled PressedPointer after PressedThumb so the value is not shifted', () => {
+    it('ignores a bubbled PressedPointer after PressedThumb so the value is not shifted', ({
+      slider: { update, init },
+    }) => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 1, step: 0.05 }).model),
@@ -206,7 +246,9 @@ describe('Slider', () => {
       )
     })
 
-    it('is a no-op when already Dragging', () => {
+    it('is a no-op when already Dragging', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -223,7 +265,9 @@ describe('Slider', () => {
   })
 
   describe('pointer drag', () => {
-    it('snaps value and starts a drag on track press', () => {
+    it('snaps value and starts a drag on track press', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -238,7 +282,9 @@ describe('Slider', () => {
       )
     })
 
-    it('ignores PressedPointer while Dragging (absorbs the thumb→track bubble)', () => {
+    it('ignores PressedPointer while Dragging (absorbs the thumb→track bubble)', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -254,7 +300,7 @@ describe('Slider', () => {
       )
     })
 
-    it('snaps PressedPointer value to step', () => {
+    it('snaps PressedPointer value to step', ({ slider: { update, init } }) => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 10, step: 2 }).model),
@@ -263,7 +309,9 @@ describe('Slider', () => {
       )
     })
 
-    it('emits the snapped value on MovedDragPointer while Dragging', () => {
+    it('emits the snapped value on MovedDragPointer while Dragging', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -276,7 +324,9 @@ describe('Slider', () => {
       )
     })
 
-    it('ignores MovedDragPointer when Idle', () => {
+    it('ignores MovedDragPointer when Idle', ({
+      slider: { defaultInit, update },
+    }) => {
       const originalModel = defaultInit()
       Story.story(
         update,
@@ -289,7 +339,9 @@ describe('Slider', () => {
       )
     })
 
-    it('transitions from Dragging to Idle on ReleasedDragPointer', () => {
+    it('transitions from Dragging to Idle on ReleasedDragPointer', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -302,7 +354,9 @@ describe('Slider', () => {
       )
     })
 
-    it('ignores ReleasedDragPointer when Idle', () => {
+    it('ignores ReleasedDragPointer when Idle', ({
+      slider: { defaultInit, update },
+    }) => {
       const originalModel = defaultInit()
       Story.story(
         update,
@@ -314,7 +368,9 @@ describe('Slider', () => {
       )
     })
 
-    it('emits the origin value on CancelledDrag while Dragging', () => {
+    it('emits the origin value on CancelledDrag while Dragging', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -328,7 +384,9 @@ describe('Slider', () => {
       )
     })
 
-    it('emits the origin value on CancelledDrag after PressedThumb', () => {
+    it('emits the origin value on CancelledDrag after PressedThumb', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -342,7 +400,9 @@ describe('Slider', () => {
       )
     })
 
-    it('ignores CancelledDrag when Idle', () => {
+    it('ignores CancelledDrag when Idle', ({
+      slider: { defaultInit, update },
+    }) => {
       const originalModel = defaultInit()
       Story.story(
         update,
@@ -354,7 +414,9 @@ describe('Slider', () => {
       )
     })
 
-    it('clamps MovedDragPointer above max', () => {
+    it('clamps MovedDragPointer above max', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -364,7 +426,9 @@ describe('Slider', () => {
       )
     })
 
-    it('clamps MovedDragPointer below min', () => {
+    it('clamps MovedDragPointer below min', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -376,7 +440,9 @@ describe('Slider', () => {
   })
 
   describe('OutMessage', () => {
-    it('emits ChangedValue on StepIncrement when value changes', () => {
+    it('emits ChangedValue on StepIncrement when value changes', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -390,7 +456,9 @@ describe('Slider', () => {
       )
     })
 
-    it('emits ChangedValue when restoring origin on CancelledDrag', () => {
+    it('emits ChangedValue when restoring origin on CancelledDrag', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -400,7 +468,9 @@ describe('Slider', () => {
       )
     })
 
-    it('emits no OutMessage on ReleasedDragPointer (value already set during drag)', () => {
+    it('emits no OutMessage on ReleasedDragPointer (value already set during drag)', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -410,7 +480,9 @@ describe('Slider', () => {
       )
     })
 
-    it('emits no OutMessage when PressedPointer snaps to the current value', () => {
+    it('emits no OutMessage when PressedPointer snaps to the current value', ({
+      slider: { update, defaultInit },
+    }) => {
       Story.story(
         update,
         Story.given(defaultInit()),
@@ -604,10 +676,10 @@ describe('Slider', () => {
     })
   })
 
-  describe('informRangeChanged', () => {
-    it('updates min and max', () => {
+  describe('informRangeChange', () => {
+    it('updates min and max', ({ slider: { defaultInit, operations } }) => {
       const before = defaultInit()
-      const after = block.operations.informRangeChanged(before, {
+      const after = operations.informRangeChange(before, {
         min: 100,
         max: 200,
       })
@@ -615,10 +687,12 @@ describe('Slider', () => {
       expect(after.model.max).toBe(200)
     })
 
-    it('handles the informed range fact without emitting a value change', () => {
-      const after = update(
+    it('handles the informed range fact without emitting a value change', ({
+      slider: { receive, defaultInit },
+    }) => {
+      const after = receive(
         defaultInit(),
-        Message.InformedOfRangeChange({ min: 0, max: 50 }),
+        InMessage.InformedOfRangeChange({ min: 0, max: 50 }),
       )
       expect(after.outMessage).toBeUndefined()
       expect(after.commands).toBeUndefined()
@@ -626,14 +700,16 @@ describe('Slider', () => {
       expect(after.model.max).toBe(50)
     })
 
-    it('updates the range even while Dragging', () => {
+    it('updates the range even while Dragging', ({
+      slider: { update, defaultInit, operations },
+    }) => {
       const dragStart = update(
         defaultInit(),
         Message.PressedThumb({ originValue: 5 }),
       )
       expect(dragStart.model.dragState._tag).toBe('Dragging')
 
-      const after = block.operations.informRangeChanged(dragStart.model, {
+      const after = operations.informRangeChange(dragStart.model, {
         min: 7,
         max: 10,
       })

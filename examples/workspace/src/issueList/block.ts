@@ -1,22 +1,31 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { IssueListComposition } from './composition'
+import * as Listbox from '@foldkit/ui/listbox'
+
+import {
+  GroupListboxBinding,
+  SortListboxBinding,
+  StatusListboxBinding,
+} from './composition'
+import { IssueListDefinition } from './definition'
 import { init } from './init'
-import { Message } from './message'
-import type { Model } from './model'
+import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  IssueListComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      requestClearFilters: Message.RequestedClearFilters,
-    },
-  })
-export const IssueListBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+const block = IssueListDefinition.makeBlock(
+  Effect.gen(function* () {
+    const statusListbox = yield* StatusListboxBinding
+    const sortListbox = yield* SortListboxBinding
+    const groupListbox = yield* GroupListboxBinding
+    return {
+      children: [statusListbox, sortListbox, groupListbox],
+      init,
+      update,
+      receive,
+      view,
+    }
+  }),
+).provide(Listbox.layer)
+
+export const layer = block.layer

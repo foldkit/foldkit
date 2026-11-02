@@ -23,6 +23,10 @@ import { LocalMountsTypeId, isComposition } from '../block/definition.js'
 import { kebabToPascal } from '../customElement/index.js'
 import type { CustomElementSpec, EventSchema } from '../customElement/index.js'
 import { serializedStylePropertyName } from '../domReflection.js'
+import {
+  type InMessageStep,
+  runInMessageStep,
+} from '../experimental/layered/testing/inMessage.js'
 import type { File } from '../file/index.js'
 import type { FoldkitMountMarker } from '../html/index.js'
 import {
@@ -137,6 +141,8 @@ import {
   allText,
   allTitle,
 } from './query.js'
+
+export { type InitStep, init } from './internal.js'
 
 export type {
   AnyCommand,
@@ -374,8 +380,10 @@ export type SceneStep<
   OutMessage,
   Subscriptions = undefined,
   Routing = undefined,
+  InMessage = never,
 > =
   | GivenStep<NoInfer<Model>>
+  | ([InMessage] extends [never] ? never : InMessageStep<NoInfer<InMessage>>)
   | ([Routing] extends [SceneRouting<NoInfer<Message>>]
       ? ChangedUrlStep
       : never)
@@ -419,7 +427,8 @@ export type SceneStep<
           NoInfer<Message>,
           NoInfer<OutMessage>,
           NoInfer<Subscriptions>,
-          NoInfer<Routing>
+          NoInfer<Routing>,
+          NoInfer<InMessage>
         >
       >
     >
@@ -1021,6 +1030,30 @@ const applySubscriptionMessage = <Model, Message, OutMessage>(
   } as SceneSimulation<Model, Message, OutMessage>
 }
 
+const applyInMessage = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  step: object,
+): SceneSimulation<Model, Message, OutMessage> => {
+  assertExternalMessageBoundary(
+    simulation,
+    'when a Block received an InMessage',
+  )
+  const internal = toInternal(simulation)
+  const received = runInMessageStep<Model, OutMessage>(step, internal.model)
+
+  const next = {
+    ...internal,
+    model: received.model,
+    message: undefined,
+    commands: Array.appendAll(internal.commands, received.commands ?? []),
+  }
+
+  return withOutMessages(
+    next,
+    received.outMessage === undefined ? [] : [received.outMessage],
+  )
+}
+
 const applySubscriptionActivity = <Model, Message, OutMessage>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
   step: SubscriptionActivityStep<unknown>,
@@ -1391,6 +1424,32 @@ export const given = <Model>(model: Model): GivenStep<Model> => {
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }
 
+/** @internal Seeds a scene from a complete initialization result without executing Commands. */
+export const __givenInit = <Model, OutMessage = undefined>(
+  init: SimulationUpdateReturn<Model, OutMessage>,
+): GivenStep<Model> => {
+  const step = <Message>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const seeded = {
+      ...toInternal(simulation),
+      model: init.model,
+      commands: init.commands ?? [],
+    }
+
+    return withOutMessages(
+      seeded,
+      init.outMessage === undefined ? [] : [init.outMessage],
+    )
+  }
+
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  return Object.assign(step, {
+    _phantomModel: undefined as unknown as Model,
+  }) as GivenStep<Model>
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+}
+
 /** Resolves a pending Command with its raw result Message. A Definition matches
  *  its originating identity; an instance also matches its complete args.
  *  A scoped instance selects its composition occurrence. */
@@ -1625,7 +1684,7 @@ const expectEndedMountsStep =
   ): SceneSimulation<Model, Message, OutMessage> => {
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
-    const remaining: Array<MountMatcher> = Array.fromIterable(matchers)
+    const remaining: Array<MountMatcher> = [...matchers]
     const updatedSlots: Array<MountSlotState> = []
     for (const state of internal.mountSlots) {
       const maybeMatchIndex = Array.findFirstIndex(
@@ -2254,9 +2313,23 @@ export const tap =
     return simulation
   }
 
-const applySceneStep = <Model, Message, OutMessage, Subscriptions, Routing>(
+const applySceneStep = <
+  Model,
+  Message,
+  OutMessage,
+  Subscriptions,
+  Routing,
+  InMessage,
+>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
-  step: SceneStep<Model, Message, OutMessage, Subscriptions, Routing>,
+  step: SceneStep<
+    Model,
+    Message,
+    OutMessage,
+    Subscriptions,
+    Routing,
+    InMessage
+  >,
 ): SceneSimulation<Model, Message, OutMessage> => {
   if (Predicate.isTagged(step, 'InsideStep')) {
     return applyInsideStep(simulation, step)
@@ -2264,6 +2337,10 @@ const applySceneStep = <Model, Message, OutMessage, Subscriptions, Routing>(
 
   if (Predicate.isTagged(step, 'ChangedUrlStep')) {
     return applyChangedUrl(simulation, step)
+  }
+
+  if (Predicate.isTagged(step, 'BlockInMessageStep')) {
+    return applyInMessage(simulation, step)
   }
 
   if (Predicate.isTagged(step, 'SubscriptionMessageStep')) {
@@ -2291,10 +2368,17 @@ const applySceneStep = <Model, Message, OutMessage, Subscriptions, Routing>(
   return simulation
 }
 
-const runSteps = <Model, Message, OutMessage, Subscriptions, Routing>(
+const runSteps = <
+  Model,
+  Message,
+  OutMessage,
+  Subscriptions,
+  Routing,
+  InMessage,
+>(
   seed: SceneSimulation<Model, Message, OutMessage>,
   steps: ReadonlyArray<
-    SceneStep<Model, Message, OutMessage, Subscriptions, Routing>
+    SceneStep<Model, Message, OutMessage, Subscriptions, Routing, InMessage>
   >,
 ): SceneSimulation<Model, Message, OutMessage> =>
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
@@ -2347,10 +2431,19 @@ const runSteps = <Model, Message, OutMessage, Subscriptions, Routing>(
   })
 /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
-const applyInsideStep = <Model, Message, OutMessage, Subscriptions, Routing>(
+const applyInsideStep = <
+  Model,
+  Message,
+  OutMessage,
+  Subscriptions,
+  Routing,
+  InMessage,
+>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
   step: InsideStep<
-    ReadonlyArray<SceneStep<Model, Message, OutMessage, Subscriptions, Routing>>
+    ReadonlyArray<
+      SceneStep<Model, Message, OutMessage, Subscriptions, Routing, InMessage>
+    >
   >,
 ): SceneSimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
@@ -2369,7 +2462,8 @@ const applyInsideStep = <Model, Message, OutMessage, Subscriptions, Routing>(
     Message,
     OutMessage,
     Subscriptions,
-    Routing
+    Routing,
+    InMessage
   >(scopedEntry, step.steps)
   const afterInternal = toInternal(afterSteps)
   return {
@@ -2385,7 +2479,9 @@ const applyInsideStep = <Model, Message, OutMessage, Subscriptions, Routing>(
  *  prefer `within(parent, child)` directly. Nested `inside` calls compose scopes
  *  via `within(outer, inner)`. */
 export const inside = <
-  const Steps extends ReadonlyArray<SceneStep<any, any, any, any, any>>,
+  const Steps extends ReadonlyArray<
+    SceneStep<any, any, any, any, any, unknown>
+  >,
 >(
   parent: Locator,
   ...steps: Steps
@@ -3618,7 +3714,8 @@ export const withViewInputs =
 // SCENE
 
 /** Configuration for a deterministic Scene. Routing and Subscription entries
- * declare the external causes the Scene may deliver; no Effects are executed. */
+ * declare the external causes the Scene may deliver; no Effects are executed.
+ * The `block` selector belongs to the separate scoped Block configuration. */
 export type SceneConfig<
   Model,
   Message,
@@ -3626,6 +3723,7 @@ export type SceneConfig<
   Subscriptions = undefined,
   Routing = undefined,
 > = Readonly<{
+  block?: never
   update: (
     model: Model,
     message: Message,

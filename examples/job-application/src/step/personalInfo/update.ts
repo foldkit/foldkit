@@ -1,48 +1,23 @@
 import { Match, Number } from 'effect'
 import {
   Field,
-  Rule,
   Validating,
   allValid,
   anyInvalid,
-  makeRules,
   validate,
 } from 'foldkit/fieldValidation'
 import { modifyFields } from 'foldkit/struct'
 
-import { revealFieldErrors } from '../validation'
 import { ValidateEmailAsync } from './command'
 import { PersonalInfoComposition } from './composition'
 import { type Model, makeFieldsStep } from './definition'
-
-const firstNameRules = makeRules({
-  required: 'First name is required',
-  rules: [Rule.minLength(2, 'First name must be at least 2 characters')],
-})
-
-const lastNameRules = makeRules({
-  required: 'Last name is required',
-})
-
-const emailRules = makeRules({
-  required: 'Email is required',
-  rules: [Rule.email('Please enter a valid email address')],
-})
-
-const PHONE_PATTERN = /^\+?[\d\s()-]{7,}$/
-
-const phoneRules = makeRules({
-  rules: [Rule.pattern(PHONE_PATTERN, 'Please enter a valid phone number')],
-})
-
-const portfolioUrlRules = makeRules({
-  rules: [
-    Rule.url({
-      message: 'Please enter a valid URL',
-      requireProtocol: false,
-    }),
-  ],
-})
+import {
+  emailRules,
+  firstNameRules,
+  lastNameRules,
+  phoneRules,
+  portfolioUrlRules,
+} from './validation'
 
 const validateFirstName = validate(firstNameRules)
 const validateLastName = validate(lastNameRules)
@@ -88,14 +63,6 @@ export const update = PersonalInfoComposition.makeUpdate({
 
   UpdatedPhone: makeFieldsStep.fromMessage(({ value }) => ({
     phone: () => validatePhone(value),
-  })),
-
-  RequestedRevealErrors: makeFieldsStep(() => ({
-    firstName: revealFieldErrors(firstNameRules),
-    lastName: revealFieldErrors(lastNameRules),
-    email: revealFieldErrors(emailRules),
-    phone: revealFieldErrors(phoneRules),
-    portfolioUrl: revealFieldErrors(portfolioUrlRules),
   })),
 
   UpdatedCustomPronouns: makeFieldsStep.fromMessage(({ value }) => ({

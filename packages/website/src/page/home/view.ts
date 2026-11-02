@@ -6,8 +6,7 @@ import {
   inertHtml as ih,
 } from 'foldkit/html'
 
-import { type ResolvedTheme } from '../../colorScheme'
-import { type CodeBlock, Shared } from '../../component'
+import { Shared } from '../../component'
 import { Icon } from '../../icon'
 import {
   type ExampleMeta,
@@ -29,6 +28,7 @@ import * as DemoTab from './demoTab'
 import { Message } from './message'
 import { NotePlayerDemoBlock } from './notePlayerDemo'
 import { PlaygroundMenuBlock } from './playgroundMenu'
+import type { ViewInputs } from './viewInputs'
 
 type AsyncCounterDemoBlockModel = typeof AsyncCounterDemoBlock.Model.Type
 type NotePlayerDemoBlockModel = typeof NotePlayerDemoBlock.Model.Type
@@ -170,16 +170,6 @@ const playgroundMenuView = (
       },
     }),
   )
-
-type ViewInputs = Readonly<{
-  renderCopyButton: CodeBlock.RenderCopyButton
-  renderSnippet: CodeBlock.RenderSnippet
-  isNarrowViewport: boolean
-  maybeGitHubStarCount: Option.Option<number>
-  resolvedTheme: ResolvedTheme
-  isBrowserEnvironmentLoaded: boolean
-  newsletterEmail: string
-}>
 
 export const view = HomeComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {

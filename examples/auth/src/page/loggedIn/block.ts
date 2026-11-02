@@ -1,18 +1,14 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { LoggedInComposition } from './composition'
+import { LoggedInDefinition } from './composition'
 import { init } from './init'
-import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  LoggedInComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const LoggedInBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const LoggedInBlock = LoggedInDefinition.contract
+
+export const layer = LoggedInDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view }
+  }),
+).layer

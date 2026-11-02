@@ -739,6 +739,8 @@ export const installBlock = (program: any, block: AnyBlock): any => {
     flags,
     buildId,
     layer,
+    preparedHandoff,
+    applicationMemoMap,
   ) =>
     nativeStart(
       connector,
@@ -747,6 +749,8 @@ export const installBlock = (program: any, block: AnyBlock): any => {
       flags,
       buildId,
       qualifyLayer(block.owner.id, layer),
+      preparedHandoff,
+      applicationMemoMap,
     )
   return provideProgram(
     program,
@@ -813,7 +817,8 @@ const provideProgram = (
   return bindProvide(provided)
 }
 
-const bindProvide = (program: RuntimeProgram): unknown => {
+/** @internal Attaches the existing Program provisioning protocol to a passive host. */
+export const bindProvide = (program: RuntimeProgram): unknown => {
   const internals = runtimeInternals.get(program)
 
   if (internals === undefined) {

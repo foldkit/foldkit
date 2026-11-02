@@ -1,5 +1,7 @@
 import { Effect, Layer } from 'effect'
+import type * as Block from 'foldkit/block'
 import type * as Command from 'foldkit/command'
+import * as Query from 'foldkit/experimental/query'
 import type * as Update from 'foldkit/update'
 
 import {
@@ -7,14 +9,13 @@ import {
   HostWindowsLayer,
   MissingCredentials,
   Ordinary,
-  ParentComposition,
+  ParentBlock,
+  ParentMessage,
   PlainWindows,
   ProvidedWindows,
   QuoteCredentials,
   QuoteProvider,
   QuoteWindows,
-  parentInit,
-  parentUpdate,
 } from './query-policy.accepted.js'
 
 type Equal<A, B> =
@@ -42,70 +43,93 @@ export type ExactProviderRequirements = Expect<
 >
 export type ProvidedHandler = Expect<
   Equal<
-    Layer.Success<typeof ProvidedWindows.EffectsLayer>,
-    Command.HandlerOf<typeof HostWindows.Fetch>
+    Layer.Services<Block.ExecutableOf<typeof ProvidedWindows>['EffectsLayer']>,
+    never
   >
 >
 export type ProvidedHasNoHost = Expect<
-  Equal<typeof ProvidedWindows.provideHandlers, never>
+  Equal<Block.FactsOf<typeof ProvidedWindows>['hostRequirements'], never>
+>
+export type UnselectedHostRequirement = Expect<
+  Equal<
+    Layer.Services<Block.ExecutableOf<typeof HostWindows>['EffectsLayer']>,
+    Command.HandlerOf<typeof HostWindows.Fetch>
+  >
 >
 export type ProvisionPreservesOut = Expect<
   Equal<typeof ProvidedWindows.OutMessage, typeof HostWindows.OutMessage>
 >
 export type LoadDoesNotEmit = Expect<
   Equal<
-    ReturnType<typeof QuoteWindows.operations.requestLoadIfStale>['outMessage'],
+    ReturnType<
+      Block.ExecutableOf<
+        typeof QuoteWindows
+      >['operations']['requestLoadIfStale']
+    >['outMessage'],
     undefined
   >
 >
 export type OrdinaryLoadDoesNotEmit = Expect<
   Equal<
-    ReturnType<typeof Ordinary.operations.requestLoadIfStale>['outMessage'],
+    ReturnType<
+      Block.ExecutableOf<typeof Ordinary>['operations']['requestLoadIfStale']
+    >['outMessage'],
     undefined
   >
 >
 export type CancelRequiresNoFetch = Expect<
   Equal<
-    Update.RequirementsOf<typeof QuoteWindows.operations.requestCancel>,
-    never
+    Update.RequirementsOf<
+      Block.ExecutableOf<typeof QuoteWindows>['operations']['requestCancel']
+    >,
+    | Block.RuntimeCapability<typeof QuoteWindows.owner>
+    | Block.InternalExecution<typeof QuoteWindows.owner>
   >
 >
 
-export const replacement = QuoteWindows.replaceEffectsLayer(
+export const replacement = QuoteWindows.provideHandlers(
   QuoteWindows.toLayer(Effect.succeed(args => Effect.succeed([args.label]))),
 )
 export type ReplacementKeepsNotifications = Expect<
   Equal<typeof replacement.OutMessage, typeof QuoteWindows.OutMessage>
 >
-export const initResult = parentInit()
-export const requested = parentUpdate(
-  initResult.model,
-  ParentComposition.Message.RequestedWindow({
-    args: { label: 'devins', offset: 0, limit: 60 },
-    nowMillis: 1,
-  }),
-)
-export const canceled = parentUpdate(
-  requested.model,
-  ParentComposition.Message.CanceledWindow({
-    args: { label: 'devin', offset: 0, limit: 60 },
-  }),
-)
-export const read = QuoteWindows.read(canceled.model.quotes, {
-  label: 'devins',
-  offset: 0,
-  limit: 60,
-})
-export const pending = QuoteWindows.pendingArgs(canceled.model.quotes)
-export const fresh = QuoteWindows.isFresh(
-  canceled.model.quotes,
-  { label: 'devins', offset: 0, limit: 60 },
-  2,
+export const completedParentTransitions = Effect.scoped(
+  Effect.gen(function* () {
+    const parent = yield* ParentBlock.get
+    const parentInit = parent.init()
+    const requested = parent.update(
+      parentInit.model,
+      ParentMessage.RequestedWindow({
+        args: { label: 'devins', offset: 0, limit: 60 },
+        nowMillis: 1,
+      }),
+    )
+    const canceled = parent.update(
+      requested.model,
+      ParentMessage.CanceledWindow({
+        args: { label: 'devin', offset: 0, limit: 60 },
+      }),
+    )
+    const read = QuoteWindows.read(canceled.model.quotes, {
+      label: 'devins',
+      offset: 0,
+      limit: 60,
+    })
+    const pending = QuoteWindows.pendingArgs(canceled.model.quotes)
+    const fresh = QuoteWindows.isFresh(
+      canceled.model.quotes,
+      { label: 'devins', offset: 0, limit: 60 },
+      2,
+    )
+
+    return { parentInit, requested, canceled, read, pending, fresh }
+  }).pipe(Effect.provide(Layer.provideMerge(ParentBlock.layer, Query.layer))),
 )
 
 // @ts-expect-error A different Query's provider cannot implement this Fetch identity.
-QuoteWindows.replaceEffectsLayer(HostWindowsLayer)
-QuoteWindows.read(canceled.model.quotes, {
+QuoteWindows.provideHandlers(HostWindowsLayer)
+declare const existingModel: typeof QuoteWindows.Model.Type
+QuoteWindows.read(existingModel, {
   label: 'devins',
   // @ts-expect-error Keyed Model arguments keep their Schema after relocation.
   offset: '0',

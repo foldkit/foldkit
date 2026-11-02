@@ -2,6 +2,10 @@ import { Equal, Option, Predicate } from 'effect'
 
 import type { AnyBinding, BindingEvidence } from '../block/binding.js'
 import { blockOf } from '../block/binding.js'
+import {
+  bindingDeclarationOf,
+  declaredBindingOf,
+} from '../block/bindingConnection.js'
 import { canonicalBindingOf } from '../block/composition.js'
 import {
   copyIdentity,
@@ -13,6 +17,10 @@ import { type InstanceKey, commandInstances } from '../block/instanceContext.js'
 import { isScopedInvocation } from '../block/scope.js'
 import { CommandDefinitionTypeId } from '../command/index.js'
 import type {
+  CoreContract,
+  DescriptorContract,
+} from '../experimental/constructed/contract.js'
+import type {
   AnyCommand,
   AnyCommandInstance,
   CommandArgs,
@@ -23,6 +31,7 @@ import type {
 type BindingFrame = Readonly<{
   binding: object
   key: InstanceKey | undefined
+  isDeclared?: boolean
 }>
 
 const bindingPaths = new WeakMap<object, ReadonlyArray<BindingFrame>>()
@@ -55,7 +64,18 @@ export type BoundCommandMatcher<Matcher> = Matcher &
  * Binding objects and keyed occurrences captured by composition. Framework
  * packages use this to build public component test fixtures without exposing
  * private Command Definitions as consumer API. */
-export const __bindCommandMatcher = <
+export function __bindCommandMatcher<
+  const BlockValue extends DescriptorContract,
+  const BindingValue extends AnyBinding &
+    BindingEvidence<CoreContract<NoInfer<BlockValue>>, any, any, boolean>,
+  const Matcher extends AnyCommandInstance<unknown>,
+>(
+  block: BlockValue,
+  binding: BindingValue,
+  matcher: Matcher,
+  key?: InstanceKey,
+): BoundCommandMatcher<Matcher>
+export function __bindCommandMatcher<
   const BlockValue extends object,
   const BindingValue extends AnyBinding &
     BindingEvidence<NoInfer<BlockValue>, any, any, boolean>,
@@ -65,8 +85,17 @@ export const __bindCommandMatcher = <
   binding: BindingValue,
   matcher: Matcher,
   key?: InstanceKey,
-): BoundCommandMatcher<Matcher> => {
-  if (blockOf(binding) !== block) {
+): BoundCommandMatcher<Matcher>
+export function __bindCommandMatcher(
+  block: object,
+  binding: AnyBinding,
+  matcher: AnyCommandInstance<unknown>,
+  key?: InstanceKey,
+): BoundCommandMatcher<AnyCommandInstance<unknown>> {
+  const declaration = declaredBindingOf(binding)
+  const child = declaration === undefined ? blockOf(binding) : declaration.block
+
+  if (child !== block) {
     throw new Error(
       `[foldkit] Command test matcher Binding "${binding.placement}" belongs to a different completed Block instance.`,
     )
@@ -75,14 +104,18 @@ export const __bindCommandMatcher = <
   const scoped = { ...matcher }
   copyIdentity(matcher, scoped)
   bindingPaths.set(scoped, [
-    { binding: canonicalBindingOf(binding), key },
+    {
+      binding: declaration?.original ?? canonicalBindingOf(binding),
+      key,
+      ...(declaration === undefined ? {} : { isDeclared: true }),
+    },
     ...(bindingPaths.get(matcher) ?? []),
   ])
   Object.defineProperty(scoped, 'matches', {
     value: (command: AnyCommand) => commandMatches(scoped, command),
   })
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return scoped as BoundCommandMatcher<Matcher>
+  return scoped as BoundCommandMatcher<AnyCommandInstance<unknown>>
 }
 
 /** @internal Whether a matcher selects an exact Binding path. */
@@ -105,9 +138,16 @@ export const matchesBindingPath = (
     return false
   }
 
-  return expected.every(({ binding, key }, index) => {
+  return expected.every(({ binding, key, isDeclared }, index) => {
     const frame = actual.at(offset + index)
-    return frame?.binding === binding && frame.key === key
+
+    return (
+      frame !== undefined &&
+      (isDeclared
+        ? bindingDeclarationOf(frame.binding) === binding
+        : frame.binding === binding) &&
+      frame.key === key
+    )
   })
 }
 

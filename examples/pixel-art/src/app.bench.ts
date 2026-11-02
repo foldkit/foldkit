@@ -1,71 +1,68 @@
-import { Option } from 'effect'
+import { Effect, Option } from 'effect'
+import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { test as baseTest, describe } from 'vitest'
 
-import { DialogBlock } from '@foldkit/ui'
-
-import {
-  GridSizeRadioGroupBlock,
-  PaletteRadioGroupBlock,
-  ThemeListboxBlock,
-  ToolRadioGroupBlock,
-} from './components'
+import { ApplicationBlock } from './block'
+import { Flags } from './flags'
 import { createEmptyGrid } from './grid'
 import { Message } from './message'
 import type { Model } from './model'
-import { update } from './update'
 
 const GRID_SIZE = 16
 
-const initialModel: Model = {
-  grid: createEmptyGrid(GRID_SIZE),
-  undoStack: [],
-  redoStack: [],
-  selectedColorIndex: 0,
-  gridSize: GRID_SIZE,
-  tool: 'Brush' as const,
-  mirrorMode: 'None' as const,
-  isDrawing: false,
-  maybeHoveredCell: Option.none(),
-  errorDialog: DialogBlock.init({ id: 'export-error-dialog' }).model,
-  maybeExportError: Option.none(),
-  paletteThemeIndex: 0,
-  gridSizeConfirmDialog: DialogBlock.init({ id: 'grid-size-confirm-dialog' })
-    .model,
-  maybePendingGridSize: Option.none(),
-  themeListbox: ThemeListboxBlock.init({ id: 'theme-picker' }).model,
-  toolRadioGroup: ToolRadioGroupBlock.init({ id: 'tool-picker' }).model,
-  gridSizeRadioGroup: GridSizeRadioGroupBlock.init({ id: 'grid-size-picker' })
-    .model,
-  paletteRadioGroup: PaletteRadioGroupBlock.init({ id: 'palette-picker' })
-    .model,
-}
-
-const dispatch = (
-  model: Model,
-  ...messages: ReadonlyArray<Parameters<typeof update>[1]>
-): Model =>
-  messages.reduce<Model>(
-    (currentModel, message) => update(currentModel, message).model,
-    model,
+const makeBenchmark = (
+  application: Story.TestBlock<typeof ApplicationBlock>,
+) => {
+  const { update } = application
+  const initialModel = modifyFields(
+    application.init(Flags.make({ maybeSavedCanvas: Option.none() })).model,
+    { grid: () => createEmptyGrid(GRID_SIZE), gridSize: () => GRID_SIZE },
   )
 
-const buildHistoryModel = (steps: number): Model => {
-  let model = initialModel
-  for (let i = 0; i < steps; i++) {
-    const x = i % GRID_SIZE
-    const y = Math.floor(i / GRID_SIZE) % GRID_SIZE
-    model = dispatch(
+  const dispatch = (
+    model: Model,
+    ...messages: ReadonlyArray<Parameters<typeof update>[1]>
+  ): Model =>
+    messages.reduce<Model>(
+      (currentModel, message) => update(currentModel, message).model,
       model,
-      Message.PressedCell({ x, y }),
-      Message.ReleasedMouse(),
     )
+
+  const buildHistoryModel = (steps: number): Model => {
+    let model = initialModel
+    for (let i = 0; i < steps; i++) {
+      const x = i % GRID_SIZE
+      const y = Math.floor(i / GRID_SIZE) % GRID_SIZE
+      model = dispatch(
+        model,
+        Message.PressedCell({ x, y }),
+        Message.ReleasedMouse(),
+      )
+    }
+    return model
   }
-  return model
+
+  const modelWith10Steps = buildHistoryModel(10)
+  const modelWith30Steps = buildHistoryModel(30)
+  return { initialModel, update, dispatch, modelWith10Steps, modelWith30Steps }
 }
+const test = baseTest.extend<{ application: ReturnType<typeof makeBenchmark> }>(
+  {
+    application: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(ApplicationBlock, application =>
+          Effect.promise(() => use(makeBenchmark(application))),
+        ),
+      ),
+  },
+)
 
 describe('update: single operations', () => {
-  test('brush stroke (press + release)', async ({ bench }) => {
+  test('brush stroke (press + release)', async ({
+    bench,
+    application: { dispatch, initialModel },
+  }) => {
     await bench('brush stroke (press + release)', () => {
       dispatch(
         initialModel,
@@ -75,7 +72,10 @@ describe('update: single operations', () => {
     }).run()
   })
 
-  test('brush drag (5 cells)', async ({ bench }) => {
+  test('brush drag (5 cells)', async ({
+    bench,
+    application: { dispatch, initialModel },
+  }) => {
     await bench('brush drag (5 cells)', () => {
       dispatch(
         initialModel,
@@ -89,7 +89,10 @@ describe('update: single operations', () => {
     }).run()
   })
 
-  test('flood fill (empty grid)', async ({ bench }) => {
+  test('flood fill (empty grid)', async ({
+    bench,
+    application: { initialModel, dispatch },
+  }) => {
     await bench('flood fill (empty grid)', () => {
       const fillModel: Model = modifyFields(initialModel, {
         tool: () => 'Fill',
@@ -100,22 +103,28 @@ describe('update: single operations', () => {
 })
 
 describe('update: undo/redo with history', () => {
-  const modelWith10Steps = buildHistoryModel(10)
-  const modelWith30Steps = buildHistoryModel(30)
-
-  test('undo (10 history entries)', async ({ bench }) => {
+  test('undo (10 history entries)', async ({
+    bench,
+    application: { dispatch, modelWith10Steps },
+  }) => {
     await bench('undo (10 history entries)', () => {
       dispatch(modelWith10Steps, Message.ClickedUndo())
     }).run()
   })
 
-  test('undo (30 history entries)', async ({ bench }) => {
+  test('undo (30 history entries)', async ({
+    bench,
+    application: { dispatch, modelWith30Steps },
+  }) => {
     await bench('undo (30 history entries)', () => {
       dispatch(modelWith30Steps, Message.ClickedUndo())
     }).run()
   })
 
-  test('5x undo then 5x redo', async ({ bench }) => {
+  test('5x undo then 5x redo', async ({
+    bench,
+    application: { modelWith10Steps, update },
+  }) => {
     await bench('5x undo then 5x redo', () => {
       let model = modelWith10Steps
       for (let i = 0; i < 5; i++) {
@@ -129,7 +138,10 @@ describe('update: undo/redo with history', () => {
 })
 
 describe('update: paint sequence (16x16 grid)', () => {
-  test('paint 50 random cells', async ({ bench }) => {
+  test('paint 50 random cells', async ({
+    bench,
+    application: { initialModel, dispatch },
+  }) => {
     await bench('paint 50 random cells', () => {
       let model = initialModel
       for (let i = 0; i < 50; i++) {
@@ -144,7 +156,10 @@ describe('update: paint sequence (16x16 grid)', () => {
     }).run()
   })
 
-  test('paint 50 cells with mirror mode', async ({ bench }) => {
+  test('paint 50 cells with mirror mode', async ({
+    bench,
+    application: { initialModel, dispatch },
+  }) => {
     await bench('paint 50 cells with mirror mode', () => {
       let model: Model = modifyFields(initialModel, {
         mirrorMode: () => 'Both',

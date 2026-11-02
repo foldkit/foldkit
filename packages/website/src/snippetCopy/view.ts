@@ -4,14 +4,7 @@ import { HashSet } from 'effect'
 import { Icon } from '../icon'
 import { SnippetCopyComposition } from './composition'
 import { Message } from './message'
-
-export type ViewInputs = Readonly<{
-  snippetId: string
-  text: string
-  ariaLabel: string
-  positionClass: string
-  variant: 'Header' | 'Overlay'
-}>
+import type { ViewInputs } from './viewInputs'
 
 export const view = SnippetCopyComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {

@@ -1,1 +1,1 @@
-export { WorkHistoryBlock } from './block'
+export { WorkHistoryBlock, layer } from './block'

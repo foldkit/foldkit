@@ -10,31 +10,31 @@ import {
 } from 'effect-oxlint'
 
 import {
+  blockBindingChild,
+  blockBindingConfiguration,
+  blockBindingMethod,
+  blockBindingOwner,
   indexReferences,
   isCallExpression,
   isIdentifier,
   isIdentifierReference,
   isMemberExpression,
   isObjectExpression,
+  isOwnedDefinitionCall,
+  isVariableDeclaration,
   isVariableDeclarator,
+  ownedDefinitionMethodOwner,
   resolveFoldkitApiPath,
   resolveImportedPath,
   resolvedVariable,
-  staticMemberPath,
   staticMemberName,
+  staticMemberPath,
   staticPropertyName,
   staticStringValue,
-  blockBindingChild,
-  blockBindingMethod,
-  blockBindingConfiguration,
-  blockBindingOwner,
-  isOwnedDefinitionCall,
-  ownedDefinitionMethodOwner,
-  isVariableDeclaration,
 } from '../guards.ts'
 
 const directBlockStateUpdateMessage = (fieldName: string): string =>
-  `Do not update the Block field \`${fieldName}\` directly from its parent. Expose the local Message constructor through the child Block's \`operations\` record, then call the named method on the registered Binding so the child update handles the transition.`
+  `Do not update the Block field \`${fieldName}\` directly from its parent. Declare a public child InMessage, then call the named method on the registered Binding so the child receive handler owns the transition.`
 
 const discardedChildReturnMessage = (
   fieldName: string,
@@ -940,7 +940,9 @@ const compositionDefinitionForUpdate = (
   if (
     Option.isNone(maybePath) ||
     (maybePath.value.members.join('.') !== 'makeUpdate' &&
-      maybePath.value.members.join('.') !== 'makeUpdate.withContext')
+      maybePath.value.members.join('.') !== 'makeUpdate.withContext' &&
+      maybePath.value.members.join('.') !== 'makeReceive' &&
+      maybePath.value.members.join('.') !== 'makeReceive.withContext')
   ) {
     return undefined
   }

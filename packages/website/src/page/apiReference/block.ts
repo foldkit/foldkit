@@ -1,23 +1,18 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { ApiReferenceComposition } from './composition'
+import { LoadApiData } from './command'
+import { ApiReferenceDefinition } from './definition'
 import { init } from './init'
-import { Message } from './message'
-import type { Model } from './model'
-import { EffectsLayer, update } from './update'
+import { receive } from './receive'
+import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ApiReferenceComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      informRouteChanged: Message.InformedOfRouteChange,
-    },
-    EffectsLayer,
-  })
-export const ApiReferenceBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApiReferenceBlock = ApiReferenceDefinition.contract
+const EffectsLayer = LoadApiData.layer
+
+const block = ApiReferenceDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, receive, view, EffectsLayer }
+  }),
+)
+export const layer = block.layer

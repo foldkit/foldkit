@@ -1,19 +1,15 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { SnippetCopyComposition } from './composition'
+import { SnippetCopyDefinition } from './definition'
 import { init } from './init'
-import type { Model } from './model'
 import { EffectsLayer, update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  SnippetCopyComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const SnippetCopyBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const SnippetCopyBlock = SnippetCopyDefinition.contract
+
+const block = SnippetCopyDefinition.makeBlock(
+  Effect.gen(function* () {
+    return { children: [], init, update, view, EffectsLayer }
+  }),
+)
+export const layer = block.layer

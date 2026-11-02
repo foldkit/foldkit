@@ -1,25 +1,36 @@
-import { Block } from 'foldkit'
+import { Effect, Layer } from 'effect'
+
+import * as Dialog from '@foldkit/ui/dialog'
+import * as Listbox from '@foldkit/ui/listbox'
 
 import { CreateIssue } from './command'
-import { CreateIssueComposition } from './composition'
+import {
+  DialogBinding,
+  PriorityListboxBinding,
+  ProjectListboxBinding,
+  StatusListboxBinding,
+} from './composition'
+import { CreateIssueDefinition } from './definition'
 import { init } from './init'
-import { Message } from './message'
-import type { Model } from './model'
+import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  CreateIssueComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer: CreateIssue.layer,
-    operations: {
-      requestOpen: Message.RequestedOpen,
-      requestClose: Message.RequestedClose,
-    },
-  })
-export const CreateIssueBlock: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+const block = CreateIssueDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+    const projectListbox = yield* ProjectListboxBinding
+    const statusListbox = yield* StatusListboxBinding
+    const priorityListbox = yield* PriorityListboxBinding
+    return {
+      children: [dialog, projectListbox, statusListbox, priorityListbox],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer: CreateIssue.layer,
+    }
+  }),
+).provide(Layer.mergeAll(Dialog.layer, Listbox.layer))
+
+export const layer = block.layer
