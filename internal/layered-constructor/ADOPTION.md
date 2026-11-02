@@ -21,6 +21,15 @@ later final checks.
 
 ## Final construction and InMessage checks
 
+The subsequent [stabilization report](STABILIZATION.md) records the fresh
+dependency and feedback-fix source separately. All 22 integration groups pass
+in `final-5z56yM`: 4,030 core tests with one intentional skip, 1,354 UI tests,
+and 1,527 Website tests. All seven compiler budgets are unchanged. The complete
+application matrix passes 720 tests in `test-LfYpte`, and the default packed
+SSR/Chromium gate passes in `security-20261102T193317Z`. The exact feedback-fix
+commit `db69206779` passed independent review. The historical checkpoints below
+retain their own source pins and counts.
+
 `adoption-checks/verification/final-BSU05S/results.json` records all 22 current
 integration groups passing after both independent review fixes. The final suites contain 4,016 passing core tests
 with one intentional skip, 1,351 UI tests, and 1,526 Website tests. Source,

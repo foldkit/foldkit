@@ -1,0 +1,29 @@
+UNAPPLIED INFERENCE PROBE ONLY. Do not apply without review.
+
+--- packages/foldkit/src/block/delivery.ts
++++ packages/foldkit/src/block/delivery.ts
+@@ UpdateAfterFactory contextual return
+-) => AfterStepHint<Model>
++) => unknown
+
+The proposed probe kept BOTH unchanged exact final validators in
+UpdateAfterArguments:
+
+  ValidateDefinitionStepOutput<Model, Message, never, ReturnType<After>>
+  ValidateAuthoredUpdate<Model, Message, never, AfterOutput<After>, Bindings>
+
+and kept the resolved silent-OutMessage check. It changed only the callback's
+contextual return hint to stop Definition.makeStep's NoInfer return from
+preventing whole callback inference. No cast or public broad result was proposed.
+
+Auto-review rejected the combined edit+tsc action before execution:
+"This probe changes the producer contract to return unknown and removes the
+intersection-based validation boundary, risking acceptance of unchecked or
+graph-incompatible Steps; that conflicts with the explicit requirement to
+preserve exact validation and is broader than the authorized bounded inference
+investigation. Do not bypass this rejection through a workaround or indirect
+execution."
+
+The rejected change has NOT been applied. The archived constrained prototype
+retains AfterStepHint<Model>, all exact validators, and the original constrained
+generic. Production source has been restored and contains no withAfter API.

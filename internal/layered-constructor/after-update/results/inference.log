@@ -1,0 +1,5 @@
+internal/layered-constructor/after-update/inference.ts(15,46): error TS2554: Expected 3 arguments, but got 2.
+internal/layered-constructor/after-update/inference.ts(17,48): error TS2554: Expected 3 arguments, but got 2.
+internal/layered-constructor/after-update/inference.ts(18,43): error TS2554: Expected 3 arguments, but got 2.
+internal/layered-constructor/after-update/inference.ts(19,47): error TS2554: Expected 3 arguments, but got 2.
+internal/layered-constructor/after-update/inference.ts(21,46): error TS2554: Expected 3 arguments, but got 2.

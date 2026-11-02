@@ -1,0 +1,8 @@
+
+ RUN  v5.0.3 /private/tmp/foldkit-incremental-constructor-20261031/packages/foldkit
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  14:18:28
+   Duration  716ms (transform 49%, environment 21%, setup 19%, import 9%, tests 2%)

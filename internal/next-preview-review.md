@@ -1,5 +1,23 @@
 # Next preview review
 
+## November 2 constructor migration stabilization
+
+Review the [current stabilization report](layered-constructor/STABILIZATION.md)
+before the historical checkpoints below. The migration and dependency follow-up
+have passed independent review. Three fresh feedback fixes cover observable
+Dialog closure, stream Mount test emissions, and completed embed teardown.
+All 22 combined integration groups, the 720-test application matrix and the
+default packed SSR/Chromium gate pass. Independent review approves the exact
+feedback-fix commit `db69206779`. Website prerender passes. The final candidate
+benchmark records +21.6% naive and +25.8% optimized execution time against main;
+its full scope and the separate incremental comparison are in the current report.
+
+The same-dispatch hook requested in #1868 has not shipped or been approved for
+deferral. Its constrained prototype fails valid inline producer inference;
+the next bounded experiment awaits explicit approval. Fresh Daybreak review,
+measured runtime and bundle costs, two remaining tooling advisories, and
+publication approval are separate open gates.
+
 ## October 30 feedback stabilization
 
 The [current closeout](preview-feedback-stabilization-20261030.md) fixes Binding
@@ -171,9 +189,15 @@ repository migration below supersedes this isolated-proof checkpoint.
 - [x] Address the first exact-commit review's generic-family input validation
       and cross-Definition construction-plan findings.
 - [x] Independently approve the amended exact source commit before push or integration. `fd4f03253faa782eaa7f45d043127e3bf21ad572` passes after the constructor snapshot correction; final report changes retain their own exact-commit gate.
-- [ ] Inspect the final rendering comparison and remaining bundle growth. The
-      earlier repaired batch retains a whole-preview gap against actual main.
-- [ ] Complete authorized Daybreak review and dependency-advisory disposition.
+- [x] Record the final frozen-source main comparison and the separate preceding
+      preview comparison, preserving all samples and source pins.
+- [x] Repair compatible dependency findings and verify ordinary packed
+      MCP/scaffold consumers; document the two remaining moderate tool findings.
+- [ ] Complete authorized Daybreak review of the final candidate.
+- [ ] Review the measured runtime/bundle costs and remaining tooling advisories
+      before publication approval. No acceptance is inferred from documentation.
+- [ ] Resolve #1868's failed inline hook inference or obtain an explicit scope
+      decision. Further typing work awaits the pending approval request.
 - [ ] Obtain separate publication approval after candidate review.
 
 [Current adoption](layered-constructor/ADOPTION.md),

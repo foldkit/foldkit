@@ -1,0 +1,114 @@
+{
+  "sourceCommit": "db69206779b4e4c37d9cefe02acb21ca3d2e9ed3",
+  "sourceParent": "d1537d453e09b8972cc0b73819e80e08830fdd22",
+  "migrationBaseline": "be0cb38108693068da30eb835e6eb33d6d5762c8",
+  "actualMain": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "independentExactCommitReview": "approved; no substantive findings",
+  "integration": {
+    "receipt": "adoption-checks/verification/final-5z56yM/results.json",
+    "groupsPassed": 22,
+    "coreTestsPassed": 4030,
+    "coreTestsIntentionallySkipped": 1,
+    "uiTestsPassed": 1354,
+    "websiteTestsPassed": 1527,
+    "unchangedCompilerFixtures": 7,
+    "budgetSha256": "4c992d726e54c3ad3fac257040878fd5343c2dc0636fc7918f754947634cc30f"
+  },
+  "applicationTests": {
+    "receipt": "adoption-checks/verification/test-LfYpte/results.json",
+    "packages": 38,
+    "scriptsPassed": 35,
+    "testsPassed": 720,
+    "noTestScript": [
+      "examples/ssg",
+      "packages/typing-game/shared",
+      "packages/typing-game/server"
+    ]
+  },
+  "packedConsumer": {
+    "receipt": "packed-adoption/verification/security-20261102T193317Z/receipt.json",
+    "scope": "existing default Chromium gate; strict peers, one Effect runtime, public TS6 types, npm workspace, SSR/hydration/refusal and cleanup",
+    "allSevenDistributionTreesUnchanged": true,
+    "temporaryTarballsRemoved": true,
+    "port5199Free": true
+  },
+  "maintenancePassed": [
+    "normal lint",
+    "Effect lint with normal plugin setup",
+    "application lint",
+    "dead-code analysis",
+    "dependency-cycle check",
+    "script typecheck",
+    "scoped source formatting and whitespace",
+    "changeset status",
+    "changeset ignore",
+    "changeset prose",
+    "no-major changesets",
+    "skill version",
+    "UI subpath exports",
+    "Effect prebundle"
+  ],
+  "website": {
+    "productionBuild": "passed",
+    "typeDocErrors": 0,
+    "typeDocCoreWarnings": 484,
+    "typeDocUiWarnings": 21,
+    "prerender": "passed with local Chromium access after sandbox startup denial",
+    "pagesIndexed": 225,
+    "buildLog": "/private/tmp/foldkit-feedback-website-build.log",
+    "initialPrerenderLog": "/private/tmp/foldkit-feedback-website-prerender.log",
+    "passingPrerenderLog": "/private/tmp/foldkit-feedback-website-prerender-network.log"
+  },
+  "open": {
+    "postUpdateHook": "not installed; inline inference prototype archived; further experiment authorization pending",
+    "daybreak": "source transfer authorization pending; no migration source sent",
+    "workspaceAdvisories": "two moderate tooling records: glob and minimatch",
+    "performance": "measured runtime and bundle costs require user release review",
+    "publication": "held for separate approval",
+    "lockfileReport": "earlier irreparable prerelease-lockfile report needs original inputs; ordinary upgrade cases pass"
+  },
+  "sourceHashes": {
+    ".changeset/await-embed-disposal.md": "be0148c2e83dd0efc6a1d3fdec3e79564ccd61d563df3b142b9fdb125e1066d6",
+    ".changeset/dialog-observable-self-close.md": "213e34088c0a78f51c8c55769bf311cec858e255db6fe7d21920fff02d25c3a7",
+    ".changeset/emit-active-stream-mounts.md": "dd7e09f04f49009d3fd2e2ad19c60c69ce04aab3856b2e860b2d92fd313d59b4",
+    "packages/foldkit/declaration-tests/scene-mount-stream.accepted.ts": "4e33c1f0233eed7ee022871dd8585d3c7c6c762d191f04a8c0036eeb8d9e99c2",
+    "packages/foldkit/declaration-tests/scene-mount-stream.consume.ts": "a4a89b71981bb0e70c12903d02c0b9e7d7f7a0adb915353afcb9b8e17695acfc",
+    "packages/foldkit/declaration-tests/scene-mount-stream.rejected.ts": "23c29828c4b3b98c28f52b8548753114126922ebd50d048a47cb144833909ad4",
+    "packages/foldkit/declaration-tests/tsconfig.scene-mount-stream.json": "fed1596563c91b3b76462940064e87976ec01b21779798f48a169dffd1956b6f",
+    "packages/foldkit/declaration-tests/tsconfig.scene-mount-stream.source.json": "6a6aff72c095076b766b8d7b634bf70ffc69ea4ee851c6044a015ed0c39ee16c",
+    "packages/foldkit/scripts/check-emitted-declarations.ts": "0782dc4a7956df3f3e512d5f07c4bc3a73d8a3a75d503668502333b6f7b805ee",
+    "packages/foldkit/src/mount/index.ts": "d26e5b5fa7194c9e1090e8831e6cd62d42627bd1a3ae36bfe0df05aadc030985",
+    "packages/foldkit/src/mount/public.ts": "9135d7939f51f5a76a7570752fd242cc1ea8b0fa8a5060264972ed593c48b3e9",
+    "packages/foldkit/src/runtime/applicationBlock.test.ts": "7ab25d67b537fa146e2805481b075dc3ceba31cd926bbd9a91fcbf19252dfac7",
+    "packages/foldkit/src/runtime/hostConnector.ts": "0546f623b638a652ab6928e8458718fcbc078ff66b6292708756f653a4f1d381",
+    "packages/foldkit/src/runtime/start.ts": "cb89f35fa45a8d1129b5fa41056817b943d4cfd8f67b46f5a528789d5c696970",
+    "packages/foldkit/src/test/internal.ts": "108d8cb98c4f6f2dc4ec7ce34925b7adca47a30f26929bd09999c74bb7bb8613",
+    "packages/foldkit/src/test/scene.mountStream.test.ts": "46ed003ae4dd3f639518431ef8efcd1ad07d3cd5e13daf149897bb1afb3d9d81",
+    "packages/foldkit/src/test/scene.ts": "afd0eac032e45cb8bde9993df2be19e0714ba39595fe6c53564b6c8042a355ac",
+    "packages/ui/src/dialog/block.ts": "c5ea8ef849a48b65b756418617a2078544c655b19e571a812c7c16dd2ab8b6eb",
+    "packages/ui/src/dialog/story.test.ts": "b6d704e3131bf7028cf134418154abaae119023996c3963c9d46d6039104388f",
+    "packages/website/src/page/core/embedding.md": "5169b75f724bb660e5bee502577b4c99427b9ef025f4e639b7d97bd0eac88824",
+    "packages/website/src/page/core/runtime.md": "d98ab391f58d556e3c84cffc831dfc68921676c4867ceef93b7fc81d5809b01f",
+    "packages/website/src/page/testingScene.md": "55a2e5393be45a0e4c786728d43c4ca40ffeb0592cb07559622e8f41010b8a06",
+    "packages/website/src/page/ui/dialogPage.md": "d832c3d318b5707de080f9b01642a69e4a370ef0bd0b771c98c9796aa942ef2b",
+    "packages/website/src/snippet/embeddingHost.ts": "2a90e7f58472cbad7c1821765d640d4c40000087ac3b964d2b826ed1a786ab17",
+    "packages/website/src/snippet/embeddingReactHost.tsx": "fc4575d315daf7a4d2ba3f4c795970f659fec8afda078a07115c77602454b31e",
+    "packages/website/src/snippet/sceneMountStream.ts": "50994f31b6a6cd997c231cb5f99eebf571eebd3169b2e5230505ed4507be1712"
+  },
+  "rendering": {
+    "receipt": "rendering-final/stabilization-batch.json",
+    "sourceCommit": "db69206779b4e4c37d9cefe02acb21ca3d2e9ed3",
+    "samplesRetained": 32,
+    "samplesDiscarded": 0,
+    "allHistoricalSamplesRetained": 160,
+    "mainComparisonPercent": {
+      "naive": 21.6,
+      "optimized": 25.8
+    },
+    "addedGzipBytesOverMain": {
+      "naive": 40092,
+      "optimized": 40762
+    },
+    "scope": "Whole preview versus main; earlier be0/e6 incremental comparison is a separate batch"
+  }
+}

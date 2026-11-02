@@ -16,6 +16,38 @@ sections below retain their original source pins and states as historical
 evidence. The user's publication approval and completed gates supersede the
 earlier holds.
 
+## November 2 construction and InMessage stabilization
+
+[Current scope and remaining gates](layered-constructor/STABILIZATION.md).
+
+- [x] Complete repository adoption of independent contracts, portable typed
+      builders, Layer construction, scoped tests, and separate InMessages.
+- [x] Independently review the migration and dependency follow-up commits.
+- [x] Compare the migration with the preceding preview using the unchanged
+      rendering workload; retain the separate whole-preview/main comparison.
+- [x] Patch compatible vulnerable dependencies and verify ordinary packed
+      MCP/scaffold consumers. Record the two remaining moderate tool findings.
+- [x] Implement #1867 Dialog close notifications, #1869 repeated stream Mount
+      test emissions, and #1870 awaitable embed cleanup, with focused regressions.
+- [x] Complete all 22 integration groups, the application test matrix, strict
+      packed SSR/Chromium consumers, maintenance checks, and independent review
+      of the exact feedback-fix commit `db69206779`.
+- [x] Build and prerender the Website through its normal workflow, indexing
+      225 pages with Chromium access.
+- [x] Finish the final frozen-source benchmark against actual main, retaining
+      all 32 samples and earlier comparison scopes. Record +21.6% naive and
+      +25.8% optimized execution time, with about 40 KB more gzip over main.
+- [ ] Resolve #1868's inline producer inference before adopting its post-update
+      hook. Further experimentation awaits the pending explicit approval;
+      unapproved prototype code is archived outside production source.
+- [ ] Complete authorized Daybreak review of the final candidate, then review
+      performance, bundle growth and the remaining dependency findings.
+- [ ] Integrate and publish only through the separately approved workflow.
+
+This work is isolated on `codex/incremental-constructor-spike`. The shared
+checkout and its concurrent DOM edits are preserved. The older publication
+records below retain their original source pins and approval scopes.
+
 ## October 30 feedback stabilization
 
 The user approved this bounded follow-up after the latest feedback check.

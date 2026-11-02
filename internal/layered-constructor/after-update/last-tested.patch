@@ -1,0 +1,422 @@
+diff --git a/packages/foldkit/src/block/delivery.ts b/packages/foldkit/src/block/delivery.ts
+index 959a8b9a3c..bd8450c580 100644
+--- a/packages/foldkit/src/block/delivery.ts
++++ b/packages/foldkit/src/block/delivery.ts
+@@ -13,7 +13,11 @@ import type {
+   HasInvalidCombinedStepsRegistration,
+   ResolveCompositionOutput,
+ } from './deferredPolicy.js'
+-import type { DefinedUpdate, DefinedUpdateSource } from './definition.js'
++import type {
++  DefinedUpdate,
++  DefinedUpdateSource,
++  ValidateDefinitionStepOutput,
++} from './definition.js'
+ import type { StepContextHint } from './focusedStep.js'
+ import {
+   type AnyBindingInitRecipe,
+@@ -829,6 +833,173 @@ type CaseOutputChannels<Bindings extends ReadonlyArray<AnyBinding>, Outputs> = [
+       >
+     }[keyof Outputs]
+ 
++/** @internal Preserves an owned update's exact dispatch context tuple. */
++export type UpdateAfterContext<UpdateFunction extends AnyFunction> =
++  Parameters<UpdateFunction> extends readonly [
++    unknown,
++    unknown,
++    ...infer Context,
++  ]
++    ? Context
++    : never
++
++type AfterStepHint<Model> = {
++  bivarianceHack(model: Model): unknown
++}['bivarianceHack']
++
++/** @internal Contextually types a deferred, Model-owned transition tail. */
++export type UpdateAfterFactory<
++  Model,
++  Message,
++  UpdateFunction extends AnyFunction,
++> = (
++  previousModel: Model,
++  message: Message,
++  ...context: UpdateAfterContext<UpdateFunction>
++) => AfterStepHint<Model>
++
++type AfterOutput<After extends AnyFunction> = ReturnType<ReturnType<After>>
++
++type AfterResolvedOutput<
++  After extends AnyFunction,
++  Bindings extends ReadonlyArray<AnyBinding>,
++> = ResolvedAuthoredOutput<AfterOutput<After>, Bindings>
++
++/** @internal Applies ordinary Step/channel validation and forbids a second OutMessage. */
++export type UpdateAfterArguments<
++  Model,
++  Message,
++  After extends AnyFunction,
++  Bindings extends ReadonlyArray<AnyBinding>,
++> = unknown extends ValidateDefinitionStepOutput<
++  Model,
++  Message,
++  never,
++  ReturnType<After>
++> &
++  ValidateAuthoredUpdate<Model, Message, never, AfterOutput<After>, Bindings>
++  ? [ReturnOutMessage<AfterResolvedOutput<After, Bindings>>] extends [never]
++    ? readonly []
++    : readonly [
++        error: Readonly<{
++          'An after-update Step cannot emit an OutMessage': never
++        }>,
++      ]
++  : readonly [
++      error: Readonly<{
++        'An after-update producer must return a checked silent Step': never
++      }>,
++    ]
++
++type AfterRequirements<
++  After extends AnyFunction,
++  Bindings extends ReadonlyArray<AnyBinding>,
++> = AuthoredRequirements<AfterResolvedOutput<After, Bindings>>
++
++type AfterRegistration<
++  After extends AnyFunction,
++  Bindings extends ReadonlyArray<AnyBinding>,
++> = AuthoredRegistration<AfterResolvedOutput<After, Bindings>>
++
++type AfterChannels<Channels, Requirements, Registration> =
++  Channels extends readonly [
++    infer Tag extends PropertyKey,
++    infer OutMessage,
++    infer BaseRequirements,
++    infer BaseRegistration,
++  ]
++    ? readonly [
++        Tag,
++        OutMessage,
++        BaseRequirements | Requirements,
++        BaseRegistration | Registration,
++      ]
++    : never
++
++type UpdateAfterReturn<
++  Model,
++  Message,
++  Base extends AnyFunction,
++  After extends AnyFunction,
++  Bindings extends ReadonlyArray<AnyBinding>,
++> = Update.WithRegistrationEvidence<
++  [ReturnOutMessage<ReturnType<Base>>] extends [never]
++    ? Update.Return<
++        Model,
++        Message,
++        | Update.RequirementsOfResult<ReturnType<Base>>
++        | AfterRequirements<After, Bindings>
++      >
++    : Update.ReturnWithOutMessage<
++        Model,
++        Message,
++        ReturnOutMessage<ReturnType<Base>>,
++        | Update.RequirementsOfResult<ReturnType<Base>>
++        | AfterRequirements<After, Bindings>
++      >,
++  | Update.RegistrationEvidenceOf<ReturnType<Base>>
++  | AfterRegistration<After, Bindings>
++>
++
++/** @internal Retains original per-Message channels while adding the common tail. */
++export type UpdateWithAfter<
++  Model,
++  Message,
++  Base extends AnyFunction,
++  After extends AnyFunction,
++  Bindings extends ReadonlyArray<AnyBinding>,
++  PreserveSource extends boolean,
++> = DefinedUpdate<
++  Model,
++  Message,
++  UpdateAfterContext<Base>,
++  ReturnOutMessage<ReturnType<Base>>,
++  | Update.RequirementsOfResult<ReturnType<Base>>
++  | AfterRequirements<After, Bindings>,
++  | Update.RegistrationEvidenceOf<ReturnType<Base>>
++  | AfterRegistration<After, Bindings>
++> &
++  (Base extends OperationOutputs<infer Channels>
++    ? OperationOutputs<
++        AfterChannels<
++          Channels,
++          AfterRequirements<After, Bindings>,
++          AfterRegistration<After, Bindings>
++        >
++      >
++    : unknown) &
++  ([PreserveSource] extends [true]
++    ? DefinedUpdateSource<
++        readonly [
++          Model,
++          Message,
++          UpdateAfterContext<Base>,
++          UpdateAfterReturn<Model, Message, Base, After, Bindings>,
++        ]
++      >
++    : unknown)
++
++type MakeUpdateAfter<
++  Model,
++  Message,
++  Bindings extends ReadonlyArray<AnyBinding>,
++  PreserveSource extends boolean,
++> = Readonly<{
++  withAfter: <
++    const Base extends AnyFunction,
++    const After extends UpdateAfterFactory<Model, Message, Base>,
++  >(
++    update: Base,
++    after: After,
++    ...validation: UpdateAfterArguments<
++      Model,
++      Message,
++      NoInfer<After>,
++      Bindings
++    >
++  ) => UpdateWithAfter<Model, Message, Base, After, Bindings, PreserveSource>
++}>
++
+ type ValidDefineCompositionUpdate<
+   Model,
+   Message,
+@@ -961,7 +1132,8 @@ export type DefineCompositionUpdate<
+       Bindings,
+       PreserveSource,
+       DispatchMessage
+-    >
++    > &
++      MakeUpdateAfter<Model, DispatchMessage, Bindings, PreserveSource>
+   : CompositionDeliveryErrors<Message, Bindings>
+ 
+ type RuntimeMessageConstructor = Schema.Top
+@@ -1252,6 +1424,29 @@ export const makeCompositionUpdate = (
+     return handler(model, message)
+   }
+ 
++  const ownUpdate = (
++    dispatch: AnyFunction,
++    contextArity: number,
++  ): AnyFunction => {
++    const dualDispatch = function (
++      modelOrMessage: any,
++      message: any,
++      ...context: ReadonlyArray<any>
++    ): AnyUpdateReturn | AnyFunction {
++      if (arguments.length === 1) {
++        return (model: any, ...curriedContext: ReadonlyArray<any>) =>
++          dispatch(model, modelOrMessage, ...curriedContext)
++      }
++
++      return dispatch(modelOrMessage, message, ...context)
++    }
++
++    observableUpdateContextArities.set(dualDispatch, contextArity)
++    ownedUpdates.add(dualDispatch)
++
++    return dualDispatch
++  }
++
+   const makeUpdateFromCases = (
+     createCases: (...context: ReadonlyArray<any>) => RuntimeAuthoredUpdate,
+     contextArity: number,
+@@ -1316,23 +1511,7 @@ export const makeCompositionUpdate = (
+         )
+       })
+ 
+-    const dualDispatch = function (
+-      modelOrMessage: any,
+-      message: any,
+-      ...context: ReadonlyArray<any>
+-    ): AnyUpdateReturn | AnyFunction {
+-      if (arguments.length === 1) {
+-        return (model: any, ...curriedContext: ReadonlyArray<any>) =>
+-          dispatch(model, modelOrMessage, ...curriedContext)
+-      }
+-
+-      return dispatch(modelOrMessage, message, ...context)
+-    }
+-
+-    observableUpdateContextArities.set(dualDispatch, contextArity)
+-    ownedUpdates.add(dualDispatch)
+-
+-    return dualDispatch
++    return ownUpdate(dispatch, contextArity)
+   }
+ 
+   const makeUpdate = (cases: RuntimeAuthoredUpdate): AnyFunction => {
+@@ -1348,6 +1527,72 @@ export const makeCompositionUpdate = (
+   return Object.assign(makeUpdate, {
+     withContext: (createCases: AnyFunction) =>
+       makeUpdateFromCases(createCases, createCases.length),
++    withAfter: (update: AnyFunction, after: AnyFunction) => {
++      if (!ownedUpdates.has(update)) {
++        throw new Error(
++          '[foldkit] An after-update base must belong to this Composition.makeUpdate.',
++        )
++      }
++
++      if (!Predicate.isFunction(after)) {
++        throw new Error(
++          '[foldkit] An after-update producer must be a function.',
++        )
++      }
++
++      return ownUpdate(
++        (model: any, message: any, ...context: ReadonlyArray<any>) =>
++          withOperationGraph(bindings, () => {
++            const result = update(model, message, ...context)
++            const step = after(model, message, ...context)
++
++            if (!Predicate.isFunction(step)) {
++              throw new Error(
++                '[foldkit] An after-update producer must return a Step.',
++              )
++            }
++
++            const output = resolveOperationOutput(
++              step(result.model),
++              result.model,
++              environment,
++            )
++            const completed = isBindingInitRecipe(output)
++              ? runBindingInitRecipe(output, environment)
++              : output
++
++            if (
++              !Predicate.isObject(completed) ||
++              !Reflect.has(completed, 'model')
++            ) {
++              throw new Error(
++                '[foldkit] An after-update Step must return a Model result.',
++              )
++            }
++
++            if (Reflect.get(completed, 'outMessage') !== undefined) {
++              throw new Error(
++                '[foldkit] An after-update Step cannot emit an OutMessage.',
++              )
++            }
++
++            const commands = Reflect.get(completed, 'commands')
++
++            if (commands !== undefined && !globalThis.Array.isArray(commands)) {
++              throw new Error(
++                '[foldkit] An after-update Step must return a Commands collection.',
++              )
++            }
++
++            return {
++              ...result,
++              model: Reflect.get(completed, 'model'),
++              commands: [...(result.commands ?? []), ...(commands ?? [])],
++            }
++          }),
++        observableUpdateContextArity(update),
++      )
++    },
+     complete: (update: AnyFunction) => {
+       if (!ownedUpdates.has(update)) {
+         throw new Error(
+diff --git a/packages/foldkit/src/experimental/hybrid/authoring.ts b/packages/foldkit/src/experimental/hybrid/authoring.ts
+index 61da0248c5..7e42e59576 100644
+--- a/packages/foldkit/src/experimental/hybrid/authoring.ts
++++ b/packages/foldkit/src/experimental/hybrid/authoring.ts
+@@ -19,6 +19,9 @@ import type {
+   ContextualUpdateOutputs,
+   OperationOutputs,
+   RoutedOnlyUpdate,
++  UpdateAfterArguments,
++  UpdateAfterFactory,
++  UpdateWithAfter,
+   ValidateAnnotatedContext,
+   ValidateCompositionDelivery,
+   ValidatedContextualUpdateCases,
+@@ -93,7 +96,8 @@ export type PlanSource<Value extends Plan<unknown, PlanKind, AuthoringSource>> =
+ /** The runtime helper surface consumed when compiling a passive plan. */
+ export type RuntimeComposition = Readonly<{
+   makeInit: AnyFunction
+-  makeUpdate: AnyFunction & Readonly<{ withContext?: AnyFunction }>
++  makeUpdate: AnyFunction &
++    Readonly<{ withContext?: AnyFunction; withAfter?: AnyFunction }>
+   makeView: AnyFunction & Readonly<{ withInputs: AnyFunction }>
+ }>
+ 
+@@ -440,7 +444,33 @@ export type MakeUpdatePlan<
+         DispatchMessage,
+         SourceComposition,
+         ContextConstraint
+-      >
++      > &
++        Readonly<{
++          withAfter: <
++            const Base extends Plan<AnyFunction, 'Update', SourceComposition>,
++            const After extends UpdateAfterFactory<Model, DispatchMessage, PlanOutput<Base>>,
++          >(
++            update: Base,
++            after: After,
++            ...validation: UpdateAfterArguments<
++              Model,
++              DispatchMessage,
++              NoInfer<After>,
++              Bindings
++            >
++          ) => Plan<
++            UpdateWithAfter<
++              Model,
++              DispatchMessage,
++              PlanOutput<Base>,
++              After,
++              Bindings,
++              false
++            >,
++            'Update',
++            SourceComposition
++          >
++        }>
+     : ValidateCompositionDelivery<Message, Bindings>
+ 
+ type IsAny<Value> = 0 extends 1 & Value ? true : false
+@@ -589,6 +619,33 @@ export const makeAuthoringComposition = <const Source extends AuthoringSource>(
+ 
+           return withContext(...args)
+         }),
++      withAfter: (base: object, after: unknown) => {
++        const stored = storedPlan(base)
++
++        if (stored.kind !== 'Update' || stored.composition !== composition) {
++          throw new Error(
++            '[foldkit] An after-update base must belong to this Composition.makeUpdate.',
++          )
++        }
++
++        if (!Predicate.isFunction(after)) {
++          throw new Error(
++            '[foldkit] An after-update producer must be a function.',
++          )
++        }
++
++        return makePlan(composition, 'Update', actual => {
++          const withAfter = actual.makeUpdate.withAfter
++
++          if (withAfter === undefined) {
++            throw new Error(
++              '[foldkit] This Composition has no after-update authoring.',
++            )
++          }
++
++          return withAfter(stored.compile(actual), after)
++        })
++      },
+     },
+   )
+   const makeView = Object.assign(

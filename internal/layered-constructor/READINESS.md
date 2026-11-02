@@ -2,6 +2,19 @@
 
 ## Recommendation
 
+The [current stabilization report](STABILIZATION.md) records the reviewed
+construction migration, dependency repairs, three new feedback fixes, combined
+verification and remaining release decisions. All 22 integration groups pass
+for the feedback-fix source, including 4,030 core, 1,354 UI and 1,527 Website
+tests. The separate application matrix passes 720 tests. Exact-commit review
+approves `db69206779`, and strict packed SSR/Chromium consumers pass.
+
+The #1868 post-update hook is unimplemented: its prototype fails the required
+inline inference and further work awaits explicit approval. Fresh Daybreak
+transfer is also awaiting authorization. The two remaining moderate tooling
+advisories and measured bundle/runtime costs require review. These are open
+gates, not approved deferrals. No publication is approved.
+
 The independent contract and Layer construction proof passed its application
 and generic-library checks. Repository adoption is now implemented across the
 catalogued production consumers. Construction migration verification is
@@ -12,16 +25,19 @@ subsequent input API, adoption scope, lint follow-through, and final checks.
 This is not release approval.
 
 The [rendering comparison](rendering-final/REPORT.md) found and verified a
-builder-identity correction. Its final matched batch measures the whole preview
-branch 14.6% slower in the naive workload and 32.6% slower in the optimized
-workload than actual main. The bundle adds about 40 KB gzip. These remain review
-items; the comparison does not isolate the new constructor's cost.
+builder-identity correction. The final frozen `db69206779` batch measures the
+whole preview branch 21.6% slower in the naive workload and 25.8% slower in the
+optimized workload than actual main. The bundle adds about 40 KB gzip. These
+remain review items; that comparison does not isolate the new constructor's
+cost. The separate preceding-preview/e6 comparison measures +1.7% naive and
+−4.4% optimized, with about 7.9 KB more gzip.
 
-The final source commit, `fd4f03253faa782eaa7f45d043127e3bf21ad572`, passed
+The earlier source commit, `fd4f03253faa782eaa7f45d043127e3bf21ad572`, passed
 independent review after the exact-Definition, family input-validation and
 constructor snapshot corrections. Full and affected follow-through checks are
-recorded separately in the adoption report. Fresh Daybreak source review and
-dependency-advisory disposition remain outstanding; no publication is approved.
+recorded separately in the adoption report. The stabilization report above
+records later dependency repairs and review status without changing this
+earlier checkpoint's scope.
 
 See [adoption status](ADOPTION.md) for the current checks and remaining work.
 Earlier sections below explain the architectural proofs that justified moving

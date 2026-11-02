@@ -1,6 +1,32 @@
 # Rendering comparisons
 
-## Preceding preview baseline versus current
+## Final stabilization candidate versus main
+
+The final batch covers reviewed code commit `db69206779b4e4c37d9cefe02acb21ca3d2e9ed3` against pinned actual main, `a471adb24d750ab9e8d8312edad53ff6f26d961b`. All 32 valid samples, paired round totals, source and artifact hashes, public-type/build/preflight results and cleanup are in [stabilization-batch.json](./stabilization-batch.json). No samples were discarded. The earlier 128 samples and diagnostic profile remain unchanged, for 160 official samples across five batches.
+
+| Variant   | Actual main | Final stabilization |             Change |
+| --------- | ----------: | ------------------: | -----------------: |
+| Naive     |    529.8 ms |            644.1 ms | +114.3 ms / +21.6% |
+| Optimized |    203.7 ms |            256.3 ms |  +52.6 ms / +25.8% |
+
+The naive animation-frame median is 496.0 ms on main and 599.7 ms on the candidate; synchronous dispatch is 35.2 and 45.1 ms. Optimized rendering records 163.4 and 208.1 ms in animation-frame callbacks, and 41.2 and 48.5 ms synchronously. Other buckets are zero. The driver's reported representative sample for each slot has 400 synchronous events and 400 animation-frame callbacks. Page-error and cross-origin-isolation checks cover every run.
+
+| Bundle    | Actual main gzip | Final stabilization gzip | Added versus main | Added versus earlier e6 |
+| --------- | ---------------: | -----------------------: | ----------------: | ----------------------: |
+| Naive     |         99,030 B |                139,122 B |          40,092 B |                    34 B |
+| Optimized |         99,737 B |                140,499 B |          40,762 B |                    32 B |
+
+Candidate raw JavaScript is 446,467 B naive and 453,130 B optimized, each 138 B above the earlier e6 payload. Gzip growth versus main is 40.5% and 40.9%. Bundle growth and the execution gap remain review items, rather than approved tradeoffs.
+
+This is a whole-branch comparison. The earlier e6/main and be0/e6 incremental comparisons below are separate batches. Differences between their absolute totals and this batch do not establish an improvement or regression caused by the three stabilization fixes. No further profiles or timing repetitions were run.
+
+All 625 captured source/config inputs match the exact db69 Git blobs. The same two scratch-only completion adapter bodies, Todo/update/init/view workload, driver and instrumentation are retained. Isolated core/plugin and both client builds, the strict public adapter typecheck, and all four unchanged functional preflights pass. The 349 core and 11 plugin JavaScript files match the canonical final artifacts byte for byte. All browsers and servers closed; ports 38377, 38378 and 38379 have no listeners, and no headless Chromium process remains.
+
+The primary tools remain Node 22.22.3, Effect 4.1.0, Vite 8.3.5, TypeScript 7.1 beta, Playwright 1.63.0 and Chromium 153.0.8010.12. Dependency refresh removed an old `@effect/vitest` link tied to Vitest 5.0.2. The first new preparation stopped at that link and is preserved as `stabilization-source`; it started no benchmark server or timing. The successful `stabilization-db692-source` uses stable current dependency links, including Vitest 5.0.3, with workspace targets redirected into its isolated tree and one Effect runtime. The frozen main bundles are unchanged. This remains a matched-toolchain comparison rather than fresh independent branch installations.
+
+The compact receipt records relative evidence paths under the preserved workspace. Reproduction uses `prepare-stabilization-db692.mjs`, `adapt-stabilization-db692.mjs`, `build-stabilization-db692.mjs`, `install-stabilization-db692.mjs`, `audit-stabilization-db692-coverage.mjs`, `preflight-stabilization-db692.mjs` and `time-stabilization-db692.mjs`. These are separately named copies of the established preparation utilities; the timed driver is unchanged. Timing results refuse overwrite. Root integration `final-5z56yM` and app tests `test-LfYpte` remain separate receipts.
+
+## Preceding preview versus e6 (earlier batch)
 
 The incremental comparison uses the exact pre-migration preview, `be0cb38108693068da30eb835e6eb33d6d5762c8`, and reviewed current branch, `e6f141f35327b6cea47b08538b086b0bd45b19d3`. Its 32 valid samples, paired round totals, bucket medians, hashes and cleanup receipt are preserved in [incremental-preview-batch.json](./incremental-preview-batch.json). Every sample is retained.
 
@@ -9,7 +35,7 @@ The incremental comparison uses the exact pre-migration preview, `be0cb381086930
 | Naive     |          669.4 ms | 680.6 ms | +11.2 ms /+1.7% |
 | Optimized |          303.6 ms | 290.3 ms | -13.3 ms /-4.4% |
 
-For naive rendering, the animation-frame median changes from 613.5 to 624.9 ms and synchronous dispatch from 56.9 to 55.2 ms. Optimized rendering changes from 242.2 to 232.9 ms in animation-frame callbacks and from 60.1 to 57.4 ms in synchronous dispatch. Other buckets are zero. Every timed slot has 400 synchronous events and 400 animation-frame callbacks, cross-origin isolation and no browser errors.
+For naive rendering, the animation-frame median changes from 613.5 to 624.9 ms and synchronous dispatch from 56.9 to 55.2 ms. Optimized rendering changes from 242.2 to 232.9 ms in animation-frame callbacks and from 60.1 to 57.4 ms in synchronous dispatch. Other buckets are zero. The driver's reported representative sample for each slot has 400 synchronous events and 400 animation-frame callbacks. Cross-origin isolation and page-error checks cover every run.
 
 These observed changes are small relative to the separate main comparison below. One machine-specific batch does not establish statistical equivalence or a general performance improvement. It measures aggregate changes from the preceding preview under this workload. The Todo app has no InMessages, children or Commands, so their dispatch and graph costs are not directly exercised. Absolute execution totals from the separate main batches cannot be subtracted to apportion causes.
 
@@ -24,16 +50,16 @@ The entire canonical benchmark source is unchanged between the two commits. The 
 
 The unified `block/makeDefinition.ts` entry chooses between native and contracted implementations from runtime configuration. It therefore retains both implementation paths in these bundles. Splitting that entry would require an API redesign; the bounded audit found no small safe bundle fix. The additional approximately 7.9 KB gzip remains for user review and is not an approved tradeoff. The October 26 broad main attribution is historical evidence, rather than attribution of this migration-specific increment. Exact source and bundle hashes are recorded below and in the receipt.
 
-## Main baseline versus current
+## Main baseline versus e6 (earlier batch)
 
-The earlier main-versus-current balanced batch covers code commit `fd4f03253faa782eaa7f45d043127e3bf21ad572`, whose production sources match reviewed `e6f141f35327b6cea47b08538b086b0bd45b19d3`. It restores the optimized path's benefit, while retaining a measurable gap against actual main. Its 32 samples remain in [final-batch.json](./final-batch.json). The preceding initial and repaired main comparisons are unchanged. Across all four batches, all 128 official samples are retained.
+The earlier main-versus-current balanced batch covers code commit `fd4f03253faa782eaa7f45d043127e3bf21ad572`, whose production sources match reviewed `e6f141f35327b6cea47b08538b086b0bd45b19d3`. It restores the optimized path's benefit, while retaining a measurable gap against actual main. Its 32 samples remain in [final-batch.json](./final-batch.json). The preceding initial and repaired main comparisons are unchanged. All 128 samples from those four earlier batches remain intact.
 
 | Variant   | Actual main | Final candidate |            Change |
 | --------- | ----------: | --------------: | ----------------: |
 | Naive     |    543.9 ms |        623.3 ms | +79.4 ms / +14.6% |
 | Optimized |    195.8 ms |        259.6 ms | +63.8 ms / +32.6% |
 
-These numbers sum instrumented callback and synchronous execution time, rather than wall-clock completion time. For the optimized variant, the animation-frame median rises from 156.9 to 211.5 ms and synchronous dispatch from 39.1 to 47.8 ms. Other buckets are zero. Every sample has 400 synchronous events and 400 animation-frame callbacks, with cross-origin isolation and no browser errors. Bucket medians are independent and need not sum to the median total.
+These numbers sum instrumented callback and synchronous execution time, rather than wall-clock completion time. For the optimized variant, the animation-frame median rises from 156.9 to 211.5 ms and synchronous dispatch from 39.1 to 47.8 ms. Other buckets are zero. The driver's reported representative sample for each slot has 400 synchronous events and 400 animation-frame callbacks. Cross-origin isolation and page-error checks cover every run. Bucket medians are independent and need not sum to the median total.
 
 | JavaScript bundle | Actual main gzip | Final candidate gzip |             Added |
 | ----------------- | ---------------: | -------------------: | ----------------: |
@@ -84,18 +110,19 @@ The scan is a concrete contributor in this diagnostic pair. These samples cannot
 ## Method and provenance
 
 - Actual GitHub main: `a471adb24d750ab9e8d8312edad53ff6f26d961b`.
+- Final stabilization code: `db69206779b4e4c37d9cefe02acb21ca3d2e9ed3`, with 625 exact source/config inputs. Its separate 32-sample receipt is `stabilization-batch.json`.
 - Preceding preview: `be0cb38108693068da30eb835e6eb33d6d5762c8`. Reviewed current: `e6f141f35327b6cea47b08538b086b0bd45b19d3`. The latter matches all 624 sealed source/config inputs used by the current bundles.
 - Harness: `03fff17ad22407115a91937ddab680e40fe0c7c7`; Chromium `153.0.8010.12`.
 - Unchanged workload: 100 additions, 100 toggles and 100 deletions. Boot settles before measurements reset and is excluded from official totals.
-- Each official batch contains eight rounds and four slots, with cyclic rotation. Each slot occupies every ordinal position twice. All 128 official samples across four batches are retained.
-- Root coordination kept the machine free of other builds, tests, checkers and browser jobs during all four timing batches and the paired profiles.
+- Each official batch contains eight rounds and four slots, with cyclic rotation. Each slot occupies every ordinal position twice. All 160 official samples across five batches are retained.
+- Root coordination kept the machine free of other builds, tests, checkers and browser jobs during all five timing batches and the paired profiles.
 - Both branches use the same cached Effect 4.1.0, Vite 8.3.5 and TypeScript 7.1 beta. This is a matched-toolchain comparison, rather than a fresh installation of each branch's lockfile.
 - The candidate uses a saved scratch-only keyed Definition / Layer-owned completion adapter. Todo/update branches, both view bodies, HTML, selectors, parameters, instrumentation and driver remain unchanged. Ordinary Program/Runtime integration typechecks.
 - The final sealed snapshot's 349 core and 11 plugin JavaScript files match the reviewed canonical artifacts byte for byte. All 624 captured source/config inputs and public declarations match the code snapshot recorded at `fd4f03253faa782eaa7f45d043127e3bf21ad572`. Driver/workload hashes remain unchanged.
 
-Receipts contain working-tree fingerprints, production JavaScript/declaration and adapter hashes, all reported totals, bucket medians and bundle hashes. The unchanged driver prints per-round totals to 0.1 ms and does not expose raw per-sample bucket data. Measurements remain machine and browser specific.
+Receipts contain working-tree fingerprints, production JavaScript/declaration and adapter hashes, all reported totals, bucket medians and bundle hashes. The unchanged driver retains printed per-round totals to 0.1 ms and reported bucket medians; it does not retain unrounded per-sample totals, buckets or counters. Displayed counters come from one representative sample per slot, the fifth run in these eight-round batches. Page-error and cross-origin-isolation checks cover every run. Measurements remain machine and browser specific.
 
-Full snapshots, exact adapter patches, source maps, raw profiles, build logs and timing output remain outside the repository under `/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/`. The original workspace and benchmark repository were untouched. All four timing drivers and the diagnostic pair exited successfully; their browsers and servers closed, with no remaining listeners on ports 38377, 38378 or 38379.
+Full snapshots, exact adapter patches, source maps, raw profiles, build logs and timing output remain outside the repository under `/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/`. The original workspace and benchmark repository were untouched. All five timing drivers and the diagnostic pair exited successfully; their browsers and servers closed, with no remaining listeners on ports 38377, 38378 or 38379.
 
 ## Sealed current payload boundary
 
