@@ -6,15 +6,18 @@ import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
 import {
-  type CompletedFetchOf,
   type FoldLens,
   type LiftConfig,
-  type LiftQuery,
   type ParentFieldConfig,
-  type QueryStore,
-  applyTransition,
   isParentFieldConfig,
   parentFieldToLens,
+  preserveLensReceiver,
+} from '../childLens.js'
+import {
+  type CompletedFetchOf,
+  type LiftQuery,
+  type QueryStore,
+  applyTransition,
   runExecute,
 } from './internal.js'
 
@@ -214,25 +217,29 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
 
   const liftFromLens = <ParentModel, ParentMessage>(
     lens: FoldLens<ParentModel, ParentMessage, Model, Message>,
-  ) => ({
-    fold: Update.foldChild({ update, ...lens }),
-    reset: Update.foldChildStep({
-      update: reset,
-      ...lens,
-    }),
-    revalidate: Update.foldChildStep({
-      update: revalidate,
-      ...lens,
-    }),
-    revalidateOrLoad: Update.foldChildStep({
-      update: revalidateOrLoad,
-      ...lens,
-    }),
-    loadIfMissing: Update.foldChildStep({
-      update: loadIfMissing,
-      ...lens,
-    }),
-  })
+  ) => {
+    const receiverLens = preserveLensReceiver(lens)
+
+    return {
+      fold: Update.foldChild({ update, ...receiverLens }),
+      reset: Update.foldChildStep({
+        update: reset,
+        ...receiverLens,
+      }),
+      revalidate: Update.foldChildStep({
+        update: revalidate,
+        ...receiverLens,
+      }),
+      revalidateOrLoad: Update.foldChildStep({
+        update: revalidateOrLoad,
+        ...receiverLens,
+      }),
+      loadIfMissing: Update.foldChildStep({
+        update: loadIfMissing,
+        ...receiverLens,
+      }),
+    }
+  }
 
   function lift<ParentModel, ParentMessage>(
     config: ParentFieldConfig<ParentModel, ParentMessage, Model, Message>,

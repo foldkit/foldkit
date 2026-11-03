@@ -281,6 +281,7 @@ const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/command': 'Command',
   'foldkit/experimental': 'Experimental',
   'foldkit/experimental/query': 'Query',
+  'foldkit/experimental/form': 'Form',
   'foldkit/html': 'Html',
   'foldkit/managedResource': 'ManagedResource',
   'foldkit/message': 'Message',
