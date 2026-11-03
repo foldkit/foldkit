@@ -131,7 +131,7 @@ const DatePickerDefinition = Block.makeDefinition('DatePicker', {
 // UPDATE
 
 /** @internal DatePicker's Popover relationship for typed test delivery. */
-export const PopoverBinding = DatePickerDefinition.makeBinding(
+export const BasePopoverBinding = DatePickerDefinition.makeBinding(
   Popover.PopoverBlock,
   {
     field: 'popover',
@@ -150,7 +150,7 @@ export const PopoverBinding = DatePickerDefinition.makeBinding(
 )
 
 /** @internal DatePicker's Calendar relationship for typed test delivery. */
-export const CalendarBinding = DatePickerDefinition.makeBinding(
+export const BaseCalendarBinding = DatePickerDefinition.makeBinding(
   UiCalendar.CalendarBlock,
   {
     field: 'calendar',
@@ -180,8 +180,8 @@ export const CalendarBinding = DatePickerDefinition.makeBinding(
 const foldPopoverOutMessage = DatePickerDefinition.makeOutMessageFold(
   Popover.PopoverBlock,
   {
-    Opened: () => CalendarBinding.requestDropToDays(),
-    Closed: () => CalendarBinding.requestDropToDays(),
+    Opened: () => BaseCalendarBinding.requestDropToDays(),
+    Closed: () => BaseCalendarBinding.requestDropToDays(),
   },
 )
 
@@ -189,7 +189,7 @@ const foldCalendarOutMessage = DatePickerDefinition.makeOutMessageFold(
   UiCalendar.CalendarBlock,
   {
     ChangedViewMonth: DatePickerDefinition.makeNoopStep,
-    SelectedDate: () => PopoverBinding.requestClose(),
+    SelectedDate: () => BasePopoverBinding.requestClose(),
   },
 )
 
@@ -202,21 +202,17 @@ const forwardCalendarOutMessage = DatePickerDefinition.makeOutMessageForward(
   },
 )
 
-const PopoverBindingWithOutMessagePolicy = PopoverBinding.withOutMessagePolicy({
+const PopoverBinding = BasePopoverBinding.withOutMessagePolicy({
   fold: foldPopoverOutMessage,
 })
 
-const CalendarBindingWithOutMessagePolicy =
-  CalendarBinding.withOutMessagePolicy({
-    fold: foldCalendarOutMessage,
-    forward: forwardCalendarOutMessage,
-  })
+const CalendarBinding = BaseCalendarBinding.withOutMessagePolicy({
+  fold: foldCalendarOutMessage,
+  forward: forwardCalendarOutMessage,
+})
 
 const DatePickerComposition = DatePickerDefinition.makeComposition({
-  bindings: [
-    PopoverBindingWithOutMessagePolicy,
-    CalendarBindingWithOutMessagePolicy,
-  ],
+  bindings: [PopoverBinding, CalendarBinding],
 })
 
 /** Creates an initial DatePicker Model and Commands from a config. The selected date is
@@ -231,12 +227,12 @@ export const init = DatePickerComposition.makeInit((config: InitConfig) => ({
 }))
 
 const openDatePicker = Update.combineSteps([
-  PopoverBinding.requestOpen(),
-  CalendarBinding.requestDropToDays(),
+  BasePopoverBinding.requestOpen(),
+  BaseCalendarBinding.requestDropToDays(),
 ])
 const closeDatePicker = Update.combineSteps([
-  PopoverBinding.requestClose(),
-  CalendarBinding.requestDropToDays(),
+  BasePopoverBinding.requestClose(),
+  BaseCalendarBinding.requestDropToDays(),
 ])
 const clearDatePicker = DatePickerDefinition.makeOutMessageStep(() =>
   OutMessage.ClearedDate(),
@@ -249,24 +245,26 @@ export const update = DatePickerComposition.makeUpdate({
   Closed: closeDatePicker,
 
   RequestedSelectDate: (model, { date }) =>
-    CalendarBinding.requestSelectDate(date)(model),
+    BaseCalendarBinding.requestSelectDate(date)(model),
 
   Cleared: clearDatePicker,
 
   RequestedFocusDate: (model, { date }) =>
-    CalendarBinding.requestFocusDate(date)(model),
+    BaseCalendarBinding.requestFocusDate(date)(model),
 
   InformedOfMinDateChange: (model, { maybeMinDate }) =>
-    CalendarBinding.informMinDateChanged(maybeMinDate)(model),
+    BaseCalendarBinding.informMinDateChanged(maybeMinDate)(model),
 
   InformedOfMaxDateChange: (model, { maybeMaxDate }) =>
-    CalendarBinding.informMaxDateChanged(maybeMaxDate)(model),
+    BaseCalendarBinding.informMaxDateChanged(maybeMaxDate)(model),
 
   InformedOfDisabledDatesChange: (model, { disabledDates }) =>
-    CalendarBinding.informDisabledDatesChanged(disabledDates)(model),
+    BaseCalendarBinding.informDisabledDatesChanged(disabledDates)(model),
 
   InformedOfDisabledDaysOfWeekChange: (model, { disabledDaysOfWeek }) =>
-    CalendarBinding.informDisabledDaysOfWeekChanged(disabledDaysOfWeek)(model),
+    BaseCalendarBinding.informDisabledDaysOfWeekChanged(disabledDaysOfWeek)(
+      model,
+    ),
 })
 
 /** Applies parent requests through the shared date-picker transitions. */
@@ -398,7 +396,7 @@ export const view = DatePickerComposition.makeView.withInputs(
     }
 
     const calendarVNode = h.block(
-      CalendarBinding.embedView({
+      BaseCalendarBinding.embedView({
         slotId: model.calendar.id,
         model: model.calendar,
         viewInputs: {
@@ -410,7 +408,7 @@ export const view = DatePickerComposition.makeView.withInputs(
     )
 
     const popoverVNode = h.block(
-      PopoverBinding.embedView({
+      BasePopoverBinding.embedView({
         slotId: model.popover.id,
         model: model.popover,
         viewInputs: {
@@ -486,8 +484,8 @@ export const DatePickerBlock: DatePickerBlock = DatePickerDefinition.contract
 
 const block = DatePickerDefinition.makeBlock(
   Effect.gen(function* () {
-    const popover = yield* PopoverBindingWithOutMessagePolicy
-    const calendar = yield* CalendarBindingWithOutMessagePolicy
+    const popover = yield* PopoverBinding
+    const calendar = yield* CalendarBinding
 
     return {
       children: [popover, calendar],

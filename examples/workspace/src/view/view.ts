@@ -7,13 +7,13 @@ import { view as buttonView } from '@foldkit/ui/button'
 import { buttonId } from '@foldkit/ui/listbox'
 
 import {
-  ActiveMemberBinding,
+  ActiveMemberListboxBinding,
   ApplicationComposition,
   type ApplicationViewBuilder,
   CommandPaletteBinding,
   CreateIssueBinding,
-  IssueBoardBinding,
-  IssueDetailBinding,
+  IssueBoardsBinding,
+  IssueDetailsBinding,
   IssueListBinding,
   MemberDirectoryBinding,
   NotificationCenterBinding,
@@ -67,7 +67,7 @@ const memberControl = (
         [h.Class('w-40')],
         [
           h.block(
-            ActiveMemberBinding.embedView({
+            ActiveMemberListboxBinding.embedView({
               slotId: model.activeMemberListbox.id,
               model: model.activeMemberListbox,
               viewInputs: listboxViewInputs({
@@ -233,7 +233,7 @@ const routeContent = (
             ),
           onSome: board =>
             h.block(
-              IssueBoardBinding.embedView({
+              IssueBoardsBinding.embedView({
                 key: projectId,
                 slotId: `project-board-${projectId}`,
                 model: board,
@@ -434,7 +434,7 @@ const workspaceView = (
                         ],
                         [
                           h.block(
-                            IssueDetailBinding.embedView({
+                            IssueDetailsBinding.embedView({
                               key: detail.issueId,
                               slotId: detail.issueId,
                               model: detail,

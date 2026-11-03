@@ -59,13 +59,13 @@ const foldListboxMultiOutMessage = PeoplePickerDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const PeopleListboxBinding = PeoplePickerDefinition.makeBinding(PeopleListbox, {
+const ListboxMultiBinding = PeoplePickerDefinition.makeBinding(PeopleListbox, {
   field: 'listboxMulti',
   init: { contextToArgs: () => [{ id: 'people' }] },
 }).withOutMessagePolicy({ fold: foldListboxMultiOutMessage })
 
 const PeoplePickerComposition = PeoplePickerDefinition.makeComposition({
-  bindings: [PeopleListboxBinding],
+  bindings: [ListboxMultiBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
@@ -89,7 +89,7 @@ const people: ReadonlyArray<Person> = [
 // stays open on selection so the user can toggle several items:
 const view = PeoplePickerComposition.makeView((model, h) =>
   h.block(
-    PeopleListboxBinding.embedView({
+    ListboxMultiBinding.embedView({
       slotId: 'people',
       model: model.listboxMulti,
       viewInputs: {
@@ -125,7 +125,7 @@ const view = PeoplePickerComposition.makeView((model, h) =>
 
 export const ApplicationBlock = PeoplePickerDefinition.makeBlock(
   Effect.gen(function* () {
-    const peopleListbox = yield* PeopleListboxBinding
+    const peopleListbox = yield* ListboxMultiBinding
 
     return {
       children: [peopleListbox],

@@ -4,7 +4,9 @@ import { Valid, Validating } from 'foldkit/fieldValidation'
 import { inMessage, init, withBlock } from 'foldkit/story'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { PersonalInfoBlock, layer } from './block'
 import { ValidateEmailAsync } from './command'
@@ -14,8 +16,9 @@ const today = Calendar.make(2026, 4, 16)
 const givenInitial = init(today)
 
 describe('personalInfo', () => {
-  test('a parent request reveals validation errors without starting email validation', () =>
-    Effect.runPromise(
+  it.effect(
+    'a parent request reveals validation errors without starting email validation',
+    () =>
       story(
         PersonalInfoBlock,
         givenInitial,
@@ -29,58 +32,53 @@ describe('personalInfo', () => {
           expect(model.portfolioUrl._tag).toBe('NotValidated')
         }),
       ).pipe(Effect.provide(layer)),
-    ))
+  )
 
-  test('a valid first name is stored as Valid', async () => {
-    await Effect.runPromise(
-      story(
-        PersonalInfoBlock,
-        givenInitial,
-        message(Message.UpdatedFirstName({ value: 'Jane' })),
-        model(model => {
-          expect(model.firstName.value).toBe('Jane')
-          expect(model.firstName._tag).toBe('Valid')
+  it.effect('a valid first name is stored as Valid', () =>
+    story(
+      PersonalInfoBlock,
+      givenInitial,
+      message(Message.UpdatedFirstName({ value: 'Jane' })),
+      model(model => {
+        expect(model.firstName.value).toBe('Jane')
+        expect(model.firstName._tag).toBe('Valid')
+      }),
+    ).pipe(Effect.provide(layer)),
+  )
+
+  it.effect('a short first name is Invalid', () =>
+    story(
+      PersonalInfoBlock,
+      givenInitial,
+      message(Message.UpdatedFirstName({ value: 'J' })),
+      model(model => {
+        expect(model.firstName._tag).toBe('Invalid')
+      }),
+    ).pipe(Effect.provide(layer)),
+  )
+
+  it.effect('a well-formed email starts async uniqueness validation', () =>
+    story(
+      PersonalInfoBlock,
+      givenInitial,
+      message(Message.UpdatedEmail({ value: 'jane@example.com' })),
+      Command.expectHas(ValidateEmailAsync),
+      Command.resolve(
+        ValidateEmailAsync,
+        Message.CompletedValidateEmailAsync({
+          validationId: 1,
+          field: Valid({ value: 'jane@example.com' }),
         }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
+      ),
+      model(model => {
+        expect(model.email._tag).toBe('Valid')
+      }),
+    ).pipe(Effect.provide(layer)),
+  )
 
-  test('a short first name is Invalid', async () => {
-    await Effect.runPromise(
-      story(
-        PersonalInfoBlock,
-        givenInitial,
-        message(Message.UpdatedFirstName({ value: 'J' })),
-        model(model => {
-          expect(model.firstName._tag).toBe('Invalid')
-        }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('a well-formed email starts async uniqueness validation', async () => {
-    await Effect.runPromise(
-      story(
-        PersonalInfoBlock,
-        givenInitial,
-        message(Message.UpdatedEmail({ value: 'jane@example.com' })),
-        Command.expectHas(ValidateEmailAsync),
-        Command.resolve(
-          ValidateEmailAsync,
-          Message.CompletedValidateEmailAsync({
-            validationId: 1,
-            field: Valid({ value: 'jane@example.com' }),
-          }),
-        ),
-        model(model => {
-          expect(model.email._tag).toBe('Valid')
-        }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('a malformed email fails sync validation without an async command', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'a malformed email fails sync validation without an async command',
+    () =>
       story(
         PersonalInfoBlock,
         givenInitial,
@@ -90,18 +88,16 @@ describe('personalInfo', () => {
           expect(model.email._tag).toBe('Invalid')
         }),
       ).pipe(Effect.provide(layer)),
-    )
-  })
+  )
 
-  test('a stale email async result is discarded', async () => {
-    const initialModel = await Effect.runPromise(
-      withBlock(
+  it.effect('a stale email async result is discarded', () =>
+    Effect.gen(function* () {
+      const initialModel = yield* withBlock(
         PersonalInfoBlock,
         personalInfo => personalInfo.init(today).model,
-      ).pipe(Effect.provide(layer)),
-    )
-    await Effect.runPromise(
-      story(
+      ).pipe(Effect.provide(layer))
+
+      yield* story(
         PersonalInfoBlock,
         given(
           modifyFields(initialModel, {
@@ -120,7 +116,7 @@ describe('personalInfo', () => {
           expect(model.email.value).toBe('jane@example.com')
           expect(model.emailValidationId).toBe(5)
         }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
+      ).pipe(Effect.provide(layer))
+    }),
+  )
 })

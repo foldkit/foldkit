@@ -1,7 +1,9 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import { expect, given, placeholder, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { DietListboxBlock, type Model, PeriodListboxBlock } from './model'
@@ -55,80 +57,70 @@ const browseModel: Model = {
 }
 
 describe('view', () => {
-  test('the Browse route renders the heading and search input', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(browseModel),
-        expect(role('heading', { name: 'Dinosaur Explorer' })).toExist(),
-        expect(placeholder('Search by name…')).toExist(),
-      ),
-    )
-  })
+  it.effect('the Browse route renders the heading and search input', () =>
+    scene(
+      ApplicationBlock,
+      given(browseModel),
+      expect(role('heading', { name: 'Dinosaur Explorer' })).toExist(),
+      expect(placeholder('Search by name…')).toExist(),
+    ),
+  )
 
-  test('rendering shows the total dinosaur count', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(browseModel),
-        expect(text('Showing', { exact: false })).toContainText('dinosaurs'),
-      ),
-    )
-  })
+  it.effect('rendering shows the total dinosaur count', () =>
+    scene(
+      ApplicationBlock,
+      given(browseModel),
+      expect(text('Showing', { exact: false })).toContainText('dinosaurs'),
+    ),
+  )
 
-  test('typing in the search input updates its rendered value', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(
-          modifyFields(browseModel, {
-            route: () =>
-              ApplicationRoute.Browse({
-                search: Option.some('Tyranno'),
-                sorting: Sorting.Unsorted(),
-                diet: Option.none(),
-                period: Option.none(),
-              }),
-          }),
-        ),
-        expect(placeholder('Search by name…')).toHaveValue('Tyranno'),
+  it.effect('typing in the search input updates its rendered value', () =>
+    scene(
+      ApplicationBlock,
+      given(
+        modifyFields(browseModel, {
+          route: () =>
+            ApplicationRoute.Browse({
+              search: Option.some('Tyranno'),
+              sorting: Sorting.Unsorted(),
+              diet: Option.none(),
+              period: Option.none(),
+            }),
+        }),
       ),
-    )
-  })
+      expect(placeholder('Search by name…')).toHaveValue('Tyranno'),
+    ),
+  )
 
-  test('a search with no matches shows the empty-state copy', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(
-          modifyFields(browseModel, {
-            route: () =>
-              ApplicationRoute.Browse({
-                search: Option.some('zzzNoMatch'),
-                sorting: Sorting.Unsorted(),
-                diet: Option.none(),
-                period: Option.none(),
-              }),
-          }),
-        ),
-        expect(text('No dinosaurs match your filters.')).toExist(),
+  it.effect('a search with no matches shows the empty-state copy', () =>
+    scene(
+      ApplicationBlock,
+      given(
+        modifyFields(browseModel, {
+          route: () =>
+            ApplicationRoute.Browse({
+              search: Option.some('zzzNoMatch'),
+              sorting: Sorting.Unsorted(),
+              diet: Option.none(),
+              period: Option.none(),
+            }),
+        }),
       ),
-    )
-  })
+      expect(text('No dinosaurs match your filters.')).toExist(),
+    ),
+  )
 
-  test('NotFound shows a friendly 404 and a back link', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(
-          modifyFields(browseModel, {
-            route: () => ApplicationRoute.NotFound({ path: '/oops' }),
-          }),
-        ),
-        expect(role('heading', { name: '404 — Page Not Found' })).toExist(),
-        expect(text('The path "/oops" was not found.')).toExist(),
-        expect(role('link', { name: '← Back to Dinosaur Explorer' })).toExist(),
+  it.effect('NotFound shows a friendly 404 and a back link', () =>
+    scene(
+      ApplicationBlock,
+      given(
+        modifyFields(browseModel, {
+          route: () => ApplicationRoute.NotFound({ path: '/oops' }),
+        }),
       ),
-    )
-  })
+      expect(role('heading', { name: '404 — Page Not Found' })).toExist(),
+      expect(text('The path "/oops" was not found.')).toExist(),
+      expect(role('link', { name: '← Back to Dinosaur Explorer' })).toExist(),
+    ),
+  )
 })

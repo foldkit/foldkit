@@ -1,7 +1,7 @@
 import { Array, Option } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 
-import { IssueDetailBinding } from '../composition'
+import { IssueDetailsBinding } from '../composition'
 import { makeStep } from '../definition'
 import type { Issue, SavedIssue } from '../domain'
 import { applyIssueSnapshot, applySavedIssue } from '../steps'
@@ -15,7 +15,7 @@ export const informIssueChange = (issueId: string) =>
       {
         onNone: () => ({ model }),
         onSome: issue =>
-          IssueDetailBinding.informIssueChange(issue.id, { issue }),
+          IssueDetailsBinding.informIssueChange(issue.id, { issue }),
       },
     ),
   )
@@ -35,7 +35,7 @@ export const informRetainedIssueDetails = makeStep(model =>
     onSome: workspace =>
       Update.combineSteps(
         Array.map(workspace.issues, issue =>
-          IssueDetailBinding.informIssueChange(issue.id, { issue }),
+          IssueDetailsBinding.informIssueChange(issue.id, { issue }),
         ),
       ),
   }),

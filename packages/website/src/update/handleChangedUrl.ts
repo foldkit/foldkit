@@ -9,7 +9,7 @@ import * as Command from '../command'
 import {
   ApiReferenceBinding,
   ExampleDetailBinding,
-  HomeBinding,
+  MaybeHomeBinding,
   MobileMenuDialogBinding,
   PlaygroundBinding,
   SearchBinding,
@@ -63,7 +63,7 @@ const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
 const reconcileHome = (transition: ApplicationTransition) =>
   makeStep(model => {
     if (Transition.isEntering(transition, 'Home')) {
-      return initAndSet(HomeBinding, model, { args: [] })
+      return initAndSet(MaybeHomeBinding, model, { args: [] })
     }
 
     if (Option.isSome(Transition.exited(transition, 'Home'))) {

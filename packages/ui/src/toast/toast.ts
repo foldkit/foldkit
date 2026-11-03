@@ -119,7 +119,11 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
 const LEFT_MOUSE_BUTTON = 0
 
 const makeToastView = <A, I>(runtime: ToastRuntime<A, I>) => {
-  const { ToastComposition, EntryAnimationBinding, ...toastRuntime } = runtime
+  const {
+    ToastComposition,
+    EntryAnimationBinding: EntriesAnimationBinding,
+    ...toastRuntime
+  } = runtime
   type Entry = typeof toastRuntime.Entry.Type
 
   type ToastMessage = typeof toastRuntime.Message.Type
@@ -255,7 +259,7 @@ const makeToastView = <A, I>(runtime: ToastRuntime<A, I>) => {
       }
 
       return h.block(
-        EntryAnimationBinding.embedView({
+        EntriesAnimationBinding.embedView({
           key: entry.id,
           slotId: entry.id,
           model: entry.animation,
@@ -276,12 +280,13 @@ const makeToastView = <A, I>(runtime: ToastRuntime<A, I>) => {
 /** @internal Authors the Toast contract, private implementation and exact test tokens. */
 export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const runtime = makeRuntime(payloadSchema)
-  const { EntryAnimationBinding, ...toastRuntime } = runtime
+  const { EntryAnimationBinding: EntriesAnimationBinding, ...toastRuntime } =
+    runtime
   const view = makeToastView(runtime)
 
   const test = makeTest<ToastContract<A, I>>({
     block: () => block,
-    entryAnimationBinding: EntryAnimationBinding,
+    entryAnimationBinding: EntriesAnimationBinding,
     waitBeforeDismissal: toastRuntime.WaitBeforeDismissal,
   })
   const publicTest: ToastTest<ToastContract<A, I>> = {
@@ -295,7 +300,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   )
 
   return {
-    EntryAnimationBinding,
+    EntryAnimationBinding: EntriesAnimationBinding,
     ...toastRuntime,
     view,
     test,

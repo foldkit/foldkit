@@ -1,8 +1,10 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { messageFrom } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { CounterBlock } from './blocks'
@@ -29,57 +31,52 @@ const urlOrThrow = (raw: string) =>
 
 describe('update', () => {
   describe('ChangedUrl', () => {
-    test('navigating to / parses to the Home route', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
-          model(model => {
-            expect(model.route._tag).toBe('Home')
+    it.effect('navigating to / parses to the Home route', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
+        model(model => {
+          expect(model.route._tag).toBe('Home')
+        }),
+      ),
+    )
+
+    it.effect('navigating to /posts parses to the Posts route', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
+        ),
+        model(model => {
+          expect(model.route._tag).toBe('Posts')
+        }),
+      ),
+    )
+
+    it.effect('navigating to /posts/making-this-blog captures the slug', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/posts/making-this-blog'),
           }),
         ),
-      )
-    })
+        model(model => {
+          if (model.route._tag === 'Post') {
+            expect(model.route.slug).toBe('making-this-blog')
+          } else {
+            throw new Error('Expected Post route')
+          }
+        }),
+      ),
+    )
 
-    test('navigating to /posts parses to the Posts route', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(
-            Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
-          ),
-          model(model => {
-            expect(model.route._tag).toBe('Posts')
-          }),
-        ),
-      )
-    })
-
-    test('navigating to /posts/making-this-blog captures the slug', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow('http://localhost/posts/making-this-blog'),
-            }),
-          ),
-          model(model => {
-            if (model.route._tag === 'Post') {
-              expect(model.route.slug).toBe('making-this-blog')
-            } else {
-              throw new Error('Expected Post route')
-            }
-          }),
-        ),
-      )
-    })
-
-    test('an unknown path falls through to NotFound with the path captured', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'an unknown path falls through to NotFound with the path captured',
+      () =>
         story(
           ApplicationBlock,
           given(home),
@@ -94,13 +91,13 @@ describe('update', () => {
             }
           }),
         ),
-      )
-    })
+    )
   })
 
   describe('generated Counter Message', () => {
-    test('increments route through the Counter Block without commands', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'increments route through the Counter Block without commands',
+      () =>
         story(
           ApplicationBlock,
           given(home),
@@ -111,28 +108,25 @@ describe('update', () => {
             expect(model.counter.count).toBe(2)
           }),
         ),
-      )
-    })
+    )
 
-    test('the count survives navigating between routes', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          counterMessage(CounterBlock.Message.ClickedIncrement()),
-          message(
-            Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
-          ),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow('http://localhost/posts/making-this-blog'),
-            }),
-          ),
-          model(model => {
-            expect(model.counter.count).toBe(1)
+    it.effect('the count survives navigating between routes', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        counterMessage(CounterBlock.Message.ClickedIncrement()),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
+        ),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/posts/making-this-blog'),
           }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.counter.count).toBe(1)
+        }),
+      ),
+    )
   })
 })

@@ -29,7 +29,7 @@ import {
   firstPostDetail,
   fixturePosts,
   fixtureStats,
-  test,
+  it,
 } from './model.fixture'
 
 const postDetailTag = (model: Model, postId: string): string =>
@@ -53,10 +53,9 @@ const resolveFocusTab = Command.resolve(
   ApplicationTabsBlock.Message.CompletedFocusTab(),
 )
 
-test('first visit to the Stats tab fetches stats', async ({
-  models: { loadedPostsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'first visit to the Stats tab fetches stats',
+  ({ models: { loadedPostsModel } }) =>
     story(
       ApplicationBlock,
       given(loadedPostsModel),
@@ -79,13 +78,11 @@ test('first visit to the Stats tab fetches stats', async ({
         expect(model.stats._tag).toBe('Success')
       }),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('returning to a tab with cached data does not refetch', async ({
-  models: { loadedStatsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'returning to a tab with cached data does not refetch',
+  ({ models: { loadedStatsModel } }) =>
     story(
       ApplicationBlock,
       given(loadedStatsModel),
@@ -99,13 +96,11 @@ test('returning to a tab with cached data does not refetch', async ({
         expect(model.stats._tag).toBe('Success')
       }),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('a revalidation tick keeps stale stats on screen while refetching', async ({
-  models: { loadedStatsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'a revalidation tick keeps stale stats on screen while refetching',
+  ({ models: { loadedStatsModel } }) =>
     story(
       ApplicationBlock,
       given(loadedStatsModel),
@@ -132,13 +127,11 @@ test('a revalidation tick keeps stale stats on screen while refetching', async (
         }
       }),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('a failed refresh keeps the stale stats on screen with the error', async ({
-  models: { loadedStatsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'a failed refresh keeps the stale stats on screen with the error',
+  ({ models: { loadedStatsModel } }) =>
     story(
       ApplicationBlock,
       given(loadedStatsModel),
@@ -157,13 +150,11 @@ test('a failed refresh keeps the stale stats on screen with the error', async ({
         }
       }),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('refresh clicks during an in-flight fetch are deduplicated', async ({
-  models: { loadedStatsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'refresh clicks during an in-flight fetch are deduplicated',
+  ({ models: { loadedStatsModel } }) =>
     story(
       ApplicationBlock,
       given(
@@ -172,13 +163,11 @@ test('refresh clicks during an in-flight fetch are deduplicated', async ({
       message(Message.ClickedRefreshStats()),
       Command.expectNone(),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('a revalidation tick during a refresh is deduplicated', async ({
-  models: { loadedStatsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'a revalidation tick during a refresh is deduplicated',
+  ({ models: { loadedStatsModel } }) =>
     story(
       ApplicationBlock,
       given(
@@ -192,13 +181,11 @@ test('a revalidation tick during a refresh is deduplicated', async ({
       message(Message.TickedRevalidateStats()),
       Command.expectNone(),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('invalidating posts refetches while keeping the current list', async ({
-  models: { loadedPostsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'invalidating posts refetches while keeping the current list',
+  ({ models: { loadedPostsModel } }) =>
     story(
       ApplicationBlock,
       given(loadedPostsModel),
@@ -222,13 +209,11 @@ test('invalidating posts refetches while keeping the current list', async ({
         expect(model.posts._tag).toBe('Success')
       }),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('retrying failed posts shows the loading state and refetches', async ({
-  models: { loadedPostsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'retrying failed posts shows the loading state and refetches',
+  ({ models: { loadedPostsModel } }) =>
     story(
       ApplicationBlock,
       given(
@@ -253,13 +238,11 @@ test('retrying failed posts shows the loading state and refetches', async ({
         expect(model.posts._tag).toBe('Success')
       }),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('opening a post fetches it once and serves revisits from the Model', async ({
-  models: { loadedPostsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'opening a post fetches it once and serves revisits from the Model',
+  ({ models: { loadedPostsModel } }) =>
     story(
       ApplicationBlock,
       given(loadedPostsModel),
@@ -285,13 +268,11 @@ test('opening a post fetches it once and serves revisits from the Model', async 
         expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
       }),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('a failed post detail fetch lands in Failure and retry refetches', async ({
-  models: { loadedPostsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'a failed post detail fetch lands in Failure and retry refetches',
+  ({ models: { loadedPostsModel } }) =>
     story(
       ApplicationBlock,
       given(loadedPostsModel),
@@ -324,13 +305,11 @@ test('a failed post detail fetch lands in Failure and retry refetches', async ({
         expect(postDetailTag(model, 'first-post')).toBe('Success')
       }),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)
 
-test('revisiting a post with a cached failure shows it without refetching', async ({
-  models: { loadedPostsModel },
-}) => {
-  await Effect.runPromise(
+it.effect(
+  'revisiting a post with a cached failure shows it without refetching',
+  ({ models: { loadedPostsModel } }) =>
     story(
       ApplicationBlock,
       given(
@@ -350,5 +329,4 @@ test('revisiting a post with a cached failure shows it without refetching', asyn
         expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
       }),
     ).pipe(Effect.provide(AppLayer)),
-  )
-})
+)

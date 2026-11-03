@@ -1,8 +1,10 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import { given, message, messageFrom, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { ProductsBlock } from './blocks'
@@ -36,74 +38,67 @@ const urlOrThrow = (raw: string) =>
 
 describe('update', () => {
   describe('routing', () => {
-    test('root URL maps to Products with no search', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(baseModel),
-          message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
-          model(model => {
-            expect(model.route._tag).toBe('Products')
-          }),
-        ),
-      )
-    })
+    it.effect('root URL maps to Products with no search', () =>
+      story(
+        ApplicationBlock,
+        given(baseModel),
+        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
+        model(model => {
+          expect(model.route._tag).toBe('Products')
+        }),
+      ),
+    )
 
-    test('/cart maps to Cart', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(baseModel),
-          message(
-            Message.ChangedUrl({ url: urlOrThrow('http://localhost/cart') }),
-          ),
-          model(model => {
-            expect(model.route._tag).toBe('Cart')
-          }),
+    it.effect('/cart maps to Cart', () =>
+      story(
+        ApplicationBlock,
+        given(baseModel),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/cart') }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.route._tag).toBe('Cart')
+        }),
+      ),
+    )
 
-    test('/checkout maps to Checkout', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(baseModel),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow('http://localhost/checkout'),
-            }),
-          ),
-          model(model => {
-            expect(model.route._tag).toBe('Checkout')
+    it.effect('/checkout maps to Checkout', () =>
+      story(
+        ApplicationBlock,
+        given(baseModel),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/checkout'),
           }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.route._tag).toBe('Checkout')
+        }),
+      ),
+    )
 
-    test('an unmatched path falls back to NotFound', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(baseModel),
-          message(
-            Message.ChangedUrl({ url: urlOrThrow('http://localhost/wat') }),
-          ),
-          model(model => {
-            if (model.route._tag === 'NotFound') {
-              expect(model.route.path).toBe('/wat')
-            } else {
-              throw new Error('Expected NotFound')
-            }
-          }),
+    it.effect('an unmatched path falls back to NotFound', () =>
+      story(
+        ApplicationBlock,
+        given(baseModel),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/wat') }),
         ),
-      )
-    })
+        model(model => {
+          if (model.route._tag === 'NotFound') {
+            expect(model.route.path).toBe('/wat')
+          } else {
+            throw new Error('Expected NotFound')
+          }
+        }),
+      ),
+    )
   })
 
   describe('cart updates', () => {
-    test('Products.AddedToCart OutMessage adds the item with quantity one', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'Products.AddedToCart OutMessage adds the item with quantity one',
+      () =>
         story(
           ApplicationBlock,
           given(baseModel),
@@ -116,64 +111,58 @@ describe('update', () => {
             expect(model.cart[0]?.quantity).toBe(1)
           }),
         ),
-      )
-    })
+    )
 
-    test('adding the same item twice increments its quantity', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(baseModel),
-          productsMessage(
-            ProductsBlock.Message.ClickedAddToCart({ item: apple }),
-          ),
-          productsMessage(
-            ProductsBlock.Message.ClickedAddToCart({ item: apple }),
-          ),
-          model(model => {
-            expect(model.cart).toHaveLength(1)
-            expect(model.cart[0]?.quantity).toBe(2)
+    it.effect('adding the same item twice increments its quantity', () =>
+      story(
+        ApplicationBlock,
+        given(baseModel),
+        productsMessage(
+          ProductsBlock.Message.ClickedAddToCart({ item: apple }),
+        ),
+        productsMessage(
+          ProductsBlock.Message.ClickedAddToCart({ item: apple }),
+        ),
+        model(model => {
+          expect(model.cart).toHaveLength(1)
+          expect(model.cart[0]?.quantity).toBe(2)
+        }),
+      ),
+    )
+
+    it.effect('ClickedIncrementQuantity raises the quantity for an item', () =>
+      story(
+        ApplicationBlock,
+        given(
+          modifyFields(baseModel, {
+            cart: () => [{ item: apple, quantity: 1 }],
           }),
         ),
-      )
-    })
+        message(Message.ClickedIncrementQuantity({ itemId: '1' })),
+        model(model => {
+          expect(model.cart[0]?.quantity).toBe(2)
+        }),
+      ),
+    )
 
-    test('ClickedIncrementQuantity raises the quantity for an item', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(
-            modifyFields(baseModel, {
-              cart: () => [{ item: apple, quantity: 1 }],
-            }),
-          ),
-          message(Message.ClickedIncrementQuantity({ itemId: '1' })),
-          model(model => {
-            expect(model.cart[0]?.quantity).toBe(2)
+    it.effect('ClickedDecrementQuantity lowers the quantity for an item', () =>
+      story(
+        ApplicationBlock,
+        given(
+          modifyFields(baseModel, {
+            cart: () => [{ item: apple, quantity: 2 }],
           }),
         ),
-      )
-    })
+        message(Message.ClickedDecrementQuantity({ itemId: '1' })),
+        model(model => {
+          expect(model.cart[0]?.quantity).toBe(1)
+        }),
+      ),
+    )
 
-    test('ClickedDecrementQuantity lowers the quantity for an item', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(
-            modifyFields(baseModel, {
-              cart: () => [{ item: apple, quantity: 2 }],
-            }),
-          ),
-          message(Message.ClickedDecrementQuantity({ itemId: '1' })),
-          model(model => {
-            expect(model.cart[0]?.quantity).toBe(1)
-          }),
-        ),
-      )
-    })
-
-    test('ClickedDecrementQuantity removes the item when it reaches zero', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedDecrementQuantity removes the item when it reaches zero',
+      () =>
         story(
           ApplicationBlock,
           given(
@@ -186,68 +175,62 @@ describe('update', () => {
             expect(model.cart).toHaveLength(0)
           }),
         ),
-      )
-    })
+    )
 
-    test('ClickedRemoveCartItem drops the matching cart entry', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(
-            modifyFields(baseModel, {
-              cart: () => [
-                { item: apple, quantity: 2 },
-                { item: banana, quantity: 1 },
-              ],
-            }),
-          ),
-          message(Message.ClickedRemoveCartItem({ itemId: '1' })),
-          model(model => {
-            expect(model.cart).toHaveLength(1)
-            expect(model.cart[0]?.item.id).toBe('2')
+    it.effect('ClickedRemoveCartItem drops the matching cart entry', () =>
+      story(
+        ApplicationBlock,
+        given(
+          modifyFields(baseModel, {
+            cart: () => [
+              { item: apple, quantity: 2 },
+              { item: banana, quantity: 1 },
+            ],
           }),
         ),
-      )
-    })
+        message(Message.ClickedRemoveCartItem({ itemId: '1' })),
+        model(model => {
+          expect(model.cart).toHaveLength(1)
+          expect(model.cart[0]?.item.id).toBe('2')
+        }),
+      ),
+    )
 
-    test('ClickedClearCart empties the cart', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(
-            modifyFields(baseModel, {
-              cart: () => [{ item: apple, quantity: 2 }],
-            }),
-          ),
-          message(Message.ClickedClearCart()),
-          model(model => {
-            expect(model.cart).toHaveLength(0)
+    it.effect('ClickedClearCart empties the cart', () =>
+      story(
+        ApplicationBlock,
+        given(
+          modifyFields(baseModel, {
+            cart: () => [{ item: apple, quantity: 2 }],
           }),
         ),
-      )
-    })
+        message(Message.ClickedClearCart()),
+        model(model => {
+          expect(model.cart).toHaveLength(0)
+        }),
+      ),
+    )
   })
 
   describe('checkout', () => {
-    test('UpdatedDeliveryInstructions stores the value', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(baseModel),
-          message(
-            Message.UpdatedDeliveryInstructions({
-              value: 'Leave at the door',
-            }),
-          ),
-          model(model => {
-            expect(model.deliveryInstructions).toBe('Leave at the door')
+    it.effect('UpdatedDeliveryInstructions stores the value', () =>
+      story(
+        ApplicationBlock,
+        given(baseModel),
+        message(
+          Message.UpdatedDeliveryInstructions({
+            value: 'Leave at the door',
           }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.deliveryInstructions).toBe('Leave at the door')
+        }),
+      ),
+    )
 
-    test('ClickedPlaceOrder sets orderPlaced, clears the cart, and resets instructions', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedPlaceOrder sets orderPlaced, clears the cart, and resets instructions',
+      () =>
         story(
           ApplicationBlock,
           given(
@@ -263,7 +246,6 @@ describe('update', () => {
             expect(model.deliveryInstructions).toBe('')
           }),
         ),
-      )
-    })
+    )
   })
 })

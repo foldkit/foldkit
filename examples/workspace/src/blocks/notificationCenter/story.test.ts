@@ -1,14 +1,16 @@
 import { Array, Effect, Option } from 'effect'
-import { inMessage } from 'foldkit/story'
-import * as Story from 'foldkit/story'
 import {
   expectNoOutMessage,
   expectOutMessage,
+  inMessage,
+  init,
   message,
   model,
   story,
 } from 'foldkit/story'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { Comment, Issue, NotificationActivity } from '../../domain'
 import { layer } from './block'
@@ -45,11 +47,12 @@ const issue = Issue.make({
 const activity = NotificationActivity.Commented({ issue, comment: newComment })
 
 describe('NotificationCenterBlock', () => {
-  test('deduplicates activity and retains each recipient read state', () => {
-    return Effect.runPromise(
-      story(
+  it.effect(
+    'deduplicates activity and retains each recipient read state',
+    () => {
+      return story(
         NotificationCenterBlock,
-        Story.init(),
+        init(),
         inMessage(InMessage.InformedOfActivity({ activity })),
         message(
           Message.ClickedNotificationReadState({
@@ -73,15 +76,16 @@ describe('NotificationCenterBlock', () => {
           ).toBe(false)
         }),
         expectNoOutMessage(),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
+      ).pipe(Effect.provide(layer))
+    },
+  )
 
-  test('marks the selected notification read without changing another recipient', () => {
-    return Effect.runPromise(
-      story(
+  it.effect(
+    'marks the selected notification read without changing another recipient',
+    () => {
+      return story(
         NotificationCenterBlock,
-        Story.init(),
+        init(),
         inMessage(InMessage.InformedOfActivity({ activity })),
         message(
           Message.ClickedNotification({
@@ -103,7 +107,7 @@ describe('NotificationCenterBlock', () => {
             ).pipe(Option.getOrThrow).isRead,
           ).toBe(false)
         }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
+      ).pipe(Effect.provide(layer))
+    },
+  )
 })

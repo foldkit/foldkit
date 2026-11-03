@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import {
   Command,
   expectOutMessage,
@@ -7,7 +6,9 @@ import {
   model,
   story,
 } from 'foldkit/story'
-import { expect, test } from 'vitest'
+import { expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { SaveTheme } from './blockDefinition'
 import {
@@ -18,26 +19,25 @@ import {
 } from './blockExtractedConnectedStep'
 import { SettingsBlock } from './blockSettings'
 
-test('folds a child fact without rendering its view', () =>
-  Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(
-        Model.make({
-          settings: SettingsBlock.Model.make({ theme: 'System' }),
-          themeChangeCount: 3,
-        }),
-      ),
-      messageFrom(
-        SettingsBinding,
-        SettingsBlock.Message.ChangedTheme({ theme: 'Dark' }),
-      ),
-      model(model => {
-        expect(model.settings.theme).toBe('Dark')
+it.effect('folds a child fact without rendering its view', () =>
+  story(
+    ApplicationBlock,
+    given(
+      Model.make({
+        settings: SettingsBlock.Model.make({ theme: 'System' }),
+        themeChangeCount: 3,
       }),
-      expectOutMessage(
-        OutMessage.ChangedTheme({ theme: 'Dark', changeCount: 3 }),
-      ),
-      Command.resolve(SaveTheme, SettingsBlock.Message.CompletedSaveTheme()),
     ),
-  ))
+    messageFrom(
+      SettingsBinding,
+      SettingsBlock.Message.ChangedTheme({ theme: 'Dark' }),
+    ),
+    model(model => {
+      expect(model.settings.theme).toBe('Dark')
+    }),
+    expectOutMessage(
+      OutMessage.ChangedTheme({ theme: 'Dark', changeCount: 3 }),
+    ),
+    Command.resolve(SaveTheme, SettingsBlock.Message.CompletedSaveTheme()),
+  ),
+)

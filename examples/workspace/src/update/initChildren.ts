@@ -3,8 +3,8 @@ import { AsyncData, Update } from 'foldkit'
 import { makeInitIfMissingStep } from 'foldkit/bindingInit'
 
 import {
-  IssueBoardBinding,
-  IssueDetailBinding,
+  IssueBoardsBinding,
+  IssueDetailsBinding,
   ProjectSettingsBinding,
 } from '../composition'
 import { makeNoopStep, makeStep } from '../definition'
@@ -28,7 +28,7 @@ export const initChildren = makeStep(model => {
     Option.match({
       onNone: makeNoopStep,
       onSome: issue =>
-        makeInitIfMissingStep(IssueDetailBinding, {
+        makeInitIfMissingStep(IssueDetailsBinding, {
           key: issue.id,
           args: [issue],
         }),
@@ -45,7 +45,7 @@ export const initChildren = makeStep(model => {
         Option.match(findProject(projectId), {
           onNone: makeNoopStep,
           onSome: project =>
-            makeInitIfMissingStep(IssueBoardBinding, {
+            makeInitIfMissingStep(IssueBoardsBinding, {
               key: project.id,
               args: [],
             }),

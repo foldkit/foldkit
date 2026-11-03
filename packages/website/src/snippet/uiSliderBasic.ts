@@ -53,7 +53,7 @@ const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const SliderBinding = VolumeSliderDefinition.makeBinding(SliderBlock, {
+const RatingDemoBinding = VolumeSliderDefinition.makeBinding(SliderBlock, {
   field: 'ratingDemo',
   init: {
     contextToArgs: () => [{ id: 'rating', min: 0, max: 10, step: 1 }],
@@ -61,7 +61,7 @@ const SliderBinding = VolumeSliderDefinition.makeBinding(SliderBlock, {
 }).withOutMessagePolicy({ fold: foldSliderOutMessage })
 
 const VolumeSliderComposition = VolumeSliderDefinition.makeComposition({
-  bindings: [SliderBinding],
+  bindings: [RatingDemoBinding],
 })
 
 // In your init function, seed the value (snapped to the range) and initialize
@@ -75,7 +75,7 @@ const init = VolumeSliderComposition.makeInit(() => ({
 
 const update = VolumeSliderComposition.makeUpdate({})
 
-// Registering `SliderBinding` in `bindings` also collects both drag Subscriptions.
+// Registering `RatingDemoBinding` in `bindings` also collects both drag Subscriptions.
 
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups
@@ -125,7 +125,7 @@ const view = VolumeSliderComposition.makeView((model, h) => {
     )
 
   return h.block(
-    SliderBinding.embedView({
+    RatingDemoBinding.embedView({
       slotId: 'rating',
       model: model.ratingDemo,
       viewInputs: {
@@ -139,7 +139,7 @@ const view = VolumeSliderComposition.makeView((model, h) => {
 
 export const ApplicationBlock = VolumeSliderDefinition.makeBlock(
   Effect.gen(function* () {
-    const slider = yield* SliderBinding
+    const slider = yield* RatingDemoBinding
 
     return {
       children: [slider],

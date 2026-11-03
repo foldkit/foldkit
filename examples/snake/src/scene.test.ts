@@ -1,7 +1,8 @@
-import { Effect } from 'effect'
 import { expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock, type Model } from './application'
 import { Snake } from './domain'
@@ -17,81 +18,69 @@ const baseModel: Model = {
 }
 
 describe('view', () => {
-  test('initial view shows the heading, score, and start prompt', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(baseModel),
-        expect(role('heading', { name: 'Snake Game' })).toExist(),
-        expect(text('Score: 0')).toExist(),
-        expect(text('High Score: 0')).toExist(),
-        expect(text('Press SPACE to start')).toExist(),
-      ),
-    )
-  })
+  it.effect('initial view shows the heading, score, and start prompt', () =>
+    scene(
+      ApplicationBlock,
+      given(baseModel),
+      expect(role('heading', { name: 'Snake Game' })).toExist(),
+      expect(text('Score: 0')).toExist(),
+      expect(text('High Score: 0')).toExist(),
+      expect(text('Press SPACE to start')).toExist(),
+    ),
+  )
 
-  test('renders the keyboard instructions', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(baseModel),
-        expect(text('Use ARROW KEYS or WASD to move')).toExist(),
-        expect(text('SPACE to pause/start')).toExist(),
-        expect(text('R to restart')).toExist(),
-      ),
-    )
-  })
+  it.effect('renders the keyboard instructions', () =>
+    scene(
+      ApplicationBlock,
+      given(baseModel),
+      expect(text('Use ARROW KEYS or WASD to move')).toExist(),
+      expect(text('SPACE to pause/start')).toExist(),
+      expect(text('R to restart')).toExist(),
+    ),
+  )
 
-  test('shows the playing prompt while the game is active', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(modifyFields(baseModel, { gameState: () => 'Playing' })),
-        expect(text('Playing - SPACE to pause')).toExist(),
-      ),
-    )
-  })
+  it.effect('shows the playing prompt while the game is active', () =>
+    scene(
+      ApplicationBlock,
+      given(modifyFields(baseModel, { gameState: () => 'Playing' })),
+      expect(text('Playing - SPACE to pause')).toExist(),
+    ),
+  )
 
-  test('shows the paused prompt while the game is paused', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(modifyFields(baseModel, { gameState: () => 'Paused' })),
-        expect(text('Paused - SPACE to continue')).toExist(),
-      ),
-    )
-  })
+  it.effect('shows the paused prompt while the game is paused', () =>
+    scene(
+      ApplicationBlock,
+      given(modifyFields(baseModel, { gameState: () => 'Paused' })),
+      expect(text('Paused - SPACE to continue')).toExist(),
+    ),
+  )
 
-  test('shows the game-over prompt at the end of a run', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(
-          modifyFields(baseModel, {
-            gameState: () => 'GameOver',
-            points: () => 50,
-          }),
-        ),
-        expect(text('Game Over - Press R to restart')).toExist(),
-        expect(text('Score: 50')).toExist(),
+  it.effect('shows the game-over prompt at the end of a run', () =>
+    scene(
+      ApplicationBlock,
+      given(
+        modifyFields(baseModel, {
+          gameState: () => 'GameOver',
+          points: () => 50,
+        }),
       ),
-    )
-  })
+      expect(text('Game Over - Press R to restart')).toExist(),
+      expect(text('Score: 50')).toExist(),
+    ),
+  )
 
-  test('the current and high scores reflect the Model', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(
-          modifyFields(baseModel, {
-            gameState: () => 'Playing',
-            points: () => 120,
-            highScore: () => 200,
-          }),
-        ),
-        expect(text('Score: 120')).toExist(),
-        expect(text('High Score: 200')).toExist(),
+  it.effect('the current and high scores reflect the Model', () =>
+    scene(
+      ApplicationBlock,
+      given(
+        modifyFields(baseModel, {
+          gameState: () => 'Playing',
+          points: () => 120,
+          highScore: () => 200,
+        }),
       ),
-    )
-  })
+      expect(text('Score: 120')).toExist(),
+      expect(text('High Score: 200')).toExist(),
+    ),
+  )
 })

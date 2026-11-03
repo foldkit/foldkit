@@ -78,21 +78,24 @@ const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const CalendarBinding = CalendarExampleDefinition.makeBinding(CalendarBlock, {
-  field: 'calendarDemo',
-  init: {
-    contextToArgs: flags => [
-      {
-        id: 'calendar-demo',
-        today: flags.today,
-        initialViewDate: flags.today,
-      },
-    ],
+const CalendarDemoBinding = CalendarExampleDefinition.makeBinding(
+  CalendarBlock,
+  {
+    field: 'calendarDemo',
+    init: {
+      contextToArgs: flags => [
+        {
+          id: 'calendar-demo',
+          today: flags.today,
+          initialViewDate: flags.today,
+        },
+      ],
+    },
   },
-}).withOutMessagePolicy({ fold: foldCalendarOutMessage })
+).withOutMessagePolicy({ fold: foldCalendarOutMessage })
 
 const CalendarExampleComposition = CalendarExampleDefinition.makeComposition({
-  bindings: [CalendarBinding],
+  bindings: [CalendarDemoBinding],
 })
 type CalendarExampleViewBuilder = Block.ViewBuilderFor<
   typeof CalendarExampleComposition
@@ -296,7 +299,7 @@ const view = CalendarExampleComposition.makeView((model, h) => {
   )
 
   return h.block(
-    CalendarBinding.embedView({
+    CalendarDemoBinding.embedView({
       slotId: model.calendarDemo.id,
       model: model.calendarDemo,
       viewInputs: {
@@ -310,7 +313,7 @@ const view = CalendarExampleComposition.makeView((model, h) => {
 
 export const ApplicationBlock = CalendarExampleDefinition.makeBlock(
   Effect.gen(function* () {
-    const calendar = yield* CalendarBinding
+    const calendar = yield* CalendarDemoBinding
 
     return {
       children: [calendar],

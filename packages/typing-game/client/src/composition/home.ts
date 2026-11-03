@@ -13,7 +13,7 @@ import {
 } from '../definition'
 import { Message } from '../message'
 import { ApplicationRoute, roomRouter } from '../route'
-import { RoomBinding } from './room'
+import { MaybeRoomInstanceBinding } from './room'
 
 export const NavigateToRoom = ApplicationDefinition.makeCommand(
   'NavigateToRoom',
@@ -34,7 +34,7 @@ const navigateToRoom = (roomId: string) =>
 
 const initRoomInstance = (roomId: string) =>
   makeStep(model =>
-    initAndSet(RoomBinding, model, {
+    initAndSet(MaybeRoomInstanceBinding, model, {
       key: roomId,
       args: [Option.none()],
     }),
@@ -43,7 +43,7 @@ const initRoomInstance = (roomId: string) =>
 const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
   Update.combineSteps([
     initRoomInstance(roomId),
-    RoomBinding.informJoin(roomId, { player }, { roomId }),
+    MaybeRoomInstanceBinding.informJoin(roomId, { player }, { roomId }),
     navigateToRoom(roomId),
   ])
 

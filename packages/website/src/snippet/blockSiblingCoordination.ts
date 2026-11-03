@@ -2,33 +2,33 @@ import { ApplicationDefinition } from './definition'
 import * as Home from './home'
 import * as Room from './room'
 
-const homeBinding = ApplicationDefinition.makeBinding(Home.HomeBlock, {
+const BaseHomeBinding = ApplicationDefinition.makeBinding(Home.HomeBlock, {
   field: 'home',
 })
 
-const roomBinding = ApplicationDefinition.makeBinding(Room.RoomBlock, {
+const BaseRoomBinding = ApplicationDefinition.makeBinding(Room.RoomBlock, {
   field: 'room',
 })
 
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(
   Home.HomeBlock,
   {
-    SelectedRoom: ({ roomId }) => roomBinding.requestOpen(roomId),
+    SelectedRoom: ({ roomId }) => BaseRoomBinding.requestOpen(roomId),
   },
 )
 
 const foldRoomOutMessage = ApplicationDefinition.makeOutMessageFold(
   Room.RoomBlock,
   {
-    SavedRoom: ({ roomId }) => homeBinding.informRoomSaved(roomId),
+    SavedRoom: ({ roomId }) => BaseHomeBinding.informRoomSaved(roomId),
   },
 )
 
-export const HomeBinding = homeBinding.withOutMessagePolicy({
+export const HomeBinding = BaseHomeBinding.withOutMessagePolicy({
   fold: foldHomeOutMessage,
 })
 
-export const RoomBinding = roomBinding.withOutMessagePolicy({
+export const RoomBinding = BaseRoomBinding.withOutMessagePolicy({
   fold: foldRoomOutMessage,
 })
 

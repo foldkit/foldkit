@@ -21,7 +21,7 @@ import {
   FIRST_POST_REQUEST_KEY,
   firstPostDetail,
   fixtureStats,
-  test,
+  it,
 } from './model.fixture'
 import { postQuery, statsQuery } from './query'
 
@@ -33,10 +33,9 @@ const resolveFocusTab = Command.resolve(
 )
 
 describe('view', () => {
-  test('the posts tab renders its loading state and navigation', async ({
-    models: { loadingPostsModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'the posts tab renders its loading state and navigation',
+    ({ models: { loadingPostsModel } }) =>
       scene(
         ApplicationBlock,
         given(loadingPostsModel),
@@ -45,13 +44,11 @@ describe('view', () => {
         expect(role('tab', { name: 'Posts' })).toExist(),
         expect(role('tab', { name: 'Stats' })).toExist(),
       ).pipe(Effect.provide(AppLayer)),
-    )
-  })
+  )
 
-  test('clicking a post fetches its detail and renders it', async ({
-    models: { loadedPostsModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'clicking a post fetches its detail and renders it',
+    ({ models: { loadedPostsModel } }) =>
       scene(
         ApplicationBlock,
         given(loadedPostsModel),
@@ -77,13 +74,11 @@ describe('view', () => {
         ),
         expect(role('button', { name: 'Back to posts' })).toExist(),
       ).pipe(Effect.provide(AppLayer)),
-    )
-  })
+  )
 
-  test('opening a cached post skips the fetch', async ({
-    models: { cachedFirstPostModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'opening a cached post skips the fetch',
+    ({ models: { cachedFirstPostModel } }) =>
       scene(
         ApplicationBlock,
         given(cachedFirstPostModel),
@@ -92,13 +87,11 @@ describe('view', () => {
         Command.expectNone(),
         expect(text('By Grace Hopper')).toExist(),
       ).pipe(Effect.provide(AppLayer)),
-    )
-  })
+  )
 
-  test('a failed post fetch shows the error with a Retry button', async ({
-    models: { loadedPostsModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'a failed post fetch shows the error with a Retry button',
+    ({ models: { loadedPostsModel } }) =>
       scene(
         ApplicationBlock,
         given(loadedPostsModel),
@@ -115,13 +108,11 @@ describe('view', () => {
         expect(text('The connection dropped.')).toExist(),
         expect(role('button', { name: 'Retry' })).toExist(),
       ).pipe(Effect.provide(AppLayer)),
-    )
-  })
+  )
 
-  test('switching to the Stats tab fetches and renders stats', async ({
-    models: { loadedPostsModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'switching to the Stats tab fetches and renders stats',
+    ({ models: { loadedPostsModel } }) =>
       scene(
         ApplicationBlock,
         given(loadedPostsModel),
@@ -143,6 +134,5 @@ describe('view', () => {
         expect(text('97%')).toExist(),
         expect(text('Updated at', { exact: false })).toExist(),
       ).pipe(Effect.provide(AppLayer)),
-    )
-  })
+  )
 })

@@ -6,6 +6,7 @@ import {
   expect,
   expectHandled,
   expectOutMessage,
+  init,
   keydown,
   label,
   role,
@@ -13,9 +14,9 @@ import {
   text,
   type,
 } from 'foldkit/scene'
-import * as Story from 'foldkit/story'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
 
+import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
 import { initialWorkspace } from '../../domain'
@@ -44,11 +45,14 @@ const scrollToResult = (index: number) =>
   )
 
 describe('command palette search', () => {
-  test('opens with the keyboard shortcut and selects an issue with Arrow keys and Enter', () => {
-    const secondIssue = Option.getOrThrow(Array.get(initialWorkspace.issues, 1))
+  it.effect(
+    'opens with the keyboard shortcut and selects an issue with Arrow keys and Enter',
+    () => {
+      const secondIssue = Option.getOrThrow(
+        Array.get(initialWorkspace.issues, 1),
+      )
 
-    return Effect.runPromise(
-      scene(
+      return scene(
         {
           block: CommandPaletteImplementation,
           viewInputs: {
@@ -56,7 +60,7 @@ describe('command palette search', () => {
             projects: initialWorkspace.projects,
           },
         },
-        Story.init(),
+        init(),
         openFromShortcut,
         showDialog,
         type(label('Search issues and projects'), 'WSP-10'),
@@ -79,13 +83,35 @@ describe('command palette search', () => {
         expectOutMessage(OutMessage.SelectedIssue({ issueId: secondIssue.id })),
         closeDialog,
         expect(label('Search issues and projects')).not.toExist(),
-      ).pipe(Effect.provide(layer)),
-    )
+      ).pipe(Effect.provide(layer))
+    },
+  )
+
+  it.effect('selects a project from current search inputs', () => {
+    return scene(
+      {
+        block: CommandPaletteImplementation,
+        viewInputs: {
+          issues: initialWorkspace.issues,
+          projects: initialWorkspace.projects,
+        },
+      },
+      init(),
+      openFromShortcut,
+      showDialog,
+      type(label('Search issues and projects'), 'Platform'),
+      scrollToResult(0),
+      expect(role('option')).toContainText('Platform'),
+      click(role('option')),
+      expectOutMessage(OutMessage.SelectedProject({ projectId: 'platform' })),
+      closeDialog,
+    ).pipe(Effect.provide(layer))
   })
 
-  test('selects a project from current search inputs', () => {
-    return Effect.runPromise(
-      scene(
+  it.effect(
+    'shows an empty result state without selecting a destination',
+    () => {
+      return scene(
         {
           block: CommandPaletteImplementation,
           viewInputs: {
@@ -93,30 +119,7 @@ describe('command palette search', () => {
             projects: initialWorkspace.projects,
           },
         },
-        Story.init(),
-        openFromShortcut,
-        showDialog,
-        type(label('Search issues and projects'), 'Platform'),
-        scrollToResult(0),
-        expect(role('option')).toContainText('Platform'),
-        click(role('option')),
-        expectOutMessage(OutMessage.SelectedProject({ projectId: 'platform' })),
-        closeDialog,
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('shows an empty result state without selecting a destination', () => {
-    return Effect.runPromise(
-      scene(
-        {
-          block: CommandPaletteImplementation,
-          viewInputs: {
-            issues: initialWorkspace.issues,
-            projects: initialWorkspace.projects,
-          },
-        },
-        Story.init(),
+        init(),
         openFromShortcut,
         showDialog,
         type(label('Search issues and projects'), 'no matching workspace item'),
@@ -125,7 +128,7 @@ describe('command palette search', () => {
         keydown(label('Search issues and projects'), 'Enter'),
         expectHandled(),
         expect(role('button', { name: 'Close search' })).toExist(),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
+      ).pipe(Effect.provide(layer))
+    },
+  )
 })

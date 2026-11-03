@@ -4,7 +4,7 @@ import { LoginBlock } from './blocks/login'
 import { LoggedOutDefinition } from './definition'
 import { OutMessage } from './message'
 
-export const LoginBinding = LoggedOutDefinition.makeBinding(LoginBlock, {
+export const LoginModelBinding = LoggedOutDefinition.makeBinding(LoginBlock, {
   field: 'loginModel',
   init: { contextToArgs: () => [] },
 }).withOutMessagePolicy({
@@ -14,7 +14,7 @@ export const LoginBinding = LoggedOutDefinition.makeBinding(LoginBlock, {
 })
 
 export const LoggedOutComposition = LoggedOutDefinition.makeComposition({
-  bindings: [LoginBinding],
+  bindings: [LoginModelBinding],
 })
 export type LoggedOutViewBuilder = Block.ViewBuilderFor<
   typeof LoggedOutComposition

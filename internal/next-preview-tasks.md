@@ -1,5 +1,27 @@
 # Next preview tasks
 
+## Unified Block and direct Layer follow-up
+
+- [ ] Prototype one `Block.make` value carrying declared contracts and bound
+      authoring helpers without a separate Definition or contract projection.
+- [ ] Prove checked `Block.makeLayer` completion returning an ordinary Layer,
+      exact root hosting/providers, host-owned handlers, constructor failures,
+      implementation-specific test access, passive initialization and cleanup.
+- [ ] Rename receive to `inMessageUpdate`, including its module, builder,
+      direct/curried entry points, public types and tooling.
+- [ ] Reuse ordered update composition for InMessages, preserving the original
+      before Model, exact input narrowing, Commands and OutMessage checks.
+- [ ] Preserve Element, Document and viewless contracts; reject Document
+      embedding without prohibiting every state/operation Binding to it.
+- [ ] After the proof passes, migrate all active consumers, factories, tests,
+      scaffolds, guidance, lint recognition and migration material. Preserve
+      historical content and unchanged compiler workloads and ceilings.
+- [ ] Reconcile every actionable preview PR comment and relevant issue/PR,
+      recording concrete source/test evidence and actual unresolved requests.
+- [ ] Verify source, emitted and strict relocated consumers, application
+      behavior, packed release consumers and the exact committed candidate.
+      Push the reviewed code to the preview branch; do not publish.
+
 ## Current constructor and update follow-up
 
 - [x] Restore ordinary constructor-authored Blocks' explicit `hostHandlers`
@@ -33,10 +55,10 @@
 - [x] Format Block constructors with a blank line after child acquisition and
       one returned implementation field per line. Update canonical guidance,
       skills, scaffolds, active snippets, and implementation examples.
-- [ ] Document the explicit Block feature API: passive contract, construction
+- [x] Document the explicit Block feature API: passive contract, construction
       Layer, and intentional pure read-only selectors. Explain that ordinary
       selector exports are independent of implementation Layer selection.
-- [ ] Name field-backed Bindings after their Model fields, preserving plurals
+- [x] Name field-backed Bindings after their Model fields, preserving plurals
       and roles: `activeMemberListbox` becomes `ActiveMemberListboxBinding`.
       Use relationship names for custom storage without one declared field.
 - [ ] Complete exact-commit independent review before integration and push.
@@ -62,10 +84,10 @@ stabilization batch or approved for deferral. See the
 - [ ] Replace routine `withBlock` wrappers and manual executable extraction
       with direct `story(Block, ...)` and `scene(Block, ...)` calls. Retain
       `withBlock` for fixtures needing acquired operations or custom views.
-- [ ] Prefer `init(...)` and explicit Command resolution for startup scenarios.
+- [x] Prefer `init(...)` and explicit Command resolution for startup scenarios.
       Preserve deliberate `given(model)` fixtures, Model assertions in Stories,
       view assertions in Scenes, construction cleanup, and test isolation.
-- [ ] Update canonical guidance and active testing snippets with the adopted
+- [x] Update canonical guidance and active testing snippets with the adopted
       pattern, preserving published historical examples. Verify affected suites
       and report intentional exceptions.
 

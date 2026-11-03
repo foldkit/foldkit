@@ -20,7 +20,7 @@ import { ApplicationRoute, maybeExampleSlugForRoute } from '../route'
 import { ApplyTheme, SaveThemePreference, resolveTheme } from '../theme'
 import { type ThemePreference } from '../themePreference'
 import * as ThemeMenu from '../view/themeMenu'
-import { HomeBinding } from './home'
+import { MaybeHomeBinding } from './home'
 
 export const SearchBinding = ApplicationDefinition.makeBinding(SearchBlock, {
   field: 'search',
@@ -144,7 +144,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
     ComingFromReactBinding,
     CoreBlockPageBinding,
     ExampleDetailBinding,
-    HomeBinding,
+    MaybeHomeBinding,
     MobileMenuDialogBinding,
     PlaygroundBinding,
     SearchBinding,

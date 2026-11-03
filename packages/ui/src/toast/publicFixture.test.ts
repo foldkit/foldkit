@@ -51,42 +51,39 @@ const foldSecondToastOutMessage =
     DismissedToast: () => model => ({ model }),
   })
 
-const LeftToastBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
+const LeftBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
   placement: 'LeftToast',
   field: 'left',
   init: { contextToArgs: id => [{ id }] },
 }).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
-const RightToastBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
+const RightBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
   placement: 'RightToast',
   field: 'right',
   init: { contextToArgs: id => [{ id }] },
 }).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
-const OtherToastBinding = ToastFixtureParentDefinition.makeBinding(
-  SecondToast,
-  {
-    placement: 'OtherToast',
-    field: 'other',
-    init: { contextToArgs: id => [{ id }] },
-  },
-).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
+const OtherBinding = ToastFixtureParentDefinition.makeBinding(SecondToast, {
+  placement: 'OtherToast',
+  field: 'other',
+  init: { contextToArgs: id => [{ id }] },
+}).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
 
 const ToastFixtureParentComposition =
   ToastFixtureParentDefinition.makeComposition({
-    bindings: [LeftToastBinding, RightToastBinding, OtherToastBinding],
+    bindings: [LeftBinding, RightBinding, OtherBinding],
   })
 
 const requestShowAll = Update.combineSteps([
-  LeftToastBinding.requestShow({
+  LeftBinding.requestShow({
     payload: { body: 'Left' },
     duration: 100,
   }),
-  RightToastBinding.requestShow({
+  RightBinding.requestShow({
     payload: { body: 'Right' },
     duration: 200,
   }),
-  OtherToastBinding.requestShow({
+  OtherBinding.requestShow({
     payload: { count: 3 },
     duration: 300,
   }),
@@ -102,9 +99,9 @@ const parentInit = ToastFixtureParentComposition.makeInit(() => ({
 }))
 const ParentBlock = ToastFixtureParentDefinition.makeBlock(
   Effect.gen(function* () {
-    const left = yield* LeftToastBinding
-    const right = yield* RightToastBinding
-    const other = yield* OtherToastBinding
+    const left = yield* LeftBinding
+    const right = yield* RightBinding
+    const other = yield* OtherBinding
 
     return {
       children: [left, right, other],
@@ -140,7 +137,7 @@ const foldKeyedToastOutMessage =
   KeyedToastFixtureParentDefinition.makeOutMessageFold(FirstToast, {
     DismissedToast: () => model => ({ model }),
   })
-const KeyedToastBinding = KeyedToastFixtureParentDefinition.makeBinding(
+const SlotsToastBinding = KeyedToastFixtureParentDefinition.makeBinding(
   FirstToast,
   {
     placement: 'KeyedToast',
@@ -157,23 +154,23 @@ const KeyedToastBinding = KeyedToastFixtureParentDefinition.makeBinding(
 })
 const KeyedToastFixtureParentComposition =
   KeyedToastFixtureParentDefinition.makeComposition({
-    bindings: [KeyedToastBinding],
+    bindings: [SlotsToastBinding],
   })
 // @ts-expect-error A keyed Toast Binding requires its occurrence key.
 const missingKeyDrain = FirstToast.test.drainEntry({
-  binding: KeyedToastBinding,
+  binding: SlotsToastBinding,
   entryId: 'toast-entry-0',
 })
 void missingKeyDrain
 FirstToast.test.drainEntry({
-  binding: KeyedToastBinding,
+  binding: SlotsToastBinding,
   // @ts-expect-error The occurrence key retains the keyed Binding's string type.
   key: 1,
   entryId: 'toast-entry-0',
 })
 const keyedUpdate = KeyedToastFixtureParentComposition.makeUpdate({
   RequestedShow: model =>
-    KeyedToastBinding.requestShow('selected', {
+    SlotsToastBinding.requestShow('selected', {
       payload: { body: 'Keyed' },
       duration: 100,
     })(model),
@@ -184,7 +181,7 @@ const keyedInit = KeyedToastFixtureParentComposition.makeInit(() => ({
 }))
 const KeyedParentBlock = KeyedToastFixtureParentDefinition.makeBlock(
   Effect.gen(function* () {
-    const toast = yield* KeyedToastBinding
+    const toast = yield* SlotsToastBinding
 
     return {
       children: [toast],
@@ -229,7 +226,7 @@ describe('Toast.test.drainEntry', () => {
       Story.given(initialModel),
       Story.message(ParentMessage.RequestedShowAll()),
       FirstToast.test.drainEntry({
-        binding: RightToastBinding,
+        binding: RightBinding,
         entryId: 'toast-entry-0',
       }),
       Story.model(model => {
@@ -238,7 +235,7 @@ describe('Toast.test.drainEntry', () => {
         expect(model.other.entries).toHaveLength(1)
       }),
       SecondToast.test.drainEntry({
-        binding: OtherToastBinding,
+        binding: OtherBinding,
         entryId: 'toast-entry-0',
       }),
       Story.model(model => {
@@ -246,7 +243,7 @@ describe('Toast.test.drainEntry', () => {
         expect(model.other.entries).toHaveLength(0)
       }),
       FirstToast.test.drainEntry({
-        binding: LeftToastBinding,
+        binding: LeftBinding,
         entryId: 'toast-entry-0',
       }),
       Story.Command.expectNone(),
@@ -262,7 +259,7 @@ describe('Toast.test.drainEntry', () => {
         Story.given(initialModel),
         Story.message(ParentMessage.RequestedShowAll()),
         FirstToast.test.drainEntry({
-          binding: LeftToastBinding,
+          binding: LeftBinding,
           entryId: 'toast-entry-0',
           version: 1,
         }),
@@ -278,7 +275,7 @@ describe('Toast.test.drainEntry', () => {
       Story.given(keyedInitialModel),
       Story.message(KeyedParentMessage.RequestedShow()),
       FirstToast.test.drainEntry({
-        binding: KeyedToastBinding,
+        binding: SlotsToastBinding,
         key: 'selected',
         entryId: 'toast-entry-0',
       }),
@@ -302,7 +299,7 @@ describe('Toast.test.drainEntry', () => {
         Story.message(KeyedParentMessage.RequestedShow()),
         Story.given(keyedInitialModel),
         FirstToast.test.drainEntry({
-          binding: KeyedToastBinding,
+          binding: SlotsToastBinding,
           key: 'selected',
           entryId: 'toast-entry-0',
         }),

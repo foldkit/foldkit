@@ -52,7 +52,7 @@ the app-facing configured Binding exports.
 
 ### The Listbox Layer
 
-`ActiveMemberBinding` registers the relationship to `WorkspaceListboxBlock`.
+`ActiveMemberListboxBinding` registers the relationship to `WorkspaceListboxBlock`.
 The shared `ListboxLayer` supplies that contract's implementation during graph
 construction. It is the implementation provider for the registered child, not
 another child missing from the `children` array. The active member's state and

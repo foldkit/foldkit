@@ -1,6 +1,7 @@
-import { Effect } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { expect, test } from 'vitest'
+import { expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import {
   ApplicationBlock,
@@ -10,17 +11,15 @@ import {
   update,
 } from './application'
 
-test('resets the count after waiting', async () => {
-  await Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(Model.make({ count: 5 })),
-      message(Message.ClickedResetAfterDelay()),
-      Command.expectExact(WaitBeforeReset),
-      Command.resolve(WaitBeforeReset, Message.CompletedWaitBeforeReset()),
-      model(model => {
-        expect(model.count).toBe(0)
-      }),
-    ),
-  )
-})
+it.effect('resets the count after waiting', () =>
+  story(
+    ApplicationBlock,
+    given(Model.make({ count: 5 })),
+    message(Message.ClickedResetAfterDelay()),
+    Command.expectExact(WaitBeforeReset),
+    Command.resolve(WaitBeforeReset, Message.CompletedWaitBeforeReset()),
+    model(model => {
+      expect(model.count).toBe(0)
+    }),
+  ),
+)

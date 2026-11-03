@@ -73,30 +73,27 @@ const foldFruitComboboxOutMessage =
     ClearedSelection: () => model => ({ model }),
   })
 
-const FruitComboboxBinding = FruitComboboxTestDefinition.makeBinding(
-  FruitCombobox,
-  {
-    field: 'combobox',
-    init: { contextToArgs: () => [{ id: 'fruit' }] },
-  },
-).withOutMessagePolicy({ fold: foldFruitComboboxOutMessage })
+const ComboboxBinding = FruitComboboxTestDefinition.makeBinding(FruitCombobox, {
+  field: 'combobox',
+  init: { contextToArgs: () => [{ id: 'fruit' }] },
+}).withOutMessagePolicy({ fold: foldFruitComboboxOutMessage })
 
 const FruitComboboxTestComposition =
   FruitComboboxTestDefinition.makeComposition({
-    bindings: [FruitComboboxBinding],
+    bindings: [ComboboxBinding],
   })
 
 const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate({
   RequestedSelectFruitAndClose: (model, { item }) =>
     Update.combineSteps([
-      FruitComboboxBinding.requestSelectItem(item, item),
-      FruitComboboxBinding.requestClose(''),
+      ComboboxBinding.requestSelectItem(item, item),
+      ComboboxBinding.requestClose(''),
     ])(model),
 })
 
 const FruitComboboxTestBlock = FruitComboboxTestDefinition.makeBlock(
   Effect.gen(function* () {
-    const combobox = yield* FruitComboboxBinding
+    const combobox = yield* ComboboxBinding
 
     return {
       children: [combobox],
@@ -360,7 +357,7 @@ describe('Combobox', () => {
         parent,
         'Apple',
       )
-      const embedded = FruitComboboxBinding.embedView({
+      const embedded = ComboboxBinding.embedView({
         slotId: 'fruit-primary',
         model: closed.model.combobox,
         viewInputs: {
@@ -372,7 +369,7 @@ describe('Combobox', () => {
           maybeSelectedValue: closed.model.maybeSelectedFruit,
         },
       })
-      const repeatedEmbedded = FruitComboboxBinding.embedView({
+      const repeatedEmbedded = ComboboxBinding.embedView({
         slotId: 'fruit-secondary',
         model: closed.model.combobox,
         viewInputs: embedded.viewInputs,

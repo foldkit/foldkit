@@ -10,7 +10,7 @@ import {
   makeNoopStep,
 } from './definition'
 
-export const PronounsListboxBinding = PersonalInfoDefinition.makeBinding(
+export const PronounsBinding = PersonalInfoDefinition.makeBinding(
   PronounsListboxBlock,
   {
     field: 'pronouns',
@@ -25,7 +25,7 @@ export const PronounsListboxBinding = PersonalInfoDefinition.makeBinding(
   }),
 })
 
-export const AvailableDatePickerBinding = PersonalInfoDefinition.makeBinding(
+export const AvailableDateBinding = PersonalInfoDefinition.makeBinding(
   DatePickerBlock,
   {
     field: 'availableDate',
@@ -48,7 +48,7 @@ export const AvailableDatePickerBinding = PersonalInfoDefinition.makeBinding(
 })
 
 export const PersonalInfoComposition = PersonalInfoDefinition.makeComposition({
-  bindings: [PronounsListboxBinding, AvailableDatePickerBinding],
+  bindings: [PronounsBinding, AvailableDateBinding],
 })
 export type PersonalInfoViewBuilder = Block.ViewBuilderFor<
   typeof PersonalInfoComposition

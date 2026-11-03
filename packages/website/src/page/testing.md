@@ -4,6 +4,10 @@
 
 Story and Scene test two parts of a Foldkit application. Story calls update directly. Scene enters through the rendered view. Neither test runs a browser or executes the Effects inside Commands, so both stay deterministic and fast.
 
+For Vitest, use `it.effect` from a compatible `@effect/vitest` release and return the Story or Scene Effect directly. The integration manages execution, scoped cleanup, and test services. Keep ordinary synchronous tests synchronous, and use `it.live` when an execution test deliberately needs the live environment. With plain Vitest, return or await `Effect.runPromise`; returning a Fiber from `Effect.runFork` does not make the test runner wait for completion.
+
+Pass the Block directly in ordinary behavior tests. Use `withBlock` when a fixture needs acquired operations, a modified initialized Model, private registrations, or a custom multi-view renderer. A typed Vitest fixture may retain a Promise bridge to hold acquisition open while its callback runs.
+
 ### Compare the Boundaries
 
 |                | Story                                        | Scene                                              |

@@ -1,7 +1,9 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import {
   ApplicationBlock,
@@ -25,8 +27,9 @@ const readyModel: Model = {
 
 describe('update', () => {
   describe('engine lifecycle', () => {
-    test('ClickedStartEngine requests the engine by entering Booting', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedStartEngine requests the engine by entering Booting',
+      () =>
         story(
           ApplicationBlock,
           given(offModel),
@@ -35,73 +38,61 @@ describe('update', () => {
             expect(model.engine._tag).toBe('Booting')
           }),
         ),
-      )
-    })
+    )
 
-    test('StartedEngine marks the engine ready with its id', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(
-            modifyFields(offModel, { engine: () => EngineState.Booting() }),
-          ),
-          message(Message.StartedEngine({ engineId: 'engine-7' })),
-          model(model => {
-            expect(model.engine).toStrictEqual(
-              EngineState.Ready({ engineId: 'engine-7' }),
-            )
-          }),
-        ),
-      )
-    })
+    it.effect('StartedEngine marks the engine ready with its id', () =>
+      story(
+        ApplicationBlock,
+        given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
+        message(Message.StartedEngine({ engineId: 'engine-7' })),
+        model(model => {
+          expect(model.engine).toStrictEqual(
+            EngineState.Ready({ engineId: 'engine-7' }),
+          )
+        }),
+      ),
+    )
 
-    test('ClickedStopEngine releases the engine by entering Off', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(readyModel),
-          message(Message.ClickedStopEngine()),
-          model(model => {
-            expect(model.engine._tag).toBe('Off')
-          }),
-        ),
-      )
-    })
+    it.effect('ClickedStopEngine releases the engine by entering Off', () =>
+      story(
+        ApplicationBlock,
+        given(readyModel),
+        message(Message.ClickedStopEngine()),
+        model(model => {
+          expect(model.engine._tag).toBe('Off')
+        }),
+      ),
+    )
 
-    test('StoppedEngine is a no-op lifecycle ack', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(offModel),
-          message(Message.StoppedEngine()),
-          model(model => {
-            expect(model).toStrictEqual(offModel)
-          }),
-        ),
-      )
-    })
+    it.effect('StoppedEngine is a no-op lifecycle ack', () =>
+      story(
+        ApplicationBlock,
+        given(offModel),
+        message(Message.StoppedEngine()),
+        model(model => {
+          expect(model).toStrictEqual(offModel)
+        }),
+      ),
+    )
 
-    test('FailedStartEngine records the failure reason', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(
-            modifyFields(offModel, { engine: () => EngineState.Booting() }),
-          ),
-          message(Message.FailedStartEngine({ reason: 'boot timeout' })),
-          model(model => {
-            expect(model.engine).toStrictEqual(
-              EngineState.Failed({ reason: 'boot timeout' }),
-            )
-          }),
-        ),
-      )
-    })
+    it.effect('FailedStartEngine records the failure reason', () =>
+      story(
+        ApplicationBlock,
+        given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
+        message(Message.FailedStartEngine({ reason: 'boot timeout' })),
+        model(model => {
+          expect(model.engine).toStrictEqual(
+            EngineState.Failed({ reason: 'boot timeout' }),
+          )
+        }),
+      ),
+    )
   })
 
   describe('compute', () => {
-    test('ClickedCompute increments the counter and fires Compute with the next value', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedCompute increments the counter and fires Compute with the next value',
+      () =>
         story(
           ApplicationBlock,
           given(readyModel),
@@ -115,20 +106,17 @@ describe('update', () => {
             expect(model.maybeSquareResult).toStrictEqual(Option.some(9))
           }),
         ),
-      )
-    })
+    )
 
-    test('FailedCompute leaves the model unchanged', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(readyModel),
-          message(Message.FailedCompute()),
-          model(model => {
-            expect(model).toStrictEqual(readyModel)
-          }),
-        ),
-      )
-    })
+    it.effect('FailedCompute leaves the model unchanged', () =>
+      story(
+        ApplicationBlock,
+        given(readyModel),
+        message(Message.FailedCompute()),
+        model(model => {
+          expect(model).toStrictEqual(readyModel)
+        }),
+      ),
+    )
   })
 })

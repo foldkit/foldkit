@@ -50,6 +50,7 @@ describe('buildUnresolvedDevDeps', () => {
 
     expect(result).toEqual({
       '@effect/tsgo': { _tag: 'Release' },
+      '@effect/vitest': { _tag: 'Release' },
       '@foldkit/devtools': { _tag: 'Release' },
       '@foldkit/vite-plugin': { _tag: 'Release' },
       '@foldkit/devtools-mcp': { _tag: 'Release' },

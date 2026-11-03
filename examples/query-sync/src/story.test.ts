@@ -1,10 +1,11 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { messageFrom } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
 
+import { it } from '@effect/vitest'
 import { test as ListboxTest } from '@foldkit/ui/listbox'
 
 import { ApplicationBlock } from './block'
@@ -73,7 +74,7 @@ const urlOrThrow = (raw: string) =>
   )
 
 describe('routing', () => {
-  test('prints sorting in the same format the parser accepts', () => {
+  it('prints sorting in the same format the parser accepts', () => {
     const path = browseRouter({
       search: Option.none(),
       sorting: Sorting.Ascending({ column: 'Length' }),
@@ -87,54 +88,51 @@ describe('routing', () => {
 
 describe('update', () => {
   describe('ChangedUrl', () => {
-    test('parses search, sorting, diet, and period from the URL', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(browseModel),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow(
-                'http://localhost/?search=raptor&sorting=Length:Ascending&diet=Carnivore&period=Cretaceous',
-              ),
-            }),
-          ),
-          model(model => {
-            if (model.route._tag !== 'Browse') {
-              throw new Error('Expected Browse route')
-            }
-            expect(model.route.search).toStrictEqual(Option.some('raptor'))
-            expect(model.route.sorting).toStrictEqual(
-              Sorting.Ascending({ column: 'Length' }),
-            )
-            expect(model.route.diet).toStrictEqual(Option.some('Carnivore'))
-            expect(model.route.period).toStrictEqual(Option.some('Cretaceous'))
+    it.effect('parses search, sorting, diet, and period from the URL', () =>
+      story(
+        ApplicationBlock,
+        given(browseModel),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow(
+              'http://localhost/?search=raptor&sorting=Length:Ascending&diet=Carnivore&period=Cretaceous',
+            ),
           }),
         ),
-      )
-    })
+        model(model => {
+          if (model.route._tag !== 'Browse') {
+            throw new Error('Expected Browse route')
+          }
+          expect(model.route.search).toStrictEqual(Option.some('raptor'))
+          expect(model.route.sorting).toStrictEqual(
+            Sorting.Ascending({ column: 'Length' }),
+          )
+          expect(model.route.diet).toStrictEqual(Option.some('Carnivore'))
+          expect(model.route.period).toStrictEqual(Option.some('Cretaceous'))
+        }),
+      ),
+    )
 
-    test('an unknown path falls through to NotFound', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(browseModel),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow('http://localhost/somewhere/else'),
-            }),
-          ),
-          model(model => {
-            expect(model.route._tag).toBe('NotFound')
+    it.effect('an unknown path falls through to NotFound', () =>
+      story(
+        ApplicationBlock,
+        given(browseModel),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/somewhere/else'),
           }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.route._tag).toBe('NotFound')
+        }),
+      ),
+    )
   })
 
   describe('ChangedSearchInput', () => {
-    test('typing search text fires a URL replacement with the new value', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'typing search text fires a URL replacement with the new value',
+      () =>
         story(
           ApplicationBlock,
           given(browseModel),
@@ -142,35 +140,33 @@ describe('update', () => {
           Command.expectHas(ReplaceFilters),
           Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
         ),
-      )
-    })
+    )
 
-    test('clearing the search input fires a replacement', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(
-            modifyFields(browseModel, {
-              route: () =>
-                ApplicationRoute.Browse({
-                  search: Option.some('foo'),
-                  sorting: Sorting.Unsorted(),
-                  diet: Option.none(),
-                  period: Option.none(),
-                }),
-            }),
-          ),
-          message(Message.ChangedSearchInput({ value: '' })),
-          Command.expectHas(ReplaceFilters),
-          Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+    it.effect('clearing the search input fires a replacement', () =>
+      story(
+        ApplicationBlock,
+        given(
+          modifyFields(browseModel, {
+            route: () =>
+              ApplicationRoute.Browse({
+                search: Option.some('foo'),
+                sorting: Sorting.Unsorted(),
+                diet: Option.none(),
+                period: Option.none(),
+              }),
+          }),
         ),
-      )
-    })
+        message(Message.ChangedSearchInput({ value: '' })),
+        Command.expectHas(ReplaceFilters),
+        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+      ),
+    )
   })
 
   describe('ClickedColumnHeader', () => {
-    test('first click on an Unsorted column produces an Ascending sort', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'first click on an Unsorted column produces an Ascending sort',
+      () =>
         story(
           ApplicationBlock,
           given(browseModel),
@@ -178,13 +174,13 @@ describe('update', () => {
           Command.expectHas(ReplaceFilters),
           Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
         ),
-      )
-    })
+    )
   })
 
   describe('Listbox SelectedItem', () => {
-    test('selecting a diet refocuses the listbox button and replaces the URL', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'selecting a diet refocuses the listbox button and replaces the URL',
+      () =>
         story(
           ApplicationBlock,
           given(browseModel),
@@ -207,7 +203,6 @@ describe('update', () => {
           Command.expectHas(ReplaceFilters),
           Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
         ),
-      )
-    })
+    )
   })
 })

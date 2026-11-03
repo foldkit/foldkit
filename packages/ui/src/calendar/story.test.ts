@@ -3,7 +3,7 @@ import * as Calendar from 'foldkit/calendar'
 import * as Story from 'foldkit/story'
 import { it as baseIt, expect } from 'vitest'
 
-import { describe } from '@effect/vitest'
+import { describe, makeMethods } from '@effect/vitest'
 
 import {
   FocusGrid,
@@ -21,12 +21,14 @@ const resolveFocusGrid = Story.Command.resolve(
   Message.CompletedFocusGrid(),
 )
 
-const it = baseIt.extend<{ calendar: Story.TestBlock<typeof block> }>({
-  calendar: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(block, calendar => Effect.promise(() => use(calendar))),
-    ),
-})
+const it = makeMethods(
+  baseIt.extend<{ calendar: Story.TestBlock<typeof block> }>({
+    calendar: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(block, calendar => Effect.promise(() => use(calendar))),
+      ),
+  }),
+)
 
 describe('Calendar', () => {
   describe('init', () => {
@@ -1090,33 +1092,28 @@ describe('Calendar', () => {
 
   describe('programmatic setters', () => {
     describe('dropToDays', () => {
-      it('returns the calendar to Days mode from Months mode', ({
-        calendar: { init },
-      }) => {
-        return Effect.runPromise(
-          Story.story(
-            block,
-            Story.given(init({ id: 'test', today }).model),
-            Story.message(Message.ClickedHeading()),
-            resolveFocusGrid,
-            Story.model(model => {
-              expect(model.viewMode).toBe('Months')
-            }),
-            Story.inMessage(InMessage.RequestedDropToDays()),
-            Story.model(model => {
-              expect(model.viewMode).toBe('Days')
-            }),
-          ),
-        )
-      })
+      it.effect('returns the calendar to Days mode from Months mode', () =>
+        Story.story(
+          block,
+          Story.init({ id: 'test', today }),
+          Story.message(Message.ClickedHeading()),
+          resolveFocusGrid,
+          Story.model(model => {
+            expect(model.viewMode).toBe('Months')
+          }),
+          Story.inMessage(InMessage.RequestedDropToDays()),
+          Story.model(model => {
+            expect(model.viewMode).toBe('Days')
+          }),
+        ),
+      )
 
-      it('returns the calendar to Days mode from Years mode (skips Months)', ({
-        calendar: { init },
-      }) => {
-        return Effect.runPromise(
+      it.effect(
+        'returns the calendar to Days mode from Years mode (skips Months)',
+        () =>
           Story.story(
             block,
-            Story.given(init({ id: 'test', today }).model),
+            Story.init({ id: 'test', today }),
             Story.message(Message.ClickedHeading()),
             resolveFocusGrid,
             Story.message(Message.ClickedHeading()),
@@ -1129,21 +1126,19 @@ describe('Calendar', () => {
               expect(model.viewMode).toBe('Days')
             }),
           ),
-        )
-      })
+      )
 
       it('is a no-op in Days mode', ({ calendar: { init, operations } }) => {
         const model = init({ id: 'test', today }).model
         expect(operations.requestDropToDays(model).model.viewMode).toBe('Days')
       })
 
-      it('reconciles maybeFocusedDate to a date inside the visible Days grid after Years-mode paging', ({
-        calendar: { init },
-      }) => {
-        return Effect.runPromise(
+      it.effect(
+        'reconciles maybeFocusedDate to a date inside the visible Days grid after Years-mode paging',
+        () =>
           Story.story(
             block,
-            Story.given(init({ id: 'test', today }).model),
+            Story.init({ id: 'test', today }),
             Story.message(Message.ClickedHeading()),
             resolveFocusGrid,
             Story.message(Message.ClickedHeading()),
@@ -1166,16 +1161,14 @@ describe('Calendar', () => {
               )
             }),
           ),
-        )
-      })
+      )
 
-      it('an ArrowLeft after dropToDays does not drift the calendar to the cursor year', ({
-        calendar: { init },
-      }) => {
-        return Effect.runPromise(
+      it.effect(
+        'an ArrowLeft after dropToDays does not drift the calendar to the cursor year',
+        () =>
           Story.story(
             block,
-            Story.given(init({ id: 'test', today }).model),
+            Story.init({ id: 'test', today }),
             Story.message(Message.ClickedHeading()),
             resolveFocusGrid,
             Story.message(Message.ClickedHeading()),
@@ -1190,17 +1183,16 @@ describe('Calendar', () => {
               expect(model.viewMonth).toBe(4)
             }),
           ),
-        )
-      })
+      )
 
-      it('clamps the focused day to the days-in-month when reconciling', ({
-        calendar: { init },
-      }) => {
-        const today31 = Calendar.make(2026, 1, 31)
-        return Effect.runPromise(
-          Story.story(
+      it.effect(
+        'clamps the focused day to the days-in-month when reconciling',
+        () => {
+          const today31 = Calendar.make(2026, 1, 31)
+
+          return Story.story(
             block,
-            Story.given(init({ id: 'test', today: today31 }).model),
+            Story.init({ id: 'test', today: today31 }),
             Story.message(
               Message.PressedKeyOnGrid({ key: 'PageDown', isShift: false }),
             ),
@@ -1221,9 +1213,9 @@ describe('Calendar', () => {
                 Option.some(Calendar.make(2026, 2, 28)),
               )
             }),
-          ),
-        )
-      })
+          )
+        },
+      )
     })
 
     describe('informMinDateChanged', () => {

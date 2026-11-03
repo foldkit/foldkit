@@ -8,11 +8,11 @@ import { describe, it } from '@effect/vitest'
 import * as UiCalendar from '../calendar/block.js'
 import * as Popover from '../popover/block.js'
 import {
-  CalendarBinding,
+  BaseCalendarBinding,
+  BasePopoverBinding,
   DatePickerBlock,
   Message,
   OutMessage,
-  PopoverBinding,
   layer,
 } from './block.js'
 
@@ -114,7 +114,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               Story.init({ id: 'picker', today }),
               ...givenOpen,
               Story.messageFrom(
-                CalendarBinding,
+                BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
               Story.Command.resolve(
@@ -122,7 +122,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 UiCalendar.Message.CompletedFocusGrid(),
               ),
               Story.messageFrom(
-                CalendarBinding,
+                BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
               Story.Command.resolve(
@@ -173,7 +173,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               Story.init({ id: 'picker', today }),
               ...givenOpen,
               Story.messageFrom(
-                CalendarBinding,
+                BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
               Story.Command.resolve(
@@ -181,7 +181,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 UiCalendar.Message.CompletedFocusGrid(),
               ),
               Story.messageFrom(
-                CalendarBinding,
+                BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
               Story.Command.resolve(
@@ -210,7 +210,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               Story.init({ id: 'picker', today }),
               ...givenOpen,
               Story.messageFrom(
-                CalendarBinding,
+                BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
               Story.Command.resolve(
@@ -218,7 +218,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 UiCalendar.Message.CompletedFocusGrid(),
               ),
               Story.messageFrom(
-                CalendarBinding,
+                BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
               Story.Command.resolve(
@@ -226,7 +226,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 UiCalendar.Message.CompletedFocusGrid(),
               ),
               Story.messageFrom(
-                CalendarBinding,
+                BaseCalendarBinding,
                 UiCalendar.Message.PagedYears({ direction: 1 }),
               ),
               Story.message(Message.Closed()),
@@ -324,7 +324,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               Story.init({ id: 'picker', today }),
               ...givenOpen,
               Story.messageFrom(
-                CalendarBinding,
+                BaseCalendarBinding,
                 UiCalendar.Message.ClickedNextMonthButton(),
               ),
               Story.model(model => {
@@ -344,7 +344,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               Story.init({ id: 'picker', today }),
               ...givenOpen,
               Story.messageFrom(
-                CalendarBinding,
+                BaseCalendarBinding,
                 UiCalendar.Message.PressedKeyOnGrid({
                   key: 'ArrowRight',
                   isShift: false,
@@ -365,7 +365,10 @@ it.layer(layer, { buildPerTest: true })(it => {
             DatePickerBlock,
             Story.init({ id: 'picker', today }),
             ...givenOpen,
-            Story.messageFrom(PopoverBinding, Popover.Message.PressedEscape()),
+            Story.messageFrom(
+              BasePopoverBinding,
+              Popover.Message.PressedEscape(),
+            ),
             Story.Command.resolve(
               Popover.FocusPopoverButton,
               Popover.Message.CompletedFocusPopoverButton(),

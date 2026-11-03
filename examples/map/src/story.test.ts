@@ -1,7 +1,9 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { expect, test } from 'vitest'
+import { expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { FlyTo, Geolocate, LockBodyScroll, UnlockBodyScroll } from './command'
@@ -9,55 +11,50 @@ import { Message } from './message'
 import { GeolocateState } from './model'
 import { eiffelTower, initialModel, mountedModel } from './model.fixture'
 
-test('mounting the map records the host id in the Model', async () => {
-  await Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(initialModel),
-      message(Message.SucceededMountMap({ hostId: 'map-host-1' })),
-      model(model => {
-        expect(model.maybeMapHostId).toStrictEqual(Option.some('map-host-1'))
+it.effect('mounting the map records the host id in the Model', () =>
+  story(
+    ApplicationBlock,
+    given(initialModel),
+    message(Message.SucceededMountMap({ hostId: 'map-host-1' })),
+    model(model => {
+      expect(model.maybeMapHostId).toStrictEqual(Option.some('map-host-1'))
+    }),
+  ),
+)
+
+it.effect('movement events update the Model bounds', () =>
+  story(
+    ApplicationBlock,
+    given(mountedModel),
+    message(
+      Message.MovedMap({
+        bounds: { west: -180, south: -85, east: 180, north: 85 },
       }),
     ),
-  )
-})
+    model(model => {
+      expect(model.maybeBounds).toStrictEqual(
+        Option.some({ west: -180, south: -85, east: 180, north: 85 }),
+      )
+    }),
+  ),
+)
 
-test('movement events update the Model bounds', async () => {
-  await Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(mountedModel),
-      message(
-        Message.MovedMap({
-          bounds: { west: -180, south: -85, east: 180, north: 85 },
-        }),
-      ),
-      model(model => {
-        expect(model.maybeBounds).toStrictEqual(
-          Option.some({ west: -180, south: -85, east: 180, north: 85 }),
-        )
-      }),
-    ),
-  )
-})
+it.effect('clicking a marker selects the corresponding location', () =>
+  story(
+    ApplicationBlock,
+    given(mountedModel),
+    message(Message.ClickedMarker({ locationId: eiffelTower.id })),
+    model(model => {
+      expect(model.maybeSelectedLocationId).toStrictEqual(
+        Option.some(eiffelTower.id),
+      )
+    }),
+  ),
+)
 
-test('clicking a marker selects the corresponding location', async () => {
-  await Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(mountedModel),
-      message(Message.ClickedMarker({ locationId: eiffelTower.id })),
-      model(model => {
-        expect(model.maybeSelectedLocationId).toStrictEqual(
-          Option.some(eiffelTower.id),
-        )
-      }),
-    ),
-  )
-})
-
-test('clicking a sidebar location selects it and emits a fly Command', async () => {
-  await Effect.runPromise(
+it.effect(
+  'clicking a sidebar location selects it and emits a fly Command',
+  () =>
     story(
       ApplicationBlock,
       given(mountedModel),
@@ -70,11 +67,11 @@ test('clicking a sidebar location selects it and emits a fly Command', async () 
       Command.expectHas(FlyTo),
       Command.resolve(FlyTo, Message.SucceededFlyTo()),
     ),
-  )
-})
+)
 
-test('clicking a sidebar location before the map mounts still emits FlyTo', async () => {
-  await Effect.runPromise(
+it.effect(
+  'clicking a sidebar location before the map mounts still emits FlyTo',
+  () =>
     story(
       ApplicationBlock,
       given(initialModel),
@@ -88,53 +85,45 @@ test('clicking a sidebar location before the map mounts still emits FlyTo', asyn
       Command.expectHas(FlyTo),
       Command.resolve(FlyTo, Message.SucceededFlyTo()),
     ),
-  )
-})
+)
 
-test('a failed map mount surfaces the reason in the Model', async () => {
-  await Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(initialModel),
-      message(Message.FailedMountMap({ reason: 'Network timeout' })),
-      model(model => {
-        expect(model.maybeMapError).toStrictEqual(
-          Option.some('Network timeout'),
-        )
-      }),
-    ),
-  )
-})
+it.effect('a failed map mount surfaces the reason in the Model', () =>
+  story(
+    ApplicationBlock,
+    given(initialModel),
+    message(Message.FailedMountMap({ reason: 'Network timeout' })),
+    model(model => {
+      expect(model.maybeMapError).toStrictEqual(Option.some('Network timeout'))
+    }),
+  ),
+)
 
-test('clicking a sidebar location with an unknown id is a no-op', async () => {
-  await Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(mountedModel),
-      message(Message.ClickedLocation({ locationId: 'does-not-exist' })),
-      model(model => {
-        expect(model.maybeSelectedLocationId).toStrictEqual(Option.none())
-      }),
-      Command.expectNone(),
-    ),
-  )
-})
+it.effect('clicking a sidebar location with an unknown id is a no-op', () =>
+  story(
+    ApplicationBlock,
+    given(mountedModel),
+    message(Message.ClickedLocation({ locationId: 'does-not-exist' })),
+    model(model => {
+      expect(model.maybeSelectedLocationId).toStrictEqual(Option.none())
+    }),
+    Command.expectNone(),
+  ),
+)
 
-test('typing in the filter input updates the query', async () => {
-  await Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(initialModel),
-      message(Message.UpdatedSearchQuery({ value: 'Paris' })),
-      model(model => {
-        expect(model.searchQuery).toBe('Paris')
-      }),
-    ),
-  )
-})
+it.effect('typing in the filter input updates the query', () =>
+  story(
+    ApplicationBlock,
+    given(initialModel),
+    message(Message.UpdatedSearchQuery({ value: 'Paris' })),
+    model(model => {
+      expect(model.searchQuery).toBe('Paris')
+    }),
+  ),
+)
 
-test('clicking find-me transitions to the locating state and emits Geolocate', async () => {
-  await Effect.runPromise(
+it.effect(
+  'clicking find-me transitions to the locating state and emits Geolocate',
+  () =>
     story(
       ApplicationBlock,
       given(initialModel),
@@ -149,11 +138,11 @@ test('clicking find-me transitions to the locating state and emits Geolocate', a
         Message.FailedGeolocate({ reason: 'Test cleanup' }),
       ),
     ),
-  )
-})
+)
 
-test('a successful geolocation result clears the locating state and flies the map', async () => {
-  await Effect.runPromise(
+it.effect(
+  'a successful geolocation result clears the locating state and flies the map',
+  () =>
     story(
       ApplicationBlock,
       given(
@@ -172,11 +161,11 @@ test('a successful geolocation result clears the locating state and flies the ma
       Command.resolve(UnlockBodyScroll, Message.CompletedUnlockBodyScroll()),
       Command.resolve(FlyTo, Message.SucceededFlyTo()),
     ),
-  )
-})
+)
 
-test('a failed geolocation result surfaces the reason in the geolocate state', async () => {
-  await Effect.runPromise(
+it.effect(
+  'a failed geolocation result surfaces the reason in the geolocate state',
+  () =>
     story(
       ApplicationBlock,
       given(
@@ -192,23 +181,20 @@ test('a failed geolocation result surfaces the reason in the geolocate state', a
         }
       }),
     ),
-  )
-})
+)
 
-test('dismissing the geolocate overlay returns to idle', async () => {
-  await Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(
-        modifyFields(initialModel, {
-          geolocateState: () => GeolocateState.Failed({ reason: 'Timed out' }),
-        }),
-      ),
-      message(Message.DismissedGeolocate()),
-      model(model => {
-        expect(model.geolocateState._tag).toBe('Idle')
+it.effect('dismissing the geolocate overlay returns to idle', () =>
+  story(
+    ApplicationBlock,
+    given(
+      modifyFields(initialModel, {
+        geolocateState: () => GeolocateState.Failed({ reason: 'Timed out' }),
       }),
-      Command.resolve(UnlockBodyScroll, Message.CompletedUnlockBodyScroll()),
     ),
-  )
-})
+    message(Message.DismissedGeolocate()),
+    model(model => {
+      expect(model.geolocateState._tag).toBe('Idle')
+    }),
+    Command.resolve(UnlockBodyScroll, Message.CompletedUnlockBodyScroll()),
+  ),
+)

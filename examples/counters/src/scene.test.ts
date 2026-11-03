@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import {
   all,
   click,
@@ -11,7 +10,9 @@ import {
   scene,
   text,
 } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock, Model as ModelSchema } from './application'
 
@@ -24,20 +25,19 @@ const initialModel: ModelSchema = {
 }
 
 describe('view', () => {
-  test('renders one Counter instance per entry', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(initialModel),
-        expectAll(all.role('button', { name: '+' })).toHaveCount(2),
-        expectAll(all.role('button', { name: '-' })).toHaveCount(2),
-        expectAll(all.role('button', { name: 'Remove' })).toHaveCount(2),
-      ),
-    )
-  })
+  it.effect('renders one Counter instance per entry', () =>
+    scene(
+      ApplicationBlock,
+      given(initialModel),
+      expectAll(all.role('button', { name: '+' })).toHaveCount(2),
+      expectAll(all.role('button', { name: '-' })).toHaveCount(2),
+      expectAll(all.role('button', { name: 'Remove' })).toHaveCount(2),
+    ),
+  )
 
-  test('clicking + on a Counter dispatches through h.block back to the right instance', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'clicking + on a Counter dispatches through h.block back to the right instance',
+    () =>
       scene(
         ApplicationBlock,
         given(initialModel),
@@ -46,11 +46,11 @@ describe('view', () => {
         expect(text('0')).toExist(),
         expect(text('1')).toExist(),
       ),
-    )
-  })
+  )
 
-  test('clicking - on a Counter dispatches through h.block and decrements', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'clicking - on a Counter dispatches through h.block and decrements',
+    () =>
       scene(
         ApplicationBlock,
         given({
@@ -61,23 +61,21 @@ describe('view', () => {
         click(role('button', { name: '-' })),
         expect(text('2')).toExist(),
       ),
-    )
-  })
+  )
 
-  test('Add Counter creates a new instance with a fresh Counter', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(initialModel),
-        click(role('button', { name: '+ Add Counter' })),
-        expectAll(all.role('button', { name: 'Remove' })).toHaveCount(3),
-        expectAll(all.text('0')).toHaveCount(3),
-      ),
-    )
-  })
+  it.effect('Add Counter creates a new instance with a fresh Counter', () =>
+    scene(
+      ApplicationBlock,
+      given(initialModel),
+      click(role('button', { name: '+ Add Counter' })),
+      expectAll(all.role('button', { name: 'Remove' })).toHaveCount(3),
+      expectAll(all.text('0')).toHaveCount(3),
+    ),
+  )
 
-  test('Remove deletes an instance and routes future events to surviving counters', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'Remove deletes an instance and routes future events to surviving counters',
+    () =>
       scene(
         ApplicationBlock,
         given({
@@ -96,6 +94,5 @@ describe('view', () => {
         click(role('button', { name: '+' })),
         expect(text('11')).toExist(),
       ),
-    )
-  })
+  )
 })

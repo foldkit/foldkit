@@ -1,7 +1,7 @@
 import { Array, Option, pipe } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { IssueBoardBinding } from '../composition'
+import { IssueBoardsBinding } from '../composition'
 import { makeFieldsStep, makeStep } from '../definition'
 import {
   type MovedIssue,
@@ -25,7 +25,7 @@ export const informBoardMoveFailure = (issueId: string) =>
       Option.match({
         onNone: () => ({ model }),
         onSome: issue =>
-          IssueBoardBinding.informIssueMoveFailure(issue.projectId),
+          IssueBoardsBinding.informIssueMoveFailure(issue.projectId),
       }),
     ),
   )

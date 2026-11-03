@@ -1,6 +1,8 @@
 import { Array, Effect, Option, Result } from 'effect'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, it } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import {
   Issue,
@@ -29,89 +31,86 @@ const toDraft = (issue: Issue) =>
 const firstIssue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 
 describe('WorkspaceRepository', () => {
-  it('loads the deterministic workspace workspace', async () => {
-    const workspace = await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect('loads the deterministic workspace workspace', () =>
+    Effect.gen(function* () {
+      const workspace = yield* Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
 
         return yield* repository.load
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
 
-    expect(workspace).toEqual(initialWorkspace)
-  })
+      expect(workspace).toEqual(initialWorkspace)
+    }),
+  )
 
-  it('saves fields and preserves issue identity and comments', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        const repository = yield* WorkspaceRepository
-        const draft = IssueDraft.make({
-          ...toDraft(firstIssue),
-          title: 'Ship a faster command menu',
-          status: 'Done',
-          maybeAssigneeId: Option.none(),
-        })
+  it.effect('saves fields and preserves issue identity and comments', () => {
+    return Effect.gen(function* () {
+      const repository = yield* WorkspaceRepository
+      const draft = IssueDraft.make({
+        ...toDraft(firstIssue),
+        title: 'Ship a faster command menu',
+        status: 'Done',
+        maybeAssigneeId: Option.none(),
+      })
 
-        const savedIssue = yield* repository.saveIssue({
-          issueId: firstIssue.id,
-          draft,
-          expectedVersion: firstIssue.version,
-        })
-        const workspace = yield* repository.load
+      const savedIssue = yield* repository.saveIssue({
+        issueId: firstIssue.id,
+        draft,
+        expectedVersion: firstIssue.version,
+      })
+      const workspace = yield* repository.load
 
-        const storedIssue = Issue.make({
-          ...firstIssue,
-          ...draft,
-          version: firstIssue.version + 1,
-        })
+      const storedIssue = Issue.make({
+        ...firstIssue,
+        ...draft,
+        version: firstIssue.version + 1,
+      })
 
-        expect(savedIssue).toEqual({
-          issueId: firstIssue.id,
-          identifier: firstIssue.identifier,
-          revision: { fields: draft, version: firstIssue.version + 1 },
-        })
-        expect(
-          Array.findFirst(
-            workspace.issues,
-            issue => issue.id === savedIssue.issueId,
-          ),
-        ).toEqual(Option.some(storedIssue))
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
-
-  it('consumes a configured failure once and allows retry', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        const repository = yield* WorkspaceRepository
-        const loadResult = yield* Effect.result(repository.load)
-
-        expect(Result.isFailure(loadResult)).toBe(true)
-
-        if (Result.isFailure(loadResult)) {
-          expect(loadResult.failure).toMatchObject({
-            _tag: 'Unavailable',
-            operation: 'Load',
-          })
-        }
-
-        const workspace = yield* repository.load
-
-        expect(workspace).toEqual(initialWorkspace)
-      }).pipe(
-        Effect.provide(
-          makeWorkspaceRepositoryLayer({
-            latency: 0,
-            failNext: ['Load'],
-          }),
+      expect(savedIssue).toEqual({
+        issueId: firstIssue.id,
+        identifier: firstIssue.identifier,
+        revision: { fields: draft, version: firstIssue.version + 1 },
+      })
+      expect(
+        Array.findFirst(
+          workspace.issues,
+          issue => issue.id === savedIssue.issueId,
         ),
+      ).toEqual(Option.some(storedIssue))
+    }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+  })
+
+  it.effect('consumes a configured failure once and allows retry', () => {
+    return Effect.gen(function* () {
+      const repository = yield* WorkspaceRepository
+      const loadResult = yield* Effect.result(repository.load)
+
+      expect(Result.isFailure(loadResult)).toBe(true)
+
+      if (Result.isFailure(loadResult)) {
+        expect(loadResult.failure).toMatchObject({
+          _tag: 'Unavailable',
+          operation: 'Load',
+        })
+      }
+
+      const workspace = yield* repository.load
+
+      expect(workspace).toEqual(initialWorkspace)
+    }).pipe(
+      Effect.provide(
+        makeWorkspaceRepositoryLayer({
+          latency: 0,
+          failNext: ['Load'],
+        }),
       ),
     )
   })
 
-  it('preserves the stored revision when a demo failure interrupts saving', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'preserves the stored revision when a demo failure interrupts saving',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const input = {
           issueId: firstIssue.id,
@@ -134,72 +133,71 @@ describe('WorkspaceRepository', () => {
 
         expect(savedIssue.revision.fields.title).toBe(input.draft.title)
         expect(savedIssue.revision.version).toBe(firstIssue.version + 1)
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('rejects stale saves without overwriting the current issue', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        const repository = yield* WorkspaceRepository
-        const input = {
-          issueId: firstIssue.id,
+  it.effect('rejects stale saves without overwriting the current issue', () => {
+    return Effect.gen(function* () {
+      const repository = yield* WorkspaceRepository
+      const input = {
+        issueId: firstIssue.id,
+        draft: IssueDraft.make({
+          ...toDraft(firstIssue),
+          title: 'The latest edit',
+        }),
+        expectedVersion: firstIssue.version,
+      }
+
+      const savedIssue = yield* repository.saveIssue(input)
+      const staleSaveResult = yield* Effect.result(
+        repository.saveIssue({
+          ...input,
           draft: IssueDraft.make({
-            ...toDraft(firstIssue),
-            title: 'The latest edit',
+            ...input.draft,
+            title: 'An older edit',
           }),
+        }),
+      )
+      const workspace = yield* repository.load
+
+      expect(Result.isFailure(staleSaveResult)).toBe(true)
+
+      if (Result.isFailure(staleSaveResult)) {
+        expect(staleSaveResult.failure).toMatchObject({
+          _tag: 'Conflict',
           expectedVersion: firstIssue.version,
-        }
+          actualVersion: savedIssue.revision.version,
+        })
 
-        const savedIssue = yield* repository.saveIssue(input)
-        const staleSaveResult = yield* Effect.result(
-          repository.saveIssue({
-            ...input,
-            draft: IssueDraft.make({
-              ...input.draft,
-              title: 'An older edit',
-            }),
-          }),
-        )
-        const workspace = yield* repository.load
-
-        expect(Result.isFailure(staleSaveResult)).toBe(true)
-
-        if (Result.isFailure(staleSaveResult)) {
-          expect(staleSaveResult.failure).toMatchObject({
-            _tag: 'Conflict',
-            expectedVersion: firstIssue.version,
-            actualVersion: savedIssue.revision.version,
-          })
-
-          if (RepositoryError.guards.Conflict(staleSaveResult.failure)) {
-            expect(staleSaveResult.failure.latestIssue).toStrictEqual({
-              ...firstIssue,
-              ...input.draft,
-              version: savedIssue.revision.version,
-            })
-          }
-        }
-
-        expect(
-          Array.findFirst(
-            workspace.issues,
-            issue => issue.id === savedIssue.issueId,
-          ),
-        ).toEqual(
-          Option.some({
+        if (RepositoryError.guards.Conflict(staleSaveResult.failure)) {
+          expect(staleSaveResult.failure.latestIssue).toStrictEqual({
             ...firstIssue,
             ...input.draft,
             version: savedIssue.revision.version,
-          }),
-        )
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
+          })
+        }
+      }
+
+      expect(
+        Array.findFirst(
+          workspace.issues,
+          issue => issue.id === savedIssue.issueId,
+        ),
+      ).toEqual(
+        Option.some({
+          ...firstIssue,
+          ...input.draft,
+          version: savedIssue.revision.version,
+        }),
+      )
+    }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
   })
 
-  it('rejects creation in an unknown project without inserting or consuming an identity', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'rejects creation in an unknown project without inserting or consuming an identity',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const creationResult = yield* Effect.result(
           repository.createIssue(
@@ -224,13 +222,14 @@ describe('WorkspaceRepository', () => {
         const createdIssue = yield* repository.createIssue(toDraft(firstIssue))
 
         expect(createdIssue.id).toBe('issue-117')
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('rejects saving to an unknown project without changing fields or the revision', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'rejects saving to an unknown project without changing fields or the revision',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const saveResult = yield* Effect.result(
           repository.saveIssue({
@@ -262,13 +261,14 @@ describe('WorkspaceRepository', () => {
         })
 
         expect(savedIssue.revision.version).toBe(firstIssue.version + 1)
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('creates unique increasing identities for concurrent requests', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'creates unique increasing identities for concurrent requests',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const createdIssues = yield* Effect.all(
           Array.replicate(repository.createIssue(toDraft(firstIssue)), 3),
@@ -292,13 +292,14 @@ describe('WorkspaceRepository', () => {
         expect(Array.every(createdIssues, issue => issue.version === 1)).toBe(
           true,
         )
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('preserves new comments when saving fields from their original revision', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'preserves new comments when saving fields from their original revision',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const createdComment = yield* repository.addComment({
           issueId: firstIssue.id,
@@ -335,32 +336,37 @@ describe('WorkspaceRepository', () => {
             comments: [...firstIssue.comments, createdComment],
           }),
         )
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('keeps state local to each Layer build', async () => {
-    const RepositoryLayer = makeWorkspaceRepositoryLayer({ latency: 0 })
-    const createIssueEffect = Effect.gen(function* () {
-      const repository = yield* WorkspaceRepository
+  it.effect('keeps state local to each Layer build', () =>
+    Effect.gen(function* () {
+      const RepositoryLayer = makeWorkspaceRepositoryLayer({ latency: 0 })
+      const createIssueEffect = Effect.gen(function* () {
+        const repository = yield* WorkspaceRepository
 
-      return yield* repository.createIssue(toDraft(firstIssue))
-    })
+        return yield* repository.createIssue(toDraft(firstIssue))
+      })
 
-    const firstCreatedIssue = await Effect.runPromise(
-      Effect.provide(createIssueEffect, RepositoryLayer),
-    )
-    const secondCreatedIssue = await Effect.runPromise(
-      Effect.provide(createIssueEffect, RepositoryLayer),
-    )
+      const firstCreatedIssue = yield* Effect.provide(
+        createIssueEffect,
+        RepositoryLayer,
+      )
+      const secondCreatedIssue = yield* Effect.provide(
+        createIssueEffect,
+        RepositoryLayer,
+      )
 
-    expect(firstCreatedIssue.id).toBe('issue-117')
-    expect(secondCreatedIssue.id).toBe(firstCreatedIssue.id)
-  })
+      expect(firstCreatedIssue.id).toBe('issue-117')
+      expect(secondCreatedIssue.id).toBe(firstCreatedIssue.id)
+    }),
+  )
 
-  it('moves within the source project target status while preserving other rows and workspace fields', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'moves within the source project target status while preserving other rows and workspace fields',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const movedIssue = yield* repository.moveIssue({
           issueId: firstIssue.id,
@@ -408,22 +414,22 @@ describe('WorkspaceRepository', () => {
         )
         expect(workspace.projects).toStrictEqual(initialWorkspace.projects)
         expect(workspace.members).toStrictEqual(initialWorkspace.members)
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('reorders within a status in either direction using positions after source removal', async () => {
-    const sameProjectWorkspace = Workspace.make({
-      ...initialWorkspace,
-      issues: Array.map(initialWorkspace.issues, issue =>
-        issue.projectId === firstIssue.projectId && issue.status === 'Todo'
-          ? Issue.make({ ...issue, status: 'InProgress' })
-          : issue,
-      ),
-    })
-
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'reorders within a status in either direction using positions after source removal',
+    () => {
+      const sameProjectWorkspace = Workspace.make({
+        ...initialWorkspace,
+        issues: Array.map(initialWorkspace.issues, issue =>
+          issue.projectId === firstIssue.projectId && issue.status === 'Todo'
+            ? Issue.make({ ...issue, status: 'InProgress' })
+            : issue,
+        ),
+      })
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const moveDownResult = yield* repository.moveIssue({
           issueId: firstIssue.id,
@@ -493,13 +499,14 @@ describe('WorkspaceRepository', () => {
             initialWorkspace: sameProjectWorkspace,
           }),
         ),
-      ),
-    )
-  })
+      )
+    },
+  )
 
-  it('returns the normalized destination index when the requested position is out of range', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'returns the normalized destination index when the requested position is out of range',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const movedIssue = yield* repository.moveIssue({
           issueId: firstIssue.id,
@@ -525,13 +532,14 @@ describe('WorkspaceRepository', () => {
           'issue-106',
           firstIssue.id,
         ])
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('rejects a stale move with the latest issue and preserves the current workspace', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'rejects a stale move with the latest issue and preserves the current workspace',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const savedIssue = yield* repository.saveIssue({
           issueId: firstIssue.id,
@@ -570,13 +578,14 @@ describe('WorkspaceRepository', () => {
           ),
         )
         expect(workspaceAfterMove).toStrictEqual(workspaceBeforeMove)
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('rejects a move for a missing issue without changing the workspace', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'rejects a move for a missing issue without changing the workspace',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const moveResult = yield* Effect.result(
           repository.moveIssue({
@@ -597,13 +606,14 @@ describe('WorkspaceRepository', () => {
           ),
         )
         expect(workspace).toStrictEqual(initialWorkspace)
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('retries a failed move without consuming a revision or applying it twice', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'retries a failed move without consuming a revision or applying it twice',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
 
         yield* repository.failNext('Move')
@@ -665,13 +675,14 @@ describe('WorkspaceRepository', () => {
         expect(
           Array.filter(workspace.issues, issue => issue.id === firstIssue.id),
         ).toHaveLength(1)
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('updates only the selected project and preserves project order and issue data', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'updates only the selected project and preserves project order and issue data',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const project = Project.make({
           id: 'platform',
@@ -692,13 +703,14 @@ describe('WorkspaceRepository', () => {
         )
         expect(workspace.issues).toStrictEqual(initialWorkspace.issues)
         expect(workspace.members).toStrictEqual(initialWorkspace.members)
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('rejects saving an unknown project without changing the workspace', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'rejects saving an unknown project without changing the workspace',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const saveResult = yield* Effect.result(
           repository.saveProject(
@@ -720,13 +732,14 @@ describe('WorkspaceRepository', () => {
           ),
         )
         expect(workspace).toStrictEqual(initialWorkspace)
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 
-  it('preserves the project after a failed save and accepts the same edit on retry', async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect(
+    'preserves the project after a failed save and accepts the same edit on retry',
+    () => {
+      return Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
         const project = Project.make({
           id: 'experience',
@@ -772,7 +785,7 @@ describe('WorkspaceRepository', () => {
           ),
         )
         expect(workspace.issues).toStrictEqual(initialWorkspace.issues)
-      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
-    )
-  })
+      }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 })))
+    },
+  )
 })

@@ -3,7 +3,7 @@ import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { it as baseIt, expect } from 'vitest'
 
-import { describe } from '@effect/vitest'
+import { describe, makeMethods } from '@effect/vitest'
 
 import * as Animation from '../animation/block.js'
 import { makeInitialModel } from '../animation/schema.js'
@@ -77,14 +77,16 @@ const makeTestFixture = (block: Story.TestBlock<typeof ToastBlock>) => {
   return { block, toastInit, givenEmpty, swipeInit }
 }
 
-const it = baseIt.extend<{ toast: ReturnType<typeof makeTestFixture> }>({
-  toast: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(ToastBlock, block =>
-        Effect.promise(() => use(makeTestFixture(block))),
-      ).pipe(Effect.provide(layer)),
-    ),
-})
+const it = makeMethods(
+  baseIt.extend<{ toast: ReturnType<typeof makeTestFixture> }>({
+    toast: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(ToastBlock, block =>
+          Effect.promise(() => use(makeTestFixture(block))),
+        ).pipe(Effect.provide(layer)),
+      ),
+  }),
+)
 
 describe('Toast', () => {
   describe('init', () => {
@@ -523,23 +525,22 @@ describe('Toast', () => {
         )
       })
 
-      it('removes the entry and emits DismissedToast when its leave transition completes', ({
-        toast: { toastInit },
-      }) => {
-        const entry = makeSettledEntry({
-          animation: {
-            id: firstEntryId,
-            isShowing: false,
-            transitionState: 'LeaveAnimating',
-            transitionGeneration: LEAVE_TRANSITION_GENERATION,
-          },
-        })
-        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
-          entries: () => [entry],
-          nextEntryKey: () => 1,
-        })
-        return Effect.runPromise(
-          Story.story(
+      it.effect(
+        'removes the entry and emits DismissedToast when its leave transition completes',
+        ({ toast: { toastInit } }) => {
+          const entry = makeSettledEntry({
+            animation: {
+              id: firstEntryId,
+              isShowing: false,
+              transitionState: 'LeaveAnimating',
+              transitionGeneration: LEAVE_TRANSITION_GENERATION,
+            },
+          })
+          const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
+            entries: () => [entry],
+            nextEntryKey: () => 1,
+          })
+          return Story.story(
             ToastBlock,
             Story.given(model),
             Story.messageFrom(
@@ -557,35 +558,34 @@ describe('Toast', () => {
             Story.model(next => {
               expect(next.entries).toHaveLength(0)
             }),
-          ).pipe(Effect.provide(layer)),
-        )
-      })
+          ).pipe(Effect.provide(layer))
+        },
+      )
     })
 
     describe('RequestedDismissAll', () => {
-      it('starts leave transition on every non-leaving entry', ({
-        toast: { toastInit },
-      }) => {
-        const entryOne = makeSettledEntry({
-          id: 'test-entry-0',
-          animation: {
-            ...makeInitialModel({ id: 'test-entry-0', isShowing: true }),
-            transitionGeneration: ENTER_TRANSITION_GENERATION,
-          },
-        })
-        const entryTwo = makeSettledEntry({
-          id: 'test-entry-1',
-          animation: {
-            ...makeInitialModel({ id: 'test-entry-1', isShowing: true }),
-            transitionGeneration: ENTER_TRANSITION_GENERATION,
-          },
-        })
-        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
-          entries: () => [entryOne, entryTwo],
-          nextEntryKey: () => 2,
-        })
-        return Effect.runPromise(
-          Story.story(
+      it.effect(
+        'starts leave transition on every non-leaving entry',
+        ({ toast: { toastInit } }) => {
+          const entryOne = makeSettledEntry({
+            id: 'test-entry-0',
+            animation: {
+              ...makeInitialModel({ id: 'test-entry-0', isShowing: true }),
+              transitionGeneration: ENTER_TRANSITION_GENERATION,
+            },
+          })
+          const entryTwo = makeSettledEntry({
+            id: 'test-entry-1',
+            animation: {
+              ...makeInitialModel({ id: 'test-entry-1', isShowing: true }),
+              transitionGeneration: ENTER_TRANSITION_GENERATION,
+            },
+          })
+          const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
+            entries: () => [entryOne, entryTwo],
+            nextEntryKey: () => 2,
+          })
+          return Story.story(
             ToastBlock,
             Story.given(model),
             Story.inMessage(InMessage.RequestedDismissAll()),
@@ -638,9 +638,9 @@ describe('Toast', () => {
             Story.model(next => {
               expect(next.entries).toHaveLength(0)
             }),
-          ).pipe(Effect.provide(layer)),
-        )
-      })
+          ).pipe(Effect.provide(layer))
+        },
+      )
     })
   })
 

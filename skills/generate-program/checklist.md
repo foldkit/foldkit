@@ -565,7 +565,9 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 
 ## File structure and exports
 
-- [ ] Feature barrels expose only intended public contracts and domain helpers. Implementation modules export pieces needed by sibling modules or focused tests without widening the feature barrel; helpers with no external consumer remain private.
+- [ ] Field-backed Bindings mirror their Model fields in PascalCase with a `Binding` suffix, retaining optional prefixes, plurals, and roles. Wrapped storage keeps a nested role when necessary; custom and variant storage use meaningful relationship names. Only a necessary private pre-policy value takes the `Base` prefix.
+
+- [ ] Feature barrels expose only intended public contracts and domain helpers. Implementation modules export pieces needed by sibling modules or focused tests without widening the feature barrel; helpers with no external consumer remain private. Pure public queries such as `isComplete(model)` belong with the child responsibility and have stable public Model semantics regardless of implementation Layer selection. The parent does not duplicate those rules or store their derived results.
 - [ ] Section headers appear only where a long file has substantial groups that need wayfinding. Routine `// MODEL`, `// UPDATE`, and similar headings are absent from ordinary application and example files. Other comments are sparse: use `// NOTE:` only for a timing dependency, browser quirk, or external constraint that clear names cannot express.
 - [ ] `index.ts` is an explicit barrel. A child feature exposes its passive contract and construction `layer`; the root exposes its selected `ApplicationBlock`. Generic factories preserve their public `makeBlock` signature and shared provider. Keep reusable Schemas and pure utilities in a separate explicit domain barrel.
 - [ ] Published contracts and inferred exported Bindings/Composition/Blocks emit and recheck in a source-free consumer with exact payloads and provider requirements. Unique key types are reachable from the owning public subpath. Generic libraries preserve narrow named contracts without requiring app casts or reconstruction of implementation types.
@@ -631,6 +633,9 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] A child Binding lifts its ManagedResources through the Binding policy. Dynamic keyed children use keyed `makeBinding` configuration with an exact `keySchema`; no hand-rolled parent factory threads child state or Message mappers into the child.
 
 ## Testing quality
+
+- [ ] Ordinary Block tests use `story(Block, ...)` or `scene(Block, ...)` and return their scoped Effects from `@effect/vitest`'s `it.effect`. Synchronous tests stay synchronous. Use `it.live` only when live Effect services are intentional; a plain Vitest callback returns or awaits `Effect.runPromise`, never an unobserved `Effect.runFork`.
+- [ ] Startup scenarios use `init(...)` with explicit Command resolution. Deliberate existing-Model fixtures use `given(model)`. Acquired fixtures remain for direct operations, modified initialized Models, private registrations, or custom views; they keep the same acquisition alive throughout the test. Do not rebuild child-owned state merely to remove a fixture.
 
 - [ ] Test names state the behavior being tested: `it('surfaces a validation error when email is malformed')`, not `it('tests validation')` or `it('handles the reported bug')`.
 - [ ] Each `story` pipeline reads as a narrative: initial model → action → assert → action → assert. Not a dump of unrelated assertions.

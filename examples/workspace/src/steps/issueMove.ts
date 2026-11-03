@@ -3,7 +3,7 @@ import { AsyncData, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { MoveIssue } from '../command'
-import { IssueBoardBinding } from '../composition'
+import { IssueBoardsBinding } from '../composition'
 import { makeStep } from '../definition'
 import { type Issue, type IssueStatus } from '../domain'
 import { IssueMoveState } from '../optimistic'
@@ -53,7 +53,7 @@ export const requestIssueMove = (
             onSome: issue =>
               Update.combineSteps([
                 beginIssueMove(issue, status, insertionIndex),
-                IssueBoardBinding.informIssueMove(issue.projectId, {
+                IssueBoardsBinding.informIssueMove(issue.projectId, {
                   status,
                   insertionIndex,
                 }),

@@ -9,7 +9,7 @@ import {
   makeNoopStep,
 } from './definition'
 
-export const StartDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
+export const StartDateBinding = WorkHistoryEntryDefinition.makeBinding(
   DatePickerBlock,
   {
     field: 'startDate',
@@ -23,7 +23,7 @@ export const StartDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
   fold: outMessage => foldStartDateOutMessage(outMessage),
 })
 
-export const EndDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
+export const EndDateBinding = WorkHistoryEntryDefinition.makeBinding(
   DatePickerBlock,
   {
     field: 'endDate',
@@ -44,14 +44,14 @@ const foldStartDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
         makeFieldsStep(() => ({
           maybeStartDate: () => Option.some(date),
         })),
-        EndDatePickerBinding.informMinDateChanged(Option.some(date)),
+        EndDateBinding.informMinDateChanged(Option.some(date)),
       ]),
     ClearedDate: () =>
       Update.combineSteps([
         makeFieldsStep(() => ({
           maybeStartDate: () => Option.none(),
         })),
-        EndDatePickerBinding.informMinDateChanged(Option.none()),
+        EndDateBinding.informMinDateChanged(Option.none()),
       ]),
   },
 )
@@ -65,19 +65,19 @@ const foldEndDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
         makeFieldsStep(() => ({
           maybeEndDate: () => Option.some(date),
         })),
-        StartDatePickerBinding.informMaxDateChanged(Option.some(date)),
+        StartDateBinding.informMaxDateChanged(Option.some(date)),
       ]),
     ClearedDate: () =>
       Update.combineSteps([
         makeFieldsStep(() => ({
           maybeEndDate: () => Option.none(),
         })),
-        StartDatePickerBinding.informMaxDateChanged(Option.none()),
+        StartDateBinding.informMaxDateChanged(Option.none()),
       ]),
   },
 )
 
 export const WorkHistoryEntryComposition =
   WorkHistoryEntryDefinition.makeComposition({
-    bindings: [StartDatePickerBinding, EndDatePickerBinding],
+    bindings: [StartDateBinding, EndDateBinding],
   })

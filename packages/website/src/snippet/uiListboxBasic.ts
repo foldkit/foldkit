@@ -55,13 +55,13 @@ const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const PlanListboxBinding = PlanPickerDefinition.makeBinding(PlanListbox, {
+const ListboxBinding = PlanPickerDefinition.makeBinding(PlanListbox, {
   field: 'listbox',
   init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const PlanPickerComposition = PlanPickerDefinition.makeComposition({
-  bindings: [PlanListboxBinding],
+  bindings: [ListboxBinding],
 })
 
 // In your init function, initialize the Listbox Block with a unique id:
@@ -88,7 +88,7 @@ const view = PlanPickerComposition.makeView((model, h) =>
     [
       h.label([h.For(ListboxButtonId('plan'))], ['Plan']),
       h.block(
-        PlanListboxBinding.embedView({
+        ListboxBinding.embedView({
           slotId: 'plan',
           model: model.listbox,
           viewInputs: {
@@ -124,7 +124,7 @@ const view = PlanPickerComposition.makeView((model, h) =>
 
 export const ApplicationBlock = PlanPickerDefinition.makeBlock(
   Effect.gen(function* () {
-    const planListbox = yield* PlanListboxBinding
+    const planListbox = yield* ListboxBinding
 
     return {
       children: [planListbox],

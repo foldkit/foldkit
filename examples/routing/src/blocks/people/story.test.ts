@@ -1,6 +1,8 @@
 import { Array, Effect, String } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { PeopleBlock, layer } from './block'
 import { PushSearchUrl } from './command'
@@ -20,8 +22,9 @@ const givenLoaded = (searchInput: string) =>
   )
 
 describe('people', () => {
-  test('ChangedSearchInput updates the input without recording history or fetching', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'ChangedSearchInput updates the input without recording history or fetching',
+    () =>
       story(
         PeopleBlock,
         givenLoaded(''),
@@ -34,42 +37,37 @@ describe('people', () => {
           expect(model.searchHistory).toStrictEqual([])
         }),
       ).pipe(Effect.provide(layer)),
-    )
-  })
+  )
 
-  test('SubmittedSearch pushes the current input to the URL', async () => {
-    await Effect.runPromise(
-      story(
-        PeopleBlock,
-        givenLoaded('designer'),
-        message(Message.SubmittedSearch()),
-        Command.expectHas(PushSearchUrl),
-        Command.resolve(PushSearchUrl, Message.CompletedPushSearchUrl()),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
+  it.effect('SubmittedSearch pushes the current input to the URL', () =>
+    story(
+      PeopleBlock,
+      givenLoaded('designer'),
+      message(Message.SubmittedSearch()),
+      Command.expectHas(PushSearchUrl),
+      Command.resolve(PushSearchUrl, Message.CompletedPushSearchUrl()),
+    ).pipe(Effect.provide(layer)),
+  )
 
-  test('CompletedFetchPeople stores the loaded results', async () => {
+  it.effect('CompletedFetchPeople stores the loaded results', () => {
     const people = searchPeople('designer')
 
-    await Effect.runPromise(
-      story(
-        PeopleBlock,
-        givenLoaded(''),
-        message(
-          Message.CompletedFetchPeople({
-            query: 'designer',
-            people,
-          }),
-        ),
-        model(model => {
-          expect(model.results._tag).toBe('Loaded')
-          if (model.results._tag === 'Loaded') {
-            expect(model.results.query).toBe('designer')
-            expect(model.results.people).toStrictEqual(people)
-          }
+    return story(
+      PeopleBlock,
+      givenLoaded(''),
+      message(
+        Message.CompletedFetchPeople({
+          query: 'designer',
+          people,
         }),
-      ).pipe(Effect.provide(layer)),
-    )
+      ),
+      model(model => {
+        expect(model.results._tag).toBe('Loaded')
+        if (model.results._tag === 'Loaded') {
+          expect(model.results.query).toBe('designer')
+          expect(model.results.people).toStrictEqual(people)
+        }
+      }),
+    ).pipe(Effect.provide(layer))
   })
 })

@@ -1,7 +1,9 @@
-import { Array, Effect } from 'effect'
+import { Array } from 'effect'
 import { Interruptible } from 'foldkit/command'
 import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { CancelUploadFile, UploadFile } from './command'
@@ -12,20 +14,19 @@ import { FAKE_FILES } from './update'
 const firstFile = Array.headNonEmpty(FAKE_FILES)
 
 describe('view', () => {
-  test('initial view shows the start button and an empty state', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(initialModel),
-        expect(role('heading', { name: 'File Uploads' })).toExist(),
-        expect(role('button', { name: 'Upload a file' })).toExist(),
-        expect(text('Nothing here yet. Start an upload.')).toExist(),
-      ),
-    )
-  })
+  it.effect('initial view shows the start button and an empty state', () =>
+    scene(
+      ApplicationBlock,
+      given(initialModel),
+      expect(role('heading', { name: 'File Uploads' })).toExist(),
+      expect(role('button', { name: 'Upload a file' })).toExist(),
+      expect(text('Nothing here yet. Start an upload.')).toExist(),
+    ),
+  )
 
-  test('starting an upload shows an Uploading row with a cancel button', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'starting an upload shows an Uploading row with a cancel button',
+    () =>
       scene(
         ApplicationBlock,
         given(initialModel),
@@ -39,11 +40,11 @@ describe('view', () => {
         ),
         expect(text('Done')).toExist(),
       ),
-    )
-  })
+  )
 
-  test('cancelling an upload marks it Cancelled and offers a restart', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'cancelling an upload marks it Cancelled and offers a restart',
+    () =>
       scene(
         ApplicationBlock,
         given(initialModel),
@@ -66,11 +67,11 @@ describe('view', () => {
         ),
         expect(text('Done')).toExist(),
       ),
-    )
-  })
+  )
 
-  test('the cancel all button appears only while an upload is running', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'the cancel all button appears only while an upload is running',
+    () =>
       scene(
         ApplicationBlock,
         given(initialModel),
@@ -88,6 +89,5 @@ describe('view', () => {
         expect(role('button', { name: 'Cancel all' })).toBeAbsent(),
         expect(text('Cancelled')).toExist(),
       ),
-    )
-  })
+  )
 })

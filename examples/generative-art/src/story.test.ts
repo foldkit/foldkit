@@ -1,8 +1,9 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
 
+import { it } from '@effect/vitest'
 import { SliderBlock } from '@foldkit/ui/slider'
 
 import { ApplicationBlock } from './block'
@@ -64,63 +65,58 @@ const makeParticle = (id: number, x: number, y: number): Particle => ({
 })
 
 describe('update', () => {
-  test('ClickedTogglePlay flips isRunning', async () => {
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        given(initialModel),
-        message(Message.ClickedTogglePlay()),
-        model(model => {
-          expect(model.isRunning).toBe(false)
-        }),
-        message(Message.ClickedTogglePlay()),
-        model(model => {
-          expect(model.isRunning).toBe(true)
+  it.effect('ClickedTogglePlay flips isRunning', () =>
+    story(
+      ApplicationBlock,
+      given(initialModel),
+      message(Message.ClickedTogglePlay()),
+      model(model => {
+        expect(model.isRunning).toBe(false)
+      }),
+      message(Message.ClickedTogglePlay()),
+      model(model => {
+        expect(model.isRunning).toBe(true)
+      }),
+    ),
+  )
+
+  it.effect('ClickedReset clears particles and the mouse position', () =>
+    story(
+      ApplicationBlock,
+      given(
+        modifyFields(initialModel, {
+          particles: () => [
+            makeParticle(0, 100, 100),
+            makeParticle(1, 200, 200),
+          ],
+          maybeMousePosition: () => Option.some({ x: 300, y: 300 }),
         }),
       ),
-    )
-  })
+      message(Message.ClickedReset()),
+      model(model => {
+        expect(model.particles).toHaveLength(0)
+        expect(Option.isNone(model.maybeMousePosition)).toBe(true)
+      }),
+    ),
+  )
 
-  test('ClickedReset clears particles and the mouse position', async () => {
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        given(
-          modifyFields(initialModel, {
-            particles: () => [
-              makeParticle(0, 100, 100),
-              makeParticle(1, 200, 200),
-            ],
-            maybeMousePosition: () => Option.some({ x: 300, y: 300 }),
-          }),
-        ),
-        message(Message.ClickedReset()),
-        model(model => {
-          expect(model.particles).toHaveLength(0)
-          expect(Option.isNone(model.maybeMousePosition)).toBe(true)
-        }),
-      ),
-    )
-  })
+  it.effect('MovedPointer sets maybeMousePosition to the new coordinates', () =>
+    story(
+      ApplicationBlock,
+      given(initialModel),
+      message(Message.MovedPointer({ x: 250, y: 175 })),
+      model(model => {
+        expect(Option.getOrThrow(model.maybeMousePosition)).toEqual({
+          x: 250,
+          y: 175,
+        })
+      }),
+    ),
+  )
 
-  test('MovedPointer sets maybeMousePosition to the new coordinates', async () => {
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        given(initialModel),
-        message(Message.MovedPointer({ x: 250, y: 175 })),
-        model(model => {
-          expect(Option.getOrThrow(model.maybeMousePosition)).toEqual({
-            x: 250,
-            y: 175,
-          })
-        }),
-      ),
-    )
-  })
-
-  test('CompletedGenerateAmbientParticle appends a particle and increments nextId', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'CompletedGenerateAmbientParticle appends a particle and increments nextId',
+    () =>
       story(
         ApplicationBlock,
         given(initialModel),
@@ -144,15 +140,15 @@ describe('update', () => {
           expect(model.nextId).toBe(1)
         }),
       ),
-    )
-  })
+  )
 
-  test('TickedFrame advances existing particles, ages them, and dispatches ambient spawn Commands that append new particles', async () => {
-    const startingParticles = [makeParticle(0, 200, 200)]
-    const startingParticleCount = startingParticles.length
+  it.effect(
+    'TickedFrame advances existing particles, ages them, and dispatches ambient spawn Commands that append new particles',
+    () => {
+      const startingParticles = [makeParticle(0, 200, 200)]
+      const startingParticleCount = startingParticles.length
 
-    await Effect.runPromise(
-      story(
+      return story(
         ApplicationBlock,
         given(
           modifyFields(initialModel, {
@@ -194,12 +190,13 @@ describe('update', () => {
           )
           expect(model.nextId).toBe(startingParticleCount + SPAWN_PER_FRAME_MAX)
         }),
-      ),
-    )
-  })
+      )
+    },
+  )
 
-  test('CompletedGenerateBurstParticle appends a particle with its initial angle preserved', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'CompletedGenerateBurstParticle appends a particle with its initial angle preserved',
+    () =>
       story(
         ApplicationBlock,
         given(initialModel),
@@ -222,6 +219,5 @@ describe('update', () => {
           expect(particle.initialSpeedScale).toBe(1.8)
         }),
       ),
-    )
-  })
+  )
 })

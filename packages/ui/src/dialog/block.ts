@@ -295,7 +295,7 @@ const isLeaving = (model: Model): boolean =>
 const isOpenOrAnimating = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
-const AnimationBinding = DialogDefinition.makeBinding(
+const BaseAnimationBinding = DialogDefinition.makeBinding(
   Animation.AnimationBlock,
   {
     field: 'animation',
@@ -311,13 +311,13 @@ const foldAnimationOutMessage = DialogDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: () =>
-      AnimationBinding.requestWaitForLeaveSettlement(),
+      BaseAnimationBinding.requestWaitForLeaveSettlement(),
     TransitionedOut: () => closeNativeDialog,
   },
 )
 
-const resumeAnimationAfterAcquisition = AnimationBinding.requestResume()
-const resetAnimationImmediately = AnimationBinding.requestImmediateReset()
+const resumeAnimationAfterAcquisition = BaseAnimationBinding.requestResume()
+const resetAnimationImmediately = BaseAnimationBinding.requestImmediateReset()
 const markDialogClosed = DialogDefinition.makeFieldsStep(() => ({
   isOpen: () => false,
 }))
@@ -331,14 +331,13 @@ const resetAndReportClose = DialogDefinition.makeStep(model =>
   ),
 )
 
-const AnimationBindingWithOutMessagePolicy =
-  AnimationBinding.withOutMessagePolicy({
-    fold: foldAnimationOutMessage,
-  })
+const AnimationBinding = BaseAnimationBinding.withOutMessagePolicy({
+  fold: foldAnimationOutMessage,
+})
 
 const DialogComposition = DialogDefinition.makeComposition({
   mounts,
-  bindings: [AnimationBindingWithOutMessagePolicy],
+  bindings: [AnimationBinding],
 })
 
 /** Creates a closed Dialog Model and its Commands from a config. */
@@ -372,7 +371,7 @@ const openDialog = DialogDefinition.makeStep(model => {
       Function.compose(
         Update.combineSteps([
           DialogDefinition.makeCommandsStep(() => commands),
-          AnimationBinding.requestShow(),
+          BaseAnimationBinding.requestShow(),
           DialogDefinition.makeFieldsStep(() => ({ isOpen: () => true })),
         ]),
         Update.withOutMessage(wasClosed ? OutMessage.Opened() : undefined),
@@ -400,7 +399,10 @@ const closeDialog = DialogDefinition.makeStep(model => {
   if (model.isAnimated) {
     return DialogDefinition.makeStep(() =>
       Function.compose(
-        Update.combineSteps([markDialogClosed, AnimationBinding.requestHide()]),
+        Update.combineSteps([
+          markDialogClosed,
+          BaseAnimationBinding.requestHide(),
+        ]),
         Update.withOutMessage(wasOpen ? OutMessage.Closed() : undefined),
       ),
     )
@@ -689,7 +691,7 @@ export const DialogBlock: DialogBlock = DialogDefinition.contract
 
 const block = DialogDefinition.makeBlock(
   Effect.gen(function* () {
-    const animation = yield* AnimationBindingWithOutMessagePolicy
+    const animation = yield* AnimationBinding
 
     return {
       children: [animation],

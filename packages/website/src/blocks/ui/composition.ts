@@ -598,7 +598,7 @@ export const ToastDemoBinding = UiDefinition.makeBinding(ToastBlock, {
   },
 }).withOutMessagePolicy({ fold: foldToastDemoOutMessage })
 
-const animationDemoBinding = UiDefinition.makeBinding(AnimationBlock, {
+const BaseAnimationDemoBinding = UiDefinition.makeBinding(AnimationBlock, {
   field: 'animationDemo',
   init: { contextToArgs: () => [{ id: 'animation-demo' }] },
 })
@@ -607,7 +607,7 @@ const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
   AnimationBlock,
   {
     StartedLeaveAnimating: () =>
-      animationDemoBinding.requestWaitForLeaveSettlement(),
+      BaseAnimationDemoBinding.requestWaitForLeaveSettlement(),
     TransitionedOut: makeNoopStep,
   },
 )
@@ -782,9 +782,10 @@ export const HorizontalRadioGroupDemoBinding = UiDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldHorizontalRadioGroupDemoOutMessage })
 
-export const AnimationDemoBinding = animationDemoBinding.withOutMessagePolicy({
-  fold: foldAnimationDemoOutMessage,
-})
+export const AnimationDemoBinding =
+  BaseAnimationDemoBinding.withOutMessagePolicy({
+    fold: foldAnimationDemoOutMessage,
+  })
 
 export const UiComposition = UiDefinition.makeComposition({
   bindings: [

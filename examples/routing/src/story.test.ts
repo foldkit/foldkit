@@ -1,4 +1,4 @@
-import { Array, Effect, Option, String } from 'effect'
+import { Array, Option, String } from 'effect'
 import {
   Command,
   given,
@@ -8,7 +8,9 @@ import {
   story,
 } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { PeopleBlock } from './blocks'
@@ -73,94 +75,73 @@ const resolveFetch = (searchText: string) =>
 
 describe('update', () => {
   describe('EnteredNavigationShortcut', () => {
-    test('GH produces the Home navigation Command', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(Message.EnteredNavigationShortcut({ shortcut: 'GH' })),
-          Command.expectHas(NavigateInternal({ url: homeRouter() })),
-          Command.resolve(
-            NavigateInternal,
-            Message.CompletedNavigateInternal(),
-          ),
-        ),
-      )
-    })
+    it.effect('GH produces the Home navigation Command', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(Message.EnteredNavigationShortcut({ shortcut: 'GH' })),
+        Command.expectHas(NavigateInternal({ url: homeRouter() })),
+        Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+      ),
+    )
 
-    test('GP produces the People navigation Command', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(Message.EnteredNavigationShortcut({ shortcut: 'GP' })),
-          Command.expectHas(
-            NavigateInternal({
-              url: peopleRouter({ searchText: Option.none() }),
-            }),
-          ),
-          Command.resolve(
-            NavigateInternal,
-            Message.CompletedNavigateInternal(),
-          ),
+    it.effect('GP produces the People navigation Command', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(Message.EnteredNavigationShortcut({ shortcut: 'GP' })),
+        Command.expectHas(
+          NavigateInternal({
+            url: peopleRouter({ searchText: Option.none() }),
+          }),
         ),
-      )
-    })
+        Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+      ),
+    )
 
-    test('GF produces the Files navigation Command', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(Message.EnteredNavigationShortcut({ shortcut: 'GF' })),
-          Command.expectHas(NavigateInternal({ url: filesIndexRouter() })),
-          Command.resolve(
-            NavigateInternal,
-            Message.CompletedNavigateInternal(),
-          ),
-        ),
-      )
-    })
+    it.effect('GF produces the Files navigation Command', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(Message.EnteredNavigationShortcut({ shortcut: 'GF' })),
+        Command.expectHas(NavigateInternal({ url: filesIndexRouter() })),
+        Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+      ),
+    )
 
-    test('GN produces the Nested navigation Command', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(Message.EnteredNavigationShortcut({ shortcut: 'GN' })),
-          Command.expectHas(NavigateInternal({ url: nestedRouter() })),
-          Command.resolve(
-            NavigateInternal,
-            Message.CompletedNavigateInternal(),
-          ),
-        ),
-      )
-    })
+    it.effect('GN produces the Nested navigation Command', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(Message.EnteredNavigationShortcut({ shortcut: 'GN' })),
+        Command.expectHas(NavigateInternal({ url: nestedRouter() })),
+        Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+      ),
+    )
   })
 
   describe('ChangedUrl', () => {
-    test('navigating to /people parses to a People route', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(
-            Message.ChangedUrl({ url: urlOrThrow('http://localhost/people') }),
-          ),
-          model(model => {
-            if (model.route._tag === 'People') {
-              expect(model.route.searchText).toStrictEqual(Option.none())
-            } else {
-              throw new Error('Expected People route')
-            }
-          }),
-          resolveFetch(''),
+    it.effect('navigating to /people parses to a People route', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/people') }),
         ),
-      )
-    })
+        model(model => {
+          if (model.route._tag === 'People') {
+            expect(model.route.searchText).toStrictEqual(Option.none())
+          } else {
+            throw new Error('Expected People route')
+          }
+        }),
+        resolveFetch(''),
+      ),
+    )
 
-    test('navigating to /people?searchText=foo captures the query parameter', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'navigating to /people?searchText=foo captures the query parameter',
+      () =>
         story(
           ApplicationBlock,
           given(home),
@@ -178,11 +159,11 @@ describe('update', () => {
           }),
           resolveFetch('foo'),
         ),
-      )
-    })
+    )
 
-    test('navigating to /people/3 parses to a Person route with numeric id', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'navigating to /people/3 parses to a Person route with numeric id',
+      () =>
         story(
           ApplicationBlock,
           given(home),
@@ -199,11 +180,11 @@ describe('update', () => {
             }
           }),
         ),
-      )
-    })
+    )
 
-    test('an unknown path falls through to NotFound with the path captured', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'an unknown path falls through to NotFound with the path captured',
+      () =>
         story(
           ApplicationBlock,
           given(home),
@@ -218,64 +199,58 @@ describe('update', () => {
             }
           }),
         ),
-      )
-    })
+    )
 
-    test('the deep nested path resolves to Nested', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow('http://localhost/nested/route/is/very/nested'),
-            }),
-          ),
-          model(model => {
-            expect(model.route._tag).toBe('Nested')
+    it.effect('the deep nested path resolves to Nested', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/nested/route/is/very/nested'),
           }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.route._tag).toBe('Nested')
+        }),
+      ),
+    )
 
-    test('navigating to /files parses to the FilesIndex route', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(
-            Message.ChangedUrl({ url: urlOrThrow('http://localhost/files') }),
-          ),
-          model(model => {
-            expect(model.route._tag).toBe('FilesIndex')
+    it.effect('navigating to /files parses to the FilesIndex route', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/files') }),
+        ),
+        model(model => {
+          expect(model.route._tag).toBe('FilesIndex')
+        }),
+      ),
+    )
+
+    it.effect('navigating under /files captures the remaining segments', () =>
+      story(
+        ApplicationBlock,
+        given(home),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/files/documents/taxes'),
           }),
         ),
-      )
-    })
+        model(model => {
+          if (model.route._tag === 'Files') {
+            expect(model.route.path).toStrictEqual(['documents', 'taxes'])
+          } else {
+            throw new Error('Expected Files route')
+          }
+        }),
+      ),
+    )
 
-    test('navigating under /files captures the remaining segments', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(home),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow('http://localhost/files/documents/taxes'),
-            }),
-          ),
-          model(model => {
-            if (model.route._tag === 'Files') {
-              expect(model.route.path).toStrictEqual(['documents', 'taxes'])
-            } else {
-              throw new Error('Expected Files route')
-            }
-          }),
-        ),
-      )
-    })
-
-    test('a same-page URL change syncs the input, records history, and refetches', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'a same-page URL change syncs the input, records history, and refetches',
+      () =>
         story(
           ApplicationBlock,
           given(onPeople('')),
@@ -301,45 +276,40 @@ describe('update', () => {
             }
           }),
         ),
-      )
-    })
+    )
 
-    test('a hash-only URL change keeps the People page in sync', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(onPeople('designer')),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow(
-                'http://localhost/people?searchText=designer#results',
-              ),
-            }),
-          ),
-          model(model => {
-            expect(model.peoplePage.searchInput).toBe('designer')
-            expect(model.peoplePage.searchHistory).toStrictEqual(['designer'])
-            expect(model.peoplePage.results._tag).toBe('Loading')
+    it.effect('a hash-only URL change keeps the People page in sync', () =>
+      story(
+        ApplicationBlock,
+        given(onPeople('designer')),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow(
+              'http://localhost/people?searchText=designer#results',
+            ),
           }),
-          Command.expectHas(FetchPeople),
-          resolveFetch('designer'),
         ),
-      )
-    })
+        model(model => {
+          expect(model.peoplePage.searchInput).toBe('designer')
+          expect(model.peoplePage.searchHistory).toStrictEqual(['designer'])
+          expect(model.peoplePage.results._tag).toBe('Loading')
+        }),
+        Command.expectHas(FetchPeople),
+        resolveFetch('designer'),
+      ),
+    )
   })
 
   describe('generated People Message', () => {
-    test('writes through to peoplePage', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(onPeople('')),
-          peopleMessage(PeopleBlock.Message.ChangedSearchInput({ value: 'd' })),
-          model(model => {
-            expect(model.peoplePage.searchInput).toBe('d')
-          }),
-        ),
-      )
-    })
+    it.effect('writes through to peoplePage', () =>
+      story(
+        ApplicationBlock,
+        given(onPeople('')),
+        peopleMessage(PeopleBlock.Message.ChangedSearchInput({ value: 'd' })),
+        model(model => {
+          expect(model.peoplePage.searchInput).toBe('d')
+        }),
+      ),
+    )
   })
 })

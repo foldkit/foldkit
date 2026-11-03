@@ -1,24 +1,23 @@
-import { Effect } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { expect, test } from 'vitest'
+import { expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './application'
 
 // Story: test the state machine
-test('fetch weather updates the model', async () => {
-  await Effect.runPromise(
-    story(
-      ApplicationBlock,
-      given(model),
-      message(SubmittedWeatherForm()),
-      model(model => {
-        expect(model.weather._tag).toBe('WeatherLoading')
-      }),
-      Command.expectExact(FetchWeather),
-      Command.resolve(FetchWeather, SucceededFetchWeather({ weather })),
-      model(model => {
-        expect(model.weather._tag).toBe('WeatherSuccess')
-      }),
-    ),
-  )
-})
+it.effect('fetch weather updates the model', () =>
+  story(
+    ApplicationBlock,
+    given(model),
+    message(SubmittedWeatherForm()),
+    model(model => {
+      expect(model.weather._tag).toBe('WeatherLoading')
+    }),
+    Command.expectExact(FetchWeather),
+    Command.resolve(FetchWeather, SucceededFetchWeather({ weather })),
+    model(model => {
+      expect(model.weather._tag).toBe('WeatherSuccess')
+    }),
+  ),
+)

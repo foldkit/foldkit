@@ -14,6 +14,7 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
+import { it } from '@effect/vitest'
 import * as Shared from '@typing-game/shared'
 
 import { ApplicationBlock } from './block'
@@ -30,7 +31,11 @@ import {
 import { InMessage as RoomInMessage } from './blocks/room/inMessage'
 import { RoomAsyncData } from './blocks/room/model'
 import { NavigateHome } from './blocks/room/update'
-import { HomeBinding, NavigateToRoom, RoomBinding } from './composition'
+import {
+  HomeBinding,
+  MaybeRoomInstanceBinding,
+  NavigateToRoom,
+} from './composition'
 import { Message } from './message'
 import { Model, RoomInstance } from './model'
 import { ApplicationRoute } from './route'
@@ -80,7 +85,7 @@ const toHomeMessage = (message: HomeMessage) =>
   messageFrom(HomeBinding, message)
 
 const toRoomMessage = (roomId: string, message: RoomMessage) =>
-  messageFrom(RoomBinding, roomId, message)
+  messageFrom(MaybeRoomInstanceBinding, roomId, message)
 
 const givenHomeRoute = given<Model>({
   route: ApplicationRoute.Home(),
@@ -145,9 +150,10 @@ const modelWithRoom = (
   })
 
 describe('key presses on the Home route', () => {
-  test('a Home key press moves the home selection and leaves the room alone', async () => {
-    await Effect.runPromise(
-      story(
+  it.effect(
+    'a Home key press moves the home selection and leaves the room alone',
+    () => {
+      return story(
         ApplicationBlock,
         givenHomeRoute,
         toHomeMessage(HomeBlock.Message.PressedKey({ key: 'ArrowDown' })),
@@ -159,37 +165,33 @@ describe('key presses on the Home route', () => {
           expect(model.maybeRoomInstance).toEqual(Option.none())
         }),
         Command.expectNone(),
-      ),
-    )
-  })
+      )
+    },
+  )
 
-  test('a Room key press does nothing', async () => {
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        givenHomeRoute,
-        toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
-        model(model => {
-          expect(model.maybeRoomInstance).toEqual(Option.none())
-        }),
-        Command.expectNone(),
-      ),
+  it.effect('a Room key press does nothing', () => {
+    return story(
+      ApplicationBlock,
+      givenHomeRoute,
+      toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
+      model(model => {
+        expect(model.maybeRoomInstance).toEqual(Option.none())
+      }),
+      Command.expectNone(),
     )
   })
 })
 
 describe('key presses on the Room route', () => {
-  test('a Room key press starts the game and leaves home alone', async () => {
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        givenRoomRoute,
-        toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
-        Command.resolve(StartGame, RoomBlock.Message.SucceededStartGame()),
-        model(model => {
-          expect(model.home).toEqual(selectActionHome)
-        }),
-      ),
+  it.effect('a Room key press starts the game and leaves home alone', () => {
+    return story(
+      ApplicationBlock,
+      givenRoomRoute,
+      toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
+      Command.resolve(StartGame, RoomBlock.Message.SucceededStartGame()),
+      model(model => {
+        expect(model.home).toEqual(selectActionHome)
+      }),
     )
   })
 })
@@ -239,50 +241,44 @@ describe('Room navigation', () => {
     )
   })
 
-  test('leaving a Room removes its child Model', async () => {
+  it.effect('leaving a Room removes its child Model', () => {
     const initialModel = modelWithRoom(
       ApplicationRoute.Room({ roomId: ROOM_A }),
       ROOM_A,
     )
-
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        given(initialModel),
-        message(Message.ChangedUrl({ url: homeUrl })),
-        model(model => {
-          expect(model.route).toEqual(ApplicationRoute.Home())
-          expect(model.maybeRoomInstance).toEqual(Option.none())
-        }),
-        Command.expectNone(),
-      ),
+    return story(
+      ApplicationBlock,
+      given(initialModel),
+      message(Message.ChangedUrl({ url: homeUrl })),
+      model(model => {
+        expect(model.route).toEqual(ApplicationRoute.Home())
+        expect(model.maybeRoomInstance).toEqual(Option.none())
+      }),
+      Command.expectNone(),
     )
   })
 
-  test('preserves the child Model on a same-Room URL', async () => {
+  it.effect('preserves the child Model on a same-Room URL', () => {
     const roomModel = dirtyRoomModel(ROOM_A)
     const initialModel = modelWithRoom(
       ApplicationRoute.Room({ roomId: ROOM_A }),
       ROOM_A,
       roomModel,
     )
-
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        given(initialModel),
-        message(Message.ChangedUrl({ url: roomUrl(ROOM_A) })),
-        model(model => {
-          expect(getRoomInstance(model).model).toStrictEqual(roomModel)
-        }),
-        Command.expectNone(),
-      ),
+    return story(
+      ApplicationBlock,
+      given(initialModel),
+      message(Message.ChangedUrl({ url: roomUrl(ROOM_A) })),
+      model(model => {
+        expect(getRoomInstance(model).model).toStrictEqual(roomModel)
+      }),
+      Command.expectNone(),
     )
   })
 })
 
 describe('Room occurrence identity', () => {
-  test('ignores stale child results after the active Room changes', async () => {
+  it.effect('ignores stale child results after the active Room changes', () => {
     const initialModel = modelWithRoom(
       ApplicationRoute.Room({ roomId: ROOM_B }),
       ROOM_B,
@@ -301,8 +297,9 @@ describe('Room occurrence identity', () => {
       RoomBlock.Message.CompletedWaitForExitCountdownInterval(),
     ]
 
-    for (const staleMessage of staleMessages) {
-      await Effect.runPromise(
+    return Effect.forEach(
+      staleMessages,
+      staleMessage =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -312,26 +309,26 @@ describe('Room occurrence identity', () => {
           }),
           Command.expectNone(),
         ),
-      )
-    }
+      { discard: true },
+    )
   })
 
-  test('uses the originating Room ID when a payload contains another ID', async () => {
-    const mismatchedRoomModel = modifyFields(dirtyRoomModel(ROOM_A), {
-      roomAsyncData: () =>
-        RoomAsyncData.Success({
-          data: { ...waitingRoom, id: 'payload-room' },
-        }),
-      exitCountdownSecondsLeft: () => 0,
-    })
-    const initialModel = modelWithRoom(
-      ApplicationRoute.Room({ roomId: ROOM_A }),
-      ROOM_A,
-      mismatchedRoomModel,
-    )
-
-    await Effect.runPromise(
-      story(
+  it.effect(
+    'uses the originating Room ID when a payload contains another ID',
+    () => {
+      const mismatchedRoomModel = modifyFields(dirtyRoomModel(ROOM_A), {
+        roomAsyncData: () =>
+          RoomAsyncData.Success({
+            data: { ...waitingRoom, id: 'payload-room' },
+          }),
+        exitCountdownSecondsLeft: () => 0,
+      })
+      const initialModel = modelWithRoom(
+        ApplicationRoute.Room({ roomId: ROOM_A }),
+        ROOM_A,
+        mismatchedRoomModel,
+      )
+      return story(
         ApplicationBlock,
         given(initialModel),
         toRoomMessage(
@@ -345,25 +342,25 @@ describe('Room occurrence identity', () => {
           ],
           [NavigateHome(), RoomBlock.Message.CompletedNavigateHome()],
         ),
-      ),
-    )
-  })
+      )
+    },
+  )
 
-  test('starts the game in the originating Room when the payload ID differs', async () => {
-    const mismatchedRoomModel = modifyFields(dirtyRoomModel(ROOM_A), {
-      roomAsyncData: () =>
-        RoomAsyncData.Success({
-          data: { ...waitingRoom, id: 'payload-room' },
-        }),
-    })
-    const initialModel = modelWithRoom(
-      ApplicationRoute.Room({ roomId: ROOM_A }),
-      ROOM_A,
-      mismatchedRoomModel,
-    )
-
-    await Effect.runPromise(
-      story(
+  it.effect(
+    'starts the game in the originating Room when the payload ID differs',
+    () => {
+      const mismatchedRoomModel = modifyFields(dirtyRoomModel(ROOM_A), {
+        roomAsyncData: () =>
+          RoomAsyncData.Success({
+            data: { ...waitingRoom, id: 'payload-room' },
+          }),
+      })
+      const initialModel = modelWithRoom(
+        ApplicationRoute.Room({ roomId: ROOM_A }),
+        ROOM_A,
+        mismatchedRoomModel,
+      )
+      return story(
         ApplicationBlock,
         given(initialModel),
         toRoomMessage(ROOM_A, RoomBlock.Message.PressedKey({ key: 'Enter' })),
@@ -371,17 +368,17 @@ describe('Room occurrence identity', () => {
           StartGame({ roomId: ROOM_A, playerId: alice.id }),
           RoomBlock.Message.SucceededStartGame(),
         ]),
-      ),
-    )
-  })
+      )
+    },
+  )
 })
 
 describe('Home and Room coordination', () => {
-  test('received join uses its own room context and preserves the local completion path', async () => {
-    const session = { roomId: ROOM_B, player: bob }
-
-    await Effect.runPromise(
-      story(
+  it.effect(
+    'received join uses its own room context and preserves the local completion path',
+    () => {
+      const session = { roomId: ROOM_B, player: bob }
+      return story(
         {
           block: RoomBlock,
           updateContext: [{ roomId: ROOM_A }],
@@ -397,9 +394,9 @@ describe('Home and Room coordination', () => {
           SavePlayerSession,
           RoomBlock.Message.CompletedSavePlayerSession(),
         ),
-      ).pipe(Effect.provide(Room.layer)),
-    )
-  })
+      ).pipe(Effect.provide(Room.layer))
+    },
+  )
 
   test('informJoin retains persistence and the canonical join transition', async () => {
     await Effect.runPromise(
@@ -435,89 +432,77 @@ describe('Home and Room coordination', () => {
     )
   })
 
-  test.each([
-    [
-      'created',
-      HomeBlock.Message.SucceededCreateRoom({ roomId: ROOM_A, player: alice }),
-    ],
-    [
-      'joined',
-      HomeBlock.Message.SucceededJoinRoomFromHome({
+  it.effect.each([
+    {
+      homeMessage: HomeBlock.Message.SucceededCreateRoom({
         roomId: ROOM_A,
         player: alice,
       }),
-    ],
-  ])(
-    'prepares a clean Room after Home has %s it',
-    async (_name, homeMessage) => {
-      const priorRoomModel = dirtyRoomModel(ROOM_A)
-      const initialModel = modelWithRoom(
-        ApplicationRoute.Home(),
-        ROOM_A,
-        priorRoomModel,
-      )
-
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(initialModel),
-          toHomeMessage(homeMessage),
-          model(model => {
-            const roomInstance = getRoomInstance(model)
-
-            expect(model.route).toEqual(ApplicationRoute.Home())
-            expect(roomInstance.roomId).toBe(ROOM_A)
-            expect(roomInstance.model).not.toBe(priorRoomModel)
-            expect(roomInstance.model.roomAsyncData).toEqual(
-              RoomAsyncData.Idle(),
-            )
-            expect(roomInstance.model.maybeSession).toEqual(
-              Option.some({ roomId: ROOM_A, player: alice }),
-            )
-            expect(roomInstance.model.userGameText).toBe('')
-            expect(roomInstance.model.charsTyped).toBe(0)
-            expect(roomInstance.model.username).toBe('')
-            expect(roomInstance.model.isRoomIdCopyIndicatorVisible).toBe(false)
-            expect(roomInstance.model.exitCountdownSecondsLeft).toBe(0)
-          }),
-          Command.resolveAllExact(
-            [
-              SavePlayerSession({
-                session: { roomId: ROOM_A, player: alice },
-              }),
-              RoomBlock.Message.CompletedSavePlayerSession(),
-            ],
-            [
-              NavigateToRoom({ roomId: ROOM_A }),
-              Message.CompletedNavigateToRoom(),
-            ],
-          ),
-        ),
-      )
     },
-  )
+    {
+      homeMessage: HomeBlock.Message.SucceededJoinRoomFromHome({
+        roomId: ROOM_A,
+        player: alice,
+      }),
+    },
+  ])('prepares a clean Room after Home succeeds (%#)', ({ homeMessage }) => {
+    const priorRoomModel = dirtyRoomModel(ROOM_A)
+    const initialModel = modelWithRoom(
+      ApplicationRoute.Home(),
+      ROOM_A,
+      priorRoomModel,
+    )
 
-  test('ignores a delayed Home result after entering another Room', async () => {
+    return story(
+      ApplicationBlock,
+      given(initialModel),
+      toHomeMessage(homeMessage),
+      model(model => {
+        const roomInstance = getRoomInstance(model)
+
+        expect(model.route).toEqual(ApplicationRoute.Home())
+        expect(roomInstance.roomId).toBe(ROOM_A)
+        expect(roomInstance.model).not.toBe(priorRoomModel)
+        expect(roomInstance.model.roomAsyncData).toEqual(RoomAsyncData.Idle())
+        expect(roomInstance.model.maybeSession).toEqual(
+          Option.some({ roomId: ROOM_A, player: alice }),
+        )
+        expect(roomInstance.model.userGameText).toBe('')
+        expect(roomInstance.model.charsTyped).toBe(0)
+        expect(roomInstance.model.username).toBe('')
+        expect(roomInstance.model.isRoomIdCopyIndicatorVisible).toBe(false)
+        expect(roomInstance.model.exitCountdownSecondsLeft).toBe(0)
+      }),
+      Command.resolveAllExact(
+        [
+          SavePlayerSession({
+            session: { roomId: ROOM_A, player: alice },
+          }),
+          RoomBlock.Message.CompletedSavePlayerSession(),
+        ],
+        [NavigateToRoom({ roomId: ROOM_A }), Message.CompletedNavigateToRoom()],
+      ),
+    )
+  })
+
+  it.effect('ignores a delayed Home result after entering another Room', () => {
     const initialModel = modelWithRoom(
       ApplicationRoute.Room({ roomId: ROOM_B }),
       ROOM_B,
     )
-
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        given(initialModel),
-        toHomeMessage(
-          HomeBlock.Message.SucceededCreateRoom({
-            roomId: ROOM_A,
-            player: bob,
-          }),
-        ),
-        model(model => {
-          expect(model).toBe(initialModel)
+    return story(
+      ApplicationBlock,
+      given(initialModel),
+      toHomeMessage(
+        HomeBlock.Message.SucceededCreateRoom({
+          roomId: ROOM_A,
+          player: bob,
         }),
-        Command.expectNone(),
       ),
+      model(model => {
+        expect(model).toBe(initialModel)
+      }),
+      Command.expectNone(),
     )
   })
 })

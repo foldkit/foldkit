@@ -77,6 +77,7 @@ type ReleaseManifest = typeof ReleaseManifest.Type
 
 const TEMPLATE_DEV_DEPENDENCIES = [
   '@effect/tsgo',
+  '@effect/vitest',
   '@foldkit/devtools',
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',

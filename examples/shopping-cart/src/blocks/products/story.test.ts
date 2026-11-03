@@ -7,7 +7,9 @@ import {
   model,
   story,
 } from 'foldkit/story'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { products } from '../../data/products'
 import { ProductsBlock, layer } from './block'
@@ -17,8 +19,9 @@ import { ReplaceSearchUrl } from './products'
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 
 describe('products', () => {
-  test('ChangedSearchInput stores the query and replaces the search URL', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'ChangedSearchInput stores the query and replaces the search URL',
+    () =>
       story(
         ProductsBlock,
         init(products),
@@ -29,39 +32,32 @@ describe('products', () => {
         Command.expectHas(ReplaceSearchUrl),
         Command.resolve(ReplaceSearchUrl, Message.CompletedReplaceSearchUrl()),
       ).pipe(Effect.provide(layer)),
-    )
-  })
+  )
 
-  test('ClickedAddToCart emits AddedToCart', async () => {
-    await Effect.runPromise(
-      story(
-        ProductsBlock,
-        init(products),
-        message(Message.ClickedAddToCart({ item: apple })),
-        expectOutMessage(OutMessage.AddedToCart({ item: apple })),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
+  it.effect('ClickedAddToCart emits AddedToCart', () =>
+    story(
+      ProductsBlock,
+      init(products),
+      message(Message.ClickedAddToCart({ item: apple })),
+      expectOutMessage(OutMessage.AddedToCart({ item: apple })),
+    ).pipe(Effect.provide(layer)),
+  )
 
-  test('ClickedIncrementQuantity emits IncrementedQuantity', async () => {
-    await Effect.runPromise(
-      story(
-        ProductsBlock,
-        init(products),
-        message(Message.ClickedIncrementQuantity({ itemId: '1' })),
-        expectOutMessage(OutMessage.IncrementedQuantity({ itemId: '1' })),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
+  it.effect('ClickedIncrementQuantity emits IncrementedQuantity', () =>
+    story(
+      ProductsBlock,
+      init(products),
+      message(Message.ClickedIncrementQuantity({ itemId: '1' })),
+      expectOutMessage(OutMessage.IncrementedQuantity({ itemId: '1' })),
+    ).pipe(Effect.provide(layer)),
+  )
 
-  test('ClickedDecrementQuantity emits DecrementedQuantity', async () => {
-    await Effect.runPromise(
-      story(
-        ProductsBlock,
-        init(products),
-        message(Message.ClickedDecrementQuantity({ itemId: '1' })),
-        expectOutMessage(OutMessage.DecrementedQuantity({ itemId: '1' })),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
+  it.effect('ClickedDecrementQuantity emits DecrementedQuantity', () =>
+    story(
+      ProductsBlock,
+      init(products),
+      message(Message.ClickedDecrementQuantity({ itemId: '1' })),
+      expectOutMessage(OutMessage.DecrementedQuantity({ itemId: '1' })),
+    ).pipe(Effect.provide(layer)),
+  )
 })

@@ -289,7 +289,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       }
     })
 
-  const EntryAnimationBinding = ToastDefinition.makeBinding(
+  const EntriesAnimationBinding = ToastDefinition.makeBinding(
     Animation.AnimationBlock,
     {
       field: 'entries',
@@ -304,7 +304,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const makeEntryAnimationOutMessageFold = (entryId: string) =>
     ToastDefinition.makeOutMessageFold(Animation.AnimationBlock, {
       StartedLeaveAnimating: () =>
-        EntryAnimationBinding.requestWaitForLeaveSettlement(entryId),
+        EntriesAnimationBinding.requestWaitForLeaveSettlement(entryId),
       TransitionedOut: () =>
         ToastDefinition.makeStep(model =>
           Option.match(
@@ -323,14 +323,14 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     })
 
   const ToastComposition = ToastDefinition.makeComposition({
-    bindings: [EntryAnimationBinding],
+    bindings: [EntriesAnimationBinding],
   })
 
   const showEntryAnimation = (entry: Entry) =>
-    EntryAnimationBinding.requestShow(entry.id)
+    EntriesAnimationBinding.requestShow(entry.id)
 
   const hideEntryAnimation = (entry: Entry) =>
-    EntryAnimationBinding.requestHide(entry.id)
+    EntriesAnimationBinding.requestHide(entry.id)
 
   const createEntryFields = (
     model: Model,
@@ -398,7 +398,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   const addNewEntry = (fields: Omit<Entry, 'animation'>) => {
     const initEntryAnimation = ToastDefinition.makeStep(model =>
-      EntryAnimationBinding.init({
+      EntriesAnimationBinding.init({
         key: fields.id,
         args: [{ id: fields.id }],
         toParentModel: animation =>
@@ -418,7 +418,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
     return Update.combineSteps([
       initEntryAnimation,
-      EntryAnimationBinding.requestShow(fields.id),
+      EntriesAnimationBinding.requestShow(fields.id),
       scheduleDismissal,
     ])
   }
@@ -763,7 +763,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   return {
     ToastDefinition,
     ToastComposition,
-    EntryAnimationBinding,
+    EntryAnimationBinding: EntriesAnimationBinding,
     Entry: EntrySchema,
     Model: ModelSchema,
     Message: MessageSchema,

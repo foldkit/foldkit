@@ -1,7 +1,8 @@
-import { Effect } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { Message } from './message'
@@ -16,50 +17,45 @@ const initialModel: Model = {
 }
 
 describe('update', () => {
-  test('ClickedRunUpdateWork records update workload state', async () => {
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        given(initialModel),
-        message(Message.ClickedRunUpdateWork()),
-        Command.expectNone(),
-        model(model => {
-          expect(model.activeWorkload).toBe('Update')
-        }),
-      ),
-    )
-  })
+  it.effect('ClickedRunUpdateWork records update workload state', () =>
+    story(
+      ApplicationBlock,
+      given(initialModel),
+      message(Message.ClickedRunUpdateWork()),
+      Command.expectNone(),
+      model(model => {
+        expect(model.activeWorkload).toBe('Update')
+      }),
+    ),
+  )
 
-  test('ClickedRunViewWork records view workload state', async () => {
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        given(initialModel),
-        message(Message.ClickedRunViewWork()),
-        model(model => {
-          expect(model.activeWorkload).toBe('View')
-        }),
-      ),
-    )
-  })
+  it.effect('ClickedRunViewWork records view workload state', () =>
+    story(
+      ApplicationBlock,
+      given(initialModel),
+      message(Message.ClickedRunViewWork()),
+      model(model => {
+        expect(model.activeWorkload).toBe('View')
+      }),
+    ),
+  )
 
-  test('ClickedRunPatchWork mounts a large patch surface', async () => {
-    await Effect.runPromise(
-      story(
-        ApplicationBlock,
-        given(initialModel),
-        message(Message.ClickedRunPatchWork()),
-        model(model => {
-          expect(model.activeWorkload).toBe('Patch')
-          expect(model.patchRows).toBeGreaterThan(0)
-          expect(model.patchRun).toBe(1)
-        }),
-      ),
-    )
-  })
+  it.effect('ClickedRunPatchWork mounts a large patch surface', () =>
+    story(
+      ApplicationBlock,
+      given(initialModel),
+      message(Message.ClickedRunPatchWork()),
+      model(model => {
+        expect(model.activeWorkload).toBe('Patch')
+        expect(model.patchRows).toBeGreaterThan(0)
+        expect(model.patchRun).toBe(1)
+      }),
+    ),
+  )
 
-  test('ClickedRunSubscriptionDependenciesWork records subscription dependency workload state', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'ClickedRunSubscriptionDependenciesWork records subscription dependency workload state',
+    () =>
       story(
         ApplicationBlock,
         given(initialModel),
@@ -68,11 +64,11 @@ describe('update', () => {
           expect(model.activeWorkload).toBe('SubscriptionDependencies')
         }),
       ),
-    )
-  })
+  )
 
-  test('RecordedSlowWarning stores the warning and clears active workload', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'RecordedSlowWarning stores the warning and clears active workload',
+    () =>
       story(
         ApplicationBlock,
         given(initialModel),
@@ -102,11 +98,11 @@ describe('update', () => {
           ])
         }),
       ),
-    )
-  })
+  )
 
-  test('ClickedClearWarnings clears warnings without resetting the patch surface', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'ClickedClearWarnings clears warnings without resetting the patch surface',
+    () =>
       story(
         ApplicationBlock,
         given(
@@ -130,6 +126,5 @@ describe('update', () => {
           expect(model.patchRows).toBe(4000)
         }),
       ),
-    )
-  })
+  )
 })

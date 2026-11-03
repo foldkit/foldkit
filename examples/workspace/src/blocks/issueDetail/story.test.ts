@@ -1,18 +1,22 @@
 import { Array, Effect, Option } from 'effect'
-import { inMessage } from 'foldkit/story'
-import * as Story from 'foldkit/story'
 import {
   Command,
+  type TestBlock,
   expectNoOutMessage,
   expectOutMessage,
   given,
+  inMessage,
+  init,
   message,
+  messageFrom,
   model,
   story,
+  withBlock,
 } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { toParentMessageFor } from 'foldkit/test'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import {
   Comment,
@@ -33,9 +37,7 @@ import { SaveState } from './model'
 import { OutMessage } from './outMessage'
 
 const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
-const makeInitialModel = (
-  executable: Story.TestBlock<typeof IssueDetailBlock>,
-) => {
+const makeInitialModel = (executable: TestBlock<typeof IssueDetailBlock>) => {
   const init = executable.init
   return init(issue).model
 }
@@ -63,23 +65,19 @@ const commentedIssue = modifyFields(issue, {
 })
 
 describe('Issue Detail', () => {
-  test('ignores a malformed assignee selection without clearing the current assignee', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable => {
+  it.effect(
+    'ignores a malformed assignee selection without clearing the current assignee',
+    () => {
+      return withBlock(IssueDetailBlock, executable => {
         const initialModel = makeInitialModel(executable)
-        const update = executable.update
-        const toParentMessage = toParentMessageFor(executable)
-
-        story(
-          update,
+        return story(
+          IssueDetailBlock,
           given(initialModel),
-          message(
-            toParentMessage(
-              AssigneeListboxBinding,
-              WorkspaceListboxBlock.Message.RequestedSelectItem({
-                item: 'not-an-assignee-selection',
-              }),
-            ),
+          messageFrom(
+            AssigneeListboxBinding,
+            WorkspaceListboxBlock.Message.RequestedSelectItem({
+              item: 'not-an-assignee-selection',
+            }),
           ),
           model(model => {
             expect(model.draft).toBe(initialModel.draft)
@@ -88,460 +86,387 @@ describe('Issue Detail', () => {
           expectNoOutMessage(),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer)),
-    )
+      }).pipe(Effect.provide(layer))
+    },
+  )
+
+  it.effect('keeps draft edits local until the repository saves them', () => {
+    const editedDescriptionDraft = modifyFields(editedDraft, {
+      description: () => 'Include all active projects.',
+    })
+    return story(
+      IssueDetailBlock,
+      init(issue),
+      message(Message.UpdatedTitle({ value: editedTitle })),
+      message(
+        Message.UpdatedDescription({
+          value: 'Include all active projects.',
+        }),
+      ),
+      model(model => {
+        expect(model.baseline).toEqual(revisionFromIssue(issue))
+        expect(model.draft).toEqual(editedDescriptionDraft)
+      }),
+      expectNoOutMessage(),
+      Command.expectNone(),
+    ).pipe(Effect.provide(layer))
   })
 
-  test('keeps draft edits local until the repository saves them', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable => {
-        const initialModel = makeInitialModel(executable)
-        const update = executable.update
-
-        const editedDescriptionDraft = modifyFields(editedDraft, {
-          description: () => 'Include all active projects.',
-        })
-
-        story(
-          update,
-          given(initialModel),
-          message(Message.UpdatedTitle({ value: editedTitle })),
-          message(
-            Message.UpdatedDescription({
-              value: 'Include all active projects.',
-            }),
-          ),
-          model(model => {
-            expect(model.baseline).toEqual(revisionFromIssue(issue))
-            expect(model.draft).toEqual(editedDescriptionDraft)
+  it.effect(
+    'saves the draft with its original revision and emits the saved issue',
+    () => {
+      return story(
+        IssueDetailBlock,
+        init(issue),
+        message(Message.UpdatedTitle({ value: editedTitle })),
+        inMessage(InMessage.RequestedSave()),
+        Command.expectExact(
+          SaveIssue({
+            issueId: issue.id,
+            draft: editedDraft,
+            expectedVersion: issue.version,
           }),
-          expectNoOutMessage(),
-          Command.expectNone(),
-        )
-      }).pipe(Effect.provide(layer)),
-    )
-  })
+        ),
+        model(model => {
+          expect(model.saveState._tag).toBe('Saving')
+          expect(model.baseline).toEqual(revisionFromIssue(issue))
+        }),
+        Command.resolve(
+          SaveIssue,
+          Message.SucceededSaveIssue({
+            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+            expectedVersion: issue.version,
+          }),
+        ),
+        model(model => {
+          expect(model.baseline).toEqual(revisionFromIssue(savedIssueSnapshot))
+          expect(model.draft).toEqual(draftFromIssue(savedIssueSnapshot))
+          expect(model.saveState._tag).toBe('Idle')
+        }),
+        expectOutMessage(
+          OutMessage.Saved({
+            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+          }),
+        ),
+      ).pipe(Effect.provide(layer))
+    },
+  )
 
-  test('saves the draft with its original revision and emits the saved issue', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
+  it.effect(
+    'preserves every draft field after failure and retries the same revision',
+    () => {
+      return story(
+        IssueDetailBlock,
+        init(issue),
+        message(Message.UpdatedTitle({ value: editedTitle })),
+        message(Message.SubmittedIssueForm()),
+        Command.resolve(
+          SaveIssue,
+          Message.FailedSaveIssue({
+            issueId: issue.id,
+            expectedVersion: issue.version,
+            error: RepositoryError.Unavailable({
+              message: 'The workspace is temporarily unavailable.',
+              operation: 'Save',
+            }),
+          }),
+        ),
+        model(model => {
+          expect(model.draft).toEqual(editedDraft)
+          expect(model.baseline).toEqual(revisionFromIssue(issue))
+          expect(model.saveState._tag).toBe('Failed')
+        }),
+        expectNoOutMessage(),
+        message(Message.ClickedRetrySave()),
+        Command.expectExact(
+          SaveIssue({
+            issueId: issue.id,
+            draft: editedDraft,
+            expectedVersion: issue.version,
+          }),
+        ),
+        Command.resolve(
+          SaveIssue,
+          Message.SucceededSaveIssue({
+            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+            expectedVersion: issue.version,
+          }),
+        ),
+        expectOutMessage(
+          OutMessage.Saved({
+            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+          }),
+        ),
+      ).pipe(Effect.provide(layer))
+    },
+  )
 
-          yield* story(
-            IssueDetailBlock,
-            given(initialModel),
-            message(Message.UpdatedTitle({ value: editedTitle })),
-            inMessage(InMessage.RequestedSave()),
-            Command.expectExact(
-              SaveIssue({
-                issueId: issue.id,
-                draft: editedDraft,
-                expectedVersion: issue.version,
-              }),
-            ),
-            model(model => {
-              expect(model.saveState._tag).toBe('Saving')
-              expect(model.baseline).toEqual(revisionFromIssue(issue))
+  it.effect(
+    'keeps a save error visible when a compatible revision arrives',
+    () => {
+      const compatibleIssue = modifyFields(issue, {
+        version: version => version + 1,
+      })
+
+      const error = 'The workspace is temporarily unavailable.'
+      return story(
+        IssueDetailBlock,
+        init(issue),
+        message(Message.UpdatedTitle({ value: editedTitle })),
+        inMessage(InMessage.RequestedSave()),
+        Command.resolve(
+          SaveIssue,
+          Message.FailedSaveIssue({
+            issueId: issue.id,
+            expectedVersion: issue.version,
+            error: RepositoryError.Unavailable({
+              message: error,
+              operation: 'Save',
             }),
-            Command.resolve(
-              SaveIssue,
-              Message.SucceededSaveIssue({
-                savedIssue: savedIssueFromIssue(savedIssueSnapshot),
-                expectedVersion: issue.version,
-              }),
-            ),
-            model(model => {
-              expect(model.baseline).toEqual(
-                revisionFromIssue(savedIssueSnapshot),
-              )
-              expect(model.draft).toEqual(draftFromIssue(savedIssueSnapshot))
-              expect(model.saveState._tag).toBe('Idle')
+          }),
+        ),
+        inMessage(InMessage.InformedOfIssueChange({ issue: compatibleIssue })),
+        model(model => {
+          expect(model.baseline).toEqual(revisionFromIssue(compatibleIssue))
+          expect(model.draft).toEqual(editedDraft)
+          expect(model.saveState).toEqual(SaveState.Failed({ error }))
+          expect(model.maybeIncomingRevision).toEqual(Option.none())
+        }),
+        Command.expectNone(),
+      ).pipe(Effect.provide(layer))
+    },
+  )
+
+  it.effect(
+    'refreshes a clean draft when the same issue has a newer revision',
+    () => {
+      return story(
+        IssueDetailBlock,
+        init(issue),
+        inMessage(InMessage.InformedOfIssueChange({ issue: newerIssue })),
+        model(model => {
+          expect(model.baseline).toEqual(revisionFromIssue(newerIssue))
+          expect(model.draft).toEqual(draftFromIssue(newerIssue))
+          expect(model.saveState._tag).toBe('Idle')
+        }),
+      ).pipe(Effect.provide(layer))
+    },
+  )
+
+  it.effect(
+    'reports a conflicting revision to the parent before accepting an issue update',
+    () => {
+      return story(
+        IssueDetailBlock,
+        init(issue),
+        message(Message.UpdatedTitle({ value: editedTitle })),
+        inMessage(InMessage.RequestedSave()),
+        Command.resolve(
+          SaveIssue,
+          Message.FailedSaveIssue({
+            issueId: issue.id,
+            expectedVersion: issue.version,
+            error: RepositoryError.Conflict({
+              message: 'This issue changed since you opened it.',
+              issueId: issue.id,
+              expectedVersion: issue.version,
+              actualVersion: newerIssue.version,
+              latestIssue: newerIssue,
             }),
-            expectOutMessage(
-              OutMessage.Saved({
-                savedIssue: savedIssueFromIssue(savedIssueSnapshot),
-              }),
-            ),
+          }),
+        ),
+        model(model => {
+          expect(model.baseline).toEqual(revisionFromIssue(issue))
+          expect(model.draft).toEqual(editedDraft)
+          expect(model.maybeIncomingRevision).toEqual(
+            Option.some(revisionFromIssue(newerIssue)),
+          )
+          expect(model.saveState).toEqual({
+            _tag: 'Failed',
+            error: 'This issue changed since you opened it.',
+          })
+        }),
+        expectOutMessage(OutMessage.ReceivedIssue({ issue: newerIssue })),
+        inMessage(InMessage.InformedOfIssueChange({ issue: newerIssue })),
+        model(model => {
+          expect(model.baseline).toEqual(revisionFromIssue(issue))
+          expect(model.draft).toEqual(editedDraft)
+          expect(model.maybeIncomingRevision).toEqual(
+            Option.some(revisionFromIssue(newerIssue)),
           )
         }),
-      ).pipe(Effect.provide(layer)),
-    )
+        expectNoOutMessage(),
+        Command.expectNone(),
+      ).pipe(Effect.provide(layer))
+    },
+  )
+
+  it.effect('keeps a field save valid while comments arrive', () => {
+    const issueWithConcurrentComment = modifyFields(issue, {
+      comments: () => commentedIssue.comments,
+    })
+
+    const savedIssueWithConcurrentComment = modifyFields(savedIssueSnapshot, {
+      comments: () => issueWithConcurrentComment.comments,
+    })
+    return story(
+      IssueDetailBlock,
+      init(issue),
+      message(Message.UpdatedTitle({ value: editedTitle })),
+      inMessage(InMessage.RequestedSave()),
+      Command.expectExact(
+        SaveIssue({
+          issueId: issue.id,
+          draft: editedDraft,
+          expectedVersion: issue.version,
+        }),
+      ),
+      inMessage(
+        InMessage.InformedOfIssueChange({
+          issue: issueWithConcurrentComment,
+        }),
+      ),
+      model(model => {
+        expect(model.baseline).toEqual(revisionFromIssue(issue))
+        expect(model.draft).toEqual(editedDraft)
+        expect(model.maybeIncomingRevision).toEqual(Option.none())
+        expect(model.saveState).toEqual(
+          SaveState.Saving({ expectedVersion: issue.version }),
+        )
+      }),
+      Command.expectExact(
+        SaveIssue({
+          issueId: issue.id,
+          draft: editedDraft,
+          expectedVersion: issue.version,
+        }),
+      ),
+      Command.resolve(
+        SaveIssue,
+        Message.SucceededSaveIssue({
+          savedIssue: savedIssueFromIssue(savedIssueWithConcurrentComment),
+          expectedVersion: issue.version,
+        }),
+      ),
+      model(model => {
+        expect(model.baseline).toEqual(
+          revisionFromIssue(savedIssueWithConcurrentComment),
+        )
+        expect(model.saveState).toEqual(SaveState.Idle())
+      }),
+      expectOutMessage(
+        OutMessage.Saved({
+          savedIssue: savedIssueFromIssue(savedIssueWithConcurrentComment),
+        }),
+      ),
+    ).pipe(Effect.provide(layer))
   })
 
-  test('preserves every draft field after failure and retries the same revision', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable => {
-        const initialModel = makeInitialModel(executable)
-        const update = executable.update
-
-        story(
-          update,
-          given(initialModel),
-          message(Message.UpdatedTitle({ value: editedTitle })),
-          message(Message.SubmittedIssueForm()),
-          Command.resolve(
-            SaveIssue,
-            Message.FailedSaveIssue({
-              issueId: issue.id,
-              expectedVersion: issue.version,
-              error: RepositoryError.Unavailable({
-                message: 'The workspace is temporarily unavailable.',
-                operation: 'Save',
-              }),
-            }),
-          ),
-          model(model => {
-            expect(model.draft).toEqual(editedDraft)
-            expect(model.baseline).toEqual(revisionFromIssue(issue))
-            expect(model.saveState._tag).toBe('Failed')
+  it.effect(
+    'keeps a newer incoming revision when an older save completes',
+    () => {
+      const latestIssue = modifyFields(newerIssue, {
+        version: () => savedIssueSnapshot.version + 1,
+      })
+      return story(
+        IssueDetailBlock,
+        init(issue),
+        message(Message.UpdatedTitle({ value: editedTitle })),
+        inMessage(InMessage.RequestedSave()),
+        inMessage(InMessage.InformedOfIssueChange({ issue: latestIssue })),
+        model(model => {
+          expect(model.maybeIncomingRevision).toEqual(
+            Option.some(revisionFromIssue(latestIssue)),
+          )
+        }),
+        Command.resolve(
+          SaveIssue,
+          Message.SucceededSaveIssue({
+            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+            expectedVersion: issue.version,
           }),
-          expectNoOutMessage(),
-          message(Message.ClickedRetrySave()),
-          Command.expectExact(
-            SaveIssue({
-              issueId: issue.id,
-              draft: editedDraft,
-              expectedVersion: issue.version,
-            }),
-          ),
-          Command.resolve(
-            SaveIssue,
+        ),
+        model(model => {
+          expect(model.baseline).toEqual(revisionFromIssue(latestIssue))
+          expect(model.draft).toEqual(draftFromIssue(latestIssue))
+          expect(model.maybeIncomingRevision).toEqual(Option.none())
+          expect(model.saveState).toEqual(SaveState.Idle())
+        }),
+        expectOutMessage(
+          OutMessage.Saved({
+            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+          }),
+        ),
+      ).pipe(Effect.provide(layer))
+    },
+  )
+
+  it.effect(
+    'retains a dirty draft until the user reloads the latest revision',
+    () => {
+      return story(
+        IssueDetailBlock,
+        init(issue),
+        message(Message.UpdatedTitle({ value: editedTitle })),
+        inMessage(InMessage.InformedOfIssueChange({ issue: newerIssue })),
+        model(model => {
+          expect(model.baseline).toEqual(revisionFromIssue(issue))
+          expect(model.draft).toEqual(editedDraft)
+          expect(model.maybeIncomingRevision).toEqual(
+            Option.some(revisionFromIssue(newerIssue)),
+          )
+          expect(model.saveState._tag).toBe('Idle')
+        }),
+        inMessage(InMessage.RequestedSave()),
+        Command.expectNone(),
+        message(Message.ClickedReloadIssue()),
+        model(model => {
+          expect(model.baseline).toEqual(revisionFromIssue(newerIssue))
+          expect(model.draft).toEqual(draftFromIssue(newerIssue))
+          expect(model.maybeIncomingRevision).toEqual(Option.none())
+          expect(model.saveState._tag).toBe('Idle')
+        }),
+      ).pipe(Effect.provide(layer))
+    },
+  )
+
+  it.effect(
+    'ignores unrelated issues, older revisions, and completions without an active save',
+    () => {
+      return withBlock(IssueDetailBlock, executable => {
+        const initialModel = makeInitialModel(executable)
+
+        const unrelatedIssue = modifyFields(newerIssue, {
+          id: () => 'another-issue',
+        })
+        return story(
+          IssueDetailBlock,
+          given(initialModel),
+          inMessage(InMessage.InformedOfIssueChange({ issue: unrelatedIssue })),
+          inMessage(InMessage.InformedOfIssueChange({ issue })),
+          message(
             Message.SucceededSaveIssue({
               savedIssue: savedIssueFromIssue(savedIssueSnapshot),
               expectedVersion: issue.version,
             }),
           ),
-          expectOutMessage(
-            OutMessage.Saved({
-              savedIssue: savedIssueFromIssue(savedIssueSnapshot),
-            }),
-          ),
+          model(model => {
+            expect(model).toEqual(initialModel)
+          }),
+          expectNoOutMessage(),
         )
-      }).pipe(Effect.provide(layer)),
-    )
-  })
+      }).pipe(Effect.provide(layer))
+    },
+  )
 
-  test('keeps a save error visible when a compatible revision arrives', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
-
-          const compatibleIssue = modifyFields(issue, {
-            version: version => version + 1,
-          })
-          const error = 'The workspace is temporarily unavailable.'
-
-          yield* story(
-            IssueDetailBlock,
-            given(initialModel),
-            message(Message.UpdatedTitle({ value: editedTitle })),
-            inMessage(InMessage.RequestedSave()),
-            Command.resolve(
-              SaveIssue,
-              Message.FailedSaveIssue({
-                issueId: issue.id,
-                expectedVersion: issue.version,
-                error: RepositoryError.Unavailable({
-                  message: error,
-                  operation: 'Save',
-                }),
-              }),
-            ),
-            inMessage(
-              InMessage.InformedOfIssueChange({ issue: compatibleIssue }),
-            ),
-            model(model => {
-              expect(model.baseline).toEqual(revisionFromIssue(compatibleIssue))
-              expect(model.draft).toEqual(editedDraft)
-              expect(model.saveState).toEqual(SaveState.Failed({ error }))
-              expect(model.maybeIncomingRevision).toEqual(Option.none())
-            }),
-            Command.expectNone(),
-          )
-        }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('refreshes a clean draft when the same issue has a newer revision', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
-
-          yield* story(
-            IssueDetailBlock,
-            given(initialModel),
-            inMessage(InMessage.InformedOfIssueChange({ issue: newerIssue })),
-            model(model => {
-              expect(model.baseline).toEqual(revisionFromIssue(newerIssue))
-              expect(model.draft).toEqual(draftFromIssue(newerIssue))
-              expect(model.saveState._tag).toBe('Idle')
-            }),
-          )
-        }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('reports a conflicting revision to the parent before accepting an issue update', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
-
-          yield* story(
-            IssueDetailBlock,
-            given(initialModel),
-            message(Message.UpdatedTitle({ value: editedTitle })),
-            inMessage(InMessage.RequestedSave()),
-            Command.resolve(
-              SaveIssue,
-              Message.FailedSaveIssue({
-                issueId: issue.id,
-                expectedVersion: issue.version,
-                error: RepositoryError.Conflict({
-                  message: 'This issue changed since you opened it.',
-                  issueId: issue.id,
-                  expectedVersion: issue.version,
-                  actualVersion: newerIssue.version,
-                  latestIssue: newerIssue,
-                }),
-              }),
-            ),
-            model(model => {
-              expect(model.baseline).toEqual(revisionFromIssue(issue))
-              expect(model.draft).toEqual(editedDraft)
-              expect(model.maybeIncomingRevision).toEqual(
-                Option.some(revisionFromIssue(newerIssue)),
-              )
-              expect(model.saveState).toEqual({
-                _tag: 'Failed',
-                error: 'This issue changed since you opened it.',
-              })
-            }),
-            expectOutMessage(OutMessage.ReceivedIssue({ issue: newerIssue })),
-            inMessage(InMessage.InformedOfIssueChange({ issue: newerIssue })),
-            model(model => {
-              expect(model.baseline).toEqual(revisionFromIssue(issue))
-              expect(model.draft).toEqual(editedDraft)
-              expect(model.maybeIncomingRevision).toEqual(
-                Option.some(revisionFromIssue(newerIssue)),
-              )
-            }),
-            expectNoOutMessage(),
-            Command.expectNone(),
-          )
-        }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('keeps a field save valid while comments arrive', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
-
-          const issueWithConcurrentComment = modifyFields(issue, {
-            comments: () => commentedIssue.comments,
-          })
-          const savedIssueWithConcurrentComment = modifyFields(
-            savedIssueSnapshot,
-            {
-              comments: () => issueWithConcurrentComment.comments,
-            },
-          )
-
-          yield* story(
-            IssueDetailBlock,
-            given(initialModel),
-            message(Message.UpdatedTitle({ value: editedTitle })),
-            inMessage(InMessage.RequestedSave()),
-            Command.expectExact(
-              SaveIssue({
-                issueId: issue.id,
-                draft: editedDraft,
-                expectedVersion: issue.version,
-              }),
-            ),
-            inMessage(
-              InMessage.InformedOfIssueChange({
-                issue: issueWithConcurrentComment,
-              }),
-            ),
-            model(model => {
-              expect(model.baseline).toEqual(revisionFromIssue(issue))
-              expect(model.draft).toEqual(editedDraft)
-              expect(model.maybeIncomingRevision).toEqual(Option.none())
-              expect(model.saveState).toEqual(
-                SaveState.Saving({ expectedVersion: issue.version }),
-              )
-            }),
-            Command.expectExact(
-              SaveIssue({
-                issueId: issue.id,
-                draft: editedDraft,
-                expectedVersion: issue.version,
-              }),
-            ),
-            Command.resolve(
-              SaveIssue,
-              Message.SucceededSaveIssue({
-                savedIssue: savedIssueFromIssue(
-                  savedIssueWithConcurrentComment,
-                ),
-                expectedVersion: issue.version,
-              }),
-            ),
-            model(model => {
-              expect(model.baseline).toEqual(
-                revisionFromIssue(savedIssueWithConcurrentComment),
-              )
-              expect(model.saveState).toEqual(SaveState.Idle())
-            }),
-            expectOutMessage(
-              OutMessage.Saved({
-                savedIssue: savedIssueFromIssue(
-                  savedIssueWithConcurrentComment,
-                ),
-              }),
-            ),
-          )
-        }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('keeps a newer incoming revision when an older save completes', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
-
-          const latestIssue = modifyFields(newerIssue, {
-            version: () => savedIssueSnapshot.version + 1,
-          })
-
-          yield* story(
-            IssueDetailBlock,
-            given(initialModel),
-            message(Message.UpdatedTitle({ value: editedTitle })),
-            inMessage(InMessage.RequestedSave()),
-            inMessage(InMessage.InformedOfIssueChange({ issue: latestIssue })),
-            model(model => {
-              expect(model.maybeIncomingRevision).toEqual(
-                Option.some(revisionFromIssue(latestIssue)),
-              )
-            }),
-            Command.resolve(
-              SaveIssue,
-              Message.SucceededSaveIssue({
-                savedIssue: savedIssueFromIssue(savedIssueSnapshot),
-                expectedVersion: issue.version,
-              }),
-            ),
-            model(model => {
-              expect(model.baseline).toEqual(revisionFromIssue(latestIssue))
-              expect(model.draft).toEqual(draftFromIssue(latestIssue))
-              expect(model.maybeIncomingRevision).toEqual(Option.none())
-              expect(model.saveState).toEqual(SaveState.Idle())
-            }),
-            expectOutMessage(
-              OutMessage.Saved({
-                savedIssue: savedIssueFromIssue(savedIssueSnapshot),
-              }),
-            ),
-          )
-        }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('retains a dirty draft until the user reloads the latest revision', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
-
-          yield* story(
-            IssueDetailBlock,
-            given(initialModel),
-            message(Message.UpdatedTitle({ value: editedTitle })),
-            inMessage(InMessage.InformedOfIssueChange({ issue: newerIssue })),
-            model(model => {
-              expect(model.baseline).toEqual(revisionFromIssue(issue))
-              expect(model.draft).toEqual(editedDraft)
-              expect(model.maybeIncomingRevision).toEqual(
-                Option.some(revisionFromIssue(newerIssue)),
-              )
-              expect(model.saveState._tag).toBe('Idle')
-            }),
-            inMessage(InMessage.RequestedSave()),
-            Command.expectNone(),
-            message(Message.ClickedReloadIssue()),
-            model(model => {
-              expect(model.baseline).toEqual(revisionFromIssue(newerIssue))
-              expect(model.draft).toEqual(draftFromIssue(newerIssue))
-              expect(model.maybeIncomingRevision).toEqual(Option.none())
-              expect(model.saveState._tag).toBe('Idle')
-            }),
-          )
-        }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('ignores unrelated issues, older revisions, and completions without an active save', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
-
-          const unrelatedIssue = modifyFields(newerIssue, {
-            id: () => 'another-issue',
-          })
-
-          yield* story(
-            IssueDetailBlock,
-            given(initialModel),
-            inMessage(
-              InMessage.InformedOfIssueChange({ issue: unrelatedIssue }),
-            ),
-            inMessage(InMessage.InformedOfIssueChange({ issue })),
-            message(
-              Message.SucceededSaveIssue({
-                savedIssue: savedIssueFromIssue(savedIssueSnapshot),
-                expectedVersion: issue.version,
-              }),
-            ),
-            model(model => {
-              expect(model).toEqual(initialModel)
-            }),
-            expectNoOutMessage(),
-          )
-        }),
-      ).pipe(Effect.provide(layer)),
-    )
-  })
-
-  test('closes without emitting unsaved draft data', () => {
-    return Effect.runPromise(
-      Story.withBlock(IssueDetailBlock, executable => {
-        const initialModel = makeInitialModel(executable)
-        const update = executable.update
-
-        story(
-          update,
-          given(initialModel),
-          message(Message.UpdatedTitle({ value: editedTitle })),
-          message(Message.ClickedClose()),
-          expectOutMessage(OutMessage.Closed()),
-          Command.expectNone(),
-        )
-      }).pipe(Effect.provide(layer)),
-    )
+  it.effect('closes without emitting unsaved draft data', () => {
+    return story(
+      IssueDetailBlock,
+      init(issue),
+      message(Message.UpdatedTitle({ value: editedTitle })),
+      message(Message.ClickedClose()),
+      expectOutMessage(OutMessage.Closed()),
+      Command.expectNone(),
+    ).pipe(Effect.provide(layer))
   })
 })

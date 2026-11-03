@@ -14,6 +14,7 @@ import { modifyFields } from 'foldkit/struct'
 import { toParentMessageFor } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
+import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
 import { SearchBlock, layer } from './block'
@@ -50,8 +51,9 @@ const makeFixture = (block: TestBlock<typeof SearchBlock>) => {
 }
 
 describe('search', () => {
-  test('received open and route notifications retain focus and close cleanup', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'received open and route notifications retain focus and close cleanup',
+    () =>
       story(
         SearchBlock,
         init(),
@@ -81,41 +83,34 @@ describe('search', () => {
           DialogBlock.Message.CompletedCloseDialog(),
         ),
       ).pipe(Effect.provide(layer)),
-    )
-  })
+  )
 
-  test('typing a query starts a search', async () => {
-    await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
-        const { update, init_ } = makeFixture(executable)
-
-        story(
-          update,
-          given(init_.model),
-          message(Message.UpdatedSearchQuery({ query: 'routing' })),
-          model(model => {
-            expect(model.query).toBe('routing')
-            expect(model.searchState._tag).toBe('Loading')
-          }),
-          Command.expectHas(FetchSearchResults),
-          Command.resolve(
-            FetchSearchResults,
-            Message.CompletedFetchSearchResults({
-              results: searchResults,
-              query: 'routing',
-            }),
-          ),
-          model(model => {
-            expect(model.searchState).toMatchObject({
-              _tag: 'Ok',
-              results: searchResults,
-            })
-            expect(model.activeResultIndex).toBe(0)
-          }),
-        )
-      }).pipe(Effect.provide(layer)),
-    )
-  })
+  it.effect('typing a query starts a search', () =>
+    story(
+      SearchBlock,
+      init(),
+      message(Message.UpdatedSearchQuery({ query: 'routing' })),
+      model(model => {
+        expect(model.query).toBe('routing')
+        expect(model.searchState._tag).toBe('Loading')
+      }),
+      Command.expectHas(FetchSearchResults),
+      Command.resolve(
+        FetchSearchResults,
+        Message.CompletedFetchSearchResults({
+          results: searchResults,
+          query: 'routing',
+        }),
+      ),
+      model(model => {
+        expect(model.searchState).toMatchObject({
+          _tag: 'Ok',
+          results: searchResults,
+        })
+        expect(model.activeResultIndex).toBe(0)
+      }),
+    ).pipe(Effect.provide(layer)),
+  )
   test('clearing the query resets to Idle', async () => {
     await Effect.runPromise(
       withBlock(SearchBlock, executable => {
@@ -206,31 +201,22 @@ describe('search', () => {
       }).pipe(Effect.provide(layer)),
     )
   })
-  test('selecting a result navigates and resets', async () => {
-    await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
-        const { update, init_ } = makeFixture(executable)
-
-        story(
-          update,
-          given(init_.model),
-          message(Message.SelectedSearchResult({ url: '/docs/commands' })),
-          model(model => {
-            expect(model.query).toBe('')
-            expect(model.searchState._tag).toBe('Idle')
-          }),
-          Command.expectHas(NavigateToResult),
-          Command.resolve(
-            NavigateToResult,
-            Message.CompletedNavigateToResult(),
-          ),
-          model(model => {
-            expect(model.query).toBe('')
-          }),
-        )
-      }).pipe(Effect.provide(layer)),
-    )
-  })
+  it.effect('selecting a result navigates and resets', () =>
+    story(
+      SearchBlock,
+      init(),
+      message(Message.SelectedSearchResult({ url: '/docs/commands' })),
+      model(model => {
+        expect(model.query).toBe('')
+        expect(model.searchState._tag).toBe('Idle')
+      }),
+      Command.expectHas(NavigateToResult),
+      Command.resolve(NavigateToResult, Message.CompletedNavigateToResult()),
+      model(model => {
+        expect(model.query).toBe('')
+      }),
+    ).pipe(Effect.provide(layer)),
+  )
   test('arrow keys cycle through results', async () => {
     await Effect.runPromise(
       withBlock(SearchBlock, executable => {

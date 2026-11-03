@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Validating } from 'foldkit/fieldValidation'
 import {
   Command,
@@ -17,7 +16,7 @@ import { test as TabsTest } from '@foldkit/ui/tabs'
 
 import { ApplicationBlock } from './block'
 import { Submission } from './model'
-import { test } from './model.fixture'
+import { it } from './model.fixture'
 import { StepTabsBlock } from './navigationComponents'
 
 const resolveFocusTab = Command.resolve(
@@ -26,10 +25,9 @@ const resolveFocusTab = Command.resolve(
 )
 
 describe('view', () => {
-  test('initial view shows the page heading and the PersonalInfo step', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'initial view shows the page heading and the PersonalInfo step',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(initialModel),
@@ -37,34 +35,28 @@ describe('view', () => {
         expect(role('heading', { name: 'Personal Info' })).toExist(),
         expect(role('button', { name: 'Next →' })).toExist(),
       ),
-    )
-  })
+  )
 
-  test('the step nav lists every step', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(initialModel),
-        inside(
-          role('tablist', { name: 'Application steps' }),
-          expect(text('Personal Info')).toExist(),
-          expect(text('Work History')).toExist(),
-          expect(text('Education')).toExist(),
-          expect(text('Skills')).toExist(),
-          expect(text('Cover Letter')).toExist(),
-          expect(text('Attachments')).toExist(),
-          expect(text('Review')).toExist(),
-        ),
+  it.effect('the step nav lists every step', ({ models: { initialModel } }) =>
+    scene(
+      ApplicationBlock,
+      given(initialModel),
+      inside(
+        role('tablist', { name: 'Application steps' }),
+        expect(text('Personal Info')).toExist(),
+        expect(text('Work History')).toExist(),
+        expect(text('Education')).toExist(),
+        expect(text('Skills')).toExist(),
+        expect(text('Cover Letter')).toExist(),
+        expect(text('Attachments')).toExist(),
+        expect(text('Review')).toExist(),
       ),
-    )
-  })
+    ),
+  )
 
-  test('tabs can jump directly to any step', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'tabs can jump directly to any step',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(initialModel),
@@ -75,13 +67,11 @@ describe('view', () => {
         resolveFocusTab,
         expect(role('heading', { name: 'Review' })).toExist(),
       ),
-    )
-  })
+  )
 
-  test('clicking Next advances to the Work History step', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'clicking Next advances to the Work History step',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(initialModel),
@@ -89,13 +79,11 @@ describe('view', () => {
         expect(role('heading', { name: 'Work History' })).toExist(),
         expect(role('button', { name: '← Previous' })).toExist(),
       ),
-    )
-  })
+  )
 
-  test('Previous on a later step returns to the prior step', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'Previous on a later step returns to the prior step',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(modifyFields(initialModel, { currentStep: () => 'Education' })),
@@ -103,38 +91,32 @@ describe('view', () => {
         click(role('button', { name: '← Previous' })),
         expect(role('heading', { name: 'Work History' })).toExist(),
       ),
-    )
-  })
+  )
 
-  test('the first step does not render a Previous button', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'the first step does not render a Previous button',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(initialModel),
         expect(role('button', { name: '← Previous' })).toBeAbsent(),
       ),
-    )
-  })
+  )
 
-  test('the Review step exposes a Submit button and hides Next', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'the Review step exposes a Submit button and hides Next',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(modifyFields(initialModel, { currentStep: () => 'Review' })),
         expect(role('button', { name: 'Submit Application' })).toExist(),
         expect(role('button', { name: 'Next →' })).toBeAbsent(),
       ),
-    )
-  })
+  )
 
-  test('clicking Submit on an incomplete application shows a blocking notice', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'clicking Submit on an incomplete application shows a blocking notice',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(modifyFields(initialModel, { currentStep: () => 'Review' })),
@@ -151,13 +133,11 @@ describe('view', () => {
           ),
         ).toExist(),
       ),
-    )
-  })
+  )
 
-  test('a pending validation notice names the incomplete step', async ({
-    models: { completeModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'a pending validation notice names the incomplete step',
+    ({ models: { completeModel } }) =>
       scene(
         ApplicationBlock,
         given(
@@ -172,13 +152,11 @@ describe('view', () => {
         click(role('button', { name: 'Submit Application' })),
         expect(text('Review Personal Info before submitting.')).toExist(),
       ),
-    )
-  })
+  )
 
-  test('submit blocking notices include multiple incomplete required steps', async ({
-    models: { completeModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'submit blocking notices include multiple incomplete required steps',
+    ({ models: { completeModel } }) =>
       scene(
         ApplicationBlock,
         given(
@@ -201,13 +179,11 @@ describe('view', () => {
           text('Review Work History, Education, Skills before submitting.'),
         ).toExist(),
       ),
-    )
-  })
+  )
 
-  test('a submitting application shows a Submitting button', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'a submitting application shows a Submitting button',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(
@@ -218,13 +194,11 @@ describe('view', () => {
         ),
         expect(role('button', { name: 'Submitting...' })).toExist(),
       ),
-    )
-  })
+  )
 
-  test('a successful submission swaps the form for a success panel', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'a successful submission swaps the form for a success panel',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(
@@ -235,13 +209,11 @@ describe('view', () => {
         ),
         expect(text('Application Submitted', { exact: false })).toExist(),
       ),
-    )
-  })
+  )
 
-  test('a failed submission shows the error and a Try Again control', async ({
-    models: { initialModel },
-  }) => {
-    await Effect.runPromise(
+  it.effect(
+    'a failed submission shows the error and a Try Again control',
+    ({ models: { initialModel } }) =>
       scene(
         ApplicationBlock,
         given(
@@ -253,6 +225,5 @@ describe('view', () => {
         expect(text('Network down')).toExist(),
         expect(role('button', { name: 'Try Again' })).toExist(),
       ),
-    )
-  })
+  )
 })

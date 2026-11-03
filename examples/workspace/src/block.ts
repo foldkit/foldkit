@@ -13,11 +13,11 @@ import {
   ProjectSettings,
 } from './blocks'
 import {
-  ActiveMemberBinding,
+  ActiveMemberListboxBinding,
   CommandPaletteBinding,
   CreateIssueBinding,
-  IssueBoardBinding,
-  IssueDetailBinding,
+  IssueBoardsBinding,
+  IssueDetailsBinding,
   IssueListBinding,
   MemberDirectoryBinding,
   NotificationCenterBinding,
@@ -32,15 +32,15 @@ import { view } from './view'
 
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
-    const activeMember = yield* ActiveMemberBinding
+    const activeMember = yield* ActiveMemberListboxBinding
     const projectSettings = yield* ProjectSettingsBinding
     const issueList = yield* IssueListBinding
     const createIssue = yield* CreateIssueBinding
-    const issueBoards = yield* IssueBoardBinding
+    const issueBoards = yield* IssueBoardsBinding
     const commandPalette = yield* CommandPaletteBinding
     const memberDirectory = yield* MemberDirectoryBinding
     const notificationCenter = yield* NotificationCenterBinding
-    const issueDetails = yield* IssueDetailBinding
+    const issueDetails = yield* IssueDetailsBinding
 
     return {
       children: [

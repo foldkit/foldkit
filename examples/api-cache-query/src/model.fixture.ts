@@ -2,6 +2,8 @@ import { Effect, Option, Result } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 import { test as baseTest } from 'vitest'
 
+import { makeMethods } from '@effect/vitest'
+
 import type { Post, PostDetail, Stats } from './data'
 import { AppLayer } from './layer'
 import { AppTabsBlock, Model, TABS_ID } from './model'
@@ -160,10 +162,14 @@ const models = Effect.gen(function* () {
   }
 }).pipe(Effect.scoped, Effect.provide(AppLayer))
 
-export const test = baseTest.extend<{ models: Effect.Success<typeof models> }>({
-  models: async ({}, use) => {
-    await Effect.runPromise(
-      models.pipe(Effect.flatMap(models => Effect.promise(() => use(models)))),
-    )
-  },
-})
+export const it = makeMethods(
+  baseTest.extend<{ models: Effect.Success<typeof models> }>({
+    models: async ({}, use) => {
+      await Effect.runPromise(
+        models.pipe(
+          Effect.flatMap(models => Effect.promise(() => use(models))),
+        ),
+      )
+    },
+  }),
+)

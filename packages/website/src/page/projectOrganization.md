@@ -45,6 +45,14 @@ Keep local Schema aliases inside the feature's implementation modules. A consume
 
 Import the UI exports you use from each public component subpath. Give common names component-qualified aliases, such as `buttonView`, `DialogLayer`, and `makeListboxBlock`. The [Dialog guide](/ui/dialog) shows the imports, Binding, and construction provider together.
 
+### Public feature exports
+
+A feature's barrel exposes its passive Block contract, construction `layer`, and intentional public queries or domain contracts. Keep local authoring helpers and transition implementations inside the feature.
+
+A pure query such as `isComplete(model)` or `hasErrors(model)` lets the child own interpreting its Model. The parent reads that result without duplicating validation rules, storing another derived field, or sending a Message. Put substantial queries beside their responsibility, such as `validation.ts`, and export them explicitly. The [Job Application example](/example-apps/job-application) uses this arrangement for its wizard sections.
+
+These queries are ordinary module exports. Selecting a different implementation Layer does not replace them, so they should have stable semantics over the public Model. See [exporting a Block feature](/core/block#export-the-feature) for the contract and provider boundary.
+
 ### Early Contracts and Local Effects
 
 Keep `definition.ts` focused on `FooDefinition` and its public contracts. Export the Step helpers used by split implementation modules from this file and named-import them where they are used. Keep those helpers out of the feature barrel. A compact feature destructures its helpers beside its Definition; a module with several Definitions can keep qualified calls when the qualifier identifies the owner. Keep the Composition and its ViewBuilder alias in `composition.ts`. Declare the Definition once at module scope, including for a leaf: completion uses `FooDefinition.makeBlock`, and the public export uses `FooDefinition.contract`. Split implementation files import the Definition without loading the completed feature, and import graph-aware authoring values from `composition.ts`.

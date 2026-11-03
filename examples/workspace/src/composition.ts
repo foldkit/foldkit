@@ -43,7 +43,7 @@ import {
   requestIssueMove,
 } from './steps'
 
-export const ActiveMemberBinding = makeBinding(WorkspaceListboxBlock, {
+export const ActiveMemberListboxBinding = makeBinding(WorkspaceListboxBlock, {
   field: 'activeMemberListbox',
   init: { contextToArgs: () => [{ id: 'workspace-active-member' }] },
 }).withOutMessagePolicy({
@@ -53,7 +53,33 @@ export const ActiveMemberBinding = makeBinding(WorkspaceListboxBlock, {
   }),
 })
 
-export const IssueDetailBinding = makeMapBinding(IssueDetailBlock, {
+const foldIssueDetailOutMessage = makeOutMessageFold(IssueDetailBlock, {
+  Saved: ({ savedIssue }) =>
+    Update.combineSteps([
+      applySavedIssue(savedIssue),
+      makeFieldsStep(() => ({
+        maybeNotice: () => Option.some(`${savedIssue.identifier} saved`),
+      })),
+    ]),
+  AddedComment: ({ issueId, comment }) => applyIssueComment(issueId, comment),
+  ReceivedIssue: ({ issue }) => applyIssueSnapshot(issue),
+  Closed: () =>
+    makeCommandsStep(model => {
+      const { route } = model
+
+      if (ApplicationRoute.guards.Issue(route)) {
+        return [NavigateInternal({ url: issuesRouter({}) })]
+      }
+
+      if (!isPageRoute(route)) {
+        return []
+      }
+
+      return [NavigateInternal({ url: routeToPath(withoutIssueId(route)) })]
+    }),
+})
+
+export const IssueDetailsBinding = makeMapBinding(IssueDetailBlock, {
   field: 'issueDetails',
 }).withOutMessagePolicy({
   fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
@@ -89,32 +115,6 @@ export const NotificationCenterBinding = makeBinding(NotificationCenterBlock, {
   fold: makeOutMessageFold(NotificationCenterBlock, {
     SelectedIssue: ({ issueId }) => openIssue(issueId),
   }),
-})
-
-const foldIssueDetailOutMessage = makeOutMessageFold(IssueDetailBlock, {
-  Saved: ({ savedIssue }) =>
-    Update.combineSteps([
-      applySavedIssue(savedIssue),
-      makeFieldsStep(() => ({
-        maybeNotice: () => Option.some(`${savedIssue.identifier} saved`),
-      })),
-    ]),
-  AddedComment: ({ issueId, comment }) => applyIssueComment(issueId, comment),
-  ReceivedIssue: ({ issue }) => applyIssueSnapshot(issue),
-  Closed: () =>
-    makeCommandsStep(model => {
-      const { route } = model
-
-      if (ApplicationRoute.guards.Issue(route)) {
-        return [NavigateInternal({ url: issuesRouter({}) })]
-      }
-
-      if (!isPageRoute(route)) {
-        return []
-      }
-
-      return [NavigateInternal({ url: routeToPath(withoutIssueId(route)) })]
-    }),
 })
 
 const navigateIssueFilters = (
@@ -197,7 +197,7 @@ export const IssueListBinding = makeBinding(IssueListBlock, {
   }),
 })
 
-export const IssueBoardBinding = makeMapBinding(IssueBoardBlock, {
+export const IssueBoardsBinding = makeMapBinding(IssueBoardBlock, {
   field: 'issueBoards',
 }).withOutMessagePolicy({
   fold: (projectId, outMessage) =>
@@ -248,15 +248,15 @@ export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
 
 export const ApplicationComposition = makeComposition({
   bindings: [
-    ActiveMemberBinding,
+    ActiveMemberListboxBinding,
     ProjectSettingsBinding,
     IssueListBinding,
     CreateIssueBinding,
-    IssueBoardBinding,
+    IssueBoardsBinding,
     CommandPaletteBinding,
     MemberDirectoryBinding,
     NotificationCenterBinding,
-    IssueDetailBinding,
+    IssueDetailsBinding,
   ],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

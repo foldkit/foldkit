@@ -3,7 +3,7 @@ import { Scene, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { it as baseIt, expect } from 'vitest'
 
-import { describe } from '@effect/vitest'
+import { describe, makeMethods } from '@effect/vitest'
 
 import * as Animation from '../animation/block.js'
 import { makeInitialModel } from '../animation/schema.js'
@@ -164,23 +164,25 @@ const makeRefinedFixture = (menu: Story.TestBlock<typeof RefinedMenu>) => ({
       h,
     ),
 })
-const it = baseIt.extend<{
-  menu: ReturnType<typeof makeFixture>
-  refinedMenu: ReturnType<typeof makeRefinedFixture>
-}>({
-  menu: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(block, menu =>
-        Effect.promise(() => use(makeFixture(menu))),
+const it = makeMethods(
+  baseIt.extend<{
+    menu: ReturnType<typeof makeFixture>
+    refinedMenu: ReturnType<typeof makeRefinedFixture>
+  }>({
+    menu: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(block, menu =>
+          Effect.promise(() => use(makeFixture(menu))),
+        ),
       ),
-    ),
-  refinedMenu: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(RefinedMenu, menu =>
-        Effect.promise(() => use(makeRefinedFixture(menu))),
-      ).pipe(Effect.provide(layer)),
-    ),
-})
+    refinedMenu: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(RefinedMenu, menu =>
+          Effect.promise(() => use(makeRefinedFixture(menu))),
+        ).pipe(Effect.provide(layer)),
+      ),
+  }),
+)
 
 describe('Menu', () => {
   describe('view', () => {
@@ -471,24 +473,22 @@ describe('Menu', () => {
     })
 
     describe('RequestedClose', () => {
-      it('emits Closed when an operation closes the menu', () => {
-        return Effect.runPromise(
-          Story.story(
-            block,
-            Story.init({ id: 'test' }),
-            Story.message(
-              Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
-            ),
-            acknowledgeFocusItems,
-            Story.inMessage(InMessage.RequestedClose()),
-            Story.expectOutMessage(OutMessage.Closed()),
-            Story.Command.resolve(
-              FocusMenuButton,
-              Message.CompletedFocusMenuButton(),
-            ),
+      it.effect('emits Closed when an operation closes the menu', () =>
+        Story.story(
+          block,
+          Story.init({ id: 'test' }),
+          Story.message(
+            Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
           ),
-        )
-      })
+          acknowledgeFocusItems,
+          Story.inMessage(InMessage.RequestedClose()),
+          Story.expectOutMessage(OutMessage.Closed()),
+          Story.Command.resolve(
+            FocusMenuButton,
+            Message.CompletedFocusMenuButton(),
+          ),
+        ),
+      )
     })
 
     describe('BlurredItems', () => {
@@ -1664,28 +1664,26 @@ describe('Menu', () => {
       })
 
       describe('stale messages', () => {
-        it('ignores CompletedWaitForPaint when Idle', () => {
-          return Effect.runPromise(
-            Story.story(
-              block,
-              Story.init({ id: 'test' }),
-              Story.message(
-                Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
-              ),
-              acknowledgeFocusItems,
-              Story.messageFrom(
-                AnimationBinding,
-                Animation.Message.CompletedWaitForPaint({
-                  generation: 0,
-                }),
-              ),
-              Story.model(model => {
-                expect(model.isOpen).toBe(true)
-                expect(model.animation.transitionState).toBe('Idle')
+        it.effect('ignores CompletedWaitForPaint when Idle', () =>
+          Story.story(
+            block,
+            Story.init({ id: 'test' }),
+            Story.message(
+              Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+            ),
+            acknowledgeFocusItems,
+            Story.messageFrom(
+              AnimationBinding,
+              Animation.Message.CompletedWaitForPaint({
+                generation: 0,
               }),
             ),
-          )
-        })
+            Story.model(model => {
+              expect(model.isOpen).toBe(true)
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
+          ),
+        )
 
         it('ignores CompletedDetectMenuMovementOrAnimationEnd when Idle', ({
           menu: { update, givenOpen },

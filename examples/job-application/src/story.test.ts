@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Array, Option } from 'effect'
 import { Validating } from 'foldkit/fieldValidation'
 import { Command, given, message, model, story } from 'foldkit/story'
@@ -33,7 +32,7 @@ import {
 } from './composition'
 import { Message } from './message'
 import { Submission } from './model'
-import { test } from './model.fixture'
+import { it } from './model.fixture'
 import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
 
 type PersonalInfoMessage = typeof PersonalInfoBlock.Message.Type
@@ -77,10 +76,9 @@ const resolveFocusMenuButton = Command.resolve(
 
 describe('update', () => {
   describe('navigation', () => {
-    test('ClickedNext advances to the next step', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedNext advances to the next step',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -90,13 +88,11 @@ describe('update', () => {
             expect(model.currentStep).toBe('WorkHistory')
           }),
         ),
-      )
-    })
+    )
 
-    test('ClickedPrevious goes back to the previous step', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedPrevious goes back to the previous step',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(modifyFields(initialModel, { currentStep: () => 'Education' })),
@@ -105,13 +101,11 @@ describe('update', () => {
             expect(model.currentStep).toBe('WorkHistory')
           }),
         ),
-      )
-    })
+    )
 
-    test('ClickedPrevious on the first step stays put', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedPrevious on the first step stays put',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -120,13 +114,11 @@ describe('update', () => {
             expect(model.currentStep).toBe('PersonalInfo')
           }),
         ),
-      )
-    })
+    )
 
-    test('ClickedNext on the last step stays put', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedNext on the last step stays put',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(modifyFields(initialModel, { currentStep: () => 'Review' })),
@@ -135,13 +127,11 @@ describe('update', () => {
             expect(model.currentStep).toBe('Review')
           }),
         ),
-      )
-    })
+    )
 
-    test('a generated Tabs Message selects the matching step', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'a generated Tabs Message selects the matching step',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -153,13 +143,11 @@ describe('update', () => {
           }),
           resolveFocusTab,
         ),
-      )
-    })
+    )
 
-    test('a generated Menu Message selects the matching step', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'a generated Menu Message selects the matching step',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -183,15 +171,13 @@ describe('update', () => {
           }),
           resolveFocusMenuButton,
         ),
-      )
-    })
+    )
   })
 
   describe('preview toggle', () => {
-    test('ToggledPreview flips visibility', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'ToggledPreview flips visibility',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -204,15 +190,13 @@ describe('update', () => {
             expect(model.isPreviewVisible).toBe(false)
           }),
         ),
-      )
-    })
+    )
   })
 
   describe('child folding', () => {
-    test('a generated PersonalInfo Message writes through', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'a generated PersonalInfo Message writes through',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -223,13 +207,11 @@ describe('update', () => {
             expect(model.personalInfo.firstName.value).toBe('Jane')
           }),
         ),
-      )
-    })
+    )
 
-    test('a generated WorkHistory Message writes through', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'a generated WorkHistory Message writes through',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -242,13 +224,11 @@ describe('update', () => {
             expect(model.workHistory.entries).toHaveLength(2)
           }),
         ),
-      )
-    })
+    )
 
-    test('a generated Education Message writes through', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'a generated Education Message writes through',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -261,13 +241,11 @@ describe('update', () => {
             expect(model.education.entries).toHaveLength(2)
           }),
         ),
-      )
-    })
+    )
 
-    test('a generated Skills Message writes through', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'a generated Skills Message writes through',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -280,13 +258,11 @@ describe('update', () => {
             expect(model.skills.entries).toHaveLength(2)
           }),
         ),
-      )
-    })
+    )
 
-    test('a generated CoverLetter Message writes through', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'a generated CoverLetter Message writes through',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -301,18 +277,16 @@ describe('update', () => {
             )
           }),
         ),
-      )
-    })
+    )
 
-    test('a nested generated FileDrop Message writes through', async ({
-      models: { initialModel },
-    }) => {
-      const resume = new globalThis.File(['pdf-bytes'], 'resume.pdf', {
-        type: 'application/pdf',
-      })
+    it.effect(
+      'a nested generated FileDrop Message writes through',
+      ({ models: { initialModel } }) => {
+        const resume = new globalThis.File(['pdf-bytes'], 'resume.pdf', {
+          type: 'application/pdf',
+        })
 
-      await Effect.runPromise(
-        withBlock(ApplicationBlock, application => {
+        return withBlock(ApplicationBlock, application => {
           const toApplicationMessage = toParentMessageFor(application)
           const toAttachmentsMessage = toParentMessageFor(
             application,
@@ -335,16 +309,15 @@ describe('update', () => {
               expect(model.attachments.maybeResume._tag).toBe('Some')
             }),
           )
-        }),
-      )
-    })
+        })
+      },
+    )
   })
 
   describe('submission', () => {
-    test('ClickedSubmit on a complete application transitions to Submitting and fires command', async ({
-      models: { completeModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedSubmit on a complete application transitions to Submitting and fires command',
+      ({ models: { completeModel } }) =>
         story(
           ApplicationBlock,
           given(modifyFields(completeModel, { currentStep: () => 'Review' })),
@@ -359,35 +332,35 @@ describe('update', () => {
             expect(model.isSubmitAttempted).toBe(true)
           }),
         ),
-      )
-    })
+    )
 
-    test('ClickedSubmit reveals errors through every section and nested entry without submitting', async ({
-      models: {
-        initialModel,
-        secondWorkHistoryEntry,
-        secondEducationEntry,
-        secondSkillsEntry,
-      },
-    }) => {
-      const modelWithMultipleEntries = modifyFields(initialModel, {
-        currentStep: () => 'Review',
-        workHistory: workHistory =>
-          modifyFields(workHistory, {
-            entries: Array.append(secondWorkHistoryEntry),
-          }),
-        education: education =>
-          modifyFields(education, {
-            entries: Array.append(secondEducationEntry),
-          }),
-        skills: skills =>
-          modifyFields(skills, {
-            entries: Array.append(secondSkillsEntry),
-          }),
-      })
+    it.effect(
+      'ClickedSubmit reveals errors through every section and nested entry without submitting',
+      ({
+        models: {
+          initialModel,
+          secondWorkHistoryEntry,
+          secondEducationEntry,
+          secondSkillsEntry,
+        },
+      }) => {
+        const modelWithMultipleEntries = modifyFields(initialModel, {
+          currentStep: () => 'Review',
+          workHistory: workHistory =>
+            modifyFields(workHistory, {
+              entries: Array.append(secondWorkHistoryEntry),
+            }),
+          education: education =>
+            modifyFields(education, {
+              entries: Array.append(secondEducationEntry),
+            }),
+          skills: skills =>
+            modifyFields(skills, {
+              entries: Array.append(secondSkillsEntry),
+            }),
+        })
 
-      await Effect.runPromise(
-        story(
+        return story(
           ApplicationBlock,
           given(modelWithMultipleEntries),
           message(Message.ClickedSubmit()),
@@ -422,14 +395,13 @@ describe('update', () => {
               ),
             ).toBe(true)
           }),
-        ),
-      )
-    })
+        )
+      },
+    )
 
-    test('ClickedSubmit with pending validation does not submit', async ({
-      models: { completeModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedSubmit with pending validation does not submit',
+      ({ models: { completeModel } }) =>
         story(
           ApplicationBlock,
           given(
@@ -448,13 +420,11 @@ describe('update', () => {
             expect(model.personalInfo.email._tag).toBe('Validating')
           }),
         ),
-      )
-    })
+    )
 
-    test('ClickedSubmit preserves Valid fields rather than re-running validation', async ({
-      models: { completeModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedSubmit preserves Valid fields rather than re-running validation',
+      ({ models: { completeModel } }) =>
         story(
           ApplicationBlock,
           given(modifyFields(completeModel, { currentStep: () => 'Review' })),
@@ -468,13 +438,11 @@ describe('update', () => {
             expect(model.personalInfo.firstName.value).toBe('Jane')
           }),
         ),
-      )
-    })
+    )
 
-    test('successful submission shows success', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
+    it.effect(
+      'successful submission shows success',
+      ({ models: { initialModel } }) =>
         story(
           ApplicationBlock,
           given(
@@ -488,27 +456,22 @@ describe('update', () => {
             expect(model.submission._tag).toBe('SubmitSuccess')
           }),
         ),
-      )
-    })
+    )
 
-    test('failed submission shows error', async ({
-      models: { initialModel },
-    }) => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(
-            modifyFields(initialModel, {
-              currentStep: () => 'Review',
-              submission: () => Submission.Submitting(),
-            }),
-          ),
-          message(Message.FailedSubmitApplication({ error: 'Server down' })),
-          model(model => {
-            expect(model.submission._tag).toBe('SubmitError')
+    it.effect('failed submission shows error', ({ models: { initialModel } }) =>
+      story(
+        ApplicationBlock,
+        given(
+          modifyFields(initialModel, {
+            currentStep: () => 'Review',
+            submission: () => Submission.Submitting(),
           }),
         ),
-      )
-    })
+        message(Message.FailedSubmitApplication({ error: 'Server down' })),
+        model(model => {
+          expect(model.submission._tag).toBe('SubmitError')
+        }),
+      ),
+    )
   })
 })

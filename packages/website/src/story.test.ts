@@ -45,7 +45,7 @@ import {
 import {
   ApiReferenceBinding,
   ExampleDetailBinding,
-  HomeBinding,
+  MaybeHomeBinding,
   SnippetCopyBinding,
   SnippetDisclosureBinding,
 } from './composition'
@@ -126,7 +126,7 @@ const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
   const init = block.init
   const update = block.update
   const toParentMessage = toParentMessageFor(block)
-  const toHomeMessage = toParentMessageFor(block, HomeBinding)
+  const toHomeMessage = toParentMessageFor(block, MaybeHomeBinding)
   const initAt = (url: Url.Url): Model => init(flags, url).model
   return { block, init, update, toParentMessage, toHomeMessage, initAt }
 }
@@ -471,7 +471,7 @@ describe('application', () => {
           given(initAt(homeUrl)),
           message(
             toParentMessage(
-              HomeBinding,
+              MaybeHomeBinding,
               HomeBlock.Message.UpdatedNewsletterEmail({
                 value: 'alice@example.com',
               }),
@@ -562,7 +562,7 @@ describe('application', () => {
           given(initAt(homeUrl)),
           message(
             toParentMessage(
-              HomeBinding,
+              MaybeHomeBinding,
               toHomeMessage(
                 NotePlayerDemoBinding,
                 NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
@@ -597,7 +597,7 @@ describe('application', () => {
           given(initAt(newsletterUrl)),
           message(
             toParentMessage(
-              HomeBinding,
+              MaybeHomeBinding,
               toHomeMessage(
                 NotePlayerDemoBinding,
                 NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
@@ -623,7 +623,7 @@ describe('application', () => {
           given(initAt(homeUrl)),
           message(
             toParentMessage(
-              HomeBinding,
+              MaybeHomeBinding,
               toHomeMessage(
                 PlaygroundMenuBinding,
                 ThemeMenuBlock.Message.SelectedItem({

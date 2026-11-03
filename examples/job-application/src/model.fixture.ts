@@ -5,6 +5,8 @@ import { withBlock } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { test as baseTest } from 'vitest'
 
+import { makeMethods } from '@effect/vitest'
+
 import { ApplicationBlock } from './block'
 import { EducationEntry } from './blocks/education/blocks'
 import { SkillsEntry } from './blocks/skills/blocks'
@@ -84,10 +86,14 @@ const models = withBlock(ApplicationBlock, application =>
   ),
 )
 
-export const test = baseTest.extend<{ models: Effect.Success<typeof models> }>({
-  models: async ({}, use) => {
-    await Effect.runPromise(
-      models.pipe(Effect.flatMap(models => Effect.promise(() => use(models)))),
-    )
-  },
-})
+export const it = makeMethods(
+  baseTest.extend<{ models: Effect.Success<typeof models> }>({
+    models: async ({}, use) => {
+      await Effect.runPromise(
+        models.pipe(
+          Effect.flatMap(models => Effect.promise(() => use(models))),
+        ),
+      )
+    },
+  }),
+)

@@ -3,7 +3,7 @@ import { UrlRequest } from 'foldkit/navigation'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
-import { ApplicationComposition, UiBinding } from './composition'
+import { ApplicationComposition, UiModelBinding } from './composition'
 import { makeFieldsStep, makeNoopStep } from './definition'
 import { urlToApplicationRoute } from './route'
 
@@ -31,8 +31,8 @@ export const update = ApplicationComposition.makeUpdate({
   ChangedUrl: (model, { url }) =>
     Update.combineSteps(model, [
       setRoute(url),
-      UiBinding.requestCloseMobileMenu(),
+      UiModelBinding.requestCloseMobileMenu(),
     ]),
 
-  ClickedOpenMobileMenu: UiBinding.requestOpenMobileMenu(),
+  ClickedOpenMobileMenu: UiModelBinding.requestOpenMobileMenu(),
 })

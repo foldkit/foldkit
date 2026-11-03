@@ -1,12 +1,14 @@
-import { Effect } from 'effect'
 import { AsyncData } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { expect, test } from 'vitest'
+import { expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './application'
 
-test('loading a user: the Command fires, resolves, the Model lands on Success', async () => {
-  await Effect.runPromise(
+it.effect(
+  'loading a user: the Command fires, resolves, the Model lands on Success',
+  () =>
     story(
       ApplicationBlock,
       given({ user: AsyncData.Idle() }),
@@ -17,5 +19,4 @@ test('loading a user: the Command fires, resolves, the Model lands on Success', 
         expect(model.user).toStrictEqual(AsyncData.Success({ data: ada }))
       }),
     ),
-  )
-})
+)

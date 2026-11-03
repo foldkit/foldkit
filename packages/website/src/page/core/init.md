@@ -83,7 +83,7 @@ The optional `foldkit/bindingInit` module reuses declared storage when dynamic i
 
 Pass the Binding, the current complete parent Model, and the child `args`; keyed storage also takes `key`. Each helper returns the same passive recipe as `Binding.init`, preserving child init Commands and registration requirements. Ordinary folds and operations never create absent children.
 
-For example, assume `RoomBinding` declares `field: 'maybeRoomInstance'`, `key: 'roomId'`, and `childField: 'model'`, and its wrapper contains only those last two fields. The parent supplies identity and initializer arguments:
+For example, assume `MaybeRoomInstanceBinding` declares `field: 'maybeRoomInstance'`, `key: 'roomId'`, and `childField: 'model'`, and its wrapper contains only those last two fields. The parent supplies identity and initializer arguments:
 
 ::Snippet{name="initSetKeyedChild" label="Initializing an optional keyed child"}
 

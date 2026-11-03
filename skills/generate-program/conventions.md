@@ -122,6 +122,8 @@ type Message = typeof Message.Type
 
 ### Variables and Functions
 
+Name field-backed Bindings after their Model field in PascalCase with the `Binding` suffix: `activeMemberListbox` becomes `ActiveMemberListboxBinding`, and `issueDetails` becomes `IssueDetailsBinding`. Preserve optional prefixes, plurals, and role words. For wrapped storage, include the nested child role when the container alone would hide it, such as `entries[].animation` becoming `EntriesAnimationBinding`. Custom and whole-variant storage use a meaningful relationship name. A necessary private pre-policy value uses `Base<Field>Binding`; the policy-complete value keeps the canonical field name.
+
 - Name selectors for derived values and pure transitions for the changes they describe. Dedicated Message handlers use `handle<MessageTag>`. Use `init` for initialization functions, helpers, Steps and filenames. Use `init...IfMissing` when a Step preserves an existing occurrence and initializes an absent identity. Reserve `sync` and `observe` for actual synchronization or observation; Step construction and application do not execute Commands.
 - Avoid opaque abbreviations: `signature` not `sig`, `message` not `msg`, `callbacks` not `cbs`
 - Conventional technical shorthand is allowed when it is the normal domain spelling, such as `attrs`, `props`, `args`, `dir`, `ctx`, `fn`, `DOM`, `URL`, and `VNode`; established API and DSL bindings such as `h` are also allowed
@@ -139,6 +141,10 @@ type Message = typeof Message.Type
 - Capitalized string literals: `Schema.Literals(['Horizontal', 'Vertical'])` not `Schema.Literals(['horizontal', 'vertical'])`
 - Capitalized namespace imports: `import * as ShoppingCart from './shoppingCart'`
 - `Array<T>` or `ReadonlyArray<T>`, never `T[]`
+
+## Public Block exports
+
+A Block feature's explicit barrel exports its passive contract, construction `layer`, and intentional public queries or domain contracts. Keep authoring helpers and update implementations internal. A pure read-only selector such as `isComplete(model)` or `hasErrors(model)` belongs with the child responsibility, such as `validation.ts`, and may be exposed through that barrel. The parent asks the child to interpret its Model without a Message or duplicate derived state. Selector exports have stable semantics over the public Model; changing the implementation Layer does not replace ordinary module functions.
 
 ## Effect-TS Patterns
 

@@ -4,6 +4,8 @@
 
 A Block-aware Story acquires the chosen implementation, then calls its pure update with the Model and Messages you provide. Commands stay as data until the test supplies their result Messages. The returned Effect owns graph construction and cleanup; it does not run Command handlers or Streams.
 
+In Vitest, return that Effect from `it.effect` in `@effect/vitest`. The runner awaits the result and manages the test Scope. Prefer direct Block-aware calls for ordinary scenarios; keep `withBlock` for fixtures needing acquired operations or deliberately modified initialized Models. Start startup scenarios with `init` and explicit Command resolution so their initial Commands remain visible.
+
 Pass the public Block and its implementation Layer, or a checked application descriptor with its default Layer. Start with `init(...args)` to retain startup Model and Commands, or `given(model)` for a deliberate fixture. Send Messages, resolve Commands, and assert on the Model. `withBlock` supports advanced fixtures that need direct synchronous operations.
 
 ## The API

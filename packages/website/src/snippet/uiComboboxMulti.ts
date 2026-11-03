@@ -49,15 +49,18 @@ const foldComboboxMultiOutMessage = CitiesPickerDefinition.makeOutMessageFold(
   },
 )
 
-const ComboboxBinding = CitiesPickerDefinition.makeBinding(CitiesCombobox, {
-  field: 'comboboxMulti',
-  init: { contextToArgs: () => [{ id: 'cities-multi' }] },
-}).withOutMessagePolicy({ fold: foldComboboxMultiOutMessage })
+const ComboboxMultiBinding = CitiesPickerDefinition.makeBinding(
+  CitiesCombobox,
+  {
+    field: 'comboboxMulti',
+    init: { contextToArgs: () => [{ id: 'cities-multi' }] },
+  },
+).withOutMessagePolicy({ fold: foldComboboxMultiOutMessage })
 
 // Including the Binding collects its lifecycle and handler graph.
 
 const CitiesPickerComposition = CitiesPickerDefinition.makeComposition({
-  bindings: [ComboboxBinding],
+  bindings: [ComboboxMultiBinding],
 })
 
 const init = CitiesPickerComposition.makeInit(() => ({
@@ -95,7 +98,7 @@ const view = CitiesPickerComposition.makeView((model, h) => {
         ['Cities'],
       ),
       h.block(
-        ComboboxBinding.embedView({
+        ComboboxMultiBinding.embedView({
           slotId: 'cities-multi',
           model: model.comboboxMulti,
           viewInputs: {
@@ -135,7 +138,7 @@ export const CitiesPickerBlock = CitiesPickerDefinition.contract
 
 export const layer = CitiesPickerDefinition.makeBlock(
   Effect.gen(function* () {
-    const combobox = yield* ComboboxBinding
+    const combobox = yield* ComboboxMultiBinding
 
     return {
       children: [combobox],

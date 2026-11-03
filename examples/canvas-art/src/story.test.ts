@@ -1,7 +1,8 @@
-import { Effect } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import {
   ApplicationBlock,
@@ -26,8 +27,9 @@ const populatedModel: Model = modifyFields(emptyModel, {
 
 describe('update', () => {
   describe('spawning balls', () => {
-    test('ClickedCanvas fires GenerateBall with the click coordinates', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedCanvas fires GenerateBall with the click coordinates',
+      () =>
         story(
           ApplicationBlock,
           given(emptyModel),
@@ -56,11 +58,11 @@ describe('update', () => {
             expect(model.nextId).toBe(1)
           }),
         ),
-      )
-    })
+    )
 
-    test('CompletedGenerateBall increments nextId for each ball added', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'CompletedGenerateBall increments nextId for each ball added',
+      () =>
         story(
           ApplicationBlock,
           given(emptyModel),
@@ -89,43 +91,41 @@ describe('update', () => {
             expect(model.nextId).toBe(2)
           }),
         ),
-      )
-    })
+    )
   })
 
   describe('TickedFrame', () => {
-    test('advances ball positions based on velocity and delta time', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(populatedModel),
-          message(Message.TickedFrame({ deltaTime: 1000 })),
-          model(model => {
-            expect(model.balls[0]?.x).toBe(150)
-            expect(model.balls[0]?.y).toBe(150)
-          }),
-        ),
-      )
-    })
+    it.effect('advances ball positions based on velocity and delta time', () =>
+      story(
+        ApplicationBlock,
+        given(populatedModel),
+        message(Message.TickedFrame({ deltaTime: 1000 })),
+        model(model => {
+          expect(model.balls[0]?.x).toBe(150)
+          expect(model.balls[0]?.y).toBe(150)
+        }),
+      ),
+    )
 
-    test('bounces a ball off the canvas edges, flipping its velocity', async () => {
-      const movingRightModel: Model = modifyFields(emptyModel, {
-        balls: () => [
-          {
-            id: 0,
-            x: 595,
-            y: 200,
-            vx: 100,
-            vy: 0,
-            radius: 10,
-            color: '#fff',
-          },
-        ],
-        nextId: () => 1,
-      })
+    it.effect(
+      'bounces a ball off the canvas edges, flipping its velocity',
+      () => {
+        const movingRightModel: Model = modifyFields(emptyModel, {
+          balls: () => [
+            {
+              id: 0,
+              x: 595,
+              y: 200,
+              vx: 100,
+              vy: 0,
+              radius: 10,
+              color: '#fff',
+            },
+          ],
+          nextId: () => 1,
+        })
 
-      await Effect.runPromise(
-        story(
+        return story(
           ApplicationBlock,
           given(movingRightModel),
           message(Message.TickedFrame({ deltaTime: 1000 })),
@@ -133,40 +133,36 @@ describe('update', () => {
             expect(model.balls[0]?.vx).toBe(-100)
             expect(model.balls[0]?.x).toBe(590)
           }),
-        ),
-      )
-    })
+        )
+      },
+    )
   })
 
   describe('controls', () => {
-    test('ClickedClear empties the balls list', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(populatedModel),
-          message(Message.ClickedClear()),
-          model(model => {
-            expect(model.balls).toHaveLength(0)
-          }),
-        ),
-      )
-    })
+    it.effect('ClickedClear empties the balls list', () =>
+      story(
+        ApplicationBlock,
+        given(populatedModel),
+        message(Message.ClickedClear()),
+        model(model => {
+          expect(model.balls).toHaveLength(0)
+        }),
+      ),
+    )
 
-    test('ClickedTogglePlay flips the isRunning flag', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(emptyModel),
-          message(Message.ClickedTogglePlay()),
-          model(model => {
-            expect(model.isRunning).toBe(false)
-          }),
-          message(Message.ClickedTogglePlay()),
-          model(model => {
-            expect(model.isRunning).toBe(true)
-          }),
-        ),
-      )
-    })
+    it.effect('ClickedTogglePlay flips the isRunning flag', () =>
+      story(
+        ApplicationBlock,
+        given(emptyModel),
+        message(Message.ClickedTogglePlay()),
+        model(model => {
+          expect(model.isRunning).toBe(false)
+        }),
+        message(Message.ClickedTogglePlay()),
+        model(model => {
+          expect(model.isRunning).toBe(true)
+        }),
+      ),
+    )
   })
 })

@@ -1,9 +1,10 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import { Calendar } from 'foldkit'
 import { Command, init, message, model, story } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
 
+import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
 import { ApplicationBlock } from './block'
@@ -18,111 +19,99 @@ const urlOrThrow = (raw: string) =>
 
 describe('update', () => {
   describe('routing', () => {
-    test('the root URL resolves to Home', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          init({ today }, urlOrThrow('http://localhost/')),
-          message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
-          model(model => {
-            expect(model.route._tag).toBe('Home')
-          }),
-        ),
-      )
-    })
+    it.effect('the root URL resolves to Home', () =>
+      story(
+        ApplicationBlock,
+        init({ today }, urlOrThrow('http://localhost/')),
+        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
+        model(model => {
+          expect(model.route._tag).toBe('Home')
+        }),
+      ),
+    )
 
-    test('/button resolves to Button', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          init({ today }, urlOrThrow('http://localhost/')),
-          message(
-            Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
-          ),
-          model(model => {
-            expect(model.route._tag).toBe('Button')
-          }),
+    it.effect('/button resolves to Button', () =>
+      story(
+        ApplicationBlock,
+        init({ today }, urlOrThrow('http://localhost/')),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.route._tag).toBe('Button')
+        }),
+      ),
+    )
 
-    test('/calendar resolves to Calendar', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          init({ today }, urlOrThrow('http://localhost/')),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow('http://localhost/calendar'),
-            }),
-          ),
-          model(model => {
-            expect(model.route._tag).toBe('Calendar')
+    it.effect('/calendar resolves to Calendar', () =>
+      story(
+        ApplicationBlock,
+        init({ today }, urlOrThrow('http://localhost/')),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/calendar'),
           }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.route._tag).toBe('Calendar')
+        }),
+      ),
+    )
 
-    test('/date-picker resolves to DatePicker', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          init({ today }, urlOrThrow('http://localhost/')),
-          message(
-            Message.ChangedUrl({
-              url: urlOrThrow('http://localhost/date-picker'),
-            }),
-          ),
-          model(model => {
-            expect(model.route._tag).toBe('DatePicker')
+    it.effect('/date-picker resolves to DatePicker', () =>
+      story(
+        ApplicationBlock,
+        init({ today }, urlOrThrow('http://localhost/')),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/date-picker'),
           }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.route._tag).toBe('DatePicker')
+        }),
+      ),
+    )
 
-    test('an unknown path resolves to NotFound', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          init({ today }, urlOrThrow('http://localhost/')),
-          message(
-            Message.ChangedUrl({ url: urlOrThrow('http://localhost/unknown') }),
-          ),
-          model(model => {
-            if (model.route._tag === 'NotFound') {
-              expect(model.route.path).toBe('/unknown')
-            } else {
-              throw new Error('Expected NotFound')
-            }
-          }),
+    it.effect('an unknown path resolves to NotFound', () =>
+      story(
+        ApplicationBlock,
+        init({ today }, urlOrThrow('http://localhost/')),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/unknown') }),
         ),
-      )
-    })
+        model(model => {
+          if (model.route._tag === 'NotFound') {
+            expect(model.route.path).toBe('/unknown')
+          } else {
+            throw new Error('Expected NotFound')
+          }
+        }),
+      ),
+    )
   })
 
   describe('mobile menu', () => {
-    test('navigating to a new URL closes the mobile menu dialog', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          init({ today }, urlOrThrow('http://localhost/')),
-          message(Message.ClickedOpenMobileMenu()),
-          Command.resolve(
-            DialogTest.ShowDialog,
-            DialogBlock.Message.SucceededShowDialog(),
-          ),
-          message(
-            Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
-          ),
-          Command.resolve(
-            DialogTest.CloseDialog,
-            DialogBlock.Message.CompletedCloseDialog(),
-          ),
-          model(model => {
-            expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)
-          }),
+    it.effect('navigating to a new URL closes the mobile menu dialog', () =>
+      story(
+        ApplicationBlock,
+        init({ today }, urlOrThrow('http://localhost/')),
+        message(Message.ClickedOpenMobileMenu()),
+        Command.resolve(
+          DialogTest.ShowDialog,
+          DialogBlock.Message.SucceededShowDialog(),
         ),
-      )
-    })
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
+        ),
+        Command.resolve(
+          DialogTest.CloseDialog,
+          DialogBlock.Message.CompletedCloseDialog(),
+        ),
+        model(model => {
+          expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)
+        }),
+      ),
+    )
   })
 })

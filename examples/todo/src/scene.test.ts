@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import {
   Command,
   click,
@@ -12,7 +11,9 @@ import {
   type,
 } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { GenerateTodo, SaveTodos } from './command'
@@ -35,31 +36,27 @@ const modelWithTodos: Model = modifyFields(emptyModel, {
 })
 
 describe('view', () => {
-  test('empty state shows heading and placeholder message', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(emptyModel),
-        expect(role('heading', { name: 'Todo App' })).toExist(),
-        expect(text('No todos yet. Add one above!')).toExist(),
-      ),
-    )
-  })
+  it.effect('empty state shows heading and placeholder message', () =>
+    scene(
+      ApplicationBlock,
+      given(emptyModel),
+      expect(role('heading', { name: 'Todo App' })).toExist(),
+      expect(text('No todos yet. Add one above!')).toExist(),
+    ),
+  )
 
-  test('renders existing todos', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(modelWithTodos),
-        expect(text('Buy milk')).toExist(),
-        expect(text('Walk the dog')).toExist(),
-        expect(text('Done task')).toExist(),
-        expect(role('status')).toContainText('2 active, 1 completed'),
-      ),
-    )
-  })
+  it.effect('renders existing todos', () =>
+    scene(
+      ApplicationBlock,
+      given(modelWithTodos),
+      expect(text('Buy milk')).toExist(),
+      expect(text('Walk the dog')).toExist(),
+      expect(text('Done task')).toExist(),
+      expect(role('status')).toContainText('2 active, 1 completed'),
+    ),
+  )
 
-  test('add a todo through the form', async () => {
+  it.effect('add a todo through the form', () => {
     const addedTodo = {
       id: 'new-1',
       text: 'Write tests',
@@ -67,122 +64,110 @@ describe('view', () => {
       createdAt: 5000,
     }
 
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(emptyModel),
-        type(label('New todo'), 'Write tests'),
-        submit(role('form')),
-        Command.expectExact(GenerateTodo),
-        Command.resolve(
-          GenerateTodo,
-          Message.CompletedGenerateTodo({
-            id: 'new-1',
-            timestamp: 5000,
-            text: 'Write tests',
-          }),
-        ),
-        Command.expectExact(SaveTodos),
-        Command.resolve(
-          SaveTodos,
-          Message.SucceededSaveTodos({ todos: [addedTodo] }),
-        ),
-        expect(text('Write tests')).toExist(),
-        expect(label('New todo')).toHaveValue(''),
+    return scene(
+      ApplicationBlock,
+      given(emptyModel),
+      type(label('New todo'), 'Write tests'),
+      submit(role('form')),
+      Command.expectExact(GenerateTodo),
+      Command.resolve(
+        GenerateTodo,
+        Message.CompletedGenerateTodo({
+          id: 'new-1',
+          timestamp: 5000,
+          text: 'Write tests',
+        }),
       ),
+      Command.expectExact(SaveTodos),
+      Command.resolve(
+        SaveTodos,
+        Message.SucceededSaveTodos({ todos: [addedTodo] }),
+      ),
+      expect(text('Write tests')).toExist(),
+      expect(label('New todo')).toHaveValue(''),
     )
   })
 
-  test('toggle a todo by clicking its checkbox', async () => {
+  it.effect('toggle a todo by clicking its checkbox', () => {
     const toggledTodos = modelWithTodos.todos.map(todo =>
       todo.id === 'abc' ? modifyFields(todo, { completed: () => true }) : todo,
     )
 
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(modelWithTodos),
-        click(label('Buy milk')),
-        Command.expectExact(SaveTodos),
-        Command.resolve(
-          SaveTodos,
-          Message.SucceededSaveTodos({ todos: toggledTodos }),
-        ),
-        expect(role('status')).toContainText('1 active, 2 completed'),
+    return scene(
+      ApplicationBlock,
+      given(modelWithTodos),
+      click(label('Buy milk')),
+      Command.expectExact(SaveTodos),
+      Command.resolve(
+        SaveTodos,
+        Message.SucceededSaveTodos({ todos: toggledTodos }),
       ),
+      expect(role('status')).toContainText('1 active, 2 completed'),
     )
   })
 
-  test('delete a todo', async () => {
+  it.effect('delete a todo', () => {
     const remainingTodos = modelWithTodos.todos.filter(({ id }) => id !== 'abc')
 
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(modelWithTodos),
-        click(role('button', { name: 'Delete Buy milk' })),
-        Command.expectExact(SaveTodos),
-        Command.resolve(
-          SaveTodos,
-          Message.SucceededSaveTodos({ todos: remainingTodos }),
-        ),
-        expect(text('Buy milk')).toBeAbsent(),
-        expect(text('Walk the dog')).toExist(),
+    return scene(
+      ApplicationBlock,
+      given(modelWithTodos),
+      click(role('button', { name: 'Delete Buy milk' })),
+      Command.expectExact(SaveTodos),
+      Command.resolve(
+        SaveTodos,
+        Message.SucceededSaveTodos({ todos: remainingTodos }),
       ),
+      expect(text('Buy milk')).toBeAbsent(),
+      expect(text('Walk the dog')).toExist(),
     )
   })
 
-  test('clear completed removes done todos', async () => {
+  it.effect('clear completed removes done todos', () => {
     const activeTodos = modelWithTodos.todos.filter(
       ({ completed }) => !completed,
     )
 
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(modelWithTodos),
-        click(role('button', { name: 'Clear 1 completed' })),
-        Command.expectExact(SaveTodos),
-        Command.resolve(
-          SaveTodos,
-          Message.SucceededSaveTodos({ todos: activeTodos }),
-        ),
-        expect(text('Done task')).toBeAbsent(),
-        expect(role('status')).toContainText('2 active, 0 completed'),
+    return scene(
+      ApplicationBlock,
+      given(modelWithTodos),
+      click(role('button', { name: 'Clear 1 completed' })),
+      Command.expectExact(SaveTodos),
+      Command.resolve(
+        SaveTodos,
+        Message.SucceededSaveTodos({ todos: activeTodos }),
       ),
+      expect(text('Done task')).toBeAbsent(),
+      expect(role('status')).toContainText('2 active, 0 completed'),
     )
   })
 
-  test('mark all complete toggles all todos', async () => {
+  it.effect('mark all complete toggles all todos', () => {
     const allCompletedTodos = modelWithTodos.todos.map(todo =>
       modifyFields(todo, { completed: () => true }),
     )
 
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(modelWithTodos),
-        click(role('button', { name: 'Mark all complete' })),
-        Command.expectExact(SaveTodos),
-        Command.resolve(
-          SaveTodos,
-          Message.SucceededSaveTodos({ todos: allCompletedTodos }),
-        ),
-        expect(role('status')).toContainText('0 active, 3 completed'),
+    return scene(
+      ApplicationBlock,
+      given(modelWithTodos),
+      click(role('button', { name: 'Mark all complete' })),
+      Command.expectExact(SaveTodos),
+      Command.resolve(
+        SaveTodos,
+        Message.SucceededSaveTodos({ todos: allCompletedTodos }),
       ),
+      expect(role('status')).toContainText('0 active, 3 completed'),
     )
   })
 
-  test('keeps in-memory changes when saving fails', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(modelWithTodos),
-        click(label('Buy milk')),
-        Command.expectExact(SaveTodos),
-        Command.resolve(SaveTodos, Message.FailedSaveTodos()),
-        expect(role('status')).toContainText('1 active, 2 completed'),
-      ),
-    )
-  })
+  it.effect('keeps in-memory changes when saving fails', () =>
+    scene(
+      ApplicationBlock,
+      given(modelWithTodos),
+      click(label('Buy milk')),
+      Command.expectExact(SaveTodos),
+      Command.resolve(SaveTodos, Message.FailedSaveTodos()),
+      expect(role('status')).toContainText('1 active, 2 completed'),
+    ),
+  )
 })

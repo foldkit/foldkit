@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Valid } from 'foldkit/fieldValidation'
 import {
   Command,
@@ -10,7 +9,9 @@ import {
   text,
 } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { LoginBlock } from './blocks/loggedOut/blocks/login'
@@ -39,8 +40,9 @@ const aliceSession = Session.make({
 })
 
 describe('login flow', () => {
-  test('successful login saves the session and lands on the dashboard', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'successful login saves the session and lands on the dashboard',
+    () =>
       scene(
         ApplicationBlock,
         given(validModel),
@@ -59,6 +61,5 @@ describe('login flow', () => {
         ),
         expect(text('Welcome back, alice!')).toExist(),
       ),
-    )
-  })
+  )
 })

@@ -20,7 +20,7 @@ Calendar owns navigation state, including the visible month, active grid, and ke
 
 ## Wire Calendar into a Parent
 
-Bind `CalendarBlock` in the parent. Declare its startup arguments with the Binding's `init` policy and let the parent Composition assemble its Model. Generated Calendar envelopes route through the Binding automatically. Render it through `h.block(CalendarBinding.embedView(...))`.
+Bind `CalendarBlock` in the parent. Declare its startup arguments with the Binding's `init` policy and let the parent Composition assemble its Model. Generated Calendar envelopes route through the Binding automatically. Render it through `h.block(CalendarDemoBinding.embedView(...))`.
 
 Pass the parent-owned selection into `viewInputs.maybeSelectedDate` on every render. When Calendar emits `SelectedDate`, fold that OutMessage into the parent's selected-date field. Calendar’s acquired update retains its OutMessage contract, so the same Binding fold can handle `ChangedViewMonth` when your application needs month-scoped data.
 
@@ -210,19 +210,19 @@ Use `SelectedDate` to update the parent-owned selection. Use `ChangedViewMonth` 
 
 Call these operations through the registered Calendar Binding. Each Binding call returns a connected parent Step. `requestDropToDays` sends its InMessage to receive; the date and constraint adapters keep their existing argument shapes and local Message paths. Return that Step from the parent handler or compose it with `Update.combineSteps`.
 
-| Binding call                              | Arguments            | Behavior                                                                                                                                                              |
-| ----------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CalendarBinding.requestSelectDate(date)` | `date: CalendarDate` | Requests selection. Calendar leaves the Model unchanged and emits nothing when the date is disabled; otherwise it moves the view and cursor and emits `SelectedDate`. |
-| `CalendarBinding.requestFocusDate(date)`  | `date: CalendarDate` | Dispatches `RequestedFocusDate` to move the view and cursor without selecting. Use it when an external value should determine which month opens.                      |
-| `CalendarBinding.requestDropToDays()`     | None                 | Receives `RequestedDropToDays` to return to Days mode and reconcile the cursor with the visible month.                                                                |
+| Binding call                                  | Arguments            | Behavior                                                                                                                                                              |
+| --------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CalendarDemoBinding.requestSelectDate(date)` | `date: CalendarDate` | Requests selection. Calendar leaves the Model unchanged and emits nothing when the date is disabled; otherwise it moves the view and cursor and emits `SelectedDate`. |
+| `CalendarDemoBinding.requestFocusDate(date)`  | `date: CalendarDate` | Dispatches `RequestedFocusDate` to move the view and cursor without selecting. Use it when an external value should determine which month opens.                      |
+| `CalendarDemoBinding.requestDropToDays()`     | None                 | Receives `RequestedDropToDays` to return to Days mode and reconcile the cursor with the visible month.                                                                |
 
 `Calendar.FocusGrid({ id })` is the Calendar Command that focuses the grid. A parent such as DatePicker can return it after opening.
 
 The notification operations update constraints already stored in the Calendar Model. Their `InformedOf*Change` branches return `{ model }`, emit no OutMessage, and do not reconcile the parent-owned selection. If a new constraint invalidates that value, update the selection explicitly in the same parent handler.
 
-| Binding call                                                    | Arguments                                    | Behavior                                                                                             |
-| --------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `CalendarBinding.informMinDateChanged(maybeMinDate)`            | `maybeMinDate: Option<CalendarDate>`         | Dispatches `InformedOfMinDateChange`. Pass `Option.none()` to remove the minimum.                    |
-| `CalendarBinding.informMaxDateChanged(maybeMaxDate)`            | `maybeMaxDate: Option<CalendarDate>`         | Dispatches `InformedOfMaxDateChange`. Pass `Option.none()` to remove the maximum.                    |
-| `CalendarBinding.informDisabledDatesChanged(disabledDates)`     | `disabledDates: ReadonlyArray<CalendarDate>` | Dispatches `InformedOfDisabledDatesChange`. Pass an empty array to clear the disabled dates.         |
-| `CalendarBinding.informDisabledDaysOfWeekChanged(disabledDays)` | `disabledDays: ReadonlyArray<DayOfWeek>`     | Dispatches `InformedOfDisabledDaysOfWeekChange`. Pass an empty array to clear the disabled weekdays. |
+| Binding call                                                        | Arguments                                    | Behavior                                                                                             |
+| ------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `CalendarDemoBinding.informMinDateChanged(maybeMinDate)`            | `maybeMinDate: Option<CalendarDate>`         | Dispatches `InformedOfMinDateChange`. Pass `Option.none()` to remove the minimum.                    |
+| `CalendarDemoBinding.informMaxDateChanged(maybeMaxDate)`            | `maybeMaxDate: Option<CalendarDate>`         | Dispatches `InformedOfMaxDateChange`. Pass `Option.none()` to remove the maximum.                    |
+| `CalendarDemoBinding.informDisabledDatesChanged(disabledDates)`     | `disabledDates: ReadonlyArray<CalendarDate>` | Dispatches `InformedOfDisabledDatesChange`. Pass an empty array to clear the disabled dates.         |
+| `CalendarDemoBinding.informDisabledDaysOfWeekChanged(disabledDays)` | `disabledDays: ReadonlyArray<DayOfWeek>`     | Dispatches `InformedOfDisabledDaysOfWeekChange`. Pass an empty array to clear the disabled weekdays. |

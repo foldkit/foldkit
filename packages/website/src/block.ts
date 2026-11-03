@@ -20,7 +20,7 @@ import {
   ComingFromReactBinding,
   CoreBlockPageBinding,
   ExampleDetailBinding,
-  HomeBinding,
+  MaybeHomeBinding,
   MobileMenuDialogBinding,
   PlaygroundBinding,
   SearchBinding,
@@ -42,7 +42,7 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
     const comingFromReact = yield* ComingFromReactBinding
     const coreBlockPage = yield* CoreBlockPageBinding
     const exampleDetail = yield* ExampleDetailBinding
-    const home = yield* HomeBinding
+    const home = yield* MaybeHomeBinding
     const mobileMenuDialog = yield* MobileMenuDialogBinding
     const playground = yield* PlaygroundBinding
     const search = yield* SearchBinding

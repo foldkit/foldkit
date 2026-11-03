@@ -31,7 +31,7 @@ const { makeNoopStep } = AnimationExampleDefinition
 
 // Bind before defining the policy so its standard leave operation is available
 // inside the StartedLeaveAnimating branch.
-const animationBinding = AnimationExampleDefinition.makeBinding(
+const BaseAnimationBinding = AnimationExampleDefinition.makeBinding(
   AnimationBlock,
   {
     field: 'animation',
@@ -45,7 +45,7 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
     // The operation asks Animation to wait for its wrapper's CSS to settle.
     // A custom policy can race another signal against that settlement instead.
     StartedLeaveAnimating: () =>
-      animationBinding.requestWaitForLeaveSettlement(),
+      BaseAnimationBinding.requestWaitForLeaveSettlement(),
     // TransitionedOut is Animation's signal that the leave has fully
     // settled (your leave Command's EndedAnimation message has been
     // processed). Return Commands for any post-animation work, for
@@ -57,7 +57,7 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
   },
 )
 
-const AnimationBinding = animationBinding.withOutMessagePolicy({
+const AnimationBinding = BaseAnimationBinding.withOutMessagePolicy({
   fold: foldAnimationOutMessage,
 })
 

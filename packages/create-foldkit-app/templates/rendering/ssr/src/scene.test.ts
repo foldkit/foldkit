@@ -1,6 +1,7 @@
-import { Effect } from 'effect'
 import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock, Message, Model, PersistCount } from './application'
 
@@ -11,35 +12,31 @@ const initialModel = Model.make({
 })
 
 describe('view', () => {
-  test('renders the count and provenance line', () => {
-    return Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(initialModel),
-        expect(text('3')).toExist(),
-        expect(
-          text('Rendered on the Server at 2026-07-26T00:00:00.000Z'),
-        ).toExist(),
-        expect(role('button', { name: '+' })).toExist(),
-        expect(role('button', { name: '-' })).toExist(),
-      ),
-    )
-  })
+  it.effect('renders the count and provenance line', () =>
+    scene(
+      ApplicationBlock,
+      given(initialModel),
+      expect(text('3')).toExist(),
+      expect(
+        text('Rendered on the Server at 2026-07-26T00:00:00.000Z'),
+      ).toExist(),
+      expect(role('button', { name: '+' })).toExist(),
+      expect(role('button', { name: '-' })).toExist(),
+    ),
+  )
 
-  test('clicking + increments and persists the count', () => {
-    return Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(initialModel),
-        click(role('button', { name: '+' })),
-        expect(text('4')).toExist(),
-        Command.expectHas(PersistCount({ count: 4 })),
-        Command.resolve(
-          PersistCount({ count: 4 }),
-          Message.CompletedPersistCount(),
-        ),
-        Command.expectNone(),
+  it.effect('clicking + increments and persists the count', () =>
+    scene(
+      ApplicationBlock,
+      given(initialModel),
+      click(role('button', { name: '+' })),
+      expect(text('4')).toExist(),
+      Command.expectHas(PersistCount({ count: 4 })),
+      Command.resolve(
+        PersistCount({ count: 4 }),
+        Message.CompletedPersistCount(),
       ),
-    )
-  })
+      Command.expectNone(),
+    ),
+  )
 })

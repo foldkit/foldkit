@@ -62,16 +62,13 @@ const foldListboxOutMessage = CharacterPickerDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const CharacterListboxBinding = CharacterPickerDefinition.makeBinding(
-  CharacterListbox,
-  {
-    field: 'listbox',
-    init: { contextToArgs: () => [{ id: 'character' }] },
-  },
-).withOutMessagePolicy({ fold: foldListboxOutMessage })
+const ListboxBinding = CharacterPickerDefinition.makeBinding(CharacterListbox, {
+  field: 'listbox',
+  init: { contextToArgs: () => [{ id: 'character' }] },
+}).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const CharacterPickerComposition = CharacterPickerDefinition.makeComposition({
-  bindings: [CharacterListboxBinding],
+  bindings: [ListboxBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
@@ -99,7 +96,7 @@ const characters: ReadonlyArray<Character> = [
 // with the same key are contiguous in the items array:
 const view = CharacterPickerComposition.makeView((model, h) =>
   h.block(
-    CharacterListboxBinding.embedView({
+    ListboxBinding.embedView({
       slotId: 'character',
       model: model.listbox,
       viewInputs: {
@@ -139,7 +136,7 @@ const view = CharacterPickerComposition.makeView((model, h) =>
 
 export const ApplicationBlock = CharacterPickerDefinition.makeBlock(
   Effect.gen(function* () {
-    const characterListbox = yield* CharacterListboxBinding
+    const characterListbox = yield* ListboxBinding
 
     return {
       children: [characterListbox],

@@ -18,7 +18,7 @@ const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
     })),
 })
 
-export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
+export const MaybeHomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'maybeHome',
   init: {
     contextToArgs: ({ route }) =>

@@ -1,8 +1,9 @@
-import { Effect } from 'effect'
 import { FieldValidation } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { SubmitForm, ValidateEmail } from './command'
@@ -17,22 +18,21 @@ const validModel: Model = modifyFields(initialModel, {
 
 describe('update', () => {
   describe('name field', () => {
-    test('typing a long name produces a Valid field', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(initialModel),
-          message(Message.UpdatedName({ value: 'Alice' })),
-          model(model => {
-            expect(model.name._tag).toBe('Valid')
-            expect(model.name.value).toBe('Alice')
-          }),
-        ),
-      )
-    })
+    it.effect('typing a long name produces a Valid field', () =>
+      story(
+        ApplicationBlock,
+        given(initialModel),
+        message(Message.UpdatedName({ value: 'Alice' })),
+        model(model => {
+          expect(model.name._tag).toBe('Valid')
+          expect(model.name.value).toBe('Alice')
+        }),
+      ),
+    )
 
-    test('typing a short name produces an Invalid field with the min-length error', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'typing a short name produces an Invalid field with the min-length error',
+      () =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -46,13 +46,13 @@ describe('update', () => {
             }
           }),
         ),
-      )
-    })
+    )
   })
 
   describe('email field', () => {
-    test('typing a well-formed email transitions to Validating and fires ValidateEmail', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'typing a well-formed email transitions to Validating and fires ValidateEmail',
+      () =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -71,11 +71,11 @@ describe('update', () => {
             expect(model.email._tag).toBe('Valid')
           }),
         ),
-      )
-    })
+    )
 
-    test('typing a malformed email produces Invalid without an async command', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'typing a malformed email produces Invalid without an async command',
+      () =>
         story(
           ApplicationBlock,
           given(initialModel),
@@ -85,16 +85,17 @@ describe('update', () => {
             expect(model.email._tag).toBe('Invalid')
           }),
         ),
-      )
-    })
+    )
 
-    test('a validation result for a superseded email value is ignored', async () => {
-      const inFlightModel: Model = modifyFields(initialModel, {
-        email: () => FieldValidation.Validating({ value: 'alice@example.com' }),
-      })
+    it.effect(
+      'a validation result for a superseded email value is ignored',
+      () => {
+        const inFlightModel: Model = modifyFields(initialModel, {
+          email: () =>
+            FieldValidation.Validating({ value: 'alice@example.com' }),
+        })
 
-      await Effect.runPromise(
-        story(
+        return story(
           ApplicationBlock,
           given(inFlightModel),
           message(
@@ -105,17 +106,19 @@ describe('update', () => {
           model(model => {
             expect(model.email._tag).toBe('Validating')
           }),
-        ),
-      )
-    })
+        )
+      },
+    )
 
-    test('a validation result for the current email value updates the field', async () => {
-      const inFlightModel: Model = modifyFields(initialModel, {
-        email: () => FieldValidation.Validating({ value: 'taken@example.com' }),
-      })
+    it.effect(
+      'a validation result for the current email value updates the field',
+      () => {
+        const inFlightModel: Model = modifyFields(initialModel, {
+          email: () =>
+            FieldValidation.Validating({ value: 'taken@example.com' }),
+        })
 
-      await Effect.runPromise(
-        story(
+        return story(
           ApplicationBlock,
           given(inFlightModel),
           message(
@@ -129,44 +132,41 @@ describe('update', () => {
           model(model => {
             expect(model.email._tag).toBe('Invalid')
           }),
-        ),
-      )
-    })
+        )
+      },
+    )
   })
 
   describe('message text field', () => {
-    test('UpdatedMessageText stores the value as Valid', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(initialModel),
-          message(Message.UpdatedMessageText({ value: 'Hello there.' })),
-          model(model => {
-            expect(model.messageText._tag).toBe('Valid')
-            expect(model.messageText.value).toBe('Hello there.')
-          }),
-        ),
-      )
-    })
+    it.effect('UpdatedMessageText stores the value as Valid', () =>
+      story(
+        ApplicationBlock,
+        given(initialModel),
+        message(Message.UpdatedMessageText({ value: 'Hello there.' })),
+        model(model => {
+          expect(model.messageText._tag).toBe('Valid')
+          expect(model.messageText.value).toBe('Hello there.')
+        }),
+      ),
+    )
   })
 
   describe('submission', () => {
-    test('ClickedFormSubmit on an invalid form is ignored', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(initialModel),
-          message(Message.ClickedFormSubmit()),
-          Command.expectNone(),
-          model(model => {
-            expect(model.submission._tag).toBe('NotSubmitted')
-          }),
-        ),
-      )
-    })
+    it.effect('ClickedFormSubmit on an invalid form is ignored', () =>
+      story(
+        ApplicationBlock,
+        given(initialModel),
+        message(Message.ClickedFormSubmit()),
+        Command.expectNone(),
+        model(model => {
+          expect(model.submission._tag).toBe('NotSubmitted')
+        }),
+      ),
+    )
 
-    test('ClickedFormSubmit on a valid form fires SubmitForm and enters Submitting', async () => {
-      await Effect.runPromise(
+    it.effect(
+      'ClickedFormSubmit on a valid form fires SubmitForm and enters Submitting',
+      () =>
         story(
           ApplicationBlock,
           given(validModel),
@@ -186,21 +186,18 @@ describe('update', () => {
             }
           }),
         ),
-      )
-    })
+    )
 
-    test('FailedSubmitForm sets SubmitError', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(validModel),
-          message(Message.ClickedFormSubmit()),
-          Command.resolve(SubmitForm, Message.FailedSubmitForm()),
-          model(model => {
-            expect(model.submission._tag).toBe('SubmitError')
-          }),
-        ),
-      )
-    })
+    it.effect('FailedSubmitForm sets SubmitError', () =>
+      story(
+        ApplicationBlock,
+        given(validModel),
+        message(Message.ClickedFormSubmit()),
+        Command.resolve(SubmitForm, Message.FailedSubmitForm()),
+        model(model => {
+          expect(model.submission._tag).toBe('SubmitError')
+        }),
+      ),
+    )
   })
 })

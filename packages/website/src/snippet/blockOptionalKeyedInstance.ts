@@ -67,18 +67,18 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const RoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {
+const MaybeRoomInstanceBinding = ApplicationDefinition.makeBinding(RoomBlock, {
   field: 'maybeRoomInstance',
   key: 'roomId',
   childField: 'model',
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [RoomBinding],
+  bindings: [MaybeRoomInstanceBinding],
 })
 
 export const update = ApplicationComposition.makeUpdate({
   RequestedOpenRoom: (model, { roomId, title }) =>
-    RoomBinding.init({
+    MaybeRoomInstanceBinding.init({
       key: roomId,
       args: [title],
       toParentModel: room =>

@@ -1,7 +1,7 @@
 import { Effect, Layer } from 'effect'
 
 import { Home, Room } from './blocks'
-import { HomeBinding, RoomBinding } from './composition'
+import { HomeBinding, MaybeRoomInstanceBinding } from './composition'
 import { ApplicationDefinition } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
@@ -11,7 +11,7 @@ import { view } from './view'
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const home = yield* HomeBinding
-    const room = yield* RoomBinding
+    const room = yield* MaybeRoomInstanceBinding
 
     return {
       children: [home, room],

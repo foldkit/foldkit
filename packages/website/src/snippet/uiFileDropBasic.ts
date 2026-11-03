@@ -51,13 +51,13 @@ const foldFileDropOutMessage = FileDropExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const FileDropBinding = FileDropExampleDefinition.makeBinding(FileDropBlock, {
+const UploaderBinding = FileDropExampleDefinition.makeBinding(FileDropBlock, {
   field: 'uploader',
   init: { contextToArgs: () => [{ id: 'uploader' }] },
 }).withOutMessagePolicy({ fold: foldFileDropOutMessage })
 
 const FileDropExampleComposition = FileDropExampleDefinition.makeComposition({
-  bindings: [FileDropBinding],
+  bindings: [UploaderBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
@@ -92,7 +92,7 @@ const view = FileDropExampleComposition.makeView((model, h) => {
     )
 
   return h.block(
-    FileDropBinding.embedView({
+    UploaderBinding.embedView({
       slotId: 'uploader',
       model: model.uploader,
       viewInputs: {
@@ -106,7 +106,7 @@ const view = FileDropExampleComposition.makeView((model, h) => {
 
 export const ApplicationBlock = FileDropExampleDefinition.makeBlock(
   Effect.gen(function* () {
-    const fileDrop = yield* FileDropBinding
+    const fileDrop = yield* UploaderBinding
 
     return {
       children: [fileDrop],

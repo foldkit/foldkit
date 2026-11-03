@@ -4,6 +4,8 @@
 
 A Block-aware `scene(Block, init(...args), ...steps)` returns an Effect that acquires and scopes the implementation graph. Supply the feature's construction Layer through ordinary test Layers. A checked application descriptor carries its selected default Layer. Use `given(model)` for an existing Model, and pass `{ block, viewInputs, updateContext, routing }` when the view or test requires those inputs. Handler Services are unnecessary for pure Scenes because handlers do not run.
 
+In Vitest, return the Scene Effect from `it.effect` in `@effect/vitest`. The integration owns execution and test cleanup, so normal tests need no `Effect.runPromise` wrapper or manual extraction of update and view. Use `init` and explicit Command resolution for startup scenarios. A selected application descriptor supplies its own construction Layer; add test Layers for the construction dependencies the test actually needs.
+
 Use `withBlock` for an advanced fixture that needs acquired pure functions or a custom test view. Keep the Scope alive throughout the test.
 
 ## Testing Through the View

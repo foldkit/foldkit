@@ -5,7 +5,7 @@ import { PreviewBanner, Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
 import {
   ApplicationComposition,
-  HomeBinding,
+  MaybeHomeBinding,
   PlaygroundBinding,
   SnippetCopyBinding,
   SnippetDisclosureBinding,
@@ -37,7 +37,7 @@ const homeView = (
     config => h.block(SnippetCopyBinding.embedView(config)),
   )
   const content = h.block(
-    HomeBinding.embedView({
+    MaybeHomeBinding.embedView({
       slotId: 'home',
       model: homeModel,
       viewInputs: {

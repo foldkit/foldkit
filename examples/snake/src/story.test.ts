@@ -1,7 +1,8 @@
-import { Effect } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import {
   ApplicationBlock,
@@ -29,149 +30,132 @@ const notStartedModel: Model = modifyFields(playingModel, {
 
 describe('update', () => {
   describe('movement controls', () => {
-    test('arrow key updates nextDirection while playing', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(playingModel),
-          message(Message.PressedKey({ key: 'ArrowUp' })),
-          model(model => {
-            expect(model.nextDirection).toBe('Up')
-          }),
-        ),
-      )
-    })
+    it.effect('arrow key updates nextDirection while playing', () =>
+      story(
+        ApplicationBlock,
+        given(playingModel),
+        message(Message.PressedKey({ key: 'ArrowUp' })),
+        model(model => {
+          expect(model.nextDirection).toBe('Up')
+        }),
+      ),
+    )
 
-    test('WASD key updates nextDirection while playing', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(playingModel),
-          message(Message.PressedKey({ key: 'a' })),
-          model(model => {
-            expect(model.nextDirection).toBe('Left')
-          }),
-        ),
-      )
-    })
+    it.effect('WASD key updates nextDirection while playing', () =>
+      story(
+        ApplicationBlock,
+        given(playingModel),
+        message(Message.PressedKey({ key: 'a' })),
+        model(model => {
+          expect(model.nextDirection).toBe('Left')
+        }),
+      ),
+    )
 
-    test('arrow keys are ignored while the game is paused', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(modifyFields(playingModel, { gameState: () => 'Paused' })),
-          message(Message.PressedKey({ key: 'ArrowDown' })),
-          model(model => {
-            expect(model.nextDirection).toBe('Right')
-          }),
-        ),
-      )
-    })
+    it.effect('arrow keys are ignored while the game is paused', () =>
+      story(
+        ApplicationBlock,
+        given(modifyFields(playingModel, { gameState: () => 'Paused' })),
+        message(Message.PressedKey({ key: 'ArrowDown' })),
+        model(model => {
+          expect(model.nextDirection).toBe('Right')
+        }),
+      ),
+    )
   })
 
   describe('space key', () => {
-    test('SPACE starts the game from NotStarted', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(notStartedModel),
-          message(Message.PressedKey({ key: ' ' })),
-          model(model => {
-            expect(model.gameState).toBe('Playing')
-          }),
-        ),
-      )
-    })
+    it.effect('SPACE starts the game from NotStarted', () =>
+      story(
+        ApplicationBlock,
+        given(notStartedModel),
+        message(Message.PressedKey({ key: ' ' })),
+        model(model => {
+          expect(model.gameState).toBe('Playing')
+        }),
+      ),
+    )
 
-    test('SPACE pauses the game when Playing', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(playingModel),
-          message(Message.PressedKey({ key: ' ' })),
-          model(model => {
-            expect(model.gameState).toBe('Paused')
-          }),
-        ),
-      )
-    })
+    it.effect('SPACE pauses the game when Playing', () =>
+      story(
+        ApplicationBlock,
+        given(playingModel),
+        message(Message.PressedKey({ key: ' ' })),
+        model(model => {
+          expect(model.gameState).toBe('Paused')
+        }),
+      ),
+    )
 
-    test('SPACE on GameOver does nothing', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(modifyFields(playingModel, { gameState: () => 'GameOver' })),
-          message(Message.PressedKey({ key: ' ' })),
-          model(model => {
-            expect(model.gameState).toBe('GameOver')
-          }),
-        ),
-      )
-    })
+    it.effect('SPACE on GameOver does nothing', () =>
+      story(
+        ApplicationBlock,
+        given(modifyFields(playingModel, { gameState: () => 'GameOver' })),
+        message(Message.PressedKey({ key: ' ' })),
+        model(model => {
+          expect(model.gameState).toBe('GameOver')
+        }),
+      ),
+    )
   })
 
   describe('restart', () => {
-    test('R fires GenerateApplePosition and resets the snake', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(modifyFields(playingModel, { points: () => 100 })),
-          message(Message.PressedKey({ key: 'r' })),
-          model(model => {
-            expect(model.gameState).toBe('NotStarted')
-            expect(model.points).toBe(0)
-            expect(model.direction).toBe('Right')
-          }),
-          Command.expectHas(GenerateApplePosition),
-          Command.resolve(
-            GenerateApplePosition,
-            Message.CompletedGenerateApplePosition({
-              position: { x: 5, y: 5 },
-            }),
-          ),
-          model(model => {
-            expect(model.apple).toEqual({ x: 5, y: 5 })
+    it.effect('R fires GenerateApplePosition and resets the snake', () =>
+      story(
+        ApplicationBlock,
+        given(modifyFields(playingModel, { points: () => 100 })),
+        message(Message.PressedKey({ key: 'r' })),
+        model(model => {
+          expect(model.gameState).toBe('NotStarted')
+          expect(model.points).toBe(0)
+          expect(model.direction).toBe('Right')
+        }),
+        Command.expectHas(GenerateApplePosition),
+        Command.resolve(
+          GenerateApplePosition,
+          Message.CompletedGenerateApplePosition({
+            position: { x: 5, y: 5 },
           }),
         ),
-      )
-    })
+        model(model => {
+          expect(model.apple).toEqual({ x: 5, y: 5 })
+        }),
+      ),
+    )
   })
 
   describe('TickedClock', () => {
-    test('moves the snake one cell while Playing', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(playingModel),
-          message(Message.TickedClock()),
-          model(model => {
-            expect(model.snake[0]).toEqual({ x: 11, y: 10 })
-          }),
-        ),
-      )
-    })
+    it.effect('moves the snake one cell while Playing', () =>
+      story(
+        ApplicationBlock,
+        given(playingModel),
+        message(Message.TickedClock()),
+        model(model => {
+          expect(model.snake[0]).toEqual({ x: 11, y: 10 })
+        }),
+      ),
+    )
 
-    test('does nothing when not Playing', async () => {
-      await Effect.runPromise(
-        story(
-          ApplicationBlock,
-          given(notStartedModel),
-          message(Message.TickedClock()),
-          model(model => {
-            expect(model.snake).toEqual(initialSnake)
-          }),
-        ),
-      )
-    })
+    it.effect('does nothing when not Playing', () =>
+      story(
+        ApplicationBlock,
+        given(notStartedModel),
+        message(Message.TickedClock()),
+        model(model => {
+          expect(model.snake).toEqual(initialSnake)
+        }),
+      ),
+    )
 
-    test('eating an apple grows the snake, adds points, and requests a new apple', async () => {
-      const aboutToEatModel: Model = modifyFields(playingModel, {
-        apple: () => ({ x: 11, y: 10 }),
-      })
-      const lengthBefore = aboutToEatModel.snake.length
+    it.effect(
+      'eating an apple grows the snake, adds points, and requests a new apple',
+      () => {
+        const aboutToEatModel: Model = modifyFields(playingModel, {
+          apple: () => ({ x: 11, y: 10 }),
+        })
+        const lengthBefore = aboutToEatModel.snake.length
 
-      await Effect.runPromise(
-        story(
+        return story(
           ApplicationBlock,
           given(aboutToEatModel),
           message(Message.TickedClock()),
@@ -187,8 +171,8 @@ describe('update', () => {
             expect(model.points).toBe(10)
             expect(model.apple).toEqual({ x: 5, y: 5 })
           }),
-        ),
-      )
-    })
+        )
+      },
+    )
   })
 })

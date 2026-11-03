@@ -1,7 +1,9 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock } from './block'
 import { ProductsBlock } from './blocks'
@@ -21,20 +23,19 @@ const baseModel: Model = {
 }
 
 describe('view', () => {
-  test('the nav bar lists every section', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(baseModel),
-        expect(role('link', { name: 'Products' })).toExist(),
-        expect(role('link', { name: 'Cart' })).toExist(),
-        expect(role('link', { name: 'Checkout' })).toExist(),
-      ),
-    )
-  })
+  it.effect('the nav bar lists every section', () =>
+    scene(
+      ApplicationBlock,
+      given(baseModel),
+      expect(role('link', { name: 'Products' })).toExist(),
+      expect(role('link', { name: 'Cart' })).toExist(),
+      expect(role('link', { name: 'Checkout' })).toExist(),
+    ),
+  )
 
-  test('the Cart link displays the item count when the cart has items', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'the Cart link displays the item count when the cart has items',
+    () =>
       scene(
         ApplicationBlock,
         given(
@@ -47,21 +48,19 @@ describe('view', () => {
         ),
         expect(role('link', { name: 'Cart (5)' })).toExist(),
       ),
-    )
-  })
+  )
 
-  test('the Products route renders the Products heading', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(baseModel),
-        expect(role('heading', { name: 'Products' })).toExist(),
-      ),
-    )
-  })
+  it.effect('the Products route renders the Products heading', () =>
+    scene(
+      ApplicationBlock,
+      given(baseModel),
+      expect(role('heading', { name: 'Products' })).toExist(),
+    ),
+  )
 
-  test('the Cart route shows the empty state when no items have been added', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'the Cart route shows the empty state when no items have been added',
+    () =>
       scene(
         ApplicationBlock,
         given(
@@ -70,30 +69,28 @@ describe('view', () => {
         expect(role('heading', { name: 'Shopping Cart' })).toExist(),
         expect(text('Your cart is empty')).toExist(),
       ),
-    )
-  })
+  )
 
-  test('the Cart route renders items and the running total', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(
-          modifyFields(baseModel, {
-            cart: () => [{ item: apple, quantity: 2 }],
-            route: () => ApplicationRoute.Cart(),
-          }),
-        ),
-        expect(text('Apple')).toExist(),
-        expect(text('$1.50 each')).toExist(),
-        expect(text('$3.00')).toExist(),
-        expect(role('button', { name: 'Remove' })).toExist(),
-        expect(role('button', { name: 'Clear Cart' })).toExist(),
+  it.effect('the Cart route renders items and the running total', () =>
+    scene(
+      ApplicationBlock,
+      given(
+        modifyFields(baseModel, {
+          cart: () => [{ item: apple, quantity: 2 }],
+          route: () => ApplicationRoute.Cart(),
+        }),
       ),
-    )
-  })
+      expect(text('Apple')).toExist(),
+      expect(text('$1.50 each')).toExist(),
+      expect(text('$3.00')).toExist(),
+      expect(role('button', { name: 'Remove' })).toExist(),
+      expect(role('button', { name: 'Clear Cart' })).toExist(),
+    ),
+  )
 
-  test('the Checkout route shows the empty state when the cart is empty', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'the Checkout route shows the empty state when the cart is empty',
+    () =>
       scene(
         ApplicationBlock,
         given(
@@ -102,11 +99,11 @@ describe('view', () => {
         expect(role('heading', { name: 'Checkout' })).toExist(),
         expect(text('Your cart is empty')).toExist(),
       ),
-    )
-  })
+  )
 
-  test('the Checkout route renders the order summary and a Place Order button', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'the Checkout route renders the order summary and a Place Order button',
+    () =>
       scene(
         ApplicationBlock,
         given(
@@ -120,39 +117,32 @@ describe('view', () => {
         expect(text('$3.00')).toExist(),
         expect(role('button', { name: 'Place Order' })).toExist(),
       ),
-    )
-  })
+  )
 
-  test('placing an order swaps the form for the success panel', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(
-          modifyFields(baseModel, {
-            cart: () => [{ item: apple, quantity: 1 }],
-            route: () => ApplicationRoute.Checkout(),
-          }),
-        ),
-        click(role('button', { name: 'Place Order' })),
-        expect(
-          role('heading', { name: 'Order placed successfully!' }),
-        ).toExist(),
+  it.effect('placing an order swaps the form for the success panel', () =>
+    scene(
+      ApplicationBlock,
+      given(
+        modifyFields(baseModel, {
+          cart: () => [{ item: apple, quantity: 1 }],
+          route: () => ApplicationRoute.Checkout(),
+        }),
       ),
-    )
-  })
+      click(role('button', { name: 'Place Order' })),
+      expect(role('heading', { name: 'Order placed successfully!' })).toExist(),
+    ),
+  )
 
-  test('an unmatched route renders 404 NotFound', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(
-          modifyFields(baseModel, {
-            route: () => ApplicationRoute.NotFound({ path: '/oops' }),
-          }),
-        ),
-        expect(role('heading', { name: '404 - Page Not Found' })).toExist(),
-        expect(text('The path "/oops" was not found.')).toExist(),
+  it.effect('an unmatched route renders 404 NotFound', () =>
+    scene(
+      ApplicationBlock,
+      given(
+        modifyFields(baseModel, {
+          route: () => ApplicationRoute.NotFound({ path: '/oops' }),
+        }),
       ),
-    )
-  })
+      expect(role('heading', { name: '404 - Page Not Found' })).toExist(),
+      expect(text('The path "/oops" was not found.')).toExist(),
+    ),
+  )
 })

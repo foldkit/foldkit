@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 
 import { Login } from './blocks'
-import { LoginBinding } from './composition'
+import { LoginModelBinding } from './composition'
 import { LoggedOutDefinition } from './definition'
 import { init } from './init'
 import { update } from './update'
@@ -11,7 +11,7 @@ export const LoggedOutBlock = LoggedOutDefinition.contract
 
 export const layer = LoggedOutDefinition.makeBlock(
   Effect.gen(function* () {
-    const login = yield* LoginBinding
+    const login = yield* LoginModelBinding
 
     return {
       children: [login],

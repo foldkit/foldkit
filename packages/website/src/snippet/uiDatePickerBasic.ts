@@ -88,7 +88,7 @@ const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const DatePickerBinding = DatePickerExampleDefinition.makeBinding(
+const DatePickerDemoBinding = DatePickerExampleDefinition.makeBinding(
   DatePickerBlock,
   {
     field: 'datePickerDemo',
@@ -107,14 +107,14 @@ const DatePickerBinding = DatePickerExampleDefinition.makeBinding(
 
 const DatePickerExampleComposition =
   DatePickerExampleDefinition.makeComposition({
-    bindings: [DatePickerBinding],
+    bindings: [DatePickerDemoBinding],
   })
 type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
   typeof DatePickerExampleComposition
 >
 
 // Pass the flags-resolved date through the child init context. The Composition
-// supplies it to DatePickerBinding and initializes the bound Model.
+// supplies it to DatePickerDemoBinding and initializes the bound Model.
 const init = DatePickerExampleComposition.makeInit(flags => ({
   childInitContext: flags,
   model: {
@@ -320,7 +320,7 @@ const view = DatePickerExampleComposition.makeView((model, h) => {
         ['Date'],
       ),
       h.block(
-        DatePickerBinding.embedView({
+        DatePickerDemoBinding.embedView({
           slotId: 'date-picker-demo',
           model: model.datePickerDemo,
           viewInputs: {
@@ -353,7 +353,7 @@ const view = DatePickerExampleComposition.makeView((model, h) => {
 
 export const ApplicationBlock = DatePickerExampleDefinition.makeBlock(
   Effect.gen(function* () {
-    const datePicker = yield* DatePickerBinding
+    const datePicker = yield* DatePickerDemoBinding
 
     return {
       children: [datePicker],

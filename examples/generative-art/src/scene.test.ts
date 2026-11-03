@@ -1,8 +1,9 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import { click, expect, given, label, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
 
+import { it } from '@effect/vitest'
 import { SliderBlock } from '@foldkit/ui/slider'
 
 import { ApplicationBlock } from './block'
@@ -69,8 +70,9 @@ const modelWithParticles = (count: number): Model =>
   })
 
 describe('view', () => {
-  test('initial view shows Pause and Reset buttons and a zero particle counter', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'initial view shows Pause and Reset buttons and a zero particle counter',
+    () =>
       scene(
         ApplicationBlock,
         given(initialModel),
@@ -78,41 +80,34 @@ describe('view', () => {
         expect(role('button', { name: 'Reset' })).toExist(),
         expect(text('0 particles')).toExist(),
       ),
-    )
-  })
+  )
 
-  test('clicking Pause swaps the toggle to Play', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(initialModel),
-        click(role('button', { name: 'Pause' })),
-        expect(role('button', { name: 'Play' })).toExist(),
-        expect(role('button', { name: 'Pause' })).not.toExist(),
-      ),
-    )
-  })
+  it.effect('clicking Pause swaps the toggle to Play', () =>
+    scene(
+      ApplicationBlock,
+      given(initialModel),
+      click(role('button', { name: 'Pause' })),
+      expect(role('button', { name: 'Play' })).toExist(),
+      expect(role('button', { name: 'Pause' })).not.toExist(),
+    ),
+  )
 
-  test('clicking Reset empties the particles list', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(modelWithParticles(8)),
-        expect(text('8 particles')).toExist(),
-        click(role('button', { name: 'Reset' })),
-        expect(text('0 particles')).toExist(),
-      ),
-    )
-  })
+  it.effect('clicking Reset empties the particles list', () =>
+    scene(
+      ApplicationBlock,
+      given(modelWithParticles(8)),
+      expect(text('8 particles')).toExist(),
+      click(role('button', { name: 'Reset' })),
+      expect(text('0 particles')).toExist(),
+    ),
+  )
 
-  test('Turbulence and Noise scale sliders are present and labeled', async () => {
-    await Effect.runPromise(
-      scene(
-        ApplicationBlock,
-        given(initialModel),
-        expect(label('Turbulence')).toExist(),
-        expect(label('Noise scale')).toExist(),
-      ),
-    )
-  })
+  it.effect('Turbulence and Noise scale sliders are present and labeled', () =>
+    scene(
+      ApplicationBlock,
+      given(initialModel),
+      expect(label('Turbulence')).toExist(),
+      expect(label('Noise scale')).toExist(),
+    ),
+  )
 })
