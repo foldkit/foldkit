@@ -141,6 +141,17 @@ if (false) {
 }
 
 describe('Command.define defers its handler body', () => {
+  it('rejects obsolete execute implementations before constructing a Command', () => {
+    const config = {
+      messages: [Message.CompletedDoWork],
+      execute: () => Effect.succeed(Message.CompletedDoWork()),
+    }
+
+    expect(() =>
+      Reflect.apply(Command.define, undefined, ['DoWork', config]),
+    ).toThrow(/Command\.define\("DoWork"\).*execute.*handler.*toLayer/)
+  })
+
   it('supports heterogeneous declared Message results', () => {
     const CompleteTask = Command.define('CompleteTask', {
       args: {
