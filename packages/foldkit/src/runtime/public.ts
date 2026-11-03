@@ -23,6 +23,7 @@ export type {
   RoutingApplicationInit,
   ElementInit,
   EmbedHandle,
+  EmbedHydrationOptions,
   HydrateOptions,
   InboundPortHandle,
   InboundPortHandles,

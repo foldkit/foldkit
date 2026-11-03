@@ -59,7 +59,11 @@ export type {
 
 export { embed, hydrate, run } from './start.js'
 
-export type { HydrateOptions, RunOptions } from './start.js'
+export type {
+  EmbedHydrationOptions,
+  HydrateOptions,
+  RunOptions,
+} from './start.js'
 
 export type {
   ViewTransitionConfig,

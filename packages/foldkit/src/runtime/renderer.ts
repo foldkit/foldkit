@@ -13,7 +13,10 @@ import {
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
 import { __hydrateVNode } from '../hydrate.js'
-import { FOLDKIT_APP_ATTRIBUTE } from '../hydrationMarker.js'
+import {
+  FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_EMBED_ATTRIBUTE,
+} from '../hydrationMarker.js'
 import { MountRuntime, MountTracker } from '../mount/index.js'
 import type { CommitNotifier } from '../render/commit.js'
 import {
@@ -442,6 +445,7 @@ export const makeRenderer = <Model, Message>({
             // container (a dispose-then-embed remount) from re-detecting
             // this now-consumed root as hydratable.
             hydrationRoot.removeAttribute(FOLDKIT_APP_ATTRIBUTE)
+            hydrationRoot.removeAttribute(FOLDKIT_EMBED_ATTRIBUTE)
             // An empty id reaches the adoption step's own check as a
             // value that matches nothing. Boot already refused a
             // hydration without an id, so this stands in only for a
