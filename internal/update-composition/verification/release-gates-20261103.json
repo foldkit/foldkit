@@ -1,0 +1,366 @@
+{
+  "checkedAt": "2026-11-03T08:31:09Z",
+  "baseCommit": "8fc55dd925e4e5803ab8c9e9b4fb74a3ff7afbef",
+  "status": "passed",
+  "scope": "Canonical current API plus test/declaration/import fixes and SSR request-boundary repair; isolated unified Block experiments excluded",
+  "sourcePaths": [
+    {
+      "path": "packages/foldkit/src/block/outMessageForward.test.ts",
+      "sha256": "769b1e78c49d06905896dd165cb1ecb8652d23ff7b08bc1416c50e43dd182253"
+    },
+    {
+      "path": "packages/ui/declaration-tests/generic-composition.accepted.ts",
+      "sha256": "dcc3b17765dca9ba7832c0068387b5d5adfcc90a15787d90525bfc9fa3ecb3cb"
+    },
+    {
+      "path": "packages/ui/declaration-tests/generic-composition.consume.ts",
+      "sha256": "4bbbced079a23a677ec3f841024e55c36cfcc83baa83c204f7bdbdfd2edbbd62"
+    },
+    {
+      "path": "packages/ui/declaration-tests/generic-composition.rejected.ts",
+      "sha256": "1563f4688e4f780f9b8ca70de971b794bc1c0f23d87a720df242559112178e6c"
+    },
+    {
+      "path": "packages/vite-plugin-foldkit/src/ssr.ts",
+      "sha256": "9c1628dacd7b613adc79f8d80fc16a692c6b140fd2c340eab3cfa1a3e9ac1a20"
+    },
+    {
+      "path": "packages/vite-plugin-foldkit/test/buildDevTools.test.ts",
+      "sha256": "a28b2f56e906160d3d85ed4c0263d56ca5e16b031b5f44ff14471795c7bfae86"
+    },
+    {
+      "path": "packages/vite-plugin-foldkit/test/serverModuleReevaluation.test.ts",
+      "sha256": "3f3b6a55c48f9bbf18026ef4a4467b84d59023072bebd4eeb7ac381c9fcc2ef3"
+    },
+    {
+      "path": "packages/website/src/blocks/exampleDetail/block.ts",
+      "sha256": "6e7a88f85a45be5abe47fc49864574e0919cd8623929aa34355277de2d4e1dd1"
+    },
+    {
+      "path": "packages/website/src/blocks/playground/block.ts",
+      "sha256": "5a853c4f01dbc55f475ba91c4a8071dfbebc1804b9762f5980957636c5f09a7b"
+    }
+  ],
+  "repositoryTests": {
+    "command": "pnpm test",
+    "exitCode": 0,
+    "workspaces": 44,
+    "passed": 9069,
+    "skipped": 15,
+    "rows": [
+      {
+        "workspace": "packages/create-foldkit-app",
+        "passed": 18,
+        "skipped": 0,
+        "total": 18
+      },
+      {
+        "workspace": "packages/oxlint-plugin-foldkit",
+        "passed": 798,
+        "skipped": 0,
+        "total": 798
+      },
+      {
+        "workspace": "packages/foldkit",
+        "passed": 4094,
+        "skipped": 1,
+        "total": 4095
+      },
+      {
+        "workspace": "packages/markdown",
+        "passed": 58,
+        "skipped": 0,
+        "total": 58
+      },
+      {
+        "workspace": "packages/node",
+        "passed": 32,
+        "skipped": 0,
+        "total": 32
+      },
+      {
+        "workspace": "packages/vite-plugin-foldkit",
+        "passed": 387,
+        "skipped": 4,
+        "total": 391
+      },
+      {
+        "workspace": "packages/ui",
+        "passed": 1357,
+        "skipped": 0,
+        "total": 1357
+      },
+      {
+        "workspace": "packages/devtools-mcp",
+        "passed": 101,
+        "skipped": 10,
+        "total": 111
+      },
+      {
+        "workspace": "packages/devtools",
+        "passed": 6,
+        "skipped": 0,
+        "total": 6
+      },
+      {
+        "workspace": "examples/auth",
+        "passed": 13,
+        "skipped": 0,
+        "total": 13
+      },
+      {
+        "workspace": "examples/canvas-art",
+        "passed": 10,
+        "skipped": 0,
+        "total": 10
+      },
+      {
+        "workspace": "examples/api-cache-query",
+        "passed": 16,
+        "skipped": 0,
+        "total": 16
+      },
+      {
+        "workspace": "examples/counter",
+        "passed": 10,
+        "skipped": 0,
+        "total": 10
+      },
+      {
+        "workspace": "examples/api-cache",
+        "passed": 19,
+        "skipped": 0,
+        "total": 19
+      },
+      {
+        "workspace": "examples/counters",
+        "passed": 13,
+        "skipped": 0,
+        "total": 13
+      },
+      {
+        "workspace": "examples/crash-view",
+        "passed": 2,
+        "skipped": 0,
+        "total": 2
+      },
+      {
+        "workspace": "examples/embedding",
+        "passed": 6,
+        "skipped": 0,
+        "total": 6
+      },
+      {
+        "workspace": "examples/form",
+        "passed": 19,
+        "skipped": 0,
+        "total": 19
+      },
+      {
+        "workspace": "examples/charting",
+        "passed": 13,
+        "skipped": 0,
+        "total": 13
+      },
+      {
+        "workspace": "examples/interrupting-commands",
+        "passed": 11,
+        "skipped": 0,
+        "total": 11
+      },
+      {
+        "workspace": "examples/generative-art",
+        "passed": 10,
+        "skipped": 0,
+        "total": 10
+      },
+      {
+        "workspace": "examples/kanban",
+        "passed": 22,
+        "skipped": 0,
+        "total": 22
+      },
+      {
+        "workspace": "examples/job-application",
+        "passed": 68,
+        "skipped": 0,
+        "total": 68
+      },
+      {
+        "workspace": "examples/managed-resource-layer",
+        "passed": 13,
+        "skipped": 0,
+        "total": 13
+      },
+      {
+        "workspace": "examples/map",
+        "passed": 20,
+        "skipped": 0,
+        "total": 20
+      },
+      {
+        "workspace": "examples/personal-blog",
+        "passed": 15,
+        "skipped": 0,
+        "total": 15
+      },
+      {
+        "workspace": "examples/pixel-art",
+        "passed": 38,
+        "skipped": 0,
+        "total": 38
+      },
+      {
+        "workspace": "examples/query-sync",
+        "passed": 12,
+        "skipped": 0,
+        "total": 12
+      },
+      {
+        "workspace": "examples/route-transitions",
+        "passed": 10,
+        "skipped": 0,
+        "total": 10
+      },
+      {
+        "workspace": "examples/routing",
+        "passed": 30,
+        "skipped": 0,
+        "total": 30
+      },
+      {
+        "workspace": "examples/shopping-cart",
+        "passed": 27,
+        "skipped": 0,
+        "total": 27
+      },
+      {
+        "workspace": "examples/slow-warnings",
+        "passed": 10,
+        "skipped": 0,
+        "total": 10
+      },
+      {
+        "workspace": "examples/snake",
+        "passed": 16,
+        "skipped": 0,
+        "total": 16
+      },
+      {
+        "workspace": "examples/ssr",
+        "passed": 2,
+        "skipped": 0,
+        "total": 2
+      },
+      {
+        "workspace": "examples/stopwatch",
+        "passed": 13,
+        "skipped": 0,
+        "total": 13
+      },
+      {
+        "workspace": "examples/todo",
+        "passed": 24,
+        "skipped": 0,
+        "total": 24
+      },
+      {
+        "workspace": "examples/state-machine",
+        "passed": 10,
+        "skipped": 0,
+        "total": 10
+      },
+      {
+        "workspace": "examples/weather",
+        "passed": 8,
+        "skipped": 0,
+        "total": 8
+      },
+      {
+        "workspace": "examples/view-transitions",
+        "passed": 10,
+        "skipped": 0,
+        "total": 10
+      },
+      {
+        "workspace": "examples/web-components",
+        "passed": 12,
+        "skipped": 0,
+        "total": 12
+      },
+      {
+        "workspace": "examples/ui-showcase",
+        "passed": 14,
+        "skipped": 0,
+        "total": 14
+      },
+      {
+        "workspace": "examples/websocket-chat",
+        "passed": 20,
+        "skipped": 0,
+        "total": 20
+      },
+      {
+        "workspace": "examples/workspace",
+        "passed": 153,
+        "skipped": 0,
+        "total": 153
+      },
+      {
+        "workspace": "packages/website",
+        "passed": 1529,
+        "skipped": 0,
+        "total": 1529
+      }
+    ]
+  },
+  "typingGame": {
+    "command": "pnpm --filter @typing-game/client test",
+    "exitCode": 0,
+    "passed": 30
+  },
+  "totalPassedIncludingTypingGame": 9099,
+  "websiteBrowser": {
+    "command": "bash scripts/run-website-e2e.sh",
+    "exitCode": 0,
+    "passed": 22,
+    "port": 39470,
+    "serverClosed": true
+  },
+  "rootLint": {
+    "command": "oxlint --disable-nested-config",
+    "exitCode": 0
+  },
+  "earlierTypeGates": {
+    "log": "/private/tmp/foldkit-input-release-types-final-20261103.log",
+    "scope": "Core/UI emitted consumers, unchanged compiler ceilings and all recursive workspace types passed; later SSR repair separately passes package source/test typecheck",
+    "unchangedCompilerCeilings": 7
+  },
+  "packed": "internal/update-composition/packed-release/receipt-release-gate-20261103.json",
+  "rendering": "internal/update-composition/rendering-inmessage-20261103/analysis.json",
+  "logs": [
+    {
+      "path": "/private/tmp/foldkit-final-all-tests-20261103.log",
+      "sha256": "b497e13fb5e2d132ec2cc26c762d12b141ea7f08456be1bb26b548309c492e09"
+    },
+    {
+      "path": "/private/tmp/foldkit-final-typing-game-tests-20261103.log",
+      "sha256": "8ec22d461b34efeba4374ef608a7c9d7a90ed05ff2c826f8e8d5b7409f9d96e4"
+    },
+    {
+      "path": "/private/tmp/foldkit-final-website-e2e-20261103.log",
+      "sha256": "2ad0455e9ba92af7027cb92a9b4e2c1849deba8ee1c629f4c62dcefaf50e6e83"
+    },
+    {
+      "path": "/private/tmp/foldkit-final-vite-restored-20261103.log",
+      "sha256": "ef4a46d18c5498039add767bcba21c11ec32cde0cf9ea0274e7d5d35944c8e4a"
+    },
+    {
+      "path": "/private/tmp/foldkit-final-root-lint-20261103.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "finalEnforcement": "Exact-commit independent review and the unchanged mandatory pre-push hook are required before pushing; this receipt does not claim either has happened",
+  "publication": false,
+  "daybreakTransfer": false
+}

@@ -53,7 +53,18 @@ The Todo app uses `makeUpdate.except` and `compose` to describe persistence once
 instead of returning the same Command from six handlers. Its save completion is
 excluded. Other ordinary records remain ordinary records.
 
-## Current whole-preview comparison with actual main
+## November 3 whole-preview comparison with actual main
+
+The [InMessage checkpoint report](rendering-inmessage-20261103/README.md)
+records a new frozen 32-sample batch after the unchanged-child identity repair
+and canonical InMessage update migration. Main and candidate medians are
+802.0 / 638.7 ms for the naive workload (−20.4%) and 235.4 / 265.2 ms for the
+optimized workload (+12.7%). Gzip increases by 31,744 and 32,283 bytes. All
+preflights and counters pass, and the optimized candidate is slower in all eight
+paired rounds. The report retains exact artifacts and limitations. It does not
+establish a general naive speedup or isolate a regression cause.
+
+## November 2 whole-preview comparison with actual main
 
 This section retains the frozen November 2 benchmark checkpoint. The later
 unchanged-child identity repair and canonical InMessage update migration alter

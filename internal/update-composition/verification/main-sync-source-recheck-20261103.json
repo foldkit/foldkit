@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "sourceDirectory": "/private/tmp/foldkit-preview-main-sync-20261029",
+  "sourceGitMetadataPresent": false,
+  "savedPatchSha256": "69b04162ccacca083ac6ca4e6e1440b8f53bf82bf068c70af6dff0f756f74b02",
+  "files": [
+    {
+      "file": "examples/job-application/src/command.ts",
+      "sha256": "bd90ef8d5f5d0b1475995f2c7bb8cbe66f8d4e9297f92046fe3ff04e204a364f",
+      "unchanged": true
+    },
+    {
+      "file": "examples/job-application/src/composition.ts",
+      "sha256": "aad5fff5cb580b165b9f9661c4a16bdfd3c32156676e622b171334ab6c269a4f",
+      "unchanged": true
+    },
+    {
+      "file": "examples/job-application/src/definition.ts",
+      "sha256": "44e895d1cddcbf6d77fc2702826537819dc67cb5feacbe82214ff651e9a1b389",
+      "unchanged": true
+    },
+    {
+      "file": "examples/job-application/src/update.ts",
+      "sha256": "cf2dd469b473f2c47e4f99856fb3b505f0b57be824eecb3c6cb5ca5fd1da4ab7",
+      "unchanged": true
+    },
+    {
+      "file": "examples/workspace/src/composition.ts",
+      "sha256": "e00d6c7fea71456fdb4c9b91d94a566bfb76000c43d91a0120b696958f8a069d",
+      "unchanged": true
+    }
+  ],
+  "scratch": "/private/tmp/foldkit-main-sync-source-recheck-IEMp8i"
+}

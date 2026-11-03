@@ -1,0 +1,116 @@
+{
+  "checkedAt": "2026-11-03T07:11:09.083Z",
+  "status": "passed",
+  "sourceHead": "8fc55dd925e4e5803ab8c9e9b4fb74a3ff7afbef",
+  "sourceScope": "Canonical InMessage migration and scoped runner adoption. Later unified Block/direct Layer experiments remain isolated.",
+  "changesets": 217,
+  "planSha256": "33fa24c6c57632ffc8b9557bf5f0cbbaa6f11da484457c9675d3a200b42b3f0e",
+  "driverSha256": "a86d02a2817bbf5c03955408671d28a9d35a4a6c7cbd08c6ec61536f1ab4e56c",
+  "command": "node scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix --keep-consumer",
+  "staging": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-input-release-rehearsal-b5XKn5",
+  "retainedConsumer": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-ssr-RdqnqZ",
+  "log": "/private/tmp/foldkit-input-versioned-packed-gate-20261103.log",
+  "logSha256": "74c6b29fde4469c7bbe464794d0b1a5e7b88555f5ceb5556238cfb1e4c94d9b8",
+  "node": "v22.22.3",
+  "effectVersion": "4.1.0",
+  "platformVersion": "4.1.0",
+  "packages": [
+    {
+      "name": "foldkit",
+      "sourceVersion": "0.170.0",
+      "plannedVersion": "0.171.0",
+      "sourceManifestSha256": "9d3b90a2ee482a5cbbde5cbd696ad67b7cbb2940fd69142fc67d26cab7f94d48",
+      "distributionFiles": 1053,
+      "distributionSha256": "9535fc99e777b4c4d9871990955ffc88070dda3421a95f1feebae574324982dc",
+      "stagedManifestSha256": "0679321a3bc1b772131e062545bf2ae41d118eff737d8158628223fd6a9e846b",
+      "inputTarballSha256": "6c17f3b6489d1b59ab360be6fb238cf49647d799bb6761b66ace208abf3144d7",
+      "peersUnchanged": true
+    },
+    {
+      "name": "@foldkit/ui",
+      "sourceVersion": "0.170.0",
+      "plannedVersion": "0.171.0",
+      "sourceManifestSha256": "77978dd728e86d9fae609ab3b8f33bb16592404dc0969deb6beca73865f8bbc7",
+      "distributionFiles": 450,
+      "distributionSha256": "c53d000c4af58e4835552816a54cb894d166ee5b7449f6890045671f1f55214e",
+      "stagedManifestSha256": "9dc70e30c91c2fa48e030cf0fd9f9c1b80b079718124119d127f01e972843fe5",
+      "inputTarballSha256": "8b3cabd7e923d0d802cb06e71c7c0296d62a5f49cd0b97a44438b9eb54e95f47",
+      "peersUnchanged": true
+    },
+    {
+      "name": "@foldkit/devtools",
+      "sourceVersion": "0.170.0",
+      "plannedVersion": "0.171.0",
+      "sourceManifestSha256": "6b48097d096c7fa408c5e7d9eace3fc28dfaf537a0b996fc7ca30ffb003c0ed7",
+      "distributionFiles": 12,
+      "distributionSha256": "1e77dd785a2f505887383fb56e5e74a82e8dc3632b64a48206fd82a069312546",
+      "stagedManifestSha256": "86d198e793285cf5b8a1437676c51cca095fbaf312f5bb433ee236cc6c7a1fd3",
+      "inputTarballSha256": "abe416bfdac2c3450d101289832853dafcd49baeeb0f4e122d08a2ba23666d6b",
+      "peersUnchanged": true
+    },
+    {
+      "name": "@foldkit/devtools-mcp",
+      "sourceVersion": "0.26.0",
+      "plannedVersion": "0.27.0",
+      "sourceManifestSha256": "a6ceef6538fd08e610e08dafd318fe993f61754b60543918d719486b6e4506e9",
+      "distributionFiles": 24,
+      "distributionSha256": "ec7d341ec90cae3dffb84ca747fb23927e47e47e7b6d1e696af639238a3cb5cd",
+      "stagedManifestSha256": "0eede5386f699b9296280c7f60f912c7360fbbc7e89d329dd33a9093f317630d",
+      "inputTarballSha256": "d25751ce9090cd738ba8f28617e8eda815353b3316d3342370ad18786500d001",
+      "peersUnchanged": true
+    },
+    {
+      "name": "@foldkit/markdown",
+      "sourceVersion": "0.15.0",
+      "plannedVersion": "0.15.1",
+      "sourceManifestSha256": "cc76fc406b3ec4f607f5cc6388af8b2d5c0bbfe2092151d55cb18d1ab4d9e034",
+      "distributionFiles": 36,
+      "distributionSha256": "ed41c4aab7d6a4205bd7144b4f544c6722881cdd0b811fe5f571e49be7da9f8c",
+      "stagedManifestSha256": "03da0f81d7d40db7b01223ea81fadb239fef88b1a8b0766dd6ca25625eb90860",
+      "inputTarballSha256": "330bb75049c4eebe2d4dd1b5e66d11dbe3bb5e0e23c40260749d83d0bd40065b",
+      "peersUnchanged": true
+    },
+    {
+      "name": "@foldkit/node",
+      "sourceVersion": "0.2.0",
+      "plannedVersion": "0.2.1",
+      "sourceManifestSha256": "b758e8125477fa1687138190b9c2f2bdebc8271e55db1a6f12ce753f2452584f",
+      "distributionFiles": 6,
+      "distributionSha256": "0bd0502fb3d3f64d821f71efabcfadec42156f2bd0d612c1b4be098faf2d1bff",
+      "stagedManifestSha256": "16bf8bb6577b05e52edb6e93be91bf035f7f8001c54b0fb05d9cf6a5fb685919",
+      "inputTarballSha256": "c6e6741cf095c1211f5add97879e27e16ff081ca1b5fb175757633193fda1458",
+      "peersUnchanged": true
+    },
+    {
+      "name": "@foldkit/vite-plugin",
+      "sourceVersion": "0.29.0",
+      "plannedVersion": "0.29.1",
+      "sourceManifestSha256": "54c0a539c7d63e5b43278cf5748a73059afb06c441c3fec5e7c51fddc6871084",
+      "distributionFiles": 36,
+      "distributionSha256": "fa4d034a95f885b47b248b61100fe4ad0289d05a177651a328e755923f35a041",
+      "stagedManifestSha256": "35cb1a9dff9364509b6341d21c5a5dd4c7299942167e1ecc794a5a31315962e6",
+      "inputTarballSha256": "fb1a8ebc0d78f483328b627fe5a459e3763dea5978037613d5d3b388f05fdbde",
+      "peersUnchanged": true
+    }
+  ],
+  "verification": [
+    "Strict npm install with unchanged peer declarations and real pending release versions",
+    "One physical Effect runtime; public entrypoints, source-free types and inferred Programs",
+    "Packed development relay and two production client/SSR deployments",
+    "Default Chromium adoption, malformed handoff containment and lifecycle checks",
+    "Existing critical Firefox and WebKit server-rendering matrix"
+  ],
+  "earlierAttempts": [
+    {
+      "log": "/private/tmp/foldkit-packed-input-checkpoint-20261103.log",
+      "result": "Packing failed at the sandbox-protected default npm cache; retried using task-local cache."
+    },
+    {
+      "log": "/private/tmp/foldkit-packed-input-checkpoint-network-20261103.log",
+      "result": "Raw development manifests could not strictly install because UI requires the pending core release. The successful isolated rehearsal uses the real Changesets plan; no peer ranges or installer strictness were changed."
+    }
+  ],
+  "activeManifestsAndDistributionsUnchanged": true,
+  "publication": false,
+  "daybreak": false
+}

@@ -6,9 +6,9 @@ import { FileTabsBinding } from './composition'
 import { PlaygroundDefinition } from './definition'
 import {
   EffectsLayer,
+  inMessageUpdate,
   init,
   managedResources,
-  inMessageUpdate,
   update,
   view,
 } from './playground'

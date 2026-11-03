@@ -1,0 +1,46 @@
+fatal: not a git repository (or any of the parent directories): .git
+harness revision: unknown
+chromium version: 153.0.8010.12
+[round 1/8] foldkit-main-a471adb-20261102: 761.9ms
+[round 1/8] foldkit-candidate-current: 656.8ms
+[round 1/8] foldkit-main-a471adb-optimised-20261102: 238.9ms
+[round 1/8] foldkit-candidate-current-optimised: 258.8ms
+[round 2/8] foldkit-candidate-current: 627.4ms
+[round 2/8] foldkit-main-a471adb-optimised-20261102: 165.2ms
+[round 2/8] foldkit-candidate-current-optimised: 269.1ms
+[round 2/8] foldkit-main-a471adb-20261102: 813.8ms
+[round 3/8] foldkit-main-a471adb-optimised-20261102: 234.0ms
+[round 3/8] foldkit-candidate-current-optimised: 268.5ms
+[round 3/8] foldkit-main-a471adb-20261102: 854.4ms
+[round 3/8] foldkit-candidate-current: 664.0ms
+[round 4/8] foldkit-candidate-current-optimised: 263.9ms
+[round 4/8] foldkit-main-a471adb-20261102: 795.8ms
+[round 4/8] foldkit-candidate-current: 676.3ms
+[round 4/8] foldkit-main-a471adb-optimised-20261102: 246.1ms
+[round 5/8] foldkit-main-a471adb-20261102: 811.4ms
+[round 5/8] foldkit-candidate-current: 616.3ms
+[round 5/8] foldkit-main-a471adb-optimised-20261102: 240.9ms
+[round 5/8] foldkit-candidate-current-optimised: 277.6ms
+[round 6/8] foldkit-candidate-current: 630.1ms
+[round 6/8] foldkit-main-a471adb-optimised-20261102: 236.9ms
+[round 6/8] foldkit-candidate-current-optimised: 248.5ms
+[round 6/8] foldkit-main-a471adb-20261102: 397.5ms
+[round 7/8] foldkit-main-a471adb-optimised-20261102: 170.4ms
+[round 7/8] foldkit-candidate-current-optimised: 233.5ms
+[round 7/8] foldkit-main-a471adb-20261102: 436.3ms
+[round 7/8] foldkit-candidate-current: 647.4ms
+[round 8/8] foldkit-candidate-current-optimised: 266.4ms
+[round 8/8] foldkit-main-a471adb-20261102: 808.3ms
+[round 8/8] foldkit-candidate-current: 580.7ms
+[round 8/8] foldkit-main-a471adb-optimised-20261102: 157.0ms
+foldkit-main-a471adb-20261102 {"crossOriginIsolated":true,"total":802,"sync":33.5,"timeout":0,"animationFrame":768.1,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":3.41}
+foldkit-candidate-current {"crossOriginIsolated":true,"total":638.7,"sync":43.6,"timeout":0,"animationFrame":595.1,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":2.71}
+foldkit-main-a471adb-optimised-20261102 {"crossOriginIsolated":true,"total":235.4,"sync":39.9,"timeout":0,"animationFrame":195.5,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1}
+foldkit-candidate-current-optimised {"crossOriginIsolated":true,"total":265.2,"sync":49.3,"timeout":0,"animationFrame":215.7,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.13}
+
+=== medians (ms) ===
+implementation                            total   relative       sync    timeout animationFrame  microtask    promise
+foldkit-main-a471adb-20261102               802      3.41x       33.5          0      768.1          0          0
+foldkit-candidate-current                 638.7      2.71x       43.6          0      595.1          0          0
+foldkit-main-a471adb-optimised-20261102      235.4      1.00x       39.9          0      195.5          0          0
+foldkit-candidate-current-optimised       265.2      1.13x       49.3          0      215.7          0          0

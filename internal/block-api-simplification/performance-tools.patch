@@ -1,0 +1,3384 @@
+diff --git a/internal/direct-block-performance/README.md b/internal/direct-block-performance/README.md
+new file mode 100644
+index 0000000000..81b9578208
+--- /dev/null
++++ b/internal/direct-block-performance/README.md
+@@ -0,0 +1,54 @@
++# Direct Block compiler workload adaptation
++
++This bounded probe copies the existing deep, wide and Workspace compiler fixtures. It does not edit `packages/foldkit/type-performance`, its generator, the normal measurement script, or any ceiling.
++
++Run after the prototype owner freezes its built package:
++
++```sh
++NODE_DISABLE_COMPILE_CACHE=1 node internal/direct-block-performance/verify.mjs
++```
++
++The verifier snapshots the prototype's built package into a temporary directory, creates original and adapted fixture copies, and runs the unchanged normal checker for `deep-composition-8`, `wide-composition-100`, `workspace-composition-4` and `workspace-composition-8`. It retains source and declaration hashes, diagnostics, the complete generated sources, explicit contract additions and a receipt. No framework source or live package output is rebuilt. Its private compiler wrapper points at the same installed pinned compiler; no package install is performed.
++
++The adaptation uses `Block.make`, explicit constructor Binding yields and returned `children`, ordinary `makeLayer` outputs, and `Layer.provide` for the child implementations. The original warmup and baseline remain unchanged. Existing constructor body properties and domain variable initializers are compared as TypeScript ASTs, and every original `Expect` assertion remains.
++
++Independent contracts require explicit unique keys, Init tuples, view kinds, message-free facts, operations and ordinary Service bounds. The generated receipt lists each addition. A local `Schema.Never` with dispatching children is not message-free. Operation sources move once from the native completion body to the declaration; their ASTs are compared independently. Control's `selectIssue` operation additionally declares its existing exact `SelectedIssue` OutMessage channel. Schema, Command, Mount, view, child storage, policy and handler bodies are retained.
++
++A passive Block has no selected `EffectsLayer` property. The existing lazy handler Service/Error assertions therefore project the same exact channels from the selected Layer through the prototype's named internal `SelectedLayerFacts` type. This is measurement-only introspection, not proposed application syntax. Model, encoded/Codec, Mount and Program required/provided-Service assertions retain their original checks. The resulting four workloads still contain respectively 10/2/7/11 Blocks and 9/100/16/32 Bindings; Workspace retains 4/8 Mounts.
++
++The results measure compiler work through this prototype's declarations, including coexistence with the original native API. They do not measure latency, prove lifecycle behavior, or establish the cost of a future package surface that removes the legacy API.
++
++## Measured result
++
++All adapted sources compile with the original assertions. All four adapted workloads exceed the unchanged ceilings. The current prototype is not compiler-budget ready.
++
++| Workload    | Original instantiations / Types | Unified Block instantiations / Types |   Unchanged ceiling |
++| ----------- | ------------------------------: | -----------------------------------: | ------------------: |
++| Deep 8      |                659,046 / 52,666 |                  3,053,157 / 424,199 |  1,152,618 / 55,843 |
++| Wide 100    |              1,392,438 / 80,565 |                  5,337,430 / 442,595 | 3,132,298 / 216,662 |
++| Workspace 4 |             2,683,623 / 234,232 |               10,685,646 / 1,196,822 | 2,642,699 / 229,173 |
++| Workspace 8 |             4,451,559 / 307,857 |               12,048,102 / 1,028,932 | 4,515,010 / 299,721 |
++
++Original deep/wide pass. Original Workspace 4 exceeds both ceilings; Workspace 8 exceeds Types. These original sources are unchanged, so their failures also need resolution.
++
++The final primary receipt is `/private/tmp/foldkit-direct-block-performance-AttDXW/receipt.json`; the concise durable summary is [results.json](./results.json). It records source/config/ceiling hashes, the copied declaration snapshot, the exact pinned TypeScript 7.1.0-beta checker and body/domain/assertion preservation counts. Transformation uses the existing TypeScript 6.0.2 parser API; measurements use the unchanged pinned checker.
++
++### Bounded controls
++
++These operate on separate copies within a completed snapshot, with no production changes. Run each once per snapshot:
++
++```sh
++node internal/direct-block-performance/compact-control.mjs SNAPSHOT_DIRECTORY
++node internal/direct-block-performance/constructor-control.mjs SNAPSHOT_DIRECTORY
++node internal/direct-block-performance/base-constructor-control.mjs SNAPSHOT_DIRECTORY
++node internal/direct-block-performance/named-layer-control.mjs SNAPSHOT_DIRECTORY
++```
++
++The controls retain every source assertion. A nonzero normal-checker status indicates a ceiling failure when a metrics row is present; `diagnosticFailure` instead means the source did not compile.
++
++- **Measurement witness:** replacing the deep workload's internal facts import with public `Block.Plan` output extraction costs 3,053,281 instantiations / 424,200 Types. The witness is not the dominant cost.
++- **Compact Binding inputs:** an identity-returning generic `Pick` retains owner, Schemas, get, and both descriptor/constructor evidence symbols while removing authoring helpers. Deep: 3,058,319 / 424,244; wide: 5,351,345 / 442,624; Workspace 4: 10,711,163 / 1,196,912; Workspace 8: 12,098,458 / 1,029,030. This does not recover cost and is not proposed consumer syntax.
++- **Existing contract constructor API:** the matched deep workload uses keyed `makeDefinition`, passive `.contract` Bindings, and the identical `.makeBlock` constructor followed by `.provide(child.layer)`. The prototype's modified `MakeBlock` return leaves child `ContractGraph` requirements unresolved. Restoring only its pre-prototype `DeclaredFacts` return in a copied declaration makes the unchanged Clock/fully-provided assertions pass: 1,835,462 / 251,776, still above budget. The increase from native to unified syntax therefore cannot all be attributed to raw Layer completion.
++- **Named Layer return:** replacing only the `MakeLayer` return and its helper with the prototype owner's named interface yields deep 3,050,348 / 424,289. This small change does not recover the ceiling.
++
++The named-interface control reads the owner's current source declarations, so it requires that experimental source change to be present. Each receipt contains the exact copied declaration edits. The existing-constructor control reads the worktree's base `HEAD` return Facts rather than inventing a weaker return. Validation remains enabled.
+diff --git a/internal/direct-block-performance/adapt.mjs b/internal/direct-block-performance/adapt.mjs
+new file mode 100644
+index 0000000000..4beff7a970
+--- /dev/null
++++ b/internal/direct-block-performance/adapt.mjs
+@@ -0,0 +1,464 @@
++import assert from 'node:assert/strict'
++import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
++import { createRequire } from 'node:module'
++import { join, resolve } from 'node:path'
++
++const modules = realpathSync(
++  new URL('../../packages/foldkit/node_modules', import.meta.url),
++)
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++
++const printer = ts.createPrinter({ removeComments: true })
++const canonical = node =>
++  printer.printNode(ts.EmitHint.Unspecified, node, node.getSourceFile())
++const member = (node, name) =>
++  ts.isPropertyAccessExpression(node) && node.name.text === name
++const property = (object, name) =>
++  object.properties.find(entry => entry.name?.getText() === name)
++const expression = entry =>
++  ts.isShorthandPropertyAssignment(entry) ? entry.name : entry.initializer
++const withoutBlock = name => (name.endsWith('Block') ? name.slice(0, -5) : name)
++const layerName = name => `${withoutBlock(name)}Layer`
++
++/** Creates a direct-Block copy while preserving every original authored body property. */
++export const adapt = (source, file) => {
++  const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++  const declarations = new Map()
++  for (const statement of parsed.statements) {
++    if (!ts.isVariableStatement(statement)) {
++      continue
++    }
++    for (const declaration of statement.declarationList.declarations) {
++      if (ts.isIdentifier(declaration.name)) {
++        declarations.set(declaration.name.text, { declaration, statement })
++      }
++    }
++  }
++  const definitions = new Map()
++  const compositions = new Map()
++  for (const [name, entry] of declarations) {
++    const init = entry.declaration.initializer
++    if (!init || !ts.isCallExpression(init)) {
++      continue
++    }
++    if (member(init.expression, 'makeDefinition')) {
++      definitions.set(name, { ...entry, call: init })
++    }
++    if (member(init.expression, 'makeComposition')) {
++      const owner = init.expression.expression
++      if (ts.isIdentifier(owner)) {
++        compositions.set(name, { ...entry, call: init, definition: owner.text })
++      } else if (
++        ts.isCallExpression(owner) &&
++        member(owner.expression, 'makeDefinition')
++      ) {
++        const definition = name.replace(/Composition$/, 'Definition')
++        definitions.set(definition, { ...entry, call: owner, chained: true })
++        compositions.set(name, { ...entry, call: init, definition })
++      }
++    }
++  }
++  const completions = []
++  for (const [name, entry] of declarations) {
++    const init = entry.declaration.initializer
++    if (
++      !init ||
++      !ts.isCallExpression(init) ||
++      !member(init.expression, 'assemble')
++    ) {
++      continue
++    }
++    const [prepareName] = init.arguments
++    assert.ok(prepareName && ts.isIdentifier(prepareName))
++    const prepare = declarations.get(prepareName.text)
++    assert.ok(prepare && ts.isArrowFunction(prepare.declaration.initializer))
++    const invocation = prepare.declaration.initializer.body
++    assert.ok(
++      ts.isCallExpression(invocation) &&
++        member(invocation.expression, 'prepareBlock'),
++    )
++    const compositionName = invocation.expression.expression.getText(parsed)
++    const composition = compositions.get(compositionName)
++    const definition = definitions.get(composition.definition)
++    const [body] = invocation.arguments
++    assert.ok(body && ts.isObjectLiteralExpression(body))
++    completions.push({
++      name,
++      ...entry,
++      prepare,
++      compositionName,
++      composition,
++      definition,
++      body,
++    })
++  }
++  const replacements = []
++  const replace = (node, text) =>
++    replacements.push({ start: node.getStart(parsed), end: node.end, text })
++  const addedContracts = []
++  const preservedBodies = []
++  const childProviders = new Set()
++  const ownedBlocks = new Set(completions.map(entry => entry.name))
++  const resolveValue = value =>
++    ts.isIdentifier(value) && declarations.has(value.text)
++      ? declarations.get(value.text).declaration.initializer
++      : value
++  const childOfBinding = value => {
++    if (
++      ts.isCallExpression(value) &&
++      member(value.expression, 'withOutMessagePolicy')
++    ) {
++      return childOfBinding(value.expression.expression)
++    }
++    if (ts.isIdentifier(value)) {
++      return childOfBinding(resolveValue(value))
++    }
++    assert.ok(
++      ts.isCallExpression(value) && member(value.expression, 'makeBinding'),
++      value.getText(parsed),
++    )
++    return value.arguments.at(0).getText(parsed)
++  }
++  for (const completed of completions) {
++    const { name, definition, composition, compositionName, body } = completed
++    const [id, config] = definition.call.arguments
++    assert.ok(id && config && ts.isObjectLiteralExpression(config))
++    const declarationName = composition.definition
++    const key = `${declarationName}Key`
++    const init = resolveValue(expression(property(body, 'init')))
++    assert.ok(ts.isCallExpression(init) && member(init.expression, 'makeInit'))
++    const [initializer] = init.arguments
++    assert.ok(ts.isArrowFunction(initializer))
++    const args = initializer.parameters.map(parameter => {
++      assert.equal(parameter.questionToken, undefined)
++      assert.equal(parameter.dotDotDotToken, undefined)
++      assert.equal(parameter.initializer, undefined)
++      assert.equal(parameter.type?.kind, ts.SyntaxKind.StringKeyword)
++      return 'Schema.String'
++    })
++    const message = expression(property(config, 'Message'))
++    const messageFree =
++      message.getText(parsed) === 'Schema.Never' ||
++      resolveValue(message)?.getText(parsed) === 'Schema.Never'
++    const inventory = composition.call.arguments.at(0)
++    const bindingsProperty =
++      inventory && ts.isObjectLiteralExpression(inventory)
++        ? property(inventory, 'bindings')
++        : undefined
++    const bindings = bindingsProperty
++      ? expression(bindingsProperty).elements
++      : []
++    const fullyMessageFree = messageFree && bindings.length === 0
++    const isWorkspace = file.startsWith('workspace-')
++    const service = isWorkspace
++      ? name === 'ControlBlock'
++        ? undefined
++        : 'WorkspaceStore'
++      : 'Clock'
++    const operations = property(body, 'operations')
++    const operationsText = operations
++      ? expression(operations).getText(parsed)
++      : undefined
++    const declaredOperations =
++      name === 'ControlBlock'
++        ? '{ selectIssue: { message: ControlMessage.ClickedIssue, outMessage: ControlOutMessage.SelectedIssue }, clearQuery: ControlMessage.RequestedClearQuery }'
++        : operationsText
++    const additions = [
++      `key: ${key}`,
++      `Init: Schema.Tuple([${args.join(', ')}])`,
++      ...(fullyMessageFree ? ['isMessageFree: true'] : []),
++      ...(property(body, 'view') ? ["view: { kind: 'Element' }"] : []),
++      ...(service ? [`effects: { services: [${service}] }`] : []),
++      ...(declaredOperations ? [`operations: ${declaredOperations}`] : []),
++    ]
++    const ownConfig = `{ ${additions.join(', ')}, ${config.properties.map(entry => entry.getText(parsed)).join(', ')} }`
++    const createBlock = `Block.make(${id.getText(parsed)}, ${ownConfig})`
++    if (definition.chained) {
++      replace(
++        composition.statement,
++        `const ${key} = Symbol(${id.getText(parsed)})\nconst ${declarationName} = ${createBlock}\nconst ${compositionName} = ${declarationName}.makeComposition(${composition.call.arguments.map(arg => arg.getText(parsed)).join(', ')})`,
++      )
++    } else {
++      replace(
++        definition.statement,
++        `const ${key} = Symbol(${id.getText(parsed)})\nconst ${declarationName} = ${createBlock}`,
++      )
++    }
++    const providers = [...new Set(bindings.map(childOfBinding).map(layerName))]
++    for (const child of bindings.map(childOfBinding)) {
++      if (!ownedBlocks.has(child)) {
++        childProviders.add(child)
++      }
++    }
++    const connectionNames = bindings.map(
++      (_binding, index) => `child${String(index + 1).padStart(3, '0')}`,
++    )
++    const bindingNames = connectionNames.map(
++      connection => `${connection}Binding`,
++    )
++    const acquire =
++      bindings.length === 0
++        ? ''
++        : `const [${bindingNames.join(', ')}] = ${compositionName}.bindings\n${connectionNames.map((connection, index) => `const ${connection} = yield* ${bindingNames.at(index)}`).join('\n')}\n\n`
++    const implementationProperties = body.properties.filter(
++      entry => entry.name?.getText(parsed) !== 'operations',
++    )
++    const constructedBody = `{ children: [${connectionNames.join(', ')}], ${implementationProperties.map(entry => entry.getText(parsed)).join(', ')} }`
++    const construct =
++      bindings.length === 0
++        ? `Effect.succeed(${constructedBody})`
++        : `Effect.gen(function* () {\n${acquire}return ${constructedBody}\n})`
++    const ownLayer = `${declarationName}.makeLayer(${construct})`
++    const provided =
++      providers.length === 0
++        ? ownLayer
++        : `Layer.provide(${ownLayer}, ${providers.length === 1 ? providers.at(0) : `Layer.mergeAll(${providers.join(', ')})`})`
++    const exported = completed.statement.modifiers?.some(
++      modifier => modifier.kind === ts.SyntaxKind.ExportKeyword,
++    )
++      ? 'export '
++      : ''
++    replace(completed.prepare.statement, '')
++    replace(
++      completed.statement,
++      `${exported}const ${layerName(name)} = ${provided}\n${exported}const ${name} = ${declarationName}`,
++    )
++    for (const statement of parsed.statements) {
++      if (
++        ts.isInterfaceDeclaration(statement) &&
++        statement.name.text === name
++      ) {
++        replace(statement, '')
++      }
++    }
++    addedContracts.push({
++      block: name,
++      definition: declarationName,
++      id: id.text,
++      key,
++      init: args,
++      messageFree,
++      fullyMessageFree,
++      view: property(body, 'view') ? 'Element' : undefined,
++      services: service ? [service] : [],
++      operations: declaredOperations,
++      providers,
++      yieldedBindings: bindings.length,
++    })
++    for (const authored of body.properties) {
++      preservedBodies.push({
++        block: name,
++        property: authored.name.getText(parsed),
++        canonical: canonical(authored),
++        destination:
++          authored.name.getText(parsed) === 'operations'
++            ? 'declaration'
++            : 'implementation',
++      })
++    }
++  }
++  for (const statement of parsed.statements) {
++    if (
++      !ts.isImportDeclaration(statement) ||
++      !statement.importClause?.namedBindings ||
++      !ts.isNamedImports(statement.importClause.namedBindings)
++    ) {
++      continue
++    }
++    const imports = statement.importClause.namedBindings.elements
++    const needed = imports.flatMap(entry =>
++      childProviders.has(entry.name.text) ? [layerName(entry.name.text)] : [],
++    )
++    if (needed.length > 0) {
++      const original = statement.getText(parsed)
++      replace(statement, original.replace('{', `{ ${needed.join(', ')}, `))
++    }
++  }
++  const visit = node => {
++    if (ts.isCallExpression(node) && member(node.expression, 'makeElement')) {
++      const [configuration] = node.arguments
++      assert.ok(ts.isObjectLiteralExpression(configuration))
++      replace(
++        configuration,
++        `{ layer: ApplicationLayer, ${configuration.properties.map(entry => entry.getText(parsed)).join(', ')} }`,
++      )
++    }
++    ts.forEachChild(node, visit)
++  }
++  visit(parsed)
++  let output = source
++  for (const edit of replacements.sort((a, b) => b.start - a.start)) {
++    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end)
++  }
++  output = output
++    .replace(
++      'Update.RequirementsOf<typeof update>',
++      "SelectedLayerFacts<typeof ApplicationLayer, typeof ApplicationBlock.owner>['update']['requirements']",
++    )
++    .replace(
++      /Value extends ElementProgram<[\s\S]*?infer _ProvidedServices\s*>\s*\? Requirements\s*:\s*never/,
++      "Value extends { readonly '~foldkit/ProgramProvision'?: { readonly Requirements: (requirements: infer Requirements) => unknown } } ? Requirements : never",
++    )
++    .replace(
++      /Layer\.Services<typeof (\w+)\.EffectsLayer>/g,
++      (_all, block) =>
++        `SelectedLayerFacts<typeof ${layerName(block)}, typeof ${block}.owner>['effectsLayerRequirements']`,
++    )
++    .replace(
++      /Layer\.Error<typeof (\w+)\.EffectsLayer>/g,
++      (_all, block) =>
++        `SelectedLayerFacts<typeof ${layerName(block)}, typeof ${block}.owner>['effectsLayerError']`,
++    )
++  if (output.includes('SelectedLayerFacts<')) {
++    const imports = ts
++      .createSourceFile(file, output, ts.ScriptTarget.Latest, true)
++      .statements.filter(ts.isImportDeclaration)
++    const offset = imports.at(-1)?.end ?? 0
++    output =
++      output.slice(0, offset) +
++      "\nimport type { SelectedLayerFacts } from '../dist/runtime/rootBlock.js'" +
++      output.slice(offset)
++  }
++  const transformed = ts.createSourceFile(
++    file,
++    output,
++    ts.ScriptTarget.Latest,
++    true,
++  )
++  const updatedBodies = []
++  const findBodies = node => {
++    if (ts.isCallExpression(node) && member(node.expression, 'makeLayer')) {
++      const [constructor] = node.arguments
++      const [argument] = constructor.arguments
++      const body = member(constructor.expression, 'succeed')
++        ? argument
++        : argument.body.statements.find(statement =>
++            ts.isReturnStatement(statement),
++          )?.expression
++      assert.ok(body && ts.isObjectLiteralExpression(body))
++      updatedBodies.push(
++        ...body.properties
++          .filter(entry => entry.name?.getText(transformed) !== 'children')
++          .map(canonical),
++      )
++    }
++    ts.forEachChild(node, findBodies)
++  }
++  findBodies(transformed)
++  assert.deepEqual(
++    updatedBodies,
++    preservedBodies
++      .filter(entry => entry.destination === 'implementation')
++      .map(entry => entry.canonical),
++    `${file}: authored body changed`,
++  )
++  const updatedDeclarations = new Map()
++  for (const statement of transformed.statements) {
++    if (!ts.isVariableStatement(statement)) {
++      continue
++    }
++    for (const declaration of statement.declarationList.declarations) {
++      if (ts.isIdentifier(declaration.name)) {
++        updatedDeclarations.set(declaration.name.text, declaration)
++      }
++    }
++  }
++  let movedOperations = 0
++  const operationSources = record => {
++    assert.ok(ts.isObjectLiteralExpression(record))
++    return record.properties.map(entry => {
++      const value = expression(entry)
++      const source = ts.isObjectLiteralExpression(value)
++        ? expression(property(value, 'message'))
++        : value
++      return [entry.name.getText(), canonical(source)]
++    })
++  }
++  for (const completed of completions) {
++    const original = property(completed.body, 'operations')
++    if (!original) {
++      continue
++    }
++    const current = updatedDeclarations.get(completed.composition.definition)
++    const config = current.initializer.arguments.at(1)
++    const operations = property(config, 'operations')
++    assert.ok(operations)
++    assert.deepEqual(
++      operationSources(expression(operations)),
++      operationSources(expression(original)),
++      `${file}: moved operation sources changed`,
++    )
++    movedOperations += operationSources(expression(original)).length
++  }
++  const syntaxBoundaries = new Set(
++    completions.flatMap(completed => [
++      completed.name,
++      completed.prepare.declaration.name.text,
++      completed.composition.definition,
++      ...(completed.definition.chained ? [completed.compositionName] : []),
++    ]),
++  )
++  let preservedDomainDeclarations = 0
++  for (const [name, { declaration }] of declarations) {
++    if (
++      syntaxBoundaries.has(name) ||
++      name === 'program' ||
++      declaration.initializer === undefined
++    ) {
++      continue
++    }
++    const updated = updatedDeclarations.get(name)
++    assert.ok(updated?.initializer, `${file}: lost ${name}`)
++    assert.equal(
++      canonical(updated.initializer),
++      canonical(declaration.initializer),
++      `${file}: domain declaration ${name} changed`,
++    )
++    preservedDomainDeclarations += 1
++  }
++  const countAssertions = sourceFile => {
++    let count = 0
++    const visit = node => {
++      if (
++        ts.isTypeReferenceNode(node) &&
++        ts.isIdentifier(node.typeName) &&
++        node.typeName.text === 'Expect'
++      ) {
++        count += 1
++      }
++      ts.forEachChild(node, visit)
++    }
++    visit(sourceFile)
++    return count
++  }
++  const beforeAssertions = countAssertions(parsed)
++  const afterAssertions = countAssertions(transformed)
++  assert.equal(afterAssertions, beforeAssertions)
++  return {
++    output,
++    facts: {
++      file,
++      blocks: addedContracts,
++      preservedAuthoredProperties: preservedBodies.length,
++      preservedDomainDeclarations,
++      movedOperations,
++      retainedAssertions: afterAssertions,
++    },
++  }
++}
++
++if (process.argv.at(1)?.endsWith('/adapt.mjs')) {
++  const [input, output] = process.argv.slice(2)
++  assert.ok(input && output)
++  const transformed = adapt(
++    readFileSync(input, 'utf8'),
++    input.split('/').at(-1),
++  )
++  writeFileSync(output, transformed.output)
++  writeFileSync(
++    `${output}.facts.json`,
++    JSON.stringify(transformed.facts, null, 2),
++  )
++  console.log(join(output))
++}
+diff --git a/internal/direct-block-performance/base-constructor-control.mjs b/internal/direct-block-performance/base-constructor-control.mjs
+new file mode 100644
+index 0000000000..c00aa0d741
+--- /dev/null
++++ b/internal/direct-block-performance/base-constructor-control.mjs
+@@ -0,0 +1,126 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import {
++  cpSync,
++  readFileSync,
++  writeFileSync,
++  realpathSync,
++  unlinkSync,
++  symlinkSync,
++} from 'node:fs'
++import { createRequire } from 'node:module'
++import { dirname, join, resolve } from 'node:path'
++const repository = resolve(dirname(new URL(import.meta.url).pathname), '../..')
++const modules = realpathSync(join(repository, 'packages/foldkit/node_modules'))
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++const snapshot = process.argv.at(2)
++assert.ok(snapshot)
++const directory = join(snapshot, 'base-constructor-control')
++const packageCore = join(snapshot, 'base-constructor-package')
++cpSync(join(snapshot, 'constructor-control'), directory, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++cpSync(join(snapshot, 'package-core'), packageCore, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++for (const [link, target] of [
++  [join(directory, 'dist'), join(packageCore, 'dist')],
++  [join(directory, 'node_modules/foldkit'), packageCore],
++]) {
++  unlinkSync(link)
++  symlinkSync(target, link)
++}
++const base = spawnSync(
++  'git',
++  ['show', 'HEAD:packages/foldkit/src/experimental/contracted/contract.ts'],
++  { cwd: repository, encoding: 'utf8' },
++)
++assert.equal(base.status, 0)
++const original = ts.createSourceFile(
++  'base.ts',
++  base.stdout,
++  ts.ScriptTarget.Latest,
++  true,
++)
++const file = join(packageCore, 'dist/experimental/contracted/contract.d.ts')
++const source = readFileSync(file, 'utf8')
++const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++const facts = ast =>
++  ast.statements
++    .find(
++      node => ts.isInterfaceDeclaration(node) && node.name.text === 'MakeBlock',
++    )
++    .members.at(0)
++    .type.typeArguments.at(4)
++const before = facts(parsed)
++const after = facts(original).getText(original)
++writeFileSync(
++  file,
++  source.slice(0, before.getStart(parsed)) + after + source.slice(before.end),
++)
++const fixture = 'deep-composition-8'
++const command = [
++  join(directory, 'scripts/check-block-type-performance.ts'),
++  fixture,
++]
++const result = spawnSync(process.execPath, command, {
++  cwd: directory,
++  encoding: 'utf8',
++  maxBuffer: 32 * 1024 * 1024,
++  env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++})
++assert.ifError(result.error)
++const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
++const log = join(
++  snapshot,
++  'logs',
++  'base-constructor-control-deep-composition-8.log',
++)
++writeFileSync(log, output)
++const row = [
++  ...output.matchAll(
++    /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++  ),
++].at(-1)
++const receipt = join(snapshot, 'base-constructor-control-receipt.json')
++writeFileSync(
++  receipt,
++  JSON.stringify(
++    {
++      snapshot,
++      directory,
++      packageCore,
++      purpose:
++        'Matched independent contract constructor API with only the pre-prototype MakeBlock return Facts restored from base HEAD. All validation remains current.',
++      declarationControl: { before: before.getText(parsed), after },
++      fixture,
++      status: result.status,
++      command: [process.execPath, ...command],
++      log,
++      ...(row
++        ? {
++            instantiations: Number(row[2].replaceAll(',', '')),
++            maxInstantiations: Number(row[3].replaceAll(',', '')),
++            types: Number(row[4].replaceAll(',', '')),
++            maxTypes: Number(row[5].replaceAll(',', '')),
++            symbols: Number(row[6].replaceAll(',', '')),
++            budgetStatus: row[7],
++          }
++        : { diagnosticFailure: true }),
++    },
++    null,
++    2,
++  ),
++)
++console.log(row ? `${row[2]} instantiations / ${row[4]} Types` : log)
++console.log(receipt)
++process.exitCode = result.status ?? 1
+diff --git a/internal/direct-block-performance/compact-control.mjs b/internal/direct-block-performance/compact-control.mjs
+new file mode 100644
+index 0000000000..b9849ea6a6
+--- /dev/null
++++ b/internal/direct-block-performance/compact-control.mjs
+@@ -0,0 +1,126 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import { cpSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
++import { createRequire } from 'node:module'
++import { resolve, join } from 'node:path'
++
++const modules = realpathSync(
++  new URL('../../packages/foldkit/node_modules', import.meta.url),
++)
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++const snapshot = process.argv.at(2)
++assert.ok(snapshot, 'Pass the completed verify.mjs snapshot directory.')
++const originalReceipt = JSON.parse(readFileSync(join(snapshot, 'receipt.json')))
++const directory = join(snapshot, 'compact-control')
++cpSync(join(snapshot, 'adapted'), directory, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++const transformations = []
++for (const entry of originalReceipt.transformations) {
++  const file = join(directory, 'type-performance', entry.file)
++  const source = readFileSync(file, 'utf8')
++  const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++  const edits = []
++  const visit = node => {
++    if (
++      ts.isCallExpression(node) &&
++      ts.isPropertyAccessExpression(node.expression) &&
++      ['makeBinding', 'makeMapBinding'].includes(node.expression.name.text)
++    ) {
++      const child = node.arguments.at(0)
++      edits.push({
++        start: child.getStart(parsed),
++        end: child.end,
++        text: `compactDescriptor(${child.getText(parsed)})`,
++      })
++    }
++    ts.forEachChild(node, visit)
++  }
++  visit(parsed)
++  if (edits.length === 0) {
++    continue
++  }
++  let output = source
++  for (const edit of edits.sort((a, b) => b.start - a.start)) {
++    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end)
++  }
++  const imports = parsed.statements.filter(ts.isImportDeclaration)
++  const offset = imports.at(-1)?.end ?? 0
++  const helper = `
++import type { DescriptorTypeId, DeclaredBlockReaderTypeId } from '../dist/experimental/constructed/contract.js'
++type DescriptorKeys = 'owner' | 'Model' | 'Message' | 'InMessage' | 'OutMessage' | 'get' | typeof DescriptorTypeId | typeof DeclaredBlockReaderTypeId
++const compactDescriptor = <Value extends object>(value: Value): Pick<Value, Extract<keyof Value, DescriptorKeys>> => value
++`
++  output = output.slice(0, offset) + helper + output.slice(offset)
++  writeFileSync(file, output)
++  transformations.push({
++    file: entry.file,
++    wrappedBindingArguments: edits.length,
++  })
++}
++const measurements = []
++for (const fixture of originalReceipt.targets) {
++  const command = [
++    join(directory, 'scripts/check-block-type-performance.ts'),
++    fixture,
++  ]
++  const result = spawnSync(process.execPath, command, {
++    cwd: directory,
++    encoding: 'utf8',
++    maxBuffer: 32 * 1024 * 1024,
++    env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++  })
++  assert.ifError(result.error)
++  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
++  const log = join(snapshot, 'logs', `compact-control-${fixture}.log`)
++  writeFileSync(log, output)
++  const row = [
++    ...output.matchAll(
++      /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++    ),
++  ].at(-1)
++  measurements.push({
++    fixture,
++    status: result.status,
++    command: [process.execPath, ...command],
++    log,
++    ...(row
++      ? {
++          instantiations: Number(row[2].replaceAll(',', '')),
++          maxInstantiations: Number(row[3].replaceAll(',', '')),
++          types: Number(row[4].replaceAll(',', '')),
++          maxTypes: Number(row[5].replaceAll(',', '')),
++          symbols: Number(row[6].replaceAll(',', '')),
++          budgetStatus: row[7],
++        }
++      : { diagnosticFailure: true }),
++  })
++  console.log(
++    fixture,
++    result.status,
++    row ? `${row[2]} instantiations / ${row[4]} Types` : log,
++  )
++}
++const receipt = join(snapshot, 'compact-control-receipt.json')
++writeFileSync(
++  receipt,
++  JSON.stringify(
++    {
++      snapshot,
++      directory,
++      purpose:
++        'Diagnostic only: strip authoring helpers from Binding child inputs without changing the Block object or channel facts.',
++      transformations,
++      measurements,
++    },
++    null,
++    2,
++  ),
++)
++console.log(receipt)
++process.exitCode = measurements.every(row => row.status === 0) ? 0 : 1
+diff --git a/internal/direct-block-performance/constructor-control.mjs b/internal/direct-block-performance/constructor-control.mjs
+new file mode 100644
+index 0000000000..6fc7fabad2
+--- /dev/null
++++ b/internal/direct-block-performance/constructor-control.mjs
+@@ -0,0 +1,195 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import { cpSync, readFileSync, writeFileSync, realpathSync } from 'node:fs'
++import { createRequire } from 'node:module'
++import { join, resolve } from 'node:path'
++const modules = realpathSync(
++  new URL('../../packages/foldkit/node_modules', import.meta.url),
++)
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++const snapshot = process.argv.at(2)
++assert.ok(snapshot)
++const prior = JSON.parse(readFileSync(join(snapshot, 'receipt.json')))
++const directory = join(snapshot, 'constructor-control')
++cpSync(join(snapshot, 'adapted'), directory, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++const transformations = []
++const member = (node, name) =>
++  ts.isPropertyAccessExpression(node) && node.name.text === name
++for (const entry of prior.transformations) {
++  const file = join(directory, 'type-performance', entry.file)
++  const source = readFileSync(file, 'utf8')
++  const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++  const edits = []
++  const replace = (node, text) =>
++    edits.push({ start: node.getStart(parsed), end: node.end, text })
++  const implementations = new Map(
++    entry.blocks.map(block => [
++      block.block.replace(/Block$/, ''),
++      `${block.block.replace(/Block$/, '')}Implementation`,
++    ]),
++  )
++  for (const statement of parsed.statements) {
++    if (
++      ts.isImportDeclaration(statement) &&
++      statement.getText(parsed).includes('SelectedLayerFacts')
++    ) {
++      replace(statement, '')
++      continue
++    }
++    if (!ts.isVariableStatement(statement)) {
++      continue
++    }
++    for (const declaration of statement.declarationList.declarations) {
++      if (!ts.isIdentifier(declaration.name) || !declaration.initializer) {
++        continue
++      }
++      const name = declaration.name.text
++      const block = entry.blocks.find(block => block.definition === name)
++      if (block) {
++        assert.ok(
++          ts.isCallExpression(declaration.initializer) &&
++            member(declaration.initializer.expression, 'make'),
++        )
++        replace(declaration.initializer.expression, 'Block.makeDefinition')
++        continue
++      }
++      const completed = entry.blocks.find(
++        block => `${block.block.replace(/Block$/, '')}Layer` === name,
++      )
++      if (completed) {
++        const original = declaration.initializer
++        const provided =
++          ts.isCallExpression(original) &&
++          member(original.expression, 'provide')
++        const make = provided ? original.arguments.at(0) : original
++        assert.ok(
++          ts.isCallExpression(make) && member(make.expression, 'makeLayer'),
++        )
++        const construct = make.arguments.at(0).getText(parsed)
++        const dependency = provided
++          ? original.arguments.at(1).getText(parsed)
++          : undefined
++        const implementation = implementations.get(
++          completed.block.replace(/Block$/, ''),
++        )
++        const exported = statement.modifiers?.some(
++          mod => mod.kind === ts.SyntaxKind.ExportKeyword,
++        )
++          ? 'export '
++          : ''
++        replace(
++          statement,
++          `${exported}const ${implementation} = ${completed.definition}.makeBlock(${construct})${dependency ? `.provide(${dependency})` : ''}\n${exported}const ${name} = ${implementation}.layer`,
++        )
++        continue
++      }
++      const alias = entry.blocks.find(block => block.block === name)
++      if (alias) {
++        replace(
++          declaration.initializer,
++          alias.block === 'ApplicationBlock'
++            ? 'ApplicationImplementation'
++            : `${alias.definition}.contract`,
++        )
++      }
++    }
++  }
++  const visit = node => {
++    if (ts.isCallExpression(node) && member(node.expression, 'makeElement')) {
++      const config = node.arguments.at(0)
++      assert.ok(ts.isObjectLiteralExpression(config))
++      replace(
++        config,
++        `{${config.properties
++          .filter(p => p.name?.getText(parsed) !== 'layer')
++          .map(p => p.getText(parsed))
++          .join(',')}}`,
++      )
++    }
++    ts.forEachChild(node, visit)
++  }
++  visit(parsed)
++  let output = source
++  for (const edit of edits.sort((a, b) => b.start - a.start)) {
++    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end)
++  }
++  output = output.replace(
++    /SelectedLayerFacts<typeof (\w+)Layer, typeof (\w+)\.owner>/g,
++    (_match, base) => `Block.FactsOf<typeof ${base}Implementation>`,
++  )
++  writeFileSync(file, output)
++  transformations.push({
++    file: entry.file,
++    blocks: entry.blocks.length,
++    contractBodiesAndMetadataFrom:
++      'adapted snapshot; makeLayer constructor expression retained verbatim',
++  })
++}
++const measurements = []
++for (const fixture of ['deep-composition-8']) {
++  const command = [
++    join(directory, 'scripts/check-block-type-performance.ts'),
++    fixture,
++  ]
++  const result = spawnSync(process.execPath, command, {
++    cwd: directory,
++    encoding: 'utf8',
++    maxBuffer: 32 * 1024 * 1024,
++    env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++  })
++  assert.ifError(result.error)
++  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
++  const log = join(snapshot, 'logs', `constructor-control-${fixture}.log`)
++  writeFileSync(log, output)
++  const row = [
++    ...output.matchAll(
++      /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++    ),
++  ].at(-1)
++  measurements.push({
++    fixture,
++    status: result.status,
++    command: [process.execPath, ...command],
++    log,
++    ...(row
++      ? {
++          instantiations: Number(row[2].replaceAll(',', '')),
++          maxInstantiations: Number(row[3].replaceAll(',', '')),
++          types: Number(row[4].replaceAll(',', '')),
++          maxTypes: Number(row[5].replaceAll(',', '')),
++          symbols: Number(row[6].replaceAll(',', '')),
++          budgetStatus: row[7],
++        }
++      : { diagnosticFailure: true }),
++  })
++  console.log(
++    fixture,
++    result.status,
++    row ? `${row[2]} instantiations / ${row[4]} Types` : log,
++  )
++}
++const receipt = join(snapshot, 'constructor-control-receipt.json')
++writeFileSync(
++  receipt,
++  JSON.stringify(
++    {
++      snapshot,
++      directory,
++      purpose:
++        'Matched existing independent-contract constructor API control, not native prepare/assemble.',
++      transformations,
++      measurements,
++    },
++    null,
++    2,
++  ),
++)
++console.log(receipt)
++process.exitCode = measurements.every(row => row.status === 0) ? 0 : 1
+diff --git a/internal/direct-block-performance/named-layer-control.mjs b/internal/direct-block-performance/named-layer-control.mjs
+new file mode 100644
+index 0000000000..48f15f072f
+--- /dev/null
++++ b/internal/direct-block-performance/named-layer-control.mjs
+@@ -0,0 +1,127 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import {
++  cpSync,
++  readFileSync,
++  writeFileSync,
++  realpathSync,
++  unlinkSync,
++  symlinkSync,
++} from 'node:fs'
++import { createRequire } from 'node:module'
++import { dirname, join, resolve } from 'node:path'
++const repository = resolve(dirname(new URL(import.meta.url).pathname), '../..')
++const modules = realpathSync(join(repository, 'packages/foldkit/node_modules'))
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++const snapshot = process.argv.at(2)
++assert.ok(snapshot)
++const directory = join(snapshot, 'named-layer-control')
++const packageCore = join(snapshot, 'named-layer-package')
++cpSync(join(snapshot, 'adapted'), directory, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++cpSync(join(snapshot, 'package-core'), packageCore, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++for (const [link, target] of [
++  [join(directory, 'dist'), join(packageCore, 'dist')],
++  [join(directory, 'node_modules/foldkit'), packageCore],
++]) {
++  unlinkSync(link)
++  symlinkSync(target, link)
++}
++const file = join(packageCore, 'dist/experimental/contracted/contract.d.ts')
++const source = readFileSync(file, 'utf8')
++const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++const current = ts.createSourceFile(
++  'current.ts',
++  readFileSync(
++    join(
++      repository,
++      'packages/foldkit/src/experimental/contracted/contract.ts',
++    ),
++    'utf8',
++  ),
++  ts.ScriptTarget.Latest,
++  true,
++)
++const printer = ts.createPrinter()
++const edits = ['MakeLayer', 'LayerWithImplementationFacts'].map(name => {
++  const before = parsed.statements.find(node => node.name?.text === name)
++  const after = current.statements.find(node => node.name?.text === name)
++  assert.ok(before && after)
++  return {
++    name,
++    start: before.getStart(parsed),
++    end: before.end,
++    before: before.getText(parsed),
++    after: printer.printNode(ts.EmitHint.Unspecified, after, current),
++  }
++})
++let output = source
++for (const edit of edits.toSorted((a, b) => b.start - a.start)) {
++  output = output.slice(0, edit.start) + edit.after + output.slice(edit.end)
++}
++writeFileSync(file, output)
++const fixture = 'deep-composition-8'
++const command = [
++  join(directory, 'scripts/check-block-type-performance.ts'),
++  fixture,
++]
++const result = spawnSync(process.execPath, command, {
++  cwd: directory,
++  encoding: 'utf8',
++  maxBuffer: 32 * 1024 * 1024,
++  env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++})
++assert.ifError(result.error)
++const compilerOutput = `${result.stdout ?? ''}${result.stderr ?? ''}`
++const log = join(snapshot, 'logs', 'named-layer-control-deep-composition-8.log')
++writeFileSync(log, compilerOutput)
++const row = [
++  ...compilerOutput.matchAll(
++    /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++  ),
++].at(-1)
++const receipt = join(snapshot, 'named-layer-control-receipt.json')
++writeFileSync(
++  receipt,
++  JSON.stringify(
++    {
++      snapshot,
++      directory,
++      packageCore,
++      purpose:
++        'Same raw Layer workload; replace only MakeLayer/LayerWithImplementationFacts with owner-authorized named interface source encoding in copied declarations.',
++      declarationControl: edits,
++      fixture,
++      status: result.status,
++      command: [process.execPath, ...command],
++      log,
++      ...(row
++        ? {
++            instantiations: Number(row[2].replaceAll(',', '')),
++            maxInstantiations: Number(row[3].replaceAll(',', '')),
++            types: Number(row[4].replaceAll(',', '')),
++            maxTypes: Number(row[5].replaceAll(',', '')),
++            symbols: Number(row[6].replaceAll(',', '')),
++            budgetStatus: row[7],
++          }
++        : { diagnosticFailure: true }),
++    },
++    null,
++    2,
++  ),
++)
++console.log(row ? `${row[2]} instantiations / ${row[4]} Types` : log)
++console.log(receipt)
++process.exitCode = result.status ?? 1
+diff --git a/internal/direct-block-performance/results.json b/internal/direct-block-performance/results.json
+new file mode 100644
+index 0000000000..99439a1bf0
+--- /dev/null
++++ b/internal/direct-block-performance/results.json
+@@ -0,0 +1,341 @@
++{
++  "status": "source-accepted-but-unchanged-budgets-fail",
++  "repository": "/private/tmp/foldkit-direct-block-layer-prototype-20261103",
++  "snapshot": "/private/tmp/foldkit-direct-block-performance-AttDXW",
++  "command": [
++    "v22.22.3",
++    "internal/direct-block-performance/verify.mjs"
++  ],
++  "nodeExecutable": "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++  "compiler": "7.1.0-beta",
++  "astParser": "6.0.2",
++  "originalSourcesUnchanged": true,
++  "frameworkDistUnchanged": true,
++  "checkerHash": "bfd0baed03229435de3093cc79e56c546ff2aa5ce4da874f1cb4ca7732c8ffc4",
++  "budgetHash": "4c992d726e54c3ad3fac257040878fd5343c2dc0636fc7918f754947634cc30f",
++  "sourceHashes": {
++    "type-performance/README.md": "8236917d9c0dcbaa5fe24ad77e514eb7ca9bedbd4769c373f8e91715e95994e5",
++    "type-performance/baseline.ts": "b9717c6148e14041e3319614e10beaeae0dedf92c6d5c005e0afed0a20e3449c",
++    "type-performance/budgets.json": "4c992d726e54c3ad3fac257040878fd5343c2dc0636fc7918f754947634cc30f",
++    "type-performance/command-requirements-200.ts": "43f9ea79e4ad667ab0ead63b227c304925069a74cfa10152d98766ca4607c87a",
++    "type-performance/deep-composition-8.ts": "d1376b4b3e2f873195f8113b1edb2b4406ca3e527a11cb94fc97b260eb3957cc",
++    "type-performance/fixtures.json": "9018314d13beeb6ff4f2732fc5be568afcd3f7cf578804556064d175419121c7",
++    "type-performance/machine-search.ts": "0fb33f68432a3c6b3d66e27dbe5eb201b0334110758a764f3437b460ec9841b8",
++    "type-performance/tsconfig.json": "67f88b29450149242ad11b26e00bc07bf2c15181ed40aadbe8790be237e7abb9",
++    "type-performance/wide-composition-100.ts": "5cdb083f397a177e5600cc07dcc006f9f4306e538c7f26a9f4d9ee0de13edffe",
++    "type-performance/wide-subscriptions-100.ts": "798b7f306ceca87c9c62d7c30c4de6d265ea6d60b6362046ad9fc7e1d2c51f62",
++    "type-performance/workspace-application-declarations.json": "9bee321c528dd2c59026b7653128af1393296604d3a022c406b179e017bc9527",
++    "type-performance/workspace-composition-4.ts": "e0e316b501fef0205147710b41877be548ef402dd2cb2aab53cb862c612b70f7",
++    "type-performance/workspace-composition-8.ts": "b2d67b5d444cfc4f341d56739c113f07367b99b848f34f82da37fd6008a15ae4",
++    "type-performance/workspace-declarations.json": "2e50915061763923111ef911d89eb39919e5ff7acd079b9e1a947810d0abdd2e",
++    "type-performance/workspace-generate.ts": "9e02b39f5714075742d96d9576bc5a7ef81cce411bd6d43beca95b61ac7b7f8a",
++    "type-performance/workspace-groups-4.ts": "9d11fd174f0005f4f52dd4de8d7acabef76e9b6241e49238d8dd8691176ba069",
++    "type-performance/workspace-groups-8.ts": "777c3910eba9adbabc0fd12fd6ccffdae26a15770dc81e7a13e84eab431708ea",
++    "type-performance/workspace-shared.ts": "2347c3c13ae4db17d509db423d8fdc67c25814c6b26daa4661617a962354d6d1"
++  },
++  "declarationSnapshotHash": "2c4f32353d8935513e41eb406e1754ddbde339690c52e259f6396071d395630e",
++  "scriptHashes": {
++    "adapt.mjs": "289ad36cddc5dfdb0345ffd211a0d50da81d3390950fa13025355e1e3f8606a5",
++    "verify.mjs": "af65d92c320dc42d938c171e0e540a8ff036ecf2a65fe8eb86d5310f8edda07b",
++    "compact-control.mjs": "6c72bc945664c70be434d82fa7b7cd52d9bf080387ce64cea520dbea780086e1"
++  },
++  "invariants": {
++    "deep-composition-8": {
++      "files": [
++        "deep-composition-8.ts"
++      ],
++      "blocks": 10,
++      "bindingYields": 9,
++      "authoredProperties": 32,
++      "domainInitializers": 30,
++      "operationSources": 1,
++      "assertions": 2
++    },
++    "wide-composition-100": {
++      "files": [
++        "wide-composition-100.ts"
++      ],
++      "blocks": 2,
++      "bindingYields": 100,
++      "authoredProperties": 8,
++      "domainInitializers": 114,
++      "operationSources": 1,
++      "assertions": 2
++    },
++    "workspace-composition-4": {
++      "files": [
++        "workspace-shared.ts",
++        "workspace-groups-4.ts",
++        "workspace-composition-4.ts"
++      ],
++      "blocks": 7,
++      "bindingYields": 16,
++      "authoredProperties": 32,
++      "domainInitializers": 102,
++      "operationSources": 11,
++      "assertions": 49
++    },
++    "workspace-composition-8": {
++      "files": [
++        "workspace-shared.ts",
++        "workspace-groups-8.ts",
++        "workspace-composition-8.ts"
++      ],
++      "blocks": 11,
++      "bindingYields": 32,
++      "authoredProperties": 52,
++      "domainInitializers": 182,
++      "operationSources": 19,
++      "assertions": 93
++    }
++  },
++  "measurements": [
++    {
++      "mode": "original",
++      "fixture": "deep-composition-8",
++      "status": 0,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
++        "deep-composition-8"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-deep-composition-8.log",
++      "instantiations": 659046,
++      "maxInstantiations": 1152618,
++      "types": 52666,
++      "maxTypes": 55843,
++      "symbols": 86061,
++      "budgetStatus": "ok"
++    },
++    {
++      "mode": "original",
++      "fixture": "wide-composition-100",
++      "status": 0,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
++        "wide-composition-100"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-wide-composition-100.log",
++      "instantiations": 1392438,
++      "maxInstantiations": 3132298,
++      "types": 80565,
++      "maxTypes": 216662,
++      "symbols": 129632,
++      "budgetStatus": "ok"
++    },
++    {
++      "mode": "original",
++      "fixture": "workspace-composition-4",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
++        "workspace-composition-4"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-workspace-composition-4.log",
++      "instantiations": 2683623,
++      "maxInstantiations": 2642699,
++      "types": 234232,
++      "maxTypes": 229173,
++      "symbols": 310502,
++      "budgetStatus": "failed: Instantiations, Types"
++    },
++    {
++      "mode": "original",
++      "fixture": "workspace-composition-8",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
++        "workspace-composition-8"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-workspace-composition-8.log",
++      "instantiations": 4451559,
++      "maxInstantiations": 4515010,
++      "types": 307857,
++      "maxTypes": 299721,
++      "symbols": 437993,
++      "budgetStatus": "failed: Types"
++    },
++    {
++      "mode": "adapted",
++      "fixture": "deep-composition-8",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
++        "deep-composition-8"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-deep-composition-8.log",
++      "instantiations": 3053157,
++      "maxInstantiations": 1152618,
++      "types": 424199,
++      "maxTypes": 55843,
++      "symbols": 373367,
++      "budgetStatus": "failed: Instantiations, Types"
++    },
++    {
++      "mode": "adapted",
++      "fixture": "wide-composition-100",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
++        "wide-composition-100"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-wide-composition-100.log",
++      "instantiations": 5337430,
++      "maxInstantiations": 3132298,
++      "types": 442595,
++      "maxTypes": 216662,
++      "symbols": 401000,
++      "budgetStatus": "failed: Instantiations, Types"
++    },
++    {
++      "mode": "adapted",
++      "fixture": "workspace-composition-4",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
++        "workspace-composition-4"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-workspace-composition-4.log",
++      "instantiations": 10685646,
++      "maxInstantiations": 2642699,
++      "types": 1196822,
++      "maxTypes": 229173,
++      "symbols": 1062139,
++      "budgetStatus": "failed: Instantiations, Types"
++    },
++    {
++      "mode": "adapted",
++      "fixture": "workspace-composition-8",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
++        "workspace-composition-8"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-workspace-composition-8.log",
++      "instantiations": 12048102,
++      "maxInstantiations": 4515010,
++      "types": 1028932,
++      "maxTypes": 299721,
++      "symbols": 1060334,
++      "budgetStatus": "failed: Instantiations, Types"
++    }
++  ],
++  "compactDescriptorControl": {
++    "snapshot": "/private/tmp/foldkit-direct-block-performance-AttDXW",
++    "directory": "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control",
++    "purpose": "Diagnostic only: strip authoring helpers from Binding child inputs without changing the Block object or channel facts.",
++    "transformations": [
++      {
++        "file": "deep-composition-8.ts",
++        "wrappedBindingArguments": 9
++      },
++      {
++        "file": "wide-composition-100.ts",
++        "wrappedBindingArguments": 100
++      },
++      {
++        "file": "workspace-composition-4.ts",
++        "wrappedBindingArguments": 4
++      },
++      {
++        "file": "workspace-composition-8.ts",
++        "wrappedBindingArguments": 8
++      },
++      {
++        "file": "workspace-groups-4.ts",
++        "wrappedBindingArguments": 12
++      },
++      {
++        "file": "workspace-groups-8.ts",
++        "wrappedBindingArguments": 24
++      }
++    ],
++    "measurements": [
++      {
++        "fixture": "deep-composition-8",
++        "status": 1,
++        "command": [
++          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
++          "deep-composition-8"
++        ],
++        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-deep-composition-8.log",
++        "instantiations": 3058319,
++        "maxInstantiations": 1152618,
++        "types": 424244,
++        "maxTypes": 55843,
++        "symbols": 373453,
++        "budgetStatus": "failed: Instantiations, Types"
++      },
++      {
++        "fixture": "wide-composition-100",
++        "status": 1,
++        "command": [
++          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
++          "wide-composition-100"
++        ],
++        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-wide-composition-100.log",
++        "instantiations": 5351345,
++        "maxInstantiations": 3132298,
++        "types": 442624,
++        "maxTypes": 216662,
++        "symbols": 401030,
++        "budgetStatus": "failed: Instantiations, Types"
++      },
++      {
++        "fixture": "workspace-composition-4",
++        "status": 1,
++        "command": [
++          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
++          "workspace-composition-4"
++        ],
++        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-workspace-composition-4.log",
++        "instantiations": 10711163,
++        "maxInstantiations": 2642699,
++        "types": 1196912,
++        "maxTypes": 229173,
++        "symbols": 1062257,
++        "budgetStatus": "failed: Instantiations, Types"
++      },
++      {
++        "fixture": "workspace-composition-8",
++        "status": 1,
++        "command": [
++          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
++          "workspace-composition-8"
++        ],
++        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-workspace-composition-8.log",
++        "instantiations": 12098458,
++        "maxInstantiations": 4515010,
++        "types": 1029030,
++        "maxTypes": 299721,
++        "symbols": 1060480,
++        "budgetStatus": "failed: Instantiations, Types"
++      }
++    ]
++  },
++  "noFactsImportControl": {
++    "snapshot": "/private/tmp/foldkit-direct-block-performance-FKdnuR",
++    "log": "/private/tmp/foldkit-direct-block-performance-FKdnuR/logs/control-deep-no-facts-import.log",
++    "fixture": "deep-composition-8",
++    "instantiations": 3053281,
++    "types": 424200,
++    "change": "Remove SelectedLayerFacts import; recover actual callable Update output through existing public Block.Plan and original Update.RequirementsOf. No original Expect assertion changed."
++  },
++  "limits": [
++    "Compiler workload only; no runtime/lifecycle result claimed.",
++    "Current declarations include both native and proposed unified APIs. This does not model removal of old APIs.",
++    "Internal SelectedLayerFacts is measurement introspection, not proposed consumer syntax.",
++    "Compact identity Pick is a diagnostic copy only, not an accepted consumer pattern."
++  ]
++}
+diff --git a/internal/direct-block-performance/verify.mjs b/internal/direct-block-performance/verify.mjs
+new file mode 100644
+index 0000000000..6968b614ea
+--- /dev/null
++++ b/internal/direct-block-performance/verify.mjs
+@@ -0,0 +1,211 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import { createHash } from 'node:crypto'
++import {
++  chmodSync,
++  cpSync,
++  mkdirSync,
++  mkdtempSync,
++  readFileSync,
++  readdirSync,
++  realpathSync,
++  symlinkSync,
++  writeFileSync,
++} from 'node:fs'
++import { dirname, join, resolve } from 'node:path'
++import { fileURLToPath } from 'node:url'
++
++import { adapt } from './adapt.mjs'
++
++const repository = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
++const core = join(repository, 'packages/foldkit')
++const artifacts = mkdtempSync('/private/tmp/foldkit-direct-block-performance-')
++const sha256 = value => createHash('sha256').update(value).digest('hex')
++const walkFiles = directory =>
++  readdirSync(directory, { withFileTypes: true }).flatMap(entry =>
++    entry.isDirectory()
++      ? walkFiles(join(directory, entry.name))
++      : [join(directory, entry.name)],
++  )
++const files = [
++  'deep-composition-8.ts',
++  'wide-composition-100.ts',
++  'workspace-composition-4.ts',
++  'workspace-composition-8.ts',
++  'workspace-shared.ts',
++  'workspace-groups-4.ts',
++  'workspace-groups-8.ts',
++]
++const targets = [
++  'deep-composition-8',
++  'wide-composition-100',
++  'workspace-composition-4',
++  'workspace-composition-8',
++]
++const sourceHashes = Object.fromEntries(
++  walkFiles(join(core, 'type-performance')).map(path => [
++    path.slice(core.length + 1),
++    sha256(readFileSync(path)),
++  ]),
++)
++const snapshot = join(artifacts, 'package-core')
++const sourceDistHashes = Object.fromEntries(
++  walkFiles(join(core, 'dist')).map(path => [
++    path.slice(core.length + 1),
++    sha256(readFileSync(path)),
++  ]),
++)
++cpSync(join(core, 'dist'), join(snapshot, 'dist'), { recursive: true })
++cpSync(join(core, 'package.json'), join(snapshot, 'package.json'))
++for (const [path, hash] of Object.entries(sourceDistHashes)) {
++  assert.equal(
++    sha256(readFileSync(join(snapshot, path))),
++    hash,
++    `Dist changed during snapshot: ${path}`,
++  )
++}
++const dependency = (parent, name, target) => {
++  const link = join(parent, 'node_modules', name)
++  mkdirSync(dirname(link), { recursive: true })
++  symlinkSync(realpathSync(target), link)
++}
++for (const name of ['effect', 'parse5', '@effect/platform-browser']) {
++  dependency(snapshot, name, join(core, 'node_modules', name))
++}
++const transformations = []
++for (const mode of ['original', 'adapted']) {
++  const directory = join(artifacts, mode)
++  mkdirSync(directory)
++  cpSync(join(core, 'type-performance'), join(directory, 'type-performance'), {
++    recursive: true,
++  })
++  mkdirSync(join(directory, 'scripts'))
++  cpSync(
++    join(core, 'scripts/check-block-type-performance.ts'),
++    join(directory, 'scripts/check-block-type-performance.ts'),
++  )
++  cpSync(join(core, 'package.json'), join(directory, 'package.json'))
++  symlinkSync(join(snapshot, 'dist'), join(directory, 'dist'))
++  dependency(directory, 'foldkit', snapshot)
++  dependency(directory, 'effect', join(core, 'node_modules/effect'))
++  const bin = join(directory, 'node_modules/.bin')
++  mkdirSync(bin)
++  const quote = text => `'${text.replaceAll("'", "'\\''")}'`
++  const tsc = join(bin, 'tsc')
++  writeFileSync(
++    tsc,
++    `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(realpathSync(join(core, 'node_modules/typescript/bin/tsc')))} "$@"\n`,
++  )
++  chmodSync(tsc, 0o755)
++  if (mode === 'adapted') {
++    for (const file of files) {
++      const transformed = adapt(
++        readFileSync(join(core, 'type-performance', file), 'utf8'),
++        file,
++      )
++      writeFileSync(
++        join(directory, 'type-performance', file),
++        transformed.output,
++      )
++      transformations.push(transformed.facts)
++    }
++  }
++}
++const logs = join(artifacts, 'logs')
++mkdirSync(logs)
++const measurements = []
++const receipt = () => ({
++  repository,
++  artifacts,
++  node: process.version,
++  compiler: JSON.parse(
++    readFileSync(join(core, 'node_modules/typescript/package.json')),
++  ).version,
++  targets,
++  sourceHashes,
++  sourceDistHashes,
++  transformations,
++  measurements,
++})
++writeFileSync(
++  join(artifacts, 'receipt.json'),
++  JSON.stringify(receipt(), null, 2),
++)
++for (const mode of ['original', 'adapted']) {
++  for (const fixture of targets) {
++    const command = [
++      join(artifacts, mode, 'scripts/check-block-type-performance.ts'),
++      fixture,
++    ]
++    const result = spawnSync(process.execPath, command, {
++      cwd: join(artifacts, mode),
++      encoding: 'utf8',
++      maxBuffer: 32 * 1024 * 1024,
++      env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++    })
++    assert.ifError(result.error)
++    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
++    const log = join(logs, `${mode}-${fixture}.log`)
++    writeFileSync(log, output)
++    const row = [
++      ...output.matchAll(
++        /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++      ),
++    ].at(-1)
++    measurements.push({
++      mode,
++      fixture,
++      status: result.status,
++      command: [process.execPath, ...command],
++      log,
++      ...(row
++        ? {
++            instantiations: Number(row[2].replaceAll(',', '')),
++            maxInstantiations: Number(row[3].replaceAll(',', '')),
++            types: Number(row[4].replaceAll(',', '')),
++            maxTypes: Number(row[5].replaceAll(',', '')),
++            symbols: Number(row[6].replaceAll(',', '')),
++            budgetStatus: row[7],
++          }
++        : { diagnosticFailure: true }),
++    })
++    writeFileSync(
++      join(artifacts, 'receipt.json'),
++      JSON.stringify(receipt(), null, 2),
++    )
++    console.log(
++      mode,
++      fixture,
++      result.status,
++      row ? `${row[2]} instantiations / ${row[4]} Types` : log,
++    )
++  }
++}
++for (const [path, hash] of Object.entries(sourceHashes)) {
++  assert.equal(
++    sha256(readFileSync(join(core, path))),
++    hash,
++    `Original fixture changed: ${path}`,
++  )
++}
++for (const [path, hash] of Object.entries(sourceDistHashes)) {
++  assert.equal(
++    sha256(readFileSync(join(core, path))),
++    hash,
++    `Framework dist changed: ${path}`,
++  )
++}
++writeFileSync(
++  join(artifacts, 'receipt.json'),
++  JSON.stringify(
++    {
++      ...receipt(),
++      originalSourcesUnchanged: true,
++      frameworkDistUnchanged: true,
++    },
++    null,
++    2,
++  ),
++)
++console.log(join(artifacts, 'receipt.json'))
++process.exitCode = measurements.every(row => row.status === 0) ? 0 : 1
+diff --git a/internal/direct-block-performance/README.md b/internal/direct-block-performance/README.md
+new file mode 100644
+index 0000000000..81b9578208
+--- /dev/null
++++ b/internal/direct-block-performance/README.md
+@@ -0,0 +1,54 @@
++# Direct Block compiler workload adaptation
++
++This bounded probe copies the existing deep, wide and Workspace compiler fixtures. It does not edit `packages/foldkit/type-performance`, its generator, the normal measurement script, or any ceiling.
++
++Run after the prototype owner freezes its built package:
++
++```sh
++NODE_DISABLE_COMPILE_CACHE=1 node internal/direct-block-performance/verify.mjs
++```
++
++The verifier snapshots the prototype's built package into a temporary directory, creates original and adapted fixture copies, and runs the unchanged normal checker for `deep-composition-8`, `wide-composition-100`, `workspace-composition-4` and `workspace-composition-8`. It retains source and declaration hashes, diagnostics, the complete generated sources, explicit contract additions and a receipt. No framework source or live package output is rebuilt. Its private compiler wrapper points at the same installed pinned compiler; no package install is performed.
++
++The adaptation uses `Block.make`, explicit constructor Binding yields and returned `children`, ordinary `makeLayer` outputs, and `Layer.provide` for the child implementations. The original warmup and baseline remain unchanged. Existing constructor body properties and domain variable initializers are compared as TypeScript ASTs, and every original `Expect` assertion remains.
++
++Independent contracts require explicit unique keys, Init tuples, view kinds, message-free facts, operations and ordinary Service bounds. The generated receipt lists each addition. A local `Schema.Never` with dispatching children is not message-free. Operation sources move once from the native completion body to the declaration; their ASTs are compared independently. Control's `selectIssue` operation additionally declares its existing exact `SelectedIssue` OutMessage channel. Schema, Command, Mount, view, child storage, policy and handler bodies are retained.
++
++A passive Block has no selected `EffectsLayer` property. The existing lazy handler Service/Error assertions therefore project the same exact channels from the selected Layer through the prototype's named internal `SelectedLayerFacts` type. This is measurement-only introspection, not proposed application syntax. Model, encoded/Codec, Mount and Program required/provided-Service assertions retain their original checks. The resulting four workloads still contain respectively 10/2/7/11 Blocks and 9/100/16/32 Bindings; Workspace retains 4/8 Mounts.
++
++The results measure compiler work through this prototype's declarations, including coexistence with the original native API. They do not measure latency, prove lifecycle behavior, or establish the cost of a future package surface that removes the legacy API.
++
++## Measured result
++
++All adapted sources compile with the original assertions. All four adapted workloads exceed the unchanged ceilings. The current prototype is not compiler-budget ready.
++
++| Workload    | Original instantiations / Types | Unified Block instantiations / Types |   Unchanged ceiling |
++| ----------- | ------------------------------: | -----------------------------------: | ------------------: |
++| Deep 8      |                659,046 / 52,666 |                  3,053,157 / 424,199 |  1,152,618 / 55,843 |
++| Wide 100    |              1,392,438 / 80,565 |                  5,337,430 / 442,595 | 3,132,298 / 216,662 |
++| Workspace 4 |             2,683,623 / 234,232 |               10,685,646 / 1,196,822 | 2,642,699 / 229,173 |
++| Workspace 8 |             4,451,559 / 307,857 |               12,048,102 / 1,028,932 | 4,515,010 / 299,721 |
++
++Original deep/wide pass. Original Workspace 4 exceeds both ceilings; Workspace 8 exceeds Types. These original sources are unchanged, so their failures also need resolution.
++
++The final primary receipt is `/private/tmp/foldkit-direct-block-performance-AttDXW/receipt.json`; the concise durable summary is [results.json](./results.json). It records source/config/ceiling hashes, the copied declaration snapshot, the exact pinned TypeScript 7.1.0-beta checker and body/domain/assertion preservation counts. Transformation uses the existing TypeScript 6.0.2 parser API; measurements use the unchanged pinned checker.
++
++### Bounded controls
++
++These operate on separate copies within a completed snapshot, with no production changes. Run each once per snapshot:
++
++```sh
++node internal/direct-block-performance/compact-control.mjs SNAPSHOT_DIRECTORY
++node internal/direct-block-performance/constructor-control.mjs SNAPSHOT_DIRECTORY
++node internal/direct-block-performance/base-constructor-control.mjs SNAPSHOT_DIRECTORY
++node internal/direct-block-performance/named-layer-control.mjs SNAPSHOT_DIRECTORY
++```
++
++The controls retain every source assertion. A nonzero normal-checker status indicates a ceiling failure when a metrics row is present; `diagnosticFailure` instead means the source did not compile.
++
++- **Measurement witness:** replacing the deep workload's internal facts import with public `Block.Plan` output extraction costs 3,053,281 instantiations / 424,200 Types. The witness is not the dominant cost.
++- **Compact Binding inputs:** an identity-returning generic `Pick` retains owner, Schemas, get, and both descriptor/constructor evidence symbols while removing authoring helpers. Deep: 3,058,319 / 424,244; wide: 5,351,345 / 442,624; Workspace 4: 10,711,163 / 1,196,912; Workspace 8: 12,098,458 / 1,029,030. This does not recover cost and is not proposed consumer syntax.
++- **Existing contract constructor API:** the matched deep workload uses keyed `makeDefinition`, passive `.contract` Bindings, and the identical `.makeBlock` constructor followed by `.provide(child.layer)`. The prototype's modified `MakeBlock` return leaves child `ContractGraph` requirements unresolved. Restoring only its pre-prototype `DeclaredFacts` return in a copied declaration makes the unchanged Clock/fully-provided assertions pass: 1,835,462 / 251,776, still above budget. The increase from native to unified syntax therefore cannot all be attributed to raw Layer completion.
++- **Named Layer return:** replacing only the `MakeLayer` return and its helper with the prototype owner's named interface yields deep 3,050,348 / 424,289. This small change does not recover the ceiling.
++
++The named-interface control reads the owner's current source declarations, so it requires that experimental source change to be present. Each receipt contains the exact copied declaration edits. The existing-constructor control reads the worktree's base `HEAD` return Facts rather than inventing a weaker return. Validation remains enabled.
+diff --git a/internal/direct-block-performance/adapt.mjs b/internal/direct-block-performance/adapt.mjs
+new file mode 100644
+index 0000000000..4beff7a970
+--- /dev/null
++++ b/internal/direct-block-performance/adapt.mjs
+@@ -0,0 +1,464 @@
++import assert from 'node:assert/strict'
++import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
++import { createRequire } from 'node:module'
++import { join, resolve } from 'node:path'
++
++const modules = realpathSync(
++  new URL('../../packages/foldkit/node_modules', import.meta.url),
++)
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++
++const printer = ts.createPrinter({ removeComments: true })
++const canonical = node =>
++  printer.printNode(ts.EmitHint.Unspecified, node, node.getSourceFile())
++const member = (node, name) =>
++  ts.isPropertyAccessExpression(node) && node.name.text === name
++const property = (object, name) =>
++  object.properties.find(entry => entry.name?.getText() === name)
++const expression = entry =>
++  ts.isShorthandPropertyAssignment(entry) ? entry.name : entry.initializer
++const withoutBlock = name => (name.endsWith('Block') ? name.slice(0, -5) : name)
++const layerName = name => `${withoutBlock(name)}Layer`
++
++/** Creates a direct-Block copy while preserving every original authored body property. */
++export const adapt = (source, file) => {
++  const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++  const declarations = new Map()
++  for (const statement of parsed.statements) {
++    if (!ts.isVariableStatement(statement)) {
++      continue
++    }
++    for (const declaration of statement.declarationList.declarations) {
++      if (ts.isIdentifier(declaration.name)) {
++        declarations.set(declaration.name.text, { declaration, statement })
++      }
++    }
++  }
++  const definitions = new Map()
++  const compositions = new Map()
++  for (const [name, entry] of declarations) {
++    const init = entry.declaration.initializer
++    if (!init || !ts.isCallExpression(init)) {
++      continue
++    }
++    if (member(init.expression, 'makeDefinition')) {
++      definitions.set(name, { ...entry, call: init })
++    }
++    if (member(init.expression, 'makeComposition')) {
++      const owner = init.expression.expression
++      if (ts.isIdentifier(owner)) {
++        compositions.set(name, { ...entry, call: init, definition: owner.text })
++      } else if (
++        ts.isCallExpression(owner) &&
++        member(owner.expression, 'makeDefinition')
++      ) {
++        const definition = name.replace(/Composition$/, 'Definition')
++        definitions.set(definition, { ...entry, call: owner, chained: true })
++        compositions.set(name, { ...entry, call: init, definition })
++      }
++    }
++  }
++  const completions = []
++  for (const [name, entry] of declarations) {
++    const init = entry.declaration.initializer
++    if (
++      !init ||
++      !ts.isCallExpression(init) ||
++      !member(init.expression, 'assemble')
++    ) {
++      continue
++    }
++    const [prepareName] = init.arguments
++    assert.ok(prepareName && ts.isIdentifier(prepareName))
++    const prepare = declarations.get(prepareName.text)
++    assert.ok(prepare && ts.isArrowFunction(prepare.declaration.initializer))
++    const invocation = prepare.declaration.initializer.body
++    assert.ok(
++      ts.isCallExpression(invocation) &&
++        member(invocation.expression, 'prepareBlock'),
++    )
++    const compositionName = invocation.expression.expression.getText(parsed)
++    const composition = compositions.get(compositionName)
++    const definition = definitions.get(composition.definition)
++    const [body] = invocation.arguments
++    assert.ok(body && ts.isObjectLiteralExpression(body))
++    completions.push({
++      name,
++      ...entry,
++      prepare,
++      compositionName,
++      composition,
++      definition,
++      body,
++    })
++  }
++  const replacements = []
++  const replace = (node, text) =>
++    replacements.push({ start: node.getStart(parsed), end: node.end, text })
++  const addedContracts = []
++  const preservedBodies = []
++  const childProviders = new Set()
++  const ownedBlocks = new Set(completions.map(entry => entry.name))
++  const resolveValue = value =>
++    ts.isIdentifier(value) && declarations.has(value.text)
++      ? declarations.get(value.text).declaration.initializer
++      : value
++  const childOfBinding = value => {
++    if (
++      ts.isCallExpression(value) &&
++      member(value.expression, 'withOutMessagePolicy')
++    ) {
++      return childOfBinding(value.expression.expression)
++    }
++    if (ts.isIdentifier(value)) {
++      return childOfBinding(resolveValue(value))
++    }
++    assert.ok(
++      ts.isCallExpression(value) && member(value.expression, 'makeBinding'),
++      value.getText(parsed),
++    )
++    return value.arguments.at(0).getText(parsed)
++  }
++  for (const completed of completions) {
++    const { name, definition, composition, compositionName, body } = completed
++    const [id, config] = definition.call.arguments
++    assert.ok(id && config && ts.isObjectLiteralExpression(config))
++    const declarationName = composition.definition
++    const key = `${declarationName}Key`
++    const init = resolveValue(expression(property(body, 'init')))
++    assert.ok(ts.isCallExpression(init) && member(init.expression, 'makeInit'))
++    const [initializer] = init.arguments
++    assert.ok(ts.isArrowFunction(initializer))
++    const args = initializer.parameters.map(parameter => {
++      assert.equal(parameter.questionToken, undefined)
++      assert.equal(parameter.dotDotDotToken, undefined)
++      assert.equal(parameter.initializer, undefined)
++      assert.equal(parameter.type?.kind, ts.SyntaxKind.StringKeyword)
++      return 'Schema.String'
++    })
++    const message = expression(property(config, 'Message'))
++    const messageFree =
++      message.getText(parsed) === 'Schema.Never' ||
++      resolveValue(message)?.getText(parsed) === 'Schema.Never'
++    const inventory = composition.call.arguments.at(0)
++    const bindingsProperty =
++      inventory && ts.isObjectLiteralExpression(inventory)
++        ? property(inventory, 'bindings')
++        : undefined
++    const bindings = bindingsProperty
++      ? expression(bindingsProperty).elements
++      : []
++    const fullyMessageFree = messageFree && bindings.length === 0
++    const isWorkspace = file.startsWith('workspace-')
++    const service = isWorkspace
++      ? name === 'ControlBlock'
++        ? undefined
++        : 'WorkspaceStore'
++      : 'Clock'
++    const operations = property(body, 'operations')
++    const operationsText = operations
++      ? expression(operations).getText(parsed)
++      : undefined
++    const declaredOperations =
++      name === 'ControlBlock'
++        ? '{ selectIssue: { message: ControlMessage.ClickedIssue, outMessage: ControlOutMessage.SelectedIssue }, clearQuery: ControlMessage.RequestedClearQuery }'
++        : operationsText
++    const additions = [
++      `key: ${key}`,
++      `Init: Schema.Tuple([${args.join(', ')}])`,
++      ...(fullyMessageFree ? ['isMessageFree: true'] : []),
++      ...(property(body, 'view') ? ["view: { kind: 'Element' }"] : []),
++      ...(service ? [`effects: { services: [${service}] }`] : []),
++      ...(declaredOperations ? [`operations: ${declaredOperations}`] : []),
++    ]
++    const ownConfig = `{ ${additions.join(', ')}, ${config.properties.map(entry => entry.getText(parsed)).join(', ')} }`
++    const createBlock = `Block.make(${id.getText(parsed)}, ${ownConfig})`
++    if (definition.chained) {
++      replace(
++        composition.statement,
++        `const ${key} = Symbol(${id.getText(parsed)})\nconst ${declarationName} = ${createBlock}\nconst ${compositionName} = ${declarationName}.makeComposition(${composition.call.arguments.map(arg => arg.getText(parsed)).join(', ')})`,
++      )
++    } else {
++      replace(
++        definition.statement,
++        `const ${key} = Symbol(${id.getText(parsed)})\nconst ${declarationName} = ${createBlock}`,
++      )
++    }
++    const providers = [...new Set(bindings.map(childOfBinding).map(layerName))]
++    for (const child of bindings.map(childOfBinding)) {
++      if (!ownedBlocks.has(child)) {
++        childProviders.add(child)
++      }
++    }
++    const connectionNames = bindings.map(
++      (_binding, index) => `child${String(index + 1).padStart(3, '0')}`,
++    )
++    const bindingNames = connectionNames.map(
++      connection => `${connection}Binding`,
++    )
++    const acquire =
++      bindings.length === 0
++        ? ''
++        : `const [${bindingNames.join(', ')}] = ${compositionName}.bindings\n${connectionNames.map((connection, index) => `const ${connection} = yield* ${bindingNames.at(index)}`).join('\n')}\n\n`
++    const implementationProperties = body.properties.filter(
++      entry => entry.name?.getText(parsed) !== 'operations',
++    )
++    const constructedBody = `{ children: [${connectionNames.join(', ')}], ${implementationProperties.map(entry => entry.getText(parsed)).join(', ')} }`
++    const construct =
++      bindings.length === 0
++        ? `Effect.succeed(${constructedBody})`
++        : `Effect.gen(function* () {\n${acquire}return ${constructedBody}\n})`
++    const ownLayer = `${declarationName}.makeLayer(${construct})`
++    const provided =
++      providers.length === 0
++        ? ownLayer
++        : `Layer.provide(${ownLayer}, ${providers.length === 1 ? providers.at(0) : `Layer.mergeAll(${providers.join(', ')})`})`
++    const exported = completed.statement.modifiers?.some(
++      modifier => modifier.kind === ts.SyntaxKind.ExportKeyword,
++    )
++      ? 'export '
++      : ''
++    replace(completed.prepare.statement, '')
++    replace(
++      completed.statement,
++      `${exported}const ${layerName(name)} = ${provided}\n${exported}const ${name} = ${declarationName}`,
++    )
++    for (const statement of parsed.statements) {
++      if (
++        ts.isInterfaceDeclaration(statement) &&
++        statement.name.text === name
++      ) {
++        replace(statement, '')
++      }
++    }
++    addedContracts.push({
++      block: name,
++      definition: declarationName,
++      id: id.text,
++      key,
++      init: args,
++      messageFree,
++      fullyMessageFree,
++      view: property(body, 'view') ? 'Element' : undefined,
++      services: service ? [service] : [],
++      operations: declaredOperations,
++      providers,
++      yieldedBindings: bindings.length,
++    })
++    for (const authored of body.properties) {
++      preservedBodies.push({
++        block: name,
++        property: authored.name.getText(parsed),
++        canonical: canonical(authored),
++        destination:
++          authored.name.getText(parsed) === 'operations'
++            ? 'declaration'
++            : 'implementation',
++      })
++    }
++  }
++  for (const statement of parsed.statements) {
++    if (
++      !ts.isImportDeclaration(statement) ||
++      !statement.importClause?.namedBindings ||
++      !ts.isNamedImports(statement.importClause.namedBindings)
++    ) {
++      continue
++    }
++    const imports = statement.importClause.namedBindings.elements
++    const needed = imports.flatMap(entry =>
++      childProviders.has(entry.name.text) ? [layerName(entry.name.text)] : [],
++    )
++    if (needed.length > 0) {
++      const original = statement.getText(parsed)
++      replace(statement, original.replace('{', `{ ${needed.join(', ')}, `))
++    }
++  }
++  const visit = node => {
++    if (ts.isCallExpression(node) && member(node.expression, 'makeElement')) {
++      const [configuration] = node.arguments
++      assert.ok(ts.isObjectLiteralExpression(configuration))
++      replace(
++        configuration,
++        `{ layer: ApplicationLayer, ${configuration.properties.map(entry => entry.getText(parsed)).join(', ')} }`,
++      )
++    }
++    ts.forEachChild(node, visit)
++  }
++  visit(parsed)
++  let output = source
++  for (const edit of replacements.sort((a, b) => b.start - a.start)) {
++    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end)
++  }
++  output = output
++    .replace(
++      'Update.RequirementsOf<typeof update>',
++      "SelectedLayerFacts<typeof ApplicationLayer, typeof ApplicationBlock.owner>['update']['requirements']",
++    )
++    .replace(
++      /Value extends ElementProgram<[\s\S]*?infer _ProvidedServices\s*>\s*\? Requirements\s*:\s*never/,
++      "Value extends { readonly '~foldkit/ProgramProvision'?: { readonly Requirements: (requirements: infer Requirements) => unknown } } ? Requirements : never",
++    )
++    .replace(
++      /Layer\.Services<typeof (\w+)\.EffectsLayer>/g,
++      (_all, block) =>
++        `SelectedLayerFacts<typeof ${layerName(block)}, typeof ${block}.owner>['effectsLayerRequirements']`,
++    )
++    .replace(
++      /Layer\.Error<typeof (\w+)\.EffectsLayer>/g,
++      (_all, block) =>
++        `SelectedLayerFacts<typeof ${layerName(block)}, typeof ${block}.owner>['effectsLayerError']`,
++    )
++  if (output.includes('SelectedLayerFacts<')) {
++    const imports = ts
++      .createSourceFile(file, output, ts.ScriptTarget.Latest, true)
++      .statements.filter(ts.isImportDeclaration)
++    const offset = imports.at(-1)?.end ?? 0
++    output =
++      output.slice(0, offset) +
++      "\nimport type { SelectedLayerFacts } from '../dist/runtime/rootBlock.js'" +
++      output.slice(offset)
++  }
++  const transformed = ts.createSourceFile(
++    file,
++    output,
++    ts.ScriptTarget.Latest,
++    true,
++  )
++  const updatedBodies = []
++  const findBodies = node => {
++    if (ts.isCallExpression(node) && member(node.expression, 'makeLayer')) {
++      const [constructor] = node.arguments
++      const [argument] = constructor.arguments
++      const body = member(constructor.expression, 'succeed')
++        ? argument
++        : argument.body.statements.find(statement =>
++            ts.isReturnStatement(statement),
++          )?.expression
++      assert.ok(body && ts.isObjectLiteralExpression(body))
++      updatedBodies.push(
++        ...body.properties
++          .filter(entry => entry.name?.getText(transformed) !== 'children')
++          .map(canonical),
++      )
++    }
++    ts.forEachChild(node, findBodies)
++  }
++  findBodies(transformed)
++  assert.deepEqual(
++    updatedBodies,
++    preservedBodies
++      .filter(entry => entry.destination === 'implementation')
++      .map(entry => entry.canonical),
++    `${file}: authored body changed`,
++  )
++  const updatedDeclarations = new Map()
++  for (const statement of transformed.statements) {
++    if (!ts.isVariableStatement(statement)) {
++      continue
++    }
++    for (const declaration of statement.declarationList.declarations) {
++      if (ts.isIdentifier(declaration.name)) {
++        updatedDeclarations.set(declaration.name.text, declaration)
++      }
++    }
++  }
++  let movedOperations = 0
++  const operationSources = record => {
++    assert.ok(ts.isObjectLiteralExpression(record))
++    return record.properties.map(entry => {
++      const value = expression(entry)
++      const source = ts.isObjectLiteralExpression(value)
++        ? expression(property(value, 'message'))
++        : value
++      return [entry.name.getText(), canonical(source)]
++    })
++  }
++  for (const completed of completions) {
++    const original = property(completed.body, 'operations')
++    if (!original) {
++      continue
++    }
++    const current = updatedDeclarations.get(completed.composition.definition)
++    const config = current.initializer.arguments.at(1)
++    const operations = property(config, 'operations')
++    assert.ok(operations)
++    assert.deepEqual(
++      operationSources(expression(operations)),
++      operationSources(expression(original)),
++      `${file}: moved operation sources changed`,
++    )
++    movedOperations += operationSources(expression(original)).length
++  }
++  const syntaxBoundaries = new Set(
++    completions.flatMap(completed => [
++      completed.name,
++      completed.prepare.declaration.name.text,
++      completed.composition.definition,
++      ...(completed.definition.chained ? [completed.compositionName] : []),
++    ]),
++  )
++  let preservedDomainDeclarations = 0
++  for (const [name, { declaration }] of declarations) {
++    if (
++      syntaxBoundaries.has(name) ||
++      name === 'program' ||
++      declaration.initializer === undefined
++    ) {
++      continue
++    }
++    const updated = updatedDeclarations.get(name)
++    assert.ok(updated?.initializer, `${file}: lost ${name}`)
++    assert.equal(
++      canonical(updated.initializer),
++      canonical(declaration.initializer),
++      `${file}: domain declaration ${name} changed`,
++    )
++    preservedDomainDeclarations += 1
++  }
++  const countAssertions = sourceFile => {
++    let count = 0
++    const visit = node => {
++      if (
++        ts.isTypeReferenceNode(node) &&
++        ts.isIdentifier(node.typeName) &&
++        node.typeName.text === 'Expect'
++      ) {
++        count += 1
++      }
++      ts.forEachChild(node, visit)
++    }
++    visit(sourceFile)
++    return count
++  }
++  const beforeAssertions = countAssertions(parsed)
++  const afterAssertions = countAssertions(transformed)
++  assert.equal(afterAssertions, beforeAssertions)
++  return {
++    output,
++    facts: {
++      file,
++      blocks: addedContracts,
++      preservedAuthoredProperties: preservedBodies.length,
++      preservedDomainDeclarations,
++      movedOperations,
++      retainedAssertions: afterAssertions,
++    },
++  }
++}
++
++if (process.argv.at(1)?.endsWith('/adapt.mjs')) {
++  const [input, output] = process.argv.slice(2)
++  assert.ok(input && output)
++  const transformed = adapt(
++    readFileSync(input, 'utf8'),
++    input.split('/').at(-1),
++  )
++  writeFileSync(output, transformed.output)
++  writeFileSync(
++    `${output}.facts.json`,
++    JSON.stringify(transformed.facts, null, 2),
++  )
++  console.log(join(output))
++}
+diff --git a/internal/direct-block-performance/base-constructor-control.mjs b/internal/direct-block-performance/base-constructor-control.mjs
+new file mode 100644
+index 0000000000..c00aa0d741
+--- /dev/null
++++ b/internal/direct-block-performance/base-constructor-control.mjs
+@@ -0,0 +1,126 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import {
++  cpSync,
++  readFileSync,
++  writeFileSync,
++  realpathSync,
++  unlinkSync,
++  symlinkSync,
++} from 'node:fs'
++import { createRequire } from 'node:module'
++import { dirname, join, resolve } from 'node:path'
++const repository = resolve(dirname(new URL(import.meta.url).pathname), '../..')
++const modules = realpathSync(join(repository, 'packages/foldkit/node_modules'))
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++const snapshot = process.argv.at(2)
++assert.ok(snapshot)
++const directory = join(snapshot, 'base-constructor-control')
++const packageCore = join(snapshot, 'base-constructor-package')
++cpSync(join(snapshot, 'constructor-control'), directory, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++cpSync(join(snapshot, 'package-core'), packageCore, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++for (const [link, target] of [
++  [join(directory, 'dist'), join(packageCore, 'dist')],
++  [join(directory, 'node_modules/foldkit'), packageCore],
++]) {
++  unlinkSync(link)
++  symlinkSync(target, link)
++}
++const base = spawnSync(
++  'git',
++  ['show', 'HEAD:packages/foldkit/src/experimental/contracted/contract.ts'],
++  { cwd: repository, encoding: 'utf8' },
++)
++assert.equal(base.status, 0)
++const original = ts.createSourceFile(
++  'base.ts',
++  base.stdout,
++  ts.ScriptTarget.Latest,
++  true,
++)
++const file = join(packageCore, 'dist/experimental/contracted/contract.d.ts')
++const source = readFileSync(file, 'utf8')
++const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++const facts = ast =>
++  ast.statements
++    .find(
++      node => ts.isInterfaceDeclaration(node) && node.name.text === 'MakeBlock',
++    )
++    .members.at(0)
++    .type.typeArguments.at(4)
++const before = facts(parsed)
++const after = facts(original).getText(original)
++writeFileSync(
++  file,
++  source.slice(0, before.getStart(parsed)) + after + source.slice(before.end),
++)
++const fixture = 'deep-composition-8'
++const command = [
++  join(directory, 'scripts/check-block-type-performance.ts'),
++  fixture,
++]
++const result = spawnSync(process.execPath, command, {
++  cwd: directory,
++  encoding: 'utf8',
++  maxBuffer: 32 * 1024 * 1024,
++  env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++})
++assert.ifError(result.error)
++const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
++const log = join(
++  snapshot,
++  'logs',
++  'base-constructor-control-deep-composition-8.log',
++)
++writeFileSync(log, output)
++const row = [
++  ...output.matchAll(
++    /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++  ),
++].at(-1)
++const receipt = join(snapshot, 'base-constructor-control-receipt.json')
++writeFileSync(
++  receipt,
++  JSON.stringify(
++    {
++      snapshot,
++      directory,
++      packageCore,
++      purpose:
++        'Matched independent contract constructor API with only the pre-prototype MakeBlock return Facts restored from base HEAD. All validation remains current.',
++      declarationControl: { before: before.getText(parsed), after },
++      fixture,
++      status: result.status,
++      command: [process.execPath, ...command],
++      log,
++      ...(row
++        ? {
++            instantiations: Number(row[2].replaceAll(',', '')),
++            maxInstantiations: Number(row[3].replaceAll(',', '')),
++            types: Number(row[4].replaceAll(',', '')),
++            maxTypes: Number(row[5].replaceAll(',', '')),
++            symbols: Number(row[6].replaceAll(',', '')),
++            budgetStatus: row[7],
++          }
++        : { diagnosticFailure: true }),
++    },
++    null,
++    2,
++  ),
++)
++console.log(row ? `${row[2]} instantiations / ${row[4]} Types` : log)
++console.log(receipt)
++process.exitCode = result.status ?? 1
+diff --git a/internal/direct-block-performance/compact-control.mjs b/internal/direct-block-performance/compact-control.mjs
+new file mode 100644
+index 0000000000..b9849ea6a6
+--- /dev/null
++++ b/internal/direct-block-performance/compact-control.mjs
+@@ -0,0 +1,126 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import { cpSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
++import { createRequire } from 'node:module'
++import { resolve, join } from 'node:path'
++
++const modules = realpathSync(
++  new URL('../../packages/foldkit/node_modules', import.meta.url),
++)
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++const snapshot = process.argv.at(2)
++assert.ok(snapshot, 'Pass the completed verify.mjs snapshot directory.')
++const originalReceipt = JSON.parse(readFileSync(join(snapshot, 'receipt.json')))
++const directory = join(snapshot, 'compact-control')
++cpSync(join(snapshot, 'adapted'), directory, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++const transformations = []
++for (const entry of originalReceipt.transformations) {
++  const file = join(directory, 'type-performance', entry.file)
++  const source = readFileSync(file, 'utf8')
++  const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++  const edits = []
++  const visit = node => {
++    if (
++      ts.isCallExpression(node) &&
++      ts.isPropertyAccessExpression(node.expression) &&
++      ['makeBinding', 'makeMapBinding'].includes(node.expression.name.text)
++    ) {
++      const child = node.arguments.at(0)
++      edits.push({
++        start: child.getStart(parsed),
++        end: child.end,
++        text: `compactDescriptor(${child.getText(parsed)})`,
++      })
++    }
++    ts.forEachChild(node, visit)
++  }
++  visit(parsed)
++  if (edits.length === 0) {
++    continue
++  }
++  let output = source
++  for (const edit of edits.sort((a, b) => b.start - a.start)) {
++    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end)
++  }
++  const imports = parsed.statements.filter(ts.isImportDeclaration)
++  const offset = imports.at(-1)?.end ?? 0
++  const helper = `
++import type { DescriptorTypeId, DeclaredBlockReaderTypeId } from '../dist/experimental/constructed/contract.js'
++type DescriptorKeys = 'owner' | 'Model' | 'Message' | 'InMessage' | 'OutMessage' | 'get' | typeof DescriptorTypeId | typeof DeclaredBlockReaderTypeId
++const compactDescriptor = <Value extends object>(value: Value): Pick<Value, Extract<keyof Value, DescriptorKeys>> => value
++`
++  output = output.slice(0, offset) + helper + output.slice(offset)
++  writeFileSync(file, output)
++  transformations.push({
++    file: entry.file,
++    wrappedBindingArguments: edits.length,
++  })
++}
++const measurements = []
++for (const fixture of originalReceipt.targets) {
++  const command = [
++    join(directory, 'scripts/check-block-type-performance.ts'),
++    fixture,
++  ]
++  const result = spawnSync(process.execPath, command, {
++    cwd: directory,
++    encoding: 'utf8',
++    maxBuffer: 32 * 1024 * 1024,
++    env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++  })
++  assert.ifError(result.error)
++  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
++  const log = join(snapshot, 'logs', `compact-control-${fixture}.log`)
++  writeFileSync(log, output)
++  const row = [
++    ...output.matchAll(
++      /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++    ),
++  ].at(-1)
++  measurements.push({
++    fixture,
++    status: result.status,
++    command: [process.execPath, ...command],
++    log,
++    ...(row
++      ? {
++          instantiations: Number(row[2].replaceAll(',', '')),
++          maxInstantiations: Number(row[3].replaceAll(',', '')),
++          types: Number(row[4].replaceAll(',', '')),
++          maxTypes: Number(row[5].replaceAll(',', '')),
++          symbols: Number(row[6].replaceAll(',', '')),
++          budgetStatus: row[7],
++        }
++      : { diagnosticFailure: true }),
++  })
++  console.log(
++    fixture,
++    result.status,
++    row ? `${row[2]} instantiations / ${row[4]} Types` : log,
++  )
++}
++const receipt = join(snapshot, 'compact-control-receipt.json')
++writeFileSync(
++  receipt,
++  JSON.stringify(
++    {
++      snapshot,
++      directory,
++      purpose:
++        'Diagnostic only: strip authoring helpers from Binding child inputs without changing the Block object or channel facts.',
++      transformations,
++      measurements,
++    },
++    null,
++    2,
++  ),
++)
++console.log(receipt)
++process.exitCode = measurements.every(row => row.status === 0) ? 0 : 1
+diff --git a/internal/direct-block-performance/constructor-control.mjs b/internal/direct-block-performance/constructor-control.mjs
+new file mode 100644
+index 0000000000..6fc7fabad2
+--- /dev/null
++++ b/internal/direct-block-performance/constructor-control.mjs
+@@ -0,0 +1,195 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import { cpSync, readFileSync, writeFileSync, realpathSync } from 'node:fs'
++import { createRequire } from 'node:module'
++import { join, resolve } from 'node:path'
++const modules = realpathSync(
++  new URL('../../packages/foldkit/node_modules', import.meta.url),
++)
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++const snapshot = process.argv.at(2)
++assert.ok(snapshot)
++const prior = JSON.parse(readFileSync(join(snapshot, 'receipt.json')))
++const directory = join(snapshot, 'constructor-control')
++cpSync(join(snapshot, 'adapted'), directory, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++const transformations = []
++const member = (node, name) =>
++  ts.isPropertyAccessExpression(node) && node.name.text === name
++for (const entry of prior.transformations) {
++  const file = join(directory, 'type-performance', entry.file)
++  const source = readFileSync(file, 'utf8')
++  const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++  const edits = []
++  const replace = (node, text) =>
++    edits.push({ start: node.getStart(parsed), end: node.end, text })
++  const implementations = new Map(
++    entry.blocks.map(block => [
++      block.block.replace(/Block$/, ''),
++      `${block.block.replace(/Block$/, '')}Implementation`,
++    ]),
++  )
++  for (const statement of parsed.statements) {
++    if (
++      ts.isImportDeclaration(statement) &&
++      statement.getText(parsed).includes('SelectedLayerFacts')
++    ) {
++      replace(statement, '')
++      continue
++    }
++    if (!ts.isVariableStatement(statement)) {
++      continue
++    }
++    for (const declaration of statement.declarationList.declarations) {
++      if (!ts.isIdentifier(declaration.name) || !declaration.initializer) {
++        continue
++      }
++      const name = declaration.name.text
++      const block = entry.blocks.find(block => block.definition === name)
++      if (block) {
++        assert.ok(
++          ts.isCallExpression(declaration.initializer) &&
++            member(declaration.initializer.expression, 'make'),
++        )
++        replace(declaration.initializer.expression, 'Block.makeDefinition')
++        continue
++      }
++      const completed = entry.blocks.find(
++        block => `${block.block.replace(/Block$/, '')}Layer` === name,
++      )
++      if (completed) {
++        const original = declaration.initializer
++        const provided =
++          ts.isCallExpression(original) &&
++          member(original.expression, 'provide')
++        const make = provided ? original.arguments.at(0) : original
++        assert.ok(
++          ts.isCallExpression(make) && member(make.expression, 'makeLayer'),
++        )
++        const construct = make.arguments.at(0).getText(parsed)
++        const dependency = provided
++          ? original.arguments.at(1).getText(parsed)
++          : undefined
++        const implementation = implementations.get(
++          completed.block.replace(/Block$/, ''),
++        )
++        const exported = statement.modifiers?.some(
++          mod => mod.kind === ts.SyntaxKind.ExportKeyword,
++        )
++          ? 'export '
++          : ''
++        replace(
++          statement,
++          `${exported}const ${implementation} = ${completed.definition}.makeBlock(${construct})${dependency ? `.provide(${dependency})` : ''}\n${exported}const ${name} = ${implementation}.layer`,
++        )
++        continue
++      }
++      const alias = entry.blocks.find(block => block.block === name)
++      if (alias) {
++        replace(
++          declaration.initializer,
++          alias.block === 'ApplicationBlock'
++            ? 'ApplicationImplementation'
++            : `${alias.definition}.contract`,
++        )
++      }
++    }
++  }
++  const visit = node => {
++    if (ts.isCallExpression(node) && member(node.expression, 'makeElement')) {
++      const config = node.arguments.at(0)
++      assert.ok(ts.isObjectLiteralExpression(config))
++      replace(
++        config,
++        `{${config.properties
++          .filter(p => p.name?.getText(parsed) !== 'layer')
++          .map(p => p.getText(parsed))
++          .join(',')}}`,
++      )
++    }
++    ts.forEachChild(node, visit)
++  }
++  visit(parsed)
++  let output = source
++  for (const edit of edits.sort((a, b) => b.start - a.start)) {
++    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end)
++  }
++  output = output.replace(
++    /SelectedLayerFacts<typeof (\w+)Layer, typeof (\w+)\.owner>/g,
++    (_match, base) => `Block.FactsOf<typeof ${base}Implementation>`,
++  )
++  writeFileSync(file, output)
++  transformations.push({
++    file: entry.file,
++    blocks: entry.blocks.length,
++    contractBodiesAndMetadataFrom:
++      'adapted snapshot; makeLayer constructor expression retained verbatim',
++  })
++}
++const measurements = []
++for (const fixture of ['deep-composition-8']) {
++  const command = [
++    join(directory, 'scripts/check-block-type-performance.ts'),
++    fixture,
++  ]
++  const result = spawnSync(process.execPath, command, {
++    cwd: directory,
++    encoding: 'utf8',
++    maxBuffer: 32 * 1024 * 1024,
++    env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++  })
++  assert.ifError(result.error)
++  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
++  const log = join(snapshot, 'logs', `constructor-control-${fixture}.log`)
++  writeFileSync(log, output)
++  const row = [
++    ...output.matchAll(
++      /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++    ),
++  ].at(-1)
++  measurements.push({
++    fixture,
++    status: result.status,
++    command: [process.execPath, ...command],
++    log,
++    ...(row
++      ? {
++          instantiations: Number(row[2].replaceAll(',', '')),
++          maxInstantiations: Number(row[3].replaceAll(',', '')),
++          types: Number(row[4].replaceAll(',', '')),
++          maxTypes: Number(row[5].replaceAll(',', '')),
++          symbols: Number(row[6].replaceAll(',', '')),
++          budgetStatus: row[7],
++        }
++      : { diagnosticFailure: true }),
++  })
++  console.log(
++    fixture,
++    result.status,
++    row ? `${row[2]} instantiations / ${row[4]} Types` : log,
++  )
++}
++const receipt = join(snapshot, 'constructor-control-receipt.json')
++writeFileSync(
++  receipt,
++  JSON.stringify(
++    {
++      snapshot,
++      directory,
++      purpose:
++        'Matched existing independent-contract constructor API control, not native prepare/assemble.',
++      transformations,
++      measurements,
++    },
++    null,
++    2,
++  ),
++)
++console.log(receipt)
++process.exitCode = measurements.every(row => row.status === 0) ? 0 : 1
+diff --git a/internal/direct-block-performance/named-layer-control.mjs b/internal/direct-block-performance/named-layer-control.mjs
+new file mode 100644
+index 0000000000..48f15f072f
+--- /dev/null
++++ b/internal/direct-block-performance/named-layer-control.mjs
+@@ -0,0 +1,127 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import {
++  cpSync,
++  readFileSync,
++  writeFileSync,
++  realpathSync,
++  unlinkSync,
++  symlinkSync,
++} from 'node:fs'
++import { createRequire } from 'node:module'
++import { dirname, join, resolve } from 'node:path'
++const repository = resolve(dirname(new URL(import.meta.url).pathname), '../..')
++const modules = realpathSync(join(repository, 'packages/foldkit/node_modules'))
++const require = createRequire(resolve(modules, '../../../package.json'))
++const ts = require('typescript')
++const snapshot = process.argv.at(2)
++assert.ok(snapshot)
++const directory = join(snapshot, 'named-layer-control')
++const packageCore = join(snapshot, 'named-layer-package')
++cpSync(join(snapshot, 'adapted'), directory, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++cpSync(join(snapshot, 'package-core'), packageCore, {
++  recursive: true,
++  dereference: false,
++  verbatimSymlinks: true,
++  errorOnExist: true,
++  force: false,
++})
++for (const [link, target] of [
++  [join(directory, 'dist'), join(packageCore, 'dist')],
++  [join(directory, 'node_modules/foldkit'), packageCore],
++]) {
++  unlinkSync(link)
++  symlinkSync(target, link)
++}
++const file = join(packageCore, 'dist/experimental/contracted/contract.d.ts')
++const source = readFileSync(file, 'utf8')
++const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
++const current = ts.createSourceFile(
++  'current.ts',
++  readFileSync(
++    join(
++      repository,
++      'packages/foldkit/src/experimental/contracted/contract.ts',
++    ),
++    'utf8',
++  ),
++  ts.ScriptTarget.Latest,
++  true,
++)
++const printer = ts.createPrinter()
++const edits = ['MakeLayer', 'LayerWithImplementationFacts'].map(name => {
++  const before = parsed.statements.find(node => node.name?.text === name)
++  const after = current.statements.find(node => node.name?.text === name)
++  assert.ok(before && after)
++  return {
++    name,
++    start: before.getStart(parsed),
++    end: before.end,
++    before: before.getText(parsed),
++    after: printer.printNode(ts.EmitHint.Unspecified, after, current),
++  }
++})
++let output = source
++for (const edit of edits.toSorted((a, b) => b.start - a.start)) {
++  output = output.slice(0, edit.start) + edit.after + output.slice(edit.end)
++}
++writeFileSync(file, output)
++const fixture = 'deep-composition-8'
++const command = [
++  join(directory, 'scripts/check-block-type-performance.ts'),
++  fixture,
++]
++const result = spawnSync(process.execPath, command, {
++  cwd: directory,
++  encoding: 'utf8',
++  maxBuffer: 32 * 1024 * 1024,
++  env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++})
++assert.ifError(result.error)
++const compilerOutput = `${result.stdout ?? ''}${result.stderr ?? ''}`
++const log = join(snapshot, 'logs', 'named-layer-control-deep-composition-8.log')
++writeFileSync(log, compilerOutput)
++const row = [
++  ...compilerOutput.matchAll(
++    /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++  ),
++].at(-1)
++const receipt = join(snapshot, 'named-layer-control-receipt.json')
++writeFileSync(
++  receipt,
++  JSON.stringify(
++    {
++      snapshot,
++      directory,
++      packageCore,
++      purpose:
++        'Same raw Layer workload; replace only MakeLayer/LayerWithImplementationFacts with owner-authorized named interface source encoding in copied declarations.',
++      declarationControl: edits,
++      fixture,
++      status: result.status,
++      command: [process.execPath, ...command],
++      log,
++      ...(row
++        ? {
++            instantiations: Number(row[2].replaceAll(',', '')),
++            maxInstantiations: Number(row[3].replaceAll(',', '')),
++            types: Number(row[4].replaceAll(',', '')),
++            maxTypes: Number(row[5].replaceAll(',', '')),
++            symbols: Number(row[6].replaceAll(',', '')),
++            budgetStatus: row[7],
++          }
++        : { diagnosticFailure: true }),
++    },
++    null,
++    2,
++  ),
++)
++console.log(row ? `${row[2]} instantiations / ${row[4]} Types` : log)
++console.log(receipt)
++process.exitCode = result.status ?? 1
+diff --git a/internal/direct-block-performance/results.json b/internal/direct-block-performance/results.json
+new file mode 100644
+index 0000000000..99439a1bf0
+--- /dev/null
++++ b/internal/direct-block-performance/results.json
+@@ -0,0 +1,341 @@
++{
++  "status": "source-accepted-but-unchanged-budgets-fail",
++  "repository": "/private/tmp/foldkit-direct-block-layer-prototype-20261103",
++  "snapshot": "/private/tmp/foldkit-direct-block-performance-AttDXW",
++  "command": [
++    "v22.22.3",
++    "internal/direct-block-performance/verify.mjs"
++  ],
++  "nodeExecutable": "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++  "compiler": "7.1.0-beta",
++  "astParser": "6.0.2",
++  "originalSourcesUnchanged": true,
++  "frameworkDistUnchanged": true,
++  "checkerHash": "bfd0baed03229435de3093cc79e56c546ff2aa5ce4da874f1cb4ca7732c8ffc4",
++  "budgetHash": "4c992d726e54c3ad3fac257040878fd5343c2dc0636fc7918f754947634cc30f",
++  "sourceHashes": {
++    "type-performance/README.md": "8236917d9c0dcbaa5fe24ad77e514eb7ca9bedbd4769c373f8e91715e95994e5",
++    "type-performance/baseline.ts": "b9717c6148e14041e3319614e10beaeae0dedf92c6d5c005e0afed0a20e3449c",
++    "type-performance/budgets.json": "4c992d726e54c3ad3fac257040878fd5343c2dc0636fc7918f754947634cc30f",
++    "type-performance/command-requirements-200.ts": "43f9ea79e4ad667ab0ead63b227c304925069a74cfa10152d98766ca4607c87a",
++    "type-performance/deep-composition-8.ts": "d1376b4b3e2f873195f8113b1edb2b4406ca3e527a11cb94fc97b260eb3957cc",
++    "type-performance/fixtures.json": "9018314d13beeb6ff4f2732fc5be568afcd3f7cf578804556064d175419121c7",
++    "type-performance/machine-search.ts": "0fb33f68432a3c6b3d66e27dbe5eb201b0334110758a764f3437b460ec9841b8",
++    "type-performance/tsconfig.json": "67f88b29450149242ad11b26e00bc07bf2c15181ed40aadbe8790be237e7abb9",
++    "type-performance/wide-composition-100.ts": "5cdb083f397a177e5600cc07dcc006f9f4306e538c7f26a9f4d9ee0de13edffe",
++    "type-performance/wide-subscriptions-100.ts": "798b7f306ceca87c9c62d7c30c4de6d265ea6d60b6362046ad9fc7e1d2c51f62",
++    "type-performance/workspace-application-declarations.json": "9bee321c528dd2c59026b7653128af1393296604d3a022c406b179e017bc9527",
++    "type-performance/workspace-composition-4.ts": "e0e316b501fef0205147710b41877be548ef402dd2cb2aab53cb862c612b70f7",
++    "type-performance/workspace-composition-8.ts": "b2d67b5d444cfc4f341d56739c113f07367b99b848f34f82da37fd6008a15ae4",
++    "type-performance/workspace-declarations.json": "2e50915061763923111ef911d89eb39919e5ff7acd079b9e1a947810d0abdd2e",
++    "type-performance/workspace-generate.ts": "9e02b39f5714075742d96d9576bc5a7ef81cce411bd6d43beca95b61ac7b7f8a",
++    "type-performance/workspace-groups-4.ts": "9d11fd174f0005f4f52dd4de8d7acabef76e9b6241e49238d8dd8691176ba069",
++    "type-performance/workspace-groups-8.ts": "777c3910eba9adbabc0fd12fd6ccffdae26a15770dc81e7a13e84eab431708ea",
++    "type-performance/workspace-shared.ts": "2347c3c13ae4db17d509db423d8fdc67c25814c6b26daa4661617a962354d6d1"
++  },
++  "declarationSnapshotHash": "2c4f32353d8935513e41eb406e1754ddbde339690c52e259f6396071d395630e",
++  "scriptHashes": {
++    "adapt.mjs": "289ad36cddc5dfdb0345ffd211a0d50da81d3390950fa13025355e1e3f8606a5",
++    "verify.mjs": "af65d92c320dc42d938c171e0e540a8ff036ecf2a65fe8eb86d5310f8edda07b",
++    "compact-control.mjs": "6c72bc945664c70be434d82fa7b7cd52d9bf080387ce64cea520dbea780086e1"
++  },
++  "invariants": {
++    "deep-composition-8": {
++      "files": [
++        "deep-composition-8.ts"
++      ],
++      "blocks": 10,
++      "bindingYields": 9,
++      "authoredProperties": 32,
++      "domainInitializers": 30,
++      "operationSources": 1,
++      "assertions": 2
++    },
++    "wide-composition-100": {
++      "files": [
++        "wide-composition-100.ts"
++      ],
++      "blocks": 2,
++      "bindingYields": 100,
++      "authoredProperties": 8,
++      "domainInitializers": 114,
++      "operationSources": 1,
++      "assertions": 2
++    },
++    "workspace-composition-4": {
++      "files": [
++        "workspace-shared.ts",
++        "workspace-groups-4.ts",
++        "workspace-composition-4.ts"
++      ],
++      "blocks": 7,
++      "bindingYields": 16,
++      "authoredProperties": 32,
++      "domainInitializers": 102,
++      "operationSources": 11,
++      "assertions": 49
++    },
++    "workspace-composition-8": {
++      "files": [
++        "workspace-shared.ts",
++        "workspace-groups-8.ts",
++        "workspace-composition-8.ts"
++      ],
++      "blocks": 11,
++      "bindingYields": 32,
++      "authoredProperties": 52,
++      "domainInitializers": 182,
++      "operationSources": 19,
++      "assertions": 93
++    }
++  },
++  "measurements": [
++    {
++      "mode": "original",
++      "fixture": "deep-composition-8",
++      "status": 0,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
++        "deep-composition-8"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-deep-composition-8.log",
++      "instantiations": 659046,
++      "maxInstantiations": 1152618,
++      "types": 52666,
++      "maxTypes": 55843,
++      "symbols": 86061,
++      "budgetStatus": "ok"
++    },
++    {
++      "mode": "original",
++      "fixture": "wide-composition-100",
++      "status": 0,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
++        "wide-composition-100"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-wide-composition-100.log",
++      "instantiations": 1392438,
++      "maxInstantiations": 3132298,
++      "types": 80565,
++      "maxTypes": 216662,
++      "symbols": 129632,
++      "budgetStatus": "ok"
++    },
++    {
++      "mode": "original",
++      "fixture": "workspace-composition-4",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
++        "workspace-composition-4"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-workspace-composition-4.log",
++      "instantiations": 2683623,
++      "maxInstantiations": 2642699,
++      "types": 234232,
++      "maxTypes": 229173,
++      "symbols": 310502,
++      "budgetStatus": "failed: Instantiations, Types"
++    },
++    {
++      "mode": "original",
++      "fixture": "workspace-composition-8",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
++        "workspace-composition-8"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-workspace-composition-8.log",
++      "instantiations": 4451559,
++      "maxInstantiations": 4515010,
++      "types": 307857,
++      "maxTypes": 299721,
++      "symbols": 437993,
++      "budgetStatus": "failed: Types"
++    },
++    {
++      "mode": "adapted",
++      "fixture": "deep-composition-8",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
++        "deep-composition-8"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-deep-composition-8.log",
++      "instantiations": 3053157,
++      "maxInstantiations": 1152618,
++      "types": 424199,
++      "maxTypes": 55843,
++      "symbols": 373367,
++      "budgetStatus": "failed: Instantiations, Types"
++    },
++    {
++      "mode": "adapted",
++      "fixture": "wide-composition-100",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
++        "wide-composition-100"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-wide-composition-100.log",
++      "instantiations": 5337430,
++      "maxInstantiations": 3132298,
++      "types": 442595,
++      "maxTypes": 216662,
++      "symbols": 401000,
++      "budgetStatus": "failed: Instantiations, Types"
++    },
++    {
++      "mode": "adapted",
++      "fixture": "workspace-composition-4",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
++        "workspace-composition-4"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-workspace-composition-4.log",
++      "instantiations": 10685646,
++      "maxInstantiations": 2642699,
++      "types": 1196822,
++      "maxTypes": 229173,
++      "symbols": 1062139,
++      "budgetStatus": "failed: Instantiations, Types"
++    },
++    {
++      "mode": "adapted",
++      "fixture": "workspace-composition-8",
++      "status": 1,
++      "command": [
++        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
++        "workspace-composition-8"
++      ],
++      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-workspace-composition-8.log",
++      "instantiations": 12048102,
++      "maxInstantiations": 4515010,
++      "types": 1028932,
++      "maxTypes": 299721,
++      "symbols": 1060334,
++      "budgetStatus": "failed: Instantiations, Types"
++    }
++  ],
++  "compactDescriptorControl": {
++    "snapshot": "/private/tmp/foldkit-direct-block-performance-AttDXW",
++    "directory": "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control",
++    "purpose": "Diagnostic only: strip authoring helpers from Binding child inputs without changing the Block object or channel facts.",
++    "transformations": [
++      {
++        "file": "deep-composition-8.ts",
++        "wrappedBindingArguments": 9
++      },
++      {
++        "file": "wide-composition-100.ts",
++        "wrappedBindingArguments": 100
++      },
++      {
++        "file": "workspace-composition-4.ts",
++        "wrappedBindingArguments": 4
++      },
++      {
++        "file": "workspace-composition-8.ts",
++        "wrappedBindingArguments": 8
++      },
++      {
++        "file": "workspace-groups-4.ts",
++        "wrappedBindingArguments": 12
++      },
++      {
++        "file": "workspace-groups-8.ts",
++        "wrappedBindingArguments": 24
++      }
++    ],
++    "measurements": [
++      {
++        "fixture": "deep-composition-8",
++        "status": 1,
++        "command": [
++          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
++          "deep-composition-8"
++        ],
++        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-deep-composition-8.log",
++        "instantiations": 3058319,
++        "maxInstantiations": 1152618,
++        "types": 424244,
++        "maxTypes": 55843,
++        "symbols": 373453,
++        "budgetStatus": "failed: Instantiations, Types"
++      },
++      {
++        "fixture": "wide-composition-100",
++        "status": 1,
++        "command": [
++          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
++          "wide-composition-100"
++        ],
++        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-wide-composition-100.log",
++        "instantiations": 5351345,
++        "maxInstantiations": 3132298,
++        "types": 442624,
++        "maxTypes": 216662,
++        "symbols": 401030,
++        "budgetStatus": "failed: Instantiations, Types"
++      },
++      {
++        "fixture": "workspace-composition-4",
++        "status": 1,
++        "command": [
++          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
++          "workspace-composition-4"
++        ],
++        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-workspace-composition-4.log",
++        "instantiations": 10711163,
++        "maxInstantiations": 2642699,
++        "types": 1196912,
++        "maxTypes": 229173,
++        "symbols": 1062257,
++        "budgetStatus": "failed: Instantiations, Types"
++      },
++      {
++        "fixture": "workspace-composition-8",
++        "status": 1,
++        "command": [
++          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
++          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
++          "workspace-composition-8"
++        ],
++        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-workspace-composition-8.log",
++        "instantiations": 12098458,
++        "maxInstantiations": 4515010,
++        "types": 1029030,
++        "maxTypes": 299721,
++        "symbols": 1060480,
++        "budgetStatus": "failed: Instantiations, Types"
++      }
++    ]
++  },
++  "noFactsImportControl": {
++    "snapshot": "/private/tmp/foldkit-direct-block-performance-FKdnuR",
++    "log": "/private/tmp/foldkit-direct-block-performance-FKdnuR/logs/control-deep-no-facts-import.log",
++    "fixture": "deep-composition-8",
++    "instantiations": 3053281,
++    "types": 424200,
++    "change": "Remove SelectedLayerFacts import; recover actual callable Update output through existing public Block.Plan and original Update.RequirementsOf. No original Expect assertion changed."
++  },
++  "limits": [
++    "Compiler workload only; no runtime/lifecycle result claimed.",
++    "Current declarations include both native and proposed unified APIs. This does not model removal of old APIs.",
++    "Internal SelectedLayerFacts is measurement introspection, not proposed consumer syntax.",
++    "Compact identity Pick is a diagnostic copy only, not an accepted consumer pattern."
++  ]
++}
+diff --git a/internal/direct-block-performance/verify.mjs b/internal/direct-block-performance/verify.mjs
+new file mode 100644
+index 0000000000..6968b614ea
+--- /dev/null
++++ b/internal/direct-block-performance/verify.mjs
+@@ -0,0 +1,211 @@
++import assert from 'node:assert/strict'
++import { spawnSync } from 'node:child_process'
++import { createHash } from 'node:crypto'
++import {
++  chmodSync,
++  cpSync,
++  mkdirSync,
++  mkdtempSync,
++  readFileSync,
++  readdirSync,
++  realpathSync,
++  symlinkSync,
++  writeFileSync,
++} from 'node:fs'
++import { dirname, join, resolve } from 'node:path'
++import { fileURLToPath } from 'node:url'
++
++import { adapt } from './adapt.mjs'
++
++const repository = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
++const core = join(repository, 'packages/foldkit')
++const artifacts = mkdtempSync('/private/tmp/foldkit-direct-block-performance-')
++const sha256 = value => createHash('sha256').update(value).digest('hex')
++const walkFiles = directory =>
++  readdirSync(directory, { withFileTypes: true }).flatMap(entry =>
++    entry.isDirectory()
++      ? walkFiles(join(directory, entry.name))
++      : [join(directory, entry.name)],
++  )
++const files = [
++  'deep-composition-8.ts',
++  'wide-composition-100.ts',
++  'workspace-composition-4.ts',
++  'workspace-composition-8.ts',
++  'workspace-shared.ts',
++  'workspace-groups-4.ts',
++  'workspace-groups-8.ts',
++]
++const targets = [
++  'deep-composition-8',
++  'wide-composition-100',
++  'workspace-composition-4',
++  'workspace-composition-8',
++]
++const sourceHashes = Object.fromEntries(
++  walkFiles(join(core, 'type-performance')).map(path => [
++    path.slice(core.length + 1),
++    sha256(readFileSync(path)),
++  ]),
++)
++const snapshot = join(artifacts, 'package-core')
++const sourceDistHashes = Object.fromEntries(
++  walkFiles(join(core, 'dist')).map(path => [
++    path.slice(core.length + 1),
++    sha256(readFileSync(path)),
++  ]),
++)
++cpSync(join(core, 'dist'), join(snapshot, 'dist'), { recursive: true })
++cpSync(join(core, 'package.json'), join(snapshot, 'package.json'))
++for (const [path, hash] of Object.entries(sourceDistHashes)) {
++  assert.equal(
++    sha256(readFileSync(join(snapshot, path))),
++    hash,
++    `Dist changed during snapshot: ${path}`,
++  )
++}
++const dependency = (parent, name, target) => {
++  const link = join(parent, 'node_modules', name)
++  mkdirSync(dirname(link), { recursive: true })
++  symlinkSync(realpathSync(target), link)
++}
++for (const name of ['effect', 'parse5', '@effect/platform-browser']) {
++  dependency(snapshot, name, join(core, 'node_modules', name))
++}
++const transformations = []
++for (const mode of ['original', 'adapted']) {
++  const directory = join(artifacts, mode)
++  mkdirSync(directory)
++  cpSync(join(core, 'type-performance'), join(directory, 'type-performance'), {
++    recursive: true,
++  })
++  mkdirSync(join(directory, 'scripts'))
++  cpSync(
++    join(core, 'scripts/check-block-type-performance.ts'),
++    join(directory, 'scripts/check-block-type-performance.ts'),
++  )
++  cpSync(join(core, 'package.json'), join(directory, 'package.json'))
++  symlinkSync(join(snapshot, 'dist'), join(directory, 'dist'))
++  dependency(directory, 'foldkit', snapshot)
++  dependency(directory, 'effect', join(core, 'node_modules/effect'))
++  const bin = join(directory, 'node_modules/.bin')
++  mkdirSync(bin)
++  const quote = text => `'${text.replaceAll("'", "'\\''")}'`
++  const tsc = join(bin, 'tsc')
++  writeFileSync(
++    tsc,
++    `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(realpathSync(join(core, 'node_modules/typescript/bin/tsc')))} "$@"\n`,
++  )
++  chmodSync(tsc, 0o755)
++  if (mode === 'adapted') {
++    for (const file of files) {
++      const transformed = adapt(
++        readFileSync(join(core, 'type-performance', file), 'utf8'),
++        file,
++      )
++      writeFileSync(
++        join(directory, 'type-performance', file),
++        transformed.output,
++      )
++      transformations.push(transformed.facts)
++    }
++  }
++}
++const logs = join(artifacts, 'logs')
++mkdirSync(logs)
++const measurements = []
++const receipt = () => ({
++  repository,
++  artifacts,
++  node: process.version,
++  compiler: JSON.parse(
++    readFileSync(join(core, 'node_modules/typescript/package.json')),
++  ).version,
++  targets,
++  sourceHashes,
++  sourceDistHashes,
++  transformations,
++  measurements,
++})
++writeFileSync(
++  join(artifacts, 'receipt.json'),
++  JSON.stringify(receipt(), null, 2),
++)
++for (const mode of ['original', 'adapted']) {
++  for (const fixture of targets) {
++    const command = [
++      join(artifacts, mode, 'scripts/check-block-type-performance.ts'),
++      fixture,
++    ]
++    const result = spawnSync(process.execPath, command, {
++      cwd: join(artifacts, mode),
++      encoding: 'utf8',
++      maxBuffer: 32 * 1024 * 1024,
++      env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
++    })
++    assert.ifError(result.error)
++    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
++    const log = join(logs, `${mode}-${fixture}.log`)
++    writeFileSync(log, output)
++    const row = [
++      ...output.matchAll(
++        /^(\S+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+(ok|failed[^\n]*)[ \t]*$/gm,
++      ),
++    ].at(-1)
++    measurements.push({
++      mode,
++      fixture,
++      status: result.status,
++      command: [process.execPath, ...command],
++      log,
++      ...(row
++        ? {
++            instantiations: Number(row[2].replaceAll(',', '')),
++            maxInstantiations: Number(row[3].replaceAll(',', '')),
++            types: Number(row[4].replaceAll(',', '')),
++            maxTypes: Number(row[5].replaceAll(',', '')),
++            symbols: Number(row[6].replaceAll(',', '')),
++            budgetStatus: row[7],
++          }
++        : { diagnosticFailure: true }),
++    })
++    writeFileSync(
++      join(artifacts, 'receipt.json'),
++      JSON.stringify(receipt(), null, 2),
++    )
++    console.log(
++      mode,
++      fixture,
++      result.status,
++      row ? `${row[2]} instantiations / ${row[4]} Types` : log,
++    )
++  }
++}
++for (const [path, hash] of Object.entries(sourceHashes)) {
++  assert.equal(
++    sha256(readFileSync(join(core, path))),
++    hash,
++    `Original fixture changed: ${path}`,
++  )
++}
++for (const [path, hash] of Object.entries(sourceDistHashes)) {
++  assert.equal(
++    sha256(readFileSync(join(core, path))),
++    hash,
++    `Framework dist changed: ${path}`,
++  )
++}
++writeFileSync(
++  join(artifacts, 'receipt.json'),
++  JSON.stringify(
++    {
++      ...receipt(),
++      originalSourcesUnchanged: true,
++      frameworkDistUnchanged: true,
++    },
++    null,
++    2,
++  ),
++)
++console.log(join(artifacts, 'receipt.json'))
++process.exitCode = measurements.every(row => row.status === 0) ? 0 : 1

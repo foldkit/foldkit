@@ -43,6 +43,10 @@ as completed here. Nothing in this follow-up has been published.
   overlay, including the standalone build plugin. Erased legacy Command configs
   using `execute` fail with a migration diagnostic instead of silently leaving
   an unusable handler contract.
+- **Development SSR reloads.** With HMR disabled, requests arriving during
+  asynchronous watcher hooks retain a consistent graph. After Vite invalidates
+  the entry, Definitions and declarations are reevaluated together, preventing
+  duplicate Command registration. Unchanged requests reuse the current entry.
 - **Reported integration fixes.** React embedding renders its unique host ID;
   SSR hot updates invalidate the appropriate environment; relay discovery
   respects PID and network namespaces. Popup cleanup preserves app-owned portal
@@ -66,7 +70,27 @@ It also resolves the application comments about child selectors, inline
 registrations, and child implementation Layers. TypeScript 6 app declarations
 verify the additional exported authoring helpers.
 
+## Unified Block API proof
+
+The latest requested single `Block.make` value and direct `makeLayer` return are
+prototyped separately. Focused ordinary and generic consumers work, but the
+large-graph compiler counts exceed the unchanged ceilings. A mismatched Layer
+from another handler selection of the same Query is rejected at Runtime while
+TypeScript still accepts it. The [proof report](../block-api-simplification/README.md)
+preserves the code, measurements and controls.
+
+The broad migration has not been performed. The candidate retains its existing
+Definition/completion API; the `inMessageUpdate` rename and composition parity
+are complete. This is outstanding requested work, not an approved deferral.
+
 ## Verification
+
+The final [local test checkpoint](verification/release-gates-20261103.json)
+passes 9,099 tests across the root test matrix and Typing Game, with 15 existing
+skips. All 22 Website browser tests pass against a fresh local server. The Vite
+suite passes 387 tests after the SSR fix and deterministic HappyDOM
+`MessageChannel` setup. Exact-commit independent review and the mandatory
+pre-push hook are enforced separately before pushing.
 
 The canonical InMessage checkpoint passes source checking, the complete core
 public declaration driver, strict source-free TypeScript 6 consumers, all seven
@@ -75,6 +99,18 @@ passes 4,094 tests with one intentional skip and meets its coverage thresholds.
 UI passes 1,357 tests, Website 1,528 and the lint plugin 798. The five affected
 app source/test scripts pass. Scaffold clean build copies the canonical guide
 and leaves no old input-module files.
+
+The fresh [packed checkpoint](packed-release/receipt-inmessage-checkpoint.json)
+uses the actual 217-change release plan. Strict peers, one physical Effect
+runtime, source-free types, inferred Programs and the existing Chromium,
+Firefox and WebKit checks pass. Active manifests and distributions are
+unchanged. This verifies the current API, not the isolated Block prototype.
+
+The subsequent [release-gate rehearsal](packed-release/receipt-release-gate-20261103.json)
+uses the actual 219-change plan and rebuilt plugin after the development SSR
+fix. The same strict installed-consumer and three-browser checks pass. Staging
+uses the planned versions and ordinary workspace dependency conversion without
+loosening peers. Active manifests and built artifacts stay unchanged.
 
 The earlier release-wide checkpoint covers all 689 example tests, 30 Typing Game
 tests and 233 script tests, plus strict packed peers, one physical Effect
@@ -92,10 +128,10 @@ receipts retain their exact source and tool scopes.
   transferred unless the user lifts the hold and authorizes it.
 - Added Linux-only relay integration tests require a Linux runner. Portable
   tests pass locally; no Docker or Linux execution is claimed.
-- The fresh Lustre batch shows the optimized workload 23.5% slower than actual
-  main and about 32 KB more gzip. Sample ranges are wide, so its naive median
-  improvement does not establish a general speedup. The
-  [benchmark report](REPORT.md#current-whole-preview-comparison-with-actual-main)
+- The November 3 Lustre batch shows the optimized workload 12.7% slower than
+  actual main and about 32 KB more gzip. Its naive median improves by 20.4%,
+  with wide main sample ranges; that does not establish a general speedup. The
+  [benchmark report](rendering-inmessage-20261103/README.md)
   preserves all samples, workload parity, earlier comparisons, and limitations.
 - The earlier dependency audit retains two moderate tooling findings with
   documented reachability limits. No clean dependency audit is claimed.

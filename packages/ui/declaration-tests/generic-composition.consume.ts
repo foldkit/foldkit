@@ -22,9 +22,9 @@ import {
   WithViewOnly,
   WithoutViewOrOutMessage,
   createComposition,
-  receiveAnimationShow,
-  receiveAnimationShowStep,
-  receiveDismissAllToasts,
+  dismissAllToasts,
+  showAnimation,
+  showAnimationCurried,
 } from './generic-composition.accepted.js'
 
 export const exerciseReceivedInputs = (
@@ -33,9 +33,9 @@ export const exerciseReceivedInputs = (
 ) => {
   const animationInit = animation.init({ id: 'relocated-animation' })
   const toastInit = toast.init({ id: 'relocated-toast' })
-  const shown = receiveAnimationShow(animation, animationInit.model)
-  const shownByStep = receiveAnimationShowStep(animation)(animationInit.model)
-  const dismissed = receiveDismissAllToasts(toast, toastInit.model)
+  const shown = showAnimation(animation, animationInit.model)
+  const shownByStep = showAnimationCurried(animation)(animationInit.model)
+  const dismissed = dismissAllToasts(toast, toastInit.model)
 
   // @ts-expect-error A relocated consumer cannot construct retired local requests.
   Animation.AnimationBlock.Message.RequestedShow()

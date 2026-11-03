@@ -1,0 +1,111 @@
+{
+  "frozenAt": "2026-11-03T08:23:11.526Z",
+  "workspace": "/private/tmp/foldkit-update-composition-20261102",
+  "source": "packages/vite-plugin-foldkit/test/buildDevTools.test.ts",
+  "sha256": "a28b2f56e906160d3d85ed4c0263d56ca5e16b031b5f44ff14471795c7bfae86",
+  "diagnosis": {
+    "fullRun": "/private/tmp/foldkit-build-devtools-full-live-diagnosis.log",
+    "result": {
+      "failed": 1,
+      "passed": 386,
+      "skipped": 4,
+      "durationSeconds": 20.84
+    },
+    "observed": "The overlay host was connected and was the current document host. Its HappyDOM virtual console recorded an Application crash: ReferenceError: MessageChannel is not defined, from messageQueue.scheduleDeferredDrain.",
+    "causalBoundary": "HappyDOM21 Window lacks the standard browser MessageChannel primitive. Contention crossing the existing5ms Message-drain budget exposed it. No production readiness or dropped-store-event bug was demonstrated."
+  },
+  "changes": [
+    "Install real Node22 MessageChannel in this test Window before executing the generated client; count delivered tasks without replacing port behavior.",
+    "Track created channels and close both ports in test cleanup before closing the Window.",
+    "Force each existing overlay mode through a budget yield during its single badge click, holding new frames so the budget is not reset prematurely. Restore clock/RAF and release frames in finally.",
+    "Retain the precise badge selector, panel-open check, and every original counter/history/inspector/single-mount/client-environment assertion.",
+    "Keep a holding flag for scheduled frame wrappers: clear it before releasing held frames, and invoke late wrapper callbacks normally with the native scheduler timestamp."
+  ],
+  "verification": {
+    "restoredFocused": {
+      "status": 0,
+      "passed": 5,
+      "log": "/private/tmp/foldkit-build-devtools-messagechannel-restored.log"
+    },
+    "packageTestTypecheck": {
+      "status": 0,
+      "log": "/private/tmp/foldkit-build-devtools-messagechannel-typecheck.log"
+    },
+    "effectLint": {
+      "status": 0,
+      "log": "/private/tmp/foldkit-build-devtools-messagechannel-effect-lint.log"
+    },
+    "normalLintEnabledForFile": {
+      "status": 0,
+      "log": "/private/tmp/foldkit-build-devtools-messagechannel-enabled-normal-lint.log",
+      "note": "Default repository normal lint excludes this entire package. A temporary identical config with only that package exclusion removed scanned the owned test and was removed in finally."
+    },
+    "format": {
+      "status": 0,
+      "log": "/private/tmp/foldkit-build-devtools-messagechannel-format.log"
+    },
+    "diffCheck": {
+      "status": 0,
+      "log": "/private/tmp/foldkit-build-devtools-messagechannel-diff-check.log"
+    },
+    "controls": {
+      "source": "/private/tmp/foldkit-update-composition-20261102/packages/vite-plugin-foldkit/test/buildDevTools.test.ts",
+      "sha256": "1d2069892e06ebdcf533d7ace9ad74a492b5829ae8878a20838007a3d93746ff",
+      "results": [
+        {
+          "name": "missing-message-channel",
+          "status": 1,
+          "log": "/private/tmp/foldkit-build-devtools-messagechannel-missing-message-channel.log"
+        },
+        {
+          "name": "suppressed-open",
+          "status": 1,
+          "log": "/private/tmp/foldkit-build-devtools-messagechannel-suppressed-open.log"
+        },
+        {
+          "name": "suppressed-overlay-registration",
+          "status": 1,
+          "log": "/private/tmp/foldkit-build-devtools-messagechannel-suppressed-overlay-registration.log"
+        }
+      ],
+      "restored": true
+    }
+  },
+  "mutationDriver": "/private/tmp/foldkit-build-devtools-messagechannel-controls.mjs",
+  "untouchedFrozenSSR": {
+    "packages/vite-plugin-foldkit/src/ssr.ts": "9c1628dacd7b613adc79f8d80fc16a692c6b140fd2c340eab3cfa1a3e9ac1a20",
+    "packages/vite-plugin-foldkit/test/serverModuleReevaluation.test.ts": "3f3b6a55c48f9bbf18026ef4a4467b84d59023072bebd4eeb7ac381c9fcc2ef3",
+    ".changeset/non-hmr-server-declaration-reloads.md": "21a18c98f2ac30f8f2d4c05aee75e535d6a022e86db7253121be1705d7908b3c"
+  },
+  "limits": [
+    "No production source, package builds/dist, timeouts, dependency pins, or repeated-click retries changed for the overlay repair.",
+    "The final full-plugin integration run is delegated to the parent after this freeze; the only full run here was the causal red diagnostic."
+  ],
+  "previousFrozenSha256": "1d2069892e06ebdcf533d7ace9ad74a492b5829ae8878a20838007a3d93746ff",
+  "lateFrameFollowup": {
+    "confirmed": "A requestFrame callback could still be pending when finally released heldFrames; the old wrapper would append after the release loop and strand that callback.",
+    "listenerRemoval": "Retained HappyDOM21's two-argument removeEventListener API. Its implementation checks both bubbling and capturing listener maps; its declaration accepts exactly two arguments. No bound signature or wrapper remains.",
+    "focused": {
+      "status": 0,
+      "passed": 5,
+      "log": "/private/tmp/foldkit-build-devtools-late-frame-focused.log"
+    },
+    "typecheck": {
+      "status": 0,
+      "log": "/private/tmp/foldkit-build-devtools-late-frame-typecheck.log"
+    },
+    "effectLint": {
+      "status": 0,
+      "log": "/private/tmp/foldkit-build-devtools-late-frame-effect-lint.log"
+    },
+    "format": {
+      "status": 0,
+      "log": "/private/tmp/foldkit-build-devtools-late-frame-format.log"
+    },
+    "diffCheck": {
+      "status": 0,
+      "log": "/private/tmp/foldkit-build-devtools-late-frame-diff-check.log"
+    },
+    "controlsScope": "The prior three mutation controls ran on 1d2069892e06ebdcf533d7ace9ad74a492b5829ae8878a20838007a3d93746ff, before this holding-flag followup. They are preserved as exact-artifact receipts, not claimed rerun on this final hash. No broad suite rerun here."
+  }
+}

@@ -10,6 +10,14 @@ preview remains `244251e9564da168bc1936d076bfc060908ec458`. Both are ancestors
 of the reviewed candidate work. No preview push or publication is implied by
 that ancestry check.
 
+A further read-only refresh through **2026-11-03 07:55 UTC** found six updated
+items and no new conversation or inline review replies. Four changes are labels
+or metadata on the already assessed relay, SSR and React reports. The changed
+heads of #1658 and #1605 rebase the general Form and Query cache proposals onto
+current main; their exact feature diffs introduce no Blocks/Layers preview
+defect. The evidence directory contains `final-0755-*` snapshots and
+`pr-head-refresh-20261103T0755Z.md`. Main and preview tips are unchanged.
+
 **Do not say that every relevant request is implemented.** The audit found three bounded defects that now have repairs: obsolete `execute` runtime validation, production SSR/SSG DevTools registration, and unchanged-child fold writes. History-traversal facts, public external dispatch frames, and a provided frame scheduler remain unimplemented proposals. There are also narrower diagnostic, reproduction and API-design questions below. Only #1662/#1663 have explicit user approval for post-main deferral.
 
 “Addressed” below means that the requested behavior or a supported alternative is present and evidenced. It does not certify the full candidate or mean a fresh full test suite was run for this audit. A documented current API decision is distinguished from an implemented requested convenience. GitHub access was read-only: no external comment, review, issue closure, PR edit, dispatch or publication was performed.

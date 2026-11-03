@@ -511,45 +511,42 @@ export type RootSliderExecutable = Block.ExecutableOf<typeof RootSlider>
 export type TooltipExecutable = Block.ExecutableOf<typeof Tooltip.TooltipBlock>
 export type ToastExecutable = Block.ExecutableOf<typeof ToastBlock>
 
-export const receiveAnimationShow = (
+export const showAnimation = (
   animation: AnimationExecutable,
   model: typeof Animation.AnimationBlock.Model.Type,
-) => animation.receive(model, Animation.InMessage.RequestedShow())
+) => animation.inMessageUpdate(model, Animation.InMessage.RequestedShow())
 
-export const receiveAnimationShowStep = (animation: AnimationExecutable) =>
-  animation.receive(Animation.InMessage.RequestedShow())
+export const showAnimationCurried = (animation: AnimationExecutable) =>
+  animation.inMessageUpdate(Animation.InMessage.RequestedShow())
 
-export const receiveDismissAllToasts = (
+export const dismissAllToasts = (
   toast: ToastExecutable,
   model: typeof ToastBlock.Model.Type,
-) => toast.receive(model, Toast.InMessage.RequestedDismissAll())
+) => toast.inMessageUpdate(model, Toast.InMessage.RequestedDismissAll())
 
 export type DirectInputAssertions = [
   Expect<
     Equal<
-      Exclude<ReturnType<typeof receiveAnimationShow>['outMessage'], undefined>,
+      Exclude<ReturnType<typeof showAnimation>['outMessage'], undefined>,
       never
     >
   >,
   Expect<
     Equal<
-      Update.RequirementsOf<typeof receiveAnimationShow>,
+      Update.RequirementsOf<typeof showAnimation>,
       | Block.FactsOf<typeof Animation.AnimationBlock>['runtimeServices']
       | Block.InternalExecution<(typeof Animation.AnimationBlock)['owner']>
     >
   >,
   Expect<
     Equal<
-      ReturnType<ReturnType<typeof receiveAnimationShowStep>>,
-      ReturnType<typeof receiveAnimationShow>
+      ReturnType<ReturnType<typeof showAnimationCurried>>,
+      ReturnType<typeof showAnimation>
     >
   >,
   Expect<
     Equal<
-      Exclude<
-        ReturnType<typeof receiveDismissAllToasts>['outMessage'],
-        undefined
-      >,
+      Exclude<ReturnType<typeof dismissAllToasts>['outMessage'], undefined>,
       never
     >
   >,

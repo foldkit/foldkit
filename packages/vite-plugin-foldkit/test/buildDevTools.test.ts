@@ -1,4 +1,4 @@
-import { Window } from 'happy-dom'
+import { type HTMLButtonElement, Window } from 'happy-dom'
 import {
   copyFile,
   mkdir,
@@ -10,8 +10,9 @@ import {
 } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { MessageChannel } from 'node:worker_threads'
 import { type Plugin, createBuilder } from 'vite'
-import { describe, expect, it, onTestFinished } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { foldkitBuildToken } from '../src/buildToken.ts'
 import { foldkit, foldkitBuild } from '../src/index.ts'
@@ -118,7 +119,28 @@ const executeClient = async (html: string, client: string) => {
       suppressInsecureJavaScriptEnvironmentWarning: true,
     },
   })
-  onTestFinished(() => window.happyDOM.close())
+  const messageChannels = new Set<MessageChannel>()
+  let deferredDrains = 0
+
+  // NOTE: HappyDOM omits the browser primitive used when a Message drain yields.
+  Object.defineProperty(window, 'MessageChannel', {
+    value: class extends MessageChannel {
+      constructor() {
+        super()
+        messageChannels.add(this)
+        this.port2.addEventListener('message', () => {
+          deferredDrains += 1
+        })
+      }
+    },
+  })
+  onTestFinished(async () => {
+    for (const channel of messageChannels) {
+      channel.port1.close()
+      channel.port2.close()
+    }
+    await window.happyDOM.close()
+  })
   window.document.write(html)
 
   const script = window.document.querySelector('script[type="module"]')
@@ -145,7 +167,63 @@ const executeClient = async (html: string, client: string) => {
 
   window.eval(await readFile(resolve(client, source.slice(1)), 'utf8'))
 
-  return { window, overlayMounts: () => overlayMounts }
+  return {
+    window,
+    overlayMounts: () => overlayMounts,
+    deferredDrains: () => deferredDrains,
+  }
+}
+
+const openOverlayAfterBudgetYield = async (
+  window: Window,
+  badge: HTMLButtonElement,
+  deferredDrains: () => number,
+) => {
+  const previousDrains = deferredDrains()
+  const initialTime = window.performance.now()
+  const simulatedWorkMs = 10
+  const heldFrames: Array<FrameRequestCallback> = []
+  let isHoldingFrames = true
+
+  const requestFrame = window.requestAnimationFrame.bind(window)
+  const frameSpy = vi
+    .spyOn(window, 'requestAnimationFrame')
+    .mockImplementation(callback =>
+      requestFrame(timestamp => {
+        if (isHoldingFrames) {
+          heldFrames.push(callback)
+        } else {
+          callback(timestamp)
+        }
+      }),
+    )
+  const nowSpy = vi
+    .spyOn(window.performance, 'now')
+    .mockReturnValue(initialTime)
+  const simulateElapsedWork = () => {
+    nowSpy
+      .mockReturnValue(initialTime + simulatedWorkMs)
+      .mockReturnValueOnce(initialTime)
+  }
+
+  badge.addEventListener('click', simulateElapsedWork, {
+    capture: true,
+    once: true,
+  })
+
+  try {
+    badge.click()
+    await expect.poll(deferredDrains).toBeGreaterThan(previousDrains)
+  } finally {
+    badge.removeEventListener('click', simulateElapsedWork)
+    nowSpy.mockRestore()
+    frameSpy.mockRestore()
+    isHoldingFrames = false
+
+    for (const frame of heldFrames) {
+      window.requestAnimationFrame(frame)
+    }
+  }
 }
 
 describe('generated production client DevTools', () => {
@@ -162,15 +240,26 @@ describe('generated production client DevTools', () => {
         'dependencies',
         isStandalone,
       )
-      const { window, overlayMounts } = await executeClient(html, client)
+      const { window, overlayMounts, deferredDrains } = await executeClient(
+        html,
+        client,
+      )
 
       await expect
         .poll(() => window.document.getElementById('foldkit-devtools'))
         .not.toBeNull()
       const shadow =
         window.document.getElementById('foldkit-devtools')?.shadowRoot
-      await expect.poll(() => shadow?.querySelector('button')).toBeTruthy()
-      shadow?.querySelector('button')?.click()
+      await expect
+        .poll(() => shadow?.querySelector('button.dt-badge'))
+        .toBeTruthy()
+      const badge = shadow?.querySelector<HTMLButtonElement>('button.dt-badge')
+      if (badge === null || badge === undefined) {
+        throw new Error('The DevTools badge is not mounted')
+      }
+
+      await openOverlayAfterBudgetYield(window, badge, deferredDrains)
+      await expect.poll(() => shadow?.querySelector('.dt-panel')).toBeTruthy()
       window.document.querySelector('button')?.click()
 
       await expect

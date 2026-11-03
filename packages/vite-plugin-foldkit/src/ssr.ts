@@ -104,6 +104,33 @@ const invalidateServerModulesForReevaluation = (
   }
 }
 
+const reevaluatedServerEntries = new WeakMap<EnvironmentModuleNode, number>()
+
+// NOTE: Vite invalidates the edited file after async watchChange hooks settle.
+// Non-HMR requests can arrive during those hooks, so refresh the graph only
+// after Vite changes the entry's stamp. Record our resulting stamp before
+// importing so concurrent requests reuse that same evaluation.
+const importServerEntry = async (
+  environment: RunnableDevEnvironment,
+  serverEntry: string,
+): Promise<unknown> => {
+  if (environment.config.server.hmr === false) {
+    const entry = await environment.moduleGraph.ensureEntryFromUrl(serverEntry)
+    const previousTimestamp = reevaluatedServerEntries.get(entry)
+
+    if (
+      previousTimestamp !== undefined &&
+      previousTimestamp !== entry.lastInvalidationTimestamp
+    ) {
+      invalidateServerModulesForReevaluation(environment)
+    }
+
+    reevaluatedServerEntries.set(entry, entry.lastInvalidationTimestamp)
+  }
+
+  return environment.runner.import(serverEntry)
+}
+
 const SERVER_UPDATE_SETTLED_EVENT = 'foldkit:server-update-settled'
 const SERVER_UPDATE_SETTLE_TIMEOUT_MS = 1_000
 
@@ -377,7 +404,7 @@ const renderRequest = (
 
     yield* serverUpdates.awaitSettledUpdates
     const loadedModule = yield* Effect.promise(() =>
-      ssrEnvironment.runner.import(options.serverEntry),
+      importServerEntry(ssrEnvironment, options.serverEntry),
     )
 
     if (!isEntryModule(loadedModule)) {
@@ -1000,9 +1027,8 @@ export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
       if (serverModules !== undefined && serverModules.size > 0) {
         if (isHotServerEnvironment(this.environment)) {
           serverUpdates.beginUpdate()
+          invalidateServerModulesForReevaluation(this.environment)
         }
-
-        invalidateServerModulesForReevaluation(this.environment)
       }
     },
     // NOTE: Vite invalidates the server entry when a module it imports

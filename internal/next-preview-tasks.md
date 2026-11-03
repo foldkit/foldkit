@@ -2,7 +2,7 @@
 
 ## Unified Block and direct Layer follow-up
 
-- [ ] Prototype one `Block.make` value carrying declared contracts and bound
+- [x] Prototype one `Block.make` value carrying declared contracts and bound
       authoring helpers without a separate Definition or contract projection.
 - [ ] Prove checked `Block.makeLayer` completion returning an ordinary Layer,
       exact root hosting/providers, host-owned handlers, constructor failures,
@@ -16,11 +16,22 @@
 - [ ] After the proof passes, migrate all active consumers, factories, tests,
       scaffolds, guidance, lint recognition and migration material. Preserve
       historical content and unchanged compiler workloads and ceilings.
-- [ ] Reconcile every actionable preview PR comment and relevant issue/PR,
+- [x] Reconcile every actionable preview PR comment and relevant issue/PR,
       recording concrete source/test evidence and actual unresolved requests.
-- [ ] Verify source, emitted and strict relocated consumers, application
-      behavior, packed release consumers and the exact committed candidate.
-      Push the reviewed code to the preview branch; do not publish.
+- [x] Verify the canonical API through source, emitted and strict relocated
+      consumers, application behavior, the 9,099-test matrix, 22 Website browser
+      checks and packed Chromium/Firefox/WebKit consumers. These checks do not
+      verify the failed isolated Block prototype.
+- [ ] Review the exact committed release-gate follow-up and push it through
+      the mandatory pre-push hook to the preview branch. Do not publish.
+
+The [frozen Block API proof](block-api-simplification/README.md) does not meet the
+required adoption gates. Focused ordinary and generic consumers work, but the
+adapted deep/wide/Workspace workloads exceed the unchanged compiler ceilings.
+A same-owner, different-handler Layer pairing is rejected at Runtime but still
+accepted by TypeScript. No broad migration is performed, no budget is raised,
+and this work is not marked complete or approved for deferral. Reproducible
+patches, preserved assertions and bounded controls are included in the report.
 
 ## November 3 input-update and scoped-test checkpoint
 
@@ -38,11 +49,19 @@ The repository-wide scoped-runner pass is complete. Its
 explains the remaining acquired fixtures and Promise bridges. This checkpoint
 does not verify the still-isolated unified Block/direct Layer prototype.
 
-GitHub feedback was refreshed at 06:10 UTC on November 3 after the exhaustive
-[closure audit](update-composition/feedback-closure-20261103.md). No additional
-issues, conversation comments or inline review comments were returned.
+GitHub feedback was refreshed through 07:55 UTC on November 3 after the
+exhaustive [closure audit](update-composition/feedback-closure-20261103.md).
+The updated items contain no new Blocks/Layers defect or reply; #1658 and #1605
+are refreshed general Form and Query cache proposals.
 Daybreak transfer and review remain explicitly on hold. Release publication
 also remains held for separate user approval.
+
+The [new frozen Lustre batch](update-composition/rendering-inmessage-20261103/README.md)
+retains all 32 samples. The naive median improves by 20.4%; the optimized median
+is 12.7% slower, with about 32 KB more gzip. This does not isolate feature costs
+or establish a general speedup. The input-update commit `8fc55dd9` has passed
+exact-commit independent review; the release-gate follow-up requires its own
+review before pushing.
 
 ## Current constructor and update follow-up
 

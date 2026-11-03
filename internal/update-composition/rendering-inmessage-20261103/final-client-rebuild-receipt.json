@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "verification": "/private/tmp/foldkit-inmessage-rendering-20261103/final-client-rebuild-Liw69Q",
+  "canonical": "/private/tmp/foldkit-update-composition-20261102",
+  "sourceScope": "Current canonical core source and freshly built Vite plugin after non-HMR development reload fix; frozen unchanged benchmark workload and completion adapters",
+  "changedPluginSourceSha256": "9c1628dacd7b613adc79f8d80fc16a692c6b140fd2c340eab3cfa1a3e9ac1a20",
+  "changedPluginJavaScriptSha256": "62ff0b667056d3cac5e5a40fac62debd617a820d6fe969f78d3f61d0a7d84ee4",
+  "benchmarkSourcesUnchanged": true,
+  "records": [
+    {
+      "variant": "naive",
+      "slot": "foldkit-candidate-current",
+      "files": [
+        {
+          "file": "assets/index-CRaFMRoA.js",
+          "sha256": "a3d6175d0ffa4de006d960b388d927847f8d4c7e47369a939e4f9d6e60c0433c"
+        }
+      ],
+      "byteIdenticalToTimedBundle": true
+    },
+    {
+      "variant": "optimised",
+      "slot": "foldkit-candidate-current-optimised",
+      "files": [
+        {
+          "file": "assets/index.optimised-BqYtD3lT.js",
+          "sha256": "7004277d8522d50acaa5907a21f7a7f60a41bb76c5f4d99c2e5a1d4f6e2e7455"
+        }
+      ],
+      "byteIdenticalToTimedBundle": true
+    }
+  ]
+}

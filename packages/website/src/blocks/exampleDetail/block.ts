@@ -4,7 +4,7 @@ import { layer as TabsLayer } from '@foldkit/ui/tabs'
 
 import { SourceFileTabsBinding } from './composition'
 import { ExampleDetailDefinition } from './definition'
-import { EffectsLayer, init, inMessageUpdate, update, view } from './example'
+import { EffectsLayer, inMessageUpdate, init, update, view } from './example'
 
 export {
   CurrentSourcesAsyncData,

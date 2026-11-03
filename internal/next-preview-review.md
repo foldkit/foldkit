@@ -14,16 +14,26 @@
 - [x] Inline and extracted source/emitted consumers, strict source-free
       relocation, focused mutation controls, affected apps, the full UI suite
       and all seven unchanged compiler ceilings pass.
-- [ ] The unified `Block.make` / ordinary `makeLayer` prototype must still
-      establish generic families, exact test Facts, host handlers, and compiler
-      cost before any broad Block migration.
-- [ ] Independently review the exact canonical input-update commit before push.
-- [ ] Complete final release-wide verification and rendering measurements for
-      the eventual API candidate. Earlier receipts keep their original scopes.
+- [x] Complete the bounded unified `Block.make` / ordinary `makeLayer` proof and
+      preserve its runnable patches and actual failed gates.
+- [ ] Resolve the measured compiler-cost and same-owner selected-provider
+      source-validation failures before any broad Block migration. The
+      [proof report](block-api-simplification/README.md) records focused passes,
+      uncovered coverage and the unchanged ceilings. No deferral is inferred.
+- [x] Independently review the exact canonical input-update commit `8fc55dd9`.
+      Any subsequent release-gate repairs need exact-commit review before push.
+- [x] Record the current frozen Lustre comparison with all 32 samples retained:
+      −20.4% naive median, +12.7% optimized median and about 32 KB more gzip.
+- [x] Verify the canonical API's full test matrix (9,099 passed, 15 existing
+      skips), all 22 Website browser checks and packed three-browser consumers.
+      The failed isolated Block prototype is excluded.
+- [ ] Independently review the exact release-gate follow-up and enforce the
+      mandatory pre-push checks before pushing the canonical candidate.
 
 The user's latest Daybreak decision is **keep review on hold**. No source is
 sent while that hold applies. Publication separately awaits explicit approval.
-The latest feedback refresh found no additional issue or comment at 06:10 UTC.
+The 07:55 UTC feedback refresh found no new Blocks/Layers defect or reply.
+Updated heads #1658 and #1605 contain general Form and Query cache proposals.
 
 ## Current constructor and update follow-up
 

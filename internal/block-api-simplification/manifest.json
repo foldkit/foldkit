@@ -1,0 +1,46 @@
+{
+  "base": "a84a2b04b0e9a9613b9db603150fa271fb7dc27f",
+  "activeCandidateUnchanged": true,
+  "ordinaryRuntimeTests": 14,
+  "familyRuntimeTests": 17,
+  "familySourceFreeRuntimeCases": 4,
+  "compilerBudgetOutcome": "failed; broad migration not performed",
+  "scope": "Independent frozen prototypes. Apply ordinary.patch OR family.patch to separate base worktrees; do not combine them or apply to the current API candidate.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 7910,
+      "sha256": "b15aa6847ef8eb710658df27d6e0e77f1b8293a810c1f073d72404f3e7519e55"
+    },
+    {
+      "path": "family-manifest.json",
+      "bytes": 8693,
+      "sha256": "9425f686254d542fdcf8e450457e34634a3f36d854168afa0fefc9790fc0f423"
+    },
+    {
+      "path": "family.patch",
+      "bytes": 145940,
+      "sha256": "fc30eb5664583d76fc1e84ae97e3f21f9136b9b85ae574f51cae0a71e09e650b"
+    },
+    {
+      "path": "ordinary.patch",
+      "bytes": 109803,
+      "sha256": "d63c5eb68692bed8b69da6b6485cff146f9cffd01783148915ac003c51802759"
+    },
+    {
+      "path": "patch-checks.json",
+      "bytes": 918,
+      "sha256": "d8371703f48fd2318160669a0c89385bec84e699997a846968a54d0bc1961994"
+    },
+    {
+      "path": "performance-results.json",
+      "bytes": 22876,
+      "sha256": "18f5eea1cfc03c12a5cafcaaa3e519d7c85bcfefd626e9b9381493c9d6f5519f"
+    },
+    {
+      "path": "performance-tools.patch",
+      "bytes": 133584,
+      "sha256": "ee55b35d95b645a47710cd7e06298102b981d66a8b326a969417b365c7c2ec3c"
+    }
+  ]
+}

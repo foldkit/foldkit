@@ -1,0 +1,456 @@
+{
+  "status": "source-accepted-but-unchanged-budgets-fail",
+  "repository": "/private/tmp/foldkit-direct-block-layer-prototype-20261103",
+  "snapshot": "/private/tmp/foldkit-direct-block-performance-AttDXW",
+  "command": [
+    "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+    "internal/direct-block-performance/verify.mjs"
+  ],
+  "nodeExecutable": "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+  "compiler": "7.1.0-beta",
+  "astParser": "6.0.2",
+  "originalSourcesUnchanged": true,
+  "frameworkDistUnchanged": true,
+  "checkerHash": "bfd0baed03229435de3093cc79e56c546ff2aa5ce4da874f1cb4ca7732c8ffc4",
+  "budgetHash": "4c992d726e54c3ad3fac257040878fd5343c2dc0636fc7918f754947634cc30f",
+  "sourceHashes": {
+    "type-performance/README.md": "8236917d9c0dcbaa5fe24ad77e514eb7ca9bedbd4769c373f8e91715e95994e5",
+    "type-performance/baseline.ts": "b9717c6148e14041e3319614e10beaeae0dedf92c6d5c005e0afed0a20e3449c",
+    "type-performance/budgets.json": "4c992d726e54c3ad3fac257040878fd5343c2dc0636fc7918f754947634cc30f",
+    "type-performance/command-requirements-200.ts": "43f9ea79e4ad667ab0ead63b227c304925069a74cfa10152d98766ca4607c87a",
+    "type-performance/deep-composition-8.ts": "d1376b4b3e2f873195f8113b1edb2b4406ca3e527a11cb94fc97b260eb3957cc",
+    "type-performance/fixtures.json": "9018314d13beeb6ff4f2732fc5be568afcd3f7cf578804556064d175419121c7",
+    "type-performance/machine-search.ts": "0fb33f68432a3c6b3d66e27dbe5eb201b0334110758a764f3437b460ec9841b8",
+    "type-performance/tsconfig.json": "67f88b29450149242ad11b26e00bc07bf2c15181ed40aadbe8790be237e7abb9",
+    "type-performance/wide-composition-100.ts": "5cdb083f397a177e5600cc07dcc006f9f4306e538c7f26a9f4d9ee0de13edffe",
+    "type-performance/wide-subscriptions-100.ts": "798b7f306ceca87c9c62d7c30c4de6d265ea6d60b6362046ad9fc7e1d2c51f62",
+    "type-performance/workspace-application-declarations.json": "9bee321c528dd2c59026b7653128af1393296604d3a022c406b179e017bc9527",
+    "type-performance/workspace-composition-4.ts": "e0e316b501fef0205147710b41877be548ef402dd2cb2aab53cb862c612b70f7",
+    "type-performance/workspace-composition-8.ts": "b2d67b5d444cfc4f341d56739c113f07367b99b848f34f82da37fd6008a15ae4",
+    "type-performance/workspace-declarations.json": "2e50915061763923111ef911d89eb39919e5ff7acd079b9e1a947810d0abdd2e",
+    "type-performance/workspace-generate.ts": "9e02b39f5714075742d96d9576bc5a7ef81cce411bd6d43beca95b61ac7b7f8a",
+    "type-performance/workspace-groups-4.ts": "9d11fd174f0005f4f52dd4de8d7acabef76e9b6241e49238d8dd8691176ba069",
+    "type-performance/workspace-groups-8.ts": "777c3910eba9adbabc0fd12fd6ccffdae26a15770dc81e7a13e84eab431708ea",
+    "type-performance/workspace-shared.ts": "2347c3c13ae4db17d509db423d8fdc67c25814c6b26daa4661617a962354d6d1"
+  },
+  "declarationSnapshotHash": "2c4f32353d8935513e41eb406e1754ddbde339690c52e259f6396071d395630e",
+  "scriptHashes": {
+    "adapt.mjs": "289ad36cddc5dfdb0345ffd211a0d50da81d3390950fa13025355e1e3f8606a5",
+    "base-constructor-control.mjs": "6d27322a0721515e49539c23530192196c3136953b7b54176b9c662054c9d9a2",
+    "compact-control.mjs": "6c72bc945664c70be434d82fa7b7cd52d9bf080387ce64cea520dbea780086e1",
+    "constructor-control.mjs": "a57d75620b1759140364fa48afebc315f7bd183470ddb925cd9d3ebc0cd129e8",
+    "named-layer-control.mjs": "c9a486e8b0f08a49b7725c4b7dc428eb0dc71132c5051920085344a1d72ff970",
+    "verify.mjs": "af65d92c320dc42d938c171e0e540a8ff036ecf2a65fe8eb86d5310f8edda07b"
+  },
+  "invariants": {
+    "deep-composition-8": {
+      "files": ["deep-composition-8.ts"],
+      "blocks": 10,
+      "bindingYields": 9,
+      "authoredProperties": 32,
+      "domainInitializers": 30,
+      "operationSources": 1,
+      "assertions": 2
+    },
+    "wide-composition-100": {
+      "files": ["wide-composition-100.ts"],
+      "blocks": 2,
+      "bindingYields": 100,
+      "authoredProperties": 8,
+      "domainInitializers": 114,
+      "operationSources": 1,
+      "assertions": 2
+    },
+    "workspace-composition-4": {
+      "files": [
+        "workspace-shared.ts",
+        "workspace-groups-4.ts",
+        "workspace-composition-4.ts"
+      ],
+      "blocks": 7,
+      "bindingYields": 16,
+      "authoredProperties": 32,
+      "domainInitializers": 102,
+      "operationSources": 11,
+      "assertions": 49
+    },
+    "workspace-composition-8": {
+      "files": [
+        "workspace-shared.ts",
+        "workspace-groups-8.ts",
+        "workspace-composition-8.ts"
+      ],
+      "blocks": 11,
+      "bindingYields": 32,
+      "authoredProperties": 52,
+      "domainInitializers": 182,
+      "operationSources": 19,
+      "assertions": 93
+    }
+  },
+  "measurements": [
+    {
+      "mode": "original",
+      "fixture": "deep-composition-8",
+      "status": 0,
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
+        "deep-composition-8"
+      ],
+      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-deep-composition-8.log",
+      "instantiations": 659046,
+      "maxInstantiations": 1152618,
+      "types": 52666,
+      "maxTypes": 55843,
+      "symbols": 86061,
+      "budgetStatus": "ok"
+    },
+    {
+      "mode": "original",
+      "fixture": "wide-composition-100",
+      "status": 0,
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
+        "wide-composition-100"
+      ],
+      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-wide-composition-100.log",
+      "instantiations": 1392438,
+      "maxInstantiations": 3132298,
+      "types": 80565,
+      "maxTypes": 216662,
+      "symbols": 129632,
+      "budgetStatus": "ok"
+    },
+    {
+      "mode": "original",
+      "fixture": "workspace-composition-4",
+      "status": 1,
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
+        "workspace-composition-4"
+      ],
+      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-workspace-composition-4.log",
+      "instantiations": 2683623,
+      "maxInstantiations": 2642699,
+      "types": 234232,
+      "maxTypes": 229173,
+      "symbols": 310502,
+      "budgetStatus": "failed: Instantiations, Types"
+    },
+    {
+      "mode": "original",
+      "fixture": "workspace-composition-8",
+      "status": 1,
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-direct-block-performance-AttDXW/original/scripts/check-block-type-performance.ts",
+        "workspace-composition-8"
+      ],
+      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/original-workspace-composition-8.log",
+      "instantiations": 4451559,
+      "maxInstantiations": 4515010,
+      "types": 307857,
+      "maxTypes": 299721,
+      "symbols": 437993,
+      "budgetStatus": "failed: Types"
+    },
+    {
+      "mode": "adapted",
+      "fixture": "deep-composition-8",
+      "status": 1,
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
+        "deep-composition-8"
+      ],
+      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-deep-composition-8.log",
+      "instantiations": 3053157,
+      "maxInstantiations": 1152618,
+      "types": 424199,
+      "maxTypes": 55843,
+      "symbols": 373367,
+      "budgetStatus": "failed: Instantiations, Types"
+    },
+    {
+      "mode": "adapted",
+      "fixture": "wide-composition-100",
+      "status": 1,
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
+        "wide-composition-100"
+      ],
+      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-wide-composition-100.log",
+      "instantiations": 5337430,
+      "maxInstantiations": 3132298,
+      "types": 442595,
+      "maxTypes": 216662,
+      "symbols": 401000,
+      "budgetStatus": "failed: Instantiations, Types"
+    },
+    {
+      "mode": "adapted",
+      "fixture": "workspace-composition-4",
+      "status": 1,
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
+        "workspace-composition-4"
+      ],
+      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-workspace-composition-4.log",
+      "instantiations": 10685646,
+      "maxInstantiations": 2642699,
+      "types": 1196822,
+      "maxTypes": 229173,
+      "symbols": 1062139,
+      "budgetStatus": "failed: Instantiations, Types"
+    },
+    {
+      "mode": "adapted",
+      "fixture": "workspace-composition-8",
+      "status": 1,
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-direct-block-performance-AttDXW/adapted/scripts/check-block-type-performance.ts",
+        "workspace-composition-8"
+      ],
+      "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/adapted-workspace-composition-8.log",
+      "instantiations": 12048102,
+      "maxInstantiations": 4515010,
+      "types": 1028932,
+      "maxTypes": 299721,
+      "symbols": 1060334,
+      "budgetStatus": "failed: Instantiations, Types"
+    }
+  ],
+  "compactDescriptorControl": {
+    "snapshot": "/private/tmp/foldkit-direct-block-performance-AttDXW",
+    "directory": "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control",
+    "purpose": "Diagnostic only: strip authoring helpers from Binding child inputs without changing the Block object or channel facts.",
+    "transformations": [
+      {
+        "file": "deep-composition-8.ts",
+        "wrappedBindingArguments": 9
+      },
+      {
+        "file": "wide-composition-100.ts",
+        "wrappedBindingArguments": 100
+      },
+      {
+        "file": "workspace-composition-4.ts",
+        "wrappedBindingArguments": 4
+      },
+      {
+        "file": "workspace-composition-8.ts",
+        "wrappedBindingArguments": 8
+      },
+      {
+        "file": "workspace-groups-4.ts",
+        "wrappedBindingArguments": 12
+      },
+      {
+        "file": "workspace-groups-8.ts",
+        "wrappedBindingArguments": 24
+      }
+    ],
+    "measurements": [
+      {
+        "fixture": "deep-composition-8",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
+          "deep-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-deep-composition-8.log",
+        "instantiations": 3058319,
+        "maxInstantiations": 1152618,
+        "types": 424244,
+        "maxTypes": 55843,
+        "symbols": 373453,
+        "budgetStatus": "failed: Instantiations, Types"
+      },
+      {
+        "fixture": "wide-composition-100",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
+          "wide-composition-100"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-wide-composition-100.log",
+        "instantiations": 5351345,
+        "maxInstantiations": 3132298,
+        "types": 442624,
+        "maxTypes": 216662,
+        "symbols": 401030,
+        "budgetStatus": "failed: Instantiations, Types"
+      },
+      {
+        "fixture": "workspace-composition-4",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
+          "workspace-composition-4"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-workspace-composition-4.log",
+        "instantiations": 10711163,
+        "maxInstantiations": 2642699,
+        "types": 1196912,
+        "maxTypes": 229173,
+        "symbols": 1062257,
+        "budgetStatus": "failed: Instantiations, Types"
+      },
+      {
+        "fixture": "workspace-composition-8",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-AttDXW/compact-control/scripts/check-block-type-performance.ts",
+          "workspace-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/compact-control-workspace-composition-8.log",
+        "instantiations": 12098458,
+        "maxInstantiations": 4515010,
+        "types": 1029030,
+        "maxTypes": 299721,
+        "symbols": 1060480,
+        "budgetStatus": "failed: Instantiations, Types"
+      }
+    ]
+  },
+  "noFactsImportControl": {
+    "snapshot": "/private/tmp/foldkit-direct-block-performance-FKdnuR",
+    "log": "/private/tmp/foldkit-direct-block-performance-FKdnuR/logs/control-deep-no-facts-import.log",
+    "fixture": "deep-composition-8",
+    "instantiations": 3053281,
+    "types": 424200,
+    "change": "Remove SelectedLayerFacts import; recover actual callable Update output through existing public Block.Plan and original Update.RequirementsOf. No original Expect assertion changed."
+  },
+  "limits": [
+    "Compiler workload only; no runtime/lifecycle result claimed.",
+    "Current declarations include both native and proposed unified APIs. This does not model removal of old APIs.",
+    "Internal SelectedLayerFacts is measurement introspection, not proposed consumer syntax.",
+    "Compact identity Pick is a diagnostic copy only, not an accepted consumer pattern."
+  ],
+  "constructorControl": {
+    "snapshot": "/private/tmp/foldkit-direct-block-performance-AttDXW",
+    "directory": "/private/tmp/foldkit-direct-block-performance-AttDXW/constructor-control",
+    "purpose": "Matched existing independent-contract constructor API control, not native prepare/assemble.",
+    "transformations": [
+      {
+        "file": "deep-composition-8.ts",
+        "blocks": 10,
+        "contractBodiesAndMetadataFrom": "adapted snapshot; makeLayer constructor expression retained verbatim"
+      },
+      {
+        "file": "wide-composition-100.ts",
+        "blocks": 2,
+        "contractBodiesAndMetadataFrom": "adapted snapshot; makeLayer constructor expression retained verbatim"
+      },
+      {
+        "file": "workspace-composition-4.ts",
+        "blocks": 1,
+        "contractBodiesAndMetadataFrom": "adapted snapshot; makeLayer constructor expression retained verbatim"
+      },
+      {
+        "file": "workspace-composition-8.ts",
+        "blocks": 1,
+        "contractBodiesAndMetadataFrom": "adapted snapshot; makeLayer constructor expression retained verbatim"
+      },
+      {
+        "file": "workspace-shared.ts",
+        "blocks": 2,
+        "contractBodiesAndMetadataFrom": "adapted snapshot; makeLayer constructor expression retained verbatim"
+      },
+      {
+        "file": "workspace-groups-4.ts",
+        "blocks": 4,
+        "contractBodiesAndMetadataFrom": "adapted snapshot; makeLayer constructor expression retained verbatim"
+      },
+      {
+        "file": "workspace-groups-8.ts",
+        "blocks": 8,
+        "contractBodiesAndMetadataFrom": "adapted snapshot; makeLayer constructor expression retained verbatim"
+      }
+    ],
+    "measurements": [
+      {
+        "fixture": "deep-composition-8",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-AttDXW/constructor-control/scripts/check-block-type-performance.ts",
+          "deep-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/constructor-control-deep-composition-8.log",
+        "diagnosticFailure": true
+      }
+    ]
+  },
+  "baseConstructorControl": {
+    "snapshot": "/private/tmp/foldkit-direct-block-performance-AttDXW",
+    "directory": "/private/tmp/foldkit-direct-block-performance-AttDXW/base-constructor-control",
+    "packageCore": "/private/tmp/foldkit-direct-block-performance-AttDXW/base-constructor-package",
+    "purpose": "Matched independent contract constructor API with only the pre-prototype MakeBlock return Facts restored from base HEAD. All validation remains current.",
+    "declarationControl": {
+      "before": "PendingHandlerFacts<ActualFacts<MessageSchema, NoInfer<Body>, Config>, HostDefinitions<NoInfer<Body>>>",
+      "after": "DeclaredFacts<\n      MessageSchema,\n      OutMessageSchema,\n      Config,\n      Owner<NominalId<Id, Config['key']>, true>\n    >"
+    },
+    "fixture": "deep-composition-8",
+    "status": 1,
+    "command": [
+      "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+      "/private/tmp/foldkit-direct-block-performance-AttDXW/base-constructor-control/scripts/check-block-type-performance.ts",
+      "deep-composition-8"
+    ],
+    "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/base-constructor-control-deep-composition-8.log",
+    "instantiations": 1835462,
+    "maxInstantiations": 1152618,
+    "types": 251776,
+    "maxTypes": 55843,
+    "symbols": 194982,
+    "budgetStatus": "failed: Instantiations, Types"
+  },
+  "namedLayerControl": {
+    "snapshot": "/private/tmp/foldkit-direct-block-performance-AttDXW",
+    "directory": "/private/tmp/foldkit-direct-block-performance-AttDXW/named-layer-control",
+    "packageCore": "/private/tmp/foldkit-direct-block-performance-AttDXW/named-layer-package",
+    "purpose": "Same raw Layer workload; replace only MakeLayer/LayerWithImplementationFacts with owner-authorized named interface source encoding in copied declarations.",
+    "declarationControl": [
+      {
+        "name": "MakeLayer",
+        "start": 28260,
+        "end": 29652,
+        "before": "export interface MakeLayer<Id extends string, ModelSchema extends AnySchema, MessageSchema extends AnySchema, OutMessageSchema extends AnySchema | undefined, Config extends ContractConfiguration> {\n    <const Body extends ConstructorBody, Error, Requirements>(constructor: Effect.Effect<Body, Error, Requirements> & ValidateConstructorBody<Body>, ...validation: readonly [\n        ...Validate<NominalId<Id, Config['key']>, ModelSchema, MessageSchema, OutMessageSchema, NativeBody<NoInfer<Body>, Config>>,\n        ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,\n        ...ReceiveBodyValidation<NoInfer<Body>, Config>,\n        ...HostContractValidation<ActualFacts<MessageSchema, NoInfer<Body>, Config>, DeclaredFacts<MessageSchema, OutMessageSchema, Config, Owner<NominalId<Id, Config['key']>, true>>, HostDefinitions<NoInfer<Body>>>\n    ]): Block<Owner<NominalId<Id, Config['key']>, true>, ModelSchema, MessageSchema, OutMessageSchema, DeclaredFacts<MessageSchema, OutMessageSchema, Config, Owner<NominalId<Id, Config['key']>, true>>, Error, Requirements, ActualFacts<MessageSchema, NoInfer<Body>, Config>['subscriptions'], HostDefinitions<Body>>['layer'] extends infer GraphLayer extends Layer.Layer<any, any, any> ? LayerWithImplementationFacts<GraphLayer, Owner<NominalId<Id, Config['key']>, true>, ActualFacts<MessageSchema, Body, Config>, HostDefinitions<Body>> : never;\n}",
+        "after": "/** Completes a declared Block directly to its selected ordinary implementation Layer. */\nexport interface MakeLayer<Id extends string, ModelSchema extends AnySchema, MessageSchema extends AnySchema, OutMessageSchema extends AnySchema | undefined, Config extends ContractConfiguration> {\n    <const Body extends ConstructorBody, Error, Requirements>(constructor: Effect.Effect<Body, Error, Requirements> & ValidateConstructorBody<Body>, ...validation: readonly [\n        ...Validate<NominalId<Id, Config['key']>, ModelSchema, MessageSchema, OutMessageSchema, NativeBody<NoInfer<Body>, Config>>,\n        ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,\n        ...ReceiveBodyValidation<NoInfer<Body>, Config>,\n        ...HostContractValidation<ActualFacts<MessageSchema, NoInfer<Body>, Config>, DeclaredFacts<MessageSchema, OutMessageSchema, Config, Owner<NominalId<Id, Config['key']>, true>>, HostDefinitions<NoInfer<Body>>>\n    ]): LayerWithImplementationFacts<ContractGraph<Owner<NominalId<Id, Config['key']>, true>, ModelSchema, MessageSchema, OutMessageSchema, PendingHandlerFacts<DeclaredFacts<MessageSchema, OutMessageSchema, Config, Owner<NominalId<Id, Config['key']>, true>>, HostDefinitions<Body>>>, Owner<NominalId<Id, Config['key']>, true>, ActualFacts<MessageSchema, Body, Config>, HostDefinitions<Body>, Error, Exclude<Requirements, Scope.Scope | Layer.CurrentMemoMap>>;\n}"
+      },
+      {
+        "name": "LayerWithImplementationFacts",
+        "start": 29653,
+        "end": 29926,
+        "before": "type LayerWithImplementationFacts<GraphLayer extends Layer.Layer<any, any, any>, OwnerValue, Facts extends PublicFacts, Pending> = Layer.Layer<Layer.Success<GraphLayer> | ImplementationFacts<OwnerValue, Facts, Pending>, Layer.Error<GraphLayer>, Layer.Services<GraphLayer>>;",
+        "after": "interface LayerWithImplementationFacts<Graph, OwnerValue, Facts extends PublicFacts, Pending, Error, Requirements> extends Layer.Layer<Graph | ImplementationFacts<OwnerValue, Facts, Pending>, Error, Requirements> {\n}"
+      }
+    ],
+    "fixture": "deep-composition-8",
+    "status": 1,
+    "command": [
+      "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+      "/private/tmp/foldkit-direct-block-performance-AttDXW/named-layer-control/scripts/check-block-type-performance.ts",
+      "deep-composition-8"
+    ],
+    "log": "/private/tmp/foldkit-direct-block-performance-AttDXW/logs/named-layer-control-deep-composition-8.log",
+    "instantiations": 3050348,
+    "maxInstantiations": 1152618,
+    "types": 424289,
+    "maxTypes": 55843,
+    "symbols": 373252,
+    "budgetStatus": "failed: Instantiations, Types"
+  },
+  "finalHashRecheck": "Original fixture and shared dist hashes still equal primary snapshot after all copied controls."
+}

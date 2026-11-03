@@ -1,5 +1,36 @@
 # Packed release-version rehearsal
 
+## November 3 release-gate follow-up
+
+The [219-change rehearsal](./receipt-release-gate-20261103.json) includes the
+development SSR request-boundary fix and current declaration fixtures. Strict
+peer installation, one physical Effect runtime, source-free TypeScript
+consumers, inferred Programs and the existing Chromium, Firefox and WebKit
+checks pass. Staging uses the real Changesets versions and normal workspace
+dependency conversion; peer constraints are unchanged. Active manifests and all
+seven built distributions are verified unchanged after the rehearsal.
+
+The isolated unified Block/direct Layer prototype is excluded. No publication
+or security-review transfer occurs.
+
+## November 3 InMessage checkpoint
+
+The canonical `makeInMessageUpdate` migration passes the unchanged packed CI
+gate in Chromium, Firefox and WebKit. The isolated rehearsal reads the real
+**217-change** Changesets plan and uses the planned versions below. Strict npm
+installation, one physical Effect runtime, source-free types, inferred Programs,
+the development relay, production SSR and the existing browser checks pass.
+Declared peers, active package versions and built distributions stay unchanged.
+
+The [checkpoint receipt](./receipt-inmessage-checkpoint.json) records the exact
+seven package distributions, plan, driver and successful log. An initial run
+against development versions correctly rejected UI's pending core peer floor;
+the versioned rehearsal resolves that mismatch without changing peer ranges or
+installer strictness. This checkpoint excludes the isolated unified Block/direct
+Layer prototype and does not verify that proposed API. Nothing is published.
+
+## Earlier constructor checkpoints
+
 The final artifacts passed the existing CI packed SSR consumer gate in
 Chromium, Firefox and WebKit. A separate packed TypeScript 6 check also passed
 the new public update-composition fixtures. Earlier release rehearsals remain

@@ -20,8 +20,11 @@ source worktree's earlier assembly API.
 | Job Application `update.ts`      | Resolve the question about child completeness through deliberate public selectors.                                                                                  |
 | Workspace `composition.ts`       | Export the policy-complete IssueDetail and IssueBoard Bindings directly and acquire those same values in the constructor. The registration array is already inline. |
 
-The source worktree and the shared d576 checkout are preserved, including their
-uncommitted changes.
+The integration did not modify the source files or the shared d576 checkout.
+A [November 3 source recheck](verification/main-sync-source-recheck-20261103.json)
+reconstructs the five edits from the original commit and saved patch and
+confirms their bytes are unchanged. The source directory currently lacks its
+Git worktree marker; this recheck does not assume it is a live checkout.
 
 ## Comments addressed
 

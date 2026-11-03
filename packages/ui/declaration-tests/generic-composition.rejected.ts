@@ -53,7 +53,7 @@ ToastBlock.Message.RequestedDismissAll()
 // @ts-expect-error Parent open requests are not local Combobox Messages.
 Picker.Message.RequestedOpen()
 
-const rejectAnimationReceive = (
+const rejectAnimationInput = (
   animation: Effect.Success<typeof Animation.AnimationBlock.get>,
   model: typeof Animation.AnimationBlock.Model.Type,
 ) => {
@@ -61,12 +61,12 @@ const rejectAnimationReceive = (
     generation: 1,
   })
 
-  // @ts-expect-error A local settlement Message cannot enter receive.
-  animation.receive(model, settlement)
+  // @ts-expect-error A local settlement Message cannot enter inMessageUpdate.
+  animation.inMessageUpdate(model, settlement)
   // @ts-expect-error A parent input cannot enter the local update path.
   animation.update(model, Animation.InMessage.RequestedShow())
 }
-void rejectAnimationReceive
+void rejectAnimationInput
 
 // @ts-expect-error The connected Dialog operation takes no arguments.
 DialogBinding.requestOpen('unexpected')

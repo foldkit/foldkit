@@ -231,7 +231,7 @@
     {
       "path": "internal/inmessage-update-prototype/README.md",
       "status": "present",
-      "sha256": "ce7ee822ef1010774f8c0bd952efed122c668eaa0cadeadebebac0ca239b96d7"
+      "sha256": "032374b838c9c2a955a96e2ba14aaded926bdefb372d15ba6260f93103a2ac37"
     },
     {
       "path": "internal/inmessage-update-prototype/compiler-proof.mjs",
@@ -813,7 +813,7 @@
     {
       "path": "packages/website/src/blocks/exampleDetail/block.ts",
       "status": "present",
-      "sha256": "5032e02105898afe242986d658aefe1e99a0243b0f93a22b998423ad1c2423b0"
+      "sha256": "6e7a88f85a45be5abe47fc49864574e0919cd8623929aa34355277de2d4e1dd1"
     },
     {
       "path": "packages/website/src/blocks/exampleDetail/example.ts",
@@ -823,7 +823,7 @@
     {
       "path": "packages/website/src/blocks/playground/block.ts",
       "status": "present",
-      "sha256": "2d2a56f36362b19d0225e607186367fbf744fe4072d6f79cbb30adee1f7f28b5"
+      "sha256": "5a853c4f01dbc55f475ba91c4a8071dfbebc1804b9762f5980957636c5f09a7b"
     },
     {
       "path": "packages/website/src/blocks/playground/playground.ts",
@@ -908,6 +908,26 @@
       "path": "packages/website/src/snippet/updateCurriedStep.ts",
       "status": "present",
       "sha256": "ac795d6fe4fd49777f151e5996b6253250091a0fa55d002f6b6649d07cbf55f3"
+    },
+    {
+      "path": "packages/foldkit/src/block/outMessageForward.test.ts",
+      "status": "present",
+      "sha256": "769b1e78c49d06905896dd165cb1ecb8652d23ff7b08bc1416c50e43dd182253"
+    },
+    {
+      "path": "packages/ui/declaration-tests/generic-composition.accepted.ts",
+      "status": "present",
+      "sha256": "dcc3b17765dca9ba7832c0068387b5d5adfcc90a15787d90525bfc9fa3ecb3cb"
+    },
+    {
+      "path": "packages/ui/declaration-tests/generic-composition.consume.ts",
+      "status": "present",
+      "sha256": "4bbbced079a23a677ec3f841024e55c36cfcc83baa83c204f7bdbdfd2edbbd62"
+    },
+    {
+      "path": "packages/ui/declaration-tests/generic-composition.rejected.ts",
+      "status": "present",
+      "sha256": "1563f4688e4f780f9b8ca70de971b794bc1c0f23d87a720df242559112178e6c"
     }
   ],
   "moduleMoves": [
@@ -1170,7 +1190,7 @@
       "cwd": "packages/foldkit",
       "command": "node node_modules/vitest/vitest.mjs run --coverage --maxWorkers=2",
       "log": "/private/tmp/foldkit-canonical-inmessage-core-coverage-20261103.log",
-      "sourceScope": "Core source and artifacts match the frozen canonical API receipt; later amendment changes prose and metadata only."
+      "sourceScope": "Core runtime source and artifacts match the frozen canonical API proof. The later release-gate followup changes one test lint directive, UI declaration fixtures, Website import ordering, prose and metadata."
     }
   ],
   "counts": {
@@ -1193,7 +1213,8 @@
     "runtimeControls": "internal/layered-constructor/inmessages/verification/runtime-Zv0WZK/results.json",
     "appSource": "internal/layered-constructor/adoption-checks/verification/source-CYVgFV/results.json",
     "appTests": "internal/layered-constructor/adoption-checks/verification/test-K0zhnQ/results.json",
-    "semanticAudit": "internal/layered-constructor/inmessages/canonical-rename-audit.json"
+    "semanticAudit": "internal/layered-constructor/inmessages/canonical-rename-audit.json",
+    "packedCheckpoint": "internal/update-composition/packed-release/receipt-inmessage-checkpoint.json"
   },
   "compilerCandidate": [
     {
@@ -1311,5 +1332,67 @@
     "functions": 90.06,
     "lines": 91.15,
     "configuredThresholdsMet": true
+  },
+  "releaseGateFollowup": {
+    "scope": "Complete repository checks following the initial canonical API proof",
+    "changes": [
+      "Sort two named Website imports after the input entry-point rename",
+      "Migrate UI emitted acceptance, consumption and rejection fixtures to inMessageUpdate; reject local inputs through the actual canonical method",
+      "Add a lint directive to the intentional empty-forwarding TypeScript rejection fixture"
+    ],
+    "checks": [
+      {
+        "name": "root-lint",
+        "status": 0,
+        "command": "oxlint --disable-nested-config"
+      },
+      {
+        "name": "application-lint",
+        "status": 0,
+        "command": "oxlint --config .oxlintrc.app.json --disable-nested-config examples packages/website/src packages/typing-game/client/src"
+      },
+      {
+        "name": "effect-lint-and-dead-code",
+        "status": 0,
+        "log": "/private/tmp/foldkit-input-release-gates-20261103.log"
+      },
+      {
+        "name": "script-and-tooling-gates",
+        "status": 0,
+        "tests": 234,
+        "log": "/private/tmp/foldkit-input-release-gates-rest-20261103.log"
+      },
+      {
+        "name": "core-full-emitted-driver",
+        "status": 0,
+        "log": "/private/tmp/foldkit-input-release-types-20261103.log",
+        "scope": "Core completed successfully; the following UI check exposed the old calls repaired here"
+      },
+      {
+        "name": "UI-emitted-budgets-and-all-workspace-types",
+        "status": 0,
+        "log": "/private/tmp/foldkit-input-release-types-final-20261103.log"
+      },
+      {
+        "name": "empty-forwarding-regression",
+        "status": 0,
+        "command": "vitest run src/block/outMessageForward.test.ts --maxWorkers=1",
+        "tests": 3
+      }
+    ],
+    "packedReceipt": "internal/update-composition/packed-release/receipt-inmessage-checkpoint.json",
+    "fullTestAndBrowserGate": {
+      "status": "passed",
+      "receipt": "internal/update-composition/verification/release-gates-20261103.json"
+    },
+    "receiptNormalization": {
+      "path": "internal/inmessage-update-prototype/README.md",
+      "previousSha256": "ce7ee822ef1010774f8c0bd952efed122c668eaa0cadeadebebac0ca239b96d7",
+      "currentSha256": "032374b838c9c2a955a96e2ba14aaded926bdefb372d15ba6260f93103a2ac37",
+      "scope": "Refresh documentation-only digest to the committed report; no implementation or assertion changed"
+    },
+    "packedReleaseGateReceipt": "internal/update-composition/packed-release/receipt-release-gate-20261103.json",
+    "renderingReceipt": "internal/update-composition/rendering-inmessage-20261103/analysis.json",
+    "ssrRequestBoundaryReceipt": "internal/update-composition/verification/ssr-request-boundary-20261103.json"
   }
 }
