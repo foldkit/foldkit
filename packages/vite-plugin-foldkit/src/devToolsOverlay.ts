@@ -5,11 +5,14 @@ import type { Plugin } from 'vite'
 
 const DEV_TOOLS_PACKAGE_NAME = '@foldkit/devtools'
 const DEV_TOOLS_VITE_EXPORT = './vite'
-const DEV_TOOLS_OVERLAY_MODULE_ID = 'virtual:foldkit-devtools-overlay'
-const RESOLVED_DEV_TOOLS_OVERLAY_MODULE_ID = `\0${DEV_TOOLS_OVERLAY_MODULE_ID}`
+/** @internal Virtual module that registers the installed browser overlay. */
+export const DEV_TOOLS_OVERLAY_MODULE_ID = 'virtual:foldkit-devtools-overlay'
+/** @internal Resolved identity shared by HTML and generated client entries. */
+export const RESOLVED_DEV_TOOLS_OVERLAY_MODULE_ID = `\0${DEV_TOOLS_OVERLAY_MODULE_ID}`
 const DEV_TOOLS_VITE_IMPORT_SPECIFIER = `${DEV_TOOLS_PACKAGE_NAME}${DEV_TOOLS_VITE_EXPORT.slice(1)}`
 const DEV_TOOLS_HOST_IMPORT_SPECIFIER = 'foldkit/devtools-host'
-const DEV_TOOLS_OVERLAY_MODULE_SOURCE = `
+/** @internal Browser registration used by both client entry paths. */
+export const DEV_TOOLS_OVERLAY_MODULE_SOURCE = `
 import { overlay } from '${DEV_TOOLS_VITE_IMPORT_SPECIFIER}'
 import { __setDevToolsOverlay } from '${DEV_TOOLS_HOST_IMPORT_SPECIFIER}'
 
