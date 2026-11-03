@@ -37,7 +37,7 @@ const update = RouteAwareComposition.makeUpdate({
   }),
 })
 
-const receive = RouteAwareComposition.makeReceive({
+const inMessageUpdate = RouteAwareComposition.makeInMessageUpdate({
   InformedOfRouteChange: model => ({
     model: modifyFields(model, {
       routeChangeCount: count => count + 1,
@@ -53,7 +53,7 @@ export const layer = RouteAwareDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
     }
   }),
 ).layer

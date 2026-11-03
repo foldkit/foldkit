@@ -1578,6 +1578,17 @@ const isOwnedDefinitionPath = (
 
     return variable.defs.some(definition => {
       if (
+        definition.type === 'ImportBinding' &&
+        definition.parent?.type === 'ImportDeclaration'
+      ) {
+        const { value: source } = definition.parent.source
+        return (
+          source.startsWith('.') ||
+          source.startsWith('@/') ||
+          source.startsWith('~/')
+        )
+      }
+      if (
         definition.type !== 'Variable' ||
         !isVariableDeclarator(definition.node)
       ) {

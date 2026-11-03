@@ -143,7 +143,7 @@ Use startup Steps when initial child Models must exist before a parent transitio
 
 Put initial Steps in the plan's `steps` array. The Composition assembles the complete parent Model first, then passes each Step the Model returned by the preceding Step. It retains the child init Commands and adds the Commands returned by those Steps.
 
-An optional `boot` helper is an ordinary initial Step called through the Binding after the child Model is stored. A generated InMessage method can accept Flags, the current URL, or prerendered data, and receive returns the normal next Model and Commands through that Binding. The Runtime later performs those Commands through their handlers. A feature need not define both init and `boot` helpers.
+An optional `boot` helper is an ordinary initial Step called through the Binding after the child Model is stored. A generated InMessage method can accept Flags, the current URL, or prerendered data, and inMessageUpdate returns the normal next Model and Commands through that Binding. The Runtime later performs those Commands through their handlers. A feature need not define both init and `boot` helpers.
 
 When an existing request such as `RequestedRestore` or `RequestedOpen` already describes the transition, call its generated Binding method. Keep explicit `operations` for existing positional, generic, or defaulting adapters. Do not create a separate startup-only Message.
 

@@ -513,7 +513,7 @@ export interface DefineView<
  * can supply a separate input union without permitting those inputs as Command
  * result Messages.
  *
- * Declare parent requests through InMessage and Composition.makeReceive.
+ * Declare parent requests through InMessage and Composition.makeInMessageUpdate.
  * Definition operations remain available for local-Message adapters; their
  * producers return a local Message and its dispatch context.
  */

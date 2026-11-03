@@ -25,7 +25,7 @@ const update = SettingsComposition.makeUpdate({
   FailedSaveTheme: makeNoopStep(),
 })
 
-const receive = SettingsComposition.makeReceive({
+const inMessageUpdate = SettingsComposition.makeInMessageUpdate({
   RequestedThemeChange: (model, { theme }) => changeTheme(model, theme),
   RequestedReset: model => changeTheme(model, 'System'),
 })
@@ -55,7 +55,7 @@ export const layer = SettingsDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer: SaveTheme.layer,
     }

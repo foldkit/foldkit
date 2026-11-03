@@ -5,8 +5,8 @@ import { layer as DialogLayer } from '@foldkit/ui/dialog'
 import { ScrollActiveResult } from './command'
 import { DialogBinding } from './composition'
 import { CommandPaletteDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
@@ -19,7 +19,7 @@ export const CommandPaletteImplementation = CommandPaletteDefinition.makeBlock(
       children: [dialog],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       subscriptions,
       EffectsLayer: Layer.mergeAll(

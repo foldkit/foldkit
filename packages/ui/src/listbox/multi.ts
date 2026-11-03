@@ -79,7 +79,9 @@ const init = ListboxComposition.makeInit(config => ({
   childInitContext: config,
 }))
 const update = ListboxComposition.makeUpdate(itemUpdate.handlers)
-const receive = ListboxComposition.makeReceive(itemUpdate.receiveHandlers)
+const inMessageUpdate = ListboxComposition.makeInMessageUpdate(
+  itemUpdate.inMessageUpdateHandlers,
+)
 const render = makeView<Model>({ ariaMultiSelectable: true })<
   unknown,
   string,
@@ -100,7 +102,7 @@ export const block = ListboxDefinition.makeBlock(
       children: [animation],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

@@ -12,8 +12,8 @@ import {
   StatusListboxBinding,
 } from './composition'
 import { IssueDetailDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -35,7 +35,7 @@ const block = IssueDetailDefinition.makeBlock(
       ],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

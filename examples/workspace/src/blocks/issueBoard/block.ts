@@ -4,8 +4,8 @@ import { layer as DragAndDropLayer } from '@foldkit/ui/dragAndDrop'
 
 import { DragAndDropBinding } from './composition'
 import { IssueBoardDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -17,7 +17,7 @@ const block = IssueBoardDefinition.makeBlock(
       children: [dragAndDrop],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
     }
   }),

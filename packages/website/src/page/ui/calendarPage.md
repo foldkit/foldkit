@@ -208,7 +208,7 @@ Use `SelectedDate` to update the parent-owned selection. Use `ChangedViewMonth` 
 
 ### Programmatic Helpers
 
-Call these operations through the registered Calendar Binding. Each Binding call returns a connected parent Step. `requestDropToDays` sends its InMessage to receive; the date and constraint adapters keep their existing argument shapes and local Message paths. Return that Step from the parent handler or compose it with `Update.combineSteps`.
+Call these operations through the registered Calendar Binding. Each Binding call returns a connected parent Step. `requestDropToDays` sends its InMessage to `inMessageUpdate`; the date and constraint adapters keep their existing argument shapes and local Message paths. Return that Step from the parent handler or compose it with `Update.combineSteps`.
 
 | Binding call                                  | Arguments            | Behavior                                                                                                                                                              |
 | --------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

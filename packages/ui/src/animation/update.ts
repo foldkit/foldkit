@@ -156,7 +156,7 @@ export const update = AnimationComposition.makeUpdate({
 })
 
 /** Applies parent requests through the same owned transition Steps. */
-export const receive = AnimationComposition.makeReceive({
+export const inMessageUpdate = AnimationComposition.makeInMessageUpdate({
   RequestedShow: showTransition,
 
   RequestedHide: hideTransition,

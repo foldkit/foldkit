@@ -24,7 +24,7 @@ const constructNotifyingQuery = <Name extends string, A, AI, E, EI>({
     CompletedFetch: api.notifyingUpdateHandlers.CompletedFetch,
     CompletedCancelFetch: api.notifyingUpdateHandlers.CompletedCancelFetch,
   })
-  const receive = Composition.makeReceive({
+  const inMessageUpdate = Composition.makeInMessageUpdate({
     RequestedReset: api.reset,
     RequestedRevalidation: api.revalidate,
     RequestedRevalidationOrLoad: api.revalidateOrLoad,
@@ -36,7 +36,7 @@ const constructNotifyingQuery = <Name extends string, A, AI, E, EI>({
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       EffectsLayer: Layer.empty,
       hostHandlers: [Fetch],
     }),
@@ -56,7 +56,7 @@ const constructSilentQuery = <Name extends string, A, AI, E, EI>({
     CompletedFetch: api.updateHandlers.CompletedFetch,
     CompletedCancelFetch: api.updateHandlers.CompletedCancelFetch,
   })
-  const receive = Composition.makeReceive({
+  const inMessageUpdate = Composition.makeInMessageUpdate({
     RequestedReset: api.reset,
     RequestedRevalidation: api.revalidate,
     RequestedRevalidationOrLoad: api.revalidateOrLoad,
@@ -68,7 +68,7 @@ const constructSilentQuery = <Name extends string, A, AI, E, EI>({
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       EffectsLayer: Layer.empty,
       hostHandlers: [Fetch],
     }),

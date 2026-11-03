@@ -4,9 +4,9 @@ import { layer as DialogLayer } from '@foldkit/ui/dialog'
 
 import { DialogBinding } from './composition'
 import { SearchDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { EffectsLayer } from './layer'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -20,7 +20,7 @@ const block = SearchDefinition.makeBlock(
       children: [dialog],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

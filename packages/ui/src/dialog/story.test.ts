@@ -142,7 +142,7 @@ const makeFixture = (block: Story.TestBlock<typeof DialogBlock>) => {
   const { init, update, view } = block
 
   const openDialog = (config: InitConfig) =>
-    block.receive(init(config).model, InMessage.RequestedOpen())
+    block.inMessageUpdate(init(config).model, InMessage.RequestedOpen())
 
   const isDialogVisible = (model: Model): boolean =>
     model.isOpen || model.animation.transitionState !== 'Idle'
@@ -730,7 +730,7 @@ it.layer(layer, { buildPerTest: true })(it => {
           Story.withBlock(DialogBlock, block => {
             const { openDialog } = makeFixture(block)
 
-            const dialogClose = block.receive(
+            const dialogClose = block.inMessageUpdate(
               openDialog({ id: 'test', isAnimated: true }).model,
               InMessage.RequestedClose(),
             )
@@ -766,7 +766,7 @@ it.layer(layer, { buildPerTest: true })(it => {
             const { openDialog } = makeFixture(block)
 
             const leavingModel = modifyFields(
-              block.receive(
+              block.inMessageUpdate(
                 openDialog({ id: 'test', isAnimated: true }).model,
                 InMessage.RequestedClose(),
               ).model,

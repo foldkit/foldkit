@@ -25,7 +25,7 @@ const resolveStaleSettle = Story.Command.resolve(
 
 type AnimationOperations = Pick<
   Effect.Success<typeof block.get>,
-  'init' | 'update' | 'receive' | 'operations'
+  'init' | 'update' | 'inMessageUpdate' | 'operations'
 >
 
 const givenEnterAnimating = Story.steps(
@@ -49,7 +49,7 @@ const givenLeaveAnimating = Story.steps(
 )
 
 const makeFixture = (animation: AnimationOperations) => {
-  const { init, update, receive, operations } = animation
+  const { init, update, inMessageUpdate, operations } = animation
   const givenEnterAnimating = Story.steps(
     Story.given(init({ id: 'test' }).model),
     Story.message(Message.Showed()),
@@ -75,7 +75,7 @@ const makeFixture = (animation: AnimationOperations) => {
   return {
     init,
     update,
-    receive,
+    inMessageUpdate,
     operations,
     givenEnterAnimating,
     givenLeaveAnimating,
@@ -461,14 +461,14 @@ describe('Animation', () => {
     })
 
     it('requests the standard wait only while leave is animating', ({
-      animation: { init, operations, update, receive },
+      animation: { init, operations, update, inMessageUpdate },
     }) => {
       const idleModel = init({ id: 'test' }).model
       const idleWait = operations.requestWaitForLeaveSettlement(idleModel)
 
       expect(idleWait).toEqual({ model: idleModel })
 
-      const leaveStart = receive(
+      const leaveStart = inMessageUpdate(
         init({ id: 'test', isShowing: true }).model,
         InMessage.RequestedHide(),
       )
@@ -497,9 +497,9 @@ describe('Animation', () => {
     })
 
     it('emits TransitionedOut once when the standard wait is explicitly requested twice', ({
-      animation: { update, init, operations, receive },
+      animation: { update, init, operations, inMessageUpdate },
     }) => {
-      const leaveStart = receive(
+      const leaveStart = inMessageUpdate(
         init({ id: 'test', isShowing: true }).model,
         InMessage.RequestedHide(),
       )
@@ -555,9 +555,9 @@ describe('Animation', () => {
     })
 
     it('resets a leaving Animation immediately without completing the transition', ({
-      animation: { update, init, operations, receive },
+      animation: { update, init, operations, inMessageUpdate },
     }) => {
-      const leaveStart = receive(
+      const leaveStart = inMessageUpdate(
         init({ id: 'test', isShowing: true }).model,
         InMessage.RequestedHide(),
       )

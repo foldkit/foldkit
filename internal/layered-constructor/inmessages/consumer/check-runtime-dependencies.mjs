@@ -5,7 +5,8 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const fixture = dirname(fileURLToPath(import.meta.url))
-const repository = resolve(fixture, '../../../..')
+const repository =
+  process.env.FOLDKIT_PROOF_REPOSITORY ?? resolve(fixture, '../../../..')
 const runtimes = [
   fixture,
   resolve(repository, 'packages/foldkit'),

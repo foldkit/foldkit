@@ -108,7 +108,7 @@ After the record is complete, diagnose any remaining result-channel or registrat
 
 An authored update supports both call directions. The Runtime calls `update(model, message, ...context)`. Application code can call `update(message)(model, ...context)` to turn one truthful Message into a Step. The curried form retains the same Command requirements, OutMessage type, and registered graph evidence.
 
-Use the curried form for internal Step composition. Declare parent requests and notifications separately through [InMessage and receive](/core/block#inmessages). The Definition generates Binding methods for those inputs. This Block receives a route notification through `informRouteChange`; its local reset button remains in update:
+Use the curried form for internal Step composition. Declare parent requests and notifications separately through [InMessage and inMessageUpdate](/core/block#inmessages). The Definition generates Binding methods for those inputs. This Block receives a route notification through `informRouteChange`; its local reset button remains in update:
 
 ::Snippet{name="updateCurriedStep" label="Separating parent notifications from local facts"}
 
@@ -172,8 +172,10 @@ Shared callbacks are silent with respect to OutMessages. An additional
 `cases` record may emit only when another applicable record cannot emit for
 the same Message. Later silent updates preserve an existing OutMessage.
 Command intents accumulate in update order; their effects and completions do
-not run in that order. Composition applies to `update`, not to `init` or the
-separate InMessage `receive` function.
+not run in that order. The same helpers are available on `Composition.makeInMessageUpdate`. Its
+selectors and callbacks narrow the InMessage union, while returned Commands
+still produce ordinary local Messages. Each invocation preserves its own
+original `before` Model. Init remains a separate entry point.
 
 ## Composing Results
 

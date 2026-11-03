@@ -32,7 +32,7 @@ import type * as Mount from '../../mount/index.js'
 import type { LayeredRootTypeId } from '../../runtime/rootBlock.js'
 import type { Subscription } from '../../subscription/subscription.js'
 import type * as Update from '../../update/index.js'
-import type { InputOperationName } from '../contracted/inMessage.js'
+import type { InputOperationName } from '../contracted/inMessageUpdate.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 type ReturnOf<Operation> = Operation extends (
@@ -467,7 +467,7 @@ type InputResult<Facts extends PublicFacts, Input> =
     : never
 
 /** @internal Retains exact selected input channels independently of local update dispatch. */
-export interface ExecutableReceive<
+export interface ExecutableInMessageUpdate<
   OwnerValue,
   Model,
   Message,
@@ -525,8 +525,8 @@ interface ExecutableMembers<
   >
   readonly OutMessage: OutMessageSchema
   readonly InMessage: InputSchema<Facts>
-  readonly receive: Facts extends Readonly<{ inMessage: unknown }>
-    ? ExecutableReceive<
+  readonly inMessageUpdate: Facts extends Readonly<{ inMessage: unknown }>
+    ? ExecutableInMessageUpdate<
         OwnerValue,
         ModelSchema['Type'],
         DispatchMessage<OwnerValue, LocalMessageSchema, Facts['isMessageFree']>,

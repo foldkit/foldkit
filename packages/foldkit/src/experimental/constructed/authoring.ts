@@ -187,7 +187,7 @@ export type ConstructorBody = Readonly<{
   bindings?: never
   init: Plan<unknown, 'Init', AuthoringSource>
   update: Plan<unknown, 'Update', AuthoringSource>
-  receive?: Plan<unknown, 'Receive', AuthoringSource>
+  inMessageUpdate?: Plan<unknown, 'InMessageUpdate', AuthoringSource>
   view?: Plan<unknown, 'View', AuthoringSource>
   operations?: Readonly<Record<string, AnyFunction>>
   subscriptions?: object

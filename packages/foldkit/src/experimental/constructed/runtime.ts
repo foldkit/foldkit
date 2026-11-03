@@ -24,10 +24,13 @@ import {
 import type { AnyBlock } from '../../block/definition.js'
 import { assemble } from '../../block/fromAssembly.js'
 import { LocalMountsTypeId } from '../../block/identity.js'
+import {
+  blockInMessageUpdateOf,
+  registerBlockInMessageUpdate,
+} from '../../block/inMessageUpdate.js'
 import { CurrentInstance } from '../../block/instanceContext.js'
 import { ExecutionEnvironmentTypeId } from '../../block/operationGraph.js'
 import { registerAuthoringChildContract } from '../../block/outMessageHandlers.js'
-import { blockReceiverOf, registerBlockReceiver } from '../../block/receiver.js'
 import {
   assertRuntimeAuthority,
   declareRuntimeCapability,
@@ -182,12 +185,16 @@ export const wrapExecutable = (
     }
   }
   const Message = Schema.make(implementation.Message.ast)
-  const receiver = blockReceiverOf(implementation)
-  const receive =
-    receiver === undefined
+  const inputUpdate = blockInMessageUpdateOf(implementation)
+  const inMessageUpdate =
+    inputUpdate === undefined
       ? undefined
       : (...args: ReadonlyArray<unknown>) => {
-          const output = Reflect.apply(receiver.receive, undefined, args)
+          const output = Reflect.apply(
+            inputUpdate.inMessageUpdate,
+            undefined,
+            args,
+          )
 
           if (Predicate.isFunction(output)) {
             return (...context: ReadonlyArray<unknown>) =>
@@ -210,8 +217,8 @@ export const wrapExecutable = (
     Model: descriptor.Model,
     Message,
     OutMessage: descriptor.OutMessage,
-    InMessage: receiver?.InMessage,
-    receive,
+    InMessage: inputUpdate?.InMessage,
+    inMessageUpdate: inMessageUpdate,
     init: (...args: ReadonlyArray<unknown>) =>
       wrapReturn(implementation.init(...args)),
     update: (...args: ReadonlyArray<unknown>) => {
@@ -425,20 +432,20 @@ const makeBuilderAdapter = (
 }
 
 /** @internal Compiles one declared input protocol against its acquired native graph. */
-export type CompileReceiver = (
+export type CompileInMessageUpdate = (
   actual: any,
   source: any,
   environment: OperationEnvironment,
 ) => Readonly<{
   InMessage: Schema.Top
-  receive: AnyFunction
+  inMessageUpdate: AnyFunction
   operations: Readonly<Record<string, AnyFunction>>
 }>
 
 const constructImplementation = (
   definition: any,
   body: any,
-  compileReceiver?: CompileReceiver,
+  compileInMessageUpdate?: CompileInMessageUpdate,
   graph?: object,
 ): any => {
   const source = planComposition<any>(body.init)
@@ -522,21 +529,26 @@ const constructImplementation = (
     children: _connections,
     init,
     update,
-    receive: receivePlan,
+    inMessageUpdate: inMessageUpdatePlan,
     view,
     ...implementation
   } = body
 
-  if (receivePlan !== undefined && compileReceiver === undefined) {
+  if (
+    inMessageUpdatePlan !== undefined &&
+    compileInMessageUpdate === undefined
+  ) {
     throw new Error(
-      '[foldkit] A receive plan requires a declared InMessage Schema.',
+      '[foldkit] An inMessageUpdate plan requires a declared InMessage Schema.',
     )
   }
 
-  const receiver = compileReceiver?.(actual, source, environment)
+  const inputUpdate = compileInMessageUpdate?.(actual, source, environment)
   const operations = { ...implementation.operations }
 
-  for (const [name, operation] of Object.entries(receiver?.operations ?? {})) {
+  for (const [name, operation] of Object.entries(
+    inputUpdate?.operations ?? {},
+  )) {
     if (Object.hasOwn(operations, name)) {
       throw new Error(
         `[foldkit] InMessage operation "${name}" conflicts with an explicit operation.`,
@@ -561,8 +573,12 @@ const constructImplementation = (
   registerExecutionBindings(block, environment)
   registerViewPlanGraph(block, source, actual)
 
-  if (receiver !== undefined) {
-    registerBlockReceiver(block, receiver.InMessage, receiver.receive)
+  if (inputUpdate !== undefined) {
+    registerBlockInMessageUpdate(
+      block,
+      inputUpdate.InMessage,
+      inputUpdate.inMessageUpdate,
+    )
   }
 
   return block
@@ -571,7 +587,7 @@ const constructImplementation = (
 /** @internal Completes plans using their original Definition and immutable relationship inventory. */
 export const constructAuthoredImplementation = (
   body: ConstructorBody,
-  compileReceiver?: CompileReceiver,
+  compileInMessageUpdate?: CompileInMessageUpdate,
   graph?: object,
 ): AnyBlock => {
   const source = planComposition(body.init)
@@ -586,7 +602,7 @@ export const constructAuthoredImplementation = (
   return constructImplementation(
     inventory.definition,
     body,
-    compileReceiver,
+    compileInMessageUpdate,
     graph,
   )
 }

@@ -8,8 +8,8 @@ import {
   StatusListboxBinding,
 } from './composition'
 import { IssueListDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -23,7 +23,7 @@ const block = IssueListDefinition.makeBlock(
       children: [statusListbox, sortListbox, groupListbox],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
     }
   }),

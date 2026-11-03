@@ -690,7 +690,7 @@ export const update = CalendarComposition.makeUpdate({
 })
 
 /** Applies the parent request through the existing cursor transition. */
-export const receive = CalendarComposition.makeReceive({
+export const inMessageUpdate = CalendarComposition.makeInMessageUpdate({
   RequestedDropToDays: dropToDaysTransition,
 })
 
@@ -1432,7 +1432,7 @@ export const block = CalendarDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

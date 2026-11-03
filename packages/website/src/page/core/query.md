@@ -56,7 +56,7 @@ The `data` and `error` values must be Schema Codecs that require no encoding or 
 
 #### Returned Definition
 
-The returned `postsQuery` is the public contract for a viewless Block. It exposes its Model, Message, and InMessage Schemas, selectors, and projected operation contracts. Provide `Query.layer` for graph construction. Its no-argument request methods apply the corresponding InMessage through receive synchronously. Fetch and cancellation completions remain local Messages handled by update. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Definition. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.requestLoadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
+The returned `postsQuery` is the public contract for a viewless Block. It exposes its Model, Message, and InMessage Schemas, selectors, and projected operation contracts. Provide `Query.layer` for graph construction. Its no-argument request methods apply the corresponding InMessage through `inMessageUpdate` synchronously. Fetch and cancellation completions remain local Messages handled by update. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Definition. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.requestLoadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
 
 ### Bind the Query to Its Parent
 

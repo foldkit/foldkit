@@ -268,7 +268,7 @@ export const update = DatePickerComposition.makeUpdate({
 })
 
 /** Applies parent requests through the shared date-picker transitions. */
-export const receive = DatePickerComposition.makeReceive({
+export const inMessageUpdate = DatePickerComposition.makeInMessageUpdate({
   RequestedOpen: openDatePicker,
   RequestedClose: closeDatePicker,
   RequestedClear: clearDatePicker,
@@ -491,7 +491,7 @@ const block = DatePickerDefinition.makeBlock(
       children: [popover, calendar],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
     }
   }),

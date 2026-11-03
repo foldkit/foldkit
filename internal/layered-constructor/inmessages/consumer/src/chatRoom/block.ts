@@ -2,10 +2,10 @@ import { Effect } from 'effect'
 
 import { MessageComposerBinding } from './composition'
 import { makeBlock } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { managedResources } from './managedResource'
-import { receive } from './receive'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
@@ -18,7 +18,7 @@ export const ChatRoomBlock = makeBlock(
       children: [messageComposer],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       subscriptions,
       managedResources,

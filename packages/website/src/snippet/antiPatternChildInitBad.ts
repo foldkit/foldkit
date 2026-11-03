@@ -15,7 +15,7 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
 
     const init = ApplicationComposition.makeInit((username, savedTheme) => {
       const settingsInit = settings.init()
-      const settingsRestore = settings.receive(
+      const settingsRestore = settings.inMessageUpdate(
         settingsInit.model,
         Settings.InMessage.RequestedRestore({ theme: savedTheme }),
       )

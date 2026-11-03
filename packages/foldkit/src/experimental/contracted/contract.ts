@@ -79,11 +79,11 @@ import type {
 import type { FamilyRecipe } from './family.js'
 import type {
   CompiledInputs,
+  InMessageUpdateContext,
   InputOperationName,
-  MakeReceivePlan,
-  ReceiveContext,
+  MakeInMessageUpdatePlan,
   ValidateInMessageSchema,
-} from './inMessage.js'
+} from './inMessageUpdate.js'
 import type { InputContract, InputOf } from './inputContract.js'
 
 declare const NominalIdTypeId: unique symbol
@@ -284,14 +284,14 @@ export type ContractOperations<
   Body extends ConstructorBody = never,
 > = DeclaredOperationSources<Config> &
   (Config extends Readonly<{ InMessage: infer In extends AnySchema }>
-    ? 'receive' extends keyof Body
-      ? CompiledInputs<
+    ? [InputUpdateOf<Body>] extends [never]
+      ? unknown
+      : CompiledInputs<
           In,
-          Extract<PlanOutput<Body['receive']>, AnyFunction>,
+          Extract<PlanOutput<InputUpdateOf<Body>>, AnyFunction>,
           SourceOf<Body>['Message']['Type'],
           SourceOf<Body>
         >
-      : unknown
     : unknown)
 
 type OperationFacts<Config, OwnerValue> = {
@@ -568,37 +568,46 @@ type ValidateHandlerSelection<
 
 type WithOperations<Body extends ConstructorBody, Config> = Omit<
   ExecutableImplementation<Body>,
-  'operations' | 'receive'
+  'operations' | 'inMessageUpdate'
 > &
   Readonly<{ operations: ContractOperations<Config, Body> }>
 
-type NativeBody<
-  Body extends ConstructorBody,
-  Config,
-> = ('receive' extends keyof Body
-  ? Omit<Body, 'receive'> & Pick<Body, 'children' | 'init' | 'update'>
-  : Body) &
+type NativeBody<Body extends ConstructorBody, Config> = ([
+  InputUpdateOf<Body>,
+] extends [never]
+  ? Body
+  : Omit<Body, 'inMessageUpdate'> &
+      Pick<Body, 'children' | 'init' | 'update'>) &
   Readonly<{ operations: ContractOperations<Config, Body> }>
 
-type ReceiveBodyValidation<Body extends ConstructorBody, Config> =
+type InputUpdateOf<Body> =
+  Body extends Readonly<{ inMessageUpdate: infer InputUpdate }>
+    ? InputUpdate
+    : never
+
+type InMessageUpdateBodyValidation<Body extends ConstructorBody, Config> =
   Config extends Readonly<{ InMessage: AnySchema }>
-    ? Body extends Readonly<{
-        receive: Plan<infer Receive, 'Receive', infer Source>
-      }>
-      ? Equal<Source, SourceOf<Body>> extends true
-        ? Receive extends AnyFunction
-          ? Equal<
-              Readonly<ReceiveContext<Receive>>,
-              Readonly<InMessageContext<Config>>
-            > extends true
-            ? readonly []
-            : readonly [incompatibleInMessageContext: never]
-          : readonly [invalidReceivePlan: never]
-        : readonly [receiveBelongsToAnotherComposition: never]
-      : readonly [missingReceivePlan: never]
-    : 'receive' extends keyof Body
-      ? readonly [undeclaredInMessageSchema: never]
-      : readonly []
+    ? InputUpdateOf<Body> extends Plan<
+        infer InputUpdate,
+        'InMessageUpdate',
+        infer Source
+      >
+      ? [InputUpdateOf<Body>] extends [never]
+        ? readonly [missingInMessageUpdatePlan: never]
+        : Equal<Source, SourceOf<Body>> extends true
+          ? InputUpdate extends AnyFunction
+            ? Equal<
+                Readonly<InMessageUpdateContext<InputUpdate>>,
+                Readonly<InMessageContext<Config>>
+              > extends true
+              ? readonly []
+              : readonly [incompatibleInMessageContext: never]
+            : readonly [invalidInMessageUpdatePlan: never]
+          : readonly [inMessageUpdateBelongsToAnotherComposition: never]
+      : readonly [missingInMessageUpdatePlan: never]
+    : [InputUpdateOf<Body>] extends [never]
+      ? readonly []
+      : readonly [undeclaredInMessageSchema: never]
 type NativeFacts<
   MessageSchema extends AnySchema,
   Body extends ConstructorBody,
@@ -869,7 +878,7 @@ export interface MakeFamilyBlock<
         'Equivalent'
       >,
       ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
-      ...ReceiveBodyValidation<NoInfer<Body>, Config>,
+      ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
       ...FamilyValidation<
         MessageSchema,
         OutMessageSchema,
@@ -924,7 +933,7 @@ export interface MakeBlock<
         NativeBody<NoInfer<Body>, Config>
       >,
       ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
-      ...ReceiveBodyValidation<NoInfer<Body>, Config>,
+      ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
       ...HostContractValidation<
         ActualFacts<MessageSchema, NoInfer<Body>, Config>,
         DeclaredFacts<
@@ -1096,7 +1105,7 @@ export type ContractComposition<
   }> &
   (Config extends Readonly<{ InMessage: infer In extends AnySchema }>
     ? Readonly<{
-        makeReceive: MakeReceivePlan<
+        makeInMessageUpdate: MakeInMessageUpdatePlan<
           Source['Model']['Type'],
           In['Type'],
           Source['Message']['Type'],

@@ -164,7 +164,7 @@ export const defineGenericInputRequest = <Name extends string, Value, Encoded>(
       model: modifyFields(model, { maybeValue: () => Option.some(value) }),
     }),
   })
-  const receive = Composition.makeReceive({
+  const inMessageUpdate = Composition.makeInMessageUpdate({
     RequestedFetch: model => ({ model, commands: [Fetch()] }),
   })
   const recipe = Definition.makeBlock(
@@ -172,7 +172,7 @@ export const defineGenericInputRequest = <Name extends string, Value, Encoded>(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       EffectsLayer: Layer.empty,
       hostHandlers: [Fetch],
     }),

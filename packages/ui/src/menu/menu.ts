@@ -853,7 +853,7 @@ const update = MenuComposition.makeUpdate({
   ReleasedPointerOnItems: applyMenuMessage,
 })
 
-const receive = MenuComposition.makeReceive({
+const inMessageUpdate = MenuComposition.makeInMessageUpdate({
   RequestedOpen: MenuDefinition.makeStep(model =>
     transitions(model).requestOpen(),
   ),
@@ -1387,7 +1387,7 @@ export const block = MenuDefinition.makeBlock(
       children: [animation],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

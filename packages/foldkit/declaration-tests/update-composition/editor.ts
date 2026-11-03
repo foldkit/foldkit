@@ -43,7 +43,7 @@ export const layer = EditorDefinition.makeBlock(
         outMessage: OutMessage.Edited(),
       }),
     }),
-    receive: EditorComposition.makeReceive({
+    inMessageUpdate: EditorComposition.makeInMessageUpdate({
       InformedOfTextChange: (model, { text }) => ({
         model: modifyFields(model, { text: () => text }),
       }),

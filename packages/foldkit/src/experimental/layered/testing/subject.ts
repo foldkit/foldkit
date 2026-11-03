@@ -98,16 +98,16 @@ export const subjectUpdate = (subject: TestSubject, block: object) => {
     Reflect.apply(update, undefined, [model, message, ...context])
 }
 
-/** @internal Keeps receive inputs and context separate from ordinary Message dispatch. */
-export const subjectReceive =
+/** @internal Keeps InMessage inputs and context separate from ordinary Message dispatch. */
+export const subjectInMessageUpdate =
   (subject: TestSubject, block: object) =>
   (model: unknown, input: unknown): unknown => {
     const schema = Reflect.get(block, 'InMessage')
-    const receive = Reflect.get(block, 'receive')
+    const inMessageUpdate = Reflect.get(block, 'inMessageUpdate')
 
-    if (!Schema.isSchema(schema) || !Predicate.isFunction(receive)) {
+    if (!Schema.isSchema(schema) || !Predicate.isFunction(inMessageUpdate)) {
       throw new Error(
-        '[foldkit] inMessage requires a Block with an InMessage Schema and receive function.',
+        '[foldkit] inMessage requires a Block with an InMessage Schema and inMessageUpdate function.',
       )
     }
 
@@ -125,7 +125,7 @@ export const subjectReceive =
       )
     }
 
-    return Reflect.apply(receive, undefined, [model, input, ...context])
+    return Reflect.apply(inMessageUpdate, undefined, [model, input, ...context])
   }
 
 /** @internal Resolves deferred init inside the acquired graph's lifetime. */

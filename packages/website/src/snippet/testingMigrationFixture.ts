@@ -59,7 +59,7 @@ export const PinsImplementation = PinsDefinition.makeBlock(
           model: modifyFields(model, { count: () => count }),
         }),
       }),
-      receive: PinsComposition.makeReceive({
+      inMessageUpdate: PinsComposition.makeInMessageUpdate({
         RequestedReadPins: model => ({ model, commands: [ReadPins()] }),
       }),
       view: PinsComposition.makeView((model, h) =>

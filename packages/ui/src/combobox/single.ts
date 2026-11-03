@@ -141,7 +141,9 @@ const makeAuthoring = <Item extends string, ItemEncoded>(
     bindings: [itemUpdate.AnimationBinding],
   })
   const update = ComboboxComposition.makeUpdate(itemUpdate.handlers)
-  const receive = ComboboxComposition.makeReceive(itemUpdate.receiveHandlers)
+  const inMessageUpdate = ComboboxComposition.makeInMessageUpdate(
+    itemUpdate.inMessageUpdateHandlers,
+  )
   type ViewBuilder = Block.ViewBuilderFor<typeof ComboboxComposition>
   type ViewMessage = MessageOf<ViewBuilder>
   const init = ComboboxComposition.makeInit((config: InitConfig) => ({
@@ -169,7 +171,7 @@ const makeAuthoring = <Item extends string, ItemEncoded>(
     AnimationBinding: itemUpdate.AnimationBinding,
     init,
     update,
-    receive,
+    inMessageUpdate,
     view,
   }
 }
@@ -188,7 +190,7 @@ const construct = <Item extends string, ItemEncoded>(
         children: [animation],
         init: authoring.init,
         update: authoring.update,
-        receive: authoring.receive,
+        inMessageUpdate: authoring.inMessageUpdate,
         view: authoring.view,
         EffectsLayer,
       }

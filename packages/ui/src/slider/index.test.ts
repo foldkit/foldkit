@@ -17,17 +17,17 @@ import {
 
 type SliderOperations = Pick<
   Effect.Success<typeof block.get>,
-  'init' | 'update' | 'receive' | 'operations'
+  'init' | 'update' | 'inMessageUpdate' | 'operations'
 >
 const makeFixture = ({
   init,
   update,
-  receive,
+  inMessageUpdate,
   operations,
 }: SliderOperations) => {
   const defaultInit = () => init({ id: 'test', min: 0, max: 10, step: 1 }).model
 
-  return { init, update, receive, operations, defaultInit }
+  return { init, update, inMessageUpdate, operations, defaultInit }
 }
 const it = makeMethods(
   baseIt.extend<{ slider: ReturnType<typeof makeFixture> }>({
@@ -669,9 +669,9 @@ describe('Slider', () => {
     })
 
     it('handles the informed range fact without emitting a value change', ({
-      slider: { receive, defaultInit },
+      slider: { inMessageUpdate, defaultInit },
     }) => {
-      const after = receive(
+      const after = inMessageUpdate(
         defaultInit(),
         InMessage.InformedOfRangeChange({ min: 0, max: 50 }),
       )

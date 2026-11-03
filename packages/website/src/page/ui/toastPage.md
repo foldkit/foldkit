@@ -110,7 +110,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Toast Bi
 
 ### Programmatic Helpers
 
-Toast operations are public parent Steps. Call the Binding’s `requestShow`, `requestDismiss`, and `requestDismissAll` methods from the parent. `requestDismissAll` is generated from the `RequestedDismissAll` InMessage and handled by receive. Show and single-entry dismiss retain their existing defaulting and scalar argument adapters.
+Toast operations are public parent Steps. Call the Binding’s `requestShow`, `requestDismiss`, and `requestDismissAll` methods from the parent. `requestDismissAll` is generated from the `RequestedDismissAll` InMessage and handled by `inMessageUpdate`. Show and single-entry dismiss retain their existing defaulting and scalar argument adapters.
 
 | Name                | Type                                | Default | Description                                                                                                                                                                                  |
 | ------------------- | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

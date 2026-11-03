@@ -342,7 +342,7 @@ const constructToast: ToastConstructor = (runtime, view) =>
         children: [animation],
         init: runtime.init,
         update: runtime.update,
-        receive: runtime.receive,
+        inMessageUpdate: runtime.inMessageUpdate,
         view,
         subscriptions: runtime.subscriptions,
         EffectsLayer: runtime.EffectsLayer,

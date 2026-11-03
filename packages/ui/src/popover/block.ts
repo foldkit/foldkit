@@ -449,7 +449,7 @@ const closePopoverWithFocus = PopoverDefinition.makeStep(model =>
 )
 
 /** Processes parent requests independently from local Message dispatch. */
-export const receive = PopoverComposition.makeReceive({
+export const inMessageUpdate = PopoverComposition.makeInMessageUpdate({
   RequestedOpen: PopoverDefinition.makeStep(openPopover),
   RequestedClose: closePopoverWithFocus,
 })
@@ -799,7 +799,7 @@ const block = PopoverDefinition.makeBlock(
       children: [animation],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

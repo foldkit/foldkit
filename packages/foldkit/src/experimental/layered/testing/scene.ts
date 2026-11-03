@@ -17,7 +17,7 @@ import type {
 import {
   initialStep,
   subjectBlock,
-  subjectReceive,
+  subjectInMessageUpdate,
   subjectUpdate,
 } from './subject.js'
 import {
@@ -139,7 +139,7 @@ export function scene(
           : {}),
       },
       initialStep(block, initial, CoreScene.__givenInit),
-      ...resolveInMessageSteps(steps, subjectReceive(subject, block)),
+      ...resolveInMessageSteps(steps, subjectInMessageUpdate(subject, block)),
     ])
   })
 }

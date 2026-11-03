@@ -833,34 +833,34 @@ void importedCommandsStep
   })
 })
 
-describe('receive handler ownership through real oxlint', () => {
-  const receiveCases = [
+describe('InMessage update handler ownership through real oxlint', () => {
+  const inMessageUpdateCases = [
     [
       'inline',
-      `ParentComposition.makeReceive({ RequestedChange: model => ({ model: modifyFields(model, { child: ${childTransform} }) }) })`,
+      `ParentComposition.makeInMessageUpdate({ RequestedChange: model => ({ model: modifyFields(model, { child: ${childTransform} }) }) })`,
     ],
     [
       'named-record',
       `const handleRequest = model => ({ model: modifyFields(model, { child: ${childTransform} }) })
-const receiveCases = { RequestedChange: handleRequest }
-ParentComposition.makeReceive(receiveCases)`,
+const inMessageUpdateCases = { RequestedChange: handleRequest }
+ParentComposition.makeInMessageUpdate(inMessageUpdateCases)`,
     ],
     [
       'contextual',
       `const makeCases = context => ({ RequestedChange: model => ({ model: modifyFields(model, { child: ${childTransform} }) }) })
-ParentComposition.makeReceive.withContext(makeCases)`,
+ParentComposition.makeInMessageUpdate.withContext(makeCases)`,
     ],
     [
       'fields-helper',
-      `ParentComposition.makeReceive({ RequestedChange: ParentDefinition.makeFieldsStep.fromMessage(input => ({ child: ${childTransform} })) })`,
+      `ParentComposition.makeInMessageUpdate({ RequestedChange: ParentDefinition.makeFieldsStep.fromMessage(input => ({ child: ${childTransform} })) })`,
     ],
   ] satisfies ReadonlyArray<readonly [string, string]>
 
-  for (const [name, source] of receiveCases) {
-    it(`rejects direct child Model changes in ${name} receive handlers`, () => {
+  for (const [name, source] of inMessageUpdateCases) {
+    it(`rejects direct child Model changes in ${name} inMessageUpdate handlers`, () => {
       expect(
         diagnosticsFor(
-          `receive-state-${name}`,
+          `inMessageUpdate-state-${name}`,
           'no-direct-block-state-update',
           parentSource + source,
         ),
@@ -873,14 +873,14 @@ ParentComposition.makeReceive.withContext(makeCases)`,
       parentSource +
       `
 const renameParent = ParentDefinition.makeFieldsStep.fromMessage(input => ({ label: () => input.label }))
-ParentComposition.makeReceive({ RequestedChange: ChildBinding.requestChange() })
-ParentComposition.makeReceive.withContext(context => ({ RequestedChange: renameParent }))
-ParentComposition.makeReceive({ RequestedChange: (model, input) => {
+ParentComposition.makeInMessageUpdate({ RequestedChange: ChildBinding.requestChange() })
+ParentComposition.makeInMessageUpdate.withContext(context => ({ RequestedChange: renameParent }))
+ParentComposition.makeInMessageUpdate({ RequestedChange: (model, input) => {
   const changedInput = modifyFields(input, { child: ${childTransform} })
   return { model: modifyFields(model, { label: () => changedInput.label }) }
 } })
-const unrelated = { makeReceive: handlers => handlers }
-unrelated.makeReceive({ RequestedChange: model => ({ model: modifyFields(model, { child: ${childTransform} }) }) })
+const unrelated = { makeInMessageUpdate: handlers => handlers }
+unrelated.makeInMessageUpdate({ RequestedChange: model => ({ model: modifyFields(model, { child: ${childTransform} }) }) })
 `
     expect(
       diagnosticsFor(
@@ -891,7 +891,10 @@ unrelated.makeReceive({ RequestedChange: model => ({ model: modifyFields(model, 
     ).toEqual([])
   })
 
-  for (const method of ['makeReceive', 'makeReceive.withContext']) {
+  for (const method of [
+    'makeInMessageUpdate',
+    'makeInMessageUpdate.withContext',
+  ]) {
     it(`retains parent Message ownership in ${method}`, () => {
       const handlers = `{ RequestedChange: model => {
   Child.Message.ClickedSave()
@@ -902,7 +905,7 @@ unrelated.makeReceive({ RequestedChange: model => ({ model: modifyFields(model, 
         : handlers
       expect(
         diagnosticsFor(
-          `receive-message-parent-${method}`,
+          `inMessageUpdate-message-parent-${method}`,
           'no-child-message-construction-in-root',
           parentSource + `ParentComposition.${method}(${argument})`,
         ),
@@ -927,7 +930,7 @@ ChildComposition.${method}(${argument})
 `
       expect(
         diagnosticsFor(
-          `receive-message-child-${method}`,
+          `inMessageUpdate-message-child-${method}`,
           'no-child-message-construction-in-root',
           source,
         ),
@@ -945,14 +948,14 @@ ChildComposition.${method}(${argument})
 import { Effect } from 'effect'
 const Save = ParentDefinition.makeCommand('Save', {})
 export const construct = Effect.gen(function* () {
-  return { receive: ParentComposition.${method}(${argument}) }
+  return { inMessageUpdate: ParentComposition.${method}(${argument}) }
 })
 
 
 `
       expect(
         diagnosticsFor(
-          `receive-purity-${method}`,
+          `inMessageUpdate-purity-${method}`,
           'no-impure-call-at-decision-time',
           source,
         ),
@@ -960,7 +963,10 @@ export const construct = Effect.gen(function* () {
     })
   }
 
-  for (const method of ['makeReceive', 'makeReceive.withContext']) {
+  for (const method of [
+    'makeInMessageUpdate',
+    'makeInMessageUpdate.withContext',
+  ]) {
     it(`keeps extracted ${method} callbacks pure while actual Command handler execution stays deferred`, () => {
       const argument = method.endsWith('withContext') ? 'makeCases' : 'cases'
       const source =
@@ -974,12 +980,12 @@ export const construct = Effect.gen(function* () {
   const handleRequest = model => ({ model, commands: [Save({ timestamp: Date.now() })] })
   const cases = { RequestedChange: handleRequest }
   const makeCases = context => cases
-  return { receive: ParentComposition.${method}(${argument}) }
+  return { inMessageUpdate: ParentComposition.${method}(${argument}) }
 })
 `
       expect(
         diagnosticsFor(
-          `receive-extracted-purity-${method}`,
+          `inMessageUpdate-extracted-purity-${method}`,
           'no-impure-call-at-decision-time',
           source,
         ),
@@ -994,13 +1000,13 @@ export const construct = Effect.gen(function* () {
 import { Effect } from 'effect'
 export const construct = Effect.gen(function* () {
   const constructedAt = Date.now()
-  const Foreign = { makeReceive: cases => cases }
-  Foreign.makeReceive({ RequestedChange: model => ({ model, constructedAt: Date.now() }) })
+  const Foreign = { makeInMessageUpdate: cases => cases }
+  Foreign.makeInMessageUpdate({ RequestedChange: model => ({ model, constructedAt: Date.now() }) })
   const Save = ParentDefinition.makeCommand('Save', {
     handler: function* () { return () => Effect.sync(() => Date.now()) },
   })
   return {
-    receive: ParentComposition.makeReceive({ RequestedChange: model => ({
+    inMessageUpdate: ParentComposition.makeInMessageUpdate({ RequestedChange: model => ({
       model,
       commands: [Save({ timestamp: Effect.sync(() => Date.now()) })],
     }) }),
@@ -1020,14 +1026,14 @@ export const construct = Effect.gen(function* () {
     const source =
       parentSource +
       `
-const Foreign = { makeReceive: Object.assign(cases => cases, { withContext: createCases => createCases }) }
+const Foreign = { makeInMessageUpdate: Object.assign(cases => cases, { withContext: createCases => createCases }) }
 const ChildDefinition = Foreign
 const handleRequest = model => {
   Child.Message.ClickedSave()
   Child.InMessage.RequestedSave()
   return { model }
 }
-ChildDefinition.makeReceive.withContext(() => ({ RequestedChange: handleRequest }))
+ChildDefinition.makeInMessageUpdate.withContext(() => ({ RequestedChange: handleRequest }))
 `
     expect(
       diagnosticsFor(
@@ -1161,7 +1167,7 @@ void resolve
     ).toHaveLength(2)
   })
 
-  for (const method of ['makeUpdate', 'makeReceive']) {
+  for (const method of ['makeUpdate', 'makeInMessageUpdate']) {
     it(`rejects resolver arguments inside parent ${method} handlers`, () => {
       const source =
         parentSource +
@@ -1180,5 +1186,284 @@ ParentComposition.${method}({ RequestedChange: model => {
         ),
       ).toHaveLength(1)
     })
+  }
+})
+
+describe('composed update handler ownership through real oxlint', () => {
+  const forms = [
+    'record',
+    'withContext',
+    'cases',
+    'contextCases',
+    'each',
+    'on',
+    'except',
+  ]
+  const author = (builder: string, form: string, handler: string): string => {
+    if (form === 'record') {
+      return `${builder}({ RequestedChange: ${handler} })`
+    }
+    if (form === 'withContext') {
+      return `${builder}.withContext(context => ({ RequestedChange: ${handler} }))`
+    }
+    if (form === 'cases') {
+      return `${builder}.cases({ RequestedChange: ${handler} })`
+    }
+    if (form === 'contextCases') {
+      return `${builder}.cases.withContext(context => ({ RequestedChange: ${handler} }))`
+    }
+    if (form === 'each') {
+      return `${builder}.each(${handler})`
+    }
+    if (form === 'on') {
+      return `${builder}.on(['RequestedChange'])(${handler})`
+    }
+    return `${builder}.except([])(${handler})`
+  }
+  const alias = (builder: string, form: string): string => {
+    if (form === 'record') {
+      return `const focused = ${builder}`
+    }
+    if (form === 'withContext') {
+      return `const { withContext: focused } = ${builder}`
+    }
+    if (form === 'cases') {
+      return `const { cases: focused } = ${builder}`
+    }
+    if (form === 'contextCases') {
+      return `const { withContext: focused } = ${builder}.cases`
+    }
+    if (form === 'each') {
+      return `const { each: focused } = ${builder}`
+    }
+    if (form === 'on') {
+      return `const { on: select } = ${builder}; const focused = select(['RequestedChange'])`
+    }
+    return `const { except: select } = ${builder}; const focused = select([])`
+  }
+  const applyAlias = (form: string, handler: string): string => {
+    if (form === 'record' || form === 'cases') {
+      return `focused({ RequestedChange: ${handler} })`
+    }
+    if (form === 'withContext' || form === 'contextCases') {
+      return `focused(context => ({ RequestedChange: ${handler} }))`
+    }
+    return `focused(${handler})`
+  }
+
+  for (const method of ['makeUpdate', 'makeInMessageUpdate']) {
+    for (const form of forms) {
+      it(`checks child Model ownership in inline and extracted ${method}.${form}`, () => {
+        const handler = `model => ({ model: modifyFields(model, { child: ${childTransform} }) })`
+        const source =
+          parentSource +
+          `
+const { ${method}: authorUpdate } = ParentComposition
+${alias('authorUpdate', form)}
+const changeChild = ${handler}
+${author(`ParentComposition.${method}`, form, handler)}
+${applyAlias(form, 'changeChild')}
+`
+        expect(
+          diagnosticsFor(
+            `composed-fields-${method}-${form}`,
+            'no-direct-block-state-update',
+            source,
+          ),
+        ).toHaveLength(2)
+      })
+
+      it(`keeps inline and extracted ${method}.${form} callbacks pure in constructors`, () => {
+        const handler = `model => ({ model, constructedAt: Date.now() })`
+        const source =
+          parentSource +
+          `
+import { Effect } from 'effect'
+export const construct = Effect.gen(function* () {
+  const { ${method}: authorUpdate } = ParentComposition
+  ${alias('authorUpdate', form)}
+  const changeParent = ${handler}
+  return [${author(`ParentComposition.${method}`, form, handler)}, ${applyAlias(form, 'changeParent')}]
+})
+`
+        expect(
+          diagnosticsFor(
+            `composed-pure-${method}-${form}`,
+            'no-impure-call-at-decision-time',
+            source,
+          ),
+        ).toHaveLength(2)
+      })
+
+      it(`allows local Messages in inline and extracted owned ${method}.${form}`, () => {
+        const handler = `model => { Child.Message.ClickedSave(); return { model } }`
+        const source =
+          parentSource +
+          `
+const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
+const ChildComposition = ChildDefinition.makeComposition()
+const { ${method}: authorUpdate } = ChildComposition
+${alias('authorUpdate', form)}
+const changeChild = ${handler}
+${author(`ChildComposition.${method}`, form, handler)}
+${applyAlias(form, 'changeChild')}
+`
+        expect(
+          diagnosticsFor(
+            `composed-local-message-${method}-${form}`,
+            'no-child-message-construction-in-root',
+            source,
+          ),
+        ).toEqual([])
+      })
+
+      it(`rejects foreign Messages in inline and extracted parent ${method}.${form}`, () => {
+        const handler = `model => { Child.Message.ClickedSave(); return { model } }`
+        const source =
+          parentSource +
+          `
+const { ${method}: authorUpdate } = ParentComposition
+${alias('authorUpdate', form)}
+const changeParent = ${handler}
+${author(`ParentComposition.${method}`, form, handler)}
+${applyAlias(form, 'changeParent')}
+`
+        expect(
+          diagnosticsFor(
+            `composed-foreign-message-${method}-${form}`,
+            'no-child-message-construction-in-root',
+            source,
+          ),
+        ).toHaveLength(2)
+      })
+    }
+
+    it(`retains owner-bound focused Step helper aliases in ${method} pieces`, () => {
+      const source =
+        parentSource +
+        `
+const { makeFieldsStep: fields } = ParentDefinition
+const changeChild = fields(() => ({ child: ${childTransform} }))
+const { ${method}: authorUpdate } = ParentComposition
+const applyCases = authorUpdate.cases
+applyCases({ RequestedChange: changeChild })
+`
+      expect(
+        diagnosticsFor(
+          `composed-step-alias-${method}`,
+          'no-direct-block-state-update',
+          source,
+        ),
+      ).toHaveLength(1)
+    })
+
+    it(`retains imported Definition ownership through focused ${method} aliases`, () => {
+      const name = `composed-imported-${method}`
+      const definition = `
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import * as Child from './child'
+export const Model = Schema.Struct({ child: Child.Model })
+export const Message = defineMessageUnion({ RequestedChange: {} })
+export const ParentDefinition = Block.makeDefinition('Parent', { Model, Message })
+export const { makeFieldsStep } = ParentDefinition
+`
+      const source = `
+import { modifyFields } from 'foldkit/struct'
+import * as Child from './child'
+import { ParentDefinition, makeFieldsStep as fields } from './${name}-definition'
+const ChildBinding = ParentDefinition.makeBinding(Child.ChildBlock, { field: 'child' })
+const ParentComposition = ParentDefinition.makeComposition({ bindings: [ChildBinding] })
+const changeChild = fields.fromMessage(input => ({ child: ${childTransform} }))
+const { ${method}: authorUpdate } = ParentComposition
+const { cases: selected } = authorUpdate
+selected.withContext(context => ({ RequestedChange: changeChild }))
+`
+      expect(
+        diagnosticsForSplitFiles(
+          name,
+          'no-direct-block-state-update',
+          source,
+          definition,
+        ),
+      ).toHaveLength(1)
+    })
+
+    it(`does not authenticate an unrelated package's Composition for ${method}`, () => {
+      const source = `
+import { Effect } from 'effect'
+import { ForeignDefinition } from 'foreign-block-library'
+import * as Child from './child'
+import { modifyFields } from 'foldkit/struct'
+const ForeignComposition = ForeignDefinition.makeComposition()
+export const construct = Effect.gen(function* () {
+  return ForeignComposition.${method}.each(model => ({ model: modifyFields(model, { child: ${childTransform} }), timestamp: Date.now() }))
+})
+`
+      expect(
+        diagnosticsFor(
+          `composed-package-fields-${method}`,
+          'no-direct-block-state-update',
+          source,
+        ),
+      ).toEqual([])
+      expect(
+        diagnosticsFor(
+          `composed-package-pure-${method}`,
+          'no-impure-call-at-decision-time',
+          source,
+        ),
+      ).toEqual([])
+    })
+
+    for (const form of ['cases', 'contextCases', 'each', 'on', 'except']) {
+      it(`ignores spoofed and shadowed ${method}.${form} for child state and purity`, () => {
+        const handler = `model => ({ model: modifyFields(model, { child: ${childTransform} }), constructedAt: Date.now() })`
+        const source =
+          parentSource +
+          `
+import { Effect } from 'effect'
+export const construct = Effect.gen(function* () {
+  const Foreign = { ${method}: Object.assign(value => value, { cases: Object.assign(value => value, { withContext: value => value }), each: value => value, on: tags => value => value, except: tags => value => value }) }
+  const spoofed = ${author(`Foreign.${method}`, form, handler)}
+  const shadowed = ParentComposition => ${author(`ParentComposition.${method}`, form, handler)}
+  return { spoofed, shadowed }
+})
+`
+        expect(
+          diagnosticsFor(
+            `composed-spoof-fields-${method}-${form}`,
+            'no-direct-block-state-update',
+            source,
+          ),
+        ).toEqual([])
+        expect(
+          diagnosticsFor(
+            `composed-spoof-pure-${method}-${form}`,
+            'no-impure-call-at-decision-time',
+            source,
+          ),
+        ).toEqual([])
+      })
+
+      it(`does not grant local Message ownership to spoofed or shadowed ${method}.${form}`, () => {
+        const handler = `model => { Child.Message.ClickedSave(); return { model } }`
+        const source =
+          parentSource +
+          `
+const ChildDefinition = { ${method}: Object.assign(value => value, { cases: Object.assign(value => value, { withContext: value => value }), each: value => value, on: tags => value => value, except: tags => value => value }) }
+${author(`ChildDefinition.${method}`, form, handler)}
+const run = ChildComposition => ${author(`ChildComposition.${method}`, form, handler)}
+`
+        expect(
+          diagnosticsFor(
+            `composed-spoof-message-${method}-${form}`,
+            'no-child-message-construction-in-root',
+            source,
+          ),
+        ).toHaveLength(2)
+      })
+    }
   }
 })

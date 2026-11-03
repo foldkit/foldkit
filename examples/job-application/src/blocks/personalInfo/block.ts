@@ -6,8 +6,8 @@ import { layer as ListboxLayer } from '@foldkit/ui/listbox'
 import { EffectsLayer } from './command'
 import { AvailableDateBinding, PronounsBinding } from './composition'
 import { PersonalInfoDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -21,7 +21,7 @@ export const layer = PersonalInfoDefinition.makeBlock(
       children: [pronounsListbox, availableDatePicker],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

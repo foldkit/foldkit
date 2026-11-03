@@ -108,11 +108,11 @@ test.each([
           composerInit.model,
           ComposerMessage.UpdatedText({ value: '  Hello  ' }),
         )
-        const submitted = composer.receive(
+        const submitted = composer.inMessageUpdate(
           updatedText.model,
           ComposerInMessage.RequestedSubmit(),
         )
-        const cleared = composer.receive(
+        const cleared = composer.inMessageUpdate(
           submitted.model,
           ComposerInMessage.RequestedClear(),
         )

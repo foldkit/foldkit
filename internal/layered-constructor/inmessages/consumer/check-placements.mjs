@@ -2,8 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
-import ts from '@typescript/typescript6'
+import ts from 'typescript'
 
 const root = dirname(fileURLToPath(import.meta.url))
 const read = file => readFileSync(resolve(root, file), 'utf8')
@@ -53,7 +52,7 @@ const generated = read('src/placements.ts')
 for (const [file, name] of [
   ['src/chatRoom/composition.ts', 'makeBinding'],
   ['src/chatRoom/update.ts', 'makeUpdate'],
-  ['src/chatRoom/receive.ts', 'makeReceive'],
+  ['src/chatRoom/inMessageUpdate.ts', 'makeInMessageUpdate'],
 ]) {
   const original = expressions(read(file), name)
   const placements = expressions(generated, name)
@@ -87,15 +86,15 @@ for (const [file, name] of [
 }
 
 console.log(
-  'Binding/update/receive AST equality and three deliberate mutation controls passed.',
+  'Binding/update/inMessageUpdate AST equality and three deliberate mutation controls passed.',
 )
 
 const composerPlacements = read('src/composerPlacements.ts')
 const originalReceive = expressions(
-  read('src/messageComposer/receive.ts'),
-  'makeReceive',
+  read('src/messageComposer/inMessageUpdate.ts'),
+  'makeInMessageUpdate',
 )
-const placedReceives = expressions(composerPlacements, 'makeReceive')
+const placedReceives = expressions(composerPlacements, 'makeInMessageUpdate')
 assert.equal(originalReceive.length, 1)
 assert.equal(placedReceives.length, 2)
 
@@ -103,7 +102,7 @@ for (const expression of placedReceives) {
   assert.deepEqual(
     expression,
     originalReceive.at(0),
-    'Composer receive AST stays unchanged',
+    'Composer inMessageUpdate AST stays unchanged',
   )
 }
 
@@ -112,7 +111,10 @@ const changedComposer = composerPlacements.replace(
   'RequestedSubmit: makeNoopStep()',
 )
 assert.notEqual(changedComposer, composerPlacements)
-assert.notDeepEqual(expressions(changedComposer, 'makeReceive'), placedReceives)
+assert.notDeepEqual(
+  expressions(changedComposer, 'makeInMessageUpdate'),
+  placedReceives,
+)
 console.log(
-  'Composer receive AST equality and its deliberate mutation control passed.',
+  'Composer inMessageUpdate AST equality and its deliberate mutation control passed.',
 )

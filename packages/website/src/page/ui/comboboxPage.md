@@ -20,7 +20,7 @@ The completed Block exposes `requestOpen`, `requestClose`, and `requestSelectIte
 Check out how Combobox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/combobox.ts).
 :::
 
-The Binding’s `requestOpen()` method is generated from `RequestedOpen` in the Combobox InMessage contract. Receive applies the same opening transition as local input interaction. Closing and selection retain their existing defaulted and positional argument adapters in both Single and Multi.
+The Binding’s `requestOpen()` method is generated from `RequestedOpen` in the Combobox InMessage contract. The InMessage handler applies the same opening transition as local input interaction. Closing and selection retain their existing defaulted and positional argument adapters in both Single and Multi.
 
 ## Examples
 

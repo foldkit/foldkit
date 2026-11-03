@@ -21,7 +21,7 @@ export const update = PeopleComposition.makeUpdate({
   }),
 })
 
-export const receive = PeopleComposition.makeReceive({
+export const inMessageUpdate = PeopleComposition.makeInMessageUpdate({
   InformedOfRouteChange: (model, { route }) => {
     const searchText = routeSearchText(route.searchText)
 
@@ -44,7 +44,7 @@ export const layer = PeopleDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       EffectsLayer: FetchPeople.layer,
     }
   }),

@@ -19,13 +19,13 @@ const executions = new WeakMap<object, (model: unknown) => unknown>()
 /** @internal Binds reusable input causes to one acquired test without mutating them. */
 export const resolveInMessageSteps = (
   steps: ReadonlyArray<unknown>,
-  receive: InputExecutor,
+  inMessageUpdate: InputExecutor,
 ): ReadonlyArray<unknown> => {
   const resolve = (step: unknown): unknown => {
     if (Predicate.isTagged(step, 'BlockInMessageStep')) {
       const input: unknown = Reflect.get(step, 'input')
       const resolved = inMessage(input)
-      executions.set(resolved, model => receive(model, input))
+      executions.set(resolved, model => inMessageUpdate(model, input))
       return resolved
     }
 

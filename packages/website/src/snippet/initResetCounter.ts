@@ -34,7 +34,7 @@ const update = CounterComposition.makeUpdate({
     model: modifyFields(model, { count: Number.increment }),
   }),
 })
-const receive = CounterComposition.makeReceive({
+const inMessageUpdate = CounterComposition.makeInMessageUpdate({
   RequestedReset: model => ({
     model: modifyFields(model, { count: () => 0 }),
   }),
@@ -51,7 +51,7 @@ export const layer = CounterDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
     }
   }),

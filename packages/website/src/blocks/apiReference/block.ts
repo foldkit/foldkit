@@ -2,8 +2,8 @@ import { Effect } from 'effect'
 
 import { LoadApiData } from './command'
 import { ApiReferenceDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -16,7 +16,7 @@ const block = ApiReferenceDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

@@ -2075,7 +2075,7 @@ export const init = VirtualListComposition.makeInit(config => ({
 }))
 
 /** Applies a parent end request through the logical scroll transition. */
-export const receive = VirtualListComposition.makeReceive({
+export const inMessageUpdate = VirtualListComposition.makeInMessageUpdate({
   RequestedScrollToEnd: model =>
     requestScroll(model, ScrollTarget.End(), Option.none()),
 })
@@ -2615,7 +2615,7 @@ export const block = VirtualListDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view: viewImpl,
       EffectsLayer,
     }

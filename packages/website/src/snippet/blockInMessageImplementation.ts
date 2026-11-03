@@ -6,7 +6,7 @@ import {
   MessageComposerDefinition,
   Model,
 } from './blockInMessageDefinition'
-import { receive, update } from './blockInMessageHandlers'
+import { inMessageUpdate, update } from './blockInMessageHandlers'
 
 const init = MessageComposerComposition.makeInit(id => ({
   model: Model.make({ id, text: '' }),
@@ -33,7 +33,7 @@ export const MessageComposerImplementation =
         children: [],
         init,
         update,
-        receive,
+        inMessageUpdate,
         view,
       }
     }),

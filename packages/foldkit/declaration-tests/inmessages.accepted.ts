@@ -80,7 +80,7 @@ export const {
   makeNoopStep,
   makeOutMessageStep,
 } = CounterDefinition
-export const { makeReceive } = CounterComposition
+export const { makeInMessageUpdate } = CounterComposition
 export const Save = CounterDefinition.makeCommand('Save', {
   args: { count: Schema.Number },
   messages: [Message.CompletedSave],
@@ -104,7 +104,7 @@ export const update = CounterComposition.makeUpdate({
   })),
   CompletedSave: CounterDefinition.makeNoopStep(),
 })
-export const receive = makeReceive({
+export const inMessageUpdate = makeInMessageUpdate({
   RequestedClear: makeFieldsStep(() => ({ count: () => 0 })),
   RequestedSetCount: makeFieldsStep.fromMessage(input => {
     assertExact<Equal<typeof input, typeof InMessage.RequestedSetCount.Type>>()
@@ -126,7 +126,7 @@ export const CounterBlock = CounterDefinition.makeBlock(
     children: [],
     init,
     update,
-    receive,
+    inMessageUpdate,
     EffectsLayer: Save.layer,
   }),
 )
@@ -142,7 +142,7 @@ export const FallibleCounterBlock = CounterDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       EffectsLayer: Save.layer,
     }
   }),
@@ -152,7 +152,7 @@ export const InlineCounterBlock = CounterDefinition.makeBlock(
     children: [],
     init,
     update,
-    receive: CounterComposition.makeReceive({
+    inMessageUpdate: CounterComposition.makeInMessageUpdate({
       RequestedClear: CounterDefinition.makeFieldsStep(() => ({
         count: () => 0,
       })),
@@ -213,7 +213,7 @@ export const parentInit = ParentComposition.makeInit(() => ({ model: {} }))
 export const parentUpdate = ParentComposition.makeUpdate({
   ClickedClear: CounterBinding.requestClear(),
 })
-export const parentReceive = ParentComposition.makeReceive({
+export const parentInMessageUpdate = ParentComposition.makeInMessageUpdate({
   RequestedClearChild: CounterBinding.requestClear(),
   RequestedReportChild: ParentDefinition.makeStep.fromMessage(({ label }) =>
     CounterBinding.requestReport({ label }),
@@ -227,7 +227,7 @@ export const ParentBlock = ParentDefinition.makeBlock(
       children: [counter],
       init: parentInit,
       update: parentUpdate,
-      receive: parentReceive,
+      inMessageUpdate: parentInMessageUpdate,
     }
   }),
 ).provide(CounterBlock.layer)
@@ -235,14 +235,20 @@ export const ParentBlock = ParentDefinition.makeBlock(
 export const receiveResults = Effect.gen(function* () {
   const counter = yield* CounterContract.get
   const counterInit = counter.init()
-  const clear = counter.receive(counterInit.model, InMessage.RequestedClear())
-  const set = counter.receive(InMessage.RequestedSetCount({ count: 3 }))(
-    clear.model,
+  const clear = counter.inMessageUpdate(
+    counterInit.model,
+    InMessage.RequestedClear(),
   )
-  const save = counter.receive(set.model, InMessage.RequestedSave({ count: 3 }))
-  const report = counter.receive(InMessage.RequestedReport({ label: 'Count' }))(
-    save.model,
+  const set = counter.inMessageUpdate(
+    InMessage.RequestedSetCount({ count: 3 }),
+  )(clear.model)
+  const save = counter.inMessageUpdate(
+    set.model,
+    InMessage.RequestedSave({ count: 3 }),
   )
+  const report = counter.inMessageUpdate(
+    InMessage.RequestedReport({ label: 'Count' }),
+  )(save.model)
 
   return { clear, set, save, report }
 }).pipe(Effect.provide(CounterBlock.layer))
@@ -271,7 +277,7 @@ export const InputOnlyBlock = InputOnlyDefinition.makeBlock(
       model: Model.make({ count: 0, label: '' }),
     })),
     update: InputOnlyComposition.makeUpdate({}),
-    receive: InputOnlyComposition.makeReceive({
+    inMessageUpdate: InputOnlyComposition.makeInMessageUpdate({
       RequestedClear: InputOnlyDefinition.makeFieldsStep(() => ({
         count: () => 0,
       })),
@@ -286,11 +292,11 @@ export const InputOnlyBlock = InputOnlyDefinition.makeBlock(
 export const parentReceiveResults = Effect.gen(function* () {
   const parent = yield* ParentContract.get
   const parentInit = parent.init()
-  const clear = parent.receive(
+  const clear = parent.inMessageUpdate(
     parentInit.model,
     ParentInMessage.RequestedClearChild(),
   )
-  const report = parent.receive(
+  const report = parent.inMessageUpdate(
     clear.model,
     ParentInMessage.RequestedReportChild({ label: 'Child' }),
   )
@@ -344,7 +350,7 @@ export const stringInputFamilyRecipe = StringInputFamily.makeBlock(
       model: { value },
     })),
     update: StringInputFamilyComposition.makeUpdate({}),
-    receive: StringInputFamilyComposition.makeReceive({
+    inMessageUpdate: StringInputFamilyComposition.makeInMessageUpdate({
       RequestedSet: (model, { value }) => ({
         model: { value },
         outMessage: StringInputFamily.OutMessage.Reported({

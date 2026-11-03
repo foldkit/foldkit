@@ -15,7 +15,10 @@ const binding = after(
   'export const MessageComposerBinding = ',
 ).split('\n\nexport const ChatRoomComposition')[0]
 const update = after(read('update.ts'), 'export const update = ')
-const receive = after(read('receive.ts'), 'export const receive = ')
+const inMessageUpdate = after(
+  read('inMessageUpdate.ts'),
+  'export const inMessageUpdate = ',
+)
 const init = after(read('init.ts'), 'export const init = ')
 const steps = after(read('steps.ts'), 'export const recordSentMessage = ')
 const viewSource = read('view.ts')
@@ -45,9 +48,9 @@ const local = `export const LocalChatRoomBlock = makeBlock(Effect.gen(function* 
   const recordSentMessage = ${steps}
   const init = ${init}
   const update = ${update}
-  const receive = ${receive}
+  const inMessageUpdate = ${inMessageUpdate}
   const view = ${view}
-  return { children: [messageComposer], init, update, receive, view, subscriptions, managedResources, EffectsLayer }
+  return { children: [messageComposer], init, update, inMessageUpdate, view, subscriptions, managedResources, EffectsLayer }
 }))
 `
 
@@ -59,7 +62,7 @@ const inline = `export const InlineChatRoomBlock = makeBlock(Effect.gen(function
     children: [yield* MessageComposerBinding],
     init: ${init},
     update: ${update},
-    receive: ${receive},
+    inMessageUpdate: ${inMessageUpdate},
     view: ${view},
     subscriptions,
     managedResources,
@@ -79,18 +82,18 @@ writeFileSync(
       sourceFiles: [
         'src/chatRoom/composition.ts',
         'src/chatRoom/update.ts',
-        'src/chatRoom/receive.ts',
+        'src/chatRoom/inMessageUpdate.ts',
         'src/chatRoom/init.ts',
         'src/chatRoom/view.ts',
         'src/chatRoom/steps.ts',
-        'src/messageComposer/receive.ts',
+        'src/messageComposer/inMessageUpdate.ts',
         'src/messageComposer/steps.ts',
       ],
       generated: 'src/placements.ts',
       completeBindingExpressionCopiedExactly: true,
       completeUpdateExpressionCopiedExactly: true,
       completeReceiveExpressionCopiedExactly: true,
-      composerReceivePlacements: 'src/composerPlacements.ts',
+      composerInMessageUpdatePlacements: 'src/composerPlacements.ts',
       localInitAndViewAlsoCopied: true,
       inlineBindingConnection:
         'Reuses Array.headNonEmpty(Composition.bindings), never creates a second relationship.',
@@ -105,9 +108,9 @@ console.log(
   'Generated local/inline proofs from the exact extracted Binding and update builder expressions.',
 )
 
-const composerReceive = after(
-  readFileSync(resolve(root, 'src/messageComposer/receive.ts'), 'utf8'),
-  'export const receive = ',
+const composerInMessageUpdate = after(
+  readFileSync(resolve(root, 'src/messageComposer/inMessageUpdate.ts'), 'utf8'),
+  'export const inMessageUpdate = ',
 )
 const composerImports = `import { Effect } from 'effect'
 import { MessageComposerComposition } from './messageComposer/composition'
@@ -120,14 +123,14 @@ import { view } from './messageComposer/view'
 `
 const localComposer = `export const LocalMessageComposerBlock = MessageComposerDefinition.makeBlock(
   Effect.gen(function* () {
-    const receive = ${composerReceive}
-    return { children: [], init, update, receive, view, EffectsLayer: FocusInput.layer }
+    const inMessageUpdate = ${composerInMessageUpdate}
+    return { children: [], init, update, inMessageUpdate, view, EffectsLayer: FocusInput.layer }
   }),
 )
 `
 const inlineComposer = `export const InlineMessageComposerBlock = MessageComposerDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive: ${composerReceive}, view, EffectsLayer: FocusInput.layer }
+    return { children: [], init, update, inMessageUpdate: ${composerInMessageUpdate}, view, EffectsLayer: FocusInput.layer }
   }),
 )
 `

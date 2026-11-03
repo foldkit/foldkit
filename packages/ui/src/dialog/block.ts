@@ -420,7 +420,7 @@ const closeDialog = DialogDefinition.makeStep(model => {
 })
 
 /** Processes a parent request without adding it to local Message dispatch. */
-export const receive = DialogComposition.makeReceive({
+export const inMessageUpdate = DialogComposition.makeInMessageUpdate({
   RequestedOpen: openDialog,
   RequestedClose: closeDialog,
 })
@@ -697,7 +697,7 @@ const block = DialogDefinition.makeBlock(
       children: [animation],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

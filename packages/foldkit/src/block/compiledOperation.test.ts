@@ -304,7 +304,7 @@ if (false) {
     EffectsLayer: Layer.empty,
   }
 
-  // @ts-expect-error A receive-only Command still requires its original handler.
+  // @ts-expect-error An input-only Command still requires its original handler.
   Composition.prepareBlock(missingHandlerImplementation)
 
   type FallbackMissingHandler = ValidateImplementationComposition<
@@ -504,7 +504,7 @@ if (false) {
     operations: { requestIncrementChild: unregisteredInput },
   }
 
-  // @ts-expect-error A receive-only child operation requires its registered Binding.
+  // @ts-expect-error An input-only child operation requires its registered Binding.
   UnregisteredComposition.prepareBlock(unregisteredChildImplementation)
 
   type FallbackUnregisteredChild = ValidateImplementationComposition<

@@ -2,7 +2,7 @@ import { Effect, Layer } from 'effect'
 
 import { FetchPeople, PushSearchUrl } from './command'
 import { PeopleDefinition } from './definition'
-import { receive } from './receive'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init, update } from './update'
 import { view } from './view'
 
@@ -16,7 +16,7 @@ export const layer = PeopleDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

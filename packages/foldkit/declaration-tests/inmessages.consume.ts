@@ -23,8 +23,8 @@ import {
   init,
   makeCommandsStep,
   makeFieldsStep,
+  makeInMessageUpdate,
   makeOutMessageStep,
-  makeReceive,
   makeStep,
   parentReceiveResults,
   receiveResults,
@@ -134,7 +134,7 @@ export type InputOnlyStillReceivesInputs = Assert<
   Equal<typeof InputOnlyContract.InMessage, typeof InputOnlyInMessage>
 >
 
-export const importedReceive = makeReceive({
+export const importedInMessageUpdate = makeInMessageUpdate({
   RequestedClear: makeStep(model => ({ model })),
   RequestedSetCount: makeFieldsStep.fromMessage(({ count }) => ({
     count: () => count,
@@ -149,22 +149,25 @@ export const ImportedCounter = CounterDefinition.makeBlock(
     children: [],
     init,
     update,
-    receive: importedReceive,
+    inMessageUpdate: importedInMessageUpdate,
     EffectsLayer: Save.layer,
   }),
 )
 
 declare const counter: Block.ExecutableOf<typeof CounterContract>
 declare const inputOnly: Block.ExecutableOf<typeof InputOnlyContract>
-counter.receive({ count: 0, label: '' }, InMessage.RequestedClear())
-counter.receive(InMessage.RequestedSetCount({ count: 2 }))({
+counter.inMessageUpdate({ count: 0, label: '' }, InMessage.RequestedClear())
+counter.inMessageUpdate(InMessage.RequestedSetCount({ count: 2 }))({
   count: 0,
   label: '',
 })
 counter.operations.requestReport({ count: 0, label: '' }, { label: 'Count' })
 CounterBinding.requestSetCount({ count: 3 })
 inputOnly.operations.requestSetCount({ count: 0, label: '' }, {})
-inputOnly.receive({ count: 0, label: '' }, InputOnlyInMessage.RequestedClear())
+inputOnly.inMessageUpdate(
+  { count: 0, label: '' },
+  InputOnlyInMessage.RequestedClear(),
+)
 
 // @ts-expect-error Payload precision survives declaration relocation.
 CounterBinding.requestSetCount({ count: 'wrong' })

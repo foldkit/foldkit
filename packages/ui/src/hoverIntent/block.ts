@@ -254,7 +254,7 @@ const dismiss = (model: Model, isTriggerFocused: boolean) => {
 }
 
 /** Processes a parent close request without routing it through local Messages. */
-export const receive = HoverIntentComposition.makeReceive({
+export const inMessageUpdate = HoverIntentComposition.makeInMessageUpdate({
   RequestedClose: HoverIntentDefinition.makeStep(model =>
     dismiss(
       model,
@@ -381,7 +381,7 @@ const block = HoverIntentDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

@@ -1,5 +1,30 @@
 # Next preview review
 
+## November 3 scoped tests and InMessage update checkpoint
+
+- [x] Ordinary Story/Scene tests use Block-aware scoped Effects and `it.effect`.
+      Acquired fixtures remain for direct operations, modified initial Models,
+      private registrations and custom views; the exception inventory is explicit.
+- [x] `makeInMessageUpdate` replaces `makeReceive`; constructor fields, direct
+      and curried executable calls, modules, public types and tooling use
+      `inMessageUpdate` without compatibility aliases.
+- [x] The input composer reuses the local update interpreter and preserves exact
+      input narrowing, ordinary Message Command results, connected evidence,
+      original before Models, Context tuples and OutMessage restrictions.
+- [x] Inline and extracted source/emitted consumers, strict source-free
+      relocation, focused mutation controls, affected apps, the full UI suite
+      and all seven unchanged compiler ceilings pass.
+- [ ] The unified `Block.make` / ordinary `makeLayer` prototype must still
+      establish generic families, exact test Facts, host handlers, and compiler
+      cost before any broad Block migration.
+- [ ] Independently review the exact canonical input-update commit before push.
+- [ ] Complete final release-wide verification and rendering measurements for
+      the eventual API candidate. Earlier receipts keep their original scopes.
+
+The user's latest Daybreak decision is **keep review on hold**. No source is
+sent while that hold applies. Publication separately awaits explicit approval.
+The latest feedback refresh found no additional issue or comment at 06:10 UTC.
+
 ## Current constructor and update follow-up
 
 The user approved restoring ordinary host-handler support and completing

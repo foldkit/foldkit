@@ -1163,6 +1163,10 @@ const createCompositionUpdate = (
   bindings: ReadonlyArray<Readonly<{ placement: string; fold: AnyFunction }>>,
   validateCoverage = true,
   environment?: ReadonlyMap<object, object>,
+  input?: Readonly<{
+    bindings: ReadonlyArray<Readonly<{ placement: string; fold: AnyFunction }>>
+    validate: (message: unknown) => void
+  }>,
 ): RuntimeDefineCompositionUpdate => {
   const messageContract = runtimeMessageSchemaContract(parentMessageSchema)
   const sourceAliases = new Map<object, object>()
@@ -1283,6 +1287,9 @@ const createCompositionUpdate = (
       )
     }
 
+    if (input !== undefined) {
+      validateFullCases(cases)
+    }
     return handler(model, message)
   }
 
@@ -1295,7 +1302,8 @@ const createCompositionUpdate = (
       message: any,
       ...context: ReadonlyArray<any>
     ) =>
-      withOperationGraph(bindings, () => {
+      withOperationGraph(input?.bindings ?? bindings, () => {
+        input?.validate(message)
         const messageTag = Predicate.isObject(message)
           ? Reflect.get(message, '_tag')
           : undefined
@@ -1381,6 +1389,17 @@ const createCompositionUpdate = (
     return dualDispatch
   }
 
+  const validateFullCases = (cases: RuntimeAuthoredUpdate): void => {
+    checkCases(cases)
+    for (const tag of localTags) {
+      if (!Object.hasOwn(cases, tag)) {
+        throw new Error(
+          `[foldkit] InMessage update has no handler for "${tag}".`,
+        )
+      }
+    }
+  }
+
   const makeUpdate = (cases: RuntimeAuthoredUpdate): AnyFunction => {
     if (!Predicate.isObject(cases) || Predicate.isFunction(cases)) {
       throw new Error(
@@ -1388,6 +1407,9 @@ const createCompositionUpdate = (
       )
     }
 
+    if (input !== undefined) {
+      validateFullCases(cases)
+    }
     return makeUpdateFromCases(() => cases, 0)
   }
 
@@ -1591,7 +1613,8 @@ const createCompositionUpdate = (
       message: any,
       ...context: ReadonlyArray<any>
     ) =>
-      withOperationGraph(bindings, () => {
+      withOperationGraph(input?.bindings ?? bindings, () => {
+        input?.validate(message)
         if (routerCount !== 1) {
           throw new Error(
             '[foldkit] A reusable update bundle needs exactly one child routing anchor before execution.',
@@ -1796,6 +1819,25 @@ export const makeCompositionUpdate = (
     validateCoverage,
     environment,
   )
+
+/** @internal Shares update composition while validating an independent input union. */
+export const makeCompositionInputUpdate = (
+  schema: Schema.Top,
+  bindings: ReadonlyArray<Readonly<{ placement: string; fold: AnyFunction }>>,
+  environment: ReadonlyMap<object, object>,
+): RuntimeDefineCompositionUpdate => {
+  const isInput = Schema.is(schema)
+  return createCompositionUpdate(schema, [], false, environment, {
+    bindings,
+    validate: input => {
+      if (!Predicate.isObject(input) || !isInput(input)) {
+        throw new Error(
+          "[foldkit] inMessageUpdate requires a decoded value from this Block's InMessage Schema.",
+        )
+      }
+    },
+  })
+}
 
 /** @internal Existing contextual contracts reused by experimental plan authoring. */
 export type {

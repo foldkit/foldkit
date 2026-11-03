@@ -97,7 +97,7 @@ const preservedOpenModel = (config: Dialog.InitConfig) =>
   Story.withBlock(
     Dialog.DialogBlock,
     dialog =>
-      dialog.receive(
+      dialog.inMessageUpdate(
         dialog.init(config).model,
         Dialog.InMessage.RequestedOpen(),
       ).model,
@@ -253,7 +253,7 @@ describe('Dialog runtime lifecycle', () => {
     )
     const dialogClose = await Effect.runPromise(
       Story.withBlock(Dialog.DialogBlock, dialog =>
-        dialog.receive(openModel, Dialog.InMessage.RequestedClose()),
+        dialog.inMessageUpdate(openModel, Dialog.InMessage.RequestedClose()),
       ).pipe(Effect.provide(Dialog.layer)),
     )
     const leavingModel = modifyFields(dialogClose.model, {

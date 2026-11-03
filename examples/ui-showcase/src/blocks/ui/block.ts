@@ -65,8 +65,8 @@ import {
 } from './composition'
 import { AnimationDemoBinding } from './composition/animation'
 import { UiDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 
 export const layer = UiDefinition.makeBlock(
@@ -153,7 +153,7 @@ export const layer = UiDefinition.makeBlock(
       ],
       init,
       update,
-      receive,
+      inMessageUpdate,
     }
   }),
 ).provide(

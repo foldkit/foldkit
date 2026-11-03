@@ -29,7 +29,7 @@ type TestSource = Readonly<{
   InMessage?: Schema.Top | undefined
   init: (...args: ReadonlyArray<never>) => unknown
   update: (...args: ReadonlyArray<never>) => unknown
-  receive?: ((...args: ReadonlyArray<never>) => unknown) | undefined
+  inMessageUpdate?: ((...args: ReadonlyArray<never>) => unknown) | undefined
   operations: unknown
   EffectsLayer: Layer.Any
 }>
@@ -89,11 +89,11 @@ type TestView<Block extends BlockSubject> =
  */
 export type TestBlock<Block extends BlockSubject> = Pick<
   ExecutableOf<Block>,
-  Exclude<keyof TestSource, 'InMessage' | 'receive'>
+  Exclude<keyof TestSource, 'InMessage' | 'inMessageUpdate'>
 > &
   Pick<
     ExecutableOf<Block>,
-    Extract<'InMessage' | 'receive', keyof ExecutableOf<Block>>
+    Extract<'InMessage' | 'inMessageUpdate', keyof ExecutableOf<Block>>
   > &
   TestView<Block> &
   AcquiredTestBlock<Block['owner']> &
@@ -163,7 +163,7 @@ const toTestBlock = (executable: unknown): object => {
     InMessage: Reflect.get(executable, 'InMessage'),
     init: Reflect.get(executable, 'init'),
     update: Reflect.get(executable, 'update'),
-    receive: Reflect.get(executable, 'receive'),
+    inMessageUpdate: Reflect.get(executable, 'inMessageUpdate'),
     operations: Reflect.get(executable, 'operations'),
     EffectsLayer: Reflect.get(executable, 'EffectsLayer'),
     subscriptions,

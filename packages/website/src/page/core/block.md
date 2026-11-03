@@ -9,7 +9,7 @@ The public Block contract describes what a parent can use. An implementation Lay
 | Value                 | Responsibility                                                                                                                         |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Definition            | Establish Model, local Message, optional InMessage, Init, OutMessage and Context contracts; author local effects, Steps, and Bindings. |
-| Composition           | Register Bindings and Mounts; author graph-aware init, update, receive, and views.                                                     |
+| Composition           | Register Bindings and Mounts; author graph-aware init, update, InMessage updates, and views.                                           |
 | Public Block contract | Expose the declared Model, Message, initialization inputs, operations, and view inputs without expanding the implementation graph.     |
 | Implementation Layer  | Acquire child implementations and connect them to the authored init, update, view, and lifecycle declarations.                         |
 | Program               | Select the browser host, Flags, routing, Ports, and DevTools.                                                                          |
@@ -100,13 +100,13 @@ This MessageComposer can receive a submit request, a clear request, or a changed
 
 ::Snippet{name="blockInMessageDefinition" label="Declaring a composer's parent inputs"}
 
-Author an exhaustive `Composition.makeReceive` record alongside `makeUpdate`. Both records can reuse the same extracted Step. Here, a local form submission and a parent submit request share trimming and validation:
+Author an exhaustive `Composition.makeInMessageUpdate` record alongside `makeUpdate`. Both records can reuse the same extracted Step. Here, a local form submission and a parent submit request share trimming and validation:
 
-::Snippet{name="blockInMessageHandlers" label="Sharing a transition between update and receive"}
+::Snippet{name="blockInMessageHandlers" label="Sharing a transition across local and parent inputs"}
 
-Return `receive` from the constructor with init, update, and view:
+Return `inMessageUpdate` from the constructor with init, update, and view:
 
-::Snippet{name="blockInMessageImplementation" label="Completing a Block with receive"}
+::Snippet{name="blockInMessageImplementation" label="Completing a Block with parent input handling"}
 
 The Definition generates Binding methods directly from each tag:
 
@@ -120,17 +120,27 @@ Each method takes the variant's constructor payload when it has fields. Keyed Bi
 
 ::Snippet{name="blockInMessageParent" label="Calling generated request and inform methods"}
 
-`inMessageOutputs` declares each input's public result bounds. Include an entry when that input can emit an OutMessage or needs additional `services` or `resources`. An omitted entry is silent and adds no public requirements. Commands returned from receive still produce local Messages, which enter update when the Runtime completes them.
+`inMessageOutputs` declares each input's public result bounds. Include an entry when that input can emit an OutMessage or needs additional `services` or `resources`. An omitted entry is silent and adds no public requirements. Commands returned from `inMessageUpdate` still produce local Messages, which enter update when the Runtime completes them.
 
-Declare an `InMessageContext` tuple when receive needs read-only per-call values. Author the record with `Composition.makeReceive.withContext`, whose factory receives those values. Generated Binding methods take the receive context after the payload. This context is separate from update's `Context`; `delivery.toUpdateContext` supplies only incoming child update context.
+Declare an `InMessageContext` tuple when `inMessageUpdate` needs read-only per-call values. Author the record with `Composition.makeInMessageUpdate.withContext`, whose factory receives those values. Generated Binding methods take the InMessage context after the payload. This context is separate from update's `Context`; `delivery.toUpdateContext` supplies only incoming child update context.
 
-Receiving an InMessage is synchronous and pure. It returns the next Model, Commands, and optional OutMessage without enqueueing another Runtime Message. Binding storage, OutMessage policy, occurrence identity, and lifecycle ownership remain the same. Defining or acquiring a receiver does not create Model occurrences or start effects.
+Receiving an InMessage is synchronous and pure. It returns the next Model, Commands, and optional OutMessage without enqueueing another Runtime Message. Binding storage, OutMessage policy, occurrence identity, and lifecycle ownership remain the same. Defining or acquiring an InMessage update does not create Model occurrences or start effects.
 
-Use `Story.inMessage` and `Scene.inMessage` in Block-aware tests. The runner acquires the selected implementation before applying the cause; Command results still use the ordinary resolution steps. Supply required receive context through `{ block, inMessageContext: [...] }`, independently of `updateContext`.
+Use `Story.inMessage` and `Scene.inMessage` in Block-aware tests. The runner acquires the selected implementation before applying the cause; Command results still use the ordinary resolution steps. Supply required InMessage context through `{ block, inMessageContext: [...] }`, independently of `updateContext`.
 
 ::Snippet{name="blockInMessageTesting" label="Testing a parent input through Story and Scene"}
 
-An acquired Block also exposes `receive(model, inMessage, ...context)` and `receive(inMessage)(model, ...context)` for pure transition composition. Raw Story and Scene runners do not acquire a receiver, so they reject unresolved `inMessage` causes.
+An acquired Block also exposes `inMessageUpdate(model, inMessage, ...context)` and `inMessageUpdate(inMessage)(model, ...context)` for pure transition composition. Raw Story and Scene runners do not acquire an InMessage update, so they reject unresolved `inMessage` causes.
+
+### Compose parent input handling
+
+Keep an exhaustive `makeInMessageUpdate({ ... })` record as the default. For additional transitions, use its `cases`, `each`, `on`, `except`, and `compose` helpers with the same ordering and output rules as [composed updates](/core/update#composing-updates). These selectors use InMessage tags. The full record applies once at its position, and callbacks retain the original `before` Model across grouped bundles.
+
+Here, the exhaustive input record applies the changed draft before a focused transition trims it. Submit and clear requests retain their existing behavior:
+
+::Snippet{name="blockInMessageComposition" label="Composing parent input handling"}
+
+A shared Model-only Step can serve both entry points. InMessage composition uses `InMessageContext`, does not route child Messages, and returns Commands producing ordinary local Messages. It does not merge the local Message and InMessage unions.
 
 ### Apply bound transitions
 
@@ -144,7 +154,7 @@ These calls are pure. A Binding operation produces a connected parent Update.Ste
 
 The explicit `operations` path remains available for positional arguments, generic adapters, defaults, or mappings to existing local Messages. Put the local Message constructor directly under `operations` when the public arguments map directly to its payload. Completion creates the callable operation without constructing a startup Message. A constructor with payload fields takes one constructor payload object, with constructor defaults honored, followed by any update context. A constructor without payload fields takes no payload placeholder. These operations pass their Message through the child's update synchronously.
 
-Explicit mappings enter the child's update. New parent requests and notifications belong in InMessage and enter receive. Both transition paths own their validation, Commands, and OutMessages. Keep actual UI facts separate when they have a different cause. For example, a parent request to close a menu should not impersonate a click on its close button. Do not expose a `reflect*` helper that bypasses those transitions to change child state silently.
+Explicit mappings enter the child's update. New parent requests and notifications belong in InMessage and enter `inMessageUpdate`. Both transition paths own their validation, Commands, and OutMessages. Keep actual UI facts separate when they have a different cause. For example, a parent request to close a menu should not impersonate a click on its close button. Do not expose a `reflect*` helper that bypasses those transitions to change child state silently.
 
 Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. It returns `[Message, ...context]`; prefer an array literal when contextual typing from the Definition preserves the tuple. Use `Tuple.make` only if extraction would otherwise widen the result and lose the required tuple positions. Message constructors and tuple producers complete through the same update path. Keep pure helpers for selectors and derived view inputs. Use standalone or Definition-owned Steps for internal composition, and omit `operations` when the Block declares no named operations. See [Calling update as a Step](/core/update#calling-update-as-a-step) for internal curried update composition and the required-context adapter.
 
@@ -646,7 +656,7 @@ When combined after another Step, the callback receives the Model produced by th
 
 ### FeatureDefinition.makeStep
 
-`FeatureDefinition.makeStep(producer)` handles reusable mixed transitions, additional producer arguments, connected Binding operations, initialization, delegated results, and other composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Cohesive mixed handlers can return `{ model, commands, outMessage }` directly. Declare parent inputs through InMessage and receive; retain `operations` for explicit adapters.
+`FeatureDefinition.makeStep(producer)` handles reusable mixed transitions, additional producer arguments, connected Binding operations, initialization, delegated results, and other composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Cohesive mixed handlers can return `{ model, commands, outMessage }` directly. Declare parent inputs through InMessage and inMessageUpdate; retain `operations` for explicit adapters.
 
 Use `makeStep.fromMessage(producer)` when only the Message is needed to select or construct a Step, compose Steps, or create an initialization recipe. An inline `makeUpdate` entry infers the exact Message variant for both the ordinary Model-aware form and `.fromMessage`, including `.withContext` records. The returned handler receives `(model, message)`; applying it evaluates the producer and passes the incoming Model to a returned Step. Construction is passive. An extracted producer needs a precise Message variant annotation, as with the focused helpers. Dispatch context stays in `makeUpdate.withContext`, where the producer can close over it.
 
@@ -670,7 +680,7 @@ Calling an existing reusable Step still expresses a named operation, and `Update
 
 ### Declaring operation adapters
 
-Declare ordinary parent inputs through [InMessage and receive](#inmessages). Keep the Definition's `operations` record for explicit adapters. A local Message constructor is the short form. Use an operation declaration with `message`, `outMessage`, `services`, or `resources` when the adapter exposes those channels. Completion checks the implementation against the declaration; it cannot silently drop an OutMessage or Service requirement.
+Declare ordinary parent inputs through [InMessage and inMessageUpdate](#inmessages). Keep the Definition's `operations` record for explicit adapters. A local Message constructor is the short form. Use an operation declaration with `message`, `outMessage`, `services`, or `resources` when the adapter exposes those channels. Completion checks the implementation against the declaration; it cannot silently drop an OutMessage or Service requirement.
 
 The acquired implementation dispatches the produced Message through its update. A constructor with fields becomes `(model, payload, ...context)` on its `operations`; a constructor without fields becomes `(model, ...context)`. A Binding operation omits the child Model, and a keyed Binding prepends the occurrence key.
 
@@ -688,7 +698,7 @@ A declared operation such as `requestClearSelection` becomes `binding.requestCle
 
 `binding.init({ key?, args, toParentModel, commands? })` returns a passive, noncallable initialization recipe. `key` is required for a keyed Binding, `args` is the exact child init tuple, and `toParentModel` receives the initialized child and constructs the complete parent Model. Return the recipe directly from the owning Composition's `makeInit` callback or `makeUpdate` handler, or preserve it through the parent's `makeStep` producer. The Composition authoring boundary interprets it directly. The exact graph then produces all lifted child Commands before optional parent Commands. The recipe has no `.model` or `.commands` fields.
 
-For reset behavior, prefer a child-owned InMessage request handled through receive. Deliberate baseline initialization must preserve the parent's other fields and the complete recipe; it does not establish occurrence replacement or cancellation. See [Resetting a child](/core/init-and-flags#resetting-a-child) for both paths with a Counter that has no pending lifecycle.
+For reset behavior, prefer a child-owned InMessage request handled through `inMessageUpdate`. Deliberate baseline initialization must preserve the parent's other fields and the complete recipe; it does not establish occurrence replacement or cancellation. See [Resetting a child](/core/init-and-flags#resetting-a-child) for both paths with a Counter that has no pending lifecycle.
 
 ### binding.embedView
 

@@ -117,7 +117,7 @@ export const LocalChatRoomBlock = makeBlock(
         nextMessageId: id => id + 1,
       })),
     })
-    const receive = ChatRoomComposition.makeReceive({
+    const inMessageUpdate = ChatRoomComposition.makeInMessageUpdate({
       RequestedDisconnect: disconnect,
     })
     const view = ChatRoomComposition.makeView((model, h) =>
@@ -171,7 +171,7 @@ export const LocalChatRoomBlock = makeBlock(
       children: [messageComposer],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       subscriptions,
       managedResources,
@@ -256,7 +256,7 @@ export const InlineChatRoomBlock = makeBlock(
           }),
         ),
       }),
-      receive: ChatRoomComposition.makeReceive({
+      inMessageUpdate: ChatRoomComposition.makeInMessageUpdate({
         RequestedDisconnect: disconnect,
       }),
       view: ChatRoomComposition.makeView((model, h) =>

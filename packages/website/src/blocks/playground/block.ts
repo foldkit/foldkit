@@ -8,7 +8,7 @@ import {
   EffectsLayer,
   init,
   managedResources,
-  receive,
+  inMessageUpdate,
   update,
   view,
 } from './playground'
@@ -23,7 +23,7 @@ const block = PlaygroundDefinition.makeBlock(
       children: [fileTabs],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       managedResources,
       EffectsLayer,

@@ -1,9 +1,9 @@
 import { Effect } from 'effect'
 
 import { RoomDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { EffectsLayer } from './layer'
-import { receive } from './receive'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
@@ -15,7 +15,7 @@ export const layer = RoomDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       subscriptions,
       EffectsLayer,

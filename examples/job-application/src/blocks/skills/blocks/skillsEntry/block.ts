@@ -4,8 +4,8 @@ import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
 
 import { ProficiencyRadioGroupBinding } from './composition'
 import { SkillsEntryDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -18,7 +18,7 @@ export const layer = SkillsEntryDefinition.makeBlock(
       children: [proficiencyRadioGroup],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
     }
   }),

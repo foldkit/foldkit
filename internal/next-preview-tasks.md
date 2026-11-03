@@ -7,9 +7,9 @@
 - [ ] Prove checked `Block.makeLayer` completion returning an ordinary Layer,
       exact root hosting/providers, host-owned handlers, constructor failures,
       implementation-specific test access, passive initialization and cleanup.
-- [ ] Rename receive to `inMessageUpdate`, including its module, builder,
+- [x] Rename receive to `inMessageUpdate`, including its module, builder,
       direct/curried entry points, public types and tooling.
-- [ ] Reuse ordered update composition for InMessages, preserving the original
+- [x] Reuse ordered update composition for InMessages, preserving the original
       before Model, exact input narrowing, Commands and OutMessage checks.
 - [ ] Preserve Element, Document and viewless contracts; reject Document
       embedding without prohibiting every state/operation Binding to it.
@@ -21,6 +21,28 @@
 - [ ] Verify source, emitted and strict relocated consumers, application
       behavior, packed release consumers and the exact committed candidate.
       Push the reviewed code to the preview branch; do not publish.
+
+## November 3 input-update and scoped-test checkpoint
+
+The canonical input entry point is now `inMessageUpdate`, authored through
+`Composition.makeInMessageUpdate`. It shares ordered composition with local
+updates while retaining its separate input union and Context. The old names
+are removed; generated Binding operation names remain unchanged. Source,
+emitted and strictly relocated consumers, focused runtime controls, affected
+apps, all 1,357 UI tests and all seven unchanged compiler budgets pass. The
+[prototype report](inmessage-update-prototype/README.md) retains the compiler
+ownership controls and migration limits.
+
+The repository-wide scoped-runner pass is complete. Its
+[exception inventory](update-composition/scoped-tests-and-binding-names.md)
+explains the remaining acquired fixtures and Promise bridges. This checkpoint
+does not verify the still-isolated unified Block/direct Layer prototype.
+
+GitHub feedback was refreshed at 06:10 UTC on November 3 after the exhaustive
+[closure audit](update-composition/feedback-closure-20261103.md). No additional
+issues, conversation comments or inline review comments were returned.
+Daybreak transfer and review remain explicitly on hold. Release publication
+also remains held for separate user approval.
 
 ## Current constructor and update follow-up
 
@@ -77,11 +99,11 @@ stabilization batch or approved for deferral. See the
 
 ## Story and Scene test adoption
 
-- [ ] Audit Story and Scene tests across examples, Website, Typing Game, UI,
+- [x] Audit Story and Scene tests across examples, Website, Typing Game, UI,
       framework tests, and scaffold templates. Use Block-aware runners for
       ordinary Block behavior and `@effect/vitest`'s `it.effect` for tests that
       return Effects. Keep deliberately synchronous runner tests synchronous.
-- [ ] Replace routine `withBlock` wrappers and manual executable extraction
+- [x] Replace routine `withBlock` wrappers and manual executable extraction
       with direct `story(Block, ...)` and `scene(Block, ...)` calls. Retain
       `withBlock` for fixtures needing acquired operations or custom views.
 - [x] Prefer `init(...)` and explicit Command resolution for startup scenarios.

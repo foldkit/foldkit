@@ -13,7 +13,7 @@ import { view } from './messageComposer/view'
 
 export const LocalMessageComposerBlock = MessageComposerDefinition.makeBlock(
   Effect.gen(function* () {
-    const receive = MessageComposerComposition.makeReceive({
+    const inMessageUpdate = MessageComposerComposition.makeInMessageUpdate({
       RequestedClear: makeFieldsStep(() => ({ text: () => '' })),
       RequestedSubmit: submitMessage,
     })
@@ -21,7 +21,7 @@ export const LocalMessageComposerBlock = MessageComposerDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer: FocusInput.layer,
     }
@@ -34,7 +34,7 @@ export const InlineMessageComposerBlock = MessageComposerDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive: MessageComposerComposition.makeReceive({
+      inMessageUpdate: MessageComposerComposition.makeInMessageUpdate({
         RequestedClear: makeFieldsStep(() => ({ text: () => '' })),
         RequestedSubmit: submitMessage,
       }),

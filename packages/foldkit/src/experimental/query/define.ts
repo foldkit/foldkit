@@ -120,7 +120,7 @@ const isKeyedQueryConfig = <
  *
  * Bind the descriptor before construction and provide `Query.layer` through an
  * ordinary Layer at the graph's construction boundary. The acquired Block
- * supplies init, update, receive and operations. Model accessors and local
+ * supplies init, update, inMessageUpdate and operations. Model accessors and local
  * Message and parent InMessage constructors remain available on the descriptor.
  *
  * A generator `handler` constructs the Fetch invocation when its handler Layer

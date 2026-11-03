@@ -26,7 +26,7 @@ test.each([
           title: 'General',
           inputId: 'placement-input',
         })
-        const disconnected = room.receive(
+        const disconnected = room.inMessageUpdate(
           roomInit.model,
           RoomInMessage.RequestedDisconnect(),
         )

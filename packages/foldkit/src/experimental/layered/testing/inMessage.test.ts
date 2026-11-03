@@ -1,6 +1,8 @@
 import { Effect, Schema } from 'effect'
 import { expect, test } from 'vitest'
 
+import { it } from '@effect/vitest'
+
 import * as Block from '../../../block/public.js'
 import * as Command from '../../../command/index.js'
 import type { HtmlBuilder } from '../../../html/index.js'
@@ -12,7 +14,7 @@ import type * as Update from '../../../update/index.js'
 import { inMessage, resolveInMessageSteps } from './inMessage.js'
 import * as Scene from './scene.js'
 import * as Story from './story.js'
-import { subjectReceive } from './subject.js'
+import { subjectInMessageUpdate } from './subject.js'
 import { withBlock } from './withBlock.js'
 
 const Model = Schema.Struct({ value: Schema.Number })
@@ -46,7 +48,7 @@ const update = (model: Model, message: Message) =>
       model: modifyFields(model, { value: () => value }),
     }),
   })
-const receive = (model: Model, input: InMessage) =>
+const inMessageUpdate = (model: Model, input: InMessage) =>
   InMessage.match<
     Update.ReturnWithOutMessage<
       Model,
@@ -76,7 +78,7 @@ const resolve = (steps: ReadonlyArray<unknown>) =>
       throw new Error('Invalid input cause fixture')
     }
 
-    return receive(model, input)
+    return inMessageUpdate(model, input)
   })
 const runStory = (...steps: ReadonlyArray<unknown>) =>
   Reflect.apply(CoreStory.story, undefined, [
@@ -223,16 +225,16 @@ test('native runners reject unresolved input causes, including grouped causes', 
   }
 })
 
-test('the scoped receive adapter validates schema and uses separate input context', () => {
+test('the scoped inMessageUpdate adapter validates schema and uses separate input context', () => {
   const calls: Array<ReadonlyArray<unknown>> = []
   const acquired = {
     InMessage,
-    receive: (...args: ReadonlyArray<unknown>) => {
+    inMessageUpdate: (...args: ReadonlyArray<unknown>) => {
       calls.push(args)
       return { model: initialModel }
     },
   }
-  const adapted = Reflect.apply(subjectReceive, undefined, [
+  const adapted = Reflect.apply(subjectInMessageUpdate, undefined, [
     { block: {}, updateContext: ['local'], inMessageContext: ['input', 2] },
     acquired,
   ])
@@ -247,16 +249,16 @@ test('the scoped receive adapter validates schema and uses separate input contex
     ]),
   ).toThrow('InMessage Schema')
   expect(calls).toHaveLength(1)
-  const missing = Reflect.apply(subjectReceive, undefined, [
+  const missing = Reflect.apply(subjectInMessageUpdate, undefined, [
     { block: {} },
-    { receive },
+    { inMessageUpdate },
   ])
   expect(() =>
     Reflect.apply(missing, undefined, [
       initialModel,
       InMessage.InformedOfClear(),
     ]),
-  ).toThrow('InMessage Schema and receive')
+  ).toThrow('InMessage Schema and inMessageUpdate')
 
   if (false) {
     const InputContextTestKey = Symbol('InputContextTest')
@@ -309,7 +311,7 @@ test('the scoped receive adapter validates schema and uses separate input contex
     expect(
       Effect.isEffect(
         Scene.scene<typeof block>(
-          // @ts-expect-error Update context does not provide the receive context.
+          // @ts-expect-error Update context does not provide the InMessage context.
           { block, updateContext: [1], inMessageContext: [1] },
           Scene.init(),
         ),
@@ -341,98 +343,102 @@ test('the scoped receive adapter validates schema and uses separate input contex
   }
 })
 
-test('scoped receive supports optional, default, and rest Context without changing update Context', async () => {
-  const OptionalContextKey = Symbol('OptionalInputContext')
-  const Definition = Block.makeDefinition('OptionalInputContext', {
-    key: OptionalContextKey,
-    Model,
-    Message,
-    InMessage,
-    Init: Schema.Tuple([]),
-    InMessageContext:
-      Block.makeInputContract<
-        readonly [label?: string, ...parts: ReadonlyArray<string>]
-      >(),
-    view: { kind: 'Element' },
-  })
-  const Composition = Definition.makeComposition({})
-  const receive = Composition.makeReceive.withContext(
-    (label = 'Default', ...parts: ReadonlyArray<string>) => ({
-      RequestedRecordValue: (model, { value }) => ({
-        model: modifyFields(model, {
-          value: () => value + label.length + parts.length,
+it.effect(
+  'scoped inMessageUpdate supports optional, default, and rest Context without changing update Context',
+  () =>
+    Effect.gen(function* () {
+      const OptionalContextKey = Symbol('OptionalInputContext')
+      const Definition = Block.makeDefinition('OptionalInputContext', {
+        key: OptionalContextKey,
+        Model,
+        Message,
+        InMessage,
+        Init: Schema.Tuple([]),
+        InMessageContext:
+          Block.makeInputContract<
+            readonly [label?: string, ...parts: ReadonlyArray<string>]
+          >(),
+        view: { kind: 'Element' },
+      })
+      const Composition = Definition.makeComposition({})
+      const inMessageUpdate = Composition.makeInMessageUpdate.withContext(
+        (label = 'Default', ...parts: ReadonlyArray<string>) => ({
+          RequestedRecordValue: (model, { value }) => ({
+            model: modifyFields(model, {
+              value: () => value + label.length + parts.length,
+            }),
+          }),
+          InformedOfValue: (model, { value }) => ({
+            model: modifyFields(model, { value: () => value }),
+          }),
+          InformedOfClear: model => ({
+            model: modifyFields(model, { value: () => 0 }),
+          }),
         }),
-      }),
-      InformedOfValue: (model, { value }) => ({
-        model: modifyFields(model, { value: () => value }),
-      }),
-      InformedOfClear: model => ({
-        model: modifyFields(model, { value: () => 0 }),
-      }),
-    }),
-  )
-  const ReceiverBlock = Definition.makeBlock(
-    Effect.succeed({
-      children: [],
-      init: Composition.makeInit(() => ({ model: initialModel })),
-      update: Composition.makeUpdate({
-        CompletedRecordValue: (model, { value }) => ({
-          model: modifyFields(model, { value: () => value }),
+      )
+      const ReceiverBlock = Definition.makeBlock(
+        Effect.succeed({
+          children: [],
+          init: Composition.makeInit(() => ({ model: initialModel })),
+          update: Composition.makeUpdate({
+            CompletedRecordValue: (model, { value }) => ({
+              model: modifyFields(model, { value: () => value }),
+            }),
+          }),
+          inMessageUpdate,
+          view: Composition.makeView(view),
         }),
-      }),
-      receive,
-      view: Composition.makeView(view),
-    }),
-  )
-  const requested = InMessage.RequestedRecordValue({ value: 1 })
+      )
+      const requested = InMessage.RequestedRecordValue({ value: 1 })
 
-  await Effect.runPromise(
-    withBlock(ReceiverBlock, block => {
-      expect(block.receive(initialModel, requested).model.value).toBe(8)
-      expect(block.receive(requested)(initialModel).model.value).toBe(8)
-      expect(
-        block.receive(initialModel, requested, 'Remote', 'A', 'B').model.value,
-      ).toBe(9)
-      expect(
-        block.receive(requested)(initialModel, 'Remote', 'A', 'B').model.value,
-      ).toBe(9)
-    }),
-  )
-  await Effect.runPromise(
-    Story.story(
-      ReceiverBlock,
-      Story.init(),
-      Story.inMessage(requested),
-      Story.model((model: Model) => expect(model.value).toBe(8)),
-    ),
-  )
-  await Effect.runPromise(
-    Scene.scene(
-      { block: ReceiverBlock, inMessageContext: ['Remote', 'A', 'B'] },
-      Scene.init(),
-      Scene.inMessage(requested),
-      Scene.expect(Scene.role('group', { name: 'Value' })).toHaveText('9'),
-    ),
-  )
+      yield* withBlock(ReceiverBlock, block => {
+        expect(block.inMessageUpdate(initialModel, requested).model.value).toBe(
+          8,
+        )
+        expect(block.inMessageUpdate(requested)(initialModel).model.value).toBe(
+          8,
+        )
+        expect(
+          block.inMessageUpdate(initialModel, requested, 'Remote', 'A', 'B')
+            .model.value,
+        ).toBe(9)
+        expect(
+          block.inMessageUpdate(requested)(initialModel, 'Remote', 'A', 'B')
+            .model.value,
+        ).toBe(9)
+      })
+      yield* Story.story(
+        ReceiverBlock,
+        Story.init(),
+        Story.inMessage(requested),
+        Story.model((model: Model) => expect(model.value).toBe(8)),
+      )
+      yield* Scene.scene(
+        { block: ReceiverBlock, inMessageContext: ['Remote', 'A', 'B'] },
+        Scene.init(),
+        Scene.inMessage(requested),
+        Scene.expect(Scene.role('group', { name: 'Value' })).toHaveText('9'),
+      )
 
-  if (false) {
-    expect(
-      Effect.isEffect(
-        Story.story<typeof ReceiverBlock>(
-          // @ts-expect-error Optional and rest Context values retain their declared type.
-          { block: ReceiverBlock, inMessageContext: ['Remote', 1] },
-          Story.init(),
-        ),
-      ),
-    ).toBe(true)
-    expect(
-      Effect.isEffect(
-        Story.story<typeof ReceiverBlock>(
-          // @ts-expect-error Receive Context does not add an update Context parameter.
-          { block: ReceiverBlock, updateContext: ['Remote'] },
-          Story.init(),
-        ),
-      ),
-    ).toBe(true)
-  }
-})
+      if (false) {
+        expect(
+          Effect.isEffect(
+            Story.story<typeof ReceiverBlock>(
+              // @ts-expect-error Optional and rest Context values retain their declared type.
+              { block: ReceiverBlock, inMessageContext: ['Remote', 1] },
+              Story.init(),
+            ),
+          ),
+        ).toBe(true)
+        expect(
+          Effect.isEffect(
+            Story.story<typeof ReceiverBlock>(
+              // @ts-expect-error InMessage Context does not add an update Context parameter.
+              { block: ReceiverBlock, updateContext: ['Remote'] },
+              Story.init(),
+            ),
+          ),
+        ).toBe(true)
+      }
+    }),
+)

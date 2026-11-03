@@ -581,7 +581,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               Story.withBlock(PopoverBlock, block => {
                 const { update, init } = makeFixture(block)
 
-                const opened = block.receive(
+                const opened = block.inMessageUpdate(
                   init({ id: 'animated-pointer', isAnimated: true }).model,
                   InMessage.RequestedOpen(),
                 )

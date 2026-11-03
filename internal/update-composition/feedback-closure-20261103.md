@@ -4,8 +4,8 @@
 
 Live GitHub cutoff for discovery: **2026-11-03 04:48:12 UTC**. The last published preview is `90746b32d2ca8bc0476de7a051ace396ca590ae0` (2026-10-29 02:23:03 UTC). Discovery inspected `a84a2b04b0e9a9613b9db603150fa271fb7dc27f`; the three bounded repairs below are verified through `e7e632037df7afa03aa7d3289316f7cbe68c71d1`. The separately requested unified Block/direct Layer prototype is not counted as completed here.
 
-A read-only refresh through **2026-11-03 05:28 UTC** found no updated issues,
-PRs or replies after that snapshot. Fetched main remains `a471adb24d750ab9e8d8312edad53ff6f26d961b`;
+Read-only refreshes through **2026-11-03 06:10 UTC** found no updated issues,
+PRs, conversation replies or inline review comments after that snapshot. Fetched main remains `a471adb24d750ab9e8d8312edad53ff6f26d961b`;
 preview remains `244251e9564da168bc1936d076bfc060908ec458`. Both are ancestors
 of the reviewed candidate work. No preview push or publication is implied by
 that ancestry check.

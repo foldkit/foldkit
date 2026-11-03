@@ -867,6 +867,12 @@ const checks: ReadonlyArray<
     consumers: ['helper-inputs.consume.ts'],
   },
   {
+    name: 'inmessage-update-composition',
+    accepted: ['inmessage-update-composition/accepted.ts'],
+    rejected: ['inmessage-update-composition/rejected.ts'],
+    consumers: ['inmessage-update-composition/consume.ts'],
+  },
+  {
     name: 'inmessages',
     accepted: ['inmessages.accepted.ts'],
     rejected: ['inmessages.rejected.ts'],

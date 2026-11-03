@@ -24,7 +24,7 @@ export const update = MessageComposerComposition.makeUpdate({
   SubmittedForm: submitMessage,
 })
 
-export const receive = MessageComposerComposition.makeReceive({
+export const inMessageUpdate = MessageComposerComposition.makeInMessageUpdate({
   RequestedSubmit: submitMessage,
   RequestedClear: makeFieldsStep(() => ({ text: () => '' })),
   InformedOfDraftChanged: makeFieldsStep.fromMessage(({ text }) => ({

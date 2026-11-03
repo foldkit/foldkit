@@ -132,14 +132,14 @@ describe('Layer-constructed Query', () => {
 
       return Story.withBlock(Quotes, block => {
         const initial = block.init()
-        const unchanged = block.receive(
+        const unchanged = block.inMessageUpdate(
           initial.model,
           Quotes.InMessage.RequestedRevalidation(),
         )
         expect(unchanged.model).toBe(initial.model)
         expect(unchanged.commands).toBeUndefined()
 
-        const load = block.receive(
+        const load = block.inMessageUpdate(
           initial.model,
           Quotes.InMessage.RequestedLoadIfMissing(),
         )
@@ -147,7 +147,7 @@ describe('Layer-constructed Query', () => {
           { name: Quotes.Fetch.name, args: { generation: 1 } },
         ])
 
-        const cancel = block.receive(
+        const cancel = block.inMessageUpdate(
           load.model,
           Quotes.InMessage.RequestedCancel(),
         )
@@ -166,7 +166,7 @@ describe('Layer-constructed Query', () => {
         expect(late.model).toBe(cancel.model)
         expect(late.outMessage).toBeUndefined()
 
-        const retry = block.receive(
+        const retry = block.inMessageUpdate(
           late.model,
           Quotes.InMessage.RequestedRevalidationOrLoad(),
         )
@@ -190,7 +190,7 @@ describe('Layer-constructed Query', () => {
           }),
         )
 
-        const refresh = block.receive(
+        const refresh = block.inMessageUpdate(
           accepted.model,
           Quotes.InMessage.RequestedRevalidation(),
         )
@@ -201,7 +201,7 @@ describe('Layer-constructed Query', () => {
           { name: Quotes.Fetch.name, args: { generation: 4 } },
         ])
 
-        const reset = block.receive(
+        const reset = block.inMessageUpdate(
           refresh.model,
           Quotes.InMessage.RequestedReset(),
         )
@@ -235,7 +235,7 @@ describe('Layer-constructed Query', () => {
           },
         ])
 
-        const reset = block.receive(
+        const reset = block.inMessageUpdate(
           load.model,
           Windows.InMessage.RequestedReset(),
         )

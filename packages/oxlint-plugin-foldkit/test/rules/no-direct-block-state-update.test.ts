@@ -610,7 +610,7 @@ describe('no-direct-block-state-update', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      'child receive handler owns the transition',
+      'child inMessageUpdate handler owns the transition',
     )
   })
 

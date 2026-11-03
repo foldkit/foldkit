@@ -56,7 +56,7 @@ export const update = SettingsComposition.makeUpdate({
   CompletedRefreshAvailableThemes: model => ({ model }),
 })
 
-export const receive = SettingsComposition.makeReceive({
+export const inMessageUpdate = SettingsComposition.makeInMessageUpdate({
   RequestedRestore: (model, { theme }) => ({
     model: modifyFields(model, { theme: () => theme }),
     commands: [RefreshAvailableThemes()],
@@ -72,7 +72,7 @@ export const layer = SettingsDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       EffectsLayer,
     }
   }),

@@ -242,7 +242,7 @@ describe('Create Issue view', () => {
         Message.SubmittedIssueForm(),
       )
 
-      const issueClose = executable.receive(
+      const issueClose = executable.inMessageUpdate(
         issueSubmission.model,
         InMessage.RequestedClose(),
       )

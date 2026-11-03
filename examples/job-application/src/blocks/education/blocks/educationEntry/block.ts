@@ -4,8 +4,8 @@ import { layer as ListboxLayer } from '@foldkit/ui/listbox'
 
 import { GraduationYearListboxBinding } from './composition'
 import { EducationEntryDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -18,7 +18,7 @@ export const layer = EducationEntryDefinition.makeBlock(
       children: [graduationYearListbox],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
     }
   }),

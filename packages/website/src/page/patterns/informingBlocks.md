@@ -6,7 +6,7 @@
 
 A Block sometimes needs to react to a change it does not own. The URL may change, a server may push new data, or a sibling field may establish a new constraint. The parent observes that change, but the child still owns the state transition it causes.
 
-Declare an `InformedOf*` variant in the child's `InMessage` Schema. For example, `InMessage.InformedOfJoin` generates `Binding.informJoin(...)`. Handle the notification in `Composition.makeReceive`; that handler owns the next Model and Commands. The parent calls the generated Binding method, which applies the child transition synchronously. It does not construct a child-local Message or enqueue another Runtime Message.
+Declare an `InformedOf*` variant in the child's `InMessage` Schema. For example, `InMessage.InformedOfJoin` generates `Binding.informJoin(...)`. Handle the notification in `Composition.makeInMessageUpdate`; that handler owns the next Model and Commands. The parent calls the generated Binding method, which applies the child transition synchronously. It does not construct a child-local Message or enqueue another Runtime Message.
 
 ### Inform Every Child-Owned Change
 
@@ -30,11 +30,11 @@ People declares its Model, Message, InMessage, and early `PeopleDefinition` in c
 
 ::Snippet{name="informingBlocksDefinition" label="Early People Definition"}
 
-Receive copies the route query into the input, records it in recent searches, and returns `FetchPeople` for the new results. Update handles the Command's completion.
+The InMessage handler copies the route query into the input, records it in recent searches, and returns `FetchPeople` for the new results. Update handles the Command's completion.
 
 ### Handle the Notification
 
-The Definition generates `informRouteChange` from `InMessage.InformedOfRouteChange`. It takes the variant's payload object, with constructor defaults honored. Its receive handler owns the invariant, Model transition, and `FetchPeople` Command. Return the portable receive builder from the Block constructor alongside update and init.
+The Definition generates `informRouteChange` from `InMessage.InformedOfRouteChange`. It takes the variant's payload object, with constructor defaults honored. Its InMessage handler owns the invariant, Model transition, and `FetchPeople` Command. Return the portable InMessage update from the Block constructor alongside update and init.
 
 ::Snippet{name="informingBlocksChild" label="Receiving a route change"}
 
@@ -46,7 +46,7 @@ The Definition generates `informRouteChange` from `InMessage.InformedOfRouteChan
 
 ### Define the Parent Folds
 
-The People Binding declares its parent Model `field` once; Composition derives its child delivery. If People declares OutMessages, select its parent-owned policy with `withOutMessagePolicy` and register that full Binding. The selected Binding retains `PeopleBinding.informRouteChange` and its exact result channels. The `ChangedUrl` handler matches the next Route and composes the connected child Step with the pure `setRoute` through `Update.combineSteps`. The `makeUpdate` Model supplies the registered graph, and the generated method retains the Binding and receive requirements for application composition.
+The People Binding declares its parent Model `field` once; Composition derives its child delivery. If People declares OutMessages, select its parent-owned policy with `withOutMessagePolicy` and register that full Binding. The selected Binding retains `PeopleBinding.informRouteChange` and its exact result channels. The `ChangedUrl` handler matches the next Route and composes the connected child Step with the pure `setRoute` through `Update.combineSteps`. The `makeUpdate` Model supplies the registered graph, and the generated method retains the Binding and InMessage update requirements for application composition.
 
 ::Snippet{name="informingBlocksParent" label="Parent route fold"}
 

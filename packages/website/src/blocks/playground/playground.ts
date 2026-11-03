@@ -268,7 +268,7 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
-export const receive = PlaygroundComposition.makeReceive({
+export const inMessageUpdate = PlaygroundComposition.makeInMessageUpdate({
   InformedOfSupport: makeFieldsStep.fromMessage(({ isSupported }) => ({
     maybeIsSupported: () => Option.some(isSupported),
   })),

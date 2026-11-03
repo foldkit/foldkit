@@ -19,7 +19,7 @@ const framework = resolve(repository, 'packages/foldkit')
 mkdirSync(resolve(root, 'verification'), { recursive: true })
 const temporary = mkdtempSync(resolve(tmpdir(), 'foldkit-inmessage-runtime-'))
 const results = mkdtempSync(resolve(root, 'verification/runtime-'))
-const file = 'src/experimental/contracted/inMessage.test.ts'
+const file = 'src/experimental/contracted/inMessageUpdate.test.ts'
 
 const run = label => {
   const result = spawnSync(
@@ -40,7 +40,7 @@ const run = label => {
 const cases = [
   {
     name: 'unchecked-payload',
-    path: 'src/experimental/contracted/inMessage.ts',
+    path: 'src/block/delivery.ts',
     before: '!Predicate.isObject(input) || !isInput(input)',
     after: '!Predicate.isObject(input)',
     failure: /validates the decoded payload[\s\S]*expected.*to throw/,
@@ -50,14 +50,14 @@ const cases = [
     path: 'src/experimental/constructed/runtime.ts',
     before: 'const Message = Schema.make(implementation.Message.ast)',
     after:
-      'const Message = Schema.make(blockReceiverOf(implementation)?.InMessage.ast ?? implementation.Message.ast)',
+      'const Message = Schema.make(blockInMessageUpdateOf(implementation)?.InMessage.ast ?? implementation.Message.ast)',
     failure:
       /keeps input-only Blocks message-free[\s\S]*expected true to be false/,
   },
   {
     name: 'discarded-input-result',
-    path: 'src/experimental/contracted/inMessage.ts',
-    before: 'receive(model, ...prepare(...args))',
+    path: 'src/experimental/contracted/inMessageUpdate.ts',
+    before: 'inMessageUpdate(model, ...prepare(...args))',
     after: '({ model })',
     failure: /keeps input-only Blocks message-free[\s\S]*expected \+0 to be 1/,
   },
@@ -67,7 +67,7 @@ const cases = [
     before: 'if (stored.composition !== staticComposition) {',
     after: 'if (false) {',
     failure:
-      /requires a receive plan from the selected Composition[\s\S]*promise resolved/,
+      /requires an inMessageUpdate plan from the selected Composition[\s\S]*promise resolved/,
   },
   {
     name: 'public-instead-of-normalized-graph',
@@ -75,7 +75,7 @@ const cases = [
     before: 'compositionOperationGraphOf(actual)',
     after: 'actual.bindings',
     failure:
-      /executes nested receive[\s\S]*not registered in the current Block graph/,
+      /executes nested inMessageUpdate[\s\S]*not registered in the current Block graph/,
   },
 ]
 

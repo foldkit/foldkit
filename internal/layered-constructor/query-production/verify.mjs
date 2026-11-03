@@ -29,6 +29,7 @@ symlinkSync(packagePath, join(artifacts, 'node_modules/foldkit'))
 const dependencies = [
   ['effect', 'node_modules/effect'],
   ['vitest', 'packages/foldkit/node_modules/vitest'],
+  ['@effect/vitest', 'packages/foldkit/node_modules/@effect/vitest'],
   ['parse5', 'packages/foldkit/node_modules/parse5'],
   [
     '@effect/platform-browser',
@@ -208,16 +209,20 @@ const contractTypes = join(
   'dist/experimental/contracted/contract.d.ts',
 )
 const originalContractTypes = readFileSync(contractTypes, 'utf8')
-const projectedReceive =
-  "'receive' extends keyof Body ? CompiledInputs<In, Extract<PlanOutput<Body['receive']>, AnyFunction>"
-assert.ok(originalContractTypes.includes(projectedReceive))
-writeFileSync(
-  contractTypes,
-  originalContractTypes.replace(
-    projectedReceive,
-    "Body extends ConstructorBody & Readonly<{ receive: Plan<infer Receive, 'Receive', AuthoringSource> }> ? CompiledInputs<In, Extract<Receive, AnyFunction>",
-  ),
-)
+const projectedInputUpdate =
+  /\[InputUpdateOf<Body>\] extends \[never\] \? unknown : CompiledInputs<In, Extract<PlanOutput<InputUpdateOf<Body>>, AnyFunction>/
+assert.ok(projectedInputUpdate.test(originalContractTypes))
+const redundantInputCheck = originalContractTypes
+  .replace(
+    projectedInputUpdate,
+    "Body extends ConstructorBody & Readonly<{ inMessageUpdate: Plan<infer InputUpdate, 'InMessageUpdate', AuthoringSource> }> ? CompiledInputs<In, Extract<InputUpdate, AnyFunction>",
+  )
+  .replace(
+    /(Extract<InputUpdate, AnyFunction>, SourceOf<Body>\['Message'\]\['Type'\], SourceOf<Body>>) : unknown\)/,
+    '$1 : unknown : unknown)',
+  )
+writeFileSync(contractTypes, redundantInputCheck)
+
 try {
   run(
     'redundant-generic-recheck',

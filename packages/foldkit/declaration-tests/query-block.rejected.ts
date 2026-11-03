@@ -98,7 +98,7 @@ CanonicalNoteById.provideHandlers(ForeignCanonicalNoteById.EffectsLayer)
 
 // @ts-expect-error Query parent requests are separate from local completion Messages.
 CanonicalNotes.Message.RequestedLoadIfMissing()
-// @ts-expect-error Query reset is accepted through receive rather than local update.
+// @ts-expect-error Query reset is accepted through inMessageUpdate rather than local update.
 CanonicalNotes.Message.RequestedReset()
 // @ts-expect-error The Clock adapter preserves its explicit positional operation.
 CanonicalNotes.InMessage.RequestedLoadIfStale({ nowMillis: 0 })

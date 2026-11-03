@@ -34,6 +34,40 @@ type AnySchema = Schema.Codec<any, any, any, any>
 type TagOf<Message> =
   Message extends Readonly<{ _tag: infer Tag extends string }> ? Tag : never
 
+declare const InMessageAuthoringTypeId: unique symbol
+
+/** @internal Retains the owning graph while selecting a separate input union. */
+export type InMessageAuthoringSource<
+  Source extends AuthoringSource,
+  InputMessage,
+  Message,
+> = Omit<Source, 'Message'> &
+  Readonly<{
+    Message: Schema.Codec<InputMessage, unknown, never, never>
+    [InMessageAuthoringTypeId]: Readonly<{ source: Source; message: Message }>
+  }>
+
+type SourceOf<Source extends AuthoringSource> =
+  Source extends Readonly<{
+    [InMessageAuthoringTypeId]: Readonly<{ source: infer Original }>
+  }>
+    ? Original
+    : Source
+
+type CommandMessage<Source extends AuthoringSource> =
+  Source extends Readonly<{
+    [InMessageAuthoringTypeId]: Readonly<{ message: infer Message }>
+  }>
+    ? Message
+    : Source['Message']['Type']
+
+type KindOf<Source extends AuthoringSource> =
+  Source extends Readonly<{
+    [InMessageAuthoringTypeId]: unknown
+  }>
+    ? 'InMessageUpdate'
+    : 'Update'
+
 type LocalMessage<Source extends AuthoringSource> = Exclude<
   Source['Message']['Type'],
   GeneratedEnvelopeOf<Source['bindings'][number]>['Type']
@@ -92,7 +126,7 @@ export interface UpdateStage<
   Routers extends ReadonlyArray<unknown> = readonly [],
 >
   extends
-    Plan<RuntimeStageDescriptor, 'Update', Source>,
+    Plan<RuntimeStageDescriptor, KindOf<Source>, SourceOf<Source>>,
     CompositionMetadata<Source, Rows, Covered, Context, Routers> {}
 
 type SharedOutput<
@@ -123,7 +157,7 @@ export type ValidateSharedOutput<
     : (Output extends AnyFunction
         ? ValidateDefinitionStepOutput<
             Source['Model']['Type'],
-            Source['Message']['Type'],
+            CommandMessage<Source>,
             never,
             Output
           > &
@@ -131,7 +165,7 @@ export type ValidateSharedOutput<
         : [Output] extends [
               AuthoredUpdateResult<
                 Source['Model']['Type'],
-                Source['Message']['Type'],
+                CommandMessage<Source>,
                 never,
                 Output
               >,
@@ -140,7 +174,7 @@ export type ValidateSharedOutput<
           : never) &
         ValidateAuthoredUpdate<
           Source['Model']['Type'],
-          Source['Message']['Type'],
+          CommandMessage<Source>,
           never,
           Output extends AnyFunction ? ReturnType<Output> : Output,
           Source['bindings']
@@ -167,7 +201,7 @@ export interface Cases<
       LocalMessage<Source>,
       Source['bindings'],
       Outputs,
-      Source['Message']['Type'],
+      CommandMessage<Source>,
       OutMessage<Source>
     > &
       Readonly<
@@ -192,7 +226,7 @@ export interface Cases<
             Source['Model']['Type'],
             LocalMessage<Source>,
             Source['bindings'],
-            Source['Message']['Type'],
+            CommandMessage<Source>,
             OutMessage<Source>
           >
         > &
@@ -206,7 +240,7 @@ export interface Cases<
             Source['bindings'],
             NoInfer<ContextualCases>
           >,
-          Source['Message']['Type'],
+          CommandMessage<Source>,
           OutMessage<Source>
         > &
         Readonly<
@@ -396,17 +430,14 @@ export type ComposedUpdate<
       >
     : RoutersOf<Parts> extends readonly [unknown]
       ? Plan<
-          CompositionDefinedUpdate<
-            Source['Model']['Type'],
-            Source['Message']['Type'],
+          ComposedDispatcher<
+            Source,
             Context,
-            OutputForRows<Source, MergedRows<Source, Parts[number]>>,
-            Source['bindings'],
-            false
+            MergedRows<Source, Parts[number]>
           > &
             OperationOutputs<MergedRows<Source, Parts[number]>>,
-          'Update',
-          Source
+          KindOf<Source>,
+          SourceOf<Source>
         > &
           CompositionMetadata<
             Source,
@@ -440,24 +471,26 @@ export type ChannelsOf<UpdateFunction> =
   UpdateFunction extends OperationOutputs<infer Channels> ? Channels : never
 
 type RouteRows<Source extends AuthoringSource> =
-  Source['bindings'][number] extends infer Binding
-    ? Binding extends Readonly<{ fold: infer Fold extends AnyFunction }>
-      ? TagOf<IncomingMessageOfBinding<Binding>> extends infer Tag extends
-          string
-        ? ResolvedAuthoredOutput<
-            ReturnType<Fold>,
-            Source['bindings']
-          > extends infer Output
-          ? readonly [
-              Tag,
-              ReturnOutMessage<Output>,
-              Update.RequirementsOfResult<Output>,
-              Update.RegistrationEvidenceOf<Output>,
-            ]
+  KindOf<Source> extends 'InMessageUpdate'
+    ? never
+    : Source['bindings'][number] extends infer Binding
+      ? Binding extends Readonly<{ fold: infer Fold extends AnyFunction }>
+        ? TagOf<IncomingMessageOfBinding<Binding>> extends infer Tag extends
+            string
+          ? ResolvedAuthoredOutput<
+              ReturnType<Fold>,
+              Source['bindings']
+            > extends infer Output
+            ? readonly [
+                Tag,
+                ReturnOutMessage<Output>,
+                Update.RequirementsOfResult<Output>,
+                Update.RegistrationEvidenceOf<Output>,
+              ]
+            : never
           : never
         : never
       : never
-    : never
 
 type ReturnOutMessage<Output> =
   Output extends Readonly<{
@@ -468,8 +501,8 @@ type ReturnOutMessage<Output> =
 
 type CompositionPart<Source extends AuthoringSource> = Plan<
   RuntimeStageDescriptor | AnyFunction,
-  'Update',
-  Source
+  KindOf<Source>,
+  SourceOf<Source>
 >
 
 type InvalidPartMetadata<
@@ -684,12 +717,40 @@ type OutputForRows<
   Rows extends ChannelRow,
 > = Update.WithRegistrationEvidence<
   [Rows[1]] extends [never]
-    ? Update.Return<Source['Model']['Type'], Source['Message']['Type'], Rows[2]>
+    ? Update.Return<Source['Model']['Type'], CommandMessage<Source>, Rows[2]>
     : Update.ReturnWithOutMessage<
         Source['Model']['Type'],
-        Source['Message']['Type'],
+        CommandMessage<Source>,
         Rows[1],
         Rows[2]
       >,
   Rows[3]
 >
+
+type ComposedDispatcher<
+  Source extends AuthoringSource,
+  Context extends ReadonlyArray<unknown>,
+  Rows extends ChannelRow,
+> =
+  KindOf<Source> extends 'InMessageUpdate'
+    ? {
+        (
+          input: Source['Message']['Type'],
+        ): (
+          model: Source['Model']['Type'],
+          ...context: Context
+        ) => OutputForRows<Source, Rows>
+        (
+          model: Source['Model']['Type'],
+          input: Source['Message']['Type'],
+          ...context: Context
+        ): OutputForRows<Source, Rows>
+      }
+    : CompositionDefinedUpdate<
+        Source['Model']['Type'],
+        Source['Message']['Type'],
+        Context,
+        OutputForRows<Source, Rows>,
+        Source['bindings'],
+        false
+      >

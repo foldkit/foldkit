@@ -443,7 +443,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       return dismiss
     })
 
-  const receive = ToastComposition.makeReceive({
+  const inMessageUpdate = ToastComposition.makeInMessageUpdate({
     RequestedDismissAll: model => {
       const dismissVisibleEntries = pipe(
         model.entries,
@@ -770,7 +770,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     OutMessage: OutMessageSchema,
     init,
     update,
-    receive,
+    inMessageUpdate,
     operations,
     subscriptions,
     EffectsLayer,

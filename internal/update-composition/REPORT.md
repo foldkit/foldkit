@@ -30,7 +30,9 @@ Command intents collect in order. Their effects are not sequenced. Shared
 callbacks cannot emit OutMessages, including through a connected child's parent
 policy. Additional record handlers retain exact per-tag channels; competing
 emissions for the same tag are rejected. Silent pieces preserve a prior
-OutMessage. This applies to update, not init or receive.
+OutMessage. `makeInMessageUpdate` provides the same focused composition for
+parent inputs, using its own InMessage union and Context. Commands from both
+entry points produce ordinary local Messages. Init remains separate.
 
 Plans are passive and Composition-owned. Dispatch admission happens before
 application callbacks, and child delivery runs once at the exhaustive update's
@@ -52,6 +54,12 @@ instead of returning the same Command from six handlers. Its save completion is
 excluded. Other ordinary records remain ordinary records.
 
 ## Current whole-preview comparison with actual main
+
+This section retains the frozen November 2 benchmark checkpoint. The later
+unchanged-child identity repair and canonical InMessage update migration alter
+runtime source and are not measured by this batch. Final API release preparation
+requires a new frozen candidate comparison; the original samples and artifact
+claims below retain their checkpoint scope.
 
 A fresh Lustre benchmark batch compared the current candidate source tree with
 actual main, `a471adb24d750ab9e8d8312edad53ff6f26d961b`. The candidate has base

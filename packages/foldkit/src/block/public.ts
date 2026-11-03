@@ -102,8 +102,11 @@ export type {
   InMessageDefinition,
   MakeComposition as ContractMakeComposition,
 } from '../experimental/contracted/contract.js'
-/** @internal Names an authored receiver without expanding its handler implementations. */
-export type { ReceiveHandler } from '../experimental/contracted/inMessage.js'
+/** @internal Names an authored input update without expanding its handler implementations. */
+export type {
+  InMessageUpdateHandler,
+  MakeInMessageUpdatePlan,
+} from '../experimental/contracted/inMessageUpdate.js'
 export type { ViewBuilderFor } from './viewBuilder.js'
 export { makeInputContract } from '../experimental/contracted/inputContract.js'
 export type {
@@ -146,6 +149,7 @@ export type {
   CoreContract,
   DescriptorContract,
   ExecutableOf,
+  ExecutableInMessageUpdate,
   ExecutableReturn,
   ExecutableReturnWithOutMessage,
   FactsOf,
@@ -186,6 +190,7 @@ export type { Plan, ViewPlan } from '../experimental/hybrid/authoring.js'
 /** @internal Keeps inferred focused and composed update plans nameable in declarations. */
 export type {
   CompositionMetadata,
+  InMessageAuthoringSource,
   MakeComposableUpdatePlan,
   UpdateStage,
 } from '../experimental/hybrid/updateComposition.js'

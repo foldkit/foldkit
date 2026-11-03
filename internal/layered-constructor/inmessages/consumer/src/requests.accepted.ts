@@ -25,8 +25,14 @@ export const receivedRequests = Effect.gen(function* () {
     composerInit.model,
     Message.UpdatedText({ value: '  Hello  ' }),
   )
-  const submitted = composer.receive(updated.model, InMessage.RequestedSubmit())
-  const cleared = composer.receive(submitted.model, InMessage.RequestedClear())
+  const submitted = composer.inMessageUpdate(
+    updated.model,
+    InMessage.RequestedSubmit(),
+  )
+  const cleared = composer.inMessageUpdate(
+    submitted.model,
+    InMessage.RequestedClear(),
+  )
   const locallySubmitted = composer.update(
     updated.model,
     Message.SubmittedForm(),

@@ -813,7 +813,7 @@ export const makeUpdateHandlers = <
   }>
 
   return {
-    receiveHandlers: {
+    inMessageUpdateHandlers: {
       RequestedOpen: step(model => openWithActiveItem(model, Option.none())),
     },
     handlers: {

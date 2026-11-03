@@ -65,11 +65,11 @@ const makeFixture = (block: Scene.TestBlock<typeof PopoverBlock>) => {
   const arrow = Scene.selector('[key="test-arrow"]')
 
   const closedModel = init({ id: 'test' }).model
-  const openPopover = block.receive(
+  const openPopover = block.inMessageUpdate(
     init({ id: 'test' }).model,
     InMessage.RequestedOpen(),
   )
-  const openContentFocusPopover = block.receive(
+  const openContentFocusPopover = block.inMessageUpdate(
     init({ id: 'test', contentFocus: true }).model,
     InMessage.RequestedOpen(),
   )

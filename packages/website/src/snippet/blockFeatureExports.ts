@@ -30,9 +30,9 @@ export const SettingsBlock = SettingsDefinition.contract
 // blocks/settings/block.ts
 
 import { ApplicationDefinition, SettingsDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { EffectsLayer } from './layer'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -42,7 +42,7 @@ export const layer = SettingsDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

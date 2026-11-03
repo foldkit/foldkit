@@ -32,9 +32,13 @@ import {
   staticPropertyName,
   staticStringValue,
 } from '../guards.ts'
+import {
+  type UpdateAuthoring,
+  ownedUpdateAuthoringCallee,
+} from '../update-authoring.ts'
 
 const directBlockStateUpdateMessage = (fieldName: string): string =>
-  `Do not update the Block field \`${fieldName}\` directly from its parent. Declare a public child InMessage, then call the named method on the registered Binding so the child receive handler owns the transition.`
+  `Do not update the Block field \`${fieldName}\` directly from its parent. Declare a public child InMessage, then call the named method on the registered Binding so the child inMessageUpdate handler owns the transition.`
 
 const discardedChildReturnMessage = (
   fieldName: string,
@@ -847,7 +851,7 @@ type CompositionDefinition = Readonly<{
 
 type CompositionUpdate = Readonly<{
   definition: CompositionDefinition
-  kind: 'Direct' | 'WithContext'
+  kind: UpdateAuthoring['kind']
 }>
 
 const compositionDefinitions = (
@@ -935,20 +939,15 @@ const compositionDefinitionForUpdate = (
     fallbackByName: ReadonlyMap<string, CompositionDefinition>
   }>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  filename?: string,
 ): CompositionUpdate | undefined => {
-  const maybePath = staticMemberPath(callee)
-  if (
-    Option.isNone(maybePath) ||
-    (maybePath.value.members.join('.') !== 'makeUpdate' &&
-      maybePath.value.members.join('.') !== 'makeUpdate.withContext' &&
-      maybePath.value.members.join('.') !== 'makeReceive' &&
-      maybePath.value.members.join('.') !== 'makeReceive.withContext')
-  ) {
+  const authored = ownedUpdateAuthoringCallee(callee, references, filename)
+  if (Option.isNone(authored)) {
     return undefined
   }
 
-  const { root } = maybePath.value
-  const kind = maybePath.value.members.length === 1 ? 'Direct' : 'WithContext'
+  const { root } = authored.value.owner.path
+  const { kind } = authored.value
   if (references === undefined) {
     const definition = definitions.fallbackByName.get(root.name)
     return definition === undefined ? undefined : { definition, kind }
@@ -1008,7 +1007,12 @@ const compositionUpdateHandlers = (
       property.type === 'Property' ? [property.value] : [],
     )
   const [authored] = node.arguments
-  if (kind === 'Direct') {
+  if (kind === 'Shared') {
+    return authored === undefined || authored.type === 'SpreadElement'
+      ? []
+      : [authored]
+  }
+  if (kind === 'Record') {
     const handlers = resolvedObjectValue(authored, references)
     return handlers === undefined ? [] : handlerValues(handlers)
   }
@@ -1498,6 +1502,7 @@ const foldEvidence = (
       node.callee,
       compositions,
       references,
+      importerFilename,
     )
     if (compositionUpdate !== undefined) {
       const handlers = compositionUpdateHandlers(

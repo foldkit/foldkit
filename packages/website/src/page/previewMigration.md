@@ -178,6 +178,12 @@ channels. Their `{ before }` argument is the original Model for the whole
 dispatch, including nested bundles. No rewrite is needed for an ordinary
 record-authored update.
 
+### Name and Compose Parent Input Handling
+
+Rename `Composition.makeReceive` to `Composition.makeInMessageUpdate`, rename the implementation field to `inMessageUpdate`, and move a feature's `receive.ts` module to `inMessageUpdate.ts`. Acquired executables support `inMessageUpdate(model, input, ...context)` and `inMessageUpdate(input)(model, ...context)`. The former names are removed; generated Binding methods such as `requestOpen()` and `informRouteChange(...)` stay the same.
+
+Keep an exhaustive InMessage record as the default. Its `cases`, `each`, `on`, `except`, and `compose` helpers provide the same ordered composition as local updates. They narrow the InMessage union, use the separate `InMessageContext`, and preserve the original `before` Model for that invocation. Commands still produce ordinary local Messages, and compatible Model-only Steps can serve both entry points. See [parent input composition](/core/block#compose-parent-input-handling).
+
 ### Select the Binding Shape
 
 Prefer the narrowest Binding that represents the parent's actual storage:

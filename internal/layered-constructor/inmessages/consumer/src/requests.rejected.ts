@@ -12,10 +12,13 @@ export const invalidClearPayload = MessageComposerBinding.requestClear({
   text: 'Hello',
 })
 
-// @ts-expect-error Receive must handle every declared input.
-export const incompleteReceive = MessageComposerComposition.makeReceive({
-  RequestedClear: model => ({ model }),
-})
+export const incompleteInputUpdate =
+  MessageComposerComposition.makeInMessageUpdate(
+    // @ts-expect-error An input update must handle every declared input.
+    {
+      RequestedClear: model => ({ model }),
+    },
+  )
 
 export const invalidDispatches = Effect.gen(function* () {
   const composer = yield* MessageComposerContract.get
@@ -26,11 +29,11 @@ export const invalidDispatches = Effect.gen(function* () {
     // @ts-expect-error InMessages cannot enter the local update dispatcher.
     InMessage.RequestedClear(),
   )
-  const receivedLocal = composer.receive(
+  const inputLocal = composer.inMessageUpdate(
     composerInit.model,
-    // @ts-expect-error Local facts cannot enter receive.
+    // @ts-expect-error Local facts cannot enter inMessageUpdate.
     Message.UpdatedText({ value: 'Hello' }),
   )
 
-  return { localInput, receivedLocal }
+  return { localInput, inputLocal }
 }).pipe(Effect.provide(MessageComposerBlock.layer))

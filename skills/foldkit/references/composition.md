@@ -95,17 +95,17 @@ Extract focused bundles with `makeUpdate.compose(...)` and combine them later. A
 
 Shared `each`, `on`, and `except` pieces cannot emit OutMessages. Handler records retain their per-Message OutMessage contracts, and composition rejects pieces that could emit competing OutMessages for the same dispatch. Existing Binding OutMessage policies keep their meaning. Commands are collected in piece order; their effects and completions are not sequenced by that order.
 
-Composition covers update only. Init and receive remain separate entry points. Callbacks stay pure, workflow state stays in the Model, and effects stay in returned Commands.
+`Composition.makeInMessageUpdate` provides the same `cases`, `each`, `on`, `except`, and `compose` helpers. Its selectors narrow the InMessage union and contextual callbacks use `InMessageContext`. Each invocation owns its original `before` Model; there is no child Message delivery to route in this entry point. Returned Commands still produce ordinary local Messages. Keep one exhaustive InMessage record in the completed input update and reuse compatible Model-only Steps across both entry points. Init remains separate. Callbacks stay pure, workflow state stays in the Model, and effects stay in returned Commands.
 
 ## Parent inputs
 
 Declare an optional `InMessage` Schema for requests and notifications a parent can initiate. Its tags are disjoint from local `Message`: `RequestedSubmit` generates `Binding.requestSubmit()`, and `InformedOfIssueChanged` generates `Binding.informIssueChanged(payload)`. Fields use the variant constructor's exact payload contract. A keyed Binding takes its occurrence key first. Do not inflect or alias the generated names.
 
-Author an exhaustive `Composition.makeReceive` record and return `receive` with init, update and view from `Definition.makeBlock`. Local UI facts and Command results remain in `makeUpdate`. Share a reusable Step in `steps.ts` when local `SubmittedForm` and received `RequestedSubmit` need the same transition. Sparse `inMessageOutputs` entries declare emitting OutMessage bounds and additional `services` or `resources`; an omitted entry is silent and adds no public requirements. Commands returned from receive produce local Messages, never InMessages.
+Author an exhaustive `Composition.makeInMessageUpdate` record and return `inMessageUpdate` with init, update and view from `Definition.makeBlock`. Local UI facts and Command results remain in `makeUpdate`. Share a reusable Step in `steps.ts` when local `SubmittedForm` and received `RequestedSubmit` need the same transition. Sparse `inMessageOutputs` entries declare emitting OutMessage bounds and additional `services` or `resources`; an omitted entry is silent and adds no public requirements. Commands returned from inMessageUpdate produce local Messages, never InMessages.
 
-Declare a separate `InMessageContext` tuple and use `makeReceive.withContext` for receive context. Binding methods take that context after the payload. The update `Context` and `delivery.toUpdateContext` do not supply it. Receive remains synchronous and pure; it preserves the existing Binding's storage, OutMessage policy, occurrence identity and lifecycle. Acquisition does not call receive or initialize Model state.
+Declare a separate `InMessageContext` tuple and use `makeInMessageUpdate.withContext` for InMessage context. Binding methods take that context after the payload. The update `Context` and `delivery.toUpdateContext` do not supply it. InMessage handling remains synchronous and pure; it preserves the existing Binding's storage, OutMessage policy, occurrence identity and lifecycle. Acquisition does not call inMessageUpdate or initialize Model state.
 
-An acquired executable supports `receive(model, inMessage, ...context)` and `receive(inMessage)(model, ...context)`. Scoped tests use `Story.inMessage` / `Scene.inMessage` and supply required `{ block, inMessageContext: [...] }` independently of `updateContext`. Raw runners cannot resolve this cause without an acquired receiver.
+An acquired executable supports `inMessageUpdate(model, inMessage, ...context)` and `inMessageUpdate(inMessage)(model, ...context)`. Scoped tests use `Story.inMessage` / `Scene.inMessage` and supply required `{ block, inMessageContext: [...] }` independently of `updateContext`. Raw runners cannot resolve this cause without an acquired InMessage update.
 
 ### Explicit operation adapters
 
@@ -126,7 +126,7 @@ Use `FeatureDefinition.makeFieldsStep(producer)` for owning field transformation
 
 In a split feature, `definition.ts` exports the Step helpers used by its implementation and those modules named-import the helpers from that file. A colocated feature destructures helpers beside its Definition in the scope that uses them. Keep Definition-qualified calls when several Definitions in one module need visible ownership. Feature barrels keep authoring helpers private and export the passive Block contract and construction `layer`.
 
-Put reusable parent Steps shared by update, receive, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Name shared transitions for their operation, without a `make` prefix or `Step` suffix, and defer cyclic Binding access until the producer is applied.
+Put reusable parent Steps shared by update, inMessageUpdate, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Name shared transitions for their operation, without a `make` prefix or `Step` suffix, and defer cyclic Binding access until the producer is applied.
 
 All three take callbacks, evaluated when the Step or handler is applied. An ordinary producer receives the current Model and, when authored as a Message-dependent handler, its exact Message. Use `.fromMessage(message => value)` for payload-only producers and `() => value` for fixed producers. Commands-only and OutMessage-only helpers preserve the incoming Model identity. `makeNoopStep()` stays unchanged; in an OutMessage fold, pass its factory point-free when appropriate.
 
@@ -140,7 +140,7 @@ An empty record returned by `makeFieldsStep` preserves the exact incoming Model 
 
 Choose the helper when authoring a Step. Inside a local `makeStep` callback, return results directly, including `{ model }` for an unchanged Model. Do not construct and immediately apply another local Step merely to express a branch. Keep existing reusable operations, sequential composition, and Definition-owned local Steps needed when mixing local branches with connected recipes; those preserve result channels and registration evidence.
 
-For explicit adapters, name actions `request*` and notifications `inform*`. Their local Message mapping enters update; generated InMessage methods enter receive. Keep actual UI facts separate from parent requests. Avoid `reflect*` helpers that bypass the owning transition to change child state.
+For explicit adapters, name actions `request*` and notifications `inform*`. Their local Message mapping enters update; generated InMessage methods enter inMessageUpdate. Keep actual UI facts separate from parent requests. Avoid `reflect*` helpers that bypass the owning transition to change child state.
 
 Choose parent inputs by ownership. Use view inputs for current render data and update context (`delivery.toUpdateContext`) for current data read while handling a Message. Use an `inform*` operation when an external event requires a child transition, Command, or OutMessage. View inputs and context do not dispatch Messages when their values change. Keep an independent editing baseline in the child Model when needed, while passing current comments or other display data through view inputs. Do not mirror parent data merely to read it, or notify a child back about a change it already applied unless another transition is required.
 
@@ -301,7 +301,7 @@ The passive `ProfileBlock.Message` is the declared local Message Schema. After g
 child operation through its named Binding method. For example, when a Dialog
 Block declares `InMessage.RequestedClose`, its parent calls
 `DialogBinding.requestClose(...)`; it does not construct a child Message to force that
-transition. Dialog receive owns the transition. An explicit operation adapter may
+transition. Dialog's `inMessageUpdate` owns the transition. An explicit operation adapter may
 instead map to a local Message handled by update. Render through
 `h.block(SettingsBinding.embedView(...))`.
 
@@ -410,7 +410,7 @@ A direct child fact in a Block-aware Story uses `Story.messageFrom(binding, rawC
 
 `Story.message` may send another fact while Commands are pending. Pending work keeps its captured identity and must be resolved before the Story ends. This does not change Scene's pending-Command or Mount checks.
 
-Use `Story.inMessage(InMessage.RequestedSubmit())` or the Scene equivalent for a parent input. The runner applies receive inside the same acquired graph. Command resolution still dispatches the raw local result through update. Reusable `Story.steps` and `Scene.inside` retain the separate input type and do not bypass Scene's pending-Command boundary.
+Use `Story.inMessage(InMessage.RequestedSubmit())` or the Scene equivalent for a parent input. The runner applies `inMessageUpdate` inside the same acquired graph. Command resolution still dispatches the raw local result through update. Reusable `Story.steps` and `Scene.inside` retain the separate input type and do not bypass Scene's pending-Command boundary.
 
 Use `Story.withBlock(Block, acquired => ...)` only when a test needs acquired pure functions or a feature-local fixture. Return a synchronous result or an Effect from the callback; an async callback is not accepted. The acquired test facade includes the default renderer and actual selected implementation registrations. Scene Subscription steps use the exact registered entry and a declared raw Message; they do not start live Streams or prove stale-generation admission. A passive public contract does not expose private Subscription registries. Test implementation-owned behavior through its selected descriptor or retain a concrete local registry in a lower-level fixture. Keep test files in TypeScript's normal include coverage.
 
@@ -538,7 +538,7 @@ construction Layer.
 | Value                                      | Owns                                                                                                             |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
 | `FeatureDefinition.contract`               | Independent Model, local Message, InMessage, Init/Context, view inputs, operations and external effect contracts |
-| `FeatureComposition`                       | Static Binding/Mount inventory and typed init/update/receive/view builders                                       |
+| `FeatureComposition`                       | Static Binding/Mount inventory and typed init/update/inMessageUpdate/view builders                               |
 | `FeatureDefinition.makeBlock(constructor)` | Layer-owned acquisition of child implementations and checked completion                                          |
 | Feature `EffectsLayer`                     | Locally owned handler recipes                                                                                    |
 | Feature `layer`                            | Construction provider for the public contract                                                                    |

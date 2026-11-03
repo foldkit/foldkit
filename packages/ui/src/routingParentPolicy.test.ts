@@ -11,11 +11,11 @@ it.effect(
   'Dialog distinguishes the Model close transition from native cleanup completion',
   () =>
     Story.withBlock(Dialog.DialogBlock, dialog => {
-      const opened = dialog.receive(
+      const opened = dialog.inMessageUpdate(
         dialog.init({ id: 'routing-proof' }).model,
         dialog.InMessage.RequestedOpen(),
       )
-      const transitioned = dialog.receive(
+      const transitioned = dialog.inMessageUpdate(
         opened.model,
         dialog.InMessage.RequestedClose(),
       )
@@ -33,15 +33,15 @@ it.effect(
   'Dialog reports every completed native close, including after a reopen',
   () =>
     Story.withBlock(Dialog.DialogBlock, dialog => {
-      const opened = dialog.receive(
+      const opened = dialog.inMessageUpdate(
         dialog.init({ id: 'routing-proof' }).model,
         dialog.InMessage.RequestedOpen(),
       )
-      const transitioned = dialog.receive(
+      const transitioned = dialog.inMessageUpdate(
         opened.model,
         dialog.InMessage.RequestedClose(),
       )
-      const reopened = dialog.receive(
+      const reopened = dialog.inMessageUpdate(
         transitioned.model,
         dialog.InMessage.RequestedOpen(),
       )

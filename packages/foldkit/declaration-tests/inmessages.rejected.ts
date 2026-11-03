@@ -67,7 +67,7 @@ const familyPrefix = Object.freeze({
 // @ts-expect-error Family inputs must produce request or inform operation names.
 Block.makeFamilyDefinition('InMessagesFamilyPrefix', familyPrefix)
 
-StringInputFamilyComposition.makeReceive({
+StringInputFamilyComposition.makeInMessageUpdate({
   RequestedSet: (_model, input) => {
     // @ts-expect-error Generic family specialization preserves its string input.
     const value: number = input.value
@@ -95,8 +95,8 @@ const extraMetadata = Object.freeze({
 // @ts-expect-error Input result metadata cannot smuggle a local Message adapter.
 Block.makeDefinition('ExtraInputMetadata', extraMetadata)
 
-// @ts-expect-error Every declared input requires a receive case.
-CounterComposition.makeReceive({
+// @ts-expect-error Every declared input requires an input update case.
+CounterComposition.makeInMessageUpdate({
   RequestedSetCount: CounterDefinition.makeNoopStep(),
   RequestedSave: CounterDefinition.makeNoopStep(),
   RequestedReport: CounterDefinition.makeNoopStep(),
@@ -110,10 +110,10 @@ const extraCase = {
   RequestedUnknown: CounterDefinition.makeNoopStep(),
 }
 
-// @ts-expect-error A receive record cannot declare undeclared inputs.
-CounterComposition.makeReceive(extraCase)
+// @ts-expect-error An input update record cannot declare undeclared inputs.
+CounterComposition.makeInMessageUpdate(extraCase)
 
-CounterComposition.makeReceive({
+CounterComposition.makeInMessageUpdate({
   RequestedClear: CounterDefinition.makeNoopStep(),
   RequestedSetCount: CounterDefinition.makeFieldsStep.fromMessage(input => {
     // @ts-expect-error This input contains count rather than label.
@@ -129,7 +129,7 @@ declare const inputCommand: Command.Command<
   typeof InMessage.RequestedClear.Type
 >
 
-CounterComposition.makeReceive({
+CounterComposition.makeInMessageUpdate({
   RequestedClear: CounterDefinition.makeNoopStep(),
   RequestedSetCount: CounterDefinition.makeNoopStep(),
   // @ts-expect-error Input Messages cannot become local Command results.
@@ -140,23 +140,29 @@ CounterComposition.makeReceive({
 declare const counter: Block.ExecutableOf<typeof CounterContract>
 declare const parent: Block.ExecutableOf<typeof ParentContract>
 
-counter.receive(
+counter.inMessageUpdate(
   Model.make({ count: 0, label: '' }),
   // @ts-expect-error A local fact is not an InMessage.
   Message.CompletedSave({ count: 0 }),
 )
 // @ts-expect-error An InMessage is not a local dispatch Message.
 counter.update(Model.make({ count: 0, label: '' }), InMessage.RequestedClear())
-// @ts-expect-error A receive call preserves the Model's actual field types.
-counter.receive({ count: 'wrong', label: '' }, InMessage.RequestedClear())
+counter.inMessageUpdate(
+  // @ts-expect-error An input update preserves the Model's actual field types.
+  { count: 'wrong', label: '' },
+  InMessage.RequestedClear(),
+)
 // @ts-expect-error A generated method retains its input payload.
 counter.operations.requestSetCount({ count: 0, label: '' }, { count: 'wrong' })
 // @ts-expect-error An empty input variant needs no placeholder object.
 counter.operations.requestClear({ count: 0, label: '' }, {})
 // @ts-expect-error The public generated name omits the past-tense suffix.
 counter.operations.requestedClear
-// @ts-expect-error A parent receiver cannot receive a child's input union directly.
-parent.receive({ counter: { count: 0, label: '' } }, InMessage.RequestedClear())
+parent.inMessageUpdate(
+  { counter: { count: 0, label: '' } },
+  // @ts-expect-error A parent input update cannot accept a child's input union directly.
+  InMessage.RequestedClear(),
+)
 
 const missingReceive = Effect.succeed({
   children: [],
@@ -165,7 +171,7 @@ const missingReceive = Effect.succeed({
   EffectsLayer: Save.layer,
 })
 
-// @ts-expect-error A Definition with InMessage requires its receive plan at completion.
+// @ts-expect-error A Definition with InMessage requires its input update plan at completion.
 CounterDefinition.makeBlock(missingReceive)
 
 const OtherKey = Symbol('InMessagesOtherGraph')
@@ -179,20 +185,20 @@ const OtherDefinition = Block.makeDefinition('InMessagesOtherGraph', {
   inMessageOutputs: { RequestedReport: { outMessage: OutMessage.Reported } },
 })
 const OtherComposition = OtherDefinition.makeComposition()
-const foreignReceive = OtherComposition.makeReceive({
+const foreignInMessageUpdate = OtherComposition.makeInMessageUpdate({
   RequestedClear: OtherDefinition.makeNoopStep(),
   RequestedSetCount: OtherDefinition.makeNoopStep(),
   RequestedSave: OtherDefinition.makeNoopStep(),
   RequestedReport: OtherDefinition.makeNoopStep(),
 })
 
-// @ts-expect-error A receive plan retains its original Definition and graph.
+// @ts-expect-error An input update plan retains its original Definition and graph.
 CounterDefinition.makeBlock(
   Effect.succeed({
     children: [],
     init,
     update,
-    receive: foreignReceive,
+    inMessageUpdate: foreignInMessageUpdate,
     EffectsLayer: Save.layer,
   }),
 )
@@ -207,7 +213,7 @@ const SilentDefinition = Block.makeDefinition('InMessagesSilentBound', {
   Init: Schema.Tuple([]),
 })
 const SilentComposition = SilentDefinition.makeComposition()
-const undeclaredEmission = SilentComposition.makeReceive({
+const undeclaredEmission = SilentComposition.makeInMessageUpdate({
   RequestedClear: SilentDefinition.makeNoopStep(),
   RequestedSetCount: SilentDefinition.makeNoopStep(),
   RequestedSave: SilentDefinition.makeNoopStep(),
@@ -227,7 +233,7 @@ SilentDefinition.makeBlock(
       UpdatedLabel: SilentDefinition.makeNoopStep(),
       CompletedSave: SilentDefinition.makeNoopStep(),
     }),
-    receive: undeclaredEmission,
+    inMessageUpdate: undeclaredEmission,
   }),
 )
 
@@ -240,9 +246,9 @@ const UnregisteredBinding = ParentDefinition.makeBinding(CounterContract, {
   }),
 })
 
-ParentComposition.makeReceive({
+ParentComposition.makeInMessageUpdate({
   RequestedClearChild: ParentDefinition.makeNoopStep(),
-  // @ts-expect-error A receive handler cannot use an unregistered connected child graph.
+  // @ts-expect-error An input update handler cannot use an unregistered connected child graph.
   RequestedReportChild: ParentDefinition.makeStep.fromMessage(({ label }) =>
     UnregisteredBinding.requestReport({ label }),
   ),

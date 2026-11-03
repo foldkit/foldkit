@@ -29,6 +29,7 @@ import {
   staticMemberName,
   staticPropertyName,
 } from '../guards.ts'
+import { ownedUpdateAuthoringCallee } from '../update-authoring.ts'
 
 type StaticPath = Readonly<{
   root: ESTree.IdentifierReference
@@ -1137,14 +1138,51 @@ const isDeferredFunction = (
 
 const pureAuthoringMethods = [
   'makeInit',
-  'makeUpdate',
-  'makeReceive',
   'makeView',
   'makeStep',
   'makeFieldsStep',
   'makeCommandsStep',
   'makeOutMessageStep',
 ]
+
+const enclosingFunction = (
+  node: ESTree.Node,
+): Option.Option<ESTree.ArrowFunctionExpression | ESTree.Function> => {
+  const { parent } = node
+  if (parent === null) {
+    return Option.none()
+  }
+  return isFunction(parent) ? Option.some(parent) : enclosingFunction(parent)
+}
+
+const isReturnedContextCases = (
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  filename: string | undefined,
+  node: ESTree.Node,
+): boolean => {
+  const expression = outermostExpression(node)
+  const { parent } = expression
+  const returnedFactory = (): Option.Option<
+    ESTree.ArrowFunctionExpression | ESTree.Function
+  > => {
+    if (isFunction(parent) && parent.body === expression) {
+      return Option.some(parent)
+    }
+    if (parent?.type === 'ReturnStatement' && parent.argument === expression) {
+      return enclosingFunction(parent)
+    }
+    return Option.none()
+  }
+  const factory = returnedFactory()
+  return Option.exists(factory, fn =>
+    Option.exists(enclosingCallArgument(fn), ({ call }) =>
+      Option.exists(
+        ownedUpdateAuthoringCallee(call.callee, references, filename),
+        authored => authored.kind === 'ContextRecord',
+      ),
+    ),
+  )
+}
 
 const isPureAuthoringArgument = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
@@ -1155,14 +1193,16 @@ const isPureAuthoringArgument = (
   if (Option.isSome(maybeCall)) {
     const { callee } = maybeCall.value.call
 
-    return pureAuthoringMethods.some(
-      method =>
-        isOwnedDefinitionCallee(callee, method, references, filename) ||
-        ((method === 'makeUpdate' || method === 'makeReceive') &&
-          isMemberExpression(callee) &&
-          Option.contains(staticMemberName(callee), 'withContext') &&
-          isOwnedDefinitionCallee(callee.object, method, references, filename)),
+    return (
+      Option.isSome(ownedUpdateAuthoringCallee(callee, references, filename)) ||
+      pureAuthoringMethods.some(method =>
+        isOwnedDefinitionCallee(callee, method, references, filename),
+      )
     )
+  }
+
+  if (isReturnedContextCases(references, filename, node)) {
+    return true
   }
 
   const maybeProperty = enclosingPropertyValue(node)

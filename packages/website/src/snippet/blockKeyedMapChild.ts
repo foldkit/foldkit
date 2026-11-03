@@ -34,7 +34,7 @@ export const layer = EntryDefinition.makeBlock(
         model: { title },
       })),
       update: EntryComposition.makeUpdate({}),
-      receive: EntryComposition.makeReceive({
+      inMessageUpdate: EntryComposition.makeInMessageUpdate({
         RequestedRename: (model, { title }) => ({
           model: modifyFields(model, { title: () => title }),
         }),

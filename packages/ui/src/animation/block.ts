@@ -3,7 +3,7 @@ import { Effect } from 'effect'
 import { EffectsLayer } from './command.js'
 import { AnimationDefinition } from './definition.js'
 import { init } from './init.js'
-import { receive, update } from './update.js'
+import { inMessageUpdate, update } from './update.js'
 import { view } from './view.js'
 
 /** @internal Checked implementation used as an internal testing root. */
@@ -13,7 +13,7 @@ export const block = AnimationDefinition.makeBlock(
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

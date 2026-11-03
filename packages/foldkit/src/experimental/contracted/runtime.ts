@@ -8,13 +8,13 @@ import {
   Scope,
 } from 'effect'
 
+import { copyBlockInMessageUpdate } from '../../block/inMessageUpdate.js'
 import { isOperationMessageConstructor } from '../../block/operation.js'
 import { compositionOperationGraphOf } from '../../block/operationGraph.js'
-import { copyBlockReceiver } from '../../block/receiver.js'
 import { registerRuntimeAcquisition } from '../../block/runtimeCapability.js'
 import { registerRootConstruction } from '../../runtime/rootBlock.js'
 import {
-  type CompileReceiver,
+  type CompileInMessageUpdate,
   constructAuthoredImplementation,
   makeDefinitionFactory,
   registerDeclaredDescriptor,
@@ -41,9 +41,9 @@ import type {
 import {
   assertInMessageConfiguration,
   compileInputs,
-  makeReceiveDispatcher,
-  makeReceivePlan,
-} from './inMessage.js'
+  makeInMessageUpdateDispatcher,
+  makeInMessageUpdatePlan,
+} from './inMessageUpdate.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
@@ -512,38 +512,41 @@ export const makeDefinitionRuntime = (
                     )
                   }
 
-                  const compileReceiver: CompileReceiver | undefined =
+                  const compileInMessageUpdate:
+                    | CompileInMessageUpdate
+                    | undefined =
                     InMessage === undefined
                       ? undefined
                       : (actual, source, environment) => {
                           if (
-                            body.receive === undefined ||
-                            planKind(body.receive) !== 'Receive'
+                            body.inMessageUpdate === undefined ||
+                            planKind(body.inMessageUpdate) !== 'InMessageUpdate'
                           ) {
                             throw new Error(
-                              '[foldkit] An InMessage contract requires its Composition.makeReceive plan.',
+                              '[foldkit] An InMessage contract requires its Composition.makeInMessageUpdate plan.',
                             )
                           }
 
-                          const makeReceive = makeReceiveDispatcher(
-                            InMessage,
-                            compositionOperationGraphOf(actual),
-                            environment,
-                          )
-                          actual.makeReceive = makeReceive
-                          const receive = compilePlan<AnyFunction>(
-                            body.receive,
+                          const makeInMessageUpdate =
+                            makeInMessageUpdateDispatcher(
+                              InMessage,
+                              compositionOperationGraphOf(actual),
+                              environment,
+                            )
+                          actual.makeInMessageUpdate = makeInMessageUpdate
+                          const inMessageUpdate = compilePlan<AnyFunction>(
+                            body.inMessageUpdate,
                             actual,
                             source,
                           )
-                          makeReceive.complete(receive)
+                          makeInMessageUpdate.complete(inMessageUpdate)
 
                           return {
                             InMessage: InMessage,
-                            receive,
+                            inMessageUpdate,
                             operations: compileInputs(
                               InMessage,
-                              receive,
+                              inMessageUpdate,
                               actual,
                             ),
                           }
@@ -554,7 +557,7 @@ export const makeDefinitionRuntime = (
                         ...body,
                         operations,
                       },
-                      compileReceiver,
+                      compileInMessageUpdate,
                       graph,
                     )
 
@@ -595,7 +598,10 @@ export const makeDefinitionRuntime = (
 
                   if (implementation !== authoredImplementation) {
                     copyViewPlanGraph(authoredImplementation, implementation)
-                    copyBlockReceiver(authoredImplementation, implementation)
+                    copyBlockInMessageUpdate(
+                      authoredImplementation,
+                      implementation,
+                    )
                     const bindings = executionBindingsOf(authoredImplementation)
 
                     if (bindings !== undefined) {
@@ -688,7 +694,9 @@ export const makeDefinitionRuntime = (
       }
 
       return Object.assign(composition, {
-        makeReceive: makeReceivePlan(authoringSourceOf(composition)),
+        makeInMessageUpdate: makeInMessageUpdatePlan(
+          authoringSourceOf(composition),
+        ),
       })
     },
     makeBlock: complete,

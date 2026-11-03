@@ -177,7 +177,7 @@ const changeExampleRoute = makeStep((_model, slug: string) => {
   return clearExampleSources
 })
 
-export const receive = ExampleDetailComposition.makeReceive({
+export const inMessageUpdate = ExampleDetailComposition.makeInMessageUpdate({
   InformedOfRouteChange: (model, { slug }) => changeExampleRoute(model, slug),
 })
 

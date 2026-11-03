@@ -29,11 +29,12 @@ import {
   staticMemberPath,
   staticPropertyName,
 } from '../guards.ts'
+import { ownedUpdateAuthoringCallee } from '../update-authoring.ts'
 
 const pascalIdentifierPattern = /^[A-Z][A-Za-z0-9]*$/
 
 const childMessageConstructionMessage = (calleeLabel: string): string =>
-  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Generated child delivery is owned by the registered Binding. For parent-driven behavior, declare a public child InMessage and call the named Binding method, such as \`ChildBinding.requestClearSelection()(model)\`. Child-owned views, Steps, receive handlers, Commands, and Subscriptions may construct their own Messages.`
+  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Generated child delivery is owned by the registered Binding. For parent-driven behavior, declare a public child InMessage and call the named Binding method, such as \`ChildBinding.requestClearSelection()(model)\`. Child-owned views, Steps, inMessageUpdate handlers, Commands, and Subscriptions may construct their own Messages.`
 
 type ImportedMessagePath = Pick<ImportedPath, 'source' | 'members'>
 
@@ -418,7 +419,7 @@ type DefinitionOperation = Readonly<{
     | 'makeStep'
     | 'makeSubscriptions'
     | 'update'
-    | 'receive'
+    | 'inMessageUpdate'
     | 'view'
   root: ESTree.IdentifierReference
 }>
@@ -436,21 +437,6 @@ const definitionOperationName = (
     Option.contains(maybePreviousMethod, 'makeView')
   ) {
     return 'view'
-  }
-  if (
-    method === 'withContext' &&
-    (Option.contains(maybePreviousMethod, 'makeUpdate') ||
-      Option.contains(maybePreviousMethod, 'makeReceive'))
-  ) {
-    return Option.contains(maybePreviousMethod, 'makeReceive')
-      ? 'receive'
-      : 'update'
-  }
-  if (method === 'makeReceive') {
-    return 'receive'
-  }
-  if (method === 'makeUpdate') {
-    return 'update'
   }
   if (method === 'makeView') {
     return 'view'
@@ -578,6 +564,33 @@ const definitionOperationForCall = (
       }
     }
 
+    const authored = ownedUpdateAuthoringCallee(
+      parent.callee,
+      references,
+      importerFilename,
+    )
+    if (Option.isSome(authored)) {
+      const { owner, method } = authored.value
+      const path = compositionDefinitionPath(references, owner.path)
+      const imported =
+        owner.importedPath === undefined
+          ? Option.map(
+              resolveImportedPathThroughConst(references, path.root),
+              imported => ({
+                source: imported.source,
+                members: [...imported.members, ...path.members],
+              }),
+            )
+          : Option.some(owner.importedPath)
+      return {
+        importedDefinitionPath: Option.getOrUndefined(imported),
+        members: path.members,
+        operation:
+          method === 'makeInMessageUpdate' ? 'inMessageUpdate' : 'update',
+        root: path.root,
+      }
+    }
+
     const calleePath = yield* staticMemberPath(parent.callee)
     const namedOperation = Array.findFirst(
       namedDefinitionOperations,
@@ -604,10 +617,6 @@ const definitionOperationForCall = (
     const isViewWithInputs =
       method === 'withInputs' &&
       Option.contains(maybePreviousMethod, 'makeView')
-    const isTransitionWithContext =
-      method === 'withContext' &&
-      (Option.contains(maybePreviousMethod, 'makeUpdate') ||
-        Option.contains(maybePreviousMethod, 'makeReceive'))
     const operation =
       Option.getOrUndefined(namedOperation) ??
       definitionOperationName(method, maybePreviousMethod)
@@ -631,29 +640,6 @@ const definitionOperationForCall = (
       return yield* Option.none()
     }
 
-    if (
-      (operation === 'update' || operation === 'receive') &&
-      !isTransitionWithContext &&
-      !isOwnedDefinitionCallee(
-        parent.callee,
-        operation === 'receive' ? 'makeReceive' : 'makeUpdate',
-        references,
-      )
-    ) {
-      return yield* Option.none()
-    }
-    if (
-      isTransitionWithContext &&
-      (!isMemberExpression(parent.callee) ||
-        !isOwnedDefinitionCallee(
-          parent.callee.object,
-          operation === 'receive' ? 'makeReceive' : 'makeUpdate',
-          references,
-        ))
-    ) {
-      return yield* Option.none()
-    }
-
     const namedOwner = Option.flatMap(namedOperation, named =>
       ownedDefinitionMethodOwner(
         parent.callee,
@@ -663,11 +649,7 @@ const definitionOperationForCall = (
       ),
     )
     const suffixLength =
-      isViewWithInputs ||
-      isTransitionWithContext ||
-      (isStepProducer && method === 'fromMessage')
-        ? 2
-        : 1
+      isViewWithInputs || (isStepProducer && method === 'fromMessage') ? 2 : 1
     const definitionPath = Option.match(namedOwner, {
       onNone: () =>
         compositionDefinitionPath(references, {
@@ -795,21 +777,29 @@ const ownedHandlerFunctions = (
     const handler = resolvedFunctionValue(authored, references)
     return handler === undefined ? [] : [{ handler, operation }]
   }
-  if (operation?.operation !== 'update' && operation?.operation !== 'receive') {
+  if (
+    operation?.operation !== 'update' &&
+    operation?.operation !== 'inMessageUpdate'
+  ) {
     return []
   }
 
-  const maybePath = staticMemberPath(node.callee)
-  if (Option.isNone(maybePath)) {
+  const authoredCall = ownedUpdateAuthoringCallee(
+    node.callee,
+    references,
+    importerFilename,
+  )
+  if (Option.isNone(authoredCall)) {
     return []
   }
 
   const [authored] = node.arguments
-  const isWithContext =
-    maybePath.value.members.slice(-2).join('.') === 'makeUpdate.withContext' ||
-    maybePath.value.members.slice(-2).join('.') === 'makeReceive.withContext'
+  if (authoredCall.value.kind === 'Shared') {
+    const handler = resolvedFunctionValue(authored, references)
+    return handler === undefined ? [] : [{ handler, operation }]
+  }
   const handlerObjects: Array<ESTree.ObjectExpression> = []
-  if (isWithContext) {
+  if (authoredCall.value.kind === 'ContextRecord') {
     const createHandlers = resolvedFunctionValue(authored, references)
     if (createHandlers !== undefined) {
       for (const returned of returnedExpressions(createHandlers)) {
@@ -1161,7 +1151,7 @@ const definitionOperationCallOwnsMessage = (
     definitionOperationForCall(references, operationCall, filename),
     operation =>
       (operation.operation === 'update' ||
-        operation.operation === 'receive' ||
+        operation.operation === 'inMessageUpdate' ||
         operation.operation === 'makeBinding') &&
       operationOwnsMessage(references, operation, messagePath, filename),
   )
@@ -1232,7 +1222,7 @@ const importedOperationOwnsMessage = (
       const isTransitionWithContext =
         operation === 'withContext' &&
         (previousOperation === 'makeUpdate' ||
-          previousOperation === 'makeReceive')
+          previousOperation === 'makeInMessageUpdate')
       const isStepFromMessage =
         operation === 'fromMessage' &&
         (previousOperation === 'makeFieldsStep' ||

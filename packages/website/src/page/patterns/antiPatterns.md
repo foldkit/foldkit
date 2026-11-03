@@ -204,7 +204,7 @@ Manually copying the child Model from a helper result causes a separate problem.
 
 ::Snippet{name="antiPatternBlockResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
 
-Declare parent requests and notifications in the child's `InMessage` Schema and handle them with `Composition.makeReceive`. The Definition generates Binding methods from those variants. The parent calls `binding.requestThemeChange(...)`, which returns a connected parent Update.Step and preserves the child's complete result. Apply it to the contextual Model inside the owning Composition. Keep explicit `operations` for existing positional, generic, or defaulting adapters.
+Declare parent requests and notifications in the child's `InMessage` Schema and handle them with `Composition.makeInMessageUpdate`. The Definition generates Binding methods from those variants. The parent calls `binding.requestThemeChange(...)`, which returns a connected parent Update.Step and preserves the child's complete result. Apply it to the contextual Model inside the owning Composition. Keep explicit `operations` for existing positional, generic, or defaulting adapters.
 
 ::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A parent input preserves the child's transition boundary"}
 
@@ -216,7 +216,7 @@ The Binding writes the returned child Model into the parent, maps its Commands, 
 
 ### Initialize One Child
 
-A child's `init` can return a Model and Commands. Its generated `requestRestore` method applies `InMessage.RequestedRestore` through receive, which owns the Model change, Command, and `RestoredTheme` OutMessage. The parent Model exists before the Binding handles that OutMessage.
+A child's `init` can return a Model and Commands. Its generated `requestRestore` method applies `InMessage.RequestedRestore` through `inMessageUpdate`, which owns the Model change, Command, and `RestoredTheme` OutMessage. The parent Model exists before the Binding handles that OutMessage.
 
 ::Snippet{name="antiPatternChildInitSettings" label="The restoration operation emits RestoredTheme" class="mb-4"}
 

@@ -279,7 +279,10 @@ describe('search', () => {
         const { block, update, toParentMessage, init_ } =
           makeFixture(executable)
 
-        const opened = block.receive(init_.model, InMessage.RequestedOpen())
+        const opened = block.inMessageUpdate(
+          init_.model,
+          InMessage.RequestedOpen(),
+        )
         const queried = update(
           opened.model,
           Message.UpdatedSearchQuery({ query: 'routing' }),
@@ -288,7 +291,7 @@ describe('search', () => {
           queried.model,
           toParentMessage(DialogBinding, DialogBlock.Message.CanceledDialog()),
         )
-        const reopened = block.receive(
+        const reopened = block.inMessageUpdate(
           transitioned.model,
           InMessage.RequestedOpen(),
         )
@@ -313,7 +316,10 @@ describe('search', () => {
       withBlock(SearchBlock, executable => {
         const { block, update, init_ } = makeFixture(executable)
 
-        const opened = block.receive(init_.model, InMessage.RequestedOpen())
+        const opened = block.inMessageUpdate(
+          init_.model,
+          InMessage.RequestedOpen(),
+        )
         const queried = update(
           opened.model,
           Message.UpdatedSearchQuery({ query: 'routing' }),

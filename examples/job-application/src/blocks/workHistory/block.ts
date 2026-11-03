@@ -4,8 +4,8 @@ import { WorkHistoryEntry as Entry } from './blocks'
 import { EffectsLayer } from './command'
 import { EntriesBinding } from './composition'
 import { WorkHistoryDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -18,7 +18,7 @@ export const layer = WorkHistoryDefinition.makeBlock(
       children: [entries],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer,
     }

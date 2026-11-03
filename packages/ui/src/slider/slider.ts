@@ -752,7 +752,7 @@ const defineSlider = (getTrackRoot: () => Document | ShadowRoot) => {
     model: makeInitialModel(config),
   }))
 
-  const receive = SliderComposition.makeReceive({
+  const inMessageUpdate = SliderComposition.makeInMessageUpdate({
     InformedOfRangeChange: SliderDefinition.makeFieldsStep.fromMessage(
       ({ min, max }) => ({ min: () => min, max: () => max }),
     ),
@@ -849,7 +849,7 @@ const defineSlider = (getTrackRoot: () => Document | ShadowRoot) => {
     Definition: SliderDefinition,
     init,
     update,
-    receive,
+    inMessageUpdate,
     view,
     subscriptions,
   }
@@ -860,7 +860,7 @@ const makeSliderRecipe = ({
   Definition,
   init,
   update,
-  receive,
+  inMessageUpdate,
   view,
   subscriptions,
 }: SliderAuthoring) =>
@@ -869,7 +869,7 @@ const makeSliderRecipe = ({
       children: [],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       subscriptions,
       EffectsLayer: subscriptions.layer,

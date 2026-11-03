@@ -11,8 +11,8 @@ import {
   StatusListboxBinding,
 } from './composition'
 import { CreateIssueDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -27,7 +27,7 @@ const block = CreateIssueDefinition.makeBlock(
       children: [dialog, projectListbox, statusListbox, priorityListbox],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
       EffectsLayer: CreateIssue.layer,
     }

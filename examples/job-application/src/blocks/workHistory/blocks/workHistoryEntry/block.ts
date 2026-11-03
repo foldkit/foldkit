@@ -4,8 +4,8 @@ import { layer as DatePickerLayer } from '@foldkit/ui/datePicker'
 
 import { EndDateBinding, StartDateBinding } from './composition'
 import { WorkHistoryEntryDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -19,7 +19,7 @@ export const layer = WorkHistoryEntryDefinition.makeBlock(
       children: [startDatePicker, endDatePicker],
       init,
       update,
-      receive,
+      inMessageUpdate,
       view,
     }
   }),

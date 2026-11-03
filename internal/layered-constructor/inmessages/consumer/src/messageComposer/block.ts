@@ -1,9 +1,9 @@
 import { Effect, type Scope } from 'effect'
 
 import { MessageComposerDefinition } from './definition'
+import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { FocusInput } from './mount'
-import { receive } from './receive'
 import { update } from './update'
 import { view } from './view'
 
@@ -18,7 +18,7 @@ export const makeMessageComposerBlock = (
         children: [],
         init,
         update,
-        receive,
+        inMessageUpdate,
         view,
         EffectsLayer: FocusInput.layer,
       }

@@ -16,7 +16,7 @@ import type {
 import {
   initialStep,
   subjectBlock,
-  subjectReceive,
+  subjectInMessageUpdate,
   subjectUpdate,
 } from './subject.js'
 import { type BlockSubject, type TestEffect, withBlock } from './withBlock.js'
@@ -76,7 +76,7 @@ export function story(
       initialStep(block, initial, CoreStory.__givenInit),
       ...resolveInMessageSteps(
         resolveStorySteps(block, steps),
-        subjectReceive(subject, block),
+        subjectInMessageUpdate(subject, block),
       ),
     ])
   })

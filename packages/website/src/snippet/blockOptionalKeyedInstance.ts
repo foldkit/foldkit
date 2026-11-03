@@ -32,7 +32,7 @@ const layer = RoomDefinition.makeBlock(
       children: [],
       init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
       update: RoomComposition.makeUpdate({}),
-      receive: RoomComposition.makeReceive({
+      inMessageUpdate: RoomComposition.makeInMessageUpdate({
         RequestedRename: (model, { title }) => ({
           model: modifyFields(model, { title: () => title }),
         }),

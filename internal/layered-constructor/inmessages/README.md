@@ -9,25 +9,36 @@ The work remains isolated in
 `/private/tmp/foldkit-incremental-constructor-20261031` on
 `codex/incremental-constructor-spike`. It has not been published.
 
+## Canonical input update checkpoint
+
+The current integrated source uses `makeInMessageUpdate` and `inMessageUpdate`
+without the earlier names or aliases. Its focused composition, source/emitted
+and strict relocation checks are recorded in
+[canonical-rename-results.json](canonical-rename-results.json). The
+[input composition report](../../inmessage-update-prototype/README.md) covers
+shared interpreter semantics, exact result channels and compiler ownership.
+The source pins and older aggregate verification counts below retain their
+historical scopes; they are not new unified Block/direct Layer evidence.
+
 ## API
 
 - Define `InMessage` beside `Model` and `Message`. Its tags are disjoint from
   local Message tags. `RequestedX` generates `Binding.requestX`, and
   `InformedOfX` generates `Binding.informX`. No alias map or `send` namespace
   is needed.
-- Author an exhaustive `Composition.makeReceive` record and return `receive`
+- Author an exhaustive `Composition.makeInMessageUpdate` record and return `inMessageUpdate`
   from `Definition.makeBlock`. Inline, constructor-local, and imported builder
   expressions retain the same inference.
 - Share an extracted Step when a local fact and a received request perform the
-  same transition. Receive does not synthesize a local Message to enter update.
+  same transition. InMessage handling does not synthesize a local Message to enter update.
 - Declare sparse `inMessageOutputs` for exact public OutMessage and extra
   Service/resource bounds. Omitted entries are silent. Completion checks each
   handler's inferred channels independently.
-- An optional `InMessageContext` tuple belongs to `makeReceive.withContext`.
+- An optional `InMessageContext` tuple belongs to `makeInMessageUpdate.withContext`.
   It remains separate from update's `Context`, including optional, default,
   and rest parameters.
-- Acquired `receive(model, input, ...context)` and
-  `receive(input)(model, ...context)` retain the selected input's channels.
+- Acquired `inMessageUpdate(model, input, ...context)` and
+  `inMessageUpdate(input)(model, ...context)` retain the selected input's channels.
   Commands still return ordinary local Messages through existing delivery.
 - Scoped Story and Scene tests accept `inMessage(input)` causes. The runners
   acquire the selected graph, preserve pending Commands, and clean up the Scope.
@@ -40,7 +51,7 @@ identity and cleanup.
 
 ## Review the consumer
 
-The [Message Composer](consumer/src/messageComposer/receive.ts) shares its submit
+The [Message Composer](consumer/src/messageComposer/inMessageUpdate.ts) shares its submit
 transition with local form submission. Its parent
 [ChatRoom](consumer/src/chatRoom/steps.ts) calls the generated clear request from
 an extracted successful-send pipeline. The [consumer verifier](consumer/verify.mjs)
@@ -57,12 +68,12 @@ scalar, positional, defaulting, and generic adapters.
 
 The standard framework declaration driver includes `inmessages` source,
 emission, rejected wiring, and strict source-free relocated consumers. The native
-input seam checks receive-only handlers, Services, constructor errors,
+input seam checks input-only handlers, Services, constructor errors,
 registration, exact Model types, and legacy tuple-producer inference.
 
 The [runtime mutation verifier](check-runtime-mutations.mjs) removes payload
 validation, admits inputs into the local Codec, discards input results, skips
-receive-plan ownership, and substitutes public Binding wrappers for the
+input-plan ownership, and substitutes public Binding wrappers for the
 normalized graph. Every control must fail its corresponding runtime assertion;
 restoring the source must pass.
 
