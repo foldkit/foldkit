@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -46,7 +46,7 @@ const foldDialogOutMessage = DialogExampleDefinition.makeOutMessageFold(
 
 const DialogBinding = DialogExampleDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
-  init: { contextToArgs: () => Tuple.make({ id: 'confirm' }) },
+  init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const DialogExampleComposition = DialogExampleDefinition.makeComposition({

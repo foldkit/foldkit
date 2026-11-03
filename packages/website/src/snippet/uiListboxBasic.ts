@@ -1,4 +1,4 @@
-import { Effect, Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -57,7 +57,7 @@ const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
 // The construction Layer below supplies the child implementation.
 const PlanListboxBinding = PlanPickerDefinition.makeBinding(PlanListbox, {
   field: 'listbox',
-  init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },
+  init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const PlanPickerComposition = PlanPickerDefinition.makeComposition({

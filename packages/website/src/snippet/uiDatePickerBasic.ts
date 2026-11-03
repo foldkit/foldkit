@@ -1,4 +1,4 @@
-import { Effect, Match, Option, Schema, Tuple } from 'effect'
+import { Effect, Match, Option, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -93,13 +93,14 @@ const DatePickerBinding = DatePickerExampleDefinition.makeBinding(
   {
     field: 'datePickerDemo',
     init: {
-      contextToArgs: flags =>
-        Tuple.make({
+      contextToArgs: flags => [
+        {
           id: 'date-picker-demo',
           today: flags.today,
           minDate: flags.today,
           maxDate: Calendar.addMonths(flags.today, 3),
-        }),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({ fold: foldDatePickerOutMessage })

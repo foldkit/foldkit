@@ -1,4 +1,4 @@
-import { Effect, Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -63,7 +63,7 @@ const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
 const ToastBinding = NotificationsDefinition.makeBinding(Toast, {
   field: 'toast',
   init: {
-    contextToArgs: () => Tuple.make({ id: 'app-toast', swipeToDismiss: {} }),
+    contextToArgs: () => [{ id: 'app-toast', swipeToDismiss: {} }],
   },
 }).withOutMessagePolicy({ fold: foldToastOutMessage })
 

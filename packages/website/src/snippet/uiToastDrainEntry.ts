@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
@@ -39,7 +39,7 @@ const foldToastOutMessage = ApplicationDefinition.makeOutMessageFold(
 const ToastBinding = ApplicationDefinition.makeBinding(ToastBlock, {
   field: 'toast',
   init: {
-    contextToArgs: () => Tuple.make({ id: 'notifications' }),
+    contextToArgs: () => [{ id: 'notifications' }],
   },
 }).withOutMessagePolicy({ fold: foldToastOutMessage })
 const ApplicationComposition = ApplicationDefinition.makeComposition({

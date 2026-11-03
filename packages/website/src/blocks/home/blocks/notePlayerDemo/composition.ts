@@ -1,4 +1,3 @@
-import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
 
 import {
@@ -11,7 +10,7 @@ import { prependToLog } from './messageLog'
 export const NoteDurationRadioGroupBinding =
   NotePlayerDemoDefinition.makeBinding(NoteDurationRadioGroupBlock, {
     field: 'noteDurationRadioGroup',
-    init: { contextToArgs: () => Tuple.make({ id: 'note-duration' }) },
+    init: { contextToArgs: () => [{ id: 'note-duration' }] },
   }).withOutMessagePolicy({
     fold: NotePlayerDemoDefinition.makeOutMessageFold(
       NoteDurationRadioGroupBlock,

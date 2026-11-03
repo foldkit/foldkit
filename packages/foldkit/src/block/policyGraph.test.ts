@@ -55,62 +55,62 @@ const ApplicationDefinition = Block.makeDefinition('Parent', {
 
 const b0 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b0',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b1 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b1',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b2 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b2',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b3 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b3',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b4 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b4',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b5 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b5',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b6 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b6',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b7 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b7',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b8 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b8',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b9 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b9',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b10 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b10',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const b11 = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'b11',
-  init: { contextToArgs: () => Tuple.make() },
+  init: { contextToArgs: () => [] },
 })
 
 const p0 = b0.withOutMessagePolicy({

@@ -1,4 +1,4 @@
-import { Array, Effect, Number, Schema, Tuple } from 'effect'
+import { Array, Effect, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -50,7 +50,7 @@ export const CountersBinding = ApplicationDefinition.makeBinding(
       instances: () =>
         Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
           key: `counter-${counterId}`,
-          args: Tuple.make(),
+          args: [],
         })),
       toItem: ({ key }, counter) => ({ id: key, counter }),
     },

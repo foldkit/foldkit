@@ -1,4 +1,4 @@
-import { Array, Option, Schema, Tuple, pipe } from 'effect'
+import { Array, Option, Schema, pipe } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -160,13 +160,14 @@ export const CalendarBasicDemoBinding = UiDefinition.makeBinding(
   {
     field: 'calendarBasicDemo',
     init: {
-      contextToArgs: today =>
-        Tuple.make({
+      contextToArgs: today => [
+        {
           id: 'calendar-basic-demo',
           today,
           minDate: Calendar.subtractYears(today, 1),
           maxDate: Calendar.addYears(today, 1),
-        }),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({ fold: foldCalendarBasicDemoOutMessage })
@@ -191,13 +192,14 @@ export const DatePickerBasicDemoBinding = UiDefinition.makeBinding(
   {
     field: 'datePickerBasicDemo',
     init: {
-      contextToArgs: today =>
-        Tuple.make({
+      contextToArgs: today => [
+        {
           id: 'date-picker-basic-demo',
           today,
           minDate: Calendar.subtractYears(today, 1),
           maxDate: Calendar.addYears(today, 1),
-        }),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({ fold: foldDatePickerBasicDemoOutMessage })
@@ -215,7 +217,7 @@ const foldComboboxDemoOutMessage = UiDefinition.makeOutMessageFold(
 
 export const ComboboxDemoBinding = UiDefinition.makeBinding(CityComboboxBlock, {
   field: 'comboboxDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'combobox-demo' }) },
+  init: { contextToArgs: () => [{ id: 'combobox-demo' }] },
 }).withOutMessagePolicy({ fold: foldComboboxDemoOutMessage })
 
 const foldComboboxPlacementLockDemoOutMessage = UiDefinition.makeOutMessageFold(
@@ -234,7 +236,7 @@ export const ComboboxPlacementLockDemoBinding = UiDefinition.makeBinding(
   {
     field: 'comboboxPlacementLockDemo',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'combobox-placement-lock-demo' }),
+      contextToArgs: () => [{ id: 'combobox-placement-lock-demo' }],
     },
   },
 ).withOutMessagePolicy({ fold: foldComboboxPlacementLockDemoOutMessage })
@@ -262,8 +264,7 @@ export const ComboboxNullableDemoBinding = UiDefinition.makeBinding(
   {
     field: 'comboboxNullableDemo',
     init: {
-      contextToArgs: () =>
-        Tuple.make({ id: 'combobox-nullable-demo', nullable: true }),
+      contextToArgs: () => [{ id: 'combobox-nullable-demo', nullable: true }],
     },
   },
 ).withOutMessagePolicy({ fold: foldComboboxNullableDemoOutMessage })
@@ -289,7 +290,7 @@ export const ComboboxMultiDemoBinding = UiDefinition.makeBinding(
   CityMultiComboboxBlock,
   {
     field: 'comboboxMultiDemo',
-    init: { contextToArgs: () => Tuple.make({ id: 'combobox-multi-demo' }) },
+    init: { contextToArgs: () => [{ id: 'combobox-multi-demo' }] },
   },
 ).withOutMessagePolicy({ fold: foldComboboxMultiDemoOutMessage })
 
@@ -309,31 +310,31 @@ export const ComboboxSelectOnFocusDemoBinding = UiDefinition.makeBinding(
   {
     field: 'comboboxSelectOnFocusDemo',
     init: {
-      contextToArgs: () =>
-        Tuple.make({
+      contextToArgs: () => [
+        {
           id: 'combobox-select-on-focus-demo',
           selectInputOnFocus: true,
-        }),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({ fold: foldComboboxSelectOnFocusDemoOutMessage })
 
 export const DialogDemoBinding = UiDefinition.makeBinding(DialogBlock, {
   field: 'dialogDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'dialog-demo' }) },
+  init: { contextToArgs: () => [{ id: 'dialog-demo' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 export const DialogAnimatedDemoBinding = UiDefinition.makeBinding(DialogBlock, {
   field: 'dialogAnimatedDemo',
   init: {
-    contextToArgs: () =>
-      Tuple.make({ id: 'dialog-animated-demo', isAnimated: true }),
+    contextToArgs: () => [{ id: 'dialog-animated-demo', isAnimated: true }],
   },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 export const OverlayDialogDemoBinding = UiDefinition.makeBinding(DialogBlock, {
   field: 'overlayDialogDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'overlay-dialog-demo' }) },
+  init: { contextToArgs: () => [{ id: 'overlay-dialog-demo' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const foldOverlayComboboxDemoOutMessage = UiDefinition.makeOutMessageFold(
@@ -351,7 +352,7 @@ export const OverlayComboboxDemoBinding = UiDefinition.makeBinding(
   CityComboboxBlock,
   {
     field: 'overlayComboboxDemo',
-    init: { contextToArgs: () => Tuple.make({ id: 'overlay-combobox-demo' }) },
+    init: { contextToArgs: () => [{ id: 'overlay-combobox-demo' }] },
   },
 ).withOutMessagePolicy({ fold: foldOverlayComboboxDemoOutMessage })
 
@@ -360,7 +361,7 @@ export const NestedDialogParentDemoBinding = UiDefinition.makeBinding(
   {
     field: 'nestedDialogParentDemo',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'nested-dialog-parent-demo' }),
+      contextToArgs: () => [{ id: 'nested-dialog-parent-demo' }],
     },
   },
 ).withOutMessagePolicy({ fold: foldDialogOutMessage })
@@ -370,7 +371,7 @@ export const NestedDialogChildDemoBinding = UiDefinition.makeBinding(
   {
     field: 'nestedDialogChildDemo',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'nested-dialog-child-demo' }),
+      contextToArgs: () => [{ id: 'nested-dialog-child-demo' }],
     },
   },
 ).withOutMessagePolicy({ fold: foldDialogOutMessage })
@@ -387,7 +388,7 @@ const foldListboxDemoOutMessage = UiDefinition.makeOutMessageFold(
 
 export const ListboxDemoBinding = UiDefinition.makeBinding(ItemListboxBlock, {
   field: 'listboxDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'listbox-demo' }) },
+  init: { contextToArgs: () => [{ id: 'listbox-demo' }] },
 }).withOutMessagePolicy({ fold: foldListboxDemoOutMessage })
 
 const foldListboxMultiDemoOutMessage = UiDefinition.makeOutMessageFold(
@@ -410,7 +411,7 @@ export const ListboxMultiDemoBinding = UiDefinition.makeBinding(
   ItemMultiListboxBlock,
   {
     field: 'listboxMultiDemo',
-    init: { contextToArgs: () => Tuple.make({ id: 'listbox-multi-demo' }) },
+    init: { contextToArgs: () => [{ id: 'listbox-multi-demo' }] },
   },
 ).withOutMessagePolicy({ fold: foldListboxMultiDemoOutMessage })
 
@@ -428,26 +429,25 @@ export const ListboxGroupedDemoBinding = UiDefinition.makeBinding(
   CharacterListboxBlock,
   {
     field: 'listboxGroupedDemo',
-    init: { contextToArgs: () => Tuple.make({ id: 'listbox-grouped-demo' }) },
+    init: { contextToArgs: () => [{ id: 'listbox-grouped-demo' }] },
   },
 ).withOutMessagePolicy({ fold: foldListboxGroupedDemoOutMessage })
 
 export const MenuBasicDemoBinding = UiDefinition.makeBinding(DemoMenuBlock, {
   field: 'menuBasicDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'menu-basic-demo' }) },
+  init: { contextToArgs: () => [{ id: 'menu-basic-demo' }] },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
 export const MenuAnimatedDemoBinding = UiDefinition.makeBinding(DemoMenuBlock, {
   field: 'menuAnimatedDemo',
   init: {
-    contextToArgs: () =>
-      Tuple.make({ id: 'menu-animated-demo', isAnimated: true }),
+    contextToArgs: () => [{ id: 'menu-animated-demo', isAnimated: true }],
   },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
 export const PopoverBasicDemoBinding = UiDefinition.makeBinding(PopoverBlock, {
   field: 'popoverBasicDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'popover-basic-demo' }) },
+  init: { contextToArgs: () => [{ id: 'popover-basic-demo' }] },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 export const PopoverAnimatedDemoBinding = UiDefinition.makeBinding(
@@ -455,15 +455,14 @@ export const PopoverAnimatedDemoBinding = UiDefinition.makeBinding(
   {
     field: 'popoverAnimatedDemo',
     init: {
-      contextToArgs: () =>
-        Tuple.make({ id: 'popover-animated-demo', isAnimated: true }),
+      contextToArgs: () => [{ id: 'popover-animated-demo', isAnimated: true }],
     },
   },
 ).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 export const PopoverArrowDemoBinding = UiDefinition.makeBinding(PopoverBlock, {
   field: 'popoverArrowDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'popover-arrow-demo' }) },
+  init: { contextToArgs: () => [{ id: 'popover-arrow-demo' }] },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 export const PopoverNestedParentDemoBinding = UiDefinition.makeBinding(
@@ -471,8 +470,9 @@ export const PopoverNestedParentDemoBinding = UiDefinition.makeBinding(
   {
     field: 'popoverNestedParentDemo',
     init: {
-      contextToArgs: () =>
-        Tuple.make({ id: 'popover-nested-parent-demo', contentFocus: true }),
+      contextToArgs: () => [
+        { id: 'popover-nested-parent-demo', contentFocus: true },
+      ],
     },
   },
 ).withOutMessagePolicy({ fold: foldPopoverOutMessage })
@@ -482,7 +482,7 @@ export const PopoverNestedChildDemoBinding = UiDefinition.makeBinding(
   {
     field: 'popoverNestedChildDemo',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'popover-nested-child-demo' }),
+      contextToArgs: () => [{ id: 'popover-nested-child-demo' }],
     },
   },
 ).withOutMessagePolicy({ fold: foldPopoverOutMessage })
@@ -498,8 +498,9 @@ const foldSliderRatingDemoOutMessage = UiDefinition.makeOutMessageFold(
 export const SliderRatingDemoBinding = UiDefinition.makeBinding(SliderBlock, {
   field: 'sliderRatingDemo',
   init: {
-    contextToArgs: () =>
-      Tuple.make({ id: 'slider-rating-demo', min: 0, max: 10, step: 1 }),
+    contextToArgs: () => [
+      { id: 'slider-rating-demo', min: 0, max: 10, step: 1 },
+    ],
   },
 }).withOutMessagePolicy({ fold: foldSliderRatingDemoOutMessage })
 
@@ -514,8 +515,9 @@ const foldSliderVolumeDemoOutMessage = UiDefinition.makeOutMessageFold(
 export const SliderVolumeDemoBinding = UiDefinition.makeBinding(SliderBlock, {
   field: 'sliderVolumeDemo',
   init: {
-    contextToArgs: () =>
-      Tuple.make({ id: 'slider-volume-demo', min: 0, max: 1, step: 0.05 }),
+    contextToArgs: () => [
+      { id: 'slider-volume-demo', min: 0, max: 1, step: 0.05 },
+    ],
   },
 }).withOutMessagePolicy({ fold: foldSliderVolumeDemoOutMessage })
 
@@ -533,7 +535,7 @@ export const HorizontalTabsDemoBinding = UiDefinition.makeBinding(
   DemoTabsBlock,
   {
     field: 'horizontalTabsDemo',
-    init: { contextToArgs: () => Tuple.make({ id: 'horizontal-tabs-demo' }) },
+    init: { contextToArgs: () => [{ id: 'horizontal-tabs-demo' }] },
   },
 ).withOutMessagePolicy({ fold: foldHorizontalTabsDemoOutMessage })
 
@@ -547,7 +549,7 @@ const foldVerticalTabsDemoOutMessage = UiDefinition.makeOutMessageFold(
 
 export const VerticalTabsDemoBinding = UiDefinition.makeBinding(DemoTabsBlock, {
   field: 'verticalTabsDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'vertical-tabs-demo' }) },
+  init: { contextToArgs: () => [{ id: 'vertical-tabs-demo' }] },
 }).withOutMessagePolicy({ fold: foldVerticalTabsDemoOutMessage })
 
 const foldTooltipOutMessage = UiDefinition.makeOutMessageFold(TooltipBlock, {
@@ -557,7 +559,7 @@ const foldTooltipOutMessage = UiDefinition.makeOutMessageFold(TooltipBlock, {
 
 export const TooltipDemoBinding = UiDefinition.makeBinding(TooltipBlock, {
   field: 'tooltipDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'tooltip-demo' }) },
+  init: { contextToArgs: () => [{ id: 'tooltip-demo' }] },
 }).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
 const foldHoverIntentOutMessage = UiDefinition.makeOutMessageFold(
@@ -592,13 +594,13 @@ const foldToastDemoOutMessage = UiDefinition.makeOutMessageFold(ToastBlock, {
 export const ToastDemoBinding = UiDefinition.makeBinding(ToastBlock, {
   field: 'toastDemo',
   init: {
-    contextToArgs: () => Tuple.make({ id: 'toast-demo', swipeToDismiss: {} }),
+    contextToArgs: () => [{ id: 'toast-demo', swipeToDismiss: {} }],
   },
 }).withOutMessagePolicy({ fold: foldToastDemoOutMessage })
 
 const animationDemoBinding = UiDefinition.makeBinding(AnimationBlock, {
   field: 'animationDemo',
-  init: { contextToArgs: () => Tuple.make({ id: 'animation-demo' }) },
+  init: { contextToArgs: () => [{ id: 'animation-demo' }] },
 })
 
 const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
@@ -625,7 +627,7 @@ export const FileDropBasicDemoBinding = UiDefinition.makeBinding(
   FileDropBlock,
   {
     field: 'fileDropBasicDemo',
-    init: { contextToArgs: () => Tuple.make({ id: 'file-drop-basic-demo' }) },
+    init: { contextToArgs: () => [{ id: 'file-drop-basic-demo' }] },
   },
 ).withOutMessagePolicy({ fold: foldFileDropBasicDemoOutMessage })
 
@@ -723,8 +725,7 @@ export const VirtualListDemoBinding = UiDefinition.makeBinding(
   {
     field: 'virtualListDemo',
     init: {
-      contextToArgs: () =>
-        Tuple.make({ id: 'virtual-list-demo', rowHeightPx: 56 }),
+      contextToArgs: () => [{ id: 'virtual-list-demo', rowHeightPx: 56 }],
     },
   },
 ).withOutMessagePolicy({ fold: foldVirtualListOutMessage })
@@ -734,8 +735,9 @@ export const VirtualListVariableDemoBinding = UiDefinition.makeBinding(
   {
     field: 'virtualListVariableDemo',
     init: {
-      contextToArgs: () =>
-        Tuple.make({ id: 'virtual-list-variable-demo', rowHeightPx: 56 }),
+      contextToArgs: () => [
+        { id: 'virtual-list-variable-demo', rowHeightPx: 56 },
+      ],
     },
   },
 ).withOutMessagePolicy({ fold: foldVirtualListOutMessage })
@@ -755,7 +757,7 @@ export const VerticalRadioGroupDemoBinding = UiDefinition.makeBinding(
   {
     field: 'verticalRadioGroupDemo',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'vertical-radio-group-demo' }),
+      contextToArgs: () => [{ id: 'vertical-radio-group-demo' }],
     },
   },
 ).withOutMessagePolicy({ fold: foldVerticalRadioGroupDemoOutMessage })
@@ -775,7 +777,7 @@ export const HorizontalRadioGroupDemoBinding = UiDefinition.makeBinding(
   {
     field: 'horizontalRadioGroupDemo',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'horizontal-radio-group-demo' }),
+      contextToArgs: () => [{ id: 'horizontal-radio-group-demo' }],
     },
   },
 ).withOutMessagePolicy({ fold: foldHorizontalRadioGroupDemoOutMessage })

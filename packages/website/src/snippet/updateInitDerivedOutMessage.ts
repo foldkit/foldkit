@@ -1,4 +1,4 @@
-import { Effect, Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -68,7 +68,7 @@ const foldEndDateOutMessage = DateRangeDefinition.makeOutMessageFold(
 const EndDatePickerBinding = DateRangeDefinition.makeBinding(DatePickerBlock, {
   field: 'endDatePicker',
   init: {
-    contextToArgs: today => Tuple.make({ id: 'end-date', today }),
+    contextToArgs: today => [{ id: 'end-date', today }],
   },
 }).withOutMessagePolicy({
   fold: foldEndDateOutMessage,

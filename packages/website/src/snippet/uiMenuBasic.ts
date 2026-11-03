@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -60,7 +60,7 @@ const foldMenuOutMessage = ActionMenuExampleDefinition.makeOutMessageFold(
 // The construction Layer below supplies the child implementation.
 const MenuBinding = ActionMenuExampleDefinition.makeBinding(ActionMenu, {
   field: 'menu',
-  init: { contextToArgs: () => Tuple.make({ id: 'actions' }) },
+  init: { contextToArgs: () => [{ id: 'actions' }] },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
 const ActionMenuExampleComposition =

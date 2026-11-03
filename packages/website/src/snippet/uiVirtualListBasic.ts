@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -59,7 +59,7 @@ const ActivityListBinding = ActivityListExampleDefinition.makeBinding(
   {
     field: 'activityList',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
+      contextToArgs: () => [{ id: 'activity-list', rowHeightPx: 56 }],
     },
   },
 ).withOutMessagePolicy({ fold: foldActivityListOutMessage })

@@ -1,4 +1,3 @@
-import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
 
 import { PlaygroundDefinition, makeFieldsStep } from './definition'
@@ -9,7 +8,7 @@ export const FileTabsBinding = PlaygroundDefinition.makeBinding(
   PlaygroundFileTabsBlock,
   {
     field: 'fileTabs',
-    init: { contextToArgs: () => Tuple.make({ id: 'playground-files' }) },
+    init: { contextToArgs: () => [{ id: 'playground-files' }] },
   },
 ).withOutMessagePolicy({
   fold: PlaygroundDefinition.makeOutMessageFold(PlaygroundFileTabsBlock, {

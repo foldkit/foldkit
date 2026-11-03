@@ -1,4 +1,4 @@
-import { Schema, Tuple } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -30,7 +30,7 @@ const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
 
 const CounterBinding = ApplicationDefinition.makeBinding(CounterBlock, {
   field: 'counter',
-  init: { contextToArgs: () => Tuple.make(0) },
+  init: { contextToArgs: () => [0] },
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [CounterBinding],

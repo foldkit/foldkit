@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -35,7 +35,7 @@ const animationBinding = AnimationExampleDefinition.makeBinding(
   AnimationBlock,
   {
     field: 'animation',
-    init: { contextToArgs: () => Tuple.make({ id: 'content' }) },
+    init: { contextToArgs: () => [{ id: 'content' }] },
   },
 )
 

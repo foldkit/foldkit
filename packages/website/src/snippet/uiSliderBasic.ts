@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -56,7 +56,7 @@ const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
 const SliderBinding = VolumeSliderDefinition.makeBinding(SliderBlock, {
   field: 'ratingDemo',
   init: {
-    contextToArgs: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
+    contextToArgs: () => [{ id: 'rating', min: 0, max: 10, step: 1 }],
   },
 }).withOutMessagePolicy({ fold: foldSliderOutMessage })
 

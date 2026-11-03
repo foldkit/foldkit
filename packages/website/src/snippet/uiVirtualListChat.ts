@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Option, Schema, Tuple } from 'effect'
+import { Array, Effect, Layer, Option, Schema } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -118,14 +118,15 @@ const MessageListBinding = MessageListExampleDefinition.makeBinding(
   {
     field: 'messageList',
     init: {
-      contextToArgs: () =>
-        Tuple.make({
+      contextToArgs: () => [
+        {
           id: 'message-list',
           rowHeightPx: 64,
           initialScroll: { target: VirtualListScrollTarget.End() },
           followEnd: { thresholdPx: 8 },
           history: { reservePx: 800, prefetchViewports: 3 },
-        }),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({

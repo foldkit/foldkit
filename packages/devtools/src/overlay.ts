@@ -485,11 +485,11 @@ const makeApplicationComposition = (
     ScrubberBinding,
   }
   const ApplicationComposition = ApplicationDefinition.makeComposition({
-    bindings: Tuple.make(
+    bindings: [
       InspectorTabsBinding,
       BlockFilterListboxBinding,
       ScrubberBinding,
-    ),
+    ],
   })
 
   return Tuple.make(bindings, ApplicationComposition)

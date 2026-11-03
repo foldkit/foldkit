@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema, Tuple } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
@@ -75,12 +75,12 @@ const foldComboboxOutMessage = FilterDialogDefinition.makeOutMessageFold(
 
 const DialogBinding = FilterDialogDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
-  init: { contextToArgs: () => Tuple.make({ id: 'edit-filters' }) },
+  init: { contextToArgs: () => [{ id: 'edit-filters' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const ComboboxBinding = FilterDialogDefinition.makeBinding(CityCombobox, {
   field: 'combobox',
-  init: { contextToArgs: () => Tuple.make({ id: 'city' }) },
+  init: { contextToArgs: () => [{ id: 'city' }] },
 }).withOutMessagePolicy({ fold: foldComboboxOutMessage })
 
 const FilterDialogComposition = FilterDialogDefinition.makeComposition({

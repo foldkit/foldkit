@@ -1,5 +1,5 @@
 // ✅ Bind the public contract and resolve the original Mount Definition.
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block, Scene } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -29,7 +29,7 @@ const { makeNoopStep } = ConfirmDefinition
 
 const DialogBinding = ConfirmDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
-  init: { contextToArgs: () => Tuple.make({ id: 'confirm' }) },
+  init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({
   fold: ConfirmDefinition.makeOutMessageFold(DialogBlock, {
     Opened: makeNoopStep,

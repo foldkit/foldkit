@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -54,7 +54,7 @@ const foldPopoverOutMessage = PopoverExampleDefinition.makeOutMessageFold(
 // The construction Layer below supplies the child implementation.
 const PopoverBinding = PopoverExampleDefinition.makeBinding(PopoverBlock, {
   field: 'popover',
-  init: { contextToArgs: () => Tuple.make({ id: 'info' }) },
+  init: { contextToArgs: () => [{ id: 'info' }] },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 const PopoverExampleComposition = PopoverExampleDefinition.makeComposition({

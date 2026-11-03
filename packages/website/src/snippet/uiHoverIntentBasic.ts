@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -44,7 +44,7 @@ const HoverIntentBinding = HoverIntentExampleDefinition.makeBinding(
   {
     field: 'hoverIntent',
     init: {
-      contextToArgs: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
+      contextToArgs: () => [{ openDelay: 200, closeDelay: 300 }],
     },
   },
 ).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })

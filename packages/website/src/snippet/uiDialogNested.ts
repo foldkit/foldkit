@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -48,13 +48,13 @@ const SettingsDialogBinding = ProjectDialogsDefinition.makeBinding(
   DialogBlock,
   {
     field: 'settingsDialog',
-    init: { contextToArgs: () => Tuple.make({ id: 'settings' }) },
+    init: { contextToArgs: () => [{ id: 'settings' }] },
   },
 ).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
 const ConfirmDialogBinding = ProjectDialogsDefinition.makeBinding(DialogBlock, {
   field: 'confirmDialog',
-  init: { contextToArgs: () => Tuple.make({ id: 'confirm-delete' }) },
+  init: { contextToArgs: () => [{ id: 'confirm-delete' }] },
 }).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
 const ProjectDialogsComposition = ProjectDialogsDefinition.makeComposition({

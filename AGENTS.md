@@ -144,6 +144,7 @@ Match the implementation style to the subsystem and the behavior being modeled. 
 - Never use sentinel values to signal absence (`-1` from `.indexOf()`, `null`, empty strings, `NaN`). Use `Option`-returning helpers like `String.indexOf`, `Array.findFirst`, `Option.fromNullishOr`.
 - Never `Option.match` with `onNone: Function.constVoid`. Use `Option.isSome` with an explicit `if`.
 - Never use `T[]` syntax. Use `Array<T>` or `ReadonlyArray<T>`.
+- Prefer plain array literals wherever contextual typing preserves the required element or tuple types. Use `Tuple.make` only when a value or producer would otherwise widen and lose necessary tuple typing. Do not add it to `children`, `bindings`, or initializer arguments by default.
 - Never use bracket array indexing (`xs[0]`, `xs[xs.length - 1]`). Use `Array.get`, `Array.head`, `Array.last`, or non-empty variants.
 - Use `Array.isArrayEmpty` / `Array.isArrayNonEmpty`, not `.length === 0` / `.length > 0`. Prefer `Array.match` when handling both cases.
 - Never cast Schema values with `as Type`. Use callable constructors.

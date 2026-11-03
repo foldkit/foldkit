@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -53,7 +53,7 @@ const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
 // The construction Layer below supplies the child implementation.
 const TooltipBinding = TooltipExampleDefinition.makeBinding(TooltipBlock, {
   field: 'tooltip',
-  init: { contextToArgs: () => Tuple.make({ id: 'save-button' }) },
+  init: { contextToArgs: () => [{ id: 'save-button' }] },
 }).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
 const TooltipExampleComposition = TooltipExampleDefinition.makeComposition({

@@ -1,4 +1,3 @@
-import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
 
 import { AsyncCounterDemoBlock, NotePlayerDemoBlock } from './blocks'
@@ -16,7 +15,7 @@ export const DemoTabsBinding = HomeDefinition.makeBinding(
   DemoTab.DemoTabsBlock,
   {
     field: 'demoTabs',
-    init: { contextToArgs: () => Tuple.make({ id: 'demo-tabs' }) },
+    init: { contextToArgs: () => [{ id: 'demo-tabs' }] },
   },
 ).withOutMessagePolicy({
   fold: HomeDefinition.makeOutMessageFold(DemoTab.DemoTabsBlock, {
@@ -43,8 +42,7 @@ export const PlaygroundMenuBinding = HomeDefinition.makeBinding(
   {
     field: 'playgroundMenu',
     init: {
-      contextToArgs: () =>
-        Tuple.make({ id: 'playground-menu', isAnimated: true }),
+      contextToArgs: () => [{ id: 'playground-menu', isAnimated: true }],
     },
   },
 ).withOutMessagePolicy({ fold: foldPlaygroundMenuOutMessage })

@@ -309,6 +309,7 @@ Shared `each`, `on`, and `except` pieces cannot emit OutMessages. Conflicting re
 - Use `Array.match` for empty/non-empty branches. Use `Array.isReadonlyArrayEmpty` / `Array.isReadonlyArrayNonEmpty` for readonly Model collections, or the mutable predicates for mutable arrays; avoid `.length === 0` / `.length > 0`.
 - Prefer `const` and pure collection transformations. Keep unavoidable mutation local to a tight algorithm or resource lifecycle; never hide workflow state in mutable module variables.
 - Never use `T[]`. Always `Array<T>` or `ReadonlyArray<T>`.
+- Prefer plain array literals wherever contextual typing preserves the required element or tuple types. Use `Tuple.make` only when a value or producer would otherwise widen and lose necessary tuple typing. Do not add it to `children`, `bindings`, or initializer arguments by default.
 - Author updates with exhaustive `makeUpdate` records. Branch on already-typed domain and Route variants through their owning union's guards and exhaustive `match`; use Effect `Match` for partial or grouped matches and unions without a matcher. Reserve Schema decoding or `Schema.is` for actual boundary validation. Never use `switch`.
 - Use `Calendar` for date-only values and Effect `DateTime` / `Duration` for timestamps and elapsed time. Read the current time in a Command, Subscription, or Flags.
 - Always use braces for control flow: `if (foo) { return true }`.

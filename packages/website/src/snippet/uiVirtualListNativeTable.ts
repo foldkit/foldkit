@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, Tuple } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -42,14 +42,15 @@ const InvoiceRowsBinding = InvoiceTableDefinition.makeBinding(
   {
     field: 'invoiceRows',
     init: {
-      contextToArgs: () =>
-        Tuple.make({
+      contextToArgs: () => [
+        {
           id: 'invoice-rows',
           rowHeightPx: 48,
           scrollContainer: VirtualListScrollContainer.Ancestor({
             selector: '#invoice-scroll',
           }),
-        }),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({

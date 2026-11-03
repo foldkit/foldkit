@@ -1,4 +1,4 @@
-import { Array, Effect, Schema, Tuple } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -61,7 +61,7 @@ const foldListboxMultiOutMessage = PeoplePickerDefinition.makeOutMessageFold(
 // The construction Layer below supplies the child implementation.
 const PeopleListboxBinding = PeoplePickerDefinition.makeBinding(PeopleListbox, {
   field: 'listboxMulti',
-  init: { contextToArgs: () => Tuple.make({ id: 'people' }) },
+  init: { contextToArgs: () => [{ id: 'people' }] },
 }).withOutMessagePolicy({ fold: foldListboxMultiOutMessage })
 
 const PeoplePickerComposition = PeoplePickerDefinition.makeComposition({

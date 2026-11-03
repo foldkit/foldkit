@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -43,8 +43,7 @@ const foldPopoverOutMessage = AccountMenuDefinition.makeOutMessageFold(
 const AccountPopoverBinding = AccountMenuDefinition.makeBinding(PopoverBlock, {
   field: 'accountPopover',
   init: {
-    contextToArgs: () =>
-      Tuple.make({ id: 'account-popover', contentFocus: true }),
+    contextToArgs: () => [{ id: 'account-popover', contentFocus: true }],
   },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
@@ -53,7 +52,7 @@ const AccountDetailsPopoverBinding = AccountMenuDefinition.makeBinding(
   {
     field: 'accountDetailsPopover',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'account-details-popover' }),
+      contextToArgs: () => [{ id: 'account-details-popover' }],
     },
   },
 ).withOutMessagePolicy({ fold: foldPopoverOutMessage })

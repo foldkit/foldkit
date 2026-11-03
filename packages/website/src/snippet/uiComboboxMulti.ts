@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Schema, Tuple } from 'effect'
+import { Array, Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -51,7 +51,7 @@ const foldComboboxMultiOutMessage = CitiesPickerDefinition.makeOutMessageFold(
 
 const ComboboxBinding = CitiesPickerDefinition.makeBinding(CitiesCombobox, {
   field: 'comboboxMulti',
-  init: { contextToArgs: () => Tuple.make({ id: 'cities-multi' }) },
+  init: { contextToArgs: () => [{ id: 'cities-multi' }] },
 }).withOutMessagePolicy({ fold: foldComboboxMultiOutMessage })
 
 // Including the Binding collects its lifecycle and handler graph.

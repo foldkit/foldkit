@@ -1,4 +1,4 @@
-import { Effect, Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -64,7 +64,7 @@ const foldPlanRadioGroupOutMessage = PlanPickerDefinition.makeOutMessageFold(
 // The construction Layer below supplies the child implementation.
 const PlanRadioGroupBinding = PlanPickerDefinition.makeBinding(PlanRadioGroup, {
   field: 'planRadioGroup',
-  init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },
+  init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldPlanRadioGroupOutMessage })
 
 const PlanPickerComposition = PlanPickerDefinition.makeComposition({

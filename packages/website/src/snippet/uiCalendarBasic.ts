@@ -1,4 +1,4 @@
-import { Effect, Match, Option, Schema, Tuple } from 'effect'
+import { Effect, Match, Option, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -81,12 +81,13 @@ const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
 const CalendarBinding = CalendarExampleDefinition.makeBinding(CalendarBlock, {
   field: 'calendarDemo',
   init: {
-    contextToArgs: flags =>
-      Tuple.make({
+    contextToArgs: flags => [
+      {
         id: 'calendar-demo',
         today: flags.today,
         initialViewDate: flags.today,
-      }),
+      },
+    ],
   },
 }).withOutMessagePolicy({ fold: foldCalendarOutMessage })
 

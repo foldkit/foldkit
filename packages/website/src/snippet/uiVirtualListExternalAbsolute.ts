@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, Tuple } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -41,12 +41,13 @@ const ActivityListBinding = ActivityFeedDefinition.makeBinding(
   {
     field: 'activityList',
     init: {
-      contextToArgs: () =>
-        Tuple.make({
+      contextToArgs: () => [
+        {
           id: 'activity-feed',
           rowHeightPx: 88,
           scrollContainer: VirtualListScrollContainer.Window(),
-        }),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({

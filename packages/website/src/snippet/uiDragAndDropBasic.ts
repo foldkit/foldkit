@@ -1,4 +1,4 @@
-import { Array, Effect, Schema, Tuple } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -65,7 +65,7 @@ const DragAndDropBinding = SortableListDefinition.makeBinding(
   DragAndDropBlock,
   {
     field: 'dragAndDrop',
-    init: { contextToArgs: () => Tuple.make({ id: 'sortable-list' }) },
+    init: { contextToArgs: () => [{ id: 'sortable-list' }] },
   },
 ).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 

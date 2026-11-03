@@ -1,4 +1,4 @@
-import { Effect, Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -70,7 +70,7 @@ const foldTabsOutMessage = TabsExampleDefinition.makeOutMessageFold(
 // The construction Layer below supplies the child implementation.
 const TabsBinding = TabsExampleDefinition.makeBinding(FrameworkTabs, {
   field: 'tabs',
-  init: { contextToArgs: () => Tuple.make({ id: 'framework-tabs' }) },
+  init: { contextToArgs: () => [{ id: 'framework-tabs' }] },
 }).withOutMessagePolicy({ fold: foldTabsOutMessage })
 
 const TabsExampleComposition = TabsExampleDefinition.makeComposition({

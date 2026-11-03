@@ -1,4 +1,4 @@
-import { Array, Effect, Schema, Tuple } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 import { Block, File } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -53,7 +53,7 @@ const foldFileDropOutMessage = FileDropExampleDefinition.makeOutMessageFold(
 // The construction Layer below supplies the child implementation.
 const FileDropBinding = FileDropExampleDefinition.makeBinding(FileDropBlock, {
   field: 'uploader',
-  init: { contextToArgs: () => Tuple.make({ id: 'uploader' }) },
+  init: { contextToArgs: () => [{ id: 'uploader' }] },
 }).withOutMessagePolicy({ fold: foldFileDropOutMessage })
 
 const FileDropExampleComposition = FileDropExampleDefinition.makeComposition({

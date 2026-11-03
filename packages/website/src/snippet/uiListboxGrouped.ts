@@ -1,4 +1,4 @@
-import { Effect, Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -66,7 +66,7 @@ const CharacterListboxBinding = CharacterPickerDefinition.makeBinding(
   CharacterListbox,
   {
     field: 'listbox',
-    init: { contextToArgs: () => Tuple.make({ id: 'character' }) },
+    init: { contextToArgs: () => [{ id: 'character' }] },
   },
 ).withOutMessagePolicy({ fold: foldListboxOutMessage })
 

@@ -1,4 +1,4 @@
-import { Option, Tuple } from 'effect'
+import { Option } from 'effect'
 import type { Block } from 'foldkit'
 
 import { ExampleDetailDefinition, makeFieldsStep } from './definition'
@@ -11,7 +11,7 @@ export const SourceFileTabsBinding = ExampleDetailDefinition.makeBinding(
   SourceFileTabsBlock,
   {
     field: 'sourceFileTabs',
-    init: { contextToArgs: () => Tuple.make({ id: SOURCE_FILE_TABS_ID }) },
+    init: { contextToArgs: () => [{ id: SOURCE_FILE_TABS_ID }] },
   },
 ).withOutMessagePolicy({
   fold: ExampleDetailDefinition.makeOutMessageFold(SourceFileTabsBlock, {

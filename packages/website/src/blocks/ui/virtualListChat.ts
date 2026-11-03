@@ -1,13 +1,4 @@
-import {
-  Array,
-  Effect,
-  Match,
-  Number,
-  Option,
-  Schema,
-  Tuple,
-  pipe,
-} from 'effect'
+import { Array, Effect, Match, Number, Option, Schema, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
@@ -142,10 +133,9 @@ export const FetchVirtualListChatHistory = UiDefinition.makeCommand(
 const virtualListChatBinding = UiDefinition.makeBinding(ChatVirtualListBlock, {
   field: 'virtualListChatDemo',
   init: {
-    contextToArgs: () =>
-      Tuple.make(
-        virtualListChatInitConfig(VirtualListChatHistorySource.Unbounded()),
-      ),
+    contextToArgs: () => [
+      virtualListChatInitConfig(VirtualListChatHistorySource.Unbounded()),
+    ],
   },
 })
 
@@ -284,7 +274,7 @@ export const VirtualListChatHistoryModeGroupBinding = UiDefinition.makeBinding(
   {
     field: 'virtualListChatHistoryModeGroup',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'virtual-list-chat-history-mode' }),
+      contextToArgs: () => [{ id: 'virtual-list-chat-history-mode' }],
     },
   },
 ).withOutMessagePolicy({
