@@ -68,6 +68,8 @@ const withEntries = (model: Model, entries: ReadonlyArray<Entry>): Model =>
 const requireEntry = (model: Model, index: number): Entry =>
   Option.getOrThrow(Array.get(model.entries, index))
 
+const givenEmpty = Story.init({ id: 'test' })
+
 const makeTestFixture = (block: Story.TestBlock<typeof ToastBlock>) => {
   const toastInit = block.init
   const givenEmpty = Story.given(toastInit({ id: 'test' }).model)
@@ -90,73 +92,99 @@ const it = makeMethods(
 
 describe('Toast', () => {
   describe('init', () => {
-    it('defaults to empty with a 4s default duration and swipe disabled', ({
-      toast: { toastInit },
-    }) => {
-      expect(toastInit({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        defaultDuration: Duration.seconds(4),
-        entries: [],
-        nextEntryKey: 0,
-        maybeSwipeConfig: Option.none(),
-      })
-    })
+    it.effect(
+      'defaults to empty with a 4s default duration and swipe disabled',
+      () =>
+        Story.story(
+          ToastBlock,
+          Story.init({ id: 'test' }),
+          Story.model(model => {
+            expect(model).toStrictEqual({
+              id: 'test',
+              defaultDuration: Duration.seconds(4),
+              entries: [],
+              nextEntryKey: 0,
+              maybeSwipeConfig: Option.none(),
+            })
+          }),
+        ).pipe(Effect.provide(layer)),
+    )
 
-    it('accepts a custom defaultDuration', ({ toast: { toastInit } }) => {
-      expect(
-        toastInit({
+    it.effect('accepts a custom defaultDuration', () =>
+      Story.story(
+        ToastBlock,
+        Story.init({
           id: 'test',
           defaultDuration: 1000,
-        }).model,
-      ).toStrictEqual({
-        id: 'test',
-        defaultDuration: Duration.millis(1000),
-        entries: [],
-        nextEntryKey: 0,
-        maybeSwipeConfig: Option.none(),
-      })
-    })
+        }),
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            defaultDuration: Duration.millis(1000),
+            entries: [],
+            nextEntryKey: 0,
+            maybeSwipeConfig: Option.none(),
+          })
+        }),
+      ).pipe(Effect.provide(layer)),
+    )
 
-    it('opts into rightward swipe with the default threshold', ({
-      toast: { toastInit },
-    }) => {
-      expect(toastInit({ id: 'test', swipeToDismiss: {} }).model).toStrictEqual(
-        {
-          id: 'test',
-          defaultDuration: Duration.seconds(4),
-          entries: [],
-          nextEntryKey: 0,
-          maybeSwipeConfig: Option.some({ threshold: 40, direction: 'Right' }),
-        },
-      )
-    })
+    it.effect('opts into rightward swipe with the default threshold', () =>
+      Story.story(
+        ToastBlock,
+        Story.init({ id: 'test', swipeToDismiss: {} }),
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            defaultDuration: Duration.seconds(4),
+            entries: [],
+            nextEntryKey: 0,
+            maybeSwipeConfig: Option.some({
+              threshold: 40,
+              direction: 'Right',
+            }),
+          })
+        }),
+      ).pipe(Effect.provide(layer)),
+    )
 
-    it('accepts a custom swipe threshold', ({ toast: { toastInit } }) => {
-      expect(
-        toastInit({
+    it.effect('accepts a custom swipe threshold', () =>
+      Story.story(
+        ToastBlock,
+        Story.init({
           id: 'test',
           swipeToDismiss: { threshold: 120 },
-        }).model,
-      ).toStrictEqual({
-        id: 'test',
-        defaultDuration: Duration.seconds(4),
-        entries: [],
-        nextEntryKey: 0,
-        maybeSwipeConfig: Option.some({ threshold: 120, direction: 'Right' }),
-      })
-    })
+        }),
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            defaultDuration: Duration.seconds(4),
+            entries: [],
+            nextEntryKey: 0,
+            maybeSwipeConfig: Option.some({
+              threshold: 120,
+              direction: 'Right',
+            }),
+          })
+        }),
+      ).pipe(Effect.provide(layer)),
+    )
 
-    it('accepts a leftward swipe direction', ({ toast: { toastInit } }) => {
-      expect(
-        toastInit({ id: 'test', swipeToDismiss: { direction: 'Left' } }).model,
-      ).toStrictEqual({
-        id: 'test',
-        defaultDuration: Duration.seconds(4),
-        entries: [],
-        nextEntryKey: 0,
-        maybeSwipeConfig: Option.some({ threshold: 40, direction: 'Left' }),
-      })
-    })
+    it.effect('accepts a leftward swipe direction', () =>
+      Story.story(
+        ToastBlock,
+        Story.init({ id: 'test', swipeToDismiss: { direction: 'Left' } }),
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            defaultDuration: Duration.seconds(4),
+            entries: [],
+            nextEntryKey: 0,
+            maybeSwipeConfig: Option.some({ threshold: 40, direction: 'Left' }),
+          })
+        }),
+      ).pipe(Effect.provide(layer)),
+    )
   })
 
   describe('show', () => {
@@ -309,11 +337,9 @@ describe('Toast', () => {
         )
       })
 
-      it('does nothing for a missing entry', ({
-        toast: { block, givenEmpty },
-      }) => {
+      it.effect('does nothing for a missing entry', () =>
         Story.story(
-          block.update,
+          ToastBlock,
           givenEmpty,
           Story.message(
             Message.CompletedWaitBeforeDismissal({
@@ -322,8 +348,8 @@ describe('Toast', () => {
             }),
           ),
           Story.Command.expectNone(),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
     })
 
     describe('HoveredEntry / LeftEntry', () => {
@@ -428,32 +454,32 @@ describe('Toast', () => {
     })
 
     describe('handles a missing entry id as a no-op', () => {
-      it('Dismissed', ({ toast: { block, givenEmpty } }) => {
+      it.effect('Dismissed', () =>
         Story.story(
-          block.update,
+          ToastBlock,
           givenEmpty,
           Story.message(Message.Dismissed({ entryId: 'nope' })),
           Story.Command.expectNone(),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
 
-      it('HoveredEntry', ({ toast: { block, givenEmpty } }) => {
+      it.effect('HoveredEntry', () =>
         Story.story(
-          block.update,
+          ToastBlock,
           givenEmpty,
           Story.message(Message.HoveredEntry({ entryId: 'nope' })),
           Story.Command.expectNone(),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
 
-      it('LeftEntry', ({ toast: { block, givenEmpty } }) => {
+      it.effect('LeftEntry', () =>
         Story.story(
-          block.update,
+          ToastBlock,
           givenEmpty,
           Story.message(Message.LeftEntry({ entryId: 'nope' })),
           Story.Command.expectNone(),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
     })
 
     describe('Dismissed', () => {
@@ -645,76 +671,77 @@ describe('Toast', () => {
   })
 
   describe('Added', () => {
-    it('runs the full add flow: entry advances to Idle, then the auto-dismiss timer starts the leave transition', ({
-      toast: { block, givenEmpty },
-    }) => {
-      const entry = makeFreshEntry({
-        maybeDuration: Option.some(Duration.millis(100)),
-      })
-      Story.story(
-        block.update,
-        givenEmpty,
-        Story.message(ToastFixture.Message.Added({ entry })),
-        Story.Command.resolveAll(
-          [
-            toastTest.matchWaitForPaint(
-              firstEntryId,
-              ENTER_TRANSITION_GENERATION,
-            ),
-            Animation.Message.CompletedWaitForPaint({
-              generation: ENTER_TRANSITION_GENERATION,
-            }),
-          ],
-          [
-            toastTest.matchWaitForAnimationSettled(
-              firstEntryId,
-              ENTER_TRANSITION_GENERATION,
-            ),
-            Animation.Message.EndedAnimation({
-              generation: ENTER_TRANSITION_GENERATION,
-            }),
-          ],
-        ),
-        Story.model(next => {
-          expect(requireEntry(next, 0).animation.transitionState).toBe('Idle')
-        }),
-        Story.Command.resolve(
-          ToastFixture.WaitBeforeDismissal,
-          Message.CompletedWaitBeforeDismissal({
-            entryId: firstEntryId,
-            version: 0,
+    it.effect(
+      'runs the full add flow: entry advances to Idle, then the auto-dismiss timer starts the leave transition',
+      () => {
+        const entry = makeFreshEntry({
+          maybeDuration: Option.some(Duration.millis(100)),
+        })
+        return Story.story(
+          ToastBlock,
+          givenEmpty,
+          Story.message(ToastFixture.Message.Added({ entry })),
+          Story.Command.resolveAll(
+            [
+              toastTest.matchWaitForPaint(
+                firstEntryId,
+                ENTER_TRANSITION_GENERATION,
+              ),
+              Animation.Message.CompletedWaitForPaint({
+                generation: ENTER_TRANSITION_GENERATION,
+              }),
+            ],
+            [
+              toastTest.matchWaitForAnimationSettled(
+                firstEntryId,
+                ENTER_TRANSITION_GENERATION,
+              ),
+              Animation.Message.EndedAnimation({
+                generation: ENTER_TRANSITION_GENERATION,
+              }),
+            ],
+          ),
+          Story.model(next => {
+            expect(requireEntry(next, 0).animation.transitionState).toBe('Idle')
           }),
-        ),
-        Story.model(next => {
-          expect(requireEntry(next, 0).animation.transitionState).toBe(
-            'LeaveStart',
-          )
-        }),
-        Story.Command.resolveAll(
-          [
-            toastTest.matchWaitForPaint(
-              firstEntryId,
-              LEAVE_TRANSITION_GENERATION,
-            ),
-            Animation.Message.CompletedWaitForPaint({
-              generation: LEAVE_TRANSITION_GENERATION,
+          Story.Command.resolve(
+            ToastFixture.WaitBeforeDismissal,
+            Message.CompletedWaitBeforeDismissal({
+              entryId: firstEntryId,
+              version: 0,
             }),
-          ],
-          [
-            toastTest.matchWaitForAnimationSettled(
-              firstEntryId,
-              LEAVE_TRANSITION_GENERATION,
-            ),
-            Animation.Message.EndedAnimation({
-              generation: LEAVE_TRANSITION_GENERATION,
-            }),
-          ],
-        ),
-        Story.model(next => {
-          expect(next.entries).toHaveLength(0)
-        }),
-      )
-    })
+          ),
+          Story.model(next => {
+            expect(requireEntry(next, 0).animation.transitionState).toBe(
+              'LeaveStart',
+            )
+          }),
+          Story.Command.resolveAll(
+            [
+              toastTest.matchWaitForPaint(
+                firstEntryId,
+                LEAVE_TRANSITION_GENERATION,
+              ),
+              Animation.Message.CompletedWaitForPaint({
+                generation: LEAVE_TRANSITION_GENERATION,
+              }),
+            ],
+            [
+              toastTest.matchWaitForAnimationSettled(
+                firstEntryId,
+                LEAVE_TRANSITION_GENERATION,
+              ),
+              Animation.Message.EndedAnimation({
+                generation: LEAVE_TRANSITION_GENERATION,
+              }),
+            ],
+          ),
+          Story.model(next => {
+            expect(next.entries).toHaveLength(0)
+          }),
+        ).pipe(Effect.provide(layer))
+      },
+    )
   })
 
   describe('swipe', () => {

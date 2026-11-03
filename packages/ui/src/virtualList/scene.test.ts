@@ -1,9 +1,10 @@
 import { Array, Effect } from 'effect'
+import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { it as baseIt } from 'vitest'
 
-import { describe, expect } from '@effect/vitest'
+import { describe, expect, makeMethods } from '@effect/vitest'
 
 import {
   AccessibleSet,
@@ -47,6 +48,47 @@ type SceneViewOverrides = Readonly<{
   RowHeightInputs<DemoItem>
 
 const DemoBlock = makeBlock<DemoItem>()
+const sceneViewInputs = (
+  overrides: SceneViewOverrides = {},
+): ViewInputs<DemoItem> => {
+  const baseViewInputs = {
+    items: demoItems,
+    itemToKey: (item: DemoItem) => String(item.id),
+    itemToView: (item: DemoItem) => ih.div([], [ih.span([], [item.label])]),
+    overscan: 0,
+    ...(overrides.containerClassName === undefined
+      ? {}
+      : { containerClassName: overrides.containerClassName }),
+    ...(overrides.contentAlignment === undefined
+      ? {}
+      : { contentAlignment: overrides.contentAlignment }),
+    ...(overrides.accessibleSet === undefined
+      ? {}
+      : { accessibleSet: overrides.accessibleSet }),
+  }
+
+  if (overrides.itemToRowHeightPx !== undefined) {
+    return {
+      ...baseViewInputs,
+      itemToRowHeightPx: overrides.itemToRowHeightPx,
+    }
+  }
+
+  if (overrides.dynamicRowHeights !== undefined) {
+    return {
+      ...baseViewInputs,
+      dynamicRowHeights: overrides.dynamicRowHeights,
+      ...(overrides.itemToEstimatedRowHeightPx === undefined
+        ? {}
+        : {
+            itemToEstimatedRowHeightPx: overrides.itemToEstimatedRowHeightPx,
+          }),
+    }
+  }
+
+  return baseViewInputs
+}
+
 const makeFixture = ({
   init,
   update,
@@ -109,14 +151,16 @@ const makeFixture = ({
   return { init, update, view, sceneView, unmeasuredModel, measuredModel }
 }
 
-const it = baseIt.extend<{ virtualList: ReturnType<typeof makeFixture> }>({
-  virtualList: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(DemoBlock, virtualList =>
-        Effect.promise(() => use(makeFixture(virtualList))),
-      ).pipe(Effect.provide(layer)),
-    ),
-})
+const it = makeMethods(
+  baseIt.extend<{ virtualList: ReturnType<typeof makeFixture> }>({
+    virtualList: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(DemoBlock, virtualList =>
+          Effect.promise(() => use(makeFixture(virtualList))),
+        ).pipe(Effect.provide(layer)),
+      ),
+  }),
+)
 
 const container = Scene.selector('ul#test')
 const rows = Scene.all.selector('li[data-virtual-list-item-index]')
@@ -128,54 +172,51 @@ const acknowledgeObserver = Scene.Mount.resolve(
 
 describe('VirtualList', () => {
   describe('container', () => {
-    it('renders as a ul with id and explicit role=list for Safari + VoiceOver compatibility', ({
-      virtualList: { update, sceneView, unmeasuredModel },
-    }) => {
-      Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(unmeasuredModel),
-        Scene.expect(container).toExist(),
-        Scene.expect(container).toHaveAttr('id', 'test'),
-        Scene.expect(container).toHaveAttr('role', 'list'),
-        acknowledgeObserver,
-      )
-    })
+    it.effect(
+      'renders as a ul with id and explicit role=list for Safari + VoiceOver compatibility',
+      () =>
+        Scene.scene(
+          { block: DemoBlock, viewInputs: sceneViewInputs() },
+          Scene.init({ id: 'test', rowHeightPx: ROW_HEIGHT }),
+          Scene.expect(container).toExist(),
+          Scene.expect(container).toHaveAttr('id', 'test'),
+          Scene.expect(container).toHaveAttr('role', 'list'),
+          acknowledgeObserver,
+        ).pipe(Effect.provide(layer)),
+    )
 
-    it('sets overflow: auto inline so the container scrolls', ({
-      virtualList: { update, sceneView, unmeasuredModel },
-    }) => {
+    it.effect('sets overflow: auto inline so the container scrolls', () =>
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(unmeasuredModel),
+        { block: DemoBlock, viewInputs: sceneViewInputs() },
+        Scene.init({ id: 'test', rowHeightPx: ROW_HEIGHT }),
         Scene.expect(container).toHaveStyle('overflow', 'auto'),
         acknowledgeObserver,
-      )
-    })
+      ).pipe(Effect.provide(layer)),
+    )
 
-    it('applies the consumer className when provided', ({
-      virtualList: { update, sceneView, unmeasuredModel },
-    }) => {
+    it.effect('applies the consumer className when provided', () =>
       Scene.scene(
-        { update, view: sceneView({ containerClassName: 'h-96 bg-white' }) },
-        Scene.given(unmeasuredModel),
+        {
+          block: DemoBlock,
+          viewInputs: sceneViewInputs({ containerClassName: 'h-96 bg-white' }),
+        },
+        Scene.init({ id: 'test', rowHeightPx: ROW_HEIGHT }),
         Scene.expect(container).toHaveClass('h-96'),
         Scene.expect(container).toHaveClass('bg-white'),
         acknowledgeObserver,
-      )
-    })
+      ).pipe(Effect.provide(layer)),
+    )
   })
 
   describe('unmeasured state', () => {
-    it('renders no rows before the container is measured', ({
-      virtualList: { update, sceneView, unmeasuredModel },
-    }) => {
+    it.effect('renders no rows before the container is measured', () =>
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(unmeasuredModel),
+        { block: DemoBlock, viewInputs: sceneViewInputs() },
+        Scene.init({ id: 'test', rowHeightPx: ROW_HEIGHT }),
         Scene.expectAll(rows).toHaveCount(0),
         acknowledgeObserver,
-      )
-    })
+      ).pipe(Effect.provide(layer)),
+    )
   })
 
   describe('measured state', () => {

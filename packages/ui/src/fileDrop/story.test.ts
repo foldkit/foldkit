@@ -15,11 +15,14 @@ it.layer(layer, { buildPerTest: true })(it => {
   describe('FileDrop', () => {
     describe('init', () => {
       it.effect('starts with drag-over false', () =>
-        Story.withBlock(block, block => {
-          const model = block.init({ id: 'test' }).model
-          expect(model.id).toBe('test')
-          expect(model.isDragOver).toBe(false)
-        }),
+        Story.story(
+          block,
+          Story.init({ id: 'test' }),
+          Story.model(model => {
+            expect(model.id).toBe('test')
+            expect(model.isDragOver).toBe(false)
+          }),
+        ),
       )
     })
 

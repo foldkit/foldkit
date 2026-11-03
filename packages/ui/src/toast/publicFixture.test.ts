@@ -5,7 +5,7 @@ import * as Story from 'foldkit/story'
 import * as Update from 'foldkit/update'
 import { it as baseIt, expect } from 'vitest'
 
-import { describe } from '@effect/vitest'
+import { describe, makeMethods } from '@effect/vitest'
 
 import * as Toast from './index.js'
 
@@ -199,56 +199,58 @@ const makeKeyedFixture = (block: Story.TestBlock<typeof KeyedParentBlock>) => ({
   keyedUpdate: block.update,
   keyedInitialModel: block.init().model,
 })
-const it = baseIt.extend<{
-  parent: ReturnType<typeof makeParentFixture>
-  keyedParent: ReturnType<typeof makeKeyedFixture>
-}>({
-  parent: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(ParentBlock, block =>
-        Effect.promise(() => use(makeParentFixture(block))),
+const it = makeMethods(
+  baseIt.extend<{
+    parent: ReturnType<typeof makeParentFixture>
+    keyedParent: ReturnType<typeof makeKeyedFixture>
+  }>({
+    parent: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(ParentBlock, block =>
+          Effect.promise(() => use(makeParentFixture(block))),
+        ),
       ),
-    ),
-  keyedParent: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(KeyedParentBlock, block =>
-        Effect.promise(() => use(makeKeyedFixture(block))),
+    keyedParent: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(KeyedParentBlock, block =>
+          Effect.promise(() => use(makeKeyedFixture(block))),
+        ),
       ),
-    ),
-})
+  }),
+)
 
 describe('Toast.test.drainEntry', () => {
-  it('selects an exact completed Toast Binding across repeated placements and factories', ({
-    parent: { update, initialModel },
-  }) => {
-    Story.story(
-      update,
-      Story.given(initialModel),
-      Story.message(ParentMessage.RequestedShowAll()),
-      FirstToast.test.drainEntry({
-        binding: RightBinding,
-        entryId: 'toast-entry-0',
-      }),
-      Story.model(model => {
-        expect(model.left.entries).toHaveLength(1)
-        expect(model.right.entries).toHaveLength(0)
-        expect(model.other.entries).toHaveLength(1)
-      }),
-      SecondToast.test.drainEntry({
-        binding: OtherBinding,
-        entryId: 'toast-entry-0',
-      }),
-      Story.model(model => {
-        expect(model.left.entries).toHaveLength(1)
-        expect(model.other.entries).toHaveLength(0)
-      }),
-      FirstToast.test.drainEntry({
-        binding: LeftBinding,
-        entryId: 'toast-entry-0',
-      }),
-      Story.Command.expectNone(),
-    )
-  })
+  it.effect(
+    'selects an exact completed Toast Binding across repeated placements and factories',
+    () =>
+      Story.story(
+        ParentBlock,
+        Story.init(),
+        Story.message(ParentMessage.RequestedShowAll()),
+        FirstToast.test.drainEntry({
+          binding: RightBinding,
+          entryId: 'toast-entry-0',
+        }),
+        Story.model(model => {
+          expect(model.left.entries).toHaveLength(1)
+          expect(model.right.entries).toHaveLength(0)
+          expect(model.other.entries).toHaveLength(1)
+        }),
+        SecondToast.test.drainEntry({
+          binding: OtherBinding,
+          entryId: 'toast-entry-0',
+        }),
+        Story.model(model => {
+          expect(model.left.entries).toHaveLength(1)
+          expect(model.other.entries).toHaveLength(0)
+        }),
+        FirstToast.test.drainEntry({
+          binding: LeftBinding,
+          entryId: 'toast-entry-0',
+        }),
+        Story.Command.expectNone(),
+      ),
+  )
 
   it('does not select a stale timer version', ({
     parent: { update, initialModel },
@@ -267,12 +269,10 @@ describe('Toast.test.drainEntry', () => {
     ).toThrow('could not find the fresh auto-dismiss timer')
   })
 
-  it('requires and selects a keyed Toast Binding occurrence', ({
-    keyedParent: { keyedUpdate, keyedInitialModel },
-  }) => {
+  it.effect('requires and selects a keyed Toast Binding occurrence', () =>
     Story.story(
-      keyedUpdate,
-      Story.given(keyedInitialModel),
+      KeyedParentBlock,
+      Story.init(),
       Story.message(KeyedParentMessage.RequestedShow()),
       FirstToast.test.drainEntry({
         binding: SlotsToastBinding,
@@ -286,8 +286,8 @@ describe('Toast.test.drainEntry', () => {
         ).toHaveLength(0)
       }),
       Story.Command.expectNone(),
-    )
-  })
+    ),
+  )
 
   it('rejects a removed entry fixture even when its timer is pending', ({
     keyedParent: { keyedUpdate, keyedInitialModel },

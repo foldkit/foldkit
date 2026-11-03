@@ -4,7 +4,7 @@ import { inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import { it as baseIt, expect } from 'vitest'
 
-import { describe } from '@effect/vitest'
+import { describe, makeMethods } from '@effect/vitest'
 
 import {
   FocusTab,
@@ -25,19 +25,22 @@ const disabledAt =
 
 type TabsOperations = Pick<Effect.Success<typeof block.get>, 'init' | 'update'>
 const makeFixture = ({ init, update }: TabsOperations) => ({ init, update })
-const it = baseIt.extend<{ tabs: TabsOperations }>({
-  tabs: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(block, tabs =>
-        Effect.promise(() => use(makeFixture(tabs))),
+const it = makeMethods(
+  baseIt.extend<{ tabs: TabsOperations }>({
+    tabs: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(block, tabs =>
+          Effect.promise(() => use(makeFixture(tabs))),
+        ),
       ),
-    ),
-})
+  }),
+)
 
 describe('Tabs', () => {
   describe('view', () => {
-    it('only gives the mounted panel relationship to the active tab', () => {
-      return Effect.runPromise(
+    it.effect(
+      'only gives the mounted panel relationship to the active tab',
+      () =>
         Scene.scene(
           {
             block,
@@ -74,11 +77,11 @@ describe('Tabs', () => {
             'aria-controls',
           ),
         ),
-      )
-    })
+    )
 
-    it('keeps every panel relationship when all panels remain mounted', () => {
-      return Effect.runPromise(
+    it.effect(
+      'keeps every panel relationship when all panels remain mounted',
+      () =>
         Scene.scene(
           {
             block,
@@ -111,39 +114,46 @@ describe('Tabs', () => {
           ),
           Scene.expect(Scene.selector('#test-panel-1')).toExist(),
         ),
-      )
-    })
+    )
   })
 
   describe('init', () => {
-    it('defaults to automatic activation with focus following the selection', ({
-      tabs: { init },
-    }) => {
-      expect(init({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        maybeFocusedIndex: Option.none(),
-        activationMode: 'Automatic',
-      })
-    })
+    it.effect(
+      'defaults to automatic activation with focus following the selection',
+      () =>
+        Story.story(
+          block,
+          Story.init({ id: 'test' }),
+          Story.model(model => {
+            expect(model).toStrictEqual({
+              id: 'test',
+              maybeFocusedIndex: Option.none(),
+              activationMode: 'Automatic',
+            })
+          }),
+        ),
+    )
 
-    it('accepts a custom activationMode', ({ tabs: { init } }) => {
-      expect(
-        init({ id: 'test', activationMode: 'Manual' }).model,
-      ).toStrictEqual({
-        id: 'test',
-        maybeFocusedIndex: Option.none(),
-        activationMode: 'Manual',
-      })
-    })
+    it.effect('accepts a custom activationMode', () =>
+      Story.story(
+        block,
+        Story.init({ id: 'test', activationMode: 'Manual' }),
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            maybeFocusedIndex: Option.none(),
+            activationMode: 'Manual',
+          })
+        }),
+      ),
+    )
   })
 
   describe('update', () => {
-    it('clears focus divergence on SelectedTab and emits Selected', ({
-      tabs: { update, init },
-    }) => {
+    it.effect('clears focus divergence on SelectedTab and emits Selected', () =>
       Story.story(
-        update,
-        Story.given(init({ id: 'test' }).model),
+        block,
+        Story.init({ id: 'test' }),
         Story.message(Message.SelectedTab({ index: 3, value: 'tab-3' })),
         Story.expectOutMessage(
           OutMessage.Selected({ value: 'tab-3', index: 3 }),
@@ -152,8 +162,8 @@ describe('Tabs', () => {
         Story.model(model => {
           expect(model.maybeFocusedIndex).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
 
     it('emits Selected with the committed value on a subsequent SelectedTab', ({
       tabs: { update, init },
@@ -176,19 +186,17 @@ describe('Tabs', () => {
       )
     })
 
-    it('sets focus divergence on FocusedTab without an OutMessage', ({
-      tabs: { update, init },
-    }) => {
+    it.effect('sets focus divergence on FocusedTab without an OutMessage', () =>
       Story.story(
-        update,
-        Story.given(init({ id: 'test', activationMode: 'Manual' }).model),
+        block,
+        Story.init({ id: 'test', activationMode: 'Manual' }),
         Story.message(Message.FocusedTab({ index: 2 })),
         Story.Command.resolve(FocusTab, Message.CompletedFocusTab()),
         Story.model(model => {
           expect(model.maybeFocusedIndex).toStrictEqual(Option.some(2))
         }),
-      )
-    })
+      ),
+    )
 
     it('SelectedTab in manual mode emits Selected and clears divergence', ({
       tabs: { update, init },

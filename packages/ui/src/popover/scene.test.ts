@@ -414,17 +414,13 @@ it.layer(layer, { buildPerTest: true })(it => {
             }),
         )
 
-        it.effect('buttonId derives the trigger id from the base id', () =>
-          Scene.withBlock(PopoverBlock, () => {
-            expect(buttonId('test')).toBe('test-button')
-          }),
-        )
+        it('buttonId derives the trigger id from the base id', () => {
+          expect(buttonId('test')).toBe('test-button')
+        })
 
-        it.effect('arrowId derives the arrow id from the base id', () =>
-          Scene.withBlock(PopoverBlock, () => {
-            expect(arrowId('test')).toBe('test-arrow')
-          }),
-        )
+        it('arrowId derives the arrow id from the base id', () => {
+          expect(arrowId('test')).toBe('test-arrow')
+        })
       })
     })
   })

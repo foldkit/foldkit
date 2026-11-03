@@ -2,7 +2,9 @@ import { Effect } from 'effect'
 import type * as Block from 'foldkit/block'
 import type * as Mount from 'foldkit/mount'
 import * as Story from 'foldkit/story'
-import { expect, expectTypeOf, it } from 'vitest'
+import { expect, expectTypeOf } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import {
   AcquireResources,
@@ -42,8 +44,9 @@ import { FocusTab } from './tabs/tabs.js'
 
 const TestMenu = Menu.makeBlock()
 
-it('publishes the original Command and Mount Definitions through test namespaces', () =>
-  Effect.runPromise(
+it.effect(
+  'publishes the original Command and Mount Definitions through test namespaces',
+  () =>
     Story.withBlock(TestMenu, menu => {
       expect(Dialog.test.AcquireResources).toBe(AcquireResources)
       expect(Dialog.test.CloseDialog).toBe(CloseDialog)
@@ -80,4 +83,4 @@ it('publishes the original Command and Mount Definitions through test namespaces
       expect(RadioGroup.test.FocusOption).toBe(FocusOption)
       expect(Tabs.test.FocusTab).toBe(FocusTab)
     }).pipe(Effect.provide(Menu.layer)),
-  ))
+)

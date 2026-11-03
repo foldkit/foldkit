@@ -129,16 +129,18 @@ const ParentBlock = DialogParentTestDefinition.makeBlock(
   }),
 ).provide(layer)
 
+const provideEffects = Effect.provide(
+  Layer.mergeAll(
+    ShowDialog.layer,
+    CloseDialog.layer,
+    ReleaseDialogResources.layer,
+    AcquireResources.layer,
+  ),
+)
+
 const makeFixture = (block: Story.TestBlock<typeof DialogBlock>) => {
   const { init, update, view } = block
-  const provideEffects = Effect.provide(
-    Layer.mergeAll(
-      ShowDialog.layer,
-      CloseDialog.layer,
-      ReleaseDialogResources.layer,
-      AcquireResources.layer,
-    ),
-  )
+
   const openDialog = (config: InitConfig) =>
     block.receive(init(config).model, InMessage.RequestedOpen())
 
@@ -312,17 +314,19 @@ it.layer(layer, { buildPerTest: true })(it => {
   describe('Dialog', () => {
     describe('init', () => {
       it.effect('defaults isOpen to false', () =>
-        Story.withBlock(DialogBlock, block => {
-          const { init } = makeFixture(block)
-
-          expect(init({ id: 'test' }).model).toStrictEqual({
-            id: 'test',
-            isOpen: false,
-            isAnimated: false,
-            animation: makeAnimationModel({ id: 'test-panel' }),
-            maybeFocusSelector: Option.none(),
-          })
-        }),
+        Story.story(
+          DialogBlock,
+          Story.init({ id: 'test' }),
+          Story.model(model => {
+            expect(model).toStrictEqual({
+              id: 'test',
+              isOpen: false,
+              isAnimated: false,
+              animation: makeAnimationModel({ id: 'test-panel' }),
+              maybeFocusSelector: Option.none(),
+            })
+          }),
+        ),
       )
 
       it.effect(
@@ -358,163 +362,135 @@ it.layer(layer, { buildPerTest: true })(it => {
       it.effect(
         'opens through the Binding while preserving root Commands and folding Opened',
         () =>
-          Story.withBlock(DialogBlock, block => {
-            const {} = makeFixture(block)
-            return Story.withBlock(ParentBlock, parent => {
-              const parentOpen = parent.init()
+          Story.withBlock(ParentBlock, parent => {
+            const parentOpen = parent.init()
 
-              expect(parentOpen.model.dialog.isOpen).toBe(true)
-              expect(parentOpen.model.dialogEvents).toStrictEqual(['Opened'])
-              expect(
-                parentOpen.commands?.map(({ name, args }) => ({ name, args })),
-              ).toStrictEqual([
-                {
-                  name: 'DialogParentTest/LoadParentData',
-                  args: undefined,
+            expect(parentOpen.model.dialog.isOpen).toBe(true)
+            expect(parentOpen.model.dialogEvents).toStrictEqual(['Opened'])
+            expect(
+              parentOpen.commands?.map(({ name, args }) => ({ name, args })),
+            ).toStrictEqual([
+              {
+                name: 'DialogParentTest/LoadParentData',
+                args: undefined,
+              },
+              {
+                name: 'dialog/ShowDialog',
+                args: {
+                  id: 'initial-dialog',
+                  focusSelector: initialFocusMarkerSelector,
                 },
-                {
-                  name: 'dialog/ShowDialog',
-                  args: {
-                    id: 'initial-dialog',
-                    focusSelector: initialFocusMarkerSelector,
-                  },
-                },
-              ])
-            })
+              },
+            ])
           }),
       )
 
       it.effect('accepts a focusSelector', () =>
-        Story.withBlock(DialogBlock, block => {
-          const { init } = makeFixture(block)
-
-          expect(
-            init({ id: 'test', focusSelector: '#search-input' }).model,
-          ).toStrictEqual({
-            id: 'test',
-            isOpen: false,
-            isAnimated: false,
-            animation: makeAnimationModel({ id: 'test-panel' }),
-            maybeFocusSelector: Option.some('#search-input'),
-          })
-        }),
+        Story.story(
+          DialogBlock,
+          Story.init({ id: 'test', focusSelector: '#search-input' }),
+          Story.model(model => {
+            expect(model).toStrictEqual({
+              id: 'test',
+              isOpen: false,
+              isAnimated: false,
+              animation: makeAnimationModel({ id: 'test-panel' }),
+              maybeFocusSelector: Option.some('#search-input'),
+            })
+          }),
+        ),
       )
     })
 
     describe('update', () => {
       describe('non-animated', () => {
         it.effect('opens when closed on RequestedOpen and emits Opened', () =>
-          Story.withBlock(DialogBlock, block => {
-            const { init } = makeFixture(block)
-
-            return Story.story(
-              DialogBlock,
-              Story.given(init({ id: 'test' }).model),
-              Story.inMessage(InMessage.RequestedOpen()),
-              Story.expectOutMessage(OutMessage.Opened()),
-              Story.Command.resolve(ShowDialog, Message.SucceededShowDialog()),
-              Story.model(model => {
-                expect(model.isOpen).toBe(true)
-              }),
-            )
-          }),
+          Story.story(
+            DialogBlock,
+            Story.init({ id: 'test' }),
+            Story.inMessage(InMessage.RequestedOpen()),
+            Story.expectOutMessage(OutMessage.Opened()),
+            Story.Command.resolve(ShowDialog, Message.SucceededShowDialog()),
+            Story.model(model => {
+              expect(model.isOpen).toBe(true)
+            }),
+          ),
         )
 
         it.effect(
           'shows with the initialFocus marker selector when no focusSelector is configured',
           () =>
-            Story.withBlock(DialogBlock, block => {
-              const { init } = makeFixture(block)
-
-              return Story.story(
-                DialogBlock,
-                Story.given(init({ id: 'test' }).model),
-                Story.inMessage(InMessage.RequestedOpen()),
-                Story.Command.resolve(
-                  ShowDialog({
-                    id: 'test',
-                    focusSelector: initialFocusMarkerSelector,
-                  }),
-                  Message.SucceededShowDialog(),
-                ),
-              )
-            }),
+            Story.story(
+              DialogBlock,
+              Story.init({ id: 'test' }),
+              Story.inMessage(InMessage.RequestedOpen()),
+              Story.Command.resolve(
+                ShowDialog({
+                  id: 'test',
+                  focusSelector: initialFocusMarkerSelector,
+                }),
+                Message.SucceededShowDialog(),
+              ),
+            ),
         )
 
         it.effect(
           'shows with the configured focusSelector, which wins over the marker',
           () =>
-            Story.withBlock(DialogBlock, block => {
-              const { init } = makeFixture(block)
-
-              return Story.story(
-                DialogBlock,
-                Story.given(
-                  init({ id: 'test', focusSelector: '#search-input' }).model,
-                ),
-                Story.inMessage(InMessage.RequestedOpen()),
-                Story.Command.resolve(
-                  ShowDialog({ id: 'test', focusSelector: '#search-input' }),
-                  Message.SucceededShowDialog(),
-                ),
-              )
-            }),
+            Story.story(
+              DialogBlock,
+              Story.init({ id: 'test', focusSelector: '#search-input' }),
+              Story.inMessage(InMessage.RequestedOpen()),
+              Story.Command.resolve(
+                ShowDialog({ id: 'test', focusSelector: '#search-input' }),
+                Message.SucceededShowDialog(),
+              ),
+            ),
         )
 
         it.effect(
           'opens without command or OutMessage when already open on RequestedOpen',
           () =>
-            Story.withBlock(DialogBlock, block => {
-              const { openDialog } = makeFixture(block)
-
-              return Story.story(
-                DialogBlock,
-                Story.given(openDialog({ id: 'test' }).model),
-                Story.inMessage(InMessage.RequestedOpen()),
-                Story.expectNoOutMessage(),
-                Story.model(model => {
-                  expect(model.isOpen).toBe(true)
-                }),
-              )
-            }),
+            Story.story(
+              DialogBlock,
+              Story.init({ id: 'test' }),
+              Story.inMessage(InMessage.RequestedOpen()),
+              Story.Command.resolve(ShowDialog, Message.SucceededShowDialog()),
+              Story.inMessage(InMessage.RequestedOpen()),
+              Story.expectNoOutMessage(),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+              }),
+            ),
         )
 
         it.effect('closes when open on RequestedClose and emits Closed', () =>
-          Story.withBlock(DialogBlock, block => {
-            const { openDialog } = makeFixture(block)
-
-            return Story.story(
-              DialogBlock,
-              Story.given(openDialog({ id: 'test' }).model),
-              Story.inMessage(InMessage.RequestedClose()),
-              Story.expectOutMessage(OutMessage.Closed()),
-              Story.Command.resolve(
-                CloseDialog,
-                Message.CompletedCloseDialog(),
-              ),
-              Story.model(model => {
-                expect(model.isOpen).toBe(false)
-              }),
-            )
-          }),
+          Story.story(
+            DialogBlock,
+            Story.init({ id: 'test' }),
+            Story.inMessage(InMessage.RequestedOpen()),
+            Story.Command.resolve(ShowDialog, Message.SucceededShowDialog()),
+            Story.inMessage(InMessage.RequestedClose()),
+            Story.expectOutMessage(OutMessage.Closed()),
+            Story.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+            }),
+          ),
         )
 
         it.effect(
           'closes without command or OutMessage when already closed on RequestedClose',
           () =>
-            Story.withBlock(DialogBlock, block => {
-              const { init } = makeFixture(block)
-
-              return Story.story(
-                DialogBlock,
-                Story.given(init({ id: 'test' }).model),
-                Story.inMessage(InMessage.RequestedClose()),
-                Story.expectNoOutMessage(),
-                Story.model(model => {
-                  expect(model.isOpen).toBe(false)
-                }),
-              )
-            }),
+            Story.story(
+              DialogBlock,
+              Story.init({ id: 'test' }),
+              Story.inMessage(InMessage.RequestedClose()),
+              Story.expectNoOutMessage(),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+              }),
+            ),
         )
 
         it.effect(
@@ -539,45 +515,37 @@ it.layer(layer, { buildPerTest: true })(it => {
         it.effect(
           'dispatches CloseDialog when the show succeeds after the dialog closed',
           () =>
-            Story.withBlock(DialogBlock, block => {
-              const { init } = makeFixture(block)
-
-              return Story.story(
-                DialogBlock,
-                Story.given(init({ id: 'test' }).model),
-                Story.message(Message.SucceededShowDialog()),
-                Story.expectNoOutMessage(),
-                Story.Command.resolve(
-                  CloseDialog,
-                  Message.CompletedCloseDialog(),
-                ),
-                Story.model(model => {
-                  expect(model.isOpen).toBe(false)
-                }),
-              )
-            }),
+            Story.story(
+              DialogBlock,
+              Story.init({ id: 'test' }),
+              Story.message(Message.SucceededShowDialog()),
+              Story.expectNoOutMessage(),
+              Story.Command.resolve(
+                CloseDialog,
+                Message.CompletedCloseDialog(),
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+              }),
+            ),
         )
 
         it.effect(
           'dispatches CloseDialog when Mount acquisition succeeds after the dialog closed',
           () =>
-            Story.withBlock(DialogBlock, block => {
-              const { init } = makeFixture(block)
-
-              return Story.story(
-                DialogBlock,
-                Story.given(init({ id: 'test' }).model),
-                Story.message(Message.SucceededAcquireResources()),
-                Story.expectNoOutMessage(),
-                Story.Command.resolve(
-                  CloseDialog,
-                  Message.CompletedCloseDialog(),
-                ),
-                Story.model(model => {
-                  expect(model.isOpen).toBe(false)
-                }),
-              )
-            }),
+            Story.story(
+              DialogBlock,
+              Story.init({ id: 'test' }),
+              Story.message(Message.SucceededAcquireResources()),
+              Story.expectNoOutMessage(),
+              Story.Command.resolve(
+                CloseDialog,
+                Message.CompletedCloseDialog(),
+              ),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+              }),
+            ),
         )
 
         it.effect(
@@ -638,31 +606,27 @@ it.layer(layer, { buildPerTest: true })(it => {
 
       describe('animated', () => {
         it.effect('opens with enter animation on RequestedOpen', () =>
-          Story.withBlock(DialogBlock, block => {
-            const { init } = makeFixture(block)
-
-            return Story.story(
-              DialogBlock,
-              Story.given(init({ id: 'test', isAnimated: true }).model),
-              Story.inMessage(InMessage.RequestedOpen()),
-              Story.Command.expectHas(ShowDialog, Animation.WaitForPaint),
-              Story.Command.resolveAll(
-                [ShowDialog, Message.SucceededShowDialog()],
-                [
-                  Animation.WaitForPaint,
-                  Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-                ],
-                [
-                  Animation.WaitForAnimationSettled,
-                  Animation.Message.EndedAnimation({ generation: 1 }),
-                ],
-              ),
-              Story.model(model => {
-                expect(model.isOpen).toBe(true)
-                expect(model.animation.transitionState).toBe('Idle')
-              }),
-            )
-          }),
+          Story.story(
+            DialogBlock,
+            Story.init({ id: 'test', isAnimated: true }),
+            Story.inMessage(InMessage.RequestedOpen()),
+            Story.Command.expectHas(ShowDialog, Animation.WaitForPaint),
+            Story.Command.resolveAll(
+              [ShowDialog, Message.SucceededShowDialog()],
+              [
+                Animation.WaitForPaint,
+                Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+              ],
+              [
+                Animation.WaitForAnimationSettled,
+                Animation.Message.EndedAnimation({ generation: 1 }),
+              ],
+            ),
+            Story.model(model => {
+              expect(model.isOpen).toBe(true)
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
+          ),
         )
 
         it.effect(
@@ -936,23 +900,21 @@ it.layer(layer, { buildPerTest: true })(it => {
         it.effect(
           'reports Closed while resetting the model and releasing resources',
           () =>
-            Story.withBlock(DialogBlock, block => {
-              const { openDialog } = makeFixture(block)
-
-              return Story.story(
-                DialogBlock,
-                Story.given(openDialog({ id: 'test' }).model),
-                Story.message(Message.Unmounted()),
-                Story.expectOutMessage(OutMessage.Closed()),
-                Story.model(model => {
-                  expect(model.isOpen).toBe(false)
-                }),
-                Story.Command.resolve(
-                  ReleaseDialogResources,
-                  Message.CompletedReleaseDialogResources(),
-                ),
-              )
-            }),
+            Story.story(
+              DialogBlock,
+              Story.init({ id: 'test' }),
+              Story.inMessage(InMessage.RequestedOpen()),
+              Story.Command.resolve(ShowDialog, Message.SucceededShowDialog()),
+              Story.message(Message.Unmounted()),
+              Story.expectOutMessage(OutMessage.Closed()),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+              }),
+              Story.Command.resolve(
+                ReleaseDialogResources,
+                Message.CompletedReleaseDialogResources(),
+              ),
+            ),
         )
 
         it.effect(
@@ -1038,20 +1000,17 @@ it.layer(layer, { buildPerTest: true })(it => {
         it.effect(
           'reports Closed without releasing resources when showing fails',
           () =>
-            Story.withBlock(DialogBlock, block => {
-              const { openDialog } = makeFixture(block)
-
-              return Story.story(
-                DialogBlock,
-                Story.given(openDialog({ id: 'test' }).model),
-                Story.message(Message.FailedShowDialog()),
-                Story.expectOutMessage(OutMessage.Closed()),
-                Story.model(model => {
-                  expect(model.isOpen).toBe(false)
-                }),
-                Story.Command.expectNone(),
-              )
-            }),
+            Story.story(
+              DialogBlock,
+              Story.init({ id: 'test' }),
+              Story.inMessage(InMessage.RequestedOpen()),
+              Story.Command.resolve(ShowDialog, Message.FailedShowDialog()),
+              Story.expectOutMessage(OutMessage.Closed()),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+              }),
+              Story.Command.expectNone(),
+            ),
         )
 
         it.effect('resets a running enter animation to Idle', () =>
@@ -1140,19 +1099,16 @@ it.layer(layer, { buildPerTest: true })(it => {
         it.effect(
           'dispatches no CloseDialog when the dialog is closed after a failed show',
           () =>
-            Story.withBlock(DialogBlock, block => {
-              const { openDialog } = makeFixture(block)
-
-              return Story.story(
-                DialogBlock,
-                Story.given(openDialog({ id: 'test' }).model),
-                Story.message(Message.FailedShowDialog()),
-                Story.expectOutMessage(OutMessage.Closed()),
-                Story.inMessage(InMessage.RequestedClose()),
-                Story.expectNoOutMessage(),
-                Story.Command.expectNone(),
-              )
-            }),
+            Story.story(
+              DialogBlock,
+              Story.init({ id: 'test' }),
+              Story.inMessage(InMessage.RequestedOpen()),
+              Story.Command.resolve(ShowDialog, Message.FailedShowDialog()),
+              Story.expectOutMessage(OutMessage.Closed()),
+              Story.inMessage(InMessage.RequestedClose()),
+              Story.expectNoOutMessage(),
+              Story.Command.expectNone(),
+            ),
         )
       })
 
@@ -1213,23 +1169,25 @@ it.layer(layer, { buildPerTest: true })(it => {
 
     describe('titleId', () => {
       it.effect('returns the id suffixed with -dialog-title', () =>
-        Story.withBlock(DialogBlock, block => {
-          const { init } = makeFixture(block)
-
-          const model = init({ id: 'my-dialog' }).model
-          expect(titleId(model)).toBe('my-dialog-dialog-title')
-        }),
+        Story.story(
+          DialogBlock,
+          Story.init({ id: 'my-dialog' }),
+          Story.model(model => {
+            expect(titleId(model)).toBe('my-dialog-dialog-title')
+          }),
+        ),
       )
     })
 
     describe('descriptionId', () => {
       it.effect('returns the id suffixed with -dialog-description', () =>
-        Story.withBlock(DialogBlock, block => {
-          const { init } = makeFixture(block)
-
-          const model = init({ id: 'my-dialog' }).model
-          expect(descriptionId(model)).toBe('my-dialog-dialog-description')
-        }),
+        Story.story(
+          DialogBlock,
+          Story.init({ id: 'my-dialog' }),
+          Story.model(model => {
+            expect(descriptionId(model)).toBe('my-dialog-dialog-description')
+          }),
+        ),
       )
     })
 
@@ -1392,25 +1350,23 @@ it.layer(layer, { buildPerTest: true })(it => {
       it.effect(
         'focuses the element carrying the marker when the dialog opens',
         () =>
-          Story.withBlock(DialogBlock, () => {
-            return Effect.gen(function* () {
-              const dialog = document.createElement('dialog')
-              dialog.id = 'focus-dialog'
-              const before = document.createElement('input')
-              const marked = document.createElement('input')
-              marked.setAttribute(`data-${initialFocusMarkerAttribute}`, '')
-              dialog.append(before, marked)
-              document.body.appendChild(dialog)
+          Effect.gen(function* () {
+            const dialog = document.createElement('dialog')
+            dialog.id = 'focus-dialog'
+            const before = document.createElement('input')
+            const marked = document.createElement('input')
+            marked.setAttribute(`data-${initialFocusMarkerAttribute}`, '')
+            dialog.append(before, marked)
+            document.body.appendChild(dialog)
 
-              yield* Dom.showDialog('#focus-dialog', {
-                focusSelector: initialFocusMarkerSelector,
-              })
-
-              expect(document.activeElement).toBe(marked)
-
-              yield* Dom.closeDialog('#focus-dialog')
-              document.body.innerHTML = ''
+            yield* Dom.showDialog('#focus-dialog', {
+              focusSelector: initialFocusMarkerSelector,
             })
+
+            expect(document.activeElement).toBe(marked)
+
+            yield* Dom.closeDialog('#focus-dialog')
+            document.body.innerHTML = ''
           }),
       )
     })
@@ -1419,40 +1375,34 @@ it.layer(layer, { buildPerTest: true })(it => {
       it.effect(
         'ShowDialog reports FailedShowDialog and releases the scroll lock when the dialog is gone before it shows',
         () =>
-          Story.withBlock(DialogBlock, block => {
-            const { provideEffects } = makeFixture(block)
-            return Effect.gen(function* () {
-              const showDialog = yield* ShowDialog({
-                id: 'missing-dialog',
-                focusSelector: initialFocusMarkerSelector,
-              }).effect.pipe(provideEffects)
+          Effect.gen(function* () {
+            const showDialog = yield* ShowDialog({
+              id: 'missing-dialog',
+              focusSelector: initialFocusMarkerSelector,
+            }).effect.pipe(provideEffects)
 
-              expect(showDialog).toEqual(Message.FailedShowDialog())
-              expect(document.documentElement.style.overflow).not.toBe('hidden')
-            })
+            expect(showDialog).toEqual(Message.FailedShowDialog())
+            expect(document.documentElement.style.overflow).not.toBe('hidden')
           }),
       )
 
       it.effect(
         'ShowDialog keeps scroll unlocked when it is interrupted before the dialog shows',
         () =>
-          Story.withBlock(DialogBlock, block => {
-            const { provideEffects } = makeFixture(block)
-            return Effect.gen(function* () {
-              const showDialog = yield* Effect.forkChild(
-                ShowDialog({
-                  id: 'missing-dialog',
-                  focusSelector: initialFocusMarkerSelector,
-                }).effect.pipe(provideEffects),
-              )
+          Effect.gen(function* () {
+            const showDialog = yield* Effect.forkChild(
+              ShowDialog({
+                id: 'missing-dialog',
+                focusSelector: initialFocusMarkerSelector,
+              }).effect.pipe(provideEffects),
+            )
 
-              yield* Effect.yieldNow
-              expect(document.documentElement.style.overflow).not.toBe('hidden')
+            yield* Effect.yieldNow
+            expect(document.documentElement.style.overflow).not.toBe('hidden')
 
-              yield* Fiber.interrupt(showDialog)
+            yield* Fiber.interrupt(showDialog)
 
-              expect(document.documentElement.style.overflow).not.toBe('hidden')
-            })
+            expect(document.documentElement.style.overflow).not.toBe('hidden')
           }),
       )
 
@@ -1518,158 +1468,142 @@ it.layer(layer, { buildPerTest: true })(it => {
 
       it.effect(
         'keeps Command-owned resources when a concurrent Mount ends',
-        () =>
-          Story.withBlock(DialogBlock, block => {
-            const { provideEffects } = makeFixture(block)
+        () => {
+          const background = document.createElement('main')
+          const dialog = document.createElement('dialog')
+          dialog.id = 'command-owned-dialog'
+          document.body.append(background, dialog)
+          return Effect.gen(function* () {
+            const showDialog = yield* ShowDialog({
+              id: 'command-owned-dialog',
+              focusSelector: initialFocusMarkerSelector,
+            }).effect.pipe(provideEffects)
 
-            const background = document.createElement('main')
-            const dialog = document.createElement('dialog')
-            dialog.id = 'command-owned-dialog'
-            document.body.append(background, dialog)
+            const mount = AcquireResources({
+              id: 'command-owned-dialog',
+              focusSelector: initialFocusMarkerSelector,
+            })
+            const mountMessage = yield* Stream.runHead(
+              mount.f(dialog, Stream.make('Live')),
+            ).pipe(provideEffects)
 
-            return Effect.gen(function* () {
-              const showDialog = yield* ShowDialog({
-                id: 'command-owned-dialog',
-                focusSelector: initialFocusMarkerSelector,
-              }).effect.pipe(provideEffects)
-
-              const mount = AcquireResources({
-                id: 'command-owned-dialog',
-                focusSelector: initialFocusMarkerSelector,
-              })
-              const mountMessage = yield* Stream.runHead(
-                mount.f(dialog, Stream.make('Live')),
-              ).pipe(provideEffects)
-
-              expect(showDialog).toEqual(Message.SucceededShowDialog())
-              expect(mountMessage).toEqual(
-                Option.some(Message.SucceededAcquireResources()),
-              )
-              expect(background.inert).toBe(true)
-              expect(document.documentElement.style.overflow).toBe('hidden')
-            }).pipe(
-              Effect.ensuring(
-                Dom.releaseDialogResources('command-owned-dialog').pipe(
-                  Effect.andThen(
-                    Effect.sync(() => {
-                      background.remove()
-                      dialog.remove()
-                    }),
-                  ),
+            expect(showDialog).toEqual(Message.SucceededShowDialog())
+            expect(mountMessage).toEqual(
+              Option.some(Message.SucceededAcquireResources()),
+            )
+            expect(background.inert).toBe(true)
+            expect(document.documentElement.style.overflow).toBe('hidden')
+          }).pipe(
+            Effect.ensuring(
+              Dom.releaseDialogResources('command-owned-dialog').pipe(
+                Effect.andThen(
+                  Effect.sync(() => {
+                    background.remove()
+                    dialog.remove()
+                  }),
                 ),
               ),
-            )
-          }),
+            ),
+          )
+        },
       )
 
       it.effect(
         'CloseDialog releases the dialog resources when the dialog is gone before it closes',
-        () =>
-          Story.withBlock(DialogBlock, block => {
-            const { provideEffects } = makeFixture(block)
+        () => {
+          const dialog = document.createElement('dialog')
+          dialog.id = 'vanishing-dialog'
+          document.body.appendChild(dialog)
+          return Effect.gen(function* () {
+            const showDialog = yield* ShowDialog({
+              id: 'vanishing-dialog',
+              focusSelector: initialFocusMarkerSelector,
+            }).effect.pipe(provideEffects)
 
-            const dialog = document.createElement('dialog')
-            dialog.id = 'vanishing-dialog'
-            document.body.appendChild(dialog)
+            expect(showDialog).toEqual(Message.SucceededShowDialog())
+            expect(document.documentElement.style.overflow).toBe('hidden')
 
-            return Effect.gen(function* () {
-              const showDialog = yield* ShowDialog({
-                id: 'vanishing-dialog',
-                focusSelector: initialFocusMarkerSelector,
-              }).effect.pipe(provideEffects)
+            dialog.remove()
 
-              expect(showDialog).toEqual(Message.SucceededShowDialog())
-              expect(document.documentElement.style.overflow).toBe('hidden')
+            const closeDialog = yield* CloseDialog({
+              id: 'vanishing-dialog',
+            }).effect.pipe(provideEffects)
 
-              dialog.remove()
-
-              const closeDialog = yield* CloseDialog({
-                id: 'vanishing-dialog',
-              }).effect.pipe(provideEffects)
-
-              expect(closeDialog).toEqual(Message.CompletedCloseDialog())
-              expect(document.documentElement.style.overflow).not.toBe('hidden')
-            }).pipe(
-              Effect.ensuring(
-                Dom.releaseDialogResources('vanishing-dialog').pipe(
-                  Effect.andThen(Effect.sync(() => dialog.remove())),
-                ),
+            expect(closeDialog).toEqual(Message.CompletedCloseDialog())
+            expect(document.documentElement.style.overflow).not.toBe('hidden')
+          }).pipe(
+            Effect.ensuring(
+              Dom.releaseDialogResources('vanishing-dialog').pipe(
+                Effect.andThen(Effect.sync(() => dialog.remove())),
               ),
-            )
-          }),
+            ),
+          )
+        },
       )
 
       it.effect(
         'CloseDialog leaves the scroll lock alone when the dialog holds no resources',
-        () =>
-          Story.withBlock(DialogBlock, block => {
-            const { provideEffects } = makeFixture(block)
+        () => {
+          const dialog = document.createElement('dialog')
+          dialog.id = 'phantom-dialog'
+          dialog.open = true
+          document.body.appendChild(dialog)
+          return Effect.gen(function* () {
+            yield* Dom.lockScroll
 
-            const dialog = document.createElement('dialog')
-            dialog.id = 'phantom-dialog'
-            dialog.open = true
-            document.body.appendChild(dialog)
+            const closeDialog = yield* CloseDialog({
+              id: 'phantom-dialog',
+            }).effect.pipe(provideEffects)
 
-            return Effect.gen(function* () {
-              yield* Dom.lockScroll
-
-              const closeDialog = yield* CloseDialog({
-                id: 'phantom-dialog',
-              }).effect.pipe(provideEffects)
-
-              expect(closeDialog).toEqual(Message.CompletedCloseDialog())
-              expect(document.documentElement.style.overflow).toBe('hidden')
-            }).pipe(
-              Effect.ensuring(
-                Dom.unlockScroll.pipe(
-                  Effect.andThen(Effect.sync(() => dialog.remove())),
-                ),
+            expect(closeDialog).toEqual(Message.CompletedCloseDialog())
+            expect(document.documentElement.style.overflow).toBe('hidden')
+          }).pipe(
+            Effect.ensuring(
+              Dom.unlockScroll.pipe(
+                Effect.andThen(Effect.sync(() => dialog.remove())),
               ),
-            )
-          }),
+            ),
+          )
+        },
       )
 
       it.effect(
         'CloseDialog leaves the scroll lock alone when it runs before the show completes',
-        () =>
-          Story.withBlock(DialogBlock, block => {
-            const { provideEffects } = makeFixture(block)
+        () => {
+          const dialog = document.createElement('dialog')
+          dialog.id = 'racing-dialog'
+          document.body.appendChild(dialog)
+          return Effect.gen(function* () {
+            yield* Dom.lockScroll
 
-            const dialog = document.createElement('dialog')
-            dialog.id = 'racing-dialog'
-            document.body.appendChild(dialog)
-
-            return Effect.gen(function* () {
-              yield* Dom.lockScroll
-
-              const showDialog = yield* Effect.forkChild(
-                ShowDialog({
-                  id: 'racing-dialog',
-                  focusSelector: initialFocusMarkerSelector,
-                }).effect.pipe(provideEffects),
-              )
-
-              yield* Effect.yieldNow
-              yield* CloseDialog({ id: 'racing-dialog' }).effect.pipe(
-                provideEffects,
-              )
-
-              expect(document.documentElement.style.overflow).toBe('hidden')
-
-              dialog.remove()
-
-              const showDialogMessage = yield* Fiber.join(showDialog)
-
-              expect(showDialogMessage).toEqual(Message.FailedShowDialog())
-              expect(document.documentElement.style.overflow).toBe('hidden')
-            }).pipe(
-              Effect.ensuring(
-                Dom.unlockScroll.pipe(
-                  Effect.andThen(Effect.sync(() => dialog.remove())),
-                ),
-              ),
+            const showDialog = yield* Effect.forkChild(
+              ShowDialog({
+                id: 'racing-dialog',
+                focusSelector: initialFocusMarkerSelector,
+              }).effect.pipe(provideEffects),
             )
-          }),
+
+            yield* Effect.yieldNow
+            yield* CloseDialog({ id: 'racing-dialog' }).effect.pipe(
+              provideEffects,
+            )
+
+            expect(document.documentElement.style.overflow).toBe('hidden')
+
+            dialog.remove()
+
+            const showDialogMessage = yield* Fiber.join(showDialog)
+
+            expect(showDialogMessage).toEqual(Message.FailedShowDialog())
+            expect(document.documentElement.style.overflow).toBe('hidden')
+          }).pipe(
+            Effect.ensuring(
+              Dom.unlockScroll.pipe(
+                Effect.andThen(Effect.sync(() => dialog.remove())),
+              ),
+            ),
+          )
+        },
       )
     })
 

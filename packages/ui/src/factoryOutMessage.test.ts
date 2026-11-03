@@ -2,7 +2,9 @@ import { Effect, Layer, Schema } from 'effect'
 import type * as Block from 'foldkit/block'
 import * as Story from 'foldkit/story'
 import type * as Update from 'foldkit/update'
-import { expect, expectTypeOf, it } from 'vitest'
+import { expect, expectTypeOf } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as MultiListbox from './listbox/multi.js'
 import * as Listbox from './listbox/single.js'
@@ -19,8 +21,9 @@ const FruitMenu = Menu.makeBlock<Fruit>()
 const FruitRadioGroup = RadioGroup.makeBlock<Fruit>()
 const FruitTabs = Tabs.makeBlock<Fruit>()
 
-it('preserves refined OutMessage constructors and matchers on acquired factories', () =>
-  Effect.runPromise(
+it.effect(
+  'preserves refined OutMessage constructors and matchers on acquired factories',
+  () =>
     Story.withBlock(FruitListbox, fruitListbox =>
       Story.withBlock(FruitMultiListbox, fruitMultiListbox =>
         Story.withBlock(FruitMenu, fruitMenu =>
@@ -184,4 +187,4 @@ it('preserves refined OutMessage constructors and matchers on acquired factories
         ),
       ),
     ),
-  ))
+)

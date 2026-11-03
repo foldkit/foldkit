@@ -30,35 +30,45 @@ it.layer(layer, { buildPerTest: true })(it => {
   describe('Tooltip', () => {
     describe('init', () => {
       it.effect('defaults to hidden with the standard show delay', () =>
-        Story.withBlock(block, block => {
-          expect(block.init({ id: 'test' }).model).toStrictEqual({
-            id: 'test',
-            isOpen: false,
-            isHovered: false,
-            isFocused: false,
-            isDismissed: false,
-            showDelay: Duration.millis(500),
-            pendingShowVersion: 0,
-            maybeLastPointerType: Option.none(),
-          })
-        }),
+        Story.story(
+          block,
+          Story.init({ id: 'test' }),
+          Story.model(model => {
+            expect(model).toStrictEqual({
+              id: 'test',
+              isOpen: false,
+              isHovered: false,
+              isFocused: false,
+              isDismissed: false,
+              showDelay: Duration.millis(500),
+              pendingShowVersion: 0,
+              maybeLastPointerType: Option.none(),
+            })
+          }),
+        ),
       )
 
       it.effect('accepts a custom show delay as a number of milliseconds', () =>
-        Story.withBlock(block, block => {
-          const model = block.init({ id: 'test', showDelay: 100 }).model
-          expect(model.showDelay).toStrictEqual(Duration.millis(100))
-        }),
+        Story.story(
+          block,
+          Story.init({ id: 'test', showDelay: 100 }),
+          Story.model(model => {
+            expect(model.showDelay).toStrictEqual(Duration.millis(100))
+          }),
+        ),
       )
 
       it.effect('accepts a custom show delay as a Duration', () =>
-        Story.withBlock(block, block => {
-          const model = block.init({
+        Story.story(
+          block,
+          Story.init({
             id: 'test',
             showDelay: Duration.seconds(1),
-          }).model
-          expect(model.showDelay).toStrictEqual(Duration.seconds(1))
-        }),
+          }),
+          Story.model(model => {
+            expect(model.showDelay).toStrictEqual(Duration.seconds(1))
+          }),
+        ),
       )
     })
 

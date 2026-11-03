@@ -5,10 +5,11 @@ import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { it as baseIt } from 'vitest'
 
-import { describe } from '@effect/vitest'
+import { describe, makeMethods } from '@effect/vitest'
 
 import * as Animation from '../animation/block.js'
 import { makeInitialModel } from '../animation/schema.js'
+import type { ViewInputs } from './schema.js'
 import { type EntryHandlers, SwipeState, type Variant } from './toast.js'
 import { layer, makeFixture } from './toast.js'
 
@@ -59,6 +60,14 @@ const STALE_VERSION = -1
 const POINTER_ID = 0
 const SETTLING_SWIPE_VERSION = 2
 
+const sceneViewInputs = (
+  overrides: ViewOverrides = {},
+): ViewInputs<TestPayload, TestPayload> => ({
+  entryToView: defaultRenderEntry,
+  position: 'BottomRight',
+  ...overrides,
+})
+
 const makeTestFixture = (block: Story.TestBlock<typeof ToastBlock>) => {
   const toastInit = block.init
   const renderToast = block.view
@@ -97,38 +106,40 @@ const makeTestFixture = (block: Story.TestBlock<typeof ToastBlock>) => {
   }
 }
 
-const it = baseIt.extend<{ toast: ReturnType<typeof makeTestFixture> }>({
-  toast: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(ToastBlock, block =>
-        Effect.promise(() => use(makeTestFixture(block))),
-      ).pipe(Effect.provide(layer)),
-    ),
-})
+const it = makeMethods(
+  baseIt.extend<{ toast: ReturnType<typeof makeTestFixture> }>({
+    toast: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(ToastBlock, block =>
+          Effect.promise(() => use(makeTestFixture(block))),
+        ).pipe(Effect.provide(layer)),
+      ),
+  }),
+)
 
 describe('Toast', () => {
   describe('view', () => {
-    it('renders the container with role=region and aria-live=polite', ({
-      toast: { block, sceneView, toastInit },
-    }) => {
-      Scene.scene(
-        { update: block.update, view: sceneView() },
-        Scene.given(toastInit({ id: 'test' }).model),
-        Scene.expect(container).toExist(),
-        Scene.expect(container).toHaveAttr('role', 'region'),
-        Scene.expect(container).toHaveAttr('aria-live', 'polite'),
-      )
-    })
+    it.effect(
+      'renders the container with role=region and aria-live=polite',
+      () =>
+        Scene.scene(
+          { block: ToastBlock, viewInputs: sceneViewInputs() },
+          Scene.init({ id: 'test' }),
+          Scene.expect(container).toExist(),
+          Scene.expect(container).toHaveAttr('role', 'region'),
+          Scene.expect(container).toHaveAttr('aria-live', 'polite'),
+        ).pipe(Effect.provide(layer)),
+    )
 
-    it('renders the container even when empty, for a11y live-region setup', ({
-      toast: { block, sceneView, toastInit },
-    }) => {
-      Scene.scene(
-        { update: block.update, view: sceneView() },
-        Scene.given(toastInit({ id: 'test' }).model),
-        Scene.expect(container).toExist(),
-      )
-    })
+    it.effect(
+      'renders the container even when empty, for a11y live-region setup',
+      () =>
+        Scene.scene(
+          { block: ToastBlock, viewInputs: sceneViewInputs() },
+          Scene.init({ id: 'test' }),
+          Scene.expect(container).toExist(),
+        ).pipe(Effect.provide(layer)),
+    )
 
     it('renders an Info entry with role=status', ({
       toast: { block, sceneView, withEntry },
@@ -261,15 +272,16 @@ describe('Toast', () => {
       )
     })
 
-    it('uses a custom aria-label when provided', ({
-      toast: { block, sceneView, toastInit },
-    }) => {
+    it.effect('uses a custom aria-label when provided', () =>
       Scene.scene(
-        { update: block.update, view: sceneView({ ariaLabel: 'Toasts' }) },
-        Scene.given(toastInit({ id: 'test' }).model),
+        {
+          block: ToastBlock,
+          viewInputs: sceneViewInputs({ ariaLabel: 'Toasts' }),
+        },
+        Scene.init({ id: 'test' }),
         Scene.expect(container).toHaveAttr('aria-label', 'Toasts'),
-      )
-    })
+      ).pipe(Effect.provide(layer)),
+    )
 
     it('attaches a pointerdown handler when swipe is enabled', ({
       toast: { block, sceneView, withEntry },

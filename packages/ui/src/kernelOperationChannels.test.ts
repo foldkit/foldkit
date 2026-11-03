@@ -1,7 +1,9 @@
 import { Effect, Layer, Schema } from 'effect'
 import * as Story from 'foldkit/story'
 import type * as Update from 'foldkit/update'
-import { expect, expectTypeOf, it } from 'vitest'
+import { expect, expectTypeOf } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as MultiCombobox from './combobox/multi.js'
 import * as Combobox from './combobox/single.js'
@@ -21,8 +23,9 @@ type OutMessageOf<Producer extends (...args: ReadonlyArray<never>) => unknown> =
     ? Exclude<OutMessage, undefined>
     : never
 
-it('keeps selection OutMessages out of open and close operation channels', () =>
-  Effect.runPromise(
+it.effect(
+  'keeps selection OutMessages out of open and close operation channels',
+  () =>
     Story.withBlock(FruitCombobox, fruitCombobox =>
       Story.withBlock(FruitMultiCombobox, fruitMultiCombobox =>
         Story.withBlock(FruitListbox, fruitListbox =>
@@ -79,10 +82,11 @@ it('keeps selection OutMessages out of open and close operation channels', () =>
         ),
       ),
     ),
-  ))
+)
 
-it('retains refined selection payloads and exact operation requirements', () =>
-  Effect.runPromise(
+it.effect(
+  'retains refined selection payloads and exact operation requirements',
+  () =>
     Story.withBlock(FruitCombobox, fruitCombobox =>
       Story.withBlock(FruitMultiCombobox, fruitMultiCombobox =>
         Story.withBlock(FruitListbox, fruitListbox =>
@@ -130,4 +134,4 @@ it('retains refined selection payloads and exact operation requirements', () =>
         ),
       ),
     ),
-  ))
+)

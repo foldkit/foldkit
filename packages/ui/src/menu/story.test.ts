@@ -1,5 +1,6 @@
 import { Effect, Option } from 'effect'
 import { Scene, Story } from 'foldkit'
+import { inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import { it as baseIt, expect } from 'vitest'
 
@@ -48,6 +49,69 @@ const completedDetectMenuMovementOrAnimationEnd = (generation: number) =>
 const STALE_CLEAR_SEARCH_VERSION = 9999
 
 const STALE_ANIMATION_GENERATION = -1
+
+const givenClosed = Story.init({ id: 'test' })
+
+const givenOpen = Story.steps(
+  Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+  acknowledgeFocusItems,
+)
+
+const givenClosedAnimated = Story.init({ id: 'test', isAnimated: true })
+
+const givenOpenAnimated = Story.steps(
+  Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+  acknowledgeFocusItems,
+  Story.Command.resolveAll(
+    [
+      Animation.WaitForPaint,
+      Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+    ],
+    [
+      Animation.WaitForAnimationSettled,
+      Animation.Message.EndedAnimation({ generation: 1 }),
+    ],
+  ),
+  Story.model((model: Model) => {
+    expect(model.animation.transitionState).toBe('Idle')
+  }),
+)
+
+const givenClosedModal = Story.init({ id: 'test', isModal: true })
+
+const givenOpenModal = Story.steps(
+  Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+  Story.Command.resolveAll(
+    [LockMenuScroll, Message.CompletedLockMenuScroll()],
+    [InertMenuOthers, Message.CompletedInertMenuOthers()],
+    [FocusMenuItems, Message.CompletedFocusMenuItems()],
+  ),
+)
+
+const givenOpenAndOrigin = Story.steps(
+  Story.message(
+    Message.PressedPointerOnButton({
+      pointerType: 'mouse',
+      button: 0,
+      screenX: 100,
+      screenY: 200,
+      timeStamp: 1000,
+    }),
+  ),
+  acknowledgeFocusItems,
+)
+
+const sceneViewInputs = (
+  overrides: Pick<
+    Partial<ViewInputs<string>>,
+    'ariaLabel' | 'ariaLabelledBy' | 'isItemDisabled'
+  > = {},
+): ViewInputs<string> => ({
+  items: ['Edit', 'Duplicate', 'Delete'],
+  itemToConfig: item => ({ content: ih.span([], [item]) }),
+  buttonContent: ih.span([], ['Actions']),
+  ...overrides,
+})
 
 const makeFixture = (menu: Story.TestBlock<typeof block>) => {
   const { init, update, operations } = menu
@@ -232,12 +296,10 @@ describe('Menu', () => {
       )
     })
 
-    it('activates the first item on ArrowDown after pointer open', ({
-      menu: { sceneUpdate, sceneView, init },
-    }) => {
+    it.effect('activates the first item on ArrowDown after pointer open', () =>
       Scene.scene(
-        { update: sceneUpdate, view: sceneView() },
-        Scene.given(init({ id: 'test' }).model),
+        { block, viewInputs: sceneViewInputs() },
+        Scene.init({ id: 'test' }),
         Scene.click(button),
         Scene.Command.resolve(
           FocusMenuItems,
@@ -260,18 +322,18 @@ describe('Menu', () => {
         Scene.expect(
           Scene.role('menuitem', { name: 'Duplicate' }),
         ).not.toHaveAttr('data-active'),
-      )
-    })
+      ),
+    )
 
-    it('skips disabled items when ArrowDown follows pointer open', ({
-      menu: { sceneUpdate, sceneView, init },
-    }) => {
+    it.effect('skips disabled items when ArrowDown follows pointer open', () =>
       Scene.scene(
         {
-          update: sceneUpdate,
-          view: sceneView({ isItemDisabled: item => item === 'Edit' }),
+          block: block,
+          viewInputs: sceneViewInputs({
+            isItemDisabled: item => item === 'Edit',
+          }),
         },
-        Scene.given(init({ id: 'test' }).model),
+        Scene.init({ id: 'test' }),
         Scene.click(button),
         Scene.Command.resolve(
           FocusMenuItems,
@@ -294,52 +356,71 @@ describe('Menu', () => {
           'data-active',
           '',
         ),
-      )
-    })
+      ),
+    )
   })
 
   describe('init', () => {
-    it('defaults to closed with no active item', ({ menu: { init } }) => {
-      expect(init({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        isOpen: false,
-        isAnimated: false,
-        isModal: false,
-        animation: makeInitialModel({ id: 'test-items' }),
-        maybeActiveItemIndex: Option.none(),
-        activationTrigger: 'Keyboard',
-        searchQuery: '',
-        searchVersion: 0,
-        maybeLastPointerPosition: Option.none(),
-        maybeLastButtonPointerType: Option.none(),
-        maybePointerOrigin: Option.none(),
-      })
-    })
+    it.effect('defaults to closed with no active item', () =>
+      Story.story(
+        block,
+        Story.init({ id: 'test' }),
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            isOpen: false,
+            isAnimated: false,
+            isModal: false,
+            animation: makeInitialModel({ id: 'test-items' }),
+            maybeActiveItemIndex: Option.none(),
+            activationTrigger: 'Keyboard',
+            searchQuery: '',
+            searchVersion: 0,
+            maybeLastPointerPosition: Option.none(),
+            maybeLastButtonPointerType: Option.none(),
+            maybePointerOrigin: Option.none(),
+          })
+        }),
+      ),
+    )
 
-    it('accepts isAnimated option', ({ menu: { init } }) => {
-      const model = init({ id: 'test', isAnimated: true }).model
-      expect(model.isAnimated).toBe(true)
-      expect(model.animation.transitionState).toBe('Idle')
-    })
+    it.effect('accepts isAnimated option', () =>
+      Story.story(
+        block,
+        Story.init({ id: 'test', isAnimated: true }),
+        Story.model(model => {
+          expect(model.isAnimated).toBe(true)
+          expect(model.animation.transitionState).toBe('Idle')
+        }),
+      ),
+    )
 
-    it('defaults isModal to false', ({ menu: { init } }) => {
-      const model = init({ id: 'test' }).model
-      expect(model.isModal).toBe(false)
-    })
+    it.effect('defaults isModal to false', () =>
+      Story.story(
+        block,
+        Story.init({ id: 'test' }),
+        Story.model(model => {
+          expect(model.isModal).toBe(false)
+        }),
+      ),
+    )
 
-    it('accepts isModal option', ({ menu: { init } }) => {
-      const model = init({ id: 'test', isModal: true }).model
-      expect(model.isModal).toBe(true)
-    })
+    it.effect('accepts isModal option', () =>
+      Story.story(
+        block,
+        Story.init({ id: 'test', isModal: true }),
+        Story.model(model => {
+          expect(model.isModal).toBe(true)
+        }),
+      ),
+    )
   })
 
   describe('update', () => {
     describe('Opened', () => {
-      it('opens the menu with the given active item', ({
-        menu: { update, givenClosed },
-      }) => {
+      it.effect('opens the menu with the given active item', () =>
         Story.story(
-          update,
+          block,
           givenClosed,
           Story.message(
             Message.Opened({ maybeActiveItemIndex: Option.some(2) }),
@@ -349,8 +430,8 @@ describe('Menu', () => {
             expect(model.isOpen).toBe(true)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
-        )
-      })
+        ),
+      )
 
       it('resets search state on open', ({ menu: { update, init } }) => {
         Story.story(
@@ -372,11 +453,9 @@ describe('Menu', () => {
         )
       })
 
-      it('sets trigger to Keyboard when opened with active item', ({
-        menu: { update, givenClosed },
-      }) => {
+      it.effect('sets trigger to Keyboard when opened with active item', () =>
         Story.story(
-          update,
+          block,
           givenClosed,
           Story.message(
             Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
@@ -385,14 +464,12 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.activationTrigger).toBe('Keyboard')
           }),
-        )
-      })
+        ),
+      )
 
-      it('sets trigger to Pointer when opened without active item', ({
-        menu: { update, givenClosed },
-      }) => {
+      it.effect('sets trigger to Pointer when opened without active item', () =>
         Story.story(
-          update,
+          block,
           givenClosed,
           Story.message(
             Message.Opened({ maybeActiveItemIndex: Option.none() }),
@@ -402,8 +479,8 @@ describe('Menu', () => {
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
-        )
-      })
+        ),
+      )
 
       it('resets pointer position on open', ({ menu: { update, init } }) => {
         Story.story(
@@ -429,11 +506,10 @@ describe('Menu', () => {
     })
 
     describe('Closed', () => {
-      it('closes the menu and resets state', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('closes the menu and resets state', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(Message.Closed()),
           Story.expectOutMessage(OutMessage.Closed()),
@@ -453,23 +529,23 @@ describe('Menu', () => {
             )
             expect(model.maybePointerOrigin).toStrictEqual(Option.none())
           }),
-        )
-      })
+        ),
+      )
 
-      it('returns no Command and no OutMessage when already closed', ({
-        menu: { update, givenClosed },
-      }) => {
-        Story.story(
-          update,
-          givenClosed,
-          Story.message(Message.Closed()),
-          Story.expectNoOutMessage(),
-          Story.Command.expectNone(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
+      it.effect(
+        'returns no Command and no OutMessage when already closed',
+        () =>
+          Story.story(
+            block,
+            givenClosed,
+            Story.message(Message.Closed()),
+            Story.expectNoOutMessage(),
+            Story.Command.expectNone(),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+            }),
+          ),
+      )
     })
 
     describe('RequestedClose', () => {
@@ -492,11 +568,10 @@ describe('Menu', () => {
     })
 
     describe('BlurredItems', () => {
-      it('closes the menu without restoring button focus', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('closes the menu without restoring button focus', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(Message.BlurredItems()),
           Story.expectOutMessage(OutMessage.Closed()),
@@ -505,16 +580,14 @@ describe('Menu', () => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
             expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('PressedPointerOnButton', () => {
-      it('records pointer type for touch without toggling', ({
-        menu: { update, givenClosed },
-      }) => {
+      it.effect('records pointer type for touch without toggling', () =>
         Story.story(
-          update,
+          block,
           givenClosed,
           Story.message(
             Message.PressedPointerOnButton({
@@ -531,14 +604,12 @@ describe('Menu', () => {
               Option.some('touch'),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('records pointer type for pen without toggling', ({
-        menu: { update, givenClosed },
-      }) => {
+      it.effect('records pointer type for pen without toggling', () =>
         Story.story(
-          update,
+          block,
           givenClosed,
           Story.message(
             Message.PressedPointerOnButton({
@@ -555,14 +626,12 @@ describe('Menu', () => {
               Option.some('pen'),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('opens the menu on mouse left button when closed', ({
-        menu: { update, givenClosed },
-      }) => {
+      it.effect('opens the menu on mouse left button when closed', () =>
         Story.story(
-          update,
+          block,
           givenClosed,
           Story.message(
             Message.PressedPointerOnButton({
@@ -585,44 +654,43 @@ describe('Menu', () => {
               Option.some({ screenX: 100, screenY: 200, timeStamp: 1000 }),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('closes the menu on mouse left button when open and preserves pointer type', ({
-        menu: { update, givenOpen },
-      }) => {
-        Story.story(
-          update,
-          givenOpen,
-          Story.message(
-            Message.PressedPointerOnButton({
-              pointerType: 'mouse',
-              button: 0,
-              screenX: 100,
-              screenY: 200,
-              timeStamp: 1000,
+      it.effect(
+        'closes the menu on mouse left button when open and preserves pointer type',
+        () =>
+          Story.story(
+            block,
+            givenClosed,
+            givenOpen,
+            Story.message(
+              Message.PressedPointerOnButton({
+                pointerType: 'mouse',
+                button: 0,
+                screenX: 100,
+                screenY: 200,
+                timeStamp: 1000,
+              }),
+            ),
+            Story.expectOutMessage(OutMessage.Closed()),
+            Story.Command.resolve(
+              FocusMenuButton,
+              Message.CompletedFocusMenuButton(),
+            ),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+              expect(model.maybeLastButtonPointerType).toStrictEqual(
+                Option.some('mouse'),
+              )
+              expect(model.maybePointerOrigin).toStrictEqual(Option.none())
             }),
           ),
-          Story.expectOutMessage(OutMessage.Closed()),
-          Story.Command.resolve(
-            FocusMenuButton,
-            Message.CompletedFocusMenuButton(),
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.maybeLastButtonPointerType).toStrictEqual(
-              Option.some('mouse'),
-            )
-            expect(model.maybePointerOrigin).toStrictEqual(Option.none())
-          }),
-        )
-      })
+      )
 
-      it('does not toggle on mouse right button', ({
-        menu: { update, givenClosed },
-      }) => {
+      it.effect('does not toggle on mouse right button', () =>
         Story.story(
-          update,
+          block,
           givenClosed,
           Story.message(
             Message.PressedPointerOnButton({
@@ -639,14 +707,12 @@ describe('Menu', () => {
               Option.some('mouse'),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('always records maybeLastButtonPointerType', ({
-        menu: { update, givenClosed },
-      }) => {
+      it.effect('always records maybeLastButtonPointerType', () =>
         Story.story(
-          update,
+          block,
           givenClosed,
           Story.message(
             Message.PressedPointerOnButton({
@@ -677,16 +743,15 @@ describe('Menu', () => {
               Option.some('mouse'),
             )
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('IgnoredMouseClick', () => {
-      it('resets maybeLastButtonPointerType', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('resets maybeLastButtonPointerType', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.PressedPointerOnButton({
@@ -713,8 +778,8 @@ describe('Menu', () => {
               Option.none(),
             )
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('ClickedButton', () => {
@@ -726,29 +791,27 @@ describe('Menu', () => {
         timeStamp: 1000,
       })
 
-      it('keeps the menu open after the click that follows a mouse press', ({
-        menu: { update, givenClosed },
-      }) => {
-        Story.story(
-          update,
-          givenClosed,
-          Story.message(mousePress),
-          acknowledgeFocusItems,
-          Story.message(Message.ClickedButton()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-            expect(model.maybeLastButtonPointerType).toStrictEqual(
-              Option.none(),
-            )
-          }),
-        )
-      })
+      it.effect(
+        'keeps the menu open after the click that follows a mouse press',
+        () =>
+          Story.story(
+            block,
+            givenClosed,
+            Story.message(mousePress),
+            acknowledgeFocusItems,
+            Story.message(Message.ClickedButton()),
+            Story.model(model => {
+              expect(model.isOpen).toBe(true)
+              expect(model.maybeLastButtonPointerType).toStrictEqual(
+                Option.none(),
+              )
+            }),
+          ),
+      )
 
-      it('opens when the click did not follow a mouse press', ({
-        menu: { update, givenClosed },
-      }) => {
+      it.effect('opens when the click did not follow a mouse press', () =>
         Story.story(
-          update,
+          block,
           givenClosed,
           Story.message(Message.ClickedButton()),
           acknowledgeFocusItems,
@@ -756,31 +819,33 @@ describe('Menu', () => {
             expect(model.isOpen).toBe(true)
             expect(model.activationTrigger).toBe('Pointer')
           }),
-        )
-      })
+        ),
+      )
 
-      it('closes an open menu when the click did not follow a mouse press', ({
-        menu: { update, givenOpen },
-      }) => {
-        Story.story(
-          update,
-          givenOpen,
-          Story.message(Message.ClickedButton()),
-          Story.Command.resolve(
-            FocusMenuButton,
-            Message.CompletedFocusMenuButton(),
+      it.effect(
+        'closes an open menu when the click did not follow a mouse press',
+        () =>
+          Story.story(
+            block,
+            givenClosed,
+            givenOpen,
+            Story.message(Message.ClickedButton()),
+            Story.Command.resolve(
+              FocusMenuButton,
+              Message.CompletedFocusMenuButton(),
+            ),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+            }),
           ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
+      )
     })
 
     describe('ReleasedPointerOnItems', () => {
-      it('no-ops when no pointer origin', ({ menu: { update, givenOpen } }) => {
+      it.effect('no-ops when no pointer origin', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.ReleasedPointerOnItems({
@@ -789,14 +854,13 @@ describe('Menu', () => {
               timeStamp: 2000,
             }),
           ),
-        )
-      })
+        ),
+      )
 
-      it('no-ops when movement is below threshold', ({
-        menu: { update, givenOpenAndOrigin },
-      }) => {
+      it.effect('no-ops when movement is below threshold', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpenAndOrigin,
           Story.message(
             Message.ReleasedPointerOnItems({
@@ -805,14 +869,13 @@ describe('Menu', () => {
               timeStamp: 2000,
             }),
           ),
-        )
-      })
+        ),
+      )
 
-      it('no-ops when hold time is below threshold', ({
-        menu: { update, givenOpenAndOrigin },
-      }) => {
+      it.effect('no-ops when hold time is below threshold', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpenAndOrigin,
           Story.message(
             Message.ReleasedPointerOnItems({
@@ -821,14 +884,13 @@ describe('Menu', () => {
               timeStamp: 1100,
             }),
           ),
-        )
-      })
+        ),
+      )
 
-      it('no-ops when no active item', ({
-        menu: { update, givenOpenAndOrigin },
-      }) => {
+      it.effect('no-ops when no active item', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpenAndOrigin,
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -840,14 +902,13 @@ describe('Menu', () => {
               timeStamp: 2000,
             }),
           ),
-        )
-      })
+        ),
+      )
 
-      it('issues click command when all thresholds met', ({
-        menu: { update, givenOpenAndOrigin },
-      }) => {
+      it.effect('issues click command when all thresholds met', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpenAndOrigin,
           Story.message(
             Message.ActivatedItem({ index: 2, activationTrigger: 'Pointer' }),
@@ -866,14 +927,15 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('ActivatedItem', () => {
-      it('sets the active item index', ({ menu: { update, givenOpen } }) => {
+      it.effect('sets the active item index', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.ActivatedItem({ index: 3, activationTrigger: 'Keyboard' }),
@@ -885,14 +947,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
           }),
-        )
-      })
+        ),
+      )
 
-      it('replaces the previous active item', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('replaces the previous active item', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.ActivatedItem({ index: 1, activationTrigger: 'Keyboard' }),
@@ -911,14 +972,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(4))
           }),
-        )
-      })
+        ),
+      )
 
-      it('stores activation trigger in model', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('stores activation trigger in model', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.ActivatedItem({ index: 1, activationTrigger: 'Pointer' }),
@@ -926,14 +986,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.activationTrigger).toBe('Pointer')
           }),
-        )
-      })
+        ),
+      )
 
-      it('returns scroll command for keyboard activation', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('returns scroll command for keyboard activation', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
@@ -945,28 +1004,26 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
-        )
-      })
+        ),
+      )
 
-      it('returns no commands for pointer activation', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('returns no commands for pointer activation', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.ActivatedItem({ index: 2, activationTrigger: 'Pointer' }),
           ),
-        )
-      })
+        ),
+      )
     })
 
     describe('DeactivatedItem', () => {
-      it('clears active item when pointer-activated', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('clears active item when pointer-activated', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.ActivatedItem({ index: 1, activationTrigger: 'Pointer' }),
@@ -975,14 +1032,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
-        )
-      })
+        ),
+      )
 
-      it('preserves active item when keyboard-activated', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('preserves active item when keyboard-activated', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
@@ -995,16 +1051,15 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('MovedPointerOverItem', () => {
-      it('activates item on first pointer move', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('activates item on first pointer move', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.MovedPointerOverItem({
@@ -1020,14 +1075,13 @@ describe('Menu', () => {
               Option.some({ screenX: 100, screenY: 200 }),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('activates when position differs from stored', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('activates when position differs from stored', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.MovedPointerOverItem({
@@ -1049,14 +1103,13 @@ describe('Menu', () => {
               Option.some({ screenX: 150, screenY: 250 }),
             )
           }),
-        )
-      })
+        ),
+      )
 
-      it('returns model unchanged when position matches', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('returns model unchanged when position matches', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.MovedPointerOverItem({
@@ -1075,14 +1128,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(1))
           }),
-        )
-      })
+        ),
+      )
 
-      it('does not return scroll commands', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('does not return scroll commands', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.MovedPointerOverItem({
@@ -1091,16 +1143,15 @@ describe('Menu', () => {
               screenY: 200,
             }),
           ),
-        )
-      })
+        ),
+      )
     })
 
     describe('SelectedItem', () => {
-      it('closes the menu and returns a focus command', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('closes the menu and returns a focus command', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(Message.SelectedItem({ index: 2, item: 'item-2' })),
           Story.Command.resolve(
@@ -1111,33 +1162,32 @@ describe('Menu', () => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
-        )
-      })
+        ),
+      )
 
-      it('returns no Command when an item is selected while already closed', ({
-        menu: { update, givenClosed },
-      }) => {
-        Story.story(
-          update,
-          givenClosed,
-          Story.message(Message.SelectedItem({ index: 2, item: 'item-2' })),
-          Story.expectOutMessage(
-            OutMessage.Selected({ value: 'item-2', index: 2 }),
+      it.effect(
+        'returns no Command when an item is selected while already closed',
+        () =>
+          Story.story(
+            block,
+            givenClosed,
+            Story.message(Message.SelectedItem({ index: 2, item: 'item-2' })),
+            Story.expectOutMessage(
+              OutMessage.Selected({ value: 'item-2', index: 2 }),
+            ),
+            Story.Command.expectNone(),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+            }),
           ),
-          Story.Command.expectNone(),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
+      )
     })
 
     describe('RequestedItemClick', () => {
-      it('returns model unchanged with a click command', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('returns model unchanged with a click command', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(Message.RequestedItemClick({ index: 2 })),
           Story.Command.resolve(
@@ -1147,16 +1197,15 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('Searched', () => {
-      it('appends the key to the search query', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('appends the key to the search query', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.Searched({
@@ -1188,12 +1237,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.searchQuery).toBe('ab')
           }),
-        )
-      })
+        ),
+      )
 
-      it('bumps the search version', ({ menu: { update, givenOpen } }) => {
+      it.effect('bumps the search version', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.Searched({
@@ -1225,14 +1275,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.searchVersion).toBe(2)
           }),
-        )
-      })
+        ),
+      )
 
-      it('updates active item when a match is found', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('updates active item when a match is found', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.Searched({
@@ -1249,14 +1298,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
           }),
-        )
-      })
+        ),
+      )
 
-      it('keeps existing active item when no match is found', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('keeps existing active item when no match is found', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.Searched({
@@ -1273,14 +1321,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(0))
           }),
-        )
-      })
+        ),
+      )
 
-      it('returns a delay command for debounce', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('returns a delay command for debounce', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.Searched({
@@ -1297,16 +1344,15 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.searchQuery).toBe('a')
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('CompletedDelayClearMenuSearch', () => {
-      it('clears search query when version matches', ({
-        menu: { update, givenOpen },
-      }) => {
+      it.effect('clears search query when version matches', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.Searched({
@@ -1327,12 +1373,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.searchQuery).toBe('')
           }),
-        )
-      })
+        ),
+      )
 
-      it('ignores stale version', ({ menu: { update, givenOpen } }) => {
+      it.effect('ignores stale version', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(
             Message.Searched({
@@ -1365,87 +1412,86 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.searchQuery).toBe('ab')
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('CompletedFocusMenuItems', () => {
-      it('returns model unchanged', ({ menu: { update, givenOpen } }) => {
+      it.effect('returns model unchanged', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpen,
           Story.message(Message.CompletedFocusMenuItems()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
     })
 
     describe('animation', () => {
       describe('enter flow', () => {
-        it('sets EnterStart and emits focus + afterPaint on Opened', ({
-          menu: { update, givenClosedAnimated },
-        }) => {
-          Story.story(
-            update,
-            givenClosedAnimated,
-            Story.message(
-              Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+        it.effect(
+          'sets EnterStart and emits focus + afterPaint on Opened',
+          () =>
+            Story.story(
+              block,
+              givenClosedAnimated,
+              Story.message(
+                Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+              ),
+              acknowledgeFocusItems,
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+                expect(model.animation.transitionState).toBe('EnterStart')
+              }),
+              Story.Command.resolveAll(
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+                ],
+                [
+                  Animation.WaitForAnimationSettled,
+                  Animation.Message.EndedAnimation({ generation: 1 }),
+                ],
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
             ),
-            acknowledgeFocusItems,
-            Story.model(model => {
-              expect(model.isOpen).toBe(true)
-              expect(model.animation.transitionState).toBe('EnterStart')
-            }),
-            Story.Command.resolveAll(
-              [
+        )
+
+        it.effect(
+          'advances EnterStart to EnterAnimating on CompletedWaitForPaint',
+          () =>
+            Story.story(
+              block,
+              givenClosedAnimated,
+              Story.message(
+                Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+              ),
+              acknowledgeFocusItems,
+              Story.Command.resolve(
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-              ],
-              [
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('EnterAnimating')
+              }),
+              Story.Command.resolve(
                 Animation.WaitForAnimationSettled,
                 Animation.Message.EndedAnimation({ generation: 1 }),
-              ],
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
             ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        )
 
-        it('advances EnterStart to EnterAnimating on CompletedWaitForPaint', ({
-          menu: { update, givenClosedAnimated },
-        }) => {
+        it.effect('completes EnterAnimating to Idle on EndedAnimation', () =>
           Story.story(
-            update,
-            givenClosedAnimated,
-            Story.message(
-              Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
-            ),
-            acknowledgeFocusItems,
-            Story.Command.resolve(
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-            ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('EnterAnimating')
-            }),
-            Story.Command.resolve(
-              Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ generation: 1 }),
-            ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
-
-        it('completes EnterAnimating to Idle on EndedAnimation', ({
-          menu: { update, givenClosedAnimated },
-        }) => {
-          Story.story(
-            update,
+            block,
             givenClosedAnimated,
             Story.message(
               Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
@@ -1464,16 +1510,14 @@ describe('Menu', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
       })
 
       describe('leave flow', () => {
-        it('starts no leave cascade on Closed when already closed', ({
-          menu: { update, givenClosedAnimated },
-        }) => {
+        it.effect('starts no leave cascade on Closed when already closed', () =>
           Story.story(
-            update,
+            block,
             givenClosedAnimated,
             Story.message(Message.Closed()),
             Story.expectNoOutMessage(),
@@ -1482,14 +1526,13 @@ describe('Menu', () => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
 
-        it('sets LeaveStart on Closed', ({
-          menu: { update, givenOpenAnimated },
-        }) => {
+        it.effect('sets LeaveStart on Closed', () =>
           Story.story(
-            update,
+            block,
+            givenClosedAnimated,
             givenOpenAnimated,
             Story.message(Message.Closed()),
             Story.expectOutMessage(OutMessage.Closed()),
@@ -1511,42 +1554,42 @@ describe('Menu', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
 
-        it('begins the leave animation when the items container blurs', ({
-          menu: { update, givenOpenAnimated },
-        }) => {
-          Story.story(
-            update,
-            givenOpenAnimated,
-            Story.message(Message.BlurredItems()),
-            Story.expectOutMessage(OutMessage.Closed()),
-            Story.model(model => {
-              expect(model.isOpen).toBe(false)
-              expect(model.animation.transitionState).toBe('LeaveStart')
-            }),
-            Story.Command.resolveAll(
-              [
-                Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
-              ],
-              [
-                DetectMenuMovementOrAnimationEnd,
-                completedDetectMenuMovementOrAnimationEnd(2),
-              ],
+        it.effect(
+          'begins the leave animation when the items container blurs',
+          () =>
+            Story.story(
+              block,
+              givenClosedAnimated,
+              givenOpenAnimated,
+              Story.message(Message.BlurredItems()),
+              Story.expectOutMessage(OutMessage.Closed()),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.transitionState).toBe('LeaveStart')
+              }),
+              Story.Command.resolveAll(
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+                ],
+                [
+                  DetectMenuMovementOrAnimationEnd,
+                  completedDetectMenuMovementOrAnimationEnd(2),
+                ],
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
             ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        )
 
-        it('sets LeaveStart on SelectedItem', ({
-          menu: { update, givenOpenAnimated },
-        }) => {
+        it.effect('sets LeaveStart on SelectedItem', () =>
           Story.story(
-            update,
+            block,
+            givenClosedAnimated,
             givenOpenAnimated,
             Story.message(Message.SelectedItem({ index: 0, item: 'item-0' })),
             Story.expectOutMessage(
@@ -1570,44 +1613,44 @@ describe('Menu', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
 
-        it('advances LeaveStart to LeaveAnimating on CompletedWaitForPaint', ({
-          menu: { update, givenOpenAnimated },
-        }) => {
-          Story.story(
-            update,
-            givenOpenAnimated,
-            Story.message(Message.Closed()),
-            Story.Command.resolve(
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+        it.effect(
+          'advances LeaveStart to LeaveAnimating on CompletedWaitForPaint',
+          () =>
+            Story.story(
+              block,
+              givenClosedAnimated,
+              givenOpenAnimated,
+              Story.message(Message.Closed()),
+              Story.Command.resolve(
+                Animation.WaitForPaint,
+                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('LeaveAnimating')
+              }),
+              Story.Command.expectHas(
+                DetectMenuMovementOrAnimationEnd({ id: 'test', generation: 2 }),
+              ),
+              Story.Command.resolveAll(
+                [FocusMenuButton, Message.CompletedFocusMenuButton()],
+                [
+                  DetectMenuMovementOrAnimationEnd,
+                  completedDetectMenuMovementOrAnimationEnd(2),
+                ],
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
             ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('LeaveAnimating')
-            }),
-            Story.Command.expectHas(
-              DetectMenuMovementOrAnimationEnd({ id: 'test', generation: 2 }),
-            ),
-            Story.Command.resolveAll(
-              [FocusMenuButton, Message.CompletedFocusMenuButton()],
-              [
-                DetectMenuMovementOrAnimationEnd,
-                completedDetectMenuMovementOrAnimationEnd(2),
-              ],
-            ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        )
 
-        it('completes LeaveAnimating to Idle on EndedAnimation', ({
-          menu: { update, givenOpenAnimated },
-        }) => {
+        it.effect('completes LeaveAnimating to Idle on EndedAnimation', () =>
           Story.story(
-            update,
+            block,
+            givenClosedAnimated,
             givenOpenAnimated,
             Story.message(Message.Closed()),
             Story.Command.resolveAll(
@@ -1624,16 +1667,14 @@ describe('Menu', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
       })
 
       describe('non-animated', () => {
-        it('keeps transitionState Idle on Opened', ({
-          menu: { update, givenClosed },
-        }) => {
+        it.effect('keeps transitionState Idle on Opened', () =>
           Story.story(
-            update,
+            block,
             givenClosed,
             Story.message(
               Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
@@ -1642,14 +1683,13 @@ describe('Menu', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
 
-        it('keeps transitionState Idle on Closed', ({
-          menu: { update, givenOpen },
-        }) => {
+        it.effect('keeps transitionState Idle on Closed', () =>
           Story.story(
-            update,
+            block,
+            givenClosed,
             givenOpen,
             Story.message(Message.Closed()),
             Story.Command.resolve(
@@ -1659,8 +1699,8 @@ describe('Menu', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
-          )
-        })
+          ),
+        )
       })
 
       describe('stale messages', () => {
@@ -1685,162 +1725,166 @@ describe('Menu', () => {
           ),
         )
 
-        it('ignores CompletedDetectMenuMovementOrAnimationEnd when Idle', ({
-          menu: { update, givenOpen },
-        }) => {
-          Story.story(
-            update,
-            givenOpen,
-            Story.message(completedDetectMenuMovementOrAnimationEnd(0)),
-            Story.model(model => {
-              expect(model.isOpen).toBe(true)
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        it.effect(
+          'ignores CompletedDetectMenuMovementOrAnimationEnd when Idle',
+          () =>
+            Story.story(
+              block,
+              givenClosed,
+              givenOpen,
+              Story.message(completedDetectMenuMovementOrAnimationEnd(0)),
+              Story.model(model => {
+                expect(model.isOpen).toBe(true)
+                expect(model.animation.transitionState).toBe('Idle')
+              }),
+            ),
+        )
       })
 
       describe('interruptions', () => {
-        it('transitions to LeaveStart when Closed during EnterStart', ({
-          menu: { update, givenClosedAnimated },
-        }) => {
-          Story.story(
-            update,
-            givenClosedAnimated,
-            Story.message(
-              Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
-            ),
-            acknowledgeFocusItems,
-            Story.Command.resolve(
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({
-                generation: STALE_ANIMATION_GENERATION,
+        it.effect(
+          'transitions to LeaveStart when Closed during EnterStart',
+          () =>
+            Story.story(
+              block,
+              givenClosedAnimated,
+              Story.message(
+                Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+              ),
+              acknowledgeFocusItems,
+              Story.Command.resolve(
+                Animation.WaitForPaint,
+                Animation.Message.CompletedWaitForPaint({
+                  generation: STALE_ANIMATION_GENERATION,
+                }),
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('EnterStart')
+              }),
+              Story.message(Message.Closed()),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.transitionState).toBe('LeaveStart')
+              }),
+              Story.Command.resolveAll(
+                [FocusMenuButton, Message.CompletedFocusMenuButton()],
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+                ],
+                [
+                  DetectMenuMovementOrAnimationEnd,
+                  completedDetectMenuMovementOrAnimationEnd(2),
+                ],
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('Idle')
               }),
             ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('EnterStart')
-            }),
-            Story.message(Message.Closed()),
-            Story.model(model => {
-              expect(model.isOpen).toBe(false)
-              expect(model.animation.transitionState).toBe('LeaveStart')
-            }),
-            Story.Command.resolveAll(
-              [FocusMenuButton, Message.CompletedFocusMenuButton()],
-              [
-                Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
-              ],
-              [
-                DetectMenuMovementOrAnimationEnd,
-                completedDetectMenuMovementOrAnimationEnd(2),
-              ],
-            ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        )
 
-        it('transitions to LeaveStart when Closed during EnterAnimating', ({
-          menu: { update, givenClosedAnimated },
-        }) => {
-          Story.story(
-            update,
-            givenClosedAnimated,
-            Story.message(
-              Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
-            ),
-            acknowledgeFocusItems,
-            Story.Command.resolve(
-              Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ generation: 1 }),
-            ),
-            Story.Command.resolve(
-              Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({
-                generation: STALE_ANIMATION_GENERATION,
+        it.effect(
+          'transitions to LeaveStart when Closed during EnterAnimating',
+          () =>
+            Story.story(
+              block,
+              givenClosedAnimated,
+              Story.message(
+                Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+              ),
+              acknowledgeFocusItems,
+              Story.Command.resolve(
+                Animation.WaitForPaint,
+                Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+              ),
+              Story.Command.resolve(
+                Animation.WaitForAnimationSettled,
+                Animation.Message.EndedAnimation({
+                  generation: STALE_ANIMATION_GENERATION,
+                }),
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('EnterAnimating')
+              }),
+              Story.message(Message.Closed()),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+                expect(model.animation.transitionState).toBe('LeaveStart')
+              }),
+              Story.Command.resolveAll(
+                [FocusMenuButton, Message.CompletedFocusMenuButton()],
+                [
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+                ],
+                [
+                  DetectMenuMovementOrAnimationEnd,
+                  completedDetectMenuMovementOrAnimationEnd(2),
+                ],
+              ),
+              Story.model(model => {
+                expect(model.animation.transitionState).toBe('Idle')
               }),
             ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('EnterAnimating')
-            }),
-            Story.message(Message.Closed()),
-            Story.model(model => {
-              expect(model.isOpen).toBe(false)
-              expect(model.animation.transitionState).toBe('LeaveStart')
-            }),
-            Story.Command.resolveAll(
-              [FocusMenuButton, Message.CompletedFocusMenuButton()],
-              [
-                Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
-              ],
-              [
-                DetectMenuMovementOrAnimationEnd,
-                completedDetectMenuMovementOrAnimationEnd(2),
-              ],
-            ),
-            Story.model(model => {
-              expect(model.animation.transitionState).toBe('Idle')
-            }),
-          )
-        })
+        )
       })
     })
   })
 
   describe('modal commands', () => {
-    it('emits lockScroll and inertOthers commands on Opened when isModal is true', ({
-      menu: { update, givenClosedModal },
-    }) => {
-      Story.story(
-        update,
-        givenClosedModal,
-        Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Story.Command.resolveAll(
-          [LockMenuScroll, Message.CompletedLockMenuScroll()],
-          [InertMenuOthers, Message.CompletedInertMenuOthers()],
-          [FocusMenuItems, Message.CompletedFocusMenuItems()],
+    it.effect(
+      'emits lockScroll and inertOthers commands on Opened when isModal is true',
+      () =>
+        Story.story(
+          block,
+          givenClosedModal,
+          Story.message(
+            Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+          ),
+          Story.Command.resolveAll(
+            [LockMenuScroll, Message.CompletedLockMenuScroll()],
+            [InertMenuOthers, Message.CompletedInertMenuOthers()],
+            [FocusMenuItems, Message.CompletedFocusMenuItems()],
+          ),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+          }),
         ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(true)
-        }),
-      )
-    })
+    )
 
-    it('emits unlockScroll and restoreInert commands on Closed when isModal is true', ({
-      menu: { update, givenOpenModal },
-    }) => {
-      Story.story(
-        update,
-        givenOpenModal,
-        Story.message(Message.Closed()),
-        Story.Command.resolveAll(
-          [FocusMenuButton, Message.CompletedFocusMenuButton()],
-          [UnlockMenuScroll, Message.CompletedUnlockMenuScroll()],
-          [RestoreMenuInert, Message.CompletedRestoreMenuInert()],
+    it.effect(
+      'emits unlockScroll and restoreInert commands on Closed when isModal is true',
+      () =>
+        Story.story(
+          block,
+          givenClosedModal,
+          givenOpenModal,
+          Story.message(Message.Closed()),
+          Story.Command.resolveAll(
+            [FocusMenuButton, Message.CompletedFocusMenuButton()],
+            [UnlockMenuScroll, Message.CompletedUnlockMenuScroll()],
+            [RestoreMenuInert, Message.CompletedRestoreMenuInert()],
+          ),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
         ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
+    )
 
-    it('emits no Commands on Closed when already closed in modal mode', ({
-      menu: { update, givenClosedModal },
-    }) => {
-      Story.story(
-        update,
-        givenClosedModal,
-        Story.message(Message.Closed()),
-        Story.expectNoOutMessage(),
-        Story.Command.expectNone(),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
+    it.effect(
+      'emits no Commands on Closed when already closed in modal mode',
+      () =>
+        Story.story(
+          block,
+          givenClosedModal,
+          Story.message(Message.Closed()),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
+        ),
+    )
 
     it('emits no Commands when requestOpen receives an open modal Model', ({
       menu: { init, operations, update },
@@ -1873,61 +1917,61 @@ describe('Menu', () => {
       }
     })
 
-    it('emits unlockScroll and restoreInert commands when the items container blurs in modal mode', ({
-      menu: { update, givenOpenModal },
-    }) => {
-      Story.story(
-        update,
-        givenOpenModal,
-        Story.message(Message.BlurredItems()),
-        Story.Command.resolveAll(
-          [UnlockMenuScroll, Message.CompletedUnlockMenuScroll()],
-          [RestoreMenuInert, Message.CompletedRestoreMenuInert()],
+    it.effect(
+      'emits unlockScroll and restoreInert commands when the items container blurs in modal mode',
+      () =>
+        Story.story(
+          block,
+          givenClosedModal,
+          givenOpenModal,
+          Story.message(Message.BlurredItems()),
+          Story.Command.resolveAll(
+            [UnlockMenuScroll, Message.CompletedUnlockMenuScroll()],
+            [RestoreMenuInert, Message.CompletedRestoreMenuInert()],
+          ),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
         ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
+    )
 
-    it('emits no Commands when the items container blurs on a closed menu in modal mode', ({
-      menu: { update, givenClosedModal },
-    }) => {
-      Story.story(
-        update,
-        givenClosedModal,
-        Story.message(Message.BlurredItems()),
-        Story.expectNoOutMessage(),
-        Story.Command.expectNone(),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('emits unlockScroll and restoreInert commands on SelectedItem when isModal is true', ({
-      menu: { update, givenOpenModal },
-    }) => {
-      Story.story(
-        update,
-        givenOpenModal,
-        Story.message(Message.SelectedItem({ index: 0, item: 'item-0' })),
-        Story.Command.resolveAll(
-          [FocusMenuButton, Message.CompletedFocusMenuButton()],
-          [UnlockMenuScroll, Message.CompletedUnlockMenuScroll()],
-          [RestoreMenuInert, Message.CompletedRestoreMenuInert()],
+    it.effect(
+      'emits no Commands when the items container blurs on a closed menu in modal mode',
+      () =>
+        Story.story(
+          block,
+          givenClosedModal,
+          Story.message(Message.BlurredItems()),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
         ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
+    )
 
-    it('does not emit modal commands when isModal is false', ({
-      menu: { update, givenClosed },
-    }) => {
+    it.effect(
+      'emits unlockScroll and restoreInert commands on SelectedItem when isModal is true',
+      () =>
+        Story.story(
+          block,
+          givenClosedModal,
+          givenOpenModal,
+          Story.message(Message.SelectedItem({ index: 0, item: 'item-0' })),
+          Story.Command.resolveAll(
+            [FocusMenuButton, Message.CompletedFocusMenuButton()],
+            [UnlockMenuScroll, Message.CompletedUnlockMenuScroll()],
+            [RestoreMenuInert, Message.CompletedRestoreMenuInert()],
+          ),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
+        ),
+    )
+
+    it.effect('does not emit modal commands when isModal is false', () =>
       Story.story(
-        update,
+        block,
         givenClosed,
         Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
         acknowledgeFocusItems,
@@ -1942,8 +1986,8 @@ describe('Menu', () => {
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
-      )
-    })
+      ),
+    )
   })
 
   describe('resolveTypeaheadMatch', () => {
@@ -2247,58 +2291,59 @@ describe('Menu', () => {
   })
 
   describe('button labeling', () => {
-    it('no aria-label or aria-labelledby on the button by default', ({
-      menu: { sceneUpdate, sceneView, init },
-    }) => {
+    it.effect('no aria-label or aria-labelledby on the button by default', () =>
       Scene.scene(
-        { update: sceneUpdate, view: sceneView() },
-        Scene.given(init({ id: 'test' }).model),
+        { block, viewInputs: sceneViewInputs() },
+        Scene.init({ id: 'test' }),
         Scene.expect(button).not.toHaveAttr('aria-label'),
         Scene.expect(button).not.toHaveAttr('aria-labelledby'),
-      )
-    })
+      ),
+    )
 
-    it('applies aria-label to the button when ariaLabel is provided', ({
-      menu: { sceneUpdate, sceneView, init },
-    }) => {
-      Scene.scene(
-        { update: sceneUpdate, view: sceneView({ ariaLabel: 'Actions' }) },
-        Scene.given(init({ id: 'test' }).model),
-        Scene.expect(button).toHaveAttr('aria-label', 'Actions'),
-        Scene.expect(button).not.toHaveAttr('aria-labelledby'),
-      )
-    })
+    it.effect(
+      'applies aria-label to the button when ariaLabel is provided',
+      () =>
+        Scene.scene(
+          {
+            block: block,
+            viewInputs: sceneViewInputs({ ariaLabel: 'Actions' }),
+          },
+          Scene.init({ id: 'test' }),
+          Scene.expect(button).toHaveAttr('aria-label', 'Actions'),
+          Scene.expect(button).not.toHaveAttr('aria-labelledby'),
+        ),
+    )
 
-    it('applies aria-labelledby to the button when ariaLabelledBy is provided', ({
-      menu: { sceneUpdate, sceneView, init },
-    }) => {
-      Scene.scene(
-        {
-          update: sceneUpdate,
-          view: sceneView({ ariaLabelledBy: 'actions-label' }),
-        },
-        Scene.given(init({ id: 'test' }).model),
-        Scene.expect(button).toHaveAttr('aria-labelledby', 'actions-label'),
-        Scene.expect(button).not.toHaveAttr('aria-label'),
-      )
-    })
+    it.effect(
+      'applies aria-labelledby to the button when ariaLabelledBy is provided',
+      () =>
+        Scene.scene(
+          {
+            block: block,
+            viewInputs: sceneViewInputs({ ariaLabelledBy: 'actions-label' }),
+          },
+          Scene.init({ id: 'test' }),
+          Scene.expect(button).toHaveAttr('aria-labelledby', 'actions-label'),
+          Scene.expect(button).not.toHaveAttr('aria-label'),
+        ),
+    )
 
-    it('prefers aria-label over aria-labelledby when both are provided', ({
-      menu: { sceneUpdate, sceneView, init },
-    }) => {
-      Scene.scene(
-        {
-          update: sceneUpdate,
-          view: sceneView({
-            ariaLabel: 'Actions',
-            ariaLabelledBy: 'actions-label',
-          }),
-        },
-        Scene.given(init({ id: 'test' }).model),
-        Scene.expect(button).toHaveAttr('aria-label', 'Actions'),
-        Scene.expect(button).not.toHaveAttr('aria-labelledby'),
-      )
-    })
+    it.effect(
+      'prefers aria-label over aria-labelledby when both are provided',
+      () =>
+        Scene.scene(
+          {
+            block: block,
+            viewInputs: sceneViewInputs({
+              ariaLabel: 'Actions',
+              ariaLabelledBy: 'actions-label',
+            }),
+          },
+          Scene.init({ id: 'test' }),
+          Scene.expect(button).toHaveAttr('aria-label', 'Actions'),
+          Scene.expect(button).not.toHaveAttr('aria-labelledby'),
+        ),
+    )
 
     it('buttonId derives the trigger id from the base id', () => {
       expect(buttonId('test')).toBe('test-button')

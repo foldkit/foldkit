@@ -1,6 +1,8 @@
 import { Effect, Schema } from 'effect'
 import * as Story from 'foldkit/story'
-import { describe, expect, it } from 'vitest'
+import { expect } from 'vitest'
+
+import { describe, it } from '@effect/vitest'
 
 import * as Animation from './animation/public.js'
 import * as Calendar from './calendar/public.js'
@@ -127,8 +129,9 @@ describe('public Block contracts and acquired Message Codecs', () => {
     }
   })
 
-  it('decodes generated child delivery through the acquired parent Codec', () =>
-    Effect.runPromise(
+  it.effect(
+    'decodes generated child delivery through the acquired parent Codec',
+    () =>
       Story.withBlock(DatePicker.DatePickerBlock, datePicker => {
         const decoded = Schema.decodeUnknownSync(datePicker.Message)({
           _tag: 'GotCalendarMessage',
@@ -144,7 +147,7 @@ describe('public Block contracts and acquired Message Codecs', () => {
           message: { _tag: 'ClickedHeading' },
         })
       }).pipe(Effect.provide(DatePicker.layer)),
-    ))
+  )
 
   it('keeps structural implementation facades out of public barrels', () => {
     for (const barrel of statefulBarrels) {

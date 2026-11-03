@@ -1,12 +1,15 @@
 import { Effect } from 'effect'
 import * as Story from 'foldkit/story'
-import { expect, expectTypeOf, test } from 'vitest'
+import { expect, expectTypeOf } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as Dialog from './dialog/public.js'
 import * as VirtualList from './virtualList/public.js'
 
-test('Dialog distinguishes the Model close transition from native cleanup completion', () =>
-  Effect.runPromise(
+it.effect(
+  'Dialog distinguishes the Model close transition from native cleanup completion',
+  () =>
     Story.withBlock(Dialog.DialogBlock, dialog => {
       const opened = dialog.receive(
         dialog.init({ id: 'routing-proof' }).model,
@@ -24,10 +27,11 @@ test('Dialog distinguishes the Model close transition from native cleanup comple
       expect(transitioned.outMessage).toEqual(dialog.OutMessage.Closed())
       expect(completed.outMessage).toEqual(dialog.OutMessage.CompletedClose())
     }).pipe(Effect.provide(Dialog.layer)),
-  ))
+)
 
-test('Dialog reports every completed native close, including after a reopen', () =>
-  Effect.runPromise(
+it.effect(
+  'Dialog reports every completed native close, including after a reopen',
+  () =>
     Story.withBlock(Dialog.DialogBlock, dialog => {
       const opened = dialog.receive(
         dialog.init({ id: 'routing-proof' }).model,
@@ -58,10 +62,11 @@ test('Dialog reports every completed native close, including after a reopen', ()
         dialog.OutMessage.CompletedClose(),
       )
     }).pipe(Effect.provide(Dialog.layer)),
-  ))
+)
 
-test('VirtualList exposes the full observed scroll snapshot as an OutMessage', () =>
-  Effect.runPromise(
+it.effect(
+  'VirtualList exposes the full observed scroll snapshot as an OutMessage',
+  () =>
     Story.withBlock(VirtualList.makeBlock<string>(), virtualList => {
       const snapshot = {
         scrollTop: 40,
@@ -99,4 +104,4 @@ test('VirtualList exposes the full observed scroll snapshot as an OutMessage', (
         virtualList.OutMessage,
       )
     }).pipe(Effect.provide(VirtualList.layer)),
-  ))
+)

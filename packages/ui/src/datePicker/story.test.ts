@@ -26,60 +26,75 @@ it.layer(layer, { buildPerTest: true })(it => {
   describe('DatePicker', () => {
     describe('init', () => {
       it.effect('defaults to a closed popover with contentFocus enabled', () =>
-        Story.withBlock(DatePickerBlock, datePicker => {
-          const model = datePicker.init({ id: 'picker', today }).model
-          expect(model.id).toBe('picker')
-          expect(model.popover.isOpen).toBe(false)
-          expect(model.popover.contentFocus).toBe(true)
-          expect(model.popover.id).toBe('picker-popover')
-          expect(model.calendar.id).toBe('picker-calendar')
-        }),
+        Story.story(
+          DatePickerBlock,
+          Story.init({ id: 'picker', today }),
+          Story.model(model => {
+            expect(model.id).toBe('picker')
+            expect(model.popover.isOpen).toBe(false)
+            expect(model.popover.contentFocus).toBe(true)
+            expect(model.popover.id).toBe('picker-popover')
+            expect(model.calendar.id).toBe('picker-calendar')
+          }),
+        ),
       )
 
-      it.effect('seeds the calendar view month from initialViewDate', () =>
-        Story.withBlock(DatePickerBlock, datePicker => {
-          const initialViewDate = Calendar.make(2026, 5, 2)
-          const model = datePicker.init({
+      it.effect('seeds the calendar view month from initialViewDate', () => {
+        const initialViewDate = Calendar.make(2026, 5, 2)
+        return Story.story(
+          DatePickerBlock,
+          Story.init({
             id: 'picker',
             today,
             initialViewDate,
-          }).model
-          expect(model.calendar.viewMonth).toBe(5)
-        }),
-      )
+          }),
+          Story.model(model => {
+            expect(model.calendar.viewMonth).toBe(5)
+          }),
+        )
+      })
 
       it.effect('propagates isAnimated to the popover block', () =>
-        Story.withBlock(DatePickerBlock, datePicker => {
-          const model = datePicker.init({
+        Story.story(
+          DatePickerBlock,
+          Story.init({
             id: 'picker',
             today,
             isAnimated: true,
-          }).model
-          expect(model.popover.isAnimated).toBe(true)
-        }),
+          }),
+          Story.model(model => {
+            expect(model.popover.isAnimated).toBe(true)
+          }),
+        ),
       )
 
       it.effect(
         'propagates min/max and disabled config to the calendar block',
-        () =>
-          Story.withBlock(DatePickerBlock, datePicker => {
-            const minDate = Calendar.make(2026, 1, 1)
-            const maxDate = Calendar.make(2026, 12, 31)
-            const model = datePicker.init({
+        () => {
+          const minDate = Calendar.make(2026, 1, 1)
+          const maxDate = Calendar.make(2026, 12, 31)
+          return Story.story(
+            DatePickerBlock,
+            Story.init({
               id: 'picker',
               today,
               minDate,
               maxDate,
               disabledDaysOfWeek: ['Sunday'],
-            }).model
-            expect(model.calendar.maybeMinDate).toStrictEqual(
-              Option.some(minDate),
-            )
-            expect(model.calendar.maybeMaxDate).toStrictEqual(
-              Option.some(maxDate),
-            )
-            expect(model.calendar.disabledDaysOfWeek).toStrictEqual(['Sunday'])
-          }),
+            }),
+            Story.model(model => {
+              expect(model.calendar.maybeMinDate).toStrictEqual(
+                Option.some(minDate),
+              )
+              expect(model.calendar.maybeMaxDate).toStrictEqual(
+                Option.some(maxDate),
+              )
+              expect(model.calendar.disabledDaysOfWeek).toStrictEqual([
+                'Sunday',
+              ])
+            }),
+          )
+        },
       )
     })
 
@@ -295,23 +310,21 @@ it.layer(layer, { buildPerTest: true })(it => {
 
       describe('Cleared', () => {
         it.effect('emits ClearedDate without closing the popover', () =>
-          Story.withBlock(DatePickerBlock, datePicker => {
-            const seeded = datePicker.init({
+          Story.story(
+            DatePickerBlock,
+            Story.init({
               id: 'picker',
               today,
               initialViewDate: Calendar.make(2026, 4, 20),
-            }).model
-            Story.story(
-              datePicker.update,
-              Story.steps(Story.given(seeded), Story.message(Message.Opened())),
-              Story.message(Message.Cleared()),
-              Story.Command.expectNone(),
-              Story.model(model => {
-                expect(model.popover.isOpen).toBe(true)
-              }),
-              Story.expectOutMessage(OutMessage.ClearedDate()),
-            )
-          }),
+            }),
+            Story.message(Message.Opened()),
+            Story.message(Message.Cleared()),
+            Story.Command.expectNone(),
+            Story.model(model => {
+              expect(model.popover.isOpen).toBe(true)
+            }),
+            Story.expectOutMessage(OutMessage.ClearedDate()),
+          ),
         )
       })
 

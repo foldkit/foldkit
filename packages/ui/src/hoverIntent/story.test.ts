@@ -40,31 +40,36 @@ it.layer(layer, { buildPerTest: true })(it => {
   describe('HoverIntent', () => {
     describe('init', () => {
       it.effect('defaults to a hidden state with open and close delays', () =>
-        Story.withBlock(block, block => {
-          expect(block.init().model).toStrictEqual({
-            isOpen: false,
-            isTriggerHovered: false,
-            isPanelHovered: false,
-            maybeFocusLocation: Option.none(),
-            isDismissed: false,
-            openDelay: Duration.millis(200),
-            closeDelay: Duration.millis(300),
-            pendingOpenVersion: 0,
-            pendingCloseVersion: 0,
-          })
-        }),
+        Story.story(
+          block,
+          Story.init(),
+          Story.model(model => {
+            expect(model).toStrictEqual({
+              isOpen: false,
+              isTriggerHovered: false,
+              isPanelHovered: false,
+              maybeFocusLocation: Option.none(),
+              isDismissed: false,
+              openDelay: Duration.millis(200),
+              closeDelay: Duration.millis(300),
+              pendingOpenVersion: 0,
+              pendingCloseVersion: 0,
+            })
+          }),
+        ),
       )
 
       it.effect('accepts custom delay inputs', () =>
-        Story.withBlock(block, block => {
-          expect(
-            block.init({ openDelay: Duration.seconds(1), closeDelay: 50 })
-              .model,
-          ).toMatchObject({
-            openDelay: Duration.seconds(1),
-            closeDelay: Duration.millis(50),
-          })
-        }),
+        Story.story(
+          block,
+          Story.init({ openDelay: Duration.seconds(1), closeDelay: 50 }),
+          Story.model(model => {
+            expect(model).toMatchObject({
+              openDelay: Duration.seconds(1),
+              closeDelay: Duration.millis(50),
+            })
+          }),
+        ),
       )
     })
 

@@ -7,7 +7,7 @@ import { modifyFields } from 'foldkit/struct'
 import type * as Update from 'foldkit/update'
 import { it as baseIt, expect, expectTypeOf } from 'vitest'
 
-import { describe } from '@effect/vitest'
+import { describe, makeMethods } from '@effect/vitest'
 
 import * as Animation from '../animation/block.js'
 import { makeInitialModel as makeAnimationModel } from '../animation/schema.js'
@@ -48,6 +48,37 @@ const acknowledgePreventBlur = Scene.Mount.resolve(
   AttachPreventBlur,
   Message.CompletedAttachPreventBlur(),
 )
+
+const givenClosed = Story.init({ id: 'test' })
+
+const givenOpenMulti = Story.steps(
+  Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+)
+
+const givenOpenModal = Story.steps(
+  Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+  Story.Command.resolveAllExact(
+    [LockScroll, Message.CompletedLockScroll()],
+    [InertOthers, Message.CompletedInertOthers()],
+  ),
+)
+
+const sceneViewInputs = (
+  overrides: Omit<
+    Partial<ViewInputs<string>>,
+    'items' | 'itemToValue' | 'itemToDisplayText'
+  > = {},
+): ViewInputs<string> => ({
+  items: ['Apple', 'Banana'],
+  itemToConfig: () => ({
+    content: null,
+  }),
+  itemToValue: item => item,
+  itemToDisplayText: item => item,
+  selectedValues: [],
+  restingInputValue: '',
+  ...overrides,
+})
 
 const makeFixture = (block: Story.TestBlock<typeof TestCombobox>) => {
   const { init, update, view, operations } = block
@@ -117,23 +148,25 @@ const makeFixture = (block: Story.TestBlock<typeof TestCombobox>) => {
     sceneView,
   }
 }
-const it = baseIt.extend<{
-  combobox: ReturnType<typeof makeFixture>
-  fruit: Story.TestBlock<typeof FruitCombobox>
-}>({
-  combobox: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(TestCombobox, block =>
-        Effect.promise(() => use(makeFixture(block))),
-      ).pipe(Effect.provide(layer)),
-    ),
-  fruit: async ({}, use) =>
-    Effect.runPromise(
-      Story.withBlock(FruitCombobox, fruit =>
-        Effect.promise(() => use(fruit)),
-      ).pipe(Effect.provide(layer)),
-    ),
-})
+const it = makeMethods(
+  baseIt.extend<{
+    combobox: ReturnType<typeof makeFixture>
+    fruit: Story.TestBlock<typeof FruitCombobox>
+  }>({
+    combobox: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(TestCombobox, block =>
+          Effect.promise(() => use(makeFixture(block))),
+        ).pipe(Effect.provide(layer)),
+      ),
+    fruit: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(FruitCombobox, fruit =>
+          Effect.promise(() => use(fruit)),
+        ).pipe(Effect.provide(layer)),
+      ),
+  }),
+)
 
 describe('Combobox.Multi', () => {
   describe('completed Block', () => {
@@ -177,14 +210,10 @@ describe('Combobox.Multi', () => {
       expect(closed.model.isOpen).toBe(false)
     })
 
-    it('routes Animation Messages for a generic multi Combobox', ({
-      fruit,
-    }) => {
+    it.effect('routes Animation Messages for a generic multi Combobox', () =>
       Story.story(
-        fruit.update,
-        Story.given(
-          fruit.init({ id: 'fruit-combobox', isAnimated: true }).model,
-        ),
+        FruitCombobox,
+        Story.init({ id: 'fruit-combobox', isAnimated: true }),
         Story.message(
           FruitCombobox.Message.Opened({
             maybeActiveItemIndex: Option.some(0),
@@ -203,38 +232,41 @@ describe('Combobox.Multi', () => {
         Story.model(model => {
           expect(model.animation.transitionState).toBe('Idle')
         }),
-      )
-    })
+      ).pipe(Effect.provide(layer)),
+    )
   })
 
   describe('init', () => {
-    it('defaults to closed with no active item and an empty input', ({
-      combobox: { init },
-    }) => {
-      expect(init({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        isOpen: false,
-        isAnimated: false,
-        isModal: false,
-        nullable: false,
-        immediate: false,
-        selectInputOnFocus: false,
-        animation: makeAnimationModel({ id: 'test-items' }),
-        maybeActiveItemIndex: Option.none(),
-        activationTrigger: 'Keyboard',
-        inputValue: '',
-        maybeLastPointerPosition: Option.none(),
-      })
-    })
+    it.effect('defaults to closed with no active item and an empty input', () =>
+      Story.story(
+        TestCombobox,
+        Story.init({ id: 'test' }),
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            isOpen: false,
+            isAnimated: false,
+            isModal: false,
+            nullable: false,
+            immediate: false,
+            selectInputOnFocus: false,
+            animation: makeAnimationModel({ id: 'test-items' }),
+            maybeActiveItemIndex: Option.none(),
+            activationTrigger: 'Keyboard',
+            inputValue: '',
+            maybeLastPointerPosition: Option.none(),
+          })
+        }),
+      ).pipe(Effect.provide(layer)),
+    )
   })
 
   describe('update', () => {
     describe('SelectedItem (multiple)', () => {
-      it('emits Selected with the item value', ({
-        combobox: { update, givenOpenMulti },
-      }) => {
+      it.effect('emits Selected with the item value', () =>
         Story.story(
-          update,
+          TestCombobox,
+          givenClosed,
           givenOpenMulti,
           Story.message(
             Message.SelectedItem({
@@ -244,14 +276,13 @@ describe('Combobox.Multi', () => {
             }),
           ),
           Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
 
-      it('stays open after selection', ({
-        combobox: { update, givenOpenMulti },
-      }) => {
+      it.effect('stays open after selection', () =>
         Story.story(
-          update,
+          TestCombobox,
+          givenClosed,
           givenOpenMulti,
           Story.message(
             Message.SelectedItem({
@@ -263,39 +294,39 @@ describe('Combobox.Multi', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
 
-      it('emits Selected again when the same item is activated (parent toggles off)', ({
-        combobox: { update, givenOpenMulti },
-      }) => {
-        Story.story(
-          update,
-          givenOpenMulti,
-          Story.message(
-            Message.SelectedItem({
-              item: 'apple',
-              displayText: 'Apple',
-              wasSelected: false,
-            }),
-          ),
-          Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
-          Story.message(
-            Message.SelectedItem({
-              item: 'apple',
-              displayText: 'Apple',
-              wasSelected: true,
-            }),
-          ),
-          Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
-        )
-      })
+      it.effect(
+        'emits Selected again when the same item is activated (parent toggles off)',
+        () =>
+          Story.story(
+            TestCombobox,
+            givenClosed,
+            givenOpenMulti,
+            Story.message(
+              Message.SelectedItem({
+                item: 'apple',
+                displayText: 'Apple',
+                wasSelected: false,
+              }),
+            ),
+            Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
+            Story.message(
+              Message.SelectedItem({
+                item: 'apple',
+                displayText: 'Apple',
+                wasSelected: true,
+              }),
+            ),
+            Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
+          ).pipe(Effect.provide(layer)),
+      )
 
-      it('emits Selected for each activated item', ({
-        combobox: { update, givenOpenMulti },
-      }) => {
+      it.effect('emits Selected for each activated item', () =>
         Story.story(
-          update,
+          TestCombobox,
+          givenClosed,
           givenOpenMulti,
           Story.message(
             Message.SelectedItem({
@@ -313,14 +344,13 @@ describe('Combobox.Multi', () => {
             }),
           ),
           Story.expectOutMessage(OutMessage.Selected({ value: 'banana' })),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
 
-      it('preserves active item after selection', ({
-        combobox: { update, givenOpenMulti },
-      }) => {
+      it.effect('preserves active item after selection', () =>
         Story.story(
-          update,
+          TestCombobox,
+          givenClosed,
           givenOpenMulti,
           Story.message(
             Message.ActivatedItem({
@@ -343,8 +373,8 @@ describe('Combobox.Multi', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
     })
 
     describe('Closed', () => {
@@ -370,25 +400,25 @@ describe('Combobox.Multi', () => {
         )
       })
 
-      it('does not emit ClearedSelection when nullable, since the input rests empty', ({
-        combobox: { update, init },
-      }) => {
-        Story.story(
-          update,
-          Story.given(init({ id: 'test', nullable: true }).model),
-          Story.message(
-            Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
-          ),
-          Story.message(
-            Message.Closed({ restingInputValue: '', isClearable: true }),
-          ),
-          Story.expectNoOutMessage(),
-          Story.Command.resolve(FocusInput, Message.CompletedFocusInput()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-          }),
-        )
-      })
+      it.effect(
+        'does not emit ClearedSelection when nullable, since the input rests empty',
+        () =>
+          Story.story(
+            TestCombobox,
+            Story.init({ id: 'test', nullable: true }),
+            Story.message(
+              Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+            ),
+            Story.message(
+              Message.Closed({ restingInputValue: '', isClearable: true }),
+            ),
+            Story.expectNoOutMessage(),
+            Story.Command.resolve(FocusInput, Message.CompletedFocusInput()),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+            }),
+          ).pipe(Effect.provide(layer)),
+      )
 
       it('is a no-op when already closed', ({ combobox: { init, update } }) => {
         const closedModel = modifyFields(init({ id: 'test' }).model, {
@@ -412,57 +442,56 @@ describe('Combobox.Multi', () => {
     })
 
     describe('handleImmediateActivation', () => {
-      it('emits Selected on each immediate activation (parent toggles)', ({
-        combobox: { update, init },
-      }) => {
-        Story.story(
-          update,
-          Story.given(init({ id: 'test', immediate: true }).model),
-          Story.message(
-            Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
-          ),
-          Story.message(
-            Message.ActivatedItem({
-              index: 0,
-              activationTrigger: 'Keyboard',
-              maybeImmediateSelection: Option.some({
-                item: 'apple',
+      it.effect(
+        'emits Selected on each immediate activation (parent toggles)',
+        () =>
+          Story.story(
+            TestCombobox,
+            Story.init({ id: 'test', immediate: true }),
+            Story.message(
+              Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+            ),
+            Story.message(
+              Message.ActivatedItem({
+                index: 0,
+                activationTrigger: 'Keyboard',
+                maybeImmediateSelection: Option.some({
+                  item: 'apple',
+                }),
               }),
-            }),
-          ),
-          Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
-          Story.Command.resolve(
-            ScrollItemIntoView,
-            Message.CompletedScrollItemIntoView(),
-          ),
-          Story.message(
-            Message.ActivatedItem({
-              index: 0,
-              activationTrigger: 'Keyboard',
-              maybeImmediateSelection: Option.some({
-                item: 'apple',
+            ),
+            Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
+            Story.Command.resolve(
+              ScrollItemIntoView,
+              Message.CompletedScrollItemIntoView(),
+            ),
+            Story.message(
+              Message.ActivatedItem({
+                index: 0,
+                activationTrigger: 'Keyboard',
+                maybeImmediateSelection: Option.some({
+                  item: 'apple',
+                }),
               }),
+            ),
+            Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
+            Story.Command.resolve(
+              ScrollItemIntoView,
+              Message.CompletedScrollItemIntoView(),
+            ),
+            Story.model(model => {
+              expect(model.isOpen).toBe(true)
             }),
-          ),
-          Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
-          Story.Command.resolve(
-            ScrollItemIntoView,
-            Message.CompletedScrollItemIntoView(),
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-          }),
-        )
-      })
+          ).pipe(Effect.provide(layer)),
+      )
     })
   })
 
   describe('modal commands', () => {
-    it('unwinds modal commands when closed', ({
-      combobox: { update, givenOpenModal },
-    }) => {
+    it.effect('unwinds modal commands when closed', () =>
       Story.story(
-        update,
+        TestCombobox,
+        Story.init({ id: 'test', isModal: true }),
         givenOpenModal,
         Story.message(
           Message.Closed({ restingInputValue: '', isClearable: true }),
@@ -475,29 +504,30 @@ describe('Combobox.Multi', () => {
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
-      )
-    })
+      ).pipe(Effect.provide(layer)),
+    )
 
-    it('stays open without unwinding modal commands after selection', ({
-      combobox: { update, givenOpenModal },
-    }) => {
-      Story.story(
-        update,
-        givenOpenModal,
-        Story.message(
-          Message.SelectedItem({
-            item: 'apple',
-            displayText: 'Apple',
-            wasSelected: false,
+    it.effect(
+      'stays open without unwinding modal commands after selection',
+      () =>
+        Story.story(
+          TestCombobox,
+          Story.init({ id: 'test', isModal: true }),
+          givenOpenModal,
+          Story.message(
+            Message.SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: false,
+            }),
+          ),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
           }),
-        ),
-        Story.Command.expectNone(),
-        Story.model(model => {
-          expect(model.isOpen).toBe(true)
-        }),
-        Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
-      )
-    })
+          Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
+        ).pipe(Effect.provide(layer)),
+    )
   })
 
   describe('view', () => {
@@ -547,33 +577,32 @@ describe('Combobox.Multi', () => {
     })
 
     describe('form integration', () => {
-      it('renders multiple hidden inputs for multi-select', ({
-        combobox: { update, sceneView, closedModel },
-      }) => {
+      it.effect('renders multiple hidden inputs for multi-select', () =>
         Scene.scene(
           {
-            update,
-            view: sceneView({
+            block: TestCombobox,
+            viewInputs: sceneViewInputs({
               formName: 'fruit',
               selectedValues: ['Apple', 'Banana'],
             }),
           },
-          Scene.given(closedModel()),
+          Scene.init({ id: 'test' }),
           Scene.tap(({ html }) => {
             const inputs = Scene.findAll(html, 'input[type="hidden"]')
             expect(inputs).toHaveLength(2)
             expect(Option.some(inputs[0]!)).toHaveAttr('value', 'Apple')
             expect(Option.some(inputs[1]!)).toHaveAttr('value', 'Banana')
           }),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
 
-      it('renders empty hidden input when no items selected', ({
-        combobox: { update, sceneView, closedModel },
-      }) => {
+      it.effect('renders empty hidden input when no items selected', () =>
         Scene.scene(
-          { update, view: sceneView({ formName: 'fruit' }) },
-          Scene.given(closedModel()),
+          {
+            block: TestCombobox,
+            viewInputs: sceneViewInputs({ formName: 'fruit' }),
+          },
+          Scene.init({ id: 'test' }),
           Scene.tap(({ html }) => {
             const inputs = Scene.findAll(html, 'input[type="hidden"]')
             expect(inputs).toHaveLength(1)
@@ -581,72 +610,78 @@ describe('Combobox.Multi', () => {
               'value',
             )
           }),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
     })
 
     describe('input labeling', () => {
-      it('no aria-label or aria-labelledby on the input by default', ({
-        combobox: { update, sceneView, closedModel },
-      }) => {
-        Scene.scene(
-          { update, view: sceneView() },
-          Scene.given(closedModel()),
-          Scene.tap(({ html }) => {
-            const input = Scene.find(html, 'input[role="combobox"]')
-            expect(input).not.toHaveAttr('aria-label')
-            expect(input).not.toHaveAttr('aria-labelledby')
-          }),
-        )
-      })
-
-      it('applies aria-label to the input when ariaLabel is provided', ({
-        combobox: { update, sceneView, closedModel },
-      }) => {
-        Scene.scene(
-          { update, view: sceneView({ ariaLabel: 'Fruit' }) },
-          Scene.given(closedModel()),
-          Scene.tap(({ html }) => {
-            const input = Scene.find(html, 'input[role="combobox"]')
-            expect(input).toHaveAttr('aria-label', 'Fruit')
-            expect(input).not.toHaveAttr('aria-labelledby')
-          }),
-        )
-      })
-
-      it('applies aria-labelledby to the input when ariaLabelledBy is provided', ({
-        combobox: { update, sceneView, closedModel },
-      }) => {
-        Scene.scene(
-          { update, view: sceneView({ ariaLabelledBy: 'fruit-label' }) },
-          Scene.given(closedModel()),
-          Scene.tap(({ html }) => {
-            const input = Scene.find(html, 'input[role="combobox"]')
-            expect(input).toHaveAttr('aria-labelledby', 'fruit-label')
-            expect(input).not.toHaveAttr('aria-label')
-          }),
-        )
-      })
-
-      it('prefers aria-label over aria-labelledby when both are provided', ({
-        combobox: { update, sceneView, closedModel },
-      }) => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              ariaLabel: 'Fruit',
-              ariaLabelledBy: 'fruit-label',
+      it.effect(
+        'no aria-label or aria-labelledby on the input by default',
+        () =>
+          Scene.scene(
+            { block: TestCombobox, viewInputs: sceneViewInputs() },
+            Scene.init({ id: 'test' }),
+            Scene.tap(({ html }) => {
+              const input = Scene.find(html, 'input[role="combobox"]')
+              expect(input).not.toHaveAttr('aria-label')
+              expect(input).not.toHaveAttr('aria-labelledby')
             }),
-          },
-          Scene.given(closedModel()),
-          Scene.tap(({ html }) => {
-            const input = Scene.find(html, 'input[role="combobox"]')
-            expect(input).toHaveAttr('aria-label', 'Fruit')
-            expect(input).not.toHaveAttr('aria-labelledby')
-          }),
-        )
-      })
+          ).pipe(Effect.provide(layer)),
+      )
+
+      it.effect(
+        'applies aria-label to the input when ariaLabel is provided',
+        () =>
+          Scene.scene(
+            {
+              block: TestCombobox,
+              viewInputs: sceneViewInputs({ ariaLabel: 'Fruit' }),
+            },
+            Scene.init({ id: 'test' }),
+            Scene.tap(({ html }) => {
+              const input = Scene.find(html, 'input[role="combobox"]')
+              expect(input).toHaveAttr('aria-label', 'Fruit')
+              expect(input).not.toHaveAttr('aria-labelledby')
+            }),
+          ).pipe(Effect.provide(layer)),
+      )
+
+      it.effect(
+        'applies aria-labelledby to the input when ariaLabelledBy is provided',
+        () =>
+          Scene.scene(
+            {
+              block: TestCombobox,
+              viewInputs: sceneViewInputs({ ariaLabelledBy: 'fruit-label' }),
+            },
+            Scene.init({ id: 'test' }),
+            Scene.tap(({ html }) => {
+              const input = Scene.find(html, 'input[role="combobox"]')
+              expect(input).toHaveAttr('aria-labelledby', 'fruit-label')
+              expect(input).not.toHaveAttr('aria-label')
+            }),
+          ).pipe(Effect.provide(layer)),
+      )
+
+      it.effect(
+        'prefers aria-label over aria-labelledby when both are provided',
+        () =>
+          Scene.scene(
+            {
+              block: TestCombobox,
+              viewInputs: sceneViewInputs({
+                ariaLabel: 'Fruit',
+                ariaLabelledBy: 'fruit-label',
+              }),
+            },
+            Scene.init({ id: 'test' }),
+            Scene.tap(({ html }) => {
+              const input = Scene.find(html, 'input[role="combobox"]')
+              expect(input).toHaveAttr('aria-label', 'Fruit')
+              expect(input).not.toHaveAttr('aria-labelledby')
+            }),
+          ).pipe(Effect.provide(layer)),
+      )
 
       it('inputId derives the input id from the base id', ({}) => {
         expect(inputId('test')).toBe('test-input')
