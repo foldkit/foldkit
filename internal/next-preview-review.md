@@ -31,6 +31,9 @@
       metadata. Strict peers, one Effect runtime and all three browser engines
       pass without changing active package files. Missing version bumps fail
       before installation; the 238 script tests and mutation controls pass.
+- [x] Give shared-root Vite test servers distinct caches, retaining them until
+      the runner exits. The same-root assertion fails with shared storage;
+      all 387 tests pass and no current-run cache root remains after exit.
 - [ ] Independently review the exact release-gate follow-up and enforce the
       mandatory pre-push checks before pushing the canonical candidate.
 

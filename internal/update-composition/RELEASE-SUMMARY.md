@@ -123,6 +123,13 @@ All 238 script tests pass; controls reject removed version selection, peer
 validation, metadata isolation and migration ordering. This is verification
 wiring, with no package Runtime change.
 
+Real Vite test servers also use distinct dependency caches under a run-owned
+temporary root. This prevents parallel servers from removing each other's
+optimizer output. Cleanup follows worker exit because Vite cancellation can
+return before its native writer finishes. The [cache checkpoint](verification/vite-test-cache-20261103.json)
+passes all 387 Vite tests and confirms that no current-run cache root remains
+after exit. Optimization settings and published package code are unchanged.
+
 The earlier release-wide checkpoint covers all 689 example tests, 30 Typing Game
 tests and 233 script tests, plus strict packed peers, one physical Effect
 runtime and Chromium/Firefox/WebKit consumers. Its Website build, prerender,

@@ -8,6 +8,7 @@ import { expect, it, onTestFinished, vi } from 'vitest'
 import { foldkit } from '../src/index.ts'
 import { boundPort } from './boundPort.ts'
 import { POLL_TIMEOUT } from './relayFixtures.ts'
+import { createServerCache } from './serverCache.ts'
 
 const httpServers = vi.hoisted(() => new globalThis.Array<HttpServer>())
 
@@ -64,6 +65,7 @@ it('closes a relay acquired before startup logging fails', async () => {
 
   const server = await createServer({
     root: PACKAGE_ROOT,
+    cacheDir: await createServerCache(),
     configFile: false,
     logLevel: 'silent',
     server: { middlewareMode: true },

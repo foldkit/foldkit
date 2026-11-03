@@ -34,6 +34,7 @@ import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { foldkit } from '../src/index.ts'
 import { foldkitSsr } from '../src/ssr.ts'
 import { boundPort } from './boundPort.ts'
+import { createServerCache } from './serverCache.ts'
 
 type RawResponse = Readonly<{
   status: number
@@ -265,6 +266,7 @@ const startServer = async (
     options.hostVite === true ? createHostServer : createViteServer
   const server = await createServer({
     root: options.root ?? FIXTURE_ROOT,
+    cacheDir: await createServerCache(),
     ...(options.base === undefined ? {} : { base: options.base }),
     configFile: false,
     logLevel: 'silent',
@@ -310,6 +312,7 @@ const startAutomaticIdentityServer = async (): Promise<
 > => {
   const server = await createViteServer({
     root: AUTOMATIC_IDENTITY_FIXTURE_ROOT,
+    cacheDir: await createServerCache(),
     configFile: false,
     logLevel: 'silent',
     plugins: [

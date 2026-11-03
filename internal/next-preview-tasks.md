@@ -26,6 +26,9 @@
       versions before strict installation. Preserve declared peer floors and
       active package files; reject insufficient plans. All three browser engines,
       238 script tests and four implementation-mutation controls pass locally.
+- [x] Isolate real Vite test servers' dependency caches by server under a
+      run-owned temporary root. Preserve optimizer behavior and server teardown;
+      the 387-test suite and post-process cache-removal check pass.
 - [ ] Review the exact committed release-gate follow-up and push it through
       the mandatory pre-push hook to the preview branch. Do not publish.
 

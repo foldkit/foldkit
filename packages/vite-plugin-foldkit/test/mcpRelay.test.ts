@@ -62,6 +62,7 @@ import {
   useRelayRegistry,
   waitUntilPublished,
 } from './relayFixtures.ts'
+import { createServerCache } from './serverCache.ts'
 
 const PACKAGE_ROOT = resolve(import.meta.dirname, '..')
 const TEST_TIMEOUT = 20_000
@@ -70,6 +71,7 @@ const MODEL_PRESERVATION_RESPONSE_BUDGET = 500
 const startMiddlewareModeServer = async (devToolsMcpPort: number) => {
   const server = await createServer({
     root: PACKAGE_ROOT,
+    cacheDir: await createServerCache(),
     configFile: false,
     logLevel: 'silent',
     server: { middlewareMode: true },
@@ -82,6 +84,7 @@ const startMiddlewareModeServer = async (devToolsMcpPort: number) => {
 const startStandaloneServer = async (devToolsMcpPort: number) => {
   const server = await createServer({
     root: PACKAGE_ROOT,
+    cacheDir: await createServerCache(),
     configFile: false,
     logLevel: 'silent',
     server: { port: 0, host: '127.0.0.1' },
@@ -203,6 +206,7 @@ const startMiddlewareServer = async (
 ) => {
   const server = await createServer({
     root: PACKAGE_ROOT,
+    cacheDir: await createServerCache(),
     configFile: false,
     logLevel: 'silent',
     server: { middlewareMode: true },
@@ -219,6 +223,7 @@ const startListeningServer = async (
 ) => {
   const server = await createServer({
     root: PACKAGE_ROOT,
+    cacheDir: await createServerCache(),
     configFile: false,
     logLevel: 'silent',
     server: { port: 0, host },
@@ -1143,6 +1148,10 @@ describe('DevTools MCP relay discovery', () => {
       const root = first.config.root
       const firstRecord = await waitUntilPublished(root)
       const second = await startListeningServer({})
+
+      expect(second.config.root).toBe(root)
+      expect(second.config.cacheDir).not.toBe(first.config.cacheDir)
+
       await expect
         .poll(async () => (await publishedRecords(root)).length, {
           timeout: POLL_TIMEOUT,
