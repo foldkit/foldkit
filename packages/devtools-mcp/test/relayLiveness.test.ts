@@ -30,6 +30,22 @@ describe('checkRelay', () => {
     expect(status).toBe('Unreachable')
   })
 
+  it('keeps a namespaced relay when the reader cannot inspect its own namespaces', async () => {
+    const record: RelayRecord = {
+      version: 1,
+      id: 'unknown-own-namespaces',
+      root: '/workspace/app',
+      url: 'ws://127.0.0.1:1/__foldkit/devtools-mcp',
+      pid: DEAD_PID,
+      startedAt: 1,
+      namespaces: { pid: 'pid:[other]', network: 'net:[other]' },
+    }
+
+    const status = await Effect.runPromise(checkRelay(record, Option.none()))
+
+    expect(status).toBe('Unreachable')
+  })
+
   it.skipIf(process.platform !== 'linux')(
     'probes a legacy record when the reader cannot read its own namespaces',
     async () => {

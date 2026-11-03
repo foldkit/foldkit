@@ -108,6 +108,28 @@ describe('discoverRelays', () => {
     projectRoot: string,
   ) => runWithNode(discoverRelays(projectRoot, registryReader))
 
+  const discoverWithoutOwnNamespaces = (projectRoot: string) =>
+    runWithNode(
+      Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem
+        const registryReader = yield* makeUncheckedRegistryReader
+        const namespaceUnavailableFileSystem: FileSystem.FileSystem = {
+          ...fileSystem,
+          readLink: path =>
+            path.startsWith('/proc/self/ns/')
+              ? fileSystem.readLink(`${path}.unavailable`)
+              : fileSystem.readLink(path),
+        }
+
+        return yield* discoverRelays(projectRoot, registryReader).pipe(
+          Effect.provideService(
+            FileSystem.FileSystem,
+            namespaceUnavailableFileSystem,
+          ),
+        )
+      }),
+    )
+
   const refusalLine = () =>
     `[foldkit-devtools-mcp] ignoring the relay registry at ${registryDirectory}: it is readable or writable by other users`
 
@@ -304,6 +326,20 @@ describe('discoverRelays', () => {
 
     expect(await discover('/workspace')).toStrictEqual([])
     expect(await readdir(registryDirectory)).toEqual([])
+  })
+
+  it('retains a namespaced record when the reader cannot inspect its own namespaces', async () => {
+    const uncertain = record('/workspace/app', REFUSING_PORT, {
+      pid: DEAD_PID,
+      namespaces: {
+        pid: OTHER_PID_NAMESPACE,
+        network: OTHER_NETWORK_NAMESPACE,
+      },
+    })
+    await publish('uncertain', uncertain)
+
+    expect(await discoverWithoutOwnNamespaces('/workspace')).toStrictEqual([])
+    expect(await readdir(registryDirectory)).toEqual(['uncertain.json'])
   })
 
   it.skipIf(process.platform !== 'linux')(

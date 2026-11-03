@@ -101,7 +101,12 @@ export const checkRelay = (
     ([own, recorded]) => own.network !== recorded.network,
   )
 
-  if (isOtherNetworkNamespace) {
+  if (
+    Option.isSome(maybeRecordNamespaces) &&
+    Option.isNone(maybeOwnNamespaces)
+  ) {
+    return Effect.succeed('Unreachable')
+  } else if (isOtherNetworkNamespace) {
     return Effect.succeed('Unreachable')
   } else if (
     isSamePidNamespace ||
