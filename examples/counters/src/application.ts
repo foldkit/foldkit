@@ -1,12 +1,12 @@
-import { Array, Number, Schema, Tuple } from 'effect'
+import { Array, Effect, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
-import * as Counter from './counter'
+import { Counter } from './blocks'
 
 const INITIAL_COUNTER_COUNT = 3
 
@@ -28,7 +28,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
   Model,
   Message,
 })
@@ -45,7 +50,7 @@ export const CountersBinding = ApplicationDefinition.makeBinding(
       instances: () =>
         Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
           key: `counter-${counterId}`,
-          args: Tuple.make(),
+          args: [],
         })),
       toItem: ({ key }, counter) => ({ id: key, counter }),
     },
@@ -101,7 +106,7 @@ const counterInstanceView = (
           ),
         ],
       ),
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedRemoveCounter({ id: counterInstance.id }),
           toView: attributes =>
@@ -142,7 +147,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
           counterInstanceView(counterInstance, h),
         ),
       ),
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedAddCounter(),
           toView: attributes =>
@@ -162,13 +167,15 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const counters = yield* CountersBinding
+
+    return {
+      children: [counters],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(Counter.layer)

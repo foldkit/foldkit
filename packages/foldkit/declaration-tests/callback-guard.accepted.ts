@@ -77,18 +77,18 @@ const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
 
-const localNoopStep = ParentDefinition.makeNoopStep()
-const saveLocallyStep = ParentDefinition.makeCommandsStep(() => [LocalSave()])
-const reportStep = ParentDefinition.makeOutMessageStep(() =>
+const keepLocalModel = ParentDefinition.makeNoopStep()
+const saveLocally = ParentDefinition.makeCommandsStep(() => [LocalSave()])
+const report = ParentDefinition.makeOutMessageStep(() =>
   ParentOutMessage.Reported(),
 )
 
 const update = ParentComposition.makeUpdate({
-  IgnoredRequest: model => localNoopStep(model),
+  IgnoredRequest: model => keepLocalModel(model),
   RequestedChildIncrement: model => ChildBinding.requestIncrement()(model),
-  RequestedLocalSave: model => saveLocallyStep(model),
-  RequestedReport: model => reportStep(model),
-  CompletedLocalSave: model => localNoopStep(model),
+  RequestedLocalSave: model => saveLocally(model),
+  RequestedReport: model => report(model),
+  CompletedLocalSave: model => keepLocalModel(model),
 })
 
 type UpdateOutMessage =
@@ -133,11 +133,11 @@ export {
 }
 
 export const connectedOnly = ParentComposition.makeUpdate({
-  IgnoredRequest: localNoopStep,
+  IgnoredRequest: keepLocalModel,
   RequestedChildIncrement: ChildBinding.requestIncrement(),
-  RequestedLocalSave: localNoopStep,
-  RequestedReport: localNoopStep,
-  CompletedLocalSave: localNoopStep,
+  RequestedLocalSave: keepLocalModel,
+  RequestedReport: keepLocalModel,
+  CompletedLocalSave: keepLocalModel,
 })
 export const rawOnly = ParentDefinition.makeComposition().makeUpdate({
   IgnoredRequest: model => ({ model }),
@@ -162,15 +162,15 @@ export type RawOnlyOutMessage = Expect<
   >
 >
 export const initOnly = ParentComposition.makeUpdate({
-  IgnoredRequest: localNoopStep,
+  IgnoredRequest: keepLocalModel,
   RequestedChildIncrement: model =>
     ChildBinding.init({
       args: [],
       toParentModel: child => modifyFields(model, { child: () => child }),
     }),
-  RequestedLocalSave: localNoopStep,
-  RequestedReport: localNoopStep,
-  CompletedLocalSave: localNoopStep,
+  RequestedLocalSave: keepLocalModel,
+  RequestedReport: keepLocalModel,
+  CompletedLocalSave: keepLocalModel,
 })
 export const KeyedModel = Schema.Struct({
   children: Schema.Array(
@@ -189,13 +189,13 @@ export const KeyedBinding = KeyedDefinition.makeBinding(ChildBlock, {
 export const KeyedComposition = KeyedDefinition.makeComposition({
   bindings: [KeyedBinding],
 })
-const keepKeyedStep = KeyedDefinition.makeNoopStep()
+const keepKeyed = KeyedDefinition.makeNoopStep()
 export const keyedUpdate = KeyedComposition.makeUpdate({
-  IgnoredRequest: keepKeyedStep,
+  IgnoredRequest: keepKeyed,
   RequestedChildIncrement: KeyedBinding.requestIncrement('current'),
-  RequestedLocalSave: keepKeyedStep,
-  RequestedReport: keepKeyedStep,
-  CompletedLocalSave: keepKeyedStep,
+  RequestedLocalSave: keepKeyed,
+  RequestedReport: keepKeyed,
+  CompletedLocalSave: keepKeyed,
 })
 export type KeyedRegistration = Expect<
   Equal<
@@ -211,13 +211,13 @@ export const makeGenericOwner = <Value>(Value: Schema.Schema<Value>) => {
   })
   const Binding = Definition.makeBinding(ChildBlock, { field: 'child' })
   const Composition = Definition.makeComposition({ bindings: [Binding] })
-  const keepStep = Definition.makeNoopStep()
+  const keep = Definition.makeNoopStep()
   return Composition.makeUpdate({
-    IgnoredRequest: keepStep,
+    IgnoredRequest: keep,
     RequestedChildIncrement: Binding.requestIncrement(),
-    RequestedLocalSave: keepStep,
-    RequestedReport: keepStep,
-    CompletedLocalSave: keepStep,
+    RequestedLocalSave: keep,
+    RequestedReport: keep,
+    CompletedLocalSave: keep,
   })
 }
 type LocalReturn = Update.ReturnWithOutMessage<
@@ -228,10 +228,10 @@ type LocalReturn = Update.ReturnWithOutMessage<
 >
 type ChildResult = ReturnType<ReturnType<typeof ChildBinding.requestIncrement>>
 export const explicitUnion = ParentComposition.makeUpdate({
-  IgnoredRequest: localNoopStep,
+  IgnoredRequest: keepLocalModel,
   RequestedChildIncrement: (model): LocalReturn | ChildResult =>
     ChildBinding.requestIncrement()(model),
-  RequestedLocalSave: localNoopStep,
-  RequestedReport: localNoopStep,
-  CompletedLocalSave: localNoopStep,
+  RequestedLocalSave: keepLocalModel,
+  RequestedReport: keepLocalModel,
+  CompletedLocalSave: keepLocalModel,
 })

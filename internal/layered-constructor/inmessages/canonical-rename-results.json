@@ -1,0 +1,1398 @@
+{
+  "status": "passed",
+  "repository": "/private/tmp/foldkit-update-composition-20261102",
+  "node": "v22.22.3",
+  "compiler": "7.1.0-beta",
+  "externalCompiler": "6.0.3",
+  "canonicalAPI": {
+    "builder": "makeInMessageUpdate",
+    "constructorAndExecutableEntry": "inMessageUpdate",
+    "compatibilityAliases": false,
+    "causeHelpersUnchanged": ["Story.inMessage", "Scene.inMessage"],
+    "contextConfigUnchanged": "InMessageContext"
+  },
+  "ownership": "This list covers the runtime/type integration, semantic rename, focused tests and active proof-driver maintenance. Root owns prose guidance and changeset; frozen handoff patches/results remain historical prototype evidence.",
+  "ownedPaths": [
+    {
+      "path": "examples/job-application/src/blocks/education/block.ts",
+      "status": "present",
+      "sha256": "70f0f466549802ae2f81095c615adb4f55b9f9524f4d0f1cd4190e783da9dacb"
+    },
+    {
+      "path": "examples/job-application/src/blocks/education/blocks/educationEntry/block.ts",
+      "status": "present",
+      "sha256": "16d913ece7ad99adc9f85eb06e1edbe0b4cf1c92296296ac55130f7fcedbc827"
+    },
+    {
+      "path": "examples/job-application/src/blocks/education/blocks/educationEntry/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "b0116595b4580ba799d9db79846c1da03596d78dc6af94de216133159b8c83de"
+    },
+    {
+      "path": "examples/job-application/src/blocks/education/blocks/educationEntry/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/job-application/src/blocks/education/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "e869759b9770683da38b3268c2481ec3b2b1804cebd06ab424379348f9feb460"
+    },
+    {
+      "path": "examples/job-application/src/blocks/education/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/job-application/src/blocks/personalInfo/block.ts",
+      "status": "present",
+      "sha256": "19cbef133ba3b92580716a3a9fa0a55dd2697674a985fb185920e59c1f6e27ff"
+    },
+    {
+      "path": "examples/job-application/src/blocks/personalInfo/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "e175b68f878e52779a0fe2c531af876037a43ece0c25050bb66357120dcc29a6"
+    },
+    {
+      "path": "examples/job-application/src/blocks/personalInfo/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/job-application/src/blocks/skills/block.ts",
+      "status": "present",
+      "sha256": "76a2507951db0c9318acacdf6f5a0e7b6ed8986157bde94c2cecf6c22a0d0f49"
+    },
+    {
+      "path": "examples/job-application/src/blocks/skills/blocks/skillsEntry/block.ts",
+      "status": "present",
+      "sha256": "d9a154b4c2a187cd815b1ac18e749dc2b2db254fac8fce049bde99f70ff392b5"
+    },
+    {
+      "path": "examples/job-application/src/blocks/skills/blocks/skillsEntry/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "570a9b85d0003b193acd44bbd3059876c1f44c4f7a3d61c2ee7d7b8554eb0a5c"
+    },
+    {
+      "path": "examples/job-application/src/blocks/skills/blocks/skillsEntry/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/job-application/src/blocks/skills/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "dcd0d3db3b00d40c48725cfe1917f599ed0a0aef7521bfe0975d7f32e6c1b467"
+    },
+    {
+      "path": "examples/job-application/src/blocks/skills/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/job-application/src/blocks/workHistory/block.ts",
+      "status": "present",
+      "sha256": "e9e36447185f37c762613f7f4803eeaf843f2bc1a8fe7348f44b784c66fdc36d"
+    },
+    {
+      "path": "examples/job-application/src/blocks/workHistory/blocks/workHistoryEntry/block.ts",
+      "status": "present",
+      "sha256": "d1101c68ac078dddd4b2bcec1c906459f9a59dcf299fc1866e6908cbc959416a"
+    },
+    {
+      "path": "examples/job-application/src/blocks/workHistory/blocks/workHistoryEntry/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "26baf363865daec22920645c83e96ed6b54b2c6285526c93a087a2da7ed351e5"
+    },
+    {
+      "path": "examples/job-application/src/blocks/workHistory/blocks/workHistoryEntry/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/job-application/src/blocks/workHistory/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "cbf795308fe3e363a31cc412d2d1f3cc7d9b9c9694368de7662514c1cef3066b"
+    },
+    {
+      "path": "examples/job-application/src/blocks/workHistory/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/routing/src/blocks/people/block.ts",
+      "status": "present",
+      "sha256": "781ca9c0ee00bf87063167a27f4544f8ca7080ab00a7a51545ebed04976c3f01"
+    },
+    {
+      "path": "examples/routing/src/blocks/people/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "4efa1b05ee6163acc2498588916f2f6dd69b3290d35b11a97d96639b91de7a32"
+    },
+    {
+      "path": "examples/routing/src/blocks/people/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/ui-showcase/src/blocks/ui/block.ts",
+      "status": "present",
+      "sha256": "1ae9e937c194245015372de8e14176ee39d85d2973e06304f7497a28ede0cbe5"
+    },
+    {
+      "path": "examples/ui-showcase/src/blocks/ui/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "efef4e8ea00de2c334a5f4bc2a04024f8ac43b3e240e0b4bba2ae41fd13eb2ce"
+    },
+    {
+      "path": "examples/ui-showcase/src/blocks/ui/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/workspace/src/blocks/commandPalette/block.ts",
+      "status": "present",
+      "sha256": "8a9c65f0a32d288b374922b009899462aef869444a80595a3eac12c9ff2e4343"
+    },
+    {
+      "path": "examples/workspace/src/blocks/commandPalette/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "728bc2d75659791434d1b020d2bd0b5d09fb097062e1ac032dc3693930589f9b"
+    },
+    {
+      "path": "examples/workspace/src/blocks/commandPalette/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/workspace/src/blocks/createIssue/block.ts",
+      "status": "present",
+      "sha256": "559c7f18865e783a0eff20373980d1c66f0c0098e0070acca5b710931c617cc0"
+    },
+    {
+      "path": "examples/workspace/src/blocks/createIssue/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "e97d13662b2250c3a4cbfbfb8d70b2086f0f14f48332a05a7b5d56dd9885c9ea"
+    },
+    {
+      "path": "examples/workspace/src/blocks/createIssue/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/workspace/src/blocks/createIssue/scene.test.ts",
+      "status": "present",
+      "sha256": "0cf8e6f6855a27e45a85f16cec45fdc89954d3a01233956092230c1d92b6f7be"
+    },
+    {
+      "path": "examples/workspace/src/blocks/issueBoard/block.ts",
+      "status": "present",
+      "sha256": "f04b0be48ed00231abab2caf991d384986fce917080d0907eff1f2a6a55d45b7"
+    },
+    {
+      "path": "examples/workspace/src/blocks/issueBoard/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "30ea55e2bf95bd0940c7d35d4bce5f6abcdd52d5d3190cb0c425ead1591aaf20"
+    },
+    {
+      "path": "examples/workspace/src/blocks/issueBoard/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/workspace/src/blocks/issueDetail/block.ts",
+      "status": "present",
+      "sha256": "c841b9c07b42f0e367a4b55d6f47b4e31a42a42eb408e1b1787fbd923204c801"
+    },
+    {
+      "path": "examples/workspace/src/blocks/issueDetail/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "fbd51d01cb5c7f8a986f0ccc3a27017bf9faf4f5fd0e908f18bc0e5d7bb27233"
+    },
+    {
+      "path": "examples/workspace/src/blocks/issueDetail/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/workspace/src/blocks/issueList/block.ts",
+      "status": "present",
+      "sha256": "e8833d6e7ddd25c5b06903c584cabf949b20ddcfa1dc2ccdfb90cd0a7c008a38"
+    },
+    {
+      "path": "examples/workspace/src/blocks/issueList/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "e069af1f7ff3d337ef18a6e94588098673b1550ed8bd5767e107505346607cbc"
+    },
+    {
+      "path": "examples/workspace/src/blocks/issueList/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "examples/workspace/src/blocks/notificationCenter/block.ts",
+      "status": "present",
+      "sha256": "047e2050631117cf23f528dd895e0d66ab4761e252d4cff004873f476415986a"
+    },
+    {
+      "path": "examples/workspace/src/blocks/notificationCenter/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "4d1776e97c12d7a8130ed0cd964a6fc9f36d373ee161777fb6af3d2b194f6944"
+    },
+    {
+      "path": "examples/workspace/src/blocks/notificationCenter/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/README.md",
+      "status": "present",
+      "sha256": "032374b838c9c2a955a96e2ba14aaded926bdefb372d15ba6260f93103a2ac37"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/compiler-proof.mjs",
+      "status": "present",
+      "sha256": "e11dc025f797d0bc4cdafa50fd75832d1f958653f869d9be768197dae329173a"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/external/consumer.ts",
+      "status": "present",
+      "sha256": "1d2e026881659e0f3bc7366fe7eca61b6b6d34c2de5bd304b0818ffb88f4761d"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/external/smoke.mjs",
+      "status": "present",
+      "sha256": "4fee7c32cd994d377a5023a0872ce3f74f167f20e316fe2bdb4a68ec42a37d0d"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/src/block.ts",
+      "status": "present",
+      "sha256": "e8eb26f5717d1a643944ebbe1b94f8b1e380665ceaed20ff6492c85acd8e1ae0"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/src/composition.ts",
+      "status": "present",
+      "sha256": "44d879464eb1cebf1e358022a2e39bc7ca0528a1464c97723bb366cd7ee4ee5b"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/src/context.ts",
+      "status": "present",
+      "sha256": "00366e3e277ed02950db91017e054cc515051df0ac6887f452d185ec676adab4"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/src/definition.ts",
+      "status": "present",
+      "sha256": "5e32a1da13fe7b76cf85cca16ceb19b3d90764632a091534e5a33e615dc1b36c"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/src/editor.ts",
+      "status": "present",
+      "sha256": "98c8177a538db4a5f5b9ccb439857e6426bda4ae6e688ec03323f6c0559a002f"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/src/rejected.ts",
+      "status": "present",
+      "sha256": "c6fd84699bd4c4ef613202bd8930f52f064db0a3933a85a492c9f1cd7675491d"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/src/runtime.test.ts",
+      "status": "present",
+      "sha256": "f6ee20ffefe8acdd2448f4bbc14a1e60e3b972943bacc18a38d570c40e1317ad"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/src/update.ts",
+      "status": "present",
+      "sha256": "87bed2126dd3f464df6a5adb8f243e18a3aa95460e0697b2805b0a454c0d333d"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/tsconfig.json",
+      "status": "present",
+      "sha256": "6d39cab90198d234147a52be1fd0079f0af23a1d9ae0dc68492c5e02295578ae"
+    },
+    {
+      "path": "internal/inmessage-update-prototype/verify.mjs",
+      "status": "present",
+      "sha256": "3792a42300c0c77d5f32834846f82fc487f71a3407a4eed9c4edf1512c4556e2"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/canonical-rename-audit.json",
+      "status": "present",
+      "sha256": "0839008a5e10bf2fdeb46e91d389da3a9d58cc091c403f8809c44d352c267f58"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/check-runtime-mutations.mjs",
+      "status": "present",
+      "sha256": "57323984b10e0869b75bd83bc1587b0f81e0cc5efe4e4a7cee4103f105485fb3"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/check-placements.mjs",
+      "status": "present",
+      "sha256": "f63f25c6a8bdaf94dbf4e043fb04d4073b80ff25d1326c94e431fa41a564f75a"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/check-runtime-dependencies.mjs",
+      "status": "present",
+      "sha256": "22f4efb4b37030cb529ddcef74c3926336f96f7968de188517eb65c32c567a43"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/generate-placements.mjs",
+      "status": "present",
+      "sha256": "b32dc0d8acdfe66f4dea5b66fe8764938d0db21ef266830a8b92eb0cff9f8ef0"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/chatRoom/block.ts",
+      "status": "present",
+      "sha256": "e135a92435122ac37cdbe90e20fc63bcc7149c5e2d0fd000d3dff4f52d4815f5"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/chatRoom/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "2567dd2846194653566a17448d4e5ecc7d3a9b848732a35574f267192de5427e"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/chatRoom/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/composerPlacements.ts",
+      "status": "present",
+      "sha256": "9b016326673add9521717575ad7d3319babb9c8955e293b885a0d1a7aaa2c5ba"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/messageComposer/block.ts",
+      "status": "present",
+      "sha256": "dff68dc5128d919af067ef0858a2f2e8c3f6aea1a186df2a3cc7a74842650f57"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/messageComposer/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "3c2f262f5d525133a0b4b7b84b2c1a4d14da3c9df00dbcd5216c17854ae3b632"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/messageComposer/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/placements.ts",
+      "status": "present",
+      "sha256": "280136519233e26e76d84d85e696ace2e382c6df4d9931a1becb5bc671d18678"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/requests.accepted.ts",
+      "status": "present",
+      "sha256": "215be8505170317db4bc5565831a8902f511894f19d02f4cc2ef22c98194475f"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/src/requests.rejected.ts",
+      "status": "present",
+      "sha256": "45553e4576fb1891765f298300893e2fc69acdfe4ff4e71a75b5dd74acb81722"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/test/placements.test.ts",
+      "status": "present",
+      "sha256": "05ce872a4345698e2d2f0167252447796d408e40ffb258daedf40a367f800539"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/test/provisioning.test.ts",
+      "status": "present",
+      "sha256": "c55944adbd2c67ab8a772b5e47705bf4da6ffb8de53ee17eece795e040ec2719"
+    },
+    {
+      "path": "internal/layered-constructor/inmessages/consumer/verify.mjs",
+      "status": "present",
+      "sha256": "81b8e353b0e266cab8b866180e42f601520145745c5d2f741e7d39779da5a109"
+    },
+    {
+      "path": "internal/layered-constructor/query-production/verify.mjs",
+      "status": "present",
+      "sha256": "042a50f9f9ded8e1ca8e8b082c2648158b74ee6508de1da68431d183a87b2856"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessage-update-composition/accepted.ts",
+      "status": "present",
+      "sha256": "baeaa5c0b0f882c59dcf3a7abe8d606cc44e07bda16ff8098fc9225d8137cedb"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessage-update-composition/block.ts",
+      "status": "present",
+      "sha256": "e8eb26f5717d1a643944ebbe1b94f8b1e380665ceaed20ff6492c85acd8e1ae0"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessage-update-composition/composition.ts",
+      "status": "present",
+      "sha256": "44d879464eb1cebf1e358022a2e39bc7ca0528a1464c97723bb366cd7ee4ee5b"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessage-update-composition/consume.ts",
+      "status": "present",
+      "sha256": "b1828c4616eb80c588e824f3d5742a4d095b94bca9de2f1e18e7b5df60ba1ddc"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessage-update-composition/context.ts",
+      "status": "present",
+      "sha256": "00366e3e277ed02950db91017e054cc515051df0ac6887f452d185ec676adab4"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessage-update-composition/definition.ts",
+      "status": "present",
+      "sha256": "5e32a1da13fe7b76cf85cca16ceb19b3d90764632a091534e5a33e615dc1b36c"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessage-update-composition/editor.ts",
+      "status": "present",
+      "sha256": "98c8177a538db4a5f5b9ccb439857e6426bda4ae6e688ec03323f6c0559a002f"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessage-update-composition/rejected.ts",
+      "status": "present",
+      "sha256": "4e278b3baf21c7c3d8bf7a974287c6e18cc8a188f75a4cfe672ef10fb399f5af"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessage-update-composition/update.ts",
+      "status": "present",
+      "sha256": "a8b2b8f3c25dc0bb1c5bccc2fe698f30b64d2fb8cb309cb6c24454f410ce4229"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessages.accepted.ts",
+      "status": "present",
+      "sha256": "edbc59d10efea64c454583f60a0a16725e15a8457ce9f77c89abe37d08bc27ce"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessages.consume.ts",
+      "status": "present",
+      "sha256": "162e23d73260a60ebf04c2af700fd9e4611e52a3d1215a1dc6e0da8bc6ab858e"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/inmessages.rejected.ts",
+      "status": "present",
+      "sha256": "2ea1972a7c89bff06ea877945e244305087ea7e8c41544adbff0f8942de3256d"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/query-block.accepted.ts",
+      "status": "present",
+      "sha256": "334517a50d1627eae16d4e8d8ce9a11e040c1fc3f91b87363d892e48ecb80ee3"
+    },
+    {
+      "path": "packages/foldkit/declaration-tests/update-composition/editor.ts",
+      "status": "present",
+      "sha256": "ed90626a60b6aab5308c560ab8e796f19ef7864a240aa5949cef420ec01acd83"
+    },
+    {
+      "path": "packages/foldkit/scripts/check-emitted-declarations.ts",
+      "status": "present",
+      "sha256": "8705b7227a677a29985af1811e2cdf83a8bb1661b83d48069198b8c04d173ed9"
+    },
+    {
+      "path": "packages/foldkit/src/block/compiledOperation.test.ts",
+      "status": "present",
+      "sha256": "742e7057dcee678ec7ca2e26c169fb85d1f112bba804c77d798bf70f2650af60"
+    },
+    {
+      "path": "packages/foldkit/src/block/definition.ts",
+      "status": "present",
+      "sha256": "5888d1c901defa0d7bd9611e122abc62169c8f25705a7816a50e8a0c0b72817c"
+    },
+    {
+      "path": "packages/foldkit/src/block/delivery.ts",
+      "status": "present",
+      "sha256": "42cff1a97fc18bbc71fd2aff8f131d8faf0f65aa0e9d11777200142473bf63bb"
+    },
+    {
+      "path": "packages/foldkit/src/block/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "e2aedf64dc218c04f34a816de85a413c6fec3d78cbe044093dff85669f600416"
+    },
+    {
+      "path": "packages/foldkit/src/block/makeDefinition.ts",
+      "status": "present",
+      "sha256": "4a6845755cac0c430d81c937c1746297eb56ff6071457568d40c871f045b595d"
+    },
+    {
+      "path": "packages/foldkit/src/block/public.ts",
+      "status": "present",
+      "sha256": "a88b5f6168fb5d91561c64e563f4b4b6724eb5b50b5fb1c431a73fa60b762e0e"
+    },
+    {
+      "path": "packages/foldkit/src/block/receiver.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/constructed/authoring.ts",
+      "status": "present",
+      "sha256": "3072045b9dc663e26fe84199803d9b8a43f8dce0ce88516c983ebd97003e24e5"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/constructed/contract.ts",
+      "status": "present",
+      "sha256": "ce19a0f0dca58621011d1581ab5a62cdb37665abf82881a496d84eeae8d79b69"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/constructed/runtime.ts",
+      "status": "present",
+      "sha256": "8856aac3ffb1215f365336be276ec34151d1198966197da288818bf1c1114637"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/contract.ts",
+      "status": "present",
+      "sha256": "10681fce7ecb4f61cd1c5ad9a7dfcb79f692459513fb7fe81a54115bc4d8eae3"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/inMessage.review.test.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/inMessage.test.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/inMessage.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/inMessageUpdate.review.test.ts",
+      "status": "present",
+      "sha256": "d5d3e8e4bf5adaf2af0833194019cf475aecf8a6610bdc7ce898e1745a4ed6b0"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/inMessageUpdate.test.ts",
+      "status": "present",
+      "sha256": "26519b4cb6d5d018063c2a0c57110e98200c2ba3f107487280088b389d72640c"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "0652cef11452399b0eef995849e9d2b3a97d80b16e81a1a18fb257a0a05893df"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/inMessageUpdateComposition.test.ts",
+      "status": "present",
+      "sha256": "e8fe09e12b99808959d559c416b8315908007c83314acebb9acad1484120b20c"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/runtime.ts",
+      "status": "present",
+      "sha256": "9e9dab82ae47ef895ed9beda87eb41595c7b8662937c9159d3e08af82b601882"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/hybrid/authoring.ts",
+      "status": "present",
+      "sha256": "eaaa2bcae992be98db2238e3d163742348c80d3e9b72fb47c2a1c4d372f8349e"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/hybrid/planComposer.ts",
+      "status": "present",
+      "sha256": "9ae78816f7767e892cb47e8721560c89f2b56a80d9989eff0f2757daebf22347"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/hybrid/updateComposition.ts",
+      "status": "present",
+      "sha256": "bcd3c39813c1ae1543bb2bc05fb70af3c99c55f8eba79b11676e2f590532e0fc"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/layered/testing/inMessage.test.ts",
+      "status": "present",
+      "sha256": "f60019d64cff66f617304f5c942a20798df27fbbe2a1026127ce1de11035efff"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/layered/testing/inMessage.ts",
+      "status": "present",
+      "sha256": "1a62d8f3e303259e02ad78103cb0d9ac0aa98eebc58f71058f9a338bb01571f1"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/layered/testing/scene.ts",
+      "status": "present",
+      "sha256": "d17165f3a30442dec984f8433119888223bbfcbb142d5ce3df13242db607d4d1"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/layered/testing/story.ts",
+      "status": "present",
+      "sha256": "ff7417886625e0932554906b2e1bbdf296d796c22ee57e8643994e6fc833309d"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/layered/testing/subject.ts",
+      "status": "present",
+      "sha256": "3e48deeb5796f73515ccd66b738ddf031150cb94eea433bdae37907e4fbd83bd"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/layered/testing/withBlock.ts",
+      "status": "present",
+      "sha256": "3bb7a8a9ffd1cc3c06f9242dda408ac9b3d03e5330999cf482cf6fa191931d86"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/query/define.ts",
+      "status": "present",
+      "sha256": "9bd60e3be046c06c7d4c27133c912c20f9ce09c2b3da0d34f6d3b5ffc4eb8d6e"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/query/family.test.ts",
+      "status": "present",
+      "sha256": "6228a8200967a6be3e51b4ec841f387c15927f0a373be091d1e866e0a1c8ef7e"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/query/keyedQueryImplementation.ts",
+      "status": "present",
+      "sha256": "c0b3e93692c81346e3f883aa74e69f163bc57935149f199d5cecb6f75edc7bae"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/query/queryImplementation.ts",
+      "status": "present",
+      "sha256": "794592b7214f2671ece4d3a78ac2f14defe01206608758feba1bc4f143e6954d"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/guards.ts",
+      "status": "present",
+      "sha256": "3d0a75a7cd36b15892ebf8084326870678ed66353031f9ab4c59d411cf43e2ce"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/rules/no-child-message-construction-in-root.ts",
+      "status": "present",
+      "sha256": "67f94bf336c6c0782296a40969fd67d741cea3e138d7f53f8df1bca7e0ad5b1e"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/rules/no-direct-block-state-update.ts",
+      "status": "present",
+      "sha256": "3abfd80f9076cf2611c3224748f422afe2d3fa53930f5c505c78d9895b791e1c"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/rules/no-impure-call-at-decision-time.ts",
+      "status": "present",
+      "sha256": "704b685ef649ff6f5ecb64804a1c69cd6fdd98304e9608b12dfab4db2b36560d"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/update-authoring.ts",
+      "status": "present",
+      "sha256": "5aa55a0d7bc7d55ab049820a9261ac87330e746199b6954fca3f49566414fcd2"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/test/integration/focused-helpers.test.ts",
+      "status": "present",
+      "sha256": "10ea35eada2b30b7167635eff021c15aaa20beaa43eb9d7a065dfd2b249a80ed"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/test/rules/no-direct-block-state-update.test.ts",
+      "status": "present",
+      "sha256": "8ac77eff06e586c8119f99517ef2ecc2c15e41c694cc2472c0ee9861db1bf9f5"
+    },
+    {
+      "path": "packages/typing-game/client/src/blocks/room/block.ts",
+      "status": "present",
+      "sha256": "a04a373cb2d9f68a37028d0da86f78123b94dba826926b29361a30ec28bf203f"
+    },
+    {
+      "path": "packages/typing-game/client/src/blocks/room/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "b1920a36cc081ad620bf09015026c814a765fc7e2759f697c4a6acacc2d3414e"
+    },
+    {
+      "path": "packages/typing-game/client/src/blocks/room/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "packages/ui/src/animation/block.ts",
+      "status": "present",
+      "sha256": "d6de85abcd60962b4f0803fe0ab7aaddab221f6387eece5a4b68b6fb78215817"
+    },
+    {
+      "path": "packages/ui/src/animation/story.test.ts",
+      "status": "present",
+      "sha256": "13f0034bb1fff8059900958824dfafa6c4eaafad377e8af22e2ba9a8534f979d"
+    },
+    {
+      "path": "packages/ui/src/animation/update.ts",
+      "status": "present",
+      "sha256": "941737ae4d6610aa2fd50754bf3dfd29ab43dc1fa5dc07d398b2bbef12240d65"
+    },
+    {
+      "path": "packages/ui/src/calendar/block.ts",
+      "status": "present",
+      "sha256": "a23ea4999c59ced5426b597c8c2884252290142cb10ff872c59208a4e6d2046b"
+    },
+    {
+      "path": "packages/ui/src/combobox/multi.ts",
+      "status": "present",
+      "sha256": "376d0e02e02a672e7f2ab1aa224aeb40e3770b00e38a4e2c0cb8a3bd6cf0fc39"
+    },
+    {
+      "path": "packages/ui/src/combobox/shared.ts",
+      "status": "present",
+      "sha256": "5725bea264c1d85a8341cea5d5793796e959c2eba9d5f4dd72bb42875b824a62"
+    },
+    {
+      "path": "packages/ui/src/combobox/single.ts",
+      "status": "present",
+      "sha256": "1edf74fc088f39ca8b06a32fa79415323e6b52639cc4d74b5f641f5270084399"
+    },
+    {
+      "path": "packages/ui/src/datePicker/block.ts",
+      "status": "present",
+      "sha256": "e7533aeca83a989408d0ee02f1f1c0eb4c18bb179fd13080c685f6fb8a7129f0"
+    },
+    {
+      "path": "packages/ui/src/dialog/block.ts",
+      "status": "present",
+      "sha256": "de5c11249c5c356d00bbc25cddb59114322af0ddfe98fbbeefba72e5fa6aaf6f"
+    },
+    {
+      "path": "packages/ui/src/dialog/runtime.test.ts",
+      "status": "present",
+      "sha256": "f539ccaf0e6ac16630c4b8a3f46fbd0badfca8038effca54891d4e3eb0036f39"
+    },
+    {
+      "path": "packages/ui/src/dialog/story.test.ts",
+      "status": "present",
+      "sha256": "80edd465d7395b75b59860d9e2997cdcddcf0e613e9999f3d9ee31285fe16f82"
+    },
+    {
+      "path": "packages/ui/src/hoverIntent/block.ts",
+      "status": "present",
+      "sha256": "3fde3c4b249158bcf96028cb73ffc1805e9a27c22a9cffaea173204b918fdd74"
+    },
+    {
+      "path": "packages/ui/src/listbox/handlers.ts",
+      "status": "present",
+      "sha256": "8d34e1358c8d3406a7827f96618a00a7d3e434a1978c8620a16163fbc9b0a3db"
+    },
+    {
+      "path": "packages/ui/src/listbox/multi.ts",
+      "status": "present",
+      "sha256": "75766e4a99465e127280909ceb911feea225bbd9e5a2e257bc9af03b5d7b8be8"
+    },
+    {
+      "path": "packages/ui/src/listbox/single.ts",
+      "status": "present",
+      "sha256": "107ca596715539fd675688edc25db65934eb6ad4f89a0b195990b111960026a0"
+    },
+    {
+      "path": "packages/ui/src/menu/menu.ts",
+      "status": "present",
+      "sha256": "cab1e722cba578e66ee2bd7cc20d3ddd8a66b8e5fac7e3bf2f50327cbca97162"
+    },
+    {
+      "path": "packages/ui/src/popover/block.ts",
+      "status": "present",
+      "sha256": "75f07787acb6004f3fd5d1cb10daa8de544941498881f505c8556db6dbf22a60"
+    },
+    {
+      "path": "packages/ui/src/popover/scene.test.ts",
+      "status": "present",
+      "sha256": "8306c45cf72bab48280b78a4c7b0257eba6ee83dfb01569dc28d931977b7bb1b"
+    },
+    {
+      "path": "packages/ui/src/popover/story.test.ts",
+      "status": "present",
+      "sha256": "c7055450eef22e1ce0b2d03fc0fd3e83f2834c4cf452cf72d21c5748b91b7d1b"
+    },
+    {
+      "path": "packages/ui/src/routingParentPolicy.test.ts",
+      "status": "present",
+      "sha256": "817a09978e9b8002ba6ba1dce0dafc40592bb04a298740dea21f698b6df09a8a"
+    },
+    {
+      "path": "packages/ui/src/slider/index.test.ts",
+      "status": "present",
+      "sha256": "8d5f754e0cf57ddf37cb67f6cdd727872518477df80e8032d971792c7c24f11c"
+    },
+    {
+      "path": "packages/ui/src/slider/slider.ts",
+      "status": "present",
+      "sha256": "650a45c924089db5304e1dfa48d7b3b1e2326c37b047d2b6d99e17c721c43a7e"
+    },
+    {
+      "path": "packages/ui/src/toast/toast.ts",
+      "status": "present",
+      "sha256": "2576f2f3d1a0ffa0acf1cb4ca08f2a0555198a76d4ae65a1279bd8df7bc9ae74"
+    },
+    {
+      "path": "packages/ui/src/toast/update.ts",
+      "status": "present",
+      "sha256": "c3bc53f90ba4f6ed57b82850cde9dfed7c5a7ab4580beb61774d6261a4c6d7fd"
+    },
+    {
+      "path": "packages/ui/src/virtualList/virtualList.ts",
+      "status": "present",
+      "sha256": "15af644aaab097bec1eeec6a030b8c5a870cf8b875f8a0fdd9bfc014b9118efe"
+    },
+    {
+      "path": "packages/website/src/blocks/apiReference/block.ts",
+      "status": "present",
+      "sha256": "460d80b630fcf0264159407d7e654c24694d65127ebc9c4a95d94c3980ba175a"
+    },
+    {
+      "path": "packages/website/src/blocks/apiReference/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "63a47ab32bf1e5a72e8e9fa6b56fb27fa2071c489477241b1b2850415f87c175"
+    },
+    {
+      "path": "packages/website/src/blocks/apiReference/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "packages/website/src/blocks/exampleDetail/block.ts",
+      "status": "present",
+      "sha256": "6e7a88f85a45be5abe47fc49864574e0919cd8623929aa34355277de2d4e1dd1"
+    },
+    {
+      "path": "packages/website/src/blocks/exampleDetail/example.ts",
+      "status": "present",
+      "sha256": "23faef04230512e14631842c013170869fee7fd2d2bb330876fbbd1df8b1b8dc"
+    },
+    {
+      "path": "packages/website/src/blocks/playground/block.ts",
+      "status": "present",
+      "sha256": "5a853c4f01dbc55f475ba91c4a8071dfbebc1804b9762f5980957636c5f09a7b"
+    },
+    {
+      "path": "packages/website/src/blocks/playground/playground.ts",
+      "status": "present",
+      "sha256": "a79e0ce85087cbc1dccf7a760bd5dddb21c8e00e2bf45c02fae01d66d6c23748"
+    },
+    {
+      "path": "packages/website/src/blocks/search/block.ts",
+      "status": "present",
+      "sha256": "d0890f221a26fce64ff6dfe3fea103e511354bdf7d6bea2609718709879748f4"
+    },
+    {
+      "path": "packages/website/src/blocks/search/inMessageUpdate.ts",
+      "status": "present",
+      "sha256": "309ac38fcf663cdc9957d751da82531f8ca99ee32853d777b56ddf55cf6e8fe0"
+    },
+    {
+      "path": "packages/website/src/blocks/search/receive.ts",
+      "status": "deleted"
+    },
+    {
+      "path": "packages/website/src/blocks/search/story.test.ts",
+      "status": "present",
+      "sha256": "8ac4fb800f0ebf072594809c9cb1c6a77a5b5aefb2b27023cd2def739df5edd2"
+    },
+    {
+      "path": "packages/website/src/snippet/antiPatternChildInitBad.ts",
+      "status": "present",
+      "sha256": "371075c235f997cfdc7e56ad9d865318e044eeba9fc262f5e31186eb1deab139"
+    },
+    {
+      "path": "packages/website/src/snippet/antiPatternChildInitSettings.ts",
+      "status": "present",
+      "sha256": "78352553e89572a1f2e4a1dfadb984f4d731a86ad9c388f1fe4d1bf47cab9e5e"
+    },
+    {
+      "path": "packages/website/src/snippet/blockFeatureExports.ts",
+      "status": "present",
+      "sha256": "7818f48e06a7a3cb1f78c0cb8959b26be33d7bbc74d48687396c8300ccae13f4"
+    },
+    {
+      "path": "packages/website/src/snippet/blockInMessageHandlers.ts",
+      "status": "present",
+      "sha256": "8d465849a07ebe658d8f6c92a3af0af546b5fd806b89b4bc49c35ecd068c9b20"
+    },
+    {
+      "path": "packages/website/src/snippet/blockInMessageImplementation.ts",
+      "status": "present",
+      "sha256": "cb4167743cba79e89810f8ae56087a09833962733ecf64530cdd0a22caddbb24"
+    },
+    {
+      "path": "packages/website/src/snippet/blockKeyedMapChild.ts",
+      "status": "present",
+      "sha256": "3191899ee9bf2366ecca216fa20f9cfb6c1f5067091f99cd743fa23190f87295"
+    },
+    {
+      "path": "packages/website/src/snippet/blockOptionalKeyedInstance.ts",
+      "status": "present",
+      "sha256": "54b25500f7a0b8f42c9c07500d03489cbab73d9bbfa115f25e7e1cb7020a1584"
+    },
+    {
+      "path": "packages/website/src/snippet/blockSettings.ts",
+      "status": "present",
+      "sha256": "e6fd1c1761f1202e09069e70c4a10477a80298a8c12dc93e97ff60591c01e29c"
+    },
+    {
+      "path": "packages/website/src/snippet/informingBlocksChild.ts",
+      "status": "present",
+      "sha256": "d7a219648db96d5702101f44d66ae3e2d43b255aa4f931a3423b6d262b5dde12"
+    },
+    {
+      "path": "packages/website/src/snippet/initResetCounter.ts",
+      "status": "present",
+      "sha256": "ab16ec624f082eddee14c613a4ddb6ba42450717dd7119daf05255dff5104646"
+    },
+    {
+      "path": "packages/website/src/snippet/testingMigrationFixture.ts",
+      "status": "present",
+      "sha256": "435c96f9693a36a55316d2bebf12f40bf8702acdf2232e066a3762feb59687c4"
+    },
+    {
+      "path": "packages/website/src/snippet/updateCurriedStep.ts",
+      "status": "present",
+      "sha256": "ac795d6fe4fd49777f151e5996b6253250091a0fa55d002f6b6649d07cbf55f3"
+    },
+    {
+      "path": "packages/foldkit/src/block/outMessageForward.test.ts",
+      "status": "present",
+      "sha256": "769b1e78c49d06905896dd165cb1ecb8652d23ff7b08bc1416c50e43dd182253"
+    },
+    {
+      "path": "packages/ui/declaration-tests/generic-composition.accepted.ts",
+      "status": "present",
+      "sha256": "dcc3b17765dca9ba7832c0068387b5d5adfcc90a15787d90525bfc9fa3ecb3cb"
+    },
+    {
+      "path": "packages/ui/declaration-tests/generic-composition.consume.ts",
+      "status": "present",
+      "sha256": "4bbbced079a23a677ec3f841024e55c36cfcc83baa83c204f7bdbdfd2edbbd62"
+    },
+    {
+      "path": "packages/ui/declaration-tests/generic-composition.rejected.ts",
+      "status": "present",
+      "sha256": "1563f4688e4f780f9b8ca70de971b794bc1c0f23d87a720df242559112178e6c"
+    }
+  ],
+  "moduleMoves": [
+    {
+      "before": "examples/job-application/src/blocks/education/blocks/educationEntry/receive.ts",
+      "after": "examples/job-application/src/blocks/education/blocks/educationEntry/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/job-application/src/blocks/education/receive.ts",
+      "after": "examples/job-application/src/blocks/education/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/job-application/src/blocks/personalInfo/receive.ts",
+      "after": "examples/job-application/src/blocks/personalInfo/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/job-application/src/blocks/skills/blocks/skillsEntry/receive.ts",
+      "after": "examples/job-application/src/blocks/skills/blocks/skillsEntry/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/job-application/src/blocks/skills/receive.ts",
+      "after": "examples/job-application/src/blocks/skills/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/job-application/src/blocks/workHistory/blocks/workHistoryEntry/receive.ts",
+      "after": "examples/job-application/src/blocks/workHistory/blocks/workHistoryEntry/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/job-application/src/blocks/workHistory/receive.ts",
+      "after": "examples/job-application/src/blocks/workHistory/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/routing/src/blocks/people/receive.ts",
+      "after": "examples/routing/src/blocks/people/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/ui-showcase/src/blocks/ui/receive.ts",
+      "after": "examples/ui-showcase/src/blocks/ui/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/workspace/src/blocks/commandPalette/receive.ts",
+      "after": "examples/workspace/src/blocks/commandPalette/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/workspace/src/blocks/createIssue/receive.ts",
+      "after": "examples/workspace/src/blocks/createIssue/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/workspace/src/blocks/issueBoard/receive.ts",
+      "after": "examples/workspace/src/blocks/issueBoard/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/workspace/src/blocks/issueDetail/receive.ts",
+      "after": "examples/workspace/src/blocks/issueDetail/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/workspace/src/blocks/issueList/receive.ts",
+      "after": "examples/workspace/src/blocks/issueList/inMessageUpdate.ts"
+    },
+    {
+      "before": "examples/workspace/src/blocks/notificationCenter/receive.ts",
+      "after": "examples/workspace/src/blocks/notificationCenter/inMessageUpdate.ts"
+    },
+    {
+      "before": "packages/typing-game/client/src/blocks/room/receive.ts",
+      "after": "packages/typing-game/client/src/blocks/room/inMessageUpdate.ts"
+    },
+    {
+      "before": "packages/website/src/blocks/apiReference/receive.ts",
+      "after": "packages/website/src/blocks/apiReference/inMessageUpdate.ts"
+    },
+    {
+      "before": "packages/website/src/blocks/search/receive.ts",
+      "after": "packages/website/src/blocks/search/inMessageUpdate.ts"
+    },
+    {
+      "before": "internal/layered-constructor/inmessages/consumer/src/chatRoom/receive.ts",
+      "after": "internal/layered-constructor/inmessages/consumer/src/chatRoom/inMessageUpdate.ts"
+    },
+    {
+      "before": "internal/layered-constructor/inmessages/consumer/src/messageComposer/receive.ts",
+      "after": "internal/layered-constructor/inmessages/consumer/src/messageComposer/inMessageUpdate.ts"
+    },
+    {
+      "before": "packages/foldkit/src/block/receiver.ts",
+      "after": "packages/foldkit/src/block/inMessageUpdate.ts"
+    },
+    {
+      "before": "packages/foldkit/src/experimental/contracted/inMessage.test.ts",
+      "after": "packages/foldkit/src/experimental/contracted/inMessageUpdate.test.ts"
+    },
+    {
+      "before": "packages/foldkit/src/experimental/contracted/inMessage.review.test.ts",
+      "after": "packages/foldkit/src/experimental/contracted/inMessageUpdate.review.test.ts"
+    },
+    {
+      "before": "packages/foldkit/src/experimental/contracted/inMessage.ts",
+      "after": "packages/foldkit/src/experimental/contracted/inMessageUpdate.ts"
+    }
+  ],
+  "artifacts": {
+    "packages/foldkit/dist": {
+      ".js": {
+        "files": 351,
+        "sha256": "f1d37222700d9fb7852af6a141839ee51cf70bab9c6d5caada9a96fbc341c431"
+      },
+      ".d.ts": {
+        "files": 351,
+        "sha256": "fd91f90fdb9f82c6ec01c87f4a20020b399bf4dc32b0ab1d75983cba453878c3"
+      }
+    },
+    "packages/ui/dist": {
+      ".js": {
+        "files": 150,
+        "sha256": "2c118322a9e0cb06ba4d146968124c56f128143dd218e133f39d45af993ec8ec"
+      },
+      ".d.ts": {
+        "files": 150,
+        "sha256": "76d1636fb854d9211f7a6ec52b9081cc41c2e0b2542d9678da64101e1490fb82"
+      }
+    }
+  },
+  "checks": [
+    {
+      "name": "core-build-final",
+      "status": 0,
+      "command": "node node_modules/typescript/bin/tsc -b tsconfig.build.json --force",
+      "cwd": "packages/foldkit",
+      "log": "/tmp/foldkit-canonical-input-rename-core-build-final.log"
+    },
+    {
+      "name": "source-final",
+      "status": 0,
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+      "cwd": "packages/foldkit",
+      "log": "/tmp/foldkit-canonical-input-rename-source-final.log"
+    },
+    {
+      "name": "website-source-final",
+      "status": 0,
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+      "cwd": "packages/website",
+      "log": "/tmp/foldkit-canonical-input-rename-website-source-final.log"
+    },
+    {
+      "name": "core-tests-final",
+      "status": 0,
+      "command": "node node_modules/vitest/vitest.mjs run src/experimental/contracted/inMessageUpdateComposition.test.ts src/experimental/contracted/inMessageUpdate.test.ts src/experimental/contracted/inMessageUpdate.review.test.ts src/experimental/layered/testing/inMessage.test.ts src/block/updateComposition.runtime.test.ts src/runtime/occurrenceCancellation.test.ts",
+      "cwd": "packages/foldkit",
+      "log": "/tmp/foldkit-canonical-input-rename-core-tests-final.log"
+    },
+    {
+      "name": "budgets-final",
+      "status": 0,
+      "command": "node scripts/check-block-type-performance.ts",
+      "cwd": "packages/foldkit",
+      "log": "/tmp/foldkit-canonical-input-rename-budgets-final.log"
+    },
+    {
+      "name": "emitted-final",
+      "status": 0,
+      "command": "node scripts/check-emitted-declarations.ts",
+      "cwd": "packages/foldkit",
+      "log": "/tmp/foldkit-canonical-input-rename-emitted-final.log"
+    },
+    {
+      "name": "proof-final",
+      "status": 0,
+      "command": "node internal/inmessage-update-prototype/verify.mjs",
+      "cwd": ".",
+      "log": "/tmp/foldkit-canonical-input-rename-proof-final.log"
+    },
+    {
+      "name": "compiler-proof-final",
+      "status": 0,
+      "command": "node internal/inmessage-update-prototype/compiler-proof.mjs",
+      "cwd": ".",
+      "log": "/tmp/foldkit-canonical-input-rename-compiler-proof-final.log"
+    },
+    {
+      "name": "consumer-final-restored",
+      "status": 0,
+      "command": "node internal/layered-constructor/inmessages/consumer/verify.mjs",
+      "cwd": ".",
+      "log": "/tmp/foldkit-canonical-input-rename-consumer-final-restored.log"
+    },
+    {
+      "name": "query-proof-restored",
+      "status": 0,
+      "command": "node internal/layered-constructor/query-production/verify.mjs",
+      "cwd": ".",
+      "log": "/tmp/foldkit-canonical-input-rename-query-proof-restored.log"
+    },
+    {
+      "name": "ui-source",
+      "status": 0,
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+      "cwd": "packages/ui",
+      "log": "/tmp/foldkit-canonical-input-rename-ui-source.log"
+    },
+    {
+      "name": "ui-tests",
+      "status": 0,
+      "command": "node node_modules/vitest/vitest.mjs run",
+      "cwd": "packages/ui",
+      "log": "/tmp/foldkit-canonical-input-rename-ui-tests.log"
+    },
+    {
+      "name": "website-tests",
+      "status": 0,
+      "command": "node node_modules/vitest/vitest.mjs run",
+      "cwd": "packages/website",
+      "log": "/tmp/foldkit-canonical-input-rename-website-tests.log"
+    },
+    {
+      "name": "plugin-types",
+      "status": 0,
+      "command": "node ../foldkit/node_modules/typescript/bin/tsc -b tsconfig.build.json --force",
+      "cwd": "packages/oxlint-plugin-foldkit",
+      "log": "/tmp/foldkit-canonical-input-rename-plugin-types.log"
+    },
+    {
+      "name": "plugin-fixtures",
+      "status": 0,
+      "command": "node scripts/typecheck-real-oxlint-fixtures.mjs",
+      "cwd": "packages/oxlint-plugin-foldkit",
+      "log": "/tmp/foldkit-canonical-input-rename-plugin-fixtures.log"
+    },
+    {
+      "name": "plugin-tests",
+      "status": 0,
+      "command": "node node_modules/vitest/vitest.mjs run",
+      "cwd": "packages/oxlint-plugin-foldkit",
+      "log": "/tmp/foldkit-canonical-input-rename-plugin-tests.log"
+    },
+    {
+      "name": "lint-freeze",
+      "status": 0,
+      "command": "oxlint --disable-nested-config <owned package/example source paths>",
+      "cwd": ".",
+      "log": "/tmp/foldkit-canonical-input-rename-lint-freeze.log"
+    },
+    {
+      "name": "effect-lint-freeze",
+      "status": 0,
+      "command": "oxlint --config .oxlintrc.effect.json --disable-nested-config --deny-warnings <owned package/example source paths>",
+      "cwd": ".",
+      "log": "/tmp/foldkit-canonical-input-rename-effect-lint-freeze.log"
+    },
+    {
+      "name": "format-freeze",
+      "status": 0,
+      "command": "oxfmt --check <owned package/example source paths>",
+      "cwd": ".",
+      "log": "/tmp/foldkit-canonical-input-rename-format-freeze.log"
+    },
+    {
+      "name": "full-core-coverage",
+      "status": 0,
+      "cwd": "packages/foldkit",
+      "command": "node node_modules/vitest/vitest.mjs run --coverage --maxWorkers=2",
+      "log": "/private/tmp/foldkit-canonical-inmessage-core-coverage-20261103.log",
+      "sourceScope": "Core runtime source and artifacts match the frozen canonical API proof. The later release-gate followup changes one test lint directive, UI declaration fixtures, Website import ordering, prose and metadata."
+    }
+  ],
+  "counts": {
+    "focusedCore": 39,
+    "UI": 1357,
+    "Website": 1528,
+    "plugin": 798,
+    "chatConsumer": 15,
+    "compilerWorkloads": 7,
+    "semanticProductFiles": 79,
+    "networkingFilesByteIdentical": 4,
+    "fullCore": 4094,
+    "fullCoreIntentionallySkipped": 1
+  },
+  "receipts": {
+    "prototype": "/private/tmp/foldkit-inmessage-update-proof-sRXk2X/receipt.json",
+    "compiler": "/private/tmp/foldkit-inmessage-compiler-proof-EOWBVg/receipt.json",
+    "chatConsumer": "internal/layered-constructor/inmessages/consumer/verification/run-ECUyVC/results.json",
+    "query": "internal/layered-constructor/query-production/verification/latest.json",
+    "runtimeControls": "internal/layered-constructor/inmessages/verification/runtime-Zv0WZK/results.json",
+    "appSource": "internal/layered-constructor/adoption-checks/verification/source-CYVgFV/results.json",
+    "appTests": "internal/layered-constructor/adoption-checks/verification/test-K0zhnQ/results.json",
+    "semanticAudit": "internal/layered-constructor/inmessages/canonical-rename-audit.json",
+    "packedCheckpoint": "internal/update-composition/packed-release/receipt-inmessage-checkpoint.json"
+  },
+  "compilerCandidate": [
+    {
+      "name": "deep-composition-8",
+      "instantiations": 658804,
+      "maxInstantiations": 1152618,
+      "types": 52595,
+      "maxTypes": 55843,
+      "status": "ok"
+    },
+    {
+      "name": "wide-composition-100",
+      "instantiations": 1392196,
+      "maxInstantiations": 3132298,
+      "types": 80494,
+      "maxTypes": 216662,
+      "status": "ok"
+    },
+    {
+      "name": "command-requirements-200",
+      "instantiations": 340025,
+      "maxInstantiations": 2659415,
+      "types": 63104,
+      "maxTypes": 389460,
+      "status": "ok"
+    },
+    {
+      "name": "wide-subscriptions-100",
+      "instantiations": 548577,
+      "maxInstantiations": 548740,
+      "types": 24507,
+      "maxTypes": 24583,
+      "status": "ok"
+    },
+    {
+      "name": "workspace-composition-4",
+      "instantiations": 2559768,
+      "maxInstantiations": 2642699,
+      "types": 209809,
+      "maxTypes": 229173,
+      "status": "ok"
+    },
+    {
+      "name": "workspace-composition-8",
+      "instantiations": 4314931,
+      "maxInstantiations": 4515010,
+      "types": 280773,
+      "maxTypes": 299721,
+      "status": "ok"
+    },
+    {
+      "name": "machine-search",
+      "instantiations": 82164,
+      "maxInstantiations": 83700,
+      "types": 18272,
+      "maxTypes": 18800,
+      "status": "ok"
+    }
+  ],
+  "workloadIntegrity": "compiler-proof verifies the transitive performance workload source import closure, manifest, ceilings, config and normal measurement script byte-for-byte against b02e43a97d6856e24afe7ac18d54d1ce7a3647f0",
+  "controls": [
+    "wrong local Command output",
+    "wrong narrowed input payload",
+    "foreign Composition",
+    "missing decoded input validation",
+    "missing competing OutMessage guard",
+    "rich authoring module ownership regression",
+    "removed receive/makeReceive APIs",
+    "lost input clearing",
+    "lost Query handler identity",
+    "redundant generic structural recheck",
+    "lost Query notification",
+    "lost keyed Query provider"
+  ],
+  "preservedExceptions": [
+    "Unrelated Socket.receive and transport helpers remain byte-identical in both original/current chat proofs.",
+    "Plain receive prose, Received* facts and published historical snippets are retained.",
+    "Saved prototype handoff patches preserve temporary names as historical evidence; current source/verifiers have no aliases.",
+    "Two normal declaration negatives intentionally reference removed receive/makeReceive."
+  ],
+  "earlierFailedAttempts": [
+    "Initial main declaration rerun detected expect-error directives displaced by formatting; final full rerun passes.",
+    "Auxiliary verifiers initially assumed missing fixture node_modules / missing @effect/vitest copied dependency; temp setup repaired without installs or source fallback relaxation.",
+    "First plugin build attempted absent TypeScript alias bin/tsc; corrected pinned package compiler succeeded."
+  ],
+  "remainingFailures": [],
+  "scopeLimits": [
+    "No new browser/SSR matrix performed for this rename/composition integration.",
+    "Core runtime verification is focused39 tests plus full existing public declaration driver; root owns final integrated full runtime gate.",
+    "No unified Block/makeLayer changes from the parallel prototype are included."
+  ],
+  "freeze": "Canonical source and artifacts are frozen after the focused-builder lint repair. Root owns final formatting, exact-commit review and later integrated release gates.",
+  "reviewFollowup": {
+    "finding": "Focused composers bypassed ownership/purity rules and misidentified own Messages.",
+    "repair": "One authenticated callee resolver for both composers, focused/contextual/curried/aliased forms.",
+    "receipt": "internal/layered-constructor/inmessages/focused-builder-lint-review.json",
+    "realOxlintCasesAdded": 82,
+    "initialRedCases": 42,
+    "finalPluginTests": 798,
+    "beforeReviewSourceHashes": {
+      "packages/oxlint-plugin-foldkit/src/rules/no-child-message-construction-in-root.ts": "5483c07a17418271916d26f9fa3c34f5eeb50a33e9598d2db4321697306ab7e6",
+      "packages/oxlint-plugin-foldkit/src/rules/no-direct-block-state-update.ts": "899d6b1a906df5ac9be6b69091e53ba512ac09a88f142a8a99bfac160e33f4d1",
+      "packages/oxlint-plugin-foldkit/src/rules/no-impure-call-at-decision-time.ts": "0869fc7d357281269d0769f62db86a8c26575c33c805b7448669f3f7b65b34a9",
+      "packages/oxlint-plugin-foldkit/test/integration/focused-helpers.test.ts": "237a1b5aa57d44c7e1e30c3c65c5dea4c2bf738e789cf7a75fff6788304db975"
+    },
+    "scope": "Only plugin source/tests and prose changed after the original API verification; core/UI source and emitted artifacts remain unchanged."
+  },
+  "coreCoverage": {
+    "filesPassed": 237,
+    "filesSkipped": 1,
+    "testsPassed": 4094,
+    "testsSkipped": 1,
+    "statements": 90.95,
+    "branches": 84.8,
+    "functions": 90.06,
+    "lines": 91.15,
+    "configuredThresholdsMet": true
+  },
+  "releaseGateFollowup": {
+    "scope": "Complete repository checks following the initial canonical API proof",
+    "changes": [
+      "Sort two named Website imports after the input entry-point rename",
+      "Migrate UI emitted acceptance, consumption and rejection fixtures to inMessageUpdate; reject local inputs through the actual canonical method",
+      "Add a lint directive to the intentional empty-forwarding TypeScript rejection fixture"
+    ],
+    "checks": [
+      {
+        "name": "root-lint",
+        "status": 0,
+        "command": "oxlint --disable-nested-config"
+      },
+      {
+        "name": "application-lint",
+        "status": 0,
+        "command": "oxlint --config .oxlintrc.app.json --disable-nested-config examples packages/website/src packages/typing-game/client/src"
+      },
+      {
+        "name": "effect-lint-and-dead-code",
+        "status": 0,
+        "log": "/private/tmp/foldkit-input-release-gates-20261103.log"
+      },
+      {
+        "name": "script-and-tooling-gates",
+        "status": 0,
+        "tests": 234,
+        "log": "/private/tmp/foldkit-input-release-gates-rest-20261103.log"
+      },
+      {
+        "name": "core-full-emitted-driver",
+        "status": 0,
+        "log": "/private/tmp/foldkit-input-release-types-20261103.log",
+        "scope": "Core completed successfully; the following UI check exposed the old calls repaired here"
+      },
+      {
+        "name": "UI-emitted-budgets-and-all-workspace-types",
+        "status": 0,
+        "log": "/private/tmp/foldkit-input-release-types-final-20261103.log"
+      },
+      {
+        "name": "empty-forwarding-regression",
+        "status": 0,
+        "command": "vitest run src/block/outMessageForward.test.ts --maxWorkers=1",
+        "tests": 3
+      }
+    ],
+    "packedReceipt": "internal/update-composition/packed-release/receipt-inmessage-checkpoint.json",
+    "fullTestAndBrowserGate": {
+      "status": "passed",
+      "receipt": "internal/update-composition/verification/release-gates-20261103.json"
+    },
+    "receiptNormalization": {
+      "path": "internal/inmessage-update-prototype/README.md",
+      "previousSha256": "ce7ee822ef1010774f8c0bd952efed122c668eaa0cadeadebebac0ca239b96d7",
+      "currentSha256": "032374b838c9c2a955a96e2ba14aaded926bdefb372d15ba6260f93103a2ac37",
+      "scope": "Refresh documentation-only digest to the committed report; no implementation or assertion changed"
+    },
+    "packedReleaseGateReceipt": "internal/update-composition/packed-release/receipt-release-gate-20261103.json",
+    "renderingReceipt": "internal/update-composition/rendering-inmessage-20261103/analysis.json",
+    "ssrRequestBoundaryReceipt": "internal/update-composition/verification/ssr-request-boundary-20261103.json"
+  }
+}

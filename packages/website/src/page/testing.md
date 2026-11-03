@@ -4,6 +4,10 @@
 
 Story and Scene test two parts of a Foldkit application. Story calls update directly. Scene enters through the rendered view. Neither test runs a browser or executes the Effects inside Commands, so both stay deterministic and fast.
 
+For Vitest, use `it.effect` from a compatible `@effect/vitest` release and return the Story or Scene Effect directly. The integration manages execution, scoped cleanup, and test services. Keep ordinary synchronous tests synchronous, and use `it.live` when an execution test deliberately needs the live environment. With plain Vitest, return or await `Effect.runPromise`; returning a Fiber from `Effect.runFork` does not make the test runner wait for completion.
+
+Pass the Block directly in ordinary behavior tests. Use `withBlock` when a fixture needs acquired operations, a modified initialized Model, private registrations, or a custom multi-view renderer. A typed Vitest fixture may retain a Promise bridge to hold acquisition open while its callback runs.
+
 ### Compare the Boundaries
 
 |                | Story                                        | Scene                                              |
@@ -33,7 +37,7 @@ The names stay accurate whether update and view live together or in separate fil
 
 ### Test a Root or Child Update
 
-Story can test a root update or a child update in isolation. The update function is the contract at either level.
+Story can test a root update or a child update in isolation. Pass the chosen Block to the scoped `story` entry point at either level. Start with `init(...args)` or `given(model)` and provide the child implementation Layer when testing a public contract.
 
 ::Snippet{name="counterCommandsTest" label="Delayed-reset Story test"}
 
@@ -43,7 +47,7 @@ Story can test a root update or a child update in isolation. The update function
 
 ### Test at the Owning Level
 
-Scene can also start at the root or at a child Block. `withViewInputs` adapts a Block view that needs ViewInputs, and `expectOutMessage` checks a child's OutMessage directly.
+Scene can start at the root or a child Block. Pass required view inputs in `{ block, viewInputs }`; `expectOutMessage` checks a child’s OutMessage directly. Both Story and Scene return Effects that own graph acquisition and cleanup. Their steps remain synchronous and do not execute handlers.
 
 Choose the level by ownership. Test a Block's rendering, interactions, Commands, and OutMessages at the Block. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
 
@@ -75,15 +79,15 @@ The parent Message union no longer declares `GotPinsMessage`. Composition owns g
 
 ### Send a Child Fact Without a View
 
-When a parent Story owns a delivery or OutMessage policy assertion, use `toParentMessage` from `foldkit/test` with the actual Binding and a decoded child Message. A keyed Binding takes its decoded key before the Message. The helper wraps exactly one boundary using the Binding's existing tracked mapper; it needs no Model, slot, view or ViewInputs.
+Use `messageFrom(binding, childMessage)` in a Block-aware Story to test direct child delivery or OutMessage policy. A keyed Binding takes its decoded key before the Message. The passive step resolves the original Binding against that Story’s acquired graph.
 
 ::Snippet{name="testingHeadlessChildMessage" label="Test a parent policy without rendering the child"}
 
-The helper uses synthetic generation `0` for pure replay. It does not select a live occurrence, create an absent child or override Runtime admission. Normal parent dispatch still applies presence, delivery context and OutMessage policy. Wrap nested ancestor boundaries explicitly. Keep production parent code on Binding operations, and retain Command/Subscription replay for facts originating from those sources.
+The helper uses synthetic generation `0` for pure replay. It does not select a live occurrence, create an absent child or override Runtime admission. Normal parent dispatch still applies presence, delivery context and OutMessage policy. For an advanced direct transition fixture, `toParentMessageFor(block)` binds delivery to the acquired parent. Pass a selected child Binding as its second argument to map nested Messages against that same graph. A Message built from an independently acquired child has different provenance. Keep production parent code on Binding operations, and retain Command/Subscription replay for facts originating from those sources.
 
 ### Register Scene Subscription Sources
 
-`Subscription.emit` identifies both the registered source and its raw Message. Build the Scene registry from the Application Composition, pass it in the Scene config, and select the entry that declared the Message. For a child entry, pass the child's Message; Scene derives every generated parent delivery from the registry.
+`Subscription.emit` identifies both the registered source and its raw Message. Use a Block-aware Scene against the selected implementation that owns the registry, then select the entry that declared the Message. Private lifecycle registries remain implementation details. An advanced acquired fixture can pass its concrete registry to a synchronous Scene. For a child entry, pass the child's Message; Scene derives every generated parent delivery from the registry.
 
 ::Snippet{name="testingMigrationSubscriptionBefore" label="❌ Subscription test before registered sources"}
 
@@ -93,7 +97,7 @@ The scaffolded `tsconfig.json` includes `src/**/*`, which keeps `*.test.ts` file
 
 ### Test Completed UI Blocks Through Public Contracts
 
-Stateful UI components expose their Model, Message, init, operations, and OutMessage through a completed Block. Derive a named alias such as `type FooModel = typeof FooBlock.Model.Type` once, then use `FooModel` in annotations. Let the parent Binding and Composition initialize the child so its startup Commands are retained.
+Stateful UI components expose their declared Schemas and operation contracts through a public Block. Provide the component’s `layer` for construction. Scoped Story and Scene tests acquire the executable init, update, and operations. Derive a named alias such as `type FooModel = typeof FooBlock.Model.Type` once, then use `FooModel` in annotations. Let the parent Binding and Composition initialize the child so its startup Commands are retained.
 
 Command and Mount Definitions intended for Story and Scene live under the component's `test` namespace. Resolve the original public Definition with a result Message from the completed Block.
 

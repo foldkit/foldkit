@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { Effect } from 'effect'
+import * as Story from 'foldkit/story'
+import { afterEach, it as baseIt, describe, expect, vi } from 'vitest'
 
 import {
   ScrollContainer,
@@ -14,7 +16,20 @@ import {
   viewportHeight,
   viewportTop,
 } from './scrollContainer.js'
-import { Message, ObservedAnchor, init, update } from './virtualList.js'
+import { Message, ObservedAnchor, block } from './virtualList.js'
+
+type VirtualListOperations = Pick<
+  Effect.Success<typeof block.get>,
+  'init' | 'update'
+>
+const it = baseIt.extend<{ virtualList: VirtualListOperations }>({
+  virtualList: async ({}, use) =>
+    Effect.runPromise(
+      Story.withBlock(block, virtualList =>
+        Effect.promise(() => use(virtualList)),
+      ),
+    ),
+})
 
 const rect = (top: number, height: number) => ({
   top,
@@ -177,7 +192,9 @@ describe('VirtualList external scroll coordinates', () => {
 })
 
 describe('VirtualList viewport resizing', () => {
-  it('preserves the pre-resize row anchor when an absolute preceding row overlaps it', () => {
+  it('preserves the pre-resize row anchor when an absolute preceding row overlaps it', ({
+    virtualList: { init, update },
+  }) => {
     const unmeasured = init({
       id: 'resizing-list',
       rowHeightPx: 40,

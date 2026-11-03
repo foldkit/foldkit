@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 
-import { DragAndDropBlock } from '@foldkit/ui'
+import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
 
 import { Column } from './domain'
 

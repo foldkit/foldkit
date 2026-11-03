@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": false,
+    "rootDir": ".."
+  },
+  "files": [
+    "inmessages.accepted.ts",
+    "inmessages.rejected.ts",
+    "inmessages.consume.ts"
+  ],
+  "include": []
+}

@@ -3,17 +3,17 @@ import { Array, Option, Record } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 import { buttonId } from '@foldkit/ui/listbox'
 
 import {
-  ActiveMemberBinding,
+  ActiveMemberListboxBinding,
   ApplicationComposition,
   type ApplicationViewBuilder,
   CommandPaletteBinding,
   CreateIssueBinding,
-  IssueBoardBinding,
-  IssueDetailBinding,
+  IssueBoardsBinding,
+  IssueDetailsBinding,
   IssueListBinding,
   MemberDirectoryBinding,
   NotificationCenterBinding,
@@ -67,7 +67,7 @@ const memberControl = (
         [h.Class('w-40')],
         [
           h.block(
-            ActiveMemberBinding.embedView({
+            ActiveMemberListboxBinding.embedView({
               slotId: model.activeMemberListbox.id,
               model: model.activeMemberListbox,
               viewInputs: listboxViewInputs({
@@ -233,7 +233,7 @@ const routeContent = (
             ),
           onSome: board =>
             h.block(
-              IssueBoardBinding.embedView({
+              IssueBoardsBinding.embedView({
                 key: projectId,
                 slotId: `project-board-${projectId}`,
                 model: board,
@@ -304,7 +304,7 @@ const issueMoveFeedback = (model: Model, h: ApplicationViewBuilder): Html => {
       ],
       [
         h.p([], [error]),
-        Button.view(
+        buttonView(
           {
             type: 'button',
             onClick: Message.ClickedRetryMove(),
@@ -434,7 +434,7 @@ const workspaceView = (
                         ],
                         [
                           h.block(
-                            IssueDetailBinding.embedView({
+                            IssueDetailsBinding.embedView({
                               key: detail.issueId,
                               slotId: detail.issueId,
                               model: detail,
@@ -595,7 +595,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                         [h.Class('mb-6 text-sm leading-6 text-slate-500')],
                         [error],
                       ),
-                      Button.view(
+                      buttonView(
                         {
                           onClick: Message.ClickedRetryLoad(),
                           toView: attributes =>

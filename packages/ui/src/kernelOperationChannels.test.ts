@@ -1,6 +1,9 @@
-import { Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
+import * as Story from 'foldkit/story'
 import type * as Update from 'foldkit/update'
-import { expect, expectTypeOf, it } from 'vitest'
+import { expect, expectTypeOf } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as MultiCombobox from './combobox/multi.js'
 import * as Combobox from './combobox/single.js'
@@ -20,67 +23,115 @@ type OutMessageOf<Producer extends (...args: ReadonlyArray<never>) => unknown> =
     ? Exclude<OutMessage, undefined>
     : never
 
-it('keeps selection OutMessages out of open and close operation channels', () => {
-  expectTypeOf<
-    OutMessageOf<typeof FruitCombobox.operations.requestOpen>
-  >().toBeNever()
-  expectTypeOf<
-    OutMessageOf<typeof FruitMultiCombobox.operations.requestOpen>
-  >().toBeNever()
-  expectTypeOf<
-    OutMessageOf<typeof FruitCombobox.operations.requestClose>
-  >().toEqualTypeOf<typeof FruitCombobox.OutMessage.ClearedSelection.Type>()
-  expectTypeOf<
-    OutMessageOf<typeof FruitMultiCombobox.operations.requestClose>
-  >().toEqualTypeOf<typeof FruitCombobox.OutMessage.ClearedSelection.Type>()
-  expectTypeOf<
-    OutMessageOf<typeof FruitListbox.operations.requestOpen>
-  >().toBeNever()
-  expectTypeOf<
-    OutMessageOf<typeof FruitListbox.operations.requestClose>
-  >().toBeNever()
-  expectTypeOf<
-    OutMessageOf<typeof FruitMultiListbox.operations.requestOpen>
-  >().toBeNever()
-  expectTypeOf<
-    OutMessageOf<typeof FruitMultiListbox.operations.requestClose>
-  >().toBeNever()
+it.effect(
+  'keeps selection OutMessages out of open and close operation channels',
+  () =>
+    Story.withBlock(FruitCombobox, fruitCombobox =>
+      Story.withBlock(FruitMultiCombobox, fruitMultiCombobox =>
+        Story.withBlock(FruitListbox, fruitListbox =>
+          Story.withBlock(FruitMultiListbox, fruitMultiListbox => {
+            expectTypeOf<
+              OutMessageOf<typeof fruitCombobox.operations.requestOpen>
+            >().toBeNever()
+            expectTypeOf<
+              OutMessageOf<typeof fruitMultiCombobox.operations.requestOpen>
+            >().toBeNever()
+            expectTypeOf<
+              OutMessageOf<typeof fruitCombobox.operations.requestClose>
+            >().toEqualTypeOf<
+              typeof fruitCombobox.OutMessage.ClearedSelection.Type
+            >()
+            expectTypeOf<
+              OutMessageOf<typeof fruitMultiCombobox.operations.requestClose>
+            >().toEqualTypeOf<
+              typeof fruitCombobox.OutMessage.ClearedSelection.Type
+            >()
+            expectTypeOf<
+              OutMessageOf<typeof fruitListbox.operations.requestOpen>
+            >().toBeNever()
+            expectTypeOf<
+              OutMessageOf<typeof fruitListbox.operations.requestClose>
+            >().toBeNever()
+            expectTypeOf<
+              OutMessageOf<typeof fruitMultiListbox.operations.requestOpen>
+            >().toBeNever()
+            expectTypeOf<
+              OutMessageOf<typeof fruitMultiListbox.operations.requestClose>
+            >().toBeNever()
 
-  const listboxOpen = FruitListbox.operations.requestOpen(
-    FruitListbox.init({ id: 'fruit-listbox' }).model,
-  )
-  expect(listboxOpen.model.isOpen).toBe(true)
-  expect(listboxOpen.outMessage).toBeUndefined()
-  const listboxClose = FruitListbox.operations.requestClose(listboxOpen.model)
-  expect(listboxClose.model.isOpen).toBe(false)
-  expect(listboxClose.outMessage).toBeUndefined()
-})
+            const listboxOpen = fruitListbox.operations.requestOpen(
+              fruitListbox.init({ id: 'fruit-listbox' }).model,
+            )
+            expect(listboxOpen.model.isOpen).toBe(true)
+            expect(listboxOpen.outMessage).toBeUndefined()
+            const listboxClose = fruitListbox.operations.requestClose(
+              listboxOpen.model,
+            )
+            expect(listboxClose.model.isOpen).toBe(false)
+            expect(listboxClose.outMessage).toBeUndefined()
+          }),
+        ),
+      ),
+    ).pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          Combobox.layer,
+          MultiCombobox.layer,
+          Listbox.layer,
+          MultiListbox.layer,
+        ),
+      ),
+    ),
+)
 
-it('retains refined selection payloads and exact operation requirements', () => {
-  expectTypeOf<
-    OutMessageOf<typeof FruitCombobox.operations.requestSelectItem>
-  >().toEqualTypeOf<typeof FruitCombobox.OutMessage.Selected.Type>()
-  expectTypeOf<
-    OutMessageOf<typeof FruitMultiCombobox.operations.requestSelectItem>
-  >().toEqualTypeOf<typeof FruitCombobox.OutMessage.Selected.Type>()
-  expectTypeOf<
-    OutMessageOf<typeof FruitListbox.operations.requestSelectItem>
-  >().toEqualTypeOf<typeof FruitListbox.OutMessage.Type>()
-  expectTypeOf<
-    OutMessageOf<typeof FruitMultiListbox.operations.requestSelectItem>
-  >().toEqualTypeOf<typeof FruitListbox.OutMessage.Type>()
-  expectTypeOf<
-    Update.RequirementsOf<typeof FruitListbox.operations.requestOpen>
-  >().not.toBeAny()
-  expectTypeOf<
-    Update.RequirementsOf<typeof FruitListbox.operations.requestOpen>
-  >().not.toBeUnknown()
+it.effect(
+  'retains refined selection payloads and exact operation requirements',
+  () =>
+    Story.withBlock(FruitCombobox, fruitCombobox =>
+      Story.withBlock(FruitMultiCombobox, fruitMultiCombobox =>
+        Story.withBlock(FruitListbox, fruitListbox =>
+          Story.withBlock(FruitMultiListbox, fruitMultiListbox => {
+            expectTypeOf<
+              OutMessageOf<typeof fruitCombobox.operations.requestSelectItem>
+            >().toEqualTypeOf<typeof fruitCombobox.OutMessage.Selected.Type>()
+            expectTypeOf<
+              OutMessageOf<
+                typeof fruitMultiCombobox.operations.requestSelectItem
+              >
+            >().toEqualTypeOf<typeof fruitCombobox.OutMessage.Selected.Type>()
+            expectTypeOf<
+              OutMessageOf<typeof fruitListbox.operations.requestSelectItem>
+            >().toEqualTypeOf<typeof fruitListbox.OutMessage.Type>()
+            expectTypeOf<
+              OutMessageOf<
+                typeof fruitMultiListbox.operations.requestSelectItem
+              >
+            >().toEqualTypeOf<typeof fruitListbox.OutMessage.Type>()
+            expectTypeOf<
+              Update.RequirementsOf<typeof fruitListbox.operations.requestOpen>
+            >().not.toBeAny()
+            expectTypeOf<
+              Update.RequirementsOf<typeof fruitListbox.operations.requestOpen>
+            >().not.toBeUnknown()
 
-  const listboxSelectItem = FruitListbox.operations.requestSelectItem(
-    FruitListbox.init({ id: 'fruit-listbox' }).model,
-    'Apple',
-  )
-  expect(listboxSelectItem.outMessage).toEqual(
-    FruitListbox.OutMessage.Selected({ value: 'Apple' }),
-  )
-})
+            const listboxSelectItem = fruitListbox.operations.requestSelectItem(
+              fruitListbox.init({ id: 'fruit-listbox' }).model,
+              'Apple',
+            )
+            expect(listboxSelectItem.outMessage).toEqual(
+              fruitListbox.OutMessage.Selected({ value: 'Apple' }),
+            )
+          }),
+        ),
+      ),
+    ).pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          Combobox.layer,
+          MultiCombobox.layer,
+          Listbox.layer,
+          MultiListbox.layer,
+        ),
+      ),
+    ),
+)

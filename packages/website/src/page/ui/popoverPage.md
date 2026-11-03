@@ -7,7 +7,7 @@ An anchored floating panel with natural Tab navigation. Unlike Dialog (which is 
 Bind `PopoverBlock` in the parent. For programmatic control in a parent update, call the Binding’s `requestOpen()` and `requestClose()` operations. Both return connected parent Steps, so apply them to the contextual `makeUpdate` Model directly or through `Update.combineSteps`.
 
 :::Info{label="See it in an app"}
-Check out how Popover is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/popover.ts).
+Check out how Popover is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/popover.ts).
 :::
 
 ## Examples
@@ -119,7 +119,7 @@ Use `Scene.focusLeave(panel)` to test that a default Popover closes when focus l
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Popover Binding's child initializer. Direct completed Block calls use `Popover.PopoverBlock.init()`.
+Configuration passed to the Popover Binding's child initializer. Scoped tests pass the same config to `Story.init(...)` or `Scene.init(...)` and provide the component implementation Layer.
 
 | Name           | Type      | Default | Description                                                                                                                                                                                              |
 | -------------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

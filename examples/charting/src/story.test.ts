@@ -1,10 +1,12 @@
 import { Command, given, message, model, story } from 'foldkit/story'
+import { messageFrom } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { toParentMessage } from 'foldkit/test'
-import { expect, test } from 'vitest'
+import { expect } from 'vitest'
 
-import { RadioGroup } from '@foldkit/ui'
+import { it } from '@effect/vitest'
+import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
+import { ApplicationBlock } from './block'
 import { FetchTelemetry, SyncChart } from './command'
 import {
   ChartModeRadioGroupBinding,
@@ -20,10 +22,9 @@ import { Message } from './message'
 import { TelemetryAsyncData } from './model'
 import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
 import { ChartModeRadioGroupBlock, PackageRadioGroupBlock } from './radioGroups'
-import { update } from './update'
 
 const selectedChartMode = (chartMode: ChartMode) =>
-  toParentMessage(
+  messageFrom(
     ChartModeRadioGroupBinding,
     ChartModeRadioGroupBlock.Message.SelectedOption({
       index: chartModes.indexOf(chartMode),
@@ -32,7 +33,7 @@ const selectedChartMode = (chartMode: ChartMode) =>
   )
 
 const selectedPackage = (packageId: PackageId) =>
-  toParentMessage(
+  messageFrom(
     PackageRadioGroupBinding,
     PackageRadioGroupBlock.Message.SelectedOption({
       index: packageIds.indexOf(packageId),
@@ -41,56 +42,58 @@ const selectedPackage = (packageId: PackageId) =>
   )
 
 const resolveChartModeFocus = Command.resolve(
-  RadioGroup.test.FocusOption,
+  RadioGroupTest.FocusOption,
   ChartModeRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
-test('mounting the chart syncs current telemetry into ECharts', () => {
+it.effect('mounting the chart syncs current telemetry into ECharts', () =>
   story(
-    update,
+    ApplicationBlock,
     given(readyModel),
     message(Message.SucceededMountChart({ hostId: 'chart-host' })),
     Command.expectHas(SyncChart),
     Command.resolve(SyncChart, Message.SucceededSyncChart()),
-  )
-})
+  ),
+)
 
-test('selecting a chart mode clears selected datum and syncs the chart', () => {
-  story(
-    update,
-    given(readyModel),
-    message(
-      Message.ClickedChartDatum({ datumId: 'Velocity:Commits:2026-06-15' }),
+it.effect(
+  'selecting a chart mode clears selected datum and syncs the chart',
+  () =>
+    story(
+      ApplicationBlock,
+      given(readyModel),
+      message(
+        Message.ClickedChartDatum({ datumId: 'Velocity:Commits:2026-06-15' }),
+      ),
+      Command.resolve(SyncChart, Message.SucceededSyncChart()),
+      selectedChartMode('Velocity'),
+      resolveChartModeFocus,
+      model(model => {
+        expect(model.chartMode).toBe('Velocity')
+        expect(model.maybeSelectedDatumId._tag).toBe('None')
+      }),
+      Command.expectHas(SyncChart),
+      Command.resolve(SyncChart, Message.SucceededSyncChart()),
     ),
-    Command.resolve(SyncChart, Message.SucceededSyncChart()),
-    message(selectedChartMode('Velocity')),
-    resolveChartModeFocus,
-    model(model => {
-      expect(model.chartMode).toBe('Velocity')
-      expect(model.maybeSelectedDatumId._tag).toBe('None')
-    }),
-    Command.expectHas(SyncChart),
-    Command.resolve(SyncChart, Message.SucceededSyncChart()),
-  )
-})
+)
 
-test('selecting a package syncs the selected package into the chart', () => {
+it.effect('selecting a package syncs the selected package into the chart', () =>
   story(
-    update,
+    ApplicationBlock,
     given(readyModel),
-    message(selectedPackage('Ui')),
+    selectedPackage('Ui'),
     resolveChartModeFocus,
     model(model => {
       expect(model.selectedPackageId).toBe('Ui')
     }),
     Command.expectHas(SyncChart),
     Command.resolve(SyncChart, Message.SucceededSyncChart()),
-  )
-})
+  ),
+)
 
-test('refreshing with data keeps the old dashboard while fetching', () => {
+it.effect('refreshing with data keeps the old dashboard while fetching', () =>
   story(
-    update,
+    ApplicationBlock,
     given(readyModel),
     message(Message.ClickedRefresh()),
     model(model => {
@@ -104,12 +107,12 @@ test('refreshing with data keeps the old dashboard while fetching', () => {
       FetchTelemetry,
       Message.FailedFetchTelemetry({ error: 'Test cleanup' }),
     ),
-  )
-})
+  ),
+)
 
-test('a failed refresh preserves stale data in the stale state', () => {
+it.effect('a failed refresh preserves stale data in the stale state', () =>
   story(
-    update,
+    ApplicationBlock,
     given(
       modifyFields(readyModel, {
         telemetry: () =>
@@ -124,26 +127,28 @@ test('a failed refresh preserves stale data in the stale state', () => {
         expect(model.telemetry.data.repository.stars).toBe(342)
       }
     }),
-  )
-})
+  ),
+)
 
-test('failed fetch transitions to failure without stale data when loading', () => {
-  story(
-    update,
-    given(loadingModel),
-    message(Message.FailedFetchTelemetry({ error: 'offline' })),
-    model(model => {
-      expect(model.telemetry._tag).toBe('Failure')
-      if (model.telemetry._tag === 'Failure') {
-        expect(model.telemetry.error).toBe('offline')
-      }
-    }),
-  )
-})
+it.effect(
+  'failed fetch transitions to failure without stale data when loading',
+  () =>
+    story(
+      ApplicationBlock,
+      given(loadingModel),
+      message(Message.FailedFetchTelemetry({ error: 'offline' })),
+      model(model => {
+        expect(model.telemetry._tag).toBe('Failure')
+        if (model.telemetry._tag === 'Failure') {
+          expect(model.telemetry.error).toBe('offline')
+        }
+      }),
+    ),
+)
 
-test('successful fetch stores data and syncs when mounted', () => {
+it.effect('successful fetch stores data and syncs when mounted', () =>
   story(
-    update,
+    ApplicationBlock,
     given(readyModel),
     message(Message.SucceededFetchTelemetry({ telemetry: sampleTelemetry })),
     model(model => {
@@ -151,5 +156,5 @@ test('successful fetch stores data and syncs when mounted', () => {
     }),
     Command.expectHas(SyncChart),
     Command.resolve(SyncChart, Message.SucceededSyncChart()),
-  )
-})
+  ),
+)

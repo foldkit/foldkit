@@ -13,7 +13,11 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
+const StopwatchKey = Symbol('Stopwatch')
+
 const StopwatchDefinition = Block.makeDefinition('Stopwatch', {
+  key: StopwatchKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })

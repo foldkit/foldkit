@@ -21,7 +21,7 @@ const ResetCounter = makeDefinition('ResetCounter', {
   Message: CounterMessage,
   OutMessage: CounterOutMessage,
 })
-const resetStep = ResetCounter.makeStep(model => ({
+const reset = ResetCounter.makeStep(model => ({
   model: modifyFields(model, { count: () => 0 }),
   outMessage: CounterOutMessage.Reset(),
 }))
@@ -30,7 +30,7 @@ const prepareBlock = () =>
   ResetCounterComposition.prepareBlock({
     init: (count: number) => ({ model: CounterModel.make({ count }) }),
     update: ResetCounterComposition.makeUpdate({
-      ClickedReset: (model, _message) => resetStep(model),
+      ClickedReset: (model, _message) => reset(model),
     }),
     operations: { reset: () => Tuple.make(CounterMessage.ClickedReset()) },
     EffectsLayer: Layer.empty,
@@ -141,14 +141,14 @@ const RecordCount = SequencedCounter.makeCommand('RecordCount', {
   args: { count: Schema.Number },
   messages: [SequencedCounterMessage.CompletedRecordCount],
 })
-const addStep = SequencedCounter.makeStep((model, amount: number) => ({
+const add = SequencedCounter.makeStep((model, amount: number) => ({
   model: modifyFields(model, { count: count => count + amount }),
 }))
-const recordStep = SequencedCounter.makeStep(model => ({
+const record = SequencedCounter.makeStep(model => ({
   model,
   commands: [RecordCount({ count: model.count })],
 }))
-const multiplyStep = SequencedCounter.makeStep((model, factor: number) => ({
+const multiply = SequencedCounter.makeStep((model, factor: number) => ({
   model: modifyFields(model, { count: count => count * factor }),
 }))
 const SequencedCounterComposition = SequencedCounter.makeComposition()
@@ -156,9 +156,9 @@ const prepareSequencedCounterBlock = () =>
   SequencedCounterComposition.prepareBlock({
     init: (count: number) => ({ model: { count } }),
     update: SequencedCounterComposition.makeUpdate({
-      RequestedAdd: (model, { amount }) => addStep(model, amount),
-      RequestedRecord: model => recordStep(model),
-      RequestedMultiply: (model, { factor }) => multiplyStep(model, factor),
+      RequestedAdd: (model, { amount }) => add(model, amount),
+      RequestedRecord: model => record(model),
+      RequestedMultiply: (model, { factor }) => multiply(model, factor),
       CompletedRecordCount: model => ({ model }),
     }),
     operations: {

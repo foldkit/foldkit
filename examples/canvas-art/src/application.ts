@@ -14,7 +14,7 @@ import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 const CANVAS_WIDTH = 600
 const CANVAS_HEIGHT = 400
@@ -70,7 +70,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
   Model,
   Message,
 })
@@ -219,7 +224,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('flex gap-3 mt-4')],
     [
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedTogglePlay(),
           toView: attributes =>
@@ -235,7 +240,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
         },
         h,
       ),
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedClear(),
           toView: attributes =>
@@ -293,15 +298,15 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
+  }),
+)

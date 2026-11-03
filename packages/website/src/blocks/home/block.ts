@@ -1,0 +1,44 @@
+import { Effect, Layer } from 'effect'
+
+import { layer as MenuLayer } from '@foldkit/ui/menu'
+import { layer as TabsLayer } from '@foldkit/ui/tabs'
+
+import { AsyncCounterDemo, NotePlayerDemo } from './blocks'
+import {
+  AsyncCounterDemoBinding,
+  DemoTabsBinding,
+  NotePlayerDemoBinding,
+  PlaygroundMenuBinding,
+} from './composition'
+import { HomeDefinition } from './definition'
+import { init } from './init'
+import { update } from './update'
+import { view } from './view'
+
+export { view } from './view'
+
+export const HomeBlock = HomeDefinition.contract
+
+const block = HomeDefinition.makeBlock(
+  Effect.gen(function* () {
+    const asyncCounterDemo = yield* AsyncCounterDemoBinding
+    const demoTabs = yield* DemoTabsBinding
+    const notePlayerDemo = yield* NotePlayerDemoBinding
+    const playgroundMenu = yield* PlaygroundMenuBinding
+
+    return {
+      children: [asyncCounterDemo, demoTabs, notePlayerDemo, playgroundMenu],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(
+  Layer.mergeAll(
+    AsyncCounterDemo.layer,
+    NotePlayerDemo.layer,
+    TabsLayer,
+    MenuLayer,
+  ),
+)
+export const layer = block.layer

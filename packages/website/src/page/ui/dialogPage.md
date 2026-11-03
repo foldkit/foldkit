@@ -5,7 +5,7 @@
 A modal dialog backed by the native `<dialog>` element, opened with `show()` and a high z-index. Bind `DialogBlock` in the parent. The framework manages focus trapping, Escape handling, scroll locking, and backdrop rendering. For non-modal floating content, use Popover instead.
 
 :::Info{label="See it in an app"}
-Check out how Dialog is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/dialog.ts).
+Check out how Dialog is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/dialog.ts).
 :::
 
 ## Examples
@@ -89,7 +89,7 @@ The ids are framework-managed (the `-dialog-title`, `-dialog-description`, and `
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Dialog Binding's child initializer. Direct completed Block calls use `Dialog.DialogBlock.init()`.
+Configuration passed to the Dialog Binding's child initializer. Scoped tests pass the same config to `Story.init(...)` or `Scene.init(...)` and provide the component implementation Layer.
 
 | Name            | Type      | Default | Description                                                                                                                                                                                                                                                                                          |
 | --------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -112,8 +112,8 @@ Payload delivered to the `toView` callback each render.
 
 | Name           | Type                                                                        | Default | Description                                                                                                                                                                                                                                                                                                                                               |
 | -------------- | --------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dialog`       | `ReadonlyArray<ChildAttribute<Mount.RequirementsOf<typeof Dialog.mounts>>>` | —       | Spread onto an `h.dialog(...)` element. Carries the id, ARIA labelling and modal state, `open` prop, positioning style, lifecycle resource acquisition and cleanup, a handler that suppresses native `cancel` events so canceling a file picker leaves the dialog open, and a mapping from `Dom.showDialog`'s distinct Escape signal to `RequestedClose`. |
-| `backdrop`     | `ReadonlyArray<ChildAttribute>`                                             | —       | Spread onto the backdrop element. Includes the Animation data attributes and the outside-click handler that dispatches `RequestedClose` (suppressed while a leave animation is in progress).                                                                                                                                                              |
+| `dialog`       | `ReadonlyArray<ChildAttribute<Mount.RequirementsOf<typeof Dialog.mounts>>>` | —       | Spread onto an `h.dialog(...)` element. Carries the id, ARIA labelling and modal state, `open` prop, positioning style, lifecycle resource acquisition and cleanup, a handler that suppresses native `cancel` events so canceling a file picker leaves the dialog open, and a mapping from `Dom.showDialog`'s distinct Escape signal to `CanceledDialog`. |
+| `backdrop`     | `ReadonlyArray<ChildAttribute>`                                             | —       | Spread onto the backdrop element. Includes the Animation data attributes and the outside-click handler that dispatches `ClickedBackdrop` (suppressed while a leave animation is in progress).                                                                                                                                                             |
 | `panel`        | `ReadonlyArray<ChildAttribute>`                                             | —       | Spread onto the panel element. Includes the panel id (`${id}-panel`) and the Animation data attributes.                                                                                                                                                                                                                                                   |
 | `title`        | `ReadonlyArray<ChildAttribute>`                                             | —       | Spread onto your accessible-name heading (`h.h2([...title], [...])`). Carries the framework-managed id the dialog’s `aria-labelledby` points at, so labelling wires up without hand-rolling the id.                                                                                                                                                       |
 | `description`  | `ReadonlyArray<ChildAttribute>`                                             | —       | Spread onto your description element (`h.p([...description], [...])`). Carries the framework-managed id referenced when `hasDescription` is true.                                                                                                                                                                                                         |
@@ -125,14 +125,14 @@ Payload delivered to the `toView` callback each render.
 
 Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the Binding’s selected `fold` policy.
 
-| Name             | Type | Default | Description                                                                                                                                                                                                                                                                                |
-| ---------------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Opened`         | `{}` | —       | Emitted once `RequestedOpen` changes the Model to open.                                                                                                                                                                                                                                    |
-| `Closed`         | `{}` | —       | Emitted once `RequestedClose` changes an open Model to closed, whether the request came from the view or the bound `requestClose()` operation. Calling close on an already-closed Model is a no-op that does not re-emit, as is calling it while a leave animation is already in progress. |
-| `CompletedClose` | `{}` | —       | Emitted after the leave animation, native dialog close, scroll unlock, focus restoration, and other close cleanup have completed.                                                                                                                                                          |
+| Name             | Type | Default | Description                                                                                                                                                                                                        |
+| ---------------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Opened`         | `{}` | —       | Emitted once `RequestedOpen` changes the Model to open.                                                                                                                                                            |
+| `Closed`         | `{}` | —       | Emitted whenever an open Model becomes closed: a close request, failed native show, failed lifecycle acquisition, or unmount. An already-closed Model and a leave animation already in progress do not re-emit it. |
+| `CompletedClose` | `{}` | —       | Emitted after the leave animation, native dialog close, scroll unlock, focus restoration, and other close cleanup have completed.                                                                                  |
 
 Treat `Closed` as the parent's single close policy. If closing should navigate, clear a selection, or update another child, return that Step from the `Closed` fold. A parent Message that calls `DialogBinding.requestClose()` should not repeat the same transition; the operation runs the same OutMessage policy as a close button or Escape.
 
 ::Snippet{name="uiDialogClosePolicy" label="One parent-owned Dialog close policy"}
 
-Use `CompletedClose` only for work that must wait for cleanup. It does not replace `Closed` as the fact that the Dialog Model accepted a close request.
+Use `CompletedClose` only for work that must wait for the native close Command's cleanup. A failed show or lifecycle acquisition emits `Closed` without running that Command. `Closed` reports the Model transition; it does not promise cleanup has finished.

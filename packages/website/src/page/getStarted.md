@@ -53,7 +53,7 @@ The Counter starter begins with these files:
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
-In a small starter, `src/application.ts` calls `Block.makeDefinition('Application', { Model, Message })`, creates a named `ApplicationComposition`, and assembles `ApplicationBlock`. The Definition authors Commands, Steps, lifecycle behavior, and Bindings; the Composition owns init, update, and the primary view after its child and Mount graph is fixed. Commands, Subscriptions, Mounts, ManagedResources, and their handler recipes stay on the root Block. Larger examples move substantial pieces into focused files as the application grows.
+In a small starter, `src/application.ts` declares `ApplicationDefinition` with a stable unique key, Model, Message, initialization inputs, and view contract. It creates `ApplicationComposition`, authors init, update, and view through that Composition, and completes `ApplicationBlock` with `ApplicationDefinition.makeBlock`. Local Commands and lifecycle declarations stay with their implementation. Larger examples split those responsibilities into named files.
 
 ### Runtime Entry
 
@@ -67,9 +67,9 @@ The generated project also includes `lint` and `format` scripts. Run them with y
 
 Skip this section if you used `create-foldkit-app`. Scaffolded projects already receive compatible package versions.
 
-Foldkit uses Effect 4 stable. These installation instructions use the tested exact versions: `effect@4.0.0` and `@effect/platform-browser@4.0.0`. Install those versions together. Published peer ranges describe compatible versions; the installation command selects one tested version. When upgrading an existing app, update every Effect package to the same version. Use the stable import paths, such as `effect/http` and `effect/persistence`, in place of their `effect/unstable` paths.
+Foldkit requires Effect 4.1 and accepts patch updates through `~4.1.0` peer ranges for `effect` and `@effect/platform-browser`. Effect minor releases can change APIs, so each minor upgrade is verified before Foldkit widens those ranges. When upgrading an existing app, update every Effect package together within the supported minor version. Use the stable import paths, such as `effect/http` and `effect/persistence`, in place of their `effect/unstable` paths.
 
-Install Foldkit together with those Effect versions:
+Install Foldkit together with its compatible peer dependencies:
 
 ::Snippet{name="getStartedInstallFoldkit" label="Install Foldkit and Effect"}
 

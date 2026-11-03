@@ -96,7 +96,7 @@ export const setGenericEntry = <const Count extends number>(
   model: typeof ParentModel.Type,
   count: Count,
 ) => initAndSet(EntryBinding, model, { key: firstId, args: [count] })
-export const setEntryStep = ParentDefinition.makeStep(model =>
+export const initOptionalEntry = ParentDefinition.makeStep(model =>
   setEntry(model, firstId, 2),
 )
 export const update = ParentComposition.makeUpdate({
@@ -104,7 +104,7 @@ export const update = ParentComposition.makeUpdate({
 })
 export const init = ParentComposition.makeInit(() => ({
   model: { maybeEntry: Option.none(), label: 'current' },
-  steps: [setEntryStep],
+  steps: [initOptionalEntry],
 }))
 const prepareParent = () => ParentComposition.prepareBlock({ init, update })
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<

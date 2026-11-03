@@ -1,0 +1,9 @@
+{
+  "head": "d1537d453e09b8972cc0b73819e80e08830fdd22",
+  "restored": [
+    "packages/foldkit/src/block/delivery.ts",
+    "packages/foldkit/src/experimental/hybrid/authoring.ts"
+  ],
+  "testOriginalPath": "packages/foldkit/src/experimental/contracted/afterUpdate.test.ts",
+  "status": "research; pending design approval; not installed"
+}

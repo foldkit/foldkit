@@ -5,7 +5,7 @@
 A numeric range input for values that sit on a continuous or stepped scale. Common uses include rating scales, volume controls, filter thresholds, and brightness settings. Follows the WAI-ARIA slider pattern with `role="slider"`, full keyboard navigation, and pointer drag.
 
 :::Info{label="See it in an app"}
-Check out how Slider is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/slider.ts).
+Check out how Slider is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/slider.ts).
 :::
 
 ## Examples
@@ -92,13 +92,13 @@ The two flags are independent. Setting both emits both sets of attributes, and e
 
 ## Informing Slider about a Range Change
 
-When parent-owned configuration changes the minimum or maximum, call `SliderBinding.informRangeChanged({ min, max })`. The operation dispatches `InformedOfRangeChange` through Slider update, which keeps every child Model change inside the child. Its notification branch returns `{ model }` and emits no OutMessage.
+When parent-owned configuration changes the minimum or maximum, call `RatingDemoBinding.informRangeChange({ min, max })`. The operation delivers `InformedOfRangeChange` through Slider's `inMessageUpdate`, which keeps every child Model change inside the child. Its notification branch returns `{ model }` and emits no OutMessage.
 
 ## API Reference
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Slider Binding's child initializer. Direct completed Block calls use `Slider.SliderBlock.init()`.
+Configuration passed to the Slider Binding's child initializer. Scoped tests pass the same config to `Story.init(...)` or `Scene.init(...)` and provide the component implementation Layer.
 
 | Name   | Type     | Default | Description                                                                                                                   |
 | ------ | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |

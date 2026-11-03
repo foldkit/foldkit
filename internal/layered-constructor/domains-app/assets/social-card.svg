@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#09090b"/>
+  <path d="M704 64v502" stroke="#202024"/>
+  <g fill="#ededed" transform="translate(64 64) scale(.22)">
+    <rect width="92.3077" height="200"/>
+    <rect x="107.692" width="92.3077" height="38.4615"/>
+    <rect x="107.692" y="53.8461" width="92.3077" height="38.4615"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="130" y="96" fill="#ededed" font-size="29" font-weight="600">Foldkit <tspan fill="#55555e">/</tspan> Domains</text>
+    <text x="64" y="246" fill="#ededed" font-size="66" font-weight="700" letter-spacing="-2.8">Find your next</text>
+    <text x="64" y="324" fill="#909098" font-size="66" font-weight="700" letter-spacing="-2.8">great domain.</text>
+    <text x="66" y="392" fill="#b0b0b8" font-size="25">An unofficial domain-search demo.</text>
+    <text x="66" y="428" fill="#777780" font-size="22">Explore the CAFE stack in action.</text>
+    <g transform="translate(752 178)">
+      <rect width="384" height="86" rx="14" fill="#121215" stroke="#55555e"/>
+      <circle cx="32" cy="41" r="8" fill="none" stroke="#9999a2" stroke-width="2"/>
+      <path d="m38 47 6 6" stroke="#9999a2" stroke-width="2" stroke-linecap="round"/>
+      <text x="62" y="53" fill="#ededed" font-size="28">your-idea<tspan fill="#92929b">.com</tspan></text>
+    </g>
+    <g transform="translate(752 284)">
+      <rect width="384" height="86" rx="14" fill="#0e0e11" stroke="#303036"/>
+      <circle cx="32" cy="41" r="8" fill="none" stroke="#73737d" stroke-width="2"/>
+      <path d="m38 47 6 6" stroke="#73737d" stroke-width="2" stroke-linecap="round"/>
+      <text x="62" y="53" fill="#c5c5cc" font-size="28">your-idea<tspan fill="#92929b">.dev</tspan></text>
+    </g>
+    <g transform="translate(752 390)">
+      <rect width="384" height="86" rx="14" fill="#0b0b0e" stroke="#25252b"/>
+      <circle cx="32" cy="41" r="8" fill="none" stroke="#63636d" stroke-width="2"/>
+      <path d="m38 47 6 6" stroke="#63636d" stroke-width="2" stroke-linecap="round"/>
+      <text x="62" y="53" fill="#a5a5ae" font-size="28">your-idea<tspan fill="#92929b">.app</tspan></text>
+    </g>
+    <path d="M64 520h1072" stroke="#25252b"/>
+    <text x="64" y="566" fill="#94949e" font-size="18">Cloudflare  /  Alchemy  /  Foldkit  /  Effect</text>
+    <text x="1136" y="566" fill="#ededed" font-size="20" text-anchor="end">domains.foldkit.dev</text>
+  </g>
+</svg>

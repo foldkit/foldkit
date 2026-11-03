@@ -1,14 +1,16 @@
 import { Schema } from 'effect'
 import { defineTaggedUnion } from 'foldkit/schema'
 
+import {
+  Attachments,
+  CoverLetter,
+  Education,
+  PersonalInfo,
+  Skills,
+  WorkHistory,
+} from './blocks'
 import { Step } from './domain'
 import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
-import * as Attachments from './step/attachments'
-import * as CoverLetter from './step/coverLetter'
-import * as Education from './step/education'
-import * as PersonalInfo from './step/personalInfo'
-import * as Skills from './step/skills'
-import * as WorkHistory from './step/workHistory'
 
 export const Submission = defineTaggedUnion({
   NotSubmitted: {},

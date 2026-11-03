@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import { RadioGroup } from '@foldkit/ui'
+import { makeBlock as makeRadioGroupBlock } from '@foldkit/ui/radioGroup'
 
 export const Discount = Schema.Struct({
   code: Schema.String,
@@ -66,7 +66,7 @@ export const EDITIONS: ReadonlyArray<string> = [
 export const editionName = (isShippingRequired: boolean): string =>
   isShippingRequired ? HARDCOVER_EDITION : EBOOK_EDITION
 
-export const EditionRadioGroupBlock = RadioGroup.makeBlock()
+export const EditionRadioGroupBlock = makeRadioGroupBlock()
 
 export const Model = Schema.Struct({
   checkout: CheckoutState,

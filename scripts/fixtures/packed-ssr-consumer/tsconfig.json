@@ -14,6 +14,7 @@
     "src/packed-types.ts",
     "src/effect-types.ts",
     "src/inferred-program.ts",
-    "src/inferred-machine-edge.ts"
+    "src/inferred-machine-edge.ts",
+    "workspaces/application/consumer.ts"
   ]
 }

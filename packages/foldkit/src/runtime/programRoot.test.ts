@@ -373,7 +373,20 @@ describe('completed root Block hosting', () => {
     ).toThrow('field "flags" must be an Effect')
     expect(() =>
       assertProgramConfig({ block: {}, container: null }, 'Element'),
-    ).toThrow('must be completed with Block.assemble(prepare)')
+    ).toThrow(
+      'must be completed with Definition.makeBlock or native Block.assemble',
+    )
+    expect(() => assertProgramConfig({ container: null }, 'Element')).toThrow(
+      'must be completed with Definition.makeBlock or native Block.assemble',
+    )
+    expect(() =>
+      assertProgramConfig(
+        { block: ErasedRootBlock, container: null, EffectsLayer: Layer.empty },
+        'Element',
+      ),
+    ).toThrow(
+      'Complete the Block with Definition.makeBlock or native Block.assemble',
+    )
     expect(() =>
       assertProgramConfig(
         {

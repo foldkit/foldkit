@@ -1,0 +1,22 @@
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+
+import { PagefindService } from '../../pagefind'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
+
+export const SearchKey = Symbol('Search')
+
+export const SearchDefinition = Block.makeDefinition('Search', {
+  key: SearchKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  effects: { services: [PagefindService] },
+  Model,
+  Message,
+  InMessage,
+})
+
+export const { makeCommandsStep, makeFieldsStep, makeNoopStep, makeStep } =
+  SearchDefinition

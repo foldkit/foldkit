@@ -1,9 +1,14 @@
+import { Schema } from 'effect'
 import { HttpClient } from 'effect/http'
 import { Block } from 'foldkit'
 
 import { Message, Model, fetchCount } from './counterHttpCommand'
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })

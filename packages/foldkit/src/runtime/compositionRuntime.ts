@@ -21,6 +21,10 @@ import {
   type InstanceKey,
   commandInstances,
 } from '../block/instanceContext.js'
+import {
+  installRuntimeCapability,
+  runtimeAcquisitionIsActive,
+} from '../block/runtimeCapability.js'
 import { invocationContextWithCursor } from '../block/scope.js'
 import * as Subscription from '../subscription/subscription.js'
 import {
@@ -207,6 +211,14 @@ export const makeCompositionRuntime = <Model, Message>({
                 liftChildMessage(node, message, toParentMessage),
               ),
       }
+      node.resources = Context.merge(
+        node.resources,
+        installRuntimeCapability(
+          childBlock,
+          node,
+          runtimeAcquisitionIsActive(childBlock),
+        ),
+      )
       node.context = invocationContextWithCursor(
         placement,
         parentContext,
@@ -217,6 +229,7 @@ export const makeCompositionRuntime = <Model, Message>({
           ? undefined
           : { binding, ...(key === undefined ? {} : { key }) },
       )
+      node.context = Context.merge(node.context, node.resources)
       const inheritedStartBarrier = parent?.startBarrier
       if (
         inheritedStartBarrier !== undefined ||
@@ -575,11 +588,15 @@ export const makeCompositionRuntime = <Model, Message>({
       parent.children.set(frame.binding, byKey)
       return historical
     }
-    const rootContext = Context.add(context, CurrentInstance, {
-      node: root,
-      historicalRoot: () => makeHistoricalNode(block),
-      historicalChild,
-    })
+    const rootContext = Context.add(
+      Context.merge(context, root.resources),
+      CurrentInstance,
+      {
+        node: root,
+        historicalRoot: () => makeHistoricalNode(block),
+        historicalChild,
+      },
+    )
     return {
       context: rootContext,
       synchronize: reconcile,
@@ -602,7 +619,7 @@ export const makeCompositionRuntime = <Model, Message>({
             node: root,
             capturedChildren: nodes,
           }),
-          scope: runtimeScope,
+          scope: target.scope,
           isCurrent: () => target.isActive,
           ...(mapResult === undefined ? {} : { mapResult }),
         }

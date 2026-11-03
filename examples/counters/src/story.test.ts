@@ -1,16 +1,16 @@
 import { Array, Option } from 'effect'
-import { given, message, model, story } from 'foldkit/story'
-import { toParentMessage } from 'foldkit/test'
-import { describe, expect, test } from 'vitest'
+import { given, init, message, messageFrom, model, story } from 'foldkit/story'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import {
+  ApplicationBlock,
   CountersBinding,
   Message,
   Model as ModelSchema,
-  init,
-  update,
 } from './application'
-import { CounterBlock } from './counter'
+import { CounterBlock } from './blocks/counter'
 
 type CounterMessage = typeof CounterBlock.Message.Type
 
@@ -23,43 +23,49 @@ const initialModel: ModelSchema = {
 }
 
 const counterMessage = (id: string, message: CounterMessage) =>
-  toParentMessage(CountersBinding, id, message)
+  messageFrom(CountersBinding, id, message)
 
 describe('init', () => {
-  test('creates distinct parent-owned instances with Counter state', () => {
-    const applicationInit = init()
-
-    expect(applicationInit.model.counters).toEqual([
-      { id: 'counter-0', counter: { count: 0 } },
-      { id: 'counter-1', counter: { count: 0 } },
-      { id: 'counter-2', counter: { count: 0 } },
-    ])
-    expect(applicationInit.model.nextCounterId).toBe(3)
-  })
+  it.effect('creates distinct parent-owned instances with Counter state', () =>
+    story(
+      ApplicationBlock,
+      init(),
+      model(applicationModel => {
+        expect(applicationModel.counters).toEqual([
+          { id: 'counter-0', counter: { count: 0 } },
+          { id: 'counter-1', counter: { count: 0 } },
+          { id: 'counter-2', counter: { count: 0 } },
+        ])
+        expect(applicationModel.nextCounterId).toBe(3)
+      }),
+    ),
+  )
 })
 
 describe('update', () => {
-  test('ClickedAddCounter appends a fresh Counter instance with the next id', () => {
-    story(
-      update,
-      given(initialModel),
-      message(Message.ClickedAddCounter()),
-      model(model => {
-        expect(model.counters).toHaveLength(3)
-        expect(Option.getOrThrow(Array.get(model.counters, 2)).id).toBe(
-          'counter-2',
-        )
-        expect(
-          Option.getOrThrow(Array.get(model.counters, 2)).counter.count,
-        ).toBe(0)
-        expect(model.nextCounterId).toBe(3)
-      }),
-    )
-  })
+  it.effect(
+    'ClickedAddCounter appends a fresh Counter instance with the next id',
+    () =>
+      story(
+        ApplicationBlock,
+        given(initialModel),
+        message(Message.ClickedAddCounter()),
+        model(model => {
+          expect(model.counters).toHaveLength(3)
+          expect(Option.getOrThrow(Array.get(model.counters, 2)).id).toBe(
+            'counter-2',
+          )
+          expect(
+            Option.getOrThrow(Array.get(model.counters, 2)).counter.count,
+          ).toBe(0)
+          expect(model.nextCounterId).toBe(3)
+        }),
+      ),
+  )
 
-  test('ClickedRemoveCounter drops only the targeted instance', () => {
+  it.effect('ClickedRemoveCounter drops only the targeted instance', () =>
     story(
-      update,
+      ApplicationBlock,
       given(initialModel),
       message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
       model(model => {
@@ -68,103 +74,97 @@ describe('update', () => {
           'counter-1',
         )
       }),
-    )
-  })
+    ),
+  )
 
-  test('adding after deletions never duplicates or reuses a retired id', () => {
-    story(
-      update,
-      given(initialModel),
-      message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
-      message(Message.ClickedAddCounter()),
-      message(Message.ClickedRemoveCounter({ id: 'counter-2' })),
-      message(Message.ClickedAddCounter()),
-      message(
+  it.effect(
+    'adding after deletions never duplicates or reuses a retired id',
+    () =>
+      story(
+        ApplicationBlock,
+        given(initialModel),
+        message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
+        message(Message.ClickedAddCounter()),
+        message(Message.ClickedRemoveCounter({ id: 'counter-2' })),
+        message(Message.ClickedAddCounter()),
         counterMessage('counter-2', CounterBlock.Message.ClickedIncrement()),
+        model(model => {
+          expect(model.counters).toEqual([
+            { id: 'counter-1', counter: { count: 0 } },
+            { id: 'counter-3', counter: { count: 0 } },
+          ])
+          expect(model.nextCounterId).toBe(4)
+        }),
       ),
-      model(model => {
-        expect(model.counters).toEqual([
-          { id: 'counter-1', counter: { count: 0 } },
-          { id: 'counter-3', counter: { count: 0 } },
-        ])
-        expect(model.nextCounterId).toBe(4)
-      }),
-    )
-  })
+  )
 
-  test('generated Counter Message routes ClickedIncrement to the matching instance only', () => {
-    story(
-      update,
-      given(initialModel),
-      message(
+  it.effect(
+    'generated Counter Message routes ClickedIncrement to the matching instance only',
+    () =>
+      story(
+        ApplicationBlock,
+        given(initialModel),
         counterMessage('counter-1', CounterBlock.Message.ClickedIncrement()),
+        model(model => {
+          expect(
+            Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
+          ).toBe(0)
+          expect(
+            Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
+          ).toBe(1)
+        }),
       ),
-      model(model => {
-        expect(
-          Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
-        ).toBe(0)
-        expect(
-          Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
-        ).toBe(1)
-      }),
-    )
-  })
+  )
 
-  test('generated Counter Message routes ClickedDecrement to the matching instance only', () => {
-    story(
-      update,
-      given({
-        counters: [
-          { id: 'counter-0', counter: { count: 5 } },
-          { id: 'counter-1', counter: { count: 5 } },
-        ],
-        nextCounterId: 2,
-      }),
-      message(
+  it.effect(
+    'generated Counter Message routes ClickedDecrement to the matching instance only',
+    () =>
+      story(
+        ApplicationBlock,
+        given({
+          counters: [
+            { id: 'counter-0', counter: { count: 5 } },
+            { id: 'counter-1', counter: { count: 5 } },
+          ],
+          nextCounterId: 2,
+        }),
         counterMessage('counter-0', CounterBlock.Message.ClickedDecrement()),
+        model(model => {
+          expect(
+            Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
+          ).toBe(4)
+          expect(
+            Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
+          ).toBe(5)
+        }),
       ),
-      model(model => {
-        expect(
-          Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
-        ).toBe(4)
-        expect(
-          Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
-        ).toBe(5)
-      }),
-    )
-  })
+  )
 
-  test('generated Counter Message for a missing id leaves the model unchanged', () => {
-    story(
-      update,
-      given(initialModel),
-      message(
+  it.effect(
+    'generated Counter Message for a missing id leaves the model unchanged',
+    () =>
+      story(
+        ApplicationBlock,
+        given(initialModel),
         counterMessage('counter-99', CounterBlock.Message.ClickedIncrement()),
+        model(model => {
+          expect(
+            Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
+          ).toBe(0)
+          expect(
+            Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
+          ).toBe(0)
+        }),
       ),
-      model(model => {
-        expect(
-          Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
-        ).toBe(0)
-        expect(
-          Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
-        ).toBe(0)
-      }),
-    )
-  })
+  )
 
-  test('successive Messages accumulate per instance independently', () => {
+  it.effect('successive Messages accumulate per instance independently', () =>
     story(
-      update,
+      ApplicationBlock,
       given(initialModel),
-      message(
-        counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
-      ),
-      message(
-        counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
-      ),
-      message(
-        counterMessage('counter-1', CounterBlock.Message.ClickedDecrement()),
-      ),
+      counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
+      counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
+      counterMessage('counter-1', CounterBlock.Message.ClickedDecrement()),
       model(model => {
         expect(
           Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
@@ -173,6 +173,6 @@ describe('update', () => {
           Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
         ).toBe(-1)
       }),
-    )
-  })
+    ),
+  )
 })

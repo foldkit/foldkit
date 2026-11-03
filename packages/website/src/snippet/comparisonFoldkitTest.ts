@@ -1,6 +1,9 @@
-test('undo restores the previous grid state', () => {
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock } from './application'
+it.effect('undo restores the previous grid state', () =>
   story(
-    update,
+    ApplicationBlock,
     given(emptyModel),
     message(PressedCell({ x: 0, y: 0 })),
     message(ReleasedMouse()),
@@ -16,5 +19,6 @@ test('undo restores the previous grid state', () => {
       expect(model.undoStack).toHaveLength(0)
       expect(model.redoStack).toHaveLength(1)
     }),
-  )
-})
+  ),
+)
+import { it } from '@effect/vitest'

@@ -12,7 +12,11 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
+const ShortcutsKey = Symbol('Shortcuts')
+
 const ShortcutsDefinition = Block.makeDefinition('Shortcuts', {
+  key: ShortcutsKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })

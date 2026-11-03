@@ -1,20 +1,18 @@
-import { Array, Option, Schema, pipe } from 'effect'
-import { Block, Scene, Story } from 'foldkit'
+import { Array, Effect, Option, pipe } from 'effect'
+import { Scene, Story } from 'foldkit'
+import { inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
-import { expect } from 'vitest'
+import { it as baseIt, expect } from 'vitest'
 
-import { describe, it } from '@effect/vitest'
+import { describe, makeMethods } from '@effect/vitest'
 
 import {
   FocusTab,
   Message,
-  Model,
   OutMessage,
+  block,
   findFirstEnabledIndex,
-  init,
   keyToIndex,
-  makeBlock,
-  update,
   wrapIndex,
 } from './tabs.js'
 
@@ -25,143 +23,137 @@ const disabledAt =
   (index: number) =>
     indices.includes(index)
 
-const TestTabs = makeBlock()
-
-const TabsSceneDefinition = Block.makeDefinition('TabsScene', {
-  Model,
-  Message: Schema.Never,
-})
-
-const foldTabsOutMessage = TabsSceneDefinition.makeOutMessageFold(TestTabs, {
-  Selected: () => model => ({ model }),
-})
-
-const TabsBinding = TabsSceneDefinition.makeBinding(TestTabs, {
-  read: model => Option.some(model),
-  write: (_model, nextTabs) => nextTabs,
-}).withOutMessagePolicy({ fold: foldTabsOutMessage })
-
-const TabsSceneComposition = TabsSceneDefinition.makeComposition({
-  bindings: [TabsBinding],
-})
-const sceneUpdate = TabsSceneComposition.makeUpdate({})
-
-const sceneView = TabsSceneComposition.makeView((model, h) =>
-  h.block(
-    TabsBinding.embedView({
-      slotId: 'tabs',
-      model,
-      viewInputs: {
-        tabs: ['First', 'Second'],
-        selectedValue: 'First',
-        ariaLabel: 'Test tabs',
-        toView: ({ tablist, tabs, activeIndex }) =>
-          h.div(
-            [],
-            [
-              h.div(
-                tablist,
-                Array.map(tabs, tab => h.button(tab.tab, [tab.value])),
-              ),
-              pipe(
-                tabs,
-                Array.get(activeIndex),
-                Option.match({
-                  onNone: () => h.empty,
-                  onSome: tab => h.div(tab.panel),
-                }),
-              ),
-            ],
-          ),
-      },
-    }),
-  ),
-)
-
-const allPanelsView = TabsSceneComposition.makeView((model, h) =>
-  h.block(
-    TabsBinding.embedView({
-      slotId: 'tabs',
-      model,
-      viewInputs: {
-        tabs: ['First', 'Second'],
-        selectedValue: 'First',
-        ariaLabel: 'Test tabs',
-        panelMount: 'All',
-        toView: ({ tablist, tabs }) =>
-          h.div(
-            [],
-            [
-              h.div(
-                tablist,
-                Array.map(tabs, tab => h.button(tab.tab, [tab.value])),
-              ),
-              ...Array.map(tabs, tab => h.div(tab.panel)),
-            ],
-          ),
-      },
-    }),
-  ),
+type TabsOperations = Pick<Effect.Success<typeof block.get>, 'init' | 'update'>
+const makeFixture = ({ init, update }: TabsOperations) => ({ init, update })
+const it = makeMethods(
+  baseIt.extend<{ tabs: TabsOperations }>({
+    tabs: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(block, tabs =>
+          Effect.promise(() => use(makeFixture(tabs))),
+        ),
+      ),
+  }),
 )
 
 describe('Tabs', () => {
   describe('view', () => {
-    it('only gives the mounted panel relationship to the active tab', () => {
-      Scene.scene(
-        { update: sceneUpdate, view: sceneView },
-        Scene.given(init({ id: 'test' }).model),
-        Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
-          'aria-controls',
-          'test-panel-0',
+    it.effect(
+      'only gives the mounted panel relationship to the active tab',
+      () =>
+        Scene.scene(
+          {
+            block,
+            viewInputs: {
+              tabs: ['First', 'Second'],
+              selectedValue: 'First',
+              ariaLabel: 'Test tabs',
+              toView: ({ tablist, tabs, activeIndex }) =>
+                ih.div(
+                  [],
+                  [
+                    ih.div(
+                      tablist,
+                      Array.map(tabs, tab => ih.button(tab.tab, [tab.value])),
+                    ),
+                    pipe(
+                      tabs,
+                      Array.get(activeIndex),
+                      Option.match({
+                        onNone: () => ih.empty,
+                        onSome: tab => ih.div(tab.panel),
+                      }),
+                    ),
+                  ],
+                ),
+            },
+          },
+          Scene.init({ id: 'test' }),
+          Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
+            'aria-controls',
+            'test-panel-0',
+          ),
+          Scene.expect(Scene.selector('#test-tab-1')).not.toHaveAttr(
+            'aria-controls',
+          ),
         ),
-        Scene.expect(Scene.selector('#test-tab-1')).not.toHaveAttr(
-          'aria-controls',
-        ),
-      )
-    })
+    )
 
-    it('keeps every panel relationship when all panels remain mounted', () => {
-      Scene.scene(
-        { update: sceneUpdate, view: allPanelsView },
-        Scene.given(init({ id: 'test' }).model),
-        Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
-          'aria-controls',
-          'test-panel-0',
+    it.effect(
+      'keeps every panel relationship when all panels remain mounted',
+      () =>
+        Scene.scene(
+          {
+            block,
+            viewInputs: {
+              tabs: ['First', 'Second'],
+              selectedValue: 'First',
+              ariaLabel: 'Test tabs',
+              panelMount: 'All',
+              toView: ({ tablist, tabs }) =>
+                ih.div(
+                  [],
+                  [
+                    ih.div(
+                      tablist,
+                      Array.map(tabs, tab => ih.button(tab.tab, [tab.value])),
+                    ),
+                    ...Array.map(tabs, tab => ih.div(tab.panel)),
+                  ],
+                ),
+            },
+          },
+          Scene.init({ id: 'test' }),
+          Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
+            'aria-controls',
+            'test-panel-0',
+          ),
+          Scene.expect(Scene.selector('#test-tab-1')).toHaveAttr(
+            'aria-controls',
+            'test-panel-1',
+          ),
+          Scene.expect(Scene.selector('#test-panel-1')).toExist(),
         ),
-        Scene.expect(Scene.selector('#test-tab-1')).toHaveAttr(
-          'aria-controls',
-          'test-panel-1',
-        ),
-        Scene.expect(Scene.selector('#test-panel-1')).toExist(),
-      )
-    })
+    )
   })
 
   describe('init', () => {
-    it('defaults to automatic activation with focus following the selection', () => {
-      expect(init({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        maybeFocusedIndex: Option.none(),
-        activationMode: 'Automatic',
-      })
-    })
+    it.effect(
+      'defaults to automatic activation with focus following the selection',
+      () =>
+        Story.story(
+          block,
+          Story.init({ id: 'test' }),
+          Story.model(model => {
+            expect(model).toStrictEqual({
+              id: 'test',
+              maybeFocusedIndex: Option.none(),
+              activationMode: 'Automatic',
+            })
+          }),
+        ),
+    )
 
-    it('accepts a custom activationMode', () => {
-      expect(
-        init({ id: 'test', activationMode: 'Manual' }).model,
-      ).toStrictEqual({
-        id: 'test',
-        maybeFocusedIndex: Option.none(),
-        activationMode: 'Manual',
-      })
-    })
+    it.effect('accepts a custom activationMode', () =>
+      Story.story(
+        block,
+        Story.init({ id: 'test', activationMode: 'Manual' }),
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            maybeFocusedIndex: Option.none(),
+            activationMode: 'Manual',
+          })
+        }),
+      ),
+    )
   })
 
   describe('update', () => {
-    it('clears focus divergence on SelectedTab and emits Selected', () => {
+    it.effect('clears focus divergence on SelectedTab and emits Selected', () =>
       Story.story(
-        update,
-        Story.given(init({ id: 'test' }).model),
+        block,
+        Story.init({ id: 'test' }),
         Story.message(Message.SelectedTab({ index: 3, value: 'tab-3' })),
         Story.expectOutMessage(
           OutMessage.Selected({ value: 'tab-3', index: 3 }),
@@ -170,10 +162,12 @@ describe('Tabs', () => {
         Story.model(model => {
           expect(model.maybeFocusedIndex).toStrictEqual(Option.none())
         }),
-      )
-    })
+      ),
+    )
 
-    it('emits Selected with the committed value on a subsequent SelectedTab', () => {
+    it('emits Selected with the committed value on a subsequent SelectedTab', ({
+      tabs: { update, init },
+    }) => {
       Story.story(
         update,
         Story.given(
@@ -192,19 +186,21 @@ describe('Tabs', () => {
       )
     })
 
-    it('sets focus divergence on FocusedTab without an OutMessage', () => {
+    it.effect('sets focus divergence on FocusedTab without an OutMessage', () =>
       Story.story(
-        update,
-        Story.given(init({ id: 'test', activationMode: 'Manual' }).model),
+        block,
+        Story.init({ id: 'test', activationMode: 'Manual' }),
         Story.message(Message.FocusedTab({ index: 2 })),
         Story.Command.resolve(FocusTab, Message.CompletedFocusTab()),
         Story.model(model => {
           expect(model.maybeFocusedIndex).toStrictEqual(Option.some(2))
         }),
-      )
-    })
+      ),
+    )
 
-    it('SelectedTab in manual mode emits Selected and clears divergence', () => {
+    it('SelectedTab in manual mode emits Selected and clears divergence', ({
+      tabs: { update, init },
+    }) => {
       Story.story(
         update,
         Story.given(

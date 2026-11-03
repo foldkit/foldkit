@@ -1,10 +1,10 @@
-import { Number, Schema } from 'effect'
+import { Effect, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Theme } from './blockDefinition'
-import { SettingsBlock } from './blockSettings'
+import { SettingsStore, Theme } from './blockDefinition'
+import { SettingsBlock, layer as SettingsLayer } from './blockSettings'
 
 export const Model = Schema.Struct({
   settings: SettingsBlock.Model,
@@ -20,7 +20,12 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  effects: { services: [SettingsStore] },
   Model,
   Message,
   OutMessage,
@@ -45,11 +50,11 @@ export const SettingsBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-const changeThemeStep = (theme: Theme) => {
-  const requestThemeChangeStep = SettingsBinding.requestThemeChange({ theme })
+const changeTheme = (theme: Theme) => {
+  const requestThemeChange = SettingsBinding.requestThemeChange({ theme })
 
-  return (model: Parameters<typeof requestThemeChangeStep>[0]) =>
-    requestThemeChangeStep(
+  return (model: Parameters<typeof requestThemeChange>[0]) =>
+    requestThemeChange(
       modifyFields(model, { themeChangeCount: Number.increment }),
     )
 }
@@ -59,5 +64,21 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 
 export const update = ApplicationComposition.makeUpdate({
-  RequestedDarkTheme: changeThemeStep('Dark'),
+  RequestedDarkTheme: changeTheme('Dark'),
 })
+
+const init = ApplicationComposition.makeInit(() => ({
+  model: { themeChangeCount: 3 },
+}))
+
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const settings = yield* SettingsBinding
+
+    return {
+      children: [settings],
+      init,
+      update,
+    }
+  }),
+).provide(SettingsLayer)

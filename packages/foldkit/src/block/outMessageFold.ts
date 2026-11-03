@@ -40,7 +40,7 @@ type ContextualOutMessageStep<Model> = {
     | Update.AnyResultRecipe
 }['bivarianceHack']
 
-type OutMessageFoldCases<
+export type OutMessageFoldCases<
   Model,
   Message,
   Child extends ChildOutMessageContract,
@@ -206,7 +206,7 @@ type ValidateCases<
       >,
     ]
 
-type CaseValidation<
+export type CaseValidation<
   Model,
   Message,
   OutMessage,
@@ -236,7 +236,7 @@ export interface OutMessageFoldStep<Model, Output, GraphRequirements> {
       : Output
 }
 
-type DefinedCaseSteps<Model, Cases> = {
+export type DefinedCaseSteps<Model, Cases> = {
   [Tag in keyof Cases]: CaseStep<Cases[Tag]> extends infer Step extends
     AnyFunction
     ? OutMessageFoldStep<
@@ -255,7 +255,7 @@ type CasesUsingContext<Cases> = {
     : never
 }[keyof Cases]
 
-type OutMessageFoldContext<
+export type OutMessageFoldContext<
   Model,
   Message,
   Child extends ChildOutMessageContract,

@@ -2,13 +2,14 @@ import clsx from 'clsx'
 import { Array, Equal, Option, flow, pipe } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { Button, Input } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 import {
   type RenderInfo,
   isDragging,
   maybeDraggedItemId,
   maybeDropTarget,
 } from '@foldkit/ui/dragAndDrop'
+import { view as inputView } from '@foldkit/ui/input'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { ADD_CARD_INPUT_ID } from '../constant'
@@ -29,7 +30,7 @@ const addCardForm = (
   )
 
   if (!isAddingToThisColumn) {
-    return Button.view(
+    return buttonView(
       {
         onClick: toParentMessage(Message.ClickedAddCard({ columnId })),
         toView: attributes =>
@@ -57,7 +58,7 @@ const addCardForm = (
         [h.For(ADD_CARD_INPUT_ID), h.Class('sr-only')],
         ['New card title'],
       ),
-      Input.view(
+      inputView(
         {
           id: ADD_CARD_INPUT_ID,
           onInput: value =>
@@ -83,7 +84,7 @@ const addCardForm = (
       h.div(
         [h.Class('flex gap-2 justify-end')],
         [
-          Button.view(
+          buttonView(
             {
               onClick: toParentMessage(Message.CancelledNewCard()),
               toView: attributes =>
@@ -99,7 +100,7 @@ const addCardForm = (
             },
             h,
           ),
-          Button.view(
+          buttonView(
             {
               type: 'submit',
               toView: attributes =>

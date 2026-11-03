@@ -28,7 +28,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Url]),
+  view: { kind: 'Document' },
   Model,
   Message,
 })
@@ -38,7 +43,7 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = ApplicationComposition.makeInit((url: Url) => ({
+export const init = ApplicationComposition.makeInit(url => ({
   model: { route: urlToApplicationRoute(url), count: 0 },
 }))
 
@@ -172,14 +177,14 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
+  }),
+)

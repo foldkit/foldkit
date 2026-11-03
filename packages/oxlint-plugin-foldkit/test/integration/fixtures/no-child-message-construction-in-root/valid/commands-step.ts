@@ -18,7 +18,7 @@ const DeliverChildMessage = ChildDefinition.makeCommand('DeliverMessage', {
   },
 })
 
-export const ownMessagesStep = ChildDefinition.makeCommandsStep(() => [
+export const produceOwnMessages = ChildDefinition.makeCommandsStep(() => [
   DeliverChildMessage({
     message: Child.Message.ClickedOwnCommandsStepSave(),
   }),
@@ -35,7 +35,7 @@ const Continue = ParentDefinition.makeCommand('Continue', {
   },
 })
 
-export const saveAndContinueStep = Update.combineSteps([
+export const saveAndContinue = Update.combineSteps([
   ChildBinding.requestSave(),
   ParentDefinition.makeCommandsStep(() => [Continue()]),
 ])

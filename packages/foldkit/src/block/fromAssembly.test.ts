@@ -290,7 +290,7 @@ describe('Checked Block completion', () => {
       Reflect.apply(Program.makeElement, undefined, [
         { block: draft, container: null },
       ]),
-    ).toThrow('Block.assemble(prepare)')
+    ).toThrow('Definition.makeBlock or native Block.assemble')
   })
 })
 
@@ -316,8 +316,8 @@ if (false) {
   draft.replaceEffectsLayer(Observe.layer)
   // @ts-expect-error Completion requires an explicit Model header.
   assemble(prepareViewed)
-  // @ts-expect-error An inline producer also requires an explicit Model header.
   assemble(() =>
+    // @ts-expect-error An inline producer also requires an explicit Model header.
     Composition.prepareBlock({
       init,
       update,

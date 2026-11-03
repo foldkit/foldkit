@@ -167,11 +167,23 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
+/** @internal Stable identity of the DragAndDrop contract. */
+export const DragAndDropKey = Symbol('DragAndDrop')
+
 const DragAndDropDefinition = Block.makeDefinition('DragAndDrop', {
+  key: DragAndDropKey,
   Model,
   Message,
   OutMessage,
+  Init: Block.makeInputContract<readonly [config: InitConfig]>(),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
 })
+
+type DragAndDropContract = typeof DragAndDropDefinition.contract
+/** Public DragAndDrop contract with a stable named declaration boundary. */
+export interface DragAndDropBlock extends DragAndDropContract {}
+/** Passive DragAndDrop contract selected through the module implementation Layer. */
+export const DragAndDropBlock: DragAndDropBlock = DragAndDropDefinition.contract
 
 const DragAndDropComposition = DragAndDropDefinition.makeComposition()
 
@@ -923,7 +935,7 @@ export type ViewInputs = Readonly<{
 
 /** Publishes drag-and-drop attribute groups while the consumer retains full
  * control over the rendered elements and content. */
-export const view = DragAndDropComposition.makeView.withInputs<ViewInputs>(
+export const view = DragAndDropComposition.makeView.withInputs(
   (model, { toView }, h) =>
     toView({
       draggable: input => childAttributes(draggable(model, input, h)),
@@ -981,18 +993,19 @@ export const maybeDropTarget = (model: Model): Option.Option<DropTarget> =>
     Match.orElse(() => Option.none()),
   )
 
-const prepare = () =>
-  DragAndDropComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-/** Completed DragAndDrop Block contract. */
-export interface DragAndDropBlock extends Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> {}
-/** Complete DragAndDrop Block definition for connecting to a parent. */
-export const DragAndDropBlock: DragAndDropBlock = Block.assemble(prepare)
+/** @internal Checked DragAndDrop implementation used as a scoped testing root. */
+const block = DragAndDropDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
+  }),
+)
+
+/** Constructs DragAndDrop without starting Commands or occurrence lifecycles. */
+export const layer = block.layer

@@ -1,6 +1,6 @@
 import { Array, Option, Order, Record, String, pipe } from 'effect'
 
-import { type ExampleMeta } from '../src/page/example/meta'
+import { type ExampleMeta } from '../src/blocks/exampleDetail/meta'
 import { SITE_URL } from '../src/route'
 import { type BlogPostEntry } from './blogPosts'
 import { SECTION_ORDER } from './markdown'

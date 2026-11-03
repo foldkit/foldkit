@@ -1,15 +1,18 @@
-import { Array, Option, Schema, Tuple } from 'effect'
+import { Array, Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Combobox } from '@foldkit/ui'
-import { inputId as ComboboxInputId } from '@foldkit/ui/combobox'
+import {
+  inputId as ComboboxInputId,
+  layer as ComboboxLayer,
+  makeBlock as makeComboboxBlock,
+} from '@foldkit/ui/combobox'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
 type City = typeof City.Type
 
-const CityCombobox = Combobox.makeBlock(City)
+const CityCombobox = makeComboboxBlock(City)
 
 const Model = Schema.Struct({
   maybeCity: Schema.Option(City),
@@ -20,7 +23,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const CityPickerKey = Symbol('CityPicker')
+
 const CityPickerDefinition = Block.makeDefinition('CityPicker', {
+  key: CityPickerKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -41,7 +49,7 @@ const foldComboboxOutMessage = CityPickerDefinition.makeOutMessageFold(
 
 const ComboboxBinding = CityPickerDefinition.makeBinding(CityCombobox, {
   field: 'combobox',
-  init: { contextToArgs: () => Tuple.make({ id: 'city' }) },
+  init: { contextToArgs: () => [{ id: 'city' }] },
 }).withOutMessagePolicy({ fold: foldComboboxOutMessage })
 
 // Including the Binding collects its lifecycle and handler graph.
@@ -114,13 +122,17 @@ const view = CityPickerComposition.makeView((model, h) => {
   )
 })
 
-const prepare = () =>
-  CityPickerComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const CityPickerBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const CityPickerBlock = CityPickerDefinition.contract
+
+export const layer = CityPickerDefinition.makeBlock(
+  Effect.gen(function* () {
+    const combobox = yield* ComboboxBinding
+
+    return {
+      children: [combobox],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(ComboboxLayer).layer

@@ -6,6 +6,7 @@ This guide covers upgrades from the Block previews listed below to the candidate
 
 | Installed canary source suffix                    | Upgrade path                                                                                                                                                                        |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `90746b32d2ca`                                    | [Upgrade from 90746b32d2ca](#upgrade-from-90746b32d2ca). Keep the Block APIs and upgrade Effect together with its platform packages.                                                |
 | `f3be22cfeefe`                                    | [Upgrade from f3be22cfeefe](#upgrade-from-f3be22cfeefe). Keep the existing Block assembly and update APIs.                                                                          |
 | `1f6776fa7ece`                                    | [Upgrade from 1f6776fa7ece](#upgrade-from-1f6776fa7ece). The preparation, assembly, and Program APIs already match.                                                                 |
 | `1fbeaffe6563`                                    | [Upgrade from 1fbeaffe6563](#upgrade-from-1fbeaffe6563).                                                                                                                            |
@@ -25,6 +26,8 @@ Read both `package.json` and the package manager lockfile. `package.json` record
 
 Compare the source hash suffix across `foldkit`, `@foldkit/ui`, and every other Foldkit package the project declares. Their numeric version prefixes can differ because each package has its own version line. The source hash must agree. A project with different source hashes has a mixed snapshot and should be aligned before code migration.
 
+Read migration guidance and [Project Organization](/patterns/project-organization) on the deployment matching the target snapshot. Their rendered Markdown is also available by appending `.md` to the page path. GitHub source contains `::Snippet` references; the deployed Markdown includes those snippets' contents.
+
 ### Install one coherent target
 
 On an uploaded integration preview, the banner identifies the verified release and links to its exact package versions. The manifest's `packages` object is the authority for the exact version of every package in the snapshot. Update every Foldkit dependency the project declares to the corresponding exact version, update the lockfile with the project's package manager, and confirm that the resolved canary suffixes all name the manifest's `sourceCommit`.
@@ -33,9 +36,46 @@ Do not combine candidate packages with packages from the previous preview. Inter
 
 If the project enforces pnpm's `minimumReleaseAge`, a newly uploaded preview may be too recent to install. Preserve that policy and add only the exact `name@version` entries from the verified manifest to `minimumReleaseAgeExclude`. Do not disable the age check globally.
 
+### Verify an npm workspace upgrade
+
+Update the Foldkit declarations in every application and library workspace that shares the preview. An install targeting only one workspace can report "up to date" while another workspace still requests an older snapshot. Run the installation from the workspace root after updating those declarations, then inspect the resolved graph:
+
+::Snippet{name="previewNpmResolvedPackages" label="Inspecting resolved npm packages"}
+
+Compare every installed Foldkit canary suffix with the target manifest's `sourceCommit`, including nested workspace dependencies. A successful `npm ls` exit does not establish that all packages use one snapshot.
+
+Inspect the physical Effect installations too:
+
+::Snippet{name="previewNpmEffectLocations" label="Inspecting Effect installation locations"}
+
+The result lists installed Effect copies and their locations. Check that the application and its Foldkit packages resolve the same installation. A workspace can contain other copies used by separate applications or tools; inspect the dependency tree to establish which copies enter the application graph. Choose matching Effect and platform versions as described in [Effect compatibility](#effect-compatibility), then repeat both checks.
+
+After updating manifests and the lockfile, run `npm ci` to verify that the lockfile reproduces the intended graph. Preserve the existing lockfile while diagnosing an upgrade; an older workspace constraint can explain a retained version without a corrupt lockfile. If a prerelease lockfile still cannot resolve the declared target, retain the npm version, manifests, lockfile and error for a reproduction before attempting a wider lockfile regeneration.
+
+## Adopt Layer-based Block construction
+
+This candidate establishes each public Block contract before its implementation. Keep your Model, Message, child relationships, and transition behavior while changing completion:
+
+1. Add a stable module-level unique `key` and `Init` tuple to each Definition. Declare Context, view inputs, operation channels, and ordinary handler Services there when needed.
+2. Export `Definition.contract` as the public child Block. Parent Schemas and Bindings use that value.
+3. Replace the preparation producer and assembly annotation with `Definition.makeBlock(Effect.gen(function* () { ... }))`. Yield each policy-selected Binding and return the acquired connections as `children`, alongside the portable builders and local lifecycle and handler declarations. A leaf returns `children: []`.
+4. Export the implementation `layer`. Supply child implementation Layers through `.provide(...)` or ordinary Layer composition.
+5. Use Block-aware `story` and `scene` tests. Each returns a scoped Effect; start with `init(...args)` or `given(model)`. Use `withBlock` for fixtures that need direct pure functions.
+6. Check emitted declarations and a relocated consumer when publishing a package. Ordinary application exports no longer need `FromAssembly*` annotations.
+
+::Snippet{name="blockFeatureExports" label="Contract-first Block completion"}
+
+The constructor builds the executable graph. Initialization remains deferred, state stays in the Model, and ordinary request Services stay in Command handler constructors. See [Block](/core/block) and [Project Organization](/patterns/project-organization) for the complete layout.
+
+Ordinary independent Blocks supply every local handler in the implementation's `EffectsLayer` before completion. A separately authored provider uses the original definition's `toLayer`; an attached handler normally receives host-selected HTTP, storage, or transport Services instead. Ordinary descriptors do not have a pending `hostHandlers` / `provideHandlers` stage. Query and other APIs that deliberately publish host-handler contracts retain their checked selector. See [host implementations](/core/layers#host-implementations-for-reusable-features).
+
+## Upgrade from 90746b32d2ca
+
+The source snapshot is `90746b32d2ca8bc0476de7a051ace396ca590ae0`. It already includes the current Block, Machine, Query, and UI factory APIs. Keep those APIs and upgrade Effect and its platform packages to the supported 4.1 minor together. Follow [Effect compatibility](#effect-compatibility), including the UUID service migration and dependency-graph checks.
+
 ## Upgrade from f3be22cfeefe
 
-The source snapshot is `f3be22cfeefed437164ad614d08b16d9000e0703`. It already includes checked `Block.assemble(prepare)` exports, record-only `makeUpdate`, focused Step producer callbacks, and aggregate ManagedResource Layers. Keep those APIs and the existing child graph.
+The source snapshot is `f3be22cfeefed437164ad614d08b16d9000e0703`. It already includes checked `Block.assemble(prepare)` exports, record-only `makeUpdate`, focused Step producer callbacks, and aggregate ManagedResource Layers. Keep the existing child graph and follow [Layer-based construction](#adopt-layer-based-block-construction) for the target completion API.
 
 After installing one coherent target, replace standalone `makeMapBinding` calls with the [parent Definition method](#move-map-bindings-to-their-parent-definition). The `foldkit/mapBinding` import is removed. Applications without map Bindings need no API migration for this change.
 
@@ -47,13 +87,25 @@ Run [the upgrade checks](#verify-the-upgrade), including public declaration outp
 
 ### Effect compatibility
 
-The candidate accepts the tested Effect versions through `4.0.0 || 4.0.6` peers. The browser-platform peer accepts the same two versions. Keep one resolved Effect runtime and choose platform releases whose own Effect peer ranges accept it: platform 4.0.6 requires Effect 4.0.6 or newer. Application and development dependencies can stay exactly pinned for reproducibility. Unverified releases are excluded because some upstream APIs are marked unstable and changed between these patches. This does not require a Block API migration.
+This candidate requires Effect 4.1. Published peers accept patch updates through `~4.1.0` for `effect` and `@effect/platform-browser`. Repository and generated-app dependencies remain exactly pinned to 4.1.0 for reproducible verification. Effect minor releases can change APIs, so each minor upgrade is reviewed before Foldkit widens its supported range. The 4.0.0 and 4.0.6 pairs supported by earlier previews are outside this candidate's range.
+
+The Node adapter, Vite plugin, and DevTools MCP require Node.js 22.19.0 or newer. Keep the scaffolder's separate engine requirement when generating an app.
+
+Upgrade Effect and every declared platform package together within the supported minor. Pin an already declared `@effect/platform-browser` dependency to the same tested version as Effect, preserving its dependency placement. Keep one resolved Effect runtime: a successful install can still leave nested copies in a workspace.
+
+Effect 4.1 replaces `Crypto.Crypto` with the services under `effect/crypto`. For UUID generation, import `SecureRandom`, capture `SecureRandom.SecureRandom` in the handler constructor, and call its `uuidV4()` method inside the invocation Effect. Supply `BrowserCrypto.layerSecureRandom` at the application root. UUID generation has no typed error channel, so it no longer needs `Effect.orDie`, a catch, or a paired failure Message. See [deferred execution boundaries](/tooling/linting#deferred-execution-boundaries).
+
+An npm workspace root can select the transitive browser-platform peer with this `overrides` entry, merged into its existing `package.json`. Use it when platform-browser is not already a direct dependency; a direct dependency should carry the matching exact pin itself:
+
+::Snippet{name="previewNpmPlatformOverride" label="Selecting the transitive browser platform version"}
+
+This override selects platform-browser 4.1.0 for an application using Effect 4.1.0. It does not widen Foldkit's supported minor. Verify the installed graph with the [npm workspace checks](#verify-an-npm-workspace-upgrade).
 
 ### Authoring and lifecycle fixes
 
 Inline Model-aware `makeStep` producers now infer the exact Message from their handler-record entry, including `.withContext`. Redundant Message parameter annotations can be removed at those inline sites. Extracted Steps retain their own precise parameter contracts. See [handlers and Steps](/core/update#choosing-between-handlers-and-steps).
 
-Contextual update records now accept compatible Steps and Binding operations directly, including records that mix them with callback handlers. Remove an adapter such as `model => closeStep(model)` when it only forwards to the Step. Keep callbacks that map payloads, derive arguments or supply context.
+Contextual update records now accept compatible Steps and Binding operations directly, including records that mix them with callback handlers. Remove an adapter such as `model => close(model)` when it only forwards to the Step. Keep callbacks that map payloads, derive arguments or supply context.
 
 Extracting registration evidence from returned Commands now avoids TS2589 in the reported large Root composition, while retaining registration checks. This does not establish a general limit on the number of Blocks or remove all compiler costs in large graphs.
 
@@ -88,7 +140,7 @@ These additions support that application and are included in the preview's relea
 
 ## Upgrade from 1f6776fa7ece
 
-The source snapshot is `1f6776fa7ececa766188df5201eefec6ba781b5d`. It already uses `Composition.prepareBlock`, checked `Block.assemble(prepare)` exports, the `make*` Definition factories, and `Program.make` or `Program.makeElement`. Keep those names and the existing child graph. Coverchart's starting installation uses `foldkit@0.169.0-canary.1f6776fa7ece`; identify your own starting packages from the lockfile.
+The source snapshot is `1f6776fa7ececa766188df5201eefec6ba781b5d`. It already uses `Composition.prepareBlock`, checked `Block.assemble(prepare)` exports, the `make*` Definition factories, and `Program.make` or `Program.makeElement`. Keep the existing child graph and follow [Layer-based construction](#adopt-layer-based-block-construction) for the target completion API. Coverchart's starting installation uses `foldkit@0.169.0-canary.1f6776fa7ece`; identify your own starting packages from the lockfile.
 
 After installing one coherent target:
 
@@ -113,16 +165,16 @@ The following additions are optional:
 - Schema-backed Record and HashMap child fields can use [ParentDefinition.makeMapBinding](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing standalone calls need the [map Binding migration](#move-map-bindings-to-their-parent-definition). General keyed Bindings remain supported for custom relationships.
 - A closed, fully attached ManagedResource registry supplies its handler recipes through [managedResources.layer](/core/managed-resources), matching Subscriptions. Empty registries supply `Layer.empty`; mixed attached/host-owned registries require explicit provider selection.
 - Story and Scene helpers can inspect captured Command arguments through [Command.argsOf](/testing/story#inspect-captured-command-arguments), matching the original Definition's source identity without changing the pending Command or selecting an occurrence.
-- Parent Stories can wrap a child fact with [toParentMessage from foldkit/test](/testing#send-a-child-fact-without-a-view), using the exact Binding without view setup or fabricated envelope fields. Existing Command and Subscription replay paths remain appropriate for their respective sources.
+- Parent Stories can wrap a child fact with [Story.messageFrom](/testing#send-a-child-fact-without-a-view), using the exact Binding without view setup or fabricated envelope fields. Existing Command and Subscription replay paths remain appropriate for their respective sources.
 - Whole tagged child variants can use [makeVariantBinding](/core/block#whole-tagged-variants). [Dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers) set singular children, append initialized keyed arrays, and insert direct-value map entries without repeating storage writers.
-- Story can [derive a Message from the current Model](/testing/story#build-a-message-from-the-current-model) with `messageWith` or [deliver a decoded registered Subscription Message](/testing/story#deliver-a-subscription-message) with `Subscription.from(FeatureBlock.subscriptions).emit`.
+- Story can [derive a Message from the current Model](/testing/story#build-a-message-from-the-current-model) with `messageWith` or [deliver a decoded registered Subscription Message](/testing/story#deliver-a-subscription-message) with an acquired fixture’s `Subscription.from(block.subscriptions).emit`.
 - Scene can [keep one exact ordinary Command pending](/testing/scene#pending-command-rules) across another interaction with `Command.keepPending`. The Command remains visible to assertions and resolution, and must resolve before the Scene ends.
 
 The new Workspace example demonstrates a larger application, and named public UI Block headers improve declaration serialization. Those changes do not require a new application architecture. Applications with public declaration output should still [verify their own emission](#emit-public-block-declarations); a successful application source check alone does not establish declaration portability.
 
 ## Upgrade from 1fbeaffe6563
 
-The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root already uses the previous `assembleBlock` preparation method and `Program.make` or `Program.makeElement`. Rename that method to `prepareBlock`, name its private zero-argument producer `prepare`, and assemble the returned draft with `Block.assemble(prepare)` while keeping the existing graph and host wiring:
+The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root already uses the previous `assembleBlock` preparation method and `Program.make` or `Program.makeElement`. Replace that completion sequence with [Layer-based construction](#adopt-layer-based-block-construction), while retaining the existing graph and host behavior:
 
 - Child policies use `withOutMessagePolicy`.
 - Animation content uses `toView`.
@@ -131,7 +183,7 @@ The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root alre
 
 After installing one coherent target, make the changes used by your application:
 
-1. Replace `assembleBlock` with `prepareBlock`, replace `Block.complete` with `Block.assemble`, and rename each ordinary private `assemble` producer to `prepare`. For direct `foldkit/block` imports, rename the `complete` function to `assemble` and the `AssembleBlock` method type to `PrepareBlock`. The four `FromAssembly*` annotation types retain their names. The old names have no compatibility aliases.
+1. Declare the independent public contract, complete the implementation through `Definition.makeBlock`, and supply its child implementation Layers. Remove the old preparation producer and assembly annotation.
 2. Apply the [Definition and Namespace factory renames](#rename-definition-authoring-factories). The old names have no compatibility aliases.
 3. Convert existing `makeCommandsStep` collection arguments to the [required callback form](#pass-a-callback-to-makecommandsstep).
 4. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
@@ -140,7 +192,7 @@ After installing one coherent target, make the changes used by your application:
 7. Check [update handler contracts](#preserve-update-handler-contracts) and [public declaration boundaries](#emit-public-block-declarations) for the code the project contains.
 8. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
 
-The checked preparation and assembly boundary below is required for every source Block. Existing `makeCommandsStep` callers must also adopt its callback argument. [Native TypeScript tooling](#native-typescript-tooling) and choosing [Command-only Step helpers](#optional-convenience) remain separate setup or organization choices. The explicit producer/header shape also keeps parent Model Schema access independent of the completed implementation graph.
+The independent public contract keeps parent Model Schema access separate from the implementation graph. Existing `makeCommandsStep` callers must also adopt its callback argument. [Native TypeScript tooling](#native-typescript-tooling) remains a separate setup choice.
 
 ### Update UI trigger and focus tests
 
@@ -160,15 +212,17 @@ This section applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
 ### Complete an ordinary root Block
 
-The root now follows the same Definition, Composition, preparation, and assembly stages as every feature. Replace `makeApplicationDefinition` with `Block.makeDefinition('Application', ...)`. Return the authored init, update, view, lifecycle declarations, and local `EffectsLayer` from an `ApplicationComposition.prepareBlock(...)` producer named `prepare`, then finish `ApplicationBlock` with `Block.assemble(prepare)`.
+Declare the root's unique key, Init, Model, Message, and view contract in `ApplicationDefinition`. Complete it with `ApplicationDefinition.makeBlock`, yielding registered child Bindings and returning their connections under `children`. Provide the child implementation Layers and export that checked descriptor as `ApplicationBlock`.
 
-The old `ApplicationComposition.assembleApplication` and `ApplicationComposition.assembleElement` methods have been removed. Browser host fields do not belong in `prepareBlock`.
+::Snippet{name="blockFeatureExports" label="Independent contract and checked implementation"}
 
-::Snippet{name="counterApplicationWithFlags" label="Completing the root Block"}
+Use a Document view for `Program.make` and an Element view for `Program.makeElement`. Importing the checked descriptor does not construct its graph or run init.
 
 ### Create the browser Program
 
 Create the browser host in `entry.ts`. Use `Program.make` for a page-owning application or `Program.makeElement` for an application scoped to its container. Pass `ApplicationBlock`, the container, Flags, routing, DevTools, and other browser host options there. Supply ordinary Services with `program.provide(ApplicationLayer)` before starting the Runtime.
+
+`Program.make` needs a `Document` view; `Program.makeElement` needs `Html`. Give a host-created container a unique, nonempty `id` before passing it to the Program constructor. See [the Runtime guide](/core/runtime) for the view and Flags differences.
 
 ::Snippet{name="applicationEntryPoint" label="Starting the browser Program"}
 
@@ -239,7 +293,7 @@ Converting existing calls is required. Adopting this helper where ordinary updat
 
 Use the exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record for local facts. It contextually types the Model and exact Message payload, checks every handler, and retains per-Message Commands and OutMessages for public operations. A selected silent operation can participate in `Update.combineSteps`; an emitting operation cannot lose its OutMessage there. Required dispatch context uses `makeUpdate.withContext(context => handlers)`.
 
-The callback-taking overload is removed. Convert every callback-authored update to an exhaustive handler record; use `makeUpdate({})` for message-free and routed-only Compositions. A handler receives `(model, message)`. Name an extracted single-Message handler `handle<MessageTag>` and pass compatible handlers or Steps directly. Keep callbacks when they adapt payloads, derive inputs, or supply contextual inference. Give every named Model-first Step value a descriptive name ending in `Step`. Give a purposeful transition factory that returns a Step an operation name ending in `Step` too. Named OutMessage folds and matchers retain their established names. If one handler mixes connected Binding recipes with raw local result branches, use Definition-owned Steps for those local branches. Do not erase connected results through `.model`, a broad return annotation, or a cast.
+The callback-taking overload is removed. Convert every callback-authored update to an exhaustive handler record; use `makeUpdate({})` for message-free and routed-only Compositions. A handler receives `(model, message)`. Name an extracted single-Message handler `handle<MessageTag>` and pass compatible handlers or Steps directly. Keep callbacks when they adapt payloads, derive inputs, or supply contextual inference. Name application-authored Step values and factories for their operation, such as `clearSearch` and `changeSearchQuery(query)`, without a `make` prefix or `Step` suffix. Framework helpers and types, named OutMessage folds and matchers, and dedicated `handle<MessageTag>` handlers retain their established naming conventions. If one handler mixes connected Binding recipes with raw local result branches, use Definition-owned Steps for those local branches. Do not erase connected results through `.model`, a broad return annotation, or a cast.
 
 ::Snippet{name="updateCanonicalLocalResults" label="Repairing mixed connected and local results"}
 
@@ -311,38 +365,21 @@ See the [official editor setup](https://github.com/oxc-project/tsrs/blob/467182f
 
 ## Keep Source Model Schemas Independent of Completion
 
-Give an ordinary completed Block an explicit producer/header boundary. Move its existing `prepareBlock` call into one private zero-argument function named `prepare`, then place the `SettingsBlock` export immediately after it with no blank line. Apply the matching `Block.FromAssemblyWith*` annotation and initialize the export with `Block.assemble(prepare)`. A direct `prepare()` call returns only the opaque draft and has no Model or Block methods. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. Keep the payload, local effects and graph unchanged.
+Parents use `ChildBlock.Model` from the independent public contract. Export `Definition.contract` before exposing the implementation Layer, and remove preparation producers and four-shape assembly annotations from ordinary application exports.
 
-::Snippet{name="blockFeatureExports" label="An explicit completed Block boundary"}
-
-Choose the helper from the Definition's declared OutMessage and prepared view:
-
-| Assembled view | Declared OutMessage | Export annotation                           |
-| -------------- | ------------------- | ------------------------------------------- |
-| Yes            | No                  | `Block.FromAssemblyWithView`                |
-| Yes            | Yes                 | `Block.FromAssemblyWithViewAndOutMessage`   |
-| No             | Yes                 | `Block.FromAssemblyWithOutMessage`          |
-| No             | No                  | `Block.FromAssemblyWithoutViewOrOutMessage` |
-
-Each helper takes `typeof Model` and `typeof prepare`. The four names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer infers the opaque draft, and the helper checks its exact completed contract and Model Schema through `Block.assemble`. Do not replace this with a cast, a broad Block annotation, `satisfies`, a raw producer call, or an annotation without the matching assembly call.
-
-The feature barrel exports its completed Block. Keep the Model Schema internal to the feature and compose parent state with `SettingsBlock.Model`. An application that adopted a separate canonical Model reexport for compiler performance can remove that reexport after adding the checked header and updating its parent imports. Preserve independently public domain Schemas and generic component contracts.
-
-The recommended `foldkit/no-completed-block-model-in-schema` rule still reports proven inferred completed Models inside Schema construction, including nested wrappers. It accepts the recognized checked producer/header boundary. Ordinary public Model access and type queries remain supported. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small) for recognition limits. This is a compiler-work boundary, not a promise of instant editor responses.
+::Snippet{name="parentSchemaGuardedModel" label="Parent Model through a public contract"}
 
 ### Emit Public Block Declarations
 
-Packages that ship declaration files should name their public completed Block contracts with a same-name interface and value over the existing matching `FromAssembly*` header. JavaScript-only applications keep the checked value annotation above. The private preparation producer and `Block.assemble` call stay unchanged:
+Publish the contract, not an inferred descendant graph. Generic library interfaces can name their refined contract. Export any required nominal key type through its owning subpath. Check actual declaration output and a source-free relocated consumer; compilation in the repository does not establish that a package can be consumed externally.
 
-::Snippet{name="blockDeclarationBoundary" label="Keeping a public Block declaration named"}
-
-Run declaration emission for the actual public entrypoints and check the emitted package externally. There is no reliable graph-size threshold, and `noEmit` alone does not verify serialization. This boundary avoids repeated child expansion; it does not guarantee that every larger root producer will fit the compiler's serialization limit. See [declaration emission](/patterns/project-organization#declaration-emission).
+::Snippet{name="blockDeclarationBoundary" label="Portable public Block contract"}
 
 ## Confirm the Remaining Compiler Findings
 
 The checklist below applies to the older `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca` snapshots. For `1fbeaffe6563`, use [its direct upgrade path](#upgrade-from-1fbeaffe6563), then [verify the upgrade](#verify-the-upgrade). Search first, then change only the code the project contains:
 
-- Replace `assembleBlock` with `prepareBlock`, replace `Block.complete` with `Block.assemble`, and rename an ordinary private `assemble` producer to `prepare`.
+- Replace previous completion methods and preparation producers with the [declared contract and effectful constructor](#adopt-layer-based-block-construction).
 - Replace every removed Definition or Namespace factory name using the table above. Do not rename completion config fields, completed Block metadata, or standalone Command and Update APIs.
 - Convert each existing `makeCommandsStep(commands)` call to a callback. Construct Model-dependent Commands inside that callback so they read the Model at Step application time.
 - Replace remaining `makeApplicationDefinition`, `assembleApplication`, and `assembleElement` uses with the completed root Block and Program boundary above.
@@ -350,7 +387,7 @@ The checklist below applies to the older `c701daa80af1`, `396b19976386`, and `bf
 - Replace Animation `viewInputs.content` with a top-level `toView` renderer.
 - Replace `Animation.defaultLeaveCommand` and its Model read or `liftCommand` wiring with the bound `requestWaitForLeaveSettlement()` operation. Preserve custom leave Commands that also watch movement or another completion signal.
 - Replace module-level `Toast.test` calls with the completed Toast Block's fixture and exact Binding.
-- Move every child OutMessage policy out of the previous preview's `bindChild` config, rename that factory to `makeBinding`, and select the policy with `.withOutMessagePolicy({ fold?, forward? })`. Build every callable fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)`, including inline folds. The forwarding API is unchanged. For self-referential or reciprocal policy, name the ordinary Bindings first, author the helpers against those values, then select and register `<Child>BindingWithOutMessagePolicy`. No raw child matcher or return annotation is needed.
+- Move every child OutMessage policy out of the previous preview's `bindChild` config, rename that factory to `makeBinding`, and select the policy with `.withOutMessagePolicy({ fold?, forward? })`. Build every callable fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)`, including inline folds. The forwarding API is unchanged. Export and register the policy-complete `<Child>Binding`. Keep an unconfigured base internal when self-referential or reciprocal helpers need it to break a dependency cycle. No raw child matcher or return annotation is needed.
 - Run typechecking against every `makeInit` plan and connected Binding Step. An ordinary Step must return an update result. Preserve a deferred connected operation through the owning Definition's `makeStep`, and execute it only inside the Composition that registered its Binding. The stronger checks also retain Command requirements from combined initialization Steps.
 - Keep callbacks at the top level of `viewInputs`. A callback nested in a record, array, tuple, union, or `Option` is rejected because its dispatch boundary is ambiguous. Return callback-bearing Html from a top-level renderer such as `toView` instead.
 
@@ -387,9 +424,9 @@ When asking a coding agent to perform the migration, give it this page URL and t
 ## Troubleshooting
 
 - **An incomplete update reports a connected result with no `model`.** Check that every local Message tag has a handler before following the structural expansion. A missing Command completion can cause this cascade. The [Update troubleshooting guide](/core/update#checking-missing-handlers-before-structural-errors) explains the check without weakening result contracts.
-- **One handler mixes `{ model }` with a connected Binding recipe.** Use a Definition-owned local Step for that handler's local branch; ordinary raw-only handlers need no wrapper. See the [paired branch repair](/core/update#preserving-local-results-beside-connected-operations).
+- **One handler mixes `{ model }` with a connected Binding recipe.** The diagnostic points at the handler and recommends `Definition.makeStep` or a focused Step helper for its local branch; ordinary raw-only handlers need no wrapper. See the [paired branch repair](/core/update#preserving-local-results-beside-connected-operations).
 - **An extracted Step cannot apply `combineSteps` to its Model.** Return the deferred `combineSteps(steps)` from the Definition-owned producer. The registered Composition applies it later; its own contextual handlers may use `combineSteps(model, steps)`. See [connected combinations](/core/update#child-bindings-and-multiple-steps).
-- **The Program rejects `ApplicationBlock`.** Make sure the root has no OutMessage for a host to discard. Author its view through the same Composition used by `prepareBlock`; `Program.make` requires a `Document` view and `Program.makeElement` requires an Html view.
+- **The Program rejects `ApplicationBlock`.** Make sure the root has no OutMessage for a host to discard. Author its view through the same Composition used by its init and update builders; `Program.make` requires a `Document` view and `Program.makeElement` requires an Html view.
 - **Server init arguments do not match.** The presence of `Flags` and `routing` determines whether root init receives Flags, a URL, both, or neither. Keep request values in the third `renderToString` argument.
 - **A connected Step has no readable `model` or `commands`.** Return or compose the opaque result inside the registered Composition. Do not execute a Binding operation against a raw parent Model outside that graph.
 - **A ViewInput reports a nested callback.** Move the callback to a top-level ViewInput renderer. Keep the data it consumes in sibling fields or close over parent view values.

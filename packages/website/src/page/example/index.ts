@@ -1,1 +1,0 @@
-export { ExampleDetailBlock } from './block'

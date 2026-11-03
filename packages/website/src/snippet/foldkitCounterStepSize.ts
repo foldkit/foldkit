@@ -19,7 +19,15 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const CounterDefinition = Block.makeDefinition('Counter', { Model, Message })
+const CounterKey = Symbol('Counter')
+
+const CounterDefinition = Block.makeDefinition('Counter', {
+  key: CounterKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+  Model,
+  Message,
+})
 
 const { makeFieldsStep } = CounterDefinition
 

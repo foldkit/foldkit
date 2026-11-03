@@ -1,10 +1,13 @@
 import { Option } from 'effect'
 import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
 
-import { Dialog, DialogBlock, RadioGroup } from '@foldkit/ui'
+import { it } from '@effect/vitest'
+import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
+import { ApplicationBlock } from './block'
 import { ExportPng, SaveCanvas } from './command'
 import {
   GridSizeRadioGroupBlock,
@@ -15,11 +18,9 @@ import {
 import { createEmptyGrid } from './grid'
 import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
-import { update } from './update'
-import { view } from './view'
 
 const resolveFocusOption = Command.resolve(
-  RadioGroup.test.FocusOption,
+  RadioGroupTest.FocusOption,
   ToolRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
@@ -33,18 +34,64 @@ const createTestModel = (): Model => ({
   mirrorMode: 'None',
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: DialogBlock.init({ id: 'export-error-dialog' }).model,
+  errorDialog: DialogBlock.Model.make({
+    id: 'export-error-dialog',
+    isOpen: false,
+    isAnimated: false,
+    animation: {
+      id: 'export-error-dialog' + '-panel',
+      isShowing: false,
+      transitionState: 'Idle',
+      transitionGeneration: 0,
+    },
+    maybeFocusSelector: Option.none(),
+  }),
   maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: DialogBlock.init({ id: 'grid-size-confirm-dialog' })
-    .model,
+  gridSizeConfirmDialog: DialogBlock.Model.make({
+    id: 'grid-size-confirm-dialog',
+    isOpen: false,
+    isAnimated: false,
+    animation: {
+      id: 'grid-size-confirm-dialog' + '-panel',
+      isShowing: false,
+      transitionState: 'Idle',
+      transitionGeneration: 0,
+    },
+    maybeFocusSelector: Option.none(),
+  }),
   maybePendingGridSize: Option.none(),
-  themeListbox: ThemeListboxBlock.init({ id: 'theme-picker' }).model,
-  toolRadioGroup: ToolRadioGroupBlock.init({ id: 'tool-picker' }).model,
-  gridSizeRadioGroup: GridSizeRadioGroupBlock.init({ id: 'grid-size-picker' })
-    .model,
-  paletteRadioGroup: PaletteRadioGroupBlock.init({ id: 'palette-picker' })
-    .model,
+  themeListbox: ThemeListboxBlock.Model.make({
+    id: 'theme-picker',
+    isOpen: false,
+    isAnimated: false,
+    isModal: false,
+    orientation: 'Vertical',
+    animation: {
+      id: 'theme-picker' + '-listbox',
+      isShowing: false,
+      transitionState: 'Idle',
+      transitionGeneration: 0,
+    },
+    maybeActiveItemIndex: Option.none(),
+    activationTrigger: 'Keyboard',
+    searchQuery: '',
+    searchVersion: 0,
+    maybeLastPointerPosition: Option.none(),
+    maybeLastButtonPointerType: Option.none(),
+  }),
+  toolRadioGroup: ToolRadioGroupBlock.Model.make({
+    id: 'tool-picker',
+    maybeFocusedIndex: Option.none(),
+  }),
+  gridSizeRadioGroup: GridSizeRadioGroupBlock.Model.make({
+    id: 'grid-size-picker',
+    maybeFocusedIndex: Option.none(),
+  }),
+  paletteRadioGroup: PaletteRadioGroupBlock.Model.make({
+    id: 'palette-picker',
+    maybeFocusedIndex: Option.none(),
+  }),
 })
 
 const createPaintedModel = (): Model =>
@@ -58,20 +105,20 @@ const createPaintedModel = (): Model =>
   })
 
 describe('export workflow', () => {
-  test('clicking Export PNG produces ExportPng Command', () => {
+  it.effect('clicking Export PNG produces ExportPng Command', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createTestModel()),
       click(role('button', { name: 'Export PNG' })),
       Command.expectExact(ExportPng),
       Command.resolve(ExportPng, Message.SucceededExportPng()),
       Command.expectNone(),
-    )
-  })
+    ),
+  )
 
-  test('failed export opens error dialog with message', () => {
+  it.effect('failed export opens error dialog with message', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createTestModel()),
       click(role('button', { name: 'Export PNG' })),
       Command.resolve(
@@ -79,18 +126,18 @@ describe('export workflow', () => {
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Command.resolve(
-        Dialog.test.ShowDialog,
+        DialogTest.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
       expect(text('Export Failed')).toExist(),
       expect(text('Canvas 2D context not available')).toExist(),
       expect(role('button', { name: 'Dismiss' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('dismissing error dialog closes it', () => {
+  it.effect('dismissing error dialog closes it', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createTestModel()),
       click(role('button', { name: 'Export PNG' })),
       Command.resolve(
@@ -98,92 +145,94 @@ describe('export workflow', () => {
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Command.resolve(
-        Dialog.test.ShowDialog,
+        DialogTest.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
       expect(text('Export Failed')).toExist(),
       click(role('button', { name: 'Dismiss' })),
       Command.resolve(
-        Dialog.test.CloseDialog,
+        DialogTest.CloseDialog,
         DialogBlock.Message.CompletedCloseDialog(),
       ),
       expect(text('Export Failed')).toBeAbsent(),
-    )
-  })
+    ),
+  )
 })
 
 describe('header', () => {
-  test('renders PixelForge title and Export PNG button', () => {
+  it.effect('renders PixelForge title and Export PNG button', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createTestModel()),
       expect(role('heading', { name: 'PixelForge' })).toExist(),
       expect(role('button', { name: 'Export PNG' })).toExist(),
-    )
-  })
+    ),
+  )
 })
 
 describe('toolbar', () => {
-  test('Brush tool is selected by default', () => {
+  it.effect('Brush tool is selected by default', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createTestModel()),
       expect(role('radio', { name: /^Brush/, checked: true })).toExist(),
       expect(role('radio', { name: /^Fill/, checked: false })).toExist(),
       expect(role('radio', { name: /^Eraser/, checked: false })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clear canvas button is disabled when canvas is empty', () => {
+  it.effect('clear canvas button is disabled when canvas is empty', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createTestModel()),
       expect(role('button', { name: 'Clear Canvas' })).toBeDisabled(),
-    )
-  })
+    ),
+  )
 
-  test('clicking Fill tool selects it', () => {
+  it.effect('clicking Fill tool selects it', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createTestModel()),
       click(role('radio', { name: /^Fill/ })),
       resolveFocusOption,
       expect(role('radio', { name: /^Fill/, checked: true })).toExist(),
       expect(role('radio', { name: /^Brush/, checked: false })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clear canvas enables after painting then disables after clearing', () => {
-    scene(
-      { update, view },
-      given(createPaintedModel()),
-      expect(role('button', { name: 'Clear Canvas' })).toBeEnabled(),
-      click(role('button', { name: 'Clear Canvas' })),
-      Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
-      expect(role('button', { name: 'Clear Canvas' })).toBeDisabled(),
-    )
-  })
+  it.effect(
+    'clear canvas enables after painting then disables after clearing',
+    () =>
+      scene(
+        ApplicationBlock,
+        given(createPaintedModel()),
+        expect(role('button', { name: 'Clear Canvas' })).toBeEnabled(),
+        click(role('button', { name: 'Clear Canvas' })),
+        Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
+        expect(role('button', { name: 'Clear Canvas' })).toBeDisabled(),
+      ),
+  )
 })
 
 describe('history panel', () => {
-  test('undo and redo buttons are disabled with no history', () => {
+  it.effect('undo and redo buttons are disabled with no history', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createTestModel()),
       expect(role('button', { name: /^Undo/ })).toBeDisabled(),
       expect(role('button', { name: /^Redo/ })).toBeDisabled(),
-    )
-  })
+    ),
+  )
 
-  test('current history entry is visible', () => {
+  it.effect('current history entry is visible', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createTestModel()),
       expect(text('Current')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('undo enables after painting and re-disables after undoing', () => {
+  it.effect('undo enables after painting and re-disables after undoing', () => {
     const modelWithHistory: Model = modifyFields(createTestModel(), {
       grid: () =>
         createEmptyGrid(4).map((row, y) =>
@@ -194,8 +243,8 @@ describe('history panel', () => {
       undoStack: () => [createEmptyGrid(4)],
     })
 
-    scene(
-      { update, view },
+    return scene(
+      ApplicationBlock,
       given(modelWithHistory),
       expect(role('button', { name: /^Undo/ })).toBeEnabled(),
       expect(role('button', { name: /^Redo/ })).toBeDisabled(),
@@ -208,14 +257,14 @@ describe('history panel', () => {
 })
 
 describe('grid size change', () => {
-  test('painted canvas opens confirmation dialog', () => {
+  it.effect('painted canvas opens confirmation dialog', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(createPaintedModel()),
       click(role('radio', { name: '8' })),
       resolveFocusOption,
       Command.resolve(
-        Dialog.test.ShowDialog,
+        DialogTest.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
       expect(text('Change to 8\u00d78?')).toExist(),
@@ -224,51 +273,54 @@ describe('grid size change', () => {
       ).toExist(),
       expect(role('button', { name: 'Cancel' })).toExist(),
       expect(role('button', { name: 'Clear and Resize' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('confirming grid size change closes dialog and saves canvas', () => {
-    const paintedModel = modifyFields(createPaintedModel(), {
-      undoStack: () => [createEmptyGrid(4)],
-    })
+  it.effect(
+    'confirming grid size change closes dialog and saves canvas',
+    () => {
+      const paintedModel = modifyFields(createPaintedModel(), {
+        undoStack: () => [createEmptyGrid(4)],
+      })
 
+      return scene(
+        ApplicationBlock,
+        given(paintedModel),
+        click(role('radio', { name: '8' })),
+        resolveFocusOption,
+        Command.resolve(
+          DialogTest.ShowDialog,
+          DialogBlock.Message.SucceededShowDialog(),
+        ),
+        expect(text('Change to 8\u00d78?')).toExist(),
+        click(role('button', { name: 'Clear and Resize' })),
+        Command.resolve(
+          DialogTest.CloseDialog,
+          DialogBlock.Message.CompletedCloseDialog(),
+        ),
+        Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
+        expect(text('Change to 8\u00d78?')).toBeAbsent(),
+      )
+    },
+  )
+
+  it.effect('cancelling grid size change keeps current size', () =>
     scene(
-      { update, view },
-      given(paintedModel),
-      click(role('radio', { name: '8' })),
-      resolveFocusOption,
-      Command.resolve(
-        Dialog.test.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
-      ),
-      expect(text('Change to 8\u00d78?')).toExist(),
-      click(role('button', { name: 'Clear and Resize' })),
-      Command.resolve(
-        Dialog.test.CloseDialog,
-        DialogBlock.Message.CompletedCloseDialog(),
-      ),
-      Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
-      expect(text('Change to 8\u00d78?')).toBeAbsent(),
-    )
-  })
-
-  test('cancelling grid size change keeps current size', () => {
-    scene(
-      { update, view },
+      ApplicationBlock,
       given(createPaintedModel()),
       click(role('radio', { name: '8' })),
       resolveFocusOption,
       Command.resolve(
-        Dialog.test.ShowDialog,
+        DialogTest.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Cancel' })),
       Command.resolve(
-        Dialog.test.CloseDialog,
+        DialogTest.CloseDialog,
         DialogBlock.Message.CompletedCloseDialog(),
       ),
       expect(text('Change to 8\u00d78?')).toBeAbsent(),
-    )
-  })
+    ),
+  )
 })

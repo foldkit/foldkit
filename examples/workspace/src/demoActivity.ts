@@ -14,7 +14,7 @@ const ACTIVITY_COMMENT_BODIES = [
   'Thanks for the update. I will pick this up next.',
 ]
 
-export const simulateActivityStep = makeStep(model => {
+export const simulateActivity = makeStep(model => {
   const maybeWorkspace = AsyncData.getData(model.workspaceAsyncData)
 
   if (Option.isNone(maybeWorkspace)) {

@@ -374,22 +374,22 @@ export interface EntryBuilder<Model, Message> {
  * Low-level builder for a ManagedResource registry. The Model and Message
  * generics are provided up front; the callback builds a record with `entry`.
  *
- * Application features create accessors through their named Block's
- * `resource` and registries through their definition's `managedResources`.
- * Pass the registry as `managedResources` and attached entry Layers in
- * `EffectsLayer` when calling
- * `Composition.prepareBlock`; registered child bindings collect their own
- * registries and derive independent occurrence lifetimes.
+ * Application features create accessors through `Definition.makeResource` and
+ * registries through `Definition.makeManagedResources`. Return the registry as
+ * `managedResources` and compose its attached entry Layers in the local
+ * `EffectsLayer` returned by the `Definition.makeBlock` constructor. Child
+ * Bindings collect their own registries and derive independent occurrence
+ * lifetimes.
  *
  * Use this when a resource is expensive or stateful and should only exist while
  * the model is in a particular state: a camera stream during a video call, a
  * WebSocket connection while on a chat page, or a Web Worker pool during a
  * computation. For services that live for the entire application lifetime,
- * supply a Layer through the completed application's `provide` method instead.
+ * supply a Layer through the Program's `provide` method instead.
  *
- * `aggregate` and `lift` transform standalone records. Application Blocks
- * use registered `bind` or `bindEach` placements to collect their resources,
- * handler recipes, and other lifecycle registrations together.
+ * `aggregate` and `lift` transform standalone records. Application Blocks use
+ * registered Bindings to collect their resources, handler recipes, and other
+ * lifecycle registrations together.
  *
  * Pass a handler name before the requirements schema. An attached lifecycle
  * handler supplies both functions and exposes its Layer as `layer`. The

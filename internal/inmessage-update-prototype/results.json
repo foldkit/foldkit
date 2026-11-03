@@ -1,0 +1,361 @@
+{
+  "base": "b02e43a97d6856e24afe7ac18d54d1ce7a3647f0",
+  "source": "/private/tmp/foldkit-inmessage-update-prototype-20261103",
+  "verification": {
+    "workspace": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg",
+    "node": "v22.22.3",
+    "framework": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/packages/foldkit",
+    "compiler": "7.1.0-beta",
+    "ts6": "/private/tmp/foldkit-inmessage-update-prototype-20261103/node_modules/.pnpm/typescript@6.0.3/node_modules/typescript/bin/tsc",
+    "checks": [
+      {
+        "name": "source-pinned",
+        "status": 0,
+        "expected": 0,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/source-pinned.log"
+      },
+      {
+        "name": "declarations-ts6",
+        "status": 0,
+        "expected": 0,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/declarations-ts6.log"
+      },
+      {
+        "name": "runtime",
+        "status": 0,
+        "expected": 0,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/runtime.log"
+      },
+      {
+        "name": "wrong-command-output",
+        "status": 2,
+        "expected": 1,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/wrong-command-output.log"
+      },
+      {
+        "name": "exact-input-payload",
+        "status": 2,
+        "expected": 1,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/exact-input-payload.log"
+      },
+      {
+        "name": "foreign-composition",
+        "status": 2,
+        "expected": 1,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/foreign-composition.log"
+      },
+      {
+        "name": "missing-decoded-input-validation",
+        "status": 1,
+        "expected": 1,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/missing-decoded-input-validation.log"
+      },
+      {
+        "name": "missing-competing-output-guard",
+        "status": 1,
+        "expected": 1,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/missing-competing-output-guard.log"
+      },
+      {
+        "name": "restored-runtime",
+        "status": 0,
+        "expected": 0,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/restored-runtime.log"
+      },
+      {
+        "name": "strict-relocated-ts6",
+        "status": 0,
+        "expected": 0,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/strict-relocated-ts6.log"
+      },
+      {
+        "name": "source-free-runtime",
+        "status": 0,
+        "expected": 0,
+        "log": "/private/tmp/foldkit-inmessage-update-proof-9ONoqg/logs/source-free-runtime.log"
+      }
+    ],
+    "coreDeclarationSha256": "f9004c69fc3b2e20433b4417d75ec52bd9f276e28d001e7f56a609d1864c8a29"
+  },
+  "coreSourceNoEmit": {
+    "status": 0,
+    "log": "/tmp/foldkit-inmessage-prototype-source-final.log"
+  },
+  "existingFocusedTests": {
+    "files": 4,
+    "tests": 39,
+    "status": 0,
+    "log": "/tmp/foldkit-inmessage-prototype-core-tests-final.log"
+  },
+  "compiler": {
+    "workspace": "/private/tmp/foldkit-inmessage-compiler-proof-TSQC5z",
+    "base": "b02e43a97d6856e24afe7ac18d54d1ce7a3647f0",
+    "compiler": "7.1.0-beta",
+    "node": "v22.22.3",
+    "baseline": [
+      {
+        "name": "deep-composition-8",
+        "instantiations": 658804,
+        "maxInstantiations": 1152618,
+        "types": 52595,
+        "maxTypes": 55843,
+        "status": "ok"
+      },
+      {
+        "name": "wide-composition-100",
+        "instantiations": 1392196,
+        "maxInstantiations": 3132298,
+        "types": 80494,
+        "maxTypes": 216662,
+        "status": "ok"
+      },
+      {
+        "name": "command-requirements-200",
+        "instantiations": 340025,
+        "maxInstantiations": 2659415,
+        "types": 63104,
+        "maxTypes": 389460,
+        "status": "ok"
+      },
+      {
+        "name": "wide-subscriptions-100",
+        "instantiations": 548577,
+        "maxInstantiations": 548740,
+        "types": 24507,
+        "maxTypes": 24583,
+        "status": "ok"
+      },
+      {
+        "name": "workspace-composition-4",
+        "instantiations": 2559768,
+        "maxInstantiations": 2642699,
+        "types": 209809,
+        "maxTypes": 229173,
+        "status": "ok"
+      },
+      {
+        "name": "workspace-composition-8",
+        "instantiations": 4314931,
+        "maxInstantiations": 4515010,
+        "types": 280773,
+        "maxTypes": 299721,
+        "status": "ok"
+      },
+      {
+        "name": "machine-search",
+        "instantiations": 70759,
+        "maxInstantiations": 83700,
+        "types": 13405,
+        "maxTypes": 18800,
+        "status": "ok"
+      }
+    ],
+    "candidate": [
+      {
+        "name": "deep-composition-8",
+        "instantiations": 658804,
+        "maxInstantiations": 1152618,
+        "types": 52595,
+        "maxTypes": 55843,
+        "status": "ok"
+      },
+      {
+        "name": "wide-composition-100",
+        "instantiations": 1392196,
+        "maxInstantiations": 3132298,
+        "types": 80494,
+        "maxTypes": 216662,
+        "status": "ok"
+      },
+      {
+        "name": "command-requirements-200",
+        "instantiations": 340025,
+        "maxInstantiations": 2659415,
+        "types": 63104,
+        "maxTypes": 389460,
+        "status": "ok"
+      },
+      {
+        "name": "wide-subscriptions-100",
+        "instantiations": 548577,
+        "maxInstantiations": 548740,
+        "types": 24507,
+        "maxTypes": 24583,
+        "status": "ok"
+      },
+      {
+        "name": "workspace-composition-4",
+        "instantiations": 2559768,
+        "maxInstantiations": 2642699,
+        "types": 209809,
+        "maxTypes": 229173,
+        "status": "ok"
+      },
+      {
+        "name": "workspace-composition-8",
+        "instantiations": 4314931,
+        "maxInstantiations": 4515010,
+        "types": 280773,
+        "maxTypes": 299721,
+        "status": "ok"
+      },
+      {
+        "name": "machine-search",
+        "instantiations": 82164,
+        "maxInstantiations": 83700,
+        "types": 18272,
+        "maxTypes": 18800,
+        "status": "ok"
+      }
+    ],
+    "ownershipControl": [
+      {
+        "name": "deep-composition-8",
+        "instantiations": 658804,
+        "maxInstantiations": 1152618,
+        "types": 52595,
+        "maxTypes": 55843,
+        "status": "ok"
+      },
+      {
+        "name": "wide-composition-100",
+        "instantiations": 1392196,
+        "maxInstantiations": 3132298,
+        "types": 80494,
+        "maxTypes": 216662,
+        "status": "ok"
+      },
+      {
+        "name": "command-requirements-200",
+        "instantiations": 340025,
+        "maxInstantiations": 2659415,
+        "types": 63104,
+        "maxTypes": 389460,
+        "status": "ok"
+      },
+      {
+        "name": "wide-subscriptions-100",
+        "instantiations": 548577,
+        "maxInstantiations": 548740,
+        "types": 24507,
+        "maxTypes": 24583,
+        "status": "ok"
+      },
+      {
+        "name": "workspace-composition-4",
+        "instantiations": 2559768,
+        "maxInstantiations": 2642699,
+        "types": 209809,
+        "maxTypes": 229173,
+        "status": "ok"
+      },
+      {
+        "name": "workspace-composition-8",
+        "instantiations": 4314931,
+        "maxInstantiations": 4515010,
+        "types": 280773,
+        "maxTypes": 299721,
+        "status": "ok"
+      },
+      {
+        "name": "machine-search",
+        "instantiations": 100507,
+        "maxInstantiations": 83700,
+        "types": 22715,
+        "maxTypes": 18800,
+        "status": "failed: Instantiations, Types"
+      }
+    ],
+    "restored": [
+      {
+        "name": "deep-composition-8",
+        "instantiations": 658804,
+        "maxInstantiations": 1152618,
+        "types": 52595,
+        "maxTypes": 55843,
+        "status": "ok"
+      },
+      {
+        "name": "wide-composition-100",
+        "instantiations": 1392196,
+        "maxInstantiations": 3132298,
+        "types": 80494,
+        "maxTypes": 216662,
+        "status": "ok"
+      },
+      {
+        "name": "command-requirements-200",
+        "instantiations": 340025,
+        "maxInstantiations": 2659415,
+        "types": 63104,
+        "maxTypes": 389460,
+        "status": "ok"
+      },
+      {
+        "name": "wide-subscriptions-100",
+        "instantiations": 548577,
+        "maxInstantiations": 548740,
+        "types": 24507,
+        "maxTypes": 24583,
+        "status": "ok"
+      },
+      {
+        "name": "workspace-composition-4",
+        "instantiations": 2559768,
+        "maxInstantiations": 2642699,
+        "types": 209809,
+        "maxTypes": 229173,
+        "status": "ok"
+      },
+      {
+        "name": "workspace-composition-8",
+        "instantiations": 4314931,
+        "maxInstantiations": 4515010,
+        "types": 280773,
+        "maxTypes": 299721,
+        "status": "ok"
+      },
+      {
+        "name": "machine-search",
+        "instantiations": 82164,
+        "maxInstantiations": 83700,
+        "types": 18272,
+        "maxTypes": 18800,
+        "status": "ok"
+      }
+    ],
+    "budgets": {
+      "typescriptVersion": "7.1.0-beta",
+      "fixtures": {
+        "deep-composition-8": {
+          "maxInstantiationsDelta": 1152618,
+          "maxTypesDelta": 55843
+        },
+        "wide-composition-100": {
+          "maxInstantiationsDelta": 3132298,
+          "maxTypesDelta": 216662
+        },
+        "command-requirements-200": {
+          "maxInstantiationsDelta": 2659415,
+          "maxTypesDelta": 389460
+        },
+        "workspace-composition-4": {
+          "maxInstantiationsDelta": 2642699,
+          "maxTypesDelta": 229173
+        },
+        "workspace-composition-8": {
+          "maxInstantiationsDelta": 4515010,
+          "maxTypesDelta": 299721
+        },
+        "wide-subscriptions-100": {
+          "maxInstantiationsDelta": 548740,
+          "maxTypesDelta": 24583
+        },
+        "machine-search": {
+          "maxInstantiationsDelta": 83700,
+          "maxTypesDelta": 18800
+        }
+      }
+    }
+  }
+}

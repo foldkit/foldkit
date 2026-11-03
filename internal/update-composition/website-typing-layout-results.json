@@ -1,0 +1,224 @@
+{
+  "scope": "Website and Typing Game layout, named UI imports, documentation source paths, and normal application verification",
+  "baseCommit": "da6e55193beb693b5400c9f95777d7c9fb41f257",
+  "sourceState": "Uncommitted application migration over the base commit; source hash is scoped to these applications, not the entire branch.",
+  "source": {
+    "algorithm": "SHA256 of JSON.stringify(sorted [repository-relative filename,SHA256(bytes)] pairs)",
+    "files": 1248,
+    "sha256": "59507f5d983207986d43d09b624cc6afb03e7fa0f64aea2d25a9daf47fd49954"
+  },
+  "moved": {
+    "website": 224,
+    "typingGame": 41,
+    "manifest": "internal/update-composition/website-typing-layout-moves.json"
+  },
+  "toolchain": {
+    "node": "v22.22.3",
+    "pnpm": "11.8.0",
+    "compiler": "/private/tmp/foldkit-incremental-constructor-20261031/node_modules/.pnpm/typescript@7.1.0-beta/node_modules/typescript/bin/tsc",
+    "effect": "/private/tmp/foldkit-incremental-constructor-20261031/node_modules/.pnpm/effect@4.1.0/node_modules/effect",
+    "browser": "Installed Playwright Chromium1243 /Chrome153.0.8010.12"
+  },
+  "environment": {
+    "NODE_DISABLE_COMPILE_CACHE": "1",
+    "FOLDKIT_PNPM_EXECUTABLE": "/private/tmp/foldkit-release-tools/pnpm",
+    "note": "Pinned local wrapper uses Node22.22.3 and cached pnpm11.8.0. It avoids the unrelated global launcher registry-verification failure; no project source is changed for that workaround."
+  },
+  "checks": [
+    {
+      "name": "website-source",
+      "status": 0,
+      "command": "node ../foldkit/node_modules/typescript/bin/tsc -p tsconfig.json --pretty false",
+      "cwd": "packages/website",
+      "log": "/private/tmp/foldkit-website-layout-source-sealed.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "typing-game-source",
+      "status": 0,
+      "command": "node ../../foldkit/node_modules/typescript/bin/tsc -p tsconfig.json --pretty false",
+      "cwd": "packages/typing-game/client",
+      "log": "/private/tmp/foldkit-typing-layout-source-sealed.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "application-lint",
+      "status": 0,
+      "command": "node node_modules/oxlint/bin/oxlint --config .oxlintrc.app.json --disable-nested-config packages/website/src packages/typing-game/client/src",
+      "cwd": ".",
+      "log": "/private/tmp/foldkit-website-typing-layout-application-lint-final.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "effect-lint",
+      "status": 0,
+      "command": "node node_modules/oxlint/bin/oxlint --config .oxlintrc.effect.json packages/website/src packages/website/scripts packages/typing-game/client/src",
+      "cwd": ".",
+      "log": "/private/tmp/foldkit-website-typing-layout-effect-lint.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "website-runtime",
+      "status": 0,
+      "command": "node node_modules/vitest/vitest.mjs run",
+      "cwd": "packages/website",
+      "log": "/private/tmp/foldkit-website-block-layout-runtime-pinned-final.log",
+      "logSha256": "54371cff0ca6962a375fac49771f80250b9f82e861b9b1154113a3992b07c2fc"
+    },
+    {
+      "name": "typing-game-runtime",
+      "status": 0,
+      "command": "node node_modules/vitest/vitest.mjs run",
+      "cwd": "packages/typing-game/client",
+      "log": "/private/tmp/foldkit-typing-block-layout-runtime.log",
+      "logSha256": "e0c683ad3515e21264dc65a8020f4e7939233f49a37346ef5de7f84705b374f8"
+    },
+    {
+      "name": "website-cycles",
+      "status": 0,
+      "command": "node node_modules/madge/bin/cli.js --circular --extensions ts --exclude '\\.d\\.ts$' packages/website/src",
+      "cwd": ".",
+      "log": "/private/tmp/foldkit-website-block-layout-cycles.log",
+      "logSha256": "28a0eca793e547d70dccf0703d2b51be6ce124923c447022f7a21515e5103548"
+    },
+    {
+      "name": "typing-game-cycles",
+      "status": 0,
+      "command": "node node_modules/madge/bin/cli.js --circular --extensions ts --exclude '\\.d\\.ts$' packages/typing-game/client/src",
+      "cwd": ".",
+      "log": "/private/tmp/foldkit-typing-block-layout-cycles.log",
+      "logSha256": "a4494844015cabb64fe097a87914edbf01f074b1c9224873265172b1fb398231"
+    },
+    {
+      "name": "website-snippets",
+      "status": 0,
+      "command": "node internal/layered-constructor/website-snippets/verify.mjs",
+      "cwd": ".",
+      "log": "/private/tmp/foldkit-website-layout-snippets-sealed.log",
+      "logSha256": "b0e7c38427cf39430a488f0cd06362b78517d356643c23861b0274964f0e516c"
+    },
+    {
+      "name": "website-build",
+      "status": 0,
+      "command": "pnpm --filter website build",
+      "cwd": ".",
+      "log": "/private/tmp/foldkit-website-layout-build-complete.log",
+      "logSha256": "1ecbe93f6215ad5aaa1900bdfa0506110ae938d921fd32193265478b2659dbe2"
+    },
+    {
+      "name": "prerender-sandbox-attempt",
+      "status": 1,
+      "command": "pnpm --filter website prerender",
+      "cwd": ".",
+      "log": "/private/tmp/foldkit-website-layout-prerender.log",
+      "logSha256": "603bf6cb1c7c86b42d08d5882c642c0a734d446327389bcf986d9fdc7faea4cf"
+    },
+    {
+      "name": "prerender-built-bundle-browser-retry",
+      "status": 0,
+      "command": "node dist-scripts/prerender.js",
+      "cwd": "packages/website",
+      "log": "/private/tmp/foldkit-website-layout-prerender-browser.log",
+      "logSha256": "bcb01d9fd169aac78156ae2e9d4fde61529a53baef5af77236145796d12ada7a"
+    },
+    {
+      "name": "pagefind-postprerender",
+      "status": 0,
+      "command": "pnpm --filter website run postprerender",
+      "cwd": ".",
+      "log": "/private/tmp/foldkit-website-layout-pagefind.log",
+      "logSha256": "a666354291a33fee4e9ba05b87aee77dc0a412e5df1b5ac16dcca3a2d1601152"
+    },
+    {
+      "name": "rendered-docs-chromium-smoke",
+      "status": 0,
+      "command": "FOLDKIT_WEBSITE_E2E_PORT=4187 pnpm --filter website exec playwright test e2e/smoke.spec.ts --project=chromium",
+      "cwd": ".",
+      "log": "/private/tmp/foldkit-website-layout-browser-smoke.log",
+      "logSha256": "f5f00cae7871da95020c5a80255817a110cdaef1449290f9ee952297a99cf032"
+    }
+  ],
+  "counts": {
+    "website": {
+      "files": 39,
+      "tests": 1528
+    },
+    "typingGame": {
+      "files": 3,
+      "tests": 30
+    },
+    "snippets": {
+      "completeRoots": 128,
+      "runtimeTests": 9,
+      "activeAuditFiles": 515,
+      "historicalHashes": 33,
+      "copiedDeclarationMutationControls": 2
+    },
+    "prerender": {
+      "routes": 225,
+      "markdownPages": 224,
+      "playgroundMetadataShells": 35,
+      "ogImages": 261,
+      "jsonDocuments": 232,
+      "pagefindPages": 225
+    },
+    "chromiumSmoke": 6
+  },
+  "snippetReceipt": "internal/layered-constructor/website-snippets/verification-JJDw6v/results.json",
+  "artifacts": [
+    {
+      "path": "packages/website/dist/index.html",
+      "bytes": 140220,
+      "sha256": "380f0254da0f13c4af44a9bfb5d01c62f24efa16e055b40d070fb3dc89e25b30"
+    },
+    {
+      "path": "packages/website/dist/core/update/index.html",
+      "bytes": 391112,
+      "sha256": "1ef310833a70cc547302f69139ea150ee4a6b25da18a8bfc8983d5fc752701f9"
+    },
+    {
+      "path": "packages/website/dist/patterns/project-organization/index.html",
+      "bytes": 326387,
+      "sha256": "57b3d00ae53a05d042a00c51553ac1ab0ba7fbc1b6d40db22bee9404d62ac7b4"
+    },
+    {
+      "path": "packages/website/dist-server/entry.server.js",
+      "bytes": 14105272,
+      "sha256": "90a8500b578c8448bfd570271dbfee7b3b01df40282e3972c18ff82300a7c668"
+    },
+    {
+      "path": "packages/website/dist-scripts/prerender.js",
+      "bytes": 970859,
+      "sha256": "24f78631b8a31fcebee431980ed7a3401b5b72b8017f97e54e14244874410ee9"
+    },
+    {
+      "path": "packages/website/dist/pagefind/pagefind.js",
+      "bytes": 45555,
+      "sha256": "252d272bd34d483d19a752060f6a065114d15ab12c42d8f905ca565e2768a009"
+    }
+  ],
+  "preservation": {
+    "publishedMarkdown": "unchanged",
+    "dedicatedReleaseSnippets": "unchanged",
+    "publishedRuntimeRenderer": "only two required relative imports follow moved live UI modules",
+    "staticTestSyntax": {
+      "files": 42,
+      "testOrItCallsites": 330,
+      "expectCallsites": 726,
+      "limitation": "Counts are not a semantic-equivalence proof; actual suites also pass."
+    }
+  },
+  "retryReason": "Initial prerender server/script builds succeeded, but Chromium launch failed at the sandbox macOS MachPort bootstrap boundary before any route rendered. The exact built normal script succeeded with browser permission; normal Pagefind postprerender followed.",
+  "cleanup": {
+    "playwright": "exited normally",
+    "browserResource": "normal prerender scope closed",
+    "serverPort": 4187,
+    "listenersAfterExit": 0
+  },
+  "limitations": [
+    "The source hash covers Website and TypingGame files/configs only.",
+    "The browser smoke runs the normal dev server; production rendering is covered separately by the normal prerender.",
+    "TypeDoc unresolved-symbol/chunk-size warnings and development slow-render/overlay-preservation diagnostics were not suppressed.",
+    "No performance claim is made by these functional checks."
+  ]
+}

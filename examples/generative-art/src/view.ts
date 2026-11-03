@@ -2,7 +2,7 @@ import { Array, Option, pipe } from 'effect'
 import { Canvas } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 import type { ViewInputs as SliderViewInputs } from '@foldkit/ui/slider'
 
 import {
@@ -339,7 +339,7 @@ const controlButton = (
   onClick: Message,
   h: ApplicationViewBuilder,
 ): Html =>
-  Button.view(
+  buttonView(
     {
       onClick,
       toView: attributes =>

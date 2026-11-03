@@ -6,14 +6,14 @@ A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget:
 
 ### Programmatic API and Completed Type
 
-Programmatic operations are exposed through the Binding. Call `menu.requestOpen()` and `menu.requestClose()`. Call `menu.requestSelectItem(item, index)` with the selected item and index.
+Programmatic operations are exposed through the Binding. `requestOpen()` and `requestClose()` are generated from Menu InMessages and run `inMessageUpdate`. `requestSelectItem(item, index)` retains its positional adapter and exact item type.
 
 What `Menu.makeBlock<Item>()` returns is typed [`Completed<Item>` from `@foldkit/ui/menu`](/ui/selection-blocks#completed-type), for the cases where a created Block has to be named rather than called directly.
 
 Use `Menu.makeBlock()` for plain strings. Connect the completed Block returned by `Menu.makeBlock<Item>()` when the item type is narrower.
 
 :::Info{label="See it in an app"}
-Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/menu.ts).
+Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/menu.ts).
 :::
 
 ## Examples

@@ -1,4 +1,4 @@
-import { Option } from 'effect'
+import { Array, Option, Predicate } from 'effect'
 import { EventEmitter, once } from 'node:events'
 import {
   cpSync,
@@ -13,7 +13,12 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { type ViteDevServer, createServer as createViteServer } from 'vite'
+import {
+  type Plugin,
+  type ViteDevServer,
+  createServer as createViteServer,
+  isRunnableDevEnvironment,
+} from 'vite'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { foldkit } from '../src/index.ts'
@@ -59,6 +64,7 @@ type DevServer = Readonly<{
 const startServer = async (
   root: string,
   serverOptions: Readonly<{ hmr?: false }> = {},
+  plugins: ReadonlyArray<Plugin> = [],
 ): Promise<DevServer> => {
   const hotUpdates = new EventEmitter()
   const server = await createViteServer({
@@ -78,6 +84,7 @@ const startServer = async (
           }
         },
       },
+      ...plugins,
     ],
     // NOTE: With the watcher off, the test reports each edit to Vite itself,
     // so it controls when Vite sees each edit.
@@ -124,7 +131,119 @@ const render = async (origin: string): Promise<string> => {
   return response.text()
 }
 
+const readDefinitionOwner = (root: string, { server }: DevServer): object => {
+  const environment = server.environments.ssr
+
+  if (!isRunnableDevEnvironment(environment)) {
+    throw new Error('Expected a runnable SSR environment')
+  }
+
+  const modules = environment.runner.evaluatedModules.getModulesByFile(
+    join(root, 'definition.ts'),
+  )
+  const definitionModule = Option.getOrThrow(
+    Array.head(Array.fromIterable(modules ?? [])),
+  )
+  const definition: unknown = definitionModule.exports?.ApplicationDefinition
+
+  if (
+    !Predicate.isObject(definition) ||
+    !Predicate.hasProperty(definition, 'owner') ||
+    !Predicate.isObject(definition.owner)
+  ) {
+    throw new Error('Expected the evaluated Block Definition owner')
+  }
+
+  return definition.owner
+}
+
 describe('Block Definition declarations under the SSR dev server', () => {
+  it(
+    'keeps non-HMR requests consistent across asynchronous file invalidation',
+    async () => {
+      const root = copyFixtureToTemporaryRoot()
+      const file = join(root, 'declarations.ts')
+      const changes = new EventEmitter()
+      const entered = once(changes, 'entered')
+      const released = once(changes, 'released')
+      const invalidated = once(changes, 'invalidated')
+      const devServer = await startServer(root, { hmr: false }, [
+        {
+          name: 'test:asynchronous-watch-change',
+          perEnvironmentWatchChangeDuringDev: true,
+          watchChange(id, change) {
+            if (
+              this.environment.name === 'ssr' &&
+              id === file &&
+              change.event === 'update'
+            ) {
+              changes.emit('entered')
+              return released.then(() => undefined)
+            }
+
+            return undefined
+          },
+        },
+      ])
+      const environment = devServer.server.environments.ssr
+      const invalidateFile = environment.moduleGraph.onFileChange.bind(
+        environment.moduleGraph,
+      )
+      const observer = vi
+        .spyOn(environment.moduleGraph, 'onFileChange')
+        .mockImplementation(changed => {
+          invalidateFile(changed)
+
+          if (changed === file) {
+            changes.emit('invalidated')
+          }
+        })
+      onTestFinished(() => observer.mockRestore())
+
+      try {
+        expect(await render(devServer.origin)).toBe('revision 1')
+        const originalOwner = readDefinitionOwner(root, devServer)
+        expect(await render(devServer.origin)).toBe('revision 1')
+        expect(readDefinitionOwner(root, devServer)).toBe(originalOwner)
+
+        writeFileSync(
+          file,
+          fixtureSource(root, 'declarations.ts').replace(
+            'revision = 1',
+            'revision = 2',
+          ),
+        )
+        devServer.server.watcher.emit('change', file)
+        await entered
+
+        expect(await render(devServer.origin)).toBe('revision 1')
+        const duringOwner = readDefinitionOwner(root, devServer)
+
+        const overlappingRequest = render(devServer.origin)
+        changes.emit('released')
+        await invalidated
+
+        const [overlapping, ...following] = await Promise.all([
+          overlappingRequest,
+          render(devServer.origin),
+          render(devServer.origin),
+          render(devServer.origin),
+        ])
+        expect(['revision 1', 'revision 2']).toContain(overlapping)
+        expect(following).toEqual(['revision 2', 'revision 2', 'revision 2'])
+        expect(duringOwner).toBe(originalOwner)
+
+        const nextOwner = readDefinitionOwner(root, devServer)
+        expect(nextOwner).not.toBe(originalOwner)
+        expect(await render(devServer.origin)).toBe('revision 2')
+        expect(readDefinitionOwner(root, devServer)).toBe(nextOwner)
+      } finally {
+        changes.emit('released')
+      }
+    },
+    DEV_SERVER_TEST_TIMEOUT_MS,
+  )
+
   it(
     'reevaluates a split Block Definition when HMR is disabled',
     async () => {

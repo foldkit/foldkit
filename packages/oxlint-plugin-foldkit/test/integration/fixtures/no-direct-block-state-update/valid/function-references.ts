@@ -36,7 +36,7 @@ const EntriesBinding = ApplicationDefinition.makeBinding(
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ChildBinding, EntriesBinding],
 })
-const revealPreferenceErrorsStep = ApplicationDefinition.makeFieldsStep(() => ({
+const revealPreferenceErrors = ApplicationDefinition.makeFieldsStep(() => ({
   preferences: Foreign.revealErrors,
 }))
 
@@ -54,7 +54,7 @@ export const update = ApplicationComposition.makeUpdate({
     })
 
     return Update.combineSteps(model, [
-      revealPreferenceErrorsStep,
+      revealPreferenceErrors,
       ApplicationDefinition.makeNoopStep(),
       ChildBinding.informThemeChanged({ theme: 'Light' }),
       EntriesBinding.informThemeChanged('retained', { theme: 'Light' }),

@@ -1,0 +1,127 @@
+{
+  "repository": "/private/tmp/foldkit-update-composition-20261102",
+  "head": "8fc55dd925e4e5803ab8c9e9b4fb74a3ff7afbef",
+  "node": "v22.22.3",
+  "nodeExecutable": "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+  "ownedPaths": {
+    "packages/vite-plugin-foldkit/src/ssr.ts": "9c1628dacd7b613adc79f8d80fc16a692c6b140fd2c340eab3cfa1a3e9ac1a20",
+    "packages/vite-plugin-foldkit/test/serverModuleReevaluation.test.ts": "3f3b6a55c48f9bbf18026ef4a4467b84d59023072bebd4eeb7ac381c9fcc2ef3",
+    "packages/vite-plugin-foldkit/test/buildDevTools.test.ts": "23bd267b7daeaa80780443009c737929451d4dcfa04b15e82f81d47241e45dc7",
+    ".changeset/non-hmr-server-declaration-reloads.md": "21a18c98f2ac30f8f2d4c05aee75e535d6a022e86db7253121be1705d7908b3c"
+  },
+  "originalHashes": {
+    "src/ssr.ts": "bd32dc1df3b3b9d5bcc38af29b38661969ba444b4e54a3714f943bcf32e489fc",
+    "test/serverModuleReevaluation.test.ts": "97c5310078aa995d7c86726076461c1c8a6eb7de18b91282ad6c67b216703966"
+  },
+  "diagnosis": {
+    "path": "Non-HMR development SSR only",
+    "cause": "Foldkit invalidated the full graph in watchChange before Vite completed asynchronous hooks and later invalidated the edited module/importers. A request between these phases created a fresh Definition. The later partial invalidation reevaluated declarations against that cached owner and correctly triggered duplicate registration protection.",
+    "redTrace": {
+      "duringStatus": 200,
+      "duringText": "revision 1",
+      "ownerRecreatedBeforeViteFileInvalidation": true,
+      "afterStatus": 500,
+      "ownerRetained": true,
+      "error": "Block Application declares Command LoadPreferences more than once."
+    },
+    "reproduction": "/private/tmp/foldkit-ssr-watchchange-repro-driver.mjs",
+    "log": "/private/tmp/foldkit-ssr-watchchange-repro.log"
+  },
+  "fix": "Non-HMR requests compare the public entry invalidation stamp, refresh the whole graph once after Vite invalidation, store the resulting stamp, then immediately start runner.import in that same async continuation. Non-HMR watchChange no longer invalidates early. Hot gate/dispose path is unchanged.",
+  "invariants": [
+    "unchanged requests reuse the same Definition owner",
+    "request during async watchChange returns the consistent prior generation",
+    "requests overlapping/after Vite completion return a valid generation, with post-boundary requests on revision2",
+    "concurrent identical imports share one new owner",
+    "duplicate same-generation declarations remain rejected",
+    "hot updates retain gate/dispose/finalizer behavior"
+  ],
+  "verification": [
+    {
+      "name": "deterministic temporary reproduction",
+      "status": 1,
+      "log": "/private/tmp/foldkit-ssr-watchchange-repro.log"
+    },
+    {
+      "name": "durable regression before production fix",
+      "status": 1,
+      "log": "/private/tmp/foldkit-ssr-request-boundary-red.log"
+    },
+    {
+      "name": "durable regression fixed",
+      "status": 0,
+      "log": "/private/tmp/foldkit-ssr-request-boundary-green.log"
+    },
+    {
+      "name": "focused SSR lifecycle matrix",
+      "status": 0,
+      "tests": 73,
+      "log": "/private/tmp/foldkit-ssr-request-boundary-focused.log"
+    },
+    {
+      "name": "restored SSR+reload+overlay matrix",
+      "status": 0,
+      "tests": 78,
+      "files": 3,
+      "log": "/private/tmp/foldkit-vite-owned-restored-focused.log"
+    },
+    {
+      "name": "full package source/test typecheck",
+      "status": 0,
+      "log": "/private/tmp/foldkit-vite-owned-types-final.log"
+    },
+    {
+      "name": "Effect lint touched source/test files",
+      "status": 0,
+      "log": "/private/tmp/foldkit-ssr-request-boundary-effect-lint.log"
+    },
+    {
+      "name": "normal root lint",
+      "status": 0,
+      "note": "Root config intentionally excludes this whole package. Diagnostic projection enabling it found only unchanged HeadersInit assertion at old source line235/current262; not claimed as an additional passing gate.",
+      "log": "/private/tmp/foldkit-ssr-request-boundary-lint-included.log"
+    },
+    {
+      "name": "format and git diff --check",
+      "status": 0,
+      "log": "/private/tmp/foldkit-vite-owned-format-final.log"
+    }
+  ],
+  "mutations": {
+    "results": [
+      {
+        "name": "missing-full-refresh",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "test/serverModuleReevaluation.test.ts",
+          "-t",
+          "asynchronous file invalidation",
+          "--reporter=verbose"
+        ],
+        "log": "/private/tmp/foldkit-ssr-request-boundary-missing-full-refresh.log"
+      },
+      {
+        "name": "stale-consumed-stamp",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "test/serverModuleReevaluation.test.ts",
+          "-t",
+          "asynchronous file invalidation",
+          "--reporter=verbose"
+        ],
+        "log": "/private/tmp/foldkit-ssr-request-boundary-stale-consumed-stamp.log"
+      }
+    ],
+    "restored": true
+  },
+  "overlayReceipt": "/private/tmp/foldkit-build-devtools-readiness-receipt.json",
+  "sharedBuildsOrArtifactChanges": false,
+  "frozen": true,
+  "integration": "Root owns full plugin suite, plugin artifact rebuild, packed release gates and commit/review. No broad suite repeated here after the focused restored run."
+}

@@ -3,8 +3,8 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import {
   CounterComposition,
-  incrementAndSaveStep,
-  reportChildStep,
+  incrementAndSave,
+  reportChild,
 } from './message-steps.accepted.js'
 import {
   CounterDefinition,
@@ -19,7 +19,7 @@ import {
   ParentModel,
 } from './record-update.accepted.js'
 
-incrementAndSaveStep(
+incrementAndSave(
   Model.make({ count: 0 }),
   // @ts-expect-error A Model-first handler retains the exact Message variant.
   Message.RequestedReport({ label: 'wrong' }),
@@ -92,22 +92,22 @@ const Foreign = ForeignDefinition.makeCommand('Foreign', {
 // @ts-expect-error A foreign Command result Message is rejected.
 makeStep.fromMessage(() => ({ model: { count: 0 }, commands: [Foreign()] }))
 
-const wrongTagStep = makeStep.fromMessage(
+const wrongTag = makeStep.fromMessage(
   (_message: typeof Message.RequestedReport.Type) =>
     CounterDefinition.makeNoopStep(),
 )
-const ordinaryWrongTagStep = makeStep(
+const ordinaryWrongTag = makeStep(
   (model, _message: typeof Message.RequestedReport.Type) => ({ model }),
 )
 CounterComposition.makeUpdate({
   // @ts-expect-error A Model-aware Step cannot be installed under another Message tag.
-  RequestedIncrement: ordinaryWrongTagStep,
+  RequestedIncrement: ordinaryWrongTag,
   RequestedReport: CounterDefinition.makeNoopStep(),
   CompletedSave: CounterDefinition.makeNoopStep(),
 })
 CounterComposition.makeUpdate({
   // @ts-expect-error Installing the handler under a different tag cannot change its accepted Message.
-  RequestedIncrement: wrongTagStep,
+  RequestedIncrement: wrongTag,
   RequestedReport: CounterDefinition.makeNoopStep(),
   CompletedSave: CounterDefinition.makeNoopStep(),
 })
@@ -115,25 +115,25 @@ CounterComposition.makeUpdate({
 CounterComposition.prepareBlock({
   init: CounterComposition.makeInit(() => ({ model: { count: 0 } })),
   update: CounterComposition.makeUpdate({
-    RequestedIncrement: incrementAndSaveStep,
+    RequestedIncrement: incrementAndSave,
     RequestedReport: CounterDefinition.makeNoopStep(),
     CompletedSave: CounterDefinition.makeNoopStep(),
   }),
 })
 
 // @ts-expect-error A raw Model does not establish child registration.
-reportChildStep(ParentModel.make({ child: { count: 0 }, count: 0 }), {
+reportChild(ParentModel.make({ child: { count: 0 }, count: 0 }), {
   _tag: 'RequestedReport',
 })
 const UnregisteredComposition = ParentDefinition.makeComposition()
 UnregisteredComposition.makeUpdate({
   RequestedQuiet: ParentDefinition.makeNoopStep(),
   // @ts-expect-error Message-only authoring preserves the child's registration requirement.
-  RequestedReport: reportChildStep,
+  RequestedReport: reportChild,
   RequestedSave: ParentDefinition.makeNoopStep(),
   CompletedSave: ParentDefinition.makeNoopStep(),
 })
-const lossyStep = ParentDefinition.makeStep.fromMessage(() =>
+const lossy = ParentDefinition.makeStep.fromMessage(() =>
   Update.combineSteps([
     ParentDefinition.makeNoopStep(),
     ChildBinding.report({ amount: 1 }),
@@ -142,7 +142,7 @@ const lossyStep = ParentDefinition.makeStep.fromMessage(() =>
 ParentComposition.makeUpdate({
   RequestedQuiet: ParentDefinition.makeNoopStep(),
   // @ts-expect-error Sequential Steps cannot silently drop a connected OutMessage.
-  RequestedReport: lossyStep,
+  RequestedReport: lossy,
   RequestedSave: ParentDefinition.makeNoopStep(),
   CompletedSave: ParentDefinition.makeNoopStep(),
 })

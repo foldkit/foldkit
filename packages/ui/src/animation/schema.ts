@@ -31,17 +31,22 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   Showed: {},
   Hid: {},
-  RequestedShow: {},
-  RequestedHide: {},
-  RequestedWaitForLeaveSettlement: {},
   RequestedFinish: { generation: Schema.Number },
-  RequestedToggle: {},
-  RequestedResume: {},
-  RequestedImmediateReset: {},
   CompletedWaitForPaint: { generation: Schema.Number },
   EndedAnimation: { generation: Schema.Number },
 })
 export type Message = typeof Message.Type
+
+/** Parent requests handled separately from Animation lifecycle facts. */
+export const InMessage = defineMessageUnion({
+  RequestedShow: {},
+  RequestedHide: {},
+  RequestedWaitForLeaveSettlement: {},
+  RequestedToggle: {},
+  RequestedResume: {},
+  RequestedImmediateReset: {},
+})
+export type InMessage = typeof InMessage.Type
 
 export type Showed = typeof Message.Showed.Type
 export type Hid = typeof Message.Hid.Type
@@ -58,10 +63,11 @@ export type OutMessage = typeof OutMessage.Type
 // INIT
 
 /** Configuration for creating an animation model with `init`. */
-export type InitConfig = Readonly<{
-  id: string
-  isShowing?: boolean
-}>
+export const InitConfig = Schema.Struct({
+  id: Schema.String,
+  isShowing: Schema.optionalKey(Schema.Boolean),
+})
+export type InitConfig = typeof InitConfig.Type
 
 /** @internal Creates the initial Animation Model before Composition authoring. */
 export const makeInitialModel = (config: InitConfig): Model => ({

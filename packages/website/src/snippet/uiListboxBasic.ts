@@ -1,19 +1,17 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Listbox } from '@foldkit/ui'
-import { buttonId as ListboxButtonId } from '@foldkit/ui/listbox'
+import {
+  buttonId as ListboxButtonId,
+  layer as ListboxLayer,
+  makeBlock as makeListboxBlock,
+} from '@foldkit/ui/listbox'
 
 const Plan = Schema.Literals(['Free', 'Pro', 'Enterprise'])
 type Plan = typeof Plan.Type
-// Declare a typed Listbox once at module scope. `view` and `update` are
-// bound to `Plan`: `items` is typed as `ReadonlyArray<Plan>` and the
-// OutMessage carries `value: Plan`.
-const PlanListbox = Listbox.makeBlock<Plan>()
+// One passive contract retains Plan in its view inputs and OutMessages.
+const PlanListbox = makeListboxBlock<Plan>()
 
 // Add a field to your Model for the Listbox Block, plus a field for
 // the selected value your app actually cares about. Using the `Plan`
@@ -28,7 +26,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const PlanPickerKey = Symbol('PlanPicker')
+
 const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
+  key: PlanPickerKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -50,17 +53,15 @@ const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it delegates keyboard
-// navigation, typeahead, and open/close to PlanListbox.update, writes the next
-// Listbox Model back, routes generated delivery and Command results, and
-// hands any OutMessage to the OutMessage fold.
-const PlanListboxBinding = PlanPickerDefinition.makeBinding(PlanListbox, {
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
+const ListboxBinding = PlanPickerDefinition.makeBinding(PlanListbox, {
   field: 'listbox',
-  init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },
+  init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const PlanPickerComposition = PlanPickerDefinition.makeComposition({
-  bindings: [PlanListboxBinding],
+  bindings: [ListboxBinding],
 })
 
 // In your init function, initialize the Listbox Block with a unique id:
@@ -87,7 +88,7 @@ const view = PlanPickerComposition.makeView((model, h) =>
     [
       h.label([h.For(ListboxButtonId('plan'))], ['Plan']),
       h.block(
-        PlanListboxBinding.embedView({
+        ListboxBinding.embedView({
           slotId: 'plan',
           model: model.listbox,
           viewInputs: {
@@ -120,3 +121,16 @@ const view = PlanPickerComposition.makeView((model, h) =>
     ],
   ),
 )
+
+export const ApplicationBlock = PlanPickerDefinition.makeBlock(
+  Effect.gen(function* () {
+    const planListbox = yield* ListboxBinding
+
+    return {
+      children: [planListbox],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(ListboxLayer)

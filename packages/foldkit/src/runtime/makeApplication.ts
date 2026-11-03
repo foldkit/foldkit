@@ -24,11 +24,7 @@ import { Url, fromString as urlFromString } from '../url/index.js'
 import type { RoutingConfig } from './browserListeners.js'
 import type { CrashConfig } from './crashUI.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
-import {
-  containRefusedPage,
-  findDocumentHydration,
-  hasServerRenderedMarkup,
-} from './hydrationHandoff.js'
+import { resolveApplicationContainer } from './hostContainer.js'
 import {
   type FlagsSchemaConfig,
   type MakeRuntimeReturn,
@@ -412,9 +408,10 @@ type ValidUpdate<Model, Update> = Update extends (
  * Creates the self-contained page runtime used by Application completion.
  * Its view returns a Document, so the runtime manages document.title and the
  * canonical and og:url tags. Add routing configuration for URL routing, and
- * use one Application per document. Complete Applications whose handlers or
- * Flags require Services with the owning Composition's `prepareBlock` method,
- * pass that Block to `Program.make`, and supply Services through the Program's
+ * use one Application per document. Complete the root with
+ * `ApplicationDefinition.makeBlock`, returning local handler recipes as
+ * `EffectsLayer` from its constructor. Pass that Block to `Program.make` and
+ * supply Services required by handlers or Flags through the Program's
  * `provide` method. Use `Program.makeElement` for rendering scoped to a node
  * without changing the document head.
  */
@@ -655,25 +652,8 @@ export function makeApplication<
   const hasRouting = 'routing' in config
   const hasFlags = 'Flags' in config
 
-  const hydration = findDocumentHydration(container, hasFlags)
-
-  const resolvedContainer = hydration?.root ?? container
-  if (resolvedContainer === null) {
-    // A server-rendered page whose root lost its stamp reaches exactly here:
-    // template injection put the render where the placeholder was, so
-    // `getElementById` finds nothing and the stamp that would have named the
-    // root is gone. There is no handoff to refuse further along, and the markup
-    // is as live as any other refused page, so it is contained here.
-    if (hasServerRenderedMarkup(document)) {
-      containRefusedPage(document)
-    }
-    throw new Error(
-      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
-        'before calling makeApplication (e.g. that your <div id="root"></div> has ' +
-        'rendered, and your script runs after it). On a server-rendered page ' +
-        'the runtime instead finds the root by its `data-foldkit-app` stamp.',
-    )
-  }
+  const { container: resolvedContainer, hydration } =
+    resolveApplicationContainer(container, hasFlags)
 
   const currentUrl: Url | undefined = hasRouting
     ? Option.getOrThrow(urlFromString(window.location.href))

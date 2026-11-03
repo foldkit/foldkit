@@ -1,5 +1,144 @@
 # Next preview tasks
 
+## Unified Block and direct Layer follow-up
+
+- [x] Prototype one `Block.make` value carrying declared contracts and bound
+      authoring helpers without a separate Definition or contract projection.
+- [ ] Prove checked `Block.makeLayer` completion returning an ordinary Layer,
+      exact root hosting/providers, host-owned handlers, constructor failures,
+      implementation-specific test access, passive initialization and cleanup.
+- [x] Rename receive to `inMessageUpdate`, including its module, builder,
+      direct/curried entry points, public types and tooling.
+- [x] Reuse ordered update composition for InMessages, preserving the original
+      before Model, exact input narrowing, Commands and OutMessage checks.
+- [ ] Preserve Element, Document and viewless contracts; reject Document
+      embedding without prohibiting every state/operation Binding to it.
+- [ ] After the proof passes, migrate all active consumers, factories, tests,
+      scaffolds, guidance, lint recognition and migration material. Preserve
+      historical content and unchanged compiler workloads and ceilings.
+- [x] Reconcile every actionable preview PR comment and relevant issue/PR,
+      recording concrete source/test evidence and actual unresolved requests.
+- [x] Verify the canonical API through source, emitted and strict relocated
+      consumers, application behavior, the 9,099-test matrix, 22 Website browser
+      checks and packed Chromium/Firefox/WebKit consumers. These checks do not
+      verify the failed isolated Block prototype.
+- [x] Make the native packed-consumer checker stage actual pending Changesets
+      versions before strict installation. Preserve declared peer floors and
+      active package files; reject insufficient plans. All three browser engines,
+      238 script tests and four implementation-mutation controls pass locally.
+- [x] Isolate real Vite test servers' dependency caches by server under a
+      run-owned temporary root. Preserve optimizer behavior and server teardown;
+      the 387-test suite and post-process cache-removal check pass.
+- [ ] Review the exact committed release-gate follow-up and push it through
+      the mandatory pre-push hook to the preview branch. Do not publish.
+
+The [frozen Block API proof](block-api-simplification/README.md) does not meet the
+required adoption gates. Focused ordinary and generic consumers work, but the
+adapted deep/wide/Workspace workloads exceed the unchanged compiler ceilings.
+A same-owner, different-handler Layer pairing is rejected at Runtime but still
+accepted by TypeScript. No broad migration is performed, no budget is raised,
+and this work is not marked complete or approved for deferral. Reproducible
+patches, preserved assertions and bounded controls are included in the report.
+
+## November 3 input-update and scoped-test checkpoint
+
+The canonical input entry point is now `inMessageUpdate`, authored through
+`Composition.makeInMessageUpdate`. It shares ordered composition with local
+updates while retaining its separate input union and Context. The old names
+are removed; generated Binding operation names remain unchanged. Source,
+emitted and strictly relocated consumers, focused runtime controls, affected
+apps, all 1,357 UI tests and all seven unchanged compiler budgets pass. The
+[prototype report](inmessage-update-prototype/README.md) retains the compiler
+ownership controls and migration limits.
+
+The repository-wide scoped-runner pass is complete. Its
+[exception inventory](update-composition/scoped-tests-and-binding-names.md)
+explains the remaining acquired fixtures and Promise bridges. This checkpoint
+does not verify the still-isolated unified Block/direct Layer prototype.
+
+GitHub feedback was refreshed through 07:55 UTC on November 3 after the
+exhaustive [closure audit](update-composition/feedback-closure-20261103.md).
+The updated items contain no new Blocks/Layers defect or reply; #1658 and #1605
+are refreshed general Form and Query cache proposals.
+Daybreak transfer and review remain explicitly on hold. Release publication
+also remains held for separate user approval.
+
+The [new frozen Lustre batch](update-composition/rendering-inmessage-20261103/README.md)
+retains all 32 samples. The naive median improves by 20.4%; the optimized median
+is 12.7% slower, with about 32 KB more gzip. This does not isolate feature costs
+or establish a general speedup. The input-update commit `8fc55dd9` has passed
+exact-commit independent review; the release-gate follow-up requires its own
+review before pushing.
+
+## Current constructor and update follow-up
+
+- [x] Restore ordinary constructor-authored Blocks' explicit `hostHandlers`
+      and `provideHandlers` support, including exact handler identities,
+      requirements, constructor errors, and refusal of incomplete Programs.
+- [x] Support reusable focused update bundles, preserving application order,
+      one exhaustive update, child routing once, and the original `before` Model
+      across grouping.
+- [x] Resolve the shared callback inference gap and pass the unchanged compiler
+      ceilings before exposing composition on the public Composition builder.
+- [x] Verify a realistic split-file consumer with connected child operations,
+      Commands, and scoped Story tests through public APIs.
+- [x] Apply the user's organization and import comments across examples,
+      Website, and Typing Game. Update canonical guidance and active snippets;
+      preserve historical posts and labelled migration-before examples.
+- [x] Complete source and relocated emitted consumers, focused runtime checks,
+      unchanged compiler budgets, representative editor checks, and the
+      application test matrix.
+- [x] Address React host container IDs (#1874) and relay namespace liveness
+      (#1875, adapting PR #1877); verify the existing SSR hot-update repair
+      against #1876. Linux-only relay integration tests await a Linux runner.
+- [x] Repair app-owned portal cleanup (#1865) and pointer-open Menu navigation
+      (#1866). All 1,357 UI tests pass, including the new regressions.
+- [x] Refresh the Lustre comparison with actual main. Preserve its wide sample
+      ranges and the remaining optimized-workload and bundle-size costs.
+- [x] Finish the final packed consumer rehearsal with strict TypeScript 6
+      consumers and the existing Chromium, Firefox, and WebKit matrix.
+- [x] Integrate the five outstanding main-sync worktree edits and address the
+      application comments. Apply the public Binding convention across apps
+      and active snippets, with child validation queries behind explicit barrels.
+- [x] Format Block constructors with a blank line after child acquisition and
+      one returned implementation field per line. Update canonical guidance,
+      skills, scaffolds, active snippets, and implementation examples.
+- [x] Document the explicit Block feature API: passive contract, construction
+      Layer, and intentional pure read-only selectors. Explain that ordinary
+      selector exports are independent of implementation Layer selection.
+- [x] Name field-backed Bindings after their Model fields, preserving plurals
+      and roles: `activeMemberListbox` becomes `ActiveMemberListboxBinding`.
+      Use relationship names for custom storage without one declared field.
+- [ ] Complete exact-commit independent review before integration and push.
+- [ ] Complete a fresh Daybreak addendum after the user lifts the review hold
+      and authorizes the source transfer. Publication also requires approval.
+- [x] Prepare a [release summary](update-composition/RELEASE-SUMMARY.md) with
+      exact verified scope and outstanding work. Publication requires approval.
+
+Bookmarked separately: rename `Query.define` to `Query.makeBlock` for ordinary
+and keyed Queries. This naming change is not part of the current work.
+
+Open general proposals #1871 (external dispatch frames) and #1872 (a provided
+frame scheduler) are not implemented. Neither has been accepted into this
+stabilization batch or approved for deferral. See the
+[feedback reconciliation](update-composition/final-feedback.md).
+
+## Story and Scene test adoption
+
+- [x] Audit Story and Scene tests across examples, Website, Typing Game, UI,
+      framework tests, and scaffold templates. Use Block-aware runners for
+      ordinary Block behavior and `@effect/vitest`'s `it.effect` for tests that
+      return Effects. Keep deliberately synchronous runner tests synchronous.
+- [x] Replace routine `withBlock` wrappers and manual executable extraction
+      with direct `story(Block, ...)` and `scene(Block, ...)` calls. Retain
+      `withBlock` for fixtures needing acquired operations or custom views.
+- [x] Prefer `init(...)` and explicit Command resolution for startup scenarios.
+      Preserve deliberate `given(model)` fixtures, Model assertions in Stories,
+      view assertions in Scenes, construction cleanup, and test isolation.
+- [x] Update canonical guidance and active testing snippets with the adopted
+      pattern, preserving published historical examples. Verify affected suites
+      and report intentional exceptions.
+
 ## Release boundary
 
 The verified published snapshot is
@@ -15,6 +154,136 @@ open against Foldkit main. The preceding
 sections below retain their original source pins and states as historical
 evidence. The user's publication approval and completed gates supersede the
 earlier holds.
+
+## November 2 construction and InMessage stabilization checkpoint
+
+[Current scope and remaining gates](layered-constructor/STABILIZATION.md).
+The constructor and update follow-up above supersedes this checkpoint's
+pending hook experiment and Daybreak status.
+
+- [x] Complete repository adoption of independent contracts, portable typed
+      builders, Layer construction, scoped tests, and separate InMessages.
+- [x] Independently review the migration and dependency follow-up commits.
+- [x] Compare the migration with the preceding preview using the unchanged
+      rendering workload; retain the separate whole-preview/main comparison.
+- [x] Patch compatible vulnerable dependencies and verify ordinary packed
+      MCP/scaffold consumers. Record the two remaining moderate tool findings.
+- [x] Implement #1867 Dialog close notifications, #1869 repeated stream Mount
+      test emissions, and #1870 awaitable embed cleanup, with focused regressions.
+- [x] Complete all 22 integration groups, the application test matrix, strict
+      packed SSR/Chromium consumers, maintenance checks, and independent review
+      of the exact feedback-fix commit `db69206779`.
+- [x] Build and prerender the Website through its normal workflow, indexing
+      225 pages with Chromium access.
+- [x] Finish the final frozen-source benchmark against actual main, retaining
+      all 32 samples and earlier comparison scopes. Record +21.6% naive and
+      +25.8% optimized execution time, with about 40 KB more gzip over main.
+- [ ] Resolve #1868's inline producer inference before adopting its post-update
+      hook. Further experimentation awaits the pending explicit approval;
+      unapproved prototype code is archived outside production source.
+- [ ] Complete authorized Daybreak review of the final candidate, then review
+      performance, bundle growth and the remaining dependency findings.
+- [ ] Integrate and publish only through the separately approved workflow.
+
+This work is isolated on `codex/incremental-constructor-spike`. The shared
+checkout and its concurrent DOM edits are preserved. The older publication
+records below retain their original source pins and approval scopes.
+
+## October 30 feedback stabilization
+
+The user approved this bounded follow-up after the latest feedback check.
+[Implementation, dispositions and verification](preview-feedback-stabilization-20261030.md).
+
+- [x] Reproduce Binding construction's child Schema memory/CPU regression and
+      defer its checks to init without changing validation or custom equivalence.
+- [x] Repair the supported Message-free keyed field forms found by regression
+      coverage, retaining exact never channels and delivery rejection.
+- [x] Repair #1862's external VirtualList offset anchoring while retaining
+      ordinary row anchoring and Self history semantics.
+- [x] Reconcile Work Orders' Program host, missing Binding, container id and
+      Layer assembly reports against the optimized branch. Document existing
+      Message-aware gating through child update context.
+- [x] Complete final integration checks. Require independent review of the
+      exact committed diff before pushing.
+- [ ] Integrate the reviewed candidate into the preview branch through the
+      existing workflow. Do not publish without the user's approval.
+
+## Next preview: merge main and verify Effect 4.1
+
+- [x] Prepare and resolve the current main sync at
+      `b702a5efbb74bebc056b798b414ddb923a82fbd5` on the isolated
+      `codex/preview-main-sync-20261029` branch. The incoming framework and UI
+      fixes already have Block-compatible implementations in the preview.
+      [Merge assessment and verification](preview-main-sync-20261029.md).
+- [x] Prepare main's Effect 4.1 update at
+      `af4b0bc7` on the isolated main-sync candidate, preserving the preview's
+      Block APIs, TypeScript compiler pins and security overrides.
+      [Effect 4.1 integration and verification](preview-effect41-20261029.md).
+- [x] Merge subsequent main `a471adb2`, including #1856's Playground startup
+      fix and #1854's generated package versions. Preserve preview-only APIs,
+      exact release-manifest support, security overrides and the published
+      Ready snapshot. [Latest synchronization](preview-main-sync-20261029.md#latest-main-follow-up).
+- [ ] Integrate the reviewed candidate into `codex/layers-and-submodels` before
+      the next preview release. Publication requires the user's approval.
+- [x] Verify the adopted Effect/platform 4.1.0 pair through public types, packed
+      consumers, SSR/hydration and one physical Effect installation shared by
+      the application and library workspaces. Published ranges accept 4.1 patches;
+      this run does not verify an unreleased patch or a different minor.
+- [x] Address the Effect 4.1 root `Crypto` removal reported in
+      [#1733](https://github.com/foldkit/foldkit/issues/1733#issuecomment-6500513592).
+      The contributor closed [#1851](https://github.com/foldkit/foldkit/pull/1851)
+      in favor of a `SecureRandom`/`NodeCrypto.layerSecureRandom` migration
+      coordinated with the dependency upgrade. The candidate uses those Services,
+      with matching platform providers and the adopted `~4.1.0` policy.
+- [x] Rerun affected framework, application and compiler-performance gates
+      against the merged candidate. Retain all seven existing compiler budgets.
+- [x] Reproduce and repair #1853's separate Mount self-removal defect on the
+      isolated preview candidate. Register the fiber and cleanup before setup,
+      retain replacement ordering and suppress delivery after removal. The
+      dependency upgrade alone did not include this repair.
+      [Regression evidence and integration scope](mount-setup-removal-20261029.md).
+
+The user requested this ordering on October 29, after publishing `90746b32d2ca`.
+The next preview still requires separate publication approval.
+
+## October 29 upgrade feedback
+
+The subsequent [mixed-result diagnostic repair](mixed-update-diagnostics-20261029.md)
+moves the existing check onto the offending handler and names the Step repair.
+The original assessment below retains its checkpoint and earlier limitations.
+
+The [new migration report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6496365991)
+tests the published `90746b32d2ca` snapshot. Track local follow-ups separately
+from that published Ready snapshot.
+
+- [x] Reproduce npm's implicit platform-peer selection. Confirm both a root
+      `ERESOLVE` and a workspace installation containing Effect 4.0.0 and 4.0.6.
+      Verify exact matching pairs and a root transitive-peer override.
+- [x] Reproduce an upgrade retaining an older workspace snapshot. Verify the
+      documented package-tree and physical Effect-location commands against
+      mixed and coherent installs. A healthy old lockfile upgrades normally;
+      the reported irreparable prerelease lockfile needs its original inputs.
+- [x] Add actionable `MissingBuildId` guidance and a named-producer checked
+      assembly diagnostic while preserving their existing rejection contracts.
+- [x] Improve the reported mixed raw-local/connected handler diagnostic in
+      ordinary and contextual records. Preserve accepted code, exact output
+      contracts, registration rejection and all seven compiler ceilings; verify
+      inline, extracted, source and relocated-declaration consumers.
+      [Scope and enforcement limits](mixed-update-diagnostics-20261029.md).
+- [x] Correct the active Camera snippets' stale Definition imports and
+      document the shared `resource.ts` home in organization and scaffold
+      guidance. Validate the copied split-file example against public types.
+- [x] Reconcile remaining context, test-import, Layer, Struct, Markdown and
+      Schema-alias feedback against the current contracts. Record the mixed
+      connected/local diagnostic limitation without claiming it is fixed.
+- [x] Refresh the current supported-pair guidance for Effect 4.1 and extend the
+      packed consumer gate with an npm application workspace and a shared-Schema
+      library workspace. Strict installation, exact types, shared runtime
+      resolution, execution and three-browser SSR/hydration pass.
+
+The reporter retracted the mixed plain-result inferred-`any` report as a probe
+error. The earlier reports below preserve their original uncertainty.
+[Current assessment and verification](preview-stabilization-20261029.md).
 
 ## Current Blocks + Effect Layers release scope
 
@@ -738,3 +1007,53 @@ Breaking beta changes may require a complete application migration. Provide accu
 Review the exact final commit independently before pushing or integrating it.
 
 - [x] Include this work in the preview PR update and announcement handoff, following the user's October 28 clarification. It supports `foldkit-domains` and is separate from the Block/Layer migration requirements. Publication remains held for approval.
+
+## Isolated Layer-owned constructor adoption proof
+
+- [x] Integrate generic family construction with current nominal identity and
+      authenticated execution capabilities. Reuse Query and KeyedQuery behavior
+      rather than maintaining another cache or fetch state implementation.
+- [x] Preserve generic handler Services, constructor errors, original host
+      contracts, generic names and synchronous Codec guarantees. Check source,
+      strict emitted and source-free relocated consumers, actual Programs and
+      deliberately failing declaration/runtime controls.
+- [x] Keep all seven compiler fixtures and their budgets unchanged. Apply the
+      equivalent generic contract check only at family completion, preserving
+      the ordinary validation path.
+- [x] Prove registered descriptor factories, silent/default and notifying modes,
+      host-owned selection, canonical direct fetches, and exact handler channels.
+- [x] Support direct family-contract Story/Scene tests with ordinary Layer
+      provision, precise Effect headers and checked Scope ownership.
+- [x] Separate Query contracts, accessors and Fetch recipes from transitions.
+- [x] Apply the same authoring shape to an actual generic UI component and
+      representative application before selecting repository-wide migration.
+
+[Runnable proof and remaining adoption work](layered-constructor/query-contract/README.md).
+This isolated work has not been selected for a release or publication.
+
+## Contract-first construction adoption
+
+The user authorized repository-wide migration after the recursive contract/Layer proof. Work remains isolated in `/private/tmp/foldkit-incremental-constructor-20261031`; the shared checkout and its concurrent DOM changes are preserved. Construction and the subsequent InMessage migration are implemented together. Publication remains held.
+
+- [x] Prove constructor-authored children consumed only through independent public contracts, selected with ordinary Layers. Retain portable builders, deferred initialization, pure updates, original identities, and Model-owned lifecycle.
+- [x] Adopt the canonical public API, scoped Story/Scene entry points, Query family providers, and UI component contracts.
+- [x] Migrate Workspace and verify its existing 154 tests plus production browser navigation/editor/Board behavior.
+- [x] Migrate the Job Application wizard and retain all 66 tests, including actual nested FileDrop delivery through the selected graph.
+- [x] Migrate Website product code and preserve all 1,520 tests, same-owner alternate-view inference, production build and prerender.
+- [x] Verify generated CSR, SSG and SSR projects, Vite application fixtures, VirtualList browser fixtures, and DevTools construction.
+- [x] Finish active snippets and guide review, preserving published and correctly labelled historical examples.
+- [x] Finish the repository source/build matrix, all 35 existing app test scripts, current public source/emitted/relocated gates, and canonical lint recognition.
+- [x] Resolve compiler-cost regressions without changing fixture sources or budgets and pass the integrated verifier. Earlier paired editor measurements retain their original scope; rendering has its own matched main comparison below.
+- [x] Review the adopted API and migration through independent runtime, contract, consumer and real-app declaration checks; address the resulting nameability, view inference, compiler-cost and Website dependency findings.
+- [x] Remove the intermediate declaration-size failure in the framework representation. Verify complete Workspace, Job Application and Website emission and strict source-free consumers of their roots, Compositions, init, update and views without application annotations.
+- [x] Migrate ordinary parent input aliases to InMessage receive plans. Retain the documented positional, generic and defaulted operation adapters where they express useful public contracts.
+- [x] Summarize the implemented API, verified coverage and deliberate historical exceptions in the adoption report. Do not publish without approval.
+- [x] Repair the per-render Html builder identity regression found by the unchanged rendering workload. Preserve cached lazy work and isolation between acquired implementations, with failing mutation controls.
+- [x] Repair the independent commit review's exact-Definition completion and generic-family input-validation findings. Verify foreign-plan refusal, constructor cleanup and source/emitted rejected configurations.
+- [x] Complete independent review of the amended exact source commit before any push or integration. `fd4f03253faa782eaa7f45d043127e3bf21ad572` passes after the constructor snapshot follow-through.
+- [x] Record the final quiet rendering batch against actual main. Preserve all 96 samples across three batches and report the remaining whole-preview gap and bundle cost: +14.6% naive, +32.6% optimized, about 40 KB gzip.
+- [ ] Obtain fresh authorized Daybreak review of this candidate and resolve or explicitly assess the inherited dependency advisories before release approval.
+
+Actual Workspace, Job Application and Website whole projects now emit, including their intermediate authoring exports. Strict relocated consumers pass with zero reads from original application or framework source, and copied contract-erasure controls fail as expected. [Adoption scope and evidence](layered-constructor/ADOPTION.md).
+
+The work is committed locally. Independent review passes after the candidate-only validation and constructor snapshot corrections. Final report changes also require exact-commit review. The remaining rendering/bundle costs and dependency advisories are explicit release-review items, not approved deferrals. [Local security review and its limits](layered-constructor/final-security-review.md). No push or publication is authorized by this preparation.

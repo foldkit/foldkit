@@ -1,6 +1,6 @@
 import type { Block } from 'foldkit'
 
-import { SliderBlock } from '@foldkit/ui'
+import { SliderBlock } from '@foldkit/ui/slider'
 
 import {
   FLOW_STRENGTH_MAX,

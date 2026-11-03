@@ -1,4 +1,11 @@
-const postsView = (model: Model, h: HtmlBuilder<Message>): Html => {
+import { Array } from 'effect'
+import { AsyncData } from 'foldkit'
+import type { Html, HtmlBuilder } from 'foldkit/html'
+
+import { postsQuery } from './queryDefine'
+import type { Message, Model } from './queryLift'
+
+export const postsView = (model: Model, h: HtmlBuilder<Message>): Html => {
   // Read the value through Query's public API.
   const postsAsyncData = postsQuery.read(model.posts)
 

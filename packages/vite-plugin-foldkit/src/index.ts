@@ -3,7 +3,6 @@ import {
   Clock,
   ConfigProvider,
   Console,
-  Crypto,
   Data,
   Duration,
   Effect,
@@ -23,6 +22,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 import {
   Event as DevToolsEvent,
   EventFrame,
@@ -62,9 +62,9 @@ import * as NodePath from '@effect/platform-node/NodePath'
 
 import { type FoldkitBuildOptions, foldkitBuild } from './build.js'
 import { foldkitBuildToken } from './buildToken.js'
-import { randomUUIDv4Effect } from './crypto.js'
 import { devToolsOverlayPlugin } from './devToolsOverlay.js'
 import { crawlFoldkitPackages } from './foldkitPackages.js'
+import { readProcessNamespaces } from './relayLiveness.js'
 import { publishRelayRecord, retireRelayRecord } from './relayRegistry.js'
 import { relayRegistryTrust } from './relayRegistryTrust.js'
 import { type FoldkitSsrOptions, foldkitSsr } from './ssr.js'
@@ -704,8 +704,8 @@ type Relay = Readonly<{
 }>
 
 const relayId = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto
-  return yield* randomUUIDv4Effect(crypto).pipe(Effect.orDie)
+  const secureRandom = yield* SecureRandom.SecureRandom
+  return yield* secureRandom.uuidV4()
 })
 
 const attachRelayHandlers = (
@@ -739,8 +739,8 @@ const relayHasNoBoundPort = () =>
   new Error('[foldkit:devTools] the MCP relay listener has no bound port')
 
 const relayToken = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto
-  const bytes = yield* crypto.randomBytes(RELAY_TOKEN_BYTES).pipe(Effect.orDie)
+  const secureRandom = yield* SecureRandom.SecureRandom
+  const bytes = yield* secureRandom.randomBytes(RELAY_TOKEN_BYTES)
   return Buffer.from(bytes).toString('hex')
 })
 
@@ -1000,6 +1000,7 @@ const unpublishedRelayMessage = (reason: string): string =>
 const publishRelay = (root: string, relay: Relay) =>
   Effect.gen(function* () {
     const startedAt = yield* Clock.currentTimeMillis
+    const maybeNamespaces = yield* readProcessNamespaces
     const directory = yield* publishRelayRecord(
       {
         version: RELAY_RECORD_VERSION,
@@ -1008,6 +1009,10 @@ const publishRelay = (root: string, relay: Relay) =>
         url: relay.url,
         pid: process.pid,
         startedAt,
+        ...Option.match(maybeNamespaces, {
+          onNone: () => ({}),
+          onSome: namespaces => ({ namespaces }),
+        }),
       },
       relayRegistryTrust,
     )
@@ -1047,17 +1052,20 @@ const startMcpRelay = (
     )
     // NOTE: A configured port accepts unauthenticated connections on every
     // interface. An assigned port binds to loopback and requires discovery.
-    const acquire: Effect.Effect<Relay, RelayBindFailed, Crypto.Crypto> =
-      Effect.gen(function* () {
-        const id = yield* relayId
-        if (devToolsMcpPort !== undefined) {
-          return yield* bindStandaloneRelay(devToolsMcpPort, id, enqueue)
-        }
+    const acquire: Effect.Effect<
+      Relay,
+      RelayBindFailed,
+      SecureRandom.SecureRandom
+    > = Effect.gen(function* () {
+      const id = yield* relayId
+      if (devToolsMcpPort !== undefined) {
+        return yield* bindStandaloneRelay(devToolsMcpPort, id, enqueue)
+      }
 
-        const token = yield* relayToken
+      const token = yield* relayToken
 
-        return yield* bindLoopbackRelay(id, token, enqueue)
-      })
+      return yield* bindLoopbackRelay(id, token, enqueue)
+    })
 
     return yield* Effect.acquireRelease(acquire, relay =>
       Effect.gen(function* () {
@@ -1158,7 +1166,11 @@ const main = (
  */
 const relayRegistryLayer = Layer.provideMerge(
   NodeChildProcessSpawner.layer,
-  Layer.mergeAll(NodeFileSystem.layer, NodePath.layer, NodeCrypto.layer),
+  Layer.mergeAll(
+    NodeFileSystem.layer,
+    NodePath.layer,
+    NodeCrypto.layerSecureRandom,
+  ),
 )
 
 type MainRun = Readonly<{

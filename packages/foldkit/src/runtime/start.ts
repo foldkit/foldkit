@@ -38,6 +38,8 @@ type RuntimeProgram = Readonly<{
   ports: Ports | undefined
 }>
 
+const embedTeardowns = new WeakMap<object, Promise<void>>()
+
 type ProvidedFlagsRequirements<FlagsRequirements, ProgramResources> = [
   Exclude<FlagsRequirements, ProgramResources>,
 ] extends [never]
@@ -243,11 +245,14 @@ export const hydrate = <P extends Ports | undefined, Flags, Resources>(
  * app. The host never touches the Model or dispatches Messages directly; the
  * Schema-typed Ports are the whole boundary.
  *
- * Works with programs from both `makeApplication` and `makeElement`; for a
- * widget on a page the host owns, `makeElement` is the natural fit.
+ * Works with Programs from both `Program.make` and `Program.makeElement`;
+ * use `Program.makeElement` for a widget on a page the host owns.
  *
- * A program can be embedded once at a time (it owns one container). After
- * `dispose`, the same container can be embedded again with a fresh program.
+ * A Program can be embedded once at a time. `dispose` immediately disables
+ * its handle and returns a Promise that settles after runtime teardown and
+ * container restoration. Await that Promise before reusing the container for
+ * a different Program. Re-embedding the same Program is sequenced
+ * automatically.
  *
  * ```ts
  * const handle = Runtime.embed(element)
@@ -257,7 +262,7 @@ export const hydrate = <P extends Ports | undefined, Flags, Resources>(
  *   console.log(count)
  * })
  *
- * handle.dispose()
+ * await handle.dispose()
  * ```
  */
 export function embed<
@@ -296,25 +301,25 @@ export function embed<P extends Ports | undefined = undefined>(
   embedLifecycle.isEmbedActive = true
 
   const connector = makeHostConnector()
+  const previousTeardown = embedTeardowns.get(embedLifecycle)
+  let isDisposed = false
 
-  // NOTE: a dispose immediately followed by a fresh embed (React strict mode
-  // runs effects exactly that way) must not start the new runtime while the
-  // old one is still tearing down: the teardown finalizer is what puts the
-  // container element back in the DOM. Awaiting the previous fiber's exit
-  // sequences the two.
+  // NOTE: teardown must outlive an interrupted successor's wait, including
+  // successors disposed before their startup Effect begins.
   const startEffect = pipe(
-    Option.match(embedLifecycle.maybeActiveFiber, {
-      onNone: () => Effect.void,
-      onSome: previousFiber => Effect.asVoid(Fiber.await(previousFiber)),
-    }),
+    previousTeardown === undefined
+      ? Effect.void
+      : Effect.promise(() => previousTeardown),
     Effect.andThen(resolvePreservedModel(program.runtimeId)),
     Effect.flatMap(preservedModel =>
-      internals.startWith(
-        Option.some(connector),
-        preservedModel,
-        'Fresh',
-        options?.flags,
-      ),
+      isDisposed
+        ? Effect.void
+        : internals.startWith(
+            Option.some(connector),
+            preservedModel,
+            'Fresh',
+            options?.flags,
+          ),
     ),
   )
 
@@ -323,15 +328,27 @@ export function embed<P extends Ports | undefined = undefined>(
   )
   embedLifecycle.maybeActiveFiber = Option.some(fiber)
 
-  let isHandleDisposed = false
-  const dispose = (): void => {
-    if (isHandleDisposed) {
-      return
+  let disposalPromise: Promise<void> | undefined
+  const dispose = (): Promise<void> => {
+    if (disposalPromise !== undefined) {
+      return disposalPromise
     }
-    isHandleDisposed = true
+
+    disposalPromise = Promise.resolve()
+      .then(() =>
+        Promise.all([
+          previousTeardown,
+          Effect.runPromise(Effect.asVoid(Fiber.interrupt(fiber))),
+        ]),
+      )
+      .then(() => undefined)
+    embedTeardowns.set(embedLifecycle, disposalPromise)
+
+    isDisposed = true
     connector.dispose()
     embedLifecycle.isEmbedActive = false
-    Effect.runFork(Fiber.interrupt(fiber))
+
+    return disposalPromise
   }
 
   const ports = buildPortHandles(program.ports, connector)

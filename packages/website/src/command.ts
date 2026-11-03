@@ -5,11 +5,11 @@ import { load, pushUrl } from 'foldkit/navigation'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
+import { ExampleSlug } from './blocks/exampleDetail/meta'
 import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
 import { ApplicationDefinition } from './definition'
 import { DOCS_SIDEBAR_NAV_ID, MOBILE_MENU_NAV_ID } from './docsNav'
 import { Message, type ResolvedTheme, ThemePreference } from './message'
-import { ExampleSlug } from './page/example/meta'
 import { playgroundRouter } from './route'
 import {
   SIDEBAR_STORAGE_KEY,

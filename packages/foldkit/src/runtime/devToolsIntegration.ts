@@ -174,7 +174,7 @@ export const makeDevToolsIntegration = <Model, Message, DispatchServices>({
       return prepareDispatch(message)
     }
 
-    const mountFibers = new Set<Fiber.Fiber<void>>()
+    const mountFibers = new Set<Fiber.Fiber<unknown, unknown>>()
 
     const mountRuntime = MountRuntime.of({
       captureViewStateChanges: () =>

@@ -549,7 +549,7 @@ type OnMountLifecycle = {
 }
 
 type OnMountState = {
-  fiber: Fiber.Fiber<void>
+  fiber: Fiber.Fiber<unknown, unknown>
   lifecycle: OnMountLifecycle
   notifyEnded: () => void
   owner: MountRenderOwner
@@ -2659,20 +2659,17 @@ const attributeHandlers: AttributeHandlers = {
 
     function acquireMount(
       element: Element,
-      previousFiber?: Fiber.Fiber<void>,
+      previousFiber?: Fiber.Fiber<unknown, unknown>,
     ): void {
       const lifecycle: OnMountLifecycle = {
         isActive: true,
-        isStarted: startBarrier === undefined,
+        isStarted: false,
       }
       const mountDispatch = resolveMountDispatch.resolve()
       const viewStateChanges = Option.match(maybeMountRuntime, {
         onNone: () => liveViewStateChanges,
         onSome: mountRuntime => mountRuntime.captureViewStateChanges(),
       })
-      if (lifecycle.isStarted) {
-        notifyStarted()
-      }
       const startMount = Effect.suspend(() => {
         if (
           !lifecycle.isActive ||
@@ -2685,7 +2682,11 @@ const attributeHandlers: AttributeHandlers = {
           notifyStarted()
         }
         return Stream.runForEach(action.f(element, viewStateChanges), message =>
-          Effect.sync(() => mountDispatch(message)),
+          Effect.sync(() => {
+            if (lifecycle.isActive) {
+              mountDispatch(message)
+            }
+          }),
         )
       })
       const runMount = (startBarrier ?? Effect.void).pipe(
@@ -2700,34 +2701,40 @@ const attributeHandlers: AttributeHandlers = {
         previousFiber === undefined
           ? runMount
           : Fiber.interrupt(previousFiber).pipe(Effect.andThen(runMount))
-      const fiber = Effect.runForkWith(capturedContext)(
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        acquire as Effect.Effect<void>,
-      )
-      if (Option.isSome(maybeMountRuntime)) {
-        maybeMountRuntime.value.registerFiber(fiber)
-      }
-      if (instance !== undefined) {
-        instance.mounts.add(fiber)
-        fiber.addObserver(() => {
-          instance.mounts.delete(fiber)
+      const registeredAcquire = Effect.withFiber(fiber => {
+        onMountStates.set(element, {
+          fiber,
+          lifecycle,
+          notifyEnded,
+          owner: resolveMountDispatch.owner,
+          ...(instance === undefined ? {} : { instance }),
         })
-      }
-      onMountStates.set(element, {
-        fiber,
-        lifecycle,
-        notifyEnded,
-        owner: resolveMountDispatch.owner,
-        ...(instance === undefined ? {} : { instance }),
-      })
-      registerMountCleanup(element, () => {
-        const state = onMountStates.get(element)
-        if (state !== undefined) {
-          releaseMount(state)
-          Effect.runFork(Fiber.interrupt(state.fiber))
-          onMountStates.delete(element)
+        registerMountCleanup(element, () => {
+          const state = onMountStates.get(element)
+          if (state !== undefined) {
+            releaseMount(state)
+            Effect.runFork(Fiber.interrupt(state.fiber))
+            onMountStates.delete(element)
+          }
+        })
+
+        if (Option.isSome(maybeMountRuntime)) {
+          maybeMountRuntime.value.registerFiber(fiber)
         }
+
+        if (instance !== undefined) {
+          instance.mounts.add(fiber)
+          fiber.addObserver(() => {
+            instance.mounts.delete(fiber)
+          })
+        }
+
+        return acquire
       })
+      Effect.runForkWith(capturedContext)(
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        registeredAcquire as Effect.Effect<void>,
+      )
     }
   },
   OnUnmount: ({ message }, ctx: BuildContext) => {
@@ -5732,6 +5739,19 @@ declare const allowedMountRequirements: unique symbol
 type MessageUniverse<Message> = Readonly<{
   [messageUniverse]: (message: Message) => Message
 }>
+
+/**
+ * The exact Message union accepted by an Html builder. Derive feature-local
+ * callback attribute types from its Composition builder without importing the
+ * completed implementation or replacing generated delivery with local facts.
+ *
+ * @example
+ * ```ts
+ * type SearchMessage = MessageOf<SearchViewBuilder>
+ * ```
+ */
+export type MessageOf<Builder> =
+  Builder extends MessageUniverse<infer Message> ? Message : never
 
 type MountRequirementsUniverse<AllowedMountRequirements> = Readonly<{
   [allowedMountRequirements]: (requirements: AllowedMountRequirements) => void

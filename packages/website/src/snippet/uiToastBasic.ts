@@ -1,11 +1,11 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Toast as UiToast } from '@foldkit/ui'
+import {
+  layer as ToastLayer,
+  makeBlock as makeToastBlock,
+} from '@foldkit/ui/toast'
 
 // Define the payload shape for your toast. Toast owns the entry lifecycle,
 // accessibility role, optional dismiss timer, hover state, and swipe state.
@@ -17,10 +17,8 @@ const ToastPayload = Schema.Struct({
   ),
 })
 type ToastPayload = typeof ToastPayload.Type
-// Bind a Toast module to your payload schema. The factory returns Model,
-// Message, OutMessage, update, view, show/dismiss/dismissAll, and the
-// DismissedToast OutMessage variant:
-export const Toast = UiToast.makeBlock(ToastPayload)
+// The payload Schema refines Toast's Model, OutMessage, and public operations.
+export const Toast = makeToastBlock(ToastPayload)
 
 // Add Toast.Model to your app Model. Track anything you want to lift from
 // a toast's lifecycle alongside it. Here, the last dismissed bodyText so
@@ -38,7 +36,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const NotificationsKey = Symbol('Notifications')
+
 const NotificationsDefinition = Block.makeDefinition('Notifications', {
+  key: NotificationsKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -56,12 +59,11 @@ const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
     })),
 })
 
-// The Binding delegates Toast Messages, writes the next Toast Model, maps its
-// Commands, handles its OutMessages, and collects its Subscriptions.
+// The Binding retains the child contract; construction supplies its implementation.
 const ToastBinding = NotificationsDefinition.makeBinding(Toast, {
   field: 'toast',
   init: {
-    contextToArgs: () => Tuple.make({ id: 'app-toast', swipeToDismiss: {} }),
+    contextToArgs: () => [{ id: 'app-toast', swipeToDismiss: {} }],
   },
 }).withOutMessagePolicy({ fold: foldToastOutMessage })
 
@@ -143,3 +145,16 @@ const view = NotificationsComposition.makeView((model, h) =>
     }),
   ),
 )
+
+export const ApplicationBlock = NotificationsDefinition.makeBlock(
+  Effect.gen(function* () {
+    const toast = yield* ToastBinding
+
+    return {
+      children: [toast],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(ToastLayer)

@@ -14,9 +14,9 @@ import {
   RememberClose,
   ReportComposition,
   ReportOutMessage,
-  closeDialogStep,
+  closeDialog,
+  emitPlainOutMessage,
   initialModel,
-  plainStep,
   reportSteps,
   steps,
 } from './combined-outmessage.accepted.js'
@@ -35,7 +35,7 @@ ReportComposition.makeUpdate({
 
 // @ts-expect-error A plain Model does not establish the connected Steps' Binding registration.
 Update.combineSteps(initialModel, steps)
-const unregisteredSaveStep = EditorDefinition.makeStep(() =>
+const unregisteredSave = EditorDefinition.makeStep(() =>
   Update.combineSteps(steps),
 )
 EditorDefinition.makeComposition().makeUpdate({
@@ -43,7 +43,7 @@ EditorDefinition.makeComposition().makeUpdate({
   SavedArray: model =>
     pipe(
       // @ts-expect-error The unregistered Model cannot supply the Step's graph capability.
-      unregisteredSaveStep(model),
+      unregisteredSave(model),
       Update.withOutMessage(OutMessage.Saved()),
     ),
   SavedTuple: model => ({ model }),
@@ -57,41 +57,41 @@ EditorDefinition.makeComposition().makeUpdate({
 const StoreEditor = EditorDefinition.makeCommand('StoreEditor', {
   messages: [Message.Plain],
 })
-const storeEditorStep = EditorDefinition.makeCommandsStep(() => [StoreEditor()])
+const storeEditor = EditorDefinition.makeCommandsStep(() => [StoreEditor()])
 const updateWithoutHandler = EditorComposition.makeUpdate({
   SavedArray: model =>
     pipe(
-      Update.combineSteps(model, [closeDialogStep, storeEditorStep]),
+      Update.combineSteps(model, [closeDialog, storeEditor]),
       Update.withOutMessage(OutMessage.Saved()),
     ),
   SavedTuple: model =>
     pipe(
-      Update.combineSteps(model, [closeDialogStep, storeEditorStep]),
+      Update.combineSteps(model, [closeDialog, storeEditor]),
       Update.withOutMessage(OutMessage.Saved()),
     ),
   SavedCurriedArray: model =>
     pipe(
-      Update.combineSteps(model, [closeDialogStep, storeEditorStep]),
+      Update.combineSteps(model, [closeDialog, storeEditor]),
       Update.withOutMessage(OutMessage.Saved()),
     ),
   SavedCurriedTuple: model =>
     pipe(
-      Update.combineSteps(model, [closeDialogStep, storeEditorStep]),
+      Update.combineSteps(model, [closeDialog, storeEditor]),
       Update.withOutMessage(OutMessage.Saved()),
     ),
   SavedNestedArray: model =>
     pipe(
-      Update.combineSteps(model, [closeDialogStep, storeEditorStep]),
+      Update.combineSteps(model, [closeDialog, storeEditor]),
       Update.withOutMessage(OutMessage.Saved()),
     ),
   SavedNestedTuple: model =>
     pipe(
-      Update.combineSteps(model, [closeDialogStep, storeEditorStep]),
+      Update.combineSteps(model, [closeDialog, storeEditor]),
       Update.withOutMessage(OutMessage.Saved()),
     ),
   Plain: model =>
     pipe(
-      Update.combineSteps(model, [closeDialogStep, storeEditorStep]),
+      Update.combineSteps(model, [closeDialog, storeEditor]),
       Update.withOutMessage(OutMessage.Saved()),
     ),
 })
@@ -111,10 +111,8 @@ ParentDefinition.makeOutMessageFold(EditorBlock, {
   Plain: ParentDefinition.makeNoopStep,
 })
 
-const forwardedSaveStep = ForwardingEditorBinding.save()
-const forwardedSteps: ReadonlyArray<typeof forwardedSaveStep> = [
-  forwardedSaveStep,
-]
+const forwardedSave = ForwardingEditorBinding.save()
+const forwardedSteps: ReadonlyArray<typeof forwardedSave> = [forwardedSave]
 ForwardingComposition.makeUpdate({
   // @ts-expect-error Attaching an OutMessage cannot discard the registered child's policy OutMessage.
   RequestedSave: model =>
@@ -141,7 +139,7 @@ ForwardingComposition.makeUpdate({
 })
 
 // @ts-expect-error withOutMessage cannot replace an already emitted OutMessage.
-Update.withOutMessage(plainStep(initialModel), OutMessage.Saved())
+Update.withOutMessage(emitPlainOutMessage(initialModel), OutMessage.Saved())
 // @ts-expect-error A Command keeps its exact constructor payload.
 RememberClose({ count: 'invalid' })
 // @ts-expect-error A Command cannot omit its payload.

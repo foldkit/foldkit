@@ -39,7 +39,12 @@ const fail = (message: string): never => {
   throw new Error(message)
 }
 
+const reportProgress = (phase: string): void => {
+  process.stdout.write(`[emitted-declarations] ${phase}\n`)
+}
+
 const runCompiler = (label: string, args: ReadonlyArray<string>): string => {
+  reportProgress(label)
   const result = spawnSync(compiler, args, {
     cwd: packageRoot,
     encoding: 'utf8',
@@ -66,11 +71,18 @@ const assertProgramDiagnosticOrder = async (): Promise<void> => {
   const api = new API({ cwd: packageRoot })
 
   try {
+    reportProgress('Program diagnostic order: parsing the source config')
     const config = await api.parseConfigFile(join(packageRoot, 'tsconfig.json'))
+    reportProgress(
+      'Program diagnostic order: creating the single-checker program',
+    )
     const program = await api.createProgram(config.fileNames, {
       ...config.options,
       checkers: 1,
     })
+    reportProgress(
+      'Program diagnostic order: checking Program and Mount diagnostics',
+    )
     const diagnostics = await program.getSemanticDiagnostics([
       join(packageRoot, 'src/block/authoring.test.ts'),
       join(packageRoot, 'src/mount/define.test.ts'),
@@ -82,8 +94,18 @@ const assertProgramDiagnosticOrder = async (): Promise<void> => {
       )
     }
   } finally {
+    reportProgress('Program diagnostic order: closing the native API')
     await api.close()
   }
+}
+
+const runApiCheck = async (
+  label: string,
+  check: () => Promise<void>,
+): Promise<void> => {
+  reportProgress(label)
+  await check()
+  reportProgress(`${label}: passed`)
 }
 
 const assertBindingCompletions = async (): Promise<void> => {
@@ -211,6 +233,55 @@ const assertUpdateAuthoringDocs = async (): Promise<void> => {
     )
     if (!completion?.entries.some(entry => entry.name === 'withContext')) {
       fail('The makeUpdate completion list does not include withContext.')
+    }
+  } finally {
+    await api.close()
+  }
+}
+
+const assertComposableUpdateCompletions = async (): Promise<void> => {
+  const fixture = join(fixtureRoot, 'update-composition/checks.ts')
+  const config = join(fixtureRoot, 'tsconfig.update-composition.source.json')
+  const input = readFileSync(fixture, 'utf8')
+  const marker = "makeUpdate.on(['UpdatedTitle'])"
+  const position = Option.getOrElse(String.indexOf(marker)(input), () =>
+    fail(`Could not find the composable update marker ${marker}.`),
+  )
+  const api = new API({ cwd: packageRoot })
+
+  try {
+    const snapshot = await api.createSnapshot({
+      openProjects: [config],
+      openFiles: [fixture],
+    })
+    const project = snapshot.getConfiguredProject(config)
+
+    if (project === undefined) {
+      return fail('Could not open the composable update authoring project.')
+    }
+
+    const diagnostics = await project.program.getSemanticDiagnostics(fixture)
+
+    if (Array.isArrayNonEmpty(Array.fromIterable(diagnostics))) {
+      fail(
+        `The composable update fixture has ${diagnostics.length} semantic diagnostics.`,
+      )
+    }
+
+    const completion = await project.languageService.getCompletionsAtPosition(
+      fixture,
+      position + 'makeUpdate.'.length,
+    )
+    const actual = completion?.entries.map(entry => entry.name) ?? []
+    const expected = ['cases', 'compose', 'each', 'except', 'on', 'withContext']
+
+    if (
+      !expected.every(name => actual.includes(name)) ||
+      actual.includes('routeChildren')
+    ) {
+      fail(
+        `Unexpected composable update completions: ${JSON.stringify(actual)}.`,
+      )
     }
   } finally {
     await api.close()
@@ -554,6 +625,24 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'constructor-host-handlers',
+    accepted: ['host-handlers/accepted.ts'],
+    rejected: ['host-handlers/selection.rejected.ts'],
+    consumers: ['host-handlers/consume.ts'],
+  },
+  {
+    name: 'update-composition',
+    accepted: ['update-composition/accepted.ts'],
+    rejected: ['update-composition/selection.rejected.ts'],
+    consumers: ['update-composition/consume.ts'],
+  },
+  {
+    name: 'view-plans',
+    accepted: ['view-plans.accepted.ts'],
+    rejected: ['view-plans.rejected.ts'],
+    consumers: ['view-plans.consume.ts'],
+  },
+  {
     name: 'mandatory-completion',
     accepted: ['mandatory-completion.accepted.ts'],
     rejected: ['mandatory-completion.rejected.ts'],
@@ -659,6 +748,12 @@ const checks: ReadonlyArray<
     consumers: ['outmessage-fold.consume.ts'],
   },
   {
+    name: 'descriptor-fold',
+    accepted: ['descriptor-fold.accepted.ts'],
+    rejected: ['descriptor-fold.rejected.ts'],
+    consumers: ['descriptor-fold.consume.ts'],
+  },
+  {
     name: 'program-server',
     accepted: ['program-server.accepted.ts'],
     rejected: ['program-server.rejected.ts'],
@@ -668,12 +763,14 @@ const checks: ReadonlyArray<
     name: 'program',
     accepted: [
       'program.accepted.ts',
+      'program-construction-portability.accepted.ts',
       'program-inferred-portability.accepted.ts',
       'program-union-services.accepted.ts',
     ],
     rejected: ['program.rejected.ts', 'program-union-services.rejected.ts'],
     consumers: [
       'program.consume.ts',
+      'program-construction-portability.consume.ts',
       'program-inferred-portability.consume.ts',
       'program-union-services.consume.ts',
     ],
@@ -748,6 +845,12 @@ const checks: ReadonlyArray<
     consumers: ['scene-routing.consume.ts'],
   },
   {
+    name: 'scene-mount-stream',
+    accepted: ['scene-mount-stream.accepted.ts'],
+    rejected: ['scene-mount-stream.rejected.ts'],
+    consumers: ['scene-mount-stream.consume.ts'],
+  },
+  {
     name: 'machine',
     accepted: [
       'machine.contracts.ts',
@@ -756,6 +859,24 @@ const checks: ReadonlyArray<
     ],
     rejected: ['machine.rejected.ts'],
     consumers: ['machine.consume.ts'],
+  },
+  {
+    name: 'helper-inputs',
+    accepted: ['helper-inputs.accepted.ts', 'helper-inputs.definition.ts'],
+    rejected: ['helper-inputs.rejected.ts'],
+    consumers: ['helper-inputs.consume.ts'],
+  },
+  {
+    name: 'inmessage-update-composition',
+    accepted: ['inmessage-update-composition/accepted.ts'],
+    rejected: ['inmessage-update-composition/rejected.ts'],
+    consumers: ['inmessage-update-composition/consume.ts'],
+  },
+  {
+    name: 'inmessages',
+    accepted: ['inmessages.accepted.ts'],
+    rejected: ['inmessages.rejected.ts'],
+    consumers: ['inmessages.consume.ts'],
   },
   {
     name: 'message-steps',
@@ -910,6 +1031,7 @@ const checks: ReadonlyArray<
       'parent-owned-binding.accepted.ts',
       'query-block.accepted.ts',
       'query-policy.accepted.ts',
+      'query-modes.accepted.ts',
     ],
     rejected: [
       'parent-owned-binding.rejected.ts',
@@ -920,6 +1042,7 @@ const checks: ReadonlyArray<
       'parent-owned-binding.consume.ts',
       'query-block.consume.ts',
       'query-policy.consume.ts',
+      'query-modes.consume.ts',
     ],
   },
   {
@@ -1019,7 +1142,10 @@ const main = async (): Promise<void> => {
     fail(`Expected the package TypeScript 7 compiler, received ${version}.`)
   }
 
-  await assertProgramDiagnosticOrder()
+  await runApiCheck(
+    'Checking Program diagnostic order',
+    assertProgramDiagnosticOrder,
+  )
 
   for (const name of [
     'program',
@@ -1035,6 +1161,7 @@ const main = async (): Promise<void> => {
     'message-steps',
     'machine',
     'scene-routing',
+    'scene-mount-stream',
     'append-initialization',
     'set-initialization',
     'set-optional-initialization',
@@ -1121,6 +1248,7 @@ const main = async (): Promise<void> => {
       '-p',
       join(fixtureRoot, 'tsconfig.operation-hint.source.json'),
     ])
+    reportProgress('Checking source and relocated compiler diagnostics')
     const diagnostics = spawnSync(
       process.execPath,
       [join(packageRoot, 'scripts/check-compiler-diagnostics.ts')],
@@ -1135,9 +1263,19 @@ const main = async (): Promise<void> => {
       )
     }
     process.stdout.write(diagnostics.stdout)
-    await assertUpdateAuthoringDocs()
-    await assertBindingCompletions()
-    await assertBindingConfigurationDocs()
+    await runApiCheck(
+      'Checking update authoring documentation',
+      assertUpdateAuthoringDocs,
+    )
+    await runApiCheck(
+      'Checking composable update completions',
+      assertComposableUpdateCompletions,
+    )
+    await runApiCheck('Checking Binding completions', assertBindingCompletions)
+    await runApiCheck(
+      'Checking Binding configuration documentation',
+      assertBindingConfigurationDocs,
+    )
     process.stdout.write(
       `[emitted-declarations] ${version}; external emission, rejected wiring, relocation, native completion and inferred configuration documentation checks passed.\n`,
     )

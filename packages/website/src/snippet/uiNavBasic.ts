@@ -1,10 +1,10 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, Message, update,
-// and view definitions.
 import { Match } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { Nav } from '@foldkit/ui'
+import {
+  type RenderInfo as NavRenderInfo,
+  view as uiNavView,
+} from '@foldkit/ui/nav'
 
 // Nav is stateless: the current destination comes from the URL, so there is
 // no Nav.Model to store and no Nav.update to delegate to. Your app already
@@ -48,7 +48,7 @@ const isSectionCurrent =
 // Browser-native Tab and Enter handle keyboard navigation; Foldkit's runtime
 // turns the link clicks into route changes:
 const view = (model: Model, h: HtmlBuilder<Message>) => {
-  const navView = ({ nav, items }: Nav.RenderInfo<Section>) =>
+  const navView = ({ nav, items }: NavRenderInfo<Section>) =>
     h.nav(
       [...nav, h.Class('flex gap-2')],
       items.map(item =>
@@ -64,7 +64,7 @@ const view = (model: Model, h: HtmlBuilder<Message>) => {
       ),
     )
 
-  return Nav.view<Section>({
+  return uiNavView<Section>({
     items: sections,
     ariaLabel: 'Primary',
     toHref: sectionToHref,

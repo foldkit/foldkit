@@ -1,9 +1,13 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { expect, test } from 'vitest'
+import { expect } from 'vitest'
 
-test('weather search: success then failure', () => {
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock } from './application'
+
+it.effect('weather search: success then failure', () =>
   story(
-    update,
+    ApplicationBlock,
     given(model),
 
     message(UpdatedZipCodeInput({ value: '90210' })),
@@ -32,5 +36,5 @@ test('weather search: success then failure', () => {
     model(model => {
       expect(model.weather._tag).toBe('WeatherFailure')
     }),
-  )
-})
+  ),
+)

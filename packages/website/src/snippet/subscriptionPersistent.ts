@@ -10,7 +10,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const HeartbeatKey = Symbol('Heartbeat')
+
 const HeartbeatDefinition = Block.makeDefinition('Heartbeat', {
+  key: HeartbeatKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })

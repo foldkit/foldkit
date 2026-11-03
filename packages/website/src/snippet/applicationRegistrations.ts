@@ -1,5 +1,5 @@
+import { Home, Products } from '../blocks'
 import { ApplicationDefinition } from '../definition'
-import { Home, Products } from '../page'
 
 export const HomeBinding = ApplicationDefinition.makeBinding(Home.HomeBlock, {
   field: 'home',

@@ -1,0 +1,158 @@
+{
+  "checkedAt": "2026-11-03T09:52:57.492Z",
+  "baseCommit": "82360031aaa3c439384b57b5e1e3f1ce27191a1d",
+  "scope": "Native packed-consumer checker with actual Changesets configuration and staged prerelease metadata. No published-package source, manifests, built content or active changeset metadata changed.",
+  "sourcePaths": [
+    {
+      "path": "scripts/check-packed-ssr-consumer.ts",
+      "sha256": "5ca92f98cc393a44617049b40a787fc27ccf62aee355a5d01c29544c378a0647"
+    },
+    {
+      "path": "scripts/lib/packed-consumer-staging.mjs",
+      "sha256": "a320fbb7a51cb8c21502daaaf80e757db7d0ce0a072285762550740d4335ee9f"
+    },
+    {
+      "path": "scripts/lib/packed-consumer-staging.d.mts",
+      "sha256": "a9b708fafca167f0851bfb7132b78edbdf2f2a77ceef184ecc83a2358959c86d"
+    },
+    {
+      "path": "scripts/lib/packed-consumer-staging.test.mjs",
+      "sha256": "22c85eec40872f836bb66efa22918edeabc349e37cc60ef53acb68dd162a7d90"
+    },
+    {
+      "path": "package.json",
+      "sha256": "fafb89ba112d285c48f3c616d568350004ed39855d466236363bb946f6724217"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "3659249b317572543f8f9e01f4997a099f4fa32ee6285825694fe4b83ebd582f"
+    },
+    {
+      "path": "knip.json",
+      "sha256": "914c71f07c25a010c98a0ca13331ea030cc27ad8fc13c5bf475fedd9b80d864e"
+    }
+  ],
+  "command": "node scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix --keep-consumer",
+  "exitCode": 0,
+  "log": {
+    "path": "/private/tmp/foldkit-native-packed-staging-passive-three-browser-20261103.log",
+    "sha256": "230fcea514dab3ba5d418d6b0fae470033fda1124e71035b03a30a6518767248"
+  },
+  "plannedPackages": [
+    "[packed-ssr] foldkit: checkout 0.170.0, planned 0.171.0",
+    "[packed-ssr] @foldkit/vite-plugin: checkout 0.29.0, planned 0.29.1",
+    "[packed-ssr] @foldkit/ui: checkout 0.170.0, planned 0.171.0",
+    "[packed-ssr] @foldkit/markdown: checkout 0.15.0, planned 0.15.1",
+    "[packed-ssr] @foldkit/node: checkout 0.2.0, planned 0.2.1",
+    "[packed-ssr] @foldkit/devtools: checkout 0.170.0, planned 0.171.0",
+    "[packed-ssr] @foldkit/devtools-mcp: checkout 0.26.0, planned 0.27.0"
+  ],
+  "activePublishedPackagesUnchanged": true,
+  "activePackages": [
+    {
+      "directory": "packages/foldkit",
+      "manifestSha256": "9d3b90a2ee482a5cbbde5cbd696ad67b7cbb2940fd69142fc67d26cab7f94d48",
+      "distributionSha256": "61854fec5f844c40a5ed8f67ed279364a67498de42954ca0be548250c54ad1db",
+      "files": 1053
+    },
+    {
+      "directory": "packages/ui",
+      "manifestSha256": "77978dd728e86d9fae609ab3b8f33bb16592404dc0969deb6beca73865f8bbc7",
+      "distributionSha256": "743b0c642da032182b4f63a0a60b61127e882837eeed3acb1a0005cc9c901fd5",
+      "files": 450
+    },
+    {
+      "directory": "packages/devtools",
+      "manifestSha256": "6b48097d096c7fa408c5e7d9eace3fc28dfaf537a0b996fc7ca30ffb003c0ed7",
+      "distributionSha256": "0214f3d9cbead401cbbed75fdfcb341bcd8a7195afe1790091d3da7701faa049",
+      "files": 12
+    },
+    {
+      "directory": "packages/devtools-mcp",
+      "manifestSha256": "a6ceef6538fd08e610e08dafd318fe993f61754b60543918d719486b6e4506e9",
+      "distributionSha256": "4cf876ccab186108b63c3b3af6f5803bcdbe73319faec02596098b6646931e64",
+      "files": 24
+    },
+    {
+      "directory": "packages/markdown",
+      "manifestSha256": "cc76fc406b3ec4f607f5cc6388af8b2d5c0bbfe2092151d55cb18d1ab4d9e034",
+      "distributionSha256": "ae59762fbe4f37cb126d899cddc059d2acf6a70c15cf05cf4a1bf58fd548d509",
+      "files": 36
+    },
+    {
+      "directory": "packages/node",
+      "manifestSha256": "b758e8125477fa1687138190b9c2f2bdebc8271e55db1a6f12ce753f2452584f",
+      "distributionSha256": "dde8c311c814601fee9a8b077bbc0dd113817b297a3ee879125d9d1148cb9ec0",
+      "files": 6
+    },
+    {
+      "directory": "packages/vite-plugin-foldkit",
+      "manifestSha256": "54c0a539c7d63e5b43278cf5748a73059afb06c441c3fec5e7c51fddc6871084",
+      "distributionSha256": "0a4ee8c7edfa56b18f4d35a13608650a8235966227d3eaf0ed725376f0ed7390",
+      "files": 36
+    }
+  ],
+  "activeChangesetsMetadata": {
+    "unchanged": true,
+    "files": 222,
+    "sha256": "2c98b47bae1930d72e34f9c446130f3e23e7efadd983463ba8e9892afe2ecd5e"
+  },
+  "strictPeers": true,
+  "oneEffectRuntime": true,
+  "browsers": ["Chromium", "Firefox", "WebKit"],
+  "sourceFreeDeclarationsAndInferredPrograms": true,
+  "scriptTests": {
+    "passed": 238,
+    "skipped": 0,
+    "log": "/private/tmp/foldkit-packed-staging-passive-script-tests-20261103.log",
+    "sha256": "923da2137266e91153990462e8bb591399e82239509657ab2970c1d001b47b9c"
+  },
+  "scriptTypecheckExitCode": 0,
+  "deadCodeAnalysisExitCode": 0,
+  "planningDependencies": {
+    "versionsAlreadyInstalledThroughCli": true,
+    "exactDirectRootDevDependencies": {
+      "@changesets/assemble-release-plan": "7.0.0",
+      "@changesets/config": "4.0.1",
+      "@changesets/pre": "3.0.0",
+      "@changesets/read": "1.0.1",
+      "@manypkg/get-packages": "3.1.0"
+    },
+    "newlyDownloadedVersions": 0
+  },
+  "controls": {
+    "checkedAt": "2026-11-03T09:50:32.358Z",
+    "sourceSha256": "a320fbb7a51cb8c21502daaaf80e757db7d0ce0a072285762550740d4335ee9f",
+    "testsSha256": "22c85eec40872f836bb66efa22918edeabc349e37cc60ef53acb68dd162a7d90",
+    "controls": [
+      {
+        "name": "ignore-planned-version",
+        "exitCode": 1,
+        "expectedFailure": true,
+        "log": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-passive-control-GWO1qU/result.log"
+      },
+      {
+        "name": "remove-peer-validation",
+        "exitCode": 1,
+        "expectedFailure": true,
+        "log": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-passive-control-13N1Fc/result.log"
+      },
+      {
+        "name": "read-active-prerelease-metadata",
+        "exitCode": 1,
+        "expectedFailure": true,
+        "log": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-passive-control-by4sXu/result.log"
+      },
+      {
+        "name": "read-ids-before-prerelease-migration",
+        "exitCode": 1,
+        "expectedFailure": true,
+        "log": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-passive-control-Thr5Wl/result.log"
+      }
+    ]
+  },
+  "retainedConsumer": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-ssr-d8IPxI",
+  "publication": false,
+  "daybreakTransfer": false,
+  "pending": "Exact-commit independent review, mandatory pre-push hook and required GitHub checks remain separate gates"
+}

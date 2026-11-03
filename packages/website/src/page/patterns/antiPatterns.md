@@ -204,11 +204,11 @@ Manually copying the child Model from a helper result causes a separate problem.
 
 ::Snippet{name="antiPatternBlockResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
 
-Put the local Message constructor directly under `operations` when its payload is the public input. Use a tuple producer there when the public inputs need mapping, refinement, defaults, or an exact update context tuple. The parent calls `binding.operation(...)`, which returns a connected parent Update.Step and preserves the child's complete update result. Apply it to the contextual Model inside the owning Composition.
+Declare parent requests and notifications in the child's `InMessage` Schema and handle them with `Composition.makeInMessageUpdate`. The Definition generates Binding methods from those variants. The parent calls `binding.requestThemeChange(...)`, which returns a connected parent Update.Step and preserves the child's complete result. Apply it to the contextual Model inside the owning Composition. Keep explicit `operations` for existing positional, generic, or defaulting adapters.
 
-::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
+::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A parent input preserves the child's transition boundary"}
 
-This excerpt focuses on the operation and its parent call. It omits the completed export's producer/header annotation; use the [matching checked assembly boundary](/patterns/project-organization#keep-model-schema-dependencies-small) in the feature module.
+This excerpt focuses on the operation and its parent call. Complete the implementation with `Definition.makeBlock`, yielding the registered Binding and returning that connection under `children`. See [Block completion](/core/block#produce-the-completed-block) for the full constructor.
 
 The Binding writes the returned child Model into the parent, maps its Commands, and applies the required `fold` or `forward` selected through `withOutMessagePolicy`. The [Block guide](/core/block) explains child Messages and OutMessages. [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
 
@@ -216,7 +216,7 @@ The Binding writes the returned child Model into the parent, maps its Commands, 
 
 ### Initialize One Child
 
-A child's `init` can return a Model and Commands. A public restoration operation produces a `RequestedRestore` Message so update owns its Model change, Command, and `RestoredTheme` OutMessage. The parent Model exists before the Binding handles that OutMessage.
+A child's `init` can return a Model and Commands. Its generated `requestRestore` method applies `InMessage.RequestedRestore` through `inMessageUpdate`, which owns the Model change, Command, and `RestoredTheme` OutMessage. The parent Model exists before the Binding handles that OutMessage.
 
 ::Snippet{name="antiPatternChildInitSettings" label="The restoration operation emits RestoredTheme" class="mb-4"}
 

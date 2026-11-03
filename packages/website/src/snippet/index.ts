@@ -104,6 +104,8 @@ export { default as applicationRegistrationsRaw } from './applicationRegistratio
 export { default as applicationRegistrationsHighlighted } from './applicationRegistrations.ts?highlighted'
 export { default as counterUpdateRaw } from './counterUpdate.ts?raw'
 export { default as counterUpdateHighlighted } from './counterUpdate.ts?highlighted'
+export { default as updateCompositionRaw } from './updateComposition.ts?raw'
+export { default as updateCompositionHighlighted } from './updateComposition.ts?highlighted'
 export { default as updateCurriedStepRaw } from './updateCurriedStep.ts?raw'
 export { default as updateCurriedStepHighlighted } from './updateCurriedStep.ts?highlighted'
 export { default as updateCurriedContextRaw } from './updateCurriedContext.ts?raw'

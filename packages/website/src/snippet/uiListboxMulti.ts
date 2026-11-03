@@ -1,11 +1,8 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Array, Schema, Tuple } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Listbox } from '@foldkit/ui'
+import { Multi as MultiListbox } from '@foldkit/ui/listbox'
 
 const Person = Schema.Literals([
   'Michael Bluth',
@@ -14,7 +11,7 @@ const Person = Schema.Literals([
 ])
 type Person = typeof Person.Type
 // Declare a typed multi-select Listbox once at module scope:
-const PeopleListbox = Listbox.Multi.makeBlock<Person>()
+const PeopleListbox = MultiListbox.makeBlock<Person>()
 
 // Add a field to your Model for the multi-select Listbox Block, plus a field
 // for the selected values your app actually cares about. Using the
@@ -29,7 +26,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const PeoplePickerKey = Symbol('PeoplePicker')
+
 const PeoplePickerDefinition = Block.makeDefinition('PeoplePicker', {
+  key: PeoplePickerKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -55,17 +57,15 @@ const foldListboxMultiOutMessage = PeoplePickerDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it delegates keyboard
-// navigation, typeahead, and open/close to PeopleListbox.update, writes the
-// next Listbox Model back, routes generated delivery and Command results, and
-// hands any OutMessage to the OutMessage fold.
-const PeopleListboxBinding = PeoplePickerDefinition.makeBinding(PeopleListbox, {
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
+const ListboxMultiBinding = PeoplePickerDefinition.makeBinding(PeopleListbox, {
   field: 'listboxMulti',
-  init: { contextToArgs: () => Tuple.make({ id: 'people' }) },
+  init: { contextToArgs: () => [{ id: 'people' }] },
 }).withOutMessagePolicy({ fold: foldListboxMultiOutMessage })
 
 const PeoplePickerComposition = PeoplePickerDefinition.makeComposition({
-  bindings: [PeopleListboxBinding],
+  bindings: [ListboxMultiBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
@@ -89,7 +89,7 @@ const people: ReadonlyArray<Person> = [
 // stays open on selection so the user can toggle several items:
 const view = PeoplePickerComposition.makeView((model, h) =>
   h.block(
-    PeopleListboxBinding.embedView({
+    ListboxMultiBinding.embedView({
       slotId: 'people',
       model: model.listboxMulti,
       viewInputs: {
@@ -122,3 +122,16 @@ const view = PeoplePickerComposition.makeView((model, h) =>
     }),
   ),
 )
+
+export const ApplicationBlock = PeoplePickerDefinition.makeBlock(
+  Effect.gen(function* () {
+    const peopleListbox = yield* ListboxMultiBinding
+
+    return {
+      children: [peopleListbox],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(MultiListbox.layer)

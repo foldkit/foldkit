@@ -2,9 +2,17 @@ import { Array, Number, Option } from 'effect'
 import { AsyncData, type Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import {
+  CommandPaletteBlock,
+  CreateIssueBlock,
+  IssueBoardBlock,
+  IssueDetailBlock,
+  IssueListBlock,
+  MemberDirectoryBlock,
+  NotificationCenterBlock,
+  ProjectSettingsBlock,
+} from './blocks'
 import { NavigateInternal, ReplaceInternalUrl } from './command'
-import { CommandPaletteBlock } from './commandPalette'
-import { CreateIssueBlock } from './createIssue'
 import {
   makeBinding,
   makeCommandsStep,
@@ -16,14 +24,8 @@ import {
   makeStep,
 } from './definition'
 import { type IssueFilters, SavedView } from './domain'
-import { IssueBoardBlock } from './issueBoard'
-import { IssueDetailBlock } from './issueDetail'
 import { issueFiltersHref, issueHref } from './issueLinks'
-import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
-import { MemberDirectoryBlock } from './memberDirectory'
-import { NotificationCenterBlock } from './notificationCenter'
-import { ProjectSettingsBlock } from './projectSettings'
 import {
   ApplicationRoute,
   isPageRoute,
@@ -35,13 +37,13 @@ import {
 } from './route'
 import { appliedIssueFilters } from './selection'
 import {
-  applyIssueCommentStep,
-  applyIssueSnapshotStep,
-  applySavedIssueStep,
-  requestIssueMoveStep,
+  applyIssueComment,
+  applyIssueSnapshot,
+  applySavedIssue,
+  requestIssueMove,
 } from './steps'
 
-export const ActiveMemberBinding = makeBinding(WorkspaceListboxBlock, {
+export const ActiveMemberListboxBinding = makeBinding(WorkspaceListboxBlock, {
   field: 'activeMemberListbox',
   init: { contextToArgs: () => [{ id: 'workspace-active-member' }] },
 }).withOutMessagePolicy({
@@ -51,11 +53,39 @@ export const ActiveMemberBinding = makeBinding(WorkspaceListboxBlock, {
   }),
 })
 
-export const IssueDetailBinding = makeMapBinding(IssueDetailBlock, {
-  field: 'issueDetails',
+const foldIssueDetailOutMessage = makeOutMessageFold(IssueDetailBlock, {
+  Saved: ({ savedIssue }) =>
+    Update.combineSteps([
+      applySavedIssue(savedIssue),
+      makeFieldsStep(() => ({
+        maybeNotice: () => Option.some(`${savedIssue.identifier} saved`),
+      })),
+    ]),
+  AddedComment: ({ issueId, comment }) => applyIssueComment(issueId, comment),
+  ReceivedIssue: ({ issue }) => applyIssueSnapshot(issue),
+  Closed: () =>
+    makeCommandsStep(model => {
+      const { route } = model
+
+      if (ApplicationRoute.guards.Issue(route)) {
+        return [NavigateInternal({ url: issuesRouter({}) })]
+      }
+
+      if (!isPageRoute(route)) {
+        return []
+      }
+
+      return [NavigateInternal({ url: routeToPath(withoutIssueId(route)) })]
+    }),
 })
 
-const openIssueStep = (issueId: string) =>
+export const IssueDetailsBinding = makeMapBinding(IssueDetailBlock, {
+  field: 'issueDetails',
+}).withOutMessagePolicy({
+  fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
+})
+
+const openIssue = (issueId: string) =>
   makeCommandsStep(model => [
     NavigateInternal({ url: issueHref(model, issueId) }),
   ])
@@ -74,7 +104,7 @@ export const CreateIssueBinding = makeBinding(CreateIssueBlock, {
           ),
           maybeNotice: () => Option.some(`${issue.identifier} created`),
         })),
-        openIssueStep(issue.id),
+        openIssue(issue.id),
       ]),
   }),
 })
@@ -83,38 +113,11 @@ export const NotificationCenterBinding = makeBinding(NotificationCenterBlock, {
   field: 'notificationCenter',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(NotificationCenterBlock, {
-    SelectedIssue: ({ issueId }) => openIssueStep(issueId),
+    SelectedIssue: ({ issueId }) => openIssue(issueId),
   }),
 })
 
-const foldIssueDetailOutMessage = makeOutMessageFold(IssueDetailBlock, {
-  Saved: ({ savedIssue }) =>
-    Update.combineSteps([
-      applySavedIssueStep(savedIssue),
-      makeFieldsStep(() => ({
-        maybeNotice: () => Option.some(`${savedIssue.identifier} saved`),
-      })),
-    ]),
-  AddedComment: ({ issueId, comment }) =>
-    applyIssueCommentStep(issueId, comment),
-  ReceivedIssue: ({ issue }) => applyIssueSnapshotStep(issue),
-  Closed: () =>
-    makeCommandsStep(model => {
-      const { route } = model
-
-      if (ApplicationRoute.guards.Issue(route)) {
-        return [NavigateInternal({ url: issuesRouter({}) })]
-      }
-
-      if (!isPageRoute(route)) {
-        return []
-      }
-
-      return [NavigateInternal({ url: routeToPath(withoutIssueId(route)) })]
-    }),
-})
-
-const navigateIssueFiltersStep = (
+const navigateIssueFilters = (
   change: (filters: IssueFilters) => IssueFilters,
 ) =>
   makeCommandsStep(model => [
@@ -149,19 +152,19 @@ export const IssueListBinding = makeBinding(IssueListBlock, {
         }),
       ]),
     ChangedStatusFilter: ({ maybeStatus }) =>
-      navigateIssueFiltersStep(filters =>
+      navigateIssueFilters(filters =>
         modifyFields(filters, { maybeStatus: () => maybeStatus }),
       ),
     ChangedSort: ({ sort }) =>
-      navigateIssueFiltersStep(filters =>
+      navigateIssueFilters(filters =>
         modifyFields(filters, { sort: () => sort }),
       ),
     ChangedGrouping: ({ groupBy }) =>
-      navigateIssueFiltersStep(filters =>
+      navigateIssueFilters(filters =>
         modifyFields(filters, { groupBy: () => groupBy }),
       ),
     RequestedClearFilters: () =>
-      navigateIssueFiltersStep(filters =>
+      navigateIssueFilters(filters =>
         modifyFields(filters, {
           query: () => '',
           maybeStatus: () => Option.none(),
@@ -194,20 +197,17 @@ export const IssueListBinding = makeBinding(IssueListBlock, {
   }),
 })
 
-export const IssueBoardBinding = makeMapBinding(IssueBoardBlock, {
+export const IssueBoardsBinding = makeMapBinding(IssueBoardBlock, {
   field: 'issueBoards',
+}).withOutMessagePolicy({
+  fold: (projectId, outMessage) =>
+    makeOutMessageFold(IssueBoardBlock, {
+      RequestedCreation: ({ status }) =>
+        CreateIssueBinding.requestOpen({ projectId, status }),
+      RequestedMove: ({ issueId, status, insertionIndex }) =>
+        requestIssueMove(issueId, status, insertionIndex),
+    })(outMessage),
 })
-
-const IssueBoardBindingWithOutMessagePolicy =
-  IssueBoardBinding.withOutMessagePolicy({
-    fold: (projectId, outMessage) =>
-      makeOutMessageFold(IssueBoardBlock, {
-        RequestedCreation: ({ status }) =>
-          CreateIssueBinding.requestOpen({ projectId, status }),
-        RequestedMove: ({ issueId, status, insertionIndex }) =>
-          requestIssueMoveStep(issueId, status, insertionIndex),
-      })(outMessage),
-  })
 
 export const CommandPaletteBinding = makeBinding(CommandPaletteBlock, {
   field: 'commandPalette',
@@ -228,11 +228,6 @@ export const MemberDirectoryBinding = makeBinding(MemberDirectoryBlock, {
   field: 'memberDirectory',
 })
 
-const IssueDetailBindingWithOutMessagePolicy =
-  IssueDetailBinding.withOutMessagePolicy({
-    fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
-  })
-
 export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
   field: 'projectSettings',
 }).withOutMessagePolicy({
@@ -251,32 +246,18 @@ export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
     })(outMessage),
 })
 
-export type ApplicationBindings = readonly [
-  typeof ActiveMemberBinding,
-  typeof ProjectSettingsBinding,
-  typeof IssueListBinding,
-  typeof CreateIssueBinding,
-  typeof IssueBoardBindingWithOutMessagePolicy,
-  typeof CommandPaletteBinding,
-  typeof MemberDirectoryBinding,
-  typeof NotificationCenterBinding,
-  typeof IssueDetailBindingWithOutMessagePolicy,
-]
-
-const bindings: ApplicationBindings = [
-  ActiveMemberBinding,
-  ProjectSettingsBinding,
-  IssueListBinding,
-  CreateIssueBinding,
-  IssueBoardBindingWithOutMessagePolicy,
-  CommandPaletteBinding,
-  MemberDirectoryBinding,
-  NotificationCenterBinding,
-  IssueDetailBindingWithOutMessagePolicy,
-]
-
 export const ApplicationComposition = makeComposition({
-  bindings,
+  bindings: [
+    ActiveMemberListboxBinding,
+    ProjectSettingsBinding,
+    IssueListBinding,
+    CreateIssueBinding,
+    IssueBoardsBinding,
+    CommandPaletteBinding,
+    MemberDirectoryBinding,
+    NotificationCenterBinding,
+    IssueDetailsBinding,
+  ],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

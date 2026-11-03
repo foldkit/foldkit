@@ -15,20 +15,30 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
   Model,
   Message: Schema.Never,
 })
 
-export const EntriesBinding = ApplicationDefinition.makeMapBinding(EntryBlock, {
-  field: 'entriesById',
-})
-export const RowsBinding = ApplicationDefinition.makeMapBinding(EntryBlock, {
-  field: 'rowsById',
-  childField: 'entry',
-})
+export const EntriesByIdBinding = ApplicationDefinition.makeMapBinding(
+  EntryBlock,
+  {
+    field: 'entriesById',
+  },
+)
+export const RowsByIdBinding = ApplicationDefinition.makeMapBinding(
+  EntryBlock,
+  {
+    field: 'rowsById',
+    childField: 'entry',
+  },
+)
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [EntriesBinding, RowsBinding],
+  bindings: [EntriesByIdBinding, RowsByIdBinding],
 })
 export const init = ApplicationComposition.makeInit(() => ({
   model: { entriesById: {}, rowsById: HashMap.empty() },

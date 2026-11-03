@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { canaryVersion } from '../../../scripts/lib/package-version.mjs'
 import { previewUploadTag } from '../../../scripts/lib/preview-release.mjs'
-import { EXAMPLE_FILE_EXTENSIONS, EXAMPLE_ROOT_FILES } from '../vite.config'
+import { EXAMPLE_FILE_EXTENSIONS, EXAMPLE_ROOT_FILES } from '../vite.config.ts'
 import {
   INCLUDED_EXTENSIONS,
   PLAYGROUND_DEPENDENCY_OVERRIDES,
@@ -173,23 +173,15 @@ describe('server-rendered example build scripts', () => {
         throw new Error(`the ${slug} playground omits package.json`)
       }
       const manifest: Readonly<{
-        devDependencies?: Readonly<Record<string, string>>
         overrides?: Readonly<Record<string, string>>
       }> = JSON.parse(source)
-      expect(
-        manifest.devDependencies?.['@rolldown/binding-wasm32-wasi'],
-        slug,
-      ).toBe('1.2.6')
       expect(manifest.overrides, slug).toEqual(PLAYGROUND_DEPENDENCY_OVERRIDES)
-      expect(manifest.overrides?.['@napi-rs/wasm-runtime'], slug).toBe('1.2.5')
+      expect(manifest.overrides?.['rolldown'], slug).toBe('1.2.16')
     }
   })
 
   it('pins canary playground dependencies to the commit-addressed snapshot', async () => {
     const previousCanaryCommit = process.env['VITE_FOLDKIT_CANARY_COMMIT']
-    delete process.env['VITE_FOLDKIT_CANARY_COMMIT']
-
-    const stableVersions = await loadPlaygroundWorkspacePackageVersions()
     process.env['VITE_FOLDKIT_CANARY_COMMIT'] = CANARY_COMMIT
 
     try {
@@ -218,7 +210,9 @@ describe('server-rendered example build scripts', () => {
           expect(specifier, `${slug}: ${name}`).not.toMatch(/^workspace:/)
         }
 
-        for (const [name, stableVersion] of Object.entries(stableVersions)) {
+        for (const [name, stableVersion] of Object.entries(
+          stableWorkspacePackageVersions,
+        )) {
           if (dependencies[name] !== undefined) {
             expect(dependencies[name], `${slug}: ${name}`).toBe(
               canaryVersion(stableVersion, CANARY_COMMIT),

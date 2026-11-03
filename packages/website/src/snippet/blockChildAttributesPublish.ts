@@ -1,4 +1,4 @@
-// page/commandMenu.ts
+// blocks/commandMenu.ts
 import { Array, Option } from 'effect'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 

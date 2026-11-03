@@ -14,6 +14,8 @@ import { tmpdir } from 'node:os'
 import { dirname, extname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { stagePackedConsumerPackages } from './lib/packed-consumer-staging.mjs'
+
 // A Foldkit application built outside this repository, from packed tarballs,
 // with no source alias and no workspace link. Everything about the build id
 // depends on that shape and cannot be observed inside the monorepo: the plugin
@@ -155,7 +157,7 @@ const readJson = <T>(path: string): T =>
 
 const packPackage = (label: string, packageDir: string): string => {
   const result = runRequired(label, 'npm', ['pack', '--json'], {
-    cwd: join(REPO_ROOT, packageDir),
+    cwd: packageDir,
   })
   const filename = parseJson<PackOutput>(result.stdout)[0]?.filename
   assertConsumer(
@@ -163,7 +165,7 @@ const packPackage = (label: string, packageDir: string): string => {
     `${label} did not return a tarball filename`,
   )
   log(`Packed ${filename}`)
-  return join(REPO_ROOT, packageDir, filename)
+  return join(packageDir, filename)
 }
 
 // CONSUMER PROJECT FIXTURE
@@ -209,6 +211,8 @@ const CONSUMER_FIXTURES: ReadonlyArray<ConsumerFixture> = [
   { path: 'src/effect-types.ts' },
   { path: 'src/inferred-program.ts' },
   { path: 'src/inferred-machine-edge.ts' },
+  { path: 'workspaces/shared-model/model.ts' },
+  { path: 'workspaces/application/consumer.ts' },
   { path: 'tsconfig.json' },
 ]
 
@@ -253,8 +257,16 @@ const writeConsumerFixtures = (projectDir: string): void => {
 type Manifest = Readonly<{
   name?: string
   version?: string
+  dependencies?: Readonly<Record<string, string>>
   peerDependencies?: Readonly<Record<string, string>>
   devDependencies?: Readonly<Record<string, string>>
+}>
+
+type EffectVersions = Readonly<{
+  effect: string
+  platformBrowser: string
+  platformNode: string
+  platformNodeShared: string
 }>
 
 type PackedTarballs = Readonly<{
@@ -270,12 +282,15 @@ type PackedTarballs = Readonly<{
 const writeConsumerProject = (
   projectDir: string,
   tarballs: PackedTarballs,
-): string => {
+): EffectVersions => {
   const foldkitManifest = readJson<Manifest>(
     join(REPO_ROOT, FOLDKIT_DIR, 'package.json'),
   )
   const exampleManifest = readJson<Manifest>(
     join(REPO_ROOT, 'examples/ssr/package.json'),
+  )
+  const nodeManifest = readJson<Manifest>(
+    join(REPO_ROOT, NODE_DIR, 'package.json'),
   )
   const platformBrowserVersion =
     versionArgument('platform-browser-version') ??
@@ -283,12 +298,32 @@ const writeConsumerProject = (
   const effectVersion =
     versionArgument('effect-version') ??
     foldkitManifest.devDependencies?.['effect']
+  const platformNodeVersion =
+    versionArgument('platform-node-version') ??
+    nodeManifest.dependencies?.['@effect/platform-node']?.replace(/^~/, '')
+  const platformNodeSharedVersion =
+    versionArgument('platform-node-shared-version') ??
+    nodeManifest.dependencies?.['@effect/platform-node-shared']?.replace(
+      /^~/,
+      '',
+    )
   const viteVersion = exampleManifest.devDependencies?.['vite']
   assertConsumer(
     platformBrowserVersion !== undefined &&
       effectVersion !== undefined &&
+      platformNodeVersion !== undefined &&
+      platformNodeSharedVersion !== undefined &&
       viteVersion !== undefined,
-    'could not read the platform-browser, effect, and vite versions the consumer must install',
+    'could not read the Effect, platform-browser, platform-node, platform-node-shared, and Vite versions the consumer must install',
+  )
+  assertConsumer(
+    [
+      effectVersion,
+      platformBrowserVersion,
+      platformNodeVersion,
+      platformNodeSharedVersion,
+    ].every(version => /^\d+\.\d+\.\d+$/.test(version)),
+    'the consumer must install exact stable Effect and platform versions',
   )
 
   writeFileSync(
@@ -299,9 +334,12 @@ const writeConsumerProject = (
         private: true,
         version: '0.0.0',
         type: 'module',
+        workspaces: ['workspaces/*'],
         scripts: { build: 'vite build' },
         dependencies: {
           '@effect/platform-browser': platformBrowserVersion,
+          '@effect/platform-node': platformNodeVersion,
+          '@effect/platform-node-shared': platformNodeSharedVersion,
           '@foldkit/devtools': `file:${tarballs.devtools}`,
           '@foldkit/devtools-mcp': `file:${tarballs.devtoolsMcp}`,
           '@foldkit/markdown': `file:${tarballs.markdown}`,
@@ -321,10 +359,51 @@ const writeConsumerProject = (
     )}\n`,
   )
   writeConsumerFixtures(projectDir)
+
+  const workspaceManifests = [
+    {
+      directory: 'shared-model',
+      manifest: {
+        name: '@fixture/shared-model',
+        version: '0.0.0',
+        private: true,
+        type: 'module',
+        exports: './model.ts',
+        peerDependencies: { effect: effectVersion },
+      },
+    },
+    {
+      directory: 'application',
+      manifest: {
+        name: '@fixture/application',
+        version: '0.0.0',
+        private: true,
+        type: 'module',
+        dependencies: {
+          '@fixture/shared-model': '*',
+          effect: effectVersion,
+          foldkit: `file:${tarballs.foldkit}`,
+        },
+      },
+    },
+  ]
+
+  for (const { directory, manifest } of workspaceManifests) {
+    writeFileSync(
+      join(projectDir, 'workspaces', directory, 'package.json'),
+      `${JSON.stringify(manifest, null, 2)}\n`,
+    )
+  }
+
   log(
-    `Consumer uses Effect ${effectVersion} and platform-browser ${platformBrowserVersion}`,
+    `Consumer uses Effect ${effectVersion}, platform-browser ${platformBrowserVersion}, platform-node ${platformNodeVersion}, and platform-node-shared ${platformNodeSharedVersion}`,
   )
-  return effectVersion
+  return {
+    effect: effectVersion,
+    platformBrowser: platformBrowserVersion,
+    platformNode: platformNodeVersion,
+    platformNodeShared: platformNodeSharedVersion,
+  }
 }
 
 // Every name the published documentation says ships from
@@ -1470,7 +1549,10 @@ const withTempDir = async (
 }
 
 const main = async (): Promise<void> => {
-  const tarballPaths: Array<string> = []
+  const stagingDirectory = mkdtempSync(
+    join(tmpdir(), 'foldkit-packed-artifacts-'),
+  )
+
   try {
     if (!isSkipBuild) {
       runRequired(
@@ -1497,23 +1579,48 @@ const main = async (): Promise<void> => {
       )
     }
 
-    const pack = (name: string, directory: string): string => {
-      const tarball = packPackage(`Packing ${name}...`, directory)
-      tarballPaths.push(tarball)
-      return tarball
+    const stagedPackages = await stagePackedConsumerPackages({
+      root: REPO_ROOT,
+      outputDirectory: stagingDirectory,
+      packageDirectories: [
+        FOLDKIT_DIR,
+        PLUGIN_DIR,
+        UI_DIR,
+        MARKDOWN_DIR,
+        NODE_DIR,
+        DEVTOOLS_DIR,
+        DEVTOOLS_MCP_DIR,
+      ],
+    })
+
+    const pack = (name: string): string => {
+      const stagedPackage = stagedPackages.find(
+        entry => entry.packageJson.name === name,
+      )
+      assertConsumer(
+        stagedPackage !== undefined,
+        `the staged release plan is missing ${name}`,
+      )
+
+      log(
+        `${name}: checkout ${stagedPackage.sourceVersion}, planned ${stagedPackage.packageJson.version}`,
+      )
+
+      return packPackage(`Packing ${name}...`, stagedPackage.dir)
     }
+
     const tarballs = {
-      foldkit: pack('foldkit', FOLDKIT_DIR),
-      plugin: pack('@foldkit/vite-plugin', PLUGIN_DIR),
-      ui: pack('@foldkit/ui', UI_DIR),
-      markdown: pack('@foldkit/markdown', MARKDOWN_DIR),
-      node: pack('@foldkit/node', NODE_DIR),
-      devtools: pack('@foldkit/devtools', DEVTOOLS_DIR),
-      devtoolsMcp: pack('@foldkit/devtools-mcp', DEVTOOLS_MCP_DIR),
+      foldkit: pack('foldkit'),
+      plugin: pack('@foldkit/vite-plugin'),
+      ui: pack('@foldkit/ui'),
+      markdown: pack('@foldkit/markdown'),
+      node: pack('@foldkit/node'),
+      devtools: pack('@foldkit/devtools'),
+      devtoolsMcp: pack('@foldkit/devtools-mcp'),
     }
 
     await withTempDir('foldkit-packed-ssr-', async projectDir => {
-      const effectVersion = writeConsumerProject(projectDir, tarballs)
+      const versions = writeConsumerProject(projectDir, tarballs)
 
       runRequired(
         'Installing the packed tarballs outside the monorepo...',
@@ -1525,7 +1632,13 @@ const main = async (): Promise<void> => {
       runRequired(
         'Checking one Effect runtime and valid platform peers...',
         'node',
-        ['scripts/effect-runtime.mjs', effectVersion],
+        [
+          'scripts/effect-runtime.mjs',
+          versions.effect,
+          versions.platformBrowser,
+          versions.platformNode,
+          versions.platformNodeShared,
+        ],
         { cwd: projectDir, inherit: true },
       )
 
@@ -1574,6 +1687,12 @@ const main = async (): Promise<void> => {
       assertServerBundleContainsFoldkitPackages(servedDir)
       assertServerBundleContainsFoldkitPackages(currentDir)
       assertPackedTypesResolve(projectDir)
+      runRequired(
+        'Running the npm workspace consumer with a shared Model Schema...',
+        'node',
+        ['workspaces/application/consumer.ts'],
+        { cwd: projectDir, inherit: true },
+      )
       assertNoSourceOracle(servedDir)
 
       const servedEntry = await loadServerEntry(servedDir)
@@ -1865,9 +1984,7 @@ const main = async (): Promise<void> => {
       }
     })
   } finally {
-    for (const path of tarballPaths) {
-      rmSync(path, { force: true })
-    }
+    rmSync(stagingDirectory, { recursive: true, force: true })
   }
 
   log('PASS')

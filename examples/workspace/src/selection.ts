@@ -1,7 +1,7 @@
 import { Array, Option, Record, pipe } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { maybeDraftSummary } from './issueDetail/draft'
+import { maybeDraftSummary } from './blocks/issueDetail'
 import type { Model } from './model'
 import { workspaceWithPendingMove } from './optimistic'
 import {

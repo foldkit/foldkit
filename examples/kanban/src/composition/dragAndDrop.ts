@@ -1,8 +1,7 @@
 import { Array, Option, pipe } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { DragAndDropBlock } from '@foldkit/ui'
-import { maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
+import { DragAndDropBlock, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import { SaveBoard } from '../command'
 import { ApplicationDefinition, makeFieldsStep, makeStep } from '../definition'

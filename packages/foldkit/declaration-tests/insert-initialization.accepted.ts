@@ -103,7 +103,7 @@ export const insertRecord = (
   })
 export const insertHashMap = (model: typeof ParentModel.Type, key: number) =>
   initAndInsert(ChildrenByNumberBinding, model, { key, args: [1] })
-export const insertStep = ParentDefinition.makeStep(model =>
+export const insert = ParentDefinition.makeStep(model =>
   insertRecord(model, firstId),
 )
 export const update = ParentComposition.makeUpdate({
@@ -117,7 +117,7 @@ export const init = ParentComposition.makeInit(() => ({
     rowsById: {},
     label: 'current',
   },
-  steps: [insertStep],
+  steps: [insert],
 }))
 const prepareParent = () => ParentComposition.prepareBlock({ init, update })
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -125,19 +125,16 @@ export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof prepareParent
 > = Block.assemble(prepareParent)
 
-export const initRecordIfMissingStep = makeInitIfMissingStep(
-  ChildrenByIdBinding,
-  {
-    key: firstId,
-    args: [1, 'first label', 'second label'],
-  },
-)
-export const initHashMapIfMissingStep = makeInitIfMissingStep(
+export const initRecordIfMissing = makeInitIfMissingStep(ChildrenByIdBinding, {
+  key: firstId,
+  args: [1, 'first label', 'second label'],
+})
+export const initHashMapIfMissing = makeInitIfMissingStep(
   ChildrenByNumberBinding,
   { key: 1, args: [1] },
 )
-export const initChildrenStep = ParentDefinition.makeStep(() =>
-  Update.combineSteps([initRecordIfMissingStep, initRecordIfMissingStep]),
+export const initChildren = ParentDefinition.makeStep(() =>
+  Update.combineSteps([initRecordIfMissing, initRecordIfMissing]),
 )
 export const initChildrenUpdate = ParentComposition.makeUpdate({
   RequestedInsert: (model, { id, count }) =>
@@ -147,11 +144,11 @@ export const initChildrenUpdate = ParentComposition.makeUpdate({
     })(model),
 })
 export const initChildrenDirectUpdate = ParentComposition.makeUpdate({
-  RequestedInsert: initRecordIfMissingStep,
+  RequestedInsert: initRecordIfMissing,
 })
 export const initWithChildren = ParentComposition.makeInit(() => ({
   model,
-  steps: [initChildrenStep],
+  steps: [initChildren],
 }))
 const prepareInitializingParent = () =>
   ParentComposition.prepareBlock({

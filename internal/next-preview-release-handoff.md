@@ -1,5 +1,14 @@
 # Next preview release handoff
 
+## October 30 stabilization follow-up
+
+The [current feedback pass](preview-feedback-stabilization-20261030.md) repairs
+Binding startup allocation and VirtualList external offset anchoring, and
+reconciles the Work Orders diagnostics and guidance. It starts from reviewed
+`9964c056` on the isolated main-sync branch. Integration gates pass;
+the exact committed diff requires independent review before pushing. The
+published Ready snapshot below remains unchanged.
+
 ## Published October 29
 
 The approved preview is published from

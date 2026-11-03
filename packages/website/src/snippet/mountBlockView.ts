@@ -10,7 +10,15 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
+const PanelKey = Symbol('Panel')
+
+const PanelDefinition = Block.makeDefinition('Panel', {
+  key: PanelKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
 
 const { makeNoopStep } = PanelDefinition
 
@@ -44,14 +52,16 @@ const update = PanelComposition.makeUpdate({
 })
 const view = PanelComposition.makeView((model, h) => panelView(model, h))
 
-const prepare = () =>
-  PanelComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer: MeasurePanel.layer,
-  })
-export const PanelBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const PanelBlock = PanelDefinition.contract
+
+export const layer = PanelDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer: MeasurePanel.layer,
+    }
+  }),
+).layer

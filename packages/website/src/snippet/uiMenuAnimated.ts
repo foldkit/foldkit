@@ -1,10 +1,8 @@
-import { Tuple } from 'effect'
-
 // Use the basic example's Model, Messages, update and OutMessage fold.
 const MenuBinding = ActionMenuExample.makeBinding(ActionMenu, {
   field: 'menu',
   init: {
-    contextToArgs: () => Tuple.make({ id: 'actions', isAnimated: true }),
+    contextToArgs: () => [{ id: 'actions', isAnimated: true }],
   },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 

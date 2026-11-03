@@ -2,25 +2,25 @@ import { Option, pipe } from 'effect'
 import { type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { DialogBlock } from '@foldkit/ui'
+import { DialogBlock } from '@foldkit/ui/dialog'
 
-import { ApplicationDefinition, makeNoopStep, makeStep } from '../definition'
 import {
   ApiReferenceBlock,
   BlockPageBlock,
   ComingFromReactBlock,
   ExampleDetailBlock,
   PlaygroundBlock,
+  SearchBlock,
+  SnippetCopyBlock,
+  SnippetDisclosureBlock,
   UiBlock,
-} from '../page'
+} from '../blocks'
+import { ApplicationDefinition, makeNoopStep, makeStep } from '../definition'
 import { ApplicationRoute, maybeExampleSlugForRoute } from '../route'
-import { SearchBlock } from '../search'
-import { SnippetCopyBlock } from '../snippetCopy'
-import { SnippetDisclosureBlock } from '../snippetDisclosure'
 import { ApplyTheme, SaveThemePreference, resolveTheme } from '../theme'
 import { type ThemePreference } from '../themePreference'
 import * as ThemeMenu from '../view/themeMenu'
-import { HomeBinding } from './home'
+import { MaybeHomeBinding } from './home'
 
 export const SearchBinding = ApplicationDefinition.makeBinding(SearchBlock, {
   field: 'search',
@@ -109,7 +109,7 @@ export const MobileMenuDialogBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-const applyThemePreferenceStep = (preference: ThemePreference) =>
+const applyThemePreference = (preference: ThemePreference) =>
   makeStep(model => {
     const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
@@ -133,7 +133,7 @@ export const ThemeMenuBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
-    Selected: ({ value }) => applyThemePreferenceStep(value),
+    Selected: ({ value }) => applyThemePreference(value),
     Closed: makeNoopStep,
   }),
 })
@@ -144,7 +144,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
     ComingFromReactBinding,
     CoreBlockPageBinding,
     ExampleDetailBinding,
-    HomeBinding,
+    MaybeHomeBinding,
     MobileMenuDialogBinding,
     PlaygroundBinding,
     SearchBinding,

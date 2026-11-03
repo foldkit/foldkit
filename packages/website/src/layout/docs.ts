@@ -2,6 +2,15 @@ import { clsx } from 'clsx'
 import { Match, Option, String } from 'effect'
 import { Html, createLazy, inertHtml as ih } from 'foldkit/html'
 
+import {
+  ApiReferenceBlock,
+  SnippetCopyBlock,
+  SnippetDisclosureBlock,
+} from '../blocks'
+import * as ApiReference from '../blocks/apiReference/domain'
+import * as CoreBlockMetadata from '../blocks/blockPage/domain'
+import * as ComingFromReact from '../blocks/comingFromReact/domain'
+import * as UiDocumentation from '../blocks/ui/domain'
 import { type CodeBlock, Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
 import {
@@ -23,7 +32,6 @@ import {
   AiMcp,
   AiOverview,
   AiSkills,
-  ApiReferenceBlock,
   AsyncData as AsyncDataPage,
   BestPractices,
   ComingFromTanStackQuery,
@@ -52,15 +60,9 @@ import {
   TypingTerminal,
   WhyFoldkit,
 } from '../page'
-import * as ApiReference from '../page/apiReference/domain'
-import * as ComingFromReact from '../page/comingFromReact/domain'
-import * as CoreBlockMetadata from '../page/core/blockPage/domain'
-import * as UiDocumentation from '../page/ui/domain'
 import * as Prose from '../prose'
 import { ApplicationRoute, type DocsRoute, homeRouter } from '../route'
-import { SnippetCopyBlock } from '../snippetCopy'
 import * as SnippetCopyRenderer from '../snippetCopyRenderer'
-import { SnippetDisclosureBlock } from '../snippetDisclosure'
 import * as SnippetDisclosureRenderer from '../snippetDisclosureRenderer'
 import { type TableOfContentsEntry } from '../tableOfContentsEntry'
 import {

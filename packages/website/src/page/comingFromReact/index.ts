@@ -1,1 +1,0 @@
-export { ComingFromReactBlock } from './block'

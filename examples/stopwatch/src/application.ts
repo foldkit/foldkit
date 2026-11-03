@@ -13,7 +13,7 @@ import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 const TICK_INTERVAL_MS = 10
 
@@ -34,7 +34,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
   Model,
   Message,
 })
@@ -179,7 +184,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
           h.div(
             [h.Class('flex')],
             [
-              Button.view(
+              buttonView(
                 {
                   onClick: Message.ClickedReset(),
                   toView: attributes =>
@@ -207,7 +212,7 @@ const startStopButton = (
   h: ApplicationViewBuilder,
 ): Html =>
   isRunning
-    ? Button.view(
+    ? buttonView(
         {
           onClick: Message.ClickedStop(),
           toView: attributes =>
@@ -221,7 +226,7 @@ const startStopButton = (
         },
         h,
       )
-    : Button.view(
+    : buttonView(
         {
           onClick: Message.ClickedStart(),
           toView: attributes =>
@@ -241,15 +246,15 @@ const startStopButton = (
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
+  }),
+)

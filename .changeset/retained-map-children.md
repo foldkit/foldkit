@@ -6,7 +6,7 @@
 Add `makeInitIfMissingStep` to `foldkit/bindingInit` for retained children in direct-value Record and Effect HashMap Bindings:
 
 ```ts
-const initEditorStep = (issue: Issue) =>
+const initEditor = (issue: Issue) =>
   makeInitIfMissingStep(EditorsBinding, {
     key: issue.id,
     args: [issue],

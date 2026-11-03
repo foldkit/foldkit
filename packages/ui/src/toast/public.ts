@@ -1,5 +1,7 @@
 export {
   makeBlock,
+  InMessage,
+  layer,
   Variant,
   Position,
   SwipeDirection,
@@ -14,3 +16,7 @@ export {
   type EntryHandlers,
   type Completed,
 } from './index.js'
+
+export type { ToastKey } from './index.js'
+
+export type { ToastFamily } from './index.js'

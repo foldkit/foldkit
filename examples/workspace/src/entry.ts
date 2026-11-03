@@ -1,7 +1,7 @@
 import { Program, Runtime } from 'foldkit'
 
 import { ApplicationBlock } from './block'
-import { ApplicationLayer } from './services'
+import { AppLayer } from './services'
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -13,4 +13,4 @@ const program = Program.make({
   devTools: { dispatch: true },
 })
 
-Runtime.run(program.provide(ApplicationLayer))
+Runtime.run(program.provide(AppLayer))

@@ -1,18 +1,21 @@
 import { Array, Option, pipe } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { IssueBoardBinding } from '../composition'
+import { IssueBoardsBinding } from '../composition'
 import { makeFieldsStep, makeStep } from '../definition'
-import { type MovedIssue, applyMovedIssue } from '../domain'
+import {
+  type MovedIssue,
+  applyMovedIssue as applyMovedIssueToWorkspace,
+} from '../domain'
 
-export const applyMovedIssueStep = (movedIssue: MovedIssue) =>
+export const applyMovedIssue = (movedIssue: MovedIssue) =>
   makeFieldsStep(() => ({
     workspaceAsyncData: AsyncData.map(workspace =>
-      applyMovedIssue(workspace, movedIssue),
+      applyMovedIssueToWorkspace(workspace, movedIssue),
     ),
   }))
 
-export const informBoardMoveFailureStep = (issueId: string) =>
+export const informBoardMoveFailure = (issueId: string) =>
   makeStep(model =>
     pipe(
       AsyncData.getData(model.workspaceAsyncData),
@@ -22,7 +25,7 @@ export const informBoardMoveFailureStep = (issueId: string) =>
       Option.match({
         onNone: () => ({ model }),
         onSome: issue =>
-          IssueBoardBinding.informIssueMoveFailed(issue.projectId),
+          IssueBoardsBinding.informIssueMoveFailure(issue.projectId),
       }),
     ),
   )

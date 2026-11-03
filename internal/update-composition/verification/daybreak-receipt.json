@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "db69206779b4e4c37d9cefe02acb21ca3d2e9ed3",
+  "baseline": "be0cb38108693068da30eb835e6eb33d6d5762c8",
+  "model": "gpt-daybreak-blue-latest",
+  "sandbox": "read-only",
+  "accessProgram": "daybreak_blue",
+  "status": "review completed; six findings under validation",
+  "authorization": "User explicitly approved frozen candidate db69206779 and small resulting security fixes",
+  "publicationAuthorized": false,
+  "reportSha256": "3fd05b7957dec087230d1025df706f146576cda8049dd25f8ef79d530d71f6c1",
+  "eventTypes": {
+    "thread.started": 1,
+    "turn.started": 1,
+    "turn.completed": 1,
+    "turn.failed": 0
+  }
+}

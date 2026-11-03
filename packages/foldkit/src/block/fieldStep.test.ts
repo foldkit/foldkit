@@ -24,7 +24,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 
 it('contextually types fields and preserves valid result refinements', () => {
   let evaluations = 0
-  const readyStep = FieldStepsDefinition.makeFieldsStep(model => {
+  const ready = FieldStepsDefinition.makeFieldsStep(model => {
     evaluations += 1
     expectTypeOf(model).toEqualTypeOf<typeof Model.Type>()
 
@@ -45,7 +45,7 @@ it('contextually types fields and preserves valid result refinements', () => {
 
   expect(evaluations).toBe(0)
 
-  const next = readyStep(initialModel)
+  const next = ready(initialModel)
 
   expect(next).toEqual({
     model: { count: 2, label: 'Example: ready', status: 'Ready' },
@@ -53,7 +53,7 @@ it('contextually types fields and preserves valid result refinements', () => {
   expect(initialModel.status).toBe('Idle')
   expect(evaluations).toBe(1)
   expectTypeOf<typeof next.model.status>().toEqualTypeOf<'Ready'>()
-  expectTypeOf<Update.RequirementsOf<typeof readyStep>>().toEqualTypeOf<never>()
+  expectTypeOf<Update.RequirementsOf<typeof ready>>().toEqualTypeOf<never>()
   expectTypeOf<typeof next.commands>().toEqualTypeOf<undefined>()
   expectTypeOf<typeof next.outMessage>().toEqualTypeOf<undefined>()
   expect(Object.keys(next)).toEqual(['model'])
@@ -62,7 +62,7 @@ it('contextually types fields and preserves valid result refinements', () => {
 it('preserves Model identity for a deferred empty field Step', () => {
   let evaluations = 0
   let fieldEvaluations = 0
-  const updateWhenReadyStep = FieldStepsDefinition.makeFieldsStep(model => {
+  const updateWhenReady = FieldStepsDefinition.makeFieldsStep(model => {
     evaluations += 1
     return model.status === 'Ready'
       ? {
@@ -77,10 +77,10 @@ it('preserves Model identity for a deferred empty field Step', () => {
   const ready = Model.make({ count: 1, label: 'Draft', status: 'Ready' })
 
   expect(evaluations).toBe(0)
-  expect(updateWhenReadyStep(idle).model).toBe(idle)
+  expect(updateWhenReady(idle).model).toBe(idle)
   expect(evaluations).toBe(1)
   expect(fieldEvaluations).toBe(0)
-  expect(updateWhenReadyStep(ready).model.count).toBe(2)
+  expect(updateWhenReady(ready).model.count).toBe(2)
   expect(evaluations).toBe(2)
   expect(fieldEvaluations).toBe(1)
 })
@@ -94,11 +94,11 @@ it('applies symbol field transformations rather than treating them as empty', ()
     Message: Schema.Never,
   })
   const initial = SymbolModel.make({ [count]: 1 })
-  const incrementStep = SymbolDefinition.makeFieldsStep(() => ({
+  const increment = SymbolDefinition.makeFieldsStep(() => ({
     [count]: Number.increment,
   }))
 
-  expect(incrementStep(initial).model[count]).toBe(2)
+  expect(increment(initial).model[count]).toBe(2)
   expect(initial[count]).toBe(1)
 })
 
@@ -108,19 +108,19 @@ it('combines ordinary field Steps sequentially for Blocks and Applications', () 
     label: 'Example',
     status: 'Idle',
   })
-  const updateStep = Update.combineSteps([
+  const changeModel = Update.combineSteps([
     FieldStepsDefinition.makeFieldsStep(() => ({ count: Number.increment })),
     ApplicationDefinition.makeFieldsStep(model => ({
       label: () => `${model.count}`,
     })),
   ])
 
-  const combined = updateStep(initialModel)
+  const combined = changeModel(initialModel)
 
   expect(combined.model).toEqual({ count: 2, label: '2', status: 'Idle' })
   expect(combined.commands).toEqual([])
   expectTypeOf<
-    Update.RequirementsOf<typeof updateStep>
+    Update.RequirementsOf<typeof changeModel>
   >().toEqualTypeOf<never>()
 })
 

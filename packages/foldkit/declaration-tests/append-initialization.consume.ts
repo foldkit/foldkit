@@ -10,7 +10,7 @@ import {
   Read,
   ReadService,
   append,
-  appendStep,
+  appendChild,
   appendWithRequiredArgs,
   init,
 } from './append-initialization.accepted.js'
@@ -56,7 +56,7 @@ export type ExactEvidence = Expect<
   >
 >
 export type StepRequirements = Expect<
-  Equal<Update.RequirementsOf<typeof appendStep>, ExpectedRequirements>
+  Equal<Update.RequirementsOf<typeof appendChild>, ExpectedRequirements>
 >
 export type InitializedModel = Expect<
   Equal<ReturnType<typeof init>['model'], typeof ParentModel.Type>

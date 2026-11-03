@@ -1,4 +1,4 @@
-import { Array, Option, Schema, Tuple } from 'effect'
+import { Array, Effect, Option, Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -44,10 +44,15 @@ const Message = defineMessageUnion({
   ClickedExpandRow: { index: Schema.Number },
   ClickedExpandPrecedingRow: {},
   ClickedAppendItem: {},
+  ClickedReverseItems: {},
   ClickedUnmountList: {},
 })
 type Message = typeof Message.Type
+const ApplicationKey = Symbol('Application')
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([FixtureConfig]),
+  view: { kind: 'Document' },
   Model,
   Message,
   ChildInitContext: FixtureConfig,
@@ -90,7 +95,7 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-const init = ApplicationComposition.makeInit((config: FixtureConfig) => ({
+const init = ApplicationComposition.makeInit(config => ({
   model: {
     config,
     items: Array.makeBy(
@@ -159,6 +164,14 @@ const update = ApplicationComposition.makeUpdate({
       index: model.items.length,
       content: RowContent.Compact(),
     })
+
+    return Update.combineSteps([
+      makeFieldsStep(() => ({ items: () => nextItems })),
+      ListBinding.informItemsChanged(Array.map(nextItems, item => item.id)),
+    ])
+  }),
+  ClickedReverseItems: makeStep(model => {
+    const nextItems = Array.reverse(model.items)
 
     return Update.combineSteps([
       makeFieldsStep(() => ({ items: () => nextItems })),
@@ -304,6 +317,10 @@ const view = ApplicationComposition.makeView((model, h) => ({
             ['Expand preceding row'],
           ),
           h.button([h.OnClick(Message.ClickedAppendItem())], ['Append item']),
+          h.button(
+            [h.OnClick(Message.ClickedReverseItems())],
+            ['Reverse items'],
+          ),
           h.button([h.OnClick(Message.ClickedUnmountList())], ['Unmount list']),
         ],
       ),
@@ -379,9 +396,15 @@ const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({ init, update, view })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const list = yield* ListBinding
+
+    return {
+      children: [list],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(VirtualList.layer)

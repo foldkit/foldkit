@@ -49,7 +49,7 @@ export const refetchTelemetry = (model: Model) =>
     }),
   })
 
-const selectControlStep = (updateModel: (model: Model) => Model) =>
+const selectControl = (updateModel: (model: Model) => Model) =>
   makeStep(model => {
     const nextModel = updateModel(
       modifyFields(model, { maybeSelectedDatumId: () => Option.none() }),
@@ -77,7 +77,7 @@ export const ChartModeRadioGroupBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChartModeRadioGroupBlock, {
     Selected: ({ value }) =>
-      selectControlStep(modifyFields({ chartMode: () => value })),
+      selectControl(modifyFields({ chartMode: () => value })),
   }),
 })
 
@@ -90,7 +90,7 @@ export const PeriodRadioGroupBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(PeriodRadioGroupBlock, {
     Selected: ({ value }) =>
-      selectControlStep(modifyFields({ period: () => value })),
+      selectControl(modifyFields({ period: () => value })),
   }),
 })
 
@@ -103,7 +103,7 @@ export const PackageRadioGroupBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(PackageRadioGroupBlock, {
     Selected: ({ value }) =>
-      selectControlStep(modifyFields({ selectedPackageId: () => value })),
+      selectControl(modifyFields({ selectedPackageId: () => value })),
   }),
 })
 

@@ -2,45 +2,46 @@ import {
   Command,
   click,
   expect,
-  given,
   label,
   role,
   scene,
   text,
   type,
 } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { init as initialize } from 'foldkit/scene'
+import { describe } from 'vitest'
 
-import { RadioGroup } from '@foldkit/ui'
+import { it } from '@effect/vitest'
+import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
+import { ApplicationBlock } from './block'
 import { PlaceOrder } from './command'
-import { initialModel } from './init'
 import { Message } from './message'
 import { EditionRadioGroupBlock } from './model'
-import { update } from './update'
-import { view } from './view'
 
 const resolveFocusOption = Command.resolve(
-  RadioGroup.test.FocusOption,
+  RadioGroupTest.FocusOption,
   EditionRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
 describe('scene', () => {
-  test('initial view shows the hardcover order and state machine inspector', () => {
-    scene(
-      { update, view },
-      given(initialModel),
-      expect(role('heading', { name: 'Your order' })).toExist(),
-      expect(role('radio', { name: 'Hardcover' })).toBeChecked(),
-      expect(role('heading', { name: 'State machine inspector' })).toExist(),
-      expect(text('stateDiagram-v2', { exact: false })).toExist(),
-    )
-  })
+  it.effect(
+    'initial view shows the hardcover order and state machine inspector',
+    () =>
+      scene(
+        ApplicationBlock,
+        initialize(),
+        expect(role('heading', { name: 'Your order' })).toExist(),
+        expect(role('radio', { name: 'Hardcover' })).toBeChecked(),
+        expect(role('heading', { name: 'State machine inspector' })).toExist(),
+        expect(text('stateDiagram-v2', { exact: false })).toExist(),
+      ),
+  )
 
-  test('digital order skips Shipping and can be confirmed', () => {
+  it.effect('digital order skips Shipping and can be confirmed', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationBlock,
+      initialize(),
       click(role('radio', { name: 'E-book' })),
       resolveFocusOption,
       expect(role('radio', { name: 'E-book' })).toBeChecked(),
@@ -62,13 +63,13 @@ describe('scene', () => {
         Message.CompletedPlaceOrder({ orderId: 'DIGI-1001' }),
       ),
       expect(text('Order DIGI-1001 confirmed')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('an applied promo code discounts the order total', () => {
+  it.effect('an applied promo code discounts the order total', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationBlock,
+      initialize(),
       click(role('radio', { name: 'E-book' })),
       resolveFocusOption,
       click(role('button', { name: 'Continue to payment' })),
@@ -83,6 +84,6 @@ describe('scene', () => {
       click(role('button', { name: 'Apply' })),
       expect(text("That code isn't recognized.")).toExist(),
       expect(role('button', { name: 'Place order · $30.31' })).toExist(),
-    )
-  })
+    ),
+  )
 })

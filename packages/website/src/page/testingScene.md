@@ -1,5 +1,13 @@
 # Scene
 
+## Overview
+
+A Block-aware `scene(Block, init(...args), ...steps)` returns an Effect that acquires and scopes the implementation graph. Supply the feature's construction Layer through ordinary test Layers. A checked application descriptor carries its selected default Layer. Use `given(model)` for an existing Model, and pass `{ block, viewInputs, updateContext, routing }` when the view or test requires those inputs. Handler Services are unnecessary for pure Scenes because handlers do not run.
+
+In Vitest, return the Scene Effect from `it.effect` in `@effect/vitest`. The integration owns execution and test cleanup, so normal tests need no `Effect.runPromise` wrapper or manual extraction of update and view. Use `init` and explicit Command resolution for startup scenarios. A selected application descriptor supplies its own construction Layer; add test Layers for the construction dependencies the test actually needs.
+
+Use `withBlock` for an advanced fixture that needs acquired pure functions or a custom test view. Keep the Scope alive throughout the test.
+
 ## Testing Through the View
 
 `Scene` runs update and view together. It clicks buttons, types into inputs, presses keys, and checks the rendered VNode tree. The view runs after every step, so the test sees both state transitions and their rendered result.
@@ -271,6 +279,7 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Mount.resolve(Def, ResultMessage)`           | Resolves the first pending Mount from the given Definition by feeding `ResultMessage` through update. For a Mount inside a child Block, resolve replays the boundary lift automatically, so you pass the child’s raw result Message. |
 | `Mount.resolveAll([Def, ResultMessage], ...)` | Resolves a batch of pending mounts in order.                                                                                                                                                                                         |
+| `Mount.emit(Def, Message)`                    | Delivers a later declared Message from one resolved, still-mounted stream Mount. It leaves the active Mount available for subsequent emissions.                                                                                      |
 | `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent, by source identity).                                                                                                                                                      |
 | `Mount.expectHas(A)`                          | A is among the pending mounts by source identity.                                                                                                                                                                                    |
 | `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                         |
@@ -278,9 +287,21 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 
 UI components expose their Mount Definitions as `Popover.test.AnchorPopover`, `Listbox.test.AnchorListbox`, and so on. These are the original declarations, so source-identity matching survives placement-qualified runtime names. The [testing migration cookbook](/testing#migrate-an-existing-test-suite) shows the completed Block and public test namespace together.
 
+### Stream Mount emissions
+
+A Mount declared with `makeMountStream` or `Mount.defineStream` can produce Messages throughout its element's lifetime. Resolve its first result with `Mount.resolve`, then use `Mount.emit` for later results. `resolve` continues to consume one pending Mount; calling it again does not select an already-resolved stream.
+
+This example assumes `CanvasBlock` renders `ObserveCanvas`, a stream Mount that reports its initial size and subsequent `ResizeObserver` measurements.
+
+::Snippet{name="sceneMountStream" label="Later measurements from a mounted stream"}
+
+`Mount.emit` accepts the stream's declared raw Message and validates its payload. Child Block boundary lifts are replayed automatically. The selected element must still be mounted, and its first result must already be resolved. Resolve pending Commands and Mounts and acknowledge ended Mounts before emitting again. `Mount.expectNone` checks pending Mounts; an active, resolved stream does not count as pending.
+
+When several active Mounts share the same source, pass the bound instance and its complete args to select one occurrence. An ambiguous match throws. Stream emissions do not execute handler Layers, so the same steps work for attached and host-owned implementations.
+
 ## Subscriptions
 
-`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Register the complete application's Subscriptions in the `scene` config, then pass the exact entry and its raw Message to run update and render the next view. `Scene.subscriptions(ApplicationComposition, localSubscriptions?)` combines the root declarations with the registered children's placement-qualified entries without building Layers or running Streams. A completed feature Block already exposes its complete `.subscriptions` registry. A Scene with no `subscriptions` config accepts no Subscription Message.
+`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Test the selected implementation that owns the registry and pass its exact entry and raw Message. Block-aware Scenes acquire that registered graph. An advanced `withBlock` fixture can supply its concrete `subscriptions` to a synchronous Scene. A public contract does not expose private registry entries, and an unregistered source is rejected.
 
 ::Snippet{name="testingSubscription" label="Emitting declared Subscription Messages"}
 
@@ -342,11 +363,11 @@ Scene replaces the tracked sequence after every step that drives update. A step 
 
 ## Blocks with ViewInputs
 
-To test a completed UI Block with render inputs, embed it through a local parent Binding and supply those inputs in the parent view. Author the parent view with `makeView.withInputs` when tests need to vary its inputs. `withViewInputs(view, defaults)` adapts that parent-owned view to Scene's `(model, h)` signature.
+To test a UI Block with render inputs, embed it through a local parent Binding and supply those inputs in the parent view. Declare the parent's view inputs, then pass `viewInputs` with its Block in the Scene config. Scene acquires and renders the selected implementation with those inputs.
 
 ::Snippet{name="sceneWithViewInputs" label="Testing an embedded Block with view inputs"}
 
-Each test can override the parent view inputs. Keep the embedded Block's `toView` callback in the parent renderer so the same markup and dispatch boundary are used across cases. A feature's own tests may adapt its private authored view directly.
+Each test can choose the parent view inputs. Keep the embedded Block's `toView` callback in the parent renderer so the same markup and dispatch boundary are used across cases.
 
 ## A Complete Scene
 

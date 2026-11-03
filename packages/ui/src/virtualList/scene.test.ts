@@ -1,25 +1,27 @@
-import { Array } from 'effect'
-import type { HtmlBuilder } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import { Array, Effect } from 'effect'
+import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
+import * as Story from 'foldkit/story'
+import { it as baseIt } from 'vitest'
 
-import { describe, expect, it } from '@effect/vitest'
+import { describe, expect, makeMethods } from '@effect/vitest'
 
 import {
   AccessibleSet,
+  type Completed,
   Message,
   type Model,
   ObserveVirtualList,
   type RowHeightInputs,
   ScrollTarget,
   type ViewInputs,
-  init,
-  mounts,
-  update,
-  view,
+  layer,
+  makeBlock,
 } from './virtualList.js'
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+type TestHtmlBuilder = Parameters<
+  Story.TestBlock<Completed<DemoItem>>['view']
+>[2]
 
 type DemoItem = Readonly<{ id: number; label: string }>
 
@@ -45,58 +47,120 @@ type SceneViewOverrides = Readonly<{
 }> &
   RowHeightInputs<DemoItem>
 
-const sceneView =
-  (overrides: SceneViewOverrides = {}) =>
-  (model: Model, h: TestHtmlBuilder) => {
-    const baseViewInputs = {
-      items: demoItems,
-      itemToKey: (item: DemoItem) => String(item.id),
-      itemToView: (item: DemoItem) => h.div([], [h.span([], [item.label])]),
-      overscan: 0,
-      ...(overrides.containerClassName === undefined
-        ? {}
-        : { containerClassName: overrides.containerClassName }),
-      ...(overrides.contentAlignment === undefined
-        ? {}
-        : { contentAlignment: overrides.contentAlignment }),
-      ...(overrides.accessibleSet === undefined
-        ? {}
-        : { accessibleSet: overrides.accessibleSet }),
-    }
-    const render = (viewInputs: ViewInputs<DemoItem>) =>
-      view<DemoItem>()(model, viewInputs, h)
-
-    if (overrides.itemToRowHeightPx !== undefined) {
-      return render({
-        ...baseViewInputs,
-        itemToRowHeightPx: overrides.itemToRowHeightPx,
-      })
-    }
-
-    if (overrides.dynamicRowHeights !== undefined) {
-      return render({
-        ...baseViewInputs,
-        dynamicRowHeights: overrides.dynamicRowHeights,
-        ...(overrides.itemToEstimatedRowHeightPx === undefined
-          ? {}
-          : {
-              itemToEstimatedRowHeightPx: overrides.itemToEstimatedRowHeightPx,
-            }),
-      })
-    }
-
-    return render(baseViewInputs)
+const DemoBlock = makeBlock<DemoItem>()
+const sceneViewInputs = (
+  overrides: SceneViewOverrides = {},
+): ViewInputs<DemoItem> => {
+  const baseViewInputs = {
+    items: demoItems,
+    itemToKey: (item: DemoItem) => String(item.id),
+    itemToView: (item: DemoItem) => ih.div([], [ih.span([], [item.label])]),
+    overscan: 0,
+    ...(overrides.containerClassName === undefined
+      ? {}
+      : { containerClassName: overrides.containerClassName }),
+    ...(overrides.contentAlignment === undefined
+      ? {}
+      : { contentAlignment: overrides.contentAlignment }),
+    ...(overrides.accessibleSet === undefined
+      ? {}
+      : { accessibleSet: overrides.accessibleSet }),
   }
 
-const unmeasuredModel = init({ id: 'test', rowHeightPx: ROW_HEIGHT }).model
+  if (overrides.itemToRowHeightPx !== undefined) {
+    return {
+      ...baseViewInputs,
+      itemToRowHeightPx: overrides.itemToRowHeightPx,
+    }
+  }
 
-const measuredModel = (() => {
-  const measurement = update(
-    unmeasuredModel,
-    Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
-  )
-  return measurement.model
-})()
+  if (overrides.dynamicRowHeights !== undefined) {
+    return {
+      ...baseViewInputs,
+      dynamicRowHeights: overrides.dynamicRowHeights,
+      ...(overrides.itemToEstimatedRowHeightPx === undefined
+        ? {}
+        : {
+            itemToEstimatedRowHeightPx: overrides.itemToEstimatedRowHeightPx,
+          }),
+    }
+  }
+
+  return baseViewInputs
+}
+
+const makeFixture = ({
+  init,
+  update,
+  view,
+}: Story.TestBlock<Completed<DemoItem>>) => {
+  const sceneView =
+    (overrides: SceneViewOverrides = {}) =>
+    (model: Model, h: TestHtmlBuilder) => {
+      const baseViewInputs = {
+        items: demoItems,
+        itemToKey: (item: DemoItem) => String(item.id),
+        itemToView: (item: DemoItem) => h.div([], [h.span([], [item.label])]),
+        overscan: 0,
+        ...(overrides.containerClassName === undefined
+          ? {}
+          : { containerClassName: overrides.containerClassName }),
+        ...(overrides.contentAlignment === undefined
+          ? {}
+          : { contentAlignment: overrides.contentAlignment }),
+        ...(overrides.accessibleSet === undefined
+          ? {}
+          : { accessibleSet: overrides.accessibleSet }),
+      }
+      const render = (viewInputs: ViewInputs<DemoItem>) =>
+        view(model, viewInputs, h)
+
+      if (overrides.itemToRowHeightPx !== undefined) {
+        return render({
+          ...baseViewInputs,
+          itemToRowHeightPx: overrides.itemToRowHeightPx,
+        })
+      }
+
+      if (overrides.dynamicRowHeights !== undefined) {
+        return render({
+          ...baseViewInputs,
+          dynamicRowHeights: overrides.dynamicRowHeights,
+          ...(overrides.itemToEstimatedRowHeightPx === undefined
+            ? {}
+            : {
+                itemToEstimatedRowHeightPx:
+                  overrides.itemToEstimatedRowHeightPx,
+              }),
+        })
+      }
+
+      return render(baseViewInputs)
+    }
+
+  const unmeasuredModel = init({ id: 'test', rowHeightPx: ROW_HEIGHT }).model
+
+  const measuredModel = (() => {
+    const measurement = update(
+      unmeasuredModel,
+      Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
+    )
+    return measurement.model
+  })()
+
+  return { init, update, view, sceneView, unmeasuredModel, measuredModel }
+}
+
+const it = makeMethods(
+  baseIt.extend<{ virtualList: ReturnType<typeof makeFixture> }>({
+    virtualList: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(DemoBlock, virtualList =>
+          Effect.promise(() => use(makeFixture(virtualList))),
+        ).pipe(Effect.provide(layer)),
+      ),
+  }),
+)
 
 const container = Scene.selector('ul#test')
 const rows = Scene.all.selector('li[data-virtual-list-item-index]')
@@ -108,50 +172,57 @@ const acknowledgeObserver = Scene.Mount.resolve(
 
 describe('VirtualList', () => {
   describe('container', () => {
-    it('renders as a ul with id and explicit role=list for Safari + VoiceOver compatibility', () => {
-      Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(unmeasuredModel),
-        Scene.expect(container).toExist(),
-        Scene.expect(container).toHaveAttr('id', 'test'),
-        Scene.expect(container).toHaveAttr('role', 'list'),
-        acknowledgeObserver,
-      )
-    })
+    it.effect(
+      'renders as a ul with id and explicit role=list for Safari + VoiceOver compatibility',
+      () =>
+        Scene.scene(
+          { block: DemoBlock, viewInputs: sceneViewInputs() },
+          Scene.init({ id: 'test', rowHeightPx: ROW_HEIGHT }),
+          Scene.expect(container).toExist(),
+          Scene.expect(container).toHaveAttr('id', 'test'),
+          Scene.expect(container).toHaveAttr('role', 'list'),
+          acknowledgeObserver,
+        ).pipe(Effect.provide(layer)),
+    )
 
-    it('sets overflow: auto inline so the container scrolls', () => {
+    it.effect('sets overflow: auto inline so the container scrolls', () =>
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(unmeasuredModel),
+        { block: DemoBlock, viewInputs: sceneViewInputs() },
+        Scene.init({ id: 'test', rowHeightPx: ROW_HEIGHT }),
         Scene.expect(container).toHaveStyle('overflow', 'auto'),
         acknowledgeObserver,
-      )
-    })
+      ).pipe(Effect.provide(layer)),
+    )
 
-    it('applies the consumer className when provided', () => {
+    it.effect('applies the consumer className when provided', () =>
       Scene.scene(
-        { update, view: sceneView({ containerClassName: 'h-96 bg-white' }) },
-        Scene.given(unmeasuredModel),
+        {
+          block: DemoBlock,
+          viewInputs: sceneViewInputs({ containerClassName: 'h-96 bg-white' }),
+        },
+        Scene.init({ id: 'test', rowHeightPx: ROW_HEIGHT }),
         Scene.expect(container).toHaveClass('h-96'),
         Scene.expect(container).toHaveClass('bg-white'),
         acknowledgeObserver,
-      )
-    })
+      ).pipe(Effect.provide(layer)),
+    )
   })
 
   describe('unmeasured state', () => {
-    it('renders no rows before the container is measured', () => {
+    it.effect('renders no rows before the container is measured', () =>
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.given(unmeasuredModel),
+        { block: DemoBlock, viewInputs: sceneViewInputs() },
+        Scene.init({ id: 'test', rowHeightPx: ROW_HEIGHT }),
         Scene.expectAll(rows).toHaveCount(0),
         acknowledgeObserver,
-      )
-    })
+      ).pipe(Effect.provide(layer)),
+    )
   })
 
   describe('measured state', () => {
-    it('reuses dynamic row offsets when only the scroll position changes', () => {
+    it('reuses dynamic row offsets when only the scroll position changes', ({
+      virtualList: { view, update, measuredModel },
+    }) => {
       const items = Array.makeBy(10_000, id => ({ id, label: `Item ${id}` }))
       const itemToKey = (item: DemoItem) => String(item.id)
       let estimateCount = 0
@@ -160,7 +231,7 @@ describe('VirtualList', () => {
         return ROW_HEIGHT
       }
       const dynamicView = (model: Model, h: TestHtmlBuilder) =>
-        view<DemoItem>()(
+        view(
           model,
           {
             items,
@@ -190,7 +261,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('renders the visible slice of rows once the container is measured', () => {
+    it('renders the visible slice of rows once the container is measured', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(measuredModel),
@@ -199,7 +272,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('keys rendered rows by data-virtual-list-item-index in slice order', () => {
+    it('keys rendered rows by data-virtual-list-item-index in slice order', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(measuredModel),
@@ -216,7 +291,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('sets each row wrapper to the configured rowHeightPx via inline style', () => {
+    it('sets each row wrapper to the configured rowHeightPx via inline style', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(measuredModel),
@@ -227,7 +304,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('sets aria-setsize on each row to the full item count so screen readers announce the logical list size, not the mounted-row count', () => {
+    it('sets aria-setsize on each row to the full item count so screen readers announce the logical list size, not the mounted-row count', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(measuredModel),
@@ -238,7 +317,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('sets aria-posinset on each row to its 1-based logical position so screen readers announce "row N of total"', () => {
+    it('sets aria-posinset on each row to its 1-based logical position so screen readers announce "row N of total"', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(measuredModel),
@@ -252,7 +333,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('reports an unknown collection size while older rows can load', () => {
+    it('reports an unknown collection size while older rows can load', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         {
           update,
@@ -269,7 +352,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('reports global positions when the full collection size is known', () => {
+    it('reports global positions when the full collection size is known', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         {
           update,
@@ -291,7 +376,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('sets aria-posinset using the logical (data) index, not the slice index, when scrolled', () => {
+    it('sets aria-posinset using the logical (data) index, not the slice index, when scrolled', ({
+      virtualList: { update, measuredModel, sceneView },
+    }) => {
       const scrolledUpdate = update(
         measuredModel,
         Message.ObservedContainerScroll({
@@ -311,7 +398,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('uses display: grid on row wrappers so consumer content fills the height', () => {
+    it('uses display: grid on row wrappers so consumer content fills the height', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(measuredModel),
@@ -322,7 +411,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('marks the spacer li elements with role=presentation so they do not break the list semantics', () => {
+    it('marks the spacer li elements with role=presentation so they do not break the list semantics', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(measuredModel),
@@ -336,18 +427,12 @@ describe('VirtualList', () => {
     const itemToRowHeightPx = (item: DemoItem): number =>
       item.id % 2 === 0 ? 60 : 20
 
-    const variableMeasuredModel = (() => {
-      const measuredUpdate = update(
-        unmeasuredModel,
-        Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
-      )
-      return measuredUpdate.model
-    })()
-
-    it('renders each row at the height returned by itemToRowHeightPx', () => {
+    it('renders each row at the height returned by itemToRowHeightPx', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ itemToRowHeightPx }) },
-        Scene.given(variableMeasuredModel),
+        Scene.given(measuredModel),
         Scene.expect(
           Scene.selector('[data-virtual-list-item-index="0"]'),
         ).toHaveStyle('height', '60px'),
@@ -358,10 +443,12 @@ describe('VirtualList', () => {
       )
     })
 
-    it('still picks the visible slice from cumulative heights', () => {
+    it('still picks the visible slice from cumulative heights', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ itemToRowHeightPx }) },
-        Scene.given(variableMeasuredModel),
+        Scene.given(measuredModel),
         Scene.expectAll(rows).toHaveCount(3),
         acknowledgeObserver,
       )
@@ -369,7 +456,9 @@ describe('VirtualList', () => {
   })
 
   describe('end anchoring and measured rows', () => {
-    it('renders the end window for a logical initial End target without reversing DOM order', () => {
+    it('renders the end window for a logical initial End target without reversing DOM order', ({
+      virtualList: { update, init, sceneView },
+    }) => {
       const endMeasurement = update(
         init({
           id: 'test',
@@ -392,10 +481,12 @@ describe('VirtualList', () => {
       )
     })
 
-    it('bottom-aligns content shorter than the viewport when requested', () => {
+    it('bottom-aligns content shorter than the viewport when requested', ({
+      virtualList: { view, update, measuredModel },
+    }) => {
       const shortItems = demoItems.slice(0, 2)
       const shortView = (model: Model, h: TestHtmlBuilder) =>
-        view<DemoItem>()(
+        view(
           model,
           {
             items: shortItems,
@@ -415,7 +506,9 @@ describe('VirtualList', () => {
       )
     })
 
-    it('marks dynamic rows for rendered-height observation', () => {
+    it('marks dynamic rows for rendered-height observation', ({
+      virtualList: { update, sceneView, measuredModel },
+    }) => {
       Scene.scene(
         { update, view: sceneView({ dynamicRowHeights: true }) },
         Scene.given(measuredModel),

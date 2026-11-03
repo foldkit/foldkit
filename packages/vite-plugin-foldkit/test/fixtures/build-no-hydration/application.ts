@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -8,10 +8,16 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({})
 export type Message = typeof Message.Type
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+const ApplicationKey = Symbol('Application')
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  isMessageFree: true,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
   Model,
   Message,
-}).makeComposition()
+})
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
@@ -24,13 +30,13 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.main([], [model.count.toString()]),
 }))
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
+  }),
+)

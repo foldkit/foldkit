@@ -4,7 +4,7 @@ import { EditorsBinding } from './composition'
 import { makeStep } from './definition'
 import { Issue } from './domain'
 
-const initIssueEditorStep = (issue: Issue) =>
+const initIssueEditor = (issue: Issue) =>
   makeStep(model =>
     initAndInsert(EditorsBinding, model, {
       key: issue.id,

@@ -11,7 +11,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const CanvasAppKey = Symbol('CanvasApp')
+
 const CanvasAppDefinition = Block.makeDefinition('CanvasApp', {
+  key: CanvasAppKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })

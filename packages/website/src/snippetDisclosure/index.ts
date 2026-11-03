@@ -1,1 +1,0 @@
-export { SnippetDisclosureBlock } from './block'

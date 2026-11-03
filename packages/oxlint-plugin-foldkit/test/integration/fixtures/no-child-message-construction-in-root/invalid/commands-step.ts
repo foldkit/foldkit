@@ -17,7 +17,7 @@ const ReceiveChildMessage = ParentDefinition.makeCommand('ReceiveMessage', {
   },
 })
 
-export const childMessagesStep = ParentDefinition.makeCommandsStep(() => [
+export const produceChildMessages = ParentDefinition.makeCommandsStep(() => [
   ReceiveChildMessage({
     message: Child.Message.ClickedParentCommandsStepSave(),
   }),

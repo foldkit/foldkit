@@ -89,7 +89,7 @@ type HomeLayerErrorIsExact = Expect<
   Equal<Layer.Error<typeof HomeBlock.EffectsLayer>, never>
 >
 
-export const emittedRequestJoinStep = HomeBinding.requestJoin('room-1', 'alice')
+export const emittedRequestJoin = HomeBinding.requestJoin('room-1', 'alice')
 
 type HomeArgumentsAreExact = Expect<
   Equal<Parameters<typeof HomeBinding.resetJoinForm>, [username: string]>

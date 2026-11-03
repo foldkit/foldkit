@@ -8,16 +8,19 @@ import {
   scene,
   text,
 } from 'foldkit/scene'
-import { test } from 'vitest'
 
-test('click load, resolve the fetch, see the profile', () => {
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock } from './application'
+
+it.effect('click load, resolve the fetch, see the profile', () =>
   scene(
-    { update, view },
+    ApplicationBlock,
     given(model),
     click(role('button', { name: 'Load user' })),
     expect(text('Loading…')).toExist(),
     Command.expectExact(FetchUser),
     Command.resolve(FetchUser, SucceededLoadUser({ user: ada })),
     inside(role('article'), expect(text('Ada Lovelace')).toExist()),
-  )
-})
+  ),
+)

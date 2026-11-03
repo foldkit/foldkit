@@ -10,27 +10,30 @@ import {
   scene,
   text,
 } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
+
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock } from './application'
 
 describe('resume upload flow', () => {
   const resume = new File(['%PDF-'], 'resume.pdf', {
     type: 'application/pdf',
   })
 
-  test('inline file input: changeFiles simulates selection', () => {
+  it.effect('inline file input: changeFiles simulates selection', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(initialModel),
       changeFiles(label('resume'), [resume]),
       expect(text('resume.pdf')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('button-triggered picker: resolve the SelectResume Command', () => {
+  it.effect('button-triggered picker: resolve the SelectResume Command', () => {
     const previewDataUrl = 'data:application/pdf;base64,JVBERi0='
-
-    scene(
-      { update, view },
+    return scene(
+      ApplicationBlock,
       given(initialModel),
       click(role('button', { name: 'Choose resume' })),
       Command.resolveAll(
@@ -41,16 +44,15 @@ describe('resume upload flow', () => {
     )
   })
 
-  test('drop zone: dropFiles simulates a drag-and-drop', () => {
+  it.effect('drop zone: dropFiles simulates a drag-and-drop', () => {
     const coverLetter = new File(['cover'], 'cover.txt', {
       type: 'text/plain',
     })
     const portfolio = new File(['<svg/>'], 'portfolio.svg', {
       type: 'image/svg+xml',
     })
-
-    scene(
-      { update, view },
+    return scene(
+      ApplicationBlock,
       given(initialModel),
       dropFiles(label('attachments'), [coverLetter, portfolio]),
       expect(text('2 attachments selected')).toExist(),

@@ -16,7 +16,11 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })

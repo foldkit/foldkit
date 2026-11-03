@@ -11,7 +11,7 @@ import {
   ParentModel,
   RowsByIdBinding,
   firstId,
-  initRecordIfMissingStep,
+  initRecordIfMissing,
   insertRecord,
   model,
 } from './insert-initialization.accepted.js'
@@ -204,7 +204,7 @@ makeInitIfMissingStep(impossibleBinding, { key: firstId, args: [1] })
 // @ts-expect-error HashMap keys retain the exact numeric Schema key.
 makeInitIfMissingStep(HashBinding, { key: firstId, args: [1] })
 // @ts-expect-error Applying the Step requires the registered graph, even for an existing key.
-const uncheckedInitialization = initRecordIfMissingStep(model)
+const uncheckedInitialization = initRecordIfMissing(model)
 // @ts-expect-error The connected result exposes no Model projection.
 uncheckedInitialization.model
 // @ts-expect-error The connected result exposes no Commands projection.
@@ -212,7 +212,7 @@ uncheckedInitialization.commands
 
 const missingInitializationUpdate = MissingComposition.makeUpdate({
   // @ts-expect-error The Step's Model input requires its registered Binding.
-  RequestedInsert: initRecordIfMissingStep,
+  RequestedInsert: initRecordIfMissing,
 })
 // @ts-expect-error Reuse and initialization both retain the required Binding registration.
 MissingComposition.prepareBlock({
@@ -221,7 +221,7 @@ MissingComposition.prepareBlock({
 })
 const foreignInitializationUpdate = ForeignComposition.makeUpdate({
   // @ts-expect-error A foreign graph cannot execute this Step.
-  RequestedInsert: initRecordIfMissingStep,
+  RequestedInsert: initRecordIfMissing,
 })
 // @ts-expect-error Registering a different placement does not satisfy the Step.
 ForeignComposition.prepareBlock({

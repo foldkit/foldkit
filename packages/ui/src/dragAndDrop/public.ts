@@ -1,5 +1,6 @@
 export {
   DragAndDropBlock,
+  layer,
   DragState,
   droppable,
   sortable,
@@ -16,3 +17,5 @@ export {
 /** Original DragAndDrop Command Definitions plus Story convenience helpers. */
 export * as test from './test.js'
 export type { SettleFocusInput, ResolveKeyboardMoveInput } from './test.js'
+
+export type { DragAndDropKey } from './block.js'

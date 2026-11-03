@@ -1,24 +1,49 @@
-export { define } from './index.js'
+export { define } from './define.js'
+export { layer } from './layer.js'
+export type { QueryKey } from './queryDefinition.js'
+export type { KeyedQueryKey } from './keyedQueryDefinition.js'
 export type {
-  CanonicalKeyedQuery,
-  KeyedQuery,
+  AttachedQuery,
+  AttachedQueryMembers,
+  HostQuery,
+  QueryMembers,
+  QueryConstructor,
+  QueryImplementation,
+  QueryFamily,
+} from './queryFamily.js'
+export type {
+  AttachedKeyedQuery,
+  AttachedKeyedQueryMembers,
+  HostKeyedQuery,
+  KeyedQueryMembers,
+  KeyedQueryConstructor,
+  KeyedQueryImplementation,
+  KeyedQueryFamily,
+} from './keyedQueryFamily.js'
+export type {
   KeyedQueryConfig,
   KeyedQueryModel,
+  KeyedQueryMessage,
+  KeyedQueryLocalMessage,
+  KeyedQueryInMessage,
   KeyedQueryOutMessage,
   KeyedQueryToLayer,
-  KeyedQueryWithOutMessage,
-  KeyedQueryWithoutOutMessage,
-  LayeredKeyedQuery,
   SyncFields,
-} from './keyedQuery.js'
+} from './keyedQueryContract.js'
 export type {
-  CanonicalQuery,
-  LayeredQuery,
-  Query,
+  KeyedQueryFetchDefinition,
+  KeyedQueryFetchHandler,
+} from './keyedQueryContract.js'
+export type {
   QueryConfig,
   QueryModel,
   QueryOutMessage,
   QueryToLayer,
-  QueryWithOutMessage,
-  QueryWithoutOutMessage,
-} from './query.js'
+} from './queryContract.js'
+export type {
+  QueryFetchDefinition,
+  QueryFetchHandler,
+  QueryMessage,
+  QueryLocalMessage,
+  QueryInMessage,
+} from './queryContract.js'

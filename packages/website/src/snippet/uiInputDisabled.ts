@@ -2,10 +2,10 @@
 // and ignore onInput events.
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { Input } from '@foldkit/ui'
+import { type InputAttributes, view as uiInputView } from '@foldkit/ui/input'
 
 const view = (h: HtmlBuilder<Message>) => {
-  const inputView = (attributes: Input.InputAttributes<Message>) =>
+  const inputView = (attributes: InputAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-1.5')],
       [
@@ -26,7 +26,7 @@ const view = (h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return Input.view(
+  return uiInputView(
     {
       id: 'email-disabled',
       isDisabled: true,

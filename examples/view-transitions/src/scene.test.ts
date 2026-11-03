@@ -1,14 +1,15 @@
 import { Option } from 'effect'
 import { Scene } from 'foldkit'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import {
+  ApplicationBlock,
   ApplicationRoute,
   Message,
   Model,
-  update,
-  view,
   viewTransition,
 } from './application'
 
@@ -26,70 +27,70 @@ const notFound = Model.make({
 const FILTER_PLACEHOLDER = 'Filter by title or medium…'
 
 describe('gallery', () => {
-  test('renders a card for every artwork', () => {
+  it.effect('renders a card for every artwork', () =>
     Scene.scene(
-      { update, view },
+      ApplicationBlock,
       Scene.given(gallery),
       Scene.expect(Scene.text('Dawn Chorus')).toExist(),
       Scene.expect(Scene.text('Deep Water')).toExist(),
       Scene.expect(Scene.text('Pollen')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('typing in the filter narrows the grid', () => {
+  it.effect('typing in the filter narrows the grid', () =>
     Scene.scene(
-      { update, view },
+      ApplicationBlock,
       Scene.given(gallery),
       Scene.type(Scene.placeholder(FILTER_PLACEHOLDER), 'graphite'),
       Scene.expect(Scene.text('Graphite')).toExist(),
       Scene.expect(Scene.text('Dawn Chorus')).toBeAbsent(),
-    )
-  })
+    ),
+  )
 
-  test('a filter with no matches shows the empty state', () => {
+  it.effect('a filter with no matches shows the empty state', () =>
     Scene.scene(
-      { update, view },
+      ApplicationBlock,
       Scene.given(gallery),
       Scene.type(Scene.placeholder(FILTER_PLACEHOLDER), 'watercolor'),
       Scene.expect(Scene.text('No artworks match the filter.')).toExist(),
-    )
-  })
+    ),
+  )
 })
 
 describe('artwork detail', () => {
-  test('renders the artwork with its description and a back link', () => {
+  it.effect('renders the artwork with its description and a back link', () =>
     Scene.scene(
-      { update, view },
+      ApplicationBlock,
       Scene.given(artworkDetail(2)),
       Scene.expect(Scene.text('Deep Water')).toExist(),
       Scene.expect(Scene.role('link', { name: '← Back to gallery' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('renders a missing state for an unknown artwork ID', () => {
+  it.effect('renders a missing state for an unknown artwork ID', () =>
     Scene.scene(
-      { update, view },
+      ApplicationBlock,
       Scene.given(artworkDetail(999)),
       Scene.expect(Scene.text('Artwork not found')).toExist(),
-    )
-  })
+    ),
+  )
 })
 
 describe('not found', () => {
-  test('renders the missing path', () => {
+  it.effect('renders the missing path', () =>
     Scene.scene(
-      { update, view },
+      ApplicationBlock,
       Scene.given(notFound),
       Scene.expect(Scene.text('Page not found')).toExist(),
-    )
-  })
+    ),
+  )
 })
 
 describe('viewTransition', () => {
   const urlFor = (path: string) =>
     Option.getOrThrow(fromString(`http://localhost${path}`))
 
-  test('transitions to-artwork-detail when the gallery gives way to an artwork', () => {
+  it('transitions to-artwork-detail when the gallery gives way to an artwork', () => {
     const decision = viewTransition({
       previousModel: gallery,
       model: artworkDetail(1),
@@ -99,7 +100,7 @@ describe('viewTransition', () => {
     expect(decision).toEqual({ types: ['to-artwork-detail'] })
   })
 
-  test('transitions to-gallery when an artwork gives way to the gallery', () => {
+  it('transitions to-gallery when an artwork gives way to the gallery', () => {
     const decision = viewTransition({
       previousModel: artworkDetail(1),
       model: gallery,
@@ -109,7 +110,7 @@ describe('viewTransition', () => {
     expect(decision).toEqual({ types: ['to-gallery'] })
   })
 
-  test('transitions untyped between two artworks', () => {
+  it('transitions untyped between two artworks', () => {
     const decision = viewTransition({
       previousModel: artworkDetail(1),
       model: artworkDetail(2),
@@ -119,7 +120,7 @@ describe('viewTransition', () => {
     expect(decision).toBe(true)
   })
 
-  test('never transitions on filter keystrokes', () => {
+  it('never transitions on filter keystrokes', () => {
     const decision = viewTransition({
       previousModel: gallery,
       model: gallery,

@@ -16,6 +16,7 @@ export type {
   Html,
   HtmlBuilder,
   KeyboardModifiers,
+  MessageOf,
   TagName,
   TextareaAttribute,
 } from './index.js'

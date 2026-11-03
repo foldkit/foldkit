@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/message": ["../src/message/public.ts"]
+    }
+  },
+  "files": [
+    "../src/vite-env.d.ts",
+    "helper-inputs.accepted.ts",
+    "helper-inputs.rejected.ts",
+    "helper-inputs.consume.ts"
+  ],
+  "include": []
+}

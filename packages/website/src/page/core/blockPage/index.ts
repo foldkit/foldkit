@@ -1,1 +1,0 @@
-export { BlockPageBlock } from './block'

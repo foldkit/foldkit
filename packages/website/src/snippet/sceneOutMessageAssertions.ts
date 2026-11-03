@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import {
   click,
   expectNoOutMessage,
@@ -8,21 +9,28 @@ import {
   scene,
 } from 'foldkit/scene'
 
-scene(
-  { update, view },
-  given(initialModel),
-  click(role('button', { name: 'Log out' })),
-  expectOutMessage(OutMessage.RequestedLogout()),
-  click(role('button', { name: 'Dismiss notification' })),
-  expectNoOutMessage(),
+import { ApplicationBlock } from './application'
+import { TreeRowBlock } from './treeRow'
+
+await Effect.runPromise(
+  scene(
+    ApplicationBlock,
+    given(initialModel),
+    click(role('button', { name: 'Log out' })),
+    expectOutMessage(OutMessage.RequestedLogout()),
+    click(role('button', { name: 'Dismiss notification' })),
+    expectNoOutMessage(),
+  ),
 )
 
-scene(
-  { update, view: treeRowView },
-  given(initialModel),
-  click(role('button', { name: 'Expand' })),
-  expectOutMessages(
-    OutMessage.RequestedExpand(),
-    OutMessage.RequestedSelection(),
+await Effect.runPromise(
+  scene(
+    TreeRowBlock,
+    given(initialModel),
+    click(role('button', { name: 'Expand' })),
+    expectOutMessages(
+      OutMessage.RequestedExpand(),
+      OutMessage.RequestedSelection(),
+    ),
   ),
 )

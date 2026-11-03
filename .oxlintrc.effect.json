@@ -26,6 +26,24 @@
   "overrides": [
     {
       "files": [
+        "packages/foldkit/src/runtime/rootBlock.ts",
+        "packages/foldkit/src/runtime/programConstruction.ts",
+        "packages/foldkit/src/experimental/hybrid/hybrid.ts",
+        "packages/foldkit/src/experimental/constructed/symbolic.ts",
+        "packages/foldkit/src/experimental/constructed/runtime.ts",
+        "packages/foldkit/src/experimental/contracted/familyRuntime.ts",
+        "packages/foldkit/src/experimental/contracted/runtime.ts",
+        "packages/foldkit/src/experimental/layered/testing/withBlock.ts",
+        "packages/foldkit/src/experimental/layered/testing/story.ts",
+        "packages/foldkit/src/experimental/layered/testing/scene.ts",
+        "packages/foldkit/src/experimental/server/server.ts"
+      ],
+      "rules": {
+        "effecttsgo/any-unknown-in-error-context": "off"
+      }
+    },
+    {
+      "files": [
         "packages/foldkit/src/command/index.ts",
         "packages/foldkit/src/html/index.ts",
         "packages/foldkit/src/route/parser.ts",

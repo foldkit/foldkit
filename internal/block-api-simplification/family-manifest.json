@@ -1,0 +1,191 @@
+{
+  "base": "a84a2b04b0e9a9613b9db603150fa271fb7dc27f",
+  "scope": "Full standalone frozen family proof against its original commit; not a delta to the later ordinary proof",
+  "files": [
+    {
+      "path": "consumer/family/author/contracts.ts",
+      "beforeSha256": null,
+      "afterSha256": "2b9f525a010151ab9842154d8c914bdb5000b431ea0328d9bf2249dcdfcbd4c6"
+    },
+    {
+      "path": "consumer/family/author/fixed.ts",
+      "beforeSha256": null,
+      "afterSha256": "75cf8cb8a84665d20794ab02e5d36d8450eb4c34d858fb52bc3e0baf16eeb191"
+    },
+    {
+      "path": "consumer/family/author/implementation.ts",
+      "beforeSha256": null,
+      "afterSha256": "6a09e23103ab34b01c5eaa798d638cc9854fd6c604086799d72daf9f50f0fa11"
+    },
+    {
+      "path": "consumer/family/author/parent.ts",
+      "beforeSha256": null,
+      "afterSha256": "0c655d62434d73dac2ef17cd8233a70545f6ab59133f19ee70922c920c5db565"
+    },
+    {
+      "path": "consumer/family/tsconfig.emit.json",
+      "beforeSha256": null,
+      "afterSha256": "9d816b79c97e4f9832e6bac8a1b721b87b3f4579f70e597eddd0632b547263b7"
+    },
+    {
+      "path": "packages/foldkit/src/block/public.ts",
+      "beforeSha256": "023d49a80ef6608797400fffdadf8cc95cd7091a140f3f09075fe2ce32c4eb0e",
+      "afterSha256": "e315d7ebbcea046ff94f41cfb185536e208fa7fca6b07199d88d8d00b393d427"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/constructed/authoring.ts",
+      "beforeSha256": "27dbe384c940ce1076adb75f716901a1d47e48308fd5148556689dad542e6f3f",
+      "afterSha256": "3c4b12288d493dce374b567ce045d514c4f39b6e7f4bcd9f6e803d0396fd18e9"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/constructed/contract.ts",
+      "beforeSha256": "ac2d85e53102c4a48a7574b74eaca6e798aa1caa0e37a5a6e466f38615d85660",
+      "afterSha256": "a9ddb4bd88c82275d29e8c29a1d2034804b61d7d3f230dad6944d3ba4a637243"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/constructed/directLayerPrototype.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "bfb2cbbf6bd224f44c8b98faad3aad25425ce212f077cdefcd63fafd918be329"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/contract.ts",
+      "beforeSha256": "b57d1afa72800b0f9276bead1b9a3342823b0a8b7a8c9f195241aa3f0e5b8724",
+      "afterSha256": "1b924cb2d10ca00c6afb84bfe6702c1921a9a8499d9aa9f8325eee71f8b943c9"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/directBlockLayer.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "7a74d077d52d7b22595087edc935a2497f40f2828fe155678377247109ae2833"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/family.ts",
+      "beforeSha256": "5e1ec3abd0df40525d6afe9b76dab56956fed16ca5222dd12ddaad4fce44b85a",
+      "afterSha256": "ac8b97c3701654cf86df9193dd0b6a60f14fd2648888077e1ca862ad005ea008"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/familyLayer.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "f5c05a9eb86faefc2f549436ea30ba0130f28ccd9a46b21c2bdd23b3d354edf2"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/familyLayer.ts",
+      "beforeSha256": null,
+      "afterSha256": "37d2f78d04051f4854303ce3f57aa1da64d729217a201a4542261ae60da0bc76"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/familyRootProjection.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "f4e3125b5b0d89fac557aafc7cb8bd32a5a9c8a346d8eadf207cec30d1dc6900"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/familyRuntime.ts",
+      "beforeSha256": "94a6c904ef3cd034a70be715f7b536674be8176f3bc28d814b0c14bb1209fab2",
+      "afterSha256": "ebef79f6dabd4205d1d8002027e704d0731433a8c53dcc3df5213bbe82db0114"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/implementationFacts.ts",
+      "beforeSha256": null,
+      "afterSha256": "3662a052146ed7d9c024e06d027b5460d2387831a751852b95a56ed00a02b37b"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/contracted/runtime.ts",
+      "beforeSha256": "e24945cf2b886247b91ab771e149aa2706019815658f8837fb4a1d51250d5a8c",
+      "afterSha256": "4fee73da50a380fcd6482fb5829ddfb3cd7b72b1fe17736531ae1828cbe4b7a5"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/hybrid/authoring.ts",
+      "beforeSha256": "0e68848ed886478ed6bf1d9fe3610fe7ea9bee5b951a0e77b60e9ea0fcd8d88c",
+      "afterSha256": "a4371dac09b29f7089525f9c2ab3b3e670282c8b1df3c3f35e0f76fd1c1e2993"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/hybrid/planComposer.ts",
+      "beforeSha256": null,
+      "afterSha256": "b9ef7fa64ff43ec0b89823bafad8b8b81eb691682cb2226ff537f37cc4f7ffe9"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/query/public.ts",
+      "beforeSha256": "4b22870eddbc49de06a1788e53f6aae57b00d2e6a0eaead3dd45d21e70f49d8f",
+      "afterSha256": "83caa3466e6c1803528e63590d90ac92bfb1667f2ba0b76b03e74767fcdb6ecc"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/query/queryDefinition.ts",
+      "beforeSha256": "dc2fc47d606a526e557a5ec97bc621f5c21a52c8b8bded4cb7817a2ce29a500a",
+      "afterSha256": "ce9815adeb406f46923c39ae55e886e2f65000f9df9c0b82d41664464db1abad"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/query/queryFamily.ts",
+      "beforeSha256": "3c666f216816d3572a980bd5bae82c6bec028220477d0d1bf76fff71bfb73982",
+      "afterSha256": "8c944dfb046ca0cfb717a749d167352a8c48d4a18f6b9e4f16e51c66cfdd9d5d"
+    },
+    {
+      "path": "packages/foldkit/src/experimental/query/queryImplementation.ts",
+      "beforeSha256": "d83a7035f9b5f1236e02f4e4ec0cd97ffba3a69ca0bb4c1991208cd22ee1ca4f",
+      "afterSha256": "bc75958f87437d737f9de191da8f9479bd53d8b44d7e62cf7b3bc79e02c9a44b"
+    },
+    {
+      "path": "packages/foldkit/src/runtime/program.ts",
+      "beforeSha256": "0f72bc50b158a885e5e00832d4096e47441a823c62066763a51767c7d0a33d26",
+      "afterSha256": "e7f837543724baadc357e29ed7376acc8704afa5b15e280238118b0d477331bd"
+    },
+    {
+      "path": "packages/foldkit/src/runtime/programRoot.ts",
+      "beforeSha256": "2d64bd5d5ab25d0cc42b75992e266d3a4b77d9710998ed0162af339d7625ec69",
+      "afterSha256": "7f9c4f4b6b8ab0211cd789ea2333f2a36fcd8260d009054da33c323e6d7b5e75"
+    },
+    {
+      "path": "packages/foldkit/src/runtime/rootBlock.ts",
+      "beforeSha256": "6ae4f830b5020f349ba8a0e95091a26d816b1bdbc90d7299bb052275327b1497",
+      "afterSha256": "d8abfb39767b1c580dbbf9235279cc32b3708272c131846ba88db330713b3c79"
+    },
+    {
+      "path": "packages/foldkit/tsconfig.family-prototype.json",
+      "beforeSha256": null,
+      "afterSha256": "693680064b802a123f9ce544c94b1221e29f6cef67b962a4d5b198d8ea26c818"
+    },
+    {
+      "path": "packages/foldkit/tsconfig.family-root-projection.json",
+      "beforeSha256": null,
+      "afterSha256": "21ce5d6bde19966ffacc86c692903861406c1e07681fb565b222a23d6286a13d"
+    },
+    {
+      "path": "packages/ui/src/animation/block.ts",
+      "beforeSha256": "eedf49d46e386509d9899fbfaf1adee748cbc878097122314a02640cbb31e150",
+      "afterSha256": "54af6b12a0abae36a234b80a14ce3312c2e4056b7dc5775572dfb69fc1f13614"
+    },
+    {
+      "path": "packages/ui/src/animation/definition.ts",
+      "beforeSha256": "2697086646bc8fbef89f0c4535a3a4db2b54b443cc14085f018cd39904098f08",
+      "afterSha256": "4cd77aaf4c800f112b4ce1bf9a05d8c8379775ac360eb0a3afc304f691f914f2"
+    },
+    {
+      "path": "packages/ui/src/fixedFamilyLayer.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "b729d7110b880de7d524f50724fd4d8f0fb7d808d2ded4a649bae004b12ccd80"
+    },
+    {
+      "path": "packages/ui/src/listbox/public.ts",
+      "beforeSha256": "8baf4df8af0d5f16e9e4acfc4c4c1e85d5dcf8407376339f70e16055210ed2be",
+      "afterSha256": "9bdd806a67d99771ba3fb676309aaed9100e5ce703a1084f6bf656b2e4d52ee7"
+    },
+    {
+      "path": "packages/ui/src/listbox/single.ts",
+      "beforeSha256": "4b84e32a2bede425f8e707baa3af1a42d9c7c06bcb5a50592acf10244165b902",
+      "afterSha256": "3bfa6a7cf74bbe10efe05ea0c781577124d1a96a60270735c0d5a2d2e111c5d0"
+    },
+    {
+      "path": "packages/ui/src/virtualList/virtualList.ts",
+      "beforeSha256": "3172c2cec612b45dab0f239c805d3de059e5333fa3d9e5292cadd0b8140af010",
+      "afterSha256": "b4e53cdbfc10c73eb18969f679b84a6a77a9d92a2c1127de2b14d4128e024492"
+    },
+    {
+      "path": "packages/ui/tsconfig.family-prototype.build.json",
+      "beforeSha256": null,
+      "afterSha256": "095152c4530bb0983a9972ef9d11e2f6ec4e8a92a0d9122d3b07b0aa8f0b050a"
+    },
+    {
+      "path": "packages/ui/tsconfig.family-prototype.json",
+      "beforeSha256": null,
+      "afterSha256": "4c0aa2c3ede70a622e39cb2b4cbc090acaba16097d12a160a1d42f351bb7e037"
+    }
+  ]
+}

@@ -26,6 +26,8 @@ import {
   parentMessage,
   parentModel,
   parentUpdate,
+  requiredContextUpdate,
+  requiredRestContextUpdate,
   rootInit,
   rootUpdate,
   rootView,
@@ -86,7 +88,7 @@ const update = Composition.makeUpdate.withContext(
 )
 const message = Message.ChangedCount({ amount: 1 })
 const model = Model.make({ count: 0 })
-const messageStep = update(message)
+const handleMessage = update(message)
 const view = (
   current: typeof Model.Type,
   h: HtmlBuilder<typeof Message.Type>,
@@ -100,27 +102,32 @@ const wrongModelUpdate = (
   _message: typeof Message.Type,
 ) => ({ model: { status: 'Done' } })
 
-Story.story(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidMissingModelStory = Story.story(
   // @ts-expect-error Story updates must return their Model.
   missingModelUpdate,
   Story.given(model),
 )
-Story.story(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidWrongModelStory = Story.story(
   // @ts-expect-error Story updates must return the same Model type they accept.
   wrongModelUpdate,
   Story.given(model),
 )
-Story.story(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidRequiredContextStory = Story.story(
   // @ts-expect-error Story cannot supply required update context.
   requiredContextUpdate,
   Story.given(model),
 )
-Story.story(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidRequiredRestContextStory = Story.story(
   // @ts-expect-error Story cannot supply required rest update context.
   requiredRestContextUpdate,
   Story.given(model),
 )
-Scene.scene(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidMissingModelScene = Scene.scene(
   {
     // @ts-expect-error Scene updates must return their Model.
     update: missingModelUpdate,
@@ -128,7 +135,8 @@ Scene.scene(
   },
   Scene.given(model),
 )
-Scene.scene(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidWrongModelScene = Scene.scene(
   {
     // @ts-expect-error Scene updates must return the same Model type they accept.
     update: wrongModelUpdate,
@@ -136,7 +144,8 @@ Scene.scene(
   },
   Scene.given(model),
 )
-Scene.scene(
+// oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- This intentionally rejected overload leaves fallback Effect channels.
+export const invalidRequiredContextScene = Scene.scene(
   {
     // @ts-expect-error Scene cannot supply required update context.
     update: requiredContextUpdate,
@@ -146,10 +155,10 @@ Scene.scene(
 )
 
 // @ts-expect-error Required context is supplied after the curried Step's Model.
-messageStep(model)
+handleMessage(model)
 
 // @ts-expect-error A context-bearing curried update is not a unary Step.
-Update.combineSteps(model, [messageStep])
+Update.combineSteps(model, [handleMessage])
 
 // @ts-expect-error The two-argument form is the canonical data-first call.
 update(message, { multiplier: 2 })

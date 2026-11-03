@@ -1,13 +1,16 @@
-type ChildBlockModel = typeof Child.ChildBlock.Model.Type
-type ChildBlockMessage = typeof Child.ChildBlock.Message.Type
-type ChildBlockOutMessage = typeof Child.ChildBlock.OutMessage.Type
+// ❌ Assign an emitting result to a return type that discards its OutMessage.
+import type { Update } from 'foldkit'
 
-const childUpdate: Update.ReturnWithOutMessage<
-  ChildBlockModel,
-  ChildBlockMessage,
-  ChildBlockOutMessage
-> = Child.ChildBlock.update(model.child, message)
+import { ChildBlock } from './child'
 
-// Type error: childUpdate may contain an OutMessage that this type cannot hold.
-const plainChildUpdate: Update.Return<ChildBlockModel, ChildBlockMessage> =
-  childUpdate
+type ChildModel = typeof ChildBlock.Model.Type
+type ChildMessage = typeof ChildBlock.Message.Type
+type ChildOutMessage = typeof ChildBlock.OutMessage.Type
+
+declare const childUpdate: Update.ReturnWithOutMessage<
+  ChildModel,
+  ChildMessage,
+  ChildOutMessage
+>
+
+const plainChildUpdate: Update.Return<ChildModel, ChildMessage> = childUpdate

@@ -1,16 +1,16 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Tooltip } from '@foldkit/ui'
-import type { RenderInfo as TooltipRenderInfo } from '@foldkit/ui/tooltip'
+import {
+  TooltipBlock,
+  layer as TooltipLayer,
+  type RenderInfo as TooltipRenderInfo,
+} from '@foldkit/ui/tooltip'
 
 // Add a field to your Model for the Tooltip Block:
 const Model = Schema.Struct({
-  tooltip: Tooltip.TooltipBlock.Model,
+  tooltip: TooltipBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -18,7 +18,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const TooltipExampleKey = Symbol('TooltipExample')
+
 const TooltipExampleDefinition = Block.makeDefinition('TooltipExample', {
+  key: TooltipExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -31,7 +36,7 @@ const { makeNoopStep } = TooltipExampleDefinition
 // the parent Model, which already has the next Tooltip Model written back.
 // The parent Definition checks every named child variant:
 const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
-  Tooltip.TooltipBlock,
+  TooltipBlock,
   {
     // The child has emitted `Shown`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example log analytics,
@@ -44,16 +49,12 @@ const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs Tooltip.TooltipBlock.update,
-// writes the next Tooltip Model back, routes generated delivery and Command
-// results, and hands any OutMessage to the OutMessage fold.
-const TooltipBinding = TooltipExampleDefinition.makeBinding(
-  Tooltip.TooltipBlock,
-  {
-    field: 'tooltip',
-    init: { contextToArgs: () => Tuple.make({ id: 'save-button' }) },
-  },
-).withOutMessagePolicy({ fold: foldTooltipOutMessage })
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
+const TooltipBinding = TooltipExampleDefinition.makeBinding(TooltipBlock, {
+  field: 'tooltip',
+  init: { contextToArgs: () => [{ id: 'save-button' }] },
+}).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
 const TooltipExampleComposition = TooltipExampleDefinition.makeComposition({
   bindings: [TooltipBinding],
@@ -111,3 +112,16 @@ const view = TooltipExampleComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = TooltipExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const tooltip = yield* TooltipBinding
+
+    return {
+      children: [tooltip],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(TooltipLayer)

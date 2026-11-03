@@ -1,0 +1,37 @@
+
+ RUN  v5.0.3 /private/tmp/foldkit-update-composition-20261102/packages/foldkit
+
+ ❯ src/runtime/start.test.ts (5 tests | 1 failed | 4 skipped) 9ms
+   ❯ embed teardown (2)
+     × does not start a disposed successor after its predecessor has finished 8ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 skipped (5)
+   Start at  18:34:53
+   Duration  1.12s (transform 54%, environment 16%, setup 15%, import 14%, tests 1%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/runtime/start.test.ts > embed teardown > does not start a disposed successor after its predecessor has finished
+AssertionError: expected [ 'started', 'released', …(2) ] to deeply equal [ 'started', 'released' ]
+
+- Expected
++ Received
+
+  [
+    "started",
+    "released",
++   "started",
++   "released",
+  ]
+
+ ❯ src/runtime/start.test.ts:168:20
+    166|     await second.dispose()
+    167|
+    168|     expect(events).toEqual(['started', 'released'])
+       |                    ^
+    169|   })
+    170|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

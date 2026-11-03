@@ -1,0 +1,134 @@
+{
+  "status": "passed",
+  "reviewedCommit": "bb089eeabfd0a8de8ef7675c52ebf3e783921237",
+  "repository": "/private/tmp/foldkit-update-composition-20261102",
+  "node": "22.22.3",
+  "ownedFiles": [
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/guards.ts",
+      "sha256": "3d0a75a7cd36b15892ebf8084326870678ed66353031f9ab4c59d411cf43e2ce"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/update-authoring.ts",
+      "sha256": "5aa55a0d7bc7d55ab049820a9261ac87330e746199b6954fca3f49566414fcd2"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/rules/no-direct-block-state-update.ts",
+      "sha256": "3abfd80f9076cf2611c3224748f422afe2d3fa53930f5c505c78d9895b791e1c"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/rules/no-impure-call-at-decision-time.ts",
+      "sha256": "704b685ef649ff6f5ecb64804a1c69cd6fdd98304e9608b12dfab4db2b36560d"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/src/rules/no-child-message-construction-in-root.ts",
+      "sha256": "67f94bf336c6c0782296a40969fd67d741cea3e138d7f53f8df1bca7e0ad5b1e"
+    },
+    {
+      "path": "packages/oxlint-plugin-foldkit/test/integration/focused-helpers.test.ts",
+      "sha256": "10ea35eada2b30b7167635eff021c15aaa20beaa43eb9d7a065dfd2b249a80ed"
+    }
+  ],
+  "implementation": [
+    "One shared callee resolver authenticates makeUpdate/makeInMessageUpdate through ownedDefinitionMethodOwner before classifying complete records, contextual records, cases, shared callbacks and curried selectors.",
+    "Const aliases and destructured local builder/focused-method aliases retain the original owner; alias cycles, local lookalikes, shadowed parameters and unrelated package owners do not acquire authority.",
+    "The direct-state rule uses the authenticated Composition to register handler Model evidence. Message construction uses the same owner for complete/focused/contextual handlers. Purity follows extracted callbacks returned by contextual factories without treating surrounding constructor Effects as pure.",
+    "Existing feature-import trust is preserved through local Composition construction from an imported Definition; the preexisting imported fields-helper regression remains covered."
+  ],
+  "red": {
+    "log": "/private/tmp/foldkit-focused-update-lint-red.log",
+    "newMatrixCases": 78,
+    "failed": 42,
+    "passed": 36,
+    "result": "expected review failures observed before resolver integration"
+  },
+  "final": {
+    "testFiles": 40,
+    "tests": 798,
+    "addedRealOxlintCases": 82,
+    "matrix": [
+      "both update APIs",
+      "record/withContext controls",
+      "cases/cases.withContext/each/on/except",
+      "inline callbacks",
+      "extracted callbacks",
+      "destructured base/focused aliases",
+      "curried selector aliases",
+      "owner-local Messages accepted",
+      "foreign Messages rejected",
+      "owner-bound Step helper aliases",
+      "imported Definition helpers",
+      "spoofed/shadowed/unrelated-package rejection controls"
+    ]
+  },
+  "checks": [
+    {
+      "name": "source-final",
+      "status": 0,
+      "cwd": "packages/oxlint-plugin-foldkit",
+      "command": "node node_modules/typescript/bin/tsc6 -p tsconfig.json --noEmit",
+      "log": "/private/tmp/foldkit-focused-update-lint-source-final.log"
+    },
+    {
+      "name": "fixtures-final",
+      "status": 0,
+      "cwd": "packages/oxlint-plugin-foldkit",
+      "command": "node scripts/typecheck-real-oxlint-fixtures.mjs",
+      "log": "/private/tmp/foldkit-focused-update-lint-fixtures-final.log"
+    },
+    {
+      "name": "tests-final",
+      "status": 0,
+      "cwd": "packages/oxlint-plugin-foldkit",
+      "command": "node node_modules/vitest/vitest.mjs run",
+      "log": "/private/tmp/foldkit-focused-update-lint-tests-final.log"
+    },
+    {
+      "name": "bundle-final",
+      "status": 0,
+      "cwd": "packages/oxlint-plugin-foldkit",
+      "command": "node node_modules/rolldown/bin/cli.mjs -c rolldown.config.ts",
+      "log": "/private/tmp/foldkit-focused-update-lint-bundle-final.log"
+    },
+    {
+      "name": "declarations-final",
+      "status": 0,
+      "cwd": "packages/oxlint-plugin-foldkit",
+      "command": "node ../foldkit/node_modules/typescript/bin/tsc -b tsconfig.build.json --force",
+      "log": "/private/tmp/foldkit-focused-update-lint-declarations-final.log"
+    },
+    {
+      "name": "presets-final",
+      "status": 0,
+      "cwd": "packages/oxlint-plugin-foldkit",
+      "command": "node scripts/generate-presets.mjs",
+      "log": "/private/tmp/foldkit-focused-update-lint-presets-final.log"
+    }
+  ],
+  "staticLint": {
+    "status": 0,
+    "log": "/private/tmp/foldkit-focused-update-lint-static-final.log",
+    "config": "/private/tmp/foldkit-focused-update-lint-static.json",
+    "note": "Root config excludes plugin implementation. This temp copy preserves every configured rule and disables only its ignorePatterns so the six owned files are actually checked. A preliminary ordinary scoped invocation found no files and is not counted as a pass."
+  },
+  "format": {
+    "status": 0,
+    "log": "/private/tmp/foldkit-focused-update-lint-format-final.log"
+  },
+  "builtOriginalReviewerProbes": {
+    "parent": {
+      "cases": 18,
+      "expectedDiagnosticsEach": 1,
+      "results": "/private/tmp/foldkit-focused-update-review-built-results.json"
+    },
+    "childOwner": {
+      "cases": 18,
+      "expected": "local Message constructions accepted; nondeterministic calls rejected; no invented child Model evidence",
+      "results": "/private/tmp/foldkit-focused-update-review-built-own-results.json"
+    }
+  },
+  "bundleSha256": "f79c4b7afb8003f4590c077a6e75043bf6a2a997fe839ff3fd245495dd8c6313",
+  "earlierDiagnostic": "Full-suite control initially caught one imported fields-helper ownership regression (793pass/1fail); the owning Definition traversal was corrected, and final unchanged full suite passes.",
+  "sourceBoundary": "Only the six plugin source/test paths above were edited. No core/UI build, install, manifest, lock, docs, commit or push.",
+  "remainingFailures": []
+}

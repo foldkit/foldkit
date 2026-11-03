@@ -1,12 +1,18 @@
 import { Block, Update } from 'foldkit'
 
 import {
+  DirectFieldBinding,
+  FieldParentComposition,
+  FieldParentModel,
   GeneralKeyedBinding,
+  OptionalFieldBinding,
   ParentBlock,
   ParentComposition,
   ParentMessage,
   ParentModel,
-  initGeneralStep,
+  WrappedFieldBinding,
+  initFields,
+  initGeneral,
 } from './message-free-keyed.accepted.js'
 
 type Equal<Left, Right> =
@@ -17,10 +23,10 @@ type Equal<Left, Right> =
     : false
 type Expect<Value extends true> = Value
 
-const operation = initGeneralStep
+const operation = initGeneral
 export type ExactKey = Expect<
   Equal<
-    Parameters<typeof initGeneralStep> extends [unknown, ...infer Args]
+    Parameters<typeof initGeneral> extends [unknown, ...infer Args]
       ? Args
       : never,
     [key: string]
@@ -28,12 +34,12 @@ export type ExactKey = Expect<
 >
 export type ParentModelIsPreserved = Expect<
   Equal<
-    Pick<Parameters<typeof initGeneralStep>[0], keyof typeof ParentModel.Type>,
+    Pick<Parameters<typeof initGeneral>[0], keyof typeof ParentModel.Type>,
     typeof ParentModel.Type
   >
 >
 // @ts-expect-error A connected initializer requires the registering graph's Model capability.
-initGeneralStep(ParentModel.make({ entries: [] }), 'unregistered')
+initGeneral(ParentModel.make({ entries: [] }), 'unregistered')
 export type ExactRegistration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof operation>>,
@@ -52,6 +58,20 @@ export type SilentRegistrationHasNoGeneratedSchema = Expect<
     >,
     never
   >
+>
+export type KeyedFieldMessagesStayNever = Expect<
+  Equal<
+    | Parameters<typeof DirectFieldBinding.fold>[2]
+    | Parameters<typeof WrappedFieldBinding.fold>[2]
+    | Parameters<typeof OptionalFieldBinding.fold>[2],
+    never
+  >
+>
+export type KeyedFieldCompositionStaysRouteless = Expect<
+  Equal<typeof FieldParentComposition.Message.Type, never>
+>
+export type KeyedFieldInitializationPreservesModel = Expect<
+  Equal<ReturnType<typeof initFields>['model'], FieldParentModel>
 >
 void ParentModel
 void ParentBlock

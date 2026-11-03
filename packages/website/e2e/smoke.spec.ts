@@ -72,11 +72,11 @@ test('selects an item from the combobox', async ({ page }) => {
     .getByRole('link', { name: 'Learn the architecture' })
     .click()
   await expect(page).toHaveURL(/\/core\/architecture$/)
-  await expect(page.locator('[data-foldkit-build]')).toHaveCount(0)
   await expect(page.locator('[data-browser-environment-loaded]')).toHaveCount(
     1,
     { timeout: CLIENT_RUNTIME_READY_TIMEOUT_MS },
   )
+  await expect(page.locator('[data-foldkit-build]')).toHaveCount(0)
 
   const docsNav = page.getByRole('navigation', { name: 'Documentation' })
 

@@ -1,8 +1,8 @@
+import { UiComposition } from '../../../blocks/ui/composition'
+import * as VirtualList from '../../../blocks/ui/demo/virtualList'
 import { type CodeBlock } from '../../../component'
 import { slotDocPage } from '../../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../../prose'
-import { UiComposition } from '../../ui/composition'
-import * as VirtualList from '../../ui/demo/virtualList'
 import raw from './foldkit-0-167-0.md'
 
 const { view: renderPost } = slotDocPage<'chat'>(raw, 'foldkit-0-167-0')

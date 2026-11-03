@@ -105,7 +105,7 @@ it('defers the producer, preserves an unchanged Model and leaves Command executi
     },
   })
   const command = Persist()
-  const persistStep = Definition.makeStep.fromMessage(
+  const persist = Definition.makeStep.fromMessage(
     (message: typeof Message.RequestedIncrement.Type) => {
       receivedMessages.push(message)
       return Definition.makeCommandsStep(() => [command])
@@ -116,9 +116,9 @@ it('defers the producer, preserves an unchanged Model and leaves Command executi
 
   expect(receivedMessages).toEqual([])
 
-  const first = persistStep(model, message)
+  const first = persist(model, message)
   const nextModel = Model.make({ count: 3 })
-  const second = persistStep(nextModel, message)
+  const second = persist(nextModel, message)
 
   expect(first.model).toBe(model)
   expect(second.model).toBe(nextModel)

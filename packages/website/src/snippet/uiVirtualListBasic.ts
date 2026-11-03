@@ -1,11 +1,11 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { VirtualList } from '@foldkit/ui'
+import {
+  layer as VirtualListLayer,
+  makeBlock as makeVirtualListBlock,
+} from '@foldkit/ui/virtualList'
 
 const Activity = Schema.Struct({
   id: Schema.String,
@@ -15,7 +15,7 @@ const Activity = Schema.Struct({
 })
 type Activity = typeof Activity.Type
 
-const ActivityList = VirtualList.makeBlock<Activity>()
+const ActivityList = makeVirtualListBlock<Activity>()
 
 // Add a field to your Model for the VirtualList Block. The list items
 // stay in your domain Model (your own `activities`, `messages`, `rows`,
@@ -32,9 +32,14 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const ActivityListExampleKey = Symbol('ActivityListExample')
+
 const ActivityListExampleDefinition = Block.makeDefinition(
   'ActivityListExample',
   {
+    key: ActivityListExampleKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },
@@ -54,7 +59,7 @@ const ActivityListBinding = ActivityListExampleDefinition.makeBinding(
   {
     field: 'activityList',
     init: {
-      contextToArgs: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
+      contextToArgs: () => [{ id: 'activity-list', rowHeightPx: 56 }],
     },
   },
 ).withOutMessagePolicy({ fold: foldActivityListOutMessage })
@@ -126,3 +131,16 @@ const view = ActivityListExampleComposition.makeView(
   // component's container Mount owns scroll and resize observation, so no
   // Subscription wiring is required.
 )
+
+export const ApplicationBlock = ActivityListExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const activityList = yield* ActivityListBinding
+
+    return {
+      children: [activityList],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(VirtualListLayer)

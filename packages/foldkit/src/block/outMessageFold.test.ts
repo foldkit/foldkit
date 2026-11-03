@@ -255,22 +255,22 @@ it('accepts valid conditional Step and result unions without widening requiremen
 
 it('rejects every invalid member of mixed Step and result unions', () => {
   if (false) {
-    const validStep = FoldParentDefinition.makeNoopStep()
-    const wrongModelStep = (model: Model) => {
+    const valid = FoldParentDefinition.makeNoopStep()
+    const wrongModel = (model: Model) => {
       if (model.choice === 'Apple') {
         return { model }
       }
 
       return { model: ChildModel.make({ count: 0 }) }
     }
-    const foreignCommandStep = (model: Model) => {
+    const foreignCommand = (model: Model) => {
       if (model.choice === 'Apple') {
         return { model }
       }
 
       return { model, commands: [ObserveSelection()] }
     }
-    const foreignOutMessageStep = (model: Model) => {
+    const foreignOutMessage = (model: Model) => {
       if (model.choice === 'Apple') {
         return { model }
       }
@@ -282,10 +282,10 @@ it('rejects every invalid member of mixed Step and result unions', () => {
       extra: Schema.String,
     })
     type ExtendedModel = typeof ExtendedModel.Type
-    const narrowerInputStep = (_model: ExtendedModel) => ({
+    const narrowerInput = (_model: ExtendedModel) => ({
       model: initialModel,
     })
-    const unknownEvidenceStep = (
+    const unknownEvidence = (
       _model: Model,
     ): Update.ReturnWithRegistrationEvidence<
       Model,
@@ -294,57 +294,56 @@ it('rejects every invalid member of mixed Step and result unions', () => {
       never,
       unknown
     > => ({ model: initialModel })
-    const mixedStep =
-      globalThis.Math.random() > 0.5 ? validStep : narrowerInputStep
+    const mixed = globalThis.Math.random() > 0.5 ? valid : narrowerInput
 
     const unknownCommands: unknown = undefined
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
       // @ts-expect-error Command collections cannot widen to unknown.
       Selected: () => model => ({ model, commands: unknownCommands }),
-      Closed: () => validStep,
+      Closed: () => valid,
     })
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
       // @ts-expect-error Command collections must be arrays of Commands.
       Selected: () => model => ({ model, commands: { unexpected: true } }),
-      Closed: () => validStep,
+      Closed: () => valid,
     })
     // @ts-expect-error A Definition is not a completed child Block.
     FoldParentDefinition.makeOutMessageFold(FoldChildDefinition, {})
 
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
       // @ts-expect-error Every returned Model member must match the parent Model.
-      Selected: () => wrongModelStep,
-      Closed: () => validStep,
+      Selected: () => wrongModel,
+      Closed: () => valid,
     })
 
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
       // @ts-expect-error Every Command member must produce the parent Message.
-      Selected: () => foreignCommandStep,
-      Closed: () => validStep,
+      Selected: () => foreignCommand,
+      Closed: () => valid,
     })
 
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
       // @ts-expect-error Every OutMessage member must match the parent OutMessage.
-      Selected: () => foreignOutMessageStep,
-      Closed: () => validStep,
+      Selected: () => foreignOutMessage,
+      Closed: () => valid,
     })
 
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
       // @ts-expect-error Every possible Step input must match the parent graph input.
-      Selected: () => mixedStep,
-      Closed: () => validStep,
+      Selected: () => mixed,
+      Closed: () => valid,
     })
 
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
       // @ts-expect-error A result cannot erase its Binding registration evidence.
-      Selected: () => unknownEvidenceStep,
-      Closed: () => validStep,
+      Selected: () => unknownEvidence,
+      Closed: () => valid,
     })
 
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
       // @ts-expect-error The returned Step must produce a result, not another Step.
       Selected: () => _model => FoldParentDefinition.makeNoopStep(),
-      Closed: () => validStep,
+      Closed: () => valid,
     })
 
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
@@ -352,7 +351,7 @@ it('rejects every invalid member of mixed Step and result unions', () => {
       Selected: () => {
         throw new Error('Missing transition')
       },
-      Closed: () => validStep,
+      Closed: () => valid,
     })
   }
 })
@@ -520,7 +519,7 @@ it('executes an initialized sibling through an owned Step and retains its graph 
 
 it('rejects erased invalid configuration before calling a variant handler', () => {
   const makeFold = FoldParentDefinition.makeOutMessageFold
-  const noopStep = () => FoldParentDefinition.makeNoopStep()
+  const keepModel = () => FoldParentDefinition.makeNoopStep()
 
   expect(() => Reflect.apply(makeFold, undefined, [{}, {}])).toThrow(
     'completed child Block',
@@ -528,34 +527,34 @@ it('rejects erased invalid configuration before calling a variant handler', () =
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       FoldChildDefinition,
-      { Selected: noopStep, Closed: noopStep },
+      { Selected: keepModel, Closed: keepModel },
     ]),
   ).toThrow('completed child Block')
   expect(() =>
-    Reflect.apply(makeFold, undefined, [ChildBlock, { Selected: noopStep }]),
+    Reflect.apply(makeFold, undefined, [ChildBlock, { Selected: keepModel }]),
   ).toThrow('missing handlers for: Closed')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
-      { Selected: noopStep, Closed: noopStep, Unexpected: noopStep },
+      { Selected: keepModel, Closed: keepModel, Unexpected: keepModel },
     ]),
   ).toThrow('unexpected handlers for: Unexpected')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
-      { Selected: noopStep, Closed: true },
+      { Selected: keepModel, Closed: true },
     ]),
   ).toThrow('handler "Closed" must be a function')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
-      Object.create({ Selected: noopStep, Closed: noopStep }),
+      Object.create({ Selected: keepModel, Closed: keepModel }),
     ]),
   ).toThrow('missing handlers for: Selected, Closed')
 
   const fold = makeFold(ChildBlock, {
-    Selected: noopStep,
-    Closed: noopStep,
+    Selected: keepModel,
+    Closed: keepModel,
   })
   expect(() => Reflect.apply(fold, undefined, [{ _tag: 'toString' }])).toThrow(
     'has no handler for child OutMessage "toString"',
@@ -932,7 +931,7 @@ it('validates explicit callable cases without invoking handlers', () => {
     init: false,
   })
   let handled = 0
-  const selectedMatcherStep = () => {
+  const selectedMatcher = () => {
     handled += 1
     return FoldParentDefinition.makeNoopStep()
   }
@@ -942,14 +941,14 @@ it('validates explicit callable cases without invoking handlers', () => {
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
-      { Selected: selectedMatcherStep },
+      { Selected: selectedMatcher },
     ]),
   ).toThrow('missing handlers for: Closed')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
       {
-        Selected: selectedMatcherStep,
+        Selected: selectedMatcher,
         Closed: FoldParentDefinition.makeNoopStep,
         Unexpected: FoldParentDefinition.makeNoopStep,
       },
@@ -964,7 +963,7 @@ it('validates explicit callable cases without invoking handlers', () => {
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       {
-        Selected: selectedMatcherStep,
+        Selected: selectedMatcher,
         Closed: FoldParentDefinition.makeNoopStep,
       },
     ]),
@@ -972,7 +971,7 @@ it('validates explicit callable cases without invoking handlers', () => {
     'requires a completed child Block followed by a record of variant handlers',
   )
   const explicitFold = makeFold(ChildBlock, {
-    Selected: selectedMatcherStep,
+    Selected: selectedMatcher,
     Closed: FoldParentDefinition.makeNoopStep,
   })
   const contextualForward = Reflect.apply(

@@ -1,12 +1,12 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Listbox } from '@foldkit/ui'
+import {
+  layer as ListboxLayer,
+  makeBlock as makeListboxBlock,
+} from '@foldkit/ui/listbox'
 
 type Character = Readonly<{
   firstName: string
@@ -19,7 +19,7 @@ const characterName = (character: Character): string =>
 // Declare the Listbox once at module scope, typed for the source item
 // (`Character`). `view`'s `items` are typed as `ReadonlyArray<Character>`;
 // the OutMessage carries the string returned by `itemToValue`:
-const CharacterListbox = Listbox.makeBlock<Character>()
+const CharacterListbox = makeListboxBlock<Character>()
 
 // Add a field to your Model for the Listbox Block, plus a field for
 // the selected value your app actually cares about:
@@ -33,7 +33,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const CharacterPickerKey = Symbol('CharacterPicker')
+
 const CharacterPickerDefinition = Block.makeDefinition('CharacterPicker', {
+  key: CharacterPickerKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -55,20 +60,15 @@ const foldListboxOutMessage = CharacterPickerDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it delegates keyboard
-// navigation, typeahead, and open/close to CharacterListbox.update, writes the
-// next Listbox Model back, routes generated delivery and Command results, and
-// hands any OutMessage to the OutMessage fold.
-const CharacterListboxBinding = CharacterPickerDefinition.makeBinding(
-  CharacterListbox,
-  {
-    field: 'listbox',
-    init: { contextToArgs: () => Tuple.make({ id: 'character' }) },
-  },
-).withOutMessagePolicy({ fold: foldListboxOutMessage })
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
+const ListboxBinding = CharacterPickerDefinition.makeBinding(CharacterListbox, {
+  field: 'listbox',
+  init: { contextToArgs: () => [{ id: 'character' }] },
+}).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const CharacterPickerComposition = CharacterPickerDefinition.makeComposition({
-  bindings: [CharacterListboxBinding],
+  bindings: [ListboxBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
@@ -96,7 +96,7 @@ const characters: ReadonlyArray<Character> = [
 // with the same key are contiguous in the items array:
 const view = CharacterPickerComposition.makeView((model, h) =>
   h.block(
-    CharacterListboxBinding.embedView({
+    ListboxBinding.embedView({
       slotId: 'character',
       model: model.listbox,
       viewInputs: {
@@ -133,3 +133,16 @@ const view = CharacterPickerComposition.makeView((model, h) =>
     }),
   ),
 )
+
+export const ApplicationBlock = CharacterPickerDefinition.makeBlock(
+  Effect.gen(function* () {
+    const characterListbox = yield* ListboxBinding
+
+    return {
+      children: [characterListbox],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(ListboxLayer)

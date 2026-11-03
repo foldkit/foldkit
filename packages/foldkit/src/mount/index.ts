@@ -64,7 +64,7 @@ export class MountRuntime extends Context.Service<
   MountRuntime,
   {
     readonly captureViewStateChanges: () => Stream.Stream<ViewState>
-    readonly registerFiber: (fiber: Fiber.Fiber<void>) => void
+    readonly registerFiber: (fiber: Fiber.Fiber<unknown, unknown>) => void
     readonly interruptFibers: Effect.Effect<void>
   }
 >()('@foldkit/MountRuntime') {}
@@ -82,7 +82,13 @@ export type MountDefinitionTypeId = typeof MountDefinitionTypeId
  * @internal Runtime identity shared by a layered Mount Definition and every
  *  action constructed from it.
  */
-export type MountRegistration = Readonly<{ name: string }>
+export type MountRegistration<
+  Kind extends 'Effect' | 'Stream' = 'Effect' | 'Stream',
+> = Readonly<{
+  name: string
+  kind: Kind
+  messages: ReadonlyArray<Schema.Top>
+}>
 
 /** Property key carrying a layered Mount's registration identity through Block
  * composition. */
@@ -120,6 +126,16 @@ export type MountAction<Message, E = never, R = never> = Readonly<{
   ) => Stream.Stream<Message, E, R>
 }>
 
+/** A continuous Mount action carrying its originating stream declaration. */
+export type StreamMountAction<Message, E = never, R = never> = MountAction<
+  Message,
+  E,
+  R
+> &
+  Readonly<{
+    [MountRegistrationTypeId]: MountRegistration<'Stream'>
+  }>
+
 /** A Mount definition for a Mount with no declared args. Call as `Definition()` to produce a MountAction. */
 export interface MountDefinitionNoArgs<
   Name extends string,
@@ -154,6 +170,39 @@ export interface MountDefinitionWithArgs<
       viewStateChanges: Stream.Stream<ViewState>,
     ) => Stream.Stream<ResultMessage, never, R>
   }>
+}
+
+/** A continuous Mount Definition with no declared args. */
+export interface StreamMountDefinitionNoArgs<
+  Name extends string,
+  ResultMessage,
+  R = never,
+> {
+  readonly [MountDefinitionTypeId]: MountDefinitionTypeId
+  readonly [MountRegistrationTypeId]: MountRegistration<'Stream'>
+  readonly name: Name
+  (): StreamMountAction<ResultMessage, never, R> & Readonly<{ name: Name }>
+}
+
+/** A continuous Mount Definition with declared args. */
+export interface StreamMountDefinitionWithArgs<
+  Name extends string,
+  Fields extends Schema.Struct.Fields,
+  ResultMessage,
+  R = never,
+> {
+  readonly [MountDefinitionTypeId]: MountDefinitionTypeId
+  readonly [MountRegistrationTypeId]: MountRegistration<'Stream'>
+  readonly name: Name
+  (args: Schema.Schema.Type<Schema.Struct<Fields>>): StreamMountAction<
+    ResultMessage,
+    never,
+    R
+  > &
+    Readonly<{
+      name: Name
+      args: Schema.Schema.Type<Schema.Struct<Fields>>
+    }>
 }
 
 /** A one-shot Mount Definition whose implementation is supplied by a Layer. */
@@ -196,12 +245,11 @@ export interface LayeredMountDefinitionWithArgs<
 export interface LayeredStreamMountDefinitionNoArgs<
   Name extends string,
   ResultMessage,
-> extends MountDefinitionNoArgs<
+> extends StreamMountDefinitionNoArgs<
   Name,
   ResultMessage,
   Handler<Name, ExecuteRuntimeInput, ResultMessage>
 > {
-  readonly [MountRegistrationTypeId]: MountRegistration
   readonly toLayer: ToStreamLayer<Name, ExecuteRuntimeInput, ResultMessage>
 }
 
@@ -210,7 +258,7 @@ export interface LayeredStreamMountDefinitionWithArgs<
   Name extends string,
   Fields extends Schema.Struct.Fields,
   ResultMessage,
-> extends MountDefinitionWithArgs<
+> extends StreamMountDefinitionWithArgs<
   Name,
   Fields,
   ResultMessage,
@@ -220,7 +268,6 @@ export interface LayeredStreamMountDefinitionWithArgs<
     ResultMessage
   >
 > {
-  readonly [MountRegistrationTypeId]: MountRegistration
   readonly toLayer: ToStreamLayer<
     Name,
     ExecuteRuntimeInput & Schema.Schema.Type<Schema.Struct<Fields>>,
@@ -248,6 +295,18 @@ export type MountDefinition<
 > =
   | MountDefinitionNoArgs<Name, ResultMessage, R>
   | MountDefinitionWithArgs<Name, any, ResultMessage, R>
+
+/** A continuous Mount Definition accepted by stream-specific testing APIs. */
+export type StreamMountDefinition<
+  Name extends string = string,
+  ResultMessage = any,
+  R = any,
+> = Readonly<{
+  [MountDefinitionTypeId]: MountDefinitionTypeId
+  [MountRegistrationTypeId]: MountRegistration<'Stream'>
+  name: Name
+}> &
+  ((...args: Array<any>) => StreamMountAction<ResultMessage, never, R>)
 
 /** The Layer service required by a Layer-backed Mount Definition or registry. */
 export type RequirementsOf<DefinitionOrDefinitions> =
@@ -436,8 +495,9 @@ const wrapEffectAsStream =
  * `handler` is a generator function that constructs the handler. Foldkit
  * applies `Effect.gen` to the generator. Include the Definition in the owning
  * Block's `makeComposition({ mounts: [...] })` call and include its `layer`
- * recipe in the local Effects Layer passed to `prepareBlock`. The returned
- * handler receives the live `Element` as `element` and the runtime's
+ * recipe in the local `EffectsLayer` returned by the `Definition.makeBlock`
+ * constructor. The returned handler receives the live `Element` as `element`
+ * and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns an
  * `Effect<Message>` that runs once when the element mounts.
  * The completed Block carries the recipe without building it; a Runtime builds
@@ -445,8 +505,9 @@ const wrapEffectAsStream =
  * acquisition and release.
  *
  * Omit `handler` to declare a host contract. A host contract has no
- * `layer`; use its `toLayer` method to supply an implementation at the
- * application boundary or in a test.
+ * `layer`; use its `toLayer` method to supply an implementation. Include the
+ * selected provider in the Block constructor's `EffectsLayer`, or supply it
+ * through a native host or test boundary.
  *
  * `args` is optional. Omit it and the Definition is callable as `Definition()`;
  * declare it and the Definition is callable as `Definition(args)`. The handler
@@ -477,6 +538,10 @@ const wrapEffectAsStream =
  * Cleanup composes via `Effect.acquireRelease` inside the Effect: registered
  * finalizers run when the element unmounts. The Mount's scope stays open
  * across the element's full lifetime, even after the Effect completes.
+ * Acquisition is uninterruptible by default. For asynchronous setup that
+ * must stop when the element unmounts, pass `{ interruptible: true }` as
+ * the third argument to `Effect.acquireRelease`. Construct the resource
+ * after the interruptible wait so cancellation leaves no handle to release.
  *
  * At least one result Message schema is required. The Effect's success
  * type is `Schema.Schema.Type<Messages[number]>`; without a declared
@@ -693,7 +758,11 @@ export function define<
 ): unknown {
   const isArgsDeclared = Predicate.isNotUndefined(config.args)
   const handler = makeEffectHandler<string, any, ResultMessage>(name)
-  const registration: MountRegistration = { name }
+  const registration: MountRegistration<'Effect'> = Object.freeze({
+    name,
+    kind: 'Effect',
+    messages: Object.freeze([...config.messages]),
+  })
   const layer = Predicate.isUndefined(config.handler)
     ? undefined
     : // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
@@ -742,10 +811,10 @@ export function define<
  * constructs a Stream handler. Foldkit applies `Effect.gen` to the generator.
  * Include the Definition in the owning Block's
  * `makeComposition({ mounts: [...] })` call and include its `layer` recipe in the
- * local Effects Layer passed to `prepareBlock`. The completed Block carries the
- * recipe without building it; a Runtime builds it once for the application.
- * The returned handler receives the
- * live `Element` as `element` and the runtime's
+ * local `EffectsLayer` returned by the `Definition.makeBlock` constructor. The
+ * completed Block carries the recipe without building it; a Runtime builds it
+ * once for the application. The returned handler receives the live `Element`
+ * as `element` and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns a
  * `Stream<Message>` whose lifetime is bound to the element's lifetime: each
  * emitted Message is dispatched, and the Stream's scope is closed (running any
@@ -754,8 +823,9 @@ export function define<
  * listeners attached to the element.
  *
  * Omit `handler` to declare a host contract. A host contract has no
- * `layer`; use its `toLayer` method to supply an implementation at the
- * application boundary or in a test.
+ * `layer`; use its `toLayer` method to supply an implementation. Include the
+ * selected provider in the Block constructor's `EffectsLayer`, or supply it
+ * through a native host or test boundary.
  *
  * `args` is optional. Omit it and the Definition is callable as `Definition()`;
  * declare it and the Definition is callable as `Definition(args)`. The handler
@@ -953,7 +1023,11 @@ export function defineStream<
 ): unknown {
   const isArgsDeclared = Predicate.isNotUndefined(config.args)
   const handler = makeStreamHandler<string, any, ResultMessage>(name)
-  const registration: MountRegistration = { name }
+  const registration: MountRegistration<'Stream'> = Object.freeze({
+    name,
+    kind: 'Stream',
+    messages: Object.freeze([...config.messages]),
+  })
   const layer = Predicate.isUndefined(config.handler)
     ? undefined
     : // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions

@@ -1,8 +1,9 @@
 import { Duration, Schema } from 'effect'
+import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import * as Animation from '../animation/schema.js'
+import { AnimationBlock } from '../animation/definition.js'
 
 // VARIANT
 
@@ -86,7 +87,7 @@ export const makeEntry = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
   Schema.Struct({
     id: Schema.String,
     variant: Variant,
-    animation: Animation.Model,
+    animation: AnimationBlock.Model,
     maybeDuration: Schema.Option(Schema.DurationFromMillis),
     pendingDismissVersion: Schema.Number,
     isHovered: Schema.Boolean,
@@ -117,7 +118,6 @@ export const makeModel = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
 /** Payload-independent Message variants shared by every Toast Block. */
 export const Message = defineMessageUnion({
   RequestedDismiss: { entryId: Schema.String },
-  RequestedDismissAll: {},
   Dismissed: { entryId: Schema.String },
   CompletedWaitBeforeDismissal: {
     entryId: Schema.String,
@@ -141,9 +141,15 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+/** Parent requests that use the Toast container without adapting arguments. */
+export const InMessage = defineMessageUnion({
+  RequestedDismissAll: {},
+})
+export type InMessage = typeof InMessage.Type
+
 export type Dismissed = typeof Message.Dismissed.Type
 export type RequestedDismiss = typeof Message.RequestedDismiss.Type
-export type RequestedDismissAll = typeof Message.RequestedDismissAll.Type
+export type RequestedDismissAll = typeof InMessage.RequestedDismissAll.Type
 export type CompletedWaitBeforeDismissal =
   typeof Message.CompletedWaitBeforeDismissal.Type
 export type HoveredEntry = typeof Message.HoveredEntry.Type
@@ -167,7 +173,6 @@ export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
     },
     Added: { entry: makeEntry(payloadSchema) },
     RequestedDismiss: { entryId: Schema.String },
-    RequestedDismissAll: {},
     Dismissed: { entryId: Schema.String },
     CompletedWaitBeforeDismissal: {
       entryId: Schema.String,
@@ -217,3 +222,17 @@ export type InitConfig = Readonly<{
 }>
 
 export const DEFAULT_DURATION = Duration.seconds(4)
+
+/** Child-owned attributes for an entry's dismiss control. */
+export type EntryHandlers = Readonly<{ dismiss: ReadonlyArray<ChildAttribute> }>
+/** Controlled rendering inputs for a payload-specific Toast stack. */
+export type ViewInputs<A, I> = Readonly<{
+  position: Position
+  entryToView: (
+    entry: ReturnType<typeof makeEntry<A, I>>['Type'],
+    handlers: EntryHandlers,
+  ) => Html
+  ariaLabel?: string
+  containerClassName?: string
+  entryClassName?: string
+}>

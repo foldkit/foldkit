@@ -1,19 +1,19 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit each into your own Model, init, Message,
-// update, view, and subscription definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Slider } from '@foldkit/ui'
-import { snapAndClamp as SliderSnapAndClamp } from '@foldkit/ui/slider'
-import type { SliderAttributes as SliderSliderAttributes } from '@foldkit/ui/slider'
+import {
+  SliderBlock,
+  layer as SliderLayer,
+  type SliderAttributes as SliderSliderAttributes,
+  snapAndClamp as SliderSnapAndClamp,
+} from '@foldkit/ui/slider'
 
 // Add two fields to your Model: the value you own, and the Slider Block's
 // interaction state:
 const Model = Schema.Struct({
   ratingValue: Schema.Number,
-  ratingDemo: Slider.SliderBlock.Model,
+  ratingDemo: SliderBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -21,7 +21,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const VolumeSliderKey = Symbol('VolumeSlider')
+
 const VolumeSliderDefinition = Block.makeDefinition('VolumeSlider', {
+  key: VolumeSliderKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -34,7 +39,7 @@ const { makeFieldsStep } = VolumeSliderDefinition
 // already has the next Slider Model written back. The parent Definition
 // checks the complete child union and infers the handler's Model:
 const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
-  Slider.SliderBlock,
+  SliderBlock,
   {
     // The child has emitted `ChangedValue`. Store the new value in the field
     // you own. This arm is also where the parent can validate, persist, or
@@ -46,18 +51,17 @@ const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs Slider.SliderBlock.update,
-// writes the next Slider Model back, routes generated delivery and Command
-// results, and hands any OutMessage to the OutMessage fold.
-const SliderBinding = VolumeSliderDefinition.makeBinding(Slider.SliderBlock, {
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
+const RatingDemoBinding = VolumeSliderDefinition.makeBinding(SliderBlock, {
   field: 'ratingDemo',
   init: {
-    contextToArgs: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
+    contextToArgs: () => [{ id: 'rating', min: 0, max: 10, step: 1 }],
   },
 }).withOutMessagePolicy({ fold: foldSliderOutMessage })
 
 const VolumeSliderComposition = VolumeSliderDefinition.makeComposition({
-  bindings: [SliderBinding],
+  bindings: [RatingDemoBinding],
 })
 
 // In your init function, seed the value (snapped to the range) and initialize
@@ -71,7 +75,7 @@ const init = VolumeSliderComposition.makeInit(() => ({
 
 const update = VolumeSliderComposition.makeUpdate({})
 
-// Registering `SliderBinding` in `bindings` also collects both drag Subscriptions.
+// Registering `RatingDemoBinding` in `bindings` also collects both drag Subscriptions.
 
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups
@@ -121,7 +125,7 @@ const view = VolumeSliderComposition.makeView((model, h) => {
     )
 
   return h.block(
-    SliderBinding.embedView({
+    RatingDemoBinding.embedView({
       slotId: 'rating',
       model: model.ratingDemo,
       viewInputs: {
@@ -132,3 +136,16 @@ const view = VolumeSliderComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = VolumeSliderDefinition.makeBlock(
+  Effect.gen(function* () {
+    const slider = yield* RatingDemoBinding
+
+    return {
+      children: [slider],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(SliderLayer)

@@ -15,17 +15,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0",
-    "effect": "4.0.0",
+    "@effect/platform-browser": "4.1.0",
+    "effect": "4.1.0",
     "foldkit": "workspace:*"
   },
   "devDependencies": {
     "@foldkit/vite-plugin": "workspace:*",
     "@types/node": "26.4.0",
-    "happy-dom": "^20.14.5",
+    "happy-dom": "^21.0.4",
     "playwright": "^1.63.0",
     "typescript": "7.1.0-beta",
     "vite": "^8.3.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }

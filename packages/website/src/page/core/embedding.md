@@ -10,11 +10,13 @@ The [embedding example](/example-apps/embedding) runs everything on this page: a
 
 Embedded apps are usually built with `Program.makeElement`: the root Block view returns `Html` and the Runtime stays scoped to its container, never touching the document `<head>`, the URL bar, or anything else the host owns. Use `Program.make` when the embedded app should own page-level concerns like the document title. `embed` accepts Programs from both. Both forms carry their Effect requirements until the Program's `provide` method supplies the needed Layers.
 
+Give each container a unique `id` before creating its Program. Foldkit uses that ID to preserve the Model across reloads.
+
 ## Providing Host Implementations
 
-An embedded feature can declare a Command whose implementation belongs to its host. For example, an editor can request `SaveDocument` while the host supplies the persistence handler through `SaveDocument.toLayer`. The handler returns the editor's declared result Messages, which its update handles through the usual data flow.
+An embedded feature can own a Command's workflow while its host supplies the external capability. For example, an editor can define `SaveDocument` against an `EditorStorage` Service. Its attached handler maps the storage result to the editor's declared Messages, and update handles those results through the usual data flow.
 
-Declare the handler contract in the feature’s `hostHandlers` and supply it through `block.provideHandlers` before composition. Supply its ordinary service dependencies through `program.provide(layer)` before calling `Runtime.embed`. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows the feature contract and a browser-storage host. When the feature owns the handler's workflow, include its attached `.layer` in its local `EffectsLayer` and choose the underlying services at the host boundary.
+Include the attached handler's `.layer` in the feature's `EffectsLayer`. Supply the host's `EditorStorage` implementation through `program.provide(layer)` before calling `Runtime.embed`. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows the feature and a browser-storage host. The same feature can run against a document API or a controlled storage Service in an execution test.
 
 ## Declaring Ports
 
@@ -36,7 +38,7 @@ Data the host pushes while the app runs arrives on an inbound Port, which the ap
 
 ::Snippet{name="embeddingInboundSubscription" label="Inbound Subscription"}
 
-The Subscription module exports its registry. Pass `EffectsLayer: subscriptions.layer` to the widget's Block assembly, or compose the registry Layer with other local handler recipes in `EffectsLayer`.
+The Subscription module exports its registry. Return `EffectsLayer: subscriptions.layer` from the widget's Block constructor, or compose the registry Layer with other local handler recipes in `EffectsLayer`.
 
 Values sent while no Stream for the Port is running are dropped, with one exception: values sent before the first Stream attaches are buffered and delivered to it in order, so sends issued right after `embed` are not lost during startup.
 
@@ -46,7 +48,7 @@ Values the app announces to the host leave through an outbound Port, written fro
 
 ::Snippet{name="embeddingOutboundCommand" label="Outbound Command"}
 
-The feature Definition’s `makeStep` infers the helper's Command handler requirement. Include `ReportCount.layer` in the local `EffectsLayer` passed to `FeatureComposition.prepareBlock`; `Block.assemble` carries that bundle from the opaque draft onto the completed Block and into the Element.
+The feature Definition’s `makeStep` retains the helper’s Command requirements. Return `EffectsLayer: ReportCount.layer` from `FeatureDefinition.makeBlock`. The Element host acquires that implementation and its child graph under the host lifetime.
 
 When the program runs without an embed handle (started with `Runtime.run`), emitting is a no-op, so the same app works embedded and standalone.
 
@@ -56,7 +58,7 @@ When the program runs without an embed handle (started with `Runtime.run`), emit
 
 ::Snippet{name="embeddingHost" label="Host wiring"}
 
-`dispose` ties the runtime to the host’s unmount. It interrupts the runtime and runs all cleanup: Subscriptions, Mounts, and ManagedResources release, in-flight Commands stop, the rendered DOM is removed, and the container element is restored empty in its place, ready for a fresh `embed`. It is idempotent, and sends on a disposed handle are no-ops, so a host that unmounts and remounts in quick succession stays correct. A program can be embedded once at a time; after `dispose`, the same program and container can be embedded again.
+`dispose` disables the handle immediately and returns a Promise that settles after runtime teardown completes. Teardown interrupts in-flight Commands, releases Subscriptions, Mounts, and ManagedResources, removes the rendered DOM, and restores the original container empty in its place. Await that Promise before creating or embedding a different Program in the same container. Re-embedding the same Program is sequenced automatically, and repeated calls to `dispose` return the same Promise.
 
 ## The Schema Boundary
 
@@ -66,6 +68,6 @@ An invalid inbound value never reaches the app. `send` returns an `Exit` carryin
 
 ## Embedding in React
 
-The handle is framework-agnostic, and its lifecycle maps directly onto effect hooks. In React, `embed` on effect setup and `dispose` on cleanup is the whole integration:
+The handle is framework-agnostic. React’s `useId` gives each widget its own stable container ID. React cleanup cannot await a Promise, so keep the pending teardown and make the next effect setup wait before reusing the container:
 
 ::Snippet{name="embeddingReactHost" label="React host"}

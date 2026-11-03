@@ -5,7 +5,7 @@ import {
   ApplicationComposition,
   type ApplicationViewBuilder,
   HomeBinding,
-  RoomBinding,
+  MaybeRoomInstanceBinding,
 } from '../composition'
 import { Model } from '../model'
 import { ApplicationRoute } from '../route'
@@ -33,7 +33,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
         onSome: roomInstance =>
           roomInstance.roomId === roomId
             ? h.block(
-                RoomBinding.embedView({
+                MaybeRoomInstanceBinding.embedView({
                   key: roomId,
                   slotId: 'room',
                   model: roomInstance.model,

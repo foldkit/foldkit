@@ -89,7 +89,7 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block Composition's `makeView` supplies one for its child view.
 
-The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings. `ApplicationComposition.prepareBlock` packages the root registry into the opaque draft, and `Block.assemble` installs it on the completed root Block. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+The Composition’s builder carries the local Mount and child Binding capabilities. `Definition.makeBlock` checks those authored views against the acquired child graph. The public contract hides the implementation graph. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
 
 #### Element Builder Arity
 
@@ -97,9 +97,11 @@ Element builders that accept children take attributes first and optional childre
 
 #### Builder Ownership
 
-Application code cannot construct a builder. The canonical owned view enters through `Composition.makeView` or `makeView.withInputs`, which checks the complete view contract when the Block or Application is completed. Let that primary view's `h` parameter infer. A completed Block retains `block.makeView` for authoring an alternate embed view against that already fixed graph; it cannot change the graph or complete another Block.
+Application code cannot construct a builder. Author owned views through `Composition.makeView` or `makeView.withInputs`; completion checks the primary view against the declared contract. Let its `h` parameter infer. Author an alternate view through the same child Composition, then pass that view plan to the Binding's `embedView`. The selected child implementation supplies its executable graph; the alternate view cannot change that graph.
 
 Ordinary feature-local helpers remain plain functions. After establishing `FeatureComposition`, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` on the next line with no blank line and use that alias for each helper's `h` parameter. Export it only when another file uses it. The alias carries the owner's Message type and its registered child and Mount capabilities; it creates no runtime value.
+
+When an extracted renderer's attribute contract needs that builder's Message type, derive it with `Html.MessageOf<FeatureViewBuilder>`. The local Message union alone excludes private child delivery. The helper preserves the builder's exact Message contract without importing the feature's completed implementation.
 
 The owner prefix identifies the specific Composition at a plain type import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because a completed value supplies the feature context, such as `SearchBlock.Model`. Give a helper only the other parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether the helper returns one `Html` value or an array.
 

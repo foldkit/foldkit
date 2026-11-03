@@ -47,18 +47,18 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
       },
     },
   )
-  const setValueStep = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
+  const setValue = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
     (model, value: Value) => ({
       model: Struct.modifyFields(model, { value: () => value }),
     }),
   )
-  const refreshStep = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
+  const refresh = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
     model => ({
       model,
       commands: [ReadChoice()],
     }),
   )
-  const selectStep = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
+  const select = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
     model => ({
       model,
       outMessage: ChoiceOutMessage.SelectedValue({ value: model.value }),
@@ -75,9 +75,9 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
         }),
       ),
       update: DeclarationWrappedKeyedFieldChoiceComposition.makeUpdate({
-        UpdatedValue: (model, { value }) => setValueStep(model, value),
-        RequestedRefresh: model => refreshStep(model),
-        RequestedSelect: model => selectStep(model),
+        UpdatedValue: (model, { value }) => setValue(model, value),
+        RequestedRefresh: model => refresh(model),
+        RequestedSelect: model => select(model),
         CompletedRefresh: model => ({ model }),
       }),
       operations: {

@@ -101,10 +101,11 @@ type ValidateCommandsOutput<
  * Service requirements and child Binding registration evidence.
  * Use the general Step helper when the transition also changes fields or
  * produces an OutMessage.
+ * @internal Names focused Command helpers in inferred consumer declarations.
  */
-interface FocusedMakeCommandsStep<Model, Message> {
+export interface FocusedMakeCommandsStep<Model, Message, InputMessage> {
   <
-    ExactMessage extends Message,
+    ExactMessage extends InputMessage,
     const Producer extends ContextualModelMessageProducer<
       Model,
       ExactMessage,
@@ -116,15 +117,15 @@ interface FocusedMakeCommandsStep<Model, Message> {
       ValidateCommandsOutput<NoInfer<Producer>> &
         ValidateModelMessageProducer<
           Model,
-          Message,
+          InputMessage,
           ExactMessage,
           NoInfer<Producer>
         >
     >
-  ): FocusedCommandsStep<Model, Message, ExactMessage, Producer>
+  ): FocusedCommandsStep<Model, InputMessage, ExactMessage, Producer>
 
   readonly fromMessage: <
-    ExactMessage extends Message,
+    ExactMessage extends InputMessage,
     const Producer extends ContextualMessageProducer<
       ExactMessage,
       Update.Commands<Message, any>
@@ -133,13 +134,13 @@ interface FocusedMakeCommandsStep<Model, Message> {
     toCommands: Producer,
     ...validation: FocusedStepValidation<
       ValidateCommandsOutput<NoInfer<Producer>> &
-        ValidateMessageProducer<Message, ExactMessage, NoInfer<Producer>>
+        ValidateMessageProducer<InputMessage, ExactMessage, NoInfer<Producer>>
     >
-  ) => MessageOnlyCommandsHandler<Model, Message, ExactMessage, Producer>
+  ) => MessageOnlyCommandsHandler<Model, InputMessage, ExactMessage, Producer>
 }
 
-interface MessageFreeMakeCommandsStep<Model> {
-  <const Producer extends (model: Model) => Update.Commands<never, any>>(
+interface MessageFreeMakeCommandsStep<Model, Message> {
+  <const Producer extends (model: Model) => Update.Commands<Message, any>>(
     toCommands: Producer,
     ...validation: FocusedStepValidation<
       ValidateCommandsOutput<NoInfer<Producer>> &
@@ -151,19 +152,30 @@ interface MessageFreeMakeCommandsStep<Model> {
     Update.ResultEvidenceChannelOf<ReturnType<Producer>>
   >
 
-  readonly fromMessage: FocusedMakeCommandsStep<Model, never>['fromMessage']
+  readonly fromMessage: FocusedMakeCommandsStep<
+    Model,
+    Message,
+    never
+  >['fromMessage']
 }
 
-/** The focused Command Step producer owned by a Definition. */
-export type MakeCommandsStep<Model, Message> = [Message] extends [never]
-  ? MessageFreeMakeCommandsStep<Model>
-  : FocusedMakeCommandsStep<Model, Message>
+/**
+ * The focused Command Step producer owned by a Definition. `InputMessage`
+ * defaults to `Message`; supplying a separate input union does not change the
+ * local Message contract of the produced Commands.
+ */
+export type MakeCommandsStep<Model, Message, InputMessage = Message> = [
+  InputMessage,
+] extends [never]
+  ? MessageFreeMakeCommandsStep<Model, Message>
+  : FocusedMakeCommandsStep<Model, Message, InputMessage>
 
 /** @internal Creates the Command-only Step authoring helper. */
-export function makeCommandsStep<Model, Message>(): MakeCommandsStep<
+export function makeCommandsStep<
   Model,
-  Message
->
+  Message,
+  InputMessage = Message,
+>(): MakeCommandsStep<Model, Message, InputMessage>
 export function makeCommandsStep(): unknown {
   function commandsStep(
     toCommands: (model: unknown, message: unknown) => ReadonlyArray<unknown>,

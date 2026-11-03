@@ -1,5 +1,7 @@
 export {
+  InMessage,
   SliderBlock,
+  layer,
   forRoot,
   fractionOfValue,
   snapAndClamp,
@@ -10,3 +12,5 @@ export {
   type ViewInputs,
   type SliderAttributes,
 } from './slider.js'
+
+export type { SliderKey, SliderFamily } from './slider.js'

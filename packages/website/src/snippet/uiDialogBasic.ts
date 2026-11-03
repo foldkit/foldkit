@@ -1,16 +1,16 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Dialog } from '@foldkit/ui'
-import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
+import {
+  DialogBlock,
+  layer as DialogLayer,
+  type RenderInfo as DialogRenderInfo,
+} from '@foldkit/ui/dialog'
 
 // Add a field to your Model for the Dialog Block:
 const Model = Schema.Struct({
-  dialog: Dialog.DialogBlock.Model,
+  dialog: DialogBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -21,7 +21,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const DialogExampleKey = Symbol('DialogExample')
+
 const DialogExampleDefinition = Block.makeDefinition('DialogExample', {
+  key: DialogExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -31,7 +36,7 @@ const { makeNoopStep } = DialogExampleDefinition
 // One boundary handles Dialog Messages, Commands, and OutMessages. Replace
 // either no-op arm with the parent transition that should follow that event.
 const foldDialogOutMessage = DialogExampleDefinition.makeOutMessageFold(
-  Dialog.DialogBlock,
+  DialogBlock,
   {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
@@ -39,9 +44,9 @@ const foldDialogOutMessage = DialogExampleDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = DialogExampleDefinition.makeBinding(Dialog.DialogBlock, {
+const DialogBinding = DialogExampleDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
-  init: { contextToArgs: () => Tuple.make({ id: 'confirm' }) },
+  init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const DialogExampleComposition = DialogExampleDefinition.makeComposition({
@@ -108,3 +113,16 @@ const view = DialogExampleComposition.makeView((model, h) => {
     ],
   )
 })
+
+export const ApplicationBlock = DialogExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+
+    return {
+      children: [dialog],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(DialogLayer)

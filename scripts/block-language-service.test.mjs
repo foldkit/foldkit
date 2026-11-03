@@ -16,8 +16,8 @@ import {
 test('workspace completion requires the public operation and completed Block members', () => {
   const source = {
     uri: 'file:///workspace.ts',
-    originalText: '\nIssueDetailBinding.init\n',
-    text: '\nIssueDetailBinding.init\n',
+    originalText: '\nIssueDetailsBinding.init\n',
+    text: '\nIssueDetailsBinding.init\n',
     version: 1,
   }
   const target = workspaceBindingCompletionTarget(source)
@@ -115,7 +115,7 @@ test('keyed hover validation preserves the Website initialized Binding requireme
       },
       {
         contents:
-          'const IssueDetailBinding: Block.BindingWithoutOutMessagePolicy<Block.AssemblyWithViewAndOutMessage<Struct<{ readonly issueId: String; readonly baseline: Struct<{ readonly version: Number; }>; readonly draft: Struct<{ readonly title: String; }>; }>, ...>>',
+          'const IssueDetailsBinding: Block.BindingWithoutOutMessagePolicy<Block.AssemblyWithViewAndOutMessage<Struct<{ readonly issueId: String; readonly baseline: Struct<{ readonly version: Number; }>; readonly draft: Struct<{ readonly title: String; }>; }>, ...>>',
       },
     ),
     undefined,
@@ -184,21 +184,21 @@ test('Workspace hover validates the current issue identity and draft Schema', ()
     expectedBinding: workspaceBindingHover,
   }
   const contents =
-    'const IssueDetailBinding: Block.BindingWithoutOutMessagePolicy<Block.AssemblyWithViewAndOutMessage<Struct<{ readonly issueId: String; readonly baseline: Struct<{ readonly version: Number; }>; readonly draft: Struct<{ readonly title: String; }>; }>, ...>>'
+    'const IssueDetailsBinding: Block.BindingWithoutOutMessagePolicy<Block.AssemblyWithViewAndOutMessage<Struct<{ readonly issueId: String; readonly baseline: Struct<{ readonly version: Number; }>; readonly draft: Struct<{ readonly title: String; }>; }>, ...>>'
 
   assert.equal(
     validateResult('workspace.hover', target, { contents }),
     undefined,
   )
   for (const invalid of [
-    'const IssueDetailBinding: any',
-    'const IssueDetailBinding: unknown',
-    'const IssueDetailBinding: never',
-    'const IssueDetailBinding: Block.BindingWithoutOutMessagePolicy<any>',
-    'const IssueDetailBinding: Block.BindingWithoutOutMessagePolicy<any> & Owner<"IssueDetail">',
-    'const IssueDetailBinding: Block.BindingWithoutOutMessagePolicy<any> IssueDetailBlock readonly route: RouteUnion<{',
-    'const IssueDetailBinding: Block.BindingWithoutOutMessagePolicy<unknown> & Owner<"IssueDetail">',
-    'const IssueDetailBinding: Block.BindingWithoutOutMessagePolicy<never> & Owner<"IssueDetail">',
+    'const IssueDetailsBinding: any',
+    'const IssueDetailsBinding: unknown',
+    'const IssueDetailsBinding: never',
+    'const IssueDetailsBinding: Block.BindingWithoutOutMessagePolicy<any>',
+    'const IssueDetailsBinding: Block.BindingWithoutOutMessagePolicy<any> & Owner<"IssueDetail">',
+    'const IssueDetailsBinding: Block.BindingWithoutOutMessagePolicy<any> IssueDetailBlock readonly route: RouteUnion<{',
+    'const IssueDetailsBinding: Block.BindingWithoutOutMessagePolicy<unknown> & Owner<"IssueDetail">',
+    'const IssueDetailsBinding: Block.BindingWithoutOutMessagePolicy<never> & Owner<"IssueDetail">',
     contents.replace('readonly issueId: String;', ''),
     contents.replace('readonly baseline: Struct<{', 'readonly baseline: any;'),
     contents.replace('readonly draft: Struct<{', 'readonly draft: any;'),

@@ -1,12 +1,12 @@
 import { Option } from 'effect'
 
+import { HomeBlock } from '../blocks'
 import { LoadPlayground } from '../command'
 import {
   ApplicationDefinition,
   makeCommandsStep,
   makeFieldsStep,
 } from '../definition'
-import { HomeBlock } from '../page'
 import { ApplicationRoute } from '../route'
 
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
@@ -18,7 +18,7 @@ const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
     })),
 })
 
-export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
+export const MaybeHomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'maybeHome',
   init: {
     contextToArgs: ({ route }) =>

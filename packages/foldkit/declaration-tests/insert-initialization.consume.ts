@@ -12,13 +12,13 @@ import {
   Read,
   ReadService,
   init,
-  initChildrenStep,
-  initHashMapIfMissingStep,
-  initRecordIfMissingStep,
+  initChildren,
+  initHashMapIfMissing,
+  initRecordIfMissing,
   initWithChildren,
+  insert,
   insertHashMap,
   insertRecord,
-  insertStep,
 } from './insert-initialization.accepted.js'
 
 type Equal<Left, Right> =
@@ -91,7 +91,7 @@ export type ExactHashMapEvidence = Expect<
   >
 >
 export type StepRequirements = Expect<
-  Equal<Update.RequirementsOf<typeof insertStep>, ExpectedRequirements>
+  Equal<Update.RequirementsOf<typeof insert>, ExpectedRequirements>
 >
 export type InitializedModel = Expect<
   Equal<ReturnType<typeof init>['model'], typeof ParentModel.Type>
@@ -102,7 +102,7 @@ export type ProviderServices = Expect<
 
 export type ExactInitializationInput = Expect<
   Equal<
-    Parameters<typeof initRecordIfMissingStep>[0],
+    Parameters<typeof initRecordIfMissing>[0],
     typeof ParentModel.Type &
       Update.GraphCapability<
         typeof ParentModel.Type,
@@ -112,7 +112,7 @@ export type ExactInitializationInput = Expect<
 >
 export type ExactInitializationRecipe = Expect<
   Equal<
-    ReturnType<typeof initRecordIfMissingStep>,
+    ReturnType<typeof initRecordIfMissing>,
     Update.ResultRecipe<
       typeof ParentModel.Type,
       ExpectedMessage,
@@ -123,25 +123,22 @@ export type ExactInitializationRecipe = Expect<
   >
 >
 export type ExactInitializationRequirements = Expect<
-  Equal<
-    Update.RequirementsOf<typeof initRecordIfMissingStep>,
-    ExpectedRequirements
-  >
+  Equal<Update.RequirementsOf<typeof initRecordIfMissing>, ExpectedRequirements>
 >
 export type ExactInitializationEvidence = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initRecordIfMissingStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initRecordIfMissing>>,
     Block.RequirementOfBinding<typeof ChildrenByIdBinding>
   >
 >
 export type ExactHashMapInitializationRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof initHashMapIfMissingStep>,
+    Update.RequirementsOf<typeof initHashMapIfMissing>,
     ExpectedHashMapRequirements
   >
 >
 export type ComposedInitializationRequirements = Expect<
-  Equal<Update.RequirementsOf<typeof initChildrenStep>, ExpectedRequirements>
+  Equal<Update.RequirementsOf<typeof initChildren>, ExpectedRequirements>
 >
 export type ReusedInitializedModel = Expect<
   Equal<ReturnType<typeof initWithChildren>['model'], typeof ParentModel.Type>

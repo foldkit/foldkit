@@ -1,12 +1,12 @@
 import { Array, Option } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 
-import { IssueDetailBinding } from '../composition'
+import { IssueDetailsBinding } from '../composition'
 import { makeStep } from '../definition'
 import type { Issue, SavedIssue } from '../domain'
-import { applyIssueSnapshotStep, applySavedIssueStep } from '../steps'
+import { applyIssueSnapshot, applySavedIssue } from '../steps'
 
-export const informIssueChangedStep = (issueId: string) =>
+export const informIssueChange = (issueId: string) =>
   makeStep(model =>
     Option.match(
       Option.flatMap(AsyncData.getData(model.workspaceAsyncData), workspace =>
@@ -15,30 +15,27 @@ export const informIssueChangedStep = (issueId: string) =>
       {
         onNone: () => ({ model }),
         onSome: issue =>
-          IssueDetailBinding.informIssueChanged(issue.id, { issue }),
+          IssueDetailsBinding.informIssueChange(issue.id, { issue }),
       },
     ),
   )
 
-export const receiveIssueSnapshotStep = (issue: Issue) =>
+export const receiveIssueSnapshot = (issue: Issue) =>
+  Update.combineSteps([applyIssueSnapshot(issue), informIssueChange(issue.id)])
+
+export const receiveSavedIssue = (savedIssue: SavedIssue) =>
   Update.combineSteps([
-    applyIssueSnapshotStep(issue),
-    informIssueChangedStep(issue.id),
+    applySavedIssue(savedIssue),
+    informIssueChange(savedIssue.issueId),
   ])
 
-export const receiveSavedIssueStep = (savedIssue: SavedIssue) =>
-  Update.combineSteps([
-    applySavedIssueStep(savedIssue),
-    informIssueChangedStep(savedIssue.issueId),
-  ])
-
-export const informRetainedIssueDetailsStep = makeStep(model =>
+export const informRetainedIssueDetails = makeStep(model =>
   Option.match(AsyncData.getData(model.workspaceAsyncData), {
     onNone: () => ({ model }),
     onSome: workspace =>
       Update.combineSteps(
         Array.map(workspace.issues, issue =>
-          IssueDetailBinding.informIssueChanged(issue.id, { issue }),
+          IssueDetailsBinding.informIssueChange(issue.id, { issue }),
         ),
       ),
   }),

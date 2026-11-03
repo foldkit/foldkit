@@ -1,6 +1,10 @@
-import { Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
+import type * as Block from 'foldkit/block'
+import * as Story from 'foldkit/story'
 import type * as Update from 'foldkit/update'
-import { expect, expectTypeOf, it } from 'vitest'
+import { expect, expectTypeOf } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as MultiListbox from './listbox/multi.js'
 import * as Listbox from './listbox/single.js'
@@ -17,112 +21,170 @@ const FruitMenu = Menu.makeBlock<Fruit>()
 const FruitRadioGroup = RadioGroup.makeBlock<Fruit>()
 const FruitTabs = Tabs.makeBlock<Fruit>()
 
-it('preserves refined OutMessage constructors and matchers on completed factories', () => {
-  expectTypeOf<typeof FruitListbox.Model.Type>().toEqualTypeOf<Listbox.Model>()
-  expectTypeOf<
-    typeof FruitMultiListbox.Model.Type
-  >().toEqualTypeOf<MultiListbox.Model>()
-  expectTypeOf<typeof FruitMenu.Model.Type>().toEqualTypeOf<Menu.Model>()
-  expectTypeOf<typeof FruitMenu.OutMessage.Type>().toEqualTypeOf<
-    Menu.OutMessage<Fruit>
-  >()
-  expectTypeOf<
-    typeof FruitRadioGroup.Model.Type
-  >().toEqualTypeOf<RadioGroup.Model>()
-  expectTypeOf<typeof FruitTabs.Model.Type>().toEqualTypeOf<Tabs.Model>()
+it.effect(
+  'preserves refined OutMessage constructors and matchers on acquired factories',
+  () =>
+    Story.withBlock(FruitListbox, fruitListbox =>
+      Story.withBlock(FruitMultiListbox, fruitMultiListbox =>
+        Story.withBlock(FruitMenu, fruitMenu =>
+          Story.withBlock(FruitRadioGroup, fruitRadioGroup =>
+            Story.withBlock(FruitTabs, fruitTabs => {
+              expectTypeOf<
+                typeof fruitListbox.Model.Type
+              >().toEqualTypeOf<Listbox.Model>()
+              expectTypeOf<
+                typeof fruitMultiListbox.Model.Type
+              >().toEqualTypeOf<MultiListbox.Model>()
+              expectTypeOf<
+                typeof fruitMenu.Model.Type
+              >().toEqualTypeOf<Menu.Model>()
+              expectTypeOf<typeof fruitMenu.OutMessage.Type>().toEqualTypeOf<
+                Menu.OutMessage<Fruit>
+              >()
+              expectTypeOf<
+                typeof fruitRadioGroup.Model.Type
+              >().toEqualTypeOf<RadioGroup.Model>()
+              expectTypeOf<
+                typeof fruitTabs.Model.Type
+              >().toEqualTypeOf<Tabs.Model>()
 
-  expectTypeOf(FruitListbox.operations.requestSelectItem)
-    .parameter(1)
-    .toEqualTypeOf<Fruit>()
-  expectTypeOf(FruitMultiListbox.operations.requestSelectItem)
-    .parameter(1)
-    .toEqualTypeOf<Fruit>()
-  expectTypeOf(FruitMenu.operations.requestSelectItem)
-    .parameter(1)
-    .toEqualTypeOf<Fruit>()
+              expectTypeOf(fruitListbox.operations.requestSelectItem)
+                .parameter(1)
+                .toEqualTypeOf<Fruit>()
+              expectTypeOf(fruitMultiListbox.operations.requestSelectItem)
+                .parameter(1)
+                .toEqualTypeOf<Fruit>()
+              expectTypeOf(fruitMenu.operations.requestSelectItem)
+                .parameter(1)
+                .toEqualTypeOf<Fruit>()
 
-  expectTypeOf<
-    Update.RequirementsOf<typeof FruitListbox.update>
-  >().toEqualTypeOf<Update.RequirementsOf<typeof Listbox.block.update>>()
-  expectTypeOf<
-    Update.RequirementsOf<typeof FruitMultiListbox.update>
-  >().toEqualTypeOf<Update.RequirementsOf<typeof MultiListbox.block.update>>()
-  expectTypeOf<Update.RequirementsOf<typeof FruitMenu.update>>().toEqualTypeOf<
-    Update.RequirementsOf<typeof Menu.block.update>
-  >()
-  expectTypeOf<
-    Update.RequirementsOf<typeof FruitRadioGroup.update>
-  >().toEqualTypeOf<Update.RequirementsOf<typeof RadioGroup.block.update>>()
-  expectTypeOf<Update.RequirementsOf<typeof FruitTabs.update>>().toEqualTypeOf<
-    Update.RequirementsOf<typeof Tabs.block.update>
-  >()
+              expectTypeOf<
+                Update.RequirementsOf<typeof fruitListbox.update>
+              >().toEqualTypeOf<
+                Update.RequirementsOf<
+                  Block.ExecutableOf<typeof Listbox.block>['update']
+                >
+              >()
+              expectTypeOf<
+                Update.RequirementsOf<typeof fruitMultiListbox.update>
+              >().toEqualTypeOf<
+                Update.RequirementsOf<
+                  Block.ExecutableOf<typeof MultiListbox.block>['update']
+                >
+              >()
+              expectTypeOf<
+                Update.RequirementsOf<typeof fruitMenu.update>
+              >().toEqualTypeOf<
+                Update.RequirementsOf<
+                  Block.ExecutableOf<typeof Menu.block>['update']
+                >
+              >()
+              expectTypeOf<
+                Update.RequirementsOf<typeof fruitRadioGroup.update>
+              >().toEqualTypeOf<
+                Update.RequirementsOf<
+                  Block.ExecutableOf<typeof RadioGroup.block>['update']
+                >
+              >()
+              expectTypeOf<
+                Update.RequirementsOf<typeof fruitTabs.update>
+              >().toEqualTypeOf<
+                Update.RequirementsOf<
+                  Block.ExecutableOf<typeof Tabs.block>['update']
+                >
+              >()
 
-  const matchListbox = FruitListbox.OutMessage.match<Fruit>({
-    Selected: ({ value }) => {
-      expectTypeOf(value).toEqualTypeOf<Fruit>()
-      return value
-    },
-  })
-  const matchMultiListbox = FruitMultiListbox.OutMessage.match<Fruit>({
-    Selected: ({ value }) => {
-      expectTypeOf(value).toEqualTypeOf<Fruit>()
-      return value
-    },
-  })
-  const matchMenu = FruitMenu.OutMessage.match<Fruit | 'Closed'>({
-    Selected: ({ value }) => {
-      expectTypeOf(value).toEqualTypeOf<Fruit>()
-      return value
-    },
-    Closed: () => 'Closed',
-  })
-  const matchRadioGroup = FruitRadioGroup.OutMessage.match<Fruit>({
-    Selected: ({ value }) => {
-      expectTypeOf(value).toEqualTypeOf<Fruit>()
-      return value
-    },
-  })
-  const matchTabs = FruitTabs.OutMessage.match<Fruit>({
-    Selected: ({ value }) => {
-      expectTypeOf(value).toEqualTypeOf<Fruit>()
-      return value
-    },
-  })
+              const matchListbox = fruitListbox.OutMessage.match<Fruit>({
+                Selected: ({ value }) => {
+                  expectTypeOf(value).toEqualTypeOf<Fruit>()
+                  return value
+                },
+              })
+              const matchMultiListbox =
+                fruitMultiListbox.OutMessage.match<Fruit>({
+                  Selected: ({ value }) => {
+                    expectTypeOf(value).toEqualTypeOf<Fruit>()
+                    return value
+                  },
+                })
+              const matchMenu = fruitMenu.OutMessage.match<Fruit | 'Closed'>({
+                Selected: ({ value }) => {
+                  expectTypeOf(value).toEqualTypeOf<Fruit>()
+                  return value
+                },
+                Closed: () => 'Closed',
+              })
+              const matchRadioGroup = fruitRadioGroup.OutMessage.match<Fruit>({
+                Selected: ({ value }) => {
+                  expectTypeOf(value).toEqualTypeOf<Fruit>()
+                  return value
+                },
+              })
+              const matchTabs = fruitTabs.OutMessage.match<Fruit>({
+                Selected: ({ value }) => {
+                  expectTypeOf(value).toEqualTypeOf<Fruit>()
+                  return value
+                },
+              })
 
-  expect(
-    matchListbox(FruitListbox.OutMessage.Selected({ value: 'Apple' })),
-  ).toBe('Apple')
-  expect(
-    matchMultiListbox(
-      FruitMultiListbox.OutMessage.Selected({ value: 'Apple' }),
+              expect(
+                matchListbox(
+                  fruitListbox.OutMessage.Selected({ value: 'Apple' }),
+                ),
+              ).toBe('Apple')
+              expect(
+                matchMultiListbox(
+                  fruitMultiListbox.OutMessage.Selected({ value: 'Apple' }),
+                ),
+              ).toBe('Apple')
+              expect(
+                matchMenu(
+                  fruitMenu.OutMessage.Selected({ value: 'Apple', index: 0 }),
+                ),
+              ).toBe('Apple')
+              expect(matchMenu(fruitMenu.OutMessage.Closed())).toBe('Closed')
+              expect(
+                matchRadioGroup(
+                  fruitRadioGroup.OutMessage.Selected({
+                    value: 'Apple',
+                    index: 0,
+                  }),
+                ),
+              ).toBe('Apple')
+              expect(
+                matchTabs(
+                  fruitTabs.OutMessage.Selected({ value: 'Apple', index: 0 }),
+                ),
+              ).toBe('Apple')
+
+              expectTypeOf(fruitListbox.OutMessage.Selected)
+                .parameter(0)
+                .not.toMatchTypeOf<{ value: 'Banana' }>()
+              expectTypeOf(fruitMenu.OutMessage.Selected)
+                .parameter(0)
+                .not.toMatchTypeOf<{ value: 'Banana'; index: number }>()
+              expectTypeOf(fruitMultiListbox.OutMessage.Selected)
+                .parameter(0)
+                .not.toMatchTypeOf<{ value: 'Banana' }>()
+              expectTypeOf(fruitRadioGroup.OutMessage.Selected)
+                .parameter(0)
+                .not.toMatchTypeOf<{ value: 'Banana'; index: number }>()
+              expectTypeOf(fruitTabs.OutMessage.Selected)
+                .parameter(0)
+                .not.toMatchTypeOf<{ value: 'Banana'; index: number }>()
+            }),
+          ),
+        ),
+      ),
+    ).pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          Listbox.layer,
+          MultiListbox.layer,
+          Menu.layer,
+          RadioGroup.layer,
+          Tabs.layer,
+        ),
+      ),
     ),
-  ).toBe('Apple')
-  expect(
-    matchMenu(FruitMenu.OutMessage.Selected({ value: 'Apple', index: 0 })),
-  ).toBe('Apple')
-  expect(matchMenu(FruitMenu.OutMessage.Closed())).toBe('Closed')
-  expect(
-    matchRadioGroup(
-      FruitRadioGroup.OutMessage.Selected({ value: 'Apple', index: 0 }),
-    ),
-  ).toBe('Apple')
-  expect(
-    matchTabs(FruitTabs.OutMessage.Selected({ value: 'Apple', index: 0 })),
-  ).toBe('Apple')
-
-  expectTypeOf(FruitListbox.OutMessage.Selected)
-    .parameter(0)
-    .not.toMatchTypeOf<{ value: 'Banana' }>()
-  expectTypeOf(FruitMenu.OutMessage.Selected)
-    .parameter(0)
-    .not.toMatchTypeOf<{ value: 'Banana'; index: number }>()
-  expectTypeOf(FruitMultiListbox.OutMessage.Selected)
-    .parameter(0)
-    .not.toMatchTypeOf<{ value: 'Banana' }>()
-  expectTypeOf(FruitRadioGroup.OutMessage.Selected)
-    .parameter(0)
-    .not.toMatchTypeOf<{ value: 'Banana'; index: number }>()
-  expectTypeOf(FruitTabs.OutMessage.Selected)
-    .parameter(0)
-    .not.toMatchTypeOf<{ value: 'Banana'; index: number }>()
-})
+)

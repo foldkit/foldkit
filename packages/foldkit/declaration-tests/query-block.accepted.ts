@@ -1,7 +1,8 @@
-import { Context, Effect, Schema } from 'effect'
+import { Context, Effect, Layer, Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Query from 'foldkit/experimental/query'
 import * as Message from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
 const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
 
@@ -48,7 +49,7 @@ export const CanonicalNotes = Query.define({
 export const CanonicalNotesTestLayer = CanonicalNotes.toLayer(
   Effect.succeed(() => Effect.succeed([{ id: '1', body: 'test' }])),
 )
-export const ReplacedCanonicalNotes = CanonicalNotes.replaceEffectsLayer(
+export const ReplacedCanonicalNotes = CanonicalNotes.provideHandlers(
   CanonicalNotesTestLayer,
 )
 
@@ -88,7 +89,7 @@ export const CanonicalNoteById = Query.define({
 export const CanonicalNoteByIdTestLayer = CanonicalNoteById.toLayer(
   Effect.succeed(({ noteId }) => Effect.succeed({ id: noteId, body: 'test' })),
 )
-export const ReplacedCanonicalNoteById = CanonicalNoteById.replaceEffectsLayer(
+export const ReplacedCanonicalNoteById = CanonicalNoteById.provideHandlers(
   CanonicalNoteByIdTestLayer,
 )
 
@@ -108,13 +109,18 @@ const ParentModel = Schema.Struct({ notes: Notes.Model })
 export const ParentMessage = Message.defineMessageUnion({
   ClickedParent: {},
 })
+export const DeclarationQueryParentKey = Symbol('DeclarationQueryParent')
 const DeclarationQueryParentDefinition = Block.makeDefinition(
   'DeclarationQueryParent',
   {
+    key: DeclarationQueryParentKey,
     Model: ParentModel,
     Message: ParentMessage,
+    Init: Schema.Tuple([]),
   },
 )
+export const DeclarationQueryParentContract =
+  DeclarationQueryParentDefinition.contract
 
 export const NotesChildBinding = DeclarationQueryParentDefinition.makeBinding(
   Notes,
@@ -127,3 +133,50 @@ export const DeclarationQueryParentComposition =
   DeclarationQueryParentDefinition.makeComposition({
     bindings: [NotesChildBinding],
   })
+
+export const GenericInputRequestKey = Symbol('GenericInputRequest')
+
+export const defineGenericInputRequest = <Name extends string, Value, Encoded>(
+  name: Name,
+  Value: Schema.Codec<Value, Encoded, never, never>,
+) => {
+  const Model = Schema.Struct({ maybeValue: Schema.Option(Value) })
+  const LocalMessage = Message.defineMessageUnion({
+    CompletedFetch: { value: Value },
+  })
+  const InMessage = Message.defineMessageUnion({ RequestedFetch: {} })
+  const Definition = Block.makeFamilyDefinition(name, {
+    key: GenericInputRequestKey,
+    Model,
+    Message: LocalMessage,
+    InMessage,
+    Init: Schema.Tuple([]),
+  })
+  const Fetch = Definition.makeCommand('Fetch', {
+    messages: [LocalMessage.CompletedFetch],
+  })
+  const Composition = Definition.makeComposition()
+  const init = Composition.makeInit(() => ({
+    model: { maybeValue: Option.none() },
+  }))
+  const update = Composition.makeUpdate({
+    CompletedFetch: (model, { value }) => ({
+      model: modifyFields(model, { maybeValue: () => Option.some(value) }),
+    }),
+  })
+  const inMessageUpdate = Composition.makeInMessageUpdate({
+    RequestedFetch: model => ({ model, commands: [Fetch()] }),
+  })
+  const recipe = Definition.makeBlock(
+    Effect.succeed({
+      children: [],
+      init,
+      update,
+      inMessageUpdate,
+      EffectsLayer: Layer.empty,
+      hostHandlers: [Fetch],
+    }),
+  )
+
+  return { Definition, Fetch, recipe }
+}

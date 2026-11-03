@@ -1,34 +1,48 @@
 import { Runtime } from 'foldkit'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { createElement } from './widget'
 
 function WidgetPanel() {
+  const containerId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
   const [count, setCount] = useState(0)
+  const previousDisposal = useRef(Promise.resolve())
 
   useEffect(() => {
-    if (containerRef.current === null) {
-      return
+    let isActive = true
+    let maybeHandle: Runtime.EmbedHandle | undefined
+    let maybeUnsubscribe: (() => void) | undefined
+
+    const mount = async () => {
+      await previousDisposal.current
+
+      const container = containerRef.current
+      if (!isActive || container === null) {
+        return
+      }
+
+      const element = createElement(container, { initialCount: 10 })
+      const handle = Runtime.embed(element)
+      maybeHandle = handle
+      maybeUnsubscribe = handle.ports.countChanged.subscribe(setCount)
     }
 
-    // Mount on effect setup, dispose on cleanup. dispose restores the
-    // container element, so the ref stays valid across remounts (including
-    // strict mode's setup/cleanup/setup sequence).
-    const element = createElement(containerRef.current, { initialCount: 10 })
-    const handle = Runtime.embed(element)
-    const unsubscribe = handle.ports.countChanged.subscribe(setCount)
+    void mount()
 
     return () => {
-      unsubscribe()
-      handle.dispose()
+      isActive = false
+      maybeUnsubscribe?.()
+      if (maybeHandle !== undefined) {
+        previousDisposal.current = maybeHandle.dispose()
+      }
     }
-  }, [])
+  }, [containerId])
 
   return (
     <div>
       <p>Widget count: {count}</p>
-      <div ref={containerRef} />
+      <div id={containerId} ref={containerRef} />
     </div>
   )
 }

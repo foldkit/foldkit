@@ -1,12 +1,10 @@
-import { Array, Number, Option, Predicate, Schema, String, flow } from 'effect'
+import { Array, Number, Option, Schema, String, flow } from 'effect'
+
+import type { Rule, RuleMessage } from './ruleContract.js'
+
+export type { Rule, RuleMessage } from './ruleContract.js'
 
 // RULES + MESSAGES
-
-/** An error message for a rule: either a static string, or a function that receives the invalid value. */
-export type RuleMessage<A> = string | ((value: A) => string)
-
-/** A tuple of a predicate and error message used for field validation. */
-export type Rule<A> = readonly [Predicate.Predicate<A>, RuleMessage<A>]
 
 /** Resolves a `RuleMessage` to a concrete string, applying it to the value when the message is a function. */
 export const resolveMessage = <A>(message: RuleMessage<A>, value: A): string =>

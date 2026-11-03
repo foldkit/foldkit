@@ -43,7 +43,7 @@ const FinishInitialization = Counter.makeCommand('FinishInitialization', {
       Effect.succeed(CounterMessage.CompletedFinishInitialization({ count }))
   },
 })
-const setCountStep = Counter.makeStep((model, count: number) => ({
+const setCount = Counter.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const CounterComposition = Counter.makeComposition()
@@ -54,10 +54,10 @@ const prepareCounterBlock = () =>
       commands: [FinishInitialization({ count })],
     })),
     update: CounterComposition.makeUpdate({
-      RequestedSetCount: (model, { count }) => setCountStep(model, count),
-      UpdatedCount: (model, { count }) => setCountStep(model, count),
+      RequestedSetCount: (model, { count }) => setCount(model, count),
+      UpdatedCount: (model, { count }) => setCount(model, count),
       CompletedFinishInitialization: (model, { count }) =>
-        setCountStep(model, count),
+        setCount(model, count),
     }),
     operations: {
       setCount: (count: number) =>

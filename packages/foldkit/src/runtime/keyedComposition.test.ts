@@ -233,7 +233,7 @@ const rootInit = () => ({
     entries: [firstEntry, itemBlock.init(2, 'other').model],
   },
 })
-const addReplacementStep = RootBaseDefinition.makeStep(model =>
+const addReplacement = RootBaseDefinition.makeStep(model =>
   EntriesBinding.init({
     key: 1,
     args: [1, 'new'],
@@ -243,7 +243,7 @@ const addReplacementStep = RootBaseDefinition.makeStep(model =>
       }),
   }),
 )
-const restoreFirstStep = RootBaseDefinition.makeFieldsStep(() => ({
+const restoreFirst = RootBaseDefinition.makeFieldsStep(() => ({
   entries: current => [...current, firstEntry],
 }))
 const rootUpdate = root.makeUpdate({
@@ -251,8 +251,8 @@ const rootUpdate = root.makeUpdate({
     RootBaseDefinition.makeFieldsStep(() => ({
       entries: Array.filter(entry => entry.id !== 1),
     }))(model),
-  ClickedAddReplacement: model => addReplacementStep(model),
-  ClickedRestoreFirst: model => restoreFirstStep(model),
+  ClickedAddReplacement: model => addReplacement(model),
+  ClickedRestoreFirst: model => restoreFirst(model),
 })
 const lazyEntries = createKeyedLazy()
 const entryRenderCounts = new Map<number, number>()
@@ -483,7 +483,7 @@ describe('keyed Block occurrences', () => {
         expect(mountsStopped).toEqual(['old'])
         expect(mountsStarted).toEqual(['old', 'other', 'new'])
       })
-      expect(interrupted).toEqual([])
+      expect(interrupted).toEqual(['old'])
       staleDispatch(ItemMessage.ClickedReadValue())
       expect(reads).toEqual(['old', 'other'])
       subscriptionEmitters.get('new')!('fresh pulse')

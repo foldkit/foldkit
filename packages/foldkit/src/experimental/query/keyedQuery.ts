@@ -1,7 +1,5 @@
 import {
   Array,
-  Clock,
-  type Duration,
   Effect,
   Function,
   HashMap,
@@ -9,12 +7,9 @@ import {
   Number,
   Option,
   Order,
-  Predicate,
-  Record,
   Result,
   Schema,
   type Scope,
-  Tuple,
   pipe,
 } from 'effect'
 
@@ -22,383 +17,207 @@ import * as AsyncData from '../../asyncData/public.js'
 import * as Block from '../../block/public.js'
 import type { ValidateConstructionRequirements } from '../../block/scope.js'
 import * as Command from '../../command/index.js'
-import type * as Interruptible from '../../command/interruptible/index.js'
-import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
+import { type AsyncDataTransition, type KeyedArgs } from './internal.js'
 import {
-  type AsyncDataTransition,
-  type CompletedFetchOf,
-  type KeyedArgs,
-} from './internal.js'
-import { cancelData, isFresh, resolveStaleTime } from './policy.js'
+  type KeyedQueryAccessors,
+  type KeyedQueryConfig,
+  type KeyedQueryFetchApi,
+  type KeyedQueryFetchCommand,
+  type KeyedQueryFetchDefinition,
+  type KeyedQueryFetchHandler,
+  type KeyedQueryMessage,
+  type KeyedQueryModel,
+  type KeyedQueryOutMessage,
+  type KeyedQueryToLayer,
+  type KeyedQueryTransitionMessages,
+  type SyncFields,
+  makeKeyedQueryAccessors,
+  makeKeyedQueryFetchApi,
+  makeKeyedQueryMessage,
+  makeKeyedQueryModel,
+  makeKeyedQueryOperations,
+  makeKeyedQueryOutMessage,
+} from './keyedQueryContract.js'
+import { cancelData } from './policy.js'
 
 type AnyLayer =
   | Layer.Layer<never, unknown, unknown>
   | Layer.Layer<unknown, unknown, unknown>
 
-/** Schema fields whose encoding and decoding require no services. */
-export type SyncFields = {
-  readonly [x: PropertyKey]: Schema.Codec<unknown, unknown, never, never>
-}
+export type {
+  SyncFields,
+  KeyedQueryConfig,
+  KeyedQueryToLayer,
+  KeyedQueryMessage,
+  KeyedQueryOutMessage,
+  KeyedQueryModel,
+  KeyedQueryOperationDeclarations,
+} from './keyedQueryContract.js'
+export {
+  makeKeyedQueryMessage,
+  makeKeyedQueryOutMessage,
+  makeKeyedQueryModel,
+  makeKeyedQueryOperations,
+} from './keyedQueryContract.js'
 
-const canonicalizeJsonEntry = ([key, value]: readonly [
-  string,
-  Schema.Json,
-]): readonly [string, Schema.Json] => [key, canonicalizeJson(value)]
-
-const jsonEntryOrder = Order.mapInput(
-  Order.String,
-  ([key]: readonly [string, Schema.Json]) => key,
-)
-
-const isJsonObject = (value: Schema.Json): value is Schema.JsonObject =>
-  Predicate.isObject(value) && !globalThis.Array.isArray(value)
-
-const canonicalizeJson = (value: Schema.Json): Schema.Json => {
-  if (globalThis.Array.isArray(value)) {
-    return Array.map(value, canonicalizeJson)
-  }
-
-  if (isJsonObject(value)) {
-    return pipe(
-      value,
-      Record.toEntries,
-      Array.sort(jsonEntryOrder),
-      Array.map(canonicalizeJsonEntry),
-      Record.fromEntries,
-    )
-  }
-
-  return value
-}
-
-const encodeJsonString = Schema.encodeUnknownSync(
-  Schema.fromJsonString(Schema.Json),
-)
-
-const encodeKey = <A, I>(schema: Schema.Codec<A, I, never, never>) => {
-  const encodeJson = Schema.encodeUnknownSync(Schema.toCodecJson(schema))
-
-  return (value: A): string =>
-    encodeJsonString(canonicalizeJson(encodeJson(value)))
-}
-
-/** Schemas, identity, and cache-key policy used to define a KeyedQuery. */
-export type KeyedQueryConfig<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
-  Notify extends boolean = false,
-> = Readonly<{
-  /** Block identity and prefix for the KeyedQuery's Fetch Command. */
-  name: Name
-  /** Schema for successfully fetched data. */
-  data: Schema.Codec<A, AI, never, never>
-  /** Schema for expected fetch failures retained in AsyncData. */
-  error: Schema.Codec<E, EI, never, never>
-  /** Schema fields for each fetch argument. */
-  args: Fields
-  /** Derives a stable cache key from decoded arguments. By default Foldkit
-   * canonically JSON-encodes the declared argument Schema. */
-  toKey?: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => string
-  /** Fresh lifetime after a successful completion. Defaults to Infinity.
-   * Freshness-aware operations receive an Effect Clock timestamp explicitly. */
-  staleTime?: Duration.Input
-  /** Maximum settled entries retained by access/admission recency. Pending
-   * entries are protected and may temporarily exceed this bound. */
-  maxSettledEntries?: number
-  /** Exposes accepted Fetch completions through an OutMessage contract. */
-  notifyOnCompletion?: Notify
-  execute?: never
-}> &
-  ([Notify] extends [true] ? Readonly<{ notifyOnCompletion: true }> : unknown)
-
-type KeyedQueryFetchArgs<Fields extends SyncFields> = Readonly<{
-  args: KeyedArgs<Fields>
-  generation: number
-  requestKey: string
-}>
-
-type KeyedQueryFetchHandler<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
-> = Command.Handler<
-  `${Name}/Fetch`,
-  KeyedQueryFetchArgs<Fields>,
-  CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>
+type KeyedQueryMessageAt<Message, Tag extends string> = Extract<
+  Message,
+  Readonly<{ _tag: Tag }>
 >
 
-type KeyedQueryFetchDefinition<
-  Name extends string,
+type KeyedQueryCommandMessage<Message> = Extract<
+  Message,
+  Readonly<{ _tag: 'CompletedFetch' | 'CompletedCancelFetch' }>
+>
+
+type KeyedQueryApiHandlers<Model, Message, Requirements> = Readonly<{
+  RequestedReset: (
+    model: Model,
+  ) => Update.Return<Model, KeyedQueryCommandMessage<Message>>
+  RequestedRevalidation: (
+    model: Model,
+    message: KeyedQueryMessageAt<Message, 'RequestedRevalidation'>,
+  ) => Update.Return<Model, KeyedQueryCommandMessage<Message>, Requirements>
+  RequestedRevalidationOrLoad: (
+    model: Model,
+    message: KeyedQueryMessageAt<Message, 'RequestedRevalidationOrLoad'>,
+  ) => Update.Return<Model, KeyedQueryCommandMessage<Message>, Requirements>
+  RequestedLoadIfMissing: (
+    model: Model,
+    message: KeyedQueryMessageAt<Message, 'RequestedLoadIfMissing'>,
+  ) => Update.Return<Model, KeyedQueryCommandMessage<Message>, Requirements>
+  RequestedLoadIfStale: (
+    model: Model,
+    message: KeyedQueryMessageAt<Message, 'RequestedLoadIfStale'>,
+  ) => Update.Return<Model, KeyedQueryCommandMessage<Message>, Requirements>
+  RequestedCancel: (
+    model: Model,
+    message: KeyedQueryMessageAt<Message, 'RequestedCancel'>,
+  ) => Update.Return<Model, KeyedQueryCommandMessage<Message>>
+  CompletedCancelFetch: (model: Model) => Readonly<{ model: Model }>
+  CompletedFetch: (
+    model: Model,
+    message: KeyedQueryMessageAt<Message, 'CompletedFetch'>,
+  ) => Update.Return<Model, KeyedQueryCommandMessage<Message>>
+}>
+
+/** @internal Named shared keyed transitions preserving their individual result channels. */
+export interface KeyedQueryApi<
+  Model,
+  Message,
+  OutMessageSchema extends Schema.Codec<any, any, any, any>,
+  Args,
   A,
-  AI,
   E,
-  EI,
-  Fields extends SyncFields,
-> = Interruptible.DefinitionWithArgs<
-  `${Name}/Fetch`,
-  {
-    readonly args: Schema.Struct<Fields>
-    readonly generation: typeof Schema.Number
-    readonly requestKey: typeof Schema.String
-  },
-  Readonly<{ generation: number; requestKey: string }>,
-  Effect.Effect<
-    CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>,
-    never,
-    KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
-  >
-> &
-  Readonly<{
-    toLayer: Command.ToLayer<
-      `${Name}/Fetch`,
-      KeyedQueryFetchArgs<Fields>,
-      CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>
-    >
-  }>
-
-/** Builds a KeyedQuery fetch handler Layer from an Effect that constructs a fetch. */
-export interface KeyedQueryToLayer<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
-> {
-  <R, BuildE = never, BuildR = never>(
-    build: Effect.Effect<
-      (args: KeyedArgs<Fields>) => Effect.Effect<A, E, R>,
-      BuildE,
-      BuildR
-    > &
-      ValidateConstructionRequirements<BuildR>,
-  ): Layer.Layer<
-    KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>,
-    BuildE,
-    Exclude<R | BuildR, Scope.Scope>
-  >
-}
-
-const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
-  data: Schema.Codec<A, AI>,
-  error: Schema.Codec<E, EI>,
-  Args: Schema.Struct<Fields>,
-) =>
-  defineMessageUnion({
-    RequestedReset: {},
-    RequestedRevalidation: { args: Args },
-    RequestedRevalidationOrLoad: { args: Args },
-    RequestedLoadIfMissing: { args: Args },
-    RequestedLoadIfStale: { args: Args, nowMillis: Schema.Number },
-    RequestedCancel: { args: Args },
-    CompletedCancelFetch: {},
-    CompletedFetch: {
-      args: Args,
-      generation: Schema.Number,
-      requestKey: Schema.String,
-      result: Schema.Result(data, error),
-      completedAtMillis: Schema.optionalKey(Schema.Number),
-    },
-  })
-
-/**
- * Schema-backed Message union for requested KeyedQuery operations and Fetch completions.
- *
- * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
- */
-export type KeyedQueryMessage<
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
-> = ReturnType<typeof makeKeyedQueryMessage<A, AI, E, EI, Fields>>
-
-const makeKeyedQueryOutMessage = <A, AI, E, EI, Fields extends SyncFields>(
-  data: Schema.Codec<A, AI>,
-  error: Schema.Codec<E, EI>,
-  Args: Schema.Struct<Fields>,
-) =>
-  defineMessageUnion({
-    CompletedFetch: {
-      args: Args,
-      generation: Schema.Number,
-      result: Schema.Result(data, error),
-      completedAtMillis: Schema.optionalKey(Schema.Number),
-    },
-  })
-
-/** Schema-backed notification for a KeyedQuery Fetch completion accepted by update. */
-export type KeyedQueryOutMessage<
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
-> = ReturnType<typeof makeKeyedQueryOutMessage<A, AI, E, EI, Fields>>
-
-/** Builds the Model Schema for a KeyedQuery. */
-export const makeKeyedQueryModel = <A, AI, E, EI, Fields extends SyncFields>(
-  data: Schema.Codec<A, AI>,
-  error: Schema.Codec<E, EI>,
-  Args: Schema.Struct<Fields>,
-): KeyedQueryModel<A, AI, E, EI, Fields> => {
-  const asyncData = AsyncData.Schema(data, error)
-
-  return Schema.Struct({
-    generation: Schema.Number,
-    access: Schema.Number.pipe(
-      Schema.withConstructorDefault(Effect.succeed(0)),
-    ),
-    entries: Schema.HashMap(
-      Schema.String,
-      Schema.Struct({
-        args: Args,
-        data: asyncData.schema,
-        generation: Schema.Number,
-        maybeCompletedAtMillis: Schema.Option(Schema.Number).pipe(
-          Schema.withConstructorDefault(Effect.succeed(Option.none())),
-        ),
-        lastAccess: Schema.Number.pipe(
-          Schema.withConstructorDefault(Effect.succeed(0)),
-        ),
-      }),
-    ),
-  })
-}
-
-/**
- * Model Schema for a KeyedQuery containing retained `AsyncData` entries.
- *
- * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
- */
-export interface KeyedQueryModel<
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
-> extends Schema.Struct<
-  Readonly<{
-    generation: typeof Schema.Number
-    access: Schema.withConstructorDefault<typeof Schema.Number>
-    entries: Schema.HashMap<
-      typeof Schema.String,
-      Schema.Struct<
-        Readonly<{
-          args: Schema.Struct<Fields>
-          data: Schema.Codec<
-            AsyncData.AsyncData<A, E>,
-            AsyncData.AsyncDataEncoded<AI, EI>
-          >
-          generation: typeof Schema.Number
-          maybeCompletedAtMillis: Schema.withConstructorDefault<
-            Schema.Option<typeof Schema.Number>
-          >
-          lastAccess: Schema.withConstructorDefault<typeof Schema.Number>
-        }>
+  Requirements,
+>
+  extends
+    Pick<
+      KeyedQueryAccessors<Model, Args, A, E>,
+      'read' | 'isFresh' | 'pendingArgs'
+    >,
+    KeyedQueryFetchApi<Args, A, E, Requirements> {
+  readonly init: () => Readonly<{ model: Model }>
+  readonly reset: (
+    model: Model,
+  ) => Update.Return<Model, KeyedQueryCommandMessage<Message>>
+  readonly OutMessage: OutMessageSchema
+  readonly updateHandlers: KeyedQueryApiHandlers<Model, Message, Requirements>
+  readonly notifyingUpdateHandlers: Omit<
+    KeyedQueryApiHandlers<Model, Message, Requirements>,
+    'CompletedFetch'
+  > &
+    Readonly<{
+      CompletedFetch: (
+        model: Model,
+        message: KeyedQueryMessageAt<Message, 'CompletedFetch'>,
+      ) => Update.ReturnWithOutMessage<
+        Model,
+        KeyedQueryCommandMessage<Message>,
+        OutMessageSchema['Type']
       >
-    >
-  }>
-> {}
+    }>
+  readonly revalidate: Update.Fold<
+    Model,
+    KeyedQueryCommandMessage<Message>,
+    Args,
+    Requirements
+  >
+  readonly revalidateOrLoad: Update.Fold<
+    Model,
+    KeyedQueryCommandMessage<Message>,
+    Args,
+    Requirements
+  >
+  readonly loadIfMissing: Update.Fold<
+    Model,
+    KeyedQueryCommandMessage<Message>,
+    Args,
+    Requirements
+  >
+}
 
-const makeKeyedQueryApi = <
+/** @internal Shares keyed transitions and fetch recipes without completing a Block. */
+export const makeKeyedQueryApi = <
   Name extends string,
   A,
   AI,
   E,
   EI,
   Fields extends SyncFields,
-  Fetch extends KeyedQueryFetchDefinition<Name, A, AI, E, EI, Fields>,
+  FetchName extends string,
 >(
   config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, boolean>,
   Args: Schema.Struct<Fields>,
   Model: KeyedQueryModel<A, AI, E, EI, Fields>,
-  Message: KeyedQueryMessage<A, AI, E, EI, Fields>,
-  Fetch: Fetch,
-) => {
-  const asyncData = AsyncData.Schema(config.data, config.error)
-  const OutMessage = makeKeyedQueryOutMessage(config.data, config.error, Args)
-  type EntryData = typeof asyncData.schema.Type
+  Message: KeyedQueryTransitionMessages<A, AI, E, EI, Fields>,
+  Fetch: KeyedQueryFetchCommand<FetchName, A, AI, E, EI, Fields>,
+  OutMessage: KeyedQueryOutMessage<
+    A,
+    AI,
+    E,
+    EI,
+    Fields
+  > = makeKeyedQueryOutMessage(config.data, config.error, Args),
+): KeyedQueryApi<
+  KeyedQueryModelType<A, AI, E, EI, Fields>,
+  KeyedQueryMessageType<A, AI, E, EI, Fields>,
+  KeyedQueryOutMessage<A, AI, E, EI, Fields>,
+  KeyedArgs<Fields>,
+  A,
+  E,
+  Command.HandlerOf<KeyedQueryFetchCommand<FetchName, A, AI, E, EI, Fields>>
+> => {
   type Args = KeyedArgs<Fields>
   type Model = typeof Model.Type
-  type Message = typeof Message.Type
+  type Message = KeyedQueryMessageType<A, AI, E, EI, Fields>
   type UpdateReturn = Update.Return<
     Model,
-    Message,
-    KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
+    KeyedQueryCommandMessage<Message>,
+    Command.HandlerOf<typeof Fetch>
   >
-  type PureUpdateReturn = Update.Return<Model, Message>
+  type PureUpdateReturn = Update.Return<
+    Model,
+    KeyedQueryCommandMessage<Message>
+  >
 
-  if (Array.isArrayEmpty(Record.keys(config.args))) {
-    throw new Error(
-      `Query.define("${config.name}"): keyed args must include at least one field`,
-    )
-  }
-
-  const argsToKey = config.toKey ?? encodeKey(Args)
-  const staleTimeMillis = resolveStaleTime(config.name, config.staleTime)
+  const accessors = makeKeyedQueryAccessors(config, Args)
+  const {
+    read,
+    isFresh: isEntryFresh,
+    pendingArgs,
+    argsToKey,
+    snapshotArgs,
+  } = accessors
   const { maxSettledEntries } = config
-
-  if (
-    maxSettledEntries !== undefined &&
-    (!globalThis.Number.isSafeInteger(maxSettledEntries) ||
-      maxSettledEntries < 1)
-  ) {
-    throw new Error(
-      `Query.define("${config.name}"): maxSettledEntries must be a positive safe integer`,
-    )
-  }
-
-  const encodeArgs = Schema.encodeSync(Args)
-  const decodeArgs = Schema.decodeSync(Args)
-  const snapshotArgs = (args: Args): Args => decodeArgs(encodeArgs(args))
   const init = () => ({
     model: Model.make({ entries: HashMap.empty(), generation: 0, access: 0 }),
   })
   const reset = (model: Model): PureUpdateReturn => ({
     model: modifyFields(model, { entries: () => HashMap.empty() }),
   })
-  const read = (model: Model, args: Args): EntryData =>
-    AsyncData.fromOptionOrIdle(
-      Option.map(
-        HashMap.get(model.entries, argsToKey(args)),
-        entry => entry.data,
-      ),
-    )
-  const isEntryFresh = (
-    model: Model,
-    args: Args,
-    nowMillis: number,
-  ): boolean => {
-    const maybeEntry = HashMap.get(model.entries, argsToKey(args))
-
-    return isFresh(
-      Option.match(maybeEntry, {
-        onNone: AsyncData.Idle,
-        onSome: entry => entry.data,
-      }),
-      Option.flatMap(maybeEntry, entry => entry.maybeCompletedAtMillis),
-      nowMillis,
-      staleTimeMillis,
-    )
-  }
-  const pendingArgs = (model: Model): ReadonlyArray<Args> =>
-    pipe(
-      HashMap.values(model.entries),
-      Array.fromIterable,
-      Array.filter(entry => AsyncData.isPending(entry.data)),
-      Array.map(entry => snapshotArgs(entry.args)),
-    )
   const trim = (model: Model): Model => {
     if (maxSettledEntries === undefined) {
       return model
@@ -449,9 +268,9 @@ const makeKeyedQueryApi = <
     transition: AsyncDataTransition,
   ): Update.Fold<
     Model,
-    Message,
+    KeyedQueryCommandMessage<Message>,
     Args,
-    KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
+    Command.HandlerOf<typeof Fetch>
   > =>
     Function.dual(2, (model: Model, args: Args): UpdateReturn => {
       const requestKey = argsToKey(args)
@@ -615,7 +434,11 @@ const makeKeyedQueryApi = <
     CompletedFetch: (
       model: Model,
       message: typeof Message.CompletedFetch.Type,
-    ): Update.ReturnWithOutMessage<Model, Message, typeof OutMessage.Type> =>
+    ): Update.ReturnWithOutMessage<
+      Model,
+      KeyedQueryCommandMessage<Message>,
+      typeof OutMessage.Type
+    > =>
       Option.match(settle(model, message), {
         onNone: () => ({ model }),
         onSome: completed => ({
@@ -631,62 +454,7 @@ const makeKeyedQueryApi = <
         }),
       }),
   }
-  const operations = {
-    requestRevalidation: (args: Args) =>
-      Tuple.make(Message.RequestedRevalidation({ args })),
-    requestRevalidationOrLoad: (args: Args) =>
-      Tuple.make(Message.RequestedRevalidationOrLoad({ args })),
-    requestLoadIfMissing: (args: Args) =>
-      Tuple.make(Message.RequestedLoadIfMissing({ args })),
-    requestLoadIfStale: (args: Args, nowMillis: number) =>
-      Tuple.make(Message.RequestedLoadIfStale({ args, nowMillis })),
-    requestCancel: (args: Args) =>
-      Tuple.make(Message.RequestedCancel({ args })),
-  }
-  const run = (args: Args) => {
-    const requestArgs = snapshotArgs(args)
-    const requestKey = argsToKey(requestArgs)
-
-    return pipe(
-      Fetch({ args: requestArgs, generation: 0, requestKey }).effect,
-      Effect.map(({ result }) => AsyncData.settle(AsyncData.Loading(), result)),
-    )
-  }
-  const toLayer: KeyedQueryToLayer<Name, A, AI, E, EI, Fields> = <
-    HandlerR,
-    BuildE = never,
-    BuildR = never,
-  >(
-    build: Effect.Effect<
-      (args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerR>,
-      BuildE,
-      BuildR
-    > &
-      ValidateConstructionRequirements<BuildR>,
-  ) =>
-    Fetch.toLayer<HandlerR, BuildE, BuildR>(
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      Effect.map(
-        build,
-        execute =>
-          ({ args, generation, requestKey }: KeyedQueryFetchArgs<Fields>) =>
-            pipe(
-              execute(args),
-              Effect.result,
-              Effect.flatMap(result =>
-                Effect.map(Clock.currentTimeMillis, completedAtMillis =>
-                  Message.CompletedFetch({
-                    args,
-                    generation,
-                    requestKey,
-                    result,
-                    completedAtMillis,
-                  }),
-                ),
-              ),
-            ),
-      ) as never,
-    )
+  const { run, toLayer } = makeKeyedQueryFetchApi(Message, Fetch, accessors)
 
   return {
     init,
@@ -697,7 +465,6 @@ const makeKeyedQueryApi = <
     OutMessage,
     updateHandlers,
     notifyingUpdateHandlers,
-    operations,
     revalidate,
     revalidateOrLoad,
     loadIfMissing,
@@ -1187,6 +954,7 @@ const makeKeyedQueryParts = <
   const Args = Schema.Struct(config.args)
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
+  const OutMessage = makeKeyedQueryOutMessage(config.data, config.error, Args)
   const QueryNamespace = Block.makeNamespace(config.name)
   const Fetch = QueryNamespace.makeCommand('Fetch', {
     args: {
@@ -1201,7 +969,7 @@ const makeKeyedQueryParts = <
         JSON.stringify([requestKey, generation]),
     },
   })
-  const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
+  const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch, OutMessage)
   const enrich = <
     BlockValue extends Block.AnyBlock &
       Readonly<{
@@ -1246,10 +1014,7 @@ const makeKeyedQueryParts = <
       QueryComposition.prepareBlock({
         init,
         update: QueryComposition.makeUpdate(api.updateHandlers),
-        operations: {
-          ...api.operations,
-          requestReset: Message.RequestedReset,
-        },
+        operations: makeKeyedQueryOperations(Message),
         EffectsLayer: Layer.empty,
         hostHandlers: [Fetch],
       })
@@ -1280,10 +1045,7 @@ const makeKeyedQueryParts = <
       QueryComposition.prepareBlock({
         init,
         update: QueryComposition.makeUpdate(api.notifyingUpdateHandlers),
-        operations: {
-          ...api.operations,
-          requestReset: Message.RequestedReset,
-        },
+        operations: makeKeyedQueryOperations(Message),
         EffectsLayer: Layer.empty,
         hostHandlers: [Fetch],
       })

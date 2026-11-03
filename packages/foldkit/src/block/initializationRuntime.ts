@@ -1,6 +1,9 @@
 import { Array, Option, Predicate, Schema } from 'effect'
 
-import { resolveOperationOutput } from '../update/operationRecipe.js'
+import {
+  type OperationEnvironment,
+  resolveOperationOutput,
+} from '../update/operationRecipe.js'
 import { runtimeBindingOf } from './composition.js'
 import { isBindingInitRecipe, runBindingInitRecipe } from './initRecipe.js'
 import type { InstanceKey } from './instanceContext.js'
@@ -459,13 +462,17 @@ const keepSurvivingOccurrences = (
 
 /** @internal Creates the runtime authoring helper for one exact Composition. */
 export const makeInit =
-  (Model: RuntimeModelSchema, bindings: ReadonlyArray<RuntimeBindingValue>) =>
+  (
+    Model: RuntimeModelSchema,
+    bindings: ReadonlyArray<RuntimeBindingValue>,
+    environment?: OperationEnvironment,
+  ) =>
   (create: (...args: ReadonlyArray<any>) => unknown) =>
   (...args: ReadonlyArray<any>): RuntimeReturn =>
     withOperationGraph(bindings, () => {
       const created = create(...args)
       const planValue = isBindingInitRecipe(created)
-        ? runBindingInitRecipe(created)
+        ? runBindingInitRecipe(created, environment)
         : created
       assertInitializationPlan(planValue)
 
@@ -625,7 +632,11 @@ export const makeInit =
       const stepCommands: globalThis.Array<any> = []
 
       for (const step of planValue.steps ?? []) {
-        const stepValue = resolveOperationOutput(step(model), model)
+        const stepValue = resolveOperationOutput(
+          step(model),
+          model,
+          environment,
+        )
         assertStepReturn(stepValue)
         model = stepValue.model
         stepCommands.push(...(stepValue.commands ?? []))

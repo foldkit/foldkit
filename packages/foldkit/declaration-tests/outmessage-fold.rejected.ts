@@ -337,21 +337,21 @@ DeclarationCoordinatedComposition.makeUpdate({
   CompletedRecordChoice: model => ({ model }),
 })
 
-declare const anyInputStep: (
+declare const anyInput: (
   // oxlint-disable-next-line typescript/no-explicit-any -- This rejection fixture deliberately erases the Step input.
   model: any,
 ) => Readonly<{ model: typeof Model.Type }>
-declare const unknownInputStep: (
+declare const unknownInput: (
   model: unknown,
 ) => Readonly<{ model: typeof Model.Type }>
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error A Step cannot erase its parent Model input with any.
-  Chose: () => anyInputStep,
+  Chose: () => anyInput,
   Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error A Step cannot erase its parent Model input with unknown.
-  Chose: () => unknownInputStep,
+  Chose: () => unknownInput,
   Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 

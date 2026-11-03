@@ -4,6 +4,7 @@ import { type Plugin, createServer } from 'vite'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { foldkit } from '../src/index.ts'
+import { createServerCache } from './serverCache.ts'
 
 const startPreservationServer = async () => {
   const calls: Array<Readonly<{ name: string; handler: unknown }>> = []
@@ -22,6 +23,7 @@ const startPreservationServer = async () => {
   }
   const server = await createServer({
     root: resolve(import.meta.dirname, '../../../examples/counter'),
+    cacheDir: await createServerCache(),
     configFile: false,
     mode: 'test',
     logLevel: 'silent',

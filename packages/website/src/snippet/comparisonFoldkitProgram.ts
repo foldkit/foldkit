@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 // src/init.ts
 
 import { ApplicationComposition } from './composition'
@@ -20,28 +21,25 @@ export const init = ApplicationComposition.makeInit((flags: Flags) => ({
 
 // src/application.ts
 
-import { Block } from 'foldkit'
+import { Block, Program, Runtime } from 'foldkit'
 
-import { ApplicationComposition } from './composition'
 import { init } from './init'
 import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
+  }),
+)
 
 // src/entry.ts
-
-import { Program, Runtime } from 'foldkit'
 
 import { ApplicationBlock } from './application'
 import { Flags, flags } from './flags'

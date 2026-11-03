@@ -5,10 +5,10 @@ import { describe, expect, test } from 'vitest'
 import * as Markdown from '@foldkit/markdown'
 import { parseMarkdown } from '@foldkit/markdown/vite'
 
+import { FAQ_IDS } from '../blocks/comingFromReact/faq'
 import { type CodeBlock } from '../component'
 import { PostFrontmatter } from '../page/blog/frontmatter'
 import comingFromReactSource from '../page/comingFromReact/comingFromReact.md?raw'
-import { FAQ_IDS } from '../page/comingFromReact/faq'
 import comboboxPageSource from '../page/ui/comboboxPage.md?raw'
 import { collectDemoLabels } from './demoLabel'
 import { islandAttributes } from './islandAttributes'
@@ -194,7 +194,7 @@ const markdownSources = import.meta.glob('../page/**/*.md', {
   eager: true,
 })
 
-const pageSources = import.meta.glob('../page/**/*.ts', {
+const pageSources = import.meta.glob(['../page/**/*.ts', '../blocks/**/*.ts'], {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -296,7 +296,9 @@ describe('demo island registration', () => {
   test.each(demoUsages)(
     '$markdownPath declares every demo its markdown embeds',
     ({ markdownPath, names }) => {
-      const pagePath = markdownPath.replace(/\.md$/, '.ts')
+      const pagePath = markdownPath
+        .replace('../page/ui/', '../blocks/ui/')
+        .replace(/\.md$/, '.ts')
       const pageSource = pageSources[pagePath]
 
       expect(pageSource, `no page module at ${pagePath}`).toBeDefined()

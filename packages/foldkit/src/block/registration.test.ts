@@ -27,7 +27,7 @@ const ChildDefinition = ChildNamespace.makeDefinition({
   Model: ChildModel,
   Message,
 })
-const resetStep = ChildDefinition.makeStep(_model => ({
+const reset = ChildDefinition.makeStep(_model => ({
   model: ChildModel.make({ count: 0 }),
 }))
 const ChildComposition = ChildDefinition.makeComposition()
@@ -35,7 +35,7 @@ const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: ChildComposition.makeUpdate({
-      RequestedReset: model => resetStep(model),
+      RequestedReset: model => reset(model),
       Advanced: model => ({
         model: ChildModel.make({ count: model.count + 1 }),
       }),
@@ -226,8 +226,8 @@ const mixedConnectedSteps = Tuple.make(
   ChildBinding.reset(),
   RegisteredParentBaseDefinition.makeNoopStep(),
 )
-const combinedMixedConnectedStep = Update.combineSteps(mixedConnectedSteps)
-const deferredMixedConnectedStep = RegisteredParentBaseDefinition.makeStep(() =>
+const combinedMixedConnected = Update.combineSteps(mixedConnectedSteps)
+const deferredMixedConnected = RegisteredParentBaseDefinition.makeStep(() =>
   Update.combineSteps(mixedConnectedSteps),
 )
 const mixedConnectedUpdate = RegisteredParent.makeUpdate({
@@ -259,8 +259,8 @@ const tupleMixedConnectedUpdate = RegisteredParent.makeUpdate({
   Advanced: model => Update.combineSteps(model, mixedConnectedSteps),
 })
 const deferredMixedConnectedUpdate = RegisteredParent.makeUpdate({
-  Ignored: model => deferredMixedConnectedStep(model),
-  Advanced: model => deferredMixedConnectedStep(model),
+  Ignored: model => deferredMixedConnected(model),
+  Advanced: model => deferredMixedConnected(model),
 })
 const explicitGenericOrdinaryUpdate = RegisteredParent.makeUpdate({
   Ignored: model =>
@@ -282,12 +282,12 @@ const rejectRawMixedConnectedSteps = (model: ParentModel) => {
   // @ts-expect-error A predeclared tuple retains the connected graph requirement.
   Update.combineSteps(model, mixedConnectedSteps)
   // @ts-expect-error Deferred mixed Steps still require their registered Composition.
-  deferredMixedConnectedStep(model)
+  deferredMixedConnected(model)
 }
 const rejectReadableMixedRecipe = (
-  model: Parameters<typeof combinedMixedConnectedStep>[0],
+  model: Parameters<typeof combinedMixedConnected>[0],
 ) => {
-  const combined = combinedMixedConnectedStep(model)
+  const combined = combinedMixedConnected(model)
 
   // @ts-expect-error A connected combination remains opaque before composition.
   combined.model
@@ -395,13 +395,13 @@ const genericUpdate = Update.define((model: ParentModel, message: Message) =>
   ChildBinding.fold(model, message),
 )
 
-const branchUpdateStep = RegisteredParentBaseDefinition.makeStep(
+const branchUpdate = RegisteredParentBaseDefinition.makeStep(
   (model, message: Message) =>
     message._tag === 'Advanced' ? ChildBinding.reset() : { model },
 )
 const registeredBranchDefinedUpdate = RegisteredParent.makeUpdate({
-  Ignored: (model, message) => branchUpdateStep(model, message),
-  Advanced: (model, message) => branchUpdateStep(model, message),
+  Ignored: (model, message) => branchUpdate(model, message),
+  Advanced: (model, message) => branchUpdate(model, message),
 })
 const prepareRegisteredBranchUpdate = () =>
   RegisteredParent.prepareBlock({
@@ -417,7 +417,7 @@ const registeredBranchUpdate: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareRegisteredBranchUpdate)
 OmittedParent.makeUpdate({
   // @ts-expect-error A conditional child Step cannot execute without its registered Binding.
-  Ignored: (model, message) => branchUpdateStep(model, message),
+  Ignored: (model, message) => branchUpdate(model, message),
   Advanced: model => ({ model }),
 })
 const prepareOmittedBranchUpdate = () =>
@@ -838,7 +838,7 @@ const SecondaryChildBinding = PolicyParentBaseDefinition.makeBinding(
       ParentModel.make({ ...model, child: nextChild }),
   },
 )
-const unsupportedNestedRawChildStep = Update.foldChildStep({
+const unsupportedNestedRawChild = Update.foldChildStep({
   // @ts-expect-error A raw child fold cannot erase a binding operation's registration.
   update: (model: ParentModel) => SecondaryChildBinding.reset()(model),
   read: (model: ParentModel) => Option.some(model),
@@ -913,7 +913,7 @@ const registeredPolicyFold: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
   typeof prepareRegisteredPolicyFold
 > = Block.assemble(prepareRegisteredPolicyFold)
-const combinedPolicyStep = Update.combineSteps([
+const applyCombinedPolicy = Update.combineSteps([
   PolicyChildBinding.requestSecondaryReset(),
   PolicyParentBaseDefinition.makeNoopStep(),
 ])
@@ -930,9 +930,9 @@ const mixedPolicyUpdate = RegisteredPolicyParent.makeUpdate({
     ]),
 })
 const rejectReadableMixedPolicy = (
-  model: Parameters<typeof combinedPolicyStep>[0],
+  model: Parameters<typeof applyCombinedPolicy>[0],
 ) => {
-  const combined = combinedPolicyStep(model)
+  const combined = applyCombinedPolicy(model)
 
   // @ts-expect-error A potentially deferred policy combination is not a readable result.
   combined.model
@@ -1296,7 +1296,7 @@ void registeredKeyedCombinedStep
 void omittedKeyedCombinedStep
 void registeredKeyedInit
 void omittedKeyedInit
-void unsupportedNestedRawChildStep
+void unsupportedNestedRawChild
 void registeredPolicyFold
 void OmittedPolicyParent
 void registeredKeyedPolicyFold
@@ -1338,15 +1338,13 @@ it('preserves connected Steps beside generic no-op Steps', () => {
   }
 
   expectTypeOf<
-    Update.ResolvedOperationOutput<
-      ReturnType<typeof combinedMixedConnectedStep>
-    >
+    Update.ResolvedOperationOutput<ReturnType<typeof combinedMixedConnected>>
   >().toEqualTypeOf<
     Update.ResolvedOperationOutput<
       ReturnType<ReturnType<typeof ChildBinding.reset>>
     >
   >()
-  expectTypeOf<ReturnType<typeof deferredMixedConnectedStep>>().toEqualTypeOf<
+  expectTypeOf<ReturnType<typeof deferredMixedConnected>>().toEqualTypeOf<
     ReturnType<ReturnType<typeof ChildBinding.reset>>
   >()
   expectTypeOf<

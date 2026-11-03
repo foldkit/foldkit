@@ -272,7 +272,7 @@ type CompletedPlayNote = typeof Message.CompletedPlayNote.Type
 
 // UPDATE
 
-const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({
+const playNoteAt = Update.defineStep((model: Model, noteIndex: number) => ({
   model: modifyFields(model, {
     playbackState: () => PlaybackState.Playing({ currentNoteIndex: noteIndex }),
   }),
@@ -289,8 +289,8 @@ const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedPlay: () =>
       PlaybackState.match(model.playbackState, {
-        Idle: () => playNoteAtStep(model, 0),
-        Paused: ({ currentNoteIndex }) => playNoteAtStep(model, currentNoteIndex),
+        Idle: () => playNoteAt(model, 0),
+        Paused: ({ currentNoteIndex }) => playNoteAt(model, currentNoteIndex),
         Playing: () => ({ model }),
       }),
     ClickedPause: () =>
@@ -312,7 +312,7 @@ const update = Update.define((model: Model, message: Message) =>
       } else if (nextCurrentNoteIndex >= noteSequence.length) {
         return { model: modifyFields(model, { playbackState: () => PlaybackState.Idle() }) }
       } else {
-        return playNoteAtStep(model, nextCurrentNoteIndex)
+        return playNoteAt(model, nextCurrentNoteIndex)
       }
     },
     SucceededAcquireAudioContext: () => ({ model }),
@@ -393,7 +393,7 @@ const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
   PlayUpdate: [
     { from: '    ClickedPlay: () =>', to: '      }),' },
     {
-      from: 'const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({',
+      from: 'const playNoteAt = Update.defineStep((model: Model, noteIndex: number) => ({',
       to: '}))',
     },
   ],
@@ -411,7 +411,7 @@ const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
   NoteUpdate: [
     { from: '    CompletedPlayNote: ({ noteIndex }) => {', to: '    },' },
     {
-      from: 'const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({',
+      from: 'const playNoteAt = Update.defineStep((model: Model, noteIndex: number) => ({',
       to: '}))',
     },
   ],

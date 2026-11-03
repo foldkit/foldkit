@@ -1,9 +1,13 @@
-import { Schema, Tuple } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { VirtualList } from '@foldkit/ui'
+import {
+  layer as VirtualListLayer,
+  ScrollContainer as VirtualListScrollContainer,
+  makeBlock as makeVirtualListBlock,
+} from '@foldkit/ui/virtualList'
 
 const Invoice = Schema.Struct({
   id: Schema.String,
@@ -12,7 +16,7 @@ const Invoice = Schema.Struct({
 })
 type Invoice = typeof Invoice.Type
 
-const InvoiceRowsBlock = VirtualList.makeBlock<Invoice>()
+const InvoiceRowsBlock = makeVirtualListBlock<Invoice>()
 const Model = Schema.Struct({
   invoices: Schema.Array(Invoice),
   invoiceRows: InvoiceRowsBlock.Model,
@@ -22,7 +26,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedJumpToLastInvoice: {} })
 type Message = typeof Message.Type
 
+const InvoiceTableKey = Symbol('InvoiceTable')
+
 const InvoiceTableDefinition = Block.makeDefinition('InvoiceTable', {
+  key: InvoiceTableKey,
+  Init: Schema.Tuple([Schema.Array(Invoice)]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -33,14 +42,15 @@ const InvoiceRowsBinding = InvoiceTableDefinition.makeBinding(
   {
     field: 'invoiceRows',
     init: {
-      contextToArgs: () =>
-        Tuple.make({
+      contextToArgs: () => [
+        {
           id: 'invoice-rows',
           rowHeightPx: 48,
-          scrollContainer: VirtualList.ScrollContainer.Ancestor({
+          scrollContainer: VirtualListScrollContainer.Ancestor({
             selector: '#invoice-scroll',
           }),
-        }),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({
@@ -53,9 +63,9 @@ const InvoiceRowsBinding = InvoiceTableDefinition.makeBinding(
 const InvoiceTableComposition = InvoiceTableDefinition.makeComposition({
   bindings: [InvoiceRowsBinding],
 })
-const init = InvoiceTableComposition.makeInit(
-  (invoices: ReadonlyArray<Invoice>) => ({ model: { invoices } }),
-)
+const init = InvoiceTableComposition.makeInit(invoices => ({
+  model: { invoices },
+}))
 const update = InvoiceTableComposition.makeUpdate({
   ClickedJumpToLastInvoice: InvoiceRowsBinding.requestScrollToEnd(),
 })
@@ -125,9 +135,17 @@ const view = InvoiceTableComposition.makeView((model, h) =>
   ),
 )
 
-const prepare = () =>
-  InvoiceTableComposition.prepareBlock({ init, update, view })
-export const InvoiceTableBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const InvoiceTableBlock = InvoiceTableDefinition.contract
+
+export const layer = InvoiceTableDefinition.makeBlock(
+  Effect.gen(function* () {
+    const invoiceRows = yield* InvoiceRowsBinding
+
+    return {
+      children: [invoiceRows],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(VirtualListLayer).layer

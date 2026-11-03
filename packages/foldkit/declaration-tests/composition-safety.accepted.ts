@@ -325,13 +325,13 @@ const keyedInitializerDocumentation = EntryBinding.init({
 void plainInitializerDocumentation
 void keyedInitializerDocumentation
 
-export const initPlainStep = CompositionSafetyParentDefinition.makeStep(model =>
+export const initPlain = CompositionSafetyParentDefinition.makeStep(model =>
   PlainBinding.init({
     args: [],
     toParentModel: child => Struct.modifyFields(model, { plain: () => child }),
   }),
 )
-export const initEntryStep = CompositionSafetyParentDefinition.makeStep(
+export const initEntry = CompositionSafetyParentDefinition.makeStep(
   (model, id: string, count: number) =>
     EntryBinding.init({
       key: id,
@@ -342,7 +342,7 @@ export const initEntryStep = CompositionSafetyParentDefinition.makeStep(
         }),
     }),
 )
-const initParentCommandEntryStep = CompositionSafetyParentDefinition.makeStep(
+const initParentCommandEntry = CompositionSafetyParentDefinition.makeStep(
   model =>
     EntryBinding.init({
       key: 'parent-command-entry',
@@ -355,7 +355,7 @@ const initParentCommandEntryStep = CompositionSafetyParentDefinition.makeStep(
         }),
     }),
 )
-const initParentCommandChildStep = CompositionSafetyParentDefinition.makeStep(
+const initParentCommandChild = CompositionSafetyParentDefinition.makeStep(
   model =>
     ParentCommandsBinding.init({
       args: [],
@@ -364,9 +364,9 @@ const initParentCommandChildStep = CompositionSafetyParentDefinition.makeStep(
       commands: [CompleteParentInitialization()],
     }),
 )
-export const initPlainWithParentCommandsStep = Update.combineSteps([
-  initParentCommandEntryStep,
-  initParentCommandChildStep,
+export const initPlainWithParentCommands = Update.combineSteps([
+  initParentCommandEntry,
+  initParentCommandChild,
 ])
 export const makeParentCommandInitRecipe = () =>
   ParentCommandsBinding.init({
@@ -375,7 +375,7 @@ export const makeParentCommandInitRecipe = () =>
       Struct.modifyFields(initialParentModel, { plain: () => child }),
     commands: [CompleteParentInitialization()],
   })
-export const initPlainWithOwningParentCommandStep =
+export const initPlainWithOwningParentCommand =
   CompositionSafetyParentDefinition.makeStep(model =>
     ParentCommandsBinding.init({
       args: [],
@@ -384,7 +384,7 @@ export const initPlainWithOwningParentCommandStep =
       commands: [CompleteParentInitialization()],
     }),
   )
-const initDerivedEntryStep = CompositionSafetyParentDefinition.makeStep(model =>
+const initDerivedEntry = CompositionSafetyParentDefinition.makeStep(model =>
   EntryBinding.init({
     key: 'derived-entry',
     args: [2],
@@ -394,9 +394,9 @@ const initDerivedEntryStep = CompositionSafetyParentDefinition.makeStep(model =>
       }),
   }),
 )
-export const initDerivedStepsStep = Update.combineSteps([
-  initDerivedEntryStep,
-  initPlainWithOwningParentCommandStep,
+export const initDerivedSteps = Update.combineSteps([
+  initDerivedEntry,
+  initPlainWithOwningParentCommand,
 ])
 
 export const CompositionSafetyParentComposition =
@@ -408,9 +408,8 @@ export const mixedConnectedSteps = Tuple.make(
   PlainBinding.increment(),
   CompositionSafetyParentDefinition.makeNoopStep(),
 )
-export const combinedMixedConnectedStep =
-  Update.combineSteps(mixedConnectedSteps)
-export const deferredMixedConnectedStep =
+export const combinedMixedConnected = Update.combineSteps(mixedConnectedSteps)
+export const deferredMixedConnected =
   CompositionSafetyParentDefinition.makeStep(() =>
     Update.combineSteps(mixedConnectedSteps),
   )
@@ -485,13 +484,13 @@ export const tupleMixedConnectedUpdate =
   })
 export const deferredMixedConnectedUpdate =
   CompositionSafetyParentComposition.makeUpdate({
-    CompletedParentInitialization: model => deferredMixedConnectedStep(model),
-    RequestedInitEntry: model => deferredMixedConnectedStep(model),
-    RequestedInitPlain: model => deferredMixedConnectedStep(model),
+    CompletedParentInitialization: model => deferredMixedConnected(model),
+    RequestedInitEntry: model => deferredMixedConnected(model),
+    RequestedInitPlain: model => deferredMixedConnected(model),
     RequestedInitPlainWithOwningParentCommand: model =>
-      deferredMixedConnectedStep(model),
+      deferredMixedConnected(model),
     RequestedInitPlainWithParentCommands: model =>
-      deferredMixedConnectedStep(model),
+      deferredMixedConnected(model),
   })
 export const explicitGenericOrdinaryUpdate =
   CompositionSafetyParentComposition.makeUpdate({
@@ -521,43 +520,43 @@ export const explicitGenericOrdinaryUpdate =
         [stepModel => ({ model: stepModel })],
       ),
   })
-const parentCommandsStep = CompositionSafetyParentDefinition.makeCommandsStep(
+const parentCommands = CompositionSafetyParentDefinition.makeCommandsStep(
   () => [CompleteParentInitialization()],
 )
-export const mixedConnectedCommandsStep = Update.combineSteps([
+export const mixedConnectedCommands = Update.combineSteps([
   PlainBinding.increment(),
   CompositionSafetyParentDefinition.makeNoopStep(),
-  parentCommandsStep,
+  parentCommands,
 ])
 export const mixedConnectedCommandsUpdate =
   CompositionSafetyParentComposition.makeUpdate({
-    CompletedParentInitialization: model => mixedConnectedCommandsStep(model),
-    RequestedInitEntry: model => mixedConnectedCommandsStep(model),
-    RequestedInitPlain: model => mixedConnectedCommandsStep(model),
+    CompletedParentInitialization: model => mixedConnectedCommands(model),
+    RequestedInitEntry: model => mixedConnectedCommands(model),
+    RequestedInitPlain: model => mixedConnectedCommands(model),
     RequestedInitPlainWithOwningParentCommand: model =>
-      mixedConnectedCommandsStep(model),
+      mixedConnectedCommands(model),
     RequestedInitPlainWithParentCommands: model =>
-      mixedConnectedCommandsStep(model),
+      mixedConnectedCommands(model),
   })
 export const pureMixedCommandsLast = Update.combineSteps(initialParentModel, [
   CompositionSafetyParentDefinition.makeNoopStep(),
-  parentCommandsStep,
+  parentCommands,
 ])
 export const pureMixedCommandsFirst = Update.combineSteps(initialParentModel, [
-  parentCommandsStep,
+  parentCommands,
   CompositionSafetyParentDefinition.makeNoopStep(),
 ])
 
 type MixedConnectedRecipeIsExact = Expect<
   Equal<
-    ReturnType<typeof combinedMixedConnectedStep>,
+    ReturnType<typeof combinedMixedConnected>,
     ReturnType<ReturnType<typeof PlainBinding.increment>>
   >
 >
 type DeferredMixedConnectedRecipeIsExact = Expect<
   Equal<
-    ReturnType<typeof deferredMixedConnectedStep>,
-    ReturnType<typeof combinedMixedConnectedStep>
+    ReturnType<typeof deferredMixedConnected>,
+    ReturnType<typeof combinedMixedConnected>
   >
 >
 type MixedConnectedRegistrationIsExact = Expect<
@@ -597,28 +596,26 @@ type ExplicitGenericOrdinaryRequirementsAreExact = Expect<
 >
 type MixedConnectedCommandsModelIsExact = Expect<
   Equal<
-    RecipeModel<ReturnType<typeof mixedConnectedCommandsStep>>,
+    RecipeModel<ReturnType<typeof mixedConnectedCommands>>,
     typeof ParentModel.Type
   >
 >
 type MixedConnectedCommandsMessageIsExact = Expect<
   Equal<
-    RecipeMessage<ReturnType<typeof mixedConnectedCommandsStep>>,
+    RecipeMessage<ReturnType<typeof mixedConnectedCommands>>,
     | RecipeMessage<ReturnType<ReturnType<typeof PlainBinding.increment>>>
     | typeof ParentMessage.CompletedParentInitialization.Type
   >
 >
 type MixedConnectedCommandsRequirementsAreExact = Expect<
   EveryMemberEqual<
-    Update.RequirementsOf<typeof mixedConnectedCommandsStep>,
+    Update.RequirementsOf<typeof mixedConnectedCommands>,
     Command.HandlerOf<typeof CompleteParentInitialization>
   >
 >
 type MixedConnectedCommandsRegistrationIsExact = Expect<
   EveryMemberEqual<
-    Update.RegistrationEvidenceOf<
-      ReturnType<typeof mixedConnectedCommandsStep>
-    >,
+    Update.RegistrationEvidenceOf<ReturnType<typeof mixedConnectedCommands>>,
     Block.RequirementOfBinding<typeof PlainBinding>
   >
 >
@@ -646,36 +643,36 @@ export const initDerivedModel = CompositionSafetyParentComposition.makeUpdate({
   CompletedParentInitialization: (model, _message) => {
     const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
     return Update.combineSteps(nextModel, [
-      initDerivedEntryStep,
-      initPlainWithOwningParentCommandStep,
+      initDerivedEntry,
+      initPlainWithOwningParentCommand,
     ])
   },
   RequestedInitEntry: (model, _message) => {
     const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
     return Update.combineSteps(nextModel, [
-      initDerivedEntryStep,
-      initPlainWithOwningParentCommandStep,
+      initDerivedEntry,
+      initPlainWithOwningParentCommand,
     ])
   },
   RequestedInitPlain: (model, _message) => {
     const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
     return Update.combineSteps(nextModel, [
-      initDerivedEntryStep,
-      initPlainWithOwningParentCommandStep,
+      initDerivedEntry,
+      initPlainWithOwningParentCommand,
     ])
   },
   RequestedInitPlainWithOwningParentCommand: (model, _message) => {
     const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
     return Update.combineSteps(nextModel, [
-      initDerivedEntryStep,
-      initPlainWithOwningParentCommandStep,
+      initDerivedEntry,
+      initPlainWithOwningParentCommand,
     ])
   },
   RequestedInitPlainWithParentCommands: (model, _message) => {
     const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
     return Update.combineSteps(nextModel, [
-      initDerivedEntryStep,
-      initPlainWithOwningParentCommandStep,
+      initDerivedEntry,
+      initPlainWithOwningParentCommand,
     ])
   },
 })
@@ -685,13 +682,12 @@ const prepareStrictBlock = () =>
       model: initialParentModel,
     })),
     update: CompositionSafetyParentComposition.makeUpdate({
-      RequestedInitEntry: (model, { id, count }) =>
-        initEntryStep(model, id, count),
-      RequestedInitPlain: model => initPlainStep(model),
+      RequestedInitEntry: (model, { id, count }) => initEntry(model, id, count),
+      RequestedInitPlain: model => initPlain(model),
       RequestedInitPlainWithOwningParentCommand: model =>
-        initPlainWithOwningParentCommandStep(model),
+        initPlainWithOwningParentCommand(model),
       RequestedInitPlainWithParentCommands: model =>
-        initPlainWithParentCommandsStep(model),
+        initPlainWithParentCommands(model),
       CompletedParentInitialization: model =>
         CompositionSafetyParentDefinition.makeNoopStep()(model),
     }),
@@ -719,13 +715,13 @@ export const StrictBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 
 type EntryInitRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof initEntryStep>,
+    Update.RequirementsOf<typeof initEntry>,
     Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
   >
 >
 type ParentCommandRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof initPlainWithParentCommandsStep>,
+    Update.RequirementsOf<typeof initPlainWithParentCommands>,
     | Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
     | Command.HandlerOf<typeof CompleteParentInitialization>
   >
@@ -733,30 +729,27 @@ type ParentCommandRequirementsAreExact = Expect<
 type ParentCommandRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<
-      ReturnType<typeof initPlainWithParentCommandsStep>
+      ReturnType<typeof initPlainWithParentCommands>
     >,
     | Block.RequirementOfBinding<typeof ParentCommandsBinding>
     | Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type EntryInitModelIsExact = Expect<
-  Equal<RecipeModel<ReturnType<typeof initEntryStep>>, typeof ParentModel.Type>
+  Equal<RecipeModel<ReturnType<typeof initEntry>>, typeof ParentModel.Type>
 >
 type EntryInitMessageIsExact = Expect<
-  Equal<
-    RecipeMessage<ReturnType<typeof initEntryStep>>,
-    typeof ParentMessage.Type
-  >
+  Equal<RecipeMessage<ReturnType<typeof initEntry>>, typeof ParentMessage.Type>
 >
 type EntryInitRegistrationIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initEntryStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initEntry>>,
     Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type PlainInitRegistrationIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initPlainStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initPlain>>,
     Block.RequirementOfBinding<typeof PlainBinding>
   >
 >
@@ -783,7 +776,7 @@ type DerivedModelRequirementsAreExact = Expect<
 >
 type DerivedModelRegistrationIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initDerivedStepsStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initDerivedSteps>>,
     | Block.RequirementOfBinding<typeof EntryBinding>
     | Block.RequirementOfBinding<typeof ParentCommandsBinding>
   >

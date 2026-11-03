@@ -4,10 +4,7 @@ import type { Html } from 'foldkit/html'
 
 import type { TabInfo } from '@foldkit/ui/tabs'
 
-import {
-  type ApplicationViewBuilder,
-  StepMenuBinding as StepMenuBinding,
-} from '../composition'
+import { type ApplicationViewBuilder, StepMenuBinding } from '../composition'
 import { Step } from '../domain'
 import { type Model } from '../model'
 import * as Icon from './icon'

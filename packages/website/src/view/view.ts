@@ -1,10 +1,11 @@
 import { Match, Option } from 'effect'
 
+import { HomeBlock } from '../blocks'
 import { PreviewBanner, Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
 import {
   ApplicationComposition,
-  HomeBinding,
+  MaybeHomeBinding,
   PlaygroundBinding,
   SnippetCopyBinding,
   SnippetDisclosureBinding,
@@ -13,7 +14,7 @@ import { Deployment } from '../deployment'
 import { Docs, Marketing } from '../layout'
 import { Message } from '../message'
 import { type Model } from '../model'
-import { HomeBlock, Newsletter } from '../page'
+import { Newsletter } from '../page'
 import { routeToCanonicalUrl } from '../route'
 import { routeTitle } from '../routeTitle'
 import * as SnippetCopyRenderer from '../snippetCopyRenderer'
@@ -36,7 +37,7 @@ const homeView = (
     config => h.block(SnippetCopyBinding.embedView(config)),
   )
   const content = h.block(
-    HomeBinding.embedView({
+    MaybeHomeBinding.embedView({
       slotId: 'home',
       model: homeModel,
       viewInputs: {

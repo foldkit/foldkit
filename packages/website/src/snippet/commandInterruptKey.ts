@@ -16,7 +16,14 @@ export type Message = typeof Message.Type
 const Model = Schema.Struct({})
 type Model = typeof Model.Type
 
-const UploadsDefinition = Block.makeDefinition('Uploads', { Model, Message })
+const UploadsKey = Symbol('Uploads')
+
+const UploadsDefinition = Block.makeDefinition('Uploads', {
+  key: UploadsKey,
+  Init: Schema.Tuple([]),
+  Model,
+  Message,
+})
 
 export const UploadFile = UploadsDefinition.makeCommand('UploadFile', {
   args: {

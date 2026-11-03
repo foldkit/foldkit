@@ -11,7 +11,7 @@ DragAndDrop is different from other Foldkit UI components in two ways. First, it
 Integration requires four pieces: a `DragAndDropBlock.Model` field in your Model, one Binding created with `ParentDefinition.makeBinding(DragAndDropBlock, config)` and selected through `withOutMessagePolicy({ fold })`, that Binding included in the parent’s `bindings`, and an embedded view whose `toView` callback receives bound `draggable`, `droppable`, and `sortable` attribute helpers. The parent chooses all markup and spreads the supplied child attributes directly.
 
 :::Info{label="See it in an app"}
-Check out how DragAndDrop is wired up in the [kanban example](https://github.com/foldkit/foldkit/tree/main/examples/kanban/src) or the [UI showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/dragAndDrop.ts).
+Check out how DragAndDrop is wired up in the [kanban example](https://github.com/foldkit/foldkit/tree/main/examples/kanban/src) or the [UI showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/dragAndDrop.ts).
 :::
 
 ## Examples
@@ -58,7 +58,7 @@ In [Story tests](/testing/story), use `DragAndDrop.test` to resolve keyboard dra
 - `DragAndDrop.test.settleFocus({ itemId })` resolves the item's focus after a drop or cancellation.
 - `DragAndDrop.test.resolveKeyboardMove({ itemId, targetContainerId, targetIndex })` supplies a target container and index for an arrow-key move, then resolves the item's focus.
 
-Those forms test `DragAndDropBlock.update` directly. In a parent Story, also pass the exact `binding` so the helper resolves that embedded occurrence. Pass its `key` as well when the Binding is keyed. The scoped keyboard move helper verifies the pending move's item and complete invocation arguments before it supplies the result. Binding selection matches the composed path suffix. If an enclosing Binding repeats that path, isolate one ancestor occurrence in the Story; the helper rejects the ambiguity.
+Those forms test the acquired DragAndDrop implementation. In a parent Story, also pass the exact `binding` so the helper resolves that embedded occurrence. Pass its `key` as well when the Binding is keyed. The scoped keyboard move helper verifies the pending move's item and complete invocation arguments before it supplies the result. Binding selection matches the composed path suffix. If an enclosing Binding repeats that path, isolate one ancestor occurrence in the Story; the helper rejects the ambiguity.
 
 Keyboard move results carry the originating `keyboardDragGeneration`. The Story helper copies it from the selected pending Command. Custom handlers and tests constructing `CompletedResolveKeyboardMove` directly must preserve that invocation's generation; a result from an earlier drag cannot move or focus a restarted interaction, including a new drag of the same item.
 
@@ -66,7 +66,7 @@ Keyboard move results carry the originating `keyboardDragGeneration`. The Story 
 
 ### InitConfig {#init-config}
 
-Configuration passed to the DragAndDrop Binding's child initializer. Direct completed Block calls use `DragAndDrop.DragAndDropBlock.init()`.
+Configuration passed to the DragAndDrop Binding's child initializer. Scoped tests pass the same config to `Story.init(...)` or `Scene.init(...)` and provide the component implementation Layer.
 
 | Name                  | Type                         | Default      | Description                                                                                        |
 | --------------------- | ---------------------------- | ------------ | -------------------------------------------------------------------------------------------------- |

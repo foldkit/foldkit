@@ -1,7 +1,7 @@
 import { Array, Option, Record, pipe } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { examples } from '../src/page/example/meta'
+import { examples } from '../src/blocks/exampleDetail/meta'
 import { blogPosts } from './blogPosts'
 import {
   API_BASE_PATH,

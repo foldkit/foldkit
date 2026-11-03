@@ -1,20 +1,26 @@
-import { Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { makeBlock } from './public.js'
+import { layer as ListboxLayer, makeBlock } from './public.js'
+import { InitConfig } from './types.js'
 
 const TestListbox = makeBlock<string>()
 
 const Model = Schema.Struct({ listbox: TestListbox.Model })
 type Model = typeof Model.Type
+const ListboxTriggerClickTestKey = Symbol('ListboxTriggerClickTest')
 const ListboxTriggerClickTestDefinition = Block.makeDefinition(
   'ListboxTriggerClickTest',
   {
+    key: ListboxTriggerClickTestKey,
     Model,
     Message: Schema.Never,
+    Init: Schema.Tuple([]),
+    ChildInitContext: InitConfig,
+    view: { kind: 'Element' },
   },
 )
 const foldListboxOutMessage =
@@ -25,7 +31,7 @@ const ListboxBinding = ListboxTriggerClickTestDefinition.makeBinding(
   TestListbox,
   {
     field: 'listbox',
-    init: false,
+    init: { contextToArgs: config => [config] },
   },
 ).withOutMessagePolicy({ fold: foldListboxOutMessage })
 const ListboxTriggerClickTestComposition =
@@ -52,21 +58,23 @@ const view = ListboxTriggerClickTestComposition.makeView((model, h) =>
     ],
   ),
 )
-const prepare = () =>
-  ListboxTriggerClickTestComposition.prepareBlock({
-    init: ListboxTriggerClickTestComposition.makeInit(() =>
-      ListboxBinding.init({
-        args: [{ id: 'sort', isModal: true }],
-        toParentModel: listbox => ({ listbox }),
-      }),
-    ),
-    update: ListboxTriggerClickTestComposition.makeUpdate({}),
-    view,
-  })
-const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+const init = ListboxTriggerClickTestComposition.makeInit(() => ({
+  model: {},
+  childInitContext: { id: 'sort', isModal: true },
+}))
+const update = ListboxTriggerClickTestComposition.makeUpdate({})
+const ApplicationBlock = ListboxTriggerClickTestDefinition.makeBlock(
+  Effect.gen(function* () {
+    const listbox = yield* ListboxBinding
+
+    return {
+      children: [listbox],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(ListboxLayer)
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)

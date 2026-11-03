@@ -1,31 +1,29 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
 import {
   ApplicationComposition,
+  ApplicationDefinition,
   FetchCountLayer,
-  type Model,
   update,
 } from './counterHttpCommand'
 
-export const init = ApplicationComposition.makeInit(
-  (): Readonly<{ model: Model }> => ({
-    model: { count: 0 },
-  }),
-)
+export const init = ApplicationComposition.makeInit(() => ({
+  model: { count: 0 },
+}))
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Count: ${model.count}`,
   body: h.p([], [model.count.toString()]),
 }))
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer: FetchCountLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer: FetchCountLayer,
+    }
+  }),
+)

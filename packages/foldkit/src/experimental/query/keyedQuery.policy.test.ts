@@ -24,7 +24,7 @@ import {
 import { defineMessageUnion } from '../../message/index.js'
 import * as Story from '../../test/story.js'
 import * as Update from '../../update/index.js'
-import * as Query from './index.js'
+import * as Query from './native.js'
 
 const provideRegistry =
   (registry: __Registry) =>

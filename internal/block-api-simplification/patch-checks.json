@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "experiment": "ordinary",
+      "base": "a84a2b04b0e9a9613b9db603150fa271fb7dc27f",
+      "patches": ["ordinary.patch", "performance-tools.patch"],
+      "applyStatus": 0,
+      "scratch": "/private/tmp/foldkit-block-proof-patch-ordinary-9herqmam",
+      "alteredSourceControl": {
+        "expectedFailure": true,
+        "exitCode": 1,
+        "restoredReverseCheck": 0,
+        "path": "packages/foldkit/src/block/public.ts"
+      }
+    },
+    {
+      "experiment": "family",
+      "base": "a84a2b04b0e9a9613b9db603150fa271fb7dc27f",
+      "patches": ["family.patch"],
+      "applyStatus": 0,
+      "scratch": "/private/tmp/foldkit-block-proof-patch-family-nyw_dlr8",
+      "alteredSourceControl": {
+        "expectedFailure": true,
+        "exitCode": 1,
+        "restoredReverseCheck": 0,
+        "path": "packages/foldkit/src/block/public.ts"
+      }
+    }
+  ]
+}

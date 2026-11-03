@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { taggedStruct } from 'foldkit/schema'
@@ -10,23 +10,32 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const EditorDefinition = Block.makeDefinition('Editor', { Model, Message })
+const EditorKey = Symbol('Editor')
+
+const EditorDefinition = Block.makeDefinition('Editor', {
+  key: EditorKey,
+  Init: Schema.Tuple([Schema.String]),
+  Model,
+  Message,
+})
 
 const { makeFieldsStep } = EditorDefinition
 
 const EditorComposition = EditorDefinition.makeComposition()
-const prepare = () =>
-  EditorComposition.prepareBlock({
-    init: EditorComposition.makeInit((displayName: string) => ({
-      model: Model({ displayName }),
-    })),
-    update: EditorComposition.makeUpdate({
-      UpdatedDisplayName: makeFieldsStep.fromMessage(({ value }) => ({
-        displayName: () => value,
+export const EditorBlock = EditorDefinition.contract
+
+export const layer = EditorDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init: EditorComposition.makeInit((displayName: string) => ({
+        model: Model({ displayName }),
       })),
-    }),
-  })
-export const EditorBlock: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+      update: EditorComposition.makeUpdate({
+        UpdatedDisplayName: makeFieldsStep.fromMessage(({ value }) => ({
+          displayName: () => value,
+        })),
+      }),
+    }
+  }),
+).layer

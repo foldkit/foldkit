@@ -1,12 +1,12 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Checkbox } from '@foldkit/ui'
+import {
+  type CheckboxAttributes,
+  view as checkboxView,
+} from '@foldkit/ui/checkbox'
 
 // Store each child's checked state as a plain boolean field in your Model:
 const Model = Schema.Struct({
@@ -25,13 +25,21 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const NotificationPreferencesComposition = Block.makeDefinition(
+const NotificationPreferencesKey = Symbol('NotificationPreferences')
+
+const NotificationPreferencesDefinition = Block.makeDefinition(
   'NotificationPreferences',
   {
+    key: NotificationPreferencesKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },
-).makeComposition()
+)
+
+const NotificationPreferencesComposition =
+  NotificationPreferencesDefinition.makeComposition()
 
 // In your init function, start each unchecked:
 const init = NotificationPreferencesComposition.makeInit(() => ({
@@ -76,7 +84,7 @@ const view = NotificationPreferencesComposition.makeView((model, h) => {
     }
   }
 
-  const selectAllView = (attributes: Checkbox.CheckboxAttributes<Message>) =>
+  const selectAllView = (attributes: CheckboxAttributes<Message>) =>
     h.div(
       [h.Class('flex items-center gap-2')],
       [
@@ -91,7 +99,7 @@ const view = NotificationPreferencesComposition.makeView((model, h) => {
       ],
     )
 
-  return Checkbox.view(
+  return checkboxView(
     {
       id: 'select-all',
       isChecked: isAllChecked,
@@ -102,3 +110,14 @@ const view = NotificationPreferencesComposition.makeView((model, h) => {
     h,
   )
 })
+
+export const ApplicationBlock = NotificationPreferencesDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
+  }),
+)

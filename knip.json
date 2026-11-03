@@ -5,17 +5,13 @@
       "entry": [
         "scripts/*.{ts,js,mjs,sh}",
         "scripts/**/*.test.mjs",
+        "scripts/lib/*.d.mts",
         "scripts/fixtures/effect-prebundle/*.ts",
         "scripts/fixtures/host-parity/entry.server.ts",
         "scripts/fixtures/host-parity/vite.config.ts"
       ],
       "project": ["scripts/**"],
-      "ignoreFiles": [
-        "scripts/fixtures/packed-ssr-consumer/**",
-        "scripts/lib/package-version.d.mts",
-        "scripts/lib/preview-release.d.mts",
-        "scripts/lib/workspace-packages.d.mts"
-      ]
+      "ignoreFiles": ["scripts/fixtures/packed-ssr-consumer/**"]
     },
     "packages/foldkit": {
       "entry": [

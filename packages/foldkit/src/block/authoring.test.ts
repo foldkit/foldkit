@@ -193,21 +193,21 @@ if (false) {
   parameterizedHomeInit('two')
 }
 
-const homeBootStep = HomeDefinition.makeStep(model => ({
+const homeBoot = HomeDefinition.makeStep(model => ({
   model,
   commands: [CreateRoom()],
 }))
 
-const homeInformJoinedStep = HomeDefinition.makeStep(
+const homeInformJoined = HomeDefinition.makeStep(
   (model, joinedCount: number) => ({
     model: modifyFields(model, { joinedCount: () => joinedCount }),
   }),
 )
 
 const homeUpdate = HomeComposition.makeUpdate({
-  RequestedBoot: model => homeBootStep(model),
+  RequestedBoot: model => homeBoot(model),
   RequestedInformJoined: (model, { joinedCount }) =>
-    homeInformJoinedStep(model, joinedCount),
+    homeInformJoined(model, joinedCount),
   ClickedCreateRoom: model => ({
     model: modifyFields(model, { status: () => 'Creating' }),
     commands: [CreateRoom()],
@@ -391,7 +391,7 @@ const RoomDefinition = RoomNamespace.makeDefinition({
 })
 
 const RoomComposition = RoomDefinition.makeComposition()
-const roomInformJoinedStep = RoomDefinition.makeStep(
+const roomInformJoined = RoomDefinition.makeStep(
   (model, joinedCount: number, source?: 'Lobby' | 'Game') => ({
     model: modifyFields(model, {
       joinedCount: () => joinedCount + (source === 'Game' ? 1 : 0),
@@ -401,7 +401,7 @@ const roomInformJoinedStep = RoomDefinition.makeStep(
 const roomUpdate = RoomComposition.makeUpdate.withContext(
   (source: 'Reconnect' | 'Route', retryCount?: number) => ({
     RequestedInformJoined: (model, { joinedCount, source }) =>
-      roomInformJoinedStep(model, joinedCount, source),
+      roomInformJoined(model, joinedCount, source),
     ClickedRefreshRoom: model => ({
       model,
       commands: [LoadRoom({ roomId: model.roomId })],
@@ -488,13 +488,13 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
       ),
   )
 
-  const finishStep = BaseDefinition.makeStep((_model, value: Value) => ({
+  const finish = BaseDefinition.makeStep((_model, value: Value) => ({
     model: Model.make({ value }),
     outMessage: OutMessage.make({ value }),
   }))
 
   const update = composition.makeUpdate({
-    RequestedFinish: (model, { value }) => finishStep(model, value),
+    RequestedFinish: (model, { value }) => finish(model, value),
     SelectedChoice: (_model, { value }) => ({
       model: Model.make({ value }),
       outMessage: OutMessage.make({ value }),
@@ -955,7 +955,7 @@ if (false) {
       }),
     }),
   )
-  const bootWithForwardedCommandsStep = HomeDefinition.makeStep(
+  const bootWithForwardedCommands = HomeDefinition.makeStep(
     (model, shouldCreateRoom: boolean) => ({
       model,
       commands: maybeCreateRoomCommands(shouldCreateRoom),
@@ -991,7 +991,7 @@ if (false) {
     Update.RequirementsOf<typeof updateWithForwardedCommands>
   >().toEqualTypeOf<Command.HandlerOf<typeof CreateRoom>>()
   expectTypeOf<
-    Update.RequirementsOf<typeof bootWithForwardedCommandsStep>
+    Update.RequirementsOf<typeof bootWithForwardedCommands>
   >().toEqualTypeOf<Command.HandlerOf<typeof CreateRoom>>()
   expectTypeOf<
     Parameters<typeof HomeWithForwardedCommands.update>[2]
@@ -1333,24 +1333,24 @@ if (false) {
     return h.empty
   })
 
-  const homeNoopStep = HomeDefinition.makeNoopStep()
+  const keepHomeModel = HomeDefinition.makeNoopStep()
   HomeComposition.makeUpdate({
     // @ts-expect-error Updates use the Model fixed by the Block definition.
     RequestedBoot: (model: RoomModel) => ({ model }),
-    RequestedInformJoined: homeNoopStep,
-    ClickedCreateRoom: homeNoopStep,
-    CompletedCreateRoom: homeNoopStep,
+    RequestedInformJoined: keepHomeModel,
+    ClickedCreateRoom: keepHomeModel,
+    CompletedCreateRoom: keepHomeModel,
   })
 
-  const roomNoopStep = RoomDefinition.makeNoopStep()
+  const keepRoomModel = RoomDefinition.makeNoopStep()
   RoomComposition.makeUpdate({
     // @ts-expect-error A Block without OutMessage cannot emit one.
     RequestedInformJoined: (model, _message) => ({
       model,
       outMessage: HomeOutMessage.CreatedRoom({ roomId: model.roomId }),
     }),
-    ClickedRefreshRoom: roomNoopStep,
-    CompletedLoadRoom: roomNoopStep,
+    ClickedRefreshRoom: keepRoomModel,
+    CompletedLoadRoom: keepRoomModel,
   })
 
   HomeComposition.makeUpdate.withContext(context => ({
@@ -1950,8 +1950,8 @@ describe('Block authoring', () => {
       boot: expect.any(Function),
       informJoined: expect.any(Function),
     })
-    expect(Home.operations.boot).not.toBe(homeBootStep)
-    expect(Home.operations.informJoined).not.toBe(homeInformJoinedStep)
+    expect(Home.operations.boot).not.toBe(homeBoot)
+    expect(Home.operations.informJoined).not.toBe(homeInformJoined)
     expect(typeof HomeDefinition.makeComposition).toBe('function')
     expect(Home).not.toHaveProperty('connection')
 

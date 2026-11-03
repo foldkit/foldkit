@@ -1,17 +1,17 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Popover } from '@foldkit/ui'
-import type { RenderInfo as PopoverRenderInfo } from '@foldkit/ui/popover'
-import { buttonId as PopoverButtonId } from '@foldkit/ui/popover'
+import {
+  PopoverBlock,
+  buttonId as PopoverButtonId,
+  layer as PopoverLayer,
+  type RenderInfo as PopoverRenderInfo,
+} from '@foldkit/ui/popover'
 
 // Add a field to your Model for the Popover Block:
 const Model = Schema.Struct({
-  popover: Popover.PopoverBlock.Model,
+  popover: PopoverBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -19,7 +19,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const PopoverExampleKey = Symbol('PopoverExample')
+
 const PopoverExampleDefinition = Block.makeDefinition('PopoverExample', {
+  key: PopoverExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -32,7 +37,7 @@ const { makeNoopStep } = PopoverExampleDefinition
 // parent Step over the Model that already has the next Popover Model written
 // back. The parent Definition checks every named variant:
 const foldPopoverOutMessage = PopoverExampleDefinition.makeOutMessageFold(
-  Popover.PopoverBlock,
+  PopoverBlock,
   {
     // The child has emitted `Opened`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example lazy-load panel
@@ -45,16 +50,12 @@ const foldPopoverOutMessage = PopoverExampleDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs Popover.PopoverBlock.update,
-// writes the next Popover Model back, routes generated delivery and Command
-// results, and hands any OutMessage to the OutMessage fold.
-const PopoverBinding = PopoverExampleDefinition.makeBinding(
-  Popover.PopoverBlock,
-  {
-    field: 'popover',
-    init: { contextToArgs: () => Tuple.make({ id: 'info' }) },
-  },
-).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
+const PopoverBinding = PopoverExampleDefinition.makeBinding(PopoverBlock, {
+  field: 'popover',
+  init: { contextToArgs: () => [{ id: 'info' }] },
+}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 const PopoverExampleComposition = PopoverExampleDefinition.makeComposition({
   bindings: [PopoverBinding],
@@ -124,3 +125,16 @@ const view = PopoverExampleComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = PopoverExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const popover = yield* PopoverBinding
+
+    return {
+      children: [popover],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(PopoverLayer)

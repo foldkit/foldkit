@@ -216,6 +216,139 @@ afterEach(() => {
 })
 
 describe('completed root Block hosting', () => {
+  it('awaits teardown before embedding an independently constructed Program', async () => {
+    const container = document.createElement('div')
+    container.id = 'replaceable-element'
+    document.body.append(container)
+
+    const WidgetModel = Schema.Struct({ label: Schema.String })
+    type WidgetModel = typeof WidgetModel.Type
+    const WidgetDefinition = Block.makeDefinition('ReplaceableWidget', {
+      Model: WidgetModel,
+      Message: Schema.Never,
+    })
+    const widgetComposition = WidgetDefinition.makeComposition()
+    const makeWidgetBlock = (label: string) => {
+      const prepareWidgetBlock = () =>
+        widgetComposition.prepareBlock({
+          init: () => ({ model: { label } }),
+          update: widgetComposition.makeUpdate({}),
+          view: widgetComposition.makeView((model, h) =>
+            h.div([], [model.label]),
+          ),
+          EffectsLayer: Layer.empty,
+        })
+
+      const widgetBlock: Block.FromAssemblyWithView<
+        typeof WidgetModel,
+        typeof prepareWidgetBlock
+      > = Block.assemble(prepareWidgetBlock)
+
+      return widgetBlock
+    }
+
+    const releaseGate = Deferred.makeUnsafe<void>()
+    const events: Array<string> = []
+    let currentHandle: ReturnType<typeof embed> | undefined
+    let reentrantDisposal: Promise<void> | undefined
+    const FirstLayer = Layer.effect(
+      ValueSource,
+      Effect.acquireRelease(
+        Effect.sync(() => {
+          events.push('first acquired')
+          return { value: 'first' }
+        }),
+        () =>
+          Effect.sync(() => {
+            events.push('first release started')
+            if (currentHandle === undefined) {
+              throw new Error(
+                'The host handle was not assigned before release.',
+              )
+            }
+            reentrantDisposal = currentHandle.dispose()
+          }).pipe(
+            Effect.andThen(Deferred.await(releaseGate)),
+            Effect.andThen(
+              Effect.sync(() => {
+                events.push('first released')
+              }),
+            ),
+          ),
+      ),
+    )
+    const SecondLayer = Layer.sync(ValueSource, () => {
+      events.push('second acquired')
+      return { value: 'second' }
+    })
+    const firstProgram = Program.makeElement({
+      block: makeWidgetBlock('first'),
+      container,
+    }).provide(FirstLayer)
+    const firstHandle = embed(firstProgram)
+    currentHandle = firstHandle
+    let secondHandle: ReturnType<typeof embed> | undefined
+
+    try {
+      await vi.waitFor(() => {
+        expect(document.body.textContent).toContain('first')
+        expect(events).toEqual(['first acquired'])
+      })
+
+      let isDisposalComplete = false
+      const disposalPromise = firstHandle.dispose()
+      expect(firstHandle.dispose()).toBe(disposalPromise)
+      const disposal = disposalPromise.then(() => {
+        isDisposalComplete = true
+      })
+
+      await vi.waitFor(() => {
+        expect(events).toEqual(['first acquired', 'first release started'])
+      })
+      expect(reentrantDisposal).toBe(disposalPromise)
+
+      await Promise.resolve()
+      expect(isDisposalComplete).toBe(false)
+      let isReentrantDisposalComplete = false
+      const reentrantCompletion = reentrantDisposal?.then(() => {
+        isReentrantDisposalComplete = true
+      })
+      await Promise.resolve()
+      expect(isReentrantDisposalComplete).toBe(false)
+
+      Deferred.doneUnsafe(releaseGate, Effect.void)
+      await disposal
+      await reentrantCompletion
+
+      const restoredContainer = document.getElementById('replaceable-element')
+      expect(restoredContainer).not.toBeNull()
+      if (restoredContainer === null) {
+        throw new Error('The disposed Program did not restore its container.')
+      }
+
+      const secondProgram = Program.makeElement({
+        block: makeWidgetBlock('second'),
+        container: restoredContainer,
+      }).provide(SecondLayer)
+      secondHandle = embed(secondProgram)
+
+      await vi.waitFor(() => {
+        expect(document.body.textContent).toContain('second')
+        expect(events).toEqual([
+          'first acquired',
+          'first release started',
+          'first released',
+          'second acquired',
+        ])
+      })
+    } finally {
+      Deferred.doneUnsafe(releaseGate, Effect.void)
+      await firstHandle.dispose()
+      await vi.waitFor(() => expect(events).toContain('first released'))
+      await secondHandle?.dispose()
+    }
+  })
+
   it('includes child recipes and lifts initialization Commands through the real runtime', async () => {
     const container = document.createElement('div')
     container.id = 'composed-element'

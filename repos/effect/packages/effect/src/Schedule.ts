@@ -6,6 +6,7 @@
  * next step. Schedules are used by retry, repeat, stream, and channel APIs to
  * decide when work should continue, how long to wait, and when to stop.
  *
+ * @stability stable
  * @since 2.0.0
  */
 import type { NonEmptyReadonlyArray } from "./Array.ts"
@@ -47,6 +48,7 @@ const randomNext: Effect<number> = random.Random.useSync((random) => random.next
  * await Effect.runPromise(Effect.provide(program, TestClock.layer())) // => [1, 2, 3]
  * ```
  *
+ * @stability stable
  * @category models
  * @since 2.0.0
  */
@@ -57,6 +59,7 @@ export interface Schedule<out Output, in Input = unknown, out Error = never, out
 /**
  * Metadata provided to schedule functions containing timing and input information.
  *
+ * @stability stable
  * @category metadata
  * @since 4.0.0
  */
@@ -72,6 +75,7 @@ export interface InputMetadata<Input> {
 /**
  * Extended metadata that includes both input metadata and the output value from the schedule.
  *
+ * @stability stable
  * @category metadata
  * @since 4.0.0
  */
@@ -90,6 +94,7 @@ export interface Metadata<Output = unknown, Input = unknown> extends InputMetada
  * input and output values, zero duration, and zeroed timing fields before any
  * schedule step has produced metadata.
  *
+ * @stability stable
  * @category services
  * @since 4.0.0
  */
@@ -109,6 +114,7 @@ export const CurrentMetadata = Context.Reference<Metadata>("effect/Schedule/Curr
 /**
  * The Schedule namespace contains types and utilities for working with schedules.
  *
+ * @stability stable
  * @since 2.0.0
  */
 export declare namespace Schedule {
@@ -154,6 +160,7 @@ export declare namespace Schedule {
 /**
  * Extracts the output type from a `Schedule`.
  *
+ * @stability stable
  * @category utility types
  * @since 4.0.0
  */
@@ -162,6 +169,7 @@ export type Output<S> = S extends Schedule<infer Output, any, any, any> ? Output
 /**
  * Extracts the input type from a `Schedule`.
  *
+ * @stability stable
  * @category utility types
  * @since 4.0.0
  */
@@ -170,6 +178,7 @@ export type Input<S> = S extends Schedule<any, infer Input, any, any> ? Input : 
 /**
  * Extracts the error type from a `Schedule`.
  *
+ * @stability stable
  * @category utility types
  * @since 4.0.0
  */
@@ -178,6 +187,7 @@ export type Error<S> = S extends Schedule<any, any, infer Error, any> ? Error : 
 /**
  * Extracts the service requirements from a `Schedule`.
  *
+ * @stability stable
  * @category utility types
  * @since 4.0.0
  */
@@ -211,6 +221,7 @@ const ScheduleProto = {
  * Schedule.isSchedule(undefined) // => false
  * ```
  *
+ * @stability stable
  * @category guards
  * @since 2.0.0
  */
@@ -244,6 +255,7 @@ export const isSchedule = (u: unknown): u is Schedule<unknown, never, unknown, u
  * await Effect.runPromise(program) // => 0
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 4.0.0
  */
@@ -300,6 +312,7 @@ const metadataFn = () => {
  * await Effect.runPromise(program) // => "attempt 1: input"
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 4.0.0
  */
@@ -338,6 +351,7 @@ export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
  * await Effect.runPromise(program) // => [Duration.millis(100), Duration.millis(100)]
  * ```
  *
+ * @stability stable
  * @category destructors
  * @since 4.0.0
  */
@@ -371,6 +385,7 @@ export const toStep = <Output, Input, Error, Env>(
  * @see {@link toStep} for manually supplying the timestamp and handling the returned delay yourself
  * @see {@link toStepWithSleep} for the same automatic sleeping behavior when only the schedule output is needed
  *
+ * @stability stable
  * @category destructors
  * @since 4.0.0
  */
@@ -423,6 +438,7 @@ export const toStepWithMetadata = <Output, Input, Error, Env>(
  * await Effect.runPromise(Effect.provide(program, TestClock.layer())) // => [0, 1]
  * ```
  *
+ * @stability stable
  * @category destructors
  * @since 4.0.0
  */
@@ -459,6 +475,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * await Effect.runPromise(program) // => Duration.millis(25)
  * ```
  *
+ * @stability stable
  * @category delays & timeouts
  * @since 2.0.0
  */
@@ -494,6 +511,7 @@ export const addDelay: {
  * Schedule.isSchedule(schedule) // => true
  * ```
  *
+ * @stability stable
  * @category sequencing
  * @since 2.0.0
  */
@@ -532,6 +550,7 @@ export const concat: {
  * Schedule.isSchedule(schedule) // => true
  * ```
  *
+ * @stability stable
  * @category sequencing
  * @since 4.0.0
  */
@@ -612,6 +631,7 @@ export const concatResult: {
  * Schedule.isSchedule(schedule) // => true
  * ```
  *
+ * @stability stable
  * @category combining
  * @since 4.0.0
  */
@@ -663,6 +683,11 @@ const maxDuration = (results: ReadonlyArray<Duration.Duration | undefined>): Dur
  * Returns a new `Schedule` that recurs on the specified `Cron` schedule and
  * outputs the duration between recurrences.
  *
+ * **Details**
+ *
+ * A string expression is parsed with `Cron.parse`, using the optional time zone
+ * and `onDstOverlap` policy. A pre-parsed `Cron` value keeps its own policy.
+ *
  * **Example** (Scheduling work with cron expressions)
  *
  * ```ts import.meta.vitest
@@ -672,14 +697,19 @@ const maxDuration = (results: ReadonlyArray<Duration.Duration | undefined>): Dur
  * Schedule.isSchedule(everyMinute) // => true
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
 export const cron: {
   (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.CronParseError>
-  (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.CronParseError>
-} = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone) => {
-  const parsed = Cron.isCron(expression) ? Result.succeed(expression) : Cron.parse(expression, tz)
+  (expression: string, tz?: string | DateTime.TimeZone, options?: {
+    readonly onDstOverlap?: Cron.DstOverlapPolicy | undefined
+  }): Schedule<Duration.Duration, unknown, Cron.CronParseError>
+} = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone, options?: {
+  readonly onDstOverlap?: Cron.DstOverlapPolicy | undefined
+}) => {
+  const parsed = Cron.isCron(expression) ? Result.succeed(expression) : Cron.parse(expression, tz, options)
   return fromStep(effect.map(effect.fromResult(parsed), (cron) => (now, _) => {
     if (now === Number.POSITIVE_INFINITY) {
       return Cause.done(Duration.zero)
@@ -714,6 +744,7 @@ export const cron: {
  *
  * @see {@link during} for recurring until a duration has elapsed
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -744,6 +775,7 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
  *
  * @see {@link duration} for one delayed recurrence
  *
+ * @stability stable
  * @category constructors
  * @since 4.0.0
  */
@@ -777,6 +809,7 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  * Schedule.isSchedule(schedule) // => true
  * ```
  *
+ * @stability stable
  * @category combining
  * @since 4.0.0
  */
@@ -844,6 +877,7 @@ const minDuration = (results: ReadonlyArray<Duration.Duration | undefined>): Dur
  * await Effect.runPromise(program) // => [Duration.millis(100), Duration.millis(100)]
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -876,6 +910,7 @@ export const exponential = (
  * await Effect.runPromise(program) // => [Duration.millis(100), Duration.millis(100)]
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -885,10 +920,10 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
     let a = 0
     let b = oneMillis
     return constant(effect.sync(() => {
+      const duration = Duration.millis(b)
       const next = a + b
       a = b
       b = next
-      const duration = Duration.millis(next)
       return [duration, duration]
     }))
   }))
@@ -927,6 +962,7 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  *
  * @see {@link spaced} for delaying after each action completes
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -981,6 +1017,7 @@ export const fixed = (interval: Duration.Input): Schedule<number> => {
  * await Effect.runPromise(program) // => "Execution #1"
  * ```
  *
+ * @stability stable
  * @category mapping
  * @since 2.0.0
  */
@@ -1037,6 +1074,7 @@ export const map: {
  * await Effect.runPromise(program) // => Duration.millis(20)
  * ```
  *
+ * @stability stable
  * @category delays & timeouts
  * @since 2.0.0
  */
@@ -1087,6 +1125,7 @@ export const modifyDelay: {
  *
  * @see {@link modifyDelay} for replacing recurrence delays with a custom effectful transformation
  *
+ * @stability stable
  * @category delays & timeouts
  * @since 2.0.0
  */
@@ -1119,6 +1158,7 @@ export const jittered = <Output, Input, Error, Env>(
  * await Effect.runPromise(program) // => "input"
  * ```
  *
+ * @stability stable
  * @category mapping
  * @since 2.0.0
  */
@@ -1163,6 +1203,7 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * @see {@link upTo} for limiting an existing schedule
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -1192,6 +1233,7 @@ export const recurs = (times: number): Schedule<number> =>
  *
  * @see {@link fixed} for recurrence aligned to a regular cadence
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -1228,6 +1270,7 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  * await Effect.runPromise(program) // => { attempts: [1], output: 0 }
  * ```
  *
+ * @stability stable
  * @category sequencing
  * @since 4.0.0
  */
@@ -1288,6 +1331,7 @@ export const tap: {
  * await Effect.runPromise(Effect.provide(program, TestClock.layer())) // => [1, 2, 3]
  * ```
  *
+ * @stability stable
  * @category filtering
  * @since 4.0.0
  */
@@ -1383,6 +1427,7 @@ export {
    *
    * @see {@link upTo} for stopping after a fixed number of schedule outputs
    *
+   * @stability stable
    * @category filtering
    * @since 4.0.0
    */
@@ -1417,6 +1462,7 @@ export {
  * await Effect.runPromise(program) // => [0, Duration.seconds(5)]
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -1454,6 +1500,7 @@ export const windowed = (interval: Duration.Input): Schedule<number> => {
  * await Effect.runPromise(Effect.provide(program, TestClock.layer())) // => [1, 2, 3]
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -1468,6 +1515,7 @@ export const forever: Schedule<number> = spaced(Duration.zero)
  * `Effect.repeat`, the effect runs twice in total: once initially and once
  * after the schedule recurs.
  *
+ * @stability stable
  * @category constructors
  * @since 4.0.0
  */
@@ -1495,6 +1543,7 @@ export {
    * echoes its input values at each step.
    *
    * @see {@link forever} for an infinite schedule that returns incrementing step counts
+   * @stability stable
    * @category constructors
    * @since 2.0.0
    */
@@ -1524,6 +1573,7 @@ export {
  * Schedule.isSchedule(schedule) // => true
  * ```
  *
+ * @stability stable
  * @category utility types
  * @since 4.0.0
  */

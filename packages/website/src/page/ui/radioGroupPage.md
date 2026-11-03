@@ -11,7 +11,7 @@ A single-selection component with roving tabindex keyboard navigation. Arrow key
 What `RadioGroup.makeBlock<Value>()` returns is typed [`Completed<Value>` from `@foldkit/ui/radioGroup`](/ui/selection-blocks#completed-type), for cases where a created Block has to be named.
 
 :::Info{label="See it in an app"}
-Check out how RadioGroup is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/radioGroup.ts).
+Check out how RadioGroup is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/radioGroup.ts).
 :::
 
 ## Examples

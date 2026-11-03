@@ -1,4 +1,4 @@
-import { Array, Schema } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import * as File from 'foldkit/file'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
@@ -40,11 +40,23 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
+/** @internal Stable identity of the FileDrop contract. */
+export const FileDropKey = Symbol('FileDrop')
+
 const FileDropDefinition = Block.makeDefinition('FileDrop', {
+  key: FileDropKey,
   Model,
   Message,
   OutMessage,
+  Init: Block.makeInputContract<readonly [config: InitConfig]>(),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
 })
+
+type FileDropContract = typeof FileDropDefinition.contract
+/** Public FileDrop contract with a stable named declaration boundary. */
+export interface FileDropBlock extends FileDropContract {}
+/** Passive FileDrop contract selected through the module implementation Layer. */
+export const FileDropBlock: FileDropBlock = FileDropDefinition.contract
 const FileDropComposition = FileDropDefinition.makeComposition()
 
 // INIT
@@ -115,7 +127,7 @@ const dispatchDroppedFiles = (files: ReadonlyArray<File.File>) =>
 
 /** Renders an accessible file-drop zone by publishing attribute groups
  *  for a `<label>`-wrapped hidden file input. */
-export const view = FileDropComposition.makeView.withInputs<ViewInputs>(
+export const view = FileDropComposition.makeView.withInputs(
   (model, viewInputs, h) => {
     const { id, isDragOver } = model
     const { toView, accept, multiple = false, isDisabled = false } = viewInputs
@@ -155,16 +167,17 @@ export const view = FileDropComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-const prepare = () =>
-  FileDropComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-/** Completed FileDrop Block contract. */
-export interface FileDropBlock extends Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> {}
-/** Complete FileDrop Block definition for connecting to a parent. */
-export const FileDropBlock: FileDropBlock = Block.assemble(prepare)
+/** @internal Checked FileDrop implementation used as a scoped testing root. */
+const block = FileDropDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
+  }),
+)
+
+/** Constructs FileDrop without starting Commands or occurrence lifecycles. */
+export const layer = block.layer

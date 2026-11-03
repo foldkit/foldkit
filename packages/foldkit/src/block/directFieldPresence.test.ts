@@ -18,7 +18,7 @@ const Child = makeDefinition('DirectPresenceChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const setCountStep = Child.makeStep((model, count: number) => ({
+const setCount = Child.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const ChildComposition = Child.makeComposition()
@@ -28,8 +28,8 @@ const prepareChildBlock = () =>
       model: ChildModel.make({ count: 0 }),
     })),
     update: ChildComposition.makeUpdate({
-      RequestedSetCount: (model, { count }) => setCountStep(model, count),
-      UpdatedCount: (model, { count }) => setCountStep(model, count),
+      RequestedSetCount: (model, { count }) => setCount(model, count),
+      UpdatedCount: (model, { count }) => setCount(model, count),
     }),
     operations: {
       setCount: (count: number) =>

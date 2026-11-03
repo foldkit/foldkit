@@ -2,7 +2,8 @@ import { clsx } from 'clsx'
 import { Array, Match, Option, Order, String, pipe } from 'effect'
 import { Html, childAttributes } from 'foldkit/html'
 
-import { Button, Input } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
+import { view as inputView } from '@foldkit/ui/input'
 import { AnchorConfig, type ItemConfig } from '@foldkit/ui/listbox'
 
 import {
@@ -168,7 +169,7 @@ const sortableColumnHeader = (
   return h.th(
     [h.AriaSort(ariaSortValue(column, fields.sorting))],
     [
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedColumnHeader({ column }),
           toView: attributes =>
@@ -296,7 +297,7 @@ const browseView = (
       h.div(
         [h.Class('flex flex-wrap items-start gap-3 mb-6')],
         [
-          Input.view(
+          inputView(
             {
               id: 'dinosaur-search',
               value: Option.getOrElse(fields.search, () => ''),

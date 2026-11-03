@@ -1,17 +1,17 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Tabs } from '@foldkit/ui'
-import type { RenderInfo as TabsRenderInfo } from '@foldkit/ui/tabs'
+import {
+  layer as TabsLayer,
+  type RenderInfo as TabsRenderInfo,
+  makeBlock as makeTabsBlock,
+} from '@foldkit/ui/tabs'
 
 const Framework = Schema.Literals(['Foldkit', 'React', 'Elm'])
 type Framework = typeof Framework.Type
 
-const FrameworkTabs = Tabs.makeBlock<Framework>()
+const FrameworkTabs = makeTabsBlock<Framework>()
 
 // Add fields to your Model for the Tabs Block and the active tab. The
 // Block keeps private keyboard-focus state; the parent owns the active
@@ -26,7 +26,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const TabsExampleKey = Symbol('TabsExample')
+
 const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
+  key: TabsExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -61,13 +66,11 @@ const foldTabsOutMessage = TabsExampleDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs
-// FrameworkTabs.update, writes the next Tabs Model back, maps the Block's
-// Commands into your Message type, and hands any OutMessage to
-// the OutMessage fold.
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
 const TabsBinding = TabsExampleDefinition.makeBinding(FrameworkTabs, {
   field: 'tabs',
-  init: { contextToArgs: () => Tuple.make({ id: 'framework-tabs' }) },
+  init: { contextToArgs: () => [{ id: 'framework-tabs' }] },
 }).withOutMessagePolicy({ fold: foldTabsOutMessage })
 
 const TabsExampleComposition = TabsExampleDefinition.makeComposition({
@@ -134,3 +137,16 @@ const view = TabsExampleComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = TabsExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const tabs = yield* TabsBinding
+
+    return {
+      children: [tabs],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(TabsLayer)

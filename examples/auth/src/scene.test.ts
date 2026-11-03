@@ -9,20 +9,21 @@ import {
   text,
 } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
 
-import { RedirectToDashboard, SaveSession } from './command'
-import { Session } from './domain/session'
-import { Message } from './message'
-import { Model as LoggedOutModel } from './page/loggedOut/model'
-import { LoginBlock } from './page/loggedOut/page/login'
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock } from './block'
+import { LoginBlock } from './blocks/loggedOut/blocks/login'
 import {
   SimulateAuthRequest,
   initModel as initLoginModel,
-} from './page/loggedOut/page/login/login'
+} from './blocks/loggedOut/blocks/login/login'
+import { Model as LoggedOutModel } from './blocks/loggedOut/model'
+import { RedirectToDashboard, SaveSession } from './command'
+import { Session } from './domain/session'
+import { Message } from './message'
 import { ApplicationRoute } from './route'
-import { update } from './update'
-import { view } from './view'
 
 const validModel = LoggedOutModel({
   route: ApplicationRoute.Login(),
@@ -39,24 +40,26 @@ const aliceSession = Session.make({
 })
 
 describe('login flow', () => {
-  test('successful login saves the session and lands on the dashboard', () => {
-    scene(
-      { update, view },
-      given(validModel),
-      submit(role('form')),
-      Command.expectExact(SimulateAuthRequest),
-      Command.resolve(
-        SimulateAuthRequest,
-        LoginBlock.Message.SucceededSimulateAuthRequest({
-          session: aliceSession,
-        }),
+  it.effect(
+    'successful login saves the session and lands on the dashboard',
+    () =>
+      scene(
+        ApplicationBlock,
+        given(validModel),
+        submit(role('form')),
+        Command.expectExact(SimulateAuthRequest),
+        Command.resolve(
+          SimulateAuthRequest,
+          LoginBlock.Message.SucceededSimulateAuthRequest({
+            session: aliceSession,
+          }),
+        ),
+        Command.expectExact(SaveSession, RedirectToDashboard),
+        Command.resolveAll(
+          [SaveSession, Message.SucceededSaveSession()],
+          [RedirectToDashboard, Message.CompletedRedirectToDashboard()],
+        ),
+        expect(text('Welcome back, alice!')).toExist(),
       ),
-      Command.expectExact(SaveSession, RedirectToDashboard),
-      Command.resolveAll(
-        [SaveSession, Message.SucceededSaveSession()],
-        [RedirectToDashboard, Message.CompletedRedirectToDashboard()],
-      ),
-      expect(text('Welcome back, alice!')).toExist(),
-    )
-  })
+  )
 })

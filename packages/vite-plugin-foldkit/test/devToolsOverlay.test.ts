@@ -16,6 +16,7 @@ import {
   shouldInjectDevToolsOverlay,
 } from '../src/devToolsOverlay.ts'
 import { foldkit } from '../src/index.ts'
+import { createServerCache } from './serverCache.ts'
 
 const COUNTER_ROOT = resolve(import.meta.dirname, '../../../examples/counter')
 const HTML = `<!doctype html>
@@ -166,6 +167,7 @@ const createCounterServer = async () => {
 
   return createServer({
     root: COUNTER_ROOT,
+    cacheDir: await createServerCache(),
     configFile: false,
     logLevel: 'silent',
     server: { middlewareMode: true },

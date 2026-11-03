@@ -9,14 +9,20 @@ type SaveState = typeof SaveState.Type
 const Model = Schema.Struct({ title: Schema.String, saveState: SaveState })
 type Model = typeof Model.Type
 
+const DraftKey = Symbol('Draft')
+
 const DraftDefinition = Block.makeDefinition('Draft', {
+  key: DraftKey,
+  Init: Schema.Tuple([]),
+  isMessageFree: true,
+
   Model,
   Message: Schema.Never,
 })
 
 const { makeStep } = DraftDefinition
 
-const editDraftStep = (change: (model: Model) => Model) =>
+const editDraft = (change: (model: Model) => Model) =>
   makeStep(model => {
     if (SaveState.guards.Saving(model.saveState)) {
       return { model }
@@ -25,11 +31,11 @@ const editDraftStep = (change: (model: Model) => Model) =>
     return { model: change(model) }
   })
 
-const uppercaseTitleStep = editDraftStep(model =>
+const uppercaseTitle = editDraft(model =>
   modifyFields(model, { title: String.toUpperCase }),
 )
 const savingDraft = Model.make({
   title: 'Draft',
   saveState: SaveState.Saving(),
 })
-const blockedEdit = uppercaseTitleStep(savingDraft)
+const blockedEdit = uppercaseTitle(savingDraft)

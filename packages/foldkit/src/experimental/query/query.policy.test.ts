@@ -8,7 +8,7 @@ import * as AsyncData from '../../asyncData/index.js'
 import * as Block from '../../block/public.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Story from '../../test/story.js'
-import * as Query from './index.js'
+import * as Query from './native.js'
 
 const finiteQuery = Query.define({
   name: 'FinitePolicy',

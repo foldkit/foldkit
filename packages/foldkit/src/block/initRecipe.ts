@@ -1,6 +1,7 @@
 import { Predicate } from 'effect'
 
 import type * as Update from '../update/index.js'
+import type { OperationEnvironment } from '../update/operationRecipe.js'
 import { isRegisteredBinding } from './operationGraph.js'
 
 declare const BindingInitRecipeTypeId: unique symbol
@@ -47,7 +48,10 @@ export interface AnyBindingInitRecipe {
 
 const entries = new WeakMap<
   object,
-  Readonly<{ binding: object; execute: () => unknown }>
+  Readonly<{
+    binding: object
+    execute: (environment: OperationEnvironment | undefined) => unknown
+  }>
 >()
 
 /** @internal Recovers the update return produced by an initialization recipe. */
@@ -67,7 +71,7 @@ export type BindingInitRecipeReturn<Recipe> =
 /** @internal Constructs a passive child initialization recipe. */
 export const makeBindingInitRecipe = (
   binding: object,
-  execute: () => unknown,
+  execute: (environment: OperationEnvironment | undefined) => unknown,
 ): AnyBindingInitRecipe => {
   const recipe: object = Object.freeze(Object.create(null))
   entries.set(recipe, { binding, execute })
@@ -90,10 +94,13 @@ export const isRegisteredBindingInitRecipe = (
 }
 
 /** @internal Executes a child initialization recipe in the active graph. */
-export const runBindingInitRecipe = (recipe: AnyBindingInitRecipe): unknown => {
+export const runBindingInitRecipe = (
+  recipe: AnyBindingInitRecipe,
+  environment?: OperationEnvironment,
+): unknown => {
   const entry = entries.get(recipe)
   if (entry === undefined) {
     throw new Error('[foldkit] Child initialization recipe is unavailable.')
   }
-  return entry.execute()
+  return entry.execute(environment)
 }

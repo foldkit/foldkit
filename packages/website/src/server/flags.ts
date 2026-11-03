@@ -2,10 +2,10 @@ import { DateTime, Effect, Option, Record, Schema } from 'effect'
 import { Calendar } from 'foldkit'
 import { fromString as urlFromString } from 'foldkit/url'
 
+import * as ApiReference from '../blocks/apiReference/domain'
+import * as ExampleDetail from '../blocks/exampleDetail/domain'
 import { deployment } from '../deployment'
 import { Flags } from '../flags'
-import * as ApiReference from '../page/apiReference/domain'
-import * as ExampleDetail from '../page/example/domain'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
 type SourcesBySlug = Readonly<

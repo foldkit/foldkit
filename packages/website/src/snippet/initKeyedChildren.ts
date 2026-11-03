@@ -28,7 +28,7 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [CountersBinding],
 })
 
-const addCounterStep = makeStep((model, id: string) =>
+const addCounter = makeStep((model, id: string) =>
   CountersBinding.init({
     key: id,
     args: [],

@@ -20,6 +20,7 @@ const REPO_ROOT = resolve(PACKAGE_ROOT, '..', '..')
 const DIST_TEMPLATE_ROOT = resolve(PACKAGE_ROOT, 'dist/templates')
 const TOOL_DEPENDENCIES = [
   '@effect/tsgo',
+  '@effect/vitest',
   '@foldkit/devtools',
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',

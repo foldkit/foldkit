@@ -1,15 +1,20 @@
 import { Effect, Predicate, type Schema } from 'effect'
 
 import type { ValidateConstructionRequirements } from '../../block/scope.js'
+import type { KeyedQueryConfig, SyncFields } from './keyedQueryContract.js'
 import {
-  type CanonicalKeyedQuery,
-  type KeyedQueryConfig,
-  type LayeredKeyedQuery,
-  type SyncFields,
-  defineKeyedQuery,
-} from './keyedQuery.js'
-import { type LayeredQuery, type QueryConfig, defineQuery } from './query.js'
-import type { CanonicalQuery } from './query.js'
+  type AttachedKeyedQuery,
+  type HostKeyedQuery,
+  makeHostKeyedQuery,
+  makeKeyedQuery,
+} from './keyedQueryFamily.js'
+import type { QueryConfig } from './queryContract.js'
+import {
+  type AttachedQuery,
+  type HostQuery,
+  makeHostQuery,
+  makeQuery,
+} from './queryFamily.js'
 
 type UnkeyedDefinitionFields<
   A,
@@ -110,23 +115,23 @@ const isKeyedQueryConfig = <
 > => Predicate.hasProperty(config, 'args')
 
 /**
- * Defines a Block that fetches data and retains it in the application
- * Model. Add `args` to define a {@link KeyedQuery}; omit them to define a
- * {@link Query}.
+ * Declares a passive Query Block contract and an optional Fetch handler recipe.
+ * Add `args` for keyed storage; omit them for one retained response.
  *
- * Set `handler` to a generator function that constructs the fetch function.
- * The Query Block includes that implementation in its Effects Layer. The
- * constructor runs during application startup; the
- * returned fetch runs for each Query operation. A KeyedQuery fetch receives
- * the declared args, while an unkeyed fetch receives no arguments. Tests can
- * provide different services to the same Layer to exercise the application's
- * fetch logic.
+ * Bind the descriptor before construction and provide `Query.layer` through an
+ * ordinary Layer at the graph's construction boundary. The acquired Block
+ * supplies init, update, inMessageUpdate and operations. Model accessors and local
+ * Message and parent InMessage constructors remain available on the descriptor.
  *
- * Omit `handler` when a host supplies the implementation. `toLayer`
- * accepts an Effect constructor for a host implementation or an alternative to
- * the canonical handler. Providing a handler Layer is explicit in both cases.
+ * A generator `handler` constructs the Fetch invocation when its handler Layer
+ * builds. Service acquisition belongs in that constructor. Pure Stories and
+ * Scenes acquire the graph without building handler Layers.
  *
- * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ * Omit `handler` for a host implementation. Build its recipe with `toLayer`
+ * and select it through `provideHandlers`. An attached handler can be replaced
+ * through the same method; selection retains the new Layer's exact channels.
+ *
+ * @experimental Ships from `foldkit/experimental/query`.
  */
 export function define<
   Name extends string,
@@ -155,7 +160,7 @@ export function define<
       >) &
         ValidateConstructionRequirements<Effect.Services<Yielded>>
     }>,
-): CanonicalKeyedQuery<
+): AttachedKeyedQuery<
   Name,
   A,
   AI,
@@ -193,7 +198,7 @@ export function define<
       >) &
         ValidateConstructionRequirements<Effect.Services<Yielded>>
     }>,
-): CanonicalQuery<
+): AttachedQuery<
   Name,
   A,
   AI,
@@ -215,7 +220,7 @@ export function define<
 >(
   config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, Notify> &
     Readonly<{ handler?: never }>,
-): LayeredKeyedQuery<Name, A, AI, E, EI, Fields, Notify>
+): HostKeyedQuery<Name, A, AI, E, EI, Fields, Notify>
 export function define<
   Name extends string,
   A,
@@ -230,7 +235,7 @@ export function define<
       toKey?: never
       handler?: never
     }>,
-): LayeredQuery<Name, A, AI, E, EI, Notify>
+): HostQuery<Name, A, AI, E, EI, Notify>
 export function define<
   A,
   AI,
@@ -253,18 +258,22 @@ export function define<
   >,
 ): unknown {
   if (isKeyedQueryConfig(config)) {
-    if (Predicate.isNotUndefined(config.handler)) {
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      return defineKeyedQuery(config, Effect.gen(config.handler) as never)
+    if (config.handler !== undefined) {
+      return Reflect.apply(makeKeyedQuery, undefined, [
+        config,
+        Effect.gen(config.handler),
+      ])
     } else {
-      return defineKeyedQuery(config)
+      return makeHostKeyedQuery(config)
     }
   } else {
-    if (Predicate.isNotUndefined(config.handler)) {
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      return defineQuery(config, Effect.gen(config.handler) as never)
+    if (config.handler !== undefined) {
+      return Reflect.apply(makeQuery, undefined, [
+        config,
+        Effect.gen(config.handler),
+      ])
     } else {
-      return defineQuery(config)
+      return makeHostQuery(config)
     }
   }
 }

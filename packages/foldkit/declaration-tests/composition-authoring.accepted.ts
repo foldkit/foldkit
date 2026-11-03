@@ -176,11 +176,11 @@ export const settingsUpdate = SettingsComposition.makeUpdate.withContext(
       model: Struct.modifyFields(model, { theme: () => theme }),
       outMessage: SettingsOutMessage.SelectedTheme({ theme }),
     }),
-    RequestedSync: model => refreshSettingsStep(model, currentUser),
+    RequestedSync: model => refreshSettings(model, currentUser),
     CompletedSync: model => ({ model }),
   }),
 )
-export const refreshSettingsStep = SettingsDefinition.makeStep(
+export const refreshSettings = SettingsDefinition.makeStep(
   (model, currentUser: CurrentUser) => ({
     model,
     commands: [
@@ -472,9 +472,9 @@ export const parentUpdate = ParentComposition.makeUpdate({
 })
 
 const policyProofCurrentUser = CurrentUser.make({ accountId: 'policy-proof' })
-const directRefreshStep = SettingsBinding.refresh(policyProofCurrentUser)
+const directRefresh = SettingsBinding.refresh(policyProofCurrentUser)
 export const parentRefreshUpdate = ParentComposition.makeUpdate({
-  OpenedDashboard: (model, _message) => directRefreshStep(model),
+  OpenedDashboard: (model, _message) => directRefresh(model),
 })
 
 export const foldSettings = ParentComposition.makeUpdate.withContext(
@@ -558,7 +558,7 @@ type ParentUpdateOutMessageIsExact = Expect<
   Equal<ReturnOutMessage<ReturnType<typeof parentUpdate>>, ParentOutMessage>
 >
 type DirectRefreshOutMessageIsOpaque = Expect<
-  Equal<ReturnOutMessage<ReturnType<typeof directRefreshStep>>, never>
+  Equal<ReturnOutMessage<ReturnType<typeof directRefresh>>, never>
 >
 type ParentRefreshMessageIsExact = Expect<
   Equal<

@@ -2,8 +2,9 @@ import clsx from 'clsx'
 import { Array, Equal, HashSet, Match, Option, pipe } from 'effect'
 import type { ChildAttribute, Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
+import { Education, PersonalInfo, Skills, WorkHistory } from '../blocks'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
@@ -18,22 +19,6 @@ import {
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model } from '../model'
-import {
-  hasErrors as educationHasErrors,
-  isComplete as isEducationComplete,
-} from '../step/education/update'
-import {
-  isComplete as isPersonalInfoComplete,
-  hasErrors as personalInfoHasErrors,
-} from '../step/personalInfo/update'
-import {
-  isComplete as isSkillsComplete,
-  hasErrors as skillsHasErrors,
-} from '../step/skills/update'
-import {
-  isComplete as isWorkHistoryComplete,
-  hasErrors as workHistoryHasErrors,
-} from '../step/workHistory/update'
 import { preview } from './preview'
 import { review } from './review'
 import { stepMenu, stepTabButton } from './stepNav'
@@ -43,11 +28,11 @@ const stepHasErrors =
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        personalInfoHasErrors(model.personalInfo),
+        PersonalInfo.hasErrors(model.personalInfo),
       ),
-      Match.when('WorkHistory', () => workHistoryHasErrors(model.workHistory)),
-      Match.when('Education', () => educationHasErrors(model.education)),
-      Match.when('Skills', () => skillsHasErrors(model.skills)),
+      Match.when('WorkHistory', () => WorkHistory.hasErrors(model.workHistory)),
+      Match.when('Education', () => Education.hasErrors(model.education)),
+      Match.when('Skills', () => Skills.hasErrors(model.skills)),
       Match.orElse(() => false),
     )
 
@@ -56,11 +41,13 @@ const stepIsComplete =
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        isPersonalInfoComplete(model.personalInfo),
+        PersonalInfo.isComplete(model.personalInfo),
       ),
-      Match.when('WorkHistory', () => isWorkHistoryComplete(model.workHistory)),
-      Match.when('Education', () => isEducationComplete(model.education)),
-      Match.when('Skills', () => isSkillsComplete(model.skills)),
+      Match.when('WorkHistory', () =>
+        WorkHistory.isComplete(model.workHistory),
+      ),
+      Match.when('Education', () => Education.isComplete(model.education)),
+      Match.when('Skills', () => Skills.isComplete(model.skills)),
       Match.orElse(() => true),
     )
 
@@ -144,7 +131,7 @@ const navigationButtons = (model: Model, h: ApplicationViewBuilder) =>
       ...(isFirstStep(model)
         ? [h.empty]
         : [
-            Button.view(
+            buttonView(
               {
                 onClick: Message.ClickedPrevious(),
                 toView: attributes =>
@@ -164,7 +151,7 @@ const navigationButtons = (model: Model, h: ApplicationViewBuilder) =>
       ...(isLastStep(model)
         ? []
         : [
-            Button.view(
+            buttonView(
               {
                 onClick: Message.ClickedNext(),
                 toView: attributes =>
@@ -311,7 +298,7 @@ const mobilePreviewToggle = (model: Model, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
-      Button.view(
+      buttonView(
         {
           onClick: Message.ToggledPreview(),
           toView: attributes =>

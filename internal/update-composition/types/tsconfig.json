@@ -1,0 +1,14 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "skipLibCheck": false,
+    "paths": {
+      "foldkit": ["../../../packages/foldkit/src/index.ts"],
+      "foldkit/*": ["../../../packages/foldkit/src/*/public.ts"]
+    }
+  },
+  "include": ["*.ts"]
+}

@@ -1,11 +1,11 @@
 import { Array, Match, Option } from 'effect'
 
+import { findBySlug } from '../src/blocks/exampleDetail/meta'
 import {
   BLOG_DESCRIPTION,
   BLOG_SECTION,
   BLOG_TITLE,
 } from '../src/page/blog/meta'
-import { findBySlug } from '../src/page/example/meta'
 import { type ApplicationRoute } from '../src/route'
 import { blogPosts } from './blogPosts'
 

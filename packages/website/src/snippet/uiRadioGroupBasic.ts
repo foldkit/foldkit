@@ -1,17 +1,17 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { RadioGroup } from '@foldkit/ui'
-import type { RenderInfo as RadioGroupRenderInfo } from '@foldkit/ui/radioGroup'
+import {
+  layer as RadioGroupLayer,
+  type RenderInfo as RadioGroupRenderInfo,
+  makeBlock as makeRadioGroupBlock,
+} from '@foldkit/ui/radioGroup'
 
 const Plan = Schema.Literals(['Startup', 'Business', 'Enterprise'])
 type Plan = typeof Plan.Type
 
-const PlanRadioGroup = RadioGroup.makeBlock<Plan>()
+const PlanRadioGroup = makeRadioGroupBlock<Plan>()
 
 // Add fields to your Model for the RadioGroup Block and the selected
 // value. The Block keeps private keyboard-focus state; the parent owns
@@ -26,7 +26,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const PlanPickerKey = Symbol('PlanPicker')
+
 const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
+  key: PlanPickerKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -55,12 +60,11 @@ const foldPlanRadioGroupOutMessage = PlanPickerDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs the child update,
-// writes the child Model back, routes generated delivery and Command results,
-// and hands any OutMessage to the OutMessage fold.
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
 const PlanRadioGroupBinding = PlanPickerDefinition.makeBinding(PlanRadioGroup, {
   field: 'planRadioGroup',
-  init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },
+  init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldPlanRadioGroupOutMessage })
 
 const PlanPickerComposition = PlanPickerDefinition.makeComposition({
@@ -118,3 +122,16 @@ const view = PlanPickerComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = PlanPickerDefinition.makeBlock(
+  Effect.gen(function* () {
+    const planRadioGroup = yield* PlanRadioGroupBinding
+
+    return {
+      children: [planRadioGroup],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(RadioGroupLayer)

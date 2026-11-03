@@ -1,0 +1,1065 @@
+{
+  "scope": ["packages/website", "packages/typing-game/client"],
+  "moves": [
+    {
+      "old": "packages/typing-game/client/src/page/home/block.ts",
+      "next": "packages/typing-game/client/src/blocks/home/block.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/command.ts",
+      "next": "packages/typing-game/client/src/blocks/home/command.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/composition.ts",
+      "next": "packages/typing-game/client/src/blocks/home/composition.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/definition.ts",
+      "next": "packages/typing-game/client/src/blocks/home/definition.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/index.ts",
+      "next": "packages/typing-game/client/src/blocks/home/index.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/init.ts",
+      "next": "packages/typing-game/client/src/blocks/home/init.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/layer.ts",
+      "next": "packages/typing-game/client/src/blocks/home/layer.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/message.ts",
+      "next": "packages/typing-game/client/src/blocks/home/message.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/model.ts",
+      "next": "packages/typing-game/client/src/blocks/home/model.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/subscription.ts",
+      "next": "packages/typing-game/client/src/blocks/home/subscription.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/update/handlePressedKey.ts",
+      "next": "packages/typing-game/client/src/blocks/home/update/handlePressedKey.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/update/index.ts",
+      "next": "packages/typing-game/client/src/blocks/home/update/index.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/update/story.test.ts",
+      "next": "packages/typing-game/client/src/blocks/home/update/story.test.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/update/update.ts",
+      "next": "packages/typing-game/client/src/blocks/home/update/update.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/home/view.ts",
+      "next": "packages/typing-game/client/src/blocks/home/view.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/block.ts",
+      "next": "packages/typing-game/client/src/blocks/room/block.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/command.ts",
+      "next": "packages/typing-game/client/src/blocks/room/command.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/composition.ts",
+      "next": "packages/typing-game/client/src/blocks/room/composition.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/context.ts",
+      "next": "packages/typing-game/client/src/blocks/room/context.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/definition.ts",
+      "next": "packages/typing-game/client/src/blocks/room/definition.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/inMessage.ts",
+      "next": "packages/typing-game/client/src/blocks/room/inMessage.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/index.ts",
+      "next": "packages/typing-game/client/src/blocks/room/index.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/init.ts",
+      "next": "packages/typing-game/client/src/blocks/room/init.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/layer.ts",
+      "next": "packages/typing-game/client/src/blocks/room/layer.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/message.ts",
+      "next": "packages/typing-game/client/src/blocks/room/message.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/model.ts",
+      "next": "packages/typing-game/client/src/blocks/room/model.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/receive.ts",
+      "next": "packages/typing-game/client/src/blocks/room/receive.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/session.test.ts",
+      "next": "packages/typing-game/client/src/blocks/room/session.test.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/steps.ts",
+      "next": "packages/typing-game/client/src/blocks/room/steps.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/subscription.ts",
+      "next": "packages/typing-game/client/src/blocks/room/subscription.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/update/handleUpdatedRoom.ts",
+      "next": "packages/typing-game/client/src/blocks/room/update/handleUpdatedRoom.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/update/index.ts",
+      "next": "packages/typing-game/client/src/blocks/room/update/index.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/update/update.ts",
+      "next": "packages/typing-game/client/src/blocks/room/update/update.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/userGameText.ts",
+      "next": "packages/typing-game/client/src/blocks/room/userGameText.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/view/countdown.ts",
+      "next": "packages/typing-game/client/src/blocks/room/view/countdown.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/view/finished.ts",
+      "next": "packages/typing-game/client/src/blocks/room/view/finished.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/view/getReady.ts",
+      "next": "packages/typing-game/client/src/blocks/room/view/getReady.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/view/index.ts",
+      "next": "packages/typing-game/client/src/blocks/room/view/index.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/view/playing.ts",
+      "next": "packages/typing-game/client/src/blocks/room/view/playing.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/view/view.ts",
+      "next": "packages/typing-game/client/src/blocks/room/view/view.ts"
+    },
+    {
+      "old": "packages/typing-game/client/src/page/room/view/waiting.ts",
+      "next": "packages/typing-game/client/src/blocks/room/view/waiting.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/block.ts",
+      "next": "packages/website/src/blocks/apiReference/block.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/command.ts",
+      "next": "packages/website/src/blocks/apiReference/command.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/composition.ts",
+      "next": "packages/website/src/blocks/apiReference/composition.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/definition.ts",
+      "next": "packages/website/src/blocks/apiReference/definition.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/domain.test.ts",
+      "next": "packages/website/src/blocks/apiReference/domain.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/domain.ts",
+      "next": "packages/website/src/blocks/apiReference/domain.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/inMessage.ts",
+      "next": "packages/website/src/blocks/apiReference/inMessage.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/index.ts",
+      "next": "packages/website/src/blocks/apiReference/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/init.test.ts",
+      "next": "packages/website/src/blocks/apiReference/init.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/init.ts",
+      "next": "packages/website/src/blocks/apiReference/init.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/message.ts",
+      "next": "packages/website/src/blocks/apiReference/message.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/model.ts",
+      "next": "packages/website/src/blocks/apiReference/model.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/receive.ts",
+      "next": "packages/website/src/blocks/apiReference/receive.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/scene.test.ts",
+      "next": "packages/website/src/blocks/apiReference/scene.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/typeToString.ts",
+      "next": "packages/website/src/blocks/apiReference/typeToString.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/typedoc.test.ts",
+      "next": "packages/website/src/blocks/apiReference/typedoc.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/typedoc.ts",
+      "next": "packages/website/src/blocks/apiReference/typedoc.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/update.ts",
+      "next": "packages/website/src/blocks/apiReference/update.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/view.ts",
+      "next": "packages/website/src/blocks/apiReference/view.ts"
+    },
+    {
+      "old": "packages/website/src/page/apiReference/viewInputs.ts",
+      "next": "packages/website/src/blocks/apiReference/viewInputs.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/block.ts",
+      "next": "packages/website/src/blocks/comingFromReact/block.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/composition.ts",
+      "next": "packages/website/src/blocks/comingFromReact/composition.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/content.ts",
+      "next": "packages/website/src/blocks/comingFromReact/content.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/definition.ts",
+      "next": "packages/website/src/blocks/comingFromReact/definition.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/domain/index.ts",
+      "next": "packages/website/src/blocks/comingFromReact/domain/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/domain/metadata.ts",
+      "next": "packages/website/src/blocks/comingFromReact/domain/metadata.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/faq.ts",
+      "next": "packages/website/src/blocks/comingFromReact/faq.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/index.ts",
+      "next": "packages/website/src/blocks/comingFromReact/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/init.ts",
+      "next": "packages/website/src/blocks/comingFromReact/init.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/message.ts",
+      "next": "packages/website/src/blocks/comingFromReact/message.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/model.ts",
+      "next": "packages/website/src/blocks/comingFromReact/model.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/update.ts",
+      "next": "packages/website/src/blocks/comingFromReact/update.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/view.ts",
+      "next": "packages/website/src/blocks/comingFromReact/view.ts"
+    },
+    {
+      "old": "packages/website/src/page/comingFromReact/viewInputs.ts",
+      "next": "packages/website/src/blocks/comingFromReact/viewInputs.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/block.ts",
+      "next": "packages/website/src/blocks/blockPage/block.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/composition.ts",
+      "next": "packages/website/src/blocks/blockPage/composition.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/content.ts",
+      "next": "packages/website/src/blocks/blockPage/content.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/definition.ts",
+      "next": "packages/website/src/blocks/blockPage/definition.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/domain/index.ts",
+      "next": "packages/website/src/blocks/blockPage/domain/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/domain/metadata.ts",
+      "next": "packages/website/src/blocks/blockPage/domain/metadata.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/index.ts",
+      "next": "packages/website/src/blocks/blockPage/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/init.ts",
+      "next": "packages/website/src/blocks/blockPage/init.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/message.ts",
+      "next": "packages/website/src/blocks/blockPage/message.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/model.ts",
+      "next": "packages/website/src/blocks/blockPage/model.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/story.test.ts",
+      "next": "packages/website/src/blocks/blockPage/story.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/update.ts",
+      "next": "packages/website/src/blocks/blockPage/update.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/view.ts",
+      "next": "packages/website/src/blocks/blockPage/view.ts"
+    },
+    {
+      "old": "packages/website/src/page/core/blockPage/viewInputs.ts",
+      "next": "packages/website/src/blocks/blockPage/viewInputs.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/block.ts",
+      "next": "packages/website/src/blocks/exampleDetail/block.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/composition.ts",
+      "next": "packages/website/src/blocks/exampleDetail/composition.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/definition.ts",
+      "next": "packages/website/src/blocks/exampleDetail/definition.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/domain/index.ts",
+      "next": "packages/website/src/blocks/exampleDetail/domain/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/example.ts",
+      "next": "packages/website/src/blocks/exampleDetail/example.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/fileTabs.ts",
+      "next": "packages/website/src/blocks/exampleDetail/fileTabs.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/inMessage.ts",
+      "next": "packages/website/src/blocks/exampleDetail/inMessage.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/index.ts",
+      "next": "packages/website/src/blocks/exampleDetail/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/loadInitialSources.test.ts",
+      "next": "packages/website/src/blocks/exampleDetail/loadInitialSources.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/message.ts",
+      "next": "packages/website/src/blocks/exampleDetail/message.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/meta.ts",
+      "next": "packages/website/src/blocks/exampleDetail/meta.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/model.ts",
+      "next": "packages/website/src/blocks/exampleDetail/model.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/mount.ts",
+      "next": "packages/website/src/blocks/exampleDetail/mount.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/scene.test.ts",
+      "next": "packages/website/src/blocks/exampleDetail/scene.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/sources.ts",
+      "next": "packages/website/src/blocks/exampleDetail/sources.ts"
+    },
+    {
+      "old": "packages/website/src/page/example/viewInputs.ts",
+      "next": "packages/website/src/blocks/exampleDetail/viewInputs.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/asyncCounterDemo/asyncCounterDemo.ts",
+      "next": "packages/website/src/blocks/home/blocks/asyncCounterDemo/asyncCounterDemo.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/asyncCounterDemo/block.ts",
+      "next": "packages/website/src/blocks/home/blocks/asyncCounterDemo/block.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/asyncCounterDemo/definition.ts",
+      "next": "packages/website/src/blocks/home/blocks/asyncCounterDemo/definition.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/asyncCounterDemo/index.ts",
+      "next": "packages/website/src/blocks/home/blocks/asyncCounterDemo/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/asyncCounterDemo.scene.test.ts",
+      "next": "packages/website/src/blocks/home/blocks/asyncCounterDemo/scene.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/asyncCounterDemo.story.test.ts",
+      "next": "packages/website/src/blocks/home/blocks/asyncCounterDemo/story.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/block.ts",
+      "next": "packages/website/src/blocks/home/block.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/composition.ts",
+      "next": "packages/website/src/blocks/home/composition.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/content.ts",
+      "next": "packages/website/src/blocks/home/content.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/definition.ts",
+      "next": "packages/website/src/blocks/home/definition.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/demoTab.ts",
+      "next": "packages/website/src/blocks/home/demoTab.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/index.ts",
+      "next": "packages/website/src/blocks/home/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/init.ts",
+      "next": "packages/website/src/blocks/home/init.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/message.ts",
+      "next": "packages/website/src/blocks/home/message.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/model.ts",
+      "next": "packages/website/src/blocks/home/model.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/notePlayerDemo/block.ts",
+      "next": "packages/website/src/blocks/home/blocks/notePlayerDemo/block.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/notePlayerDemo/composition.ts",
+      "next": "packages/website/src/blocks/home/blocks/notePlayerDemo/composition.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/notePlayerDemo/definition.ts",
+      "next": "packages/website/src/blocks/home/blocks/notePlayerDemo/definition.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/notePlayerDemo/index.ts",
+      "next": "packages/website/src/blocks/home/blocks/notePlayerDemo/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/notePlayerDemo/messageLog.ts",
+      "next": "packages/website/src/blocks/home/blocks/notePlayerDemo/messageLog.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/notePlayerDemo/notePlayerDemo.ts",
+      "next": "packages/website/src/blocks/home/blocks/notePlayerDemo/notePlayerDemo.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/playgroundMenu.ts",
+      "next": "packages/website/src/blocks/home/playgroundMenu.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/story.test.ts",
+      "next": "packages/website/src/blocks/home/story.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/update.ts",
+      "next": "packages/website/src/blocks/home/update.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/view.ts",
+      "next": "packages/website/src/blocks/home/view.ts"
+    },
+    {
+      "old": "packages/website/src/page/home/viewInputs.ts",
+      "next": "packages/website/src/blocks/home/viewInputs.ts"
+    },
+    {
+      "old": "packages/website/src/page/playground/block.ts",
+      "next": "packages/website/src/blocks/playground/block.ts"
+    },
+    {
+      "old": "packages/website/src/page/playground/composition.ts",
+      "next": "packages/website/src/blocks/playground/composition.ts"
+    },
+    {
+      "old": "packages/website/src/page/playground/definition.ts",
+      "next": "packages/website/src/blocks/playground/definition.ts"
+    },
+    {
+      "old": "packages/website/src/page/playground/fileTabs.ts",
+      "next": "packages/website/src/blocks/playground/fileTabs.ts"
+    },
+    {
+      "old": "packages/website/src/page/playground/index.ts",
+      "next": "packages/website/src/blocks/playground/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/playground/mount.ts",
+      "next": "packages/website/src/blocks/playground/mount.ts"
+    },
+    {
+      "old": "packages/website/src/page/playground/playground.ts",
+      "next": "packages/website/src/blocks/playground/playground.ts"
+    },
+    {
+      "old": "packages/website/src/page/playground/viewInputs.ts",
+      "next": "packages/website/src/blocks/playground/viewInputs.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/anchorPage.ts",
+      "next": "packages/website/src/blocks/ui/anchorPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/animationPage.ts",
+      "next": "packages/website/src/blocks/ui/animationPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/block.ts",
+      "next": "packages/website/src/blocks/ui/block.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/buttonPage.ts",
+      "next": "packages/website/src/blocks/ui/buttonPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/calendarPage.ts",
+      "next": "packages/website/src/blocks/ui/calendarPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/checkboxPage.ts",
+      "next": "packages/website/src/blocks/ui/checkboxPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/combobox.ts",
+      "next": "packages/website/src/blocks/ui/combobox.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/comboboxPage.ts",
+      "next": "packages/website/src/blocks/ui/comboboxPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/composition.ts",
+      "next": "packages/website/src/blocks/ui/composition.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/content.ts",
+      "next": "packages/website/src/blocks/ui/content.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/datePickerPage.ts",
+      "next": "packages/website/src/blocks/ui/datePickerPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/definition.ts",
+      "next": "packages/website/src/blocks/ui/definition.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/animation.ts",
+      "next": "packages/website/src/blocks/ui/demo/animation.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/button.ts",
+      "next": "packages/website/src/blocks/ui/demo/button.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/calendar.ts",
+      "next": "packages/website/src/blocks/ui/demo/calendar.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/calendarView.ts",
+      "next": "packages/website/src/blocks/ui/demo/calendarView.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/checkbox.ts",
+      "next": "packages/website/src/blocks/ui/demo/checkbox.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/combobox.ts",
+      "next": "packages/website/src/blocks/ui/demo/combobox.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/components.ts",
+      "next": "packages/website/src/blocks/ui/demo/components.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/datePicker.ts",
+      "next": "packages/website/src/blocks/ui/demo/datePicker.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/dialog.ts",
+      "next": "packages/website/src/blocks/ui/demo/dialog.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/disclosure.ts",
+      "next": "packages/website/src/blocks/ui/demo/disclosure.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/dragAndDrop.ts",
+      "next": "packages/website/src/blocks/ui/demo/dragAndDrop.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/fieldset.ts",
+      "next": "packages/website/src/blocks/ui/demo/fieldset.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/fileDrop.ts",
+      "next": "packages/website/src/blocks/ui/demo/fileDrop.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/hoverIntent.ts",
+      "next": "packages/website/src/blocks/ui/demo/hoverIntent.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/input.ts",
+      "next": "packages/website/src/blocks/ui/demo/input.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/listbox.ts",
+      "next": "packages/website/src/blocks/ui/demo/listbox.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/menu.ts",
+      "next": "packages/website/src/blocks/ui/demo/menu.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/meter.ts",
+      "next": "packages/website/src/blocks/ui/demo/meter.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/nav.ts",
+      "next": "packages/website/src/blocks/ui/demo/nav.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/popover.ts",
+      "next": "packages/website/src/blocks/ui/demo/popover.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/progress.ts",
+      "next": "packages/website/src/blocks/ui/demo/progress.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/radioGroup.ts",
+      "next": "packages/website/src/blocks/ui/demo/radioGroup.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/select.ts",
+      "next": "packages/website/src/blocks/ui/demo/select.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/slider.ts",
+      "next": "packages/website/src/blocks/ui/demo/slider.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/switch.ts",
+      "next": "packages/website/src/blocks/ui/demo/switch.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/tabs.ts",
+      "next": "packages/website/src/blocks/ui/demo/tabs.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/textarea.ts",
+      "next": "packages/website/src/blocks/ui/demo/textarea.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/toast.ts",
+      "next": "packages/website/src/blocks/ui/demo/toast.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/toastModule.ts",
+      "next": "packages/website/src/blocks/ui/demo/toastModule.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/tooltip.ts",
+      "next": "packages/website/src/blocks/ui/demo/tooltip.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/virtualList.ts",
+      "next": "packages/website/src/blocks/ui/demo/virtualList.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/demo/virtualListData.ts",
+      "next": "packages/website/src/blocks/ui/demo/virtualListData.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/dialogPage.ts",
+      "next": "packages/website/src/blocks/ui/dialogPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/disclosurePage.ts",
+      "next": "packages/website/src/blocks/ui/disclosurePage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/domain/domain.ts",
+      "next": "packages/website/src/blocks/ui/domain/domain.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/domain/index.ts",
+      "next": "packages/website/src/blocks/ui/domain/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/domain/pageMetadata.ts",
+      "next": "packages/website/src/blocks/ui/domain/pageMetadata.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/dragAndDropPage.ts",
+      "next": "packages/website/src/blocks/ui/dragAndDropPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/fieldsetPage.ts",
+      "next": "packages/website/src/blocks/ui/fieldsetPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/fileDropPage.ts",
+      "next": "packages/website/src/blocks/ui/fileDropPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/hoverIntentPage.ts",
+      "next": "packages/website/src/blocks/ui/hoverIntentPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/index.ts",
+      "next": "packages/website/src/blocks/ui/index.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/init.ts",
+      "next": "packages/website/src/blocks/ui/init.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/inputPage.ts",
+      "next": "packages/website/src/blocks/ui/inputPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/listboxPage.ts",
+      "next": "packages/website/src/blocks/ui/listboxPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/menuPage.ts",
+      "next": "packages/website/src/blocks/ui/menuPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/message.ts",
+      "next": "packages/website/src/blocks/ui/message.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/meterPage.ts",
+      "next": "packages/website/src/blocks/ui/meterPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/model.ts",
+      "next": "packages/website/src/blocks/ui/model.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/navPage.ts",
+      "next": "packages/website/src/blocks/ui/navPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/overviewPage.ts",
+      "next": "packages/website/src/blocks/ui/overviewPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/popoverPage.ts",
+      "next": "packages/website/src/blocks/ui/popoverPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/progressPage.ts",
+      "next": "packages/website/src/blocks/ui/progressPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/radioGroupPage.ts",
+      "next": "packages/website/src/blocks/ui/radioGroupPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/selectPage.ts",
+      "next": "packages/website/src/blocks/ui/selectPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/selectionBlocksPage.ts",
+      "next": "packages/website/src/blocks/ui/selectionBlocksPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/sliderPage.ts",
+      "next": "packages/website/src/blocks/ui/sliderPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/switchPage.ts",
+      "next": "packages/website/src/blocks/ui/switchPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/tabsPage.ts",
+      "next": "packages/website/src/blocks/ui/tabsPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/textareaPage.ts",
+      "next": "packages/website/src/blocks/ui/textareaPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/toastPage.ts",
+      "next": "packages/website/src/blocks/ui/toastPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/tooltipPage.ts",
+      "next": "packages/website/src/blocks/ui/tooltipPage.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/update.ts",
+      "next": "packages/website/src/blocks/ui/update.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/view.ts",
+      "next": "packages/website/src/blocks/ui/view.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/viewInputs.ts",
+      "next": "packages/website/src/blocks/ui/viewInputs.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/virtualListChat.test.ts",
+      "next": "packages/website/src/blocks/ui/virtualListChat.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/virtualListChat.ts",
+      "next": "packages/website/src/blocks/ui/virtualListChat.ts"
+    },
+    {
+      "old": "packages/website/src/page/ui/virtualListPage.ts",
+      "next": "packages/website/src/blocks/ui/virtualListPage.ts"
+    },
+    {
+      "old": "packages/website/src/search/block.ts",
+      "next": "packages/website/src/blocks/search/block.ts"
+    },
+    {
+      "old": "packages/website/src/search/clear.ts",
+      "next": "packages/website/src/blocks/search/clear.ts"
+    },
+    {
+      "old": "packages/website/src/search/command.test.ts",
+      "next": "packages/website/src/blocks/search/command.test.ts"
+    },
+    {
+      "old": "packages/website/src/search/command.ts",
+      "next": "packages/website/src/blocks/search/command.ts"
+    },
+    {
+      "old": "packages/website/src/search/composition.ts",
+      "next": "packages/website/src/blocks/search/composition.ts"
+    },
+    {
+      "old": "packages/website/src/search/definition.ts",
+      "next": "packages/website/src/blocks/search/definition.ts"
+    },
+    {
+      "old": "packages/website/src/search/domain/domain.ts",
+      "next": "packages/website/src/blocks/search/domain/domain.ts"
+    },
+    {
+      "old": "packages/website/src/search/domain/index.ts",
+      "next": "packages/website/src/blocks/search/domain/index.ts"
+    },
+    {
+      "old": "packages/website/src/search/inMessage.ts",
+      "next": "packages/website/src/blocks/search/inMessage.ts"
+    },
+    {
+      "old": "packages/website/src/search/index.ts",
+      "next": "packages/website/src/blocks/search/index.ts"
+    },
+    {
+      "old": "packages/website/src/search/init.ts",
+      "next": "packages/website/src/blocks/search/init.ts"
+    },
+    {
+      "old": "packages/website/src/search/layer.ts",
+      "next": "packages/website/src/blocks/search/layer.ts"
+    },
+    {
+      "old": "packages/website/src/search/message.ts",
+      "next": "packages/website/src/blocks/search/message.ts"
+    },
+    {
+      "old": "packages/website/src/search/model.ts",
+      "next": "packages/website/src/blocks/search/model.ts"
+    },
+    {
+      "old": "packages/website/src/search/receive.ts",
+      "next": "packages/website/src/blocks/search/receive.ts"
+    },
+    {
+      "old": "packages/website/src/search/story.test.ts",
+      "next": "packages/website/src/blocks/search/story.test.ts"
+    },
+    {
+      "old": "packages/website/src/search/update.ts",
+      "next": "packages/website/src/blocks/search/update.ts"
+    },
+    {
+      "old": "packages/website/src/search/view.ts",
+      "next": "packages/website/src/blocks/search/view.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/block.ts",
+      "next": "packages/website/src/blocks/snippetCopy/block.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/composition.ts",
+      "next": "packages/website/src/blocks/snippetCopy/composition.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/definition.ts",
+      "next": "packages/website/src/blocks/snippetCopy/definition.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/index.ts",
+      "next": "packages/website/src/blocks/snippetCopy/index.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/init.ts",
+      "next": "packages/website/src/blocks/snippetCopy/init.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/message.ts",
+      "next": "packages/website/src/blocks/snippetCopy/message.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/model.ts",
+      "next": "packages/website/src/blocks/snippetCopy/model.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/scene.test.ts",
+      "next": "packages/website/src/blocks/snippetCopy/scene.test.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/update.ts",
+      "next": "packages/website/src/blocks/snippetCopy/update.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/view.ts",
+      "next": "packages/website/src/blocks/snippetCopy/view.ts"
+    },
+    {
+      "old": "packages/website/src/snippetCopy/viewInputs.ts",
+      "next": "packages/website/src/blocks/snippetCopy/viewInputs.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/block.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/block.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/composition.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/composition.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/definition.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/definition.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/index.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/index.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/init.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/init.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/message.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/message.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/model.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/model.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/mount.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/mount.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/scene.test.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/scene.test.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/update.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/update.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/view.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/view.ts"
+    },
+    {
+      "old": "packages/website/src/snippetDisclosure/viewInputs.ts",
+      "next": "packages/website/src/blocks/snippetDisclosure/viewInputs.ts"
+    },
+    {
+      "old": "packages/website/src/page/playgroundPreview.ts",
+      "next": "packages/website/src/blocks/playground/playgroundPreview.ts"
+    },
+    {
+      "old": "packages/website/src/page/playgroundPreview.test.ts",
+      "next": "packages/website/src/blocks/playground/playgroundPreview.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/playgroundWebContainer.ts",
+      "next": "packages/website/src/blocks/playground/playgroundWebContainer.ts"
+    },
+    {
+      "old": "packages/website/src/page/playgroundWebContainer.test.ts",
+      "next": "packages/website/src/blocks/playground/playgroundWebContainer.test.ts"
+    },
+    {
+      "old": "packages/website/src/page/playgroundEditor.test.ts",
+      "next": "packages/website/src/blocks/playground/playgroundEditor.test.ts"
+    }
+  ]
+}

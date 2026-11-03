@@ -116,11 +116,12 @@ const compositionPath = 'packages/website/src/composition/composition.ts'
 const changedUrlPath = 'packages/website/src/update/handleChangedUrl.ts'
 const workspaceCompositionPath = 'examples/workspace/src/composition.ts'
 const workspaceInitializationPath =
-  'examples/workspace/src/update/initChildrenStep.ts'
+  'examples/workspace/src/update/initChildren.ts'
 const workspaceUpdatePath = Option.getOrElse(
   EffectArray.findFirst(
     [
       workspaceInitializationPath,
+      'examples/workspace/src/update/initChildrenStep.ts',
       'examples/workspace/src/update/initChildBlocksStep.ts',
       'examples/workspace/src/update/initializeRouteChildren.ts',
       'examples/workspace/src/update/initializeActiveChildren.ts',
@@ -131,7 +132,7 @@ const workspaceUpdatePath = Option.getOrElse(
 )
 const workspaceEntryPath = 'examples/workspace/src/entry.ts'
 const workspaceDetailUpdatePath = 'examples/workspace/src/issueDetail/update.ts'
-const workspaceBindingProbe = '\nIssueDetailBinding.init\n'
+const workspaceBindingProbe = '\nIssueDetailsBinding.init\n'
 const workspaceBlockAccess = 'ApplicationBlock.Message.ClickedLink'
 const workspaceTitleWriter = 'title: () => value'
 const workspaceInvalidTitle = 'value.length'
@@ -159,7 +160,7 @@ export const searchBindingHover = {
   ],
 }
 export const workspaceBindingHover = {
-  name: 'IssueDetailBinding',
+  name: 'IssueDetailsBinding',
   owner: 'IssueDetail',
   typeNames: ['Block.BindingWithoutOutMessagePolicy'],
   schemaHeaderFragments: [
@@ -1512,15 +1513,15 @@ const workspaceBindingHoverScenario = (
     'workspace.bindingHover',
     workspaceCompositionPath,
     source => {
-      uniqueOccurrence(source.text, 'export const IssueDetailBinding')
+      uniqueOccurrence(source.text, 'export const IssueDetailsBinding')
       return requestTarget(
         {
           method: 'textDocument/hover',
           expectedBinding: workspaceBindingHover,
         },
         source,
-        'IssueDetailBinding',
-        'export const IssueDetailBinding',
+        'IssueDetailsBinding',
+        'export const IssueDetailsBinding',
       )
     },
   )
@@ -1534,7 +1535,7 @@ export const workspaceBindingCompletionTarget = (
   position: positionAt(
     source.text,
     uniqueOccurrence(source.text, workspaceBindingProbe) +
-      '\nIssueDetailBinding.'.length,
+      '\nIssueDetailsBinding.'.length,
   ),
 })
 
@@ -1932,9 +1933,9 @@ const main = async (): Promise<void> => {
       ...(options.scenario === 'workspace'
         ? {
             workspace: {
-              bindingHover: `${workspaceCompositionPath}#IssueDetailBinding`,
+              bindingHover: `${workspaceCompositionPath}#IssueDetailsBinding`,
               bindingHoverValidation: workspaceBindingHover,
-              bindingCompletion: `${workspaceUpdatePath}#appended in-memory IssueDetailBinding.|init probe`,
+              bindingCompletion: `${workspaceUpdatePath}#appended in-memory IssueDetailsBinding.|init probe`,
               expectedBindingMembers: ['requestSave', 'embedView', 'init'],
               blockCompletion: `${workspaceEntryPath}#ApplicationBlock.|Message.ClickedLink`,
               expectedBlockMembers: [

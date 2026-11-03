@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": { "moduleResolution": "bundler", "noEmit": true },
+  "include": ["../../../examples/workspace/src/**/*.ts"],
+  "exclude": [
+    "../../../examples/workspace/src/**/*.test.ts",
+    "../../../examples/workspace/src/vitest-setup.ts"
+  ]
+}

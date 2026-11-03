@@ -787,7 +787,9 @@ const transitionFoldedMachine = (
 }
 
 /** Folds a Machine state field into an enclosing Model. Any transition-time
- * Commands pass through unchanged.
+ * Commands pass through unchanged. When a transition preserves the state's
+ * identity, the fold skips `write` and preserves the enclosing Model's identity.
+ * Any Commands from that transition still pass through.
  *
  * When `read` returns `None`, the fold returns the original Model without
  * running a transition. For a contextual Machine, `context` is read only when
@@ -835,7 +837,9 @@ export const fold: {
       maybeState.value,
       message,
     )
-    const nextModel = config.write(model, transition.model)
+    const nextModel = Object.is(transition.model, maybeState.value)
+      ? model
+      : config.write(model, transition.model)
 
     if (transition.commands === undefined) {
       return { model: nextModel }

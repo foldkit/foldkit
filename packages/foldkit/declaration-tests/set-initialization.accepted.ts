@@ -173,13 +173,13 @@ export const setDisabledStartup = (model: typeof ParentModel.Type) =>
   initAndSet(DisabledStartupBinding, model, { args: [4] })
 export const setParentOwnedOptional = (model: typeof ParentModel.Type) =>
   initAndSet(ParentOwnedOptionalBinding, model, { args: [5] })
-export const setStep = ParentDefinition.makeStep(model => setRequired(model, 4))
+export const set = ParentDefinition.makeStep(model => setRequired(model, 4))
 export const update = ParentComposition.makeUpdate({
   RequestedSet: (model, { count }) => setRequired(model, count),
 })
 export const init = ParentComposition.makeInit(() => ({
   model: { label: 'current' },
-  steps: [setStep],
+  steps: [set],
 }))
 const prepareParent = () => ParentComposition.prepareBlock({ init, update })
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<

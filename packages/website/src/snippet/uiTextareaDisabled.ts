@@ -2,10 +2,13 @@
 // value and ignore onInput events.
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { Textarea } from '@foldkit/ui'
+import {
+  type TextareaAttributes,
+  view as uiTextareaView,
+} from '@foldkit/ui/textarea'
 
 const view = (h: HtmlBuilder<Message>) => {
-  const textareaView = (attributes: Textarea.TextareaAttributes<Message>) =>
+  const textareaView = (attributes: TextareaAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-1.5')],
       [
@@ -23,7 +26,7 @@ const view = (h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return Textarea.view(
+  return uiTextareaView(
     {
       id: 'bio-disabled',
       isDisabled: true,

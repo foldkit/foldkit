@@ -43,7 +43,7 @@ const ChildDefinition = ChildNamespace.makeDefinition({
   Message,
 })
 const resetInvocation = vi.fn()
-const resetStep = ChildDefinition.makeStep(_model => {
+const reset = ChildDefinition.makeStep(_model => {
   resetInvocation()
 
   return { model: ChildModel.make({ count: 0 }) }
@@ -54,7 +54,7 @@ const prepareChildBlock = () =>
     view: ChildComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: ChildComposition.makeUpdate({
-      RequestedReset: model => resetStep(model),
+      RequestedReset: model => reset(model),
       Advanced: model => ({
         model: modifyFields(model, { count: count => count + 1 }),
       }),
@@ -86,7 +86,7 @@ const OmittedChildBinding = OmittedParentDefinition.makeBinding(ChildBlock, {
     modifyFields(model, { primary: () => nextChild }),
 })
 
-const initOmittedChildStep = OmittedParentDefinition.makeStep(model =>
+const initOmittedChild = OmittedParentDefinition.makeStep(model =>
   OmittedChildBinding.init({
     args: [],
     toParentModel: child => modifyFields(model, { primary: () => child }),
@@ -100,7 +100,7 @@ const prepareOmittedParent = () =>
     view: omittedParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
     update: omittedParentComposition.makeUpdate({
-      RequestedInitChild: model => initOmittedChildStep(model),
+      RequestedInitChild: model => initOmittedChild(model),
       Advanced: model => OmittedParentDefinition.makeNoopStep()(model),
       CompletedRecordBeforeReplay: model =>
         OmittedParentDefinition.makeNoopStep()(model),
@@ -175,7 +175,7 @@ const unregisteredDiscardedReset = unregisteredParentComposition.makeUpdate({
 })
 
 it('runs a completed exposed operation in its registered child graph', () => {
-  const recipe = Reflect.apply(initOmittedChildStep, undefined, [initialModel])
+  const recipe = Reflect.apply(initOmittedChild, undefined, [initialModel])
 
   expect(recipe).not.toHaveProperty('model')
   expect(recipe).not.toHaveProperty('commands')
@@ -317,7 +317,7 @@ const WrongPlacementBinding = ExactParentBaseDefinition.makeBinding(
 const exactParentComposition = ExactParentBaseDefinition.makeComposition({
   bindings: [RegisteredPlacementBinding],
 })
-const initWrongPlacementStep = ExactParentBaseDefinition.makeStep(model =>
+const initWrongPlacement = ExactParentBaseDefinition.makeStep(model =>
   WrongPlacementBinding.init({
     key: 'only',
     args: [],
@@ -329,7 +329,7 @@ const prepareExactParent = () =>
     view: exactParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
     update: exactParentComposition.makeUpdate({
-      RequestedInitChild: model => initWrongPlacementStep(model),
+      RequestedInitChild: model => initWrongPlacement(model),
       Advanced: model =>
         ExactParentBaseDefinition.makeStep(() =>
           WrongPlacementBinding.fold(model, 'only', Message.Advanced()),

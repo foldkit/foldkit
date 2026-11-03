@@ -1,6 +1,7 @@
 import {
   copyFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -8,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, relative } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { transform } from 'rolldown/experimental'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -436,6 +437,19 @@ describe('real-oxlint rule fixtures', () => {
   it('renames an Effect module only when the exported name is unbound', async () => {
     const rule = 'prefer-effect-module-names'
     const configPath = join(workDir, `${rule}.fix.oxlintrc.json`)
+    const targetDir = join(workDir, `${rule}.fix`)
+    const expectedDiagnosticCount = 8
+    const unsafeFixFixtures = [
+      { name: 'shorthand-property', diagnosticCount: 1 },
+      { name: 'reexport', diagnosticCount: 1 },
+      { name: 'nested-shadow', diagnosticCount: 1 },
+      { name: 'commented-specifier', diagnosticCount: 1 },
+      { name: 'duplicate-target-same-import', diagnosticCount: 1 },
+      { name: 'duplicate-target-across-imports', diagnosticCount: 2 },
+    ]
+
+    mkdirSync(targetDir)
+
     writeFileSync(
       configPath,
       JSON.stringify({
@@ -449,18 +463,44 @@ describe('real-oxlint rule fixtures', () => {
     )
 
     const safeSourcePath = join(fixturesRoot, rule, 'invalid', 'imports.ts')
-    const safeTargetPath = join(workDir, `${rule}.safe-fix.ts`)
+    const safeTargetPath = join(targetDir, 'imports.ts')
     copyFileSync(safeSourcePath, safeTargetPath)
-    const safeDiagnostics = runOxlint({
+    const collisionSourcePath = join(
+      fixturesRoot,
+      rule,
+      'invalid',
+      'global-collision.ts',
+    )
+    const collisionTargetPath = join(targetDir, 'global-collision.ts')
+    copyFileSync(collisionSourcePath, collisionTargetPath)
+
+    for (const { name } of unsafeFixFixtures) {
+      copyFileSync(
+        join(fixturesRoot, rule, 'invalid', `${name}.ts`),
+        join(targetDir, `${name}.ts`),
+      )
+    }
+
+    const diagnostics = runOxlint({
       oxlintBin,
       cwd: workDir,
       configPath,
-      target: safeTargetPath,
+      target: targetDir,
       fix: true,
     })
+    const diagnosticsForFile = (name: string) =>
+      diagnostics.filter(
+        diagnostic =>
+          diagnostic.filename ===
+          relative(workDir, join(targetDir, name)).replaceAll('\\', '/'),
+      )
     const safeSource = readFileSync(safeTargetPath, 'utf8')
 
-    expect(safeDiagnostics).toHaveLength(0)
+    expect(diagnostics).toHaveLength(expectedDiagnosticCount)
+    expect(
+      diagnostics.every(diagnostic => diagnostic.code === `foldkit(${rule})`),
+    ).toBe(true)
+    expect(diagnosticsForFile('imports.ts')).toHaveLength(0)
     expect(safeSource).not.toContain('Match as M')
     expect(safeSource).not.toContain('Schema as S')
     expect(safeSource).not.toContain('String as String_')
@@ -469,57 +509,26 @@ describe('real-oxlint rule fixtures', () => {
     expect(safeSource).toContain('String.isNonEmpty')
     await expect(getTypeScriptParseErrors(safeSource)).resolves.toEqual([])
 
-    const collisionSourcePath = join(
-      fixturesRoot,
-      rule,
-      'invalid',
-      'global-collision.ts',
-    )
-    const collisionTargetPath = join(workDir, `${rule}.collision-fix.ts`)
-    copyFileSync(collisionSourcePath, collisionTargetPath)
-    const collisionDiagnostics = runOxlint({
-      oxlintBin,
-      cwd: workDir,
-      configPath,
-      target: collisionTargetPath,
-      fix: true,
-    })
     const collisionSource = readFileSync(collisionTargetPath, 'utf8')
 
-    expect(collisionDiagnostics).toHaveLength(1)
+    expect(diagnosticsForFile('global-collision.ts')).toHaveLength(1)
     expect(collisionSource).toContain('String as String_')
     expect(collisionSource).toContain('String(42)')
 
-    for (const unsafeFixFixture of [
-      { name: 'shorthand-property', diagnosticCount: 1 },
-      { name: 'reexport', diagnosticCount: 1 },
-      { name: 'nested-shadow', diagnosticCount: 1 },
-      { name: 'commented-specifier', diagnosticCount: 1 },
-      { name: 'duplicate-target-same-import', diagnosticCount: 1 },
-      { name: 'duplicate-target-across-imports', diagnosticCount: 2 },
-    ]) {
+    for (const unsafeFixFixture of unsafeFixFixtures) {
       const sourcePath = join(
         fixturesRoot,
         rule,
         'invalid',
         `${unsafeFixFixture.name}.ts`,
       )
-      const targetPath = join(
-        workDir,
-        `${rule}.${unsafeFixFixture.name}-fix.ts`,
-      )
+      const targetPath = join(targetDir, `${unsafeFixFixture.name}.ts`)
       const originalSource = readFileSync(sourcePath, 'utf8')
-      copyFileSync(sourcePath, targetPath)
-      const diagnostics = runOxlint({
-        oxlintBin,
-        cwd: workDir,
-        configPath,
-        target: targetPath,
-        fix: true,
-      })
       const source = readFileSync(targetPath, 'utf8')
 
-      expect(diagnostics).toHaveLength(unsafeFixFixture.diagnosticCount)
+      expect(diagnosticsForFile(`${unsafeFixFixture.name}.ts`)).toHaveLength(
+        unsafeFixFixture.diagnosticCount,
+      )
       expect(source).toBe(originalSource)
     }
   })

@@ -1,196 +1,167 @@
-import { Option, Schema, Tuple } from 'effect'
+import { Effect, Option, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
-import type { Html, HtmlBuilder } from 'foldkit/html'
-import * as Mount from 'foldkit/mount'
+import type { HtmlBuilder } from 'foldkit/html'
 
+import { layer as AnimationLayer } from '../animation/block.js'
+import { EffectsLayer, mounts } from './command.js'
+import { makeUpdateHandlers } from './handlers.js'
+import { baseInit } from './model.js'
+import { ListboxNamespace } from './namespace.js'
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputsCommon,
-  EffectsLayer,
+  InMessage,
+  InitConfig as InitConfigSchema,
   type ItemToValueInput,
-  ListboxNamespace,
   Message,
   OutMessage,
   type OutMessageSchema,
-  baseInit,
-  makeUpdateHandlers,
-  makeView,
-  mounts,
-} from './shared.js'
+} from './types.js'
+import { makeView } from './view.js'
 
-// MODEL
-
-/** Schema for the single-select listbox's private interaction state (open/closed status, active item, activation trigger, typeahead search). The selection is owned by the parent and passed in via `ViewInputs.maybeSelectedValue`. */
-export const Model = Schema.Struct({
-  ...BaseModel.fields,
-})
+/** Private Listbox interaction Model; the parent owns selection. */
+export const Model = Schema.Struct({ ...BaseModel.fields })
 export type Model = typeof Model.Type
-
-// INIT
-
-/** Configuration for creating a single-select listbox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
+/** Startup configuration for this Listbox occurrence. */
 export type InitConfig = BaseInitConfig
-
-// VIEW
-
-/** Per-render view inputs passed to the view through a Listbox connection. */
+/** Controlled single-selection inputs and item rendering callbacks. */
 export type ViewInputs<
   Item,
   Value extends string = string,
 > = BaseViewInputsCommon<Item> &
-  Readonly<{
-    /** The selection the parent owns, passed in fresh on every render.
-     *  `Option` because a single-select listbox may have no selection yet.
-     *  Drives `aria-selected` and `data-selected` on items, which item the
-     *  Listbox highlights when it opens onto a selection, and the hidden
-     *  form input submitted under `name`. */
-    maybeSelectedValue: Option.Option<Value>
-  }> &
+  Readonly<{ maybeSelectedValue: Option.Option<Value> }> &
   ItemToValueInput<Item, Value>
 
-const internalView = makeView<Model>({ ariaMultiSelectable: false })
-const arrayBasedView = internalView<unknown, string>()
-
-const singleViewImpl = (
-  model: Model,
-  { maybeSelectedValue, ...baseInputs }: ViewInputs<unknown, string>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
-): Html =>
-  arrayBasedView(
-    model,
-    {
-      ...baseInputs,
-      selectedValues: Option.toArray(maybeSelectedValue),
+/** @internal Nominal identity of the single-selection contract. */
+export const ListboxKey = Symbol('Listbox.Single')
+const ListboxDefinition = ListboxNamespace.makeDefinition({
+  key: ListboxKey,
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+  Init: Schema.Tuple([InitConfigSchema]),
+  ChildInitContext: InitConfigSchema,
+  view: {
+    kind: 'Element',
+    Inputs: Block.makeInputContract<ViewInputs<unknown>>(),
+  },
+  operations: {
+    requestSelectItem: {
+      message: (item: string) =>
+        Tuple.make(Message.RequestedSelectItem({ item })),
+      outMessage: OutMessage.Selected,
     },
-    h,
-  )
-
-const makeBlockParts = <Item, Value extends string>() => {
-  const RefinedOutMessage =
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    OutMessage as unknown as OutMessageSchema<Value>
-  const ListboxDefinition = ListboxNamespace.makeDefinition({
-    Model,
-    Message,
-    OutMessage: RefinedOutMessage,
-  })
-  const itemUpdate = makeUpdateHandlers(
-    ListboxDefinition.makeBinding,
-    ListboxDefinition.makeOutMessageFold,
-    ListboxDefinition.makeStep,
-    ListboxDefinition.makeFieldsStep,
-    ListboxDefinition.makeNoopStep,
-    ListboxDefinition.makeCommandsStep,
-    'CloseWithFocus',
-    (model, item) => ({
+  },
+})
+const itemUpdate = makeUpdateHandlers(
+  ListboxDefinition.makeBinding,
+  ListboxDefinition.makeOutMessageFold,
+  ListboxDefinition.makeStep,
+  ListboxDefinition.makeFieldsStep,
+  ListboxDefinition.makeNoopStep,
+  ListboxDefinition.makeCommandsStep,
+  'CloseWithFocus',
+  (model, item) => ({
+    model,
+    outMessage: OutMessage.Selected({ value: item }),
+  }),
+)
+const ListboxComposition = ListboxDefinition.makeComposition({
+  mounts,
+  bindings: [itemUpdate.AnimationBinding],
+})
+type ListboxViewBuilder = Block.ViewBuilderFor<typeof ListboxComposition>
+type ListboxViewMessage =
+  ListboxViewBuilder extends HtmlBuilder<infer FullMessage, infer _Mounts>
+    ? FullMessage
+    : never
+const init = ListboxComposition.makeInit(config => ({
+  model: baseInit(config),
+  childInitContext: config,
+}))
+const update = ListboxComposition.makeUpdate(itemUpdate.handlers)
+const inMessageUpdate = ListboxComposition.makeInMessageUpdate(
+  itemUpdate.inMessageUpdateHandlers,
+)
+const render = makeView<Model>({ ariaMultiSelectable: false })<
+  unknown,
+  string,
+  ListboxViewMessage
+>()
+const view = ListboxComposition.makeView.withInputs(
+  (model, { maybeSelectedValue, ...viewInputs }, h) =>
+    render(
       model,
-      outMessage:
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        OutMessage.Selected({ value: item }) as OutMessage<Value>,
-    }),
-  )
-  const ListboxComposition = ListboxDefinition.makeComposition({
-    mounts,
-    bindings: [itemUpdate.AnimationBinding],
-  })
-  const update = ListboxComposition.makeUpdate(itemUpdate.handlers)
-  const init = ListboxComposition.makeInit((config: InitConfig) => ({
-    model: baseInit(config),
-  }))
-  const refinedView =
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    singleViewImpl as unknown as (
-      model: Model,
-      viewInputs: ViewInputs<Item, Value>,
-      h: HtmlBuilder<
-        typeof ListboxComposition.Message.Type,
-        Mount.RequirementsOf<typeof mounts>
-      >,
-    ) => Html
-  const view = ListboxComposition.makeView.withInputs<ViewInputs<Item, Value>>(
-    (model, viewInputs, h) => refinedView(model, viewInputs, h),
-  )
-  const requestOpen = Message.RequestedOpen
-  const requestClose = Message.RequestedClose
-  const requestSelectItem = (item: Value) =>
-    Tuple.make(Message.RequestedSelectItem({ item }))
-  return {
-    composition: ListboxComposition,
-    implementation: {
+      { ...viewInputs, selectedValues: Option.toArray(maybeSelectedValue) },
+      h,
+    ),
+)
+
+/** @internal Shared Animation relationship used by internal transition tests. */
+export const AnimationBinding = itemUpdate.AnimationBinding
+/** @internal Selected implementation used as a scoped internal testing root. */
+export const block = ListboxDefinition.makeBlock(
+  Effect.gen(function* () {
+    const animation = yield* itemUpdate.AnimationBinding
+
+    return {
+      children: [animation],
       init,
       update,
+      inMessageUpdate,
       view,
-      operations: { requestOpen, requestClose, requestSelectItem },
       EffectsLayer,
-    },
-  }
-}
+    }
+  }),
+).provide(AnimationLayer)
+/** Constructs this Listbox implementation and its private Animation dependency. */
+export const layer = block.layer
 
-type BlockParts<Item, Value extends string> = ReturnType<
-  typeof makeBlockParts<Item, Value>
+type CanonicalContract = typeof ListboxDefinition.contract
+type CanonicalFacts = Block.FactsOf<CanonicalContract>
+type RefinedFacts<Item, Value extends string> = Omit<
+  CanonicalFacts,
+  'view' | 'update' | 'operations'
+> &
+  Readonly<{
+    view: Block.ViewContract<ViewInputs<Item, Value>, 'Element'>
+    update: Block.ResultContract<
+      OutMessage<Value>,
+      CanonicalFacts['update']['requirements']
+    >
+    operations: Omit<CanonicalFacts['operations'], 'requestSelectItem'> &
+      Readonly<{
+        requestSelectItem: Block.OperationContract<
+          readonly [item: Value],
+          OutMessage<Value>,
+          CanonicalFacts['operations']['requestSelectItem']['requirements']
+        >
+      }>
+  }>
+type RefinedContract<Item, Value extends string> = Block.Contract<
+  CanonicalContract['owner'],
+  CanonicalContract['Model'],
+  CanonicalContract['Message'],
+  OutMessageSchema<Value>,
+  RefinedFacts<Item, Value>
 >
-
-/** A completed single-select Listbox Block refined to one Item and Value pair. */
+/** Passive Listbox contract with exact Item, Value and operation result channels. */
 export interface Completed<
   Item = string,
   Value extends string = Item extends string ? Item : string,
-> extends Block.CompletedWithViewAndOutMessage<
-  BlockParts<Item, Value>['composition'],
-  BlockParts<Item, Value>['implementation']
-> {}
-
-const assembleBlock = <Item, Value extends string>(): Completed<
-  Item,
-  Value
-> => {
-  const { composition, implementation } = makeBlockParts<Item, Value>()
-
-  const prepare = () => composition.prepareBlock(implementation)
-  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
-
-  return completedBlock
+> extends Omit<RefinedContract<Item, Value>, 'get'> {
+  readonly get: Effect.Effect<
+    Effect.Success<RefinedContract<Item, Value>['get']>,
+    never,
+    Effect.Services<CanonicalContract['get']>
+  >
 }
-
-/** Creates a complete single-select Listbox Block refined to one Item and
- * Value pair. `Value` defaults to `Item` for string items and to `string` for
- * object items. */
+/** Creates the typed contract; supply this module's layer when constructing the parent. */
 export const makeBlock = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
->(): Completed<Item, Value> => assembleBlock<Item, Value>()
-
-/** Complete default single-select Listbox Block definition. */
-export const block = assembleBlock<string, string>()
-
-/** Creates the initial single-select Listbox Model and Commands. Defaults to closed with no active item. */
-export const init = block.init
-
-// UPDATE
-
-/** Processes a Listbox Message and returns the next Model, optional Commands,
- *  and an optional OutMessage. Selection closes the Listbox and emits
- *  `Selected({ value })` for the parent to store. */
-export const update = block.update
-
-type UpdateReturn = ReturnType<typeof update>
-
-/** Programmatically opens the Listbox, updating the Model and returning focus
- *  and modal Commands. When it is already open, returns the Model unchanged
- *  with no Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn =>
-  block.operations.requestOpen(model)
-
-/** Programmatically closes the listbox. If it is open, returns the closed Model
- *  with focus and modal Commands. If it is already closed, returns the Model
- *  unchanged with no Commands. Use this in domain-event handlers to close the
- *  listbox. */
-export const close = (model: Model): UpdateReturn =>
-  block.operations.requestClose(model)
-
-/** Programmatically selects an item in the single-select listbox, closing the listbox and emitting a `Selected({ value })` OutMessage. */
-export const selectItem = (model: Model, item: string): UpdateReturn =>
-  block.operations.requestSelectItem(model, item)
+>(): Completed<Item, Value> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  ListboxDefinition.contract as unknown as Completed<Item, Value>

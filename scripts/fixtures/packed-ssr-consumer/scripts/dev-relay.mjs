@@ -92,7 +92,7 @@ try {
   assert.equal(frame.id, 'packed-relay-probe')
   assert.deepEqual(frame.response.runtimes, [])
   console.log(
-    'Installed Vite plugin starts its Crypto-backed relay and answers a request',
+    'Installed Vite plugin starts its SecureRandom-backed relay and answers a request',
   )
 } finally {
   socket?.close()

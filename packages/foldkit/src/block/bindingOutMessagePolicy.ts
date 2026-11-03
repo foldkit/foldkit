@@ -137,3 +137,25 @@ export const deferredOutMessagePolicy = (
     return policy.forward?.(...args)
   },
 })
+
+/** @internal Reuses an already validated immutable policy on a connected occurrence. */
+export const copyBindingOutMessagePolicy = (
+  source: object,
+  target: RuntimeBinding,
+): object => {
+  const selection = selectedPolicies.get(source)
+  if (selection === undefined) {
+    return target
+  }
+
+  const configured: object = Object.create(
+    Object.getPrototypeOf(target),
+    Object.getOwnPropertyDescriptors(target),
+  )
+  registerBindingAlias(configured, target)
+  selectedPolicies.set(configured, {
+    binding: target,
+    outMessage: selection.outMessage,
+  })
+  return Object.freeze(configured)
+}

@@ -1,8 +1,12 @@
-import { Schema, Tuple } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { VirtualList } from '@foldkit/ui'
+import {
+  layer as VirtualListLayer,
+  ScrollContainer as VirtualListScrollContainer,
+  makeBlock as makeVirtualListBlock,
+} from '@foldkit/ui/virtualList'
 
 const Activity = Schema.Struct({
   id: Schema.String,
@@ -11,7 +15,7 @@ const Activity = Schema.Struct({
 })
 type Activity = typeof Activity.Type
 
-const ActivityListBlock = VirtualList.makeBlock<Activity>()
+const ActivityListBlock = makeVirtualListBlock<Activity>()
 const Model = Schema.Struct({
   activities: Schema.Array(Activity),
   activityList: ActivityListBlock.Model,
@@ -21,7 +25,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedJumpToLatestActivity: {} })
 type Message = typeof Message.Type
 
+const ActivityFeedKey = Symbol('ActivityFeed')
+
 const ActivityFeedDefinition = Block.makeDefinition('ActivityFeed', {
+  key: ActivityFeedKey,
+  Init: Schema.Tuple([Schema.Array(Activity)]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -32,12 +41,13 @@ const ActivityListBinding = ActivityFeedDefinition.makeBinding(
   {
     field: 'activityList',
     init: {
-      contextToArgs: () =>
-        Tuple.make({
+      contextToArgs: () => [
+        {
           id: 'activity-feed',
           rowHeightPx: 88,
-          scrollContainer: VirtualList.ScrollContainer.Window(),
-        }),
+          scrollContainer: VirtualListScrollContainer.Window(),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({
@@ -50,11 +60,9 @@ const ActivityListBinding = ActivityFeedDefinition.makeBinding(
 const ActivityFeedComposition = ActivityFeedDefinition.makeComposition({
   bindings: [ActivityListBinding],
 })
-const init = ActivityFeedComposition.makeInit(
-  (activities: ReadonlyArray<Activity>) => ({
-    model: { activities },
-  }),
-)
+const init = ActivityFeedComposition.makeInit(activities => ({
+  model: { activities },
+}))
 const update = ActivityFeedComposition.makeUpdate({
   ClickedJumpToLatestActivity: ActivityListBinding.requestScrollToEnd(),
 })
@@ -92,9 +100,17 @@ const view = ActivityFeedComposition.makeView((model, h) =>
   ),
 )
 
-const prepare = () =>
-  ActivityFeedComposition.prepareBlock({ init, update, view })
-export const ActivityFeedBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ActivityFeedBlock = ActivityFeedDefinition.contract
+
+export const layer = ActivityFeedDefinition.makeBlock(
+  Effect.gen(function* () {
+    const activityList = yield* ActivityListBinding
+
+    return {
+      children: [activityList],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(VirtualListLayer).layer

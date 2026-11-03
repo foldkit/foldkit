@@ -5,6 +5,8 @@ import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 
+import { verifyPreviewReleaseCommit } from './verify-preview-release-commit.mjs'
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const gitignore = readFileSync(resolve(REPO_ROOT, '.gitignore'), 'utf8')
 const changesetConfig = JSON.parse(
@@ -198,6 +200,105 @@ test('canaries publish from the trusted release workflow and use exact snapshots
   assert.doesNotMatch(canaryJob, /release:finalize-github|GitHub Releases/)
 })
 
+test('preview canary publication requires an exact manually selected commit', () => {
+  const commit = 'a'.repeat(40)
+  const canaryJob = job('canary', 'deploy-website-canary')
+  const canaryCondition = jobCondition('canary', 'deploy-website-canary')
+  const previewDeployment = jobCondition('deploy-website-preview', 'finalize')
+  const context = (event, ref, canaryResult = 'success') => ({
+    cancelled: () => false,
+    github: { event_name: event, ref },
+    needs: { canary: { result: canaryResult } },
+  })
+
+  assert.equal(
+    runInNewContext(canaryCondition, context('push', 'refs/heads/main')),
+    true,
+  )
+  assert.equal(
+    runInNewContext(
+      canaryCondition,
+      context('push', 'refs/heads/codex/layers-and-submodels'),
+    ),
+    false,
+  )
+  assert.equal(
+    runInNewContext(
+      canaryCondition,
+      context('workflow_dispatch', 'refs/heads/codex/layers-and-submodels'),
+    ),
+    true,
+  )
+  assert.equal(
+    runInNewContext(
+      canaryCondition,
+      context('workflow_dispatch', 'refs/heads/main'),
+    ),
+    false,
+  )
+  assert.equal(
+    runInNewContext(
+      previewDeployment,
+      context('workflow_dispatch', 'refs/heads/codex/layers-and-submodels'),
+    ),
+    true,
+  )
+  assert.equal(
+    runInNewContext(
+      previewDeployment,
+      context('push', 'refs/heads/codex/layers-and-submodels'),
+    ),
+    false,
+  )
+  assert.match(
+    canaryJob,
+    /name: Verify the exact requested preview commit[\s\S]+run: node scripts\/verify-preview-release-commit\.mjs[\s\S]+PUBLISHED_COMMIT: \$\{\{ inputs\.published_commit \}\}/,
+  )
+  assert.ok(
+    canaryJob.indexOf('name: Verify the exact requested preview commit') <
+      canaryJob.indexOf('run: pnpm release:canary'),
+  )
+  assert.match(
+    workflow,
+    /target: \$\{\{ inputs\.published_commit \}\}[\s\S]+manifest_artifact: foldkit-preview-release-\$\{\{ inputs\.published_commit \}\}/,
+  )
+  assert.doesNotMatch(
+    workflow,
+    /branches:\n\s+- main\n\s+- codex\/layers-and-submodels/,
+  )
+
+  assert.equal(
+    verifyPreviewReleaseCommit({
+      publishedCommit: commit,
+      githubSha: commit,
+      checkedOutCommit: commit,
+    }),
+    commit,
+  )
+
+  for (const values of [
+    { publishedCommit: '', githubSha: commit, checkedOutCommit: commit },
+    {
+      publishedCommit: 'A'.repeat(40),
+      githubSha: commit,
+      checkedOutCommit: commit,
+    },
+    { publishedCommit: 'abc123', githubSha: commit, checkedOutCommit: commit },
+    {
+      publishedCommit: commit,
+      githubSha: 'b'.repeat(40),
+      checkedOutCommit: commit,
+    },
+    {
+      publishedCommit: commit,
+      githubSha: commit,
+      checkedOutCommit: 'c'.repeat(40),
+    },
+  ]) {
+    assert.throws(() => verifyPreviewReleaseCommit(values))
+  }
+})
+
 test('website canaries and integration previews deploy only after their package snapshot is verified', () => {
   const packageCanary = workflow.indexOf('\n  canary:')
   const websiteCanary = workflow.indexOf('\n  deploy-website-canary:')
@@ -222,10 +323,13 @@ test('website canaries and integration previews deploy only after their package 
     websitePreviewJob,
     /uses: \.\/\.github\/workflows\/deploy-website-preview\.yml/,
   )
-  assert.match(websitePreviewJob, /target: \$\{\{ github\.sha \}\}/)
   assert.match(
     websitePreviewJob,
-    /manifest_artifact: foldkit-preview-release-\$\{\{ github\.sha \}\}/,
+    /target: \$\{\{ inputs\.published_commit \}\}/,
+  )
+  assert.match(
+    websitePreviewJob,
+    /manifest_artifact: foldkit-preview-release-\$\{\{ inputs\.published_commit \}\}/,
   )
   assert.match(previewWorkflow, /workflow_call:/)
   assert.doesNotMatch(previewWorkflow, /\n  push:/)
@@ -243,7 +347,7 @@ test('website canaries and integration previews deploy only after their package 
   )
   assert.match(
     canaryJob,
-    /if: github\.ref == 'refs\/heads\/codex\/layers-and-submodels'[\s\S]+name: foldkit-preview-release-\$\{\{ github\.sha \}\}/,
+    /if: github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/codex\/layers-and-submodels'[\s\S]+name: foldkit-preview-release-\$\{\{ github\.sha \}\}/,
   )
 
   for (const path of [
@@ -434,10 +538,7 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
 })
 
 test('release jobs route main and integration runs by event, ref, and prerequisite state', () => {
-  assert.match(
-    workflow,
-    /push:\n\s+branches:\n\s+- main\n\s+- codex\/layers-and-submodels/,
-  )
+  assert.match(workflow, /push:\n\s+branches:\n\s+- main/)
 
   const context = ({
     event,
@@ -505,7 +606,7 @@ test('release jobs route main and integration runs by event, ref, and prerequisi
         publishedCommit: '',
         finalizeResult: 'skipped',
       },
-      expected: [false, false, true, false, true, false, false],
+      expected: [false, false, false, false, false, false, false],
     },
     {
       name: 'main recovery dispatch',
@@ -517,14 +618,14 @@ test('release jobs route main and integration runs by event, ref, and prerequisi
       expected: [false, false, false, false, false, true, true],
     },
     {
-      name: 'integration recovery dispatch',
+      name: 'integration preview dispatch',
       context: {
         event: 'workflow_dispatch',
         ref: integration,
         stableResult: 'skipped',
         finalizeResult: 'skipped',
       },
-      expected: [false, false, false, false, false, false, false],
+      expected: [false, false, true, false, true, false, false],
     },
     {
       name: 'main recovery with failed finalization',

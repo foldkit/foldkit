@@ -1,0 +1,148 @@
+{
+  "candidateBaseCommit": "da6e55193beb693b5400c9f95777d7c9fb41f257",
+  "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "productionMigration": true,
+  "sourceAndRelocatedDeclarations": "passed",
+  "fullEmittedDeclarationGate": {
+    "status": "passed",
+    "log": "/private/tmp/foldkit-emitted-final-validator-fresh.log"
+  },
+  "compiler": {
+    "status": "passed",
+    "fixtures": 7,
+    "budgetsChanged": false,
+    "budgetSha256": "4c992d726e54c3ad3fac257040878fd5343c2dc0636fc7918f754947634cc30f",
+    "log": "compiler-performance-final.txt",
+    "measurements": {
+      "deep-composition-8": {
+        "instantiations": 658804,
+        "types": 52595
+      },
+      "wide-composition-100": {
+        "instantiations": 1392196,
+        "types": 80494
+      },
+      "command-requirements-200": {
+        "instantiations": 340025,
+        "types": 63104
+      },
+      "wide-subscriptions-100": {
+        "instantiations": 548577,
+        "types": 24507
+      },
+      "workspace-composition-4": {
+        "instantiations": 2559768,
+        "types": 209809
+      },
+      "workspace-composition-8": {
+        "instantiations": 4314931,
+        "types": 280773
+      },
+      "machine-search": {
+        "instantiations": 70759,
+        "types": 13405
+      }
+    },
+    "localLog": "/private/tmp/foldkit-compiler-gate-nameability-final.log"
+  },
+  "runtime": {
+    "core": {
+      "passed": 4075,
+      "skipped": 1,
+      "files": 237,
+      "coveragePassed": true
+    },
+    "ui": {
+      "passed": 1357,
+      "files": 68
+    },
+    "examples": {
+      "passed": 689,
+      "files": 108,
+      "sourceConfigurations": 35
+    },
+    "website": {
+      "passed": 1528,
+      "files": 39
+    },
+    "typingGame": {
+      "passed": 30,
+      "files": 3
+    },
+    "scripts": {
+      "passed": 233
+    },
+    "ssrHotUpdate": {
+      "passed": 72
+    },
+    "relay": {
+      "mcpPassed": 17,
+      "mcpLinuxSkipped": 6,
+      "vitePassed": 34,
+      "viteLinuxSkipped": 3
+    }
+  },
+  "applications": {
+    "layoutReports": ["../app-layout.md", "../website-typing-layout.md"],
+    "websiteBuild": "passed",
+    "prerenderedPages": 225,
+    "websiteBrowserSmokeCases": 6,
+    "historicalPublishedContent": "preserved",
+    "scaffoldGuidanceSha256": "b7e6ef465ae6032bde2c0b1e687dae953806bbdb4f25d7410b20fc0edc1e0f90"
+  },
+  "packed": {
+    "releaseChangesets": 203,
+    "typeScript6": {
+      "version": "6.0.3",
+      "status": "passed",
+      "log": "/private/tmp/foldkit-packed-validator-types-nameable.log"
+    },
+    "finalThreeBrowserRun": "passed",
+    "precedingReceipts": [
+      "../packed-release/receipt.json",
+      "../packed-release/receipt-relay-critical.json"
+    ],
+    "singleEffectRuntime": true,
+    "effectVersion": "4.1.0",
+    "finalReceipts": [
+      "../packed-release/receipt-public-types.json",
+      "../packed-release/receipt-final-ui-critical.json"
+    ]
+  },
+  "rendering": {
+    "status": "completed",
+    "report": "../REPORT.md",
+    "samples": 32,
+    "rounds": 8,
+    "optimizedChangePercent": 23.5,
+    "naiveChangePercent": -27.3,
+    "limitation": "Wide sample ranges; one batch does not establish a general speedup or isolate individual feature costs.",
+    "coreEmittedJavaScriptFilesUnchangedAfterBenchmark": 350
+  },
+  "security": {
+    "earlierDaybreakSourceCommit": "db69206779b4e4c37d9cefe02acb21ca3d2e9ed3",
+    "earlierFindings": 6,
+    "localRepairs": "passed regression and independent source review",
+    "integratedCandidateDaybreak": "awaiting new explicit source-transfer authorization",
+    "linuxRelayIntegration": "requires Linux runner"
+  },
+  "maintenance": {
+    "normalLint": "passed",
+    "effectLint": "passed",
+    "deadCode": "passed",
+    "scriptTypes": "passed",
+    "circularDependencies": "passed",
+    "peerFloors": "passed"
+  },
+  "feedbackReport": "../final-feedback.md",
+  "publication": false,
+  "historicalPrototypeReceipt": "prototype-checkpoint.json",
+  "followups": {
+    "mainSyncIntegration": "../main-sync-integration.json",
+    "packedPortableHelpers": "../packed-release/receipt-portable-helpers-followup.json",
+    "actualAppsTypeScript6": "passed",
+    "compilerBudgets": "passed unchanged",
+    "sourceWorktreesPreserved": true,
+    "runtimeArtifactsChanged": false
+  }
+}

@@ -26,14 +26,14 @@ const navigationUrlByShortcut: Readonly<
   GN: nestedRouter,
 }
 
-const setRouteStep = (nextRoute: ApplicationRoute) =>
+const setRoute = (nextRoute: ApplicationRoute) =>
   makeFieldsStep(() => ({ route: () => nextRoute }))
 
-const keepModelStep = makeNoopStep()
+const keepModel = makeNoopStep()
 
 type InformPeopleRouteStep =
-  | typeof keepModelStep
-  | ReturnType<typeof PeoplePageBinding.informRouteChanged>
+  | typeof keepModel
+  | ReturnType<typeof PeoplePageBinding.informRouteChange>
 
 export const update = ApplicationComposition.makeUpdate({
   CompletedNavigateInternal: makeNoopStep(),
@@ -55,23 +55,19 @@ export const update = ApplicationComposition.makeUpdate({
     const nextRoute = urlToApplicationRoute(url)
 
     const transition = Transition.make(model.route, nextRoute)
-    const informPeopleRouteStep =
-      Transition.matchOrElse<InformPeopleRouteStep>()(
-        transition,
-        'People',
-        {
-          Entered: peopleRoute =>
-            PeoplePageBinding.informRouteChanged({ route: peopleRoute }),
-          Stayed: ({ nextRoute }) =>
-            PeoplePageBinding.informRouteChanged({ route: nextRoute }),
-        },
-        () => keepModelStep,
-      )
+    const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
+      transition,
+      'People',
+      {
+        Entered: peopleRoute =>
+          PeoplePageBinding.informRouteChange({ route: peopleRoute }),
+        Stayed: ({ nextRoute }) =>
+          PeoplePageBinding.informRouteChange({ route: nextRoute }),
+      },
+      () => keepModel,
+    )
 
-    return Update.combineSteps(model, [
-      setRouteStep(nextRoute),
-      informPeopleRouteStep,
-    ])
+    return Update.combineSteps(model, [setRoute(nextRoute), informPeopleRoute])
   },
 
   EnteredNavigationShortcut: makeCommandsStep.fromMessage(({ shortcut }) => {

@@ -1,0 +1,123 @@
+{
+  "workspace": "/private/tmp/foldkit-update-compiler-hju6nf",
+  "node": "v22.22.3",
+  "typescript": "7.1.0-beta",
+  "sourceIndexSha256": "638d6a9141b2061c9e19998c79babd9ee3c168f039c1c57c1ddbcbdafd75e10e",
+  "builtTypeAlgebraSha256": "576966f7b0a623f44e983bea6b5b1ff1194781a25f760ea58d72ab747746cf84",
+  "baseline": {
+    "instantiations": 2528,
+    "types": 1945
+  },
+  "singleBaseline": {
+    "instantiations": 2528,
+    "types": 1690
+  },
+  "original": {
+    "instantiations": 100507,
+    "types": 22715
+  },
+  "originalSingle": {
+    "instantiations": 70759,
+    "types": 13405
+  },
+  "reorderedSingle": {
+    "instantiations": 70759,
+    "types": 13405
+  },
+  "final": {
+    "deep-composition-8": {
+      "instantiations": 658804,
+      "types": 52595
+    },
+    "wide-composition-100": {
+      "instantiations": 1392196,
+      "types": 80494
+    },
+    "command-requirements-200": {
+      "instantiations": 340025,
+      "types": 63104
+    },
+    "wide-subscriptions-100": {
+      "instantiations": 548577,
+      "types": 24507
+    },
+    "workspace-composition-4": {
+      "instantiations": 2559768,
+      "types": 209809
+    },
+    "workspace-composition-8": {
+      "instantiations": 4314931,
+      "types": 280773
+    },
+    "machine-search": {
+      "instantiations": 70759,
+      "types": 13405
+    }
+  },
+  "budgets": {
+    "deep-composition-8": {
+      "maxInstantiationsDelta": 1152618,
+      "maxTypesDelta": 55843
+    },
+    "wide-composition-100": {
+      "maxInstantiationsDelta": 3132298,
+      "maxTypesDelta": 216662
+    },
+    "command-requirements-200": {
+      "maxInstantiationsDelta": 2659415,
+      "maxTypesDelta": 389460
+    },
+    "workspace-composition-4": {
+      "maxInstantiationsDelta": 2642699,
+      "maxTypesDelta": 229173
+    },
+    "workspace-composition-8": {
+      "maxInstantiationsDelta": 4515010,
+      "maxTypesDelta": 299721
+    },
+    "wide-subscriptions-100": {
+      "maxInstantiationsDelta": 548740,
+      "maxTypesDelta": 24583
+    },
+    "machine-search": {
+      "maxInstantiationsDelta": 83700,
+      "maxTypesDelta": 18800
+    }
+  },
+  "runtimeNamespaces": {
+    "Machine": {
+      "fold": "function",
+      "makeDefinition": "function"
+    },
+    "Query": {
+      "define": "function",
+      "layer": "object"
+    },
+    "Server": {
+      "DocumentAssets": "function",
+      "FOLDKIT_APP_ATTRIBUTE": "string",
+      "FOLDKIT_FLAGS_ATTRIBUTE": "string",
+      "FlagsEncodeError": "function",
+      "HOST_METHOD_ANSWERS": "object",
+      "InvalidHydrationRoot": "function",
+      "InvalidRuntimeId": "function",
+      "InvalidUrl": "function",
+      "MissingBuildId": "function",
+      "Rendered": "function",
+      "Responded": "function",
+      "SerializationError": "function",
+      "acceptsHtml": "function",
+      "classifyRequest": "function",
+      "handleRequest": "function",
+      "injectIntoTemplate": "function",
+      "isHostSettledMethod": "function",
+      "renderDocument": "function",
+      "renderToString": "function",
+      "resolveRequestUrl": "function",
+      "resolvesToIndexHtml": "function",
+      "toResponse": "function",
+      "varyWith": "function",
+      "varyWithAccept": "function"
+    }
+  }
+}

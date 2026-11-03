@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
+import { registerBindingResolver } from './bindingConnection.js'
 import { initAndAppend } from './bindingInit.js'
 import { runBindingInitRecipe } from './initRecipe.js'
 import { commandInstances } from './instanceContext.js'
@@ -81,7 +82,7 @@ const EntriesBinding = ParentDefinition.makeBinding(ChildBlock, {
 const Composition = ParentDefinition.makeComposition({
   bindings: [EntriesBinding],
 })
-const appendStep = (key: string, count: number) =>
+const appendChild = (key: string, count: number) =>
   ParentDefinition.makeStep(model =>
     initAndAppend(EntriesBinding, model, { key, args: [count] }),
   )
@@ -92,7 +93,10 @@ const prepareParent = () =>
       RequestedAppend: (model, { key, count }) =>
         initAndAppend(EntriesBinding, model, { key, args: [count] }),
       RequestedAppendPair: ParentDefinition.makeStep(() =>
-        Update.combineSteps([appendStep('first', 1), appendStep('second', 2)]),
+        Update.combineSteps([
+          appendChild('first', 1),
+          appendChild('second', 2),
+        ]),
       ),
     }),
     operations: {
@@ -112,6 +116,52 @@ beforeEach(() => {
 })
 
 describe('initAndAppend', () => {
+  it('resolves deferred storage against the active graph and snapshots its arguments', () => {
+    const DeferredBinding = ParentDefinition.makeBinding(ChildBlock, {
+      field: 'entries',
+      key: 'id',
+      childField: 'child',
+      init: {
+        instances: () => [],
+        toItem: ({ key }, child) => ({ id: key, child, label: 'deferred' }),
+      },
+    })
+    registerBindingResolver(DeferredBinding, environment => {
+      const actual = environment?.get(DeferredBinding)
+
+      if (actual === undefined) {
+        throw new Error('The deferred Binding requires its graph.')
+      }
+
+      return actual
+    })
+    const args: [count: number] = [4]
+    const config = { key: 'first', args }
+    const recipe = initAndAppend(
+      DeferredBinding,
+      ParentBlock.init().model,
+      config,
+    )
+    config.key = 'changed'
+    args.splice(0, 1, 9)
+
+    const appended = withOperationGraph([EntriesBinding], () =>
+      runBindingInitRecipe(
+        recipe,
+        new Map([[DeferredBinding, EntriesBinding]]),
+      ),
+    )
+
+    expect(appended).toMatchObject({
+      model: {
+        entries: [{ id: 'first', child: { count: 4 }, label: 'Entry first' }],
+        label: 'current',
+      },
+      commands: [{ name: 'AppendChild["first"]/Read' }],
+    })
+    expect(initialized).toHaveBeenCalledExactlyOnceWith(4)
+  })
+
   it('constructs a passive recipe and defers both child initialization and wrapper construction', () => {
     const recipe = initAndAppend(EntriesBinding, ParentBlock.init().model, {
       key: 'first',

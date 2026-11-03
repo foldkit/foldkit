@@ -18,7 +18,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Schema.String]),
   Model,
   Message,
 })
@@ -33,14 +37,11 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [CounterBinding],
 })
 
-const clearDraftStep = makeFieldsStep(() => ({
+const clearDraft = makeFieldsStep(() => ({
   draft: () => '',
 }))
-const resetStep = Update.combineSteps([
-  clearDraftStep,
-  CounterBinding.requestReset(),
-])
-const restoreBaselineStep = makeStep(model =>
+const reset = Update.combineSteps([clearDraft, CounterBinding.requestReset()])
+const restoreBaseline = makeStep(model =>
   CounterBinding.init({
     args: [0],
     toParentModel: counter =>
@@ -51,12 +52,10 @@ const restoreBaselineStep = makeStep(model =>
   }),
 )
 
-export const init = ApplicationComposition.makeInit(
-  (applicationId: string) => ({
-    model: { applicationId, draft: '' },
-  }),
-)
+export const init = ApplicationComposition.makeInit(applicationId => ({
+  model: { applicationId, draft: '' },
+}))
 export const update = ApplicationComposition.makeUpdate({
-  ClickedReset: resetStep,
-  ClickedRestoreBaseline: restoreBaselineStep,
+  ClickedReset: reset,
+  ClickedRestoreBaseline: restoreBaseline,
 })

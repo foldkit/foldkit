@@ -11,22 +11,37 @@ The files under `probes/` run in the browser but are not copied into the
 consumer project. The page fragments under `pages/` extend rendered test pages.
 
 The default consumer uses the repository's exact Effect and browser-platform
-development versions. Use `--effect-version=4.0.6` and
-`--platform-browser-version=4.0.6` to test that supported pair. The
-`check:effect-compatibility` command builds the packages once and runs the
-4.0.0 and 4.0.6 consumers.
+development versions and the stable floors of `@foldkit/node`'s platform-node
+and platform-node-shared dependency ranges. It installs all four directly so a
+newer platform patch cannot silently change the floor being tested. The
+`check:effect-compatibility` command builds the packages and checks Effect,
+platform-browser, platform-node, and platform-node-shared at 4.1.0. Explicit
+`--effect-version`, `--platform-browser-version`, `--platform-node-version`, and
+`--platform-node-shared-version` arguments can check another supported set.
+Each argument requires an exact stable version. The published package ranges
+require Effect 4.1.
 
 Use `--keep-consumer` to retain a temporary project for diagnosis or mutation
 checks. The driver prints its path; ordinary and CI runs remove it.
 
 Installation uses strict peer resolution, without workspace overrides or
 `--legacy-peer-deps`. All seven Foldkit packages with Effect peers are installed.
-The runtime probe checks the npm dependency tree, one physical Effect install,
-and identical Effect resolution from Foldkit and the platform packages. The
-type fixture checks every public package namespace and an Effect-backed Command
-with `skipLibCheck: false`; the SSR and hydration checks exercise the packed
-implementation.
+The runtime probe checks all four installed versions, the npm dependency tree,
+one physical Effect install, and identical Effect resolution from Foldkit, the
+platform packages and two npm workspaces. A library workspace exports a Model
+Schema to an application workspace; the application typechecks and executes a
+Block update using it.
+The application workspace relies on Foldkit's browser-platform peer, with the
+root providing the verified versions. The type fixture checks every public
+package namespace and an Effect-backed Command with `skipLibCheck: false`; the
+SSR and hydration checks exercise the packed implementation.
+
+The application, inferred Element and Document programs, and shared-Model
+workspace use independent Block contracts and `Definition.makeBlock`.
+Construction is passive; the workspace acquires its implementation through
+an ordinary Layer before calling synchronous init and update. No preparation
+producer or application-level assembly annotation is required.
 
 The development-server probe starts the installed Vite plugin, waits for its
-Crypto-backed MCP relay, and sends a runtime-list request. This covers relay
+SecureRandom-backed MCP relay, and sends a runtime-list request. This covers relay
 initialization separately from the production SSR build hooks.

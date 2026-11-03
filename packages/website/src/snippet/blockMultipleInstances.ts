@@ -1,11 +1,16 @@
-import { Array } from 'effect'
+import { Array, Schema } from 'effect'
 import { Block } from 'foldkit'
 
 import { Applicant } from './applicant'
 import { Message } from './message'
 import { Model } from './model'
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })

@@ -29,6 +29,7 @@ import type {
   ElementCrashConfig,
 } from './crashUI.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
+import { resolveElementContainer } from './hostContainer.js'
 import type { ApplicationInit } from './makeApplication.js'
 import {
   type FlagsSchemaConfig,
@@ -340,10 +341,11 @@ const toCrashConfig = <Model, Message>(
  * `makeApplication` when the app owns the page and should manage those tags, and
  * `makeElement` when it is one component among others on a page it does not
  * control. Embedded apps do not own the URL bar, so `makeElement` has no
- * `routing` config. Complete the root with
- * `ApplicationComposition.prepareBlock`, pass it to `Program.makeElement`, and
- * supply Services through the Program's `provide` method when Commands, Flags,
- * Subscriptions, Mounts, or ManagedResources need them.
+ * `routing` config. Complete the root with `ApplicationDefinition.makeBlock`,
+ * returning local handler recipes as `EffectsLayer` from its constructor.
+ * Pass that Block to `Program.makeElement` and supply Services through the
+ * Program's `provide` method when Commands, Flags, Subscriptions, Mounts, or
+ * ManagedResources need them.
  */
 export function makeElement<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -452,14 +454,7 @@ export function makeElement<
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 >(config: any): any {
-  const { container } = config
-  if (container === null) {
-    throw new Error(
-      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
-        'before calling makeElement (e.g. that your <div id="root"></div> has ' +
-        'rendered, and your script runs after it).',
-    )
-  }
+  const container = resolveElementContainer(config.container)
 
   const hasFlags = 'Flags' in config
 

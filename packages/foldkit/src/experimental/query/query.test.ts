@@ -20,7 +20,7 @@ import * as Command from '../../command/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Story from '../../test/story.js'
 import * as Update from '../../update/index.js'
-import * as Query from './index.js'
+import * as Query from './native.js'
 
 const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
 type Note = typeof Note.Type

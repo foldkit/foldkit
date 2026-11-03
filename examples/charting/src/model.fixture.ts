@@ -113,17 +113,20 @@ export const sampleTelemetry = Telemetry.make({
 export const loadingModel = Model.make({
   telemetry: TelemetryAsyncData.Loading(),
   chartMode: 'Adoption',
-  chartModeRadioGroup: ChartModeRadioGroupBlock.init({
+  chartModeRadioGroup: ChartModeRadioGroupBlock.Model.make({
     id: CHART_MODE_RADIO_GROUP_ID,
-  }).model,
+    maybeFocusedIndex: Option.none(),
+  }),
   selectedPackageId: 'Core',
-  packageRadioGroup: PackageRadioGroupBlock.init({
+  packageRadioGroup: PackageRadioGroupBlock.Model.make({
     id: PACKAGE_RADIO_GROUP_ID,
-  }).model,
+    maybeFocusedIndex: Option.none(),
+  }),
   period: 'LastSixteenWeeks',
-  periodRadioGroup: PeriodRadioGroupBlock.init({
+  periodRadioGroup: PeriodRadioGroupBlock.Model.make({
     id: PERIOD_RADIO_GROUP_ID,
-  }).model,
+    maybeFocusedIndex: Option.none(),
+  }),
   maybeChartHostId: Option.none(),
   maybeChartError: Option.none(),
   maybeSelectedDatumId: Option.none(),

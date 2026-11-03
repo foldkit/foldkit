@@ -1,10 +1,8 @@
 import { Schema } from 'effect'
 import { Url } from 'foldkit/url'
 
-import { DialogBlock } from '@foldkit/ui'
+import { DialogBlock } from '@foldkit/ui/dialog'
 
-import { Deployment } from './deployment'
-import { ResolvedTheme } from './message'
 import {
   ApiReferenceBlock,
   BlockPageBlock,
@@ -12,13 +10,15 @@ import {
   ExampleDetailBlock,
   HomeBlock,
   PlaygroundBlock,
+  Search,
+  SnippetCopy,
+  SnippetDisclosure,
   UiBlock,
-} from './page'
+} from './blocks'
+import { Deployment } from './deployment'
+import { ResolvedTheme } from './message'
 import { ApplicationRoute } from './route'
-import * as Search from './search'
 import { SidebarGroups } from './sidebarStorage'
-import * as SnippetCopy from './snippetCopy'
-import * as SnippetDisclosure from './snippetDisclosure'
 import { ThemePreference } from './themePreference'
 import { ThemeMenuBlock } from './view/themeMenu'
 

@@ -1,9 +1,9 @@
 import type { Block } from 'foldkit'
 
+import { ProductsBlock } from './blocks'
 import { products } from './data/products'
 import { ApplicationDefinition, makeFieldsStep } from './definition'
 import { Cart } from './domain'
-import { ProductsBlock } from './page'
 
 export const ProductsPageBinding = ApplicationDefinition.makeBinding(
   ProductsBlock,

@@ -3,6 +3,8 @@ import { AsyncData, Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
+import { fetchPosts } from './queryDefine'
+
 const Post = Schema.Struct({ id: Schema.String, title: Schema.String })
 type Post = typeof Post.Type
 
@@ -21,7 +23,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const ApplicationKey = Symbol('Application')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })

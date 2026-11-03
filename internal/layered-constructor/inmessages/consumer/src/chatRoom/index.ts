@@ -1,0 +1,1 @@
+export { ChatRoomBlock } from './block'

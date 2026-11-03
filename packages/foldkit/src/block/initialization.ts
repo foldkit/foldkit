@@ -554,3 +554,6 @@ export type ValidateUniqueInitialFields<
             }>
         : never
     : unknown
+
+/** @internal Existing initializer contracts reused by experimental plan authoring. */
+export type { CallableArguments, ValidateInit }

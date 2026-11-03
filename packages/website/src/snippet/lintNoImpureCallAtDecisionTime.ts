@@ -1,5 +1,5 @@
-import { Crypto, Effect, Schema } from 'effect'
-import { Hex } from 'effect/encoding'
+import { Effect, Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 import { Command } from 'foldkit'
 
 const SaveDraftWithId = Command.define('SaveDraftWithId', {
@@ -19,19 +19,15 @@ const saveBad = (body: string) => {
 }
 
 // ✅ Good: the runtime obtains the ID when it executes the Command.
-const DRAFT_ID_BYTE_LENGTH = 16
 const SaveDraft = Command.define('SaveDraft', {
   args: { body: Schema.String },
   messages: [Message.CompletedSaveDraft],
   handler: function* () {
-    const crypto = yield* Crypto.Crypto
+    const secureRandom = yield* SecureRandom.SecureRandom
 
     return ({ body: _body }) =>
       Effect.gen(function* () {
-        const bytes = yield* Effect.orDie(
-          crypto.randomBytes(DRAFT_ID_BYTE_LENGTH),
-        )
-        const draftId = Hex.encode(bytes)
+        const draftId = yield* secureRandom.uuidV4()
         return Message.CompletedSaveDraft({ draftId })
       })
   },

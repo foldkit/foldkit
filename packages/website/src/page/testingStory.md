@@ -1,10 +1,12 @@
 # Story
 
-## Testing the Update Loop
+## Overview
 
-`Story` calls update with the Model and Messages you provide. Commands stay as data until the test supplies their result Messages. You can test a complete state transition without a DOM, a timer, or a running Effect.
+A Block-aware Story acquires the chosen implementation, then calls its pure update with the Model and Messages you provide. Commands stay as data until the test supplies their result Messages. The returned Effect owns graph construction and cleanup; it does not run Command handlers or Streams.
 
-The entire test is one `story` call. Start from a Model, send a Message, resolve any Commands, and assert on the next Model.
+In Vitest, return that Effect from `it.effect` in `@effect/vitest`. The runner awaits the result and manages the test Scope. Prefer direct Block-aware calls for ordinary scenarios; keep `withBlock` for fixtures needing acquired operations or deliberately modified initialized Models. Start startup scenarios with `init` and explicit Command resolution so their initial Commands remain visible.
+
+Pass the public Block and its implementation Layer, or a checked application descriptor with its default Layer. Start with `init(...args)` to retain startup Model and Commands, or `given(model)` for a deliberate fixture. Send Messages, resolve Commands, and assert on the Model. `withBlock` supports advanced fixtures that need direct synchronous operations.
 
 ## The API
 
@@ -12,9 +14,9 @@ The entire test is one `story` call. Start from a Model, send a Message, resolve
 
 Import the steps you need from `foldkit/story`.
 
-- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `steps`, `given`, `message`, `messageWith`, `model`, `expectOutMessage`, and `expectNoOutMessage`.
+- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `init`, `steps`, `given`, `message`, `messageFrom`, `messageWith`, `model`, `expectOutMessage`, and `expectNoOutMessage`.
 - The `Command` namespace handles pending Commands: `argsOf`, `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, and `expectNone`.
-- `Subscription.from(Block.subscriptions)` creates emission steps from a completed Block's registered Subscription graph.
+- `Subscription.from(block.subscriptions)` creates emission steps inside an acquired test fixture. For private registries, test the checked implementation that owns them.
 
 Use named imports when the file contains only Story tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
 
@@ -86,11 +88,11 @@ Give an extracted callback its precise Model annotation so a reusable `steps` gr
 
 ### Deliver a Subscription Message
 
-Use `Subscription.from(CompletedBlock.subscriptions)` when a Story needs to deliver a fact from a registered Subscription. The emitter accepts a registered entry and that entry's decoded Message. It applies the same generated child delivery used by Scene and the Runtime without starting a Stream or constructing its dependencies.
+Inside `withBlock`, use `Subscription.from(block.subscriptions)` to deliver a fact from that acquired graph. For private Subscription tests, select the implementation that owns the registry. The emitter accepts a registered entry and that entry's decoded Message. It applies the same generated child delivery used by Scene and the Runtime without starting a Stream or constructing its dependencies.
 
 ::Snippet{name="testingStorySubscription" label="Deliver a registered Subscription Message"}
 
-Pass the raw child entry only when it identifies one registration. If a child Subscription appears at multiple placements, select the intended bound entry from the completed Block's `subscriptions` record. A composition-only test can build the same record with `Scene.subscriptions(composition, localSubscriptions?)`; that helper exposes the shared registered graph when no completed Block exists yet.
+Pass the raw child entry only when it identifies one registration. If a child Subscription appears at multiple placements, select the intended bound entry from the completed Block's `subscriptions` record. The public contract does not reveal private lifecycle inventory. Keep those tests beside the implementation that owns the declarations.
 
 ### Resolve Child Commands
 

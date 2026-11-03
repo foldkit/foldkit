@@ -68,11 +68,17 @@ while a canary job is active; the overall workflow is complete only when its
 remaining jobs finish.
 
 Inspect failed steps, logs, and published state before attempting recovery. Do not
-cancel active publication or blindly rerun a publishing job. The release workflow's
-`workflow_dispatch` input is for finalizing an already-promoted stable commit and
-its website deployment. Verify the complete promoted package set and a full commit
-SHA on main before using that recovery path. Preserve the user's authorization
-boundaries for any recovery action.
+cancel active publication or blindly rerun a publishing job. On `main`, the
+release workflow's `workflow_dispatch` input finalizes an already-promoted stable
+commit and its website deployment. Verify the complete promoted package set and
+full commit SHA before using that recovery path.
+
+On `codex/layers-and-submodels`, publication requires an explicit dispatch with
+`published_commit` equal to the selected branch head's full SHA. Preview pushes
+run ordinary checks without publishing or deploying. The workflow verifies the
+input against the event and checkout before publishing its canary and deploying
+from its verified manifest. Preserve the user's publication and recovery
+authorization boundaries for either dispatch path.
 
 ## Verify the public release
 

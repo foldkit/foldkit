@@ -1,8 +1,11 @@
-// page/products/index.ts
-export { ProductsBlock } from './block'
+// blocks/products/index.ts
+export { ProductsBlock } from './definition'
+export { layer } from './block'
 
-// page/index.ts
+// blocks/index.ts
+export { HomeBlock } from './home'
 export * as Home from './home'
+export { ProductsBlock } from './products'
 export * as Products from './products'
 
 // domain/index.ts

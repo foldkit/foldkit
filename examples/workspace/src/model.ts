@@ -1,17 +1,19 @@
 import { Schema } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { CommandPaletteBlock } from './commandPalette'
-import { CreateIssueBlock } from './createIssue'
+import {
+  CommandPaletteBlock,
+  CreateIssueBlock,
+  IssueBoardBlock,
+  IssueDetailBlock,
+  IssueListBlock,
+  MemberDirectoryBlock,
+  NotificationCenterBlock,
+  ProjectSettingsBlock,
+} from './blocks'
 import { SavedView, Workspace } from './domain'
-import { IssueBoardBlock } from './issueBoard'
-import { IssueDetailBlock } from './issueDetail'
-import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
-import { MemberDirectoryBlock } from './memberDirectory'
-import { NotificationCenterBlock } from './notificationCenter'
 import { IssueMoveState } from './optimistic'
-import { ProjectSettingsBlock } from './projectSettings'
 import { ApplicationRoute } from './route'
 
 export const WorkspaceAsyncData = AsyncData.Schema(Workspace, Schema.String)

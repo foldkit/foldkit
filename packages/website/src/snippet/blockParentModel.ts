@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 
-import { Settings } from './page'
+import { Settings } from './blocks'
 
 export const Model = Schema.Struct({
   username: Schema.String,

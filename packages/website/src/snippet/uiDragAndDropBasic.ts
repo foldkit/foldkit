@@ -1,18 +1,18 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit each into your own Model, init, Message,
-// update, subscriptions, and view definitions.
-import { Array, Schema, Tuple } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { DragAndDrop } from '@foldkit/ui'
+import {
+  DragAndDropBlock,
+  layer as DragAndDropLayer,
+} from '@foldkit/ui/dragAndDrop'
 
 // Add a field to your Model for the DragAndDrop Block plus the items being sorted:
 const Model = Schema.Struct({
   items: Schema.Array(
     Schema.Struct({ id: Schema.String, label: Schema.String }),
   ),
-  dragAndDrop: DragAndDrop.DragAndDropBlock.Model,
+  dragAndDrop: DragAndDropBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -26,7 +26,12 @@ declare const reorder: (
   toIndex: number,
 ) => Model['items']
 
+const SortableListKey = Symbol('SortableList')
+
 const SortableListDefinition = Block.makeDefinition('SortableList', {
+  key: SortableListKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -39,7 +44,7 @@ const { makeFieldsStep, makeNoopStep } = SortableListDefinition
 // Model written back. The parent Definition checks the complete child union
 // and infers each parent Step:
 const foldDragAndDropOutMessage = SortableListDefinition.makeOutMessageFold(
-  DragAndDrop.DragAndDropBlock,
+  DragAndDropBlock,
   {
     Reordered: ({ itemId, fromIndex, toIndex }) =>
       makeFieldsStep(() => ({
@@ -55,13 +60,12 @@ const foldDragAndDropOutMessage = SortableListDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding delegates the child update, writes the next DragAndDrop Model,
-// routes generated delivery, handles OutMessages, and collects Subscriptions.
+// The Binding retains the child contract; construction supplies its implementation.
 const DragAndDropBinding = SortableListDefinition.makeBinding(
-  DragAndDrop.DragAndDropBlock,
+  DragAndDropBlock,
   {
     field: 'dragAndDrop',
-    init: { contextToArgs: () => Tuple.make({ id: 'sortable-list' }) },
+    init: { contextToArgs: () => [{ id: 'sortable-list' }] },
   },
 ).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
@@ -118,3 +122,16 @@ const view = SortableListComposition.makeView((model, h) =>
     }),
   ),
 )
+
+export const ApplicationBlock = SortableListDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dragAndDrop = yield* DragAndDropBinding
+
+    return {
+      children: [dragAndDrop],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(DragAndDropLayer)

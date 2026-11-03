@@ -1,0 +1,412 @@
+{
+  "base": "d5a41949c04a44e5413b9d0e53294f0bbcee3a1b",
+  "verifiedProductFiles": 79,
+  "results": [
+    {
+      "file": "examples/job-application/src/blocks/education/block.ts",
+      "before": "examples/job-application/src/blocks/education/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/education/blocks/educationEntry/block.ts",
+      "before": "examples/job-application/src/blocks/education/blocks/educationEntry/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/personalInfo/block.ts",
+      "before": "examples/job-application/src/blocks/personalInfo/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/skills/block.ts",
+      "before": "examples/job-application/src/blocks/skills/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/skills/blocks/skillsEntry/block.ts",
+      "before": "examples/job-application/src/blocks/skills/blocks/skillsEntry/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/workHistory/block.ts",
+      "before": "examples/job-application/src/blocks/workHistory/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/workHistory/blocks/workHistoryEntry/block.ts",
+      "before": "examples/job-application/src/blocks/workHistory/blocks/workHistoryEntry/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/routing/src/blocks/people/block.ts",
+      "before": "examples/routing/src/blocks/people/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/ui-showcase/src/blocks/ui/block.ts",
+      "before": "examples/ui-showcase/src/blocks/ui/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/commandPalette/block.ts",
+      "before": "examples/workspace/src/blocks/commandPalette/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/createIssue/block.ts",
+      "before": "examples/workspace/src/blocks/createIssue/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/createIssue/scene.test.ts",
+      "before": "examples/workspace/src/blocks/createIssue/scene.test.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/issueBoard/block.ts",
+      "before": "examples/workspace/src/blocks/issueBoard/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/issueDetail/block.ts",
+      "before": "examples/workspace/src/blocks/issueDetail/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/issueList/block.ts",
+      "before": "examples/workspace/src/blocks/issueList/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/notificationCenter/block.ts",
+      "before": "examples/workspace/src/blocks/notificationCenter/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/typing-game/client/src/blocks/room/block.ts",
+      "before": "packages/typing-game/client/src/blocks/room/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/animation/block.ts",
+      "before": "packages/ui/src/animation/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/animation/story.test.ts",
+      "before": "packages/ui/src/animation/story.test.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/animation/update.ts",
+      "before": "packages/ui/src/animation/update.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/calendar/block.ts",
+      "before": "packages/ui/src/calendar/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/combobox/multi.ts",
+      "before": "packages/ui/src/combobox/multi.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/combobox/shared.ts",
+      "before": "packages/ui/src/combobox/shared.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/combobox/single.ts",
+      "before": "packages/ui/src/combobox/single.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/datePicker/block.ts",
+      "before": "packages/ui/src/datePicker/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/dialog/block.ts",
+      "before": "packages/ui/src/dialog/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/dialog/runtime.test.ts",
+      "before": "packages/ui/src/dialog/runtime.test.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/dialog/story.test.ts",
+      "before": "packages/ui/src/dialog/story.test.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/hoverIntent/block.ts",
+      "before": "packages/ui/src/hoverIntent/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/listbox/handlers.ts",
+      "before": "packages/ui/src/listbox/handlers.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/listbox/multi.ts",
+      "before": "packages/ui/src/listbox/multi.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/listbox/single.ts",
+      "before": "packages/ui/src/listbox/single.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/menu/menu.ts",
+      "before": "packages/ui/src/menu/menu.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/popover/block.ts",
+      "before": "packages/ui/src/popover/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/popover/scene.test.ts",
+      "before": "packages/ui/src/popover/scene.test.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/popover/story.test.ts",
+      "before": "packages/ui/src/popover/story.test.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/routingParentPolicy.test.ts",
+      "before": "packages/ui/src/routingParentPolicy.test.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/slider/index.test.ts",
+      "before": "packages/ui/src/slider/index.test.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/slider/slider.ts",
+      "before": "packages/ui/src/slider/slider.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/toast/toast.ts",
+      "before": "packages/ui/src/toast/toast.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/toast/update.ts",
+      "before": "packages/ui/src/toast/update.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/ui/src/virtualList/virtualList.ts",
+      "before": "packages/ui/src/virtualList/virtualList.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/blocks/apiReference/block.ts",
+      "before": "packages/website/src/blocks/apiReference/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/blocks/exampleDetail/block.ts",
+      "before": "packages/website/src/blocks/exampleDetail/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/blocks/exampleDetail/example.ts",
+      "before": "packages/website/src/blocks/exampleDetail/example.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/blocks/playground/block.ts",
+      "before": "packages/website/src/blocks/playground/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/blocks/playground/playground.ts",
+      "before": "packages/website/src/blocks/playground/playground.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/blocks/search/block.ts",
+      "before": "packages/website/src/blocks/search/block.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/blocks/search/story.test.ts",
+      "before": "packages/website/src/blocks/search/story.test.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/antiPatternChildInitBad.ts",
+      "before": "packages/website/src/snippet/antiPatternChildInitBad.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/antiPatternChildInitSettings.ts",
+      "before": "packages/website/src/snippet/antiPatternChildInitSettings.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/blockFeatureExports.ts",
+      "before": "packages/website/src/snippet/blockFeatureExports.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/blockInMessageHandlers.ts",
+      "before": "packages/website/src/snippet/blockInMessageHandlers.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/blockInMessageImplementation.ts",
+      "before": "packages/website/src/snippet/blockInMessageImplementation.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/blockKeyedMapChild.ts",
+      "before": "packages/website/src/snippet/blockKeyedMapChild.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/blockOptionalKeyedInstance.ts",
+      "before": "packages/website/src/snippet/blockOptionalKeyedInstance.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/blockSettings.ts",
+      "before": "packages/website/src/snippet/blockSettings.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/informingBlocksChild.ts",
+      "before": "packages/website/src/snippet/informingBlocksChild.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/initResetCounter.ts",
+      "before": "packages/website/src/snippet/initResetCounter.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/testingMigrationFixture.ts",
+      "before": "packages/website/src/snippet/testingMigrationFixture.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/snippet/updateCurriedStep.ts",
+      "before": "packages/website/src/snippet/updateCurriedStep.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/education/blocks/educationEntry/inMessageUpdate.ts",
+      "before": "examples/job-application/src/blocks/education/blocks/educationEntry/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/education/inMessageUpdate.ts",
+      "before": "examples/job-application/src/blocks/education/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/personalInfo/inMessageUpdate.ts",
+      "before": "examples/job-application/src/blocks/personalInfo/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/skills/blocks/skillsEntry/inMessageUpdate.ts",
+      "before": "examples/job-application/src/blocks/skills/blocks/skillsEntry/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/skills/inMessageUpdate.ts",
+      "before": "examples/job-application/src/blocks/skills/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/workHistory/blocks/workHistoryEntry/inMessageUpdate.ts",
+      "before": "examples/job-application/src/blocks/workHistory/blocks/workHistoryEntry/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/job-application/src/blocks/workHistory/inMessageUpdate.ts",
+      "before": "examples/job-application/src/blocks/workHistory/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/routing/src/blocks/people/inMessageUpdate.ts",
+      "before": "examples/routing/src/blocks/people/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/ui-showcase/src/blocks/ui/inMessageUpdate.ts",
+      "before": "examples/ui-showcase/src/blocks/ui/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/commandPalette/inMessageUpdate.ts",
+      "before": "examples/workspace/src/blocks/commandPalette/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/createIssue/inMessageUpdate.ts",
+      "before": "examples/workspace/src/blocks/createIssue/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/issueBoard/inMessageUpdate.ts",
+      "before": "examples/workspace/src/blocks/issueBoard/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/issueDetail/inMessageUpdate.ts",
+      "before": "examples/workspace/src/blocks/issueDetail/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/issueList/inMessageUpdate.ts",
+      "before": "examples/workspace/src/blocks/issueList/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "examples/workspace/src/blocks/notificationCenter/inMessageUpdate.ts",
+      "before": "examples/workspace/src/blocks/notificationCenter/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/typing-game/client/src/blocks/room/inMessageUpdate.ts",
+      "before": "packages/typing-game/client/src/blocks/room/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/blocks/apiReference/inMessageUpdate.ts",
+      "before": "packages/website/src/blocks/apiReference/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    },
+    {
+      "file": "packages/website/src/blocks/search/inMessageUpdate.ts",
+      "before": "packages/website/src/blocks/search/receive.ts",
+      "status": "same-after-exact-API-normalization"
+    }
+  ],
+  "networkingByteIdentical": [
+    "internal/layered-constructor/contract-provisioning/test/controlledSocket.ts",
+    "internal/layered-constructor/contract-provisioning/test/runtime.test.ts",
+    "internal/layered-constructor/inmessages/consumer/test/controlledSocket.ts",
+    "internal/layered-constructor/inmessages/consumer/test/runtime.test.ts"
+  ],
+  "notes": [
+    "Imports compared as exact dependency/member sets; formatting/order ignored. Executable product bodies compared after canonical Block input identifier normalization only.",
+    "Published historical snippets and unrelated receive prose/facts/networking are retained.",
+    "Two deliberate removed-API negative directives remain in normal declaration rejection coverage."
+  ]
+}

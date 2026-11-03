@@ -222,7 +222,7 @@ export const noCompletedBlockModelInSchema = Rule.define({
             Diagnostic.make({
               node,
               message:
-                'Using a completed Block’s `Model` in Schema construction can force expensive inference of its implementation graph. Use the checked `Block.assemble(prepare)` producer/header boundary, or import the child’s canonical Model Schema from its public module and compose that Schema directly. Completed Block `.Model` remains available for ordinary access and type annotations.',
+                'Using an inferred native completed Block’s `Model` in Schema construction can force expensive inference of its implementation graph. Compose the independent `Definition.contract.Model`, or import the child’s canonical Model Schema from its public module. Completed Block `.Model` remains available for ordinary access and type annotations.',
             }),
           ),
         { discard: true },

@@ -1,16 +1,16 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { HoverIntent } from '@foldkit/ui'
-import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
+import {
+  HoverIntentBlock,
+  layer as HoverIntentLayer,
+  type RenderInfo as HoverIntentRenderInfo,
+} from '@foldkit/ui/hoverIntent'
 
 // Add a field to your Model:
 const Model = Schema.Struct({
-  hoverIntent: HoverIntent.HoverIntentBlock.Model,
+  hoverIntent: HoverIntentBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -18,9 +18,14 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const HoverIntentExampleKey = Symbol('HoverIntentExample')
+
 const HoverIntentExampleDefinition = Block.makeDefinition(
   'HoverIntentExample',
   {
+    key: HoverIntentExampleKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },
@@ -29,20 +34,17 @@ const HoverIntentExampleDefinition = Block.makeDefinition(
 const { makeNoopStep } = HoverIntentExampleDefinition
 
 const foldHoverIntentOutMessage =
-  HoverIntentExampleDefinition.makeOutMessageFold(
-    HoverIntent.HoverIntentBlock,
-    {
-      Opened: makeNoopStep,
-      Closed: makeNoopStep,
-    },
-  )
+  HoverIntentExampleDefinition.makeOutMessageFold(HoverIntentBlock, {
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+  })
 
 const HoverIntentBinding = HoverIntentExampleDefinition.makeBinding(
-  HoverIntent.HoverIntentBlock,
+  HoverIntentBlock,
   {
     field: 'hoverIntent',
     init: {
-      contextToArgs: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
+      contextToArgs: () => [{ openDelay: 200, closeDelay: 300 }],
     },
   },
 ).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
@@ -107,3 +109,16 @@ const view = HoverIntentExampleComposition.makeView((model, h) => {
     }),
   )
 })
+
+export const ApplicationBlock = HoverIntentExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const hoverIntent = yield* HoverIntentBinding
+
+    return {
+      children: [hoverIntent],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(HoverIntentLayer)

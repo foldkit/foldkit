@@ -9,9 +9,9 @@ import {
   commands,
   init,
   program,
-  saveStep,
+  save,
   update,
-  withChildCommandsStep,
+  withChildCommands,
 } from './commands-steps.accepted.js'
 
 // @ts-expect-error Command-only Steps still require attached handlers.
@@ -44,13 +44,13 @@ CommandsDefinition.makeCommandsStep(() => [], 'extra')
 // @ts-expect-error Compositions do not duplicate Definition-owned Step factories.
 CommandsComposition.makeCommandsStep
 
-declare const childCommands: Parameters<typeof withChildCommandsStep>[0]
-const childStep = withChildCommandsStep(childCommands)
+declare const childCommands: Parameters<typeof withChildCommands>[0]
+const changeChildModel = withChildCommands(childCommands)
 // @ts-expect-error Reading the Commands does not erase child registration evidence.
-childStep({ child: { count: 0 } })
+changeChildModel({ child: { count: 0 } })
 ParentDefinition.makeComposition().makeUpdate({
   // @ts-expect-error A Composition missing the child cannot interpret its Commands.
-  RequestedSave: model => childStep(model),
+  RequestedSave: model => changeChildModel(model),
   CompletedSave: ParentDefinition.makeNoopStep(),
 })
 
@@ -64,7 +64,7 @@ declare const erasedCommands: Update.Commands<typeof Message.Type> &
 // @ts-expect-error Any registration evidence cannot be hidden in a Command producer.
 CommandsDefinition.makeCommandsStep(() => erasedCommands)
 
-const _outMessageStep: typeof saveStep = model => ({
+const _emitOutMessage: typeof save = model => ({
   model,
   commands,
   // @ts-expect-error A Command-only Step contract cannot hide an emitted OutMessage.

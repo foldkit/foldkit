@@ -14,4 +14,4 @@ const badAliasRouting = () => requestSave()
 
 // ✅ Good
 // The parent invokes the operation projected by its child Binding.
-const goodRoutingStep = makeStep(() => ChildBinding.requestSave())
+const goodRouting = makeStep(() => ChildBinding.requestSave())

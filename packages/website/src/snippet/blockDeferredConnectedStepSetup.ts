@@ -13,7 +13,11 @@ type Model = typeof Model.Type
 export const Message = defineMessageUnion({ RequestedResetSettings: {} })
 export type Message = typeof Message.Type
 
+const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
   Model,
   Message,
 })

@@ -1,12 +1,8 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Effect, Match, Option, Schema, Tuple } from 'effect'
+import { Effect, Match, Option, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { DatePicker } from '@foldkit/ui'
 import type {
   CalendarAttributes as UiCalendarCalendarAttributes,
   DaysModeAttributes as UiCalendarDaysModeAttributes,
@@ -14,13 +10,17 @@ import type {
   Week as UiCalendarWeek,
   YearsModeAttributes as UiCalendarYearsModeAttributes,
 } from '@foldkit/ui/calendar'
-import { triggerId as DatePickerTriggerId } from '@foldkit/ui/datePicker'
+import {
+  DatePickerBlock,
+  layer as DatePickerLayer,
+  triggerId as DatePickerTriggerId,
+} from '@foldkit/ui/datePicker'
 
 // Add a field to your Model for the DatePicker Block, plus a field the
 // parent owns for the selected date. The picker no longer stores the
 // selection; the parent holds it and passes it back in as `maybeSelectedDate`.
 const Model = Schema.Struct({
-  datePickerDemo: DatePicker.DatePickerBlock.Model,
+  datePickerDemo: DatePickerBlock.Model,
   maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
   // ...your other fields
 })
@@ -42,7 +42,12 @@ const flags = Effect.gen(function* () {
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const DatePickerExampleKey = Symbol('DatePickerExample')
+
 const DatePickerExampleDefinition = Block.makeDefinition('DatePickerExample', {
+  key: DatePickerExampleKey,
+  Init: Schema.Tuple([Flags]),
+  view: { kind: 'Element' },
   Model,
   Message,
   ChildInitContext: Flags,
@@ -59,7 +64,7 @@ const { makeFieldsStep, makeNoopStep } = DatePickerExampleDefinition
 // Model, which already has the next DatePicker Model written back. Pass the
 // completed child Block so the parent Definition infers both contracts:
 const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
-  DatePicker.DatePickerBlock,
+  DatePickerBlock,
   {
     // The child has emitted `SelectedDate`. This is where the parent lifts
     // the committed date into its own field, which is then passed back to
@@ -81,37 +86,36 @@ const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it delegates navigation,
-// focus, and popover messages to DatePicker.DatePickerBlock.update, writes the next DatePicker
-// Model back, routes generated delivery and Command results, and hands
-// any OutMessage to the OutMessage fold.
-const DatePickerBinding = DatePickerExampleDefinition.makeBinding(
-  DatePicker.DatePickerBlock,
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
+const DatePickerDemoBinding = DatePickerExampleDefinition.makeBinding(
+  DatePickerBlock,
   {
     field: 'datePickerDemo',
     init: {
-      contextToArgs: flags =>
-        Tuple.make({
+      contextToArgs: flags => [
+        {
           id: 'date-picker-demo',
           today: flags.today,
           minDate: flags.today,
           maxDate: Calendar.addMonths(flags.today, 3),
-        }),
+        },
+      ],
     },
   },
 ).withOutMessagePolicy({ fold: foldDatePickerOutMessage })
 
 const DatePickerExampleComposition =
   DatePickerExampleDefinition.makeComposition({
-    bindings: [DatePickerBinding],
+    bindings: [DatePickerDemoBinding],
   })
 type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
   typeof DatePickerExampleComposition
 >
 
 // Pass the flags-resolved date through the child init context. The Composition
-// supplies it to DatePickerBinding and initializes the bound Model.
-const init = DatePickerExampleComposition.makeInit((flags: Flags) => ({
+// supplies it to DatePickerDemoBinding and initializes the bound Model.
+const init = DatePickerExampleComposition.makeInit(flags => ({
   childInitContext: flags,
   model: {
     maybeSelectedDate: Option.none(),
@@ -316,7 +320,7 @@ const view = DatePickerExampleComposition.makeView((model, h) => {
         ['Date'],
       ),
       h.block(
-        DatePickerBinding.embedView({
+        DatePickerDemoBinding.embedView({
           slotId: 'date-picker-demo',
           model: model.datePickerDemo,
           viewInputs: {
@@ -346,3 +350,16 @@ const view = DatePickerExampleComposition.makeView((model, h) => {
     ],
   )
 })
+
+export const ApplicationBlock = DatePickerExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const datePicker = yield* DatePickerDemoBinding
+
+    return {
+      children: [datePicker],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(DatePickerLayer)

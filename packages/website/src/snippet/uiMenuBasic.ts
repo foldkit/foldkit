@@ -1,15 +1,15 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Menu } from '@foldkit/ui'
+import {
+  layer as MenuLayer,
+  makeBlock as makeMenuBlock,
+} from '@foldkit/ui/menu'
 
 type Action = 'Edit' | 'Duplicate' | 'Archive' | 'Delete'
 
-const ActionMenu = Menu.makeBlock<Action>()
+const ActionMenu = makeMenuBlock<Action>()
 
 // Add a field to your Model for the Menu Block:
 const Model = Schema.Struct({
@@ -21,7 +21,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const ActionMenuExampleKey = Symbol('ActionMenuExample')
+
 const ActionMenuExampleDefinition = Block.makeDefinition('ActionMenuExample', {
+  key: ActionMenuExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
 })
@@ -51,12 +56,11 @@ const foldMenuOutMessage = ActionMenuExampleDefinition.makeOutMessageFold(
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs ActionMenu.update,
-// writes the next Menu Model back, routes generated delivery and Command
-// results, and hands any OutMessage to the OutMessage fold.
+// The Binding declares placement, typed startup, and OutMessage policy.
+// The construction Layer below supplies the child implementation.
 const MenuBinding = ActionMenuExampleDefinition.makeBinding(ActionMenu, {
   field: 'menu',
-  init: { contextToArgs: () => Tuple.make({ id: 'actions' }) },
+  init: { contextToArgs: () => [{ id: 'actions' }] },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
 const ActionMenuExampleComposition =
@@ -101,3 +105,16 @@ const view = ActionMenuExampleComposition.makeView((model, h) =>
     }),
   ),
 )
+
+export const ApplicationBlock = ActionMenuExampleDefinition.makeBlock(
+  Effect.gen(function* () {
+    const menu = yield* MenuBinding
+
+    return {
+      children: [menu],
+      init,
+      update,
+      view,
+    }
+  }),
+).provide(MenuLayer)

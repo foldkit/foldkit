@@ -251,7 +251,7 @@ node packages/foldkit/scripts/profile-block-language-service.ts --scenario works
 ```
 
 The workspace selection starts four fresh native servers per run. It measures
-`IssueDetailBinding` hover in `examples/workspace/src/composition.ts`, Binding
+`IssueDetailsBinding` hover in `examples/workspace/src/composition.ts`, Binding
 member completion at the real initializer call in `src/update.ts`, and completed
 `ApplicationBlock` member completion at its routing callback in `src/entry.ts`.
 Each request has first and warm samples, then repeats after an incremental

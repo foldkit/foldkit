@@ -10,11 +10,17 @@ export type Registry<Entries> = Readonly<{
   [RegistryEntriesTypeId]: Entries
 }>
 
+type InhabitedEntries<Entries> = [keyof Entries] extends [never]
+  ? Entries
+  : [Entries[keyof Entries]] extends [never]
+    ? Readonly<Record<never, never>>
+    : Entries
+
 /** @internal Returns the exact ManagedResource entries represented by a plain or owned registry. */
 export type RegistryEntries<Resources> = Resources extends unknown
   ? typeof RegistryEntriesTypeId extends keyof Resources
-    ? Omit<Resources, typeof RegistryEntriesTypeId | 'layer'>
-    : Resources
+    ? InhabitedEntries<Omit<Resources, typeof RegistryEntriesTypeId | 'layer'>>
+    : InhabitedEntries<Resources>
   : never
 
 type EntryLayers<Entries> = Entries[keyof Entries] extends infer ResourceEntry

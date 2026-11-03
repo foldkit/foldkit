@@ -1,7 +1,9 @@
 import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
 
-import { Message, Model, PersistCount, update, view } from './application'
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock, Message, Model, PersistCount } from './application'
 
 const initialModel = Model.make({
   count: 3,
@@ -10,9 +12,9 @@ const initialModel = Model.make({
 })
 
 describe('view', () => {
-  test('renders the count and provenance line', () => {
+  it.effect('renders the count and provenance line', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(initialModel),
       expect(text('3')).toExist(),
       expect(
@@ -20,12 +22,12 @@ describe('view', () => {
       ).toExist(),
       expect(role('button', { name: '+' })).toExist(),
       expect(role('button', { name: '-' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clicking + increments and persists the count', () => {
+  it.effect('clicking + increments and persists the count', () =>
     scene(
-      { update, view },
+      ApplicationBlock,
       given(initialModel),
       click(role('button', { name: '+' })),
       expect(text('4')).toExist(),
@@ -35,6 +37,6 @@ describe('view', () => {
         Message.CompletedPersistCount(),
       ),
       Command.expectNone(),
-    )
-  })
+    ),
+  )
 })

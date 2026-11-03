@@ -1,17 +1,21 @@
-import { Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, it, vi } from 'vitest'
 
-import { PopoverBlock } from './block.js'
+import { PopoverBlock, layer } from './block.js'
 
 const PORTAL_ROOT_ID = 'foldkit-portal-root'
 const POPOVER_ID = 'sort'
 
 const Model = Schema.Struct({ popover: PopoverBlock.Model })
 type Model = typeof Model.Type
+const PopoverModalReopenTestKey = Symbol('PopoverModalReopenTest')
 const PopoverModalReopenTestDefinition = Block.makeDefinition(
   'PopoverModalReopenTest',
   {
+    key: PopoverModalReopenTestKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message: Schema.Never,
   },
@@ -69,21 +73,23 @@ const view = PopoverModalReopenTestComposition.makeView((model, h) =>
     ],
   ),
 )
-const prepare = () =>
-  PopoverModalReopenTestComposition.prepareBlock({
-    init: PopoverModalReopenTestComposition.makeInit(() =>
-      PopoverBinding.init({
-        args: [{ id: POPOVER_ID, isModal: true }],
-        toParentModel: popover => ({ popover }),
-      }),
-    ),
-    update: PopoverModalReopenTestComposition.makeUpdate({}),
-    view,
-  })
-const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+const ApplicationBlock = PopoverModalReopenTestDefinition.makeBlock(
+  Effect.gen(function* () {
+    const popover = yield* PopoverBinding
+
+    return {
+      children: [popover],
+      init: PopoverModalReopenTestComposition.makeInit(() =>
+        PopoverBinding.init({
+          args: [{ id: POPOVER_ID, isModal: true }],
+          toParentModel: popover => ({ popover }),
+        }),
+      ),
+      update: PopoverModalReopenTestComposition.makeUpdate({}),
+      view,
+    }
+  }),
+).provide(layer)
 
 const findInertAncestor = (element: Element | null): Option.Option<Element> => {
   for (

@@ -2,10 +2,10 @@
 // onClick Message for the view config; it just won't fire.
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 const view = (h: HtmlBuilder<Message>) =>
-  Button.view(
+  buttonView(
     {
       isDisabled: true,
       toView: attributes =>

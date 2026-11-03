@@ -1,1 +1,1 @@
-export { PeopleBlock } from './informingBlocksChild'
+export { PeopleBlock, layer } from './informingBlocksChild'

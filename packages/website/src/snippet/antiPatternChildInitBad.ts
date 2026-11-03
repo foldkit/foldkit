@@ -1,27 +1,38 @@
-// ❌ Bad: running the child Step directly and copying selected fields drops
-// the RestoredTheme OutMessage.
+// ❌ Bad: manually initializing and restoring the child drops its Commands and
+// RestoredTheme OutMessage when the parent keeps only the child Model.
 
-// init.ts
+import { Effect, Option } from 'effect'
 
-import { ApplicationComposition } from './composition'
+import { ApplicationComposition, SettingsBinding } from './composition'
+import { ApplicationDefinition } from './definition'
+import * as Settings from './settings'
+import { update } from './update'
 
-const init = ApplicationComposition.makeInit(
-  (username: string, savedTheme: Settings.Theme) => {
-    const settingsInit = Settings.init()
-    const settingsRestore = Settings.restore(settingsInit.model, savedTheme)
-    const commands = Command.mapMessages(settingsRestore.commands, message =>
-      Message.GotSettingsMessage({ message }),
-    )
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const settingsConnection = yield* SettingsBinding
+    const settings = yield* Settings.block.get
 
-    // ❌ The parent keeps the Model and Commands but drops
-    // settingsRestore.outMessage.
+    const init = ApplicationComposition.makeInit((username, savedTheme) => {
+      const settingsInit = settings.init()
+      const settingsRestore = settings.inMessageUpdate(
+        settingsInit.model,
+        Settings.InMessage.RequestedRestore({ theme: savedTheme }),
+      )
+
+      return {
+        model: {
+          username,
+          settings: settingsRestore.model,
+          maybeRestoredTheme: Option.none(),
+        },
+      }
+    })
+
     return {
-      model: Model.make({
-        username,
-        settings: settingsRestore.model,
-        maybeRestoredTheme: Option.none(),
-      }),
-      commands,
+      children: [settingsConnection],
+      init,
+      update,
     }
-  },
-)
+  }),
+).provide(Settings.layer)

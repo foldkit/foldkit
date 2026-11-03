@@ -10,7 +10,15 @@ type Message = typeof Message.Type
 const Model = Schema.Struct({})
 type Model = typeof Model.Type
 
-const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
+const PanelKey = Symbol('Panel')
+
+const PanelDefinition = Block.makeDefinition('Panel', {
+  key: PanelKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
 
 const TrackPointer = PanelDefinition.makeMountStream('TrackPointer', {
   messages: [Message.MovedPointer],

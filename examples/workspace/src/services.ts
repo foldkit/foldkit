@@ -1,3 +1,6 @@
+import { Layer } from 'effect'
+
+import { layer } from './block'
 import { WorkspaceRepositoryLayer } from './repository'
 
-export const ApplicationLayer = WorkspaceRepositoryLayer
+export const AppLayer = Layer.mergeAll(layer, WorkspaceRepositoryLayer)

@@ -1,0 +1,11 @@
+{
+  "extends": "../contract-provisioning-proof/tsconfig.json",
+  "include": [
+    "conditional-provider.ts",
+    "contextual-context.ts",
+    "ancestor-resources.ts",
+    "routed-only.ts",
+    "message-free-leaf.ts"
+  ],
+  "compilerOptions": { "noEmit": true }
+}

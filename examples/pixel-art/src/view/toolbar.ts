@@ -2,8 +2,9 @@ import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import { type Html, childAttributes } from 'foldkit/html'
 
-import { Button, Switch } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 import type { AnchorConfig } from '@foldkit/ui/listbox'
+import { view as switchView } from '@foldkit/ui/switch'
 
 import {
   GridSizeRadioGroupBlock,
@@ -13,10 +14,10 @@ import {
 } from '../components'
 import {
   type ApplicationViewBuilder,
-  GridSizeRadioGroupBinding as GridSizeRadioGroupBinding,
-  PaletteRadioGroupBinding as PaletteRadioGroupBinding,
-  ThemeListboxBinding as ThemeListboxBinding,
-  ToolRadioGroupBinding as ToolRadioGroupBinding,
+  GridSizeRadioGroupBinding,
+  PaletteRadioGroupBinding,
+  ThemeListboxBinding,
+  ToolRadioGroupBinding,
 } from '../composition'
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import { Message } from '../message'
@@ -198,7 +199,7 @@ const mirrorSectionView = (
       h.div(
         [h.Class('flex gap-2')],
         [
-          Switch.view(
+          switchView(
             {
               id: MIRROR_HORIZONTAL_SWITCH_ID,
               isChecked: isMirrorHorizontal,
@@ -232,7 +233,7 @@ const mirrorSectionView = (
             },
             h,
           ),
-          Switch.view(
+          switchView(
             {
               id: MIRROR_VERTICAL_SWITCH_ID,
               isChecked: isMirrorVertical,
@@ -437,7 +438,7 @@ const clearCanvasView = (
   isCanvasEmpty: boolean,
   h: ApplicationViewBuilder,
 ): Html =>
-  Button.view(
+  buttonView(
     {
       onClick: Message.ClickedClear(),
       isDisabled: isCanvasEmpty,

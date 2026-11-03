@@ -1,13 +1,14 @@
 import {
   Array,
   Duration,
+  Effect,
   Layer,
   Option,
   Schema,
   SchemaTransformation,
 } from 'effect'
-import { Block, Command, Message, Program, Struct, Update } from 'foldkit'
-import { childAttributes } from 'foldkit/html'
+import { Block, Message, Program, Struct, Update } from 'foldkit'
+import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import * as Animation from '@foldkit/ui/animation'
 import * as Calendar from '@foldkit/ui/calendar'
@@ -29,6 +30,14 @@ type Equal<Left, Right> =
     : false
 type Expect<Value extends true> = Value
 
+export const MenuFoldFixtureKey = Symbol('MenuFoldFixture')
+export const ToastFixtureKey = Symbol('ToastFixture')
+export const KeyedToastFixtureKey = Symbol('KeyedToastFixture')
+export const DragAndDropFixtureKey = Symbol('DragAndDropFixture')
+export const KeyedDragAndDropFixtureKey = Symbol('KeyedDragAndDropFixture')
+export const KeyedAnimationFixtureKey = Symbol('KeyedAnimationFixture')
+export const ApplicationKey = Symbol('Application')
+
 export const Item = Schema.Literals(['Apple', 'Pear'])
 export const Picker = Combobox.makeBlock(Item)
 export const EncodedItem = Schema.Number.pipe(
@@ -49,6 +58,8 @@ const MenuFoldModel = Schema.Struct({ selected: Item })
 export const MenuFoldFixtureDefinition = Block.makeDefinition(
   'MenuFoldFixture',
   {
+    key: MenuFoldFixtureKey,
+    Init: Schema.Tuple([]),
     Model: MenuFoldModel,
     Message: Schema.Never,
   },
@@ -91,9 +102,14 @@ export const menuTestDefinitions = [
   Menu.test.AnchorMenu,
   Menu.test.PortalMenuBackdrop,
 ]
-export const menuFactoryMounts: ReadonlyArray<
-  typeof Menu.test.AnchorMenu | typeof Menu.test.PortalMenuBackdrop
-> = MenuPicker.mounts
+export const menuFactoryViewInputs = (
+  h: HtmlBuilder<typeof ParentMessage.Type>,
+): Block.FactsOf<typeof MenuPicker>['view']['inputs'] => ({
+  items: ['Apple', 'Pear'],
+  buttonContent: h.span([], ['Choose fruit']),
+  itemToConfig: item => ({ content: h.span([], [item]) }),
+  buttonAttributes: childAttributes([h.OnClick(ParentMessage.ClickedClear())]),
+})
 export const RootSlider = Slider.forRoot(() => document)
 export const ToastPayload = Schema.Struct({
   kind: Schema.Literals(['Saved', 'Failed']),
@@ -107,6 +123,8 @@ const ToastFixtureModel = Schema.Struct({
   otherToast: OtherToastBlock.Model,
 })
 const ToastFixtureDefinition = Block.makeDefinition('ToastFixture', {
+  key: ToastFixtureKey,
+  Init: Schema.Tuple([]),
   Model: ToastFixtureModel,
   Message: Schema.Never,
 })
@@ -141,6 +159,8 @@ const ToastInstance = Schema.Struct({
   model: ToastBlock.Model,
 })
 const KeyedToastFixtureDefinition = Block.makeDefinition('KeyedToastFixture', {
+  key: KeyedToastFixtureKey,
+  Init: Schema.Tuple([]),
   Model: Schema.Struct({ toasts: Schema.Array(ToastInstance) }),
   Message: Schema.Never,
 })
@@ -171,6 +191,8 @@ const DragAndDropFixtureModel = Schema.Struct({
 const DragAndDropFixtureDefinition = Block.makeDefinition(
   'DragAndDropFixture',
   {
+    key: DragAndDropFixtureKey,
+    Init: Schema.Tuple([]),
     Model: DragAndDropFixtureModel,
     Message: Schema.Never,
   },
@@ -213,6 +235,8 @@ const DragAndDropInstance = Schema.Struct({
 const KeyedDragAndDropFixtureDefinition = Block.makeDefinition(
   'KeyedDragAndDropFixture',
   {
+    key: KeyedDragAndDropFixtureKey,
+    Init: Schema.Tuple([]),
     Model: Schema.Struct({
       dragAndDrops: Schema.Array(DragAndDropInstance),
     }),
@@ -269,6 +293,8 @@ const AnimationInstance = Schema.Struct({
 const KeyedAnimationFixtureDefinition = Block.makeDefinition(
   'KeyedAnimationFixture',
   {
+    key: KeyedAnimationFixtureKey,
+    Init: Schema.Tuple([]),
     Model: Schema.Struct({ animations: Schema.Array(AnimationInstance) }),
     Message: Schema.Never,
   },
@@ -294,7 +320,7 @@ export const KeyedAnimationFixtureComposition =
       }),
     ],
   })
-export const keyedAnimationLeaveWaitStep =
+export const waitForKeyedAnimationLeave =
   KeyedAnimationBinding.requestWaitForLeaveSettlement('Primary')
 export const Model = Schema.Struct({
   animation: Animation.AnimationBlock.Model,
@@ -307,6 +333,9 @@ export const ParentMessage = Message.defineMessageUnion({
   ClickedClear: {},
 })
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message: ParentMessage,
 })
@@ -376,21 +405,7 @@ export const PopoverBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-export type Composition = Block.Composition<
-  typeof ApplicationDefinition.owner,
-  typeof Model,
-  typeof ParentMessage,
-  undefined,
-  readonly [],
-  readonly [
-    typeof AnimationBindingWithOutMessagePolicy,
-    typeof DialogBinding,
-    typeof PickerBinding,
-    typeof PopoverBinding,
-  ]
->
-
-export const createComposition = (): Composition =>
+export const createComposition = () =>
   ApplicationDefinition.makeComposition({
     bindings: [
       AnimationBindingWithOutMessagePolicy,
@@ -398,8 +413,8 @@ export const createComposition = (): Composition =>
       PickerBinding,
       PopoverBinding,
     ],
-    mounts: [],
   })
+export type Composition = ReturnType<typeof createComposition>
 export type Builder = Block.ViewBuilderFor<Composition>
 
 export const pickerView = (model: typeof Model.Type, h: Builder) =>
@@ -455,12 +470,28 @@ export const author = (composition: Composition) => {
   })
   const view = composition.makeView((model, h) => helper(model, h))
 
-  const prepare = () => composition.prepareBlock({ init, update, view })
-  const completedBlock: Block.FromAssemblyWithView<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
-  return completedBlock
+  return ApplicationDefinition.makeBlock(
+    Effect.gen(function* () {
+      const animation = yield* AnimationBindingWithOutMessagePolicy
+      const dialog = yield* DialogBinding
+      const picker = yield* PickerBinding
+      const popover = yield* PopoverBinding
+
+      return {
+        children: [animation, dialog, picker, popover],
+        init,
+        update,
+        view,
+      }
+    }),
+  ).provide(
+    Layer.mergeAll(
+      Animation.layer,
+      Dialog.layer,
+      Combobox.layer,
+      Popover.layer,
+    ),
+  )
 }
 
 export const ElementBlock = author(createComposition())
@@ -469,7 +500,77 @@ export const application = Program.makeElement({
   container: null,
 })
 
+export type AnimationExecutable = Block.ExecutableOf<
+  typeof Animation.AnimationBlock
+>
+export type CalendarExecutable = Block.ExecutableOf<
+  typeof Calendar.CalendarBlock
+>
+export type SliderExecutable = Block.ExecutableOf<typeof Slider.SliderBlock>
+export type RootSliderExecutable = Block.ExecutableOf<typeof RootSlider>
+export type TooltipExecutable = Block.ExecutableOf<typeof Tooltip.TooltipBlock>
+export type ToastExecutable = Block.ExecutableOf<typeof ToastBlock>
+
+export const showAnimation = (
+  animation: AnimationExecutable,
+  model: typeof Animation.AnimationBlock.Model.Type,
+) => animation.inMessageUpdate(model, Animation.InMessage.RequestedShow())
+
+export const showAnimationCurried = (animation: AnimationExecutable) =>
+  animation.inMessageUpdate(Animation.InMessage.RequestedShow())
+
+export const dismissAllToasts = (
+  toast: ToastExecutable,
+  model: typeof ToastBlock.Model.Type,
+) => toast.inMessageUpdate(model, Toast.InMessage.RequestedDismissAll())
+
+export type DirectInputAssertions = [
+  Expect<
+    Equal<
+      Exclude<ReturnType<typeof showAnimation>['outMessage'], undefined>,
+      never
+    >
+  >,
+  Expect<
+    Equal<
+      Update.RequirementsOf<typeof showAnimation>,
+      | Block.FactsOf<typeof Animation.AnimationBlock>['runtimeServices']
+      | Block.InternalExecution<(typeof Animation.AnimationBlock)['owner']>
+    >
+  >,
+  Expect<
+    Equal<
+      ReturnType<ReturnType<typeof showAnimationCurried>>,
+      ReturnType<typeof showAnimation>
+    >
+  >,
+  Expect<
+    Equal<
+      Exclude<ReturnType<typeof dismissAllToasts>['outMessage'], undefined>,
+      never
+    >
+  >,
+]
+
 export type GenericAssertions = [
+  Expect<
+    Equal<
+      Block.FactsOf<typeof MenuPicker>['view']['inputs'],
+      Menu.ViewInputs<'Apple' | 'Pear'>
+    >
+  >,
+  Expect<
+    Equal<
+      Block.FactsOf<typeof Animation.AnimationBlock>['programRequirements'],
+      never
+    >
+  >,
+  Expect<
+    Equal<
+      Block.FactsOf<typeof Calendar.CalendarBlock>['programRequirements'],
+      never
+    >
+  >,
   Expect<
     Equal<ReturnType<typeof matchMenuOutMessage>, 'Apple' | 'Pear' | 'Closed'>
   >,
@@ -480,9 +581,10 @@ export type GenericAssertions = [
   Expect<
     Equal<
       Update.RequirementsOf<
-        typeof Animation.AnimationBlock.operations.requestWaitForLeaveSettlement
+        AnimationExecutable['operations']['requestWaitForLeaveSettlement']
       >,
-      Command.HandlerOf<typeof Animation.test.WaitForAnimationSettled>
+      | Block.FactsOf<typeof Animation.AnimationBlock>['runtimeServices']
+      | Block.InternalExecution<(typeof Animation.AnimationBlock)['owner']>
     >
   >,
   Expect<
@@ -493,11 +595,9 @@ export type GenericAssertions = [
   >,
   Expect<
     Equal<
-      Update.RequirementsOf<
-        typeof Animation.AnimationBlock.operations.requestResume
-      >,
-      | Command.HandlerOf<typeof Animation.test.WaitForAnimationSettled>
-      | Command.HandlerOf<typeof Animation.test.WaitForPaint>
+      Update.RequirementsOf<AnimationExecutable['operations']['requestResume']>,
+      | Block.FactsOf<typeof Animation.AnimationBlock>['runtimeServices']
+      | Block.InternalExecution<(typeof Animation.AnimationBlock)['owner']>
     >
   >,
   Expect<
@@ -508,30 +608,30 @@ export type GenericAssertions = [
   >,
   Expect<
     Equal<
-      Parameters<typeof Slider.SliderBlock.operations.informRangeChanged>,
+      Parameters<SliderExecutable['operations']['informRangeChange']>,
       [
         model: typeof Slider.SliderBlock.Model.Type,
         payload: Block.OperationPayload<
-          typeof Slider.SliderBlock.Message.InformedOfRangeChange
+          typeof Slider.SliderBlock.InMessage.InformedOfRangeChange
         >,
       ]
     >
   >,
   Expect<
     Equal<
-      Parameters<typeof RootSlider.operations.informRangeChanged>,
-      Parameters<typeof Slider.SliderBlock.operations.informRangeChanged>
+      Parameters<RootSliderExecutable['operations']['informRangeChange']>,
+      Parameters<SliderExecutable['operations']['informRangeChange']>
     >
   >,
   Expect<
     Equal<
-      Parameters<typeof Tooltip.TooltipBlock.operations.informShowDelayChanged>,
+      Parameters<TooltipExecutable['operations']['informShowDelayChanged']>,
       [model: typeof Tooltip.TooltipBlock.Model.Type, showDelay: Duration.Input]
     >
   >,
   Expect<
     Equal<
-      Parameters<typeof ToastBlock.operations.requestShow>,
+      Parameters<ToastExecutable['operations']['requestShow']>,
       [
         model: typeof ToastBlock.Model.Type,
         input: Toast.ShowInput<typeof ToastPayload.Type>,
@@ -540,163 +640,233 @@ export type GenericAssertions = [
   >,
 ]
 
-export const sliderRangeChange =
-  Slider.SliderBlock.operations.informRangeChanged(
-    Slider.SliderBlock.init({ id: 'volume', min: 0, max: 100, step: 1 }).model,
-    { min: 10, max: 90 },
-  )
-export const rootSliderRangeChange = RootSlider.operations.informRangeChanged(
-  Slider.SliderBlock.init({ id: 'root-volume', min: 0, max: 100, step: 1 })
-    .model,
-  { min: 20, max: 80 },
+export const sliderRangeChange = Slider.SliderBlock.get.pipe(
+  Effect.map(slider =>
+    slider.operations.informRangeChange(
+      slider.init({ id: 'volume', min: 0, max: 100, step: 1 }).model,
+      { min: 10, max: 90 },
+    ),
+  ),
+  Effect.provide(Slider.layer),
 )
-export const tooltipDelayFromString =
-  Tooltip.TooltipBlock.operations.informShowDelayChanged(
-    Tooltip.TooltipBlock.init({ id: 'help' }).model,
-    '250 millis',
-  )
-export const tooltipDelayFromNumber =
-  Tooltip.TooltipBlock.operations.informShowDelayChanged(
-    Tooltip.TooltipBlock.init({ id: 'details' }).model,
-    300,
-  )
-export const tooltipDelayFromDuration =
-  Tooltip.TooltipBlock.operations.informShowDelayChanged(
-    Tooltip.TooltipBlock.init({ id: 'settings' }).model,
-    Duration.millis(350),
-  )
-const toastModel = ToastBlock.init({ id: 'notifications' }).model
-export const toastFromStringDuration = ToastBlock.operations.requestShow(
-  toastModel,
-  {
-    payload: { kind: 'Saved' },
-    duration: '1 second',
-  },
+export const rootSliderRangeChange = RootSlider.get.pipe(
+  Effect.map(slider =>
+    slider.operations.informRangeChange(
+      slider.init({ id: 'root-volume', min: 0, max: 100, step: 1 }).model,
+      { min: 20, max: 80 },
+    ),
+  ),
+  Effect.provide(Slider.layer),
 )
-export const toastFromNumberDuration = ToastBlock.operations.requestShow(
-  toastModel,
-  {
-    payload: { kind: 'Failed' },
-    duration: 1_000,
-  },
+export const tooltipDelayFromString = Tooltip.TooltipBlock.get.pipe(
+  Effect.map(tooltip =>
+    tooltip.operations.informShowDelayChanged(
+      tooltip.init({ id: 'help' }).model,
+      '250 millis',
+    ),
+  ),
+  Effect.provide(Tooltip.layer),
 )
-export const toastFromDuration = ToastBlock.operations.requestShow(toastModel, {
-  payload: { kind: 'Saved' },
-  duration: Duration.seconds(2),
-})
+export const tooltipDelayFromNumber = Tooltip.TooltipBlock.get.pipe(
+  Effect.map(tooltip =>
+    tooltip.operations.informShowDelayChanged(
+      tooltip.init({ id: 'details' }).model,
+      300,
+    ),
+  ),
+  Effect.provide(Tooltip.layer),
+)
+export const tooltipDelayFromDuration = Tooltip.TooltipBlock.get.pipe(
+  Effect.map(tooltip =>
+    tooltip.operations.informShowDelayChanged(
+      tooltip.init({ id: 'settings' }).model,
+      Duration.millis(350),
+    ),
+  ),
+  Effect.provide(Tooltip.layer),
+)
+export const toastFromStringDuration = ToastBlock.get.pipe(
+  Effect.map(toast =>
+    toast.operations.requestShow(toast.init({ id: 'notifications' }).model, {
+      payload: { kind: 'Saved' },
+      duration: '1 second',
+    }),
+  ),
+  Effect.provide(Toast.layer),
+)
+export const toastFromNumberDuration = ToastBlock.get.pipe(
+  Effect.map(toast =>
+    toast.operations.requestShow(toast.init({ id: 'notifications' }).model, {
+      payload: { kind: 'Failed' },
+      duration: 1_000,
+    }),
+  ),
+  Effect.provide(Toast.layer),
+)
+export const toastFromDuration = ToastBlock.get.pipe(
+  Effect.map(toast =>
+    toast.operations.requestShow(toast.init({ id: 'notifications' }).model, {
+      payload: { kind: 'Saved' },
+      duration: Duration.seconds(2),
+    }),
+  ),
+  Effect.provide(Toast.layer),
+)
 
 const ShapeModel = Schema.Struct({ value: Schema.String })
 const ShapeMessage = Message.defineMessageUnion({ Changed: {} })
 const ShapeOutMessage = Message.defineMessageUnion({ Changed: {} })
-const DeclarationWithOutMessageDefinition = Block.makeDefinition(
-  'DeclarationWithOutMessage',
+type ShapeViewInputs = Readonly<{ label: string }>
+
+export const WithViewAndOutMessageKey = Symbol('WithViewAndOutMessage')
+const WithViewAndOutMessageDefinition = Block.makeDefinition(
+  'WithViewAndOutMessage',
   {
+    key: WithViewAndOutMessageKey,
     Model: ShapeModel,
     Message: ShapeMessage,
     OutMessage: ShapeOutMessage,
+    Init: Schema.Tuple([]),
+    view: {
+      kind: 'Element',
+      Inputs: Block.makeInputContract<ShapeViewInputs>(),
+    },
   },
 )
-const DeclarationWithOutMessageComposition =
-  DeclarationWithOutMessageDefinition.makeComposition()
-const DeclarationWithoutOutMessageComposition = Block.makeDefinition(
-  'DeclarationWithoutOutMessage',
-  {
-    Model: ShapeModel,
-    Message: ShapeMessage,
-  },
-).makeComposition()
-const withOutMessageInit = DeclarationWithOutMessageComposition.makeInit(
-  () => ({ model: ShapeModel.make({ value: '' }) }),
-)
-const withoutOutMessageInit = DeclarationWithoutOutMessageComposition.makeInit(
-  () => ({
-    model: ShapeModel.make({ value: '' }),
+const WithViewAndOutMessageComposition =
+  WithViewAndOutMessageDefinition.makeComposition()
+export const WithViewAndOutMessage = WithViewAndOutMessageDefinition.makeBlock(
+  Effect.succeed({
+    children: [],
+    init: WithViewAndOutMessageComposition.makeInit(() => ({
+      model: ShapeModel.make({ value: '' }),
+    })),
+    update: WithViewAndOutMessageComposition.makeUpdate({
+      Changed: WithViewAndOutMessageDefinition.makeNoopStep(),
+    }),
+    view: WithViewAndOutMessageComposition.makeView.withInputs(
+      (_model, { label }, h) => h.div([], [label]),
+    ),
+    EffectsLayer: Layer.empty,
   }),
 )
-const update = (model: typeof ShapeModel.Type) => ({ model })
-const view = DeclarationWithOutMessageComposition.makeView.withInputs<
-  Readonly<{ label: string }>
->((_model, { label }, h) => h.div([], [label]))
-const plainView = DeclarationWithoutOutMessageComposition.makeView.withInputs<
-  Readonly<{ label: string }>
->((_model, { label }, h) => h.div([], [label]))
 
-const withViewAndOutMessageImplementation = {
-  init: withOutMessageInit,
-  update,
-  view,
-  EffectsLayer: Layer.empty,
-}
-const prepareWithViewAndOutMessage = () =>
-  DeclarationWithOutMessageComposition.prepareBlock(
-    withViewAndOutMessageImplementation,
+export const WithOutMessageOnlyKey = Symbol('WithOutMessageOnly')
+const WithOutMessageOnlyDefinition = Block.makeDefinition(
+  'WithOutMessageOnly',
+  {
+    key: WithOutMessageOnlyKey,
+    Model: ShapeModel,
+    Message: ShapeMessage,
+    OutMessage: ShapeOutMessage,
+    Init: Schema.Tuple([]),
+  },
+)
+const WithOutMessageOnlyComposition =
+  WithOutMessageOnlyDefinition.makeComposition()
+export const WithOutMessageOnly = WithOutMessageOnlyDefinition.makeBlock(
+  Effect.succeed({
+    children: [],
+    init: WithOutMessageOnlyComposition.makeInit(() => ({
+      model: ShapeModel.make({ value: '' }),
+    })),
+    update: WithOutMessageOnlyComposition.makeUpdate({
+      Changed: WithOutMessageOnlyDefinition.makeNoopStep(),
+    }),
+    EffectsLayer: Layer.empty,
+  }),
+)
+
+export const WithViewOnlyKey = Symbol('WithViewOnly')
+const WithViewOnlyDefinition = Block.makeDefinition('WithViewOnly', {
+  key: WithViewOnlyKey,
+  Model: ShapeModel,
+  Message: ShapeMessage,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ShapeViewInputs>() },
+})
+const WithViewOnlyComposition = WithViewOnlyDefinition.makeComposition()
+export const WithViewOnly = WithViewOnlyDefinition.makeBlock(
+  Effect.succeed({
+    children: [],
+    init: WithViewOnlyComposition.makeInit(() => ({
+      model: ShapeModel.make({ value: '' }),
+    })),
+    update: WithViewOnlyComposition.makeUpdate({
+      Changed: WithViewOnlyDefinition.makeNoopStep(),
+    }),
+    view: WithViewOnlyComposition.makeView.withInputs((_model, { label }, h) =>
+      h.div([], [label]),
+    ),
+    EffectsLayer: Layer.empty,
+  }),
+)
+
+export const WithoutViewOrOutMessageKey = Symbol('WithoutViewOrOutMessage')
+const WithoutViewOrOutMessageDefinition = Block.makeDefinition(
+  'WithoutViewOrOutMessage',
+  {
+    key: WithoutViewOrOutMessageKey,
+    Model: ShapeModel,
+    Message: ShapeMessage,
+    Init: Schema.Tuple([]),
+  },
+)
+const WithoutViewOrOutMessageComposition =
+  WithoutViewOrOutMessageDefinition.makeComposition()
+export const WithoutViewOrOutMessage =
+  WithoutViewOrOutMessageDefinition.makeBlock(
+    Effect.succeed({
+      children: [],
+      init: WithoutViewOrOutMessageComposition.makeInit(() => ({
+        model: ShapeModel.make({ value: '' }),
+      })),
+      update: WithoutViewOrOutMessageComposition.makeUpdate({
+        Changed: WithoutViewOrOutMessageDefinition.makeNoopStep(),
+      }),
+      EffectsLayer: Layer.empty,
+    }),
   )
-export const WithViewAndOutMessage: Block.FromAssemblyWithViewAndOutMessage<
-  typeof ShapeModel,
-  typeof prepareWithViewAndOutMessage
-> = Block.assemble(prepareWithViewAndOutMessage)
-const prepareWithOutMessageOnly = () =>
-  DeclarationWithOutMessageComposition.prepareBlock({
-    init: withOutMessageInit,
-    update,
-    EffectsLayer: Layer.empty,
-  })
-export const WithOutMessageOnly: Block.FromAssemblyWithOutMessage<
-  typeof ShapeModel,
-  typeof prepareWithOutMessageOnly
-> = Block.assemble(prepareWithOutMessageOnly)
-const prepareWithViewOnly = () =>
-  DeclarationWithoutOutMessageComposition.prepareBlock({
-    init: withoutOutMessageInit,
-    update,
-    view: plainView,
-    EffectsLayer: Layer.empty,
-  })
-export const WithViewOnly: Block.FromAssemblyWithView<
-  typeof ShapeModel,
-  typeof prepareWithViewOnly
-> = Block.assemble(prepareWithViewOnly)
-const prepareWithoutViewOrOutMessage = () =>
-  DeclarationWithoutOutMessageComposition.prepareBlock({
-    init: withoutOutMessageInit,
-    update,
-    EffectsLayer: Layer.empty,
-  })
-export const WithoutViewOrOutMessage: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof ShapeModel,
-  typeof prepareWithoutViewOrOutMessage
-> = Block.assemble(prepareWithoutViewOrOutMessage)
 
-type BroadOutMessageBlock = Block.Block<
-  typeof DeclarationWithOutMessageDefinition.owner,
-  typeof ShapeModel,
-  typeof ShapeMessage,
-  typeof ShapeOutMessage | undefined,
-  (typeof DeclarationWithOutMessageComposition)[typeof Block.LocalMountsTypeId],
-  typeof DeclarationWithOutMessageComposition.bindings,
-  typeof withViewAndOutMessageImplementation
->
-type OutMessagePresence<BlockValue> = BlockValue extends unknown
-  ? BlockValue extends Readonly<{ OutMessage: unknown }>
-    ? 'WithOutMessage'
-    : 'WithoutOutMessage'
-  : never
+type OutMessagePresence<BlockValue> =
+  BlockValue extends Readonly<{ OutMessage: undefined }>
+    ? 'WithoutOutMessage'
+    : 'WithOutMessage'
 
 export type ShapeAssertions = [
   Expect<
     Equal<
-      OutMessagePresence<BroadOutMessageBlock>,
+      OutMessagePresence<
+        typeof WithViewAndOutMessage | typeof WithoutViewOrOutMessage
+      >,
       'WithOutMessage' | 'WithoutOutMessage'
     >
+  >,
+  Expect<
+    Equal<OutMessagePresence<typeof WithOutMessageOnly>, 'WithOutMessage'>
+  >,
+  Expect<Equal<OutMessagePresence<typeof WithViewOnly>, 'WithoutOutMessage'>>,
+  Expect<
+    Equal<
+      Block.FactsOf<typeof WithViewAndOutMessage>['view'],
+      Block.ViewContract<ShapeViewInputs, 'Element'>
+    >
+  >,
+  Expect<Equal<Block.FactsOf<typeof WithOutMessageOnly>['view'], undefined>>,
+  Expect<
+    Equal<
+      Block.FactsOf<typeof WithViewOnly>['view'],
+      Block.ViewContract<ShapeViewInputs, 'Element'>
+    >
+  >,
+  Expect<
+    Equal<Block.FactsOf<typeof WithoutViewOrOutMessage>['view'], undefined>
   >,
 ]
 
 export type ExactAnimationUpdateOutMessage = Expect<
   Equal<
-    Exclude<
-      ReturnType<typeof Animation.AnimationBlock.update>['outMessage'],
-      undefined
-    >,
+    Exclude<ReturnType<AnimationExecutable['update']>['outMessage'], undefined>,
     typeof Animation.AnimationBlock.OutMessage.Type
   >
 >
@@ -704,7 +874,7 @@ export type ExactAnimationFinishOutMessage = Expect<
   Equal<
     Exclude<
       ReturnType<
-        typeof Animation.AnimationBlock.operations.requestFinish
+        AnimationExecutable['operations']['requestFinish']
       >['outMessage'],
       undefined
     >,
@@ -718,7 +888,7 @@ export type ExactAnimationShowOutMessage = Expect<
   Equal<
     Exclude<
       ReturnType<
-        typeof Animation.AnimationBlock.operations.requestShow
+        AnimationExecutable['operations']['requestShow']
       >['outMessage'],
       undefined
     >,
@@ -729,7 +899,7 @@ export type ExactAnimationHideOutMessage = Expect<
   Equal<
     Exclude<
       ReturnType<
-        typeof Animation.AnimationBlock.operations.requestHide
+        AnimationExecutable['operations']['requestHide']
       >['outMessage'],
       undefined
     >,
@@ -738,33 +908,30 @@ export type ExactAnimationHideOutMessage = Expect<
 >
 export type ExactAnimationShowRequirements = Expect<
   Equal<
-    Update.RequirementsOf<
-      typeof Animation.AnimationBlock.operations.requestShow
-    >,
-    Command.HandlerOf<typeof Animation.test.WaitForPaint>
+    Update.RequirementsOf<AnimationExecutable['operations']['requestShow']>,
+    | Block.FactsOf<typeof Animation.AnimationBlock>['runtimeServices']
+    | Block.InternalExecution<(typeof Animation.AnimationBlock)['owner']>
   >
 >
 export type ExactAnimationHideRequirements = Expect<
   Equal<
-    Update.RequirementsOf<
-      typeof Animation.AnimationBlock.operations.requestHide
-    >,
-    Command.HandlerOf<typeof Animation.test.WaitForPaint>
+    Update.RequirementsOf<AnimationExecutable['operations']['requestHide']>,
+    | Block.FactsOf<typeof Animation.AnimationBlock>['runtimeServices']
+    | Block.InternalExecution<(typeof Animation.AnimationBlock)['owner']>
   >
 >
 export type ExactAnimationFinishRequirements = Expect<
   Equal<
-    Update.RequirementsOf<
-      typeof Animation.AnimationBlock.operations.requestFinish
-    >,
-    never
+    Update.RequirementsOf<AnimationExecutable['operations']['requestFinish']>,
+    | Block.FactsOf<typeof Animation.AnimationBlock>['runtimeServices']
+    | Block.InternalExecution<(typeof Animation.AnimationBlock)['owner']>
   >
 >
 export type ExactCalendarDropOutMessage = Expect<
   Equal<
     Exclude<
       ReturnType<
-        typeof Calendar.CalendarBlock.operations.requestDropToDays
+        CalendarExecutable['operations']['requestDropToDays']
       >['outMessage'],
       undefined
     >,
@@ -774,16 +941,17 @@ export type ExactCalendarDropOutMessage = Expect<
 export type ExactCalendarDropRequirements = Expect<
   Equal<
     Update.RequirementsOf<
-      typeof Calendar.CalendarBlock.operations.requestDropToDays
+      CalendarExecutable['operations']['requestDropToDays']
     >,
-    never
+    | Block.FactsOf<typeof Calendar.CalendarBlock>['runtimeServices']
+    | Block.InternalExecution<(typeof Calendar.CalendarBlock)['owner']>
   >
 >
 export type ExactCalendarSelectOutMessage = Expect<
   Equal<
     Exclude<
       ReturnType<
-        typeof Calendar.CalendarBlock.operations.requestSelectDate
+        CalendarExecutable['operations']['requestSelectDate']
       >['outMessage'],
       undefined
     >,
@@ -797,7 +965,7 @@ export type ExactSliderRangeOutMessage = Expect<
   Equal<
     Exclude<
       ReturnType<
-        typeof Slider.SliderBlock.operations.informRangeChanged
+        SliderExecutable['operations']['informRangeChange']
       >['outMessage'],
       undefined
     >,
@@ -807,7 +975,9 @@ export type ExactSliderRangeOutMessage = Expect<
 export type ExactRootSliderRangeOutMessage = Expect<
   Equal<
     Exclude<
-      ReturnType<typeof RootSlider.operations.informRangeChanged>['outMessage'],
+      ReturnType<
+        RootSliderExecutable['operations']['informRangeChange']
+      >['outMessage'],
       undefined
     >,
     never

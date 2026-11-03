@@ -19,7 +19,12 @@ type MessageCandidate<OwnerMessage, ExactMessage, DeclaredMessage> =
   DeclaredMessage extends Readonly<{
     _tag: infer Tag
   }>
-    ? Extract<Extract<OwnerMessage, Readonly<{ _tag: Tag }>>, ExactMessage>
+    ? IsAny<ExactMessage> extends true
+      ? Extract<OwnerMessage, Readonly<{ _tag: Tag }>>
+      : Extract<
+          Extract<Extract<OwnerMessage, Readonly<{ _tag: Tag }>>, ExactMessage>,
+          DeclaredMessage
+        >
     : never
 
 type InvalidModelCallback<

@@ -1,14 +1,16 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { expect, test } from 'vitest'
+import { expect } from 'vitest'
 
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock } from './block'
 import { FetchWeather } from './command'
 import { Message } from './message'
 import { weatherData, weatherModel } from './model.fixture'
-import { update } from './update'
 
-test('submitting the weather form fetches weather and shows result', () => {
+it.effect('submitting the weather form fetches weather and shows result', () =>
   story(
-    update,
+    ApplicationBlock,
     given(weatherModel),
     message(Message.SubmittedWeatherForm()),
     model(model => {
@@ -25,12 +27,12 @@ test('submitting the weather form fetches weather and shows result', () => {
         expect(model.weather.data.locationName).toBe('Beverly Hills')
       }
     }),
-  )
-})
+  ),
+)
 
-test('failed fetch shows failure state', () => {
+it.effect('failed fetch shows failure state', () =>
   story(
-    update,
+    ApplicationBlock,
     given(weatherModel),
     message(Message.SubmittedWeatherForm()),
     Command.resolve(
@@ -43,5 +45,5 @@ test('failed fetch shows failure state', () => {
         expect(model.weather.error).toBe('Network error')
       }
     }),
-  )
-})
+  ),
+)

@@ -1,12 +1,12 @@
-import { Option } from 'effect'
+import { Effect, Option } from 'effect'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
-import { expect } from 'vitest'
+import { it as baseIt, expect } from 'vitest'
 
-import { describe, it } from '@effect/vitest'
+import { describe, makeMethods } from '@effect/vitest'
 
-import * as Animation from '../animation/block.js'
-import { init, update } from './multi.js'
+import { makeInitialModel } from '../animation/schema.js'
+import { block, layer, makeBlock } from './multi.js'
 import type { Model, ViewInputs } from './multi.js'
 import {
   AnchorListbox,
@@ -23,6 +23,8 @@ const view = makeView<Model>({ ariaMultiSelectable: true })<string, string>()
 
 type TestHtmlBuilder = Parameters<typeof view>[2]
 
+const TestListbox = makeBlock<string>()
+
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorListbox,
   Message.CompletedAnchorListbox(),
@@ -32,10 +34,14 @@ const acknowledgeBackdrop = Scene.Mount.resolve(
   Message.CompletedPortalListboxBackdrop(),
 )
 
-const givenClosed = Story.given(init({ id: 'test' }).model)
+type ListboxOperations = Pick<
+  Effect.Success<typeof block.get>,
+  'init' | 'update' | 'operations'
+>
+
+const givenClosed = Story.init({ id: 'test' })
 
 const givenOpenMulti = Story.steps(
-  givenClosed,
   Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
   Story.Command.resolve(
     FocusListboxItems,
@@ -43,73 +49,128 @@ const givenOpenMulti = Story.steps(
   ),
 )
 
+const makeFixture = (listbox: ListboxOperations) => {
+  const { init, update } = listbox
+  const givenClosed = Story.given(init({ id: 'test' }).model)
+
+  const givenOpenMulti = Story.steps(
+    givenClosed,
+    Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+    Story.Command.resolve(
+      FocusListboxItems,
+      Message.CompletedFocusListboxItems(),
+    ),
+  )
+
+  const closedModel = () => init({ id: 'test' }).model
+
+  const openMultiModel = (): Model =>
+    update(
+      closedModel(),
+      Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+    ).model
+
+  return {
+    init,
+    update,
+    givenClosed,
+    givenOpenMulti,
+    closedModel,
+    openMultiModel,
+  }
+}
+
+const it = makeMethods(
+  baseIt.extend<{ listbox: ReturnType<typeof makeFixture> }>({
+    listbox: async ({}, use) =>
+      Effect.runPromise(
+        Story.withBlock(block, listbox =>
+          Effect.promise(() => use(makeFixture(listbox))),
+        ),
+      ),
+  }),
+)
+
 describe('Listbox.Multi', () => {
   describe('init', () => {
-    it('defaults to closed with no active item', () => {
-      expect(init({ id: 'test' }).model).toStrictEqual({
-        id: 'test',
-        isOpen: false,
-        isAnimated: false,
-        isModal: false,
-        orientation: 'Vertical',
-        animation: Animation.init({ id: 'test-listbox' }).model,
-        maybeActiveItemIndex: Option.none(),
-        activationTrigger: 'Keyboard',
-        searchQuery: '',
-        searchVersion: 0,
-        maybeLastPointerPosition: Option.none(),
-        maybeLastButtonPointerType: Option.none(),
-      })
-    })
+    it.effect('defaults to closed with no active item', () =>
+      Story.story(
+        block,
+        Story.init({ id: 'test' }),
+        Story.model(model => {
+          expect(model).toStrictEqual({
+            id: 'test',
+            isOpen: false,
+            isAnimated: false,
+            isModal: false,
+            orientation: 'Vertical',
+            animation: makeInitialModel({ id: 'test-listbox' }),
+            maybeActiveItemIndex: Option.none(),
+            activationTrigger: 'Keyboard',
+            searchQuery: '',
+            searchVersion: 0,
+            maybeLastPointerPosition: Option.none(),
+            maybeLastButtonPointerType: Option.none(),
+          })
+        }),
+      ),
+    )
   })
 
   describe('update', () => {
     describe('SelectedItem (multiple)', () => {
-      it('emits Selected with the item value', () => {
+      it.effect('emits Selected with the item value', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpenMulti,
           Story.message(Message.SelectedItem({ item: 'apple' })),
           Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
-        )
-      })
+        ),
+      )
 
-      it('stays open after selection', () => {
+      it.effect('stays open after selection', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpenMulti,
           Story.message(Message.SelectedItem({ item: 'apple' })),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
-        )
-      })
+        ),
+      )
 
-      it('emits Selected again when the same item is activated (parent toggles off)', () => {
-        Story.story(
-          update,
-          givenOpenMulti,
-          Story.message(Message.SelectedItem({ item: 'apple' })),
-          Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
-          Story.message(Message.SelectedItem({ item: 'apple' })),
-          Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
-        )
-      })
+      it.effect(
+        'emits Selected again when the same item is activated (parent toggles off)',
+        () =>
+          Story.story(
+            block,
+            givenClosed,
+            givenOpenMulti,
+            Story.message(Message.SelectedItem({ item: 'apple' })),
+            Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
+            Story.message(Message.SelectedItem({ item: 'apple' })),
+            Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
+          ),
+      )
 
-      it('emits Selected for each activated item', () => {
+      it.effect('emits Selected for each activated item', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpenMulti,
           Story.message(Message.SelectedItem({ item: 'apple' })),
           Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
           Story.message(Message.SelectedItem({ item: 'banana' })),
           Story.expectOutMessage(OutMessage.Selected({ value: 'banana' })),
-        )
-      })
+        ),
+      )
 
-      it('preserves active item after selection', () => {
+      it.effect('preserves active item after selection', () =>
         Story.story(
-          update,
+          block,
+          givenClosed,
           givenOpenMulti,
           Story.message(
             Message.ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
@@ -122,25 +183,26 @@ describe('Listbox.Multi', () => {
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
-        )
-      })
+        ),
+      )
     })
   })
 
   describe('view', () => {
-    const closedModel = () => init({ id: 'test' }).model
-
-    const openMultiModel = (): Model => {
-      let model!: Model
-      Story.story(
-        update,
-        givenOpenMulti,
-        Story.model(extractedModel => {
-          model = extractedModel
-        }),
-      )
-      return model
-    }
+    const sceneViewInputs = (
+      overrides: Omit<
+        Partial<ViewInputs<string>>,
+        'items' | 'itemToConfig' | 'buttonContent'
+      > = {},
+    ): ViewInputs<string> => ({
+      items: ['Apple', 'Banana'],
+      itemToConfig: () => ({
+        content: null,
+      }),
+      buttonContent: null,
+      selectedValues: [],
+      ...overrides,
+    })
 
     const sceneView =
       (
@@ -165,7 +227,9 @@ describe('Listbox.Multi', () => {
         )
 
     describe('aria-multiselectable', () => {
-      it('items container has aria-multiselectable', () => {
+      it('items container has aria-multiselectable', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(openMultiModel()),
@@ -185,7 +249,9 @@ describe('Listbox.Multi', () => {
       const itemsContainer = Scene.selector('#test-items')
       const item = (index: number) => Scene.selector(`#test-item-${index}`)
 
-      it('emits aria-readonly alongside aria-multiselectable', () => {
+      it('emits aria-readonly alongside aria-multiselectable', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(openMultiModel()),
@@ -200,7 +266,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('drops the item click handler so membership cannot be toggled', () => {
+      it('drops the item click handler so membership cannot be toggled', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -216,7 +284,9 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('does not commit the active item on Enter', () => {
+      it('does not commit the active item on Enter', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           { update, view: sceneView({ isReadOnly: true }) },
           Scene.given(openMultiModel()),
@@ -231,59 +301,73 @@ describe('Listbox.Multi', () => {
     })
 
     describe('button labeling', () => {
-      it('no aria-label or aria-labelledby on the trigger by default', () => {
-        Scene.scene(
-          { update, view: sceneView() },
-          Scene.given(closedModel()),
-          Scene.tap(({ html }) => {
-            const button = Scene.find(html, '[key="test-button"]')
-            expect(button).not.toHaveAttr('aria-label')
-            expect(button).not.toHaveAttr('aria-labelledby')
-          }),
-        )
-      })
-
-      it('applies aria-label to the trigger when ariaLabel is provided', () => {
-        Scene.scene(
-          { update, view: sceneView({ ariaLabel: 'Fruit' }) },
-          Scene.given(closedModel()),
-          Scene.tap(({ html }) => {
-            const button = Scene.find(html, '[key="test-button"]')
-            expect(button).toHaveAttr('aria-label', 'Fruit')
-            expect(button).not.toHaveAttr('aria-labelledby')
-          }),
-        )
-      })
-
-      it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', () => {
-        Scene.scene(
-          { update, view: sceneView({ ariaLabelledBy: 'fruit-label' }) },
-          Scene.given(closedModel()),
-          Scene.tap(({ html }) => {
-            const button = Scene.find(html, '[key="test-button"]')
-            expect(button).toHaveAttr('aria-labelledby', 'fruit-label')
-            expect(button).not.toHaveAttr('aria-label')
-          }),
-        )
-      })
-
-      it('prefers aria-label over aria-labelledby when both are provided', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              ariaLabel: 'Fruit',
-              ariaLabelledBy: 'fruit-label',
+      it.effect(
+        'no aria-label or aria-labelledby on the trigger by default',
+        () =>
+          Scene.scene(
+            { block: TestListbox, viewInputs: sceneViewInputs() },
+            Scene.init({ id: 'test' }),
+            Scene.tap(({ html }) => {
+              const button = Scene.find(html, '[key="test-button"]')
+              expect(button).not.toHaveAttr('aria-label')
+              expect(button).not.toHaveAttr('aria-labelledby')
             }),
-          },
-          Scene.given(closedModel()),
-          Scene.tap(({ html }) => {
-            const button = Scene.find(html, '[key="test-button"]')
-            expect(button).toHaveAttr('aria-label', 'Fruit')
-            expect(button).not.toHaveAttr('aria-labelledby')
-          }),
-        )
-      })
+          ).pipe(Effect.provide(layer)),
+      )
+
+      it.effect(
+        'applies aria-label to the trigger when ariaLabel is provided',
+        () =>
+          Scene.scene(
+            {
+              block: TestListbox,
+              viewInputs: sceneViewInputs({ ariaLabel: 'Fruit' }),
+            },
+            Scene.init({ id: 'test' }),
+            Scene.tap(({ html }) => {
+              const button = Scene.find(html, '[key="test-button"]')
+              expect(button).toHaveAttr('aria-label', 'Fruit')
+              expect(button).not.toHaveAttr('aria-labelledby')
+            }),
+          ).pipe(Effect.provide(layer)),
+      )
+
+      it.effect(
+        'applies aria-labelledby to the trigger when ariaLabelledBy is provided',
+        () =>
+          Scene.scene(
+            {
+              block: TestListbox,
+              viewInputs: sceneViewInputs({ ariaLabelledBy: 'fruit-label' }),
+            },
+            Scene.init({ id: 'test' }),
+            Scene.tap(({ html }) => {
+              const button = Scene.find(html, '[key="test-button"]')
+              expect(button).toHaveAttr('aria-labelledby', 'fruit-label')
+              expect(button).not.toHaveAttr('aria-label')
+            }),
+          ).pipe(Effect.provide(layer)),
+      )
+
+      it.effect(
+        'prefers aria-label over aria-labelledby when both are provided',
+        () =>
+          Scene.scene(
+            {
+              block: TestListbox,
+              viewInputs: sceneViewInputs({
+                ariaLabel: 'Fruit',
+                ariaLabelledBy: 'fruit-label',
+              }),
+            },
+            Scene.init({ id: 'test' }),
+            Scene.tap(({ html }) => {
+              const button = Scene.find(html, '[key="test-button"]')
+              expect(button).toHaveAttr('aria-label', 'Fruit')
+              expect(button).not.toHaveAttr('aria-labelledby')
+            }),
+          ).pipe(Effect.provide(layer)),
+      )
 
       it('buttonId derives the trigger id from the base id', () => {
         expect(buttonId('test')).toBe('test-button')
@@ -291,7 +375,9 @@ describe('Listbox.Multi', () => {
     })
 
     describe('multiple data-selected', () => {
-      it('multiple items have data-selected', () => {
+      it('multiple items have data-selected', ({
+        listbox: { update, openMultiModel },
+      }) => {
         Scene.scene(
           {
             update,
@@ -315,29 +401,32 @@ describe('Listbox.Multi', () => {
     })
 
     describe('form integration', () => {
-      it('renders multiple hidden inputs for multi-select', () => {
+      it.effect('renders multiple hidden inputs for multi-select', () =>
         Scene.scene(
           {
-            update,
-            view: sceneView({
+            block: TestListbox,
+            viewInputs: sceneViewInputs({
               name: 'fruit',
               selectedValues: ['Apple', 'Banana'],
             }),
           },
-          Scene.given(closedModel()),
+          Scene.init({ id: 'test' }),
           Scene.tap(({ html }) => {
             const inputs = Scene.findAll(html, 'input[type="hidden"]')
             expect(inputs).toHaveLength(2)
             expect(Scene.find(html, 'input[value="Apple"]')).toExist()
             expect(Scene.find(html, 'input[value="Banana"]')).toExist()
           }),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
 
-      it('renders empty hidden input when no items selected', () => {
+      it.effect('renders empty hidden input when no items selected', () =>
         Scene.scene(
-          { update, view: sceneView({ name: 'fruit' }) },
-          Scene.given(closedModel()),
+          {
+            block: TestListbox,
+            viewInputs: sceneViewInputs({ name: 'fruit' }),
+          },
+          Scene.init({ id: 'test' }),
           Scene.tap(({ html }) => {
             const inputs = Scene.findAll(html, 'input[type="hidden"]')
             expect(inputs).toHaveLength(1)
@@ -345,8 +434,8 @@ describe('Listbox.Multi', () => {
               'value',
             )
           }),
-        )
-      })
+        ).pipe(Effect.provide(layer)),
+      )
     })
   })
 })

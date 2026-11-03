@@ -2,17 +2,20 @@ import { Array, Option, pipe } from 'effect'
 import { File } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
+import {
+  Education,
+  EducationEntryBlock,
+  PersonalInfo,
+  Skills,
+  WorkHistory,
+  WorkHistoryEntryBlock,
+} from '../blocks'
 import type { ApplicationViewBuilder } from '../composition'
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model, Submission } from '../model'
-import { EducationEntryBlock, WorkHistoryEntryBlock } from '../step'
-import { isComplete as isEducationComplete } from '../step/education/update'
-import { isComplete as isPersonalInfoComplete } from '../step/personalInfo/update'
-import { isComplete as isSkillsComplete } from '../step/skills/update'
-import { isComplete as isWorkHistoryComplete } from '../step/workHistory/update'
 import { employmentRange, pluralize } from './format'
 
 type WorkHistoryEntryModel = typeof WorkHistoryEntryBlock.Model.Type
@@ -273,7 +276,7 @@ const submissionSection = (
           ...(shouldShowBlockedNotice
             ? [blockedNotice(attentionSteps, h)]
             : []),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedSubmit(),
               toView: attributes =>
@@ -290,7 +293,7 @@ const submissionSection = (
       h.div(
         [h.Class('pt-4')],
         [
-          Button.view(
+          buttonView(
             {
               toView: attributes =>
                 h.button(
@@ -342,7 +345,7 @@ const submissionSection = (
           ...(shouldShowBlockedNotice
             ? [blockedNotice(attentionSteps, h)]
             : []),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedSubmit(),
               toView: attributes =>
@@ -369,10 +372,10 @@ export const review = (
   })
 
   const isApplicationComplete =
-    isPersonalInfoComplete(model.personalInfo) &&
-    isWorkHistoryComplete(model.workHistory) &&
-    isEducationComplete(model.education) &&
-    isSkillsComplete(model.skills)
+    PersonalInfo.isComplete(model.personalInfo) &&
+    WorkHistory.isComplete(model.workHistory) &&
+    Education.isComplete(model.education) &&
+    Skills.isComplete(model.skills)
 
   return h.div(
     [h.Class('space-y-4')],

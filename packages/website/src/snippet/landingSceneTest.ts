@@ -10,12 +10,15 @@ import {
   text,
   type,
 } from 'foldkit/scene'
-import { test } from 'vitest'
+
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock } from './application'
 
 // Scene: test through the view
-test('type a zip code, click get weather, see the forecast', () => {
+it.effect('type a zip code, click get weather, see the forecast', () =>
   scene(
-    { update, view },
+    ApplicationBlock,
     given(model),
     type(label('Zip code'), '90210'),
     click(role('button', { name: 'Get Weather' })),
@@ -27,5 +30,5 @@ test('type a zip code, click get weather, see the forecast', () => {
       expect(text('Beverly Hills, California')).toExist(),
       expect(text('72°F')).toExist(),
     ),
-  )
-})
+  ),
+)

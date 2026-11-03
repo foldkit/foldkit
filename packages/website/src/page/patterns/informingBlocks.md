@@ -6,7 +6,7 @@
 
 A Block sometimes needs to react to a change it does not own. The URL may change, a server may push new data, or a sibling field may establish a new constraint. The parent observes that change, but the child still owns the state transition it causes.
 
-Expose an `inform*` operation from the completed child Block, paired with an `InformedOf*` Message: `informJoined` selects `Message.InformedOfJoin`, for example. Select the Message constructor directly when its payload is the public input. Use a tuple producer when the inputs need mapping or refinement. The completed Block or registered Binding passes that Message through the child's update synchronously as part of the pure transition, so update owns the next Model and Commands. Composition derives delivery wrappers from its registered child Bindings. The parent does not declare those wrappers or construct child Messages to initiate this transition. It calls the projected `binding.inform*(...)` instead.
+Declare an `InformedOf*` variant in the child's `InMessage` Schema. For example, `InMessage.InformedOfJoin` generates `Binding.informJoin(...)`. Handle the notification in `Composition.makeInMessageUpdate`; that handler owns the next Model and Commands. The parent calls the generated Binding method, which applies the child transition synchronously. It does not construct a child-local Message or enqueue another Runtime Message.
 
 ### Inform Every Child-Owned Change
 
@@ -14,7 +14,7 @@ Use `inform*` whenever a parent-owned fact changes the child Model. The notifica
 
 ### Routing Example
 
-The example below uses routing. A People Block owns its search input, results, and recent searches. The root owns the Route. When the URL resolves to a People Route, the root calls `people.informRouteChanged` through its Binding.
+The example below uses routing. A People Block owns its search input, results, and recent searches. The root owns the Route. When the URL resolves to a People Route, the root calls `PeopleBinding.informRouteChange`.
 
 :::Info{label="Prerequisite"}
 This page builds on the [Blocks](/core/block) pattern. Read that first for the local Message, generated delivery, and Binding boundaries.
@@ -22,42 +22,42 @@ This page builds on the [Blocks](/core/block) pattern. Read that first for the l
 
 ## The Child
 
-### Keep the Message Private
+### Separate Inputs From Local Messages
 
-People declares its Model, Message, and early `PeopleDefinition` in cycle-safe files. The internal `InformedOfRouteChange` Message carries only the `PeopleRoute` alias derived from `ApplicationRoute.People`, the part of the application Route that the feature understands. Commands import that early definition and the Message constructors they produce; the completed Block imports the Commands and their handler recipes.
+People declares its Model, Message, InMessage, and early `PeopleDefinition` in cycle-safe files. `InMessage.InformedOfRouteChange` carries only the `PeopleRoute` alias derived from `ApplicationRoute.People`, the part of the application Route that the feature understands. Command results remain local Messages. Commands import the early Definition and the Message constructors they produce; the completed Block imports the Commands and their handler recipes.
 
-::Snippet{name="informingBlocksMessage" label="People Message contract"}
+::Snippet{name="informingBlocksMessage" label="People Message and InMessage contracts"}
 
 ::Snippet{name="informingBlocksDefinition" label="Early People Definition"}
 
-Update copies the route query into the input, records it in recent searches, and returns `FetchPeople` for the new results.
+The InMessage handler copies the route query into the input, records it in recent searches, and returns `FetchPeople` for the new results. Update handles the Command's completion.
 
-### Declare a Public Operation
+### Handle the Notification
 
-`informRouteChanged` selects `Message.InformedOfRouteChange` directly in the Block’s `operations` record. Completion creates the callable operation without constructing a Message. That operation takes one constructor payload object for the Message fields, with constructor defaults honored, and passes the child-local fact through update synchronously. It does not enqueue another Runtime Message. Update owns the invariant, Model transition, and `FetchPeople` Command. The parent calls the projected Binding operation without manufacturing a child Message.
+The Definition generates `informRouteChange` from `InMessage.InformedOfRouteChange`. It takes the variant's payload object, with constructor defaults honored. Its InMessage handler owns the invariant, Model transition, and `FetchPeople` Command. Return the portable InMessage update from the Block constructor alongside update and init.
 
-::Snippet{name="informingBlocksChild" label="Child informRouteChanged helper"}
+::Snippet{name="informingBlocksChild" label="Receiving a route change"}
 
 :::Warning{label="Not an OutMessage"}
-`InformedOfRouteChange` moves from parent to child through an `inform*` operation. An [OutMessage](/core/block#surfacing-facts) moves a fact from child to parent.
+`InMessage.InformedOfRouteChange` moves from parent to child through `informRouteChange`. An [OutMessage](/core/block#surfacing-facts) moves a fact from child to parent.
 :::
 
 ## The Parent
 
 ### Define the Parent Folds
 
-The People Binding declares its parent Model `field` once; Composition derives its child delivery. If People declares OutMessages, select its parent-owned policy with `withOutMessagePolicy` and register that full Binding. The selected Binding keeps the same projected operations, so `PeopleBinding.informRouteChanged` still produces and handles the public `InformedOfRouteChange` operation through the same boundary. The `ChangedUrl` handler matches the next Route and composes the resulting connected child Step with the pure `setRouteStep` through `Update.combineSteps`. The `makeUpdate` Model supplies the registered graph, and the projected operation retains the Binding and child update requirements for application composition.
+The People Binding declares its parent Model `field` once; Composition derives its child delivery. If People declares OutMessages, select its parent-owned policy with `withOutMessagePolicy` and register that full Binding. The selected Binding retains `PeopleBinding.informRouteChange` and its exact result channels. The `ChangedUrl` handler matches the next Route and composes the connected child Step with the pure `setRoute` through `Update.combineSteps`. The `makeUpdate` Model supplies the registered graph, and the generated method retains the Binding and InMessage update requirements for application composition.
 
 ::Snippet{name="informingBlocksParent" label="Parent route fold"}
 
 :::Info{label="Multiple Blocks"}
-When several page Blocks react to routing, match the next Route and return the `informRouteChanged` step for the page that owns that Route.
+When several page Blocks react to routing, match the next Route and return the `informRouteChange` Step for the page that owns that Route.
 :::
 
 ### Handle Cold Loads Separately
 
 :::Warning{label="Cold loads"}
-`informRouteChanged` handles later URL changes. The parent excerpt uses `init: false` because it does not show startup. On a cold load, root init must pass the People Route through the registered Binding’s initialization recipe, or the Binding can declare an argument policy from shared ChildInitContext. See [Cold Loads and the Initial Route](/core/routing-and-navigation#cold-loads).
+`informRouteChange` handles later URL changes. The parent excerpt uses `init: false` because it does not show startup. On a cold load, root init must pass the People Route through the registered Binding’s initialization recipe, or the Binding can declare an argument policy from shared ChildInitContext. See [Cold Loads and the Initial Route](/core/routing-and-navigation#cold-loads).
 :::
 
 ### Reuse the Pattern for Other Causes

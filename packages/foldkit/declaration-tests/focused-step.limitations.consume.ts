@@ -1,10 +1,10 @@
 import {
   Message,
   Model,
-  explicitAnyExactMessageStep,
+  explicitAnyExactMessage,
 } from './focused-step.limitations.js'
 
-explicitAnyExactMessageStep(
+explicitAnyExactMessage(
   Model.make({ count: 0 }),
   Message.RequestedIncrement({ amount: 1 }),
 )

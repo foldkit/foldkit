@@ -1,12 +1,12 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Disclosure } from '@foldkit/ui'
+import {
+  type DisclosureAttributes,
+  view as disclosureView,
+} from '@foldkit/ui/disclosure'
 
 // Store the open state as a plain boolean field in your Model:
 const Model = Schema.Struct({
@@ -20,10 +20,17 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ArticlePreviewComposition = Block.makeDefinition('ArticlePreview', {
+const ArticlePreviewKey = Symbol('ArticlePreview')
+
+const ArticlePreviewDefinition = Block.makeDefinition('ArticlePreview', {
+  key: ArticlePreviewKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message,
-}).makeComposition()
+})
+
+const ArticlePreviewComposition = ArticlePreviewDefinition.makeComposition()
 
 // In your init function, start it closed:
 const init = ArticlePreviewComposition.makeInit(() => ({
@@ -49,7 +56,7 @@ const view = ArticlePreviewComposition.makeView((model, h) => {
     button,
     panel,
     animatePanel,
-  }: Disclosure.DisclosureAttributes<Message>) =>
+  }: DisclosureAttributes<Message>) =>
     h.article(
       [h.Class('relative overflow-hidden rounded-lg border bg-white')],
       [
@@ -101,7 +108,7 @@ const view = ArticlePreviewComposition.makeView((model, h) => {
       ],
     )
 
-  return Disclosure.view(
+  return disclosureView(
     {
       id: 'architecture-article',
       isOpen: model.isArticleOpen,
@@ -111,3 +118,14 @@ const view = ArticlePreviewComposition.makeView((model, h) => {
     h,
   )
 })
+
+export const ApplicationBlock = ArticlePreviewDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
+  }),
+)

@@ -90,18 +90,18 @@ const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
 
-const localNoopStep = ParentDefinition.makeNoopStep()
-const saveLocallyStep = ParentDefinition.makeCommandsStep(() => [LocalSave()])
-const reportStep = ParentDefinition.makeOutMessageStep(() =>
+const keepLocalModel = ParentDefinition.makeNoopStep()
+const saveLocally = ParentDefinition.makeCommandsStep(() => [LocalSave()])
+const report = ParentDefinition.makeOutMessageStep(() =>
   ParentOutMessage.Reported(),
 )
 
 const update = ParentComposition.makeUpdate({
-  IgnoredRequest: model => localNoopStep(model),
+  IgnoredRequest: model => keepLocalModel(model),
   RequestedChildIncrement: model => ChildBinding.requestIncrement()(model),
-  RequestedLocalSave: model => saveLocallyStep(model),
-  RequestedReport: model => reportStep(model),
-  CompletedLocalSave: model => localNoopStep(model),
+  RequestedLocalSave: model => saveLocally(model),
+  RequestedReport: model => report(model),
+  CompletedLocalSave: model => keepLocalModel(model),
 })
 
 type UpdateOutMessage =

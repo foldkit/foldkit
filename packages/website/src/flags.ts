@@ -1,9 +1,9 @@
 import { Schema } from 'effect'
 import { Calendar } from 'foldkit'
 
+import * as ApiReference from './blocks/apiReference/domain'
+import * as ExampleDetail from './blocks/exampleDetail/domain'
 import { Deployment } from './deployment'
-import * as ApiReference from './page/apiReference/domain'
-import * as ExampleDetail from './page/example/domain'
 
 export const Flags = Schema.Struct({
   currentYear: Schema.Number,

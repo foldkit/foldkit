@@ -1,4 +1,4 @@
-import { Option, Predicate, Schema, SchemaAST } from 'effect'
+import { Array, Option, Predicate, Schema, SchemaAST } from 'effect'
 
 import type * as Update from '../update/index.js'
 import { resolveOperationOutput } from '../update/operationRecipe.js'
@@ -7,6 +7,7 @@ import type {
   GeneratedMessageOfRequirement,
   RequirementsOfBindings,
 } from './binding.js'
+import { executeBindingOperation } from './bindingConnection.js'
 import type { GeneratedEnvelopeOf } from './childEnvelope.js'
 import type {
   HasInvalidCombinedStepsRegistration,
@@ -609,6 +610,13 @@ type AuthoredOutputForm<Output> =
       : 'Raw'
     : 'Connected'
 
+type ValidateMixedAuthoredOutput<Output> =
+  'Connected' | 'Raw' extends AuthoredOutputForm<Output>
+    ? Readonly<{
+        'Raw local branches beside connected or Definition-owned Steps must use Definition.makeStep or a focused Step helper': never
+      }>
+    : unknown
+
 type ValidateAuthoredUpdate<
   Model,
   Message,
@@ -619,19 +627,13 @@ type ValidateAuthoredUpdate<
   ValidateAuthoredRecipeChannels<Model, Message, OutMessage, Output> &
   ValidateMixedRawChannels<Model, Message, OutMessage, Output> &
   ValidateAuthoredEvidence<Output> &
-  ('Connected' | 'Raw' extends AuthoredOutputForm<Output>
+  (HasInvalidCombinedStepsRegistration<
+    Update.RegistrationEvidenceOf<ResolvedAuthoredOutput<Output, Bindings>>
+  > extends true
     ? Readonly<{
-        'Local results beside connected operations must use Definition-owned Steps to preserve Commands and OutMessages': never
+        'Update.combineSteps cannot discard an OutMessage produced by a registered child Binding policy; return that bound operation directly': never
       }>
-    : HasInvalidCombinedStepsRegistration<
-          Update.RegistrationEvidenceOf<
-            ResolvedAuthoredOutput<Output, Bindings>
-          >
-        > extends true
-      ? Readonly<{
-          'Update.combineSteps cannot discard an OutMessage produced by a registered child Binding policy; return that bound operation directly': never
-        }>
-      : unknown)
+    : unknown)
 
 type AuthoredMessageArguments<Message> = [Message] extends [never]
   ? readonly []
@@ -721,7 +723,8 @@ type AuthoredUpdateCases<
               NoInfer<Outputs>[Tag],
               Bindings
             >
-        >
+        > &
+          ValidateMixedAuthoredOutput<NoInfer<Outputs>[Tag]>
 }
 
 type ContextualUpdateCases<
@@ -799,7 +802,8 @@ type ValidatedContextualUpdateCases<
               NoInfer<Outputs>[Tag],
               Bindings
             >
-        >
+        > &
+          ValidateMixedAuthoredOutput<NoInfer<Outputs>[Tag]>
 }
 
 type OutputChannels<Tag, Output> = readonly [
@@ -1111,6 +1115,25 @@ export const hasObservableUpdateContext = (update: AnyFunction): boolean =>
 
 type RuntimeAuthoredUpdate = Readonly<Record<string, AnyFunction>>
 
+type RuntimeUpdateStage =
+  | Readonly<{
+      kind: 'Cases'
+      createCases: (...context: ReadonlyArray<any>) => RuntimeAuthoredUpdate
+      tags: ReadonlySet<string> | undefined
+      isFull: boolean
+    }>
+  | Readonly<{
+      kind: 'Each' | 'On' | 'Except'
+      handler: AnyFunction
+      tags: ReadonlySet<string>
+    }>
+  | Readonly<{ kind: 'Route' }>
+
+type RuntimeUpdateRecipe = Readonly<{
+  stages: ReadonlyArray<RuntimeUpdateStage>
+  contextArity: number
+}>
+
 type RuntimeDefineCompositionUpdate = {
   (cases: RuntimeAuthoredUpdate): AnyFunction
   readonly withContext: (createCases: AnyFunction) => AnyFunction
@@ -1120,22 +1143,45 @@ type RuntimeDefineCompositionUpdate = {
 const assertUnambiguousSource = (
   message: object,
   route: RuntimeRoute,
+  sourceAliases: ReadonlyMap<object, object>,
 ): void => {
   const source = messageSources.get(message)
-  if (source !== undefined && source !== route.source) {
+  if (
+    source !== undefined &&
+    source !== route.source &&
+    (source === ambiguousMessageSource ||
+      sourceAliases.get(source) !== route.source)
+  ) {
     throw new Error(
       `[foldkit] Parent Message "${Reflect.get(message, '_tag')}" is reserved by child Binding "${route.binding.placement}" but was emitted by another child Binding. Give each Binding a distinct parent Message variant.`,
     )
   }
 }
 
-/** @internal Creates the runtime Composition update delivery dispatcher. */
-export const makeCompositionUpdate = (
+const createCompositionUpdate = (
   parentMessageSchema: Schema.Top,
   bindings: ReadonlyArray<Readonly<{ placement: string; fold: AnyFunction }>>,
   validateCoverage = true,
+  environment?: ReadonlyMap<object, object>,
+  input?: Readonly<{
+    bindings: ReadonlyArray<Readonly<{ placement: string; fold: AnyFunction }>>
+    validate: (message: unknown) => void
+  }>,
 ): RuntimeDefineCompositionUpdate => {
   const messageContract = runtimeMessageSchemaContract(parentMessageSchema)
+  const sourceAliases = new Map<object, object>()
+
+  if (environment !== undefined) {
+    for (const [declaration, connection] of environment) {
+      const declaredDelivery = bindingDeliveries.get(declaration)
+      const connectedDelivery = bindingDeliveries.get(connection)
+
+      if (declaredDelivery !== undefined && connectedDelivery !== undefined) {
+        sourceAliases.set(declaredDelivery.source, connectedDelivery.source)
+      }
+    }
+  }
+
   const routes = new Map<string, RuntimeRoute>()
   const outgoingTags = new Map<
     string,
@@ -1206,6 +1252,22 @@ export const makeCompositionUpdate = (
   }
 
   const ownedUpdates = new WeakSet<AnyFunction>()
+  const incompleteUpdates = new WeakMap<AnyFunction, 'Router' | 'Coverage'>()
+  const recipes = new WeakMap<object, RuntimeUpdateRecipe>()
+  const localTags = new Set(
+    [...messageContract.tags].filter(tag => !routes.has(tag)),
+  )
+
+  const retainRecipe = (
+    value: object,
+    stages: ReadonlyArray<RuntimeUpdateStage>,
+    contextArity: number,
+  ): void => {
+    recipes.set(
+      value,
+      Object.freeze({ stages: Object.freeze([...stages]), contextArity }),
+    )
+  }
 
   const applyCases = (
     cases: Readonly<Record<string, AnyFunction>>,
@@ -1225,6 +1287,9 @@ export const makeCompositionUpdate = (
       )
     }
 
+    if (input !== undefined) {
+      validateFullCases(cases)
+    }
     return handler(model, message)
   }
 
@@ -1237,7 +1302,8 @@ export const makeCompositionUpdate = (
       message: any,
       ...context: ReadonlyArray<any>
     ) =>
-      withOperationGraph(bindings, () => {
+      withOperationGraph(input?.bindings ?? bindings, () => {
+        input?.validate(message)
         const messageTag = Predicate.isObject(message)
           ? Reflect.get(message, '_tag')
           : undefined
@@ -1255,13 +1321,13 @@ export const makeCompositionUpdate = (
             )
           }
           const output = applyCases(createCases(...context), model, message)
-          const resolved = resolveOperationOutput(output, model)
+          const resolved = resolveOperationOutput(output, model, environment)
           return isBindingInitRecipe(resolved)
-            ? runBindingInitRecipe(resolved)
+            ? runBindingInitRecipe(resolved, environment)
             : resolved
         }
 
-        assertUnambiguousSource(message, route)
+        assertUnambiguousSource(message, route, sourceAliases)
         const maybeArguments = route.args(model, message)
         if (!Option.isOption(maybeArguments)) {
           throw new Error(
@@ -1278,8 +1344,17 @@ export const makeCompositionUpdate = (
         }
 
         return resolveOperationOutput(
-          route.binding.fold(model, ...maybeArguments.value),
+          environment === undefined
+            ? route.binding.fold(model, ...maybeArguments.value)
+            : executeBindingOperation(
+                route.binding,
+                'fold',
+                model,
+                maybeArguments.value,
+                environment,
+              ),
           model,
+          environment,
         )
       })
 
@@ -1298,8 +1373,31 @@ export const makeCompositionUpdate = (
 
     observableUpdateContextArities.set(dualDispatch, contextArity)
     ownedUpdates.add(dualDispatch)
+    retainRecipe(
+      dualDispatch,
+      [
+        Object.freeze({
+          kind: 'Cases',
+          createCases,
+          tags: localTags,
+          isFull: true,
+        }),
+      ],
+      contextArity,
+    )
 
     return dualDispatch
+  }
+
+  const validateFullCases = (cases: RuntimeAuthoredUpdate): void => {
+    checkCases(cases)
+    for (const tag of localTags) {
+      if (!Object.hasOwn(cases, tag)) {
+        throw new Error(
+          `[foldkit] InMessage update has no handler for "${tag}".`,
+        )
+      }
+    }
   }
 
   const makeUpdate = (cases: RuntimeAuthoredUpdate): AnyFunction => {
@@ -1309,14 +1407,395 @@ export const makeCompositionUpdate = (
       )
     }
 
+    if (input !== undefined) {
+      validateFullCases(cases)
+    }
     return makeUpdateFromCases(() => cases, 0)
   }
+
+  const makePart = (stage: RuntimeUpdateStage, contextArity = 0): object => {
+    const part = Object.freeze({})
+    retainRecipe(part, [Object.freeze(stage)], contextArity)
+    return part
+  }
+
+  const checkCases = (cases: unknown): void => {
+    if (!Predicate.isObject(cases) || Predicate.isFunction(cases)) {
+      throw new Error(
+        '[foldkit] An update cases part requires a handler record.',
+      )
+    }
+
+    for (const [tag, handler] of Object.entries(cases)) {
+      if (!localTags.has(tag) || !Predicate.isFunction(handler)) {
+        throw new Error(
+          `[foldkit] Update cases must declare local Message handlers; invalid tag "${tag}".`,
+        )
+      }
+    }
+  }
+
+  const checkTags = (tags: ReadonlyArray<string>): ReadonlySet<string> => {
+    if (!globalThis.Array.isArray(tags)) {
+      throw new Error('[foldkit] Update selection requires local Message tags.')
+    }
+
+    for (const tag of tags) {
+      if (!localTags.has(tag)) {
+        throw new Error(
+          `[foldkit] Update selection has unknown local tag "${tag}".`,
+        )
+      }
+    }
+
+    return new Set(tags)
+  }
+
+  const makeHandlerPart = (
+    kind: 'Each' | 'On' | 'Except',
+    tags: ReadonlyArray<string>,
+    handler: AnyFunction,
+  ): object => {
+    if (!Predicate.isFunction(handler)) {
+      throw new Error('[foldkit] A shared update part requires a handler.')
+    }
+
+    return makePart(
+      { kind, handler, tags: checkTags(tags) },
+      Math.max(0, handler.length - 3),
+    )
+  }
+
+  const runRoute = (route: RuntimeRoute, model: any, message: any) => {
+    const maybeArguments = route.args(model, message)
+
+    if (!Option.isOption(maybeArguments)) {
+      throw new Error(
+        `[foldkit] Child Binding "${route.binding.placement}" fromParentMessage.args must return an Option of fold arguments.`,
+      )
+    }
+
+    if (Option.isNone(maybeArguments)) {
+      return { model }
+    }
+
+    if (!globalThis.Array.isArray(maybeArguments.value)) {
+      throw new Error(
+        `[foldkit] Child Binding "${route.binding.placement}" fromParentMessage.args must contain a fold argument tuple.`,
+      )
+    }
+
+    return resolveOperationOutput(
+      environment === undefined
+        ? route.binding.fold(model, ...maybeArguments.value)
+        : executeBindingOperation(
+            route.binding,
+            'fold',
+            model,
+            maybeArguments.value,
+            environment,
+          ),
+      model,
+      environment,
+    )
+  }
+
+  const appendOutput = (
+    current: AnyUpdateReturn,
+    output: unknown,
+    isShared = false,
+  ): AnyUpdateReturn => {
+    const applied = Predicate.isFunction(output)
+      ? output(current.model)
+      : output
+    const resolved = resolveOperationOutput(applied, current.model, environment)
+    const next = isBindingInitRecipe(resolved)
+      ? runBindingInitRecipe(resolved, environment)
+      : resolved
+
+    if (!Predicate.isObject(next) || !Reflect.has(next, 'model')) {
+      throw new Error(
+        '[foldkit] An update part must return a Model result or Step.',
+      )
+    }
+
+    const commands = Reflect.get(next, 'commands')
+    const outMessage = Reflect.get(next, 'outMessage')
+
+    if (commands !== undefined && !globalThis.Array.isArray(commands)) {
+      throw new Error(
+        '[foldkit] An update part must return a Commands collection.',
+      )
+    }
+
+    if (isShared && outMessage !== undefined) {
+      throw new Error(
+        '[foldkit] Shared update policies cannot emit an OutMessage.',
+      )
+    }
+
+    if (current.outMessage !== undefined && outMessage !== undefined) {
+      throw new Error(
+        '[foldkit] Composed update parts cannot emit competing OutMessages.',
+      )
+    }
+
+    const retainedOutMessage =
+      outMessage === undefined ? current.outMessage : outMessage
+
+    return {
+      model: Reflect.get(next, 'model'),
+      ...(current.commands === undefined && commands === undefined
+        ? {}
+        : { commands: [...(current.commands ?? []), ...(commands ?? [])] }),
+      ...(retainedOutMessage === undefined
+        ? {}
+        : { outMessage: retainedOutMessage }),
+    }
+  }
+
+  const compose = (...pieces: ReadonlyArray<object>): AnyFunction => {
+    if (Array.isReadonlyArrayEmpty(pieces)) {
+      throw new Error(
+        '[foldkit] Update composition requires at least one update.',
+      )
+    }
+
+    const stages: Array<RuntimeUpdateStage> = []
+    let contextArity = 0
+
+    for (const piece of pieces) {
+      const recipe = recipes.get(piece)
+
+      if (recipe === undefined) {
+        throw new Error(
+          '[foldkit] Update pieces must belong to this Composition.makeUpdate.',
+        )
+      }
+
+      stages.push(...recipe.stages)
+      contextArity = Math.max(contextArity, recipe.contextArity)
+    }
+
+    const covered = new Set<string>()
+    let routerCount = 0
+    let hasContextualCases = false
+
+    for (const stage of stages) {
+      if (stage.kind === 'Route') {
+        routerCount += 1
+      } else if (stage.kind === 'Cases') {
+        if (stage.isFull) {
+          routerCount += 1
+        }
+
+        if (stage.tags === undefined) {
+          hasContextualCases = true
+        } else {
+          for (const tag of stage.tags) {
+            covered.add(tag)
+          }
+        }
+      }
+    }
+
+    if (routerCount > 1) {
+      throw new Error(
+        '[foldkit] A composed update requires exactly one child routing anchor.',
+      )
+    }
+
+    const hasLocalCoverage =
+      hasContextualCases || [...localTags].every(tag => covered.has(tag))
+    const normalized = Object.freeze([...stages])
+    const dispatch = (
+      model: any,
+      message: any,
+      ...context: ReadonlyArray<any>
+    ) =>
+      withOperationGraph(input?.bindings ?? bindings, () => {
+        input?.validate(message)
+        if (routerCount !== 1) {
+          throw new Error(
+            '[foldkit] A reusable update bundle needs exactly one child routing anchor before execution.',
+          )
+        }
+
+        if (!hasLocalCoverage) {
+          throw new Error(
+            '[foldkit] Composed update parts must collectively handle every local Message.',
+          )
+        }
+
+        const tag = Predicate.isObject(message)
+          ? Reflect.get(message, '_tag')
+          : undefined
+
+        if (!Predicate.isString(tag) || !messageContract.tags.has(tag)) {
+          throw new Error(
+            '[foldkit] A composed update received an unknown Message tag.',
+          )
+        }
+
+        const route = routes.get(tag)
+
+        if (route !== undefined) {
+          assertUnambiguousSource(message, route, sourceAliases)
+        } else if (gotMessagePattern.test(tag)) {
+          throw new Error(
+            `[foldkit] Composition.makeUpdate received Got* child wrapper "${tag}" without an owning Binding.`,
+          )
+        }
+
+        const frame = Object.freeze({ before: model })
+        let current: AnyUpdateReturn = { model }
+        let isHandled = route !== undefined
+
+        for (const stage of normalized) {
+          if (stage.kind === 'Route') {
+            if (route !== undefined) {
+              current = appendOutput(
+                current,
+                runRoute(route, current.model, message),
+              )
+            }
+          } else if (stage.kind === 'Cases') {
+            if (route !== undefined) {
+              if (stage.isFull) {
+                current = appendOutput(
+                  current,
+                  runRoute(route, current.model, message),
+                )
+              }
+            } else {
+              const cases = stage.createCases(...context)
+
+              if (stage.isFull) {
+                current = appendOutput(
+                  current,
+                  applyCases(cases, current.model, message),
+                )
+                isHandled = true
+              } else {
+                checkCases(cases)
+                const handler = Object.hasOwn(cases, tag)
+                  ? Reflect.get(cases, tag)
+                  : undefined
+
+                if (Predicate.isFunction(handler)) {
+                  current = appendOutput(
+                    current,
+                    handler(current.model, message),
+                  )
+                  isHandled = true
+                }
+              }
+            }
+          } else if (
+            stage.kind === 'Each' ||
+            (stage.kind === 'On' &&
+              route === undefined &&
+              stage.tags.has(tag)) ||
+            (stage.kind === 'Except' && !stage.tags.has(tag))
+          ) {
+            current = appendOutput(
+              current,
+              stage.handler(current.model, message, frame, ...context),
+              true,
+            )
+          }
+        }
+
+        if (!isHandled) {
+          throw new Error(
+            `[foldkit] Composed update parts have no handler for local Message "${tag}".`,
+          )
+        }
+
+        return current
+      })
+
+    const update = function (
+      modelOrMessage: any,
+      message: any,
+      ...context: ReadonlyArray<any>
+    ) {
+      if (arguments.length === 1) {
+        return (model: any, ...curriedContext: ReadonlyArray<any>) =>
+          dispatch(model, modelOrMessage, ...curriedContext)
+      }
+
+      return dispatch(modelOrMessage, message, ...context)
+    }
+
+    observableUpdateContextArities.set(update, contextArity)
+
+    if (routerCount === 1 && hasLocalCoverage) {
+      ownedUpdates.add(update)
+    } else {
+      incompleteUpdates.set(update, routerCount === 0 ? 'Router' : 'Coverage')
+    }
+
+    retainRecipe(update, normalized, contextArity)
+
+    return update
+  }
+
+  const cases = Object.assign(
+    (record: RuntimeAuthoredUpdate): object => {
+      checkCases(record)
+      const snapshot = Object.freeze({ ...record })
+
+      return makePart({
+        kind: 'Cases',
+        createCases: () => snapshot,
+        tags: new Set(Object.keys(snapshot)),
+        isFull: false,
+      })
+    },
+    {
+      withContext: (createCases: AnyFunction): object => {
+        if (!Predicate.isFunction(createCases)) {
+          throw new Error(
+            '[foldkit] Contextual update cases require a factory.',
+          )
+        }
+
+        return makePart(
+          { kind: 'Cases', createCases, tags: undefined, isFull: false },
+          createCases.length,
+        )
+      },
+    },
+  )
 
   return Object.assign(makeUpdate, {
     withContext: (createCases: AnyFunction) =>
       makeUpdateFromCases(createCases, createCases.length),
+    cases,
+    each: (handler: AnyFunction) => makeHandlerPart('Each', [], handler),
+    on: (tags: ReadonlyArray<string>, handler: AnyFunction) =>
+      makeHandlerPart('On', tags, handler),
+    except: (tags: ReadonlyArray<string>, handler: AnyFunction) =>
+      makeHandlerPart('Except', tags, handler),
+    routeChildren: () => makePart({ kind: 'Route' }),
+    compose,
     complete: (update: AnyFunction) => {
       if (!ownedUpdates.has(update)) {
+        const incomplete = incompleteUpdates.get(update)
+
+        if (incomplete === 'Router') {
+          throw new Error(
+            '[foldkit] A reusable update bundle needs exactly one child routing anchor before completion.',
+          )
+        }
+
+        if (incomplete === 'Coverage') {
+          throw new Error(
+            '[foldkit] Composed update parts must collectively handle every local Message.',
+          )
+        }
+
         throw new Error(
           '[foldkit] Block update must be authored with this Composition.makeUpdate.',
         )
@@ -1325,4 +1804,56 @@ export const makeCompositionUpdate = (
       return update
     },
   })
+}
+
+/** @internal Creates the runtime Composition update delivery dispatcher. */
+export const makeCompositionUpdate = (
+  parentMessageSchema: Schema.Top,
+  bindings: ReadonlyArray<Readonly<{ placement: string; fold: AnyFunction }>>,
+  validateCoverage = true,
+  environment?: ReadonlyMap<object, object>,
+): RuntimeDefineCompositionUpdate =>
+  createCompositionUpdate(
+    parentMessageSchema,
+    bindings,
+    validateCoverage,
+    environment,
+  )
+
+/** @internal Shares update composition while validating an independent input union. */
+export const makeCompositionInputUpdate = (
+  schema: Schema.Top,
+  bindings: ReadonlyArray<Readonly<{ placement: string; fold: AnyFunction }>>,
+  environment: ReadonlyMap<object, object>,
+): RuntimeDefineCompositionUpdate => {
+  const isInput = Schema.is(schema)
+  return createCompositionUpdate(schema, [], false, environment, {
+    bindings,
+    validate: input => {
+      if (!Predicate.isObject(input) || !isInput(input)) {
+        throw new Error(
+          "[foldkit] inMessageUpdate requires a decoded value from this Block's InMessage Schema.",
+        )
+      }
+    },
+  })
+}
+
+/** @internal Existing contextual contracts reused by experimental plan authoring. */
+export type {
+  AuthoredMessageArguments,
+  AuthoredMessageTag,
+  AuthoredUpdateCases,
+  AuthoredUpdateResult,
+  CaseOutputChannels,
+  CompositionDefinedUpdate,
+  ContextualUpdateCases,
+  ContextualUpdateCasesFactory,
+  ContextualUpdateOutputs,
+  RoutedOnlyUpdate,
+  ResolvedAuthoredOutput,
+  ValidateAnnotatedContext,
+  ValidateAuthoredUpdate,
+  ValidateMixedAuthoredOutput,
+  ValidatedContextualUpdateCases,
 }

@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/program": ["../src/runtime/programPublic.ts"],
+      "foldkit/story": ["../src/story/public.ts"],
+      "foldkit/scene": ["../src/scene/public.ts"],
+      "foldkit/experimental/query": ["../src/experimental/query/public.ts"],
+      "foldkit/experimental/server": ["../src/experimental/server/public.ts"]
+    }
+  },
+  "include": ["../src/vite-env.d.ts", "host-handlers/**/*.ts"]
+}

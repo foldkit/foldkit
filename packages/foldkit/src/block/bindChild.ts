@@ -5,9 +5,11 @@ import { assertCompletedBlock } from './assemblyState.js'
 import {
   type BindableBlock,
   type Binding,
+  type BindingRequirement,
   type BindingStorageEvidence,
   bind,
 } from './binding.js'
+import { registerBindingReconstructor } from './bindingConnection.js'
 import {
   attachOutMessagePolicy,
   deferredOutMessagePolicy,
@@ -993,12 +995,14 @@ type ValidateStaticInitialPolicy<
                 : readonly []
               : readonly []
 
-type ValidateConcreteCompositionArguments<BlockValue extends BindableBlock> =
+export type ValidateConcreteCompositionArguments<
+  BlockValue extends BindableBlock,
+> =
   unknown extends ValidateConcreteComposition<BlockValue>
     ? readonly []
     : readonly [error: ValidateConcreteComposition<BlockValue>]
 
-type ValidateStaticBindingConfigWithoutPolicy<
+export type ValidateStaticBindingConfigWithoutPolicy<
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
   Keys,
@@ -1071,7 +1075,8 @@ type ContextualKeyedOutMessageConfig<
       }>
     : Readonly<{ outMessage?: never }>
 
-type ItemOfReadAll<ReadAll> =
+/** @internal Preserves a selector's exact occurrence item during Binding authoring. */
+export type ItemOfReadAll<ReadAll> =
   ReturnOf<ReadAll> extends ReadonlyArray<infer Item> ? Item : never
 
 type StaticOutMessageContext<
@@ -1101,7 +1106,8 @@ type ContextualPolicyFold<Fold> = Fold extends (
   ? ContextualPolicyFunction<Fold>
   : Fold
 
-type ContextualOutMessagePolicy<Policy> = Policy extends unknown
+/** @internal Preserves the native policy contextual typing in named descriptor authoring. */
+export type ContextualOutMessagePolicy<Policy> = Policy extends unknown
   ? {
       [Key in keyof Policy]: Key extends 'fold'
         ? ContextualPolicyFold<Policy[Key]>
@@ -1109,10 +1115,12 @@ type ContextualOutMessagePolicy<Policy> = Policy extends unknown
     }
   : never
 
-type ValidateGeneralKeyedSourceWithoutPolicy<Config> =
+/** @internal Validates the authored keys before a separate policy is selected. */
+export type ValidateGeneralKeyedSourceWithoutPolicy<Config> =
   ValidateBindChildConfigKeys<Config>
 
-type GeneralKeyedConfigKey =
+/** @internal Supported keys for selector-based keyed relationships. */
+export type GeneralKeyedConfigKey =
   | 'placement'
   | 'readAll'
   | 'key'
@@ -1123,7 +1131,8 @@ type GeneralKeyedConfigKey =
   | 'delivery'
   | 'keySchema'
 
-type GeneralKeyedContextualProperties<
+/** @internal Supplies exact parent, child, and occurrence types to keyed callbacks. */
+export type GeneralKeyedContextualProperties<
   Keys extends GeneralKeyedConfigKey,
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
@@ -1217,9 +1226,10 @@ type CoreConfigKey =
   | 'delivery'
   | 'keySchema'
 
-type BindChildConfigKey = CoreConfigKey | StorageConfigKey | 'init'
+export type BindChildConfigKey = CoreConfigKey | StorageConfigKey | 'init'
 
-type KeyForConfig<
+/** @internal Derives the occurrence key selected by shorthand storage. */
+export type KeyForConfig<
   Keys,
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
@@ -1361,7 +1371,8 @@ type GeneratedDeliveryContext<
         : (model: ParentModel, key: Key) => ChildUpdateContext<BlockValue>
     }>
 
-type GeneratedDeliveryRequirement<
+/** @internal Requires exact dispatch context when a child update needs it. */
+export type GeneratedDeliveryRequirement<
   BlockValue extends BindableBlock,
   ParentModel,
   Key = never,
@@ -1503,7 +1514,7 @@ type StorageContextualProperty<
                 ) => ParentModelSchema['Type']
               : never
 
-type BindChildContextualProperties<
+export type BindChildContextualProperties<
   Keys extends BindChildConfigKey,
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
@@ -1614,7 +1625,8 @@ type DefaultPlacementOfConfig<BlockValue extends BindableBlock, Config> =
       ? Field
       : BlockId<BlockValue>
 
-type PlacementOfConfig<BlockValue extends BindableBlock, Config> =
+/** @internal Derives the explicit or ordinary native Binding placement. */
+export type PlacementOfConfig<BlockValue extends BindableBlock, Config> =
   Config extends Readonly<{ placement: infer Placement extends string }>
     ? Placement
     : 'placement' extends keyof Config
@@ -1693,7 +1705,8 @@ type KeyedBindingResultForConfig<
         never
       >
 
-type StorageOfConfig<Config> =
+/** @internal Preserves the native storage evidence in named descriptor authoring. */
+export type StorageOfConfig<Config> =
   Config extends BindingStorageEvidence<infer Storage>
     ? Storage
     : Config extends Readonly<{ field: infer Field extends string }>
@@ -1713,7 +1726,8 @@ type StorageOfConfig<Config> =
           : Readonly<{ kind: 'Direct'; field: Field }>
       : never
 
-type BindChildResultForConfig<
+/** @internal Preserves the native Binding result in named descriptor authoring. */
+export type BindChildResultForConfig<
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
   ParentMessageSchema extends AnySchema,
@@ -1910,7 +1924,54 @@ type KeyOfBindingConfig<
           ? KeyAt<BlockValue['Model']['Type'], KeyField>
           : never
 
-type OutMessagePolicyForBindingConfig<
+type ViewEnvelopeForConfig<
+  BlockValue extends BindableBlock,
+  ParentModelSchema extends AnySchema,
+  Config,
+> =
+  UsesGeneratedDelivery<BlockValue> extends true
+    ? [KeyOfBindingConfig<BlockValue, ParentModelSchema, Config>] extends [
+        never,
+      ]
+      ? GeneratedEnvelopeSchema<
+          BlockValue,
+          PlacementOfConfig<BlockValue, Config>
+        >
+      : KeySchemaForConfig<
+            BlockValue,
+            ParentModelSchema,
+            Config
+          > extends infer KeySchema extends Schema.Top
+        ? GeneratedKeyedEnvelopeSchema<
+            BlockValue,
+            PlacementOfConfig<BlockValue, Config>,
+            KeySchema
+          >
+        : never
+    : never
+
+/** @internal Projects the native embedding channels without constructing a second Binding type. */
+export interface BindingViewContract<
+  BlockValue extends BindableBlock,
+  ParentModelSchema extends AnySchema,
+  ParentMessageSchema extends AnySchema,
+  Config,
+> {
+  readonly key: KeyOfBindingConfig<BlockValue, ParentModelSchema, Config>
+  readonly parentMessage: [
+    ViewEnvelopeForConfig<BlockValue, ParentModelSchema, Config>,
+  ] extends [never]
+    ? ParentMessageSchema['Type']
+    : ViewEnvelopeForConfig<BlockValue, ParentModelSchema, Config>['Type']
+  readonly requirements: BindingRequirement<
+    PlacementOfConfig<BlockValue, Config>,
+    BlockValue,
+    ViewEnvelopeForConfig<BlockValue, ParentModelSchema, Config>
+  >
+}
+
+/** @internal Preserves the native policy contract in named descriptor authoring. */
+export type OutMessagePolicyForBindingConfig<
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
   ParentMessageSchema extends AnySchema,
@@ -1968,7 +2029,8 @@ type InvalidOutMessageHelperPolicyKeys<BlockValue, Policy> =
       }[keyof Policy]
     : never
 
-type ValidateOutMessageHelperPolicy<BlockValue, Policy> = [
+/** @internal Preserves the native policy helper validation in named descriptor authoring. */
+export type ValidateOutMessageHelperPolicy<BlockValue, Policy> = [
   InvalidOutMessageHelperPolicyKeys<BlockValue, Policy>,
 ] extends [never]
   ? unknown
@@ -1987,6 +2049,7 @@ export interface WithOutMessagePolicy<
   ParentOutMessageSchema extends AnySchema | undefined,
   Config,
   ChildInitContext,
+  Extra extends object = {},
 > {
   <const Policy>(
     policy: Policy &
@@ -2007,7 +2070,8 @@ export interface WithOutMessagePolicy<
     ParentOutMessageSchema,
     Config,
     ChildInitContext,
-    Policy
+    Policy,
+    Extra
   >
 }
 
@@ -2020,14 +2084,16 @@ export type SelectedChildBinding<
   Config,
   ChildInitContext,
   Policy,
-> = BindChildResultForConfig<
-  BlockValue,
-  ParentModelSchema,
-  ParentMessageSchema,
-  ParentOutMessageSchema,
-  Config & Readonly<{ outMessage: Policy }>,
-  ChildInitContext
-> &
+  Extra extends object = {},
+> = Extra &
+  BindChildResultForConfig<
+    BlockValue,
+    ParentModelSchema,
+    ParentMessageSchema,
+    ParentOutMessageSchema,
+    Config & Readonly<{ outMessage: Policy }>,
+    ChildInitContext
+  > &
   BindingStorageEvidence<StorageOfConfig<Config>> &
   Readonly<{
     /** Selects another Composition-local policy for the same child occurrence.
@@ -2039,7 +2105,8 @@ export type SelectedChildBinding<
       ParentMessageSchema,
       ParentOutMessageSchema,
       Config,
-      ChildInitContext
+      ChildInitContext,
+      Extra
     >
   }>
 
@@ -2052,14 +2119,16 @@ export type BindingWithoutOutMessagePolicy<
   ParentOutMessageSchema extends AnySchema | undefined,
   Config,
   ChildInitContext,
-> = BindChildResultForConfig<
-  BlockValue,
-  ParentModelSchema,
-  ParentMessageSchema,
-  ParentOutMessageSchema,
-  Config & Readonly<{ outMessage: UnselectedOutMessagePolicy }>,
-  ChildInitContext
-> &
+  Extra extends object = {},
+> = Extra &
+  BindChildResultForConfig<
+    BlockValue,
+    ParentModelSchema,
+    ParentMessageSchema,
+    ParentOutMessageSchema,
+    Config & Readonly<{ outMessage: UnselectedOutMessagePolicy }>,
+    ChildInitContext
+  > &
   BindingStorageEvidence<StorageOfConfig<Config>> &
   Readonly<{
     /** Selects a Composition-local OutMessage policy for this child occurrence.
@@ -2072,7 +2141,8 @@ export type BindingWithoutOutMessagePolicy<
       ParentMessageSchema,
       ParentOutMessageSchema,
       Config,
-      ChildInitContext
+      ChildInitContext,
+      Extra
     >
   }>
 
@@ -2084,6 +2154,7 @@ export type BindChildConstructorResult<
   ParentOutMessageSchema extends AnySchema | undefined,
   Config,
   ChildInitContext,
+  Extra extends object = {},
 > =
   BlockValue extends Readonly<{ OutMessage: Readonly<{ Type: unknown }> }>
     ? BindingWithoutOutMessagePolicy<
@@ -2092,16 +2163,18 @@ export type BindChildConstructorResult<
         ParentMessageSchema,
         ParentOutMessageSchema,
         Config,
-        ChildInitContext
+        ChildInitContext,
+        Extra
       >
-    : BindChildResultForConfig<
-        BlockValue,
-        ParentModelSchema,
-        ParentMessageSchema,
-        ParentOutMessageSchema,
-        Config,
-        ChildInitContext
-      > &
+    : Extra &
+        BindChildResultForConfig<
+          BlockValue,
+          ParentModelSchema,
+          ParentMessageSchema,
+          ParentOutMessageSchema,
+          Config,
+          ChildInitContext
+        > &
         BindingStorageEvidence<StorageOfConfig<Config>>
 
 /** Creates a static, optional, or keyed child Binding in this Definition's
@@ -2900,6 +2973,13 @@ export const makeBindChild = <
       binding: BindingValue,
     ) => {
       currentBinding = binding
+      registerBindingReconstructor(binding, nextBlock =>
+        Reflect.apply(makeBindChild(parentContract), undefined, [
+          nextBlock,
+          providedConfig,
+        ]),
+      )
+
       if (hasOutMessage) {
         attachOutMessagePolicy(binding)
       }
@@ -3053,7 +3133,18 @@ export const makeBindChild = <
       const generated = usesGeneratedDelivery(block.Message)
         ? generatedDelivery(block, parentContract.Model, config, true)
         : undefined
-      const sourceConfig = generated?.config ?? config
+      const sourceConfig =
+        generated?.config ??
+        (isNeverSchema(block.Message)
+          ? {
+              ...config,
+              toParentMessage: () => {
+                throw new Error(
+                  '[foldkit] A Message-free child cannot emit a parent Message.',
+                )
+              },
+            }
+          : config)
       const placedConfig = Object.hasOwn(sourceConfig, 'placement')
         ? sourceConfig
         : { ...sourceConfig, placement: block.owner.id }

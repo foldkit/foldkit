@@ -1,15 +1,15 @@
-import { Array, Option, Schema } from 'effect'
+import { Array, Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { __commandMatches } from 'foldkit/test'
+import { __bindCommandMatcher, __commandMatches } from 'foldkit/test'
 import * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { DragAndDropBlock, DragState } from './block.js'
+import { DragAndDropBlock, DragState, layer } from './block.js'
 import { FocusItem, resolveKeyboardMove, settleFocus } from './test.js'
 
 const ParentModel = Schema.Struct({
@@ -26,9 +26,12 @@ const ParentMessage = defineMessageUnion({
 })
 type ParentMessage = typeof ParentMessage.Type
 
+const DragAndDropTestParentKey = Symbol('DragAndDropTestParent')
 const DragAndDropTestParentDefinition = Block.makeDefinition(
   'DragAndDropTestParent',
   {
+    key: DragAndDropTestParentKey,
+    Init: Block.makeInputContract<readonly []>(),
     Model: ParentModel,
     Message: ParentMessage,
   },
@@ -91,23 +94,94 @@ const update = DragAndDropTestParentComposition.makeUpdate({
     LeftBinding.fold(model, DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
 })
 
-const keyboardDragging = (id: string, itemId: string) => ({
-  ...DragAndDropBlock.init({ id }).model,
-  dragState: DragState.KeyboardDragging({
-    itemId,
-    sourceContainerId: `${id}-source`,
-    sourceIndex: 0,
-    targetContainerId: `${id}-source`,
-    targetIndex: 0,
-  }),
-})
+const keyboardDragging = (id: string, itemId: string) =>
+  DragAndDropBlock.Model.make({
+    id,
+    orientation: 'Vertical',
+    activationThreshold: 5,
+    keyboardDragGeneration: 0,
+    dragState: DragState.KeyboardDragging({
+      itemId,
+      sourceContainerId: `${id}-source`,
+      sourceIndex: 0,
+      targetContainerId: `${id}-source`,
+      targetIndex: 0,
+    }),
+  })
 
 const initialModel: ParentModel = {
   left: keyboardDragging('left', 'left-item'),
   right: keyboardDragging('right', 'right-item'),
 }
 
+const parentInit = DragAndDropTestParentComposition.makeInit(() => ({
+  model: initialModel,
+}))
+const ParentBlock = DragAndDropTestParentDefinition.makeBlock(
+  Effect.gen(function* () {
+    const left = yield* LeftBinding
+    const right = yield* RightBinding
+
+    return {
+      children: [left, right],
+      init: parentInit,
+      update,
+    }
+  }),
+).provide(layer)
+const NestedParentBlock = DragAndDropTestParentDefinition.contract
+const OtherDragAndDropKey = Symbol('OtherDragAndDrop')
+const OtherDragAndDropDefinition = Block.makeDefinition('OtherDragAndDrop', {
+  key: OtherDragAndDropKey,
+  Init: Block.makeInputContract<readonly []>(),
+  Model: DragAndDropBlock.Model,
+  Message: DragAndDropBlock.Message,
+})
+
+if (false) {
+  __bindCommandMatcher(
+    OtherDragAndDropDefinition.contract,
+    // @ts-expect-error Matching Model storage does not permit another child contract.
+    LeftBinding,
+    FocusItem({ itemId: 'left-item' }),
+  )
+}
+
 describe('DragAndDrop.test Binding selection', () => {
+  it('rejects a different original child contract through an erased call', () => {
+    expect(() =>
+      Reflect.apply(__bindCommandMatcher, undefined, [
+        OtherDragAndDropDefinition.contract,
+        LeftBinding,
+        FocusItem({ itemId: 'left-item' }),
+      ]),
+    ).toThrow('belongs to a different completed Block instance')
+  })
+
+  it.effect(
+    'reuses a bound helper across independent graph acquisitions',
+    () => {
+      const resolveLeft = settleFocus({
+        binding: LeftBinding,
+        itemId: 'left-item',
+      })
+
+      return Effect.all([
+        Story.story(
+          ParentBlock,
+          Story.given(initialModel),
+          Story.message(ParentMessage.RequestedLeftDrop()),
+          resolveLeft,
+        ),
+        Story.story(
+          ParentBlock,
+          Story.given(initialModel),
+          Story.message(ParentMessage.RequestedLeftDrop()),
+          resolveLeft,
+        ),
+      ])
+    },
+  )
   it('rejects a key without a Binding at runtime', () => {
     expect(() =>
       Reflect.apply(settleFocus, undefined, [
@@ -127,74 +201,20 @@ describe('DragAndDrop.test Binding selection', () => {
     ).toThrow('require a Binding when key is provided')
   })
 
-  it('settles focus for the selected embedded Binding', () => {
-    Story.story(
-      update,
+  it.effect('settles focus for the selected embedded Binding', () => {
+    return Story.story(
+      ParentBlock,
       Story.given(initialModel),
       Story.message(ParentMessage.RequestedLeftDrop()),
       settleFocus({ binding: LeftBinding, itemId: 'left-item' }),
     )
   })
 
-  it('resolves the selected embedded Binding and leaves its sibling unchanged', () => {
-    Story.story(
-      update,
-      Story.given(initialModel),
-      Story.message(ParentMessage.RequestedLeftMove()),
-      resolveKeyboardMove({
-        binding: LeftBinding,
-        itemId: 'left-item',
-        targetContainerId: 'left-target',
-        targetIndex: 2,
-      }),
-      Story.model(model => {
-        expect(model.left.dragState).toEqual(
-          DragState.KeyboardDragging({
-            itemId: 'left-item',
-            sourceContainerId: 'left-source',
-            sourceIndex: 0,
-            targetContainerId: 'left-target',
-            targetIndex: 2,
-          }),
-        )
-        expect(model.right).toBe(initialModel.right)
-      }),
-    )
-  })
-
-  it('rejects a sibling Binding even when it owns the same Command Definition', () => {
-    expect(() =>
-      Story.story(
-        update,
-        Story.given(initialModel),
-        Story.message(ParentMessage.RequestedLeftMove()),
-        resolveKeyboardMove({
-          binding: RightBinding,
-          itemId: 'left-item',
-          targetContainerId: 'left-target',
-          targetIndex: 2,
-        }),
-      ),
-    ).toThrow('could not find a pending keyboard move')
-  })
-
-  it('rejects a scoped move whose result omits its focus Command', () => {
-    const updateWithoutFocus = (model: ParentModel, message: ParentMessage) => {
-      const parentUpdate = update(model, message)
-
-      return {
-        ...parentUpdate,
-        commands: Array.filter(
-          parentUpdate.commands ?? [],
-          command =>
-            !__commandMatches(FocusItem({ itemId: 'left-item' }), command),
-        ),
-      }
-    }
-
-    expect(() =>
-      Story.story(
-        updateWithoutFocus,
+  it.effect(
+    'resolves the selected embedded Binding and leaves its sibling unchanged',
+    () => {
+      return Story.story(
+        ParentBlock,
         Story.given(initialModel),
         Story.message(ParentMessage.RequestedLeftMove()),
         resolveKeyboardMove({
@@ -203,18 +223,84 @@ describe('DragAndDrop.test Binding selection', () => {
           targetContainerId: 'left-target',
           targetIndex: 2,
         }),
-      ),
-    ).toThrow('no matching pending Command was found')
-  })
+        Story.model(model => {
+          expect(model.left.dragState).toEqual(
+            DragState.KeyboardDragging({
+              itemId: 'left-item',
+              sourceContainerId: 'left-source',
+              sourceIndex: 0,
+              targetContainerId: 'left-target',
+              targetIndex: 2,
+            }),
+          )
+          expect(model.right).toBe(initialModel.right)
+        }),
+      )
+    },
+  )
 
-  it('resolves one of two identical pending moves by Binding', () => {
+  it.effect(
+    'rejects a sibling Binding even when it owns the same Command Definition',
+    () =>
+      Story.withBlock(ParentBlock, parent => {
+        expect(() =>
+          Story.story(
+            parent.update,
+            Story.given(initialModel),
+            Story.message(ParentMessage.RequestedLeftMove()),
+            resolveKeyboardMove({
+              binding: RightBinding,
+              itemId: 'left-item',
+              targetContainerId: 'left-target',
+              targetIndex: 2,
+            }),
+          ),
+        ).toThrow('could not find a pending keyboard move')
+      }),
+  )
+
+  it.effect('rejects a scoped move whose result omits its focus Command', () =>
+    Story.withBlock(ParentBlock, parent => {
+      const updateWithoutFocus = (
+        model: ParentModel,
+        message: ParentMessage,
+      ) => {
+        const parentUpdate = parent.update(model, message)
+
+        return {
+          ...parentUpdate,
+          commands: Array.filter(
+            parentUpdate.commands ?? [],
+            command =>
+              !__commandMatches(FocusItem({ itemId: 'left-item' }), command),
+          ),
+        }
+      }
+
+      expect(() =>
+        Story.story(
+          updateWithoutFocus,
+          Story.given(initialModel),
+          Story.message(ParentMessage.RequestedLeftMove()),
+          resolveKeyboardMove({
+            binding: LeftBinding,
+            itemId: 'left-item',
+            targetContainerId: 'left-target',
+            targetIndex: 2,
+          }),
+        ),
+      ).toThrow('no matching pending Command was found')
+    }),
+  )
+
+  it.effect('resolves one of two identical pending moves by Binding', () => {
     const sharedItemModel: ParentModel = {
       left: keyboardDragging('left', 'shared-item'),
       right: keyboardDragging('right', 'shared-item'),
     }
 
-    Story.story(
-      update,
+    return Story.story(
+      ParentBlock,
       Story.given(sharedItemModel),
       Story.message(ParentMessage.RequestedBothMoves()),
       resolveKeyboardMove({
@@ -233,16 +319,6 @@ describe('DragAndDrop.test Binding selection', () => {
   })
 })
 
-const prepare = () =>
-  DragAndDropTestParentComposition.prepareBlock({
-    init: () => ({ model: initialModel }),
-    update,
-  })
-const NestedParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof ParentModel,
-  typeof prepare
-> = Block.assemble(prepare)
-
 const NestedSlot = Schema.Struct({
   key: Schema.String,
   parent: ParentModel,
@@ -255,9 +331,12 @@ type NestedModel = typeof NestedModel.Type
 const NestedMessage = defineMessageUnion({ RequestedBothMoves: {} })
 type NestedMessage = typeof NestedMessage.Type
 
+const NestedDragAndDropTestParentKey = Symbol('NestedDragAndDropTestParent')
 const NestedDragAndDropTestParentDefinition = Block.makeDefinition(
   'NestedDragAndDropTestParent',
   {
+    key: NestedDragAndDropTestParentKey,
+    Init: Block.makeInputContract<readonly []>(),
     Model: NestedModel,
     Message: NestedMessage,
   },
@@ -312,22 +391,41 @@ const nestedInitialModel: NestedModel = {
   ],
 }
 
+const NestedBlockInit = NestedDragAndDropTestParentComposition.makeInit(() => ({
+  model: nestedInitialModel,
+}))
+const NestedBlock = NestedDragAndDropTestParentDefinition.makeBlock(
+  Effect.gen(function* () {
+    const child = yield* NestedBinding
+
+    return {
+      children: [child],
+      init: NestedBlockInit,
+      update: nestedUpdate,
+    }
+  }),
+).provide(ParentBlock.layer)
+
 describe('DragAndDrop.test nested ancestor selection', () => {
-  it('fails before resolving when an ancestor Binding occurrence is ambiguous', () => {
-    expect(() =>
-      Story.story(
-        nestedUpdate,
-        Story.given(nestedInitialModel),
-        Story.message(NestedMessage.RequestedBothMoves()),
-        resolveKeyboardMove({
-          binding: LeftBinding,
-          itemId: 'left-item',
-          targetContainerId: 'left-target',
-          targetIndex: 2,
-        }),
-      ),
-    ).toThrow('Isolate one ancestor occurrence in this Story')
-  })
+  it.effect(
+    'fails before resolving when an ancestor Binding occurrence is ambiguous',
+    () =>
+      Story.withBlock(NestedBlock, parent => {
+        expect(() =>
+          Story.story(
+            parent.update,
+            Story.given(nestedInitialModel),
+            Story.message(NestedMessage.RequestedBothMoves()),
+            resolveKeyboardMove({
+              binding: LeftBinding,
+              itemId: 'left-item',
+              targetContainerId: 'left-target',
+              targetIndex: 2,
+            }),
+          ),
+        ).toThrow('Isolate one ancestor occurrence in this Story')
+      }),
+  )
 })
 
 const KeyedSlot = Schema.Struct({
@@ -344,9 +442,12 @@ const KeyedParentMessage = defineMessageUnion({
 })
 type KeyedParentMessage = typeof KeyedParentMessage.Type
 
+const KeyedDragAndDropTestParentKey = Symbol('KeyedDragAndDropTestParent')
 const KeyedDragAndDropTestParentDefinition = Block.makeDefinition(
   'KeyedDragAndDropTestParent',
   {
+    key: KeyedDragAndDropTestParentKey,
+    Init: Block.makeInputContract<readonly []>(),
     Model: KeyedParentModel,
     Message: KeyedParentMessage,
   },
@@ -408,10 +509,30 @@ const keyedInitialModel: KeyedParentModel = {
   ],
 }
 
+const KeyedBlockInit = KeyedDragAndDropTestParentComposition.makeInit(() => ({
+  model: keyedInitialModel,
+}))
+const KeyedBlock = KeyedDragAndDropTestParentDefinition.makeBlock(
+  Effect.gen(function* () {
+    const child = yield* KeyedBinding
+
+    return {
+      children: [child],
+      init: KeyedBlockInit,
+      update: keyedUpdate,
+    }
+  }),
+).provide(layer)
+
+if (false) {
+  // @ts-expect-error The selected Binding requires its decoded string key.
+  settleFocus({ binding: KeyedBinding, key: 1, itemId: 'second-item' })
+}
+
 describe('DragAndDrop.test keyed Binding selection', () => {
-  it('resolves the selected keyed occurrence', () => {
-    Story.story(
-      keyedUpdate,
+  it.effect('resolves the selected keyed occurrence', () => {
+    return Story.story(
+      KeyedBlock,
       Story.given(keyedInitialModel),
       Story.message(KeyedParentMessage.RequestedMove({ key: 'second' })),
       resolveKeyboardMove({
@@ -438,20 +559,22 @@ describe('DragAndDrop.test keyed Binding selection', () => {
     )
   })
 
-  it('rejects the wrong keyed occurrence', () => {
-    expect(() =>
-      Story.story(
-        keyedUpdate,
-        Story.given(keyedInitialModel),
-        Story.message(KeyedParentMessage.RequestedMove({ key: 'second' })),
-        resolveKeyboardMove({
-          binding: KeyedBinding,
-          key: 'first',
-          itemId: 'second-item',
-          targetContainerId: 'second-target',
-          targetIndex: 4,
-        }),
-      ),
-    ).toThrow('could not find a pending keyboard move')
-  })
+  it.effect('rejects the wrong keyed occurrence', () =>
+    Story.withBlock(KeyedBlock, parent => {
+      expect(() =>
+        Story.story(
+          parent.update,
+          Story.given(keyedInitialModel),
+          Story.message(KeyedParentMessage.RequestedMove({ key: 'second' })),
+          resolveKeyboardMove({
+            binding: KeyedBinding,
+            key: 'first',
+            itemId: 'second-item',
+            targetContainerId: 'second-target',
+            targetIndex: 4,
+          }),
+        ),
+      ).toThrow('could not find a pending keyboard move')
+    }),
+  )
 })

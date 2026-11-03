@@ -25,8 +25,14 @@ type CommandInstance<ResultMessage> = Readonly<{
   effect: Effect.Effect<ResultMessage, unknown, unknown>
 }>
 
-type BindingFor<BlockValue> = Block.AnyBinding &
-  Block.BindingEvidence<BlockValue, unknown, unknown, boolean>
+type BindingFor<BlockValue extends Block.DescriptorContract> =
+  Block.AnyBinding &
+    Block.BindingEvidence<
+      Block.CoreContract<BlockValue>,
+      unknown,
+      unknown,
+      boolean
+    >
 
 type BindingOccurrence<BindingValue> =
   BindingValue extends Block.BindingEvidence<unknown, unknown, unknown, true> &
@@ -42,7 +48,7 @@ type BindingOccurrence<BindingValue> =
  * freshly shown entry, and `version` defaults to its initial timer version
  * `0`. */
 export type DrainEntryInput<
-  BlockValue,
+  BlockValue extends Block.DescriptorContract,
   BindingValue extends BindingFor<NoInfer<BlockValue>>,
 > = Readonly<{
   binding: BindingValue
@@ -52,7 +58,7 @@ export type DrainEntryInput<
   BindingOccurrence<BindingValue>
 
 /** Completed Toast Block Story helper for one exact Binding occurrence. */
-export type DrainEntry<BlockValue> = <
+export type DrainEntry<BlockValue extends Block.DescriptorContract> = <
   const BindingValue extends BindingFor<NoInfer<BlockValue>>,
 >(
   input: DrainEntryInput<BlockValue, BindingValue>,
@@ -61,33 +67,34 @@ export type DrainEntry<BlockValue> = <
 ) => Story.StorySimulation<Model, Message, OutMessage>
 
 /** Test helpers attached to one completed Toast Block. */
-export type ToastTest<BlockValue> = Readonly<{
+export type ToastTest<BlockValue extends Block.DescriptorContract> = Readonly<{
   drainEntry: DrainEntry<BlockValue>
 }>
 
-type FixtureTest<BlockValue> = ToastTest<BlockValue> &
-  Readonly<{
-    matchWaitForPaint: (
-      entryId: string,
-      generation: number,
-    ) => CommandInstance<typeof AnimationMessage.CompletedWaitForPaint.Type>
-    matchWaitForAnimationSettled: (
-      entryId: string,
-      generation: number,
-    ) => CommandInstance<typeof AnimationMessage.EndedAnimation.Type>
-  }>
+type FixtureTest<BlockValue extends Block.DescriptorContract> =
+  ToastTest<BlockValue> &
+    Readonly<{
+      matchWaitForPaint: (
+        entryId: string,
+        generation: number,
+      ) => CommandInstance<typeof AnimationMessage.CompletedWaitForPaint.Type>
+      matchWaitForAnimationSettled: (
+        entryId: string,
+        generation: number,
+      ) => CommandInstance<typeof AnimationMessage.EndedAnimation.Type>
+    }>
 
 const ENTER_TRANSITION_GENERATION = 1
 const LEAVE_TRANSITION_GENERATION = 2
 
 /** @internal Builds instance-bound test helpers while retaining Toast's
  * private timer Definition and Animation Binding identity. */
-export const makeTest = <const BlockValue extends object>({
+export const makeTest = <const BlockValue extends Block.DescriptorContract>({
   block,
   entryAnimationBinding,
   waitBeforeDismissal,
 }: Readonly<{
-  block: BlockValue
+  block: () => BlockValue
   entryAnimationBinding: BindingFor<typeof AnimationBlock>
   waitBeforeDismissal: (
     args: WaitBeforeDismissalArgs,
@@ -124,7 +131,7 @@ export const makeTest = <const BlockValue extends object>({
     ): Story.StorySimulation<Model, Message, OutMessage> => {
       const bindToastMatcher = <MatchedMessage>(
         matcher: CommandInstance<MatchedMessage>,
-      ) => __bindCommandMatcher(block, binding, matcher, key)
+      ) => __bindCommandMatcher(block(), binding, matcher, key)
 
       const resolveAnimation = (
         current: Story.StorySimulation<Model, Message, OutMessage>,

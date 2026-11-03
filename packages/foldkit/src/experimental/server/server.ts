@@ -55,6 +55,14 @@ import {
   assertDocument,
   assertProgramConfig,
 } from '../../runtime/programRoot.js'
+import {
+  type LayeredRoot,
+  type RootBlock,
+  type RootConstructionError,
+  type RootConstructionRequirements,
+  type RootContract,
+  resolveRootBlock,
+} from '../../runtime/rootBlock.js'
 import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'
 import type { Return as UpdateReturn } from '../../update/index.js'
@@ -1084,7 +1092,11 @@ export class InvalidHydrationRoot extends Data.TaggedError(
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export class MissingBuildId extends Data.TaggedError('MissingBuildId')<{}> {}
+export class MissingBuildId extends Data.TaggedError('MissingBuildId')<{}> {
+  override get message(): string {
+    return 'Hydratable rendering requires a nonempty build id. Build client and server together with @foldkit/vite-plugin. For separate builds, set the same FOLDKIT_BUILD_ID during both builds, or pass the same options.buildId to renderToString and Runtime.hydrate. For output that will not hydrate, pass isHydratable: false.'
+  }
+}
 
 /** Union of the failures {@link renderToString} can produce.
  *
@@ -1441,6 +1453,82 @@ const validateHydrationRoot = (
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
 export function renderToString<
+  const BlockValue extends LayeredRoot,
+  const Config extends Readonly<{
+    Flags: ServerFlagsSchema
+    routing: object
+  }>,
+>(
+  block: BlockValue &
+    NoInfer<ValidateProgramBlock<RootContract<BlockValue>, 'Document'>>,
+  config: Config &
+    NoInfer<
+      RoutingApplicationConfigWithFlags<
+        RootContract<BlockValue>,
+        Config['Flags']['Type']
+      >
+    > &
+    NoInfer<ExactServerHostConfig<Config>>,
+  options: RenderUrlFlagsOptions<NoInfer<Config['Flags']['Type']>>,
+): Effect.Effect<
+  RenderedApplication,
+  RenderError | RootConstructionError<BlockValue>,
+  RootConstructionRequirements<BlockValue>
+>
+export function renderToString<
+  const BlockValue extends LayeredRoot,
+  const Config extends Readonly<{ routing: object; Flags?: never }>,
+>(
+  block: BlockValue &
+    NoInfer<ValidateProgramBlock<RootContract<BlockValue>, 'Document'>>,
+  config: Config &
+    NoInfer<RoutingApplicationConfig<RootContract<BlockValue>>> &
+    NoInfer<ExactServerHostConfig<Config>>,
+  options: RenderUrlOptions,
+): Effect.Effect<
+  RenderedApplication,
+  RenderError | RootConstructionError<BlockValue>,
+  RootConstructionRequirements<BlockValue>
+>
+export function renderToString<
+  const BlockValue extends LayeredRoot,
+  const Config extends Readonly<{
+    Flags: ServerFlagsSchema
+    routing?: never
+  }>,
+>(
+  block: BlockValue &
+    NoInfer<ValidateProgramBlock<RootContract<BlockValue>, 'Document'>>,
+  config: Config &
+    NoInfer<
+      ApplicationConfigWithFlags<
+        RootContract<BlockValue>,
+        Config['Flags']['Type']
+      >
+    > &
+    NoInfer<ExactServerHostConfig<Config>>,
+  options: RenderFlagsOptions<NoInfer<Config['Flags']['Type']>>,
+): Effect.Effect<
+  RenderedApplication,
+  RenderError | RootConstructionError<BlockValue>,
+  RootConstructionRequirements<BlockValue>
+>
+export function renderToString<
+  const BlockValue extends LayeredRoot,
+  const Config extends object,
+>(
+  block: BlockValue &
+    NoInfer<ValidateProgramBlock<RootContract<BlockValue>, 'Document'>>,
+  config: Config &
+    NoInfer<ApplicationConfig<RootContract<BlockValue>>> &
+    NoInfer<ExactServerHostConfig<Config>>,
+  options?: RenderOptions,
+): Effect.Effect<
+  RenderedApplication,
+  RenderError | RootConstructionError<BlockValue>,
+  RootConstructionRequirements<BlockValue>
+>
+export function renderToString<
   const BlockValue extends AnyBlock,
   const Config extends Readonly<{
     Flags: ServerFlagsSchema
@@ -1489,13 +1577,13 @@ export function renderToString<
   options?: RenderOptions,
 ): Effect.Effect<RenderedApplication, RenderError>
 export function renderToString(
-  block: AnyBlock,
+  block: RootBlock,
   config: Readonly<{
     Flags?: Schema.Codec<any, any, never, never>
     routing?: unknown
   }>,
   options?: RenderOptions & Readonly<{ url?: string; flags?: unknown }>,
-): Effect.Effect<RenderedApplication, RenderError> {
+): Effect.Effect<RenderedApplication, any, any> {
   assertProgramConfig({ block, container: null }, 'Document')
 
   if (!Predicate.isObject(config)) {
@@ -1521,23 +1609,28 @@ export function renderToString(
     )
   }
 
-  const { init, view: blockView } = lowerBlock(block)
-  const view = (...args: ReadonlyArray<any>) => {
-    const output = Reflect.apply(blockView, undefined, args)
-    assertDocument(output)
-    return output
-  }
+  return Effect.scoped(
+    Effect.flatMap(resolveRootBlock(block), resolved => {
+      assertProgramConfig({ block: resolved, container: null }, 'Document')
+      const { init, view: blockView } = lowerBlock(resolved)
+      const view = (...args: ReadonlyArray<any>) => {
+        const output = Reflect.apply(blockView, undefined, args)
+        assertDocument(output)
+        return output
+      }
 
-  return __renderFromConfig(
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    {
-      ...(Flags === undefined ? {} : { Flags }),
-      ...(routing === undefined ? {} : { routing }),
-      init,
-      view,
-    } as never,
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    options as never,
+      return __renderFromConfig(
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        {
+          ...(Flags === undefined ? {} : { Flags }),
+          ...(routing === undefined ? {} : { routing }),
+          init,
+          view,
+        } as never,
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        options as never,
+      )
+    }),
   )
 }
 

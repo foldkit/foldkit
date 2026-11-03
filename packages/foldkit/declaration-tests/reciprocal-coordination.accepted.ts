@@ -90,7 +90,7 @@ export const ClearJoinDraft = DeclarationReciprocalHomeDefinition.makeCommand(
 )
 const DeclarationReciprocalHomeComposition =
   DeclarationReciprocalHomeDefinition.makeComposition()
-const resetJoinFormStep = DeclarationReciprocalHomeDefinition.makeStep(
+const resetJoinForm = DeclarationReciprocalHomeDefinition.makeStep(
   (model, username: string) => ({
     model: Struct.modifyFields(model, {
       username: () => username,
@@ -99,7 +99,7 @@ const resetJoinFormStep = DeclarationReciprocalHomeDefinition.makeStep(
     commands: [ClearJoinDraft()],
   }),
 )
-const requestJoinHomeStep = DeclarationReciprocalHomeDefinition.makeStep(
+const requestJoinHome = DeclarationReciprocalHomeDefinition.makeStep(
   (model, roomId: string, username: string) => ({
     model,
     commands: [ClearJoinDraft()],
@@ -114,9 +114,9 @@ const prepareHomeBlock = () =>
     update: DeclarationReciprocalHomeComposition.makeUpdate({
       SucceededJoinRoom: model => ({ model }),
       RequestedJoin: (model, { roomId, username }) =>
-        requestJoinHomeStep(model, roomId, username),
+        requestJoinHome(model, roomId, username),
       RequestedResetJoinForm: (model, { username }) =>
-        resetJoinFormStep(model, username),
+        resetJoinForm(model, username),
       CompletedClearJoinDraft: model => ({ model }),
     }),
     operations: {
@@ -153,7 +153,7 @@ const DeclarationReciprocalRoomDefinition = Block.makeDefinition(
 )
 const DeclarationReciprocalRoomComposition =
   DeclarationReciprocalRoomDefinition.makeComposition()
-const informJoinedStep = DeclarationReciprocalRoomDefinition.makeStep(
+const informJoined = DeclarationReciprocalRoomDefinition.makeStep(
   (model, username: string, _context: typeof RoomContext.Type) => ({
     model: Struct.modifyFields(model, {
       maybeUsername: () => Option.some(username),
@@ -170,7 +170,7 @@ const prepareRoomBlock = () =>
     update: DeclarationReciprocalRoomComposition.makeUpdate.withContext(
       (context: typeof RoomContext.Type) => ({
         InformedOfJoin: (model, { username }) =>
-          informJoinedStep(model, username, context),
+          informJoined(model, username, context),
         CompletedLeaveRoom: model => ({
           model,
           outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
@@ -275,7 +275,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [HomeBinding, RoomBinding],
 })
 export const applicationUpdate = ApplicationComposition.makeUpdate({})
-export const requestJoinStep = HomeBinding.requestJoin('room-1', 'alice')
+export const requestJoin = HomeBinding.requestJoin('room-1', 'alice')
 
 type HomeReset = ReturnType<typeof HomeBinding.resetJoinForm>
 type HomeRequestJoin = ReturnType<typeof HomeBinding.requestJoin>
@@ -583,7 +583,7 @@ export const NestedPolicy = (() => {
     OutMessage: HomeOutMessage,
   })
   const HomeComposition = HomeDefinition.makeComposition()
-  const requestRoomWorkStep = HomeDefinition.makeStep(model => ({
+  const requestRoomWork = HomeDefinition.makeStep(model => ({
     model,
     outMessage: HomeOutMessage.RequestedRoomWork(),
   }))
@@ -594,7 +594,7 @@ export const NestedPolicy = (() => {
       })),
       update: HomeComposition.makeUpdate({
         CompletedHomeWork: model => ({ model }),
-        RequestedRoomWork: model => requestRoomWorkStep(model),
+        RequestedRoomWork: model => requestRoomWork(model),
       }),
       operations: {
         requestRoomWork: () => Tuple.make(HomeMessage.RequestedRoomWork()),
@@ -623,7 +623,7 @@ export const NestedPolicy = (() => {
     },
   })
   const RoomComposition = RoomDefinition.makeComposition()
-  const runRoomWorkStep = RoomDefinition.makeStep(model => ({
+  const runRoomWork = RoomDefinition.makeStep(model => ({
     model: RoomModel.make({ count: model.count + 1 }),
     commands: [CompleteRoomWork()],
     outMessage: RoomOutMessage.ChangedRoom(),
@@ -635,7 +635,7 @@ export const NestedPolicy = (() => {
       })),
       update: RoomComposition.makeUpdate({
         CompletedRoomWork: model => ({ model }),
-        RequestedRoomWork: model => runRoomWorkStep(model),
+        RequestedRoomWork: model => runRoomWork(model),
       }),
       operations: {
         runRoomWork: () => Tuple.make(RoomMessage.RequestedRoomWork()),

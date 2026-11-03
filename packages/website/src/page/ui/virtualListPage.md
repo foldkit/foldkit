@@ -9,7 +9,7 @@ VirtualList supports fixed, known-variable, and measured row heights. Logical sc
 Create a typed completed Block once at module scope with `VirtualList.makeBlock<Item>()`, then connect it in the parent.
 
 :::Info{label="See it in an app"}
-Check out how VirtualList is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/virtualList.ts).
+Check out how VirtualList is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/virtualList.ts).
 :::
 
 ## Example
@@ -109,7 +109,7 @@ Rows report their position and set size to assistive technology. The default `Ac
 
 ### Choose a target
 
-The Binding’s `requestScrollToIndex`, `requestScrollToKey`, `requestScrollToOffset`, and `requestScrollToEnd` operations return logical scroll requests. The next view selects the target window, then the Command aligns the live rendered row or applies the live maximum offset.
+The Binding’s `requestScrollToIndex`, `requestScrollToKey`, `requestScrollToOffset`, and `requestScrollToEnd` operations return logical scroll requests. `requestScrollToEnd()` is generated from `RequestedScrollToEnd` in the InMessage contract. The InMessage handler applies the logical end request; the other scrolling and item-change methods retain their positional, defaulted, and generic adapters. The next view selects the target window, then the Command aligns the live rendered row or applies the live maximum offset.
 
 An initial index, key, offset, or end target remains pending if the list mounts before its items arrive. Notify VirtualList when the parent loads the items; it applies the target once a row can be rendered. A later scrolling operation supersedes the initial target.
 

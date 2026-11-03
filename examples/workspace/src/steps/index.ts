@@ -1,6 +1,6 @@
 export {
-  applyIssueCommentStep,
-  applyIssueSnapshotStep,
-  applySavedIssueStep,
+  applyIssueComment,
+  applyIssueSnapshot,
+  applySavedIssue,
 } from './issueData'
-export { requestIssueMoveStep } from './issueMove'
+export { requestIssueMove } from './issueMove'

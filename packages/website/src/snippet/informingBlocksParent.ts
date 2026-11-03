@@ -6,6 +6,7 @@ import { Url } from 'foldkit/url'
 
 import * as People from './informingBlocksIndex'
 import { ApplicationRoute, urlToApplicationRoute } from './informingBlocksRoute'
+import { PeopleDirectory } from './informingBlocksService'
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,
@@ -18,7 +19,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  effects: { services: [PeopleDirectory] },
   Model,
   Message,
 })
@@ -37,36 +43,32 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [PeopleBinding],
 })
 
-const setRouteStep = (nextRoute: ApplicationRoute) =>
+const setRoute = (nextRoute: ApplicationRoute) =>
   makeFieldsStep(() => ({ route: () => nextRoute }))
 
-const keepModelStep = makeNoopStep()
+const keepModel = makeNoopStep()
 
 type InformPeopleRouteStep =
-  | typeof keepModelStep
-  | ReturnType<typeof PeopleBinding.informRouteChanged>
+  | typeof keepModel
+  | ReturnType<typeof PeopleBinding.informRouteChange>
 
 export const update = ApplicationComposition.makeUpdate({
   ChangedUrl: (model, { url }) => {
     const nextRoute = urlToApplicationRoute(url)
 
     const transition = Transition.make(model.route, nextRoute)
-    const informPeopleRouteStep =
-      Transition.matchOrElse<InformPeopleRouteStep>()(
-        transition,
-        'People',
-        {
-          Entered: peopleRoute =>
-            PeopleBinding.informRouteChanged({ route: peopleRoute }),
-          Stayed: ({ nextRoute }) =>
-            PeopleBinding.informRouteChanged({ route: nextRoute }),
-        },
-        () => keepModelStep,
-      )
+    const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
+      transition,
+      'People',
+      {
+        Entered: peopleRoute =>
+          PeopleBinding.informRouteChange({ route: peopleRoute }),
+        Stayed: ({ nextRoute }) =>
+          PeopleBinding.informRouteChange({ route: nextRoute }),
+      },
+      () => keepModel,
+    )
 
-    return Update.combineSteps(model, [
-      setRouteStep(nextRoute),
-      informPeopleRouteStep,
-    ])
+    return Update.combineSteps(model, [setRoute(nextRoute), informPeopleRoute])
   },
 })

@@ -1,0 +1,66 @@
+{
+  "parent": "3e5270aa927d8fcd7410f0e3830dccdf209310e3",
+  "scope": "Test fixtures and runner configuration only; published package source and optimization settings unchanged.",
+  "originalFailure": "A real HTTPS relay server raced another package-root server while Vite removed their shared dependency cache (ENOTEMPTY). The mandatory pre-push hook stopped before push.",
+  "inventory": {
+    "serverCreationSites": 20,
+    "files": 14,
+    "sharedCacheSitesFixed": 9,
+    "remainingSites": "Unique OS temporary roots, outside ancestors with package.json; their default caches remain independent."
+  },
+  "regression": {
+    "test": "keeps the first record when a second dev server for the same root stops",
+    "before": "1 intended assertion failure: same root had the same cacheDir",
+    "after": "The full suite passes the distinct-cache assertion and existing relay-record/lifecycle assertions."
+  },
+  "lifetime": {
+    "ownership": "One main-process temporary root provided through Vitest; every real shared-root server acquires a unique child directory.",
+    "shutdown": "Existing per-test awaited server.close callbacks are preserved. Root removal occurs synchronously at runner exit after worker disposal, with bounded Node filesystem retries and visible failure.",
+    "reason": "Vite cancellation does not await an already-running Rolldown bundle.write. Vitest global teardown precedes worker pool closure.",
+    "rejectedControl": "Per-test cache removal failed ENOTEMPTY; adding filesystem retries made tests green but the post-process inventory detected 21 recreated directories. That lifetime is not adopted.",
+    "watch": "The run-owned root stays alive across watch reruns until the runner exits."
+  },
+  "versions": {
+    "node": "22.22.3",
+    "vite": "8.3.5",
+    "vitest": "4.1.12"
+  },
+  "finalSuite": {
+    "filesPassed": 22,
+    "testsPassed": 387,
+    "existingPlatformSkips": 4,
+    "exitCode": 0
+  },
+  "typecheck": "pnpm --filter @foldkit/vite-plugin typecheck passed",
+  "postProcessInventory": {
+    "started": "2026-11-03T10:13:54.869804+00:00",
+    "finished": "2026-11-03T10:14:18.004036+00:00",
+    "exitCode": 0,
+    "log": "/private/tmp/foldkit-vite-cache-run-owned-suite-20261103.log",
+    "preexistingCaches": [],
+    "newCachesRemaining": []
+  },
+  "sourceHashes": {
+    "packages/vite-plugin-foldkit/test/serverCache.ts": "99b4c3e3d5649d808e8fb94753c01e9acd58485e81125e3bb61989f7956f9219",
+    "packages/vite-plugin-foldkit/test/serverCacheSetup.ts": "6e40ea13d9ef735a06ef9ac7161c2b454567c9c07ecb78dacb97aff59aae46c1",
+    "packages/vite-plugin-foldkit/vitest.config.ts": "22ca5241ce4bdf262fa739363b8cc0db575be08cc71ed984840c85b0b86f0f12",
+    "packages/vite-plugin-foldkit/test/devToolsOverlay.test.ts": "9e23613f20b4971e2d85f4b94685222af9fded4f4d220e91240fb6bc60b1daf3",
+    "packages/vite-plugin-foldkit/test/mcpRelay.test.ts": "e0eb596914ce35f2227f175df1144bd3c98b1fd77387a718b1641a12322b9a79",
+    "packages/vite-plugin-foldkit/test/modelPreservation.test.ts": "975282c691bb11ba01022cff6dded69b8e08a76c468b89297a2b10f17d55f0e6",
+    "packages/vite-plugin-foldkit/test/relayCleanup.test.ts": "dae18d75438107f2ccb262453e08391d361d057f1f76af4253ce6cbe1257f0a4",
+    "packages/vite-plugin-foldkit/test/ssr.test.ts": "2c7f63117aa45fccd80a39c9f53918c2ac0a26303a5728b7fb398d33d3f1aac9"
+  },
+  "logs": {
+    "/private/tmp/foldkit-reviewed-staging-push-3e5270aa-20261103.log": "ed6efbd47109a04f11e98bea4b417cca0a7bbd3bb0c0ac2a8e7b9097567993c8",
+    "/private/tmp/foldkit-vite-cache-isolation-red-20261103.log": "956c4000b41eb9a3b02e1105349dd055333537d836ccaaa322b6b4ecf18de500",
+    "/private/tmp/foldkit-vite-cache-isolation-suite-20261103.log": "ad415b9d71cfb729cc0d218fbedf369609eb0a35ec555f5776f6df88dcf1f247",
+    "/private/tmp/foldkit-vite-cache-isolation-suite-final-20261103.log": "3ba2a6173ed119d7c840b4f04460efbda129dafeeaed500cd0c93f2c43286681",
+    "/private/tmp/foldkit-vite-cache-run-owned-suite-20261103.log": "d5ca9d795e16d1e57336884bdd204a6d1bc0a53738e9e2be65d0a5140dc659a1",
+    "/private/tmp/foldkit-vite-cache-run-owned-types-20261103.log": "6747a10f3c0478418a9700f0a2707d88fe22e66f56e8eb64e3903523ad31abf8"
+  },
+  "notClaimed": [
+    "No whole-workspace hook pass is inferred from this focused repair.",
+    "Normal mandatory pre-push and fresh remote required checks remain separate gates.",
+    "No publication or Daybreak transfer."
+  ]
+}

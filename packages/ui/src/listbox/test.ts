@@ -11,4 +11,4 @@ export {
   RestoreListboxInert,
   ScrollListboxItemIntoView,
   UnlockListboxScroll,
-} from './shared.js'
+} from './command.js'

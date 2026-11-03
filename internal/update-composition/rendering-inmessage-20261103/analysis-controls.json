@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "scriptSha256": "293b919f0c7566bc523331afc4cbdf96b4df16a217a576a57e2df40b9fffb131",
+  "originalEvidenceUnchanged": true,
+  "cases": [
+    {
+      "case": "unchanged evidence accepted",
+      "status": 0,
+      "scratch": "/private/tmp/foldkit-render-analysis-final-EmlfyL"
+    },
+    {
+      "case": "invalid counter rejected",
+      "status": 1,
+      "scratch": "/private/tmp/foldkit-render-analysis-final-W26Ogo"
+    }
+  ]
+}

@@ -10,9 +10,15 @@ import type {
   RequirementOfBinding,
   StorageOfBinding,
 } from './binding.js'
+import { bindingResolverOf } from './bindingConnection.js'
 import { runtimeBindingOf } from './composition.js'
 import type { OutgoingMessageOfBinding } from './delivery.js'
-import type { BindingInitRecipe } from './initRecipe.js'
+import {
+  type BindingInitRecipe,
+  isBindingInitRecipe,
+  makeBindingInitRecipe,
+  runBindingInitRecipe,
+} from './initRecipe.js'
 import type { InitialEvidenceOfBinding } from './initialization.js'
 import type { Qualify } from './scope.js'
 
@@ -44,6 +50,21 @@ type InitialRegistrationOf<BindingValue> =
   }>
     ? Registration
     : never
+
+const snapshotConfig = (config: unknown): unknown => {
+  if (!Predicate.isObject(config)) {
+    return config
+  }
+
+  const args = Reflect.get(config, 'args')
+
+  return Object.freeze({
+    ...config,
+    ...(globalThis.Array.isArray(args)
+      ? { args: Object.freeze([...args]) }
+      : {}),
+  })
+}
 
 type ValidateConcreteField<Field extends string> =
   true extends IsUnion<Field>
@@ -166,6 +187,28 @@ export function initAndSet(
   config: unknown,
   ..._validation: ReadonlyArray<unknown>
 ): unknown {
+  const resolveBinding = bindingResolverOf(binding)
+
+  if (resolveBinding !== undefined) {
+    const capturedConfig = snapshotConfig(config)
+
+    return makeBindingInitRecipe(binding, environment => {
+      const recipe = Reflect.apply(initAndSet, undefined, [
+        resolveBinding(environment),
+        model,
+        capturedConfig,
+      ])
+
+      if (!isBindingInitRecipe(recipe)) {
+        throw new Error(
+          '[foldkit] Child replacement did not produce an initialization recipe.',
+        )
+      }
+
+      return runBindingInitRecipe(recipe, environment)
+    })
+  }
+
   const { initial, storage, isParentModel } = runtimeBindingOf(binding)
 
   if (
@@ -304,6 +347,28 @@ export function initAndAppend(
   config: unknown,
   ..._validation: ReadonlyArray<unknown>
 ): unknown {
+  const resolveBinding = bindingResolverOf(binding)
+
+  if (resolveBinding !== undefined) {
+    const capturedConfig = snapshotConfig(config)
+
+    return makeBindingInitRecipe(binding, environment => {
+      const recipe = Reflect.apply(initAndAppend, undefined, [
+        resolveBinding(environment),
+        model,
+        capturedConfig,
+      ])
+
+      if (!isBindingInitRecipe(recipe)) {
+        throw new Error(
+          '[foldkit] Child append did not produce an initialization recipe.',
+        )
+      }
+
+      return runBindingInitRecipe(recipe, environment)
+    })
+  }
+
   const runtime = runtimeBindingOf(binding)
   const { initial, isParentModel } = runtime
 

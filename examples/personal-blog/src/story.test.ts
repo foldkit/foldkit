@@ -1,25 +1,27 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { toParentMessage } from 'foldkit/test'
+import { messageFrom } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
 
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock } from './block'
+import { CounterBlock } from './blocks'
 import { CounterBinding } from './composition'
-import { CounterBlock } from './island'
 import { Message } from './message'
 import { Model } from './model'
 import { ApplicationRoute } from './route'
-import { update } from './update'
 
 type CounterMessage = typeof CounterBlock.Message.Type
 
 const home = Model.make({
   route: ApplicationRoute.Home(),
-  counter: CounterBlock.init().model,
+  counter: CounterBlock.Model.make({ count: 0 }),
 })
 
 const counterMessage = (message: CounterMessage) =>
-  toParentMessage(CounterBinding, message)
+  messageFrom(CounterBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -29,20 +31,20 @@ const urlOrThrow = (raw: string) =>
 
 describe('update', () => {
   describe('ChangedUrl', () => {
-    test('navigating to / parses to the Home route', () => {
+    it.effect('navigating to / parses to the Home route', () =>
       story(
-        update,
+        ApplicationBlock,
         given(home),
         message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
         model(model => {
           expect(model.route._tag).toBe('Home')
         }),
-      )
-    })
+      ),
+    )
 
-    test('navigating to /posts parses to the Posts route', () => {
+    it.effect('navigating to /posts parses to the Posts route', () =>
       story(
-        update,
+        ApplicationBlock,
         given(home),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
@@ -50,12 +52,12 @@ describe('update', () => {
         model(model => {
           expect(model.route._tag).toBe('Posts')
         }),
-      )
-    })
+      ),
+    )
 
-    test('navigating to /posts/making-this-blog captures the slug', () => {
+    it.effect('navigating to /posts/making-this-blog captures the slug', () =>
       story(
-        update,
+        ApplicationBlock,
         given(home),
         message(
           Message.ChangedUrl({
@@ -69,46 +71,50 @@ describe('update', () => {
             throw new Error('Expected Post route')
           }
         }),
-      )
-    })
+      ),
+    )
 
-    test('an unknown path falls through to NotFound with the path captured', () => {
-      story(
-        update,
-        given(home),
-        message(
-          Message.ChangedUrl({ url: urlOrThrow('http://localhost/missing') }),
+    it.effect(
+      'an unknown path falls through to NotFound with the path captured',
+      () =>
+        story(
+          ApplicationBlock,
+          given(home),
+          message(
+            Message.ChangedUrl({ url: urlOrThrow('http://localhost/missing') }),
+          ),
+          model(model => {
+            if (model.route._tag === 'NotFound') {
+              expect(model.route.path).toBe('/missing')
+            } else {
+              throw new Error('Expected NotFound route')
+            }
+          }),
         ),
-        model(model => {
-          if (model.route._tag === 'NotFound') {
-            expect(model.route.path).toBe('/missing')
-          } else {
-            throw new Error('Expected NotFound route')
-          }
-        }),
-      )
-    })
+    )
   })
 
   describe('generated Counter Message', () => {
-    test('increments route through the Counter Block without commands', () => {
-      story(
-        update,
-        given(home),
-        message(counterMessage(CounterBlock.Message.ClickedIncrement())),
-        message(counterMessage(CounterBlock.Message.ClickedIncrement())),
-        Command.expectNone(),
-        model(model => {
-          expect(model.counter.count).toBe(2)
-        }),
-      )
-    })
+    it.effect(
+      'increments route through the Counter Block without commands',
+      () =>
+        story(
+          ApplicationBlock,
+          given(home),
+          counterMessage(CounterBlock.Message.ClickedIncrement()),
+          counterMessage(CounterBlock.Message.ClickedIncrement()),
+          Command.expectNone(),
+          model(model => {
+            expect(model.counter.count).toBe(2)
+          }),
+        ),
+    )
 
-    test('the count survives navigating between routes', () => {
+    it.effect('the count survives navigating between routes', () =>
       story(
-        update,
+        ApplicationBlock,
         given(home),
-        message(counterMessage(CounterBlock.Message.ClickedIncrement())),
+        counterMessage(CounterBlock.Message.ClickedIncrement()),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
         ),
@@ -120,7 +126,7 @@ describe('update', () => {
         model(model => {
           expect(model.counter.count).toBe(1)
         }),
-      )
-    })
+      ),
+    )
   })
 })

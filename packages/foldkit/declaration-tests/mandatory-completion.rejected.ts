@@ -65,6 +65,23 @@ ViewedDraft.provideHandlers(HostSaveLayer)
 // @ts-expect-error Block.assemble requires the adjacent FromAssembly header.
 export const MissingHeader = Block.assemble(prepareViewed)
 
+declare const anyProducer: any
+declare const neverProducer: never
+declare const anyResultProducer: () => any
+declare const neverResultProducer: () => never
+
+// @ts-expect-error An any producer cannot bypass the checked annotation.
+Block.assemble(anyProducer)
+
+// @ts-expect-error A never producer cannot bypass the checked annotation.
+Block.assemble(neverProducer)
+
+// @ts-expect-error An any result cannot bypass the checked annotation.
+Block.assemble(anyResultProducer)
+
+// @ts-expect-error A never result cannot bypass the checked annotation.
+Block.assemble(neverResultProducer)
+
 // @ts-expect-error Supplying only Model cannot infer the required producer header.
 Block.assemble<typeof Model>(prepareViewed)
 

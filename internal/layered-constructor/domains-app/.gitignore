@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+declarations/
+.relocated/
+.mutation/
+.verify/
+
+# Environment variables
+.env
+.env.*
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Claude Code worktrees
+.claude/worktrees/
+
+# Browser test output
+playwright-report/
+test-results/
+
+# Infrastructure output
+.alchemy/
+.wrangler/

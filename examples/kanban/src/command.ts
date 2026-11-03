@@ -1,4 +1,5 @@
-import { Crypto, Effect, Layer, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 import { KeyValueStore } from 'effect/persistence'
 import { Dom } from 'foldkit'
 
@@ -14,11 +15,11 @@ export const GenerateCardId = ApplicationDefinition.makeCommand(
     args: { columnId: Schema.String, title: Schema.String },
     messages: [Message.CompletedGenerateCardId],
     handler: function* () {
-      const crypto = yield* Crypto.Crypto
+      const secureRandom = yield* SecureRandom.SecureRandom
 
       return ({ columnId, title }) =>
         Effect.gen(function* () {
-          const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
+          const cardId = yield* secureRandom.uuidV4()
 
           return Message.CompletedGenerateCardId({ cardId, columnId, title })
         })

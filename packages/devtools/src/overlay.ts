@@ -392,7 +392,24 @@ const taggedPayload = (
 
 // UPDATE
 
+class StoreService extends Context.Service<StoreService, DevToolsStore>()(
+  'foldkit/DevToolsStore',
+) {}
+
+class ShadowRootService extends Context.Service<
+  ShadowRootService,
+  ShadowRoot
+>()('foldkit/DevToolsShadowRoot') {}
+
+const ApplicationKey = Symbol('DevToolsApplication')
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Flags]),
+  view: { kind: 'Element' },
+  effects: {
+    services: [StoreService, ShadowRootService, KeyValueStore.KeyValueStore],
+  },
   Model,
   Message,
   ChildInitContext: Flags,
@@ -468,11 +485,11 @@ const makeApplicationComposition = (
     ScrubberBinding,
   }
   const ApplicationComposition = ApplicationDefinition.makeComposition({
-    bindings: Tuple.make(
+    bindings: [
       InspectorTabsBinding,
       BlockFilterListboxBinding,
       ScrubberBinding,
-    ),
+    ],
   })
 
   return Tuple.make(bindings, ApplicationComposition)
@@ -493,15 +510,6 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 type OverlayBindings = typeof bindings
-
-class StoreService extends Context.Service<StoreService, DevToolsStore>()(
-  'foldkit/DevToolsStore',
-) {}
-
-class ShadowRootService extends Context.Service<
-  ShadowRootService,
-  ShadowRoot
->()('foldkit/DevToolsShadowRoot') {}
 
 const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   scrubFrameTicks: entry(
@@ -1034,7 +1042,7 @@ const update = ApplicationComposition.makeUpdate({
           ...Array.filter([ScrollToTop()], () => shouldFollowScroll),
         ],
       })),
-      bindings.ScrubberBinding.informRangeChanged({ min: 0, max: sliderMax }),
+      bindings.ScrubberBinding.informRangeChange({ min: 0, max: sliderMax }),
     ])
   },
   TickedScrubFrame: model =>
@@ -1148,18 +1156,22 @@ const makeView = (
 
 const view = ApplicationComposition.makeView(makeView(bindings))
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const inspectorTabs = yield* bindings.InspectorTabsBinding
+    const blockFilterListbox = yield* bindings.BlockFilterListboxBinding
+    const scrubber = yield* bindings.ScrubberBinding
+
+    return {
+      children: [inspectorTabs, blockFilterListbox, scrubber],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
+  }),
+)
 
 const buildOverlayView = (
   position: DevToolsPosition,
@@ -3001,7 +3013,11 @@ export const createOverlay = (
       devTools: false,
       freezeModel: false,
     })
-    const overlay = program.provide(ServicesLayer)
+    const AppLayer = Layer.mergeAll(Tabs.layer, Listbox.layer, Slider.layer)
+    const overlay = program.provide({
+      services: AppLayer,
+      runtime: ServicesLayer,
+    })
 
     yield* Effect.forkScoped(overlay.start())
   })

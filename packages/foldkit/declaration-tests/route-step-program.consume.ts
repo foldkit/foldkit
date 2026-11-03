@@ -9,14 +9,14 @@ import {
   type PolicyStep,
   ReadValue,
   type Store,
-  combinedPolicyStep,
+  applyCombinedPolicy,
+  applyPolicy,
   completedProgram,
+  connected,
   connectedProgram,
-  connectedStep,
-  enteredOutStep,
-  exitedOutStep,
-  policyStep,
-  selectConnectedStep,
+  enteredOut,
+  exitedOut,
+  selectConnected,
 } from './route-step-program.accepted.js'
 
 type Equal<Left, Right> =
@@ -40,49 +40,47 @@ type RequirementsOfProgram<ProgramValue> =
     : never
 
 export type ExactCombinedStep = Expect<
-  Equal<typeof combinedPolicyStep, PolicyStep>
+  Equal<typeof applyCombinedPolicy, PolicyStep>
 >
-export type ExactEnteredStep = Expect<
-  Equal<typeof enteredOutStep, PolicyOutStep>
->
-export type ExactExitedStep = Expect<Equal<typeof exitedOutStep, PolicyOutStep>>
+export type ExactEnteredStep = Expect<Equal<typeof enteredOut, PolicyOutStep>>
+export type ExactExitedStep = Expect<Equal<typeof exitedOut, PolicyOutStep>>
 
 export type ExactPolicyRequirements = Expect<
-  Equal<Update.RequirementsOf<typeof policyStep>, DetailService | DraftService>
+  Equal<Update.RequirementsOf<typeof applyPolicy>, DetailService | DraftService>
 >
 export type ExactCombinedRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof combinedPolicyStep>,
+    Update.RequirementsOf<typeof applyCombinedPolicy>,
     DetailService | DraftService
   >
 >
 export type ExactEnteredOutMessage = Expect<
   Equal<
-    ReturnType<typeof enteredOutStep>['outMessage'],
+    ReturnType<typeof enteredOut>['outMessage'],
     typeof PolicyOutMessage.Type | undefined
   >
 >
 export type ExactExitedOutMessage = Expect<
   Equal<
-    ReturnType<typeof exitedOutStep>['outMessage'],
+    ReturnType<typeof exitedOut>['outMessage'],
     typeof PolicyOutMessage.Type | undefined
   >
 >
 export type ExactConnectedRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof connectedStep>,
+    Update.RequirementsOf<typeof connected>,
     Block.Scoped<'child', Command.HandlerOf<typeof ReadValue>>
   >
 >
 export type ExactSelectedConnectedRequirements = Expect<
   Equal<
-    Update.RequirementsOf<ReturnType<typeof selectConnectedStep>>,
+    Update.RequirementsOf<ReturnType<typeof selectConnected>>,
     Block.Scoped<'child', Command.HandlerOf<typeof ReadValue>>
   >
 >
 export type ExactConnectedEvidence = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof connectedStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof connected>>,
     Block.RequirementOfBinding<typeof ChildBinding>
   >
 >

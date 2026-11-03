@@ -1,15 +1,15 @@
 import { Scene } from 'foldkit'
 
-import { Menu } from '@foldkit/ui'
+import { test as MenuTest, makeBlock as makeMenuBlock } from '@foldkit/ui/menu'
 
-const ChordMenuBlock = Menu.makeBlock()
+const ChordMenuBlock = makeMenuBlock()
 
 Scene.Command.resolve(
-  Menu.test.FocusMenuItems,
+  MenuTest.FocusMenuItems,
   ChordMenuBlock.Message.CompletedFocusMenuItems(),
 )
 
 Scene.Mount.resolve(
-  Menu.test.AnchorMenu,
+  MenuTest.AnchorMenu,
   ChordMenuBlock.Message.CompletedAnchorMenu(),
 )

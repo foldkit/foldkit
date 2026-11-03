@@ -1,17 +1,24 @@
-import { Array } from 'effect'
-import { expect, test } from 'vitest'
+import { Command, init, model, story } from 'foldkit/story'
+import { expect } from 'vitest'
 
+import { it } from '@effect/vitest'
+
+import { ApplicationBlock } from './block'
 import { FetchTelemetry } from './command'
-import { init } from './init'
+import { Message } from './message'
+import { sampleTelemetry } from './model.fixture'
 
-test('seeds loading state and queues a telemetry fetch', () => {
-  const init_ = init()
-
-  expect(init_.model.telemetry._tag).toBe('Loading')
-  expect(
-    Array.some(
-      init_.commands ?? [],
-      command => command.name === FetchTelemetry.name,
+it.effect('seeds loading state and queues a telemetry fetch', () =>
+  story(
+    ApplicationBlock,
+    init(),
+    model(model => {
+      expect(model.telemetry._tag).toBe('Loading')
+    }),
+    Command.expectHas(FetchTelemetry),
+    Command.resolve(
+      FetchTelemetry,
+      Message.SucceededFetchTelemetry({ telemetry: sampleTelemetry }),
     ),
-  ).toBe(true)
-})
+  ),
+)

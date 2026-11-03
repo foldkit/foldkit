@@ -1,0 +1,932 @@
+{
+  "label": "One optimized browser CPU profile per main/repaired slot; separate diagnostic, not official timing samples",
+  "method": "Sample timeDeltas attributed to sampled leaf (self) and every ancestor (inclusive); function/source inclusive aggregation counts each sample once per identity; boot and idle included; source maps generated after capture with exact production JavaScript SHA-256 equality",
+  "startedAt": "2026-11-02T03:57:44.370Z",
+  "completedAt": "2026-11-02T03:58:11.455Z",
+  "chromiumVersion": "153.0.8010.12",
+  "itemCount": 100,
+  "samplingIntervalUs": 100,
+  "profileSpan": "Profile starts before app iframe navigation and stops after unchanged runner resolves; includes boot and idle waits",
+  "order": [
+    "foldkit-main-a471adb-optimised",
+    "foldkit-candidate-repaired-optimised"
+  ],
+  "cleanup": {
+    "browserAndServerClosed": true,
+    "port": 38379,
+    "listeningAfterward": false
+  },
+  "executedDiagnosticDriverSha256": "1f0746088a867a568833c4476385130a4f21c78febaaf46ce2ead560893fe526",
+  "portableDriverSha256": "5780161765909895bc3abb3ae280ed58019b1853da2e31f9e4c0486f98bf7baa",
+  "portableDriverChanges": "Only snapshot/output path arguments and dynamic imports from that snapshot; workload/profile operations unchanged",
+  "results": [
+    {
+      "slot": "foldkit-main-a471adb-optimised",
+      "profileSha256": "d6ce61c4b2c84bf88c38e2819abeb5ac6a9f2d898e3ef8789d2fa9aace6229f0",
+      "profileDurationMs": 13379.216,
+      "sampledDurationMs": 13378.921,
+      "sampleCount": 86198,
+      "sampledBundleSelfMs": 53.755,
+      "categoriesMs": {
+        "(program)": 236.392,
+        "(idle)": 13064.438,
+        "(garbage collector)": 3.646
+      },
+      "diagnosticInstrumentedResult": {
+        "crossOriginIsolated": true,
+        "total": 48.214999198913574,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 11.195004940032959,
+          "timeout": 0,
+          "animation_frame": 37.019994258880615,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        }
+      },
+      "sourceMap": {
+        "name": "main",
+        "args": [
+          "/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/main-source/internal/lustre-benchmark/node_modules/vite/bin/vite.js",
+          "build",
+          "--sourcemap",
+          "hidden",
+          "--outDir",
+          "/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/profile-pair/maps-main"
+        ],
+        "cwd": "/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/main-source/internal/lustre-benchmark",
+        "exitCode": 0,
+        "js": "index.optimised-k8w2GCHY.js",
+        "bytes": 306581,
+        "sha256": "a85d218cb4309a1bff498e0a74e846bdc85ddfaf029c1aad06fe959d7e7ab005",
+        "officialSha256": "a85d218cb4309a1bff498e0a74e846bdc85ddfaf029c1aad06fe959d7e7ab005",
+        "exactJavaScriptMatch": true,
+        "sourceMap": "index.optimised-k8w2GCHY.js.map"
+      },
+      "topBundleSelf": [
+        {
+          "name": "",
+          "generatedName": "",
+          "selfMs": 3.886,
+          "inclusiveMs": 13.775,
+          "selfSamples": 25,
+          "inclusiveSamples": 90,
+          "sourceLine": null,
+          "sourceColumn": null,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 1,
+          "generatedColumn": 0
+        },
+        {
+          "name": "visit",
+          "generatedName": "ND",
+          "selfMs": 2.622,
+          "inclusiveMs": 2.775,
+          "selfSamples": 16,
+          "inclusiveSamples": 17,
+          "source": "packages/foldkit/src/vdom.ts",
+          "sourceLine": 77,
+          "sourceColumn": 6,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 11439
+        },
+        {
+          "name": "",
+          "generatedName": "",
+          "selfMs": 1.646,
+          "inclusiveMs": 6.93,
+          "selfSamples": 9,
+          "inclusiveSamples": 41,
+          "source": "packages/foldkit/src/html/lazy.ts",
+          "sourceLine": 276,
+          "sourceColumn": 2,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 14237
+        },
+        {
+          "name": "patchVnode",
+          "generatedName": "ie",
+          "selfMs": 1.595,
+          "inclusiveMs": 12.497,
+          "selfSamples": 18,
+          "inclusiveSamples": 95,
+          "source": "packages/foldkit/src/snabbdom/init.ts",
+          "sourceLine": 735,
+          "sourceColumn": 11,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 97,
+          "generatedColumn": 23485
+        },
+        {
+          "name": "resolveOrCache",
+          "generatedName": "qD",
+          "selfMs": 1.48,
+          "inclusiveMs": 10.48,
+          "selfSamples": 9,
+          "inclusiveSamples": 64,
+          "source": "packages/foldkit/src/html/lazy.ts",
+          "sourceLine": 131,
+          "sourceColumn": 6,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 13743
+        },
+        {
+          "name": "synchronizeControlledDefault",
+          "generatedName": "Sw",
+          "selfMs": 1.428,
+          "inclusiveMs": 1.938,
+          "selfSamples": 9,
+          "inclusiveSamples": 12,
+          "source": "packages/foldkit/src/controlledDomState.ts",
+          "sourceLine": 28,
+          "sourceColumn": 13,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 97,
+          "generatedColumn": 8881
+        },
+        {
+          "name": "buildElement",
+          "generatedName": "$P",
+          "selfMs": 1.367,
+          "inclusiveMs": 2.558,
+          "selfSamples": 9,
+          "inclusiveSamples": 16,
+          "source": "packages/foldkit/src/html/index.ts",
+          "sourceLine": 3191,
+          "sourceColumn": 6,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 46533
+        },
+        {
+          "name": "LP",
+          "generatedName": "LP",
+          "selfMs": 1.314,
+          "inclusiveMs": 2.586,
+          "selfSamples": 8,
+          "inclusiveSamples": 16,
+          "source": "packages/foldkit/src/html/index.ts",
+          "sourceLine": 2764,
+          "sourceColumn": 2,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 41129
+        },
+        {
+          "name": "updateChildren",
+          "generatedName": "re",
+          "selfMs": 1.255,
+          "inclusiveMs": 12.151,
+          "selfSamples": 10,
+          "inclusiveSamples": 91,
+          "source": "packages/foldkit/src/snabbdom/init.ts",
+          "sourceLine": 524,
+          "sourceColumn": 11,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 97,
+          "generatedColumn": 22409
+        },
+        {
+          "name": "buildStruct",
+          "generatedName": "ib",
+          "selfMs": 1.106,
+          "inclusiveMs": 2.635,
+          "selfSamples": 7,
+          "inclusiveSamples": 16,
+          "source": "node_modules/effect/dist/Struct.js",
+          "sourceLine": 539,
+          "sourceColumn": 9,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 14,
+          "generatedColumn": 37197
+        }
+      ],
+      "topBundleInclusive": [
+        {
+          "name": "measureSlowPhase",
+          "generatedName": "HR",
+          "selfMs": 0.634,
+          "inclusiveMs": 39.551,
+          "selfSamples": 4,
+          "inclusiveSamples": 262,
+          "source": "packages/foldkit/src/runtime/slowPhase.ts",
+          "sourceLine": 184,
+          "sourceColumn": 13,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 100499
+        },
+        {
+          "name": "renderSync",
+          "generatedName": "Se",
+          "selfMs": 0.307,
+          "inclusiveMs": 36.698,
+          "selfSamples": 2,
+          "inclusiveSamples": 245,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 374,
+          "sourceColumn": 10,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 103905
+        },
+        {
+          "name": "runRenderFrameBody",
+          "generatedName": "Ee",
+          "selfMs": 0,
+          "inclusiveMs": 35.272,
+          "selfSamples": 0,
+          "inclusiveSamples": 235,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 548,
+          "sourceColumn": 10,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 104706
+        },
+        {
+          "name": "renderFramePlain",
+          "generatedName": "Oe",
+          "selfMs": 0,
+          "inclusiveMs": 35.272,
+          "selfSamples": 0,
+          "inclusiveSamples": 235,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 678,
+          "sourceColumn": 10,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 105314
+        },
+        {
+          "name": "",
+          "generatedName": "",
+          "selfMs": 0.651,
+          "inclusiveMs": 20.765,
+          "selfSamples": 4,
+          "inclusiveSamples": 127,
+          "source": "node_modules/effect/dist/Function.js",
+          "sourceLine": 77,
+          "sourceColumn": 13,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 1,
+          "generatedColumn": 1500
+        },
+        {
+          "name": "maybeLiveSlowView",
+          "generatedName": "",
+          "selfMs": 0,
+          "inclusiveMs": 18.696,
+          "selfSamples": 0,
+          "inclusiveSamples": 115,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 394,
+          "sourceColumn": 8,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 103984
+        },
+        {
+          "name": "view",
+          "generatedName": "view",
+          "selfMs": 0.678,
+          "inclusiveMs": 18.54,
+          "selfSamples": 4,
+          "inclusiveSamples": 114,
+          "source": "internal/lustre-benchmark/src/entry.optimised.ts",
+          "sourceLine": 10,
+          "sourceColumn": 2,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 120691
+        },
+        {
+          "name": "maybeLiveSlowPatch",
+          "generatedName": "",
+          "selfMs": 0.145,
+          "inclusiveMs": 16.717,
+          "selfSamples": 1,
+          "inclusiveSamples": 122,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 428,
+          "sourceColumn": 8,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 104181
+        },
+        {
+          "name": "__patchVNode",
+          "generatedName": "LD",
+          "selfMs": 0.155,
+          "inclusiveMs": 16.572,
+          "selfSamples": 1,
+          "inclusiveSamples": 121,
+          "source": "packages/foldkit/src/vdom.ts",
+          "sourceLine": 165,
+          "sourceColumn": 13,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 12035
+        },
+        {
+          "name": "patchRuntimeVNode",
+          "generatedName": "y",
+          "selfMs": 0,
+          "inclusiveMs": 16.572,
+          "selfSamples": 0,
+          "inclusiveSamples": 121,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 228,
+          "sourceColumn": 10,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 98,
+          "generatedColumn": 103264
+        },
+        {
+          "name": "",
+          "generatedName": "",
+          "selfMs": 0.304,
+          "inclusiveMs": 14.57,
+          "selfSamples": 2,
+          "inclusiveSamples": 89,
+          "source": "node_modules/effect/dist/Array.js",
+          "sourceLine": 342,
+          "sourceColumn": 39,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 5,
+          "generatedColumn": 1038
+        },
+        {
+          "name": "",
+          "generatedName": "",
+          "selfMs": 3.886,
+          "inclusiveMs": 13.775,
+          "selfSamples": 25,
+          "inclusiveSamples": 90,
+          "sourceLine": null,
+          "sourceColumn": null,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-main-a471adb-optimised/dist/assets/index.optimised-k8w2GCHY.js",
+          "generatedLine": 1,
+          "generatedColumn": 0
+        }
+      ],
+      "mountScan": [],
+      "sources": [
+        {
+          "source": "packages/foldkit/src/html/index.ts",
+          "selfMs": 6.059,
+          "inclusiveMs": 16.926
+        },
+        {
+          "source": "packages/foldkit/src/snabbdom/init.ts",
+          "selfMs": 4.437,
+          "inclusiveMs": 13.716
+        },
+        {
+          "source": "packages/foldkit/src/html/lazy.ts",
+          "selfMs": 4.342,
+          "inclusiveMs": 12.481
+        },
+        {
+          "source": "packages/foldkit/src/vdom.ts",
+          "selfMs": 3.377,
+          "inclusiveMs": 17.248
+        },
+        {
+          "source": "internal/lustre-benchmark/src/main.optimised.ts",
+          "selfMs": 3.36,
+          "inclusiveMs": 17.811
+        },
+        {
+          "source": "packages/foldkit/src/propsModule.ts",
+          "selfMs": 2.079,
+          "inclusiveMs": 2.079
+        },
+        {
+          "source": "packages/foldkit/src/controlledDomState.ts",
+          "selfMs": 1.781,
+          "inclusiveMs": 1.938
+        },
+        {
+          "source": "packages/foldkit/src/schema/index.ts",
+          "selfMs": 1.775,
+          "inclusiveMs": 2.825
+        },
+        {
+          "source": "node_modules/effect/dist/SchemaAST.js",
+          "selfMs": 1.591,
+          "inclusiveMs": 1.887
+        },
+        {
+          "source": "internal/lustre-benchmark/src/main.ts",
+          "selfMs": 1.574,
+          "inclusiveMs": 3.832
+        },
+        {
+          "source": "packages/foldkit/dist/brand/brand.js",
+          "selfMs": 1.334,
+          "inclusiveMs": 1.334
+        },
+        {
+          "source": "node_modules/effect/dist/Struct.js",
+          "selfMs": 1.261,
+          "inclusiveMs": 2.79
+        }
+      ]
+    },
+    {
+      "slot": "foldkit-candidate-repaired-optimised",
+      "profileSha256": "912c3226cbba1cc2bef9a18440925164d4d917eb3fa793b533d218bb27fe5855",
+      "profileDurationMs": 13377.417,
+      "sampledDurationMs": 13377.155,
+      "sampleCount": 85650,
+      "sampledBundleSelfMs": 79.985,
+      "categoriesMs": {
+        "(program)": 233.591,
+        "(idle)": 13038.177,
+        "(garbage collector)": 4.358
+      },
+      "diagnosticInstrumentedResult": {
+        "crossOriginIsolated": true,
+        "total": 64.80999755859375,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 14.775001525878906,
+          "timeout": 0,
+          "animation_frame": 50.034996032714844,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        }
+      },
+      "sourceMap": {
+        "name": "repaired",
+        "args": [
+          "/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/repaired-source/internal/lustre-benchmark/node_modules/vite/bin/vite.js",
+          "build",
+          "--sourcemap",
+          "hidden",
+          "--outDir",
+          "/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/profile-pair/maps-repaired"
+        ],
+        "cwd": "/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/repaired-source/internal/lustre-benchmark",
+        "exitCode": 0,
+        "js": "index.optimised-CISTrc2m.js",
+        "bytes": 452857,
+        "sha256": "336fcfd7814379d6e8e7aaf557c1b01d085f887576bc97b36e69a2a2a460e3e8",
+        "officialSha256": "336fcfd7814379d6e8e7aaf557c1b01d085f887576bc97b36e69a2a2a460e3e8",
+        "exactJavaScriptMatch": true,
+        "sourceMap": "index.optimised-CISTrc2m.js.map"
+      },
+      "topBundleSelf": [
+        {
+          "name": "assertLayeredMountsAreRegistered.walk",
+          "generatedName": "r",
+          "selfMs": 7.32,
+          "inclusiveMs": 7.484,
+          "selfSamples": 44,
+          "inclusiveSamples": 45,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 401,
+          "sourceColumn": 20,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 193862
+        },
+        {
+          "name": "",
+          "generatedName": "",
+          "selfMs": 3.205,
+          "inclusiveMs": 18.551,
+          "selfSamples": 21,
+          "inclusiveSamples": 120,
+          "sourceLine": null,
+          "sourceColumn": null,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 1,
+          "generatedColumn": 0
+        },
+        {
+          "name": "updateClass",
+          "generatedName": "gD",
+          "selfMs": 2.169,
+          "inclusiveMs": 2.169,
+          "selfSamples": 14,
+          "inclusiveSamples": 14,
+          "source": "packages/foldkit/src/snabbdom/class.ts",
+          "sourceLine": 59,
+          "sourceColumn": 9,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 97,
+          "generatedColumn": 16272
+        },
+        {
+          "name": "visit",
+          "generatedName": "dA",
+          "selfMs": 2.076,
+          "inclusiveMs": 2.076,
+          "selfSamples": 13,
+          "inclusiveSamples": 13,
+          "source": "packages/foldkit/src/vdom.ts",
+          "sourceLine": 79,
+          "sourceColumn": 6,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 97,
+          "generatedColumn": 44820
+        },
+        {
+          "name": "writeProperty",
+          "generatedName": "nA",
+          "selfMs": 1.828,
+          "inclusiveMs": 1.828,
+          "selfSamples": 11,
+          "inclusiveSamples": 11,
+          "source": "packages/foldkit/src/propsModule.ts",
+          "sourceLine": 19,
+          "sourceColumn": 6,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 97,
+          "generatedColumn": 42806
+        },
+        {
+          "name": "wR",
+          "generatedName": "wR",
+          "selfMs": 1.726,
+          "inclusiveMs": 3.989,
+          "selfSamples": 10,
+          "inclusiveSamples": 24,
+          "source": "packages/foldkit/src/html/index.ts",
+          "sourceLine": 2895,
+          "sourceColumn": 2,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 42173
+        },
+        {
+          "name": "patchVnode",
+          "generatedName": "ne",
+          "selfMs": 1.692,
+          "inclusiveMs": 16.548,
+          "selfSamples": 17,
+          "inclusiveSamples": 118,
+          "source": "packages/foldkit/src/snabbdom/init.ts",
+          "sourceLine": 884,
+          "sourceColumn": 11,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 97,
+          "generatedColumn": 26676
+        },
+        {
+          "name": "pairChildren",
+          "generatedName": "dO",
+          "selfMs": 1.309,
+          "inclusiveMs": 16.218,
+          "selfSamples": 11,
+          "inclusiveSamples": 114,
+          "source": "packages/foldkit/src/snabbdom/init.ts",
+          "sourceLine": 136,
+          "sourceColumn": 16,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 97,
+          "generatedColumn": 21314
+        },
+        {
+          "name": "buildStruct",
+          "generatedName": "cx",
+          "selfMs": 1.214,
+          "inclusiveMs": 3.454,
+          "selfSamples": 7,
+          "inclusiveSamples": 19,
+          "source": "node_modules/effect/dist/Struct.js",
+          "sourceLine": 539,
+          "sourceColumn": 9,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 14,
+          "generatedColumn": 37395
+        },
+        {
+          "name": "input",
+          "generatedName": "input",
+          "selfMs": 1.174,
+          "inclusiveMs": 5.204,
+          "selfSamples": 1,
+          "inclusiveSamples": 25,
+          "source": "packages/foldkit/src/html/index.ts",
+          "sourceLine": 1938,
+          "sourceColumn": 14,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 24984
+        }
+      ],
+      "topBundleInclusive": [
+        {
+          "name": "renderSync",
+          "generatedName": "Ce",
+          "selfMs": 0.305,
+          "inclusiveMs": 52.941,
+          "selfSamples": 2,
+          "inclusiveSamples": 342,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 450,
+          "sourceColumn": 10,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 194343
+        },
+        {
+          "name": "renderFramePlain",
+          "generatedName": "ke",
+          "selfMs": 0.138,
+          "inclusiveMs": 52.001,
+          "selfSamples": 1,
+          "inclusiveSamples": 336,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 760,
+          "sourceColumn": 10,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 195741
+        },
+        {
+          "name": "runRenderFrameBody",
+          "generatedName": "De",
+          "selfMs": 0.108,
+          "inclusiveMs": 51.863,
+          "selfSamples": 1,
+          "inclusiveSamples": 335,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 630,
+          "sourceColumn": 10,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 195137
+        },
+        {
+          "name": "measureSlowPhase",
+          "generatedName": "TG",
+          "selfMs": 0.362,
+          "inclusiveMs": 51.155,
+          "selfSamples": 2,
+          "inclusiveSamples": 329,
+          "source": "packages/foldkit/src/runtime/slowPhase.ts",
+          "sourceLine": 184,
+          "sourceColumn": 13,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 159110
+        },
+        {
+          "name": "maybeLiveSlowView",
+          "generatedName": "",
+          "selfMs": 0,
+          "inclusiveMs": 24.459,
+          "selfSamples": 0,
+          "inclusiveSamples": 151,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 470,
+          "sourceColumn": 8,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 194422
+        },
+        {
+          "name": "view",
+          "generatedName": "o",
+          "selfMs": 0.157,
+          "inclusiveMs": 24.138,
+          "selfSamples": 1,
+          "inclusiveSamples": 149,
+          "source": "packages/foldkit/src/runtime/program.ts",
+          "sourceLine": 750,
+          "sourceColumn": 8,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 211295
+        },
+        {
+          "name": "",
+          "generatedName": "",
+          "selfMs": 1.128,
+          "inclusiveMs": 23.981,
+          "selfSamples": 7,
+          "inclusiveSamples": 148,
+          "source": "packages/foldkit/src/block/viewScope.ts",
+          "sourceLine": 109,
+          "sourceColumn": 2,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 74430
+        },
+        {
+          "name": "",
+          "generatedName": "",
+          "selfMs": 0.347,
+          "inclusiveMs": 20.702,
+          "selfSamples": 2,
+          "inclusiveSamples": 128,
+          "source": "packages/foldkit/src/block/viewScope.ts",
+          "sourceLine": 64,
+          "sourceColumn": 2,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 73802
+        },
+        {
+          "name": "",
+          "generatedName": "",
+          "selfMs": 0.805,
+          "inclusiveMs": 20.4,
+          "selfSamples": 5,
+          "inclusiveSamples": 124,
+          "source": "node_modules/effect/dist/Function.js",
+          "sourceLine": 77,
+          "sourceColumn": 13,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 1,
+          "generatedColumn": 1500
+        },
+        {
+          "name": "makeView",
+          "generatedName": "",
+          "selfMs": 0.319,
+          "inclusiveMs": 20.355,
+          "selfSamples": 2,
+          "inclusiveSamples": 126,
+          "source": "packages/foldkit/src/experimental/constructed/runtime.ts",
+          "sourceLine": 438,
+          "sourceColumn": 6,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 222794
+        },
+        {
+          "name": "__patchVNode",
+          "generatedName": "hA",
+          "selfMs": 0.171,
+          "inclusiveMs": 20.205,
+          "selfSamples": 1,
+          "inclusiveSamples": 141,
+          "source": "packages/foldkit/src/vdom.ts",
+          "sourceLine": 167,
+          "sourceColumn": 13,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 97,
+          "generatedColumn": 45416
+        },
+        {
+          "name": "patchRuntimeVNode",
+          "generatedName": "me",
+          "selfMs": 0,
+          "inclusiveMs": 20.205,
+          "selfSamples": 0,
+          "inclusiveSamples": 141,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 247,
+          "sourceColumn": 10,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 193098
+        }
+      ],
+      "mountScan": [
+        {
+          "name": "assertLayeredMountsAreRegistered.walk",
+          "generatedName": "r",
+          "selfMs": 7.32,
+          "inclusiveMs": 7.484,
+          "selfSamples": 44,
+          "inclusiveSamples": 45,
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "sourceLine": 401,
+          "sourceColumn": 20,
+          "bundleUrl": "http://localhost:38379/priv/implementations/foldkit-candidate-repaired-optimised/dist/assets/index.optimised-CISTrc2m.js",
+          "generatedLine": 98,
+          "generatedColumn": 193862
+        }
+      ],
+      "sources": [
+        {
+          "source": "packages/foldkit/src/html/index.ts",
+          "selfMs": 9.17,
+          "inclusiveMs": 25.177
+        },
+        {
+          "source": "packages/foldkit/src/runtime/renderer.ts",
+          "selfMs": 8.527,
+          "inclusiveMs": 66.232
+        },
+        {
+          "source": "packages/foldkit/src/snabbdom/init.ts",
+          "selfMs": 5.94,
+          "inclusiveMs": 18.123
+        },
+        {
+          "source": "internal/lustre-benchmark/src/view.optimised.ts",
+          "selfMs": 3.058,
+          "inclusiveMs": 20.353
+        },
+        {
+          "source": "packages/foldkit/src/propsModule.ts",
+          "selfMs": 2.756,
+          "inclusiveMs": 2.756
+        },
+        {
+          "source": "packages/foldkit/src/vdom.ts",
+          "selfMs": 2.547,
+          "inclusiveMs": 20.67
+        },
+        {
+          "source": "packages/foldkit/src/html/lazy.ts",
+          "selfMs": 2.259,
+          "inclusiveMs": 14.048
+        },
+        {
+          "source": "packages/foldkit/src/snabbdom/class.ts",
+          "selfMs": 2.169,
+          "inclusiveMs": 2.169
+        },
+        {
+          "source": "node_modules/effect/dist/Array.js",
+          "selfMs": 2.149,
+          "inclusiveMs": 16.158
+        },
+        {
+          "source": "node_modules/effect/dist/Struct.js",
+          "selfMs": 2.01,
+          "inclusiveMs": 3.454
+        },
+        {
+          "source": "node_modules/effect/dist/Context.js",
+          "selfMs": 1.992,
+          "inclusiveMs": 1.992
+        },
+        {
+          "source": "node_modules/effect/dist/internal/effect.js",
+          "selfMs": 1.973,
+          "inclusiveMs": 9.514
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+    "mountValidationAlreadyPresentAtCandidateHead": "be0cb38108693068da30eb835e6eb33d6d5762c8",
+    "sourceMapJavaScriptEquality": "Hidden source maps built after capture from each frozen tree; exact SHA-256 equality with profiled production JS required and passed for both"
+  },
+  "interpretation": "The recursive Mount scan is the largest candidate bundle self function and a substantial contributor within this single profiled pair. It predates this construction migration. View construction and patching also differ. This does not apportion the official median gap or isolate one architectural change.",
+  "limits": [
+    "One diagnostic pair, main then repaired; not a balanced timing batch",
+    "Profiler includes navigation/boot and idle waits, whereas official results exclude boot",
+    "CPU sampling and enabled profiler change measured execution; diagnostic instrumented totals are not substituted for official medians",
+    "Inclusive rows overlap and must not be summed",
+    "No code changes, extra scenario matrix, or further timing batch were made after this diagnosis"
+  ],
+  "localEvidenceDirectory": "/private/tmp/foldkit-rendering-final-20261101-k5puc9oc/profile-pair"
+}

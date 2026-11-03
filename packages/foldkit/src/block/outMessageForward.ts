@@ -36,7 +36,8 @@ type OutMessageTag<Child extends ChildOutMessageTypes> =
     ? Tag
     : never
 
-type OutMessageForwardCases<
+/** @internal The canonical exhaustive forward callback record. */
+export type OutMessageForwardCases<
   ParentOutMessage,
   Child extends ChildOutMessageTypes,
 > = {
@@ -52,7 +53,8 @@ type IsAny<Value> = 0 extends 1 & Value ? true : false
 type IsUnknown<Value> =
   IsAny<Value> extends true ? false : unknown extends Value ? true : false
 
-type ValidateChild<Child extends ChildOutMessageTypes> =
+/** @internal Rejects erased or open child OutMessage payload contracts. */
+export type ValidateChild<Child extends ChildOutMessageTypes> =
   IsAny<Child> extends true
     ? never
     : IsAny<ChildOutMessage<Child>> extends true
@@ -98,7 +100,8 @@ type InvalidCaseKeys<
   | InvalidCaseTags<ParentOutMessage, Cases>
   | Exclude<keyof Cases, OutMessageTag<Child>>
 
-type CaseValidation<
+/** @internal Rejects undeclared branches and incompatible parent OutMessages. */
+export type CaseValidation<
   ParentOutMessage,
   Child extends ChildOutMessageTypes,
   Cases,
@@ -106,9 +109,10 @@ type CaseValidation<
   ? unknown
   : Readonly<Record<InvalidCaseKeys<ParentOutMessage, Child, Cases>, never>>
 
-type ValidateForwardedCases<Cases> = [ForwardedOutMessage<Cases>] extends [
-  never,
-]
+/** @internal Requires at least one actual parent OutMessage forwarding branch. */
+export type ValidateForwardedCases<Cases> = [
+  ForwardedOutMessage<Cases>,
+] extends [never]
   ? readonly [
       error: 'At least one child OutMessage variant must forward a parent OutMessage',
     ]

@@ -54,7 +54,7 @@ const revealLocalErrors = (child: Child.Model): Child.Model =>
 const revealErrorsThroughParentHelper = (model: Model): Model =>
   modifyFields(model, { child: revealLocalErrors })
 
-const revealChildFieldsStep = ApplicationDefinition.makeFieldsStep(() => ({
+const revealChildFields = ApplicationDefinition.makeFieldsStep(() => ({
   child: Child.revealErrors,
 }))
 
@@ -68,7 +68,7 @@ export const update = ApplicationComposition.makeUpdate({
       entries: Array.map(Child.revealErrors),
     })
     void Update.combineSteps(model, [
-      revealChildFieldsStep,
+      revealChildFields,
       ChildBinding.informThemeChanged({ theme: 'Light' }),
     ])
 

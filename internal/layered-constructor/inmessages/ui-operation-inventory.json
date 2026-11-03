@@ -1,0 +1,71 @@
+{
+  "declarations": 11,
+  "entries": 29,
+  "factories": [
+    {
+      "path": "animation/definition.ts",
+      "operations": ["requestFinish"]
+    },
+    {
+      "path": "calendar/block.ts",
+      "operations": [
+        "requestSelectDate",
+        "requestFocusDate",
+        "informMinDateChanged",
+        "informMaxDateChanged",
+        "informDisabledDatesChanged",
+        "informDisabledDaysOfWeekChanged"
+      ]
+    },
+    {
+      "path": "combobox/multi.ts",
+      "operations": ["requestClose", "requestSelectItem"]
+    },
+    {
+      "path": "combobox/single.ts",
+      "operations": ["requestClose", "requestSelectItem"]
+    },
+    {
+      "path": "datePicker/block.ts",
+      "operations": [
+        "requestSelectDate",
+        "requestFocusDate",
+        "informMinDateChanged",
+        "informMaxDateChanged",
+        "informDisabledDatesChanged",
+        "informDisabledDaysOfWeekChanged"
+      ]
+    },
+    {
+      "path": "listbox/multi.ts",
+      "operations": ["requestSelectItem"]
+    },
+    {
+      "path": "listbox/single.ts",
+      "operations": ["requestSelectItem"]
+    },
+    {
+      "path": "menu/menu.ts",
+      "operations": ["requestSelectItem"]
+    },
+    {
+      "path": "toast/update.ts",
+      "operations": ["requestShow", "requestDismiss"]
+    },
+    {
+      "path": "tooltip/block.ts",
+      "operations": ["informShowDelayChanged"]
+    },
+    {
+      "path": "virtualList/virtualList.ts",
+      "operations": [
+        "informHistoryPrepended",
+        "informItemsChanged",
+        "requestScrollTo",
+        "requestScrollToIndex",
+        "requestScrollToKey",
+        "requestScrollToOffset"
+      ]
+    }
+  ]
+}

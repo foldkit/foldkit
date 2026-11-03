@@ -1,10 +1,6 @@
-export {
-  makeBlock,
-  Orientation,
-  ActivationMode,
-  type InitConfig,
-  type ViewInputs,
-  type RenderInfo,
-  type TabInfo,
-  type Completed,
-} from './tabs.js'
+export { makeBlock, type Completed } from './contract.js'
+export { layer } from './block.js'
+export { Orientation, ActivationMode } from './types.js'
+export type { InitConfig, ViewInputs, RenderInfo, TabInfo } from './types.js'
+
+export type { TabsKey } from './definition.js'

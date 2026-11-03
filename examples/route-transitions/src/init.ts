@@ -5,7 +5,7 @@ import type { Url } from 'foldkit/url'
 import { ApplicationComposition } from './composition'
 import { Model, PaintingStatus } from './model'
 import { urlToApplicationRoute } from './route'
-import { handleTransitionStep } from './steps'
+import { handleTransition } from './steps'
 
 export const init = ApplicationComposition.makeInit((url: Url) => {
   const route = urlToApplicationRoute(url)
@@ -17,5 +17,5 @@ export const init = ApplicationComposition.makeInit((url: Url) => {
     studioDraft: '',
     maybeSavedDraft: Option.none(),
   })
-  return handleTransitionStep(Transition.coldLoad(route))(initialModel)
+  return handleTransition(Transition.coldLoad(route))(initialModel)
 })

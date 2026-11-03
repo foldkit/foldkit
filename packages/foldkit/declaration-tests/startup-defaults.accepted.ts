@@ -263,7 +263,7 @@ export const DeclarationStartupDefaultsParentComposition =
       EntriesBinding,
     ],
   })
-const applyParentStep = DeclarationStartupDefaultsParentDefinition.makeStep(
+const applyParent = DeclarationStartupDefaultsParentDefinition.makeStep(
   model => ({
     model: Struct.modifyFields(model, { status: () => 'Stepped' }),
     commands: [FinishStep()],
@@ -277,7 +277,7 @@ export const init = DeclarationStartupDefaultsParentComposition.makeInit(
       status: 'Ready',
     },
     commands: [FinishParentInitialization()],
-    steps: [applyParentStep],
+    steps: [applyParent],
   }),
 )
 const prepareParentBlock = () =>

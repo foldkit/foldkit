@@ -1,20 +1,12 @@
-import {
-  Context,
-  Crypto,
-  Effect,
-  Layer,
-  Match,
-  Number,
-  Option,
-  Schema,
-} from 'effect'
+import { Context, Effect, Layer, Match, Number, Option, Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 interface ComputeEngine {
   readonly engineId: string
@@ -29,14 +21,15 @@ class ComputeEngineService extends Context.Service<
 const ComputeEngineLayer: Layer.Layer<
   ComputeEngineService,
   never,
-  Crypto.Crypto
+  SecureRandom.SecureRandom
 > = Layer.effect(
   ComputeEngineService,
   Effect.acquireRelease(
     Effect.gen(function* () {
-      const crypto = yield* Crypto.Crypto
-      const id = yield* Effect.orDie(crypto.randomUUIDv4)
+      const secureRandom = yield* SecureRandom.SecureRandom
+      const id = yield* secureRandom.uuidV4()
       const engineId = `engine-${id.slice(0, 8)}`
+
       return { engineId, square: value => value * value }
     }),
     ({ engineId }) => Effect.log(`Tore down ${engineId}`),
@@ -70,7 +63,13 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+  effects: { services: [SecureRandom.SecureRandom] },
   Model,
   Message,
 })
@@ -188,7 +187,7 @@ const primaryButton = (
   isDisabled: boolean,
   h: ApplicationViewBuilder,
 ): Html =>
-  Button.view(
+  buttonView(
     {
       onClick: message,
       isDisabled,
@@ -308,15 +307,15 @@ export const view = ApplicationComposition.makeView((model, h) => {
   }
 })
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    managedResources,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      managedResources,
+      EffectsLayer,
+    }
+  }),
+)

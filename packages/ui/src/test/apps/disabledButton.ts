@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -22,9 +22,13 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+const DisabledButtonTestKey = Symbol('DisabledButtonTest')
 const DisabledButtonTestDefinition = Block.makeDefinition(
   'DisabledButtonTest',
   {
+    key: DisabledButtonTestKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },
@@ -58,7 +62,18 @@ const DisabledButtonTestComposition =
 
 const makeInitialModel = (): Model => ({
   isEnabled: false,
-  dialog: Dialog.DialogBlock.init({ id: 'test-dialog' }).model,
+  dialog: Dialog.Model.make({
+    id: 'test-dialog',
+    isOpen: false,
+    isAnimated: false,
+    animation: {
+      id: 'test-dialog-panel',
+      isShowing: false,
+      transitionState: 'Idle',
+      transitionGeneration: 0,
+    },
+    maybeFocusSelector: Option.none(),
+  }),
 })
 
 const init = DisabledButtonTestComposition.makeInit(() => ({
@@ -134,11 +149,15 @@ export const viewWithDialog = DisabledButtonTestComposition.makeView(
   },
 )
 
-const prepare = () =>
-  DisabledButtonTestComposition.prepareBlock({
-    init,
-    update,
-    view: viewWithDialog,
-  })
-export const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
-  Block.assemble(prepare)
+export const block = DisabledButtonTestDefinition.makeBlock(
+  Effect.gen(function* () {
+    const dialog = yield* DialogBinding
+
+    return {
+      children: [dialog],
+      init,
+      update,
+      view: viewWithDialog,
+    }
+  }),
+).provide(Dialog.layer)

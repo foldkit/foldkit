@@ -1,0 +1,5 @@
+{
+  "overrides": {
+    "@effect/platform-browser": "4.1.0"
+  }
+}

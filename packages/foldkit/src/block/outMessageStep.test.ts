@@ -25,8 +25,8 @@ const SelectionDefinition = Block.makeDefinition('OutMessageStepSelection', {
 it('returns the identical Model and OutMessage without other result channels', () => {
   const model = Model.make({ count: 1 })
   const outMessage = OutMessage.Closed()
-  const closeStep = SelectionDefinition.makeOutMessageStep(() => outMessage)
-  const result = closeStep(model)
+  const emitClose = SelectionDefinition.makeOutMessageStep(() => outMessage)
+  const result = emitClose(model)
 
   expect(result).toEqual({ model, outMessage })
   expect(result.model).toBe(model)
@@ -36,7 +36,7 @@ it('returns the identical Model and OutMessage without other result channels', (
   >()
   expect(Object.keys(result).sort()).toEqual(['model', 'outMessage'])
   expectTypeOf<typeof result.commands>().toEqualTypeOf<undefined>()
-  expectTypeOf<Update.RequirementsOf<typeof closeStep>>().toEqualTypeOf<never>()
+  expectTypeOf<Update.RequirementsOf<typeof emitClose>>().toEqualTypeOf<never>()
   expectTypeOf<
     Update.RegistrationEvidenceOf<typeof result>
   >().toEqualTypeOf<never>()
@@ -46,11 +46,11 @@ it('retains refined input Models and literal OutMessage payloads', () => {
   const ExtendedModel = Schema.Struct({ ...Model.fields, label: Schema.String })
   type ExtendedModel = typeof ExtendedModel.Type
   const model = ExtendedModel.make({ count: 2, label: 'Selected' })
-  const selectStep = SelectionDefinition.makeOutMessageStep(() => ({
+  const select = SelectionDefinition.makeOutMessageStep(() => ({
     _tag: 'Selected',
     value: 'Pear',
   }))
-  const result = selectStep(model)
+  const result = select(model)
 
   expect(result.model).toBe(model)
   expect(result.outMessage.value).toBe('Pear')
@@ -154,7 +154,7 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
   )
 
   if (false) {
-    const selectAndPreserveStep = ParentDefinition.makeStep(() =>
+    const selectAndPreserve = ParentDefinition.makeStep(() =>
       Update.combineSteps([
         ParentDefinition.makeNoopStep(),
         SelectionBinding.requestSelect({ value: 'Pear' }),
@@ -173,16 +173,16 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
     })
     ParentComposition.makeUpdate({
       // @ts-expect-error Extracting the combination through makeStep cannot erase the deferred OutMessage.
-      RequestedSelect: model => selectAndPreserveStep(model),
+      RequestedSelect: model => selectAndPreserve(model),
     })
     ParentComposition.makeUpdate({
       // @ts-expect-error Conditional use cannot erase the deferred OutMessage.
       RequestedSelect: (model, message) =>
-        message.value === 'Pear' ? selectAndPreserveStep(model) : { model },
+        message.value === 'Pear' ? selectAndPreserve(model) : { model },
     })
     ParentComposition.makeInit(
       // @ts-expect-error Initializers cannot discard an OutMessage from a deferred combined Step.
-      () => ({ model: {}, steps: [selectAndPreserveStep] }),
+      () => ({ model: {}, steps: [selectAndPreserve] }),
     )
 
     ParentDefinition.makeComposition().makeUpdate({
@@ -217,21 +217,21 @@ if (false) {
   SelectionDefinition.makeOutMessageStep(unknownValue)
   // @ts-expect-error Any values cannot bypass the OutMessage contract.
   SelectionDefinition.makeOutMessageStep(uncheckedValue)
-  const closeStep = SelectionDefinition.makeOutMessageStep(() =>
+  const emitClose = SelectionDefinition.makeOutMessageStep(() =>
     OutMessage.Closed(),
   )
-  const noopStep = SelectionDefinition.makeNoopStep()
-  const fieldsStep = SelectionDefinition.makeFieldsStep(() => ({}))
-  const noopAndClose = [noopStep, closeStep]
-  const fieldsAndClose = [fieldsStep, closeStep]
+  const keepModel = SelectionDefinition.makeNoopStep()
+  const changeFields = SelectionDefinition.makeFieldsStep(() => ({}))
+  const noopAndClose = [keepModel, emitClose]
+  const fieldsAndClose = [changeFields, emitClose]
   // @ts-expect-error The produced Step checks its owning Model.
-  closeStep({ count: 'invalid' })
+  emitClose({ count: 'invalid' })
   // @ts-expect-error combineSteps cannot discard an OutMessage.
-  Update.combineSteps(Model.make({ count: 0 }), [closeStep, noopStep])
+  Update.combineSteps(Model.make({ count: 0 }), [emitClose, keepModel])
   // @ts-expect-error A preceding Model-only Step cannot hide an OutMessage.
-  Update.combineSteps([noopStep, closeStep])
+  Update.combineSteps([keepModel, emitClose])
   // @ts-expect-error A later Model-only Step cannot hide an OutMessage.
-  Update.combineSteps([closeStep, noopStep])
+  Update.combineSteps([emitClose, keepModel])
   // @ts-expect-error An extracted Step list retains its OutMessage channel.
   Update.combineSteps(noopAndClose)
   // @ts-expect-error A field Step cannot hide an OutMessage in an extracted list.
@@ -239,21 +239,21 @@ if (false) {
   // @ts-expect-error A data-first extracted list cannot hide its OutMessage.
   Update.combineSteps(Model.make({ count: 0 }), noopAndClose)
   // @ts-expect-error A pure no-op's public contract cannot hide an OutMessage.
-  const emittingNoopStep: typeof noopStep = closeStep
+  const emittingNoop: typeof keepModel = emitClose
   // @ts-expect-error A pure field Step's public contract cannot hide an OutMessage.
-  const emittingFieldsStep: typeof fieldsStep = closeStep
-  void emittingNoopStep
-  void emittingFieldsStep
+  const emittingFields: typeof changeFields = emitClose
+  void emittingNoop
+  void emittingFields
 
   const UnknownDefinition = Block.makeDefinition('UnknownOutMessageStep', {
     Model: Schema.Unknown,
     Message: Schema.Never,
     OutMessage,
   })
-  const emitUnknownStep = UnknownDefinition.makeOutMessageStep(() =>
+  const emitUnknown = UnknownDefinition.makeOutMessageStep(() =>
     OutMessage.Closed(),
   )
-  const preserveUnknownStep = UnknownDefinition.makeNoopStep()
+  const preserveUnknown = UnknownDefinition.makeNoopStep()
   // @ts-expect-error An unconstrained Model still retains its OutMessage channel.
-  Update.combineSteps([preserveUnknownStep, emitUnknownStep])
+  Update.combineSteps([preserveUnknown, emitUnknown])
 }

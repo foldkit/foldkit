@@ -1,0 +1,7 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "domains-rpc-test",
+  "main": "./rpcWorker.ts",
+  "compatibility_date": "2026-10-19",
+  "compatibility_flags": ["new_module_registry"],
+}

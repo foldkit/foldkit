@@ -1,9 +1,12 @@
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { Progress } from '@foldkit/ui'
+import {
+  type ProgressAttributes,
+  view as uiProgressView,
+} from '@foldkit/ui/progress'
 
 const view = (h: HtmlBuilder<Message>) => {
-  const progressView = (attributes: Progress.ProgressAttributes<Message>) =>
+  const progressView = (attributes: ProgressAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-2')],
       [
@@ -28,7 +31,7 @@ const view = (h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return Progress.view(
+  return uiProgressView(
     {
       id: 'upload',
       value: 42,

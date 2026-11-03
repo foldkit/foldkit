@@ -85,12 +85,12 @@ const UnregisteredStatusBinding = GeneratedBindingParentDefinition.makeBinding(
     placement: 'unregistered-status',
   },
 )
-const unregisteredGeneratedStep = GeneratedBindingParentDefinition.makeStep(
-  () => UnregisteredStatusBinding.requestToggle(),
+const unregisteredGenerated = GeneratedBindingParentDefinition.makeStep(() =>
+  UnregisteredStatusBinding.requestToggle(),
 )
 GeneratedBindingParentComposition.makeUpdate({
   // @ts-expect-error Wrapping an operation in Definition.makeStep cannot erase its Binding registration.
-  ClickedParent: model => unregisteredGeneratedStep(model),
+  ClickedParent: model => unregisteredGenerated(model),
 })
 
 GeneratedBindingParentDefinition.makeBinding(CounterBlock, {

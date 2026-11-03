@@ -7,7 +7,7 @@ A non-interactive floating label anchored to a trigger. Tooltips appear on hover
 Bind `TooltipBlock` in the parent. The positioning engine is shared with `Popover` and `Menu`. Pass `anchor` to control placement and spacing.
 
 :::Info{label="See it in an app"}
-Check out how Tooltip is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/tooltip.ts).
+Check out how Tooltip is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/tooltip.ts).
 :::
 
 ## Examples
@@ -50,7 +50,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Tooltip Binding's child initializer. Direct completed Block calls use `Tooltip.TooltipBlock.init()`.
+Configuration passed to the Tooltip Binding's child initializer. Scoped tests pass the same config to `Story.init(...)` or `Scene.init(...)` and provide the component implementation Layer.
 
 | Name        | Type             | Default                | Description                                                                                                                                                                                                         |
 | ----------- | ---------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

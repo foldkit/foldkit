@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { THUMBNAIL_CELL_SIZE, VISIBLE_HISTORY_COUNT } from '../constant'
@@ -40,7 +40,7 @@ export const historyPanelView = (
       h.div(
         [h.Class('flex flex-col gap-1.5')],
         [
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedUndo(),
               isDisabled: undoCount === 0,
@@ -68,7 +68,7 @@ export const historyPanelView = (
             },
             h,
           ),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedRedo(),
               isDisabled: redoCount === 0,

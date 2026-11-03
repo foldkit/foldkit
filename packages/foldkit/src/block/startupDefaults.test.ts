@@ -278,7 +278,7 @@ const ParentComposition = Parent.makeComposition({
     AutomaticEntriesBinding,
   ],
 })
-const applyParentStep = Parent.makeStep(model => ({
+const applyParent = Parent.makeStep(model => ({
   model: modifyFields(model, { status: () => 'Stepped' }),
   commands: [FinishParentStep()],
 }))
@@ -292,7 +292,7 @@ const init = ParentComposition.makeInit(
       status: 'Ready',
     },
     commands: [FinishParentInitialization()],
-    steps: [applyParentStep],
+    steps: [applyParent],
   }),
 )
 const prepareParentBlock = () =>

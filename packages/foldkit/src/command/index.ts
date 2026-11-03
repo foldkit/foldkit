@@ -666,6 +666,12 @@ export function define<
   }>,
 ): LayeredCommandDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>>
 export function define(name: string, config: DefineConfig): unknown {
+  if ('execute' in config) {
+    throw new Error(
+      `[foldkit] Command.define("${name}") no longer accepts execute. Use a generator handler constructor or supply the host-owned handler through the original Definition's toLayer.`,
+    )
+  }
+
   const isArgsDeclared = Predicate.isNotUndefined(config.args)
   const maybeInterrupt = Option.fromNullishOr(config.interrupt)
   const handler = makeHandler<string, any, any>(name)

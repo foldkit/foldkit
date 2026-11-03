@@ -1,12 +1,12 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Disclosure } from '@foldkit/ui'
+import {
+  type DisclosureAttributes,
+  view as uiDisclosureView,
+} from '@foldkit/ui/disclosure'
 
 // Store the open state as a plain boolean field in your Model:
 const Model = Schema.Struct({
@@ -21,13 +21,21 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const FrequentlyAskedQuestionsComposition = Block.makeDefinition(
+const FrequentlyAskedQuestionsKey = Symbol('FrequentlyAskedQuestions')
+
+const FrequentlyAskedQuestionsDefinition = Block.makeDefinition(
   'FrequentlyAskedQuestions',
   {
+    key: FrequentlyAskedQuestionsKey,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
     Model,
     Message,
   },
-).makeComposition()
+)
+
+const FrequentlyAskedQuestionsComposition =
+  FrequentlyAskedQuestionsDefinition.makeComposition()
 
 // In your init function, start it closed:
 const init = FrequentlyAskedQuestionsComposition.makeInit(() => ({
@@ -59,7 +67,7 @@ const view = FrequentlyAskedQuestionsComposition.makeView((model, h) => {
     button,
     panel,
     animatePanel,
-  }: Disclosure.DisclosureAttributes<Message>) =>
+  }: DisclosureAttributes<Message>) =>
     h.div(
       [h.Class('border rounded-lg overflow-hidden')],
       [
@@ -76,7 +84,7 @@ const view = FrequentlyAskedQuestionsComposition.makeView((model, h) => {
       ],
     )
 
-  return Disclosure.view(
+  return uiDisclosureView(
     {
       id: 'faq-1',
       isOpen: model.isFaqOpen,
@@ -86,3 +94,14 @@ const view = FrequentlyAskedQuestionsComposition.makeView((model, h) => {
     h,
   )
 })
+
+export const ApplicationBlock = FrequentlyAskedQuestionsDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
+  }),
+)

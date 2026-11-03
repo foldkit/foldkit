@@ -16,7 +16,9 @@ export { FocusItem, ResolveKeyboardMove }
 type BindingFor<BlockValue> = Block.AnyBinding &
   Block.BindingEvidence<BlockValue, unknown, unknown, boolean>
 
-type DragAndDropBinding = BindingFor<typeof DragAndDropBlock>
+type DragAndDropBinding = BindingFor<
+  Block.CoreContract<typeof DragAndDropBlock>
+>
 
 type BindingOccurrence<BindingValue> =
   BindingValue extends Block.BindingEvidence<unknown, unknown, unknown, true> &
@@ -77,11 +79,11 @@ const selectedFocusMatcher = (
  *  @example
  *  ```ts
  *  Story.story(
- *    DragAndDropBlock.update,
+ *    DragAndDropBlock,
  *    Story.given(model),
  *    Story.message(DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
  *    DragAndDrop.test.settleFocus({ itemId: 'card-1' }),
- *  )
+ *  ).pipe(Effect.provide(DragAndDrop.layer))
  *  ```
  */
 export const settleFocus = <
@@ -193,7 +195,7 @@ const resolveSelectedKeyboardMove =
  *  @example
  *  ```ts
  *  Story.story(
- *    DragAndDropBlock.update,
+ *    DragAndDropBlock,
  *    Story.given(keyboardDraggingModel),
  *    Story.message(
  *      DragAndDropBlock.Message.PressedArrowKey({
@@ -205,7 +207,7 @@ const resolveSelectedKeyboardMove =
  *      targetContainerId: 'done',
  *      targetIndex: 0,
  *    }),
- *  )
+ *  ).pipe(Effect.provide(DragAndDrop.layer))
  *  ```
  */
 export const resolveKeyboardMove = <

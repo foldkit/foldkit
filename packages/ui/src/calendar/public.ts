@@ -1,5 +1,7 @@
 export {
+  InMessage,
   CalendarBlock,
+  layer,
   ViewMode,
   type InitConfig,
   type DayCell,
@@ -17,3 +19,5 @@ export {
 
 /** Original Calendar Command Definitions for Story and Scene test resolution. */
 export * as test from './test.js'
+
+export type { CalendarKey } from './block.js'

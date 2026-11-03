@@ -1,7 +1,10 @@
 import { Array, Option, Schema } from 'effect'
 import { inertHtml as ih } from 'foldkit/html'
 
-import { Listbox } from '@foldkit/ui'
+import {
+  type ViewInputs as ListboxViewInputs,
+  makeBlock as makeListboxBlock,
+} from '@foldkit/ui/listbox'
 
 import { GroupBy, IssueFilters, IssuePriority, IssueStatus } from './domain'
 
@@ -27,29 +30,26 @@ export const StatusFilterListboxOption = makeListboxOption(StatusFilterValue)
 export type StatusFilterListboxOption = typeof StatusFilterListboxOption.Type
 
 export const WorkspaceListboxBlock =
-  Listbox.makeBlock<typeof ListboxOption.Type>()
+  makeListboxBlock<typeof ListboxOption.Type>()
 
-export const StatusListboxBlock = Listbox.makeBlock<
+export const StatusListboxBlock = makeListboxBlock<
   StatusListboxOption,
   IssueStatus
 >()
 
-export const PriorityListboxBlock = Listbox.makeBlock<
+export const PriorityListboxBlock = makeListboxBlock<
   PriorityListboxOption,
   IssuePriority
 >()
 
-export const SortListboxBlock = Listbox.makeBlock<
+export const SortListboxBlock = makeListboxBlock<
   SortListboxOption,
   typeof IssueFilters.fields.sort.Type
 >()
 
-export const GroupListboxBlock = Listbox.makeBlock<
-  GroupListboxOption,
-  GroupBy
->()
+export const GroupListboxBlock = makeListboxBlock<GroupListboxOption, GroupBy>()
 
-export const StatusFilterListboxBlock = Listbox.makeBlock<
+export const StatusFilterListboxBlock = makeListboxBlock<
   StatusFilterListboxOption,
   StatusFilterValue
 >()
@@ -88,7 +88,7 @@ export const listboxViewInputs = <const Value extends string>({
   isDisabled = false,
   isCompact = false,
   ariaLabel,
-}: ListboxViewConfig<Value>): Listbox.ViewInputs<
+}: ListboxViewConfig<Value>): ListboxViewInputs<
   ListboxOption<Value>,
   Value
 > => ({

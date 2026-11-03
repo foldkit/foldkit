@@ -52,17 +52,17 @@ export const PersistDraft: Command.Command<PolicyMessage, never, DraftService> =
     name: 'PersistDraft',
     effect: Effect.as(DraftService, PolicyMessage.CompletedPersistDraft()),
   }
-export const loadDetailStep: Update.Step<
+export const loadDetail: Update.Step<
   PolicyModel,
   PolicyMessage,
   DetailService
 > = model => ({ model, commands: [LoadDetail] })
-export const persistDraftStep: Update.Step<
+export const persistDraft: Update.Step<
   PolicyModel,
   PolicyMessage,
   DraftService
 > = model => ({ model, commands: [PersistDraft] })
-export const preserveModelStep: Update.Step<
+export const preserveModel: Update.Step<
   PolicyModel,
   PolicyMessage
 > = model => ({
@@ -80,7 +80,7 @@ export const policyTransition = Transition.make<ApplicationRoute>(
   note,
   nextNote,
 )
-export const policyStep = Transition.match<PolicyStep>()(
+export const applyPolicy = Transition.match<PolicyStep>()(
   policyTransition,
   'NoteDetail',
   {
@@ -90,7 +90,7 @@ export const policyStep = Transition.match<PolicyStep>()(
       > = true
       void exactNextRoute
 
-      return loadDetailStep
+      return loadDetail
     },
     Exited: previousRoute => {
       const exactPreviousRoute: Expect<
@@ -98,7 +98,7 @@ export const policyStep = Transition.match<PolicyStep>()(
       > = true
       void exactPreviousRoute
 
-      return persistDraftStep
+      return persistDraft
     },
     Stayed: ({ previousRoute, nextRoute }) => {
       const exactPreviousRoute: Expect<
@@ -110,17 +110,17 @@ export const policyStep = Transition.match<PolicyStep>()(
       void exactPreviousRoute
       void exactNextRoute
 
-      return loadDetailStep
+      return loadDetail
     },
-    Unrelated: () => preserveModelStep,
+    Unrelated: () => preserveModel,
   },
 )
-export const combinedPolicyStep = Update.combineSteps([
-  policyStep,
-  preserveModelStep,
+export const applyCombinedPolicy = Update.combineSteps([
+  applyPolicy,
+  preserveModel,
 ])
 
-export const loadDetailAndNotifyStep: Update.StepWithOutMessage<
+export const loadDetailAndNotify: Update.StepWithOutMessage<
   PolicyModel,
   PolicyMessage,
   PolicyOutMessage,
@@ -130,7 +130,7 @@ export const loadDetailAndNotifyStep: Update.StepWithOutMessage<
   commands: [LoadDetail],
   outMessage: PolicyOutMessage.EnteredDetail(),
 })
-export const persistDraftAndNotifyStep: Update.StepWithOutMessage<
+export const persistDraftAndNotify: Update.StepWithOutMessage<
   PolicyModel,
   PolicyMessage,
   PolicyOutMessage,
@@ -140,7 +140,7 @@ export const persistDraftAndNotifyStep: Update.StepWithOutMessage<
   commands: [PersistDraft],
   outMessage: PolicyOutMessage.ExitedDetail(),
 })
-export const preserveModelAndNotifyStep: Update.StepWithOutMessage<
+export const preserveModelAndNotify: Update.StepWithOutMessage<
   PolicyModel,
   PolicyMessage,
   PolicyOutMessage
@@ -152,7 +152,7 @@ export type PolicyOutStep = Update.StepWithOutMessage<
   DetailService | DraftService
 >
 
-export const selectPolicyOutStep = (
+export const selectPolicyOut = (
   transition: Transition.Transition<ApplicationRoute>,
 ) =>
   Transition.matchOrElse<PolicyOutStep>()(
@@ -165,7 +165,7 @@ export const selectPolicyOutStep = (
         > = true
         void exactNextRoute
 
-        return loadDetailAndNotifyStep
+        return loadDetailAndNotify
       },
       Exited: previousRoute => {
         const exactPreviousRoute: Expect<
@@ -173,15 +173,15 @@ export const selectPolicyOutStep = (
         > = true
         void exactPreviousRoute
 
-        return persistDraftAndNotifyStep
+        return persistDraftAndNotify
       },
     },
-    () => preserveModelAndNotifyStep,
+    () => preserveModelAndNotify,
   )
-export const enteredOutStep = selectPolicyOutStep(
+export const enteredOut = selectPolicyOut(
   Transition.make<ApplicationRoute>(ApplicationRoute.Home(), note),
 )
-export const exitedOutStep = selectPolicyOutStep(
+export const exitedOut = selectPolicyOut(
   Transition.make<ApplicationRoute>(note, ApplicationRoute.Home()),
 )
 
@@ -242,25 +242,23 @@ export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-export const refreshChildStep = ChildBinding.refresh()
-export const preserveParentStep = ParentDefinition.makeNoopStep()
-export type ConnectedPolicyStep =
-  | typeof refreshChildStep
-  | typeof preserveParentStep
-export const selectConnectedStep = (
+export const refreshChild = ChildBinding.refresh()
+export const preserveParent = ParentDefinition.makeNoopStep()
+export type ConnectedPolicyStep = typeof refreshChild | typeof preserveParent
+export const selectConnected = (
   transition: Transition.Transition<ApplicationRoute>,
 ) =>
   Transition.matchOrElse<ConnectedPolicyStep>()(
     transition,
     'NoteDetail',
-    { Entered: () => refreshChildStep },
-    () => preserveParentStep,
+    { Entered: () => refreshChild },
+    () => preserveParent,
   )
-export const connectedStep = selectConnectedStep(
+export const connected = selectConnected(
   Transition.make<ApplicationRoute>(ApplicationRoute.Home(), note),
 )
 export const parentUpdate = ParentComposition.makeUpdate({
-  RequestedApplyRoutePolicy: model => connectedStep(model),
+  RequestedApplyRoutePolicy: model => connected(model),
 })
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({

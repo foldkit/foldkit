@@ -54,8 +54,10 @@ of a release tag. After an upgrade, use the same command with `pull` in place of
   type. Let owned callbacks infer their parameters.
 - Prefer Foldkit and Effect modules over hand-rolled equivalents or outside
   libraries. Check `create-foldkit-app` and current examples first.
-- Construct generic UI Blocks with `Component.makeBlock` once at module scope,
-  then bind the exact completed result into the parent.
+- Import named UI exports from public component subpaths, with descriptive aliases for common exports such as `makeListboxBlock`, `ListboxLayer`, and `buttonView`. Construct generic UI Blocks once at module scope, bind the passive contract, and provide its construction Layer to the parent.
+- Put each Block's own child folders under its `blocks/` directory and expose them through an explicit barrel. Keep domain and helper modules separate from those child folders.
+- Declare each Block's independent key, Init/Context, view and operation contracts once. Use optional `InMessage` plus `Composition.makeInMessageUpdate` for parent requests and notifications, keeping local Messages separate. Export its passive `FooBlock` contract and construction `layer`; yield the registered Bindings inside `Definition.makeBlock(Effect.gen(...))` and return acquired `children`.
+- Use Block-aware Story and Scene entry points to own construction and cleanup without running handlers. Provide normal test Layers and keep ordinary steps synchronous.
 - Use stateful Foldkit UI Blocks through a parent Binding. Call stateless render
   helpers directly with the caller's builder and Model. Do not turn a render
   helper into a Block merely for structural symmetry.

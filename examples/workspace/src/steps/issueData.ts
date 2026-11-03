@@ -10,11 +10,11 @@ import {
   NotificationActivity,
   type SavedIssue,
   applyComment,
-  applySavedIssue,
+  applySavedIssue as applySavedIssueToWorkspace,
   mergeIssue,
 } from '../domain'
 
-const notifyNewCommentsStep = (issue: Issue) =>
+const notifyNewComments = (issue: Issue) =>
   makeStep(model => {
     const maybePreviousIssue = Option.flatMap(
       AsyncData.getData(model.workspaceAsyncData),
@@ -47,9 +47,9 @@ const notifyNewCommentsStep = (issue: Issue) =>
     )
   })
 
-export const applyIssueSnapshotStep = (issue: Issue) =>
+export const applyIssueSnapshot = (issue: Issue) =>
   Update.combineSteps([
-    notifyNewCommentsStep(issue),
+    notifyNewComments(issue),
     makeFieldsStep(() => ({
       workspaceAsyncData: AsyncData.map(workspace =>
         modifyFields(workspace, {
@@ -63,14 +63,14 @@ export const applyIssueSnapshotStep = (issue: Issue) =>
     })),
   ])
 
-export const applySavedIssueStep = (savedIssue: SavedIssue) =>
+export const applySavedIssue = (savedIssue: SavedIssue) =>
   makeFieldsStep(() => ({
     workspaceAsyncData: AsyncData.map(workspace =>
-      applySavedIssue(workspace, savedIssue),
+      applySavedIssueToWorkspace(workspace, savedIssue),
     ),
   }))
 
-export const applyIssueCommentStep = (issueId: string, comment: Comment) =>
+export const applyIssueComment = (issueId: string, comment: Comment) =>
   makeStep(model => {
     const maybeIssue = Option.flatMap(
       AsyncData.getData(model.workspaceAsyncData),

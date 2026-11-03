@@ -1,11 +1,12 @@
 import { clsx } from 'clsx'
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block, CustomElement } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import 'vanilla-colorful/hex-color-picker.js'
 
-import { Button, Input } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
+import { view as inputView } from '@foldkit/ui/input'
 import '@shoelace-style/shoelace/dist/components/qr-code/qr-code.js'
 
 export const Model = Schema.Struct({
@@ -22,7 +23,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+export const ApplicationKey = Symbol('Application')
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
   Model,
   Message,
 })
@@ -181,7 +187,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
   )
 
 const contentFieldView = (model: Model, h: ApplicationViewBuilder): Html =>
-  Input.view(
+  inputView(
     {
       id: 'qr-content',
       value: model.content,
@@ -271,7 +277,7 @@ const swatchRow = (
   h.div(
     [h.Class('flex flex-wrap gap-1.5 max-w-[10rem]')],
     PRESET_COLORS.map(color =>
-      Button.view(
+      buttonView(
         {
           onClick: onChange(color),
           toView: attributes =>
@@ -322,13 +328,13 @@ const previewView = (model: Model, h: ApplicationViewBuilder): Html => {
   )
 }
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
+  }),
+)

@@ -1,20 +1,27 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchPeople } from './informingBlocksCommand'
-import { PeopleComposition } from './informingBlocksDefinition'
+import {
+  PeopleComposition,
+  PeopleDefinition,
+} from './informingBlocksDefinition'
 import { init } from './informingBlocksInit'
-import { Message } from './informingBlocksMessage'
-import type { Model } from './informingBlocksModel'
 import {
   SearchResults,
   addSearchToHistory,
   routeSearchText,
 } from './informingBlocksModel'
 
-export const informRouteChanged = Message.InformedOfRouteChange
-
 export const update = PeopleComposition.makeUpdate({
+  CompletedFetchPeople: (model, { query, people }) => ({
+    model: modifyFields(model, {
+      results: () => SearchResults.Loaded({ query, people }),
+    }),
+  }),
+})
+
+export const inMessageUpdate = PeopleComposition.makeInMessageUpdate({
   InformedOfRouteChange: (model, { route }) => {
     const searchText = routeSearchText(route.searchText)
 
@@ -27,21 +34,18 @@ export const update = PeopleComposition.makeUpdate({
       commands: [FetchPeople({ searchText })],
     }
   },
-  CompletedFetchPeople: (model, { query, people }) => ({
-    model: modifyFields(model, {
-      results: () => SearchResults.Loaded({ query, people }),
-    }),
-  }),
 })
 
-const prepare = () =>
-  PeopleComposition.prepareBlock({
-    init,
-    update,
-    operations: { informRouteChanged },
-    EffectsLayer: FetchPeople.layer,
-  })
-export const PeopleBlock: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const PeopleBlock = PeopleDefinition.contract
+
+export const layer = PeopleDefinition.makeBlock(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      inMessageUpdate,
+      EffectsLayer: FetchPeople.layer,
+    }
+  }),
+).layer

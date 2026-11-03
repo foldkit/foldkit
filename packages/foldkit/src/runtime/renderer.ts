@@ -366,14 +366,20 @@ export const makeRenderer = <Model, Message>({
       maybeLastDirtyMessage = Option.some(message)
     }
 
-    const dispatchSync = (message: unknown): void => {
+    const dispatchSync = (
+      message: unknown,
+      isCurrent?: () => boolean,
+    ): void => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      enqueueMessage(message as Message)
+      enqueueMessage(message as Message, isCurrent)
     }
 
-    const dispatchAsync = (message: unknown): Effect.Effect<void> =>
+    const dispatchAsync = (
+      message: unknown,
+      isCurrent?: () => boolean,
+    ): Effect.Effect<void> =>
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      enqueueMessageEffect(message as Message)
+      enqueueMessageEffect(message as Message, isCurrent)
 
     const dispatch = { dispatchAsync, dispatchSync }
 

@@ -1,17 +1,19 @@
-import { Schema, Tuple } from 'effect'
+import { Context, Effect, Layer, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
+import type { MessageOf } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 
+import { layer as AnimationLayer } from '../animation/block.js'
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputs,
   ComboboxNamespace,
   EffectsLayer,
+  InMessage,
+  InitConfig as InitConfigSchema,
   type ItemSchema,
-  Message,
   type MessageSchema,
-  OutMessage,
   type OutMessageSchema,
   baseInit,
   closedBaseModel,
@@ -30,92 +32,62 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-const ComboboxDefinition = ComboboxNamespace.makeDefinition({
-  Model,
-  Message,
-  OutMessage,
-})
-
-// INIT
-
 /** Configuration for creating a multi-select combobox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
 export type InitConfig = BaseInitConfig
-
-// UPDATE
-
-/** Processes a Combobox Message and returns the next Model, optional Commands,
- *  and an optional OutMessage. Selection leaves the multi-select Combobox open
- *  and emits `Selected({ value })` for the parent to fold by toggling
- *  membership.
- *  Closing never emits `ClearedSelection` because its input rests empty by
- *  design. Clear the selection by toggling each value off. */
-const defaultUpdate = makeUpdateHandlers(
-  ComboboxDefinition.makeBinding,
-  ComboboxDefinition.makeOutMessageFold,
-  ComboboxDefinition.makeStep,
-  ComboboxDefinition.makeFieldsStep,
-  ComboboxDefinition.makeNoopStep,
-  ComboboxDefinition.makeCommandsStep,
-  'KeepOpen',
-  {
-    handleClose: model => ({
-      model: modifyFields(closedBaseModel(model), { inputValue: () => '' }),
-    }),
-
-    handleSelectedItem: (model, item) => ({
-      model,
-      outMessage: OutMessage.Selected({ value: item }),
-    }),
-
-    handleImmediateActivation: (model, item) => ({
-      model,
-      outMessage: OutMessage.Selected({ value: item }),
-    }),
-  },
-)
-
-const ComboboxComposition = ComboboxDefinition.makeComposition({
-  mounts,
-  bindings: [defaultUpdate.AnimationBinding],
-})
-
-export const update = ComboboxComposition.makeUpdate(defaultUpdate.handlers)
-
-type UpdateReturn = ReturnType<typeof update>
-
-/** Programmatically opens the Combobox, updating the Model and returning
- *  focus and modal Commands. When it is already open, returns the Model
- *  unchanged with no Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn =>
-  block.operations.requestOpen(model)
-
-/** Programmatically closes the Combobox, updating the Model and returning
- *  focus and modal Commands. The multi-select input always rests empty on
- *  close. Use this in domain-event handlers to close the combobox. */
-export const close = (model: Model): UpdateReturn =>
-  block.operations.requestClose(model)
-
-/** Programmatically activates an item in the multi-select combobox. Emits
- *  `Selected({ value })`; the parent toggles the value's membership. */
-export const selectItem = (model: Model, item: string): UpdateReturn =>
-  block.operations.requestSelectItem(model, item)
-
-// VIEW
 
 /** Per-render view inputs passed to the view via `h.block`'s `viewInputs` field. */
 export type ViewInputs<Item extends string> = BaseViewInputs<Item>
 
-const makeBlockParts = <Item extends string, ItemEncoded>(
+/** @internal Stable identity of the multi-selection Combobox family. */
+export const ComboboxKey = Symbol('Combobox.multi')
+
+const makeAuthoring = <Item extends string, ItemEncoded>(
   Item: ItemSchema<Item, ItemEncoded>,
 ) => {
   const ItemMessage: MessageSchema<Item, ItemEncoded> = makeMessage(Item)
   const ItemOutMessage: OutMessageSchema<Item, ItemEncoded> =
     makeOutMessage(Item)
-  const ComboboxDefinition = ComboboxNamespace.makeDefinition({
+
+  const requestClose = () =>
+    Tuple.make(
+      ItemMessage.RequestedClose({
+        restingInputValue: '',
+        isClearable: true,
+      }),
+    )
+
+  const requestSelectItem = (item: Item) =>
+    Tuple.make(
+      ItemMessage.RequestedSelectItem({
+        item,
+        displayText: item,
+      }),
+    )
+
+  const ComboboxDefinition = Block.makeFamilyDefinition(ComboboxNamespace, {
+    key: ComboboxKey,
+    Init: Schema.Tuple([InitConfigSchema]),
+    ChildInitContext: InitConfigSchema,
+    view: {
+      kind: 'Element',
+      Inputs: Block.makeInputContract<ViewInputs<Item>>(),
+    },
+    operations: {
+      requestClose: {
+        message: requestClose,
+        outMessage: ItemOutMessage.ClearedSelection,
+      },
+      requestSelectItem: {
+        message: requestSelectItem,
+        outMessage: ItemOutMessage.Selected,
+      },
+    },
     Model,
     Message: ItemMessage,
+    InMessage,
     OutMessage: ItemOutMessage,
   })
+
   const itemUpdate = makeUpdateHandlers(
     ComboboxDefinition.makeBinding,
     ComboboxDefinition.makeOutMessageFold,
@@ -143,83 +115,104 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
     bindings: [itemUpdate.AnimationBinding],
   })
   const update = ComboboxComposition.makeUpdate(itemUpdate.handlers)
+  const inMessageUpdate = ComboboxComposition.makeInMessageUpdate(
+    itemUpdate.inMessageUpdateHandlers,
+  )
+  type ViewBuilder = Block.ViewBuilderFor<typeof ComboboxComposition>
+  type ViewMessage = MessageOf<ViewBuilder>
   const init = ComboboxComposition.makeInit((config: InitConfig) => ({
     model: baseInit(config),
+    childInitContext: config,
   }))
-  const view = ComboboxComposition.makeView.withInputs<ViewInputs<Item>>(
-    makeView<Model, Item, typeof ComboboxComposition.Message.Type, ItemEncoded>(
+  const view = ComboboxComposition.makeView.withInputs(
+    makeView<Model, Item, ViewMessage, ItemEncoded>(
       { ariaMultiSelectable: true },
       ItemMessage,
     ),
   )
-  const requestOpen = ItemMessage.RequestedOpen
-  const requestClose = () =>
-    Tuple.make(
-      ItemMessage.RequestedClose({
-        restingInputValue: '',
-        isClearable: true,
-      }),
-    )
-  const requestSelectItem = (item: Item) =>
-    Tuple.make(
-      ItemMessage.RequestedSelectItem({
-        item,
-        displayText: item,
-      }),
-    )
 
-  const operations = { requestOpen, requestClose, requestSelectItem }
   return {
-    composition: ComboboxComposition,
-    implementation: {
-      view,
-      init,
-      update,
-      operations,
-      EffectsLayer,
-    },
+    Definition: ComboboxDefinition,
+    AnimationBinding: itemUpdate.AnimationBinding,
+    init,
+    update,
+    inMessageUpdate,
+    view,
   }
 }
 
-type BlockParts<Item extends string, ItemEncoded> = ReturnType<
-  typeof makeBlockParts<Item, ItemEncoded>
+type Authoring<Item extends string, ItemEncoded> = ReturnType<
+  typeof makeAuthoring<Item, ItemEncoded>
 >
+const construct = <Item extends string, ItemEncoded>(
+  authoring: Authoring<Item, ItemEncoded>,
+) =>
+  authoring.Definition.makeBlock(
+    Effect.gen(function* () {
+      const animation = yield* authoring.AnimationBinding
 
-/** A completed multi-select Combobox Block refined to one Item Schema. */
+      return {
+        children: [animation],
+        init: authoring.init,
+        update: authoring.update,
+        inMessageUpdate: authoring.inMessageUpdate,
+        view: authoring.view,
+        EffectsLayer,
+      }
+    }),
+  ).provide(AnimationLayer)
+
+interface ComboboxImplementation extends Block.FamilyLifetime {
+  readonly construct: typeof construct
+}
+
+/** @internal Scoped provider identity for all multi-selection specializations. */
+export class ComboboxFamily extends Context.Service<
+  ComboboxFamily,
+  ComboboxImplementation
+>()('foldkit/ui/Combobox.multi') {}
+
+/** Constructs every multi-selection Combobox specialization and its private Animation child. */
+export const layer = Layer.effect(
+  ComboboxFamily,
+  Effect.gen(function* () {
+    const lifetime = yield* Block.familyLifetime
+
+    return { ...lifetime, construct }
+  }),
+)
+
+const declareBlock = <Item extends string, ItemEncoded>(
+  Item: ItemSchema<Item, ItemEncoded>,
+) => {
+  const authoring = makeAuthoring(Item)
+
+  return Block.makeFamilyContract(
+    authoring.Definition,
+    ComboboxFamily,
+    implementation => implementation.construct(authoring),
+  )
+}
+
+type Contract<Item extends string, ItemEncoded> = ReturnType<
+  typeof declareBlock<Item, ItemEncoded>
+>
+/** Passive multi-selection Combobox contract retaining the exact Item Codec. */
 export interface Completed<
   Item extends string = string,
   ItemEncoded = Item,
-> extends Block.CompletedWithViewAndOutMessage<
-  BlockParts<Item, ItemEncoded>['composition'],
-  BlockParts<Item, ItemEncoded>['implementation']
-> {}
+> extends Contract<Item, ItemEncoded> {}
 
-const assembleBlock = <Item extends string, ItemEncoded>(
-  Item: ItemSchema<Item, ItemEncoded>,
-): Completed<Item, ItemEncoded> => {
-  const { composition, implementation } = makeBlockParts(Item)
-
-  const prepare = () => composition.prepareBlock(implementation)
-  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
-
-  return completedBlock
-}
-
-/** Creates a checked multi-select Combobox Block. Pass an Item Schema to
- * retain its exact Message and OutMessage payloads. */
+/** Declares a multi-selection Combobox contract. Supply its implementation with Combobox.Multi.layer. */
 export function makeBlock(): Completed<string>
 export function makeBlock<Item extends string, ItemEncoded>(
   Item: ItemSchema<Item, ItemEncoded>,
 ): Completed<Item, ItemEncoded>
-export function makeBlock(Item: ItemSchema<string, unknown> = Schema.String) {
-  return assembleBlock(Item)
+export function makeBlock(
+  Item: ItemSchema<string, unknown> = Schema.String,
+): object {
+  return declareBlock(Item)
 }
 
-/** Complete default multi-select Combobox Block definition. */
-export const block = assembleBlock(Schema.String)
-
-/** Creates the initial multi-select Combobox Model and Commands. Defaults to closed with no active item and an empty input. */
-export const init = block.init
+/** @internal Default string contract used by the component's interaction tests. */
+export const block = makeBlock()

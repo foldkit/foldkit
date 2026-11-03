@@ -1,11 +1,18 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { expect, test } from 'vitest'
+import { expect } from 'vitest'
 
-import { Message, Model, WaitBeforeReset, update } from './counterCommands'
+import { it } from '@effect/vitest'
 
-test('accepts another click while the reset is pending', () => {
+import {
+  ApplicationBlock,
+  Message,
+  Model,
+  WaitBeforeReset,
+} from './counterCommands'
+
+it.effect('accepts another click while the reset is pending', () =>
   story(
-    update,
+    ApplicationBlock,
     given(Model.make({ count: 5 })),
     message(Message.ClickedResetAfterDelay()),
     Command.expectExact(WaitBeforeReset),
@@ -18,5 +25,5 @@ test('accepts another click while the reset is pending', () => {
     model(model => {
       expect(model.count).toBe(0)
     }),
-  )
-})
+  ),
+)

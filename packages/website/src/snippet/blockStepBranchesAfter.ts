@@ -7,7 +7,13 @@ import { modifyFields } from 'foldkit/struct'
 const CreateState = defineTaggedUnion({ Idle: {}, Creating: {} })
 type CreateState = typeof CreateState.Type
 
+const CreateIssueKey = Symbol('CreateIssue')
+
 const CreateIssueDefinition = Block.makeDefinition('CreateIssue', {
+  key: CreateIssueKey,
+  Init: Schema.Tuple([]),
+  isMessageFree: true,
+
   Model: Schema.Struct({
     projectId: Schema.String,
     createState: CreateState,
@@ -17,7 +23,7 @@ const CreateIssueDefinition = Block.makeDefinition('CreateIssue', {
 
 const { makeStep } = CreateIssueDefinition
 
-export const updateProjectStep = (projectId: string) =>
+export const updateProject = (projectId: string) =>
   makeStep(model => {
     if (model.createState._tag === 'Creating') {
       return { model }

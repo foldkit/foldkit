@@ -1,22 +1,21 @@
-// ✅ Register the Scene's sources and emit the child's declared Message.
+// ✅ Test the Subscription on the implementation that owns its registry.
+import { Effect } from 'effect'
 import { Scene } from 'foldkit'
 
 import {
-  ApplicationComposition,
-  init,
-  pinsSubscriptions,
   PinsBlock,
-  update,
-  view,
+  PinsImplementation,
+  pinsSubscriptions,
 } from './testingMigrationFixture'
 
-const subscriptions = Scene.subscriptions(ApplicationComposition)
-
-Scene.scene(
-  { update, view, subscriptions },
-  Scene.given(init().model),
-  Scene.Subscription.emit(
-    pinsSubscriptions.observations,
-    PinsBlock.Message.ObservedPins({ count: 3 }),
+await Effect.runPromise(
+  Scene.scene(
+    PinsImplementation,
+    Scene.init(),
+    Scene.Subscription.emit(
+      pinsSubscriptions.observations,
+      PinsBlock.Message.ObservedPins({ count: 3 }),
+    ),
+    Scene.expect(Scene.role('status')).toHaveText('3'),
   ),
 )

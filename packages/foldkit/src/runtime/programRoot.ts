@@ -6,7 +6,9 @@ import type { AnyBlock } from '../block/definition.js'
 import type { ValidateConcreteComposition } from '../block/requirements.js'
 import { requiresViewInputs } from '../block/viewScope.js'
 import type { Document } from '../html/index.js'
+import type { Ports } from '../port/index.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
+import { type RootBlock, rootConstructionOf } from './rootBlock.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 
@@ -102,7 +104,7 @@ type ValidateViewMember<View, Kind extends RootViewKind> = View extends (
       ? [Output] extends [Document]
         ? unknown
         : Readonly<{
-            'Program.make requires a Document view': View
+            'Program.make requires a Document view; use Program.makeElement for an Html view': View
           }>
       : [Output] extends [import('../vdom.js').VNode | null]
         ? unknown
@@ -151,6 +153,16 @@ type ValidateRootView<
 > = [RootViewFailures<BlockValue, Kind>] extends [never]
   ? unknown
   : RootViewFailures<BlockValue, Kind>
+
+type NeverDiagnostic<Diagnostic> = Diagnostic extends unknown
+  ? Readonly<{ [Key in keyof Diagnostic]: never }>
+  : never
+
+/** @internal Keeps an invalid root view visible after Program overload inference. */
+export type ProgramViewDiagnostic<BlockValue extends AnyBlock, ValidConfig> =
+  unknown extends ValidateRootView<BlockValue, 'Document'>
+    ? ValidConfig
+    : NeverDiagnostic<ValidateRootView<BlockValue, 'Document'>>
 
 type ValidatePresentProgramBlock<BlockValue extends AnyBlock> = [
   BlockValue,
@@ -209,8 +221,14 @@ const devToolsHostFields = new Set([
 export function assertProgramConfig(
   config: unknown,
   kind: RootViewKind,
-): asserts config is Readonly<{ block: AnyBlock }> &
-  Readonly<{ devTools?: DevToolsConfig }> &
+): asserts config is Readonly<{
+  block: RootBlock
+  container: HTMLElement | null
+  Flags?: Schema.Codec<any, any, never, never>
+  flags?: Effect.Effect<any, never, any>
+  ports?: Ports
+  devTools?: DevToolsConfig
+}> &
   globalThis.Record<string, unknown> {
   if (!Predicate.isObject(config)) {
     throw new Error('[foldkit] Program configuration must be an object.')
@@ -219,7 +237,7 @@ export function assertProgramConfig(
   for (const field of blockImplementationFields) {
     if (field in config) {
       throw new Error(
-        `[foldkit] Program configuration cannot supply Block implementation field "${field}". Assemble it with Composition.prepareBlock and Block.assemble first, then pass the completed result as block.`,
+        `[foldkit] Program configuration cannot supply Block implementation field "${field}". Complete the Block with Definition.makeBlock or native Block.assemble, then pass it as block.`,
       )
     }
   }
@@ -297,45 +315,57 @@ export function assertProgramConfig(
   }
 
   const block = Reflect.get(config, 'block')
-  if (
-    !Predicate.isObject(block) ||
-    !Schema.isSchema(Reflect.get(block, 'Model')) ||
-    !Schema.isSchema(Reflect.get(block, 'Message')) ||
-    !Predicate.isFunction(Reflect.get(block, 'init')) ||
-    !Predicate.isFunction(Reflect.get(block, 'update')) ||
-    !Array.isArray(Reflect.get(block, 'bindings')) ||
-    !Array.isArray(Reflect.get(block, 'hostHandlers'))
-  ) {
+  if (!Predicate.isObject(block)) {
     throw new Error(
-      '[foldkit] Program block must be completed with Block.assemble(prepare) under its FromAssembly export annotation.',
+      '[foldkit] Program block must be completed with Definition.makeBlock or native Block.assemble.',
     )
   }
 
-  assertCompletedBlock(block)
+  const construction = rootConstructionOf(block)
+  if (construction === undefined) {
+    if (
+      !Schema.isSchema(Reflect.get(block, 'Model')) ||
+      !Schema.isSchema(Reflect.get(block, 'Message')) ||
+      !Predicate.isFunction(Reflect.get(block, 'init')) ||
+      !Predicate.isFunction(Reflect.get(block, 'update')) ||
+      !Array.isArray(Reflect.get(block, 'bindings')) ||
+      !Array.isArray(Reflect.get(block, 'hostHandlers'))
+    ) {
+      throw new Error(
+        '[foldkit] Program block must be completed with Definition.makeBlock or native Block.assemble.',
+      )
+    }
+
+    assertCompletedBlock(block)
+  }
 
   if (Reflect.get(block, 'OutMessage') !== undefined) {
     throw new Error('[foldkit] A Program root Block cannot declare OutMessage.')
   }
 
-  const hostHandlers = Reflect.get(block, 'hostHandlers')
-  if (
-    globalThis.Array.isArray(hostHandlers) &&
-    Array.isArrayNonEmpty(hostHandlers)
-  ) {
-    throw new Error(
-      '[foldkit] A Program root Block must resolve every host handler with block.provideHandlers before Program construction.',
-    )
-  }
+  if (construction === undefined) {
+    const hostHandlers = Reflect.get(block, 'hostHandlers')
+    if (
+      globalThis.Array.isArray(hostHandlers) &&
+      Array.isArrayNonEmpty(hostHandlers)
+    ) {
+      throw new Error(
+        '[foldkit] A Program root Block must resolve every host handler with block.provideHandlers before Program construction.',
+      )
+    }
 
-  const view = defaultViewOf(block)
-  if (view === undefined) {
-    throw new Error('[foldkit] A Program root Block must have a default view.')
-  }
+    const view = defaultViewOf(block)
+    if (view === undefined) {
+      throw new Error(
+        '[foldkit] A Program root Block must have a default view.',
+      )
+    }
 
-  if (requiresViewInputs(view)) {
-    throw new Error(
-      '[foldkit] A Program root view must accept exactly its Model and Html builder.',
-    )
+    if (requiresViewInputs(view)) {
+      throw new Error(
+        '[foldkit] A Program root view must accept exactly its Model and Html builder.',
+      )
+    }
   }
 
   if (kind === 'Element' && 'preserveScroll' in config) {
