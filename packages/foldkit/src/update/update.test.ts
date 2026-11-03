@@ -547,6 +547,78 @@ const foldGatedCounter = foldChild({
 })
 
 describe('foldChild', () => {
+  it('skips placement writes when the child Model is unchanged', () => {
+    const write = vi.fn((model: DashboardModel, nextCounter: CounterModel) =>
+      modifyFields(model, { counter: () => nextCounter }),
+    )
+    const foldUnchangedCounter = foldChild({
+      update: counterUpdate,
+      read: (model: DashboardModel) => Option.some(model.counter),
+      write,
+      toParentMessage: GotCounterMessage,
+    })
+
+    expect(
+      foldUnchangedCounter(dashboardModel, Message.CompletedSaveCount()).model,
+    ).toBe(dashboardModel)
+    expect(
+      foldUnchangedCounter(Message.CompletedSaveCount())(dashboardModel).model,
+    ).toBe(dashboardModel)
+    expect(write).not.toHaveBeenCalled()
+  })
+
+  it('retains Commands, parent reactions and forwarding when the child Model is unchanged', () => {
+    const write = vi.fn((model: DashboardModel, nextCounter: CounterModel) =>
+      modifyFields(model, { counter: () => nextCounter }),
+    )
+    const foldUnchangedCounter = foldChild({
+      update: (model: CounterModel, _message: CounterMessage) => ({
+        model,
+        commands: [saveCount],
+        outMessage: CounterOutMessage.ChangedValue(),
+      }),
+      read: (model: DashboardModel) => Option.some(model.counter),
+      write,
+      toParentMessage: GotCounterMessage,
+      foldOutMessage: CounterOutMessage.match<
+        Step<DashboardModel, DashboardMessage>
+      >({
+        ChangedValue: () => model => ({
+          model: modifyFields(model, {
+            lastReportedValue: () => model.counter.value,
+          }),
+          commands: [notifyValueChanged],
+        }),
+      }),
+      toParentOutMessage: CounterOutMessage.match({
+        ChangedValue: () => CounterOutMessage.ChangedValue(),
+      }),
+    })
+    const counterFold = foldUnchangedCounter(
+      dashboardModel,
+      Message.CompletedSaveCount(),
+    )
+
+    expect(write).not.toHaveBeenCalled()
+    expect(counterFold.model.counter).toBe(dashboardModel.counter)
+    expect(counterFold.model.lastReportedValue).toBe(
+      dashboardModel.counter.value,
+    )
+    expect(counterFold.outMessage).toEqual(CounterOutMessage.ChangedValue())
+    expect((counterFold.commands ?? []).map(command => command.name)).toEqual([
+      'SaveCount',
+      'NotifyValueChanged',
+    ])
+    expect(
+      (counterFold.commands ?? []).map(command =>
+        Effect.runSync(command.effect),
+      ),
+    ).toEqual([
+      GotCounterMessage(Message.CompletedSaveCount()),
+      NotifiedValueChanged(),
+    ])
+  })
+
   it('writes the updated child back into the parent Model', () => {
     const counterFold = foldCounter(dashboardModel, Message.BumpedValue())
     expect(counterFold.model.counter).toEqual({ value: 4 })
@@ -1108,6 +1180,24 @@ const foldRowIgnoringOutMessage = foldChildAt({
 })
 
 describe('foldChildAt', () => {
+  it('skips keyed placement writes when the child Model is unchanged', () => {
+    const writeAt = vi.fn(writeRow)
+    const foldUnchangedRow = foldChildAt({
+      update: counterUpdate,
+      readAt: readRow,
+      writeAt,
+      toParentMessage: toGotRowMessage,
+    })
+    const rowFold = foldUnchangedRow(
+      rowsModel,
+      'a',
+      Message.CompletedSaveCount(),
+    )
+
+    expect(rowFold.model).toBe(rowsModel)
+    expect(writeAt).not.toHaveBeenCalled()
+  })
+
   it('writes only the addressed child', () => {
     expectTypeOf(foldRow).toEqualTypeOf<
       FoldAt<RowsModel, GotRowMessage, string, CounterMessage>
@@ -1367,6 +1457,27 @@ describe('foldChildAt', () => {
 })
 
 describe('foldChildStep', () => {
+  it('skips unchanged child placement while still lifting Step Commands', () => {
+    const write = vi.fn((model: DashboardModel, nextCounter: CounterModel) =>
+      modifyFields(model, { counter: () => nextCounter }),
+    )
+    const foldUnchangedCounter = foldChildStep({
+      update: (model: CounterModel) => ({ model, commands: [saveCount] }),
+      read: (model: DashboardModel) => Option.some(model.counter),
+      write,
+      toParentMessage: GotCounterMessage,
+    })
+    const counterFold = foldUnchangedCounter(dashboardModel)
+
+    expect(counterFold.model).toBe(dashboardModel)
+    expect(write).not.toHaveBeenCalled()
+    expect(
+      (counterFold.commands ?? []).map(command =>
+        Effect.runSync(command.effect),
+      ),
+    ).toEqual([GotCounterMessage(Message.CompletedSaveCount())])
+  })
+
   const foldCounterReset = foldChildStep({
     update: resetCounter,
     read: (model: DashboardModel) => Option.some(model.counter),

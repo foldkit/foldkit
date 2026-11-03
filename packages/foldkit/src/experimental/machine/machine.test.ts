@@ -2467,11 +2467,13 @@ describe('integration', () => {
       ...connectionMachine,
       transition: state => ({ model: state, commands }),
     }
+    const write = vi.fn((model: AppModel, nextConnection: ConnectionState) =>
+      modifyFields(model, { connection: () => nextConnection }),
+    )
     const foldCommands = fold({
       machine,
       read: (model: AppModel) => Option.some(model.connection),
-      write: (model, nextConnection) =>
-        modifyFields(model, { connection: () => nextConnection }),
+      write,
     })
     const model: AppModel = {
       connection: ConnectionState.Connecting({ attemptCount: 1 }),
@@ -2484,6 +2486,8 @@ describe('integration', () => {
     )
 
     expect(connectionUpdate.commands).toBe(commands)
+    expect(connectionUpdate.model).toBe(model)
+    expect(write).not.toHaveBeenCalled()
   })
 
   it('omits Commands when the Machine ignores the Message', () => {
@@ -2491,13 +2495,23 @@ describe('integration', () => {
       connection: ConnectionState.Disconnected(),
       isDebugPanelOpen: false,
     }
+    const write = vi.fn((model: AppModel, nextConnection: ConnectionState) =>
+      modifyFields(model, { connection: () => nextConnection }),
+    )
+    const foldIgnoredConnection = fold({
+      machine: connectionMachine,
+      read: (model: AppModel) => Option.some(model.connection),
+      write,
+    })
 
-    const connectionUpdate = foldConnection(
+    const connectionUpdate = foldIgnoredConnection(
       model,
       ConnectionMessage.SocketOpened({ sessionId: 'session-1' }),
     )
 
     expect(connectionUpdate.model.connection).toBe(model.connection)
+    expect(connectionUpdate.model).toBe(model)
+    expect(write).not.toHaveBeenCalled()
     expect(Object.hasOwn(connectionUpdate, 'commands')).toBe(false)
   })
 
