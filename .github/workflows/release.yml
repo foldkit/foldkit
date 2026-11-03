@@ -4,13 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       published_commit:
-        description: Stable release commit whose npm latest tags were promoted
+        description: Exact preview commit to publish, or promoted main commit to finalize
         required: true
         type: string
   push:
     branches:
       - main
-      - codex/layers-and-submodels
     paths:
       - '.changeset/**'
       - 'packages/**'
@@ -39,6 +38,7 @@ on:
       - 'scripts/version-alignment-notes.mjs'
       - 'scripts/website-vercel-config.mjs'
       - 'scripts/preview-release-manifest.mjs'
+      - 'scripts/verify-preview-release-commit.mjs'
       - '.npmrc'
       - 'tsconfig.base.json'
       - '.github/workflows/deploy-website-build.yml'
@@ -165,7 +165,9 @@ jobs:
 
   canary:
     name: Upload and verify commit-addressed package canary
-    if: github.event_name == 'push'
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/layers-and-submodels')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -173,6 +175,12 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+
+      - name: Verify the exact requested preview commit
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/layers-and-submodels'
+        run: node scripts/verify-preview-release-commit.mjs
+        env:
+          PUBLISHED_COMMIT: ${{ inputs.published_commit }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -203,7 +211,7 @@ jobs:
           SKIP_SIMPLE_GIT_HOOKS: '1'
 
       - name: Preserve the verified integration package manifest
-        if: github.ref == 'refs/heads/codex/layers-and-submodels'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/layers-and-submodels'
         uses: actions/upload-artifact@v4
         with:
           name: foldkit-preview-release-${{ github.sha }}
@@ -221,11 +229,11 @@ jobs:
 
   deploy-website-preview:
     needs: canary
-    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/codex/layers-and-submodels' && needs.canary.result == 'success' }}
+    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/layers-and-submodels' && needs.canary.result == 'success' }}
     uses: ./.github/workflows/deploy-website-preview.yml
     with:
-      target: ${{ github.sha }}
-      manifest_artifact: foldkit-preview-release-${{ github.sha }}
+      target: ${{ inputs.published_commit }}
+      manifest_artifact: foldkit-preview-release-${{ inputs.published_commit }}
     secrets: inherit
 
   finalize:
