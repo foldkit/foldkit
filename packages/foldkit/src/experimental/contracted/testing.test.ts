@@ -1,5 +1,7 @@
 import { Effect, Schema, Stream } from 'effect'
-import { describe, expect, expectTypeOf, it } from 'vitest'
+import { describe, expect, expectTypeOf } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
@@ -76,13 +78,14 @@ const SecondBlock = Definition.makeBlock(
 )
 
 describe('selected implementation Subscription tests', () => {
-  it('exposes exact local registry facts without adding them to the independent contract', async () => {
-    expectTypeOf<
-      keyof FactsOf<typeof Definition.contract>['subscriptions']
-    >().toEqualTypeOf<never>()
+  it.effect(
+    'exposes exact local registry facts without adding them to the independent contract',
+    () => {
+      expectTypeOf<
+        keyof FactsOf<typeof Definition.contract>['subscriptions']
+      >().toEqualTypeOf<never>()
 
-    await Effect.runPromise(
-      withBlock(FirstBlock, block => {
+      return withBlock(FirstBlock, block => {
         expectTypeOf<
           keyof typeof block.subscriptions
         >().toEqualTypeOf<'first'>()
@@ -101,31 +104,33 @@ describe('selected implementation Subscription tests', () => {
         >()
         expect(Object.keys(block.subscriptions)).toEqual(['first'])
         expect(block.subscriptions.first).toBe(firstSubscriptions.first)
-      }),
-    )
-  })
+      })
+    },
+  )
 
-  it('selects its own implementation despite an outer provider for the same contract', async () => {
-    await Effect.runPromise(
-      withBlock(FirstBlock, block => {
+  it.effect(
+    'selects its own implementation despite an outer provider for the same contract',
+    () => {
+      return withBlock(FirstBlock, block => {
         expect(Object.keys(block.subscriptions)).toEqual(['first'])
         expect(block.subscriptions.first).toBe(firstSubscriptions.first)
-      }).pipe(Effect.provide(SecondBlock.layer)),
-    )
-  })
+      }).pipe(Effect.provide(SecondBlock.layer))
+    },
+  )
 
-  it('retains selected evidence through ordinary dependency provisioning', async () => {
-    const ProvidedBlock = FirstBlock.provide(SecondBlock.layer)
+  it.effect(
+    'retains selected evidence through ordinary dependency provisioning',
+    () => {
+      const ProvidedBlock = FirstBlock.provide(SecondBlock.layer)
 
-    await Effect.runPromise(
-      withBlock(ProvidedBlock, block => {
+      return withBlock(ProvidedBlock, block => {
         expectTypeOf<
           keyof typeof block.subscriptions
         >().toEqualTypeOf<'first'>()
         expect(block.subscriptions.first).toBe(firstSubscriptions.first)
-      }),
-    )
-  })
+      })
+    },
+  )
 
   it('rejects an unregistered structural copy carrying another implementation Layer', async () => {
     const forged = { ...FirstBlock, layer: SecondBlock.layer }

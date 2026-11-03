@@ -1,6 +1,8 @@
 import { Effect, Schema, Stream, Tuple } from 'effect'
 import { expect, test } from 'vitest'
 
+import { it } from '@effect/vitest'
+
 import { makeNamespace } from '../block/public.js'
 import { defineView } from '../html/block.js'
 import {
@@ -398,37 +400,40 @@ test('reuses an emission Step in separate Scenes without starting a handler', ()
   }
 })
 
-test('delivers stream emissions in a constructed Block-aware Scene', async () => {
-  const SurfaceKey = Symbol('SceneStreamingSurface')
-  const Definition = Surface.makeDefinition({
-    key: SurfaceKey,
-    Model,
-    Message,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element' },
-  })
-  const Composition = Definition.makeComposition({ mounts: [ObserveSurface] })
-  const init = Composition.makeInit(() => ({ model: Model.make({ width: 0 }) }))
-  const update = Composition.makeUpdate({
-    MeasuredSurface: Definition.makeFieldsStep.fromMessage(({ width }) => ({
-      width: () => width,
-    })),
-  })
-  const view = Composition.makeView((model, h) =>
-    h.div([h.OnMount(ObserveSurface())], [`width ${model.width}`]),
-  )
-  const SurfaceBlock = Definition.makeBlock(
-    Effect.succeed({
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer: ObserveSurface.layer,
-    }),
-  )
+it.effect(
+  'delivers stream emissions in a constructed Block-aware Scene',
+  () => {
+    const SurfaceKey = Symbol('SceneStreamingSurface')
+    const Definition = Surface.makeDefinition({
+      key: SurfaceKey,
+      Model,
+      Message,
+      Init: Schema.Tuple([]),
+      view: { kind: 'Element' },
+    })
+    const Composition = Definition.makeComposition({ mounts: [ObserveSurface] })
+    const init = Composition.makeInit(() => ({
+      model: Model.make({ width: 0 }),
+    }))
+    const update = Composition.makeUpdate({
+      MeasuredSurface: Definition.makeFieldsStep.fromMessage(({ width }) => ({
+        width: () => width,
+      })),
+    })
+    const view = Composition.makeView((model, h) =>
+      h.div([h.OnMount(ObserveSurface())], [`width ${model.width}`]),
+    )
+    const SurfaceBlock = Definition.makeBlock(
+      Effect.succeed({
+        children: [],
+        init,
+        update,
+        view,
+        EffectsLayer: ObserveSurface.layer,
+      }),
+    )
 
-  await Effect.runPromise(
-    PublicScene.scene(
+    return PublicScene.scene(
       SurfaceBlock,
       PublicScene.init(),
       PublicScene.Mount.resolve(
@@ -440,6 +445,6 @@ test('delivers stream emissions in a constructed Block-aware Scene', async () =>
         Message.MeasuredSurface({ width: 240 }),
       ),
       PublicScene.expect(PublicScene.text('width 240')).toExist(),
-    ),
-  )
-})
+    )
+  },
+)

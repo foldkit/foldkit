@@ -1,5 +1,7 @@
 import { Effect, Schema } from 'effect'
-import { describe, expect, it } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as Block from '../block/public.js'
 import { defineMessageUnion } from '../message/public.js'
@@ -105,57 +107,59 @@ const Top = TopDefinition.makeBlock(
 ).provide(Parent.layer)
 
 describe('toParentMessageFor', () => {
-  it('maps nested delivery against the selected child graph and retains provenance', async () => {
-    const independentMessage = await Effect.runPromise(
-      Story.withBlock(Parent, parent =>
-        toParentMessageFor(parent)(
-          LeftBinding,
-          ChildMessage.UpdatedCount({ count: 11 }),
-        ),
-      ),
-    )
-    await Effect.runPromise(
-      Story.withBlock(Top, top => {
-        const toTopMessage = toParentMessageFor(top)
-        const toGroupMessage = toParentMessageFor(top, GroupBinding)
-        const topInit = top.init()
-        const groupUpdate = top.update(
-          topInit.model,
-          toTopMessage(
-            GroupBinding,
-            toGroupMessage(
-              LeftBinding,
-              ChildMessage.UpdatedCount({ count: 5 }),
-            ),
+  it.effect(
+    'maps nested delivery against the selected child graph and retains provenance',
+    () =>
+      Effect.gen(function* () {
+        const independentMessage = yield* Story.withBlock(Parent, parent =>
+          toParentMessageFor(parent)(
+            LeftBinding,
+            ChildMessage.UpdatedCount({ count: 11 }),
           ),
         )
-        expect(groupUpdate.model.group.left.count).toBe(5)
-        expect(groupUpdate.model.group.right.count).toBe(0)
-        expect(() =>
-          top.update(
+
+        yield* Story.withBlock(Top, top => {
+          const toTopMessage = toParentMessageFor(top)
+          const toGroupMessage = toParentMessageFor(top, GroupBinding)
+          const topInit = top.init()
+          const groupUpdate = top.update(
             topInit.model,
-            toTopMessage(GroupBinding, independentMessage),
-          ),
-        ).toThrow('another child Binding')
-        expect(() =>
-          Reflect.apply(toParentMessageFor, undefined, [top, LeftBinding]),
-        ).toThrow()
-
-        if (false) {
-          // @ts-expect-error The selected child must belong to the acquired parent.
-          toParentMessageFor(top, LeftBinding)
-          toGroupMessage(
-            // @ts-expect-error A child mapper cannot use its parent's Binding.
-            GroupBinding,
-            independentMessage,
+            toTopMessage(
+              GroupBinding,
+              toGroupMessage(
+                LeftBinding,
+                ChildMessage.UpdatedCount({ count: 5 }),
+              ),
+            ),
           )
-        }
-      }),
-    )
-  })
+          expect(groupUpdate.model.group.left.count).toBe(5)
+          expect(groupUpdate.model.group.right.count).toBe(0)
+          expect(() =>
+            top.update(
+              topInit.model,
+              toTopMessage(GroupBinding, independentMessage),
+            ),
+          ).toThrow('another child Binding')
+          expect(() =>
+            Reflect.apply(toParentMessageFor, undefined, [top, LeftBinding]),
+          ).toThrow()
 
-  it('dispatches exact direct and keyed Messages into an acquired parent', async () => {
-    await Effect.runPromise(
+          if (false) {
+            // @ts-expect-error The selected child must belong to the acquired parent.
+            toParentMessageFor(top, LeftBinding)
+            toGroupMessage(
+              // @ts-expect-error A child mapper cannot use its parent's Binding.
+              GroupBinding,
+              independentMessage,
+            )
+          }
+        })
+      }),
+  )
+
+  it.effect(
+    'dispatches exact direct and keyed Messages into an acquired parent',
+    () =>
       Story.withBlock(Parent, parent => {
         const toParentMessage = toParentMessageFor(parent)
         const parentInit = parent.init()
@@ -200,11 +204,11 @@ describe('toParentMessageFor', () => {
           toParentMessage(LeftBinding, { _tag: 'UpdatedCount', count: 'one' })
         }
       }),
-    )
-  })
+  )
 
-  it('rejects erased foreign and unregistered Bindings and unacquired facades', async () => {
-    await Effect.runPromise(
+  it.effect(
+    'rejects erased foreign and unregistered Bindings and unacquired facades',
+    () =>
       Story.withBlock(Parent, parent => {
         const toParentMessage = toParentMessageFor(parent)
         for (const binding of [ForeignBinding, UnregisteredBinding]) {
@@ -230,6 +234,5 @@ describe('toParentMessageFor', () => {
           ]),
         ).toThrow('key must be a decoded value')
       }),
-    )
-  })
+  )
 })

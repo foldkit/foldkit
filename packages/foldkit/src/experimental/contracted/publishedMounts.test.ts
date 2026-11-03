@@ -1,5 +1,7 @@
 import { Effect, Schema } from 'effect'
-import { describe, expect, expectTypeOf, it } from 'vitest'
+import { describe, expect, expectTypeOf } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as Block from '../../block/public.js'
 import {
@@ -133,18 +135,19 @@ if (false) {
 }
 
 describe('published view Mount contracts', () => {
-  it('preserves exact callback authority through a bound public contract', async () => {
-    expectTypeOf<
-      Block.FactsOf<typeof Definition.contract>['mountRequirements']
-    >().toEqualTypeOf<Mount.RequirementsOf<typeof Measure>>()
-    await Effect.runPromise(
-      Scene.scene(
+  it.effect(
+    'preserves exact callback authority through a bound public contract',
+    () => {
+      expectTypeOf<
+        Block.FactsOf<typeof Definition.contract>['mountRequirements']
+      >().toEqualTypeOf<Mount.RequirementsOf<typeof Measure>>()
+      return Scene.scene(
         Parent,
         Scene.init(),
         Scene.Mount.resolve(Measure, Message.CompletedMeasure()),
-      ),
-    )
-  })
+      )
+    },
+  )
 
   it('rejects an erased constructor that omits the published original Mount', async () => {
     const incomplete = Reflect.apply(Definition.makeBlock, undefined, [

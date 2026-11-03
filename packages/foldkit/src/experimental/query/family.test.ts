@@ -1,5 +1,7 @@
 import { Context, Effect, Layer, Result, Schema } from 'effect'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as AsyncData from '../../asyncData/public.js'
 import * as Story from '../../story/public.js'
@@ -11,79 +13,82 @@ class QuoteSource extends Context.Service<
 >()('QueryFamilyTest/QuoteSource') {}
 
 describe('Layer-constructed Query', () => {
-  test('keeps declarations passive and drives a pure Story without handler Services', async () => {
-    const acquisitions: Array<string> = []
-    const Quotes = Query.define({
-      name: 'FamilyQuotes',
-      data: Schema.String,
-      error: Schema.String,
-      handler: function* () {
-        const source = yield* QuoteSource
-        acquisitions.push('handler')
-        return () => Effect.succeed(source.quote)
-      },
-    })
+  it.effect(
+    'keeps declarations passive and drives a pure Story without handler Services',
+    () =>
+      Effect.gen(function* () {
+        const acquisitions: Array<string> = []
+        const Quotes = Query.define({
+          name: 'FamilyQuotes',
+          data: Schema.String,
+          error: Schema.String,
+          handler: function* () {
+            const source = yield* QuoteSource
+            acquisitions.push('handler')
+            return () => Effect.succeed(source.quote)
+          },
+        })
 
-    expect(Effect.isEffect(Reflect.get(Quotes, 'get'))).toBe(true)
-    expect(Layer.isLayer(Reflect.get(Query, 'layer'))).toBe(true)
-    expect('init' in Quotes).toBe(false)
-    expect(acquisitions).toEqual([])
-    expect(
-      Schema.is(Quotes.Message)(Quotes.InMessage.RequestedLoadIfMissing()),
-    ).toBe(false)
-    expect(
-      Schema.is(Quotes.InMessage)(
-        Quotes.Message.CompletedFetch({
-          generation: 1,
-          result: Result.succeed('checked'),
-        }),
-      ),
-    ).toBe(false)
-
-    await Effect.runPromise(
-      Story.story(
-        Quotes,
-        Story.init(),
-        Story.inMessage(Quotes.InMessage.RequestedLoadIfMissing()),
-        Story.Command.resolve(
-          Quotes.Fetch,
-          Quotes.Message.CompletedFetch({
-            generation: 1,
-            result: Result.succeed('checked'),
-          }),
-        ),
-        Story.model(model =>
-          expect(Quotes.read(model)).toEqual(
-            AsyncData.Success({ data: 'checked' }),
+        expect(Effect.isEffect(Reflect.get(Quotes, 'get'))).toBe(true)
+        expect(Layer.isLayer(Reflect.get(Query, 'layer'))).toBe(true)
+        expect('init' in Quotes).toBe(false)
+        expect(acquisitions).toEqual([])
+        expect(
+          Schema.is(Quotes.Message)(Quotes.InMessage.RequestedLoadIfMissing()),
+        ).toBe(false)
+        expect(
+          Schema.is(Quotes.InMessage)(
+            Quotes.Message.CompletedFetch({
+              generation: 1,
+              result: Result.succeed('checked'),
+            }),
           ),
-        ),
-        Story.expectNoOutMessage(),
-      ).pipe(Effect.provide(Query.layer)),
-    )
+        ).toBe(false)
 
-    expect(acquisitions).toEqual([])
-  })
+        yield* Story.story(
+          Quotes,
+          Story.init(),
+          Story.inMessage(Quotes.InMessage.RequestedLoadIfMissing()),
+          Story.Command.resolve(
+            Quotes.Fetch,
+            Quotes.Message.CompletedFetch({
+              generation: 1,
+              result: Result.succeed('checked'),
+            }),
+          ),
+          Story.model(model =>
+            expect(Quotes.read(model)).toEqual(
+              AsyncData.Success({ data: 'checked' }),
+            ),
+          ),
+          Story.expectNoOutMessage(),
+        ).pipe(Effect.provide(Query.layer))
 
-  test('routes accepted keyed notifications and rejects superseded completions', async () => {
-    const Windows = Query.define({
-      name: 'FamilyWindows',
-      args: { label: Schema.String, offset: Schema.Number },
-      data: Schema.Array(Schema.String),
-      error: Schema.String,
-      notifyOnCompletion: true,
-    })
-    const args = { label: 'devin', offset: 0 }
-    const requestKey = JSON.stringify({ label: 'devin', offset: 0 })
-    const completed = Windows.Message.CompletedFetch({
-      args,
-      requestKey,
-      generation: 1,
-      result: Result.succeed(['devin.com']),
-      completedAtMillis: 10,
-    })
+        expect(acquisitions).toEqual([])
+      }),
+  )
 
-    await Effect.runPromise(
-      Story.story(
+  it.effect(
+    'routes accepted keyed notifications and rejects superseded completions',
+    () => {
+      const Windows = Query.define({
+        name: 'FamilyWindows',
+        args: { label: Schema.String, offset: Schema.Number },
+        data: Schema.Array(Schema.String),
+        error: Schema.String,
+        notifyOnCompletion: true,
+      })
+      const args = { label: 'devin', offset: 0 }
+      const requestKey = JSON.stringify({ label: 'devin', offset: 0 })
+      const completed = Windows.Message.CompletedFetch({
+        args,
+        requestKey,
+        generation: 1,
+        result: Result.succeed(['devin.com']),
+        completedAtMillis: 10,
+      })
+
+      return Story.story(
         Windows,
         Story.init(),
         Story.message(Windows.Message.RequestedLoadIfMissing({ args })),
@@ -111,20 +116,21 @@ describe('Layer-constructed Query', () => {
           expect(Windows.pendingArgs(model)).toEqual([])
           expect(Windows.isFresh(model, args, 11)).toBe(true)
         }),
-      ).pipe(Effect.provide(Query.layer)),
-    )
-  })
+      ).pipe(Effect.provide(Query.layer))
+    },
+  )
 
-  test('receives requests while keeping cancellation and accepted completions local', async () => {
-    const Quotes = Query.define({
-      name: 'ReceivedQuotes',
-      data: Schema.String,
-      error: Schema.String,
-      notifyOnCompletion: true,
-    })
+  it.effect(
+    'receives requests while keeping cancellation and accepted completions local',
+    () => {
+      const Quotes = Query.define({
+        name: 'ReceivedQuotes',
+        data: Schema.String,
+        error: Schema.String,
+        notifyOnCompletion: true,
+      })
 
-    await Effect.runPromise(
-      Story.withBlock(Quotes, block => {
+      return Story.withBlock(Quotes, block => {
         const initial = block.init()
         const unchanged = block.receive(
           initial.model,
@@ -203,22 +209,23 @@ describe('Layer-constructed Query', () => {
         expect(reset.model.generation).toBe(4)
         expect(reset.commands).toBeUndefined()
         expect(reset.outMessage).toBeUndefined()
-      }).pipe(Effect.provide(Query.layer)),
-    )
-  })
+      }).pipe(Effect.provide(Query.layer))
+    },
+  )
 
-  test('receives keyed reset without changing positional argument adapters', async () => {
-    const Windows = Query.define({
-      name: 'ReceivedWindowReset',
-      args: { label: Schema.String },
-      data: Schema.String,
-      error: Schema.String,
-      notifyOnCompletion: true,
-    })
-    const args = { label: 'devin' }
+  it.effect(
+    'receives keyed reset without changing positional argument adapters',
+    () => {
+      const Windows = Query.define({
+        name: 'ReceivedWindowReset',
+        args: { label: Schema.String },
+        data: Schema.String,
+        error: Schema.String,
+        notifyOnCompletion: true,
+      })
+      const args = { label: 'devin' }
 
-    await Effect.runPromise(
-      Story.withBlock(Windows, block => {
+      return Story.withBlock(Windows, block => {
         const initial = block.init()
         const load = block.operations.requestLoadIfMissing(initial.model, args)
         expect(load.commands).toMatchObject([
@@ -248,69 +255,67 @@ describe('Layer-constructed Query', () => {
         expect(late.model).toBe(reset.model)
         expect(late.outMessage).toBeUndefined()
         expect(Windows.read(late.model, args)).toEqual(AsyncData.Idle())
-      }).pipe(Effect.provide(Query.layer)),
-    )
-  })
+      }).pipe(Effect.provide(Query.layer))
+    },
+  )
 
-  test('builds selected handlers only when their EffectsLayer is requested', async () => {
-    const acquisitions: Array<string> = []
-    const Quotes = Query.define({
-      name: 'FamilyHandlerSelection',
-      data: Schema.String,
-      error: Schema.String,
-      handler: function* () {
-        yield* QuoteSource
-        acquisitions.push('original')
-        return () => Effect.succeed('original')
-      },
-    })
-    const selectedLayer = Quotes.toLayer(
-      Effect.sync(() => {
-        acquisitions.push('selected')
-        return () => Effect.succeed('selected')
+  it.effect(
+    'builds selected handlers only when their EffectsLayer is requested',
+    () =>
+      Effect.gen(function* () {
+        const acquisitions: Array<string> = []
+        const Quotes = Query.define({
+          name: 'FamilyHandlerSelection',
+          data: Schema.String,
+          error: Schema.String,
+          handler: function* () {
+            yield* QuoteSource
+            acquisitions.push('original')
+            return () => Effect.succeed('original')
+          },
+        })
+        const selectedLayer = Quotes.toLayer(
+          Effect.sync(() => {
+            acquisitions.push('selected')
+            return () => Effect.succeed('selected')
+          }),
+        )
+        const SelectedQuotes = Quotes.provideHandlers(selectedLayer)
+        const secondLayer = Quotes.toLayer(
+          Effect.sync(() => {
+            acquisitions.push('second')
+            return () => Effect.succeed('second')
+          }),
+        )
+        const ReselectedQuotes = SelectedQuotes.provideHandlers(secondLayer)
+
+        expect(SelectedQuotes.Fetch).toBe(Quotes.Fetch)
+        expect(SelectedQuotes.Model).toBe(Quotes.Model)
+        expect(acquisitions).toEqual([])
+
+        yield* Story.withBlock(SelectedQuotes, block =>
+          Effect.asVoid(Layer.build(block.EffectsLayer)),
+        ).pipe(Effect.provide(Query.layer))
+
+        expect(acquisitions).toEqual(['selected'])
+
+        yield* Story.withBlock(ReselectedQuotes, block =>
+          Effect.asVoid(Layer.build(block.EffectsLayer)),
+        ).pipe(Effect.provide(Query.layer))
+
+        expect(acquisitions).toEqual(['selected', 'second'])
+        expect(ReselectedQuotes.Fetch).toBe(Quotes.Fetch)
+        expect(ReselectedQuotes.EffectsLayer).toBe(Quotes.EffectsLayer)
+        expect(SelectedQuotes.EffectsLayer).toBe(Quotes.EffectsLayer)
+
+        yield* Story.withBlock(Quotes, block =>
+          Effect.asVoid(Layer.build(block.EffectsLayer)),
+        ).pipe(
+          Effect.provide(Query.layer),
+          Effect.provideService(QuoteSource, { quote: 'original' }),
+        )
+
+        expect(acquisitions).toEqual(['selected', 'second', 'original'])
       }),
-    )
-    const SelectedQuotes = Quotes.provideHandlers(selectedLayer)
-    const secondLayer = Quotes.toLayer(
-      Effect.sync(() => {
-        acquisitions.push('second')
-        return () => Effect.succeed('second')
-      }),
-    )
-    const ReselectedQuotes = SelectedQuotes.provideHandlers(secondLayer)
-
-    expect(SelectedQuotes.Fetch).toBe(Quotes.Fetch)
-    expect(SelectedQuotes.Model).toBe(Quotes.Model)
-    expect(acquisitions).toEqual([])
-
-    await Effect.runPromise(
-      Story.withBlock(SelectedQuotes, block =>
-        Effect.asVoid(Layer.build(block.EffectsLayer)),
-      ).pipe(Effect.provide(Query.layer)),
-    )
-
-    expect(acquisitions).toEqual(['selected'])
-
-    await Effect.runPromise(
-      Story.withBlock(ReselectedQuotes, block =>
-        Effect.asVoid(Layer.build(block.EffectsLayer)),
-      ).pipe(Effect.provide(Query.layer)),
-    )
-
-    expect(acquisitions).toEqual(['selected', 'second'])
-    expect(ReselectedQuotes.Fetch).toBe(Quotes.Fetch)
-    expect(ReselectedQuotes.EffectsLayer).toBe(Quotes.EffectsLayer)
-    expect(SelectedQuotes.EffectsLayer).toBe(Quotes.EffectsLayer)
-
-    await Effect.runPromise(
-      Story.withBlock(Quotes, block =>
-        Effect.asVoid(Layer.build(block.EffectsLayer)),
-      ).pipe(
-        Effect.provide(Query.layer),
-        Effect.provideService(QuoteSource, { quote: 'original' }),
-      ),
-    )
-
-    expect(acquisitions).toEqual(['selected', 'second', 'original'])
-  })
+  )
 })

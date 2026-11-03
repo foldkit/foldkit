@@ -1,5 +1,7 @@
 import { Context, Effect, Layer, Schema } from 'effect'
-import { expect, it } from 'vitest'
+import { expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as Block from '../../block/public.js'
 import { defineMessageUnion } from '../../message/index.js'
@@ -42,19 +44,20 @@ const InputBlock = Block.makeFamilyContract(
   () => recipe,
 )
 
-it('retains the declared InMessage Schema on a passive family contract', async () => {
-  expect(InputBlock.InMessage).toBe(InMessage)
+it.effect(
+  'retains the declared InMessage Schema on a passive family contract',
+  () => {
+    expect(InputBlock.InMessage).toBe(InMessage)
 
-  await Effect.runPromise(
-    withBlock(InputBlock, block => {
+    return withBlock(InputBlock, block => {
       const initialized = block.init()
       const requested = InputBlock.InMessage.RequestedSet({ value: 4 })
 
       expect(block.InMessage).toBe(InputBlock.InMessage)
       expect(block.receive(initialized.model, requested).model.value).toBe(4)
-    }).pipe(Effect.provide(FamilyLayer)),
-  )
-})
+    }).pipe(Effect.provide(FamilyLayer))
+  },
+)
 
 it('rejects family members that override the declared input protocol', () => {
   expect(() =>

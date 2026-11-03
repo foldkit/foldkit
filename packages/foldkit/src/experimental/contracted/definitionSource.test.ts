@@ -1,5 +1,7 @@
 import { Effect, Schema } from 'effect'
-import { describe, expect, it } from 'vitest'
+import { describe, expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import * as Block from '../../block/public.js'
 import { defineMessageUnion } from '../../message/index.js'
@@ -175,59 +177,59 @@ describe('Definition-owned construction plans', () => {
     )
   })
 
-  it('accepts multiple original Compositions from one Definition and keeps init deferred', async () => {
-    const Model = Schema.Struct({ count: Schema.Number })
-    const Message = defineMessageUnion({ UpdatedCount: {} })
-    const Key = Symbol('OwnCompositionConstructionSource')
-    const Definition = Block.makeDefinition(
-      'OwnCompositionConstructionSource',
-      {
-        key: Key,
-        Model,
-        Message,
-        Init: Schema.Tuple([Schema.String]),
-      },
-    )
-    const FirstComposition = Definition.makeComposition()
-    const SecondComposition = Definition.makeComposition()
-    const initializations = { count: 0 }
-    const initialize = (label: string) => {
-      initializations.count += 1
+  it.effect(
+    'accepts multiple original Compositions from one Definition and keeps init deferred',
+    () =>
+      Effect.gen(function* () {
+        const Model = Schema.Struct({ count: Schema.Number })
+        const Message = defineMessageUnion({ UpdatedCount: {} })
+        const Key = Symbol('OwnCompositionConstructionSource')
+        const Definition = Block.makeDefinition(
+          'OwnCompositionConstructionSource',
+          {
+            key: Key,
+            Model,
+            Message,
+            Init: Schema.Tuple([Schema.String]),
+          },
+        )
+        const FirstComposition = Definition.makeComposition()
+        const SecondComposition = Definition.makeComposition()
+        const initializations = { count: 0 }
+        const initialize = (label: string) => {
+          initializations.count += 1
 
-      return { model: { count: label.length } }
-    }
-    const FirstBlock = Definition.makeBlock(
-      Effect.succeed({
-        children: [],
-        init: FirstComposition.makeInit(initialize),
-        update: FirstComposition.makeUpdate({
-          UpdatedCount: model => ({ model }),
-        }),
-      }),
-    )
-    const SecondBlock = Definition.makeBlock(
-      Effect.succeed({
-        children: [],
-        init: SecondComposition.makeInit(initialize),
-        update: SecondComposition.makeUpdate({
-          UpdatedCount: model => ({ model }),
-        }),
-      }),
-    )
+          return { model: { count: label.length } }
+        }
+        const FirstBlock = Definition.makeBlock(
+          Effect.succeed({
+            children: [],
+            init: FirstComposition.makeInit(initialize),
+            update: FirstComposition.makeUpdate({
+              UpdatedCount: model => ({ model }),
+            }),
+          }),
+        )
+        const SecondBlock = Definition.makeBlock(
+          Effect.succeed({
+            children: [],
+            init: SecondComposition.makeInit(initialize),
+            update: SecondComposition.makeUpdate({
+              UpdatedCount: model => ({ model }),
+            }),
+          }),
+        )
 
-    expect(initializations.count).toBe(0)
-    await Effect.runPromise(
-      withBlock(FirstBlock, block => {
         expect(initializations.count).toBe(0)
-        expect(block.init('First').model.count).toBe(5)
+        yield* withBlock(FirstBlock, block => {
+          expect(initializations.count).toBe(0)
+          expect(block.init('First').model.count).toBe(5)
+        })
+        yield* withBlock(SecondBlock, block => {
+          expect(initializations.count).toBe(1)
+          expect(block.init('Second').model.count).toBe(6)
+        })
+        expect(initializations.count).toBe(2)
       }),
-    )
-    await Effect.runPromise(
-      withBlock(SecondBlock, block => {
-        expect(initializations.count).toBe(1)
-        expect(block.init('Second').model.count).toBe(6)
-      }),
-    )
-    expect(initializations.count).toBe(2)
-  })
+  )
 })
