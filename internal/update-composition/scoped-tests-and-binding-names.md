@@ -83,3 +83,35 @@ selection. Published historical posts and labelled Before examples are kept.
 Verification logs and rename receipts are retained under `/private/tmp` with
 the `foldkit-overnight-` and `binding-naming-migration-` prefixes. The task board
 tracks the wider UI pass and the subsequent Block simplification separately.
+
+## Framework and UI runner checkpoint
+
+The subsequent framework pass is committed as `5fbbde2c001911cd24b7d40dbfe99551e059b872`.
+Sixteen pure graph cases across eight files return Effects through `it.effect`.
+All 44 tests in those files pass, along with the core source check, type-aware
+lint and formatting. An AST comparison preserves every test title and assertion.
+The exact commit passed independent review.
+
+The UI pass is committed as `9acf13d19d5579511ff1d698e6ebab46368aa404`.
+Across 31 files it removes 121 routine `withBlock` calls and raises `it.effect`
+declarations from 340 to 812. All 1,334 test declarations and 2,693 assertion
+signatures are retained. Five Dialog cases explicitly initialize an open
+Dialog and resolve `ShowDialog` before their existing assertions. The complete
+UI suite passes 1,357 tests across 68 files against the rebuilt core, together
+with source types, both lint configurations and formatting.
+
+The remaining 125 UI acquisitions have concrete uses:
+
+- Direct operation results and reference identity of the initialized Model.
+- Deliberately prepared animation, swipe, history or recovery Models.
+- Private generated delivery, Codec and Subscription contracts.
+- Custom renderers that need the acquired graph-aware view builder and Mount
+  capabilities.
+- Synchronous rejection checks inside a shared scoped fixture.
+
+Shared Vitest fixtures retain a Promise bridge so their Scope stays alive
+through the consuming callback. Ordinary tests no longer request those fixtures.
+The per-call exception inventory, exact source/artifact hashes and commands are
+in `/private/tmp/foldkit-ui-runner-migration-receipt-20261103.md` and its JSON
+receipt. This is a runner checkpoint before the new Block/direct Layer API;
+later API migration needs its own source and behavior verification.
