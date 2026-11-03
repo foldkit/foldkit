@@ -65,7 +65,13 @@ const ElementBlock = ElementDefinition.makeBlock(
 
 const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, EffectsLayer, view: applicationView }
+    return {
+      children: [],
+      init,
+      update,
+      EffectsLayer,
+      view: applicationView,
+    }
   }),
 )
 

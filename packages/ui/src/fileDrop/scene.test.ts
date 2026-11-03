@@ -50,7 +50,13 @@ const view = FileDropSceneComposition.makeView.withInputs(
 const FileDropSceneBlock = FileDropSceneDefinition.makeBlock(
   Effect.gen(function* () {
     const fileDrop = yield* FileDropBinding
-    return { children: [fileDrop], init, update, view }
+
+    return {
+      children: [fileDrop],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(layer)
 

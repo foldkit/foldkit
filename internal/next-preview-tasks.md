@@ -30,9 +30,18 @@
 - [x] Integrate the five outstanding main-sync worktree edits and address the
       application comments. Apply the public Binding convention across apps
       and active snippets, with child validation queries behind explicit barrels.
-- [ ] Complete exact-commit independent review and a fresh Daybreak addendum.
-      New transfer authorization is required for the public API changes made
-      after the previously approved snapshot.
+- [x] Format Block constructors with a blank line after child acquisition and
+      one returned implementation field per line. Update canonical guidance,
+      skills, scaffolds, active snippets, and implementation examples.
+- [ ] Document the explicit Block feature API: passive contract, construction
+      Layer, and intentional pure read-only selectors. Explain that ordinary
+      selector exports are independent of implementation Layer selection.
+- [ ] Name field-backed Bindings after their Model fields, preserving plurals
+      and roles: `activeMemberListbox` becomes `ActiveMemberListboxBinding`.
+      Use relationship names for custom storage without one declared field.
+- [ ] Complete exact-commit independent review before integration and push.
+- [ ] Complete a fresh Daybreak addendum after the user lifts the review hold
+      and authorizes the source transfer. Publication also requires approval.
 - [x] Prepare a [release summary](update-composition/RELEASE-SUMMARY.md) with
       exact verified scope and outstanding work. Publication requires approval.
 
@@ -43,6 +52,22 @@ Open general proposals #1871 (external dispatch frames) and #1872 (a provided
 frame scheduler) are not implemented. Neither has been accepted into this
 stabilization batch or approved for deferral. See the
 [feedback reconciliation](update-composition/final-feedback.md).
+
+## Story and Scene test adoption
+
+- [ ] Audit Story and Scene tests across examples, Website, Typing Game, UI,
+      framework tests, and scaffold templates. Use Block-aware runners for
+      ordinary Block behavior and `@effect/vitest`'s `it.effect` for tests that
+      return Effects. Keep deliberately synchronous runner tests synchronous.
+- [ ] Replace routine `withBlock` wrappers and manual executable extraction
+      with direct `story(Block, ...)` and `scene(Block, ...)` calls. Retain
+      `withBlock` for fixtures needing acquired operations or custom views.
+- [ ] Prefer `init(...)` and explicit Command resolution for startup scenarios.
+      Preserve deliberate `given(model)` fixtures, Model assertions in Stories,
+      view assertions in Scenes, construction cleanup, and test isolation.
+- [ ] Update canonical guidance and active testing snippets with the adopted
+      pattern, preserving published historical examples. Verify affected suites
+      and report intentional exceptions.
 
 ## Release boundary
 

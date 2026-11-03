@@ -114,6 +114,11 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const pins = yield* PinsBinding
 
-    return { children: [pins], init, update, view }
+    return {
+      children: [pins],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(layer)

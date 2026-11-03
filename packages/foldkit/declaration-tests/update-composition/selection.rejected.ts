@@ -35,7 +35,12 @@ const init = ApplicationComposition.makeInit(() => ({
 ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const editor = yield* EditorBinding
-    return { children: [editor], init, update: focused }
+
+    return {
+      children: [editor],
+      init,
+      update: focused,
+    }
   }),
 )
 

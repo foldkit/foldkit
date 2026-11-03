@@ -488,7 +488,14 @@ const block = DatePickerDefinition.makeBlock(
   Effect.gen(function* () {
     const popover = yield* PopoverBindingWithOutMessagePolicy
     const calendar = yield* CalendarBindingWithOutMessagePolicy
-    return { children: [popover, calendar], init, update, receive, view }
+
+    return {
+      children: [popover, calendar],
+      init,
+      update,
+      receive,
+      view,
+    }
   }),
 ).provide(Layer.mergeAll(Popover.layer, UiCalendar.layer))
 

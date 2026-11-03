@@ -22,6 +22,7 @@ const block = CreateIssueDefinition.makeBlock(
     const projectListbox = yield* ProjectListboxBinding
     const statusListbox = yield* StatusListboxBinding
     const priorityListbox = yield* PriorityListboxBinding
+
     return {
       children: [dialog, projectListbox, statusListbox, priorityListbox],
       init,

@@ -24,6 +24,7 @@ const block = IssueDetailDefinition.makeBlock(
     const priorityListbox = yield* PriorityListboxBinding
     const projectListbox = yield* ProjectListboxBinding
     const assigneeListbox = yield* AssigneeListboxBinding
+
     return {
       children: [
         commentComposer,

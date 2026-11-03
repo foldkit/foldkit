@@ -996,7 +996,14 @@ export const maybeDropTarget = (model: Model): Option.Option<DropTarget> =>
 /** @internal Checked DragAndDrop implementation used as a scoped testing root. */
 const block = DragAndDropDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, subscriptions, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
   }),
 )
 

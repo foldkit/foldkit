@@ -121,6 +121,11 @@ const view = ArticlePreviewComposition.makeView((model, h) => {
 
 export const ApplicationBlock = ArticlePreviewDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )

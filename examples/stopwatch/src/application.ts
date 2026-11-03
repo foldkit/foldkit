@@ -248,6 +248,13 @@ const buttonStyle =
 
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, subscriptions, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
   }),
 )

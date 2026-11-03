@@ -81,7 +81,12 @@ const PageBlock = PageDefinition.makeBlock(
   Effect.gen(function* () {
     const counter = yield* CounterBinding
 
-    return { children: [counter], init, update, view }
+    return {
+      children: [counter],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(CounterImplementation.layer)
 
@@ -104,7 +109,12 @@ const InvalidPageBlock = PageDefinition.makeBlock(
   Effect.gen(function* () {
     const counter = yield* CounterBinding
 
-    return { children: [counter], init, update, view: invalidView }
+    return {
+      children: [counter],
+      init,
+      update,
+      view: invalidView,
+    }
   }),
 ).provide(CounterImplementation.layer)
 
@@ -114,7 +124,12 @@ const failCompletionWithSubviewInputs = () =>
     Effect.gen(function* () {
       const counter = yield* CounterBinding
 
-      return { children: [counter], init, update, view: counterView }
+      return {
+        children: [counter],
+        init,
+        update,
+        view: counterView,
+      }
     }),
   )
 void failCompletionWithSubviewInputs

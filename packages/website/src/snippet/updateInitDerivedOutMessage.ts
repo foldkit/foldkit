@@ -98,6 +98,10 @@ export const DateRangeBlock = DateRangeDefinition.makeBlock(
   Effect.gen(function* () {
     const endDatePicker = yield* EndDatePickerBinding
 
-    return { children: [endDatePicker], init, update }
+    return {
+      children: [endDatePicker],
+      init,
+      update,
+    }
   }),
 ).provide(DatePickerLayer)

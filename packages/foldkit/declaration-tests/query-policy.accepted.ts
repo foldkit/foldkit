@@ -137,6 +137,7 @@ export const PlainComposition = PlainParent.makeComposition({
 export const ParentBlock = ParentDefinition.makeBlock(
   Effect.gen(function* () {
     const quotes = yield* QuotesBinding
+
     return {
       children: [quotes],
       init: parentInit,

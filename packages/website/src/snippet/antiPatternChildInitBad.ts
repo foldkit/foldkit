@@ -29,6 +29,10 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       }
     })
 
-    return { children: [settingsConnection], init, update }
+    return {
+      children: [settingsConnection],
+      init,
+      update,
+    }
   }),
 ).provide(Settings.layer)

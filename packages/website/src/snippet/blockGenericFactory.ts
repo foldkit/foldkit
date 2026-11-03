@@ -104,7 +104,12 @@ const constructPicker: PickerConstructor = ({
 }) =>
   PickerDefinition.makeBlock(
     Effect.gen(function* () {
-      return { children: [], init, update, view }
+      return {
+        children: [],
+        init,
+        update,
+        view,
+      }
     }),
   )
 
@@ -183,6 +188,11 @@ export const ApplicationBlock = FruitSelectionDefinition.makeBlock(
   Effect.gen(function* () {
     const picker = yield* PickerBinding
 
-    return { children: [picker], init, update, view }
+    return {
+      children: [picker],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(layer)

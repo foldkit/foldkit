@@ -104,7 +104,14 @@ export const block = ListboxDefinition.makeBlock(
   Effect.gen(function* () {
     const animation = yield* itemUpdate.AnimationBinding
 
-    return { children: [animation], init, update, receive, view, EffectsLayer }
+    return {
+      children: [animation],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(AnimationLayer)
 /** Constructs this Listbox implementation and its private Animation dependency. */

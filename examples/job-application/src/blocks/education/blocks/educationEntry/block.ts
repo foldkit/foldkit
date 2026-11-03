@@ -14,6 +14,12 @@ export const layer = EducationEntryDefinition.makeBlock(
   Effect.gen(function* () {
     const graduationYearListbox = yield* GraduationYearListboxBinding
 
-    return { children: [graduationYearListbox], init, update, receive, view }
+    return {
+      children: [graduationYearListbox],
+      init,
+      update,
+      receive,
+      view,
+    }
   }),
 ).provide(Layer.mergeAll(ListboxLayer)).layer

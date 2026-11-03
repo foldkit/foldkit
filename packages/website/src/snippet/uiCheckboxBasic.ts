@@ -90,6 +90,11 @@ const view = TermsFormComposition.makeView((model, h) => {
 
 export const ApplicationBlock = TermsFormDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )

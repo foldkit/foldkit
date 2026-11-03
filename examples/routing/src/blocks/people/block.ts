@@ -12,6 +12,13 @@ export const PeopleBlock = PeopleDefinition.contract
 
 export const layer = PeopleDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 ).layer

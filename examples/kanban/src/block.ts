@@ -12,6 +12,13 @@ import { view } from './view'
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const dragAndDrop = yield* DragAndDropBinding
-    return { children: [dragAndDrop], init, update, view, EffectsLayer }
+
+    return {
+      children: [dragAndDrop],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Layer.mergeAll(DragAndDropLayer))

@@ -161,6 +161,12 @@ export const ApplicationBlock = FilterDialogDefinition.makeBlock(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
     const combobox = yield* ComboboxBinding
-    return { children: [dialog, combobox], init, update, view }
+
+    return {
+      children: [dialog, combobox],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(Layer.mergeAll(DialogLayer, ComboboxLayer))

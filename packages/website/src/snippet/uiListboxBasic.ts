@@ -125,6 +125,12 @@ const view = PlanPickerComposition.makeView((model, h) =>
 export const ApplicationBlock = PlanPickerDefinition.makeBlock(
   Effect.gen(function* () {
     const planListbox = yield* PlanListboxBinding
-    return { children: [planListbox], init, update, view }
+
+    return {
+      children: [planListbox],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(ListboxLayer)

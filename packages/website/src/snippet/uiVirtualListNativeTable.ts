@@ -141,6 +141,11 @@ export const layer = InvoiceTableDefinition.makeBlock(
   Effect.gen(function* () {
     const invoiceRows = yield* InvoiceRowsBinding
 
-    return { children: [invoiceRows], init, update, view }
+    return {
+      children: [invoiceRows],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(VirtualListLayer).layer

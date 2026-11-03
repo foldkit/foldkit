@@ -92,6 +92,7 @@ const view = PopoverSiblingRuntimeTestComposition.makeView((model, h) =>
 const ApplicationBlock = PopoverSiblingRuntimeTestDefinition.makeBlock(
   Effect.gen(function* () {
     const popover = yield* PopoverBinding
+
     return {
       children: [popover],
       init: PopoverSiblingRuntimeTestComposition.makeInit(() =>

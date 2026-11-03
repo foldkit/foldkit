@@ -409,7 +409,13 @@ export const view = TooltipComposition.makeView.withInputs(
 /** @internal Checked Tooltip implementation used as a scoped testing root. */
 const block = TooltipDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 )
 

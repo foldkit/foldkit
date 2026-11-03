@@ -107,6 +107,12 @@ const view = FileDropExampleComposition.makeView((model, h) => {
 export const ApplicationBlock = FileDropExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const fileDrop = yield* FileDropBinding
-    return { children: [fileDrop], init, update, view }
+
+    return {
+      children: [fileDrop],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(FileDropLayer)

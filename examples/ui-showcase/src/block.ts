@@ -11,6 +11,13 @@ import { view } from './view'
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const ui = yield* UiBinding
-    return { children: [ui], init, update, view, EffectsLayer }
+
+    return {
+      children: [ui],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Ui.layer)

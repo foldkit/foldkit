@@ -14,6 +14,12 @@ export const PendingHostBlock = HostDefinition.makeBlock(
       return yield* Effect.fail(new GraphBuildError())
     }
 
-    return { children: [], init, update, view, hostHandlers: [ReadValue] }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      hostHandlers: [ReadValue],
+    }
   }),
 )

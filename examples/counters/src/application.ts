@@ -171,6 +171,11 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const counters = yield* CountersBinding
 
-    return { children: [counters], init, update, view }
+    return {
+      children: [counters],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(Counter.layer)

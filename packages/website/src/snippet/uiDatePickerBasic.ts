@@ -354,6 +354,12 @@ const view = DatePickerExampleComposition.makeView((model, h) => {
 export const ApplicationBlock = DatePickerExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const datePicker = yield* DatePickerBinding
-    return { children: [datePicker], init, update, view }
+
+    return {
+      children: [datePicker],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(DatePickerLayer)

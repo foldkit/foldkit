@@ -13,6 +13,7 @@ import { view } from './view'
 const block = NotificationCenterDefinition.makeBlock(
   Effect.gen(function* () {
     const popover = yield* PopoverBinding
+
     return {
       children: [popover],
       init,

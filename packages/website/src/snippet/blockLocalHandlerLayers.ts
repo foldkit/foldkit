@@ -10,6 +10,12 @@ const EffectsLayer = Layer.mergeAll(LoadWorkOrders.layer, SaveWorkOrder.layer)
 
 export const layer = WorkOrdersDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).layer

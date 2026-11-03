@@ -18,6 +18,7 @@ const block = IssueListDefinition.makeBlock(
     const statusListbox = yield* StatusListboxBinding
     const sortListbox = yield* SortListboxBinding
     const groupListbox = yield* GroupListboxBinding
+
     return {
       children: [statusListbox, sortListbox, groupListbox],
       init,

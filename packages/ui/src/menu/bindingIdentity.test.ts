@@ -69,7 +69,12 @@ const update = GenericMenuBindingIdentityComposition.makeUpdate({
 const block = GenericMenuBindingIdentityDefinition.makeBlock(
   Effect.gen(function* () {
     const menu = yield* MenuBinding
-    return { children: [menu], init, update }
+
+    return {
+      children: [menu],
+      init,
+      update,
+    }
   }),
 ).provide(Menu.layer)
 

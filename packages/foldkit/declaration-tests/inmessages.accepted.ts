@@ -138,7 +138,13 @@ export const FallibleCounterBlock = CounterDefinition.makeBlock(
       return yield* Effect.fail(ConstructionUnavailable())
     }
 
-    return { children: [], init, update, receive, EffectsLayer: Save.layer }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      EffectsLayer: Save.layer,
+    }
   }),
 )
 export const InlineCounterBlock = CounterDefinition.makeBlock(

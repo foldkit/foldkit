@@ -126,6 +126,12 @@ const view = PeoplePickerComposition.makeView((model, h) =>
 export const ApplicationBlock = PeoplePickerDefinition.makeBlock(
   Effect.gen(function* () {
     const peopleListbox = yield* PeopleListboxBinding
-    return { children: [peopleListbox], init, update, view }
+
+    return {
+      children: [peopleListbox],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(MultiListbox.layer)

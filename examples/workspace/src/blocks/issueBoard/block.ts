@@ -12,6 +12,7 @@ import { view } from './view'
 const block = IssueBoardDefinition.makeBlock(
   Effect.gen(function* () {
     const dragAndDrop = yield* DragAndDropBinding
+
     return {
       children: [dragAndDrop],
       init,

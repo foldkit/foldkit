@@ -464,7 +464,13 @@ const internalView = RadioGroupComposition.makeView.withInputs(
 /** @internal Checked canonical implementation for scoped library tests. */
 export const block = RadioGroupDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view: internalView, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view: internalView,
+      EffectsLayer,
+    }
   }),
 )
 

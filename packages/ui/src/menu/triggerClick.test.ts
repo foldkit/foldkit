@@ -65,7 +65,13 @@ const update = MenuTriggerClickTestComposition.makeUpdate({})
 const ApplicationBlock = MenuTriggerClickTestDefinition.makeBlock(
   Effect.gen(function* () {
     const menu = yield* MenuBinding
-    return { children: [menu], init, update, view }
+
+    return {
+      children: [menu],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(MenuLayer)
 

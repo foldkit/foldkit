@@ -18,6 +18,7 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
     const chartModeRadioGroup = yield* ChartModeRadioGroupBinding
     const periodRadioGroup = yield* PeriodRadioGroupBinding
     const packageRadioGroup = yield* PackageRadioGroupBinding
+
     return {
       children: [chartModeRadioGroup, periodRadioGroup, packageRadioGroup],
       init,

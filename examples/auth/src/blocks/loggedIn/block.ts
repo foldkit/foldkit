@@ -9,6 +9,11 @@ export const LoggedInBlock = LoggedInDefinition.contract
 
 export const layer = LoggedInDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 ).layer

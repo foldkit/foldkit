@@ -61,6 +61,7 @@ const Parent = ParentDefinition.makeBlock(
     const left = yield* LeftBinding
     const right = yield* RightBinding
     const entries = yield* EntryBinding
+
     return {
       children: [left, right, entries],
       init: ParentComposition.makeInit(() => ({ model: { entries: {} } })),
@@ -94,6 +95,7 @@ const TopComposition = TopDefinition.makeComposition({
 const Top = TopDefinition.makeBlock(
   Effect.gen(function* () {
     const group = yield* GroupBinding
+
     return {
       children: [group],
       init: TopComposition.makeInit(() => ({ model: {} })),

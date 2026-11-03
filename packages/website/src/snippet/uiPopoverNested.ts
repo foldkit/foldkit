@@ -164,6 +164,7 @@ export const ApplicationBlock = AccountMenuDefinition.makeBlock(
   Effect.gen(function* () {
     const accountPopover = yield* AccountPopoverBinding
     const accountDetailsPopover = yield* AccountDetailsPopoverBinding
+
     return {
       children: [accountPopover, accountDetailsPopover],
       init,

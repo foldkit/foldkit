@@ -109,6 +109,12 @@ const view = ActionMenuExampleComposition.makeView((model, h) =>
 export const ApplicationBlock = ActionMenuExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const menu = yield* MenuBinding
-    return { children: [menu], init, update, view }
+
+    return {
+      children: [menu],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(MenuLayer)

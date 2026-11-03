@@ -41,6 +41,11 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )

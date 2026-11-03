@@ -137,6 +137,11 @@ export const layer = CitiesPickerDefinition.makeBlock(
   Effect.gen(function* () {
     const combobox = yield* ComboboxBinding
 
-    return { children: [combobox], init, update, view }
+    return {
+      children: [combobox],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(MultiCombobox.layer).layer

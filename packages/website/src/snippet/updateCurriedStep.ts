@@ -49,6 +49,11 @@ export const RouteAwareBlock = RouteAwareDefinition.contract
 
 export const layer = RouteAwareDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+    }
   }),
 ).layer

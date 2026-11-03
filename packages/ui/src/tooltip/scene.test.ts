@@ -76,7 +76,13 @@ const panel = Scene.selector('#test-panel')
 const TooltipSceneBlock = TooltipSceneDefinition.makeBlock(
   Effect.gen(function* () {
     const child = yield* TooltipBinding
-    return { children: [child], init, update, view: rootView }
+
+    return {
+      children: [child],
+      init,
+      update,
+      view: rootView,
+    }
   }),
 ).provide(layer)
 

@@ -14,6 +14,12 @@ export const layer = SkillsEntryDefinition.makeBlock(
   Effect.gen(function* () {
     const proficiencyRadioGroup = yield* ProficiencyRadioGroupBinding
 
-    return { children: [proficiencyRadioGroup], init, update, receive, view }
+    return {
+      children: [proficiencyRadioGroup],
+      init,
+      update,
+      receive,
+      view,
+    }
   }),
 ).provide(Layer.mergeAll(RadioGroupLayer)).layer

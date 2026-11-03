@@ -399,6 +399,12 @@ const view = ApplicationComposition.makeView((model, h) => ({
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const list = yield* ListBinding
-    return { children: [list], init, update, view }
+
+    return {
+      children: [list],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(VirtualList.layer)

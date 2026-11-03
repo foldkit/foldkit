@@ -152,6 +152,12 @@ export const viewWithDialog = DisabledButtonTestComposition.makeView(
 export const block = DisabledButtonTestDefinition.makeBlock(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
-    return { children: [dialog], init, update, view: viewWithDialog }
+
+    return {
+      children: [dialog],
+      init,
+      update,
+      view: viewWithDialog,
+    }
   }),
 ).provide(Dialog.layer)

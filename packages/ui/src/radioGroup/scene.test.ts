@@ -104,7 +104,12 @@ const RadioGroupSceneBlock = RadioGroupSceneDefinition.makeBlock(
   Effect.gen(function* () {
     const radioGroup = yield* RadioGroupBinding
 
-    return { children: [radioGroup], init, update, view: rootView }
+    return {
+      children: [radioGroup],
+      init,
+      update,
+      view: rootView,
+    }
   }),
 ).provide(RadioGroupLayer)
 

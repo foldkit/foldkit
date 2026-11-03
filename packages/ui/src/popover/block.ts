@@ -795,7 +795,14 @@ const block = PopoverDefinition.makeBlock(
   Effect.gen(function* () {
     const animation = yield* AnimationBinding
 
-    return { children: [animation], init, update, receive, view, EffectsLayer }
+    return {
+      children: [animation],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Animation.layer)
 

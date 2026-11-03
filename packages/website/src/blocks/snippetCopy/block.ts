@@ -9,7 +9,13 @@ export const SnippetCopyBlock = SnippetCopyDefinition.contract
 
 const block = SnippetCopyDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 )
 export const layer = block.layer

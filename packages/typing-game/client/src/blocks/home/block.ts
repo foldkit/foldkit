@@ -10,6 +10,13 @@ import { view } from './view'
 export const HomeBlock = HomeDefinition.contract
 export const layer = HomeDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, subscriptions, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
   }),
 ).layer

@@ -14,6 +14,7 @@ import { view } from './view'
 export const CommandPaletteImplementation = CommandPaletteDefinition.makeBlock(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
+
     return {
       children: [dialog],
       init,

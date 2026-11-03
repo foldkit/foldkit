@@ -9,7 +9,12 @@ export const ComingFromReactBlock = ComingFromReactDefinition.contract
 
 const block = ComingFromReactDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )
 export const layer = block.layer

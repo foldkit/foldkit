@@ -12,6 +12,13 @@ import { view } from './view'
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const editionRadioGroup = yield* EditionRadioGroupBinding
-    return { children: [editionRadioGroup], init, update, view, EffectsLayer }
+
+    return {
+      children: [editionRadioGroup],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Layer.mergeAll(RadioGroupLayer))

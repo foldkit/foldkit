@@ -116,6 +116,11 @@ export const ApplicationBlock = AnimationExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const animation = yield* AnimationBinding
 
-    return { children: [animation], init, update, view }
+    return {
+      children: [animation],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(AnimationLayer)

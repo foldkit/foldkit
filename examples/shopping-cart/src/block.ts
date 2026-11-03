@@ -12,6 +12,12 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const products = yield* ProductsPageBinding
 
-    return { children: [products], init, update, view, EffectsLayer }
+    return {
+      children: [products],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Products.layer)

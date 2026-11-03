@@ -68,6 +68,12 @@ export const block = SettingsDefinition.contract
 
 export const layer = SettingsDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      EffectsLayer,
+    }
   }),
 ).layer

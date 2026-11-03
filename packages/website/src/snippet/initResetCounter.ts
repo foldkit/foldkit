@@ -47,6 +47,12 @@ export const CounterBlock = CounterDefinition.contract
 
 export const layer = CounterDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive, view }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      view,
+    }
   }),
 ).layer

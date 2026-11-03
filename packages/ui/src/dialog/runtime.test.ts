@@ -106,7 +106,13 @@ const preservedOpenModel = (config: Dialog.InitConfig) =>
 const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
-    return { children: [dialog], init, update, view }
+
+    return {
+      children: [dialog],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(Dialog.layer)
 

@@ -12,7 +12,14 @@ const EffectsLayer = LoadApiData.layer
 
 const block = ApiReferenceDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 )
 export const layer = block.layer

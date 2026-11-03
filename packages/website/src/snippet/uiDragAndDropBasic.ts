@@ -126,6 +126,12 @@ const view = SortableListComposition.makeView((model, h) =>
 export const ApplicationBlock = SortableListDefinition.makeBlock(
   Effect.gen(function* () {
     const dragAndDrop = yield* DragAndDropBinding
-    return { children: [dragAndDrop], init, update, view }
+
+    return {
+      children: [dragAndDrop],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(DragAndDropLayer)

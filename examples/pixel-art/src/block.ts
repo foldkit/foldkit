@@ -27,6 +27,7 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
     const toolRadioGroup = yield* ToolRadioGroupBinding
     const gridSizeRadioGroup = yield* GridSizeRadioGroupBinding
     const paletteRadioGroup = yield* PaletteRadioGroupBinding
+
     return {
       children: [
         errorDialog,

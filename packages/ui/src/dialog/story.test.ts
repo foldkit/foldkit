@@ -117,6 +117,7 @@ const parentInit = DialogParentTestComposition.makeInit(() => ({
 const ParentBlock = DialogParentTestDefinition.makeBlock(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
+
     return {
       children: [dialog],
       init: parentInit,

@@ -163,6 +163,12 @@ export const ApplicationBlock = ProjectDialogsDefinition.makeBlock(
   Effect.gen(function* () {
     const settingsDialog = yield* SettingsDialogBinding
     const confirmDialog = yield* ConfirmDialogBinding
-    return { children: [settingsDialog, confirmDialog], init, update, view }
+
+    return {
+      children: [settingsDialog, confirmDialog],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(DialogLayer)

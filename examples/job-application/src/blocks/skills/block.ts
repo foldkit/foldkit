@@ -14,6 +14,13 @@ export const layer = SkillsDefinition.makeBlock(
   Effect.gen(function* () {
     const entries = yield* EntriesBinding
 
-    return { children: [entries], init, update, receive, view, EffectsLayer }
+    return {
+      children: [entries],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Layer.mergeAll(Entry.layer)).layer

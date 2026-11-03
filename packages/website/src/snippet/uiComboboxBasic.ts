@@ -128,6 +128,11 @@ export const layer = CityPickerDefinition.makeBlock(
   Effect.gen(function* () {
     const combobox = yield* ComboboxBinding
 
-    return { children: [combobox], init, update, view }
+    return {
+      children: [combobox],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(ComboboxLayer).layer

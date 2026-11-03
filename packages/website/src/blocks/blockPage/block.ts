@@ -9,7 +9,12 @@ export const BlockPageBlock = BlockPageDefinition.contract
 
 const block = BlockPageDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )
 export const layer = block.layer

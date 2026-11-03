@@ -1383,7 +1383,14 @@ export const block = MenuDefinition.makeBlock(
   Effect.gen(function* () {
     const animation = yield* AnimationBinding
 
-    return { children: [animation], init, update, receive, view, EffectsLayer }
+    return {
+      children: [animation],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Animation.layer)
 /** Constructs Menu and its private Animation dependency. */

@@ -17,6 +17,7 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const flowStrengthSlider = yield* FlowStrengthSliderBinding
     const noiseScaleSlider = yield* NoiseScaleSliderBinding
+
     return {
       children: [flowStrengthSlider, noiseScaleSlider],
       init,

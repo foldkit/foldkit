@@ -65,7 +65,13 @@ const panel = Scene.selector('#panel')
 const HoverIntentSceneBlock = HoverIntentSceneDefinition.makeBlock(
   Effect.gen(function* () {
     const child = yield* HoverIntentBinding
-    return { children: [child], init, update, view: sceneView }
+
+    return {
+      children: [child],
+      init,
+      update,
+      view: sceneView,
+    }
   }),
 ).provide(layer)
 

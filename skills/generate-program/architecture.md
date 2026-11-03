@@ -312,7 +312,13 @@ const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 )
 
@@ -607,7 +613,12 @@ const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )
 
@@ -635,7 +646,13 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const home = yield* HomeBinding
-    return { children: [home], init, update, view }
+
+    return {
+      children: [home],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(Home.layer)
 const program = Program.make({
@@ -655,7 +672,12 @@ const program = Program.make({
 ```ts
 const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )
 

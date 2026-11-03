@@ -377,7 +377,14 @@ export const view = HoverIntentComposition.makeView.withInputs(
 /** @internal Checked HoverIntent implementation used as a scoped testing root. */
 const block = HoverIntentDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 )
 

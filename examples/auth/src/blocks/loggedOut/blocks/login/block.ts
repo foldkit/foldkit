@@ -8,6 +8,12 @@ export const LoginBlock = LoginDefinition.contract
 
 export const layer = LoginDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).layer

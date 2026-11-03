@@ -13,6 +13,7 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const dietListbox = yield* DietListboxBinding
     const periodListbox = yield* PeriodListboxBinding
+
     return {
       children: [dietListbox, periodListbox],
       init,

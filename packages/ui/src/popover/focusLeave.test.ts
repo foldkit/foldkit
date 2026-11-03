@@ -77,6 +77,7 @@ const makeProgram = (container: HTMLElement) => {
   const block = PopoverFocusLeaveTestDefinition.makeBlock(
     Effect.gen(function* () {
       const popover = yield* PopoverBinding
+
       return {
         children: [popover],
         init: PopoverFocusLeaveTestComposition.makeInit(() =>

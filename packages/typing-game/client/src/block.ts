@@ -12,6 +12,13 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const home = yield* HomeBinding
     const room = yield* RoomBinding
-    return { children: [home, room], init, update, view, EffectsLayer }
+
+    return {
+      children: [home, room],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Layer.mergeAll(Home.layer, Room.layer))

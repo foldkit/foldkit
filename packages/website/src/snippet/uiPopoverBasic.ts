@@ -129,6 +129,12 @@ const view = PopoverExampleComposition.makeView((model, h) => {
 export const ApplicationBlock = PopoverExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const popover = yield* PopoverBinding
-    return { children: [popover], init, update, view }
+
+    return {
+      children: [popover],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(PopoverLayer)

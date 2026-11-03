@@ -77,6 +77,7 @@ const makeProgram = (container: HTMLElement, isModal: boolean) => {
   const block = PopoverTriggerClickTestDefinition.makeBlock(
     Effect.gen(function* () {
       const popover = yield* PopoverBinding
+
       return {
         children: [popover],
         init: PopoverTriggerClickTestComposition.makeInit(() =>

@@ -12,7 +12,13 @@ export const SnippetDisclosureBlock = SnippetDisclosureDefinition.contract
 
 const block = SnippetDisclosureDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 )
 export const layer = block.layer

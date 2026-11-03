@@ -92,6 +92,7 @@ const parentView = ParentComposition.makeView((model, h) =>
 const Parent = ParentDefinition.makeBlock(
   Effect.gen(function* () {
     const child = yield* ChildBinding
+
     return {
       children: [child],
       init: parentInit,

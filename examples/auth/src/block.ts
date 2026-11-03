@@ -13,6 +13,13 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const loggedOut = yield* LoggedOutBinding
     const loggedIn = yield* LoggedInBinding
-    return { children: [loggedOut, loggedIn], init, update, view, EffectsLayer }
+
+    return {
+      children: [loggedOut, loggedIn],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Layer.mergeAll(LoggedIn.layer, LoggedOut.layer))

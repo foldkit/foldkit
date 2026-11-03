@@ -47,6 +47,10 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const posts = yield* PostsBinding
 
-    return { children: [posts], init, update }
+    return {
+      children: [posts],
+      init,
+      update,
+    }
   }),
 ).provide(Query.layer)

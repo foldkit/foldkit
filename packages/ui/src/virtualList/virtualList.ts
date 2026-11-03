@@ -2611,7 +2611,14 @@ const viewImpl = VirtualListComposition.makeView.withInputs(
 /** @internal Checked canonical implementation for scoped library tests. */
 export const block = VirtualListDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive, view: viewImpl, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      view: viewImpl,
+      EffectsLayer,
+    }
   }),
 )
 

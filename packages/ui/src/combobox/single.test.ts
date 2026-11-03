@@ -97,6 +97,7 @@ const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate({
 const FruitComboboxTestBlock = FruitComboboxTestDefinition.makeBlock(
   Effect.gen(function* () {
     const combobox = yield* FruitComboboxBinding
+
     return {
       children: [combobox],
       init: FruitComboboxTestComposition.makeInit(() => ({

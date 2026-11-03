@@ -113,6 +113,12 @@ const view = HoverIntentExampleComposition.makeView((model, h) => {
 export const ApplicationBlock = HoverIntentExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const hoverIntent = yield* HoverIntentBinding
-    return { children: [hoverIntent], init, update, view }
+
+    return {
+      children: [hoverIntent],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(HoverIntentLayer)

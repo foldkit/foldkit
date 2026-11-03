@@ -12,6 +12,12 @@ export const PanelBlock = PanelDefinition.contract
 
 export const layer = PanelDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).layer

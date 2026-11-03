@@ -126,6 +126,12 @@ const view = PlanPickerComposition.makeView((model, h) => {
 export const ApplicationBlock = PlanPickerDefinition.makeBlock(
   Effect.gen(function* () {
     const planRadioGroup = yield* PlanRadioGroupBinding
-    return { children: [planRadioGroup], init, update, view }
+
+    return {
+      children: [planRadioGroup],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(RadioGroupLayer)

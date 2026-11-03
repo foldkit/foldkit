@@ -170,7 +170,12 @@ export const view = FileDropComposition.makeView.withInputs(
 /** @internal Checked FileDrop implementation used as a scoped testing root. */
 const block = FileDropDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )
 

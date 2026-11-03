@@ -7,7 +7,13 @@ export const AsyncCounterDemoBlock = AsyncCounterDemoDefinition.contract
 
 const block = AsyncCounterDemoDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 )
 export const layer = block.layer

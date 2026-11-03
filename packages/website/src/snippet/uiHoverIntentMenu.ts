@@ -130,6 +130,12 @@ const view = HoverMenuComposition.makeView((model, h) => {
 export const ApplicationBlock = HoverMenuDefinition.makeBlock(
   Effect.gen(function* () {
     const hoverMenu = yield* HoverMenuBinding
-    return { children: [hoverMenu], init, update, view }
+
+    return {
+      children: [hoverMenu],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(HoverIntentLayer)

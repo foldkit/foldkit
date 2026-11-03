@@ -81,7 +81,13 @@ const card = Scene.selector('#card')
 const DragAndDropSceneBlock = DragAndDropSceneDefinition.makeBlock(
   Effect.gen(function* () {
     const child = yield* DragAndDropBinding
-    return { children: [child], init, update, view: view }
+
+    return {
+      children: [child],
+      init,
+      update,
+      view: view,
+    }
   }),
 ).provide(layer)
 

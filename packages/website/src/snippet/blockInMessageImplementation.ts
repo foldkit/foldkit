@@ -29,7 +29,13 @@ const view = MessageComposerComposition.makeView((model, h) =>
 export const MessageComposerImplementation =
   MessageComposerDefinition.makeBlock(
     Effect.gen(function* () {
-      return { children: [], init, update, receive, view }
+      return {
+        children: [],
+        init,
+        update,
+        receive,
+        view,
+      }
     }),
   )
 

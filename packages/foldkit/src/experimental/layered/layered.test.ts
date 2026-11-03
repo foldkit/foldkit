@@ -145,7 +145,11 @@ const makeFixture = (
 
       const second = yield* SecondBinding
 
-      return { children: [first, second], init, update }
+      return {
+        children: [first, second],
+        init,
+        update,
+      }
     }),
   )
 

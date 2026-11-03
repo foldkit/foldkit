@@ -75,6 +75,10 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const settings = yield* SettingsBinding
 
-    return { children: [settings], init, update }
+    return {
+      children: [settings],
+      init,
+      update,
+    }
   }),
 ).provide(SettingsLayer)

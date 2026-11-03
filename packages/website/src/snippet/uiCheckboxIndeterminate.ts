@@ -113,6 +113,11 @@ const view = NotificationPreferencesComposition.makeView((model, h) => {
 
 export const ApplicationBlock = NotificationPreferencesDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )

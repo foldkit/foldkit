@@ -70,7 +70,11 @@ const makeFixture = () => {
     Effect.gen(function* () {
       const child = yield* ChildBlock.construct()
 
-      return { children: [ChildBinding.connect(child)], init, update }
+      return {
+        children: [ChildBinding.connect(child)],
+        init,
+        update,
+      }
     }),
   )
 

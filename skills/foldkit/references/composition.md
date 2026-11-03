@@ -23,6 +23,8 @@ A child may expose a pure read-only selector such as `isComplete` through its ex
 
 Complete the implementation with `FooDefinition.makeBlock(Effect.gen(function* () { ... }))`. Yield each registered Binding, then return the acquired connections under `children`, together with init, update, view and local lifecycle/handler declarations. Static Composition configuration still uses `bindings`. Provide child implementation Layers with the completed descriptor's `.provide(Child.layer)` or ordinary `Layer.provide` on its `.layer`. A feature barrel exports the passive `FooBlock` and the implementation `layer`; a root may export its selected `ApplicationBlock` directly for Program or Server hosting.
 
+Leave one blank line between the Binding acquisition group and `return`. Write each returned implementation field on its own line, even when the record would fit on one line. Use the same layout for graphless Blocks.
+
 Inline single-use `bindings` and constructor `children` arrays at their registration sites. Export one policy-complete Binding for each relationship and acquire that same Binding in the constructor. Keep a necessary base Binding internal when reciprocal policies or self-directed operations need to break a dependency cycle. A Binding registers the relationship to a child contract; the supplied child Layer constructs its implementation.
 
 Prefer plain array literals wherever contextual typing preserves the required element or tuple types. Use `Tuple.make` only when a value or producer would otherwise widen and lose necessary tuple typing. Do not add it to `children`, `bindings`, or initializer arguments by default.
@@ -56,7 +58,12 @@ const view = SettingsComposition.makeView((model, h) => h.p([], [model.theme]))
 
 export const layer = SettingsDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 ).layer
 ```
@@ -549,7 +556,14 @@ At a root with a registered child:
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const settings = yield* SettingsBinding
-    return { children: [settings], init, update, view, EffectsLayer }
+
+    return {
+      children: [settings],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Settings.layer)
 const program = Program.make({

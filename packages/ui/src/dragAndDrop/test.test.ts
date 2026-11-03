@@ -121,7 +121,12 @@ const ParentBlock = DragAndDropTestParentDefinition.makeBlock(
   Effect.gen(function* () {
     const left = yield* LeftBinding
     const right = yield* RightBinding
-    return { children: [left, right], init: parentInit, update }
+
+    return {
+      children: [left, right],
+      init: parentInit,
+      update,
+    }
   }),
 ).provide(layer)
 const NestedParentBlock = DragAndDropTestParentDefinition.contract
@@ -392,7 +397,12 @@ const NestedBlockInit = NestedDragAndDropTestParentComposition.makeInit(() => ({
 const NestedBlock = NestedDragAndDropTestParentDefinition.makeBlock(
   Effect.gen(function* () {
     const child = yield* NestedBinding
-    return { children: [child], init: NestedBlockInit, update: nestedUpdate }
+
+    return {
+      children: [child],
+      init: NestedBlockInit,
+      update: nestedUpdate,
+    }
   }),
 ).provide(ParentBlock.layer)
 
@@ -505,7 +515,12 @@ const KeyedBlockInit = KeyedDragAndDropTestParentComposition.makeInit(() => ({
 const KeyedBlock = KeyedDragAndDropTestParentDefinition.makeBlock(
   Effect.gen(function* () {
     const child = yield* KeyedBinding
-    return { children: [child], init: KeyedBlockInit, update: keyedUpdate }
+
+    return {
+      children: [child],
+      init: KeyedBlockInit,
+      update: keyedUpdate,
+    }
   }),
 ).provide(layer)
 

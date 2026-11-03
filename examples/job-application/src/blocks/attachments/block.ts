@@ -14,6 +14,11 @@ export const layer = AttachmentsDefinition.makeBlock(
     const resumeDrop = yield* ResumeDropBinding
     const additionalFilesDrop = yield* AdditionalFilesDropBinding
 
-    return { children: [resumeDrop, additionalFilesDrop], init, update, view }
+    return {
+      children: [resumeDrop, additionalFilesDrop],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(Layer.mergeAll(FileDropLayer)).layer

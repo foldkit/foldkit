@@ -44,7 +44,11 @@ const init = ContextualRefreshComposition.makeInit(() => ({
 
 const ContextualRefreshBlock = ContextualRefreshDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update }
+    return {
+      children: [],
+      init,
+      update,
+    }
   }),
 )
 

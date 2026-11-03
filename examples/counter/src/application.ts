@@ -99,6 +99,11 @@ const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )

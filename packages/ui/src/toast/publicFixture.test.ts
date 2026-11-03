@@ -106,7 +106,11 @@ const ParentBlock = ToastFixtureParentDefinition.makeBlock(
     const right = yield* RightToastBinding
     const other = yield* OtherToastBinding
 
-    return { children: [left, right, other], init: parentInit, update }
+    return {
+      children: [left, right, other],
+      init: parentInit,
+      update,
+    }
   }),
 ).provide(Toast.layer)
 
@@ -182,7 +186,11 @@ const KeyedParentBlock = KeyedToastFixtureParentDefinition.makeBlock(
   Effect.gen(function* () {
     const toast = yield* KeyedToastBinding
 
-    return { children: [toast], init: keyedInit, update: keyedUpdate }
+    return {
+      children: [toast],
+      init: keyedInit,
+      update: keyedUpdate,
+    }
   }),
 ).provide(Toast.layer)
 

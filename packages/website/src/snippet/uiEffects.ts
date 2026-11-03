@@ -70,7 +70,12 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
     const dialog = yield* DialogBinding
     const menu = yield* MenuBinding
 
-    return { children: [dialog, menu], init, update, view }
+    return {
+      children: [dialog, menu],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(Layer.mergeAll(DialogLayer, MenuLayer))
 

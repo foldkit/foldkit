@@ -141,6 +141,12 @@ const view = TabsExampleComposition.makeView((model, h) => {
 export const ApplicationBlock = TabsExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const tabs = yield* TabsBinding
-    return { children: [tabs], init, update, view }
+
+    return {
+      children: [tabs],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(TabsLayer)

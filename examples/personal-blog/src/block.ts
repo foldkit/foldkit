@@ -11,6 +11,13 @@ import { view } from './view'
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const counter = yield* CounterBinding
-    return { children: [counter], init, update, view, EffectsLayer }
+
+    return {
+      children: [counter],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Layer.mergeAll(Counter.layer))

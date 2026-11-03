@@ -1428,7 +1428,14 @@ export const CalendarBlock: CalendarBlock = CalendarDefinition.contract
 /** @internal Checked Calendar implementation used as a scoped testing root. */
 export const block = CalendarDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 )
 

@@ -149,6 +149,12 @@ const view = NotificationsComposition.makeView((model, h) =>
 export const ApplicationBlock = NotificationsDefinition.makeBlock(
   Effect.gen(function* () {
     const toast = yield* ToastBinding
-    return { children: [toast], init, update, view }
+
+    return {
+      children: [toast],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(ToastLayer)

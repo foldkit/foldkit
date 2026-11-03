@@ -140,6 +140,12 @@ const view = CharacterPickerComposition.makeView((model, h) =>
 export const ApplicationBlock = CharacterPickerDefinition.makeBlock(
   Effect.gen(function* () {
     const characterListbox = yield* CharacterListboxBinding
-    return { children: [characterListbox], init, update, view }
+
+    return {
+      children: [characterListbox],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(ListboxLayer)

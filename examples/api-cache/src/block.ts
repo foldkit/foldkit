@@ -12,6 +12,13 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const tabs = yield* TabsBinding
 
-    return { children: [tabs], init, update, view, subscriptions, EffectsLayer }
+    return {
+      children: [tabs],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
   }),
 )

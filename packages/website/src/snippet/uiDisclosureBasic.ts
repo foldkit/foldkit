@@ -97,6 +97,11 @@ const view = FrequentlyAskedQuestionsComposition.makeView((model, h) => {
 
 export const ApplicationBlock = FrequentlyAskedQuestionsDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 )

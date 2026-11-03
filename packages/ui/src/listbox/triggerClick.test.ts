@@ -67,7 +67,12 @@ const ApplicationBlock = ListboxTriggerClickTestDefinition.makeBlock(
   Effect.gen(function* () {
     const listbox = yield* ListboxBinding
 
-    return { children: [listbox], init, update, view }
+    return {
+      children: [listbox],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(ListboxLayer)
 

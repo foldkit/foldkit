@@ -135,6 +135,12 @@ const view = ActivityListExampleComposition.makeView(
 export const ApplicationBlock = ActivityListExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const activityList = yield* ActivityListBinding
-    return { children: [activityList], init, update, view }
+
+    return {
+      children: [activityList],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(VirtualListLayer)

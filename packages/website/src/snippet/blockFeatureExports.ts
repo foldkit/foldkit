@@ -38,7 +38,14 @@ import { view } from './view'
 
 export const layer = SettingsDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 ).layer
 
@@ -76,6 +83,11 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {
     const settings = yield* SettingsBinding
 
-    return { children: [settings], init, update, view }
+    return {
+      children: [settings],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(Settings.layer)

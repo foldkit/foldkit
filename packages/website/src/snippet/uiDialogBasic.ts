@@ -117,6 +117,12 @@ const view = DialogExampleComposition.makeView((model, h) => {
 export const ApplicationBlock = DialogExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
-    return { children: [dialog], init, update, view }
+
+    return {
+      children: [dialog],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(DialogLayer)

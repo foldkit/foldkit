@@ -9,7 +9,14 @@ import { view } from './view.js'
 /** @internal Checked implementation used as an internal testing root. */
 export const block = AnimationDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, receive, view, EffectsLayer }
+    return {
+      children: [],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 )
 

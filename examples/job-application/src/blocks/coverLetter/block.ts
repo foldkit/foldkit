@@ -103,6 +103,11 @@ export const view = CoverLetterComposition.makeView((model, h) => {
 export const CoverLetterBlock = CoverLetterDefinition.contract
 export const layer = CoverLetterDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
   }),
 ).layer

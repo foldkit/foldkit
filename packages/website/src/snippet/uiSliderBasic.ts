@@ -140,6 +140,12 @@ const view = VolumeSliderComposition.makeView((model, h) => {
 export const ApplicationBlock = VolumeSliderDefinition.makeBlock(
   Effect.gen(function* () {
     const slider = yield* SliderBinding
-    return { children: [slider], init, update, view }
+
+    return {
+      children: [slider],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(SliderLayer)

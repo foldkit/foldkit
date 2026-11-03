@@ -16,7 +16,14 @@ const block = SearchDefinition.makeBlock(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
 
-    return { children: [dialog], init, update, receive, view, EffectsLayer }
+    return {
+      children: [dialog],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Layer.mergeAll(DialogLayer))
 export const layer = block.layer

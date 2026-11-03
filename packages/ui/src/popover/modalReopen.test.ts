@@ -76,6 +76,7 @@ const view = PopoverModalReopenTestComposition.makeView((model, h) =>
 const ApplicationBlock = PopoverModalReopenTestDefinition.makeBlock(
   Effect.gen(function* () {
     const popover = yield* PopoverBinding
+
     return {
       children: [popover],
       init: PopoverModalReopenTestComposition.makeInit(() =>

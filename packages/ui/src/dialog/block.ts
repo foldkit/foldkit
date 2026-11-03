@@ -691,7 +691,14 @@ const block = DialogDefinition.makeBlock(
   Effect.gen(function* () {
     const animation = yield* AnimationBindingWithOutMessagePolicy
 
-    return { children: [animation], init, update, receive, view, EffectsLayer }
+    return {
+      children: [animation],
+      init,
+      update,
+      receive,
+      view,
+      EffectsLayer,
+    }
   }),
 ).provide(Animation.layer)
 

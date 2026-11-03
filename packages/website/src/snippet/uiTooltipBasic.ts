@@ -116,6 +116,12 @@ const view = TooltipExampleComposition.makeView((model, h) => {
 export const ApplicationBlock = TooltipExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const tooltip = yield* TooltipBinding
-    return { children: [tooltip], init, update, view }
+
+    return {
+      children: [tooltip],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(TooltipLayer)

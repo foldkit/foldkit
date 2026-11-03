@@ -9,7 +9,13 @@ import { view } from './view.js'
 /** @internal Checked canonical Tabs implementation for internal tests. */
 export const block = TabsDefinition.makeBlock(
   Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer: FocusTab.layer }
+    return {
+      children: [],
+      init,
+      update,
+      view,
+      EffectsLayer: FocusTab.layer,
+    }
   }),
 )
 

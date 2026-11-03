@@ -311,6 +311,12 @@ const view = CalendarExampleComposition.makeView((model, h) => {
 export const ApplicationBlock = CalendarExampleDefinition.makeBlock(
   Effect.gen(function* () {
     const calendar = yield* CalendarBinding
-    return { children: [calendar], init, update, view }
+
+    return {
+      children: [calendar],
+      init,
+      update,
+      view,
+    }
   }),
 ).provide(CalendarLayer)

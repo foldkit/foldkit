@@ -75,7 +75,11 @@ it('retains the selected and reselected policy on an experimental connection ali
     Effect.gen(function* () {
       const child = yield* ConstructedChild('child')
 
-      return { bindings: [Binding.connect(child)], init, update }
+      return {
+        bindings: [Binding.connect(child)],
+        init,
+        update,
+      }
     }),
   )
   const block = await Effect.runPromise(
@@ -178,7 +182,11 @@ it('connects keyed storage through the internal native protocol and preserves it
     Effect.gen(function* () {
       const child = yield* ConstructedChild('children')
 
-      return { bindings: [Binding.connect(child)], init, update }
+      return {
+        bindings: [Binding.connect(child)],
+        init,
+        update,
+      }
     }),
   )
   const block = await Effect.runPromise(
