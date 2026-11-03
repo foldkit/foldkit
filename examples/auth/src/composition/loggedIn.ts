@@ -2,14 +2,14 @@ import { LoggedInBlock } from '../blocks'
 import { ClearSession, RedirectToHome } from '../command'
 import { ApplicationDefinition, makeStep } from '../definition'
 import { ApplicationRoute } from '../route'
-import { LoggedInBinding, LoggedOutBinding } from './bindings'
+import { loggedInBinding, loggedOutBinding } from './bindings'
 
 const foldLoggedInOutMessage = ApplicationDefinition.makeOutMessageFold(
   LoggedInBlock,
   {
     RequestedLogout: () =>
       makeStep(() =>
-        LoggedOutBinding.init({
+        loggedOutBinding.init({
           args: [ApplicationRoute.Home()],
           toParentModel: loggedOut => loggedOut,
           commands: [ClearSession(), RedirectToHome()],
@@ -18,5 +18,6 @@ const foldLoggedInOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-export const LoggedInBindingWithOutMessagePolicy =
-  LoggedInBinding.withOutMessagePolicy({ fold: foldLoggedInOutMessage })
+export const LoggedInBinding = loggedInBinding.withOutMessagePolicy({
+  fold: foldLoggedInOutMessage,
+})

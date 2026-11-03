@@ -19,7 +19,9 @@ export const StartDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
       ],
     },
   },
-)
+).withOutMessagePolicy({
+  fold: outMessage => foldStartDateOutMessage(outMessage),
+})
 
 export const EndDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
   DatePickerBlock,
@@ -29,7 +31,9 @@ export const EndDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
       contextToArgs: ({ entryId, today }) => [{ id: `${entryId}-end`, today }],
     },
   },
-)
+).withOutMessagePolicy({
+  fold: outMessage => foldEndDateOutMessage(outMessage),
+})
 
 const foldStartDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   DatePickerBlock,
@@ -73,16 +77,7 @@ const foldEndDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   },
 )
 
-export const StartDatePickerBindingWithOutMessagePolicy =
-  StartDatePickerBinding.withOutMessagePolicy({ fold: foldStartDateOutMessage })
-
-export const EndDatePickerBindingWithOutMessagePolicy =
-  EndDatePickerBinding.withOutMessagePolicy({ fold: foldEndDateOutMessage })
-
 export const WorkHistoryEntryComposition =
   WorkHistoryEntryDefinition.makeComposition({
-    bindings: [
-      StartDatePickerBindingWithOutMessagePolicy,
-      EndDatePickerBindingWithOutMessagePolicy,
-    ],
+    bindings: [StartDatePickerBinding, EndDatePickerBinding],
   })

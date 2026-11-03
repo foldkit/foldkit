@@ -16,8 +16,8 @@ import {
   ActiveMemberBinding,
   CommandPaletteBinding,
   CreateIssueBinding,
-  IssueBoardBindingWithOutMessagePolicy,
-  IssueDetailBindingWithOutMessagePolicy,
+  IssueBoardBinding,
+  IssueDetailBinding,
   IssueListBinding,
   MemberDirectoryBinding,
   NotificationCenterBinding,
@@ -36,16 +36,13 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
     const projectSettings = yield* ProjectSettingsBinding
     const issueList = yield* IssueListBinding
     const createIssue = yield* CreateIssueBinding
-    const issueBoards = yield* IssueBoardBindingWithOutMessagePolicy
+    const issueBoards = yield* IssueBoardBinding
     const commandPalette = yield* CommandPaletteBinding
     const memberDirectory = yield* MemberDirectoryBinding
     const notificationCenter = yield* NotificationCenterBinding
-    const issueDetails = yield* IssueDetailBindingWithOutMessagePolicy
+    const issueDetails = yield* IssueDetailBinding
 
     return {
-      // should always do it like this, should always inline , not do const
-      // children = [] like how you had it before, no need to extract children
-      // array
       children: [
         activeMember,
         projectSettings,
@@ -66,7 +63,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
   }),
 ).provide(
   Layer.mergeAll(
-    // why is the Listbox layer here but not in the bindings above?
     ListboxLayer,
     CommandPalette.layer,
     CreateIssue.layer,

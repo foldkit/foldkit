@@ -2,7 +2,7 @@ import { AnimationBlock } from '@foldkit/ui/animation'
 
 import { UiDefinition, makeNoopStep } from '../definition'
 
-export const AnimationDemoBinding = UiDefinition.makeBinding(AnimationBlock, {
+const animationDemoBinding = UiDefinition.makeBinding(AnimationBlock, {
   field: 'animationDemo',
   init: { contextToArgs: () => [{ id: 'animation-demo' }] },
 })
@@ -11,12 +11,11 @@ const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
   AnimationBlock,
   {
     StartedLeaveAnimating: () =>
-      AnimationDemoBinding.requestWaitForLeaveSettlement(),
+      animationDemoBinding.requestWaitForLeaveSettlement(),
     TransitionedOut: makeNoopStep,
   },
 )
 
-export const AnimationDemoBindingWithOutMessagePolicy =
-  AnimationDemoBinding.withOutMessagePolicy({
-    fold: foldAnimationDemoOutMessage,
-  })
+export const AnimationDemoBinding = animationDemoBinding.withOutMessagePolicy({
+  fold: foldAnimationDemoOutMessage,
+})

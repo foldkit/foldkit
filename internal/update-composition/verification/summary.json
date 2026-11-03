@@ -136,5 +136,13 @@
   },
   "feedbackReport": "../final-feedback.md",
   "publication": false,
-  "historicalPrototypeReceipt": "prototype-checkpoint.json"
+  "historicalPrototypeReceipt": "prototype-checkpoint.json",
+  "followups": {
+    "mainSyncIntegration": "../main-sync-integration.json",
+    "packedPortableHelpers": "../packed-release/receipt-portable-helpers-followup.json",
+    "actualAppsTypeScript6": "passed",
+    "compilerBudgets": "passed unchanged",
+    "sourceWorktreesPreserved": true,
+    "runtimeArtifactsChanged": false
+  }
 }

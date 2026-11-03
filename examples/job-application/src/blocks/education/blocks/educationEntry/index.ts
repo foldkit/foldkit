@@ -1,2 +1,2 @@
 export { EducationEntryBlock, layer } from './block'
-export { hasErrors, isComplete } from './update'
+export { hasErrors, isComplete } from './validation'

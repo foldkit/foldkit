@@ -31,7 +31,7 @@ const { makeNoopStep } = AnimationExampleDefinition
 
 // Bind before defining the policy so its standard leave operation is available
 // inside the StartedLeaveAnimating branch.
-const AnimationBinding = AnimationExampleDefinition.makeBinding(
+const animationBinding = AnimationExampleDefinition.makeBinding(
   AnimationBlock,
   {
     field: 'animation',
@@ -45,7 +45,7 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
     // The operation asks Animation to wait for its wrapper's CSS to settle.
     // A custom policy can race another signal against that settlement instead.
     StartedLeaveAnimating: () =>
-      AnimationBinding.requestWaitForLeaveSettlement(),
+      animationBinding.requestWaitForLeaveSettlement(),
     // TransitionedOut is Animation's signal that the leave has fully
     // settled (your leave Command's EndedAnimation message has been
     // processed). Return Commands for any post-animation work, for
@@ -57,12 +57,12 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
   },
 )
 
-const AnimatedContentBinding = AnimationBinding.withOutMessagePolicy({
+const AnimationBinding = animationBinding.withOutMessagePolicy({
   fold: foldAnimationOutMessage,
 })
 
 const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
-  bindings: [AnimatedContentBinding],
+  bindings: [AnimationBinding],
 })
 
 // In your init function, specify the fields the parent owns. The Composition
@@ -114,7 +114,7 @@ const view = AnimationExampleComposition.makeView((model, h) =>
 
 export const ApplicationBlock = AnimationExampleDefinition.makeBlock(
   Effect.gen(function* () {
-    const animation = yield* AnimatedContentBinding
+    const animation = yield* AnimationBinding
 
     return { children: [animation], init, update, view }
   }),

@@ -76,8 +76,10 @@ type ValidateOutMessageOutput<
  * Use `Update.withOutMessage` to attach an OutMessage to an existing plain
  * result, preserving its Model and Commands, or when the OutMessage may be
  * undefined.
+ *
+ * @internal
  */
-interface FocusedMakeOutMessageStep<Model, Message, OutMessage> {
+export interface FocusedMakeOutMessageStep<Model, Message, OutMessage> {
   <
     const ProducedOutMessage extends OutMessage,
     ExactMessage extends Message,

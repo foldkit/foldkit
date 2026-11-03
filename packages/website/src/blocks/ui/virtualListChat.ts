@@ -139,18 +139,15 @@ export const FetchVirtualListChatHistory = UiDefinition.makeCommand(
   },
 )
 
-export const VirtualListChatDemoBinding = UiDefinition.makeBinding(
-  ChatVirtualListBlock,
-  {
-    field: 'virtualListChatDemo',
-    init: {
-      contextToArgs: () =>
-        Tuple.make(
-          virtualListChatInitConfig(VirtualListChatHistorySource.Unbounded()),
-        ),
-    },
+const virtualListChatBinding = UiDefinition.makeBinding(ChatVirtualListBlock, {
+  field: 'virtualListChatDemo',
+  init: {
+    contextToArgs: () =>
+      Tuple.make(
+        virtualListChatInitConfig(VirtualListChatHistorySource.Unbounded()),
+      ),
   },
-)
+})
 
 export const requestVirtualListChatHistory = (
   requestedCount: number,
@@ -244,8 +241,8 @@ const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
   },
 )
 
-export const VirtualListChatDemoBindingWithOutMessagePolicy =
-  VirtualListChatDemoBinding.withOutMessagePolicy({
+export const VirtualListChatDemoBinding =
+  virtualListChatBinding.withOutMessagePolicy({
     fold: foldVirtualListChatOutMessage,
   })
 

@@ -100,6 +100,7 @@ export type {
   BaseDefinition,
   DeclaredFacts,
   InMessageDefinition,
+  MakeComposition as ContractMakeComposition,
 } from '../experimental/contracted/contract.js'
 /** @internal Names an authored receiver without expanding its handler implementations. */
 export type { ReceiveHandler } from '../experimental/contracted/inMessage.js'
@@ -165,6 +166,8 @@ export type {
   StaticSourceFields,
   YieldableBinding,
 } from '../experimental/constructed/authoring.js'
+/** @internal Names the descriptor Map Binding factory without replacing the native factory. */
+export type { MakeMapBinding as DescriptorMakeMapBinding } from '../experimental/constructed/authoring.js'
 /** @internal Keeps exact portable Binding contracts nameable in downstream declarations. */
 export type {
   BindingSpecs,
@@ -194,6 +197,8 @@ export type { FocusedObjectStepFields } from './fieldStep.js'
 /** @internal Keeps extracted Command helpers nameable in consumer declarations. */
 export type { FocusedMakeCommandsStep } from './commandsStep.js'
 export type { OutMessageStep, MakeOutMessageStep } from './outMessageStep.js'
+/** @internal Keeps extracted OutMessage helpers nameable in consumer declarations. */
+export type { FocusedMakeOutMessageStep } from './outMessageStep.js'
 export type {
   AuthoringDefinition,
   AuthoringMakeComposition,

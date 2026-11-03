@@ -28,7 +28,7 @@ import {
 import { ToastBlock } from './demo/toastModule'
 import { type DemoCard, type DemoColumn } from './domain/domain'
 import {
-  VirtualListChatDemoBindingWithOutMessagePolicy,
+  VirtualListChatDemoBinding,
   VirtualListChatHistoryModeGroupBinding,
 } from './virtualListChat'
 
@@ -596,7 +596,7 @@ export const ToastDemoBinding = UiDefinition.makeBinding(ToastBlock, {
   },
 }).withOutMessagePolicy({ fold: foldToastDemoOutMessage })
 
-export const AnimationDemoBinding = UiDefinition.makeBinding(AnimationBlock, {
+const animationDemoBinding = UiDefinition.makeBinding(AnimationBlock, {
   field: 'animationDemo',
   init: { contextToArgs: () => Tuple.make({ id: 'animation-demo' }) },
 })
@@ -605,7 +605,7 @@ const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
   AnimationBlock,
   {
     StartedLeaveAnimating: () =>
-      AnimationDemoBinding.requestWaitForLeaveSettlement(),
+      animationDemoBinding.requestWaitForLeaveSettlement(),
     TransitionedOut: makeNoopStep,
   },
 )
@@ -780,15 +780,13 @@ export const HorizontalRadioGroupDemoBinding = UiDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldHorizontalRadioGroupDemoOutMessage })
 
-export const AnimationDemoBindingWithOutMessagePolicy =
-  AnimationDemoBinding.withOutMessagePolicy({
-    fold: foldAnimationDemoOutMessage,
-  })
-export { VirtualListChatDemoBindingWithOutMessagePolicy }
+export const AnimationDemoBinding = animationDemoBinding.withOutMessagePolicy({
+  fold: foldAnimationDemoOutMessage,
+})
 
 export const UiComposition = UiDefinition.makeComposition({
   bindings: [
-    AnimationDemoBindingWithOutMessagePolicy,
+    AnimationDemoBinding,
     CalendarBasicDemoBinding,
     ComboboxDemoBinding,
     ComboboxMultiDemoBinding,
@@ -824,7 +822,7 @@ export const UiComposition = UiDefinition.makeComposition({
     TooltipDemoBinding,
     VerticalRadioGroupDemoBinding,
     VerticalTabsDemoBinding,
-    VirtualListChatDemoBindingWithOutMessagePolicy,
+    VirtualListChatDemoBinding,
     VirtualListChatHistoryModeGroupBinding,
     VirtualListDemoBinding,
     VirtualListVariableDemoBinding,

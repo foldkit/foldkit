@@ -1,12 +1,7 @@
-import { allValid, anyInvalid, validate } from 'foldkit/fieldValidation'
+import { validate } from 'foldkit/fieldValidation'
 
 import { WorkHistoryEntryComposition } from './composition'
-import {
-  type Model,
-  OutMessage,
-  makeFieldsStep,
-  makeOutMessageStep,
-} from './definition'
+import { OutMessage, makeFieldsStep, makeOutMessageStep } from './definition'
 import { companyRules, titleRules } from './validation'
 
 const validateCompany = validate(companyRules)
@@ -31,12 +26,3 @@ export const update = WorkHistoryEntryComposition.makeUpdate({
 
   ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
 })
-
-export const hasErrors = (entry: Model): boolean =>
-  anyInvalid([entry.company, entry.title])
-
-export const isComplete = (entry: Model): boolean =>
-  allValid([
-    [entry.company, companyRules],
-    [entry.title, titleRules],
-  ])

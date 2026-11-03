@@ -27,6 +27,9 @@
       ranges and the remaining optimized-workload and bundle-size costs.
 - [x] Finish the final packed consumer rehearsal with strict TypeScript 6
       consumers and the existing Chromium, Firefox, and WebKit matrix.
+- [x] Integrate the five outstanding main-sync worktree edits and address the
+      application comments. Apply the public Binding convention across apps
+      and active snippets, with child validation queries behind explicit barrels.
 - [ ] Complete exact-commit independent review and a fresh Daybreak addendum.
       New transfer authorization is required for the public API changes made
       after the previously approved snapshot.

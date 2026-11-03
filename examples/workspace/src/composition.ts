@@ -55,6 +55,8 @@ export const ActiveMemberBinding = makeBinding(WorkspaceListboxBlock, {
 
 export const IssueDetailBinding = makeMapBinding(IssueDetailBlock, {
   field: 'issueDetails',
+}).withOutMessagePolicy({
+  fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
 })
 
 const openIssue = (issueId: string) =>
@@ -197,18 +199,15 @@ export const IssueListBinding = makeBinding(IssueListBlock, {
 
 export const IssueBoardBinding = makeMapBinding(IssueBoardBlock, {
   field: 'issueBoards',
+}).withOutMessagePolicy({
+  fold: (projectId, outMessage) =>
+    makeOutMessageFold(IssueBoardBlock, {
+      RequestedCreation: ({ status }) =>
+        CreateIssueBinding.requestOpen({ projectId, status }),
+      RequestedMove: ({ issueId, status, insertionIndex }) =>
+        requestIssueMove(issueId, status, insertionIndex),
+    })(outMessage),
 })
-
-export const IssueBoardBindingWithOutMessagePolicy =
-  IssueBoardBinding.withOutMessagePolicy({
-    fold: (projectId, outMessage) =>
-      makeOutMessageFold(IssueBoardBlock, {
-        RequestedCreation: ({ status }) =>
-          CreateIssueBinding.requestOpen({ projectId, status }),
-        RequestedMove: ({ issueId, status, insertionIndex }) =>
-          requestIssueMove(issueId, status, insertionIndex),
-      })(outMessage),
-  })
 
 export const CommandPaletteBinding = makeBinding(CommandPaletteBlock, {
   field: 'commandPalette',
@@ -228,11 +227,6 @@ export const CommandPaletteBinding = makeBinding(CommandPaletteBlock, {
 export const MemberDirectoryBinding = makeBinding(MemberDirectoryBlock, {
   field: 'memberDirectory',
 })
-
-export const IssueDetailBindingWithOutMessagePolicy =
-  IssueDetailBinding.withOutMessagePolicy({
-    fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
-  })
 
 export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
   field: 'projectSettings',
@@ -258,11 +252,11 @@ export const ApplicationComposition = makeComposition({
     ProjectSettingsBinding,
     IssueListBinding,
     CreateIssueBinding,
-    IssueBoardBindingWithOutMessagePolicy,
+    IssueBoardBinding,
     CommandPaletteBinding,
     MemberDirectoryBinding,
     NotificationCenterBinding,
-    IssueDetailBindingWithOutMessagePolicy,
+    IssueDetailBinding,
   ],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

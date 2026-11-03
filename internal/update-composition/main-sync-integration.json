@@ -1,0 +1,34 @@
+{
+  "sourceWorktree": "/private/tmp/foldkit-preview-main-sync-20261029",
+  "sourceBranch": "codex/preview-main-sync-20261029",
+  "sourceHead": "be0cb38108693068da30eb835e6eb33d6d5762c8",
+  "sourcePatchSha256": "69b04162ccacca083ac6ca4e6e1440b8f53bf82bf068c70af6dff0f756f74b02",
+  "sourcePatchUnchanged": true,
+  "sourceTrackedEdits": [
+    "examples/job-application/src/command.ts",
+    "examples/job-application/src/composition.ts",
+    "examples/job-application/src/definition.ts",
+    "examples/job-application/src/update.ts",
+    "examples/workspace/src/composition.ts"
+  ],
+  "candidateBase": "6f5debecc38bc654d6fe3a2a4a4ee11098fb69c1",
+  "sourceHeadAlreadyAncestor": true,
+  "nativeAppDeclarationProof": "internal/layered-constructor/app-declarations/verification/run-ZmL6xo/summary.json",
+  "activeSnippetProof": "internal/layered-constructor/website-snippets/verification-h96Bsz/results.json",
+  "tests": {
+    "jobApplication": 68,
+    "workspace": 153,
+    "website": 1528,
+    "authScene": 1,
+    "uiShowcaseScene": 7,
+    "websiteChat": 5
+  },
+  "sourceWorktreesModified": false,
+  "publication": false,
+  "typeScript6Followup": "internal/update-composition/packed-release/receipt-portable-helpers-followup.json",
+  "typeScript6ActualAppEmission": "passed: Job Application and Workspace with TypeScript 6.0.3",
+  "compilerBudgets": "all seven unchanged ceilings passed",
+  "productionBuilds": ["job-application", "workspace", "website"],
+  "normalAndEffectLint": "passed",
+  "runtimeArtifactsUnchanged": "350 core JavaScript files and six companion distributions match the preceding browser-tested snapshot"
+}

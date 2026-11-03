@@ -18,4 +18,12 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   ChildInitContext: Flags,
 })
 
-export const { makeStep, makeFieldsStep, makeNoopStep } = ApplicationDefinition
+export const {
+  makeComposition,
+  makeOutMessageFold,
+  makeBinding,
+  makeStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeCommand,
+} = ApplicationDefinition

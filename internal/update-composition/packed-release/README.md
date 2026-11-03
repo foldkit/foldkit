@@ -140,3 +140,27 @@ active manifests and distribution trees remained unchanged.
 203-change metadata hash, exact package and tarball hashes, commands, scope and
 cleanup. It supersedes the earlier browser receipts for the current artifacts
 while retaining those earlier receipts as evidence of their own snapshots.
+
+## Split-file application type follow-up
+
+Real Job Application and Workspace exports exposed three more TypeScript 6
+nameability gaps. The type-only follow-up exports `FocusedMakeOutMessageStep`
+and distinct `ContractMakeComposition` and `DescriptorMakeMapBinding` aliases.
+The existing native factory names remain unchanged. The public fixture now
+exports those destructured helpers, including the OutMessage helper from its
+existing emitting Editor Definition.
+
+Both applications emit under TypeScript **6.0.3** with their original temporary
+configs. All seven unchanged compiler budgets pass. A fresh strict packed
+TypeScript 6 check also passes on the real **204-change** release plan, including
+the strengthened exported helpers and existing conditional acceptance/rejection
+fixtures. The consumer and gate tarballs were removed; all active manifests and
+distribution trees remained unchanged during the check.
+
+The core's 350 JavaScript files match the preceding three-browser snapshot byte
+for byte. Only `block/outMessageStep.d.ts` and `block/public.d.ts` changed; all six
+companion distributions are identical. The prior browser proof therefore covers
+the current runtime. No UI rebuild or browser rerun was performed for this
+follow-up. [receipt-portable-helpers-followup.json](./receipt-portable-helpers-followup.json)
+records exact logs, artifacts, compiler counts and the preserved failing app
+emission logs.

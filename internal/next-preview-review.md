@@ -31,6 +31,10 @@ constructor candidate and shared checkout are preserved.
       all samples, bundle sizes, and the limits caused by wide sample ranges.
 - [x] Final packed TypeScript 6 consumers and the existing three-browser CI
       matrix pass on the same 203-changeset release plan and stable artifacts.
+- [x] [Main-sync integration](update-composition/main-sync-integration.md)
+      includes the source worktree's uncommitted edits and the application
+      comments. The source and shared worktrees are preserved. Additional
+      verification retains its own snapshot and TypeScript scope.
 - [ ] Final candidate has independent code and security review. The user approved
       Daybreak source review for `db69206779` and small resulting security fixes;
       this does not imply review coverage of later public API changes.

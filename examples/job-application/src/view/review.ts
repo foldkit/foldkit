@@ -4,11 +4,14 @@ import type { Html } from 'foldkit/html'
 
 import { view as buttonView } from '@foldkit/ui/button'
 
-import { EducationEntryBlock, WorkHistoryEntryBlock } from '../blocks'
-import { isComplete as isEducationComplete } from '../blocks/education'
-import { isComplete as isPersonalInfoComplete } from '../blocks/personalInfo'
-import { isComplete as isSkillsComplete } from '../blocks/skills'
-import { isComplete as isWorkHistoryComplete } from '../blocks/workHistory'
+import {
+  Education,
+  EducationEntryBlock,
+  PersonalInfo,
+  Skills,
+  WorkHistory,
+  WorkHistoryEntryBlock,
+} from '../blocks'
 import type { ApplicationViewBuilder } from '../composition'
 import { Step } from '../domain'
 import { Message } from '../message'
@@ -369,10 +372,10 @@ export const review = (
   })
 
   const isApplicationComplete =
-    isPersonalInfoComplete(model.personalInfo) &&
-    isWorkHistoryComplete(model.workHistory) &&
-    isEducationComplete(model.education) &&
-    isSkillsComplete(model.skills)
+    PersonalInfo.isComplete(model.personalInfo) &&
+    WorkHistory.isComplete(model.workHistory) &&
+    Education.isComplete(model.education) &&
+    Skills.isComplete(model.skills)
 
   return h.div(
     [h.Class('space-y-4')],

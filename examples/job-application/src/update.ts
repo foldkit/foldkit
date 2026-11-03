@@ -2,10 +2,7 @@ import { Array, Option, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { isComplete as isEducationComplete } from './blocks/education'
-import { isComplete as isPersonalInfoComplete } from './blocks/personalInfo'
-import { isComplete as isSkillsComplete } from './blocks/skills'
-import { isComplete as isWorkHistoryComplete } from './blocks/workHistory'
+import { Education, PersonalInfo, Skills, WorkHistory } from './blocks'
 import { SubmitApplication } from './command'
 import {
   ApplicationComposition,
@@ -19,10 +16,10 @@ import { Step } from './domain'
 import { type Model, Submission } from './model'
 
 const isApplicationComplete = (model: Model): boolean =>
-  isPersonalInfoComplete(model.personalInfo) &&
-  isWorkHistoryComplete(model.workHistory) &&
-  isEducationComplete(model.education) &&
-  isSkillsComplete(model.skills)
+  PersonalInfo.isComplete(model.personalInfo) &&
+  WorkHistory.isComplete(model.workHistory) &&
+  Education.isComplete(model.education) &&
+  Skills.isComplete(model.skills)
 
 const toNextStep = (current: Step.Step): Step.Step =>
   pipe(

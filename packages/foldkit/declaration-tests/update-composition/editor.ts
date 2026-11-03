@@ -28,6 +28,7 @@ const EditorDefinition = Block.makeDefinition('Editor', {
 })
 const EditorComposition = EditorDefinition.makeComposition()
 
+export const { makeOutMessageStep } = EditorDefinition
 export const EditorBlock = EditorDefinition.contract
 export const text = (model: Model): string => model.text
 export const layer = EditorDefinition.makeBlock(

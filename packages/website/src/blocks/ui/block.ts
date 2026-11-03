@@ -25,7 +25,7 @@ import { layer as TooltipLayer } from '@foldkit/ui/tooltip'
 import { layer as VirtualListLayer } from '@foldkit/ui/virtualList'
 
 import {
-  AnimationDemoBindingWithOutMessagePolicy,
+  AnimationDemoBinding,
   CalendarBasicDemoBinding,
   ComboboxDemoBinding,
   ComboboxMultiDemoBinding,
@@ -61,7 +61,7 @@ import {
   TooltipDemoBinding,
   VerticalRadioGroupDemoBinding,
   VerticalTabsDemoBinding,
-  VirtualListChatDemoBindingWithOutMessagePolicy,
+  VirtualListChatDemoBinding,
   VirtualListChatHistoryModeGroupBinding,
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
@@ -76,7 +76,7 @@ export const UiBlock = UiDefinition.contract
 
 const block = UiDefinition.makeBlock(
   Effect.gen(function* () {
-    const animationDemo = yield* AnimationDemoBindingWithOutMessagePolicy
+    const animationDemo = yield* AnimationDemoBinding
     const calendarBasicDemo = yield* CalendarBasicDemoBinding
     const comboboxDemo = yield* ComboboxDemoBinding
     const comboboxMultiDemo = yield* ComboboxMultiDemoBinding
@@ -112,8 +112,7 @@ const block = UiDefinition.makeBlock(
     const tooltipDemo = yield* TooltipDemoBinding
     const verticalRadioGroupDemo = yield* VerticalRadioGroupDemoBinding
     const verticalTabsDemo = yield* VerticalTabsDemoBinding
-    const virtualListChatDemo =
-      yield* VirtualListChatDemoBindingWithOutMessagePolicy
+    const virtualListChatDemo = yield* VirtualListChatDemoBinding
     const virtualListChatHistoryModeGroup =
       yield* VirtualListChatHistoryModeGroupBinding
     const virtualListDemo = yield* VirtualListDemoBinding

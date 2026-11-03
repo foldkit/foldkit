@@ -1,4 +1,12 @@
-import { Rule, makeRules } from 'foldkit/fieldValidation'
+import {
+  type Field,
+  Rule,
+  allValid,
+  anyInvalid,
+  makeRules,
+} from 'foldkit/fieldValidation'
+
+import type { Model } from './definition'
 
 export const firstNameRules = makeRules({
   required: 'First name is required',
@@ -28,3 +36,23 @@ export const portfolioUrlRules = makeRules({
     }),
   ],
 })
+
+const validatedFields = (model: Model): ReadonlyArray<Field<string>> => [
+  model.firstName,
+  model.lastName,
+  model.email,
+  model.phone,
+  model.portfolioUrl,
+]
+
+export const hasErrors = (model: Model): boolean =>
+  anyInvalid(validatedFields(model))
+
+export const isComplete = (model: Model): boolean =>
+  allValid([
+    [model.firstName, firstNameRules],
+    [model.lastName, lastNameRules],
+    [model.email, emailRules],
+    [model.phone, phoneRules],
+    [model.portfolioUrl, portfolioUrlRules],
+  ])

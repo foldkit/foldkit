@@ -38,14 +38,6 @@ const WaitForPanelSettled = AnimationExampleDefinition.makeCommand(
   },
 )
 
-const AnimationBinding = AnimationExampleDefinition.makeBinding(
-  AnimationBlock,
-  {
-    field: 'animation',
-    init: { contextToArgs: () => Tuple.make({ id: 'drawer' }) },
-  },
-)
-
 const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
   AnimationBlock,
   {
@@ -54,11 +46,17 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
     TransitionedOut: makeNoopStep,
   },
 )
-const AnimatedPanelBinding = AnimationBinding.withOutMessagePolicy({
+const AnimationBinding = AnimationExampleDefinition.makeBinding(
+  AnimationBlock,
+  {
+    field: 'animation',
+    init: { contextToArgs: () => Tuple.make({ id: 'drawer' }) },
+  },
+).withOutMessagePolicy({
   fold: foldAnimationOutMessage,
 })
 const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
-  bindings: [AnimatedPanelBinding],
+  bindings: [AnimationBinding],
 })
 const init = AnimationExampleComposition.makeInit(() => ({ model: {} }))
 const update = AnimationExampleComposition.makeUpdate({
@@ -71,7 +69,7 @@ const update = AnimationExampleComposition.makeUpdate({
 
 export const ApplicationBlock = AnimationExampleDefinition.makeBlock(
   Effect.gen(function* () {
-    const animation = yield* AnimatedPanelBinding
+    const animation = yield* AnimationBinding
 
     return {
       children: [animation],

@@ -63,7 +63,7 @@ import {
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
-import { AnimationDemoBindingWithOutMessagePolicy } from './composition/animation'
+import { AnimationDemoBinding } from './composition/animation'
 import { UiDefinition } from './definition'
 import { init } from './init'
 import { receive } from './receive'
@@ -106,7 +106,7 @@ export const layer = UiDefinition.makeBlock(
     const tooltipBasicDemo = yield* TooltipBasicDemoBinding
     const tooltipNoDelayDemo = yield* TooltipNoDelayDemoBinding
     const hoverIntentDemo = yield* HoverIntentDemoBinding
-    const animationDemo = yield* AnimationDemoBindingWithOutMessagePolicy
+    const animationDemo = yield* AnimationDemoBinding
     const virtualListDemo = yield* VirtualListDemoBinding
     const virtualListVariableDemo = yield* VirtualListVariableDemoBinding
 

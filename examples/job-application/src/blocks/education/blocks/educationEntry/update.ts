@@ -1,12 +1,7 @@
-import { allValid, anyInvalid, validate } from 'foldkit/fieldValidation'
+import { validate } from 'foldkit/fieldValidation'
 
 import { EducationEntryComposition } from './composition'
-import {
-  type Model,
-  OutMessage,
-  makeFieldsStep,
-  makeOutMessageStep,
-} from './definition'
+import { OutMessage, makeFieldsStep, makeOutMessageStep } from './definition'
 import { degreeRules, fieldOfStudyRules, schoolRules } from './validation'
 
 const validateSchool = validate(schoolRules)
@@ -32,13 +27,3 @@ export const update = EducationEntryComposition.makeUpdate({
 
   ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
 })
-
-export const hasErrors = (entry: Model): boolean =>
-  anyInvalid([entry.school, entry.degree, entry.fieldOfStudy])
-
-export const isComplete = (entry: Model): boolean =>
-  allValid([
-    [entry.school, schoolRules],
-    [entry.degree, degreeRules],
-    [entry.fieldOfStudy, fieldOfStudyRules],
-  ])

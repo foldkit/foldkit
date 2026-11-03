@@ -52,6 +52,12 @@ The relay repair includes Servaas Vandecappelle's contribution from PR #1877.
 The [feedback reconciliation](final-feedback.md) identifies the included reports
 and additional candidate findings.
 
+The [main-sync integration](main-sync-integration.md) carries the five
+uncommitted edits from `codex/preview-main-sync-20261029` into the current API.
+It also resolves the application comments about child selectors, inline
+registrations, and child implementation Layers. TypeScript 6 app declarations
+verify the additional exported authoring helpers.
+
 ## Verification
 
 Source checking, emitted declarations, strict source-free consumers, seven

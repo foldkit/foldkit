@@ -4,22 +4,7 @@ import type { ChildAttribute, Html } from 'foldkit/html'
 
 import { view as buttonView } from '@foldkit/ui/button'
 
-import {
-  hasErrors as educationHasErrors,
-  isComplete as isEducationComplete,
-} from '../blocks/education'
-import {
-  isComplete as isPersonalInfoComplete,
-  hasErrors as personalInfoHasErrors,
-} from '../blocks/personalInfo'
-import {
-  isComplete as isSkillsComplete,
-  hasErrors as skillsHasErrors,
-} from '../blocks/skills'
-import {
-  isComplete as isWorkHistoryComplete,
-  hasErrors as workHistoryHasErrors,
-} from '../blocks/workHistory'
+import { Education, PersonalInfo, Skills, WorkHistory } from '../blocks'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
@@ -43,11 +28,11 @@ const stepHasErrors =
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        personalInfoHasErrors(model.personalInfo),
+        PersonalInfo.hasErrors(model.personalInfo),
       ),
-      Match.when('WorkHistory', () => workHistoryHasErrors(model.workHistory)),
-      Match.when('Education', () => educationHasErrors(model.education)),
-      Match.when('Skills', () => skillsHasErrors(model.skills)),
+      Match.when('WorkHistory', () => WorkHistory.hasErrors(model.workHistory)),
+      Match.when('Education', () => Education.hasErrors(model.education)),
+      Match.when('Skills', () => Skills.hasErrors(model.skills)),
       Match.orElse(() => false),
     )
 
@@ -56,11 +41,13 @@ const stepIsComplete =
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        isPersonalInfoComplete(model.personalInfo),
+        PersonalInfo.isComplete(model.personalInfo),
       ),
-      Match.when('WorkHistory', () => isWorkHistoryComplete(model.workHistory)),
-      Match.when('Education', () => isEducationComplete(model.education)),
-      Match.when('Skills', () => isSkillsComplete(model.skills)),
+      Match.when('WorkHistory', () =>
+        WorkHistory.isComplete(model.workHistory),
+      ),
+      Match.when('Education', () => Education.isComplete(model.education)),
+      Match.when('Skills', () => Skills.isComplete(model.skills)),
       Match.orElse(() => true),
     )
 

@@ -1,16 +1,10 @@
 import { Match, Number } from 'effect'
-import {
-  Field,
-  Validating,
-  allValid,
-  anyInvalid,
-  validate,
-} from 'foldkit/fieldValidation'
+import { Validating, validate } from 'foldkit/fieldValidation'
 import { modifyFields } from 'foldkit/struct'
 
 import { ValidateEmailAsync } from './command'
 import { PersonalInfoComposition } from './composition'
-import { type Model, makeFieldsStep } from './definition'
+import { makeFieldsStep } from './definition'
 import {
   emailRules,
   firstNameRules,
@@ -73,23 +67,3 @@ export const update = PersonalInfoComposition.makeUpdate({
     portfolioUrl: () => validatePortfolioUrl(value),
   })),
 })
-
-const validatedFields = (model: Model): ReadonlyArray<Field<string>> => [
-  model.firstName,
-  model.lastName,
-  model.email,
-  model.phone,
-  model.portfolioUrl,
-]
-
-export const hasErrors = (model: Model): boolean =>
-  anyInvalid(validatedFields(model))
-
-export const isComplete = (model: Model): boolean =>
-  allValid([
-    [model.firstName, firstNameRules],
-    [model.lastName, lastNameRules],
-    [model.email, emailRules],
-    [model.phone, phoneRules],
-    [model.portfolioUrl, portfolioUrlRules],
-  ])
