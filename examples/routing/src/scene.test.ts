@@ -3,9 +3,9 @@ import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
 import { ApplicationBlock } from './block'
+import { PeopleBlock } from './blocks'
+import { SearchResults, searchPeople } from './blocks/people/model'
 import { Model } from './model'
-import { PeopleBlock } from './page'
-import { SearchResults, searchPeople } from './page/people/model'
 import { ApplicationRoute } from './route'
 
 const peoplePageWith = (searchInput: string) =>

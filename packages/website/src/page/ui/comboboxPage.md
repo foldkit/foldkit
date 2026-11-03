@@ -17,7 +17,7 @@ Call `ParentDefinition.makeBinding` with the completed Block, its parent Model `
 The completed Block exposes `requestOpen`, `requestClose`, and `requestSelectItem` as direct methods on its Binding. Call `cityCombobox.requestOpen()`, `cityCombobox.requestClose(restingInputValue)`, or `cityCombobox.requestSelectItem(item, displayText)` to get a connected parent Step for the owning Composition. Multi-select `requestClose()` takes no input, and its `requestSelectItem(item)` uses the item itself as display text.
 
 :::Info{label="See it in an app"}
-Check out how Combobox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/combobox.ts).
+Check out how Combobox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/combobox.ts).
 :::
 
 The Binding’s `requestOpen()` method is generated from `RequestedOpen` in the Combobox InMessage contract. Receive applies the same opening transition as local input interaction. Closing and selection retain their existing defaulted and positional argument adapters in both Single and Multi.

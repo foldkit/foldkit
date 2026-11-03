@@ -40,7 +40,7 @@ export const SettingsDefinition = Block.makeDefinition('Settings', {
 })
 
 // settings.ts
-import { Block } from 'foldkit'
+
 import { modifyFields } from 'foldkit/struct'
 
 import { EffectsLayer, RefreshAvailableThemes } from './command'

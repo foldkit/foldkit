@@ -2,15 +2,18 @@ import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Slider } from '@foldkit/ui'
-import { snapAndClamp as SliderSnapAndClamp } from '@foldkit/ui/slider'
-import type { SliderAttributes as SliderSliderAttributes } from '@foldkit/ui/slider'
+import {
+  SliderBlock,
+  layer as SliderLayer,
+  type SliderAttributes as SliderSliderAttributes,
+  snapAndClamp as SliderSnapAndClamp,
+} from '@foldkit/ui/slider'
 
 // Add two fields to your Model: the value you own, and the Slider Block's
 // interaction state:
 const Model = Schema.Struct({
   ratingValue: Schema.Number,
-  ratingDemo: Slider.SliderBlock.Model,
+  ratingDemo: SliderBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -36,7 +39,7 @@ const { makeFieldsStep } = VolumeSliderDefinition
 // already has the next Slider Model written back. The parent Definition
 // checks the complete child union and infers the handler's Model:
 const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
-  Slider.SliderBlock,
+  SliderBlock,
   {
     // The child has emitted `ChangedValue`. Store the new value in the field
     // you own. This arm is also where the parent can validate, persist, or
@@ -50,7 +53,7 @@ const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const SliderBinding = VolumeSliderDefinition.makeBinding(Slider.SliderBlock, {
+const SliderBinding = VolumeSliderDefinition.makeBinding(SliderBlock, {
   field: 'ratingDemo',
   init: {
     contextToArgs: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
@@ -139,4 +142,4 @@ export const ApplicationBlock = VolumeSliderDefinition.makeBlock(
     const slider = yield* SliderBinding
     return { children: [slider], init, update, view }
   }),
-).provide(Slider.layer)
+).provide(SliderLayer)

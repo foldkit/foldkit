@@ -266,8 +266,21 @@ export const RELAY_REGISTRY_DIRECTORY_VARIABLE =
   'FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'
 
 /**
+ * Linux PID and network namespaces of the process that published a relay
+ * record, as `/proc/self/ns` links name them.
+ */
+export const RelayNamespaces = Schema.Struct({
+  pid: Schema.String,
+  network: Schema.String,
+})
+/** Decoded namespaces of a relay's publishing process. */
+export type RelayNamespaces = typeof RelayNamespaces.Type
+
+/**
  * Record published while a Vite relay listens. `root` selects the project;
- * `id` distinguishes a restarted relay from the one it replaced.
+ * `id` distinguishes a restarted relay from the one it replaced. `pid` is
+ * meaningful only inside the PID namespace in `namespaces`, which is absent
+ * on platforms without namespaces and in records from older plugins.
  */
 export const RelayRecord = Schema.Struct({
   version: Schema.Literal(RELAY_RECORD_VERSION),
@@ -276,6 +289,7 @@ export const RelayRecord = Schema.Struct({
   url: Schema.String,
   pid: Schema.Number,
   startedAt: Schema.Number,
+  namespaces: Schema.optionalKey(RelayNamespaces),
 })
 /** Decoded record for a running DevTools MCP relay. */
 export type RelayRecord = typeof RelayRecord.Type

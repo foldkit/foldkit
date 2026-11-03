@@ -28,20 +28,20 @@ src/
 +-- story.test.ts
 +-- scene.test.ts
 |
-+-- page/
-|   +-- index.ts            Feature namespaces
++-- blocks/
+|   +-- index.ts            Child contracts and namespaces
 |   +-- counter/
 |   |   +-- index.ts        Explicit public barrel
-|   |   +-- block.ts        Small graphless feature and completion
+|   |   +-- block.ts        Small graphless contract and implementation
 |   +-- dashboard/
 |   |   +-- index.ts
-|   |   +-- definition.ts   Early Model/Message contract and Definition
+|   |   +-- definition.ts   Independent contract and Definition
 |   |   +-- composition.ts  Bindings and complete registrations
 |   |   +-- init.ts
 |   |   +-- steps.ts        Transitions shared by update, composition, or init
 |   |   +-- update.ts
 |   |   +-- view.ts
-|   |   +-- block.ts        Completed Block and small EffectsLayer
+|   |   +-- block.ts        Layer-owned completion and small EffectsLayer
 |   +-- panel/
 |   |   +-- definition.ts
 |   |   +-- mount.ts        Local Mount definitions and handlers

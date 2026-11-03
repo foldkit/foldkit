@@ -5,7 +5,8 @@ import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import 'vanilla-colorful/hex-color-picker.js'
 
-import { Button, Input } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
+import { view as inputView } from '@foldkit/ui/input'
 import '@shoelace-style/shoelace/dist/components/qr-code/qr-code.js'
 
 export const Model = Schema.Struct({
@@ -186,7 +187,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
   )
 
 const contentFieldView = (model: Model, h: ApplicationViewBuilder): Html =>
-  Input.view(
+  inputView(
     {
       id: 'qr-content',
       value: model.content,
@@ -276,7 +277,7 @@ const swatchRow = (
   h.div(
     [h.Class('flex flex-wrap gap-1.5 max-w-[10rem]')],
     PRESET_COLORS.map(color =>
-      Button.view(
+      buttonView(
         {
           onClick: onChange(color),
           toView: attributes =>

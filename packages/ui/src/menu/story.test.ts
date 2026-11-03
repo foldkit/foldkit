@@ -56,7 +56,7 @@ const makeFixture = (menu: Story.TestBlock<typeof block>) => {
     (
       overrides: Pick<
         Partial<ViewInputs<string>>,
-        'ariaLabel' | 'ariaLabelledBy'
+        'ariaLabel' | 'ariaLabelledBy' | 'isItemDisabled'
       > = {},
     ) =>
     (model: Model, h: Parameters<typeof menu.view>[2]) =>
@@ -226,6 +226,71 @@ describe('Menu', () => {
         Scene.Mount.resolve(
           PortalMenuBackdrop,
           Message.CompletedPortalMenuBackdrop(),
+        ),
+      )
+    })
+
+    it('activates the first item on ArrowDown after pointer open', ({
+      menu: { sceneUpdate, sceneView, init },
+    }) => {
+      Scene.scene(
+        { update: sceneUpdate, view: sceneView() },
+        Scene.given(init({ id: 'test' }).model),
+        Scene.click(button),
+        Scene.Command.resolve(
+          FocusMenuItems,
+          Message.CompletedFocusMenuItems(),
+        ),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.keydown(Scene.role('menu'), 'ArrowDown'),
+        Scene.Command.resolve(
+          ScrollMenuItemIntoView,
+          Message.CompletedScrollMenuItemIntoView(),
+        ),
+        Scene.expect(Scene.role('menuitem', { name: 'Edit' })).toHaveAttr(
+          'data-active',
+          '',
+        ),
+        Scene.expect(
+          Scene.role('menuitem', { name: 'Duplicate' }),
+        ).not.toHaveAttr('data-active'),
+      )
+    })
+
+    it('skips disabled items when ArrowDown follows pointer open', ({
+      menu: { sceneUpdate, sceneView, init },
+    }) => {
+      Scene.scene(
+        {
+          update: sceneUpdate,
+          view: sceneView({ isItemDisabled: item => item === 'Edit' }),
+        },
+        Scene.given(init({ id: 'test' }).model),
+        Scene.click(button),
+        Scene.Command.resolve(
+          FocusMenuItems,
+          Message.CompletedFocusMenuItems(),
+        ),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.keydown(Scene.role('menu'), 'ArrowDown'),
+        Scene.Command.resolve(
+          ScrollMenuItemIntoView,
+          Message.CompletedScrollMenuItemIntoView(),
+        ),
+        Scene.expect(Scene.role('menuitem', { name: 'Edit' })).not.toHaveAttr(
+          'data-active',
+        ),
+        Scene.expect(Scene.role('menuitem', { name: 'Duplicate' })).toHaveAttr(
+          'data-active',
+          '',
         ),
       )
     })

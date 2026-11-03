@@ -4,11 +4,11 @@ This review changes no framework APIs. It checks ordinary handler provisioning a
 
 ## Ordinary externally supplied handlers
 
-`hostContract.ts` declares the original omitted-handler Command, Schema contracts, and portable init/update/view. `hostProvider.ts` supplies its handler through the original `Read.toLayer(Effect.gen(...))`, retaining a typed construction failure and separate constructor/invocation Services. `host.ts` composes that recipe into `EffectsLayer` before completing the Block.
+`hostContract.ts` declares the original omitted-handler Command, Schema contracts, and portable init/update/view. `hostProvider.ts` supplies its handler through the original `Read.toLayer(Effect.gen(...))`, retaining a typed construction failure and separate constructor/invocation Services. `host.ts` lists the original host-owned Command and selects that recipe through the ordinary descriptor's `provideHandlers` method.
 
 The proof checks exact Layer failure and Service channels, pure Story acquisition without handler mocks, public Program execution, and typed failure when the acquired handler Layer builds. The Program stays pending until both ordinary Services are supplied through its public provisioning API. Program startup retains its existing `Effect<void>` runtime contract; handler-Layer failure typing is checked at the Layer boundary.
 
-Wrong original providers and missing Services are rejected in source and emitted consumers. Ordinary independent completion with unresolved `hostHandlers` is also a rejected control. Independent ordinary implementations close their providers before completion. Delayed `provideHandlers` remains available through family authoring and the existing native API; the new ordinary descriptor does not claim that API parity. No migrated consumer currently requires an ordinary delayed selector.
+Wrong original providers and missing Services are rejected in source and emitted consumers. An ordinary independent implementation may retain unresolved `hostHandlers`, but its providers must be selected before acquisition. The earlier assessment that ordinary descriptor parity could be deferred is superseded. The focused runtime and split-file source/declaration proof now lives in `packages/foldkit/src/experimental/contracted/hostHandlers.test.ts` and `packages/foldkit/declaration-tests/host-handlers/`.
 
 ## Per-Message channels
 

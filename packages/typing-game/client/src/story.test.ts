@@ -1,20 +1,24 @@
 import { Array, Effect, Layer, Option, pipe } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Url } from 'foldkit'
-import { Command, given, inMessage, message, model, story } from 'foldkit/story'
-import { messageFrom, withBlock } from 'foldkit/story'
+import {
+  Command,
+  given,
+  inMessage,
+  message,
+  messageFrom,
+  model,
+  story,
+  withBlock,
+} from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
 import { ApplicationBlock } from './block'
-import { HomeBinding, NavigateToRoom, RoomBinding } from './composition'
-import { Message } from './message'
-import { Model, RoomInstance } from './model'
-import { HomeBlock, RoomBlock } from './page'
-import { HomeStep } from './page/home/model'
-import * as Room from './page/room'
+import { HomeBlock, Room, RoomBlock } from './blocks'
+import { HomeStep } from './blocks/home/model'
 import {
   ClearSession,
   FetchRoom,
@@ -22,10 +26,13 @@ import {
   LoadSession,
   SavePlayerSession,
   StartGame,
-} from './page/room/command'
-import { InMessage as RoomInMessage } from './page/room/inMessage'
-import { RoomAsyncData } from './page/room/model'
-import { NavigateHome } from './page/room/update'
+} from './blocks/room/command'
+import { InMessage as RoomInMessage } from './blocks/room/inMessage'
+import { RoomAsyncData } from './blocks/room/model'
+import { NavigateHome } from './blocks/room/update'
+import { HomeBinding, NavigateToRoom, RoomBinding } from './composition'
+import { Message } from './message'
+import { Model, RoomInstance } from './model'
 import { ApplicationRoute } from './route'
 import { RoomsClient } from './rpc'
 

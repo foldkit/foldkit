@@ -37,6 +37,17 @@ const results = {
   checks: [],
 }
 const digest = value => createHash('sha256').update(value).digest('hex')
+
+for (const [name, packageDirectory] of [
+  ['@foldkit/ui', ui],
+  ['vitest', join(repository, 'packages/website/node_modules/vitest')],
+]) {
+  const fixturePackage = join(fixture, 'node_modules', name)
+  mkdirSync(dirname(fixturePackage), { recursive: true })
+  if (!existsSync(fixturePackage)) symlinkSync(packageDirectory, fixturePackage)
+  assert.equal(realpathSync(fixturePackage), realpathSync(packageDirectory))
+}
+
 const historical = name =>
   name.startsWith('release') ||
   name.includes('Before') ||

@@ -1,9 +1,10 @@
 import { Runtime } from 'foldkit'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { createElement } from './widget'
 
 function WidgetPanel() {
+  const containerId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
   const [count, setCount] = useState(0)
   const previousDisposal = useRef(Promise.resolve())
@@ -36,12 +37,12 @@ function WidgetPanel() {
         previousDisposal.current = maybeHandle.dispose()
       }
     }
-  }, [])
+  }, [containerId])
 
   return (
     <div>
       <p>Widget count: {count}</p>
-      <div ref={containerRef} />
+      <div id={containerId} ref={containerRef} />
     </div>
   )
 }

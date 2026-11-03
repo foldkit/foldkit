@@ -1,12 +1,13 @@
 import { Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { Button, DialogBlock } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
+import { DialogBlock } from '@foldkit/ui/dialog'
 
 import {
   type ApplicationViewBuilder,
-  ErrorDialogBinding as ErrorDialogBinding,
-  GridSizeConfirmDialogBinding as GridSizeConfirmDialogBinding,
+  ErrorDialogBinding,
+  GridSizeConfirmDialogBinding,
 } from '../composition'
 import { Message } from '../message'
 
@@ -139,7 +140,7 @@ export const gridSizeConfirmDialogView = (
                               ],
                               ['Cancel'],
                             ),
-                            Button.view(
+                            buttonView(
                               {
                                 onClick: Message.ConfirmedGridSizeChange(),
                                 toView: attributes =>

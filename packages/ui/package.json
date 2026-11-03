@@ -144,7 +144,7 @@
   },
   "peerDependencies": {
     "effect": "~4.1.0",
-    "foldkit": ">=0.169.0"
+    "foldkit": ">=0.171.0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0"

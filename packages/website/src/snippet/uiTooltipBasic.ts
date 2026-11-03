@@ -2,12 +2,15 @@ import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Tooltip } from '@foldkit/ui'
-import type { RenderInfo as TooltipRenderInfo } from '@foldkit/ui/tooltip'
+import {
+  TooltipBlock,
+  layer as TooltipLayer,
+  type RenderInfo as TooltipRenderInfo,
+} from '@foldkit/ui/tooltip'
 
 // Add a field to your Model for the Tooltip Block:
 const Model = Schema.Struct({
-  tooltip: Tooltip.TooltipBlock.Model,
+  tooltip: TooltipBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -33,7 +36,7 @@ const { makeNoopStep } = TooltipExampleDefinition
 // the parent Model, which already has the next Tooltip Model written back.
 // The parent Definition checks every named child variant:
 const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
-  Tooltip.TooltipBlock,
+  TooltipBlock,
   {
     // The child has emitted `Shown`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example log analytics,
@@ -48,13 +51,10 @@ const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const TooltipBinding = TooltipExampleDefinition.makeBinding(
-  Tooltip.TooltipBlock,
-  {
-    field: 'tooltip',
-    init: { contextToArgs: () => Tuple.make({ id: 'save-button' }) },
-  },
-).withOutMessagePolicy({ fold: foldTooltipOutMessage })
+const TooltipBinding = TooltipExampleDefinition.makeBinding(TooltipBlock, {
+  field: 'tooltip',
+  init: { contextToArgs: () => Tuple.make({ id: 'save-button' }) },
+}).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
 const TooltipExampleComposition = TooltipExampleDefinition.makeComposition({
   bindings: [TooltipBinding],
@@ -118,4 +118,4 @@ export const ApplicationBlock = TooltipExampleDefinition.makeBlock(
     const tooltip = yield* TooltipBinding
     return { children: [tooltip], init, update, view }
   }),
-).provide(Tooltip.layer)
+).provide(TooltipLayer)

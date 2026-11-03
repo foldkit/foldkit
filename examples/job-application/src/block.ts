@@ -1,7 +1,16 @@
 import { Effect, Layer } from 'effect'
 
-import { Menu, Tabs } from '@foldkit/ui'
+import { layer as MenuLayer } from '@foldkit/ui/menu'
+import { layer as TabsLayer } from '@foldkit/ui/tabs'
 
+import {
+  Attachments,
+  CoverLetter,
+  Education,
+  PersonalInfo,
+  Skills,
+  WorkHistory,
+} from './blocks'
 import { EffectsLayer } from './command'
 import {
   AttachmentsBinding,
@@ -15,12 +24,6 @@ import {
 } from './composition'
 import { ApplicationDefinition } from './definition'
 import { init } from './init'
-import * as Attachments from './step/attachments'
-import * as CoverLetter from './step/coverLetter'
-import * as Education from './step/education'
-import * as PersonalInfo from './step/personalInfo'
-import * as Skills from './step/skills'
-import * as WorkHistory from './step/workHistory'
 import { update } from './update'
 import { view } from './view/view'
 
@@ -60,7 +63,7 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
     Skills.layer,
     CoverLetter.layer,
     Attachments.layer,
-    Menu.layer,
-    Tabs.layer,
+    MenuLayer,
+    TabsLayer,
   ),
 )

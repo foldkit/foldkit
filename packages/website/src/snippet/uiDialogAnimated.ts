@@ -2,12 +2,15 @@ import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Dialog } from '@foldkit/ui'
-import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
+import {
+  DialogBlock,
+  layer as DialogLayer,
+  type RenderInfo as DialogRenderInfo,
+} from '@foldkit/ui/dialog'
 
 // Add a field to your Model for the Dialog Block:
 const Model = Schema.Struct({
-  dialog: Dialog.DialogBlock.Model,
+  dialog: DialogBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -33,7 +36,7 @@ const AnimatedDialogExampleDefinition = Block.makeDefinition(
 const { makeNoopStep } = AnimatedDialogExampleDefinition
 
 const foldDialogOutMessage = AnimatedDialogExampleDefinition.makeOutMessageFold(
-  Dialog.DialogBlock,
+  DialogBlock,
   {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
@@ -41,15 +44,12 @@ const foldDialogOutMessage = AnimatedDialogExampleDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = AnimatedDialogExampleDefinition.makeBinding(
-  Dialog.DialogBlock,
-  {
-    field: 'dialog',
-    init: {
-      contextToArgs: () => Tuple.make({ id: 'confirm', isAnimated: true }),
-    },
+const DialogBinding = AnimatedDialogExampleDefinition.makeBinding(DialogBlock, {
+  field: 'dialog',
+  init: {
+    contextToArgs: () => Tuple.make({ id: 'confirm', isAnimated: true }),
   },
-).withOutMessagePolicy({ fold: foldDialogOutMessage })
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const AnimatedDialogExampleComposition =
   AnimatedDialogExampleDefinition.makeComposition({
@@ -139,4 +139,4 @@ export const ApplicationBlock = AnimatedDialogExampleDefinition.makeBlock(
     const dialog = yield* DialogBinding
     return { children: [dialog], init, update, view }
   }),
-).provide(Dialog.layer)
+).provide(DialogLayer)

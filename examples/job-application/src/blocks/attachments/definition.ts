@@ -1,0 +1,31 @@
+import { Schema } from 'effect'
+import { Block, File } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+
+import { FileDropBlock } from '@foldkit/ui/fileDrop'
+
+export const Model = Schema.Struct({
+  resumeDrop: FileDropBlock.Model,
+  maybeResume: Schema.Option(File.File),
+  additionalFilesDrop: FileDropBlock.Model,
+  additionalFiles: Schema.Array(File.File),
+})
+export type Model = typeof Model.Type
+
+export const Message = defineMessageUnion({
+  RemovedResume: {},
+  RemovedAdditionalFile: { fileIndex: Schema.Number },
+})
+export type Message = typeof Message.Type
+
+export const AttachmentsKey = Symbol('Attachments')
+
+export const AttachmentsDefinition = Block.makeDefinition('Attachments', {
+  key: AttachmentsKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
+
+export const { makeFieldsStep, makeNoopStep } = AttachmentsDefinition

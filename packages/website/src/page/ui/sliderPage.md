@@ -5,7 +5,7 @@
 A numeric range input for values that sit on a continuous or stepped scale. Common uses include rating scales, volume controls, filter thresholds, and brightness settings. Follows the WAI-ARIA slider pattern with `role="slider"`, full keyboard navigation, and pointer drag.
 
 :::Info{label="See it in an app"}
-Check out how Slider is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/slider.ts).
+Check out how Slider is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/slider.ts).
 :::
 
 ## Examples

@@ -1,7 +1,6 @@
 import { Schema } from 'effect'
 
-import * as Home from './page/home'
-import * as Room from './page/room'
+import { Home, Room } from './blocks'
 import { ApplicationRoute } from './route'
 
 export const RoomInstance = Schema.Struct({

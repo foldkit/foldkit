@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 
-import { Dialog } from '@foldkit/ui'
+import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
 import { ApplicationBlock } from './application'
 
@@ -18,8 +18,8 @@ test('failed export shows error dialog that can be dismissed', async () => {
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Command.resolve(
-        Dialog.test.ShowDialog,
-        Dialog.DialogBlock.Message.SucceededShowDialog(),
+        DialogTest.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
       ),
       // The error dialog is open. Find elements by role and text content:
       // no CSS selectors, no test IDs, no DOM.
@@ -31,8 +31,8 @@ test('failed export shows error dialog that can be dismissed', async () => {
       // The update function returned a CloseDialog Command. Resolve it
       // the same way a story test does: synchronously, inline.
       Command.resolve(
-        Dialog.test.CloseDialog,
-        Dialog.DialogBlock.Message.CompletedCloseDialog(),
+        DialogTest.CloseDialog,
+        DialogBlock.Message.CompletedCloseDialog(),
       ),
       // After the Command resolves, the dialog is gone.
       expect(text('Export Failed')).toBeAbsent(),

@@ -11,10 +11,10 @@ import { expect, test } from 'vitest'
 
 import { SaveTheme } from './blockDefinition'
 import {
+  ApplicationBlock,
   Model,
   OutMessage,
   SettingsBinding,
-  ApplicationBlock,
 } from './blockExtractedConnectedStep'
 import { SettingsBlock } from './blockSettings'
 

@@ -482,7 +482,7 @@ Canonical live examples:
 - **Always-active keyboard input**: `repos/foldkit/examples/snake/src/application.ts`
 - **Animation-frame-driven game tick**: `repos/foldkit/examples/canvas-art/src/application.ts`
 - **Conditional WebSocket connection** (active only when a session exists): `repos/foldkit/examples/websocket-chat/src/managedResource.ts`
-- **Production multi-stream pattern**: `repos/foldkit/packages/typing-game/client/src/page/room/subscription.ts`
+- **Production multi-stream pattern**: `repos/foldkit/packages/typing-game/client/src/blocks/room/subscription.ts`
 
 ## ManagedResources
 

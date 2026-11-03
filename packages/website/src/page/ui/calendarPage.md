@@ -25,7 +25,7 @@ Bind `CalendarBlock` in the parent. Declare its startup arguments with the Bindi
 Pass the parent-owned selection into `viewInputs.maybeSelectedDate` on every render. When Calendar emits `SelectedDate`, fold that OutMessage into the parent's selected-date field. Calendar’s acquired update retains its OutMessage contract, so the same Binding fold can handle `ChangedViewMonth` when your application needs month-scoped data.
 
 :::Info{label="See it in an app"}
-See the complete Calendar integration in the [UI Showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/calendar.ts).
+See the complete Calendar integration in the [UI Showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/calendar.ts).
 :::
 
 ## Try It {#examples}

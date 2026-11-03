@@ -2,13 +2,16 @@ import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Tabs } from '@foldkit/ui'
-import type { RenderInfo as TabsRenderInfo } from '@foldkit/ui/tabs'
+import {
+  layer as TabsLayer,
+  type RenderInfo as TabsRenderInfo,
+  makeBlock as makeTabsBlock,
+} from '@foldkit/ui/tabs'
 
 const Framework = Schema.Literals(['Foldkit', 'React', 'Elm'])
 type Framework = typeof Framework.Type
 
-const FrameworkTabs = Tabs.makeBlock<Framework>()
+const FrameworkTabs = makeTabsBlock<Framework>()
 
 // Add fields to your Model for the Tabs Block and the active tab. The
 // Block keeps private keyboard-focus state; the parent owns the active
@@ -140,4 +143,4 @@ export const ApplicationBlock = TabsExampleDefinition.makeBlock(
     const tabs = yield* TabsBinding
     return { children: [tabs], init, update, view }
   }),
-).provide(Tabs.layer)
+).provide(TabsLayer)

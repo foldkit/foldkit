@@ -2,7 +2,7 @@ import { Predicate, Schema } from 'effect'
 
 import type { FactsOf } from '../../constructed/contract.js'
 import type { InitStep } from './initialState.js'
-import type { BlockSubject, TestBlock } from './withBlock.js'
+import type { BlockSubject, TestBlock, ValidateTestBlock } from './withBlock.js'
 
 /** @internal The exact parent Model used by the test steps. */
 export type TestModel<Block extends BlockSubject> = Block['Model']['Type']
@@ -42,6 +42,7 @@ type InMessageContext<Block extends BlockSubject> =
 
 /** @internal A direct subject needs no required per-dispatch context. */
 export type DirectSubject<Block extends BlockSubject> = Block &
+  ValidateTestBlock<Block> &
   ([] extends FactsOf<Block>['updateContext']
     ? unknown
     : Readonly<{
@@ -55,7 +56,7 @@ export type DirectSubject<Block extends BlockSubject> = Block &
 
 /** @internal Each dispatch path requires only its own declared Context tuple. */
 export type TestConfig<Block extends BlockSubject> = Readonly<{
-  block: Block
+  block: Block & ValidateTestBlock<Block>
   update?: never
   view?: never
 }> &

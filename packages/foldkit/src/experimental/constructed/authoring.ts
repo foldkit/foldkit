@@ -193,6 +193,8 @@ export type ConstructorBody = Readonly<{
   subscriptions?: object
   managedResources?: object
   EffectsLayer?: import('effect').Layer.Any
+  /** Original host-owned definitions whose providers are selected before acquisition. */
+  hostHandlers?: ReadonlyArray<unknown>
 }>
 
 /** @internal Recovers the exact static Composition from its init plan. */

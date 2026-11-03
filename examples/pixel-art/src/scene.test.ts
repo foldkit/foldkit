@@ -3,7 +3,8 @@ import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { Dialog, DialogBlock, RadioGroup } from '@foldkit/ui'
+import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
 import { ApplicationBlock } from './block'
 import { ExportPng, SaveCanvas } from './command'
@@ -18,7 +19,7 @@ import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
 
 const resolveFocusOption = Command.resolve(
-  RadioGroup.test.FocusOption,
+  RadioGroupTest.FocusOption,
   ToolRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
@@ -127,7 +128,7 @@ describe('export workflow', () => {
           Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
         ),
         Command.resolve(
-          Dialog.test.ShowDialog,
+          DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
         expect(text('Export Failed')).toExist(),
@@ -148,13 +149,13 @@ describe('export workflow', () => {
           Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
         ),
         Command.resolve(
-          Dialog.test.ShowDialog,
+          DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
         expect(text('Export Failed')).toExist(),
         click(role('button', { name: 'Dismiss' })),
         Command.resolve(
-          Dialog.test.CloseDialog,
+          DialogTest.CloseDialog,
           DialogBlock.Message.CompletedCloseDialog(),
         ),
         expect(text('Export Failed')).toBeAbsent(),
@@ -283,7 +284,7 @@ describe('grid size change', () => {
         click(role('radio', { name: '8' })),
         resolveFocusOption,
         Command.resolve(
-          Dialog.test.ShowDialog,
+          DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
         expect(text('Change to 8\u00d78?')).toExist(),
@@ -308,13 +309,13 @@ describe('grid size change', () => {
         click(role('radio', { name: '8' })),
         resolveFocusOption,
         Command.resolve(
-          Dialog.test.ShowDialog,
+          DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
         expect(text('Change to 8\u00d78?')).toExist(),
         click(role('button', { name: 'Clear and Resize' })),
         Command.resolve(
-          Dialog.test.CloseDialog,
+          DialogTest.CloseDialog,
           DialogBlock.Message.CompletedCloseDialog(),
         ),
         Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
@@ -331,13 +332,13 @@ describe('grid size change', () => {
         click(role('radio', { name: '8' })),
         resolveFocusOption,
         Command.resolve(
-          Dialog.test.ShowDialog,
+          DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
         expect(text('Change to 8\u00d78?')).toExist(),
         click(role('button', { name: 'Cancel' })),
         Command.resolve(
-          Dialog.test.CloseDialog,
+          DialogTest.CloseDialog,
           DialogBlock.Message.CompletedCloseDialog(),
         ),
         expect(text('Change to 8\u00d78?')).toBeAbsent(),

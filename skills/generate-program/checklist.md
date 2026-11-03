@@ -364,7 +364,7 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 - [ ] Two-or-more-step post-mutation handlers use `Update.combineSteps(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `modifyFields` chains and conditional Command arrays. One Step is not wrapped in `Update.combineSteps`, and an inline Step parameter is named `stepModel`
 - [ ] Child Bindings capture generated delivery and origin for child Commands; direct `Command.mapMessages` is reserved for lower-level operations outside composed Blocks
 - [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/http`. Handlers leave the client in their requirements, and the application root supplies `Http.layer` from `foldkit`. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)
-- [ ] UI components are imported from `@foldkit/ui` by name (`import { Dialog, Input } from '@foldkit/ui'`). There is no `Ui` namespace on `foldkit`
+- [ ] UI components use named imports from public subpaths such as `@foldkit/ui/dialog` and `@foldkit/ui/input`, with component-qualified aliases for common names.
 
 ## Effect-TS patterns
 

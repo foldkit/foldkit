@@ -3,7 +3,6 @@ import { Block, Calendar } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { DatePicker } from '@foldkit/ui'
 import type {
   CalendarAttributes as UiCalendarCalendarAttributes,
   DaysModeAttributes as UiCalendarDaysModeAttributes,
@@ -11,13 +10,17 @@ import type {
   Week as UiCalendarWeek,
   YearsModeAttributes as UiCalendarYearsModeAttributes,
 } from '@foldkit/ui/calendar'
-import { triggerId as DatePickerTriggerId } from '@foldkit/ui/datePicker'
+import {
+  DatePickerBlock,
+  layer as DatePickerLayer,
+  triggerId as DatePickerTriggerId,
+} from '@foldkit/ui/datePicker'
 
 // Add a field to your Model for the DatePicker Block, plus a field the
 // parent owns for the selected date. The picker no longer stores the
 // selection; the parent holds it and passes it back in as `maybeSelectedDate`.
 const Model = Schema.Struct({
-  datePickerDemo: DatePicker.DatePickerBlock.Model,
+  datePickerDemo: DatePickerBlock.Model,
   maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
   // ...your other fields
 })
@@ -61,7 +64,7 @@ const { makeFieldsStep, makeNoopStep } = DatePickerExampleDefinition
 // Model, which already has the next DatePicker Model written back. Pass the
 // completed child Block so the parent Definition infers both contracts:
 const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
-  DatePicker.DatePickerBlock,
+  DatePickerBlock,
   {
     // The child has emitted `SelectedDate`. This is where the parent lifts
     // the committed date into its own field, which is then passed back to
@@ -86,7 +89,7 @@ const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const DatePickerBinding = DatePickerExampleDefinition.makeBinding(
-  DatePicker.DatePickerBlock,
+  DatePickerBlock,
   {
     field: 'datePickerDemo',
     init: {
@@ -352,4 +355,4 @@ export const ApplicationBlock = DatePickerExampleDefinition.makeBlock(
     const datePicker = yield* DatePickerBinding
     return { children: [datePicker], init, update, view }
   }),
-).provide(DatePicker.layer)
+).provide(DatePickerLayer)

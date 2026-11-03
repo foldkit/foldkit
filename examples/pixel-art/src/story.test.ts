@@ -4,7 +4,7 @@ import { messageFrom } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import { Dialog, DialogBlock } from '@foldkit/ui'
+import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
 import { ApplicationBlock } from './block'
 import { ExportPng, SaveCanvas } from './command'
@@ -395,7 +395,7 @@ describe('grid size', () => {
         given(paintedModel),
         message(Message.SelectedGridSize({ size: 8 })),
         Command.resolve(
-          Dialog.test.ShowDialog,
+          DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
         model(model => {
@@ -424,12 +424,12 @@ describe('grid size', () => {
         given(paintedModel),
         message(Message.SelectedGridSize({ size: 8 })),
         Command.resolve(
-          Dialog.test.ShowDialog,
+          DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
         message(Message.ConfirmedGridSizeChange()),
         Command.resolve(
-          Dialog.test.CloseDialog,
+          DialogTest.CloseDialog,
           DialogBlock.Message.CompletedCloseDialog(),
         ),
         Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
@@ -567,7 +567,7 @@ describe('export failure', () => {
           Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
         ),
         Command.resolve(
-          Dialog.test.ShowDialog,
+          DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
         model(model => {
@@ -589,12 +589,12 @@ describe('export failure', () => {
           Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
         ),
         Command.resolve(
-          Dialog.test.ShowDialog,
+          DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
         errorDialogMessage(DialogBlock.Message.ClickedCloseButton()),
         Command.resolve(
-          Dialog.test.CloseDialog,
+          DialogTest.CloseDialog,
           DialogBlock.Message.CompletedCloseDialog(),
         ),
         model(model => {

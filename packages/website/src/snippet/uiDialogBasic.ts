@@ -2,12 +2,15 @@ import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Dialog } from '@foldkit/ui'
-import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
+import {
+  DialogBlock,
+  layer as DialogLayer,
+  type RenderInfo as DialogRenderInfo,
+} from '@foldkit/ui/dialog'
 
 // Add a field to your Model for the Dialog Block:
 const Model = Schema.Struct({
-  dialog: Dialog.DialogBlock.Model,
+  dialog: DialogBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -33,7 +36,7 @@ const { makeNoopStep } = DialogExampleDefinition
 // One boundary handles Dialog Messages, Commands, and OutMessages. Replace
 // either no-op arm with the parent transition that should follow that event.
 const foldDialogOutMessage = DialogExampleDefinition.makeOutMessageFold(
-  Dialog.DialogBlock,
+  DialogBlock,
   {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
@@ -41,7 +44,7 @@ const foldDialogOutMessage = DialogExampleDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = DialogExampleDefinition.makeBinding(Dialog.DialogBlock, {
+const DialogBinding = DialogExampleDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => Tuple.make({ id: 'confirm' }) },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
@@ -116,4 +119,4 @@ export const ApplicationBlock = DialogExampleDefinition.makeBlock(
     const dialog = yield* DialogBinding
     return { children: [dialog], init, update, view }
   }),
-).provide(Dialog.layer)
+).provide(DialogLayer)

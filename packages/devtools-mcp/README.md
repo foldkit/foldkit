@@ -128,6 +128,8 @@ The MCP server connects when a tool is called. It checks the registry on every c
 
 An automatically discovered relay's registry record contains a random token. The MCP client uses it to sign a connection challenge and checks the relay's response before sending tool requests. The plugin refuses to publish the record if another user can read or replace the registry directory. The MCP server applies the same check before reading it. Both reject symlinks and junctions; on macOS they also check directory ACLs. Clients without access to the registry cannot connect, but the agent using this MCP server can inspect the Runtime data.
 
+On Linux, relay records also identify the publisher's PID and network namespaces. Readers omit relays from a known different network namespace without deleting their records. Matching PID namespaces allow the ordinary process check. When the PID namespace is different or unknown, a failed process check does not prove the relay is gone; the reader probes its port before retiring the record. Older records remain compatible.
+
 On Windows, both processes use PowerShell to check the directory's owner, access list, ancestors, and reparse points. The registry must be a private direct child of the user's temporary directory. If the check cannot run or refuses the directory, configure `devToolsMcpPort` in Vite and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same port. A fixed port listens on every interface without a token. Do not use it on a shared or untrusted network.
 
 ## Notes

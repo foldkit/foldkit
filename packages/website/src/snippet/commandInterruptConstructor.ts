@@ -1,4 +1,4 @@
-import { Message as UploadMessage, UploadFile } from './commandInterruptKey'
+import { UploadFile, Message as UploadMessage } from './commandInterruptKey'
 import {
   Message as CounterMessage,
   WaitBeforeReset,

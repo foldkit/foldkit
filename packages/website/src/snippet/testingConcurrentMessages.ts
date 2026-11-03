@@ -3,10 +3,10 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { expect, test } from 'vitest'
 
 import {
+  ApplicationBlock,
   Message,
   Model,
   WaitBeforeReset,
-  ApplicationBlock,
 } from './counterCommands'
 
 test('accepts another click while the reset is pending', () =>

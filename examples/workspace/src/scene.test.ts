@@ -18,10 +18,14 @@ import { toParentMessageFor } from 'foldkit/test'
 import * as Url from 'foldkit/url'
 import { describe, expect as expectValue, test } from 'vitest'
 
-import { Listbox } from '@foldkit/ui'
+import { test as ListboxTest } from '@foldkit/ui/listbox'
 
 import { layer } from './block'
 import { ApplicationBlock } from './block'
+import { IssueDetailBlock } from './blocks/issueDetail'
+import { SaveIssue } from './blocks/issueDetail/command'
+import { ProjectSettingsBlock } from './blocks/projectSettings'
+import { SaveProject } from './blocks/projectSettings/command'
 import {
   AppendActivity,
   LoadWorkspace,
@@ -36,13 +40,9 @@ import {
   initialWorkspace,
   savedIssueFromIssue,
 } from './domain'
-import { IssueDetailBlock } from './issueDetail'
-import { SaveIssue } from './issueDetail/command'
 import { issueHref } from './issueLinks'
 import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
-import { ProjectSettingsBlock } from './projectSettings'
-import { SaveProject } from './projectSettings/command'
 import { RepositoryError } from './repository'
 import { issuesRouter, savedViewRouter } from './route'
 import { appliedIssueFilters } from './selection'
@@ -144,25 +144,25 @@ describe('workspace application', () => {
           given(loadedModel(executable, '/settings')),
           click(role('button', { name: 'Active member' })),
           Command.resolve(
-            Listbox.test.FocusListboxItems,
+            ListboxTest.FocusListboxItems,
             WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
           ),
           Mount.resolve(
-            Listbox.test.AnchorListbox,
+            ListboxTest.AnchorListbox,
             WorkspaceListboxBlock.Message.CompletedAnchorListbox(),
           ),
           Mount.resolve(
-            Listbox.test.PortalListboxBackdrop,
+            ListboxTest.PortalListboxBackdrop,
             WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
           ),
           click(role('option', { name: 'Jordan Lee' })),
           Command.resolve(
-            Listbox.test.FocusListboxButton,
+            ListboxTest.FocusListboxButton,
             WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
           ),
           Mount.expectEnded(
-            Listbox.test.AnchorListbox,
-            Listbox.test.PortalListboxBackdrop,
+            ListboxTest.AnchorListbox,
+            ListboxTest.PortalListboxBackdrop,
           ),
           expect(role('button', { name: 'Active member' })).toHaveText(
             'Jordan Lee',

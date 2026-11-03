@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 interface ComputeEngine {
   readonly engineId: string
@@ -187,7 +187,7 @@ const primaryButton = (
   isDisabled: boolean,
   h: ApplicationViewBuilder,
 ): Html =>
-  Button.view(
+  buttonView(
     {
       onClick: message,
       isDisabled,

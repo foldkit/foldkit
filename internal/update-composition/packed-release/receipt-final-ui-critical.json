@@ -1,0 +1,205 @@
+{
+  "scope": "final public helper type exports and UI portal/Menu runtime fixes; existing CI critical-browser-matrix; no publication",
+  "sourceHead": "da6e55193beb693b5400c9f95777d7c9fb41f257",
+  "snapshot": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy",
+  "nodeVersion": "22.22.3",
+  "command": "node scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix",
+  "driverSha256": "a86d02a2817bbf5c03955408671d28a9d35a4a6c7cbd08c6ec61536f1ab4e56c",
+  "metadataPlanSha256": "b109836736233ac2f429931b30797f6e9e9d0a1e01420d66ebb22cf6dc3c5c44",
+  "metadataChangesets": 203,
+  "metadataSource": "real current Changesets metadata read before staging versions",
+  "snapshotReceiptWrittenUtc": "2026-11-03T01:18:23.490524+00:00",
+  "gateLastOutputUtc": "2026-11-03T01:21:02.001529+00:00",
+  "log": {
+    "path": "/tmp/foldkit-packed-release-final-ui-critical.log",
+    "sha256": "fc45839e1c0832194b3a0bbcd0c74c3be28f6e1ae3378f1dc906672636a79b6a"
+  },
+  "releasePlan": [
+    {
+      "name": "foldkit",
+      "oldVersion": "0.170.0",
+      "newVersion": "0.171.0"
+    },
+    {
+      "name": "@foldkit/ui",
+      "oldVersion": "0.170.0",
+      "newVersion": "0.171.0"
+    },
+    {
+      "name": "@foldkit/oxlint-plugin",
+      "oldVersion": "0.15.4",
+      "newVersion": "0.16.0"
+    },
+    {
+      "name": "create-foldkit-app",
+      "oldVersion": "0.41.0",
+      "newVersion": "0.42.0"
+    },
+    {
+      "name": "@foldkit/devtools",
+      "oldVersion": "0.170.0",
+      "newVersion": "0.171.0"
+    },
+    {
+      "name": "@foldkit/devtools-mcp",
+      "oldVersion": "0.26.0",
+      "newVersion": "0.27.0"
+    },
+    {
+      "name": "@foldkit/markdown",
+      "oldVersion": "0.15.0",
+      "newVersion": "0.15.1"
+    },
+    {
+      "name": "@foldkit/vite-plugin",
+      "oldVersion": "0.29.0",
+      "newVersion": "0.29.1"
+    },
+    {
+      "name": "@foldkit/node",
+      "oldVersion": "0.2.0",
+      "newVersion": "0.2.1"
+    }
+  ],
+  "packages": [
+    {
+      "name": "foldkit",
+      "directory": "foldkit",
+      "sourceVersion": "0.170.0",
+      "stagedVersion": "0.171.0",
+      "sourceManifestSha256": "9d3b90a2ee482a5cbbde5cbd696ad67b7cbb2940fd69142fc67d26cab7f94d48",
+      "stagedManifestSha256": "0679321a3bc1b772131e062545bf2ae41d118eff737d8158628223fd6a9e846b",
+      "distSha256": "6f95ae00fec826c4f1657a5a6f6d05630703ccb54a6ad856e2c09982b671e2e8",
+      "distFiles": 1050
+    },
+    {
+      "name": "@foldkit/ui",
+      "directory": "ui",
+      "sourceVersion": "0.170.0",
+      "stagedVersion": "0.171.0",
+      "sourceManifestSha256": "77978dd728e86d9fae609ab3b8f33bb16592404dc0969deb6beca73865f8bbc7",
+      "stagedManifestSha256": "9dc70e30c91c2fa48e030cf0fd9f9c1b80b079718124119d127f01e972843fe5",
+      "distSha256": "f2c1a89a917e00b5d00790153557f0a361c1effc310550ed086ab673f3463ce4",
+      "distFiles": 450
+    },
+    {
+      "name": "@foldkit/devtools",
+      "directory": "devtools",
+      "sourceVersion": "0.170.0",
+      "stagedVersion": "0.171.0",
+      "sourceManifestSha256": "6b48097d096c7fa408c5e7d9eace3fc28dfaf537a0b996fc7ca30ffb003c0ed7",
+      "stagedManifestSha256": "86d198e793285cf5b8a1437676c51cca095fbaf312f5bb433ee236cc6c7a1fd3",
+      "distSha256": "e24fcca4f7af84f072a4dbfa2d31c3d8bd1e6f15112682058908a93c5d94ae9c",
+      "distFiles": 12
+    },
+    {
+      "name": "@foldkit/devtools-mcp",
+      "directory": "devtools-mcp",
+      "sourceVersion": "0.26.0",
+      "stagedVersion": "0.27.0",
+      "sourceManifestSha256": "a6ceef6538fd08e610e08dafd318fe993f61754b60543918d719486b6e4506e9",
+      "stagedManifestSha256": "0eede5386f699b9296280c7f60f912c7360fbbc7e89d329dd33a9093f317630d",
+      "distSha256": "9c3328c36e5c197eb5c4f862f484c40828913a700f7246df9d395764c3c64749",
+      "distFiles": 24
+    },
+    {
+      "name": "@foldkit/markdown",
+      "directory": "markdown",
+      "sourceVersion": "0.15.0",
+      "stagedVersion": "0.15.1",
+      "sourceManifestSha256": "cc76fc406b3ec4f607f5cc6388af8b2d5c0bbfe2092151d55cb18d1ab4d9e034",
+      "stagedManifestSha256": "03da0f81d7d40db7b01223ea81fadb239fef88b1a8b0766dd6ca25625eb90860",
+      "distSha256": "ed41c4aab7d6a4205bd7144b4f544c6722881cdd0b811fe5f571e49be7da9f8c",
+      "distFiles": 36
+    },
+    {
+      "name": "@foldkit/node",
+      "directory": "node",
+      "sourceVersion": "0.2.0",
+      "stagedVersion": "0.2.1",
+      "sourceManifestSha256": "b758e8125477fa1687138190b9c2f2bdebc8271e55db1a6f12ce753f2452584f",
+      "stagedManifestSha256": "16bf8bb6577b05e52edb6e93be91bf035f7f8001c54b0fb05d9cf6a5fb685919",
+      "distSha256": "0bd0502fb3d3f64d821f71efabcfadec42156f2bd0d612c1b4be098faf2d1bff",
+      "distFiles": 6
+    },
+    {
+      "name": "@foldkit/vite-plugin",
+      "directory": "vite-plugin-foldkit",
+      "sourceVersion": "0.29.0",
+      "stagedVersion": "0.29.1",
+      "sourceManifestSha256": "54c0a539c7d63e5b43278cf5748a73059afb06c441c3fec5e7c51fddc6871084",
+      "stagedManifestSha256": "35cb1a9dff9364509b6341d21c5a5dd4c7299942167e1ecc794a5a31315962e6",
+      "distSha256": "0cc7c0f7a697cd4a0c2544fbc77553e5c30decc7fcd4f382f488148a4b708a12",
+      "distFiles": 36
+    }
+  ],
+  "versionedTarballs": [
+    {
+      "path": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/devtools/foldkit-devtools-0.171.0.tgz",
+      "sha256": "58ea507c88af3daadd081c407fd72198f4d3296596d205c1a93a78e60980945f"
+    },
+    {
+      "path": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/devtools-mcp/foldkit-devtools-mcp-0.27.0.tgz",
+      "sha256": "d3e0d18daaf1b34f5393d1daaa20c52b24a6ff61259b0b7d0be9daad4acedc17"
+    },
+    {
+      "path": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/foldkit/foldkit-0.171.0.tgz",
+      "sha256": "0d6786d240932807981c30da43bd0ea068ae8991ede6bc7d13f935d93c7e382c"
+    },
+    {
+      "path": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/markdown/foldkit-markdown-0.15.1.tgz",
+      "sha256": "c7bbde70afae0874cd0c6f963034fb09bc8bf5007da3adc8891384bceb897c6f"
+    },
+    {
+      "path": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/node/foldkit-node-0.2.1.tgz",
+      "sha256": "29c9d902dbb9192ef457e4f1f4a890af83534a02ed93d5af300b095bfaaff6ff"
+    },
+    {
+      "path": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/ui/foldkit-ui-0.171.0.tgz",
+      "sha256": "23b6a28a315740c5f35d3fd433fb6e67e5c318a663112e120fe5a90bd345b829"
+    },
+    {
+      "path": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/vite-plugin-foldkit/foldkit-vite-plugin-0.29.1.tgz",
+      "sha256": "5d82da2c4ff270156b839d32f944fb888969adc76c1467d93884e7f5a98d2f6b"
+    }
+  ],
+  "tarballsIdenticalToTypeOnlyProof": true,
+  "result": {
+    "exitCode": 0,
+    "strictPeers": true,
+    "effectAndPlatformFloorVersions": "4.1.0",
+    "physicalEffectResolutions": 12,
+    "sourceFreeTypesAndConsumerDeclarationNameability": true,
+    "sharedModelNpmWorkspace": true,
+    "packedViteDevRelay": true,
+    "productionSsrBuilds": 2,
+    "fullChromium": true,
+    "criticalFirefox": true,
+    "criticalWebKit": true,
+    "consumerAndTarballsCleaned": true,
+    "port5199HasNoListener": true,
+    "activeManifestsAndDistUnchanged": true,
+    "stagedManifestsUnchanged": true
+  },
+  "publicConditionalMetadataTypeProof": "receipt-public-types.json",
+  "coreJavaScriptEquivalence": {
+    "checkedAt": "2026-11-03T01:18:26.524043+00:00",
+    "priorBrowserStage": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-MhwOmv",
+    "current": "/private/tmp/foldkit-update-composition-20261102/packages/foldkit/dist",
+    "jsFiles": 350,
+    "jsByteIdentical": true,
+    "jsTreeSha256": "74e0b85741bc5d5c1566ae59727268eb9818349e71d7456d58fb3316ac5cceb7",
+    "changedDeclarations": [
+      "block/commandsStep.d.ts",
+      "block/fieldStep.d.ts",
+      "block/public.d.ts",
+      "experimental/hybrid/updateComposition.d.ts"
+    ]
+  },
+  "priorEvidencePreserved": [
+    "receipt.json",
+    "receipt-relay-critical.json",
+    "/tmp/foldkit-emitted-final-validator.log",
+    "/tmp/foldkit-packed-validator-types.log"
+  ]
+}

@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 
+import { Products } from './blocks'
 import { Cart } from './domain'
-import * as Products from './page/products'
 import { ApplicationRoute } from './route'
 
 export const Model = Schema.Struct({

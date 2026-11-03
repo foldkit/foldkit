@@ -15,7 +15,7 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { DragAndDropBlock } from '@foldkit/ui'
+import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
 
 import { ApplicationBlock } from './block'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'

@@ -2,8 +2,13 @@ import clsx from 'clsx'
 import { Array, Match, Option, pipe } from 'effect'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
-import { Nav } from '@foldkit/ui'
+import {
+  type ItemInfo as NavItemInfo,
+  type RenderInfo as NavRenderInfo,
+  view as navView,
+} from '@foldkit/ui/nav'
 
+import { Ui } from './blocks'
 import { ApplicationComposition, UiBinding } from './composition'
 import type { ApplicationViewBuilder } from './composition'
 import * as Icon from './icon'
@@ -40,7 +45,6 @@ import {
   tooltipRouter,
   virtualListRouter,
 } from './route'
-import * as UiView from './ui/view'
 
 type NavItem = Readonly<{
   label: string
@@ -105,9 +109,9 @@ const navItemHref = (index: number): string =>
 
 const componentNav = (
   currentRoute: ApplicationRoute,
-  toView: (render: Nav.RenderInfo) => Html,
+  toView: (render: NavRenderInfo) => Html,
 ): Html =>
-  Nav.view({
+  navView({
     items: NAV_ROUTE_TAGS,
     ariaLabel: 'Components',
     toHref: (_routeTag, index) => navItemHref(index),
@@ -116,7 +120,7 @@ const componentNav = (
   })
 
 const navListView = <Message, AllowedMountRequirements>(
-  items: ReadonlyArray<Nav.ItemInfo>,
+  items: ReadonlyArray<NavItemInfo>,
   linkClassName: (isActive: boolean) => string,
   h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html =>
@@ -159,7 +163,7 @@ const sidebarView = (
   currentRoute: ApplicationRoute,
   h: ApplicationViewBuilder,
 ) => {
-  const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
+  const sidebarNavView = ({ nav, items }: NavRenderInfo): Html =>
     h.nav(
       [
         ...nav,
@@ -193,9 +197,9 @@ const sidebarView = (
 const mobileMenuContent =
   (
     currentRoute: ApplicationRoute,
-  ): UiView.MobileMenuViewInputs['renderContent'] =>
+  ): Ui.View.MobileMenuViewInputs['renderContent'] =>
   (closeButton, h) => {
-    const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
+    const mobileNavView = ({ nav, items }: NavRenderInfo): Html =>
       h.nav(
         [
           ...nav,
@@ -296,7 +300,7 @@ const mobileMenuView = (model: Model, h: ApplicationViewBuilder) =>
     UiBinding.embedView({
       slotId: 'mobile-menu',
       model: model.uiModel,
-      view: UiView.mobileMenu,
+      view: Ui.View.mobileMenu,
       viewInputs: { renderContent: mobileMenuContent(model.route) },
     }),
   )
@@ -344,7 +348,7 @@ const notFoundView = (path: string, h: ApplicationViewBuilder) =>
   )
 
 const contentView = (model: Model, h: ApplicationViewBuilder) => {
-  const embedUi = (id: string, view: typeof UiView.button): Html =>
+  const embedUi = (id: string, view: typeof Ui.View.button): Html =>
     h.block(
       UiBinding.embedView({
         slotId: id,
@@ -355,33 +359,33 @@ const contentView = (model: Model, h: ApplicationViewBuilder) => {
 
   return ApplicationRoute.match(model.route, {
     Home: () => homeView(h),
-    Button: () => embedUi('ui-button', UiView.button),
-    Calendar: () => embedUi('ui-calendar', UiView.calendar),
-    Checkbox: () => embedUi('ui-checkbox', UiView.checkbox),
-    Combobox: () => embedUi('ui-combobox', UiView.combobox),
-    DatePicker: () => embedUi('ui-date-picker', UiView.datePicker),
-    Dialog: () => embedUi('ui-dialog', UiView.dialog),
-    Disclosure: () => embedUi('ui-disclosure', UiView.disclosure),
-    DragAndDrop: () => embedUi('ui-drag-and-drop', UiView.dragAndDrop),
-    Fieldset: () => embedUi('ui-fieldset', UiView.fieldset),
-    FileDrop: () => embedUi('ui-file-drop', UiView.fileDrop),
-    HoverIntent: () => embedUi('ui-hover-intent', UiView.hoverIntent),
-    Input: () => embedUi('ui-input', UiView.input),
-    Listbox: () => embedUi('ui-listbox', UiView.listbox),
-    Menu: () => embedUi('ui-menu', UiView.menu),
-    Meter: () => embedUi('ui-meter', UiView.meter),
-    Popover: () => embedUi('ui-popover', UiView.popover),
-    Progress: () => embedUi('ui-progress', UiView.progress),
-    RadioGroup: () => embedUi('ui-radio-group', UiView.radioGroup),
-    Select: () => embedUi('ui-select', UiView.select),
-    Slider: () => embedUi('ui-slider', UiView.slider),
-    Switch: () => embedUi('ui-switch', UiView.switch_),
-    Tabs: () => embedUi('ui-tabs', UiView.tabs),
-    Textarea: () => embedUi('ui-textarea', UiView.textarea),
-    Toast: () => embedUi('ui-toast', UiView.toast),
-    Tooltip: () => embedUi('ui-tooltip', UiView.tooltip),
-    Animation: () => embedUi('ui-animation', UiView.animation),
-    VirtualList: () => embedUi('ui-virtual-list', UiView.virtualList),
+    Button: () => embedUi('ui-button', Ui.View.button),
+    Calendar: () => embedUi('ui-calendar', Ui.View.calendar),
+    Checkbox: () => embedUi('ui-checkbox', Ui.View.checkbox),
+    Combobox: () => embedUi('ui-combobox', Ui.View.combobox),
+    DatePicker: () => embedUi('ui-date-picker', Ui.View.datePicker),
+    Dialog: () => embedUi('ui-dialog', Ui.View.dialog),
+    Disclosure: () => embedUi('ui-disclosure', Ui.View.disclosure),
+    DragAndDrop: () => embedUi('ui-drag-and-drop', Ui.View.dragAndDrop),
+    Fieldset: () => embedUi('ui-fieldset', Ui.View.fieldset),
+    FileDrop: () => embedUi('ui-file-drop', Ui.View.fileDrop),
+    HoverIntent: () => embedUi('ui-hover-intent', Ui.View.hoverIntent),
+    Input: () => embedUi('ui-input', Ui.View.input),
+    Listbox: () => embedUi('ui-listbox', Ui.View.listbox),
+    Menu: () => embedUi('ui-menu', Ui.View.menu),
+    Meter: () => embedUi('ui-meter', Ui.View.meter),
+    Popover: () => embedUi('ui-popover', Ui.View.popover),
+    Progress: () => embedUi('ui-progress', Ui.View.progress),
+    RadioGroup: () => embedUi('ui-radio-group', Ui.View.radioGroup),
+    Select: () => embedUi('ui-select', Ui.View.select),
+    Slider: () => embedUi('ui-slider', Ui.View.slider),
+    Switch: () => embedUi('ui-switch', Ui.View.switch_),
+    Tabs: () => embedUi('ui-tabs', Ui.View.tabs),
+    Textarea: () => embedUi('ui-textarea', Ui.View.textarea),
+    Toast: () => embedUi('ui-toast', Ui.View.toast),
+    Tooltip: () => embedUi('ui-tooltip', Ui.View.tooltip),
+    Animation: () => embedUi('ui-animation', Ui.View.animation),
+    VirtualList: () => embedUi('ui-virtual-list', Ui.View.virtualList),
     NotFound: ({ path }) => notFoundView(path, h),
   })
 }

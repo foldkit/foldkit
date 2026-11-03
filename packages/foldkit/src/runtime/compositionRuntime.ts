@@ -619,7 +619,7 @@ export const makeCompositionRuntime = <Model, Message>({
             node: root,
             capturedChildren: nodes,
           }),
-          scope: runtimeScope,
+          scope: target.scope,
           isCurrent: () => target.isActive,
           ...(mapResult === undefined ? {} : { mapResult }),
         }

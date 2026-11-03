@@ -104,7 +104,7 @@ Read `${CLAUDE_SKILL_DIR}/../../examples/shopping-cart/src/model.ts` and `update
 Read `${CLAUDE_SKILL_DIR}/../../examples/auth/src/composition/`, `update.ts`, and `view.ts` (login/signup with Blocks, OutMessage, protected routes) and `${CLAUDE_SKILL_DIR}/../../examples/job-application/src/composition.ts`, `update.ts`, and `step/` (multi-step form with deeply nested Blocks, `DatePicker`, `FileDrop`, `Listbox`, and the `Calendar` module for date handling)
 
 **Tier 7: Real-time, WebSocket, Managed Resources, production-grade:**
-Read `${CLAUDE_SKILL_DIR}/../../packages/typing-game/client/src/update.ts`, then explore its `page/home/` and `page/room/` directories for the full Block/OutMessage pattern.
+Read `${CLAUDE_SKILL_DIR}/../../packages/typing-game/client/src/update.ts`, then explore its `blocks/home/` and `blocks/room/` directories for the full Block/OutMessage pattern.
 
 Read the nearest tier-specific example plus any focused example for a primitive
 this app actually uses. Lower tiers are a lookup index, not a mandatory reading
@@ -115,10 +115,11 @@ sequence.
 Foldkit ships accessible UI components that handle keyboard navigation, ARIA attributes, and focus management automatically. They live in a **separate package**, `@foldkit/ui`, and are imported by name:
 
 ```ts
-import { Button, Combobox, Dialog, Input } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
+import { DialogBlock, layer as DialogLayer } from '@foldkit/ui/dialog'
 ```
 
-There is no `Ui` namespace on the `foldkit` package. Import the `Dialog` namespace from `@foldkit/ui`, create `const DialogBinding = ParentDefinition.makeBinding(Dialog.DialogBlock, ...)`, include it in the parent Composition's `bindings`, and render through `h.block(DialogBinding.embedView(...))`. Component subpaths such as `@foldkit/ui/dialog` expose the passive contract, construction `layer` and intentional domain exports. Generic component namespaces expose a `makeBlock` factory; name its typed contract locally before binding it and provide the namespace's `layer` in parent construction.
+Import the component's named exports from its public subpath. Use a component-qualified alias for a common export, such as `buttonView`, `DialogLayer`, or `makeListboxBlock`. Connect `DialogBlock` through the parent's Definition, register the Binding in Composition, and provide `DialogLayer` at construction. Generic factories publish a typed passive contract; construct it once at module scope, then provide the component's construction Layer.
 
 Before generating, check if any part of the app maps to a built-in component:
 
@@ -180,13 +181,13 @@ Select the implementation through its construction Layer. Ordinary execution tes
 If the app uses UI components, **always read the ui-showcase example first** to understand how components are wired. This is the canonical reference for Foldkit UI integration patterns:
 
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/composition.ts` and `update.ts`: root wiring, generated child delivery, field mappings, and local parent Messages
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/message.ts`: how locally authored component Messages are structured
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/model.ts`: how component Models are composed
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/update.ts`: how component updates are delegated
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/definition.ts`: passive `UiBlock` contract
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/block.ts`: Layer-owned constructor and local handler recipes
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/composition/composition.ts`: parent-owned component Binding policies and automatic lifecycle composition
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/toast.ts`: read when using `Toast`. `Toast.makeBlock(PayloadSchema)` publishes its exact payload contract and occurrence-aware test helper; `Toast.layer` supplies implementation construction
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/message.ts`: how locally authored component Messages are structured
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/model.ts`: how component Models are composed
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/update.ts`: how component updates are delegated
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/definition.ts`: passive `UiBlock` contract
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/block.ts`: Layer-owned constructor and local handler recipes
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/composition/composition.ts`: parent-owned component Binding policies and automatic lifecycle composition
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/toast.ts`: read when using `Toast`. `Toast.makeBlock(PayloadSchema)` publishes its exact payload contract and occurrence-aware test helper; `Toast.layer` supplies implementation construction
 
 Directory names under `examples/ui-showcase/src/` have moved before. List the directory rather than trusting these paths blind.
 
@@ -437,8 +438,8 @@ FeatureDefinition.makeCommand(name, { args, messages, handler }): every input is
   const EffectsLayer = Fetch.layer
   update: [Fetch({ id })]     // NOT Fetch({ id })(effect)
 Document: NOT generic, and `body` is a single Html, not an array
-Input.view({ id, value, onInput, isInvalid?, type?, placeholder?, toView: (attrs) => Html }, h)
-  // from '@foldkit/ui', NOT Ui.Input
+inputView({ id, value, onInput, isInvalid?, type?, placeholder?, toView: (attrs) => Html }, h)
+  // view as inputView from '@foldkit/ui/input'
   // attrs: { label: ReadonlyArray<Attribute<M>>, input: ..., description: ... }
 Field (schema): NotValidated | Validating | Valid | Invalid(errors: NonEmpty<Rule Message>)
 ```
@@ -461,7 +462,7 @@ Record these in the crib and keep them visible while generating:
 - **`Field.Invalid` has `errors: NonEmptyArray<string>`, not `error: string`.** Use `Array.headNonEmpty(errors)` to get the first message; use `Rule.resolveMessage(message, value)` to resolve a rule message to its final string.
 - **Route variants stay on `ApplicationRoute` and drop the repeated `Route` suffix.** Write `ApplicationRoute.Home` and `ApplicationRoute.NewLink`, not sibling bindings named `HomeRoute` and `NewLinkRoute`.
 - **Routers are callable for printing**: `homeRouter()` returns `'/'`, `tagFilterRouter({ tag: 'foo' })` returns `'/tag/foo'`. Never hand-construct URLs.
-- **UI components come from `@foldkit/ui`, not from a `Ui` namespace on `foldkit`.** `import { Dialog, Input } from '@foldkit/ui'`, then connect Dialog and call Input's stateless view helper. There is no `Ui` export on the `foldkit` package.
+- **Import named UI exports from their public component subpaths.** Use `DialogBlock` and `layer as DialogLayer` from `@foldkit/ui/dialog`, and `view as inputView` from `@foldkit/ui/input`. Bind stateful Blocks and call stateless views with the parent's builder.
 - **`HttpClient` and `HttpClientRequest` come from `effect/http`**, not `@effect/platform`. Leave `HttpClient.HttpClient` in the handler's requirements and provide `Http.layer`, imported from `foldkit`, at the application root. This keeps the real handler reusable with a deterministic HTTP Layer in an execution test. `@effect/platform-browser` is a different thing, used for `BrowserKeyValueStore` and `BrowserCrypto`.
 - **Register each selected child Binding once.** Binding construction is passive;
   registration in the parent's Composition enables routing and contributes the
@@ -470,7 +471,7 @@ Record these in the crib and keep them visible while generating:
   [Block composition and Layers](../foldkit/references/composition.md) for the
   storage, routing, OutMessage, startup, sibling policy, view, and Layer decision
   tables. Apply its review invariants before completion.
-- **Let `FeatureComposition.makeUpdate` infer Command requirements.** Pass an exhaustive handler record for per-Message outputs, or use `makeUpdate.withContext(context => handlers)` when handlers need dispatch context. Registered Bindings route generated child envelopes before the local Message handler record. For an explicit operation adapter to local update, put the Message constructor directly under `operations` when its payload is the public input. Completion creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload object followed by update context, with constructor defaults honored; an empty-fields constructor takes no payload placeholder. Keep a tuple producer under `operations` when public inputs need mapping, refinement, defaults, or an exact context tuple. Both operation forms pass the Message through update synchronously, retain the selected handler's Command requirements and OutMessage type, and never enqueue another Runtime Message. Calling a pure operation does not run effects returned by another branch. Use the owning `makeStep` helper or a standalone Step only for internal composition. When another matcher, helper, or exported signature needs an `UpdateReturn` alias and any branch returns Commands, derive the relevant requirements with `Update.RequirementsOf<typeof update>`. Pass them to `Update.Return<Model, Message, Requirements>` or `Update.ReturnWithOutMessage<Model, Message, OutMessage, Requirements>`. The match generic constrains the whole matcher, so omit a redundant return annotation. Use `Match.withReturnType<UpdateReturn>()` only for Effect `Match`.
+- **Let `FeatureComposition.makeUpdate` infer Command requirements.** Pass an exhaustive handler record for per-Message outputs, or use `makeUpdate.withContext(context => handlers)` when handlers need dispatch context. The full update routes generated child envelopes instead of calling a local handler. Compose it with additional pieces only when the application needs an ordered transition across a dispatch; follow [Composing updates](../foldkit/references/composition.md#composing-updates). For an explicit operation adapter to local update, put the Message constructor directly under `operations` when its payload is the public input. Completion creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload object followed by update context, with constructor defaults honored; an empty-fields constructor takes no payload placeholder. Keep a tuple producer under `operations` when public inputs need mapping, refinement, defaults, or an exact context tuple. Both operation forms pass the Message through update synchronously, retain the selected handler's Command requirements and OutMessage type, and never enqueue another Runtime Message. Calling a pure operation does not run effects returned by another branch. Use the owning `makeStep` helper or a standalone Step only for internal composition. When another matcher, helper, or exported signature needs an `UpdateReturn` alias and any branch returns Commands, derive the relevant requirements with `Update.RequirementsOf<typeof update>`. Pass them to `Update.Return<Model, Message, Requirements>` or `Update.ReturnWithOutMessage<Model, Message, OutMessage, Requirements>`. The match generic constrains the whole matcher, so omit a redundant return annotation. Use `Match.withReturnType<UpdateReturn>()` only for Effect `Match`.
 
 For parent requests and notifications, declare an optional `InMessage` Schema disjoint from local `Message`, then author exhaustive `Composition.makeReceive` and return `receive` from the constructor. `RequestedSubmit` generates `Binding.requestSubmit()`, and `InformedOfIssueChanged` generates `Binding.informIssueChanged(payload)`. Keyed methods take the occurrence key first. Share extracted Steps between local and received causes when they perform the same transition. Declare separate `InMessageContext` / `makeReceive.withContext` when required, and sparse `inMessageOutputs` for emitting or additional Service/resource bounds; omission is silent. Commands still produce local Messages for update. Scoped Story/Scene tests use `inMessage`, with separate `inMessageContext` configuration. Keep explicit `operations` for positional/generic adapters and local Message mappings. Read [Parent inputs](../foldkit/references/composition.md#parent-inputs) for the complete contract. Avoid `reflect*` helpers that bypass the owning transition.
 
@@ -571,7 +572,9 @@ Every message must carry meaning. No `NoOp`.
 
 ### Update
 
-- Author Block updates with an exhaustive `FeatureComposition.makeUpdate` handler record. This preserves each handler's requirements and routes generated child envelopes before local handlers run. Use `FeatureComposition.makeUpdate({})` when the Block has no locally authored Messages, and `makeUpdate.withContext(context => handlers)` when handlers need dispatch context.
+Keep the exhaustive record as the default. For ordered additional handlers or transitions, use the owning Composition's checked `cases`, `each`, `on`, `except`, and `compose` helpers. Extract reusable bundles without a full update; require exactly one full exhaustive update at completion. Follow the shared [Composing updates reference](../foldkit/references/composition.md#composing-updates) for current/original Model, child delivery, Context, Commands and OutMessage rules. This does not extend init or receive.
+
+- Author Block updates with an exhaustive `FeatureComposition.makeUpdate` handler record. This preserves each handler's requirements and routes child envelopes through their owning Bindings instead of local handlers. Use `FeatureComposition.makeUpdate({})` when the Block has no locally authored Messages, and `makeUpdate.withContext(context => handlers)` when handlers need dispatch context.
 - Use `update(message)(model, ...context)` when applying an authored update as an internal Step. Parent inputs use `InMessage` and receive; explicit operation adapters produce local Messages instead of accepting arbitrary Steps. Keep the owning `makeStep` helper or a standalone Step for internal parameterized composition. `Update.combineSteps` accepts unary Steps, so adapt a required-context update with an explicit unary function that supplies every context argument.
 - Name every locally authored Message tag in that record and let Composition contextually type the Model and exact Message variant. Pass compatible Steps or dedicated `handle<MessageTag>` functions directly. Declare ordinary parent inputs with `InMessage` and `makeReceive`. Keep explicit `operations` for adapted local Message constructors or tuple producers; do not put arbitrary Steps in that registry. When another matcher or exported signature needs an explicit requirement union, derive child update requirements with `Update.RequirementsOf<typeof childUpdate>` and include requirements from any other Command-producing helper. Do not derive update requirements from `Layer.Success<typeof EffectsLayer>` because that bundle may also implement Subscriptions, Mounts, or ManagedResources. Every child fold calls `FeatureDefinition.makeOutMessageFold(ChildBlock, handlers)` with the whole passive child contract explicitly, whether inline, extracted, adapted for keyed policy, or staged for reciprocal composition. Name every variant directly and let the parent Definition infer result channels and handler context. A hand-written plain-return type is equivalent only when it includes `outMessage?: never`. Never switch. Use a `defineTaggedUnion` or `defineRouteUnion` namespace's `matchOrElse` for partial matches with fallbacks. Keep Effect `Match` for nested partial matches, handlers shared across several tags, and unions without their own matcher
 - Omit `commands` when an update, init, Step, or component helper statically creates no Commands. Return a computed Commands collection directly without checking whether it is empty. Never write the literal `commands: []`
@@ -586,7 +589,7 @@ Every message must carry meaning. No `NoOp`.
 
 ### Commands
 
-- Define owned Command identities with `FeatureDefinition.makeCommand`, whose config declares `args` (optional), `messages`, `interrupt` (optional), and `handler`. The handler is a generator constructor; Foldkit applies `Effect.gen` internally. Service lookups in the generator run once when the application Layer is built, and the returned function runs afresh for every Command invocation with its current args. Definitions omit `execute`. Compose `Fetch.layer` directly in the owning module's `EffectsLayer`. A constructor with no service lookup still uses `handler: function* () { return args => effect }`. Update returns `Fetch({ id })`. Create a standalone `FetchLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Omit `handler` only for an external host contract; select the original definition's `toLayer` provider in local `EffectsLayer` before ordinary Block completion. Public host-only factories such as Query retain explicit host selection
+- Define owned Command identities with `FeatureDefinition.makeCommand`, whose config declares `args` (optional), `messages`, `interrupt` (optional), and `handler`. The handler is a generator constructor; Foldkit applies `Effect.gen` internally. Service lookups in the generator run once when the application Layer is built, and the returned function runs afresh for every Command invocation with its current args. Definitions omit `execute`. Compose `Fetch.layer` directly in the owning module's `EffectsLayer`. A constructor with no service lookup still uses `handler: function* () { return args => effect }`. Update returns `Fetch({ id })`. Create a standalone `FetchLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Omit `handler` only for an external host contract; select the original definition's `toLayer` provider in local `EffectsLayer`, or list it under constructor `hostHandlers` and select providers through `block.provideHandlers(layer)` before hosting or scoped tests. Preserve original identities and the Definition's Service and constructor-error bounds; selection stays passive
 - To make a Command interruptible, add `interrupt`. `interrupt: true` keys every invocation by the Command name; `interrupt: { keyFields, toKey }` selects the args that identify an invocation and derives its key so concurrent invocations can be cancelled independently. The selected fields become the args required by the Definition's `Interrupt` constructor
 - Always assign definitions to PascalCase constants. Never inline in pipe chains
 - Definitions live in the feature whose update produces them, alongside update or in a feature-local `command.ts`
@@ -650,7 +653,7 @@ For file uploads (resumes, images, attachments):
 - Use the `File` module for file primitives
 - Use `FileDrop` from `@foldkit/ui` for a drag-and-drop + click-to-browse zone with validation
 - `FileDrop.ReceivedFiles` carries `files: NonEmptyArray<File>`, so the happy path never has to handle an empty list. A drop that produced no files arrives as the separate `RejectedNonFiles` OutMessage; handle it to surface a message like "Only files are accepted"
-- Canonical reference: `${CLAUDE_SKILL_DIR}/../../examples/job-application/src/step/attachments/`
+- Canonical reference: `${CLAUDE_SKILL_DIR}/../../examples/job-application/src/blocks/attachments/`
 
 ### View
 
@@ -777,8 +780,8 @@ Story permits another Message while Commands are pending. Use `messageWith(model
 Scene normally requires pending Commands to settle before later Messages. For a deliberate concurrent interaction, `Scene.Command.keepPending(Definition | instance)` selects one exact invocation for that boundary exemption. Assertions and every resolver still see it, and final completeness requires resolution. A bound instance selects a child occurrence and args. Prefer this explicit operation over custom simulation transforms.
 
 - `${CLAUDE_SKILL_DIR}/../../examples/weather/src/story.test.ts`: simple Command resolution (happy path + error path)
-- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.story.test.ts`: Block with OutMessage assertions, field validation
-- `${CLAUDE_SKILL_DIR}/../../packages/website/src/search/story.test.ts`: multi-step interactions (arrow key cycling, stale result handling)
+- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/blocks/loggedOut/blocks/login.story.test.ts`: Block with OutMessage assertions, field validation
+- `${CLAUDE_SKILL_DIR}/../../packages/website/src/blocks/search/story.test.ts`: multi-step interactions (arrow key cycling, stale result handling)
 
 Write `story` pipelines covering:
 
@@ -799,7 +802,7 @@ Check the `@foldkit/ui` component namespace or contract's public `test` helpers 
 
 - `${CLAUDE_SKILL_DIR}/../../examples/weather/src/scene.test.ts`: basic Scene flow with form interaction and Command resolution
 - `${CLAUDE_SKILL_DIR}/../../examples/auth/src/scene.test.ts`: a multi-page app's root-level Scene driving the login flow through the root view
-- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.scene.test.ts`: a page-scoped Scene in that same app, driving the page's own `update`/`view` rather than the root pair
+- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/blocks/loggedOut/blocks/login.scene.test.ts`: a page-scoped Scene in that same app, driving the page's own `update`/`view` rather than the root pair
 - `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/scene.test.ts`: scoped queries with `within`, `toHaveValue`, explicit test data
 
 Write `scene` pipelines covering:
@@ -879,7 +882,7 @@ Read FIRST, in this order:
    - Tier 3-4: examples/weather/src/command.ts AND examples/weather/src/update.ts, OR examples/form/src/update.ts
    - Tier 5: examples/kanban/src/update.ts AND examples/kanban/src/domain/
    - Tier 6: examples/job-application/src/update.ts AND examples/auth/src/page/
-   - Tier 7: packages/typing-game/client/src/page/room/
+   - Tier 7: packages/typing-game/client/src/blocks/room/
 
 Every path above is either project-relative or resolved through
 ${CLAUDE_SKILL_DIR}, the same way the rest of this skill refers to its
@@ -909,7 +912,7 @@ native methods instead of Effect modules in pipes, views that
 should be decomposed, etc. These should be fixed.
 Each item: `path/to/file.ts:line: the gap; the idiomatic version`.
 Cite the exemplar when possible: "typing-game does this as X at
-page/home/update/handleKeyPressed.ts:33-40".
+blocks/home/update/handleKeyPressed.ts:33-40".
 If none: write `None.`
 
 ## NICE-TO-HAVE

@@ -3,7 +3,7 @@ import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
 import { ApplicationBlock } from './block'
-import { CounterBlock } from './island'
+import { CounterBlock } from './blocks'
 import { Model } from './model'
 import { ApplicationRoute } from './route'
 

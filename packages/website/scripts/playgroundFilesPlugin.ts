@@ -10,7 +10,7 @@ import {
   publicWorkspacePackages,
   readWorkspacePackages,
 } from '../../../scripts/lib/workspace-packages.mjs'
-import { runnableExampleSlugs } from '../src/page/example/meta.ts'
+import { runnableExampleSlugs } from '../src/blocks/exampleDetail/meta.ts'
 
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url))
 const WEBSITE_ROOT = resolve(SCRIPT_DIRECTORY, '..')

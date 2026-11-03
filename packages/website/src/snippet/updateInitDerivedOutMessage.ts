@@ -3,12 +3,15 @@ import { Block, Calendar } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { DatePicker } from '@foldkit/ui'
+import {
+  DatePickerBlock,
+  layer as DatePickerLayer,
+} from '@foldkit/ui/datePicker'
 
 const Model = Schema.Struct({
   maybeStartDate: Schema.Option(Calendar.CalendarDate),
   maybeEndDate: Schema.Option(Calendar.CalendarDate),
-  endDatePicker: DatePicker.DatePickerBlock.Model,
+  endDatePicker: DatePickerBlock.Model,
 })
 type Model = typeof Model.Type
 
@@ -40,7 +43,7 @@ const DateRangeDefinition = Block.makeDefinition('DateRange', {
 const { makeStep, makeFieldsStep, makeNoopStep } = DateRangeDefinition
 
 const foldEndDateOutMessage = DateRangeDefinition.makeOutMessageFold(
-  DatePicker.DatePickerBlock,
+  DatePickerBlock,
   {
     SelectedDate: ({ date }) =>
       makeStep(model => {
@@ -62,24 +65,18 @@ const foldEndDateOutMessage = DateRangeDefinition.makeOutMessageFold(
   },
 )
 
-const EndDatePickerBinding = DateRangeDefinition.makeBinding(
-  DatePicker.DatePickerBlock,
-  {
-    field: 'endDatePicker',
-    init: {
-      contextToArgs: today => Tuple.make({ id: 'end-date', today }),
-    },
+const EndDatePickerBinding = DateRangeDefinition.makeBinding(DatePickerBlock, {
+  field: 'endDatePicker',
+  init: {
+    contextToArgs: today => Tuple.make({ id: 'end-date', today }),
   },
-).withOutMessagePolicy({
+}).withOutMessagePolicy({
   fold: foldEndDateOutMessage,
-  forward: DateRangeDefinition.makeOutMessageForward(
-    DatePicker.DatePickerBlock,
-    {
-      SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
-      ClearedDate: () => undefined,
-      ChangedViewMonth: () => undefined,
-    },
-  ),
+  forward: DateRangeDefinition.makeOutMessageForward(DatePickerBlock, {
+    SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
+    ClearedDate: () => undefined,
+    ChangedViewMonth: () => undefined,
+  }),
 })
 
 const DateRangeComposition = DateRangeDefinition.makeComposition({
@@ -103,4 +100,4 @@ export const DateRangeBlock = DateRangeDefinition.makeBlock(
 
     return { children: [endDatePicker], init, update }
   }),
-).provide(DatePicker.layer)
+).provide(DatePickerLayer)

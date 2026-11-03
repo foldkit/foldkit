@@ -6,7 +6,9 @@ import { ApplicationComposition } from './composition'
 import { makeFieldsStep, makeNoopStep } from './definition'
 import { EditingState, type Todo } from './model'
 
-export const update = ApplicationComposition.makeUpdate({
+const { makeUpdate } = ApplicationComposition
+
+const editTodos = makeUpdate({
   UpdatedNewTodo: makeFieldsStep.fromMessage(({ text }) => ({
     newTodoText: () => text,
   })),
@@ -45,7 +47,6 @@ export const update = ApplicationComposition.makeUpdate({
         todos: () => updatedTodos,
         newTodoText: () => '',
       }),
-      commands: [SaveTodos({ todos: updatedTodos })],
     }
   },
 
@@ -56,7 +57,6 @@ export const update = ApplicationComposition.makeUpdate({
       model: modifyFields(model, {
         todos: () => updatedTodos,
       }),
-      commands: [SaveTodos({ todos: updatedTodos })],
     }
   },
 
@@ -71,7 +71,6 @@ export const update = ApplicationComposition.makeUpdate({
       model: modifyFields(model, {
         todos: () => updatedTodos,
       }),
-      commands: [SaveTodos({ todos: updatedTodos })],
     }
   },
 
@@ -113,7 +112,6 @@ export const update = ApplicationComposition.makeUpdate({
             todos: () => updatedTodos,
             editing: () => EditingState.NotEditing(),
           }),
-          commands: [SaveTodos({ todos: updatedTodos })],
         }
       },
     }),
@@ -134,7 +132,6 @@ export const update = ApplicationComposition.makeUpdate({
       model: modifyFields(model, {
         todos: () => updatedTodos,
       }),
-      commands: [SaveTodos({ todos: updatedTodos })],
     }
   },
 
@@ -145,7 +142,6 @@ export const update = ApplicationComposition.makeUpdate({
       model: modifyFields(model, {
         todos: () => updatedTodos,
       }),
-      commands: [SaveTodos({ todos: updatedTodos })],
     }
   },
 
@@ -159,3 +155,15 @@ export const update = ApplicationComposition.makeUpdate({
 
   FailedSaveTodos: makeNoopStep(),
 })
+
+const persistTodos = makeUpdate.except(['SucceededSaveTodos'])(
+  (model, _message, { before }) => ({
+    model,
+    commands: Array.filter(
+      [SaveTodos({ todos: model.todos })],
+      () => model.todos !== before.todos,
+    ),
+  }),
+)
+
+export const update = makeUpdate.compose(editTodos, persistTodos)

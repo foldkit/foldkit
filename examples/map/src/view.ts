@@ -2,7 +2,8 @@ import clsx from 'clsx'
 import { Array, Equal, Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { Button, Input } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
+import { view as inputView } from '@foldkit/ui/input'
 
 import { SEARCH_INPUT_ID } from './command'
 import { ApplicationComposition } from './composition'
@@ -68,7 +69,7 @@ const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
       h.div(
         [h.Class('px-5 py-3 border-b border-slate-200')],
         [
-          Input.view(
+          inputView(
             {
               id: SEARCH_INPUT_ID,
               type: 'search',
@@ -122,7 +123,7 @@ const locationListItemView =
     return h.li(
       [],
       [
-        Button.view(
+        buttonView(
           {
             onClick: Message.ClickedLocation({ locationId: location.id }),
             toView: attributes =>
@@ -159,7 +160,7 @@ const footerView = (model: Model, h: ApplicationViewBuilder): Html => {
   return h.div(
     [h.Class('border-t border-slate-200 px-5 py-3 space-y-2')],
     [
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedFindMe(),
           isDisabled: isLocating,
@@ -304,7 +305,7 @@ const geolocateFailedContentView = (
         ['Could not locate you'],
       ),
       h.p([h.Class('text-sm text-slate-600')], [reason]),
-      Button.view(
+      buttonView(
         {
           onClick: Message.DismissedGeolocate(),
           toView: attributes =>

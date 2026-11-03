@@ -1,10 +1,10 @@
 import { Effect, Layer } from 'effect'
 
+import { Counter } from './blocks'
 import { EffectsLayer } from './command'
 import { CounterBinding } from './composition'
 import { ApplicationDefinition } from './definition'
 import { init } from './init'
-import * as Counter from './island'
 import { update } from './update'
 import { view } from './view'
 

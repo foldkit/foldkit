@@ -13,7 +13,7 @@ What `Menu.makeBlock<Item>()` returns is typed [`Completed<Item>` from `@foldkit
 Use `Menu.makeBlock()` for plain strings. Connect the completed Block returned by `Menu.makeBlock<Item>()` when the item type is narrower.
 
 :::Info{label="See it in an app"}
-Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/menu.ts).
+Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/menu.ts).
 :::
 
 ## Examples

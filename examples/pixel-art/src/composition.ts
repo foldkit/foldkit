@@ -2,7 +2,7 @@ import { Array, Option } from 'effect'
 import { type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { DialogBlock } from '@foldkit/ui'
+import { DialogBlock } from '@foldkit/ui/dialog'
 
 import { saveCanvas } from './command'
 import {

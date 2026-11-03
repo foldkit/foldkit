@@ -483,7 +483,7 @@ describe('keyed Block occurrences', () => {
         expect(mountsStopped).toEqual(['old'])
         expect(mountsStarted).toEqual(['old', 'other', 'new'])
       })
-      expect(interrupted).toEqual([])
+      expect(interrupted).toEqual(['old'])
       staleDispatch(ItemMessage.ClickedReadValue())
       expect(reads).toEqual(['old', 'other'])
       subscriptionEmitters.get('new')!('fresh pulse')

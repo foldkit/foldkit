@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
 import { type Html, createLazy } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 import { ApplicationComposition } from '../composition'
 import type { ApplicationViewBuilder } from '../composition'
@@ -113,7 +113,7 @@ const headerView = (h: ApplicationViewBuilder): Html =>
       h.div(
         [h.Class('flex items-center gap-4')],
         [
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedExport(),
               toView: attributes =>

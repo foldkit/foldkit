@@ -19,6 +19,7 @@ import {
   acquisitionOf,
   descriptorConstructorOf,
 } from '../../constructed/symbolic.js'
+import type { PendingHostHandlersTypeId } from '../../contracted/contract.js'
 
 type TestSource = Readonly<{
   owner: unknown
@@ -38,6 +39,18 @@ export type BlockSubject = DescriptorContract &
   Readonly<{
     get: Effect.Effect<TestSource, unknown, unknown>
   }>
+
+/** @internal Ordinary implementation tests require a selected host-provider contract. */
+export type ValidateTestBlock<Block> =
+  Block extends Readonly<{
+    [PendingHostHandlersTypeId]: infer Pending
+  }>
+    ? [Pending] extends [never]
+      ? unknown
+      : Readonly<{
+          'Block tests must select the original host handlers with provideHandlers': Pending
+        }>
+    : unknown
 
 type DispatchMessageOf<Block> =
   ExecutableOf<Block> extends Readonly<{
@@ -183,7 +196,7 @@ const toTestBlock = (executable: unknown): object => {
  * ```
  */
 export function withBlock<Block extends BlockSubject, Output>(
-  block: Block,
+  block: Block & ValidateTestBlock<NoInfer<Block>>,
   use: (
     block: TestBlock<NoInfer<Block>>,
   ) => Output & SynchronousOrEffect<Output>,

@@ -1,7 +1,7 @@
 import type { Block } from 'foldkit'
 
+import { CounterBlock } from './blocks'
 import { ApplicationDefinition } from './definition'
-import { CounterBlock } from './island'
 
 export const CounterBinding = ApplicationDefinition.makeBinding(CounterBlock, {
   field: 'counter',

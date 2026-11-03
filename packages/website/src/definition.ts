@@ -1,6 +1,5 @@
 import { Schema } from 'effect'
-import { Url } from 'foldkit'
-import { Block } from 'foldkit'
+import { Block, Url } from 'foldkit'
 
 import { ChildInitContext } from './childInitContext'
 import { Flags } from './flags'

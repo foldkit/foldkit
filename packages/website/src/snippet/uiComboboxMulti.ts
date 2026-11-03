@@ -3,13 +3,15 @@ import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Combobox } from '@foldkit/ui'
-import { inputId as MultiComboboxInputId } from '@foldkit/ui/combobox'
+import {
+  Multi as MultiCombobox,
+  inputId as MultiComboboxInputId,
+} from '@foldkit/ui/combobox'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
 type City = typeof City.Type
 
-const CitiesCombobox = Combobox.Multi.makeBlock(City)
+const CitiesCombobox = MultiCombobox.makeBlock(City)
 
 const Model = Schema.Struct({
   selectedCities: Schema.Array(City),
@@ -137,4 +139,4 @@ export const layer = CitiesPickerDefinition.makeBlock(
 
     return { children: [combobox], init, update, view }
   }),
-).provide(Combobox.Multi.layer).layer
+).provide(MultiCombobox.layer).layer

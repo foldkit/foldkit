@@ -1,5 +1,11 @@
 # Constructor migration stabilization
 
+This report records the pinned constructor checkpoint. The subsequent
+[constructor and composable-update follow-up](../update-composition/REPORT.md)
+implements the shared-update use case, restores ordinary host-handler
+selection, and addresses the resulting security review findings. Its receipts
+and the current preview checklist supersede the remaining-gate status below.
+
 ## Status
 
 The construction and InMessage migration is committed at

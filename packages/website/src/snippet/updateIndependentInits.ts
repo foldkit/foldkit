@@ -1,7 +1,7 @@
 import {
-  WorkspaceComposition,
-  SearchBinding,
   EditorBinding,
+  SearchBinding,
+  WorkspaceComposition,
 } from './composition'
 const init = WorkspaceComposition.makeInit(() => ({
   model: {

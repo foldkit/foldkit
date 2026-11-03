@@ -1,5 +1,5 @@
-// page/settings/definition.ts
-import { Schema } from 'effect'
+// blocks/settings/definition.ts
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 
 import { InMessage } from './inMessage'
@@ -27,10 +27,9 @@ export const SettingsDefinition = Block.makeDefinition('Settings', {
 
 export const SettingsBlock = SettingsDefinition.contract
 
-// page/settings/block.ts
-import { Effect } from 'effect'
+// blocks/settings/block.ts
 
-import { SettingsDefinition } from './definition'
+import { ApplicationDefinition, SettingsDefinition } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { receive } from './receive'
@@ -43,18 +42,21 @@ export const layer = SettingsDefinition.makeBlock(
   }),
 ).layer
 
-// page/settings/index.ts
+// blocks/settings/index.ts
 export { SettingsBlock } from './definition'
 export { layer } from './block'
 
+// blocks/index.ts
+export { SettingsBlock } from './settings'
+export * as Settings from './settings'
+
 // Parent model.ts
-import { SettingsBlock } from './page/settings'
+import { SettingsBlock } from './blocks'
 
 export const Model = Schema.Struct({ settings: SettingsBlock.Model })
 export type Model = typeof Model.Type
 
 // Parent composition.ts
-import { ApplicationDefinition } from './definition'
 
 export const SettingsBinding = ApplicationDefinition.makeBinding(
   SettingsBlock,
@@ -68,7 +70,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 
 // Parent block.ts
-import * as Settings from './page/settings'
+import { Settings } from './blocks'
 
 export const ApplicationBlock = ApplicationDefinition.makeBlock(
   Effect.gen(function* () {

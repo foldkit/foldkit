@@ -124,6 +124,57 @@ The context rule is exact: `update(message)(model, ...context)`. `Update.combine
 
 An update, init, Step, or component helper that statically creates no Commands omits `commands`. When it computes a Commands collection, it returns that collection directly without checking whether it is empty. The [`foldkit/no-empty-commands-array`](/tooling/oxlint-plugin#no-empty-commands-array) lint rule rejects only a literal `commands: []` property.
 
+## Composing Updates
+
+Most Blocks need one exhaustive `makeUpdate(record)`. Use `makeUpdate.compose`
+when behavior belongs across handlers, such as persisting a document after any
+edit. The composed update contains exactly one exhaustive update and any focused
+updates, applied in the order supplied.
+
+For example, assume a Draft Block owns `text`. `UpdatedText` edits it,
+`CompletedRestoreDraft` supplies saved text, and `CompletedPersistDraft` reports
+storage completion. Its `PersistDraft` Command accepts the text to save:
+
+::Snippet{name="updateComposition" label="Persisting changes across update handlers"}
+
+Shared callbacks (`each`, `on`, and `except`) receive the current Model, the
+original Message, and `{ before }`. `before` is the Model at entry to the entire composed update.
+Declared dispatch context follows that third argument. Grouping updates does
+not reset the snapshot.
+
+Restoring the document does not request another save because `except` excludes
+that Message. A save completion does not change the text, so it returns no new
+save Command. Compare the fields being persisted rather than unrelated Model
+bookkeeping.
+
+Choose focused updates by the dispatches they handle:
+
+| Builder                            | Applies to                                                                       |
+| ---------------------------------- | -------------------------------------------------------------------------------- |
+| `makeUpdate.cases(record)`         | The named local Message tags, with exact payload inference per handler           |
+| `makeUpdate.each(handler)`         | Every accepted update dispatch, including child delivery                         |
+| `makeUpdate.on(tags)(handler)`     | The selected local Message tags                                                  |
+| `makeUpdate.except(tags)(handler)` | Every accepted dispatch except the selected local tags, including child delivery |
+
+Pass an existing compatible Step directly or return a result or Step from the
+callback. Extract the complete builder expression into another module without
+adding an application type annotation. A focused update does not replace a
+handler in the exhaustive record. When both apply, both run in order.
+
+`makeUpdate.compose` also groups focused updates into reusable bundles. Include
+one exhaustive update before completing the Block. Bundles belong to the same
+Composition and preserve the order in which their pieces are listed. The
+exhaustive update handles local Messages and routes child delivery once at its
+position in that order; its child OutMessage fold finishes before a later
+focused update runs.
+
+Shared callbacks are silent with respect to OutMessages. An additional
+`cases` record may emit only when another applicable record cannot emit for
+the same Message. Later silent updates preserve an existing OutMessage.
+Command intents accumulate in update order; their effects and completions do
+not run in that order. Composition applies to `update`, not to `init` or the
+separate InMessage `receive` function.
+
 ## Composing Results
 
 ### Returning an Initialization Recipe

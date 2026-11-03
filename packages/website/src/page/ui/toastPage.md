@@ -7,7 +7,7 @@ A stack of transient notifications positioned along an edge of the viewport. Eac
 Toast is parameterized on a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.makeBlock(PayloadSchema)` returns a completed Block whose Model, programmatic API, view, Subscriptions, and handler recipes are bound to that payload type. Each parent Binding supplies its occurrence identity.
 
 :::Info{label="See it in an app"}
-Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/toast.ts).
+Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/toast.ts).
 :::
 
 ## Examples

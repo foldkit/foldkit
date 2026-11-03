@@ -2,11 +2,15 @@ import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { expect, init as sceneInit, role, scene } from 'foldkit/scene'
+import { expect, role, scene, init as sceneInit } from 'foldkit/scene'
 
-import { Slider } from '@foldkit/ui'
+import {
+  type SliderAttributes,
+  SliderBlock,
+  layer as SliderLayer,
+} from '@foldkit/ui/slider'
 
-const Model = Schema.Struct({ slider: Slider.SliderBlock.Model })
+const Model = Schema.Struct({ slider: SliderBlock.Model })
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({})
@@ -26,13 +30,13 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 
 const { makeNoopStep } = ApplicationDefinition
 
-const SliderBinding = ApplicationDefinition.makeBinding(Slider.SliderBlock, {
+const SliderBinding = ApplicationDefinition.makeBinding(SliderBlock, {
   field: 'slider',
   init: {
     contextToArgs: () => [{ id: 'volume', min: 0, max: 10, step: 1 }],
   },
 }).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(Slider.SliderBlock, {
+  fold: ApplicationDefinition.makeOutMessageFold(SliderBlock, {
     ChangedValue: makeNoopStep,
   }),
 })
@@ -51,7 +55,7 @@ const view = ApplicationComposition.makeView.withInputs<
       viewInputs: {
         value,
         ...(isDisabled === undefined ? {} : { isDisabled }),
-        toView: (attributes: Slider.SliderAttributes) =>
+        toView: (attributes: SliderAttributes) =>
           ih.div(
             [...attributes.root],
             [ih.div([...attributes.track]), ih.div([...attributes.thumb])],
@@ -69,7 +73,7 @@ const ApplicationBlock = ApplicationDefinition.makeBlock(
 
     return { children: [slider], init, update, view }
   }),
-).provide(Slider.layer)
+).provide(SliderLayer)
 
 await Effect.runPromise(
   scene(

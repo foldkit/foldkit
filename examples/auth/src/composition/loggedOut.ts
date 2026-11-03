@@ -1,6 +1,6 @@
+import { LoggedOutBlock } from '../blocks'
 import { RedirectToDashboard, SaveSession } from '../command'
 import { ApplicationDefinition, makeStep } from '../definition'
-import { LoggedOutBlock } from '../page'
 import { ApplicationRoute } from '../route'
 import { LoggedInBinding, LoggedOutBinding } from './bindings'
 

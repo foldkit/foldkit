@@ -10,6 +10,8 @@ The [embedding example](/example-apps/embedding) runs everything on this page: a
 
 Embedded apps are usually built with `Program.makeElement`: the root Block view returns `Html` and the Runtime stays scoped to its container, never touching the document `<head>`, the URL bar, or anything else the host owns. Use `Program.make` when the embedded app should own page-level concerns like the document title. `embed` accepts Programs from both. Both forms carry their Effect requirements until the Program's `provide` method supplies the needed Layers.
 
+Give each container a unique `id` before creating its Program. Foldkit uses that ID to preserve the Model across reloads.
+
 ## Providing Host Implementations
 
 An embedded feature can own a Command's workflow while its host supplies the external capability. For example, an editor can define `SaveDocument` against an `EditorStorage` Service. Its attached handler maps the storage result to the editor's declared Messages, and update handles those results through the usual data flow.
@@ -66,6 +68,6 @@ An invalid inbound value never reaches the app. `send` returns an `Exit` carryin
 
 ## Embedding in React
 
-The handle is framework-agnostic. React cleanup cannot await a Promise, so keep the pending teardown and make the next effect setup wait before reusing the container:
+The handle is framework-agnostic. React’s `useId` gives each widget its own stable container ID. React cleanup cannot await a Promise, so keep the pending teardown and make the next effect setup wait before reusing the container:
 
 ::Snippet{name="embeddingReactHost" label="React host"}

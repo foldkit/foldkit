@@ -20,20 +20,20 @@ import { chromium } from 'playwright'
 
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
 
-import type * as ServerEntry from '../src/entry.server'
 import {
   type ApiModule,
   moduleNameToSlug,
   parseTypedocJson,
   slugToModuleName,
-} from '../src/page/apiReference/domain'
-import { TypeDocJson } from '../src/page/apiReference/typedoc'
-import { BLOG_DESCRIPTION, BLOG_RSS_PATH } from '../src/page/blog/meta'
+} from '../src/blocks/apiReference/domain'
+import { TypeDocJson } from '../src/blocks/apiReference/typedoc'
 import {
   exampleSlugs,
   examples,
   runnableExampleSlugs,
-} from '../src/page/example/meta'
+} from '../src/blocks/exampleDetail/meta'
+import type * as ServerEntry from '../src/entry.server.ts'
+import { BLOG_DESCRIPTION, BLOG_RSS_PATH } from '../src/page/blog/meta'
 import {
   ApplicationRoute,
   SITE_URL,

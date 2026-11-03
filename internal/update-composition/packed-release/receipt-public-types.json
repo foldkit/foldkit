@@ -1,0 +1,184 @@
+{
+  "checkedAt": "2026-11-03T01:19:27.959Z",
+  "scope": "source-free packed TypeScript6 acceptance and rejection checks; no browsers or builds in this subgate",
+  "stage": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy",
+  "nodeVersion": "22.22.3",
+  "typescriptVersion": "6.0.3",
+  "command": "node scripts/check-packed-types-only.ts",
+  "driverSha256": "a86d02a2817bbf5c03955408671d28a9d35a4a6c7cbd08c6ec61536f1ab4e56c",
+  "harnessSha256": "b11cc86b0a8391de83317705c2f050a4fd6eb1fa7d6ec80667e72a7b7013cca5",
+  "harnessMethod": "unchanged current packed driver helper prefix and error handling; type-only main reuses packPackage/writeConsumerProject/withTempDir/assertPackedTypesResolve, with current public update-composition fixture added",
+  "metadataChangesets": 203,
+  "metadataPlanSha256": "b109836736233ac2f429931b30797f6e9e9d0a1e01420d66ebb22cf6dc3c5c44",
+  "releasePlan": [
+    {
+      "name": "foldkit",
+      "oldVersion": "0.170.0",
+      "newVersion": "0.171.0"
+    },
+    {
+      "name": "@foldkit/ui",
+      "oldVersion": "0.170.0",
+      "newVersion": "0.171.0"
+    },
+    {
+      "name": "@foldkit/oxlint-plugin",
+      "oldVersion": "0.15.4",
+      "newVersion": "0.16.0"
+    },
+    {
+      "name": "create-foldkit-app",
+      "oldVersion": "0.41.0",
+      "newVersion": "0.42.0"
+    },
+    {
+      "name": "@foldkit/devtools",
+      "oldVersion": "0.170.0",
+      "newVersion": "0.171.0"
+    },
+    {
+      "name": "@foldkit/devtools-mcp",
+      "oldVersion": "0.26.0",
+      "newVersion": "0.27.0"
+    },
+    {
+      "name": "@foldkit/markdown",
+      "oldVersion": "0.15.0",
+      "newVersion": "0.15.1"
+    },
+    {
+      "name": "@foldkit/vite-plugin",
+      "oldVersion": "0.29.0",
+      "newVersion": "0.29.1"
+    },
+    {
+      "name": "@foldkit/node",
+      "oldVersion": "0.2.0",
+      "newVersion": "0.2.1"
+    }
+  ],
+  "checks": [
+    "strict external npm peers",
+    "Effect, platform-browser, platform-node and platform-node-shared exactly 4.1.0",
+    "one physical Effect runtime across 12 resolutions",
+    "source-free public entrypoints, inferred Program/Machine declarations and npm workspace consumer",
+    "actual public update-composition accepted/consume/selection.rejected fixtures",
+    "extracted makeUpdate/makeFieldsStep/makeCommandsStep declaration nameability"
+  ],
+  "packages": [
+    {
+      "name": "foldkit",
+      "version": "0.171.0",
+      "manifestSha256": "9d3b90a2ee482a5cbbde5cbd696ad67b7cbb2940fd69142fc67d26cab7f94d48",
+      "distSha256": "6f95ae00fec826c4f1657a5a6f6d05630703ccb54a6ad856e2c09982b671e2e8",
+      "stagedManifestSha256": "0679321a3bc1b772131e062545bf2ae41d118eff737d8158628223fd6a9e846b"
+    },
+    {
+      "name": "@foldkit/ui",
+      "version": "0.171.0",
+      "manifestSha256": "77978dd728e86d9fae609ab3b8f33bb16592404dc0969deb6beca73865f8bbc7",
+      "distSha256": "f2c1a89a917e00b5d00790153557f0a361c1effc310550ed086ab673f3463ce4",
+      "stagedManifestSha256": "9dc70e30c91c2fa48e030cf0fd9f9c1b80b079718124119d127f01e972843fe5"
+    },
+    {
+      "name": "@foldkit/devtools",
+      "version": "0.171.0",
+      "manifestSha256": "6b48097d096c7fa408c5e7d9eace3fc28dfaf537a0b996fc7ca30ffb003c0ed7",
+      "distSha256": "e24fcca4f7af84f072a4dbfa2d31c3d8bd1e6f15112682058908a93c5d94ae9c",
+      "stagedManifestSha256": "86d198e793285cf5b8a1437676c51cca095fbaf312f5bb433ee236cc6c7a1fd3"
+    },
+    {
+      "name": "@foldkit/devtools-mcp",
+      "version": "0.27.0",
+      "manifestSha256": "a6ceef6538fd08e610e08dafd318fe993f61754b60543918d719486b6e4506e9",
+      "distSha256": "9c3328c36e5c197eb5c4f862f484c40828913a700f7246df9d395764c3c64749",
+      "stagedManifestSha256": "0eede5386f699b9296280c7f60f912c7360fbbc7e89d329dd33a9093f317630d"
+    },
+    {
+      "name": "@foldkit/markdown",
+      "version": "0.15.1",
+      "manifestSha256": "cc76fc406b3ec4f607f5cc6388af8b2d5c0bbfe2092151d55cb18d1ab4d9e034",
+      "distSha256": "ed41c4aab7d6a4205bd7144b4f544c6722881cdd0b811fe5f571e49be7da9f8c",
+      "stagedManifestSha256": "03da0f81d7d40db7b01223ea81fadb239fef88b1a8b0766dd6ca25625eb90860"
+    },
+    {
+      "name": "@foldkit/node",
+      "version": "0.2.1",
+      "manifestSha256": "b758e8125477fa1687138190b9c2f2bdebc8271e55db1a6f12ce753f2452584f",
+      "distSha256": "0bd0502fb3d3f64d821f71efabcfadec42156f2bd0d612c1b4be098faf2d1bff",
+      "stagedManifestSha256": "16bf8bb6577b05e52edb6e93be91bf035f7f8001c54b0fb05d9cf6a5fb685919"
+    },
+    {
+      "name": "@foldkit/vite-plugin",
+      "version": "0.29.1",
+      "manifestSha256": "54c0a539c7d63e5b43278cf5748a73059afb06c441c3fec5e7c51fddc6871084",
+      "distSha256": "0cc7c0f7a697cd4a0c2544fbc77553e5c30decc7fcd4f382f488148a4b708a12",
+      "stagedManifestSha256": "35cb1a9dff9364509b6341d21c5a5dd4c7299942167e1ecc794a5a31315962e6"
+    }
+  ],
+  "versionedTarballs": [
+    {
+      "path": "/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/foldkit/foldkit-0.171.0.tgz",
+      "sha256": "0d6786d240932807981c30da43bd0ea068ae8991ede6bc7d13f935d93c7e382c"
+    },
+    {
+      "path": "/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/vite-plugin-foldkit/foldkit-vite-plugin-0.29.1.tgz",
+      "sha256": "5d82da2c4ff270156b839d32f944fb888969adc76c1467d93884e7f5a98d2f6b"
+    },
+    {
+      "path": "/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/ui/foldkit-ui-0.171.0.tgz",
+      "sha256": "23b6a28a315740c5f35d3fd433fb6e67e5c318a663112e120fe5a90bd345b829"
+    },
+    {
+      "path": "/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/markdown/foldkit-markdown-0.15.1.tgz",
+      "sha256": "c7bbde70afae0874cd0c6f963034fb09bc8bf5007da3adc8891384bceb897c6f"
+    },
+    {
+      "path": "/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/node/foldkit-node-0.2.1.tgz",
+      "sha256": "29c9d902dbb9192ef457e4f1f4a890af83534a02ed93d5af300b095bfaaff6ff"
+    },
+    {
+      "path": "/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/devtools/foldkit-devtools-0.171.0.tgz",
+      "sha256": "58ea507c88af3daadd081c407fd72198f4d3296596d205c1a93a78e60980945f"
+    },
+    {
+      "path": "/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-J968Dy/packages/devtools-mcp/foldkit-devtools-mcp-0.27.0.tgz",
+      "sha256": "d3e0d18daaf1b34f5393d1daaa20c52b24a6ff61259b0b7d0be9daad4acedc17"
+    }
+  ],
+  "pass": true,
+  "exitCode": 0,
+  "consumerAndGateTarballsCleaned": true,
+  "activeManifestsAndDistUnchanged": true,
+  "log": {
+    "path": "/tmp/foldkit-packed-validator-types-nameable.log",
+    "sha256": "3a2d9838ee7ea0ba62fd635969fb42b992bc7e25bba52434a8f3b3aba3389b84"
+  },
+  "earlierFailuresPreserved": [
+    {
+      "kind": "stale emitted validator declarations detected by new public rejections",
+      "path": "/tmp/foldkit-emitted-final-validator.log",
+      "sha256": "3093efc9f8ac80973baf3e9a6b6113b5f0280ca07dbb5b94fea1375b8e340ae0"
+    },
+    {
+      "kind": "TS6 detected three unnameable extracted helper types before public named exports",
+      "stage": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-yn1Fqb",
+      "path": "/tmp/foldkit-packed-validator-types.log",
+      "sha256": "a3bf67b973ac80646dc7bfc62d63051348d7da804fcfa89829bb632fd165a595"
+    }
+  ],
+  "coreJavaScriptEquivalence": {
+    "checkedAt": "2026-11-03T01:18:26.524043+00:00",
+    "priorBrowserStage": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-release-rehearsal-MhwOmv",
+    "current": "/private/tmp/foldkit-update-composition-20261102/packages/foldkit/dist",
+    "jsFiles": 350,
+    "jsByteIdentical": true,
+    "jsTreeSha256": "74e0b85741bc5d5c1566ae59727268eb9818349e71d7456d58fb3316ac5cceb7",
+    "changedDeclarations": [
+      "block/commandsStep.d.ts",
+      "block/fieldStep.d.ts",
+      "block/public.d.ts",
+      "experimental/hybrid/updateComposition.d.ts"
+    ]
+  }
+}

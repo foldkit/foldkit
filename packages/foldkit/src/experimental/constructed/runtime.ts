@@ -4,6 +4,7 @@ import {
   Effect,
   Fiber,
   Layer,
+  Option,
   Predicate,
   Schema,
   Scope,
@@ -57,14 +58,17 @@ import type {
   ProjectFacts,
 } from './contract.js'
 import {
+  type AcquisitionContext,
   acquisitionOf,
   makeSymbolicBinding,
   registerAcquisition,
   registerDescriptorConstructor,
   registerExecutionBindings,
+  registerProvidedExecutableResolver,
   symbolicBindingOf,
   symbolicConnectionOf,
   symbolicEmbeddingOf,
+  withConstructionGraph,
 } from './symbolic.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
@@ -89,6 +93,7 @@ export const wrapExecutable = (
   descriptor: any,
   implementation: AnyBlock,
   opaqueRuntime = false,
+  acquisition: AcquisitionContext,
 ): object => {
   assertCompletedBlock(implementation)
 
@@ -229,7 +234,13 @@ export const wrapExecutable = (
     EffectsLayer,
   })
   registerExecutableHandle(executable, implementation)
-  registerAcquisition(executable, descriptor, implementation)
+  registerAcquisition(
+    executable,
+    descriptor,
+    implementation,
+    acquisition.graph,
+    acquisition.isCurrent,
+  )
   registerDefaultView(executable, defaultViewOf(implementation))
 
   return executable
@@ -239,10 +250,15 @@ export const wrapExecutable = (
 export const registerDeclaredDescriptor = (
   descriptor: object,
   construct: () => Effect.Effect<object, any, any>,
+  resolveProvided?: () => Effect.Effect<Option.Option<object>, any, any>,
 ): void => {
   descriptors.add(descriptor)
   registerAuthoringChildContract(descriptor)
   registerDescriptorConstructor(descriptor, construct)
+
+  if (resolveProvided !== undefined) {
+    registerProvidedExecutableResolver(descriptor, resolveProvided)
+  }
 }
 
 const makeDescriptor = (
@@ -252,7 +268,7 @@ const makeDescriptor = (
     Message: AnySchema
     OutMessage?: AnySchema | undefined
   }>,
-  constructor: Effect.Effect<any, any, any>,
+  constructor: (graph: object) => Effect.Effect<any, any, any>,
   kind: ConstructionKind = 'Effect',
   provideConstruction: (
     layer: Layer.Layer<any, any, any>,
@@ -264,12 +280,30 @@ const makeDescriptor = (
     )
     const layer: Layer.Layer<unknown, any, any> = provideConstruction(
       Layer.fromBuildMemo((memoMap, scope) =>
-        Effect.map(
-          constructor.pipe(
-            Scope.provide(scope),
-            Effect.provideService(Layer.CurrentMemoMap, memoMap),
-          ),
-          block => Context.make(output, wrapExecutable(descriptor, block)),
+        withConstructionGraph(
+          graph =>
+            Effect.gen(function* () {
+              let isActive = true
+              yield* Scope.addFinalizer(
+                scope,
+                Effect.sync(() => {
+                  isActive = false
+                }),
+              )
+              const block = yield* constructor(graph).pipe(
+                Scope.provide(scope),
+                Effect.provideService(Layer.CurrentMemoMap, memoMap),
+              )
+
+              return Context.make(
+                output,
+                wrapExecutable(descriptor, block, false, {
+                  graph,
+                  isCurrent: () => isActive,
+                }),
+              )
+            }),
+          scope,
         ),
       ),
     )
@@ -288,14 +322,17 @@ const makeDescriptor = (
           ),
         ),
     })
-    registerDeclaredDescriptor(descriptor, () =>
-      Effect.gen(function* () {
-        const memoMap = yield* Layer.CurrentMemoMap
-        const scope = yield* Effect.scope
-        const context = yield* Layer.buildWithMemoMap(layer, memoMap, scope)
+    registerDeclaredDescriptor(
+      descriptor,
+      () =>
+        Effect.gen(function* () {
+          const memoMap = yield* Layer.CurrentMemoMap
+          const scope = yield* Effect.scope
+          const context = yield* Layer.buildWithMemoMap(layer, memoMap, scope)
 
-        return Context.get(context, output)
-      }),
+          return Context.get(context, output)
+        }),
+      () => Effect.serviceOption(output),
     )
     registerRootConstruction(descriptor, {
       layer,
@@ -314,7 +351,28 @@ const makeDescriptor = (
     Message: definition.Message,
     OutMessage: definition.OutMessage,
     construct: () =>
-      Effect.map(constructor, block => wrapExecutable(descriptor, block)),
+      withConstructionGraph(graph =>
+        Effect.gen(function* () {
+          let isActive = true
+          const maybeScope = yield* Effect.serviceOption(Scope.Scope)
+
+          if (Option.isSome(maybeScope)) {
+            yield* Scope.addFinalizer(
+              maybeScope.value,
+              Effect.sync(() => {
+                isActive = false
+              }),
+            )
+          }
+
+          const block = yield* constructor(graph)
+
+          return wrapExecutable(descriptor, block, false, {
+            graph,
+            isCurrent: () => isActive,
+          })
+        }),
+      ),
   })
   registerDeclaredDescriptor(descriptor, descriptor.construct)
 
@@ -381,6 +439,7 @@ const constructImplementation = (
   definition: any,
   body: any,
   compileReceiver?: CompileReceiver,
+  graph?: object,
 ): any => {
   const source = planComposition<any>(body.init)
   const inventory = inventories.get(source)
@@ -394,7 +453,7 @@ const constructImplementation = (
   const actualBindings: Array<object> = []
 
   for (const connection of body.children) {
-    const { binding, child } = symbolicConnectionOf(connection)
+    const { binding, child, canonicalGraph } = symbolicConnectionOf(connection)
 
     if (!expected.delete(binding)) {
       throw new Error(
@@ -404,6 +463,21 @@ const constructImplementation = (
 
     const declaration = symbolicBindingOf(binding)
     const acquisition = acquisitionOf(child)
+    if (!acquisition.isCurrent()) {
+      throw new Error(
+        '[foldkit] A Binding cannot connect an executable after its acquisition Scope has closed.',
+      )
+    }
+
+    if (
+      graph === undefined ||
+      (acquisition.graph !== graph && canonicalGraph !== graph)
+    ) {
+      throw new Error(
+        '[foldkit] A Binding can connect only an executable acquired in this construction graph.',
+      )
+    }
+
     const makeBinding =
       declaration.kind === 'Map'
         ? definition.makeMapBinding
@@ -498,6 +572,7 @@ const constructImplementation = (
 export const constructAuthoredImplementation = (
   body: ConstructorBody,
   compileReceiver?: CompileReceiver,
+  graph?: object,
 ): AnyBlock => {
   const source = planComposition(body.init)
   const inventory = inventories.get(source)
@@ -508,7 +583,12 @@ export const constructAuthoredImplementation = (
     )
   }
 
-  return constructImplementation(inventory.definition, body, compileReceiver)
+  return constructImplementation(
+    inventory.definition,
+    body,
+    compileReceiver,
+    graph,
+  )
 }
 
 type DeclaredOutMessage<BlockValue> =
@@ -585,8 +665,7 @@ export function fromBlock(
     )
   }
 
-  return makeDescriptor(
-    canonical,
+  return makeDescriptor(canonical, () =>
     Effect.map(constructor, selected => {
       if (
         selected.owner !== canonical.owner ||
@@ -751,9 +830,10 @@ export const makeDefinitionFactory =
       makeBlock: (constructor: Effect.Effect<any, any, any>) =>
         makeDescriptor(
           { owner: definition.owner, ...contracts },
-          Effect.map(constructor, body =>
-            constructImplementation(definition, body),
-          ),
+          graph =>
+            Effect.map(constructor, body =>
+              constructImplementation(definition, body, undefined, graph),
+            ),
           kind,
         ),
     }
@@ -776,5 +856,5 @@ export const fromLayeredBlock = <const BlockValue extends AnyBlock>(
 > => {
   assertCompletedBlock(block)
 
-  return makeDescriptor(block, Effect.succeed(block), 'Layer')
+  return makeDescriptor(block, () => Effect.succeed(block), 'Layer')
 }

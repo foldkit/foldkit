@@ -1,0 +1,379 @@
+{
+  "source": [
+    {
+      "application": "api-cache",
+      "exitCode": 0
+    },
+    {
+      "application": "api-cache-query",
+      "exitCode": 0
+    },
+    {
+      "application": "auth",
+      "exitCode": 0
+    },
+    {
+      "application": "canvas-art",
+      "exitCode": 0
+    },
+    {
+      "application": "charting",
+      "exitCode": 0
+    },
+    {
+      "application": "counter",
+      "exitCode": 0
+    },
+    {
+      "application": "counters",
+      "exitCode": 0
+    },
+    {
+      "application": "crash-view",
+      "exitCode": 0
+    },
+    {
+      "application": "embedding",
+      "exitCode": 0
+    },
+    {
+      "application": "form",
+      "exitCode": 0
+    },
+    {
+      "application": "generative-art",
+      "exitCode": 0
+    },
+    {
+      "application": "interrupting-commands",
+      "exitCode": 0
+    },
+    {
+      "application": "job-application",
+      "exitCode": 0
+    },
+    {
+      "application": "kanban",
+      "exitCode": 0
+    },
+    {
+      "application": "managed-resource-layer",
+      "exitCode": 0
+    },
+    {
+      "application": "map",
+      "exitCode": 0
+    },
+    {
+      "application": "personal-blog",
+      "exitCode": 0
+    },
+    {
+      "application": "pixel-art",
+      "exitCode": 0
+    },
+    {
+      "application": "query-sync",
+      "exitCode": 0
+    },
+    {
+      "application": "route-transitions",
+      "exitCode": 0
+    },
+    {
+      "application": "routing",
+      "exitCode": 0
+    },
+    {
+      "application": "shopping-cart",
+      "exitCode": 0
+    },
+    {
+      "application": "slow-warnings",
+      "exitCode": 0
+    },
+    {
+      "application": "snake",
+      "exitCode": 0
+    },
+    {
+      "application": "ssg",
+      "exitCode": 0
+    },
+    {
+      "application": "ssr",
+      "exitCode": 0
+    },
+    {
+      "application": "state-machine",
+      "exitCode": 0
+    },
+    {
+      "application": "stopwatch",
+      "exitCode": 0
+    },
+    {
+      "application": "todo",
+      "exitCode": 0
+    },
+    {
+      "application": "ui-showcase",
+      "exitCode": 0
+    },
+    {
+      "application": "view-transitions",
+      "exitCode": 0
+    },
+    {
+      "application": "weather",
+      "exitCode": 0
+    },
+    {
+      "application": "web-components",
+      "exitCode": 0
+    },
+    {
+      "application": "websocket-chat",
+      "exitCode": 0
+    },
+    {
+      "application": "workspace",
+      "exitCode": 0
+    }
+  ],
+  "runtime": {
+    "applications": 34,
+    "passedTests": 689,
+    "passedFiles": 108,
+    "applicationsWithCounts": [
+      {
+        "application": "api-cache-query",
+        "passedTests": 16,
+        "passedFiles": 2
+      },
+      {
+        "application": "api-cache",
+        "passedTests": 19,
+        "passedFiles": 3
+      },
+      {
+        "application": "auth",
+        "passedTests": 13,
+        "passedFiles": 3
+      },
+      {
+        "application": "canvas-art",
+        "passedTests": 10,
+        "passedFiles": 2
+      },
+      {
+        "application": "charting",
+        "passedTests": 13,
+        "passedFiles": 3
+      },
+      {
+        "application": "counter",
+        "passedTests": 10,
+        "passedFiles": 2
+      },
+      {
+        "application": "counters",
+        "passedTests": 13,
+        "passedFiles": 2
+      },
+      {
+        "application": "crash-view",
+        "passedTests": 2,
+        "passedFiles": 2
+      },
+      {
+        "application": "embedding",
+        "passedTests": 6,
+        "passedFiles": 2
+      },
+      {
+        "application": "form",
+        "passedTests": 19,
+        "passedFiles": 2
+      },
+      {
+        "application": "generative-art",
+        "passedTests": 10,
+        "passedFiles": 2
+      },
+      {
+        "application": "interrupting-commands",
+        "passedTests": 11,
+        "passedFiles": 2
+      },
+      {
+        "application": "job-application",
+        "passedTests": 68,
+        "passedFiles": 17
+      },
+      {
+        "application": "kanban",
+        "passedTests": 22,
+        "passedFiles": 2
+      },
+      {
+        "application": "managed-resource-layer",
+        "passedTests": 13,
+        "passedFiles": 2
+      },
+      {
+        "application": "map",
+        "passedTests": 20,
+        "passedFiles": 3
+      },
+      {
+        "application": "personal-blog",
+        "passedTests": 15,
+        "passedFiles": 2
+      },
+      {
+        "application": "pixel-art",
+        "passedTests": 38,
+        "passedFiles": 2
+      },
+      {
+        "application": "query-sync",
+        "passedTests": 12,
+        "passedFiles": 2
+      },
+      {
+        "application": "route-transitions",
+        "passedTests": 10,
+        "passedFiles": 1
+      },
+      {
+        "application": "routing",
+        "passedTests": 30,
+        "passedFiles": 4
+      },
+      {
+        "application": "shopping-cart",
+        "passedTests": 27,
+        "passedFiles": 4
+      },
+      {
+        "application": "slow-warnings",
+        "passedTests": 10,
+        "passedFiles": 3
+      },
+      {
+        "application": "snake",
+        "passedTests": 16,
+        "passedFiles": 2
+      },
+      {
+        "application": "ssr",
+        "passedTests": 2,
+        "passedFiles": 1
+      },
+      {
+        "application": "state-machine",
+        "passedTests": 10,
+        "passedFiles": 2
+      },
+      {
+        "application": "stopwatch",
+        "passedTests": 13,
+        "passedFiles": 2
+      },
+      {
+        "application": "todo",
+        "passedTests": 24,
+        "passedFiles": 2
+      },
+      {
+        "application": "ui-showcase",
+        "passedTests": 14,
+        "passedFiles": 3
+      },
+      {
+        "application": "view-transitions",
+        "passedTests": 10,
+        "passedFiles": 1
+      },
+      {
+        "application": "weather",
+        "passedTests": 8,
+        "passedFiles": 2
+      },
+      {
+        "application": "web-components",
+        "passedTests": 12,
+        "passedFiles": 2
+      },
+      {
+        "application": "websocket-chat",
+        "passedTests": 20,
+        "passedFiles": 2
+      },
+      {
+        "application": "workspace",
+        "passedTests": 153,
+        "passedFiles": 20
+      }
+    ]
+  },
+  "productionBuilds": [
+    {
+      "application": "auth",
+      "exitCode": 0
+    },
+    {
+      "application": "counters",
+      "exitCode": 0
+    },
+    {
+      "application": "job-application",
+      "exitCode": 0
+    },
+    {
+      "application": "personal-blog",
+      "exitCode": 0
+    },
+    {
+      "application": "routing",
+      "exitCode": 0
+    },
+    {
+      "application": "shopping-cart",
+      "exitCode": 0
+    },
+    {
+      "application": "ui-showcase",
+      "exitCode": 0
+    },
+    {
+      "application": "workspace",
+      "exitCode": 0
+    }
+  ],
+  "applicationLint": {
+    "exitCode": 0,
+    "command": "node node_modules/oxlint/bin/oxlint --config .oxlintrc.app.json --disable-nested-config examples"
+  },
+  "retainedTestFiles": 109,
+  "excludedBenchmark": "examples/pixel-art/src/comparison.bench.test.ts",
+  "nonModuleLiteralAudit": {
+    "headFiles": 978,
+    "matchingFiles": 976,
+    "matchingLiterals": 11913,
+    "knownExceptions": [
+      "examples/todo/src/update.ts: separately authored SucceededSaveTodos selector",
+      "examples/workspace/src/listbox.test.ts: previously removed framework-type fixture"
+    ]
+  },
+  "testBodyAudit": {
+    "headFiles": 110,
+    "matchingFiles": 108,
+    "normalization": "module imports omitted; UI namespace and named references normalized to owning subpath/export; remaining TS tokens compared",
+    "knownExceptions": [
+      "examples/todo/src/story.test.ts: separately added Command.expectNone assertion",
+      "examples/workspace/src/listbox.test.ts: previously removed framework-type fixture"
+    ]
+  }
+}

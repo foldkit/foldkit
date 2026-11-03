@@ -2,13 +2,16 @@ import { Effect, Option, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { RadioGroup } from '@foldkit/ui'
-import type { RenderInfo as RadioGroupRenderInfo } from '@foldkit/ui/radioGroup'
+import {
+  layer as RadioGroupLayer,
+  type RenderInfo as RadioGroupRenderInfo,
+  makeBlock as makeRadioGroupBlock,
+} from '@foldkit/ui/radioGroup'
 
 const Plan = Schema.Literals(['Startup', 'Business', 'Enterprise'])
 type Plan = typeof Plan.Type
 
-const PlanRadioGroup = RadioGroup.makeBlock<Plan>()
+const PlanRadioGroup = makeRadioGroupBlock<Plan>()
 
 // Add fields to your Model for the RadioGroup Block and the selected
 // value. The Block keeps private keyboard-focus state; the parent owns
@@ -125,4 +128,4 @@ export const ApplicationBlock = PlanPickerDefinition.makeBlock(
     const planRadioGroup = yield* PlanRadioGroupBinding
     return { children: [planRadioGroup], init, update, view }
   }),
-).provide(RadioGroup.layer)
+).provide(RadioGroupLayer)

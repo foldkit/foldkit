@@ -1,0 +1,55 @@
+## Findings
+
+All findings below are confirmed by static control-flow and Git-history inspection.
+
+1. **High, candidate-introduced: normal child Command cancellation can crash the entire Program.**
+
+   Commands are associated with their occurrence before Model reconciliation at [runtime.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/runtime/runtime.ts:839). Reconciliation can then retire that occurrence, while Command execution is deferred to a microtask. The constructed wrapper treats the inactive authority as a defect at [runtime.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/experimental/constructed/runtime.ts:149), and the outer runtime sends every resulting cause to `crashWith` at [runtime.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/runtime/runtime.ts:814).
+
+   A realistic trigger is a child update that returns a Command while its OutMessage causes the parent to remove that optional or keyed child in the same transition. Removing a child with an already-running asynchronous Command has the same risk when its occurrence Scope closes. Instead of silently canceling stale work, the Program displays the app-wide crash view.
+
+   Fix by checking `captured.isCurrent()` before deferred execution and treating occurrence retirement and Scope interruption as lifecycle cancellation, outside the defect-to-`crashWith` path. Add regressions for both same-update self-removal and removal during a pending Command.
+
+2. **Medium, candidate-introduced: `Binding.connect` permits stale and cross-acquisition implementation grafting.**
+
+   [symbolic.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/experimental/constructed/symbolic.ts:188) authenticates only the passive descriptor identity. It does not verify the executable’s acquisition Scope, liveness, or relationship to the parent construction. Lowering later unwraps and installs that implementation without another check at [constructed/runtime.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/experimental/constructed/runtime.ts:395).
+
+   A child acquired under tenant or configuration Layer A can be retained and passed to a parent constructed under Layer B, including after A’s Scope has closed. Exact descriptor identity still passes. The new graph can therefore receive Layer A’s constructor-captured Services, state, view/update closures, or already-finalized resources. This creates cross-graph state leakage and use-after-release behavior.
+
+   Bind executable handles to an acquisition/construction token and liveness predicate. Require child connections to belong to the current parent construction and remain active when lowered. If externally acquired children are intentionally supported, the parent must explicitly retain their Scope rather than accepting an unowned handle.
+
+3. **Medium, candidate-introduced: Definition declarations are validated but not snapshotted.**
+
+   [contracted/runtime.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/experimental/contracted/runtime.ts:228) validates the original configuration, captures `InMessage`, and then rereads the same object when creating the passive contract and returned Definition at lines 261, 449, and 455. The public entry point forwards the caller’s original object unchanged at [makeDefinition.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/block/makeDefinition.ts:51).
+
+   An erased JavaScript caller can supply an accessor or Proxy that returns InMessage Schema A during validation and receiver compilation, then Schema B for the public contract and Composition surface. Parents and gateways consequently advertise B while the acquired implementation validates and dispatches A. This can admit inputs excluded by B, reject declared B inputs, or misroute generated operations. Similar changing accessors can desynchronize Message, key, and operation metadata.
+
+   Take one own-property snapshot at API entry, snapshot nested channel records and arrays as appropriate, validate only that snapshot, and use it for the native source, passive contract, dispatcher, operations, mounts, and returned Definition. Alternatively, explicitly reject accessor-backed declarations and Proxies.
+
+4. **Medium, candidate-introduced API guarantee: awaitable embed disposal can resolve before predecessor teardown.**
+
+   The candidate now promises that disposal settles after teardown and container restoration at [start.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/runtime/start.ts:249). Re-embedding waits on the previous fiber with interruptible `Fiber.await` at line 303, while each disposal promise only interrupts and awaits its own fiber at line 329.
+
+   Trigger: H1 has a slow finalizer; dispose H1, immediately embed H2, dispose H2 before H1 finishes, await H2 disposal, then reuse the container for another Program. Interrupting H2 cancels its wait on H1, so H2’s promise resolves while H1 can still release resources or restore/replace the container.
+
+   Maintain a non-cancelable teardown tail shared by successive embeds, or make predecessor waiting uninterruptible and require every disposal promise to await the complete predecessor chain.
+
+5. **Medium, candidate-introduced packaging defect: published peer floors permit incompatible packages.**
+
+   [@foldkit/ui](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/ui/package.json:145) still permits `foldkit >=0.169.0`, although migrated modules execute candidate-only APIs such as `Block.makeInputContract` during initialization at [dialog/block.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/ui/src/dialog/block.ts:129). [@foldkit/devtools](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/devtools/package.json:24) likewise permits old Foldkit and UI peers while executing the new construction API and migrated UI Layers.
+
+   A normal downstream npm installation can satisfy every declared peer but fail during module initialization. Workspace overrides and matching-candidate packed tests do not exercise this combination.
+
+   Raise both peer floors, including DevTools’ UI peer, to the first release containing these APIs. Update [check-peer-floors.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/scripts/check-peer-floors.ts:20) and test packed packages against their declared minimum peers.
+
+6. **Medium, shipped-baseline defect: the renderer drops occurrence-currentness guards.**
+
+   [instanceContext.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/block/instanceContext.ts:128) supplies a guard intended to reject buffered delivery after an occurrence retires, and the HTML boundary forwards it. However, [renderer.ts](/private/tmp/foldkit-constructor-daybreak-db69206779/input/packages/foldkit/src/runtime/renderer.ts:369) accepts only the Message and calls the queue without the guard. These lines are unchanged between the exact baseline and candidate.
+
+   If a child view or Mount stream emits while dispatch is buffered, and earlier queued parent Messages remove and recreate the same keyed occurrence, the stale generated envelope can reach the replacement occurrence. Scene’s emission-time activity checks do not cover this later queue transition.
+
+   Accept `isCurrent` in the renderer dispatch functions and forward it to `enqueueMessage` and `enqueueMessageEffect`. Add a buffered remove/recreate regression using the same key.
+
+## Limitations
+
+This was a read-only static review of the exact three-commit range and relevant history. Per instruction, I did not execute tests or application code, install packages, or run an advisory audit. I am not reporting the documented glob/minimatch advisories as new findings, and this review does not establish release approval or a clean dependency audit.

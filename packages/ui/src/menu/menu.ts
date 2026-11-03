@@ -1070,13 +1070,22 @@ const menuViewImpl = (
   const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
     OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
-  const resolveActiveIndex = keyToIndex(
-    'ArrowDown',
-    'ArrowUp',
-    items.length,
-    Option.getOrElse(maybeActiveItemIndex, () => 0),
-    isDisabled,
-  )
+  const resolveActiveIndex = (key: string): number =>
+    Option.match(maybeActiveItemIndex, {
+      onNone: () =>
+        Match.value(key).pipe(
+          Match.whenOr('ArrowUp', 'End', 'PageDown', () => lastEnabledIndex),
+          Match.orElse(() => firstEnabledIndex),
+        ),
+      onSome: activeIndex =>
+        keyToIndex(
+          'ArrowDown',
+          'ArrowUp',
+          items.length,
+          activeIndex,
+          isDisabled,
+        )(key),
+    })
 
   const searchForKey = (key: string): Option.Option<Message> => {
     const nextQuery = searchQuery + key

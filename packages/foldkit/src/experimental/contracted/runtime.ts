@@ -24,6 +24,7 @@ import {
   acquisitionOf,
   executionBindingsOf,
   registerExecutionBindings,
+  withConstructionGraph,
 } from '../constructed/symbolic.js'
 import {
   authoringSourceOf,
@@ -87,6 +88,204 @@ const handlerSelections = new WeakMap<
   (handlers: Layer.Any, declaredHosts?: ReadonlyArray<unknown>) => object
 >()
 let nextServiceKey = 0
+
+const snapshotArray = (
+  value: unknown,
+  name: string,
+): ReadonlyArray<unknown> => {
+  if (!globalThis.Array.isArray(value)) {
+    throw new Error(`[foldkit] ${name} must be an array.`)
+  }
+
+  const descriptors = Object.getOwnPropertyDescriptors(value)
+  const snapshot: Array<unknown> = []
+  let length = 0
+
+  for (const key of Reflect.ownKeys(descriptors)) {
+    const descriptor: PropertyDescriptor = Reflect.get(descriptors, key)
+
+    if (key !== 'length' && (!Predicate.isString(key) || !/^\d+$/.test(key))) {
+      throw new Error(`[foldkit] ${name} cannot have extra properties.`)
+    }
+
+    if (!Object.hasOwn(descriptor, 'value')) {
+      throw new Error(`[foldkit] ${name} cannot contain accessors.`)
+    }
+
+    if (key === 'length') {
+      length = descriptor.value
+    } else {
+      Object.defineProperty(snapshot, key, {
+        configurable: true,
+        enumerable: descriptor.enumerable ?? false,
+        value: descriptor.value,
+        writable: true,
+      })
+    }
+  }
+
+  snapshot.length = length
+
+  return Object.freeze(snapshot)
+}
+
+const snapshotRecord = (value: unknown, name: string): Record<string, any> => {
+  if (!Predicate.isObject(value) || globalThis.Array.isArray(value)) {
+    throw new Error(`[foldkit] ${name} must be a record.`)
+  }
+
+  const descriptors = Object.getOwnPropertyDescriptors(value)
+  const snapshot: Record<string, any> = {}
+
+  for (const key of Reflect.ownKeys(descriptors)) {
+    const descriptor: PropertyDescriptor = Reflect.get(descriptors, key)
+
+    if (!Object.hasOwn(descriptor, 'value')) {
+      throw new Error(`[foldkit] ${name} cannot contain accessors.`)
+    }
+
+    Object.defineProperty(snapshot, key, {
+      configurable: true,
+      enumerable: descriptor.enumerable ?? false,
+      value: descriptor.value,
+      writable: true,
+    })
+  }
+
+  return snapshot
+}
+
+const snapshotChannelRecord = (
+  value: unknown,
+  name: string,
+): Record<string, any> => {
+  const record = snapshotRecord(value, name)
+
+  for (const key of ['services', 'resources']) {
+    if (Object.hasOwn(record, key)) {
+      Object.defineProperty(record, key, {
+        configurable: false,
+        enumerable: true,
+        value: snapshotArray(record[key], `${name}.${key}`),
+        writable: false,
+      })
+    }
+  }
+
+  return Object.freeze(record)
+}
+
+/** @internal Copies declaration records before either public source is created. */
+export function snapshotDefinitionConfiguration<Config extends Declaration>(
+  config: Config,
+): Config
+export function snapshotDefinitionConfiguration(config: Declaration): object {
+  const snapshot = snapshotRecord(config, 'Block Definition configuration')
+
+  if (Object.hasOwn(snapshot, 'operations')) {
+    const operations = snapshotRecord(snapshot['operations'], 'operations')
+
+    for (const name of Reflect.ownKeys(operations)) {
+      const declaration = Reflect.get(operations, name)
+
+      if (!Predicate.isFunction(declaration)) {
+        Object.defineProperty(operations, name, {
+          configurable: false,
+          enumerable:
+            Object.getOwnPropertyDescriptor(operations, name)?.enumerable ??
+            false,
+          value: snapshotChannelRecord(
+            declaration,
+            `operations.${globalThis.String(name)}`,
+          ),
+          writable: false,
+        })
+      }
+    }
+
+    Object.defineProperty(snapshot, 'operations', {
+      configurable: false,
+      enumerable: true,
+      value: Object.freeze(operations),
+      writable: false,
+    })
+  }
+
+  if (Object.hasOwn(snapshot, 'inMessageOutputs')) {
+    const outputs = snapshotRecord(
+      snapshot['inMessageOutputs'],
+      'inMessageOutputs',
+    )
+
+    for (const tag of Reflect.ownKeys(outputs)) {
+      const declaration = Reflect.get(outputs, tag)
+
+      Object.defineProperty(outputs, tag, {
+        configurable: false,
+        enumerable:
+          Object.getOwnPropertyDescriptor(outputs, tag)?.enumerable ?? false,
+        value: snapshotChannelRecord(
+          declaration,
+          `inMessageOutputs.${globalThis.String(tag)}`,
+        ),
+        writable: false,
+      })
+    }
+
+    Object.defineProperty(snapshot, 'inMessageOutputs', {
+      configurable: false,
+      enumerable: true,
+      value: Object.freeze(outputs),
+      writable: false,
+    })
+  }
+
+  if (Object.hasOwn(snapshot, 'view')) {
+    const view = snapshotRecord(snapshot['view'], 'view')
+
+    if (Object.hasOwn(view, 'mounts')) {
+      Object.defineProperty(view, 'mounts', {
+        configurable: false,
+        enumerable: true,
+        value: snapshotArray(view['mounts'], 'view.mounts'),
+        writable: false,
+      })
+    }
+
+    Object.defineProperty(snapshot, 'view', {
+      configurable: false,
+      enumerable: true,
+      value: Object.freeze(view),
+      writable: false,
+    })
+  }
+
+  for (const key of ['effects', 'codec']) {
+    if (Object.hasOwn(snapshot, key) && snapshot[key] !== undefined) {
+      const declaration = snapshotRecord(snapshot[key], key)
+
+      for (const member of ['services', 'resources', 'decoding', 'encoding']) {
+        if (Object.hasOwn(declaration, member)) {
+          Object.defineProperty(declaration, member, {
+            configurable: false,
+            enumerable: true,
+            value: snapshotArray(declaration[member], `${key}.${member}`),
+            writable: false,
+          })
+        }
+      }
+
+      Object.defineProperty(snapshot, key, {
+        configurable: false,
+        enumerable: true,
+        value: Object.freeze(declaration),
+        writable: false,
+      })
+    }
+  }
+
+  return Object.freeze(snapshot)
+}
 
 const isNeverMessage = (sourceAst: SchemaAST.AST): boolean => {
   const ast = SchemaAST.toType(sourceAst)
@@ -213,6 +412,8 @@ export const makeDefinitionRuntime = (
   isOrdinaryDeclaration = true,
   sourceDefinition?: object,
 ): any => {
+  config = snapshotDefinitionConfiguration(config)
+
   if (!Predicate.isString(id) || id.length === 0) {
     throw new Error(
       '[foldkit] An independent Block contract requires a nonempty literal Id.',
@@ -274,7 +475,11 @@ export const makeDefinitionRuntime = (
   if (isOrdinaryDeclaration) {
     declaredKeys.add(config.key)
   }
-  registerDeclaredDescriptor(contract, () => contract.get)
+  registerDeclaredDescriptor(
+    contract,
+    () => contract.get,
+    () => Effect.serviceOption(service),
+  )
 
   const complete = (
     constructor: Effect.Effect<any, any, any>,
@@ -286,133 +491,157 @@ export const makeDefinitionRuntime = (
   ): any => {
     const layer = provision(
       Layer.fromBuildMemo((memoMap, scope) =>
-        constructor.pipe(
-          Scope.provide(scope),
-          Effect.provideService(Layer.CurrentMemoMap, memoMap),
-          Effect.flatMap(constructorBody =>
-            Effect.gen(function* () {
-              if (Object.hasOwn(constructorBody, 'operations')) {
-                throw new Error(
-                  '[foldkit] Contract operations are declared once on the Definition.',
-                )
-              }
+        withConstructionGraph(
+          graph =>
+            constructor.pipe(
+              Scope.provide(scope),
+              Effect.provideService(Layer.CurrentMemoMap, memoMap),
+              Effect.flatMap(constructorBody =>
+                Effect.gen(function* () {
+                  if (Object.hasOwn(constructorBody, 'operations')) {
+                    throw new Error(
+                      '[foldkit] Contract operations are declared once on the Definition.',
+                    )
+                  }
 
-              const body = { ...constructorBody }
+                  const body = { ...constructorBody }
 
-              if (!authoringSources.has(planComposition(body.init))) {
-                throw new Error(
-                  '[foldkit] Constructor plans belong to another Definition.',
-                )
-              }
+                  if (!authoringSources.has(planComposition(body.init))) {
+                    throw new Error(
+                      '[foldkit] Constructor plans belong to another Definition.',
+                    )
+                  }
 
-              const compileReceiver: CompileReceiver | undefined =
-                InMessage === undefined
-                  ? undefined
-                  : (actual, source, environment) => {
-                      if (
-                        body.receive === undefined ||
-                        planKind(body.receive) !== 'Receive'
-                      ) {
-                        throw new Error(
-                          '[foldkit] An InMessage contract requires its Composition.makeReceive plan.',
-                        )
-                      }
+                  const compileReceiver: CompileReceiver | undefined =
+                    InMessage === undefined
+                      ? undefined
+                      : (actual, source, environment) => {
+                          if (
+                            body.receive === undefined ||
+                            planKind(body.receive) !== 'Receive'
+                          ) {
+                            throw new Error(
+                              '[foldkit] An InMessage contract requires its Composition.makeReceive plan.',
+                            )
+                          }
 
-                      const makeReceive = makeReceiveDispatcher(
-                        InMessage,
-                        compositionOperationGraphOf(actual),
-                        environment,
+                          const makeReceive = makeReceiveDispatcher(
+                            InMessage,
+                            compositionOperationGraphOf(actual),
+                            environment,
+                          )
+                          actual.makeReceive = makeReceive
+                          const receive = compilePlan<AnyFunction>(
+                            body.receive,
+                            actual,
+                            source,
+                          )
+                          makeReceive.complete(receive)
+
+                          return {
+                            InMessage: InMessage,
+                            receive,
+                            operations: compileInputs(
+                              InMessage,
+                              receive,
+                              actual,
+                            ),
+                          }
+                        }
+                  const authoredImplementation =
+                    constructAuthoredImplementation(
+                      {
+                        ...body,
+                        operations,
+                      },
+                      compileReceiver,
+                      graph,
+                    )
+
+                  for (const mount of publishedMounts) {
+                    if (!authoredImplementation.mounts.includes(mount)) {
+                      throw new Error(
+                        '[foldkit] Published view Mounts must be original registered Mount Definitions.',
                       )
-                      actual.makeReceive = makeReceive
-                      const receive = compilePlan<AnyFunction>(
-                        body.receive,
-                        actual,
-                        source,
-                      )
-                      makeReceive.complete(receive)
-
-                      return {
-                        InMessage: InMessage,
-                        receive,
-                        operations: compileInputs(InMessage, receive, actual),
-                      }
                     }
-              const authoredImplementation = constructAuthoredImplementation(
-                {
-                  ...body,
-                  operations,
-                },
-                compileReceiver,
-              )
+                  }
 
-              for (const mount of publishedMounts) {
-                if (!authoredImplementation.mounts.includes(mount)) {
-                  throw new Error(
-                    '[foldkit] Published view Mounts must be original registered Mount Definitions.',
+                  if (
+                    declaredHosts !== undefined &&
+                    (authoredImplementation.hostHandlers.length !==
+                      declaredHosts.length ||
+                      authoredImplementation.hostHandlers.some(
+                        handler => !declaredHosts.includes(handler),
+                      ))
+                  ) {
+                    throw new Error(
+                      '[foldkit] Family handler selection requires the original host declarations.',
+                    )
+                  }
+
+                  const implementation =
+                    selectedHandlers === undefined
+                      ? authoredImplementation
+                      : authoredImplementation.provideHandlers(selectedHandlers)
+
+                  if (
+                    isOrdinaryDeclaration &&
+                    implementation.hostHandlers.length !== 0
+                  ) {
+                    throw new Error(
+                      '[foldkit] A Block implementation must resolve its original host handlers with provideHandlers before acquisition.',
+                    )
+                  }
+
+                  if (implementation !== authoredImplementation) {
+                    copyViewPlanGraph(authoredImplementation, implementation)
+                    copyBlockReceiver(authoredImplementation, implementation)
+                    const bindings = executionBindingsOf(authoredImplementation)
+
+                    if (bindings !== undefined) {
+                      registerExecutionBindings(implementation, bindings)
+                    }
+                  }
+
+                  if (
+                    implementation.owner !== contract.owner ||
+                    implementation.Model !== contract.Model ||
+                    implementation.OutMessage !== contract.OutMessage
+                  ) {
+                    throw new Error(
+                      '[foldkit] The implementation belongs to another independent Block contract.',
+                    )
+                  }
+
+                  if (
+                    isNeverMessage(implementation.Message.ast) !==
+                    (config.isMessageFree === true)
+                  ) {
+                    throw new Error(
+                      '[foldkit] The completed dispatch Schema must match the message-free contract declaration.',
+                    )
+                  }
+
+                  let isActive = true
+                  registerRuntimeAcquisition(implementation, () => isActive)
+                  yield* Scope.addFinalizer(
+                    scope,
+                    Effect.sync(() => {
+                      isActive = false
+                    }),
                   )
-                }
-              }
+                  const executable = wrapExecutable(
+                    contract,
+                    implementation,
+                    true,
+                    { graph, isCurrent: () => isActive },
+                  )
 
-              if (
-                declaredHosts !== undefined &&
-                (authoredImplementation.hostHandlers.length !==
-                  declaredHosts.length ||
-                  authoredImplementation.hostHandlers.some(
-                    handler => !declaredHosts.includes(handler),
-                  ))
-              ) {
-                throw new Error(
-                  '[foldkit] Family handler selection requires the original host declarations.',
-                )
-              }
-
-              const implementation =
-                selectedHandlers === undefined
-                  ? authoredImplementation
-                  : authoredImplementation.provideHandlers(selectedHandlers)
-
-              if (implementation !== authoredImplementation) {
-                copyViewPlanGraph(authoredImplementation, implementation)
-                copyBlockReceiver(authoredImplementation, implementation)
-                const bindings = executionBindingsOf(authoredImplementation)
-
-                if (bindings !== undefined) {
-                  registerExecutionBindings(implementation, bindings)
-                }
-              }
-
-              if (
-                implementation.owner !== contract.owner ||
-                implementation.Model !== contract.Model ||
-                implementation.OutMessage !== contract.OutMessage
-              ) {
-                throw new Error(
-                  '[foldkit] The implementation belongs to another independent Block contract.',
-                )
-              }
-
-              if (
-                isNeverMessage(implementation.Message.ast) !==
-                (config.isMessageFree === true)
-              ) {
-                throw new Error(
-                  '[foldkit] The completed dispatch Schema must match the message-free contract declaration.',
-                )
-              }
-
-              let isActive = true
-              registerRuntimeAcquisition(implementation, () => isActive)
-              yield* Scope.addFinalizer(
-                scope,
-                Effect.sync(() => {
-                  isActive = false
+                  return Context.make(service, executable)
                 }),
-              )
-              const executable = wrapExecutable(contract, implementation, true)
-
-              return Context.make(service, executable)
-            }),
-          ),
+              ),
+            ),
+          scope,
         ),
       ),
     )
@@ -427,6 +656,8 @@ export const makeDefinitionRuntime = (
           selectedHandlers,
           declaredHosts,
         ),
+      provideHandlers: (handlers: Layer.Any) =>
+        selectContractHandlers(block, handlers, declaredHosts),
     })
 
     handlerSelections.set(block, (handlers, hosts) =>

@@ -1,0 +1,28 @@
+{
+  "baselineCommit": "da6e55193beb693b5400c9f95777d7c9fb41f257",
+  "sourceAndRelocatedDeclarations": "passed",
+  "runtimeTests": {
+    "nativeAndRegression": 32,
+    "constructedConsumer": 3
+  },
+  "compiler": {
+    "passedFixtures": 6,
+    "failedFixtures": ["workspace-composition-4"],
+    "budgetsChanged": false,
+    "baselineWorkspace4": {
+      "instantiations": 2559408,
+      "types": 209709
+    },
+    "prototypeWorkspace4": {
+      "instantiations": 2682883,
+      "types": 234020
+    },
+    "ceilingWorkspace4": {
+      "instantiations": 2642699,
+      "types": 229173
+    }
+  },
+  "typeAuthoringSha256": "5a53a111a7c80609921d7846a55e8b1e0f3a05b1e0b10dc7e4b9e951997c3336",
+  "productionMigration": false,
+  "publication": false
+}

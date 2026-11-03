@@ -480,7 +480,16 @@ Provide ordinary test Services beneath the real implementation Layer when testin
 
 Construction Layers select the Block implementation and compose construction dependencies. The implementation's local `EffectsLayer` supplies its Command, Subscription, Mount, and ManagedResource handlers. Ordinary request Services remain in those handler constructors.
 
-Generic family APIs such as Query can deliberately expose `provideHandlers` for original host-handler contracts. Ordinary Block contracts keep their handler inventory private and expose ordinary Service dependencies. Do not replace an entire handler merely to mock the HTTP or storage Service it uses.
+A constructor can deliberately leave original handler definitions under
+`hostHandlers` in its returned implementation. The resulting descriptor exposes
+`provideHandlers(layer)` so the integrator can select providers made through
+those definitions' `toLayer` methods. Select the providers before using that
+descriptor with a Program, Story, Scene, or Server. Their Service requirements
+and constructor errors must fit the Definition's declared effects contract.
+
+Handler selection is passive. Pure Stories acquire the graph without building
+handler Layers. For an implementation with attached handlers, supply ordinary
+test Services rather than replacing an entire HTTP or storage workflow.
 
 ## Generic Blocks
 
@@ -691,6 +700,17 @@ Private lifecycle inventories and inferred child envelopes do not form part of t
 
 `block.provide(layer)` returns a passive descriptor with construction dependencies supplied by that Layer. Use a child's public contract in the Binding and provide the child's implementation Layer. Construction, handler invocation, and Model occurrence lifetimes remain separate.
 
-### Family handler selection
+### block.provideHandlers
 
-A family API may expose `provideHandlers(layer)` for deliberately published original handler contracts. It preserves their identities and checks selected provider channels. See [Query](/core/query) for that interface. Ordinary independent Block descriptors use their implementation Layer and declared Service dependencies.
+`block.provideHandlers(layer)` selects providers for the original definitions
+listed under the constructor's `hostHandlers`. Every possible selected Layer
+must supply every listed handler. A same-shaped foreign definition does not
+provide the original handler's identity. Handler selection preserves supplied
+child construction Layers, and `block.provide` preserves the host-handler
+selection.
+
+The descriptor is not ready for hosting until those handlers are selected.
+Selection does not acquire the graph or build the handler Layer. The ordinary
+Block's public effects bounds remain the ones declared by its Definition.
+Generic family APIs such as [Query](/core/query) also expose checked selection
+for their published Fetch contracts.

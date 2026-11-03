@@ -1,10 +1,10 @@
 import { Effect } from 'effect'
 
+import { Products } from './blocks'
 import { EffectsLayer } from './command'
 import { ProductsPageBinding } from './composition'
 import { ApplicationDefinition } from './definition'
 import { init } from './init'
-import * as Products from './page/products'
 import { update } from './update'
 import { view } from './view'
 

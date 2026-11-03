@@ -5,11 +5,11 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { ApplicationBlock } from './block'
+import { ProductsBlock } from './blocks'
 import { ProductsPageBinding } from './composition'
 import { products } from './data/products'
 import { Message } from './message'
 import type { Model } from './model'
-import { ProductsBlock } from './page'
 import { ApplicationRoute } from './route'
 
 type ProductsMessage = typeof ProductsBlock.Message.Type

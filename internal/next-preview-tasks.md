@@ -1,5 +1,46 @@
 # Next preview tasks
 
+## Current constructor and update follow-up
+
+- [x] Restore ordinary constructor-authored Blocks' explicit `hostHandlers`
+      and `provideHandlers` support, including exact handler identities,
+      requirements, constructor errors, and refusal of incomplete Programs.
+- [x] Support reusable focused update bundles, preserving application order,
+      one exhaustive update, child routing once, and the original `before` Model
+      across grouping.
+- [x] Resolve the shared callback inference gap and pass the unchanged compiler
+      ceilings before exposing composition on the public Composition builder.
+- [x] Verify a realistic split-file consumer with connected child operations,
+      Commands, and scoped Story tests through public APIs.
+- [x] Apply the user's organization and import comments across examples,
+      Website, and Typing Game. Update canonical guidance and active snippets;
+      preserve historical posts and labelled migration-before examples.
+- [x] Complete source and relocated emitted consumers, focused runtime checks,
+      unchanged compiler budgets, representative editor checks, and the
+      application test matrix.
+- [x] Address React host container IDs (#1874) and relay namespace liveness
+      (#1875, adapting PR #1877); verify the existing SSR hot-update repair
+      against #1876. Linux-only relay integration tests await a Linux runner.
+- [x] Repair app-owned portal cleanup (#1865) and pointer-open Menu navigation
+      (#1866). All 1,357 UI tests pass, including the new regressions.
+- [x] Refresh the Lustre comparison with actual main. Preserve its wide sample
+      ranges and the remaining optimized-workload and bundle-size costs.
+- [x] Finish the final packed consumer rehearsal with strict TypeScript 6
+      consumers and the existing Chromium, Firefox, and WebKit matrix.
+- [ ] Complete exact-commit independent review and a fresh Daybreak addendum.
+      New transfer authorization is required for the public API changes made
+      after the previously approved snapshot.
+- [x] Prepare a [release summary](update-composition/RELEASE-SUMMARY.md) with
+      exact verified scope and outstanding work. Publication requires approval.
+
+Bookmarked separately: rename `Query.define` to `Query.makeBlock` for ordinary
+and keyed Queries. This naming change is not part of the current work.
+
+Open general proposals #1871 (external dispatch frames) and #1872 (a provided
+frame scheduler) are not implemented. Neither has been accepted into this
+stabilization batch or approved for deferral. See the
+[feedback reconciliation](update-composition/final-feedback.md).
+
 ## Release boundary
 
 The verified published snapshot is
@@ -16,9 +57,11 @@ sections below retain their original source pins and states as historical
 evidence. The user's publication approval and completed gates supersede the
 earlier holds.
 
-## November 2 construction and InMessage stabilization
+## November 2 construction and InMessage stabilization checkpoint
 
 [Current scope and remaining gates](layered-constructor/STABILIZATION.md).
+The constructor and update follow-up above supersedes this checkpoint's
+pending hook experiment and Daybreak status.
 
 - [x] Complete repository adoption of independent contracts, portable typed
       builders, Layer construction, scoped tests, and separate InMessages.

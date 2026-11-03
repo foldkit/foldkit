@@ -2,14 +2,17 @@ import { Array, Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { DragAndDrop } from '@foldkit/ui'
+import {
+  DragAndDropBlock,
+  layer as DragAndDropLayer,
+} from '@foldkit/ui/dragAndDrop'
 
 // Add a field to your Model for the DragAndDrop Block plus the items being sorted:
 const Model = Schema.Struct({
   items: Schema.Array(
     Schema.Struct({ id: Schema.String, label: Schema.String }),
   ),
-  dragAndDrop: DragAndDrop.DragAndDropBlock.Model,
+  dragAndDrop: DragAndDropBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -41,7 +44,7 @@ const { makeFieldsStep, makeNoopStep } = SortableListDefinition
 // Model written back. The parent Definition checks the complete child union
 // and infers each parent Step:
 const foldDragAndDropOutMessage = SortableListDefinition.makeOutMessageFold(
-  DragAndDrop.DragAndDropBlock,
+  DragAndDropBlock,
   {
     Reordered: ({ itemId, fromIndex, toIndex }) =>
       makeFieldsStep(() => ({
@@ -59,7 +62,7 @@ const foldDragAndDropOutMessage = SortableListDefinition.makeOutMessageFold(
 
 // The Binding retains the child contract; construction supplies its implementation.
 const DragAndDropBinding = SortableListDefinition.makeBinding(
-  DragAndDrop.DragAndDropBlock,
+  DragAndDropBlock,
   {
     field: 'dragAndDrop',
     init: { contextToArgs: () => Tuple.make({ id: 'sortable-list' }) },
@@ -125,4 +128,4 @@ export const ApplicationBlock = SortableListDefinition.makeBlock(
     const dragAndDrop = yield* DragAndDropBinding
     return { children: [dragAndDrop], init, update, view }
   }),
-).provide(DragAndDrop.layer)
+).provide(DragAndDropLayer)

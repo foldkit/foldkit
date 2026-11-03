@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 import type { OptionInfo } from '@foldkit/ui/radioGroup'
 
 import {
@@ -98,7 +98,7 @@ export const editionOptionView = (
 }
 
 export const cancelCheckoutButton = (h: ApplicationViewBuilder): Html =>
-  Button.view(
+  buttonView(
     {
       onClick: Message.ClickedCancel(),
       toView: attributes =>
@@ -193,7 +193,7 @@ export const cartView = (
         ],
         [
           cancelCheckoutButton(h),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedContinue(),
               toView: attributes =>

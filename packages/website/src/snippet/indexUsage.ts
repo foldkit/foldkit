@@ -1,5 +1,5 @@
+import { Products } from './blocks'
 import { Cart, Item } from './domain'
-import { Products } from './page'
 
 // Access a feature namespace
 Products.ProductsBlock.Model

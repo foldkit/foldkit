@@ -745,22 +745,12 @@ import { defineRouteUnion } from 'foldkit/route'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { Button, Dialog, Input } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
+import { DialogBlock, layer as DialogLayer } from '@foldkit/ui/dialog'
+import { view as inputView } from '@foldkit/ui/input'
 ```
 
-Two component names collide with `foldkit` module names: `Calendar` (the date
-module) and `Toast`. Alias the component with a `Ui` prefix, which is what the
-exemplars do:
-
-```ts
-import { Calendar } from 'foldkit'
-
-import { Calendar as UiCalendar, Toast as UiToast } from '@foldkit/ui'
-```
-
-`Calendar.CalendarDate` is then the date type and `UiCalendar.view` the
-component. Alias the `foldkit` side instead (`Calendar as FoldkitCalendar`) when
-the component is the one used throughout the file.
+Use named imports from public component subpaths. Qualify common exports through aliases such as `buttonView`, `DialogLayer`, and `makeListboxBlock`. Domain exports retain their names, such as `CalendarBlock` from `@foldkit/ui/calendar`, so they do not collide with the `Calendar` date module.
 
 For form validation, also:
 
@@ -785,7 +775,7 @@ Notes:
 - For time, randomness, or delays, use Effect's built-ins directly rather than reaching for a Foldkit module: `Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.sleep(Duration.millis(...))`. For UUIDs, import `SecureRandom` from `effect/crypto`, use its `SecureRandom` service's `uuidV4()` Effect, and provide `BrowserCrypto.layerSecureRandom` from `@effect/platform-browser` at the application root.
 - Import Effect modules by their PascalCase names. When an Effect module name collides with a JavaScript or TypeScript global, qualify the global through `globalThis`, such as `globalThis.String`, `globalThis.Array`, or `globalThis.Record`. When an existing local or public binding must retain the module name, give the Effect import an explicit `Effect` prefix, such as `Order as EffectOrder`.
 - `Message.match` is the exhaustive matcher on a union returned by `defineMessageUnion()`. A `defineTaggedUnion` or `defineRouteUnion` namespace owns exhaustive `match` and partial `matchOrElse`. `Match` is Effect's Match module for partial Message matching, handlers shared by several tags, and unions without their own matcher.
-- **UI components live in a separate package.** Import them by name from `@foldkit/ui`: `import { Dialog, DatePicker, FileDrop, Toast, Tooltip } from '@foldkit/ui'`. Deep imports (`@foldkit/ui/dialog`) work too. There is no `Ui` export on the `foldkit` package, so `Ui.Dialog.view` does not resolve.
+- **Import named UI exports from component subpaths**, such as `DialogBlock` and `layer as DialogLayer` from `@foldkit/ui/dialog`. Use component-qualified aliases for common names, and provide construction Layers separately from local handler Layers.
 - **`empty` and `keyed` are properties on `h`**, the builder every view receives as its last parameter. They are not top-level exports of `foldkit/html`, so they never belong in that import list. Same for `h.block`.
 - `AsyncData` for remote data state, `Update` for the update return type and the `combineSteps` / `refresh` combinators, `Http` for the `layer` that provides `HttpClient` to a Command.
 - HTTP types come from `effect/http`, not `@effect/platform`. `@effect/platform-browser` is a separate package used for `BrowserKeyValueStore` and `BrowserCrypto`.

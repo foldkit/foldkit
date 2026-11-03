@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 
-import * as People from './page/people'
+import { People } from './blocks'
 import { ApplicationRoute } from './route'
 
 export const Model = Schema.Struct({

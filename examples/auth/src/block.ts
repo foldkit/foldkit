@@ -1,12 +1,11 @@
 import { Effect, Layer } from 'effect'
 
+import { LoggedIn, LoggedOut } from './blocks'
 import { EffectsLayer } from './command'
 import { LoggedInBindingWithOutMessagePolicy } from './composition/loggedIn'
 import { LoggedOutBindingWithOutMessagePolicy } from './composition/loggedOut'
 import { ApplicationDefinition } from './definition'
 import { init } from './init'
-import * as LoggedIn from './page/loggedIn'
-import * as LoggedOut from './page/loggedOut'
 import { update } from './update'
 import { view } from './view'
 

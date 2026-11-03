@@ -2,13 +2,16 @@ import { Effect, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Popover } from '@foldkit/ui'
-import type { RenderInfo as PopoverRenderInfo } from '@foldkit/ui/popover'
+import {
+  PopoverBlock,
+  layer as PopoverLayer,
+  type RenderInfo as PopoverRenderInfo,
+} from '@foldkit/ui/popover'
 
 // Add one Popover Block field for each level:
 const Model = Schema.Struct({
-  accountPopover: Popover.PopoverBlock.Model,
-  accountDetailsPopover: Popover.PopoverBlock.Model,
+  accountPopover: PopoverBlock.Model,
+  accountDetailsPopover: PopoverBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -30,26 +33,23 @@ const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
 const { makeNoopStep } = AccountMenuDefinition
 
 const foldPopoverOutMessage = AccountMenuDefinition.makeOutMessageFold(
-  Popover.PopoverBlock,
+  PopoverBlock,
   {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
   },
 )
 
-const AccountPopoverBinding = AccountMenuDefinition.makeBinding(
-  Popover.PopoverBlock,
-  {
-    field: 'accountPopover',
-    init: {
-      contextToArgs: () =>
-        Tuple.make({ id: 'account-popover', contentFocus: true }),
-    },
+const AccountPopoverBinding = AccountMenuDefinition.makeBinding(PopoverBlock, {
+  field: 'accountPopover',
+  init: {
+    contextToArgs: () =>
+      Tuple.make({ id: 'account-popover', contentFocus: true }),
   },
-).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 const AccountDetailsPopoverBinding = AccountMenuDefinition.makeBinding(
-  Popover.PopoverBlock,
+  PopoverBlock,
   {
     field: 'accountDetailsPopover',
     init: {
@@ -172,4 +172,4 @@ export const ApplicationBlock = AccountMenuDefinition.makeBlock(
       view,
     }
   }),
-).provide(Popover.layer)
+).provide(PopoverLayer)

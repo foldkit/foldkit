@@ -3,7 +3,7 @@ import { Array, Option, Record } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 import { buttonId } from '@foldkit/ui/listbox'
 
 import {
@@ -304,7 +304,7 @@ const issueMoveFeedback = (model: Model, h: ApplicationViewBuilder): Html => {
       ],
       [
         h.p([], [error]),
-        Button.view(
+        buttonView(
           {
             type: 'button',
             onClick: Message.ClickedRetryMove(),
@@ -595,7 +595,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                         [h.Class('mb-6 text-sm leading-6 text-slate-500')],
                         [error],
                       ),
-                      Button.view(
+                      buttonView(
                         {
                           onClick: Message.ClickedRetryLoad(),
                           toView: attributes =>

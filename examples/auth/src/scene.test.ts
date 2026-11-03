@@ -13,15 +13,15 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { ApplicationBlock } from './block'
-import { RedirectToDashboard, SaveSession } from './command'
-import { Session } from './domain/session'
-import { Message } from './message'
-import { Model as LoggedOutModel } from './page/loggedOut/model'
-import { LoginBlock } from './page/loggedOut/page/login'
+import { LoginBlock } from './blocks/loggedOut/blocks/login'
 import {
   SimulateAuthRequest,
   initModel as initLoginModel,
-} from './page/loggedOut/page/login/login'
+} from './blocks/loggedOut/blocks/login/login'
+import { Model as LoggedOutModel } from './blocks/loggedOut/model'
+import { RedirectToDashboard, SaveSession } from './command'
+import { Session } from './domain/session'
+import { Message } from './message'
 import { ApplicationRoute } from './route'
 
 const validModel = LoggedOutModel({

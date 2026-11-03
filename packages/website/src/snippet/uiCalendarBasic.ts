@@ -3,20 +3,21 @@ import { Block, Calendar } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Calendar as UiCalendar } from '@foldkit/ui'
-import type {
-  CalendarAttributes as UiCalendarCalendarAttributes,
-  DaysModeAttributes as UiCalendarDaysModeAttributes,
-  MonthsModeAttributes as UiCalendarMonthsModeAttributes,
-  Week as UiCalendarWeek,
-  YearsModeAttributes as UiCalendarYearsModeAttributes,
+import {
+  CalendarBlock,
+  layer as CalendarLayer,
+  type CalendarAttributes as UiCalendarCalendarAttributes,
+  type DaysModeAttributes as UiCalendarDaysModeAttributes,
+  type MonthsModeAttributes as UiCalendarMonthsModeAttributes,
+  type Week as UiCalendarWeek,
+  type YearsModeAttributes as UiCalendarYearsModeAttributes,
 } from '@foldkit/ui/calendar'
 
 // Add a field to your Model for the Calendar Block, plus a field the
 // parent owns for the selected date. The calendar no longer stores the
 // selection; the parent holds it and passes it back in as `maybeSelectedDate`.
 const Model = Schema.Struct({
-  calendarDemo: UiCalendar.CalendarBlock.Model,
+  calendarDemo: CalendarBlock.Model,
   maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
   // ...your other fields
 })
@@ -58,7 +59,7 @@ const { makeFieldsStep, makeNoopStep } = CalendarExampleDefinition
 // which already has the next Calendar Model written back. The parent
 // Definition checks every named variant and infers the parent Step:
 const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
-  UiCalendar.CalendarBlock,
+  CalendarBlock,
   {
     // The child has emitted `SelectedDate`. This is where the parent lifts
     // the committed date into its own field. That field is then passed back
@@ -77,20 +78,17 @@ const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const CalendarBinding = CalendarExampleDefinition.makeBinding(
-  UiCalendar.CalendarBlock,
-  {
-    field: 'calendarDemo',
-    init: {
-      contextToArgs: flags =>
-        Tuple.make({
-          id: 'calendar-demo',
-          today: flags.today,
-          initialViewDate: flags.today,
-        }),
-    },
+const CalendarBinding = CalendarExampleDefinition.makeBinding(CalendarBlock, {
+  field: 'calendarDemo',
+  init: {
+    contextToArgs: flags =>
+      Tuple.make({
+        id: 'calendar-demo',
+        today: flags.today,
+        initialViewDate: flags.today,
+      }),
   },
-).withOutMessagePolicy({ fold: foldCalendarOutMessage })
+}).withOutMessagePolicy({ fold: foldCalendarOutMessage })
 
 const CalendarExampleComposition = CalendarExampleDefinition.makeComposition({
   bindings: [CalendarBinding],
@@ -314,4 +312,4 @@ export const ApplicationBlock = CalendarExampleDefinition.makeBlock(
     const calendar = yield* CalendarBinding
     return { children: [calendar], init, update, view }
   }),
-).provide(UiCalendar.layer)
+).provide(CalendarLayer)

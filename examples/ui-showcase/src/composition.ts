@@ -1,7 +1,7 @@
 import type { Block } from 'foldkit'
 
+import { UiBlock } from './blocks'
 import { ApplicationDefinition } from './definition'
-import { UiBlock } from './ui'
 
 export const UiBinding = ApplicationDefinition.makeBinding(UiBlock, {
   field: 'uiModel',

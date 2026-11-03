@@ -3,7 +3,8 @@ import { Array, Option, Record } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Button, Nav } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
+import { view as navView } from '@foldkit/ui/nav'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { issueHref } from '../issueLinks'
@@ -85,7 +86,7 @@ export const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
           'Northstar',
         ],
       ),
-      Button.view(
+      buttonView(
         {
           type: 'button',
           onClick: Message.ClickedOpenCommandPalette(),
@@ -115,7 +116,7 @@ export const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
       h.div(
         [h.Class('col-span-2 w-full')],
         [
-          Nav.view({
+          navView({
             items: Record.keys(workspacePages),
             ariaLabel: 'Workspace navigation',
             toHref: label => workspacePages[label].href,
@@ -137,7 +138,7 @@ export const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
           ...Option.match(maybeConfirmedWorkspace(model), {
             onNone: () => [],
             onSome: ({ projects }) => [
-              Nav.view({
+              navView({
                 items: Array.map(projects, project => project.id),
                 ariaLabel: 'Projects',
                 toHref: projectId => projectRouter({ projectId }),
@@ -208,7 +209,7 @@ export const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
                       ],
                       [savedView.name],
                     ),
-                    Button.view(
+                    buttonView(
                       {
                         type: 'button',
                         onClick: Message.ClickedDeleteSavedView({

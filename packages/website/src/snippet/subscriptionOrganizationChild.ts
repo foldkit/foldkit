@@ -1,4 +1,4 @@
-// page/settings/themeMenu/subscription.ts
+// blocks/settings/blocks/themeMenu/subscription.ts
 import { Effect, Schema, Stream } from 'effect'
 
 import { themeMenu } from './definition'

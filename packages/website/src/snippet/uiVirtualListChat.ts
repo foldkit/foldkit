@@ -4,7 +4,14 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { VirtualList } from '@foldkit/ui'
+import {
+  AccessibleSet as VirtualListAccessibleSet,
+  HistoryPage as VirtualListHistoryPage,
+  type HistoryRows as VirtualListHistoryRows,
+  layer as VirtualListLayer,
+  ScrollTarget as VirtualListScrollTarget,
+  makeBlock as makeVirtualListBlock,
+} from '@foldkit/ui/virtualList'
 
 const ChatMessage = Schema.Struct({ id: Schema.String, body: Schema.String })
 type ChatMessage = typeof ChatMessage.Type
@@ -23,8 +30,8 @@ const HistoryLoad = defineTaggedUnion({
 })
 type HistoryLoad = typeof HistoryLoad.Type
 
-const MessageListBlock = VirtualList.makeBlock<ChatMessage>()
-const historyRows: VirtualList.HistoryRows<ChatMessage> = {
+const MessageListBlock = makeVirtualListBlock<ChatMessage>()
+const historyRows: VirtualListHistoryRows<ChatMessage> = {
   itemToKey: message => message.id,
   dynamicRowHeights: true,
   itemToEstimatedRowHeightPx: message => (message.body.length > 120 ? 96 : 64),
@@ -115,7 +122,7 @@ const MessageListBinding = MessageListExampleDefinition.makeBinding(
         Tuple.make({
           id: 'message-list',
           rowHeightPx: 64,
-          initialScroll: { target: VirtualList.ScrollTarget.End() },
+          initialScroll: { target: VirtualListScrollTarget.End() },
           followEnd: { thresholdPx: 8 },
           history: { reservePx: 800, prefetchViewports: 3 },
         }),
@@ -162,8 +169,8 @@ const update = MessageListExampleComposition.makeUpdate({
         prependedItems: response.messages,
         itemToKey: historyRows.itemToKey,
         page: response.hasMore
-          ? VirtualList.HistoryPage.More()
-          : VirtualList.HistoryPage.Complete(),
+          ? VirtualListHistoryPage.More()
+          : VirtualListHistoryPage.Complete(),
       }),
     ])
   },
@@ -200,8 +207,8 @@ const view = MessageListExampleComposition.makeView((model, h) =>
               h.div([h.Class('rounded-xl px-3 py-2')], [message.body]),
             accessibleSet:
               model.historyLoad._tag === 'Complete'
-                ? VirtualList.AccessibleSet.Loaded()
-                : VirtualList.AccessibleSet.Unknown(),
+                ? VirtualListAccessibleSet.Loaded()
+                : VirtualListAccessibleSet.Unknown(),
             contentAlignment: 'End',
             containerClassName: 'h-96 overflow-auto',
           },
@@ -225,4 +232,4 @@ export const layer = MessageListExampleDefinition.makeBlock(
       EffectsLayer: FetchHistory.layer,
     }
   }),
-).provide(VirtualList.layer).layer
+).provide(VirtualListLayer).layer

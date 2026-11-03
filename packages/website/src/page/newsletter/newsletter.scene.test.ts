@@ -1,5 +1,4 @@
-import { Effect } from 'effect'
-import { Option, pipe } from 'effect'
+import { Effect, Option, pipe } from 'effect'
 import { Calendar, Url } from 'foldkit'
 import { expect, given, role, scene, selector, type } from 'foldkit/scene'
 import { type TestBlock, withBlock } from 'foldkit/story'

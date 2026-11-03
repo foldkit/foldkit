@@ -77,7 +77,7 @@ Decide what navigation does to unfinished work. Repeated URL delivery or a refre
 
 ### Update
 
-Author init, update, and the canonical view through the same named Composition. Updates accept one exhaustive handler record. Each case receives the contextual Model and its exact Message; registered child envelopes route before local handlers:
+Author init, update, and the canonical view through the same named Composition. The default update uses one exhaustive local handler record. Each case receives the contextual Model and its exact Message; registered child envelopes route through their Bindings instead of local handlers:
 
 ```ts
 const update = ApplicationComposition.makeUpdate({
@@ -210,7 +210,7 @@ Omit the children argument when an element has none: `h.div([h.Class('divider')]
 
 Define a Command with `FeatureDefinition.makeCommand(name, { args, messages, handler })`; omit `args` when it takes none. Assign definitions to PascalCase constants. Keep the handler Layer beside its definition. Name the work the handler performs, not the later Model transition caused by its result: a timer that waits before update begins dismissal is `WaitBeforeDismissal`. Convert expected failures to result Messages with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))`. Defects follow the application's crash handling. Commands belong beside the update that returns them.
 
-`handler` is a generator constructor. Foldkit applies `Effect.gen` once per Runtime start; capture stable Services there and return the invocation function. Requests, delays, time reads, and DOM operations happen inside that returned function with current args. A constructor needing no setup still returns the function directly. Omit `handler` only for an external host contract; provide its implementation Effect constructor through the original definition's `toLayer`. Include that provider in the local `EffectsLayer` before `Definition.makeBlock` completion. Public host-only factories such as Query retain their explicit `provideHandlers` path; ordinary independent contracts choose implementations through construction Layers.
+`handler` is a generator constructor. Foldkit applies `Effect.gen` once per Runtime start; capture stable Services there and return the invocation function. Requests, delays, time reads, and DOM operations happen inside that returned function with current args. A constructor needing no setup still returns the function directly. Omit `handler` only for an external host contract; provide its implementation Effect constructor through the original definition's `toLayer`. Include that provider in local `EffectsLayer`, or list the original definition under the constructor's `hostHandlers` and select it through `block.provideHandlers(layer)` before hosting or scoped tests. Every selected Layer alternative must cover the original handlers and fit the Definition's declared Service and constructor-error bounds. Selection is passive and independent of child construction provisioning. Pure Stories do not build handler Layers.
 
 Compose attached `.layer` recipes in the feature's local `EffectsLayer`, including its Command, Subscription, Mount, and ManagedResource handlers. Registered child Bindings contribute their own recipes. `ApplicationLayer` supplies the remaining ordinary Services. Reserve `Layer` for Effect's module; create a standalone `<DefinitionName>Layer` only when that individual provider is independently public or reused, and name alternatives `<DefinitionName>TestLayer`. Ordinary execution tests retain the production handler Layer and replace the Services beneath it.
 
@@ -234,13 +234,15 @@ Handlers and services may own mutable execution bookkeeping, such as worker avai
 
 ### File organization
 
+Import UI values and types by name from each component's public subpath, such as `import { makeBlock as makeListboxBlock, view as listboxView } from '@foldkit/ui/listbox'`. Use component-specific aliases when names collide. Keep the public `test` namespace for grouped test matchers. Avoid root UI imports and component namespace imports in app code.
+
 Keep a Step used by only one responsibility with that code. Put reusable Steps shared by update, composition, or init in the owning Block's `steps.ts`. For a larger module, use responsibility files such as `steps/search.ts` and `steps/quoteLoading.ts`, with an explicit `steps/index.ts` barrel. The owner is the Block whose Model the Step transforms. Keep shared Steps independent of the owning update and selected implementation.
 
 `update.ts` maps local Messages to handlers and Steps. Optional `receive.ts` maps InMessages to handlers and Steps. `composition.ts` registers relationships and maps child OutMessages to parent Steps. `steps.ts` owns the reusable transitions those entry points share. Keep Binding registration and OutMessage policy in composition. Name shared transitions for their operation, without a `make` prefix or `Step` suffix. A Step that closes over a Binding from composition must read it in a deferred producer when the modules depend on one another; module initialization must not invoke that Binding.
 
 When using Tailwind, keep reusable static control recipes in the stylesheet's `@layer components`, where ordinary utilities can override them. Use `@utility` when adding an actual utility that needs variants. Keep `clsx` for conditional classes. Avoid a TypeScript module whose only job is assembling and exporting static class strings.
 
-Name each child feature folder after its Block contract in camelCase: `IssueBoardBlock` lives in `issueBoard/`. A compact child keeps its entire implementation in the matching `issueBoard.ts`. Once any structural responsibility is extracted, use the complete split layout and remove `issueBoard.ts`; do not leave it combining init, assembly, or other pieces.
+Keep a Block's child Block folders under its own `blocks/` directory, separate from domain and helper folders. Name each child folder after its passive Block contract in camelCase: an application's `IssueBoardBlock` lives in `src/blocks/issueBoard/`, and IssueDetail's CommentComposer lives in `issueDetail/blocks/commentComposer/`. Each `blocks/index.ts` explicitly exports its child namespaces. Import children through those barrels outside their owner; same-owner implementation imports may stay direct to avoid cycles. Keep child feature barrels limited to passive contracts, construction Layers, and intended public accessors. Tests may import original Commands and Bindings from the owning structural modules. A compact child keeps its entire implementation in the matching `issueBoard.ts`. Once any structural responsibility is extracted, use the complete split layout and remove `issueBoard.ts`; do not leave it combining init, assembly, or other pieces.
 
 Split additional behavior by responsibility; do not add one file per Message or helper. Keep reusable domain Schemas and pure domain operations in `domain/`, independent of Model, update, and view. Feature-specific pure Schemas and helpers can stay with the responsibility that uses them.
 
@@ -285,6 +287,14 @@ Story can deliver Messages while Commands are pending. Use `messageWith(model =>
 When a Scene emits a Subscription Message, test the selected implementation that owns the registry and call `Subscription.emit(entry, message)` with the exact registered entry. A passive public contract does not expose private lifecycle registries. A lower-level synchronous Scene fixture may supply its concrete registry explicitly. Each entry's `messages` collection declares the raw Messages accepted by that step. Select a bound entry when one source appears at multiple child placements. Silent `messages: []` entries accept no emissions. These steps do not start Streams or simulate Runtime activity and stale-generation admission.
 
 Use `Scene.Command.keepPending(Definition | instance)` when a real interaction must occur before one ordinary Command completes. Its matcher must select one invocation; a bound instance selects its occurrence and args. The Command stays visible to assertions and resolvers, and must be resolved before the Scene ends. This changes only the later-Message boundary check.
+
+## Composing updates
+
+Keep an exhaustive `Composition.makeUpdate({ ... })` record as the default. For additional transitions, use `makeUpdate.cases({ ... })` for selected local handlers, `each(handlerOrStep)` for every dispatch including child delivery, `on(tags)(handlerOrStep)` for selected local tags, and `except(tags)(handlerOrStep)` for every dispatch except those local tags, including child delivery. `cases.withContext` supports contextual records.
+
+Combine focused pieces or reusable bundles with `makeUpdate.compose(...)`. A bundle may have no full update; the final update must contain exactly one exhaustive `makeUpdate(...)` or `.withContext(...)` plan. Pieces run left to right on the latest Model. The full plan handles the local Message or routes the child once at its position. Shared callbacks receive `(model, message, { before }, ...context)`, with the original parent Model in `before` across all grouping and the unchanged Message. They return a result or a Step; compatible Steps can be passed directly. Keep the declared Context tuple.
+
+Shared `each`, `on`, and `except` pieces cannot emit OutMessages. Conflicting record emitters are rejected; Binding OutMessage policies stay unchanged. Commands are collected in order, which does not sequence their effects or completion. Creating pieces stays passive. This composition applies to update, not init or receive.
 
 ## Code Style
 

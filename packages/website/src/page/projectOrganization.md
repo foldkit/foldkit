@@ -23,7 +23,7 @@ A compact root keeps the Definition, Composition, init, update, view, and checke
 
 Once one structural responsibility moves out, use the complete split layout. `definition.ts` declares `ApplicationDefinition`, `composition.ts` registers the graph, and `init.ts`, `update.ts`, and `view.ts` author behavior through its builders. `block.ts` imports those pieces and completes the constructor. Remove the emptied `application.ts`.
 
-A small child can keep its whole implementation in a file named for the feature. A split child uses the same named structural files as the root. Its barrel exports the public contract and implementation `layer`. Feature directories match their Block name in camelCase, such as `IssueBoardBlock` in `issueBoard/`.
+A small child can keep its whole implementation in a file named for the feature. A split child uses the same named structural files as the root. Its barrel exports the public contract and implementation `layer`. Put child Block folders under their owner’s `blocks/` directory, with names matching their passive contracts in camelCase. For example, `IssueBoardBlock` lives in `src/blocks/issueBoard/`. A nested child belongs in its own parent’s `blocks/`, such as `issueDetail/blocks/commentComposer/`. Each `blocks/index.ts` explicitly exposes those children.
 
 ::Snippet{name="organizationGraphlessBlock" label="Small feature without children"}
 
@@ -42,6 +42,8 @@ Declare each Schema's decoded type immediately below it, using the same name and
 ::Snippet{name="schemaTypeAlias" label="Schema and decoded type"}
 
 Keep local Schema aliases inside the feature's implementation modules. A consumer can name a type derived from the passive child contract, such as `type SearchModel = typeof SearchBlock.Model.Type`, without importing its implementation, and use `SearchModel` in annotations. Feature barrels export the public contract, implementation `layer`, and intentional public domain contracts. Definition callbacks and Composition-owned handlers infer their parameters.
+
+Import the UI exports you use from each public component subpath. Give common names component-qualified aliases, such as `buttonView`, `DialogLayer`, and `makeListboxBlock`. The [Dialog guide](/ui/dialog) shows the imports, Binding, and construction provider together.
 
 ### Early Contracts and Local Effects
 
@@ -239,8 +241,8 @@ Run declaration emission for the package's real entrypoints and compile a reloca
 
 ### Keep Barrel Dependencies Pointing Inward
 
-A parent barrel may re-export its immediate children's named completed Blocks, and application code may import those values from the barrel. The exported child modules must not import the application root in return. A local `message.ts` should not import child Blocks to declare `Got*` variants. Composition derives those wrappers from its registered Bindings. This keeps the local Message module independent of child completion and avoids a common cycle through `page/index.ts`.
+Each `blocks/index.ts` explicitly re-exports its immediate child namespaces and passive contracts. Parent code imports those children through that barrel. The exported child modules must not import the application root in return. A local `message.ts` should not import child Blocks to declare `Got*` variants. Composition derives those wrappers from its registered Bindings. This keeps the local Message module independent of child completion and avoids a cycle through `blocks/index.ts`.
 
-Within a feature, import implementation pieces from their owning modules rather than from the feature's own completed barrel. For ordinary child features built in the same source project, use the checked completed export and define parent Model fields with `Products.ProductsBlock.Model`. Child implementation files must not import their parent or its completed barrel. Keep shared domain Schemas in leaf modules that do not import either Composition.
+Within a feature, import implementation pieces from their owning modules rather than from the feature's own completed barrel. For ordinary child features built in the same source project, use the passive contract and define parent Model fields with `Products.ProductsBlock.Model`. Child implementation files must not import their parent or its completed barrel. Keep shared domain Schemas in leaf modules that do not import either Composition.
 
 Keep shared leaf modules independent of the root. Pass parent-owned rendering capabilities through function arguments or Block `viewInputs`, and make stateful shared behavior its own Block. The parent then provides the capability at the view boundary while each Page remains importable through the one-level barrel.

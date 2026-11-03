@@ -3,9 +3,13 @@ import { Effect, Schema, Tuple } from 'effect'
 import { Block, Scene } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Dialog } from '@foldkit/ui'
+import {
+  DialogBlock,
+  layer as DialogLayer,
+  test as DialogTest,
+} from '@foldkit/ui/dialog'
 
-const Model = Schema.Struct({ dialog: Dialog.DialogBlock.Model })
+const Model = Schema.Struct({ dialog: DialogBlock.Model })
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({ ClickedOpenConfirm: {} })
@@ -23,11 +27,11 @@ const ConfirmDefinition = Block.makeDefinition('Confirm', {
 
 const { makeNoopStep } = ConfirmDefinition
 
-const DialogBinding = ConfirmDefinition.makeBinding(Dialog.DialogBlock, {
+const DialogBinding = ConfirmDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => Tuple.make({ id: 'confirm' }) },
 }).withOutMessagePolicy({
-  fold: ConfirmDefinition.makeOutMessageFold(Dialog.DialogBlock, {
+  fold: ConfirmDefinition.makeOutMessageFold(DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: makeNoopStep,
@@ -71,7 +75,7 @@ export const ConfirmBlock = ConfirmDefinition.makeBlock(
 
     return { children: [dialog], init, update, view }
   }),
-).provide(Dialog.layer)
+).provide(DialogLayer)
 
 await Effect.runPromise(
   Scene.scene(
@@ -79,12 +83,12 @@ await Effect.runPromise(
     Scene.init(),
     Scene.click(Scene.role('button', { name: 'Open confirmation' })),
     Scene.Command.resolve(
-      Dialog.test.ShowDialog,
-      Dialog.DialogBlock.Message.SucceededShowDialog(),
+      DialogTest.ShowDialog,
+      DialogBlock.Message.SucceededShowDialog(),
     ),
     Scene.Mount.resolve(
-      Dialog.test.AcquireResources,
-      Dialog.DialogBlock.Message.SucceededAcquireResources(),
+      DialogTest.AcquireResources,
+      DialogBlock.Message.SucceededAcquireResources(),
     ),
   ),
 )

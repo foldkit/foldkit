@@ -6,11 +6,11 @@ import { modifyFields } from 'foldkit/struct'
 import { test as baseTest } from 'vitest'
 
 import { ApplicationBlock } from './block'
+import { EducationEntry } from './blocks/education/blocks'
+import { SkillsEntry } from './blocks/skills/blocks'
+import { WorkHistoryEntry } from './blocks/workHistory/blocks'
 import { Flags } from './flags'
 import { type Model } from './model'
-import * as EducationEntry from './step/education/entry'
-import * as SkillsEntry from './step/skills/entry'
-import * as WorkHistoryEntry from './step/workHistory/entry'
 
 export const today = Calendar.make(2026, 4, 16)
 export const initialFlags = Flags.make({

@@ -2,13 +2,16 @@ import { Effect, Option, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Listbox } from '@foldkit/ui'
-import { buttonId as ListboxButtonId } from '@foldkit/ui/listbox'
+import {
+  buttonId as ListboxButtonId,
+  layer as ListboxLayer,
+  makeBlock as makeListboxBlock,
+} from '@foldkit/ui/listbox'
 
 const Plan = Schema.Literals(['Free', 'Pro', 'Enterprise'])
 type Plan = typeof Plan.Type
 // One passive contract retains Plan in its view inputs and OutMessages.
-const PlanListbox = Listbox.makeBlock<Plan>()
+const PlanListbox = makeListboxBlock<Plan>()
 
 // Add a field to your Model for the Listbox Block, plus a field for
 // the selected value your app actually cares about. Using the `Plan`
@@ -124,4 +127,4 @@ export const ApplicationBlock = PlanPickerDefinition.makeBlock(
     const planListbox = yield* PlanListboxBinding
     return { children: [planListbox], init, update, view }
   }),
-).provide(Listbox.layer)
+).provide(ListboxLayer)

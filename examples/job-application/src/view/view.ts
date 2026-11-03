@@ -2,8 +2,24 @@ import clsx from 'clsx'
 import { Array, Equal, HashSet, Match, Option, pipe } from 'effect'
 import type { ChildAttribute, Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
+import {
+  hasErrors as educationHasErrors,
+  isComplete as isEducationComplete,
+} from '../blocks/education'
+import {
+  isComplete as isPersonalInfoComplete,
+  hasErrors as personalInfoHasErrors,
+} from '../blocks/personalInfo'
+import {
+  isComplete as isSkillsComplete,
+  hasErrors as skillsHasErrors,
+} from '../blocks/skills'
+import {
+  isComplete as isWorkHistoryComplete,
+  hasErrors as workHistoryHasErrors,
+} from '../blocks/workHistory'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
@@ -18,22 +34,6 @@ import {
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model } from '../model'
-import {
-  hasErrors as educationHasErrors,
-  isComplete as isEducationComplete,
-} from '../step/education/update'
-import {
-  isComplete as isPersonalInfoComplete,
-  hasErrors as personalInfoHasErrors,
-} from '../step/personalInfo/update'
-import {
-  isComplete as isSkillsComplete,
-  hasErrors as skillsHasErrors,
-} from '../step/skills/update'
-import {
-  isComplete as isWorkHistoryComplete,
-  hasErrors as workHistoryHasErrors,
-} from '../step/workHistory/update'
 import { preview } from './preview'
 import { review } from './review'
 import { stepMenu, stepTabButton } from './stepNav'
@@ -144,7 +144,7 @@ const navigationButtons = (model: Model, h: ApplicationViewBuilder) =>
       ...(isFirstStep(model)
         ? [h.empty]
         : [
-            Button.view(
+            buttonView(
               {
                 onClick: Message.ClickedPrevious(),
                 toView: attributes =>
@@ -164,7 +164,7 @@ const navigationButtons = (model: Model, h: ApplicationViewBuilder) =>
       ...(isLastStep(model)
         ? []
         : [
-            Button.view(
+            buttonView(
               {
                 onClick: Message.ClickedNext(),
                 toView: attributes =>
@@ -311,7 +311,7 @@ const mobilePreviewToggle = (model: Model, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
-      Button.view(
+      buttonView(
         {
           onClick: Message.ToggledPreview(),
           toView: attributes =>

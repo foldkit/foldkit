@@ -1,7 +1,20 @@
 import { Effect, Layer } from 'effect'
 
-import { Dialog, Menu } from '@foldkit/ui'
+import { layer as DialogLayer } from '@foldkit/ui/dialog'
+import { layer as MenuLayer } from '@foldkit/ui/menu'
 
+import {
+  ApiReference,
+  BlockPage,
+  ComingFromReact,
+  ExampleDetail,
+  Home,
+  Playground,
+  Search,
+  SnippetCopy,
+  SnippetDisclosure,
+  Ui,
+} from './blocks'
 import {
   ApiReferenceBinding,
   ComingFromReactBinding,
@@ -19,16 +32,6 @@ import {
 import { ApplicationDefinition } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
-import * as ApiReference from './page/apiReference'
-import * as ComingFromReact from './page/comingFromReact'
-import * as BlockPage from './page/core/blockPage'
-import * as ExampleDetail from './page/example'
-import * as Home from './page/home'
-import * as Playground from './page/playground'
-import * as Ui from './page/ui'
-import * as Search from './search'
-import * as SnippetCopy from './snippetCopy'
-import * as SnippetDisclosure from './snippetDisclosure'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view/view'
@@ -82,7 +85,7 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
     Search.layer,
     SnippetCopy.layer,
     SnippetDisclosure.layer,
-    Dialog.layer,
-    Menu.layer,
+    DialogLayer,
+    MenuLayer,
   ),
 )

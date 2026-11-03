@@ -5,13 +5,13 @@ import { pushUrl } from 'foldkit/navigation'
 
 import * as Shared from '@typing-game/shared'
 
+import { HomeBlock } from '../blocks'
 import {
   ApplicationDefinition,
   makeCommandsStep,
   makeStep,
 } from '../definition'
 import { Message } from '../message'
-import { HomeBlock } from '../page'
 import { ApplicationRoute, roomRouter } from '../route'
 import { RoomBinding } from './room'
 

@@ -8,10 +8,28 @@ import { toParentMessageFor } from 'foldkit/test'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { DragAndDrop, DragAndDropBlock } from '@foldkit/ui'
+import {
+  DragAndDropBlock,
+  test as DragAndDropTest,
+} from '@foldkit/ui/dragAndDrop'
 
 import { layer } from './block'
 import { ApplicationBlock } from './block'
+import { DragAndDropBinding } from './blocks/issueBoard/composition'
+import { containerId, draggableId } from './blocks/issueBoard/dragAndDrop'
+import { IssueDetailBlock } from './blocks/issueDetail'
+import { CommentComposerBlock } from './blocks/issueDetail/blocks/commentComposer'
+import { AddComment } from './blocks/issueDetail/blocks/commentComposer/command'
+import { PostState } from './blocks/issueDetail/blocks/commentComposer/model'
+import { SaveIssue } from './blocks/issueDetail/command'
+import { CommentComposerBinding } from './blocks/issueDetail/composition'
+import { Message as IssueDetailMessage } from './blocks/issueDetail/message'
+import { SaveState } from './blocks/issueDetail/model'
+import { IssueListBlock } from './blocks/issueList'
+import { NotificationCenterBlock } from './blocks/notificationCenter'
+import { ProjectSettingsBlock } from './blocks/projectSettings'
+import { SaveProject } from './blocks/projectSettings/command'
+import { SaveState as ProjectSaveState } from './blocks/projectSettings/model'
 import {
   AppendActivity,
   AssignIssue,
@@ -20,9 +38,6 @@ import {
   NavigateInternal,
   ReplaceInternalUrl,
 } from './command'
-import { CommentComposerBlock } from './commentComposer'
-import { AddComment } from './commentComposer/command'
-import { PostState } from './commentComposer/model'
 import {
   ActiveMemberBinding,
   IssueBoardBinding,
@@ -44,23 +59,11 @@ import {
   revisionFromIssue,
   savedIssueFromIssue,
 } from './domain'
-import { DragAndDropBinding } from './issueBoard/composition'
-import { containerId, draggableId } from './issueBoard/dragAndDrop'
-import { IssueDetailBlock } from './issueDetail'
-import { SaveIssue } from './issueDetail/command'
-import { CommentComposerBinding } from './issueDetail/composition'
-import { Message as IssueDetailMessage } from './issueDetail/message'
-import { SaveState } from './issueDetail/model'
 import { issueHref } from './issueLinks'
-import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
 import { type Model } from './model'
-import { NotificationCenterBlock } from './notificationCenter'
 import { IssueMoveState } from './optimistic'
-import { ProjectSettingsBlock } from './projectSettings'
-import { SaveProject } from './projectSettings/command'
-import { SaveState as ProjectSaveState } from './projectSettings/model'
 import { RepositoryError } from './repository'
 import {
   ApplicationRoute,
@@ -2576,7 +2579,7 @@ describe('Board moves', () => {
               }),
             ),
           ),
-          DragAndDrop.test.resolveKeyboardMove({
+          DragAndDropTest.resolveKeyboardMove({
             binding: DragAndDropBinding,
             itemId,
             targetContainerId: containerId('Done'),
@@ -2585,7 +2588,7 @@ describe('Board moves', () => {
           message(
             childMessage(DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
           ),
-          DragAndDrop.test.settleFocus({ binding: DragAndDropBinding, itemId }),
+          DragAndDropTest.settleFocus({ binding: DragAndDropBinding, itemId }),
           model((model: Model) => {
             expect(visibleIssueOf(model, issue.id).status).toBe('Done')
             expect(

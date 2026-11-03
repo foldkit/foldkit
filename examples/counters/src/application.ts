@@ -4,9 +4,9 @@ import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
-import * as Counter from './counter'
+import { Counter } from './blocks'
 
 const INITIAL_COUNTER_COUNT = 3
 
@@ -106,7 +106,7 @@ const counterInstanceView = (
           ),
         ],
       ),
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedRemoveCounter({ id: counterInstance.id }),
           toView: attributes =>
@@ -147,7 +147,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
           counterInstanceView(counterInstance, h),
         ),
       ),
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedAddCounter(),
           toView: attributes =>

@@ -1,6 +1,6 @@
 import { Option, Schema } from 'effect'
 
-import { DialogBlock } from '@foldkit/ui'
+import { DialogBlock } from '@foldkit/ui/dialog'
 
 import {
   GridSizeRadioGroupBlock,

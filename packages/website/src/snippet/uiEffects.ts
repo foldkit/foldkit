@@ -1,18 +1,19 @@
 import { Effect, Layer } from 'effect'
 
 // composition.ts
-import { Dialog, Menu } from '@foldkit/ui'
+import { DialogBlock, layer as DialogLayer } from '@foldkit/ui/dialog'
+import {
+  layer as MenuLayer,
+  makeBlock as makeMenuBlock,
+} from '@foldkit/ui/menu'
 
 import { ApplicationDefinition } from './definition'
 
-export const DialogBinding = ApplicationDefinition.makeBinding(
-  Dialog.DialogBlock,
-  {
-    field: 'dialog',
-  },
-).withOutMessagePolicy({ fold: foldDialogOutMessage })
+export const DialogBinding = ApplicationDefinition.makeBinding(DialogBlock, {
+  field: 'dialog',
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const ApplicationMenu = Menu.makeBlock<string>()
+export const ApplicationMenu = makeMenuBlock<string>()
 
 export const MenuBinding = ApplicationDefinition.makeBinding(ApplicationMenu, {
   field: 'menu',
@@ -23,16 +24,15 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 
 // update.ts
-import { ApplicationComposition } from './composition'
-
-export const update = ApplicationComposition.makeUpdate({})
-
-// view.ts
 import {
   ApplicationComposition,
   DialogBinding,
   MenuBinding,
 } from './composition'
+
+export const update = ApplicationComposition.makeUpdate({})
+
+// view.ts
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Account',
@@ -58,9 +58,8 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 }))
 
 // block.ts
-import { Block } from 'foldkit'
+import { Block, Program, Runtime } from 'foldkit'
 
-import { ApplicationComposition } from './composition'
 import { init } from './init'
 import type { Model } from './model'
 import { update } from './update'
@@ -73,10 +72,9 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
 
     return { children: [dialog, menu], init, update, view }
   }),
-).provide(Layer.mergeAll(Dialog.layer, Menu.layer))
+).provide(Layer.mergeAll(DialogLayer, MenuLayer))
 
 // entry.ts
-import { Program, Runtime } from 'foldkit'
 
 import { ApplicationBlock } from './block'
 

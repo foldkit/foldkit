@@ -27,7 +27,7 @@ Third, `animateSize: true` supplies the nested CSS grid structure needed to anim
 Use Animation directly when your own content needs the same lifecycle. Components such as Dialog, Menu, Popover, Listbox, and Combobox already provide it through their `isAnimated` option.
 
 :::Info{label="See it in an app"}
-Check out how Animation is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/animation.ts).
+Check out how Animation is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/animation.ts).
 :::
 
 ## Examples

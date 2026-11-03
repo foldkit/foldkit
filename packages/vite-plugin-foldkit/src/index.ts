@@ -64,6 +64,7 @@ import { type FoldkitBuildOptions, foldkitBuild } from './build.js'
 import { foldkitBuildToken } from './buildToken.js'
 import { devToolsOverlayPlugin } from './devToolsOverlay.js'
 import { crawlFoldkitPackages } from './foldkitPackages.js'
+import { readProcessNamespaces } from './relayLiveness.js'
 import { publishRelayRecord, retireRelayRecord } from './relayRegistry.js'
 import { relayRegistryTrust } from './relayRegistryTrust.js'
 import { type FoldkitSsrOptions, foldkitSsr } from './ssr.js'
@@ -999,6 +1000,7 @@ const unpublishedRelayMessage = (reason: string): string =>
 const publishRelay = (root: string, relay: Relay) =>
   Effect.gen(function* () {
     const startedAt = yield* Clock.currentTimeMillis
+    const maybeNamespaces = yield* readProcessNamespaces
     const directory = yield* publishRelayRecord(
       {
         version: RELAY_RECORD_VERSION,
@@ -1007,6 +1009,10 @@ const publishRelay = (root: string, relay: Relay) =>
         url: relay.url,
         pid: process.pid,
         startedAt,
+        ...Option.match(maybeNamespaces, {
+          onNone: () => ({}),
+          onSome: namespaces => ({ namespaces }),
+        }),
       },
       relayRegistryTrust,
     )

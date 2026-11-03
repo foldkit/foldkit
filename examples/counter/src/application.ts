@@ -2,7 +2,7 @@ import { Effect, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 export const Model = Schema.Struct({
   count: Schema.Number,
@@ -62,7 +62,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
       h.div(
         [h.Class('flex flex-wrap justify-center gap-4')],
         [
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedDecrement(),
               toView: attributes =>
@@ -70,7 +70,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
             },
             h,
           ),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedReset(),
               toView: attributes =>
@@ -81,7 +81,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
             },
             h,
           ),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedIncrement(),
               toView: attributes =>

@@ -9,7 +9,7 @@ VirtualList supports fixed, known-variable, and measured row heights. Logical sc
 Create a typed completed Block once at module scope with `VirtualList.makeBlock<Item>()`, then connect it in the parent.
 
 :::Info{label="See it in an app"}
-Check out how VirtualList is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/virtualList.ts).
+Check out how VirtualList is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/virtualList.ts).
 :::
 
 ## Example

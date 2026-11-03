@@ -1,4 +1,4 @@
-import { Effect, Predicate } from 'effect'
+import { Context, Effect, Option, Predicate } from 'effect'
 
 import {
   executeBindingOperation,
@@ -32,7 +32,17 @@ export interface SymbolicBinding {
 export interface Acquisition {
   readonly descriptor: object
   readonly block: any
+  readonly graph: object
+  readonly isCurrent: () => boolean
 }
+
+/** @internal Lifetime and graph identity assigned to an acquired executable. */
+export type AcquisitionContext = Pick<Acquisition, 'graph' | 'isCurrent'>
+
+/** @internal Identifies one private executable construction graph. */
+export const ConstructionGraph = Context.Service<symbol, object>(
+  'foldkit/ConstructedBlock/ConstructionGraph',
+)
 
 const declarations = new WeakMap<object, SymbolicBinding>()
 const acquired = new WeakMap<object, Acquisition>()
@@ -40,16 +50,23 @@ const constructors = new WeakMap<
   object,
   () => Effect.Effect<object, any, any>
 >()
+const providedExecutables = new WeakMap<
+  object,
+  () => Effect.Effect<Option.Option<object>, any, any>
+>()
 const connections = new WeakMap<
   object,
-  Readonly<{ binding: object; child: object }>
+  Readonly<{
+    binding: object
+    child: object
+    canonicalGraph: object | undefined
+  }>
 >()
 const embeddings = new WeakMap<
   object,
   Readonly<{ binding: object; config: object }>
 >()
 const executionBindings = new WeakMap<object, OperationEnvironment>()
-
 /** @internal Retains the immutable relationship map of one acquired implementation. */
 export const registerExecutionBindings = (
   block: object,
@@ -67,9 +84,40 @@ export const registerAcquisition = (
   executable: object,
   descriptor: object,
   block: object,
+  graph: object,
+  isCurrent: () => boolean,
 ): void => {
-  acquired.set(executable, { descriptor, block })
+  acquired.set(executable, { descriptor, block, graph, isCurrent })
 }
+
+/** @internal Associates an alias with the exact acquired graph and lifetime. */
+export const registerAcquisitionAlias = (
+  executable: object,
+  descriptor: object,
+  block: object,
+  acquisition: Acquisition,
+): void =>
+  registerAcquisition(
+    executable,
+    descriptor,
+    block,
+    acquisition.graph,
+    acquisition.isCurrent,
+  )
+
+/** @internal Reuses an inherited graph token or creates one for a new root. */
+export const withConstructionGraph = <Value, Error, Requirements>(
+  construct: (graph: object) => Effect.Effect<Value, Error, Requirements>,
+  preferredGraph?: object,
+): Effect.Effect<Value, Error, Requirements> =>
+  Effect.flatMap(Effect.serviceOption(ConstructionGraph), maybeGraph => {
+    const graph = Option.getOrElse(
+      maybeGraph,
+      () => preferredGraph ?? Object.freeze({}),
+    )
+
+    return Effect.provideService(construct(graph), ConstructionGraph, graph)
+  })
 
 /** @internal Retains construction under the descriptor's selected Effect or Layer owner. */
 export const registerDescriptorConstructor = (
@@ -77,6 +125,14 @@ export const registerDescriptorConstructor = (
   construct: () => Effect.Effect<object, any, any>,
 ): void => {
   constructors.set(descriptor, construct)
+}
+
+/** @internal Resolves an executable supplied by the current Layer context. */
+export const registerProvidedExecutableResolver = (
+  descriptor: object,
+  resolve: () => Effect.Effect<Option.Option<object>, any, any>,
+): void => {
+  providedExecutables.set(descriptor, resolve)
 }
 
 /** @internal Reads acquisition only for an original registered descriptor. */
@@ -183,33 +239,45 @@ const bindingValue = (declaration: SymbolicBinding): object => {
     Predicate.isString(field) &&
     (declaration.kind === 'Map' || declaration.config['key'] === undefined)
   const owner = Reflect.get(declaration.child, 'owner')
-  const target = {
-    placement: placement ?? (isFieldPlacement ? field : owner.id),
-    connect: (child: object) => {
-      const acquisition = acquisitionOf(child)
+  const connect = (
+    child: object,
+    canonicalGraph: object | undefined,
+  ): object => {
+    const acquisition = acquisitionOf(child)
 
-      if (acquisition.descriptor !== declaration.child) {
+    if (!acquisition.isCurrent()) {
+      throw new Error(
+        '[foldkit] A Binding cannot connect an executable after its acquisition Scope has closed.',
+      )
+    }
+
+    if (acquisition.descriptor !== declaration.child) {
+      throw new Error(
+        '[foldkit] The acquired child belongs to another Block descriptor.',
+      )
+    }
+
+    for (const name of ['construct', 'connect']) {
+      if (Object.hasOwn(acquisition.block.operations, name)) {
         throw new Error(
-          '[foldkit] The acquired child belongs to another Block descriptor.',
+          `[foldkit] Block construction reserves the Binding operation name "${name}".`,
         )
       }
+    }
 
-      for (const name of ['construct', 'connect']) {
-        if (Object.hasOwn(acquisition.block.operations, name)) {
-          throw new Error(
-            `[foldkit] Block construction reserves the Binding operation name "${name}".`,
-          )
-        }
-      }
+    const connection = Object.freeze({})
+    connections.set(connection, { binding, child, canonicalGraph })
 
-      const connection = Object.freeze({})
-      connections.set(connection, { binding: binding, child })
-
-      return connection
-    },
+    return connection
+  }
+  const target = {
+    placement: placement ?? (isFieldPlacement ? field : owner.id),
+    connect: (child: object) => connect(child, undefined),
     construct: () =>
-      Effect.suspend(() => {
+      Effect.flatMap(Effect.serviceOption(ConstructionGraph), maybeGraph => {
+        const resolveProvided = providedExecutables.get(declaration.child)
         const construct = constructors.get(declaration.child)
+        const canonicalGraph = Option.getOrUndefined(maybeGraph)
 
         if (construct === undefined) {
           throw new Error(
@@ -217,7 +285,19 @@ const bindingValue = (declaration: SymbolicBinding): object => {
           )
         }
 
-        return Effect.map(construct(), target.connect)
+        if (resolveProvided === undefined) {
+          return Effect.map(construct(), child =>
+            connect(child, canonicalGraph),
+          )
+        }
+
+        return Effect.flatMap(resolveProvided(), maybeProvided =>
+          Option.match(maybeProvided, {
+            onNone: () =>
+              Effect.map(construct(), child => connect(child, canonicalGraph)),
+            onSome: child => Effect.succeed(connect(child, canonicalGraph)),
+          }),
+        )
       }),
     [Symbol.iterator]: () => target.construct()[Symbol.iterator](),
     withOutMessagePolicy: (policy: unknown) =>

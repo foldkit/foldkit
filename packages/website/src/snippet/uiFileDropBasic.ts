@@ -2,12 +2,15 @@ import { Array, Effect, Schema, Tuple } from 'effect'
 import { Block, File } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { FileDrop } from '@foldkit/ui'
-import type { FileDropAttributes as FileDropFileDropAttributes } from '@foldkit/ui/fileDrop'
+import {
+  FileDropBlock,
+  type FileDropAttributes as FileDropFileDropAttributes,
+  layer as FileDropLayer,
+} from '@foldkit/ui/fileDrop'
 
 // Add the FileDrop Block to your Model, plus a list of accepted files:
 const Model = Schema.Struct({
-  uploader: FileDrop.FileDropBlock.Model,
+  uploader: FileDropBlock.Model,
   uploadedFiles: Schema.Array(File.File),
   // ...your other fields
 })
@@ -34,7 +37,7 @@ const { makeFieldsStep, makeNoopStep } = FileDropExampleDefinition
 // back. The parent Definition checks every named child variant and infers the
 // parent Step from each handler:
 const foldFileDropOutMessage = FileDropExampleDefinition.makeOutMessageFold(
-  FileDrop.FileDropBlock,
+  FileDropBlock,
   {
     ReceivedFiles: ({ files }) =>
       makeFieldsStep(() => ({
@@ -48,13 +51,10 @@ const foldFileDropOutMessage = FileDropExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const FileDropBinding = FileDropExampleDefinition.makeBinding(
-  FileDrop.FileDropBlock,
-  {
-    field: 'uploader',
-    init: { contextToArgs: () => Tuple.make({ id: 'uploader' }) },
-  },
-).withOutMessagePolicy({ fold: foldFileDropOutMessage })
+const FileDropBinding = FileDropExampleDefinition.makeBinding(FileDropBlock, {
+  field: 'uploader',
+  init: { contextToArgs: () => Tuple.make({ id: 'uploader' }) },
+}).withOutMessagePolicy({ fold: foldFileDropOutMessage })
 
 const FileDropExampleComposition = FileDropExampleDefinition.makeComposition({
   bindings: [FileDropBinding],
@@ -109,4 +109,4 @@ export const ApplicationBlock = FileDropExampleDefinition.makeBlock(
     const fileDrop = yield* FileDropBinding
     return { children: [fileDrop], init, update, view }
   }),
-).provide(FileDrop.layer)
+).provide(FileDropLayer)

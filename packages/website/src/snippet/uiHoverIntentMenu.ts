@@ -2,11 +2,14 @@ import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { HoverIntent } from '@foldkit/ui'
-import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
+import {
+  HoverIntentBlock,
+  layer as HoverIntentLayer,
+  type RenderInfo as HoverIntentRenderInfo,
+} from '@foldkit/ui/hoverIntent'
 
 const Model = Schema.Struct({
-  hoverMenu: HoverIntent.HoverIntentBlock.Model,
+  hoverMenu: HoverIntentBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -29,19 +32,16 @@ const HoverMenuDefinition = Block.makeDefinition('HoverMenu', {
 const { makeNoopStep } = HoverMenuDefinition
 
 const foldHoverMenuOutMessage = HoverMenuDefinition.makeOutMessageFold(
-  HoverIntent.HoverIntentBlock,
+  HoverIntentBlock,
   {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
   },
 )
 
-const HoverMenuBinding = HoverMenuDefinition.makeBinding(
-  HoverIntent.HoverIntentBlock,
-  {
-    field: 'hoverMenu',
-  },
-).withOutMessagePolicy({ fold: foldHoverMenuOutMessage })
+const HoverMenuBinding = HoverMenuDefinition.makeBinding(HoverIntentBlock, {
+  field: 'hoverMenu',
+}).withOutMessagePolicy({ fold: foldHoverMenuOutMessage })
 
 const HoverMenuComposition = HoverMenuDefinition.makeComposition({
   bindings: [HoverMenuBinding],
@@ -132,4 +132,4 @@ export const ApplicationBlock = HoverMenuDefinition.makeBlock(
     const hoverMenu = yield* HoverMenuBinding
     return { children: [hoverMenu], init, update, view }
   }),
-).provide(HoverIntent.layer)
+).provide(HoverIntentLayer)

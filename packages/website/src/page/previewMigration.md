@@ -100,7 +100,15 @@ Keep ordinary Effect Service providers separate. `ApplicationLayer` supplies HTT
 
 ::Snippet{name="applicationRootLayer" label="Application Service providers"}
 
-Omit `handler` when its implementation is authored separately. Build the provider through the original definition's `toLayer` so it retains source identity, and include it in the implementation's local `EffectsLayer` before completion. When the feature owns the handler workflow, prefer an attached handler against an ordinary host-provided Service. APIs such as Query deliberately expose their own checked host-handler selector. Do not recreate a same-shaped definition.
+Omit `handler` when its implementation is authored separately. Build the provider
+through the original definition's `toLayer` so it retains source identity. Supply
+it in local `EffectsLayer`, or deliberately list the original definition under
+the constructor's `hostHandlers` and let the integrator select it through
+`block.provideHandlers(layer)`. Select every published host handler before using
+that descriptor with a Program or scoped test. The providers' requirements and
+constructor errors must fit the declared effects contract. When the feature owns
+the workflow, prefer an attached handler against an ordinary host-provided
+Service. Do not recreate a same-shaped definition.
 
 ## 2. Complete Every Feature as a Block
 
@@ -161,6 +169,14 @@ Use `FeatureComposition.makeUpdate({ Tag: (model, message) => result })` for an 
 ::Snippet{name="counterUpdate" label="Authoring exhaustive local Message handlers"}
 
 Normal handlers may return result objects directly. In a handler that mixes local results with connected Binding recipes, use Definition-owned Steps for the local branches. The [Update guide](/core/update#preserving-local-results-beside-connected-operations) explains the enforced boundary and shows a repair. Do not annotate away registration or result-channel requirements.
+
+The exhaustive record remains the default. Use
+[`makeUpdate.compose`](/core/update#composing-updates) for behavior shared across
+handlers. Focused `each`, `on`, `except`, and additional `cases` updates compose
+around one exhaustive update, preserving its child routing and exact result
+channels. Their `{ before }` argument is the original Model for the whole
+dispatch, including nested bundles. No rewrite is needed for an ordinary
+record-authored update.
 
 ### Select the Binding Shape
 

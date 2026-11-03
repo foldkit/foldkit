@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { RadioGroup } from '@foldkit/ui'
+import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
 
 import {
   ChartModeRadioGroupBinding,
@@ -26,4 +26,4 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(RadioGroup.layer))
+).provide(Layer.mergeAll(RadioGroupLayer))

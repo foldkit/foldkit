@@ -1,9 +1,55 @@
 # Next preview review
 
-## November 2 constructor migration stabilization
+## Current constructor and update follow-up
 
-Review the [current stabilization report](layered-constructor/STABILIZATION.md)
-before the historical checkpoints below. The migration and dependency follow-up
+The user approved restoring ordinary host-handler support and completing
+composable updates. Implementation is isolated in
+`/private/tmp/foldkit-update-composition-20261102`; the previously reviewed
+constructor candidate and shared checkout are preserved.
+
+- [x] Ordinary constructor-authored Blocks accept explicit host-owned handlers
+      and select their original providers without erasing requirements or errors.
+- [x] Focused update bundles compose around one exhaustive update, preserving
+      dispatch admission, routing once, ordering, snapshot, channels, and evidence.
+- [x] Inline, extracted, contextual, and connected authoring works through the
+      native public Composition builder in source and emitted consumers.
+- [x] Unchanged compiler budgets and representative editor checks pass.
+- [x] Realistic consumer, scoped Story tests, active guidance, snippets, changesets,
+      and migration notes reflect the verified public API.
+- [x] Shared app conventions cover all examples, Website, and Typing Game.
+      Child folders, explicit barrels, named UI subpath imports, and single-use
+      registration inventories were audited across the full app set.
+- [x] New feedback #1874, #1875/PR #1877, and #1876 is reconciled with the
+      candidate. Relay tests on macOS pass; the added Linux-only cases need a
+      Linux runner. SSR hot-update tests pass all 72 cases.
+- [x] Open UI reports #1865 and #1866 have regression fixes. The full UI suite
+      passes 1,357 tests after the emitted build and branding step.
+- [x] Seven unchanged compiler budgets pass after the final type-only public
+      name exports. Source-free TypeScript 6 emission is checked separately in
+      the packed consumer rehearsal.
+- [x] Fresh whole-preview/main Lustre evidence is recorded with workload parity,
+      all samples, bundle sizes, and the limits caused by wide sample ranges.
+- [x] Final packed TypeScript 6 consumers and the existing three-browser CI
+      matrix pass on the same 203-changeset release plan and stable artifacts.
+- [ ] Final candidate has independent code and security review. The user approved
+      Daybreak source review for `db69206779` and small resulting security fixes;
+      this does not imply review coverage of later public API changes.
+- [x] [Release summary](update-composition/RELEASE-SUMMARY.md) separates
+      implemented changes, verification limits, and outstanding work.
+      Publication remains held for the user's approval.
+
+The previous hook experiment's approval is now granted. Update composition
+addresses that use case; the historical evidence below retains its original
+scope. `Query.define` to `Query.makeBlock` is bookmarked separately.
+General proposals #1871 and #1872 remain unimplemented, without an inferred
+scope or deferral decision. The [feedback reconciliation](update-composition/final-feedback.md)
+separates those proposals from repaired release feedback.
+
+## November 2 constructor migration stabilization checkpoint
+
+The follow-up above supersedes the pending experiment and review status in this
+checkpoint. Review its [pinned stabilization report](layered-constructor/STABILIZATION.md)
+for the earlier migration and dependency follow-up. Those commits
 have passed independent review. Three fresh feedback fixes cover observable
 Dialog closure, stream Mount test emissions, and completed embed teardown.
 All 22 combined integration groups, the 720-test application matrix and the

@@ -16,18 +16,17 @@ import {
 import { monacoWorkersPlugin } from './scripts/monacoWorkersPlugin.ts'
 import { playgroundFilesPlugin } from './scripts/playgroundFilesPlugin.ts'
 import { playgroundTypesPlugin } from './scripts/playgroundTypesPlugin.ts'
-import { islandAttributes } from './src/markdown/islandAttributes.ts'
 import {
   ParsedApiReference,
   collectNamedSchemas,
   moduleNameToSlug,
   parseTypedocJson,
-} from './src/page/apiReference/domain.ts'
+} from './src/blocks/apiReference/domain.ts'
 import {
   type NamedSchemas,
   typeDefFromChildren,
   typeToString,
-} from './src/page/apiReference/typeToString.ts'
+} from './src/blocks/apiReference/typeToString.ts'
 import {
   Kind,
   type TypeDocCommentPart,
@@ -36,9 +35,13 @@ import {
   type TypeDocParam,
   type TypeDocSignature,
   type TypeDocTypeParam,
-} from './src/page/apiReference/typedoc.ts'
+} from './src/blocks/apiReference/typedoc.ts'
+import {
+  exampleSlugs,
+  runnableExampleSlugs,
+} from './src/blocks/exampleDetail/meta.ts'
+import { islandAttributes } from './src/markdown/islandAttributes.ts'
 import { PostFrontmatter } from './src/page/blog/frontmatter.ts'
-import { exampleSlugs, runnableExampleSlugs } from './src/page/example/meta.ts'
 import { shikiDarkTheme, shikiLightTheme } from './src/shikiTheme.ts'
 
 const shikiThemes = {

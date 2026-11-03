@@ -1,7 +1,6 @@
 import type { Context, Effect, Layer, Schema, Scope } from 'effect'
 
 import type { AnyBinding, RequirementsOfBindings } from '../../block/binding.js'
-import type { GeneratedEnvelopeOf } from '../../block/childEnvelope.js'
 import type { MakeCommandsStep } from '../../block/commandsStep.js'
 import type {
   Completed,
@@ -65,13 +64,13 @@ import type {
 } from '../constructed/contract.js'
 import type {
   AuthoringSource,
-  MakeUpdatePlan,
   Plan,
   PlanOutput,
   ViewPlan,
   ViewWithInputs,
 } from '../hybrid/authoring.js'
 import type { ExecutableImplementation } from '../hybrid/hybrid.js'
+import type { MakeComposableUpdatePlan } from '../hybrid/updateComposition.js'
 import type {
   EffectsContract,
   EffectsErrorOf,
@@ -432,6 +431,9 @@ export interface Contract<
 
 declare const ContractGraphTypeId: unique symbol
 
+/** @internal Retains ordinary implementation readiness without widening family contracts. */
+export declare const PendingHostHandlersTypeId: unique symbol
+
 /** An implementation capability retaining every independently declared public channel. */
 export interface ContractGraph<
   OwnerValue,
@@ -453,6 +455,7 @@ export interface Block<
   ConstructorError,
   ConstructorRequirements,
   Subscriptions extends PublicFacts['subscriptions'] = Facts['subscriptions'],
+  Pending = never,
 >
   extends
     Omit<
@@ -461,13 +464,14 @@ export interface Block<
         ModelSchema,
         MessageSchema,
         OutMessageSchema,
-        Facts,
+        PendingHandlerFacts<Facts, Pending>,
         ConstructorError,
         ConstructorRequirements
       >,
       'layer' | 'get' | 'provide'
     >,
     ImplementationSubscriptions<Subscriptions> {
+  readonly [PendingHostHandlersTypeId]: Pending
   readonly InMessage: Contract<
     OwnerValue,
     ModelSchema,
@@ -481,7 +485,7 @@ export interface Block<
       ModelSchema,
       MessageSchema,
       OutMessageSchema,
-      Facts
+      PendingHandlerFacts<Facts, Pending>
     >,
     ConstructorError,
     Exclude<ConstructorRequirements, Scope.Scope | Layer.CurrentMemoMap>
@@ -491,7 +495,7 @@ export interface Block<
     ModelSchema,
     MessageSchema,
     OutMessageSchema,
-    Facts
+    PendingHandlerFacts<Facts, Pending>
   >['get']
   provide<const Dependencies extends Layer.Any>(
     dependencies: Dependencies,
@@ -504,9 +508,63 @@ export interface Block<
     ConstructorError | Layer.Error<Dependencies>,
     | Exclude<ConstructorRequirements, GuaranteedLayerOutputs<Dependencies>>
     | Layer.Services<Dependencies>,
-    Subscriptions
+    Subscriptions,
+    Pending
   >
+  /** Selects providers for exactly the original host-owned definitions. The
+   * selected Layer remains passive until Runtime builds the handler graph.
+   * Its failure and Service channels must fit the Definition's effects contract.
+   * Selection preserves those declared bounds, including Services that the
+   * selected provider supplies internally.
+   */
+  readonly provideHandlers: [Pending] extends [never]
+    ? never
+    : <const Handlers extends Layer.Any>(
+        handlers: Handlers &
+          ValidateFamilyHandlers<Pending, Handlers> &
+          ValidateHandlerSelection<Facts, Handlers>,
+      ) => Block<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Facts,
+        ConstructorError,
+        ConstructorRequirements,
+        Subscriptions
+      >
 }
+
+type PendingHandlerFacts<Facts extends PublicFacts, Pending> = [
+  Pending,
+] extends [never]
+  ? Facts
+  : Omit<Facts, 'hostRequirements' | 'programRequirements'> &
+      Readonly<{
+        hostRequirements:
+          | Facts['hostRequirements']
+          | HandlerOfHostDefinition<Pending>
+        programRequirements:
+          | Facts['programRequirements']
+          | HandlerOfHostDefinition<Pending>
+      }>
+
+type ValidateHandlerSelection<
+  Facts extends PublicFacts,
+  Handlers extends Layer.Any,
+> =
+  Fits<Layer.Error<Handlers>, Facts['effectsLayerError']> extends true
+    ? Fits<
+        Layer.Services<Handlers>,
+        Facts['effectsLayerRequirements']
+      > extends true
+      ? unknown
+      : Readonly<{
+          'Block host handler Services must fit the declared effects contract': Layer.Services<Handlers>
+        }>
+    : Readonly<{
+        'Block host handler constructor errors must fit the declared effects contract': Layer.Error<Handlers>
+      }>
 
 type WithOperations<Body extends ConstructorBody, Config> = Omit<
   ExecutableImplementation<Body>,
@@ -757,6 +815,17 @@ type PendingBounds<Facts extends PublicFacts, Config> = Omit<
     hostRequirements: never
   }>
 
+type HostContractValidation<
+  Actual extends PublicFacts,
+  Declared extends PublicFacts,
+  Hosts,
+> = [Hosts] extends [never]
+  ? ContractValidation<Actual, Declared>
+  : ContractValidation<
+      WithoutPendingHandlers<Actual, HandlerOfHostDefinition<Hosts>>,
+      Declared
+    >
+
 type FamilyValidation<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
@@ -856,14 +925,15 @@ export interface MakeBlock<
       >,
       ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
       ...ReceiveBodyValidation<NoInfer<Body>, Config>,
-      ...ContractValidation<
+      ...HostContractValidation<
         ActualFacts<MessageSchema, NoInfer<Body>, Config>,
         DeclaredFacts<
           MessageSchema,
           OutMessageSchema,
           Config,
           Owner<NominalId<Id, Config['key']>, true>
-        >
+        >,
+        HostDefinitions<NoInfer<Body>>
       >,
     ]
   ): Block<
@@ -879,7 +949,8 @@ export interface MakeBlock<
     >,
     Error,
     Requirements,
-    ActualFacts<MessageSchema, NoInfer<Body>, Config>['subscriptions']
+    ActualFacts<MessageSchema, NoInfer<Body>, Config>['subscriptions'],
+    HostDefinitions<Body>
   >
 }
 
@@ -1021,20 +1092,7 @@ export type ContractComposition<
   Readonly<{
     makeInit: MakeInit<Source, InputOf<Config['Init']>>
     makeView: MakeView<Source, ViewInputs<Channel<Config, 'view'>>>
-    makeUpdate: MakeUpdatePlan<
-      Source['Model']['Type'],
-      Exclude<
-        Source['Message']['Type'],
-        GeneratedEnvelopeOf<Source['bindings'][number]>['Type']
-      >,
-      Source extends Readonly<{ OutMessage: infer OutSchema extends AnySchema }>
-        ? OutSchema['Type']
-        : never,
-      Source['bindings'],
-      Source['Message']['Type'],
-      Source,
-      UpdateContext<Config>
-    >
+    makeUpdate: MakeComposableUpdatePlan<Source, UpdateContext<Config>>
   }> &
   (Config extends Readonly<{ InMessage: infer In extends AnySchema }>
     ? Readonly<{

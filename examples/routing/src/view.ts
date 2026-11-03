@@ -1,6 +1,7 @@
 import { Array, Match, Option } from 'effect'
 import { Html } from 'foldkit/html'
 
+import { findPerson } from './blocks/people'
 import { ApplicationComposition, PeoplePageBinding } from './composition'
 import type { ApplicationViewBuilder } from './composition'
 import {
@@ -11,7 +12,6 @@ import {
   formatFileSize,
 } from './fileTree'
 import { type Model } from './model'
-import { findPerson } from './page/people/model'
 import {
   ApplicationRoute,
   filesIndexRouter,

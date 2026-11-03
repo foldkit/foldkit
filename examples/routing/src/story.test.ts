@@ -11,13 +11,13 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { ApplicationBlock } from './block'
+import { PeopleBlock } from './blocks'
+import { FetchPeople } from './blocks/people/command'
+import { SearchResults, searchPeople } from './blocks/people/model'
 import { NavigateInternal } from './command'
 import { PeoplePageBinding } from './composition'
 import { Message } from './message'
 import { Model } from './model'
-import { PeopleBlock } from './page'
-import { FetchPeople } from './page/people/command'
-import { SearchResults, searchPeople } from './page/people/model'
 import {
   ApplicationRoute,
   filesIndexRouter,

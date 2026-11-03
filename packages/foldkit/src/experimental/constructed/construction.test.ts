@@ -145,7 +145,16 @@ const makeFixture = (
     }),
   )
 
-  return { ParentBlock, ChildBlock, Message, FirstBinding, SecondBinding }
+  return {
+    ParentBlock,
+    ParentDefinition: Definition,
+    ChildBlock,
+    Message,
+    FirstBinding,
+    SecondBinding,
+    init,
+    update,
+  }
 }
 
 describe('Binding construction lifetimes', () => {
@@ -312,6 +321,51 @@ describe('Binding construction lifetimes', () => {
       true,
     )
     expect(events).toEqual(['Constructor acquired 1', 'Constructor released 1'])
+  })
+
+  it('rejects an acquired child from another live construction graph', async () => {
+    const events: Array<string> = []
+    const {
+      ChildBlock,
+      ParentDefinition,
+      FirstBinding,
+      SecondBinding,
+      init,
+      update,
+    } = makeFixture(events)
+    const childScope = await Effect.runPromise(Scope.make())
+    const parentScope = await Effect.runPromise(Scope.make())
+    const child = await Effect.runPromise(
+      ChildBlock.construct().pipe(Scope.provide(childScope)),
+    )
+    const parent = ParentDefinition.makeBlock(
+      Effect.gen(function* () {
+        const second = yield* SecondBinding.construct()
+
+        return {
+          children: [FirstBinding.connect(child), second],
+          init,
+          update,
+        }
+      }),
+    )
+
+    await expect(
+      Effect.runPromise(parent.construct().pipe(Scope.provide(parentScope))),
+    ).rejects.toThrow(/only an executable acquired in this construction graph/i)
+
+    await Effect.runPromise(Scope.close(childScope, Exit.void))
+    await Effect.runPromise(Scope.close(parentScope, Exit.void))
+  })
+
+  it('rejects a child connection after its acquisition Scope closes', async () => {
+    const events: Array<string> = []
+    const { ChildBlock, FirstBinding } = makeFixture(events)
+    const child = await Effect.runPromise(Effect.scoped(ChildBlock.construct()))
+
+    expect(() => FirstBinding.connect(child)).toThrow(
+      /after its acquisition Scope has closed/i,
+    )
   })
 
   it('rejects an erased child operation that collides with Binding.construct', async () => {

@@ -1,9 +1,12 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
-import type * as Dialog from '@foldkit/ui/dialog'
+import type {
+  RenderInfo as DialogRenderInfo,
+  ViewInputs as DialogViewInputs,
+} from '@foldkit/ui/dialog'
 
 type RenderDialog = (
-  attributes: Dialog.RenderInfo['dialog'],
+  attributes: DialogRenderInfo['dialog'],
   children: ReadonlyArray<Html | string>,
 ) => Html
 
@@ -15,7 +18,7 @@ export const confirmDialogInputs = <ParentMessage>(
     description: string
     confirmMessage: ParentMessage
   }>,
-): Dialog.ViewInputs => ({
+): DialogViewInputs => ({
   hasDescription: true,
   toView: ({
     dialog,

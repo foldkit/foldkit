@@ -1,6 +1,8 @@
 import { Effect, Layer } from 'effect'
 
-import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
+import { layer as DialogLayer } from '@foldkit/ui/dialog'
+import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
 
 import {
   ErrorDialogBinding,
@@ -41,4 +43,4 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(Dialog.layer, Listbox.layer, RadioGroup.layer))
+).provide(Layer.mergeAll(DialogLayer, ListboxLayer, RadioGroupLayer))

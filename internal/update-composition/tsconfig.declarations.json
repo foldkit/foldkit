@@ -1,0 +1,16 @@
+{
+  "extends": "../../packages/foldkit/declaration-tests/tsconfig.update-composition.source.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "../.."
+  },
+  "include": [
+    "../../packages/foldkit/declaration-tests/update-composition/accepted.ts",
+    "../../packages/foldkit/src/story/public.ts"
+  ],
+  "exclude": [
+    "../../packages/foldkit/declaration-tests/update-composition/**/*.test.ts"
+  ]
+}

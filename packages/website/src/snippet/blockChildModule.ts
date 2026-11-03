@@ -1,4 +1,4 @@
-// page/settings/block.ts
+// blocks/settings/block.ts
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'

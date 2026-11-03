@@ -513,9 +513,9 @@ export interface DefineView<
  * can supply a separate input union without permitting those inputs as Command
  * result Messages.
  *
- * Public parent-driven operations belong in `prepareBlock({ operations })`. Each
- * exposed producer returns a local Message and its update context instead of a
- * Model transformation.
+ * Declare parent requests through InMessage and Composition.makeReceive.
+ * Definition operations remain available for local-Message adapters; their
+ * producers return a local Message and its dispatch context.
  */
 export interface DefineStep<
   Model,
@@ -2049,7 +2049,7 @@ type UnexpectedProvidedHandlers<ImplementationValue, HandlersLayer> = Exclude<
   HandlerOfHostDefinition<HostDefinitions<ImplementationValue>>
 >
 
-type ValidateProvidedHandlers<ImplementationValue, HandlersLayer> =
+type ValidateProvidedHandlerAlternative<ImplementationValue, HandlersLayer> =
   IsAny<ProvidedHandlerContracts<HandlersLayer>> extends true
     ? Readonly<{
         'Block provideHandlers Layer must preserve exact handler contracts': ProvidedHandlerContracts<HandlersLayer>
@@ -2064,6 +2064,26 @@ type ValidateProvidedHandlers<ImplementationValue, HandlersLayer> =
             | MissingProvidedHandlers<ImplementationValue, HandlersLayer>
             | UnexpectedProvidedHandlers<ImplementationValue, HandlersLayer>
         }>
+
+type InvalidProvidedHandlerAlternative<ImplementationValue, HandlersLayer> =
+  HandlersLayer extends unknown
+    ? unknown extends ValidateProvidedHandlerAlternative<
+        ImplementationValue,
+        HandlersLayer
+      >
+      ? never
+      : ValidateProvidedHandlerAlternative<ImplementationValue, HandlersLayer>
+    : never
+
+type ValidateProvidedHandlers<ImplementationValue, HandlersLayer> = [
+  HandlersLayer,
+] extends [never]
+  ? ValidateProvidedHandlerAlternative<ImplementationValue, HandlersLayer>
+  : [
+        InvalidProvidedHandlerAlternative<ImplementationValue, HandlersLayer>,
+      ] extends [never]
+    ? unknown
+    : InvalidProvidedHandlerAlternative<ImplementationValue, HandlersLayer>
 
 type ProvideHandlerImplementation<
   ImplementationValue extends Readonly<{ EffectsLayer: Layer.Any }>,

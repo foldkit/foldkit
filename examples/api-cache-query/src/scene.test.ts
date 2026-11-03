@@ -11,7 +11,7 @@ import {
 } from 'foldkit/scene'
 import { describe } from 'vitest'
 
-import { Tabs } from '@foldkit/ui'
+import { test as TabsTest } from '@foldkit/ui/tabs'
 
 import { ApplicationBlock } from './block'
 import { AppLayer } from './layer'
@@ -28,7 +28,7 @@ import { postQuery, statsQuery } from './query'
 const FIRST_REQUEST_GENERATION = 1
 
 const resolveFocusTab = Command.resolve(
-  Tabs.test.FocusTab,
+  TabsTest.FocusTab,
   AppTabsBlock.Message.CompletedFocusTab(),
 )
 

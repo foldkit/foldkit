@@ -180,9 +180,19 @@ export type {
   ParentDescriptorBindingFields,
 } from '../experimental/constructed/bindingContract.js'
 export type { Plan, ViewPlan } from '../experimental/hybrid/authoring.js'
+/** @internal Keeps inferred focused and composed update plans nameable in declarations. */
+export type {
+  CompositionMetadata,
+  MakeComposableUpdatePlan,
+  UpdateStage,
+} from '../experimental/hybrid/updateComposition.js'
 export type { RuntimeCapability } from './runtimeCapability.js'
 export type { DefineStepFields, DefineStepNoop } from './fieldStep.js'
 export type { CommandsStep, MakeCommandsStep } from './commandsStep.js'
+/** @internal Keeps extracted field helpers nameable in consumer declarations. */
+export type { FocusedObjectStepFields } from './fieldStep.js'
+/** @internal Keeps extracted Command helpers nameable in consumer declarations. */
+export type { FocusedMakeCommandsStep } from './commandsStep.js'
 export type { OutMessageStep, MakeOutMessageStep } from './outMessageStep.js'
 export type {
   AuthoringDefinition,

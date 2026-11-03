@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { Tabs } from '@foldkit/ui'
+import { makeBlock as makeTabsBlock } from '@foldkit/ui/tabs'
 
 import { Post, PostDetail, Stats } from './data'
 
@@ -32,7 +32,7 @@ export const StatsData = AsyncData.Schema(FetchedStats, Schema.String)
 export const Tab = Schema.Literals(['Posts', 'Stats'])
 export type Tab = typeof Tab.Type
 
-export const ApplicationTabsBlock = Tabs.makeBlock<Tab>()
+export const ApplicationTabsBlock = makeTabsBlock<Tab>()
 
 export const Model = Schema.Struct({
   tabs: ApplicationTabsBlock.Model,

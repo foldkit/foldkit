@@ -3,8 +3,8 @@ import { modifyFields } from 'foldkit/struct'
 
 import { FetchPeople } from './informingBlocksCommand'
 import {
-  PeopleDefinition,
   PeopleComposition,
+  PeopleDefinition,
 } from './informingBlocksDefinition'
 import { init } from './informingBlocksInit'
 import {

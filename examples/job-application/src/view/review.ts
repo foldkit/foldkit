@@ -2,17 +2,17 @@ import { Array, Option, pipe } from 'effect'
 import { File } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
+import { EducationEntryBlock, WorkHistoryEntryBlock } from '../blocks'
+import { isComplete as isEducationComplete } from '../blocks/education'
+import { isComplete as isPersonalInfoComplete } from '../blocks/personalInfo'
+import { isComplete as isSkillsComplete } from '../blocks/skills'
+import { isComplete as isWorkHistoryComplete } from '../blocks/workHistory'
 import type { ApplicationViewBuilder } from '../composition'
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model, Submission } from '../model'
-import { EducationEntryBlock, WorkHistoryEntryBlock } from '../step'
-import { isComplete as isEducationComplete } from '../step/education/update'
-import { isComplete as isPersonalInfoComplete } from '../step/personalInfo/update'
-import { isComplete as isSkillsComplete } from '../step/skills/update'
-import { isComplete as isWorkHistoryComplete } from '../step/workHistory/update'
 import { employmentRange, pluralize } from './format'
 
 type WorkHistoryEntryModel = typeof WorkHistoryEntryBlock.Model.Type
@@ -273,7 +273,7 @@ const submissionSection = (
           ...(shouldShowBlockedNotice
             ? [blockedNotice(attentionSteps, h)]
             : []),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedSubmit(),
               toView: attributes =>
@@ -290,7 +290,7 @@ const submissionSection = (
       h.div(
         [h.Class('pt-4')],
         [
-          Button.view(
+          buttonView(
             {
               toView: attributes =>
                 h.button(
@@ -342,7 +342,7 @@ const submissionSection = (
           ...(shouldShowBlockedNotice
             ? [blockedNotice(attentionSteps, h)]
             : []),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedSubmit(),
               toView: attributes =>

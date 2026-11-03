@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { Slider } from '@foldkit/ui'
+import { layer as SliderLayer } from '@foldkit/ui/slider'
 
 import {
   FlowStrengthSliderBinding,
@@ -26,4 +26,4 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(Slider.layer))
+).provide(Layer.mergeAll(SliderLayer))

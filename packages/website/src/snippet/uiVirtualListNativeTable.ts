@@ -3,7 +3,11 @@ import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { VirtualList } from '@foldkit/ui'
+import {
+  layer as VirtualListLayer,
+  ScrollContainer as VirtualListScrollContainer,
+  makeBlock as makeVirtualListBlock,
+} from '@foldkit/ui/virtualList'
 
 const Invoice = Schema.Struct({
   id: Schema.String,
@@ -12,7 +16,7 @@ const Invoice = Schema.Struct({
 })
 type Invoice = typeof Invoice.Type
 
-const InvoiceRowsBlock = VirtualList.makeBlock<Invoice>()
+const InvoiceRowsBlock = makeVirtualListBlock<Invoice>()
 const Model = Schema.Struct({
   invoices: Schema.Array(Invoice),
   invoiceRows: InvoiceRowsBlock.Model,
@@ -42,7 +46,7 @@ const InvoiceRowsBinding = InvoiceTableDefinition.makeBinding(
         Tuple.make({
           id: 'invoice-rows',
           rowHeightPx: 48,
-          scrollContainer: VirtualList.ScrollContainer.Ancestor({
+          scrollContainer: VirtualListScrollContainer.Ancestor({
             selector: '#invoice-scroll',
           }),
         }),
@@ -138,4 +142,4 @@ export const layer = InvoiceTableDefinition.makeBlock(
 
     return { children: [invoiceRows], init, update, view }
   }),
-).provide(VirtualList.layer).layer
+).provide(VirtualListLayer).layer

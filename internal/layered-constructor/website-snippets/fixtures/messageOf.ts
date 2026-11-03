@@ -3,12 +3,12 @@ import { Block } from 'foldkit'
 import type * as Html from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Tabs } from '@foldkit/ui'
+import { makeBlock as makeTabsBlock } from '@foldkit/ui/tabs'
 
 const Tab = Schema.Literals(['Profile', 'Billing'])
 type Tab = typeof Tab.Type
 
-const SettingsTabsBlock = Tabs.makeBlock<Tab>()
+const SettingsTabsBlock = makeTabsBlock<Tab>()
 const Model = Schema.Struct({
   count: Schema.Number,
   tabs: SettingsTabsBlock.Model,

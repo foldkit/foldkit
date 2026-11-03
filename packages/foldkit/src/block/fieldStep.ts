@@ -92,7 +92,8 @@ type MessageOnlyFieldHandler<
   Evolve
 >
 
-interface FocusedObjectStepFields<Model extends object, Message> {
+/** @internal Names focused field helpers in inferred consumer declarations. */
+export interface FocusedObjectStepFields<Model extends object, Message> {
   <
     ExactMessage extends Message,
     const Evolve extends ContextualModelMessageProducer<

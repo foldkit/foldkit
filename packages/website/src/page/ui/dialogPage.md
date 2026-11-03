@@ -5,7 +5,7 @@
 A modal dialog backed by the native `<dialog>` element, opened with `show()` and a high z-index. Bind `DialogBlock` in the parent. The framework manages focus trapping, Escape handling, scroll locking, and backdrop rendering. For non-modal floating content, use Popover instead.
 
 :::Info{label="See it in an app"}
-Check out how Dialog is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/dialog.ts).
+Check out how Dialog is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/dialog.ts).
 :::
 
 ## Examples

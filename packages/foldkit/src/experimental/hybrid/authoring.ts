@@ -43,6 +43,7 @@ import type {
 } from '../../html/viewInputs.js'
 import type * as Mount from '../../mount/index.js'
 import type { VNode } from '../../vdom.js'
+import type { MakeComposableUpdatePlan } from './updateComposition.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 type AnySchema = Schema.Codec<any, any, any, any>
@@ -526,10 +527,6 @@ type LocalMessage<Source extends AuthoringSource> = Exclude<
   Source['Message']['Type'],
   GeneratedEnvelopeOf<Source['bindings'][number]>['Type']
 >
-type OutMessage<Source extends AuthoringSource> =
-  Source extends Readonly<{ OutMessage: infer Out extends AnySchema }>
-    ? Out['Type']
-    : never
 type ViewRequirements<Source extends AuthoringSource> =
   | Mount.RequirementsOf<Source[typeof LocalMountsTypeId]>
   | RequirementsOfBindings<Source['bindings']>
@@ -547,14 +544,7 @@ export type AuthoringComposition<Source extends AuthoringSource> = Omit<
       Source['Message']['Type'],
       Source
     >
-    makeUpdate: MakeUpdatePlan<
-      Source['Model']['Type'],
-      LocalMessage<Source>,
-      OutMessage<Source>,
-      Source['bindings'],
-      Source['Message']['Type'],
-      Source
-    >
+    makeUpdate: MakeComposableUpdatePlan<Source>
     makeView: MakeViewPlan<
       Source['owner'],
       Source['Model']['Type'],
@@ -574,6 +564,23 @@ export const makeAuthoringComposition = <const Source extends AuthoringSource>(
 ): AuthoringComposition<Source> => {
   const makeInit = (...args: ReadonlyArray<unknown>) =>
     makePlan(composition, 'Init', actual => actual.makeInit(...args))
+  const invokeUpdateMethod = (
+    actual: RuntimeComposition,
+    name: string,
+    args: ReadonlyArray<unknown>,
+  ): unknown => {
+    const method = Reflect.get(actual.makeUpdate, name)
+
+    if (!Predicate.isFunction(method)) {
+      throw new Error(`[foldkit] Missing Composition.makeUpdate.${name}.`)
+    }
+
+    return Reflect.apply(method, actual.makeUpdate, args)
+  }
+  const makeUpdatePart = (name: string, args: ReadonlyArray<unknown>) =>
+    makePlan(composition, 'Update', actual =>
+      invokeUpdateMethod(actual, name, args),
+    )
   const makeUpdate = Object.assign(
     (...args: ReadonlyArray<unknown>) =>
       makePlan(composition, 'Update', actual => actual.makeUpdate(...args)),
@@ -588,6 +595,41 @@ export const makeAuthoringComposition = <const Source extends AuthoringSource>(
           }
 
           return withContext(...args)
+        }),
+      cases: Object.assign(
+        (cases: object) => makeUpdatePart('cases', [cases]),
+        {
+          withContext: (createCases: AnyFunction) =>
+            makePlan(composition, 'Update', actual => {
+              const cases = Reflect.get(actual.makeUpdate, 'cases')
+              const withContext = Predicate.isFunction(cases)
+                ? Reflect.get(cases, 'withContext')
+                : undefined
+
+              if (!Predicate.isFunction(withContext)) {
+                throw new Error(
+                  '[foldkit] Missing Composition.makeUpdate.cases.withContext.',
+                )
+              }
+
+              return Reflect.apply(withContext, cases, [createCases])
+            }),
+        },
+      ),
+      each: (handler: AnyFunction) => makeUpdatePart('each', [handler]),
+      on: (tags: ReadonlyArray<string>) => (handler: AnyFunction) =>
+        makeUpdatePart('on', [tags, handler]),
+      except: (tags: ReadonlyArray<string>) => (handler: AnyFunction) =>
+        makeUpdatePart('except', [tags, handler]),
+      compose: (
+        ...parts: ReadonlyArray<Plan<unknown, 'Update', AuthoringSource>>
+      ) =>
+        makePlan(composition, 'Update', actual => {
+          const compiled = parts.map(part =>
+            compilePlan(part, actual, composition),
+          )
+
+          return invokeUpdateMethod(actual, 'compose', compiled)
         }),
     },
   )

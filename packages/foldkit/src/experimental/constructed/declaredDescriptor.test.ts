@@ -8,6 +8,7 @@ import {
   registerDeclaredDescriptor,
   wrapExecutable,
 } from './runtime.js'
+import { withConstructionGraph } from './symbolic.js'
 
 class SelectedChild extends Context.Service<SelectedChild, object>()(
   'DeclaredDescriptor/SelectedChild',
@@ -92,17 +93,27 @@ const makeFixture = () => {
   const update = ParentComposition.makeUpdate({
     ClickedIncrement: ChildBinding.requestIncrement(),
   })
-  const constructor = Effect.gen(function* () {
-    const child = yield* ChildBinding
+  const constructor = withConstructionGraph(graph =>
+    Effect.gen(function* () {
+      const child = yield* ChildBinding
 
-    return constructAuthoredImplementation({
-      children: [child],
-      init,
-      update,
-    })
-  })
+      return constructAuthoredImplementation(
+        { children: [child], init, update },
+        undefined,
+        graph,
+      )
+    }),
+  )
   const childLayer = Layer.sync(SelectedChild, () =>
-    wrapExecutable(declaration, constructAuthoredImplementation(childBody)),
+    wrapExecutable(
+      declaration,
+      constructAuthoredImplementation(childBody),
+      false,
+      {
+        graph: Object.freeze({}),
+        isCurrent: () => true,
+      },
+    ),
   )
 
   return {

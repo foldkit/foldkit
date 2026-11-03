@@ -4,7 +4,10 @@ import { messageFrom } from 'foldkit/story'
 import { generateKeyBetween } from 'fractional-indexing'
 import { describe, expect, test } from 'vitest'
 
-import { DragAndDrop, DragAndDropBlock } from '@foldkit/ui'
+import {
+  DragAndDropBlock,
+  test as DragAndDropTest,
+} from '@foldkit/ui/dragAndDrop'
 
 import { ApplicationBlock } from './block'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
@@ -277,12 +280,12 @@ describe('update', () => {
               targetIndex: 2,
             }),
           ),
-          DragAndDrop.test.settleFocus({
+          DragAndDropTest.settleFocus({
             binding: DragAndDropBinding,
             itemId: firstCardId,
           }),
           dragAndDropMessage(DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
-          DragAndDrop.test.settleFocus({
+          DragAndDropTest.settleFocus({
             binding: DragAndDropBinding,
             itemId: firstCardId,
           }),
@@ -318,12 +321,12 @@ describe('update', () => {
               targetIndex: 0,
             }),
           ),
-          DragAndDrop.test.settleFocus({
+          DragAndDropTest.settleFocus({
             binding: DragAndDropBinding,
             itemId: cardId,
           }),
           dragAndDropMessage(DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
-          DragAndDrop.test.settleFocus({
+          DragAndDropTest.settleFocus({
             binding: DragAndDropBinding,
             itemId: cardId,
           }),
@@ -357,7 +360,7 @@ describe('update', () => {
             }),
           ),
           dragAndDropMessage(DragAndDropBlock.Message.CancelledDrag()),
-          DragAndDrop.test.settleFocus({
+          DragAndDropTest.settleFocus({
             binding: DragAndDropBinding,
             itemId: cardId,
           }),

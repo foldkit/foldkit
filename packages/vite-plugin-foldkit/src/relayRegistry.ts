@@ -18,6 +18,7 @@ import {
 } from 'foldkit/devtools-protocol'
 import { homedir, tmpdir } from 'node:os'
 
+import { checkRelay, readProcessNamespaces } from './relayLiveness.js'
 import {
   type RelayRegistryTrust,
   windowsTempRootRefusal,
@@ -81,15 +82,6 @@ const relayRecordPath = (
       `${encodeURIComponent(id)}${RECORD_FILE_EXTENSION}`,
     )
   })
-
-const isProcessAlive = (pid: number): boolean => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return error instanceof Error && 'code' in error && error.code === 'EPERM'
-  }
-}
 
 const readRecordFile = (
   filePath: string,
@@ -155,17 +147,22 @@ const removeDeadRecords = (
 ): Effect.Effect<void, never, RelayRegistryServices> =>
   Effect.gen(function* () {
     const filePaths = yield* recordFilePaths(directory)
+    const maybeOwnNamespaces = yield* readProcessNamespaces
     yield* Effect.forEach(
       filePaths,
       filePath =>
         Effect.gen(function* () {
           const maybeRecord = yield* readRecordFile(filePath)
 
-          if (
-            Option.isSome(maybeRecord) &&
-            !isProcessAlive(maybeRecord.value.pid)
-          ) {
-            yield* retireStaleRecord(filePath, maybeRecord.value)
+          if (Option.isNone(maybeRecord)) {
+            return
+          }
+
+          const record = maybeRecord.value
+          const status = yield* checkRelay(record, maybeOwnNamespaces)
+
+          if (status === 'Gone') {
+            yield* retireStaleRecord(filePath, record)
           }
         }),
       { discard: true },

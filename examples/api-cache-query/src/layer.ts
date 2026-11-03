@@ -1,9 +1,9 @@
 import { Layer } from 'effect'
 import { Query } from 'foldkit/experimental'
 
-import { Tabs } from '@foldkit/ui'
+import { layer as TabsLayer } from '@foldkit/ui/tabs'
 
 import { subscriptions } from './subscription'
 
 export const EffectsLayer = subscriptions.layer
-export const AppLayer = Layer.mergeAll(Query.layer, Tabs.layer)
+export const AppLayer = Layer.mergeAll(Query.layer, TabsLayer)

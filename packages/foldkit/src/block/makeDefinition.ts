@@ -3,6 +3,7 @@ import { Predicate } from 'effect'
 import {
   makeDefinition as makeContractDefinition,
   makeDefinitionRuntime,
+  snapshotDefinitionConfiguration,
 } from '../experimental/contracted/runtime.js'
 import { makeDefinition as makeNativeDefinition } from './define.js'
 
@@ -13,22 +14,26 @@ export const defineWithNamespace = (
   makeNative: (config: unknown) => object,
 ): any => {
   if (Predicate.isObject(config) && ('key' in config || 'Init' in config)) {
-    if (!('key' in config) || !('Init' in config)) {
+    const snapshot = Reflect.apply(snapshotDefinitionConfiguration, undefined, [
+      config,
+    ])
+
+    if (!('key' in snapshot) || !('Init' in snapshot)) {
       throw new Error(
         '[foldkit] An independent Block Definition requires both a unique symbol key and an Init contract.',
       )
     }
 
     const sourceDefinition = makeNative({
-      Model: Reflect.get(config, 'Model'),
-      Message: Reflect.get(config, 'Message'),
-      OutMessage: Reflect.get(config, 'OutMessage'),
-      ChildInitContext: Reflect.get(config, 'ChildInitContext'),
+      Model: Reflect.get(snapshot, 'Model'),
+      Message: Reflect.get(snapshot, 'Message'),
+      OutMessage: Reflect.get(snapshot, 'OutMessage'),
+      ChildInitContext: Reflect.get(snapshot, 'ChildInitContext'),
     })
 
     return Reflect.apply(makeDefinitionRuntime, undefined, [
       id,
-      config,
+      snapshot,
       true,
       sourceDefinition,
     ])
@@ -55,7 +60,11 @@ export const makeDefinition: typeof makeContractDefinition &
   ...validation: ReadonlyArray<unknown>
 ): any => {
   if (Predicate.isObject(config) && ('key' in config || 'Init' in config)) {
-    if (!('key' in config) || !('Init' in config)) {
+    const snapshot = Reflect.apply(snapshotDefinitionConfiguration, undefined, [
+      config,
+    ])
+
+    if (!('key' in snapshot) || !('Init' in snapshot)) {
       throw new Error(
         '[foldkit] An independent Block Definition requires both a unique symbol key and an Init contract.',
       )
@@ -63,7 +72,7 @@ export const makeDefinition: typeof makeContractDefinition &
 
     return Reflect.apply(makeContractDefinition, undefined, [
       id,
-      config,
+      snapshot,
       ...validation,
     ])
   }

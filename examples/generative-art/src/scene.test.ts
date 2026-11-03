@@ -3,7 +3,7 @@ import { click, expect, given, label, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { SliderBlock } from '@foldkit/ui'
+import { SliderBlock } from '@foldkit/ui/slider'
 
 import { ApplicationBlock } from './block'
 import {

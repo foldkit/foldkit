@@ -1,6 +1,10 @@
 import { Array } from 'effect'
 import { type Html, inertHtml as ih } from 'foldkit/html'
 
+import {
+  type ExampleMeta,
+  examples as exampleMetas,
+} from '../blocks/exampleDetail/meta'
 import { Link } from '../link'
 import { pageTitle, para } from '../prose'
 import {
@@ -8,7 +12,6 @@ import {
   getStartedRouter,
   typingTerminalRouter,
 } from '../route'
-import { type ExampleMeta, examples as exampleMetas } from './example/meta'
 
 export const exampleAppCount = exampleMetas.length + 1
 

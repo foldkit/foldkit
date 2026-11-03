@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { Listbox } from '@foldkit/ui'
+import { test as ListboxTest } from '@foldkit/ui/listbox'
 
 import { ApplicationBlock } from './block'
 import { ReplaceFilters } from './command'
@@ -194,14 +194,14 @@ describe('update', () => {
             }),
           ),
           Command.resolve(
-            Listbox.test.FocusListboxItems,
+            ListboxTest.FocusListboxItems,
             DietListboxBlock.Message.CompletedFocusListboxItems(),
           ),
           dietMessage(
             DietListboxBlock.Message.SelectedItem({ item: 'Carnivore' }),
           ),
           Command.resolve(
-            Listbox.test.FocusListboxButton,
+            ListboxTest.FocusListboxButton,
             DietListboxBlock.Message.CompletedFocusListboxButton(),
           ),
           Command.expectHas(ReplaceFilters),

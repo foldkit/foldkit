@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import type { Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 import * as Icon from '../icon'
 import { Message } from '../message'
@@ -139,7 +139,7 @@ export const shippingView = (h: ApplicationViewBuilder): Html =>
           ),
         ],
         [
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedBack(),
               toView: attributes =>
@@ -156,7 +156,7 @@ export const shippingView = (h: ApplicationViewBuilder): Html =>
             h,
           ),
           h.div([h.Class('sm:justify-self-center')], [cancelCheckoutButton(h)]),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedContinue(),
               toView: attributes =>

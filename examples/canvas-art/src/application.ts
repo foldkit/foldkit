@@ -14,7 +14,7 @@ import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 const CANVAS_WIDTH = 600
 const CANVAS_HEIGHT = 400
@@ -224,7 +224,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('flex gap-3 mt-4')],
     [
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedTogglePlay(),
           toView: attributes =>
@@ -240,7 +240,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
         },
         h,
       ),
-      Button.view(
+      buttonView(
         {
           onClick: Message.ClickedClear(),
           toView: attributes =>

@@ -1,7 +1,7 @@
 import type { Block } from 'foldkit'
 
+import { PeopleBlock } from './blocks'
 import { ApplicationDefinition } from './definition'
-import { PeopleBlock } from './page'
 
 export const PeoplePageBinding = ApplicationDefinition.makeBinding(
   PeopleBlock,

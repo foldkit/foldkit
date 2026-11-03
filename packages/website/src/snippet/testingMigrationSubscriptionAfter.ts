@@ -3,9 +3,9 @@ import { Effect } from 'effect'
 import { Scene } from 'foldkit'
 
 import {
+  PinsBlock,
   PinsImplementation,
   pinsSubscriptions,
-  PinsBlock,
 } from './testingMigrationFixture'
 
 await Effect.runPromise(

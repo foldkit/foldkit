@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema } from 'effect'
 import { Block, Program } from 'foldkit'
-import type * as Command from 'foldkit/command'
+import * as Story from 'foldkit/story'
 
 import {
   HostReviewDefinition,
@@ -8,6 +8,7 @@ import {
   InvocationSource,
   Message,
   Model,
+  Read,
   init,
   update,
   view,
@@ -20,9 +21,9 @@ export const HostReviewBlock = HostReviewDefinition.makeBlock(
     init,
     update,
     view,
-    EffectsLayer: ReadEffectsLayer,
+    hostHandlers: [Read],
   }),
-)
+).provideHandlers(ReadEffectsLayer)
 export const makeHostProgram = (container: HTMLElement) =>
   Program.makeElement({ block: HostReviewBlock, container })
 
@@ -36,10 +37,6 @@ const UnresolvedDefinition = UnresolvedNamespace.makeDefinition({
   Model,
   Message,
   Init: Schema.Tuple([]),
-  effects: Block.makeEffectsContract<
-    never,
-    Command.HandlerOf<typeof UnresolvedRead>
-  >(),
 })
 const UnresolvedComposition = UnresolvedDefinition.makeComposition()
 const unresolvedInit = UnresolvedComposition.makeInit(() => ({
@@ -51,8 +48,7 @@ const unresolvedUpdate = UnresolvedComposition.makeUpdate({
 })
 
 if (false) {
-  // @ts-expect-error Ordinary independent completion requires providers before the boundary.
-  UnresolvedDefinition.makeBlock(
+  const Unresolved = UnresolvedDefinition.makeBlock(
     Effect.succeed({
       children: [],
       init: unresolvedInit,
@@ -61,6 +57,9 @@ if (false) {
       hostHandlers: [UnresolvedRead],
     }),
   )
+
+  // @ts-expect-error Ordinary independent acquisition requires selected host providers.
+  Story.withBlock(Unresolved, () => undefined)
 
   // @ts-expect-error Another original Command's provider does not satisfy Read.
   HostReviewDefinition.makeBlock(

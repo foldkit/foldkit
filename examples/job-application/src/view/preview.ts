@@ -1,7 +1,6 @@
 import { Array, Equal, Option, Order, Record, String, pipe } from 'effect'
 import { type Html, inertHtml as ih } from 'foldkit/html'
 
-import type { Model } from '../model'
 import {
   EducationBlock,
   EducationEntryBlock,
@@ -9,7 +8,8 @@ import {
   SkillsEntryBlock,
   WorkHistoryBlock,
   WorkHistoryEntryBlock,
-} from '../step'
+} from '../blocks'
+import type { Model } from '../model'
 import { employmentRange } from './format'
 
 type WorkHistoryEntryModel = typeof WorkHistoryEntryBlock.Model.Type

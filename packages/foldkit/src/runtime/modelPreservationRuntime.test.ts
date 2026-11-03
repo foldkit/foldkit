@@ -74,6 +74,7 @@ describe('Runtime Model preservation', () => {
         block: ApplicationBlock,
         container,
         devTools: false,
+        slow: false,
       }),
     )
 
@@ -97,6 +98,7 @@ describe('Runtime Model preservation', () => {
           block: ApplicationBlock,
           container: restoredContainer,
           devTools: false,
+          slow: false,
         }),
       )
       try {
@@ -184,6 +186,7 @@ describe('Runtime Model preservation', () => {
           block: ApplicationBlock,
           container,
           devTools: false,
+          slow: false,
           freezeModel: false,
         }),
       )

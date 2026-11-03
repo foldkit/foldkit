@@ -2,12 +2,12 @@ import { Effect } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  SettingsDefinition,
   Message,
   Model,
   OutMessage,
   SaveTheme,
   SettingsComposition,
+  SettingsDefinition,
   Theme,
   makeNoopStep,
   makeStep,

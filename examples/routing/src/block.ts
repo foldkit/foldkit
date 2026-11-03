@@ -1,10 +1,10 @@
 import { Effect } from 'effect'
 
+import { People } from './blocks'
 import { PeoplePageBinding } from './composition'
 import { ApplicationDefinition } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
-import * as People from './page/people'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'

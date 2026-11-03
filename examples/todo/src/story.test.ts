@@ -70,6 +70,7 @@ describe('update', () => {
               ],
             }),
           ),
+          Command.expectNone(),
           model(model => {
             expect(model.todos).toHaveLength(1)
             expect(model.todos[0]?.text).toBe('Buy milk')

@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { canaryVersion } from '../../../scripts/lib/package-version.mjs'
 import { previewUploadTag } from '../../../scripts/lib/preview-release.mjs'
-import { EXAMPLE_FILE_EXTENSIONS, EXAMPLE_ROOT_FILES } from '../vite.config'
+import { EXAMPLE_FILE_EXTENSIONS, EXAMPLE_ROOT_FILES } from '../vite.config.ts'
 import {
   INCLUDED_EXTENSIONS,
   PLAYGROUND_DEPENDENCY_OVERRIDES,

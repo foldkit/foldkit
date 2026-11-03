@@ -1,6 +1,6 @@
+import { LoggedInBlock } from '../blocks'
 import { ClearSession, RedirectToHome } from '../command'
 import { ApplicationDefinition, makeStep } from '../definition'
-import { LoggedInBlock } from '../page'
 import { ApplicationRoute } from '../route'
 import { LoggedInBinding, LoggedOutBinding } from './bindings'
 

@@ -1,4 +1,4 @@
-import { BASE_URL } from '../playwright.config'
+import { BASE_URL } from '../playwright.config.ts'
 
 // NOTE: the first HTML request pays the dev SSR cold start (loading the
 // server entry plus the API reference and example source data), which can

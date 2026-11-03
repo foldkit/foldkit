@@ -1,6 +1,6 @@
 import { Array, Number, Option, pipe } from 'effect'
 
-import { examples } from './page/example/meta'
+import { examples } from './blocks/exampleDetail/meta'
 import {
   type ApplicationRoute,
   aiMcpRouter,

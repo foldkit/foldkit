@@ -154,6 +154,29 @@ describe('portalToContainingRoot', () => {
     expect(second.parentNode).toBe(secondRoot)
   })
 
+  it('preserves an app-owned shared portal root after its last portal closes', () => {
+    const portalRoot = document.createElement('section')
+    portalRoot.id = PORTAL_ROOT_ID
+    portalRoot.setAttribute('aria-label', 'Popups')
+    document.body.append(portalRoot)
+
+    const first = document.createElement('div')
+    document.body.append(first)
+    const cleanup = portalToContainingRoot(first)
+    cleanup()
+
+    expect(document.getElementById(PORTAL_ROOT_ID)).toBe(portalRoot)
+    expect(portalRoot.tagName).toBe('SECTION')
+    expect(portalRoot.getAttribute('aria-label')).toBe('Popups')
+
+    const second = document.createElement('div')
+    document.body.append(second)
+    portalToContainingRoot(second)
+
+    expect(second.parentElement).toBe(portalRoot)
+    expect(document.querySelectorAll(`#${PORTAL_ROOT_ID}`)).toHaveLength(1)
+  })
+
   it('removes an emptied shadow portal root', () => {
     const host = document.createElement('div')
     document.body.appendChild(host)

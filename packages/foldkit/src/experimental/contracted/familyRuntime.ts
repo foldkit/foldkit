@@ -1,9 +1,12 @@
-import { Array, Context, Effect, Layer, type Scope } from 'effect'
+import { Array, Context, Effect, Layer, Option, type Scope } from 'effect'
 
 import { registerExecutableHandle } from '../../block/bindingConnection.js'
 import { defaultViewOf, registerDefaultView } from '../../block/defaultView.js'
 import { registerDeclaredDescriptor } from '../constructed/runtime.js'
-import { acquisitionOf, registerAcquisition } from '../constructed/symbolic.js'
+import {
+  acquisitionOf,
+  registerAcquisitionAlias,
+} from '../constructed/symbolic.js'
 import { makeDefinitionRuntime, selectContractHandlers } from './runtime.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
@@ -164,7 +167,12 @@ export const makeFamilyContractRuntime = (
       const alias = Object.freeze({ ...executable })
 
       registerExecutableHandle(alias, acquiredBlock)
-      registerAcquisition(alias, contract, acquiredBlock)
+      registerAcquisitionAlias(
+        alias,
+        contract,
+        acquiredBlock,
+        acquisitionOf(executable),
+      )
       registerDefaultView(alias, defaultViewOf(executable))
 
       return alias
@@ -211,7 +219,23 @@ export const makeFamilyContractRuntime = (
           },
         }),
   })
-  registerDeclaredDescriptor(contract, () => get)
+  registerDeclaredDescriptor(
+    contract,
+    () => get,
+    () =>
+      Effect.flatMap(
+        Effect.serviceOption(implementationKey),
+        maybeImplementation =>
+          Option.match(maybeImplementation, {
+            onNone: () => Effect.succeed(Option.none()),
+            onSome: implementation =>
+              Effect.map(
+                Effect.provideService(get, implementationKey, implementation),
+                Option.some,
+              ),
+          }),
+      ),
+  )
 
   return contract
 }

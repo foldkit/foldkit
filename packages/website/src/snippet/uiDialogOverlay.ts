@@ -5,13 +5,20 @@ import { Effect, Layer, Option, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Combobox, Dialog } from '@foldkit/ui'
-import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
+import {
+  layer as ComboboxLayer,
+  makeBlock as makeComboboxBlock,
+} from '@foldkit/ui/combobox'
+import {
+  DialogBlock,
+  layer as DialogLayer,
+  type RenderInfo as DialogRenderInfo,
+} from '@foldkit/ui/dialog'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
 type City = typeof City.Type
 
-const CityCombobox = Combobox.makeBlock(City)
+const CityCombobox = makeComboboxBlock(City)
 const cities: ReadonlyArray<City> = [
   'Johannesburg',
   'Kyiv',
@@ -23,7 +30,7 @@ const cities: ReadonlyArray<City> = [
 // the parent-owned selection (`City` and `CityCombobox` are the
 // `Schema.Literals` Schema and typed factory from the Combobox example):
 const Model = Schema.Struct({
-  dialog: Dialog.DialogBlock.Model,
+  dialog: DialogBlock.Model,
   combobox: CityCombobox.Model,
   maybeCity: Schema.Option(City),
   // ...your other fields
@@ -47,7 +54,7 @@ const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
 const { makeFieldsStep, makeNoopStep } = FilterDialogDefinition
 
 const foldDialogOutMessage = FilterDialogDefinition.makeOutMessageFold(
-  Dialog.DialogBlock,
+  DialogBlock,
   {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
@@ -66,7 +73,7 @@ const foldComboboxOutMessage = FilterDialogDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = FilterDialogDefinition.makeBinding(Dialog.DialogBlock, {
+const DialogBinding = FilterDialogDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => Tuple.make({ id: 'edit-filters' }) },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
@@ -156,4 +163,4 @@ export const ApplicationBlock = FilterDialogDefinition.makeBlock(
     const combobox = yield* ComboboxBinding
     return { children: [dialog, combobox], init, update, view }
   }),
-).provide(Layer.mergeAll(Dialog.layer, Combobox.layer))
+).provide(Layer.mergeAll(DialogLayer, ComboboxLayer))

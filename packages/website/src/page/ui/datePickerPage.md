@@ -19,7 +19,7 @@ For programmatic control in a parent update, call the Binding’s `requestOpen()
 The calendar heading inside the popover is a button: clicking it switches the day grid into a 3x4 months grid; clicking the year heading from there switches into a paged 3x4 years grid. Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month. Re-opening the popover always shows the day grid.
 
 :::Info{label="See it in an app"}
-Check out how DatePicker is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/datePicker.ts).
+Check out how DatePicker is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/datePicker.ts).
 :::
 
 ## Examples

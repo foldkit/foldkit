@@ -2,7 +2,10 @@ import { Effect, Option, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Toast as UiToast } from '@foldkit/ui'
+import {
+  layer as ToastLayer,
+  makeBlock as makeToastBlock,
+} from '@foldkit/ui/toast'
 
 // Define the payload shape for your toast. Toast owns the entry lifecycle,
 // accessibility role, optional dismiss timer, hover state, and swipe state.
@@ -15,7 +18,7 @@ const ToastPayload = Schema.Struct({
 })
 type ToastPayload = typeof ToastPayload.Type
 // The payload Schema refines Toast's Model, OutMessage, and public operations.
-export const Toast = UiToast.makeBlock(ToastPayload)
+export const Toast = makeToastBlock(ToastPayload)
 
 // Add Toast.Model to your app Model. Track anything you want to lift from
 // a toast's lifecycle alongside it. Here, the last dismissed bodyText so
@@ -148,4 +151,4 @@ export const ApplicationBlock = NotificationsDefinition.makeBlock(
     const toast = yield* ToastBinding
     return { children: [toast], init, update, view }
   }),
-).provide(UiToast.layer)
+).provide(ToastLayer)

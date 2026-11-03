@@ -34,7 +34,10 @@ import {
   makeFamilyContractRuntime,
   makeFamilyDefinitionRuntime,
 } from './familyRuntime.js'
-import type { MessageFreeValidation } from './runtime.js'
+import {
+  type MessageFreeValidation,
+  snapshotDefinitionConfiguration,
+} from './runtime.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
@@ -344,20 +347,22 @@ export function makeFamilyDefinition(
   config: Declaration,
   ..._validation: ReadonlyArray<unknown>
 ): object {
+  const snapshot = snapshotDefinitionConfiguration(config)
+
   if (Predicate.isString(id)) {
-    return makeFamilyDefinitionRuntime(id, config)
+    return makeFamilyDefinitionRuntime(id, snapshot)
   }
 
   const source = namespaceSourceOf(id)
 
   return makeFamilyDefinitionRuntime(
     source.id,
-    config,
+    snapshot,
     source.makeDefinition({
-      Model: config.Model,
-      Message: config.Message,
-      OutMessage: config.OutMessage,
-      ChildInitContext: config.ChildInitContext,
+      Model: snapshot.Model,
+      Message: snapshot.Message,
+      OutMessage: snapshot.OutMessage,
+      ChildInitContext: snapshot.ChildInitContext,
     }),
   )
 }

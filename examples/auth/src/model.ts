@@ -1,7 +1,6 @@
 import { Schema } from 'effect'
 
-import * as LoggedIn from './page/loggedIn'
-import * as LoggedOut from './page/loggedOut'
+import { LoggedIn, LoggedOut } from './blocks'
 
 export const Model = Schema.Union([
   LoggedOut.LoggedOutBlock.Model,

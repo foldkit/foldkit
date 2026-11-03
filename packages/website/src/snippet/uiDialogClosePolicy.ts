@@ -1,6 +1,6 @@
 import { Update } from 'foldkit'
 
-import { Dialog } from '@foldkit/ui'
+import { DialogBlock } from '@foldkit/ui/dialog'
 
 import {
   EditorComposition,
@@ -8,19 +8,16 @@ import {
   Message,
 } from './editor/definition'
 
-const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
-  Dialog.DialogBlock,
-  {
-    Opened: EditorDefinition.makeNoopStep,
-    Closed: () =>
-      EditorDefinition.makeFieldsStep(() => ({
-        route: () => '/projects',
-      })),
-    CompletedClose: EditorDefinition.makeNoopStep,
-  },
-)
+const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(DialogBlock, {
+  Opened: EditorDefinition.makeNoopStep,
+  Closed: () =>
+    EditorDefinition.makeFieldsStep(() => ({
+      route: () => '/projects',
+    })),
+  CompletedClose: EditorDefinition.makeNoopStep,
+})
 
-export const DialogBinding = EditorDefinition.makeBinding(Dialog.DialogBlock, {
+export const DialogBinding = EditorDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 

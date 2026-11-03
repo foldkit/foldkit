@@ -11,7 +11,7 @@ DragAndDrop is different from other Foldkit UI components in two ways. First, it
 Integration requires four pieces: a `DragAndDropBlock.Model` field in your Model, one Binding created with `ParentDefinition.makeBinding(DragAndDropBlock, config)` and selected through `withOutMessagePolicy({ fold })`, that Binding included in the parent’s `bindings`, and an embedded view whose `toView` callback receives bound `draggable`, `droppable`, and `sortable` attribute helpers. The parent chooses all markup and spreads the supplied child attributes directly.
 
 :::Info{label="See it in an app"}
-Check out how DragAndDrop is wired up in the [kanban example](https://github.com/foldkit/foldkit/tree/main/examples/kanban/src) or the [UI showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/dragAndDrop.ts).
+Check out how DragAndDrop is wired up in the [kanban example](https://github.com/foldkit/foldkit/tree/main/examples/kanban/src) or the [UI showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/dragAndDrop.ts).
 :::
 
 ## Examples

@@ -2,21 +2,21 @@ import { Option, pipe } from 'effect'
 import { type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { DialogBlock } from '@foldkit/ui'
+import { DialogBlock } from '@foldkit/ui/dialog'
 
-import { ApplicationDefinition, makeNoopStep, makeStep } from '../definition'
 import {
   ApiReferenceBlock,
   BlockPageBlock,
   ComingFromReactBlock,
   ExampleDetailBlock,
   PlaygroundBlock,
+  SearchBlock,
+  SnippetCopyBlock,
+  SnippetDisclosureBlock,
   UiBlock,
-} from '../page'
+} from '../blocks'
+import { ApplicationDefinition, makeNoopStep, makeStep } from '../definition'
 import { ApplicationRoute, maybeExampleSlugForRoute } from '../route'
-import { SearchBlock } from '../search'
-import { SnippetCopyBlock } from '../snippetCopy'
-import { SnippetDisclosureBlock } from '../snippetDisclosure'
 import { ApplyTheme, SaveThemePreference, resolveTheme } from '../theme'
 import { type ThemePreference } from '../themePreference'
 import * as ThemeMenu from '../view/themeMenu'

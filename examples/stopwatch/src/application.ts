@@ -13,7 +13,7 @@ import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 const TICK_INTERVAL_MS = 10
 
@@ -184,7 +184,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
           h.div(
             [h.Class('flex')],
             [
-              Button.view(
+              buttonView(
                 {
                   onClick: Message.ClickedReset(),
                   toView: attributes =>
@@ -212,7 +212,7 @@ const startStopButton = (
   h: ApplicationViewBuilder,
 ): Html =>
   isRunning
-    ? Button.view(
+    ? buttonView(
         {
           onClick: Message.ClickedStop(),
           toView: attributes =>
@@ -226,7 +226,7 @@ const startStopButton = (
         },
         h,
       )
-    : Button.view(
+    : buttonView(
         {
           onClick: Message.ClickedStart(),
           toView: attributes =>

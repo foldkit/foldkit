@@ -3,13 +3,15 @@
 // use flex + flex-col for layout.
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Tabs } from '@foldkit/ui'
-import type { RenderInfo as TabsRenderInfo } from '@foldkit/ui/tabs'
+import {
+  type RenderInfo as TabsRenderInfo,
+  makeBlock as makeTabsBlock,
+} from '@foldkit/ui/tabs'
 
 const Framework = Schema.Literals(['Foldkit', 'React', 'Elm'])
 type Framework = typeof Framework.Type
 
-const FrameworkTabs = Tabs.makeBlock<Framework>()
+const FrameworkTabs = makeTabsBlock<Framework>()
 
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type

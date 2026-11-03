@@ -1,16 +1,41 @@
-import { Effect } from 'effect'
-import { HashSet, Option, pipe } from 'effect'
+import { Effect, HashSet, Option, pipe } from 'effect'
 import { Calendar } from 'foldkit'
-import { type TestBlock, withBlock } from 'foldkit/story'
-import { Command, given, message, model, story } from 'foldkit/story'
+import {
+  Command,
+  type TestBlock,
+  given,
+  message,
+  model,
+  story,
+  withBlock,
+} from 'foldkit/story'
 import { toParentMessageFor } from 'foldkit/test'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { DialogBlock } from '@foldkit/ui'
-import { test as DialogTest } from '@foldkit/ui/dialog'
+import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
 import { ApplicationBlock } from './block'
+import {
+  ApiReferenceBlock,
+  ExampleDetailBlock,
+  HomeBlock,
+  SearchBlock,
+  SnippetCopyBlock,
+  SnippetDisclosureBlock,
+} from './blocks'
+import * as ApiReference from './blocks/apiReference/domain'
+import { NotePlayerDemoBlock } from './blocks/home/blocks'
+import { managedResources as notePlayerResources } from './blocks/home/blocks/notePlayerDemo/notePlayerDemo'
+import {
+  NotePlayerDemoBinding,
+  PlaygroundMenuBinding,
+} from './blocks/home/composition'
+import { FocusSearchInput } from './blocks/search/command'
+import {
+  CopySnippet,
+  WaitBeforeHidingCopiedIndicator,
+} from './blocks/snippetCopy/update'
 import {
   LoadPlayground,
   ScrollSidebarActiveLinkIntoView,
@@ -27,23 +52,6 @@ import {
 import { Deployment } from './deployment'
 import { Message } from './message'
 import { type Model } from './model'
-import { ApiReferenceBlock, ExampleDetailBlock } from './page'
-import * as ApiReference from './page/apiReference/domain'
-import { HomeBlock } from './page/home'
-import {
-  NotePlayerDemoBinding,
-  PlaygroundMenuBinding,
-} from './page/home/composition'
-import { NotePlayerDemoBlock } from './page/home/notePlayerDemo'
-import { managedResources as notePlayerResources } from './page/home/notePlayerDemo/notePlayerDemo'
-import { SearchBlock } from './search'
-import { FocusSearchInput } from './search/command'
-import { SnippetCopyBlock } from './snippetCopy'
-import {
-  CopySnippet,
-  WaitBeforeHidingCopiedIndicator,
-} from './snippetCopy/update'
-import { SnippetDisclosureBlock } from './snippetDisclosure'
 import { ThemeMenuBlock } from './view/themeMenu'
 
 type HomeBlockModel = typeof HomeBlock.Model.Type

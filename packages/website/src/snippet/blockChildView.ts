@@ -1,4 +1,4 @@
-// page/settings/view.ts
+// blocks/settings/view.ts
 import { SettingsComposition } from './definition'
 import { Message } from './message'
 

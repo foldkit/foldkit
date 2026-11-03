@@ -1,5 +1,5 @@
+import { RoomBlock } from '../blocks'
 import { ApplicationDefinition } from '../definition'
-import { RoomBlock } from '../page'
 import * as ApplicationRoute from '../route'
 
 export const RoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {

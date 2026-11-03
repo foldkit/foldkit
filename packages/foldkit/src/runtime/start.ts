@@ -38,6 +38,8 @@ type RuntimeProgram = Readonly<{
   ports: Ports | undefined
 }>
 
+const embedTeardowns = new WeakMap<object, Promise<void>>()
+
 type ProvidedFlagsRequirements<FlagsRequirements, ProgramResources> = [
   Exclude<FlagsRequirements, ProgramResources>,
 ] extends [never]
@@ -299,25 +301,25 @@ export function embed<P extends Ports | undefined = undefined>(
   embedLifecycle.isEmbedActive = true
 
   const connector = makeHostConnector()
+  const previousTeardown = embedTeardowns.get(embedLifecycle)
+  let isDisposed = false
 
-  // NOTE: a dispose immediately followed by a fresh embed (React strict mode
-  // runs effects exactly that way) must not start the new runtime while the
-  // old one is still tearing down: the teardown finalizer is what puts the
-  // container element back in the DOM. Awaiting the previous fiber's exit
-  // sequences the two.
+  // NOTE: teardown must outlive an interrupted successor's wait, including
+  // successors disposed before their startup Effect begins.
   const startEffect = pipe(
-    Option.match(embedLifecycle.maybeActiveFiber, {
-      onNone: () => Effect.void,
-      onSome: previousFiber => Effect.asVoid(Fiber.await(previousFiber)),
-    }),
+    previousTeardown === undefined
+      ? Effect.void
+      : Effect.promise(() => previousTeardown),
     Effect.andThen(resolvePreservedModel(program.runtimeId)),
     Effect.flatMap(preservedModel =>
-      internals.startWith(
-        Option.some(connector),
-        preservedModel,
-        'Fresh',
-        options?.flags,
-      ),
+      isDisposed
+        ? Effect.void
+        : internals.startWith(
+            Option.some(connector),
+            preservedModel,
+            'Fresh',
+            options?.flags,
+          ),
     ),
   )
 
@@ -332,12 +334,19 @@ export function embed<P extends Ports | undefined = undefined>(
       return disposalPromise
     }
 
+    disposalPromise = Promise.resolve()
+      .then(() =>
+        Promise.all([
+          previousTeardown,
+          Effect.runPromise(Effect.asVoid(Fiber.interrupt(fiber))),
+        ]),
+      )
+      .then(() => undefined)
+    embedTeardowns.set(embedLifecycle, disposalPromise)
+
+    isDisposed = true
     connector.dispose()
     embedLifecycle.isEmbedActive = false
-
-    disposalPromise = Promise.resolve().then(() =>
-      Effect.runPromise(Effect.asVoid(Fiber.interrupt(fiber))),
-    )
 
     return disposalPromise
   }

@@ -3,12 +3,15 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
 
-import { Toast } from '@foldkit/ui'
+import {
+  layer as ToastLayer,
+  makeBlock as makeToastBlock,
+} from '@foldkit/ui/toast'
 
 const ToastPayload = Schema.Struct({ body: Schema.String })
 type ToastPayload = typeof ToastPayload.Type
 
-const ToastBlock = Toast.makeBlock(ToastPayload)
+const ToastBlock = makeToastBlock(ToastPayload)
 
 const Model = Schema.Struct({ toast: ToastBlock.Model })
 type Model = typeof Model.Type
@@ -54,7 +57,7 @@ const ApplicationBlock = ApplicationDefinition.makeBlock(
 
     return { children: [toast], init, update }
   }),
-).provide(Toast.layer)
+).provide(ToastLayer)
 
 await Effect.runPromise(
   Story.story(

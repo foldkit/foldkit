@@ -3,8 +3,8 @@ import { Array, Equal, Option } from 'effect'
 import { Html, createKeyedLazy } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
-import { Disclosure } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
+import { view as disclosureView } from '@foldkit/ui/disclosure'
 
 import { Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
@@ -73,7 +73,7 @@ const sidebarGroup = (
   return h.li(
     [h.Class('mb-2.5 last:mb-0')],
     [
-      Disclosure.view(
+      disclosureView(
         {
           id: config.id,
           isOpen: config.isOpen,

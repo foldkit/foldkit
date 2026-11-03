@@ -57,6 +57,31 @@ export const layer = SettingsDefinition.makeBlock(
 
 A graphless Block still uses a Composition and returns `children: []`. Use `makeUpdate({})` for an empty local Message union. A leaf with an empty complete dispatch contract declares `isMessageFree: true`; a routed-only parent omits that flag because child delivery is nonempty. An InMessage does not make the local dispatch contract nonempty. A viewless Block omits the view descriptor and implementation view. For a Document root, declare `view: { kind: 'Document' }` and return a Document from the canonical view. Do not return an operations record from the constructor.
 
+## Composing updates
+
+Keep an exhaustive `Composition.makeUpdate({ ... })` record as the default. Use `makeUpdate.compose(...)` when several transitions need to run in one dispatch, such as normalizing inputs, applying the Message, then comparing the previous and next Model before returning a save Command.
+
+Build the extra pieces with the same Composition:
+
+| Helper                                      | Runs for                                                                |
+| ------------------------------------------- | ----------------------------------------------------------------------- |
+| `makeUpdate.cases({ ... })`                 | The local Message tags in its sparse handler record                     |
+| `makeUpdate.each(handlerOrStep)`            | Every dispatch, including child delivery                                |
+| `makeUpdate.on(['Tag'])(handlerOrStep)`     | The selected local Message tags                                         |
+| `makeUpdate.except(['Tag'])(handlerOrStep)` | Every dispatch except the selected local tags, including child delivery |
+
+Use `cases.withContext(context => cases)` when additional records need dispatch context. The ordinary full record uses `makeUpdate.withContext(context => cases)`. Keep the declared Context tuple; composition does not concatenate separate contexts.
+
+Pieces run from left to right against the Model produced by the preceding piece. The one full `makeUpdate(...)` plan handles the local Message or routes the child at its position. A piece before it runs before either kind of handling; a piece after it sees the completed result, including the child's parent OutMessage fold. Child delivery runs once.
+
+A shared callback receives `(model, message, { before }, ...context)`. `model` is the current intermediate Model; `before` is the parent Model at entry to the entire composed update. The Message stays unchanged. Return a result or a Step that runs against the current Model, or pass a compatible existing Step directly. Constructing a piece does not invoke its callback.
+
+Extract focused bundles with `makeUpdate.compose(...)` and combine them later. A bundle may contain no full update. The update supplied to Block completion must contain exactly one exhaustive full update, including its `.withContext` form. Grouping bundles preserves order and the original `before` snapshot; it does not start another dispatch.
+
+Shared `each`, `on`, and `except` pieces cannot emit OutMessages. Handler records retain their per-Message OutMessage contracts, and composition rejects pieces that could emit competing OutMessages for the same dispatch. Existing Binding OutMessage policies keep their meaning. Commands are collected in piece order; their effects and completions are not sequenced by that order.
+
+Composition covers update only. Init and receive remain separate entry points. Callbacks stay pure, workflow state stays in the Model, and effects stay in returned Commands.
+
 ## Parent inputs
 
 Declare an optional `InMessage` Schema for requests and notifications a parent can initiate. Its tags are disjoint from local `Message`: `RequestedSubmit` generates `Binding.requestSubmit()`, and `InformedOfIssueChanged` generates `Binding.informIssueChanged(payload)`. Fields use the variant constructor's exact payload contract. A keyed Binding takes its occurrence key first. Do not inflect or alias the generated names.
@@ -477,6 +502,20 @@ An optional `boot` helper is an ordinary Step applied after the child Model
 exists. Foldkit has no additional Runtime boot phase. Block init cannot emit an
 OutMessage.
 
+## Organize child Blocks
+
+Each Block keeps its own child Block folders under `blocks/`, with an explicit
+`blocks/index.ts` barrel. A parent imports its immediate children through that
+barrel. Child feature barrels expose passive contracts, construction Layers,
+and intentional accessors. Keep local Definition, init, update and view imports
+direct inside their owner; tests may import original effect definitions from
+the owning structural files. Domain and ordinary helper folders stay separate.
+
+Import named Foldkit UI exports from public component subpaths. Give common
+exports descriptive aliases, such as `DialogLayer`, `makeListboxBlock`, and
+`buttonView`. The parent registers the passive child contract and provides its
+construction Layer.
+
 ## Compose handlers and Services
 
 | Value                                      | Owns                                                                                                             |
@@ -496,7 +535,7 @@ Keep a small local `EffectsLayer` beside its definitions. Extract `layer.ts` whe
 
 Keep concrete HTTP, storage, RPC and browser providers open for the root by default. Execution tests retain production handlers and replace ordinary Services beneath them. A feature-owned Service may be provided beneath its local handler recipe, while an operation-owned provider may be scoped inside that invocation when per-dispatch ownership is intentional. Do not move loading, retry or expected acquisition failure out of the Model into startup construction merely to shorten update.
 
-Omit `handler` for an external host contract. Supply its implementation through the original definition's `toLayer`, preserving identity. For an ordinary independent Block, compose that provider into its local `EffectsLayer` before `Definition.makeBlock` completion. Public host-only factories such as Query and native completed Blocks retain their explicit `provideHandlers` paths. Do not assume every public Block has a handler-replacement method: independent contracts select implementations through ordinary Layers. Declare external effects in the Definition's `effects` contract, using exact ordinary Services, ManagedResource accessors and typed constructor errors. Generic libraries can use `Block.makeEffectsContract<E, R>()` when the effect channels come from generic code rather than a finite list of Service values.
+Omit `handler` for an external host contract. Supply its implementation through the original definition's `toLayer`, preserving identity. Compose that provider into local `EffectsLayer`, or list the original definition under the constructor's `hostHandlers` and let the integrator select it through `block.provideHandlers(layer)` before hosting or scoped tests. Every possible selected Layer must provide all original handlers and fit the Definition's effects bounds. Selection is passive, preserves child construction provisioning, and does not build handler Layers in pure Stories. Descriptors expose this selector when they deliberately leave handlers to the host; an ordinary attached implementation uses its declared request Services. Declare external effects in the Definition's `effects` contract, using exact ordinary Services, ManagedResource accessors and typed constructor errors. Generic libraries can use `Block.makeEffectsContract<E, R>()` when the effect channels come from generic code rather than a finite list of Service values.
 
 At a root with a registered child:
 

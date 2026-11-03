@@ -3,7 +3,7 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import { SliderBlock } from '@foldkit/ui'
+import { SliderBlock } from '@foldkit/ui/slider'
 
 import { ApplicationBlock } from './block'
 import { GenerateAmbientParticle } from './command'

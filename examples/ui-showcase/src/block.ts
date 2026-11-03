@@ -1,10 +1,10 @@
 import { Effect } from 'effect'
 
+import { Ui } from './blocks'
 import { EffectsLayer } from './command'
 import { UiBinding } from './composition'
 import { ApplicationDefinition } from './definition'
 import { init } from './init'
-import * as Ui from './ui'
 import { update } from './update'
 import { view } from './view'
 

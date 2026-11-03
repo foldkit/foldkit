@@ -3,7 +3,10 @@ import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Listbox } from '@foldkit/ui'
+import {
+  layer as ListboxLayer,
+  makeBlock as makeListboxBlock,
+} from '@foldkit/ui/listbox'
 
 type Character = Readonly<{
   firstName: string
@@ -16,7 +19,7 @@ const characterName = (character: Character): string =>
 // Declare the Listbox once at module scope, typed for the source item
 // (`Character`). `view`'s `items` are typed as `ReadonlyArray<Character>`;
 // the OutMessage carries the string returned by `itemToValue`:
-const CharacterListbox = Listbox.makeBlock<Character>()
+const CharacterListbox = makeListboxBlock<Character>()
 
 // Add a field to your Model for the Listbox Block, plus a field for
 // the selected value your app actually cares about:
@@ -139,4 +142,4 @@ export const ApplicationBlock = CharacterPickerDefinition.makeBlock(
     const characterListbox = yield* CharacterListboxBinding
     return { children: [characterListbox], init, update, view }
   }),
-).provide(Listbox.layer)
+).provide(ListboxLayer)

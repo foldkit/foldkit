@@ -101,8 +101,9 @@ type ValidateCommandsOutput<
  * Service requirements and child Binding registration evidence.
  * Use the general Step helper when the transition also changes fields or
  * produces an OutMessage.
+ * @internal Names focused Command helpers in inferred consumer declarations.
  */
-interface FocusedMakeCommandsStep<Model, Message, InputMessage> {
+export interface FocusedMakeCommandsStep<Model, Message, InputMessage> {
   <
     ExactMessage extends InputMessage,
     const Producer extends ContextualModelMessageProducer<

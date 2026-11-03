@@ -7,10 +7,19 @@ import { modifyFields } from 'foldkit/struct'
 import { toParentMessageFor } from 'foldkit/test'
 import { describe, expect } from 'vitest'
 
-import { FileDropBlock } from '@foldkit/ui'
-import { Menu, Tabs } from '@foldkit/ui'
+import { FileDropBlock } from '@foldkit/ui/fileDrop'
+import { test as MenuTest } from '@foldkit/ui/menu'
+import { test as TabsTest } from '@foldkit/ui/tabs'
 
 import { ApplicationBlock } from './block'
+import {
+  CoverLetterBlock,
+  EducationBlock,
+  PersonalInfoBlock,
+  SkillsBlock,
+  WorkHistoryBlock,
+} from './blocks'
+import { ResumeDropBinding } from './blocks/attachments/composition'
 import { SubmitApplication } from './command'
 import {
   AttachmentsBinding,
@@ -26,14 +35,6 @@ import { Message } from './message'
 import { Submission } from './model'
 import { test } from './model.fixture'
 import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
-import {
-  CoverLetterBlock,
-  EducationBlock,
-  PersonalInfoBlock,
-  SkillsBlock,
-  WorkHistoryBlock,
-} from './step'
-import { ResumeDropBinding } from './step/attachments/composition'
 
 type PersonalInfoMessage = typeof PersonalInfoBlock.Message.Type
 type WorkHistoryMessage = typeof WorkHistoryBlock.Message.Type
@@ -65,12 +66,12 @@ const stepTabsMessage = (message: StepTabsMessage) =>
   messageFrom(StepTabsBinding, message)
 
 const resolveFocusTab = Command.resolve(
-  Tabs.test.FocusTab,
+  TabsTest.FocusTab,
   StepTabsBlock.Message.CompletedFocusTab(),
 )
 
 const resolveFocusMenuButton = Command.resolve(
-  Menu.test.FocusMenuButton,
+  MenuTest.FocusMenuButton,
   StepMenuBlock.Message.CompletedFocusMenuButton(),
 )
 
@@ -168,7 +169,7 @@ describe('update', () => {
             }),
           ),
           Command.resolve(
-            Menu.test.FocusMenuItems,
+            MenuTest.FocusMenuItems,
             StepMenuBlock.Message.CompletedFocusMenuItems(),
           ),
           stepMenuMessage(

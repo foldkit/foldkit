@@ -1,5 +1,6 @@
 import {
   Array,
+  Cause,
   Context,
   Duration,
   Effect,
@@ -779,7 +780,11 @@ export const makeRuntime = <
             // check its effect would run behind the crash view, contradicting
             // the crash-terminality contract. `crashWith` sets `isCrashed`
             // synchronously, so it is already set by the time this runs.
-            if (status.isRuntimeDisposed || status.isCrashed) {
+            if (
+              status.isRuntimeDisposed ||
+              status.isCrashed ||
+              captured?.isCurrent() === false
+            ) {
               return
             }
 
@@ -813,11 +818,22 @@ export const makeRuntime = <
 
             Effect.runForkWith(runtimeContext)(
               Effect.forkIn(captured?.scope ?? runtimeScope)(
-                recordedCommand.pipe(
-                  Effect.flatMap(result =>
-                    enqueueMessageEffect(result, captured?.isCurrent),
+                Effect.uninterruptibleMask(restore =>
+                  restore(
+                    recordedCommand.pipe(
+                      Effect.flatMap(result =>
+                        enqueueMessageEffect(result, captured?.isCurrent),
+                      ),
+                    ),
+                  ).pipe(
+                    Effect.catchCause(cause => {
+                      if (Cause.hasInterruptsOnly(cause)) {
+                        return Effect.void
+                      } else {
+                        return crashWith(cause, message)
+                      }
+                    }),
                   ),
-                  Effect.catchCause(cause => crashWith(cause, message)),
                 ),
               ),
             )

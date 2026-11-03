@@ -8,7 +8,7 @@ import {
   Message,
   Model as ModelSchema,
 } from './application'
-import { CounterBlock } from './counter'
+import { CounterBlock } from './blocks/counter'
 
 type CounterMessage = typeof CounterBlock.Message.Type
 
