@@ -37,6 +37,7 @@ import {
 } from './directConnection.js'
 import type { InitialBindingEvidence } from './initialization.js'
 import type { InstanceKey } from './instanceContext.js'
+import type { InstanceEvidence } from './instanceSchema.js'
 import { type KeyedBinding, bindEach } from './keyedBinding.js'
 import {
   type KeyAt,
@@ -812,7 +813,16 @@ type ValidateKeyedFieldSource<
             >,
             'field' | 'key' | 'childField'
           >
-          ? readonly []
+          ? WrappedItemAt<
+              ParentModelSchema['Type'],
+              Field
+            > extends InstanceEvidence<infer InstanceOwner>
+            ? Equal<InstanceOwner, BlockValue['owner']> extends true
+              ? Extract<keyof BlockValue['operations'], 'create'> extends never
+                ? readonly []
+                : InvalidBindChildConfig<'Instance Bindings reserve create for occurrence initialization'>
+              : InvalidBindChildConfig<'Instance storage belongs to another child Block contract'>
+            : readonly []
           : InvalidBindChildConfig<'Invalid wrapped keyed field storage'>
         : KeyField extends keyof BlockValue['Model']['Type'] & string
           ? Config extends Pick<

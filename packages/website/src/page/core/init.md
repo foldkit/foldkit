@@ -64,11 +64,29 @@ An exact keyed Option wrapper also leaves presence with the parent. Create it th
 
 The final parent Model determines which initialized occurrences are active. Init Commands for absent or `presentWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
 
-For custom storage or dynamic creation, call the registered Binding's explicit `init` operation. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. `Binding.init` returns a passive initialization recipe. The recipe has no `.model` or `.commands` fields to project.
+For custom storage or deliberate replacement, call the registered Binding's explicit `init` operation. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. `Binding.init` returns a passive initialization recipe. The recipe has no `.model` or `.commands` fields to project. Standard Instance arrays can instead use the field-Step creation path below.
 
 Return that recipe directly from the owning Composition's `makeInit` callback or `makeUpdate` handler, or preserve it through the owning Definition's `makeStep` producer. The Composition authoring boundary interprets it directly. Checked execution enters the registered graph, then returns the complete parent Model with every lifted child init Command followed by the optional parent Commands. That collection order does not sequence their effects or completion. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and exact Binding requirement at these boundaries.
 
 During checked execution, runtime validation verifies the active composition frame, validates the complete parent Model against its Schema, checks that `toParentModel` stores a schema-equivalent initialized child, and checks that a keyed result contains exactly one occurrence with the requested key. These guards protect JavaScript with erased types and operations captured for later execution. Ordinary Model construction remains available for fixtures and other pure values.
+
+### Create keyed children in field Steps {#creating-child-instances}
+
+Use `Schema.Array(ChildBlock.Instance)` when each stored item needs only a string key and its ready child Model. The [Instance-array Binding](/core/block#fold-child-at) declares `field`, `key: 'key'`, and `childField: 'model'`. Its `create({ key, args })` method returns a passive request carrying the child's exact init argument tuple. The owning `makeFieldsStep` can append that request while changing other parent fields.
+
+The following application reuses `addCounter` during startup and later additions. Each Step reads the preceding Step's updated counter ID. Its add-and-reset handler shows that a bound child operation can immediately follow creation:
+
+::Snippet{name="initCreateChildInstances" label="Reusing child creation during init and update"}
+
+When the acquired graph executes the field Step, Foldkit checks the complete creation batch, initializes the requested children, and replaces the requests with ready `{ key, model }` values. It retains child init Commands and the exact requirements and Binding registration evidence. The next Step sees the initialized Model synchronously. The Runtime performs the Commands later through their existing handlers.
+
+Calling `create` does not acquire a child implementation, run init, construct handlers, or start a lifecycle. The constructor still yields the explicit Binding and receives the child's implementation through its Layer. Creation-bearing field results are opaque connected recipes until checked execution; keep them intact through the registered Composition. Field Steps with ordinary changes still return only a Model.
+
+Requests cannot substitute for ready Instances in ordinary Model construction. Use `ChildBlock.Instance.make` to seed a fixture from an already constructed child Model. Restoring a ready snapshot through the Schema does not rerun child init or recreate its Commands.
+
+Creation rejects duplicate keys in the resulting array and keys already present before the Step. Use a child operation for reset or the existing init helpers for deliberate replacement. Removing an Instance follows the existing occurrence lifecycle: a later update that reintroduces its key creates a new generation, and results from the retired occurrence cannot reach it. Removing and readding a key within one update does not establish a new generation.
+
+This path covers required top-level arrays with standard string-keyed Instance storage. Keep Option fields, Record/HashMap storage, wrappers with extra metadata, and arrays whose child Model owns its ID on their existing initialization paths. Do not add a standard wrapper solely to adopt `create`.
 
 ### Dynamic storage helpers
 
@@ -121,7 +139,7 @@ A keyed-array Binding can declare `init.instances` and `init.toItem`. The first 
 
 Return each wrapper as a plain record so its child field keeps the exact initialized object. A wrapper Schema constructor may reconstruct that child and fail the identity check. Composition constructs the full parent Model through its Schema after collecting these records.
 
-This Counter application starts three instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` returns a `CountersBinding.init({ key, args, toParentModel })` recipe, so the Definition defers initialization until it can produce the parent result with the child init Commands:
+The following custom-wrapper example starts three Counter instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` returns a `CountersBinding.init({ key, args, toParentModel })` recipe, so the Definition defers initialization until it can produce the parent result with the child init Commands:
 
 ::Snippet{name="initKeyedChildren" label="Initializing keyed child instances"}
 

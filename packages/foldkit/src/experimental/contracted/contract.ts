@@ -24,6 +24,7 @@ import type {
   ValidateChildInitContext,
   ValidateInit,
 } from '../../block/initialization.js'
+import type { InstanceSchema } from '../../block/instanceSchema.js'
 import type {
   OperationMessageConstructor,
   OperationParameters,
@@ -409,6 +410,12 @@ export interface Contract<
   readonly [DescriptorTypeId]: Facts
   readonly owner: OwnerValue
   readonly Model: ModelSchema
+  /**
+   * Ready occurrence Schema with a stable string key and child
+   * Model. It encodes ordinary `{ key, model }` snapshots and never runs init.
+   * Pending `Binding.create` requests are separate write values.
+   */
+  readonly Instance: InstanceSchema<OwnerValue, ModelSchema>
   readonly Message: MessageSchema
   readonly OutMessage: OutMessageSchema
   readonly InMessage: Facts extends Readonly<{
@@ -1338,7 +1345,8 @@ export interface InMessageDefinitionFields<
   readonly makeFieldsStep: DefineStepFields<
     ModelSchema['Type'],
     MessageSchema['Type'],
-    MessageSchema['Type'] | In['Type']
+    MessageSchema['Type'] | In['Type'],
+    Owner<NominalId<Id, Config['key']>, true>
   >
   readonly makeCommandsStep: MakeCommandsStep<
     ModelSchema['Type'],

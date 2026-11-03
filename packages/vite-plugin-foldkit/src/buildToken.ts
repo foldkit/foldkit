@@ -23,6 +23,16 @@ import { isFoldkitSingletonPackageSpecifier } from './foldkitPackages.js'
 
 const BUILD_ID_ENVIRONMENT_VARIABLE = 'FOLDKIT_BUILD_ID'
 const FRAMEWORK_BUILD_ID_PLACEHOLDER = 'foldkitBuildIdPlaceholder()'
+const DEVELOPMENT_BUILD_ID_BINDING = '__foldkitDevelopmentBuildId'
+
+/** The development-only module supplying the running server's build identity.
+ * @internal */
+export const DEVELOPMENT_BUILD_ID_MODULE_ID =
+  'virtual:foldkit/development-build-id'
+
+/** Vite's resolved id for the development build-identity module.
+ * @internal */
+export const RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID = `\0${DEVELOPMENT_BUILD_ID_MODULE_ID}`
 
 type BuildIdentitySession = {
   readonly buildId: string | undefined
@@ -109,6 +119,9 @@ const buildIdForConfig = (
   return fresh
 }
 
+const buildIdLiteral = (buildId: string | undefined): string =>
+  buildId === undefined ? 'undefined' : JSON.stringify(buildId)
+
 const replaceAll = (
   source: MagicString,
   code: string,
@@ -161,9 +174,10 @@ const transformBuildIdentity = (
     return undefined
   }
 
-  const buildId = buildIdForConfig(config, configuredBuildId)
   const replacement =
-    buildId === undefined ? 'undefined' : JSON.stringify(buildId)
+    config.command === 'serve'
+      ? DEVELOPMENT_BUILD_ID_BINDING
+      : buildIdLiteral(buildIdForConfig(config, configuredBuildId))
   const transformed = new MagicString(code)
   const transformedFramework = replaceAll(
     transformed,
@@ -173,6 +187,15 @@ const transformBuildIdentity = (
   )
   if (!transformedFramework) {
     return undefined
+  }
+
+  if (config.command === 'serve') {
+    // NOTE: Vite serves installed dependency modules with immutable caching.
+    // Keep their code stable and revalidate the current server's identity
+    // through a virtual module, which Vite serves with no-cache and an ETag.
+    transformed.prepend(
+      `import { buildId as ${DEVELOPMENT_BUILD_ID_BINDING} } from ${JSON.stringify(DEVELOPMENT_BUILD_ID_MODULE_ID)};\n`,
+    )
   }
 
   return {
@@ -202,7 +225,8 @@ const verifyBuildIdentity = (builder: ViteBuilder): void => {
   )
 }
 
-/** Compiles one build identity into application entries and Foldkit itself.
+/** Supplies one build identity through a revalidated development module or
+ *  inlined production literals.
  *
  * @internal
  */
@@ -238,6 +262,23 @@ export const foldkitBuildToken = (
             verifyFrameworkIdentity,
           )
         },
+      },
+      resolveId(id) {
+        return id === DEVELOPMENT_BUILD_ID_MODULE_ID
+          ? RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID
+          : undefined
+      },
+      load(id) {
+        if (id !== RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID) {
+          return undefined
+        }
+
+        const buildId = buildIdForConfig(
+          this.environment.getTopLevelConfig(),
+          configuredBuildId,
+        )
+
+        return `export const buildId = ${buildIdLiteral(buildId)}\n`
       },
       transform(code, id) {
         const config = this.environment.getTopLevelConfig()

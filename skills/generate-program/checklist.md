@@ -101,7 +101,8 @@ done
 
 # Review update return types. Exhaustive makeUpdate records retain per-Message output contracts and inferred Command requirements.
 # A Model-preserving Step producing Commands uses the owning
-# FeatureDefinition.makeCommandsStep callback; Steps combining field changes with Commands or OutMessages use makeStep. A
+# FeatureDefinition.makeCommandsStep callback; cohesive mixed transitions use makeStep or direct results.
+# Instance-array makeFieldsStep creation retains child init Commands through its connected recipe. A
 # reusable UpdateReturn alias derives child requirements from
 # Update.RequirementsOf<typeof childUpdate> and adds other Command-producing
 # helpers explicitly. A hand-written plain type must include outMessage?: never;

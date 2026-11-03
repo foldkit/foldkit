@@ -95,6 +95,7 @@ export const makeFamilyContractRuntime = (
   const reservedMembers = new Set([
     'owner',
     'Model',
+    'Instance',
     'Message',
     'InMessage',
     'OutMessage',
@@ -192,6 +193,7 @@ export const makeFamilyContractRuntime = (
     ...members,
     owner: declared.contract.owner,
     Model: declared.contract.Model,
+    Instance: declared.contract.Instance,
     Message: declared.contract.Message,
     InMessage: declared.contract.InMessage,
     OutMessage: declared.contract.OutMessage,

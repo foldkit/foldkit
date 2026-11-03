@@ -1,4 +1,4 @@
-import { Option, Predicate } from 'effect'
+import { Array, Option, Predicate } from 'effect'
 import {
   cpSync,
   mkdirSync,
@@ -14,6 +14,7 @@ import {
   createServer as createHttpServer,
   request as nodeRequest,
 } from 'node:http'
+import { SourceMap } from 'node:module'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
@@ -31,6 +32,10 @@ import {
 import { createServer as createHostViteServer } from 'vite-host'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
+import {
+  DEVELOPMENT_BUILD_ID_MODULE_ID,
+  RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID,
+} from '../src/buildToken.ts'
 import { foldkit } from '../src/index.ts'
 import { foldkitSsr } from '../src/ssr.ts'
 import { boundPort } from './boundPort.ts'
@@ -307,17 +312,22 @@ const startServer = async (
   return originOf(server.httpServer?.address())
 }
 
-const startAutomaticIdentityServer = async (): Promise<
-  Readonly<{ origin: string; server: ViteDevServer }>
-> => {
+const startAutomaticIdentityServer = async (
+  options: Readonly<{
+    root?: string
+    port?: number
+    buildId?: string
+  }> = {},
+): Promise<Readonly<{ origin: string; server: ViteDevServer }>> => {
   const server = await createViteServer({
-    root: AUTOMATIC_IDENTITY_FIXTURE_ROOT,
+    root: options.root ?? AUTOMATIC_IDENTITY_FIXTURE_ROOT,
     cacheDir: await createServerCache(),
     configFile: false,
     logLevel: 'silent',
     plugins: [
       foldkit({
         devToolsMcpPort: false,
+        ...(options.buildId === undefined ? {} : { buildId: options.buildId }),
         ssr: {
           serverEntry: '/entry.server.ts',
           clientEntry: '/entry.client.ts',
@@ -326,7 +336,8 @@ const startAutomaticIdentityServer = async (): Promise<
     ],
     server: {
       host: '127.0.0.1',
-      port: 0,
+      port: options.port ?? 0,
+      strictPort: true,
     },
   })
   onTestFinished(() => server.close().catch(() => undefined))
@@ -397,9 +408,67 @@ const automaticIdentityFrom = async (
     await running.server.environments.client.transformRequest(
       FOLDKIT_BUILD_TOKEN_URL,
     )
-  expect(transformedClientToken?.code).toContain(JSON.stringify(buildId))
+  expect(transformedClientToken?.code).toContain(DEVELOPMENT_BUILD_ID_MODULE_ID)
+
+  const transformedClientBuildId =
+    await running.server.environments.client.transformRequest(
+      RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID,
+    )
+  expect(transformedClientBuildId?.code).toContain(
+    `export const buildId = ${JSON.stringify(buildId)}`,
+  )
 
   return buildId ?? ''
+}
+
+const copyInstalledIdentityFixture = (): string => {
+  const root = realpathSync(
+    mkdtempSync(join(tmpdir(), 'foldkit-installed-build-id-')),
+  )
+  onTestFinished(() => rmSync(root, { recursive: true, force: true }))
+
+  for (const file of ['application.ts', 'entry.client.ts', 'entry.server.ts']) {
+    cpSync(join(AUTOMATIC_IDENTITY_FIXTURE_ROOT, file), join(root, file))
+  }
+
+  writeFileSync(
+    join(root, 'package.json'),
+    JSON.stringify({
+      private: true,
+      type: 'module',
+      dependencies: { foldkit: '*', effect: '*' },
+    }),
+  )
+
+  const installedFoldkit = join(root, 'node_modules', 'foldkit')
+  mkdirSync(installedFoldkit, { recursive: true })
+  cpSync(
+    join(FOLDKIT_PACKAGE_ROOT, 'package.json'),
+    join(installedFoldkit, 'package.json'),
+  )
+  cpSync(join(FOLDKIT_PACKAGE_ROOT, 'dist'), join(installedFoldkit, 'dist'), {
+    recursive: true,
+  })
+  symlinkSync(
+    join(FOLDKIT_PACKAGE_ROOT, 'node_modules'),
+    join(installedFoldkit, 'node_modules'),
+  )
+  symlinkSync(EFFECT_PACKAGE_ROOT, join(root, 'node_modules', 'effect'))
+
+  return root
+}
+
+const pageBuildId = async (origin: string): Promise<string> => {
+  const response = await fetch(`${origin}/`)
+  expect(response.status).toBe(200)
+  const html = await response.text()
+
+  return Option.getOrThrowWith(
+    Option.fromNullishOr(
+      /data-foldkit-build="(?<buildId>[^"]+)"/.exec(html)?.groups?.['buildId'],
+    ),
+    () => new Error('The fixture page has no hydration build identity'),
+  )
 }
 
 describe('foldkitSsr', () => {
@@ -413,6 +482,138 @@ describe('foldkitSsr', () => {
       const secondBuildId = await automaticIdentityFrom(second)
 
       expect(secondBuildId).not.toBe(firstBuildId)
+    },
+    AGGREGATE_DEV_SERVER_TEST_TIMEOUT_MS,
+  )
+
+  for (const identitySource of ['generated', 'configured', 'environment']) {
+    it(
+      `revalidates the ${identitySource} identity behind a cached installed build-token module after restart`,
+      async () => {
+        vi.stubEnv(
+          'FOLDKIT_BUILD_ID',
+          identitySource === 'environment' ? 'environment-before' : undefined,
+        )
+        onTestFinished(() => {
+          vi.unstubAllEnvs()
+        })
+        const root = copyInstalledIdentityFixture()
+        const first = await startAutomaticIdentityServer({
+          root,
+          ...(identitySource === 'configured'
+            ? { buildId: 'configured-before' }
+            : {}),
+        })
+        const firstBuildId = await pageBuildId(first.origin)
+        const tokenPath =
+          '/node_modules/foldkit/dist/buildToken.js?v=cached-dependency'
+        const firstToken = await fetch(`${first.origin}${tokenPath}`)
+        expect(firstToken.status).toBe(200)
+        expect(firstToken.headers.get('cache-control')).toContain('immutable')
+        const cachedTokenCode = await firstToken.text()
+        expect(cachedTokenCode).toContain(
+          'injectedBuildId = __foldkitDevelopmentBuildId',
+        )
+        expect(cachedTokenCode).not.toContain(firstBuildId)
+
+        const identityPath = Option.getOrThrowWith(
+          Option.fromNullishOr(
+            /from "(?<path>[^"]*virtual:foldkit\/development-build-id[^"]*)"/.exec(
+              cachedTokenCode,
+            )?.groups?.['path'],
+          ),
+          () =>
+            new Error('The cached build-token module has no identity import'),
+        )
+        const firstIdentity = await fetch(`${first.origin}${identityPath}`)
+        expect(firstIdentity.status).toBe(200)
+        expect(firstIdentity.headers.get('cache-control')).toBe('no-cache')
+        expect(await firstIdentity.text()).toContain(
+          `export const buildId = ${JSON.stringify(firstBuildId)}`,
+        )
+        const etag = Option.getOrThrow(
+          Option.fromNullishOr(firstIdentity.headers.get('etag')),
+        )
+        const unchanged = await fetch(`${first.origin}${identityPath}`, {
+          headers: { 'If-None-Match': etag },
+        })
+        expect(unchanged.status).toBe(304)
+
+        const port = Option.getOrThrow(
+          boundPort(first.server.httpServer?.address()),
+        )
+        await first.server.close()
+
+        if (identitySource === 'environment') {
+          vi.stubEnv('FOLDKIT_BUILD_ID', 'environment-after')
+        }
+
+        const second = await startAutomaticIdentityServer({
+          root,
+          port,
+          ...(identitySource === 'configured'
+            ? { buildId: 'configured-after' }
+            : {}),
+        })
+        const secondBuildId = await pageBuildId(second.origin)
+        expect(second.origin).toBe(first.origin)
+        expect(secondBuildId).not.toBe(firstBuildId)
+        const secondToken = await fetch(`${second.origin}${tokenPath}`)
+        expect(await secondToken.text()).toBe(cachedTokenCode)
+
+        const revalidated = await fetch(`${second.origin}${identityPath}`, {
+          headers: { 'If-None-Match': etag },
+        })
+        expect(revalidated.status).toBe(200)
+        expect(revalidated.headers.get('etag')).not.toBe(etag)
+        expect(await revalidated.text()).toContain(
+          `export const buildId = ${JSON.stringify(secondBuildId)}`,
+        )
+      },
+      AGGREGATE_DEV_SERVER_TEST_TIMEOUT_MS,
+    )
+  }
+
+  it(
+    'preserves the source location of the development identity binding',
+    async () => {
+      const running = await startAutomaticIdentityServer()
+      const transformed = Option.getOrThrow(
+        Option.fromNullishOr(
+          await running.server.environments.client.transformRequest(
+            FOLDKIT_BUILD_TOKEN_URL,
+          ),
+        ),
+      )
+      const { map } = transformed
+
+      if (map === null || !('version' in map)) {
+        throw new Error('The build-token transform returned no source map')
+      }
+
+      const originalCode = readFileSync(
+        fileURLToPath(
+          new URL('./buildToken.js', import.meta.resolve('foldkit')),
+        ),
+        'utf8',
+      )
+      const originalLine = Option.getOrThrow(
+        Array.findFirstIndex(originalCode.split('\n'), line =>
+          line.startsWith('export const injectedBuildId'),
+        ),
+      )
+      const generatedLine = Option.getOrThrow(
+        Array.findFirstIndex(transformed.code.split('\n'), line =>
+          line.startsWith('export const injectedBuildId'),
+        ),
+      )
+
+      expect(
+        new SourceMap({ ...map, sourceRoot: '' }).findEntry(generatedLine, 0),
+      ).toMatchObject({
+        originalLine,
+        originalColumn: 0,
+      })
     },
     AGGREGATE_DEV_SERVER_TEST_TIMEOUT_MS,
   )

@@ -214,6 +214,7 @@ Choose the narrowest storage form that describes the parent Model:
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
 | Exact Struct field containing `Child.Model` or `Option<Child.Model>`                 | `field`                                                              |
 | Exact array of child Models with a declared stable string or finite-number key field | `field` and string `key`                                             |
+| Standard `Schema.Array(ChildBlock.Instance)`                                         | `field`, `key: 'key'`, and `childField: 'model'`                     |
 | Exact array of closed wrappers around the child Model                                | `field`, string `key`, and distinct `childField`                     |
 | Exact `Option` of one closed wrapper around the child Model                          | `field`, string `key`, and distinct `childField`                     |
 | Exact `Schema.Record` or `Schema.HashMap` of child Models                            | `ParentDefinition.makeMapBinding(ChildBlock, { field })`             |
@@ -518,6 +519,58 @@ after collecting the records.
 An optional `boot` helper is an ordinary Step applied after the child Model
 exists. Foldkit has no additional Runtime boot phase. Block init cannot emit an
 OutMessage.
+
+### Create children in Instance arrays
+
+For a required top-level array containing only occurrence keys and child state,
+declare `Schema.Array(ChildBlock.Instance)`. Each ready Instance is
+`{ key: string, model: ChildModel }`. Bind it with the explicit
+`{ field, key: 'key', childField: 'model' }` configuration. The parent owns
+membership and order; the Binding still owns child delivery and OutMessage policy.
+
+The owning `makeFieldsStep` can append `Binding.create({ key, args })` while
+changing sibling parent fields. `args` retains the child's exact init tuple.
+For example:
+
+```ts
+const CountersBinding = ApplicationDefinition.makeBinding(CounterBlock, {
+  field: 'counters',
+  key: 'key',
+  childField: 'model',
+})
+
+const addCounter = makeFieldsStep(model => ({
+  counters: Array.append(
+    CountersBinding.create({
+      key: `counter-${model.nextCounterId}`,
+      args: [],
+    }),
+  ),
+  nextCounterId: Number.increment,
+}))
+```
+
+`create` returns a passive request. It does not call init, acquire a child,
+build handlers, or start lifecycles. Checked execution through the registered
+Composition resolves the requests synchronously before the following Step,
+stores ready Instances, and retains child init Commands, exact requirements,
+and registration evidence. Creation-bearing field results are opaque connected
+recipes until execution. Ordinary field changes remain Model-only.
+
+Startup can supply an empty Instance array and reuse the same creation transition
+in `makeInit`'s `steps`. Subsequent Steps can immediately apply bound child
+operations. Requests cannot substitute for ready Instances in `Model.make` or
+`modifyFields`, and their child Models cannot be read before resolution. Seed prebuilt Models with
+`ChildBlock.Instance.make({ key, model })`; Schema decoding restores ready
+snapshots without rerunning init or producing init Commands.
+
+Creation rejects duplicate keys and replacement of keys present before the
+Step. Removal uses ordinary parent field transforms and the existing occurrence
+lifecycle. Reintroducing a key in a later update creates a new generation;
+removing and readding it within one update does not. Keep existing initialization
+helpers for Option fields, Record/HashMap storage, custom wrapper metadata, or
+arrays whose child Model owns its ID. Do not change those representations solely
+to adopt `create`. See `examples/counters/src/application.ts` for a complete app.
 
 ## Organize child Blocks
 

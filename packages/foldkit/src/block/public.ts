@@ -1,3 +1,7 @@
+import type { Schema } from 'effect'
+
+import type { InstanceEvidence } from './instanceSchema.js'
+
 export type {
   AnyAuthoredView,
   AnyDocumentView,
@@ -34,6 +38,27 @@ export type {
   ExecutableBinding,
 } from './bindingConnection.js'
 export type { BindingInitRecipe } from './initRecipe.js'
+/** A ready child occurrence with a stable string key and its child's Model. */
+export type ChildInstance<OwnerValue, Model> = Readonly<{
+  key: string
+  model: Model
+}> &
+  InstanceEvidence<OwnerValue>
+
+/** Schema for a ready child occurrence in standard string-keyed array storage. */
+export interface InstanceSchema<
+  OwnerValue,
+  ModelSchema extends Schema.Top,
+> extends Schema.Struct<{
+  key: Schema.String
+  model: ModelSchema
+}> {
+  readonly Rebuild: InstanceSchema<OwnerValue, ModelSchema>
+  readonly Type: ChildInstance<OwnerValue, ModelSchema['Type']>
+  readonly '~type.make': ChildInstance<OwnerValue, ModelSchema['Type']>
+  readonly Iso: ChildInstance<OwnerValue, ModelSchema['Iso']>
+}
+
 export type { AssemblyDraft } from './assemblyState.js'
 export type { MakeMapBinding, MapBindingResultConfig } from './mapBinding.js'
 export type {

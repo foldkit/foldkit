@@ -176,7 +176,8 @@
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
     "build": "pnpm run clean && tsc -b tsconfig.build.json",
-    "check:emitted-declarations": "node scripts/check-emitted-declarations.ts",
+    "check:emitted-declarations": "node scripts/check-emitted-declarations.ts && pnpm check:child-instances",
+    "check:child-instances": "node scripts/check-child-instances.ts",
     "check:compiler-diagnostics": "node scripts/check-compiler-diagnostics.ts",
     "check:block-type-performance": "node scripts/check-block-type-performance.ts",
     "update:block-type-performance": "node scripts/check-block-type-performance.ts --update",

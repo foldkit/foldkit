@@ -3913,8 +3913,16 @@ export type Definition<
       ? OutMessageSchema['Type']
       : never
   >
-  /** Authors a Model-only Step from a deferred field-transformation callback. */
-  makeFieldsStep: DefineStepFields<ModelSchema['Type'], MessageSchema['Type']>
+  /**
+   * Authors deferred field transformations. Plain changes return only a Model;
+   * Instance creation writes also retain child init Commands.
+   */
+  makeFieldsStep: DefineStepFields<
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    MessageSchema['Type'],
+    OwnerValue
+  >
   /** Creates a Step preserving the incoming Model, with no Commands or OutMessage. */
   makeNoopStep: DefineStepNoop<ModelSchema['Type']>
   /** Creates a Model-preserving Step whose deferred callback produces Commands.
@@ -4670,7 +4678,7 @@ export const makeDefinition = (
   const defineStep = authoring?.makeStep ?? makeDefineStep()
   const defineOutMessageFold = makeOutMessageFold()
   const defineOutMessageForward = makeOutMessageForward()
-  const stepFields = authoring?.makeFieldsStep ?? makeStepFields()
+  const stepFields = authoring?.makeFieldsStep ?? makeStepFields(config.Model)
   const stepNoop = authoring?.makeNoopStep ?? makeStepNoop
   const commandsStep = authoring?.makeCommandsStep ?? makeCommandsStep()
   const defineSubscriptions =

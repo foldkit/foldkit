@@ -32,6 +32,8 @@ If a section only renders parent state, use a view function. A card that receive
 
 Call `Block.makeDefinition` once at module scope. Supply a stable unique `key`, the Model and local Message Schemas, and an `Init` tuple. Declare an OutMessage Schema when the child reports facts to its parent.
 
+When publishing inferred contracts or Schemas as declarations, make the unique key's type reachable through the feature's public barrel. A type-only re-export keeps its runtime value internal while allowing TypeScript to name the contract's identity in parent declarations.
+
 `Init` describes initializer arguments. `Context` describes read-only per-dispatch arguments. `ChildInitContext` describes the value that the parent's init passes to deferred child argument producers. These are separate inputs; none starts construction or lifecycle work.
 
 Declare a rendered Block's `view.kind` and optional `view.Inputs`. Use Schema tuples and records for ordinary data. Use `Block.makeInputContract<...>()` for deliberately nonserialized inputs such as render callbacks. Declare ordinary handler Services under `effects.services` and any public operation channels on the Definition.
@@ -400,6 +402,16 @@ When the decision depends on parent state from before the child update, take the
 
 ## Keyed Children {#fold-child-at}
 
+For a collection that needs only occurrence identity and child state, declare `Schema.Array(ChildBlock.Instance)`. Each ready value contains a string `key` and the child's `model`. Bind the field with `key: 'key'` and `childField: 'model'`:
+
+::Snippet{name="blockInstanceArray" label="Declaring a child Instance array" class="mb-4"}
+
+`CountersBinding.create` returns a passive creation request. The owning `makeFieldsStep` accepts it in the declared Instance array. When the acquired graph executes that Step, Foldkit initializes the child, places its ready Instance, and retains every child init Command before continuing to the next Step. The parent still chooses membership, order, and keys. The Binding still owns delivery and OutMessage policy.
+
+The Model's child array contains ready Instances only. A request cannot be read as a child Model or supplied as a ready Instance to `Model.make` or `modifyFields`. For prebuilt fixtures, use `CounterBlock.Instance.make` with an already constructed key and child Model. Decoding a ready snapshot does not rerun init. See [creating children in field Steps](/core/init-and-flags#creating-child-instances) for startup reuse, same-update operations, and creation limits.
+
+Use the other storage forms below when identity belongs to the child Model, wrappers carry extra parent metadata, or the collection is optional or map-based. A standard Instance array does not require changing those representations.
+
 When a parent field is an array of child Models and each child has its stable key in a direct field, pass both field names:
 
 ::Snippet{name="blockDirectCollection" label="Binding a direct child collection" class="mb-4"}
@@ -513,6 +525,8 @@ A reusable factory can refine a completed Block with a Schema while sharing one 
 
 Keep the shared identity and recipe at module scope. Factory calls may refine Model, Message, OutMessage, view inputs, and public operation payloads. They must not manufacture new effect identities for the same reusable component.
 
+Library conveniences supplied through `Block.makeFamilyContract`'s `members` record cannot replace reserved Block members. `Instance` names the ready occurrence Schema and is reserved alongside the other contract fields. Both TypeScript and runtime validation reject a convenience with that name. Rename an existing conflicting convenience in the factory and its callers.
+
 ## Lifetimes
 
 Composition preserves the owner of each effect lifetime. Startup assembles the initial Model and Commands once. It does not define another handler or service lifetime.
@@ -588,6 +602,10 @@ The returned descriptor is passive. Its `.layer` constructs the implementation; 
 
 `FeatureDefinition.contract` exposes the independently declared public Block boundary. Parents can use its Schemas, configure Bindings, author operations, and render the child without importing an acquired implementation. Supply the implementation's `.layer` before acquisition.
 
+### ChildBlock.Instance
+
+`ChildBlock.Instance` is the ready Schema for `{ key: string, model: ChildModel }`. Use `Schema.Array(ChildBlock.Instance)` for a required top-level collection with standard occurrence storage. The Schema retains the exact child contract's ownership. Its `make` constructor creates a ready value from an existing child Model; it does not call child init or produce its Commands. Schema decoding likewise restores ready data without initialization.
+
 ### block.get
 
 `block.get` acquires the implementation supplied for that contract. Application code normally yields a Binding inside its parent's constructor instead. The acquired value has synchronous init, update, and declared operations. Keep it within its owning Scope.
@@ -629,6 +647,8 @@ Pass the resulting compatible Step or Model-first handler directly to the update
 All three helpers support `.fromMessage`. Payload-only producers receive the complete exact Message variant, and the returned handler still receives `(model, message)`. When extracting a Message-dependent producer outside a contextually typed record, give its parameter a named variant alias such as `UpdatedTitle`, declared beside the `Message` union. Compatible function references remain callbacks. When constructing a different Message or OutMessage, map its payload explicitly instead of forwarding the incoming `_tag` through a constructor reference.
 
 `FeatureDefinition.makeFieldsStep(producer)` applies the produced field transformers. A zero-argument or Model-only producer creates a reusable unary Step. Omit its Model parameter when the transformers need no other field.
+
+Ordinary field changes produce Model-only results. Writing `Binding.create` requests to the owning `ChildBlock.Instance` array produces an opaque connected recipe that retains child init Commands and exact graph requirements. Return or compose that recipe intact through the registered Composition. Checked execution resolves the requests before subsequent Steps receive the Model.
 
 An empty field-transform record returns the identical incoming Model. This lets a guarded field Step decline an edit without constructing or immediately invoking another Step.
 
@@ -699,6 +719,10 @@ A declared operation such as `requestClearSelection` becomes `binding.requestCle
 `binding.init({ key?, args, toParentModel, commands? })` returns a passive, noncallable initialization recipe. `key` is required for a keyed Binding, `args` is the exact child init tuple, and `toParentModel` receives the initialized child and constructs the complete parent Model. Return the recipe directly from the owning Composition's `makeInit` callback or `makeUpdate` handler, or preserve it through the parent's `makeStep` producer. The Composition authoring boundary interprets it directly. The exact graph then produces all lifted child Commands before optional parent Commands. The recipe has no `.model` or `.commands` fields.
 
 For reset behavior, prefer a child-owned InMessage request handled through `inMessageUpdate`. Deliberate baseline initialization must preserve the parent's other fields and the complete recipe; it does not establish occurrence replacement or cancellation. See [Resetting a child](/core/init-and-flags#resetting-a-child) for both paths with a Counter that has no pending lifecycle.
+
+### binding.create
+
+`binding.create({ key, args })` is available for a standard `Schema.Array(ChildBlock.Instance)` field bound with `key: 'key'` and `childField: 'model'`. It returns a passive request accepted by the owning `makeFieldsStep`, with a string key and the child's exact init argument tuple. Checked execution initializes a new occurrence and retains its Commands. Duplicate keys and attempts to replace an existing key are rejected before initialization. Use the existing `init` helpers for other storage or deliberate replacement.
 
 ### binding.embedView
 

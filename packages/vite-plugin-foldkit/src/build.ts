@@ -777,6 +777,16 @@ export const foldkitBuild = (
         : { environments: { client, ssr } }
     },
     configResolved(config) {
+      if (
+        config.command === 'build' &&
+        (config.environments['client']?.build.watch ||
+          config.environments['ssr']?.build.watch)
+      ) {
+        throw new Error(
+          '[foldkit] ssr.build does not support build.watch or vite build --watch. Use the Vite dev server for SSR development, or rerun a full vite build when sources change.',
+        )
+      }
+
       if (config.base === '' || config.base === './') {
         throw new Error(
           '[foldkit] ssr.build requires an absolute URL or root-relative base, such as "/" or "/app/". A relative base cannot locate browser assets consistently across server-rendered routes.',

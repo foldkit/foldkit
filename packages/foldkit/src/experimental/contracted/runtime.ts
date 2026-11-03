@@ -9,6 +9,7 @@ import {
 } from 'effect'
 
 import { copyBlockInMessageUpdate } from '../../block/inMessageUpdate.js'
+import { makeInstanceSchema } from '../../block/instanceSchema.js'
 import { isOperationMessageConstructor } from '../../block/operation.js'
 import { compositionOperationGraphOf } from '../../block/operationGraph.js'
 import { registerRuntimeAcquisition } from '../../block/runtimeCapability.js'
@@ -464,6 +465,7 @@ export const makeDefinitionRuntime = (
     Model: config.Model,
     Message: config.Message,
     OutMessage: config.OutMessage,
+    Instance: makeInstanceSchema(definition.owner, config.Model),
     InMessage: config.InMessage,
     get: Effect.map(service, executable => executable),
   })
