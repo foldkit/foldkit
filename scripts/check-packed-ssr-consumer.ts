@@ -14,6 +14,8 @@ import { tmpdir } from 'node:os'
 import { dirname, extname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { stagePackedConsumerPackages } from './lib/packed-consumer-staging.mjs'
+
 // A Foldkit application built outside this repository, from packed tarballs,
 // with no source alias and no workspace link. Everything about the build id
 // depends on that shape and cannot be observed inside the monorepo: the plugin
@@ -155,7 +157,7 @@ const readJson = <T>(path: string): T =>
 
 const packPackage = (label: string, packageDir: string): string => {
   const result = runRequired(label, 'npm', ['pack', '--json'], {
-    cwd: join(REPO_ROOT, packageDir),
+    cwd: packageDir,
   })
   const filename = parseJson<PackOutput>(result.stdout)[0]?.filename
   assertConsumer(
@@ -163,7 +165,7 @@ const packPackage = (label: string, packageDir: string): string => {
     `${label} did not return a tarball filename`,
   )
   log(`Packed ${filename}`)
-  return join(REPO_ROOT, packageDir, filename)
+  return join(packageDir, filename)
 }
 
 // CONSUMER PROJECT FIXTURE
@@ -1547,7 +1549,10 @@ const withTempDir = async (
 }
 
 const main = async (): Promise<void> => {
-  const tarballPaths: Array<string> = []
+  const stagingDirectory = mkdtempSync(
+    join(tmpdir(), 'foldkit-packed-artifacts-'),
+  )
+
   try {
     if (!isSkipBuild) {
       runRequired(
@@ -1574,19 +1579,44 @@ const main = async (): Promise<void> => {
       )
     }
 
-    const pack = (name: string, directory: string): string => {
-      const tarball = packPackage(`Packing ${name}...`, directory)
-      tarballPaths.push(tarball)
-      return tarball
+    const stagedPackages = await stagePackedConsumerPackages({
+      root: REPO_ROOT,
+      outputDirectory: stagingDirectory,
+      packageDirectories: [
+        FOLDKIT_DIR,
+        PLUGIN_DIR,
+        UI_DIR,
+        MARKDOWN_DIR,
+        NODE_DIR,
+        DEVTOOLS_DIR,
+        DEVTOOLS_MCP_DIR,
+      ],
+    })
+
+    const pack = (name: string): string => {
+      const stagedPackage = stagedPackages.find(
+        entry => entry.packageJson.name === name,
+      )
+      assertConsumer(
+        stagedPackage !== undefined,
+        `the staged release plan is missing ${name}`,
+      )
+
+      log(
+        `${name}: checkout ${stagedPackage.sourceVersion}, planned ${stagedPackage.packageJson.version}`,
+      )
+
+      return packPackage(`Packing ${name}...`, stagedPackage.dir)
     }
+
     const tarballs = {
-      foldkit: pack('foldkit', FOLDKIT_DIR),
-      plugin: pack('@foldkit/vite-plugin', PLUGIN_DIR),
-      ui: pack('@foldkit/ui', UI_DIR),
-      markdown: pack('@foldkit/markdown', MARKDOWN_DIR),
-      node: pack('@foldkit/node', NODE_DIR),
-      devtools: pack('@foldkit/devtools', DEVTOOLS_DIR),
-      devtoolsMcp: pack('@foldkit/devtools-mcp', DEVTOOLS_MCP_DIR),
+      foldkit: pack('foldkit'),
+      plugin: pack('@foldkit/vite-plugin'),
+      ui: pack('@foldkit/ui'),
+      markdown: pack('@foldkit/markdown'),
+      node: pack('@foldkit/node'),
+      devtools: pack('@foldkit/devtools'),
+      devtoolsMcp: pack('@foldkit/devtools-mcp'),
     }
 
     await withTempDir('foldkit-packed-ssr-', async projectDir => {
@@ -1954,9 +1984,7 @@ const main = async (): Promise<void> => {
       }
     })
   } finally {
-    for (const path of tarballPaths) {
-      rmSync(path, { force: true })
-    }
+    rmSync(stagingDirectory, { recursive: true, force: true })
   }
 
   log('PASS')

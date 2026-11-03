@@ -22,6 +22,10 @@
       consumers, application behavior, the 9,099-test matrix, 22 Website browser
       checks and packed Chromium/Firefox/WebKit consumers. These checks do not
       verify the failed isolated Block prototype.
+- [x] Make the native packed-consumer checker stage actual pending Changesets
+      versions before strict installation. Preserve declared peer floors and
+      active package files; reject insufficient plans. All three browser engines,
+      238 script tests and four implementation-mutation controls pass locally.
 - [ ] Review the exact committed release-gate follow-up and push it through
       the mandatory pre-push hook to the preview branch. Do not publish.
 

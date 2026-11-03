@@ -112,6 +112,17 @@ fix. The same strict installed-consumer and three-browser checks pass. Staging
 uses the planned versions and ordinary workspace dependency conversion without
 loosening peers. Active manifests and built artifacts stay unchanged.
 
+The [native packed-consumer checkpoint](verification/native-packed-staging-20261103.json)
+also passes directly from the checkout. The checker stages exact built package
+contents at the actual pending Changesets versions before its strict install,
+instead of pairing development version numbers with future peer floors. It
+rejects an insufficient release plan and preserves active manifests, built
+files, declared peer ranges and all existing consumer/browser assertions.
+Prerelease metadata migrations run only in a copied Changesets directory.
+All 238 script tests pass; controls reject removed version selection, peer
+validation, metadata isolation and migration ordering. This is verification
+wiring, with no package Runtime change.
+
 The earlier release-wide checkpoint covers all 689 example tests, 30 Typing Game
 tests and 233 script tests, plus strict packed peers, one physical Effect
 runtime and Chromium/Firefox/WebKit consumers. Its Website build, prerender,

@@ -27,6 +27,10 @@
 - [x] Verify the canonical API's full test matrix (9,099 passed, 15 existing
       skips), all 22 Website browser checks and packed three-browser consumers.
       The failed isolated Block prototype is excluded.
+- [x] Run the native packed-consumer gate against isolated pending-release
+      metadata. Strict peers, one Effect runtime and all three browser engines
+      pass without changing active package files. Missing version bumps fail
+      before installation; the 238 script tests and mutation controls pass.
 - [ ] Independently review the exact release-gate follow-up and enforce the
       mandatory pre-push checks before pushing the canonical candidate.
 
