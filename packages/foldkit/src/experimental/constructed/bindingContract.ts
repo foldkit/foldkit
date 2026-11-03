@@ -2,6 +2,7 @@ import type { Effect, Schema } from 'effect'
 
 import type {
   BindChildResultForConfig,
+  BindingViewContract,
   ContextualOutMessagePolicy,
   OutMessagePolicyForBindingConfig,
   PlacementOfConfig,
@@ -20,12 +21,16 @@ import type {
   ExecutableBinding,
 } from '../../block/bindingConnection.js'
 import type { InitialBindingEvidence } from '../../block/initialization.js'
+import type { InstanceEvidence } from '../../block/instanceSchema.js'
+import type { OccurrenceCreation } from '../../block/occurrence.js'
 import type {
   NormalizedFoldEvidence,
   NormalizedOutMessageFold,
   RestoredFoldContext,
 } from '../../block/outMessageFoldContract.js'
 import type { BindingPolicyEvidence } from '../../block/policyEvidence.js'
+import type { Qualify } from '../../block/scope.js'
+import type * as Update from '../../update/index.js'
 import type {
   BindingConstructor,
   ConstructionKind,
@@ -298,6 +303,60 @@ type InitialEvidenceOfBinding<Native> =
     ? InitialBindingEvidence<Field, Value, Context, Requirements, Registration>
     : unknown
 
+type OccurrenceBindingMethods<
+  Child extends AnyDescriptor,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  Config,
+  ParentOwner,
+> =
+  Config extends Readonly<{
+    field: infer Field extends keyof ModelSchema['Type'] & string
+    key: 'key'
+    childField: 'model'
+  }>
+    ? ModelSchema['Type'][Field] extends ReadonlyArray<
+        InstanceEvidence<Child['owner']>
+      >
+      ? Readonly<{
+          /**
+           * Describes a new ready Instance for this Binding's array field.
+           * Insert the request through the parent's `makeFieldsStep`.
+           * Checked execution initializes the child before the next Step and
+           * retains its init Commands. Calling `create` itself runs no init.
+           * The key must be absent from the incoming Model's array.
+           */
+          create: (
+            config: Readonly<{
+              key: string
+              args: Parameters<CoreContract<Child>['init']>
+            }>,
+          ) => OccurrenceCreation<
+            Child['owner'],
+            ParentOwner,
+            Field,
+            ModelSchema['Type'],
+            BindingViewContract<
+              CoreContract<Child>,
+              ModelSchema,
+              MessageSchema,
+              Config
+            >['parentMessage'],
+            Qualify<
+              PlacementOfConfig<CoreContract<Child>, Config>,
+              Update.RequirementsOf<CoreContract<Child>['init']>
+            >,
+            BindingViewContract<
+              CoreContract<Child>,
+              ModelSchema,
+              MessageSchema,
+              Config
+            >['requirements']
+          >
+        }>
+      : unknown
+    : unknown
+
 /** @internal Names the complete passive child relationship, including exact operations and construction channels. */
 export type DescriptorBindingMember<
   Child extends AnyDescriptor,
@@ -309,55 +368,62 @@ export type DescriptorBindingMember<
   Kind extends ConstructionKind,
   ParentOwner,
   Policy,
-> = ([ModelSchema['Type']] extends [never]
-  ? CoreContract<Child> extends Readonly<{
-      OutMessage: Readonly<{ Type: unknown }>
-    }>
-    ? DescriptorBindingPolicyFields<
-        Child,
-        ModelSchema,
-        MessageSchema,
-        OutSchema,
-        Config,
-        InitSchema,
-        Kind,
-        ParentOwner,
-        Policy
-      >
-    : DescriptorBindingFields<
-        Child,
-        ModelSchema,
-        MessageSchema,
-        OutSchema,
-        Config,
-        InitSchema,
-        ParentOwner,
-        Policy
-      >
-  : CoreContract<Child> extends Readonly<{
+> = OccurrenceBindingMethods<
+  Child,
+  ModelSchema,
+  MessageSchema,
+  Config,
+  ParentOwner
+> &
+  ([ModelSchema['Type']] extends [never]
+    ? CoreContract<Child> extends Readonly<{
         OutMessage: Readonly<{ Type: unknown }>
       }>
-    ? DescriptorBindingWithPolicyFields<
-        Child,
-        ModelSchema,
-        MessageSchema,
-        OutSchema,
-        Config,
-        InitSchema,
-        Kind,
-        ParentOwner,
-        Policy
-      >
-    : ParentDescriptorBindingFields<
-        Child,
-        ModelSchema,
-        MessageSchema,
-        OutSchema,
-        Config,
-        InitSchema,
-        ParentOwner,
-        Policy
-      >) &
+      ? DescriptorBindingPolicyFields<
+          Child,
+          ModelSchema,
+          MessageSchema,
+          OutSchema,
+          Config,
+          InitSchema,
+          Kind,
+          ParentOwner,
+          Policy
+        >
+      : DescriptorBindingFields<
+          Child,
+          ModelSchema,
+          MessageSchema,
+          OutSchema,
+          Config,
+          InitSchema,
+          ParentOwner,
+          Policy
+        >
+    : CoreContract<Child> extends Readonly<{
+          OutMessage: Readonly<{ Type: unknown }>
+        }>
+      ? DescriptorBindingWithPolicyFields<
+          Child,
+          ModelSchema,
+          MessageSchema,
+          OutSchema,
+          Config,
+          InitSchema,
+          Kind,
+          ParentOwner,
+          Policy
+        >
+      : ParentDescriptorBindingFields<
+          Child,
+          ModelSchema,
+          MessageSchema,
+          OutSchema,
+          Config,
+          InitSchema,
+          ParentOwner,
+          Policy
+        >) &
   Pick<
     NativeDescriptorBinding<
       Child,

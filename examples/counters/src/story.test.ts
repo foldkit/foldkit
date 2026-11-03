@@ -16,8 +16,8 @@ type CounterMessage = typeof CounterBlock.Message.Type
 
 const initialModel: ModelSchema = {
   counters: [
-    { id: 'counter-0', counter: { count: 0 } },
-    { id: 'counter-1', counter: { count: 0 } },
+    CounterBlock.Instance.make({ key: 'counter-0', model: { count: 0 } }),
+    CounterBlock.Instance.make({ key: 'counter-1', model: { count: 0 } }),
   ],
   nextCounterId: 2,
 }
@@ -32,9 +32,9 @@ describe('init', () => {
       init(),
       model(applicationModel => {
         expect(applicationModel.counters).toEqual([
-          { id: 'counter-0', counter: { count: 0 } },
-          { id: 'counter-1', counter: { count: 0 } },
-          { id: 'counter-2', counter: { count: 0 } },
+          { key: 'counter-0', model: { count: 0 } },
+          { key: 'counter-1', model: { count: 0 } },
+          { key: 'counter-2', model: { count: 0 } },
         ])
         expect(applicationModel.nextCounterId).toBe(3)
       }),
@@ -52,11 +52,11 @@ describe('update', () => {
         message(Message.ClickedAddCounter()),
         model(model => {
           expect(model.counters).toHaveLength(3)
-          expect(Option.getOrThrow(Array.get(model.counters, 2)).id).toBe(
+          expect(Option.getOrThrow(Array.get(model.counters, 2)).key).toBe(
             'counter-2',
           )
           expect(
-            Option.getOrThrow(Array.get(model.counters, 2)).counter.count,
+            Option.getOrThrow(Array.get(model.counters, 2)).model.count,
           ).toBe(0)
           expect(model.nextCounterId).toBe(3)
         }),
@@ -70,7 +70,7 @@ describe('update', () => {
       message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
       model(model => {
         expect(model.counters).toHaveLength(1)
-        expect(Option.getOrThrow(Array.get(model.counters, 0)).id).toBe(
+        expect(Option.getOrThrow(Array.get(model.counters, 0)).key).toBe(
           'counter-1',
         )
       }),
@@ -90,8 +90,8 @@ describe('update', () => {
         counterMessage('counter-2', CounterBlock.Message.ClickedIncrement()),
         model(model => {
           expect(model.counters).toEqual([
-            { id: 'counter-1', counter: { count: 0 } },
-            { id: 'counter-3', counter: { count: 0 } },
+            { key: 'counter-1', model: { count: 0 } },
+            { key: 'counter-3', model: { count: 0 } },
           ])
           expect(model.nextCounterId).toBe(4)
         }),
@@ -107,10 +107,10 @@ describe('update', () => {
         counterMessage('counter-1', CounterBlock.Message.ClickedIncrement()),
         model(model => {
           expect(
-            Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
+            Option.getOrThrow(Array.get(model.counters, 0)).model.count,
           ).toBe(0)
           expect(
-            Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
+            Option.getOrThrow(Array.get(model.counters, 1)).model.count,
           ).toBe(1)
         }),
       ),
@@ -123,18 +123,24 @@ describe('update', () => {
         ApplicationBlock,
         given({
           counters: [
-            { id: 'counter-0', counter: { count: 5 } },
-            { id: 'counter-1', counter: { count: 5 } },
+            CounterBlock.Instance.make({
+              key: 'counter-0',
+              model: { count: 5 },
+            }),
+            CounterBlock.Instance.make({
+              key: 'counter-1',
+              model: { count: 5 },
+            }),
           ],
           nextCounterId: 2,
         }),
         counterMessage('counter-0', CounterBlock.Message.ClickedDecrement()),
         model(model => {
           expect(
-            Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
+            Option.getOrThrow(Array.get(model.counters, 0)).model.count,
           ).toBe(4)
           expect(
-            Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
+            Option.getOrThrow(Array.get(model.counters, 1)).model.count,
           ).toBe(5)
         }),
       ),
@@ -149,10 +155,10 @@ describe('update', () => {
         counterMessage('counter-99', CounterBlock.Message.ClickedIncrement()),
         model(model => {
           expect(
-            Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
+            Option.getOrThrow(Array.get(model.counters, 0)).model.count,
           ).toBe(0)
           expect(
-            Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
+            Option.getOrThrow(Array.get(model.counters, 1)).model.count,
           ).toBe(0)
         }),
       ),
@@ -167,10 +173,10 @@ describe('update', () => {
       counterMessage('counter-1', CounterBlock.Message.ClickedDecrement()),
       model(model => {
         expect(
-          Option.getOrThrow(Array.get(model.counters, 0)).counter.count,
+          Option.getOrThrow(Array.get(model.counters, 0)).model.count,
         ).toBe(2)
         expect(
-          Option.getOrThrow(Array.get(model.counters, 1)).counter.count,
+          Option.getOrThrow(Array.get(model.counters, 1)).model.count,
         ).toBe(-1)
       }),
     ),

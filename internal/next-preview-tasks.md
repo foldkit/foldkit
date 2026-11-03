@@ -1,5 +1,46 @@
 # Next preview tasks
 
+## Final GitHub feedback check
+
+- [x] Refresh issues, PRs, discussion replies and review threads, including
+      recently closed items, through November 3 at 18:50:36 UTC. The
+      [report](binding-occurrences/feedback-refresh-20261103.md) records complete
+      review pagination and the new #1752 reply.
+- [x] Reconcile the new relevant SSR reports with source and tests: repair #1879
+      and adapt #1752. Keep #1650's general review and older proposals separate;
+      do not claim they are implemented or approved deferred.
+- [ ] Repeat discovery after any remaining implementation and before final
+      preview sign-off. Preserve publication and Daybreak holds.
+
+## Automatic child occurrences through explicit Bindings
+
+- [x] Isolate the proof from the preview candidate and concurrent worktrees.
+- [x] Add a ready-only Instance Schema and inert Binding creation requests for
+      standard string-keyed arrays, preserving explicit relationship policies.
+- [x] Resolve child initialization between synchronous Steps and retain exact
+      Commands, registration evidence, routing, and Model-driven cleanup.
+- [x] Verify portable inline/extracted authoring, strict source/emitted/relocated
+      consumers, focused Story/Scene/execution behavior, and mutation controls.
+- [x] Pass all seven unchanged compiler ceilings and independent final review.
+- [x] Trial the existing Counters example, sharing creation between startup and
+      update; retain all 13 Story/Scene cases, source checks and production build.
+- [x] Adopt the reviewed explicit API after user approval; promote the runtime
+      fixtures and public declaration checker into the normal framework gates.
+- [x] Audit all examples, Website, Typing Game, scaffolds, and library consumers.
+      Retain existing storage where a standard wrapper would add bookkeeping.
+- [x] Update active guidance, skills, source-backed Website snippets and upgrade
+      notes, including the new reserved generic family member `Instance`.
+- [x] Pass the complete core public declaration gate, strict TypeScript 6
+      consumers, the generic Message-only Step case and unchanged compiler
+      ceilings. Enforce exact-commit review and the mandatory pre-push hook
+      when integrating the approved addition.
+
+The [adoption report](binding-occurrences/ADOPTION.md) distinguishes the approved
+Instance-array addition from the separate unresolved Block/direct Layer proof.
+The publication and Daybreak holds apply. The latest [feedback refresh](binding-occurrences/feedback-refresh-20261103.md)
+also identifies and repairs the unsupported SSR watch diagnostic in #1879;
+repeat discovery before final release sign-off.
+
 ## Unified Block and direct Layer follow-up
 
 - [x] Prototype one `Block.make` value carrying declared contracts and bound
@@ -924,6 +965,11 @@ The [MyRemotely report](https://github.com/foldkit/foldkit/pull/1655#issuecommen
 Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime behavior, inference, and realistic split-file consumers before broad conversion.
 
 ## Release review checklist
+
+- [x] Review the isolated Instance-array proof's consumer surface, exact channels,
+      opt-in field boundary, strict declarations, and unchanged compiler budgets
+      through the existing Counters trial. This is separate from candidate
+      publication approval. [Proof and limits](binding-occurrences/README.md).
 
 - [x] Verify shared-Step ownership across eligible examples and Typing Game,
       active Website/scaffold/skill guidance, passive cyclic Binding access,

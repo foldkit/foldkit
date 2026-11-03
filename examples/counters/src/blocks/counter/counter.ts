@@ -14,7 +14,7 @@ const Message = defineMessageUnion({
   ClickedIncrement: {},
 })
 type Message = typeof Message.Type
-const CounterKey = Symbol('Counter')
+export const CounterKey = Symbol('Counter')
 
 const CounterDefinition = Block.makeDefinition('Counter', {
   key: CounterKey,

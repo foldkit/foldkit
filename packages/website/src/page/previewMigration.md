@@ -239,10 +239,13 @@ Choose the init form from the relationship:
 - Omit `init` for an argument-free required direct field.
 - Use `init.contextToArgs` when a required or automatically present child receives values from `ChildInitContext`.
 - Use `init: false` when the parent constructs a required child through a deliberate dynamic path.
+- For a required `Schema.Array(ChildBlock.Instance)` field, start with an empty array and reuse a creation transition in startup `steps` when useful. Bind `{ field, key: 'key', childField: 'model' }` and append passive `Binding.create({ key, args })` requests through the owning `makeFieldsStep`.
 - Use `init.instances` for the exact initial members of a keyed collection.
 - Use `Binding.init` for dynamic insertion, custom storage, or an Option-wrapped keyed occurrence.
 
 Return `childInitContext` from `makeInit` when a registered selector uses it. List startup transitions under `steps`; each Step receives the Model produced by the previous Step. Do not call an old `boot` helper or discard a child init result's Commands.
+
+The [Instance-array creation path](/core/init-and-flags#creating-child-instances) initializes children before the next Step and retains their init Commands. Requests stay separate from ready Model values. Existing Option, map, custom-wrapper and direct child-ID storage can retain their initialization paths; adopting this addition does not require a storage migration.
 
 ::Snippet{name="blockFoldChildInit" label="Composition-owned child initialization"}
 

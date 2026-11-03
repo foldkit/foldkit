@@ -97,7 +97,9 @@ The host implements that Service with browser storage or a document API:
 
 The implementation Layer retains the real Command handler. The host’s provider supplies the storage dependency. An execution test can replace the storage transport and still exercise request construction, error handling, and result mapping.
 
-Some generic family APIs, including Query, deliberately publish an original host-handler contract and a `provideHandlers` selector. Those APIs validate provider definitions and retain their constructor errors and Services. Ordinary Block contracts use the declared Service boundary above; they do not expose their private handler inventory.
+When the integrator owns a handler implementation, an ordinary Block constructor can list the original definition under `hostHandlers`. Its selected implementation descriptor remains pending until `provideHandlers(layer)` supplies providers for every listed definition through their original `toLayer` methods. Provider Services and constructor errors must fit the Definition's declared effects contract. This selection is passive; handler Layers are built later by the Runtime.
+
+The passive public child contract does not expose the implementation's private handler inventory. Some generic family APIs, including Query, deliberately publish original host-handler contracts with their own checked `provideHandlers` selector. For normal storage or transport variation, keep the feature's workflow in its attached handler and provide the ordinary Service boundary shown above.
 
 ## State in Handlers
 
@@ -240,7 +242,7 @@ Most authored pieces infer their requirements. When a standalone signature needs
 
 The expanded forms require every protocol argument. Definitions, update helpers, Bindings, and handler recipes carry the same information without explicit annotations.
 
-`FeatureDefinition.makeBlock` checks local handler coverage against `EffectsLayer` and checks its remaining Services and errors against the declared effect contract. Parent Bindings carry the selected implementation's checked graph. The Program's `provide` method supplies the root Block's remaining ordinary Service requirements.
+`FeatureDefinition.makeBlock` checks local handler coverage against `EffectsLayer` and any explicitly declared `hostHandlers`. It checks remaining Services and errors against the declared effect contract. Select pending host handlers before hosting the descriptor. Parent Bindings carry the selected implementation's checked graph. The Program's `provide` method supplies the root Block's remaining ordinary Service requirements.
 
 Owned definitions include the Block's name and local operation name. Each definition also retains a private runtime identity, checked when its handler runs. Create alternative implementations through that original definition's `toLayer` so the implementation retains the declared identity.
 

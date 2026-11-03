@@ -33,6 +33,14 @@ as completed here. Nothing in this follow-up has been published.
 - **Host-owned handlers.** Ordinary constructor-authored Blocks can explicitly
   leave selected handlers to the integrator. Completion retains the original
   handler identities and exact Service/error requirements.
+- **Child Instance arrays.** A passive child contract exposes its ready
+  `{ key, model }` Schema as `Instance`. Explicit Bindings produce inert
+  `create({ key, args })` requests for the parent's field Step. Checked execution
+  initializes children before the following Step and retains init Commands and
+  their requirements. Counters reuses one transition for startup and later
+  additions. Other applications keep domain-keyed, optional, map and custom
+  storage. Generic family `members` now reserve `Instance`; rename a conflicting
+  convenience before upgrading. [Adoption and verification](../binding-occurrences/ADOPTION.md).
 - **Runtime and test fixes.** Removed occurrences cancel their Commands and
   cannot deliver buffered results to replacements. Connection ownership,
   configuration snapshots, and chained embed teardown have regression coverage.
@@ -47,6 +55,16 @@ as completed here. Nothing in this follow-up has been published.
   asynchronous watcher hooks retain a consistent graph. After Vite invalidates
   the entry, Definitions and declarations are reevaluated together, preventing
   duplicate Command registration. Unchanged requests reuse the current entry.
+- **Unsupported SSR watch diagnostic.** `vite build --watch` with SSR build
+  integration now fails during configuration with a clear diagnostic and the
+  supported development/rebuild alternatives, addressing #1879. Client-only
+  watch remains supported. Full SSR watch support is not added.
+- **Development build-ID revalidation.** Installed Foldkit client modules can
+  remain in the browser's immutable dependency cache across server restarts.
+  They now import the development ID from a virtual module that revalidates
+  against the running server. Production IDs remain inlined and deployment
+  mismatch checks remain intact. This adapts [artile's contribution in #1752](https://github.com/foldkit/foldkit/pull/1752)
+  following the new reproduction of #1677.
 - **Reported integration fixes.** React embedding renders its unique host ID;
   SSR hot updates invalidate the appropriate environment; relay discovery
   respects PID and network namespaces. Popup cleanup preserves app-owned portal

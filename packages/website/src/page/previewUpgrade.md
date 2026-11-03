@@ -67,7 +67,21 @@ This candidate establishes each public Block contract before its implementation.
 
 The constructor builds the executable graph. Initialization remains deferred, state stays in the Model, and ordinary request Services stay in Command handler constructors. See [Block](/core/block) and [Project Organization](/patterns/project-organization) for the complete layout.
 
-Ordinary independent Blocks supply every local handler in the implementation's `EffectsLayer` before completion. A separately authored provider uses the original definition's `toLayer`; an attached handler normally receives host-selected HTTP, storage, or transport Services instead. Ordinary descriptors do not have a pending `hostHandlers` / `provideHandlers` stage. Query and other APIs that deliberately publish host-handler contracts retain their checked selector. See [host implementations](/core/layers#host-implementations-for-reusable-features).
+Keep canonical local handlers in the implementation's `EffectsLayer`. An attached handler normally receives host-selected HTTP, storage, or transport Services. When the integrator owns specific handler implementations, the constructor can instead return their original definitions under `hostHandlers`. The resulting implementation descriptor remains pending until `provideHandlers(layer)` selects providers for every listed definition, using those definitions' `toLayer` methods. Provider Services and constructor errors must fit the Definition's declared effects contract. Selection remains passive.
+
+The passive public child contract does not expose the implementation's private handler inventory. Its selected implementation descriptor owns handler selection. Query and other generic family APIs can also expose a checked host-handler selector. See [host implementations](/core/layers#host-implementations-for-reusable-features).
+
+## Create standard child-array occurrences
+
+For a required child array that needs only occurrence keys and child state, the candidate adds `ChildBlock.Instance` and `Binding.create({ key, args })`. Declare `Schema.Array(ChildBlock.Instance)` and bind `{ field, key: 'key', childField: 'model' }`. Append creation requests through the owning `makeFieldsStep`; checked execution initializes them before subsequent Steps and retains every child init Command. The Model stores ready `{ key, model }` Instances.
+
+Creation-bearing field results are opaque connected recipes until checked execution. Ordinary field changes remain Model-only. Seed ready fixtures with `ChildBlock.Instance.make`; decoding a ready snapshot does not rerun init. The existing [Counters example](/example-apps/counters) reuses one creation transition during startup and update. See [child creation](/core/init-and-flags#creating-child-instances) for duplicate-key rejection and occurrence lifecycles.
+
+This addition covers standard string-keyed top-level arrays. Keep existing initialization paths for Option fields, maps, wrappers with extra metadata, or identity stored directly in the child Model. No storage migration is required.
+
+### Rename a conflicting family member
+
+`Instance` is now a reserved Block member. If a generic family factory supplies a convenience named `Instance` through `Block.makeFamilyContract`'s `members` record, rename that convenience and update its callers. It cannot replace the ready Instance Schema. Both TypeScript and runtime validation reject the conflicting member, including JavaScript callers with erased types. See [Generic Blocks](/core/block#generic-blocks).
 
 ## Upgrade from 90746b32d2ca
 

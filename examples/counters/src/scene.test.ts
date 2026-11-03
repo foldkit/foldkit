@@ -15,11 +15,12 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 
 import { ApplicationBlock, Model as ModelSchema } from './application'
+import { CounterBlock } from './blocks/counter'
 
 const initialModel: ModelSchema = {
   counters: [
-    { id: 'counter-0', counter: { count: 0 } },
-    { id: 'counter-1', counter: { count: 0 } },
+    CounterBlock.Instance.make({ key: 'counter-0', model: { count: 0 } }),
+    CounterBlock.Instance.make({ key: 'counter-1', model: { count: 0 } }),
   ],
   nextCounterId: 2,
 }
@@ -54,7 +55,12 @@ describe('view', () => {
       scene(
         ApplicationBlock,
         given({
-          counters: [{ id: 'counter-0', counter: { count: 3 } }],
+          counters: [
+            CounterBlock.Instance.make({
+              key: 'counter-0',
+              model: { count: 3 },
+            }),
+          ],
           nextCounterId: 1,
         }),
         expect(text('3')).toExist(),
@@ -80,8 +86,14 @@ describe('view', () => {
         ApplicationBlock,
         given({
           counters: [
-            { id: 'counter-0', counter: { count: 5 } },
-            { id: 'counter-1', counter: { count: 10 } },
+            CounterBlock.Instance.make({
+              key: 'counter-0',
+              model: { count: 5 },
+            }),
+            CounterBlock.Instance.make({
+              key: 'counter-1',
+              model: { count: 10 },
+            }),
           ],
           nextCounterId: 2,
         }),

@@ -1,0 +1,44 @@
+import { Array, Effect } from 'effect'
+import { Update } from 'foldkit'
+
+import {
+  ApplicationComposition,
+  ApplicationDefinition,
+  CountersBinding,
+  addCounter,
+  makeFieldsStep,
+  makeStep,
+} from './blockInstanceArray'
+import * as Counter from './initResetCounter'
+
+const INITIAL_COUNTER_COUNT = 3
+
+const init = ApplicationComposition.makeInit(() => ({
+  model: { counters: [], nextCounterId: 0 },
+  steps: Array.makeBy(INITIAL_COUNTER_COUNT, () => addCounter),
+}))
+
+const update = ApplicationComposition.makeUpdate({
+  ClickedAddCounter: addCounter,
+  ClickedAddAndResetCounter: makeStep(model =>
+    Update.combineSteps([
+      addCounter,
+      CountersBinding.requestReset(`counter-${model.nextCounterId}`),
+    ]),
+  ),
+  ClickedRemoveCounter: makeFieldsStep.fromMessage(({ key }) => ({
+    counters: Array.filter(counter => counter.key !== key),
+  })),
+})
+
+export const ApplicationBlock = ApplicationDefinition.makeBlock(
+  Effect.gen(function* () {
+    const counters = yield* CountersBinding
+
+    return {
+      children: [counters],
+      init,
+      update,
+    }
+  }),
+).provide(Counter.layer)

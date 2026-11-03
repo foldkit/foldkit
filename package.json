@@ -99,7 +99,7 @@
     "release:verify-latest": "node scripts/coherent-release.mjs verify-latest",
     "check:dom-state-parity": "node scripts/check-dom-state-parity.mts",
     "check:published-versions": "node scripts/check-published-versions.ts",
-    "check:emitted-declarations": "pnpm --filter foldkit --filter @foldkit/ui check:emitted-declarations",
+    "check:emitted-declarations": "pnpm --filter foldkit --filter @foldkit/ui check:emitted-declarations && node scripts/check-counters-declarations.ts",
     "check:block-type-performance": "pnpm --filter foldkit check:block-type-performance",
     "update:block-type-performance": "pnpm --filter foldkit update:block-type-performance"
   },

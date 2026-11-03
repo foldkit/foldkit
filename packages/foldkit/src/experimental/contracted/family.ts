@@ -145,6 +145,7 @@ type SelectedContract<Definition extends FamilyAuthoring, Hosts, Handlers> = [
 type ReservedMember =
   | 'owner'
   | 'Model'
+  | 'Instance'
   | 'Message'
   | 'InMessage'
   | 'OutMessage'

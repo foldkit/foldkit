@@ -155,6 +155,7 @@ Choose storage from the parent Schema:
 
 - An exact child or `Option<Child>` field uses `field`. `None` means absent; ordinary operations never create it. `presentWhen` gates the whole direct child; `subscriptions.when` gates only Streams.
 - A keyed array uses `field` and `key`, the name of a stable string or finite-number identity field. Wrapped arrays and an Option-wrapped instance also specify `childField`. Keyed identity does not imply multiple stored children.
+- A standard child array uses `Schema.Array(ChildBlock.Instance)` and `{ field, key: 'key', childField: 'model' }`. Each Instance stores a string `key` and ready child `model`. Use this form when the parent needs no extra wrapper metadata or identity field inside the child Model.
 - Exact Record/HashMap storage uses `ParentDefinition.makeMapBinding(ChildBlock, { field })`. Add `childField` for a closed wrapper around the child Model. A split feature can export the destructured `makeMapBinding` from its `definition.ts`; import the factory from that owning module. Use its field-derived key contract and preserve a separate ordered ID list when order matters.
 - Custom unkeyed storage uses `read` and `write`. General keyed storage uses `readAll`, function `key`, exact `keySchema`, `read`, and `writeAt`.
 
@@ -191,6 +192,10 @@ For a required direct child whose initializer accepts no arguments, omit `init` 
 Composition initializes selected children once in Binding order, then applies startup Steps. Parent Commands precede retained child init Commands; startup Step Commands follow. Commands are a batch, with no asynchronous completion-order guarantee. Init Commands for absent children are filtered out. Use existing meaningful operations in startup Steps; do not invent a separate boot phase or a Message solely for startup when init can accept the inputs.
 
 Dynamic creation or deliberate replacement returns `Binding.init({ key?, args, toParentModel })` intact from Composition-owned authoring. It is a passive, noncallable recipe with no `.model` or `.commands`. Reinitializing an existing occurrence does not create a fresh generation or cancel pending work; lifecycle-sensitive resets belong in a child operation.
+
+For a required top-level `Schema.Array(ChildBlock.Instance)` field, the owning `makeFieldsStep` can append `Binding.create({ key, args })` alongside other parent field changes. `create` passively captures the key and exact child init tuple. Checked execution initializes each request before the next Step, places the ready `{ key, model }` Instance, and retains child init Commands, exact requirements, and registration evidence. Startup can begin with an empty array and reuse that same transition in `makeInit`'s `steps`.
+
+Creation-bearing field results are opaque connected recipes until execution; preserve them intact through the registered Composition. Plain field changes remain readable Model-only results. Requests cannot substitute for ready Instances in `Model.make` or `modifyFields`. Seed prebuilt fixtures with `ChildBlock.Instance.make({ key, model })`; decoding a ready snapshot does not rerun init. Creation rejects duplicate or existing keys. Remove ready Instances through ordinary field transforms; existing occurrence cleanup still applies. This API covers standard string-keyed arrays. Keep the existing initialization paths for Option fields, maps, custom wrapper metadata, and arrays whose child Model owns its ID.
 
 Use the optional `foldkit/bindingInit` helpers when initialization only places the child in declared storage. Pass the Binding, current parent Model, and `{ args }`, adding `key` for keyed storage:
 

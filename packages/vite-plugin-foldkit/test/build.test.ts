@@ -6,7 +6,13 @@ import { join, resolve } from 'node:path'
 import { win32 } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
-import { type Plugin, type ViteBuilder, createBuilder } from 'vite'
+import {
+  type Plugin,
+  type UserConfig,
+  type ViteBuilder,
+  createBuilder,
+  resolveConfig,
+} from 'vite'
 import { afterAll, describe, expect, it, onTestFinished } from 'vitest'
 
 import {
@@ -117,6 +123,105 @@ const splitBrowserChunks: Plugin = {
     },
   }),
 }
+
+describe('SSR build watch mode', () => {
+  for (const entryPoint of ['aggregate', 'standalone']) {
+    describe(entryPoint, () => {
+      const plugins = () =>
+        entryPoint === 'aggregate'
+          ? foldkit({
+              devToolsMcpPort: false,
+              ssr: {
+                serverEntry: SERVER_ENTRY,
+                clientEntry: '/entry.client.ts',
+                build: true,
+              },
+            })
+          : [
+              ...foldkitBuildToken('test-build', false),
+              foldkitBuild(SERVER_ENTRY, {
+                clientEntry: '/entry.client.ts',
+              }),
+            ]
+
+      const resolveBuildConfig = (config: UserConfig) =>
+        resolveConfig(
+          {
+            ...config,
+            root: FIXTURE_ROOT,
+            configFile: false,
+            logLevel: 'silent',
+            plugins: plugins(),
+          },
+          'build',
+        )
+
+      it('rejects watch inherited from the top-level build config', async () => {
+        await expect(
+          resolveBuildConfig({ build: { watch: {} } }),
+        ).rejects.toThrow(/ssr.build does not support build.watch/)
+      })
+
+      for (const environment of ['client', 'ssr']) {
+        it(`rejects watch enabled only for ${environment}`, async () => {
+          await expect(
+            resolveBuildConfig({
+              environments: { [environment]: { build: { watch: {} } } },
+            }),
+          ).rejects.toThrow(/ssr.build does not support build.watch/)
+        })
+      }
+
+      it('accepts an ordinary full build', async () => {
+        await expect(resolveBuildConfig({})).resolves.toMatchObject({
+          command: 'build',
+        })
+      })
+
+      it('accepts explicitly disabled watch configuration', async () => {
+        await expect(
+          resolveBuildConfig({
+            build: { watch: null },
+            environments: {
+              client: { build: { watch: null } },
+              ssr: { build: { watch: null } },
+            },
+          }),
+        ).resolves.toMatchObject({ command: 'build' })
+      })
+
+      it('leaves the SSR development host available', async () => {
+        await expect(
+          resolveConfig(
+            {
+              root: FIXTURE_ROOT,
+              configFile: false,
+              logLevel: 'silent',
+              plugins: plugins(),
+              build: { watch: {} },
+            },
+            'serve',
+          ),
+        ).resolves.toMatchObject({ command: 'serve' })
+      })
+    })
+  }
+
+  it('keeps client-only build watch configuration available', async () => {
+    const config = await resolveConfig(
+      {
+        root: FIXTURE_ROOT,
+        configFile: false,
+        logLevel: 'silent',
+        plugins: foldkit({ devToolsMcpPort: false }),
+        build: { watch: {} },
+      },
+      'build',
+    )
+
+    expect(config.environments['client']?.build.watch).toBeTruthy()
+  })
+})
 
 describe('code-rendered documents', () => {
   it('refuses a stale root document when the output directory is preserved', async () => {

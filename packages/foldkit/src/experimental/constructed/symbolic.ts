@@ -1,4 +1,4 @@
-import { Context, Effect, Option, Predicate } from 'effect'
+import { Context, Effect, Option, Predicate, Schema } from 'effect'
 
 import {
   executeBindingOperation,
@@ -10,6 +10,8 @@ import {
   makeBindingInitRecipe,
   runBindingInitRecipe,
 } from '../../block/initRecipe.js'
+import { instanceOwnerOf } from '../../block/instanceSchema.js'
+import { makeOccurrenceCreation } from '../../block/occurrenceRuntime.js'
 import { validateOutMessageHandler } from '../../block/outMessageHandlers.js'
 import {
   type OperationEnvironment,
@@ -226,6 +228,22 @@ const selectPolicy = (
   return Object.freeze({ ...policy })
 }
 
+const instanceOwnerAt = (definition: object, field: unknown): unknown => {
+  const parentSchema = Reflect.get(definition, 'Model')
+  const parentFields = Schema.isSchema(parentSchema)
+    ? Reflect.get(parentSchema, 'fields')
+    : undefined
+  const storage =
+    Predicate.isObject(parentFields) && Predicate.isString(field)
+      ? Reflect.get(parentFields, field)
+      : undefined
+  const itemSchema = Schema.isSchema(storage)
+    ? Reflect.get(storage, 'value')
+    : undefined
+
+  return Schema.isSchema(itemSchema) ? instanceOwnerOf(itemSchema) : undefined
+}
+
 const bindingValue = (declaration: SymbolicBinding): object => {
   const operations = new Map<string, AnyFunction>()
   const view = () => {
@@ -239,6 +257,17 @@ const bindingValue = (declaration: SymbolicBinding): object => {
     Predicate.isString(field) &&
     (declaration.kind === 'Map' || declaration.config['key'] === undefined)
   const owner = Reflect.get(declaration.child, 'owner')
+  const occurrenceCreation =
+    declaration.kind === 'Direct' &&
+    Predicate.isString(field) &&
+    declaration.config['key'] === 'key' &&
+    declaration.config['childField'] === 'model' &&
+    instanceOwnerAt(declaration.definition, field) === owner
+      ? {
+          create: (config: unknown) =>
+            makeOccurrenceCreation(declaration.original, field, config),
+        }
+      : {}
   const connect = (
     child: object,
     canonicalGraph: object | undefined,
@@ -265,12 +294,22 @@ const bindingValue = (declaration: SymbolicBinding): object => {
       }
     }
 
+    if (
+      Object.hasOwn(occurrenceCreation, 'create') &&
+      Object.hasOwn(acquisition.block.operations, 'create')
+    ) {
+      throw new Error(
+        '[foldkit] An Instance Binding reserves create for occurrence initialization.',
+      )
+    }
+
     const connection = Object.freeze({})
     connections.set(connection, { binding, child, canonicalGraph })
 
     return connection
   }
   const target = {
+    ...occurrenceCreation,
     placement: placement ?? (isFieldPlacement ? field : owner.id),
     connect: (child: object) => connect(child, undefined),
     construct: () =>
@@ -390,6 +429,17 @@ export const makeSymbolicBinding = (
   providedConfig: Readonly<Record<string, any>>,
   kind: 'Direct' | 'Map' = 'Direct',
 ): object => {
+  const instanceOwner = instanceOwnerAt(definition, providedConfig['field'])
+
+  if (
+    instanceOwner !== undefined &&
+    instanceOwner !== Reflect.get(child, 'owner')
+  ) {
+    throw new Error(
+      '[foldkit] Instance storage belongs to another child Block contract.',
+    )
+  }
+
   const allowedKeys =
     kind === 'Map'
       ? new Set([
