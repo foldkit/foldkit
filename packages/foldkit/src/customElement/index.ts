@@ -1,12 +1,6 @@
 import { Array, Cause, Exit, Option, Schema, String, pipe } from 'effect'
 
-import type {
-  Attribute,
-  Child,
-  ChildAttribute,
-  Html,
-  HtmlBuilder,
-} from '../html/index.js'
+import type { Attribute, Child, Html, HtmlBuilder } from '../html/index.js'
 import {
   OnCustomEvent,
   Prop,
@@ -54,15 +48,15 @@ type EventFactories<Message, Events extends Record<string, EventSchema>> = {
 /** Typed call site for a defined custom element. The element constructor
  *  itself is callable; each declared property gets a PascalCase factory
  *  method, and each declared event gets an `On{PascalCase}` factory method.
- *  The attribute array accepts {@link ChildAttribute} alongside
- *  `Attribute<Message>`, like every html element builder, so a Submodel's
+ *  The attribute array takes `Attribute<Message>`, which includes
+ *  `ChildAttribute`, like every html element builder, so a Submodel's
  *  published attribute groups can be spread into a custom element. */
 export type ElementBuilder<
   Message,
   Properties extends Record<string, Schema.Top>,
   Events extends Record<string, EventSchema>,
 > = ((
-  attributes?: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+  attributes?: ReadonlyArray<Attribute<Message>>,
   children?: ReadonlyArray<Child>,
 ) => Html) &
   PropertyFactories<Message, Properties> &
@@ -212,7 +206,7 @@ export const define = <
     const createVNode = customElementVNode<unknown>()(config.tag)
 
     const elementFn = (
-      attributes: ReadonlyArray<Attribute<unknown> | ChildAttribute> = [],
+      attributes: ReadonlyArray<Attribute<unknown>> = [],
       children: ReadonlyArray<Child> = [],
     ): Html => createVNode(attributes, children)
 

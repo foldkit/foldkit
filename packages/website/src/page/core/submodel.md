@@ -462,6 +462,6 @@ Snapshots the Submodel’s dispatcher at publish time and brands each attribute 
 
 ### ChildAttribute {#api-child-attribute}
 
-`ChildAttribute` is the branded attribute type returned by `childAttributes`. Element constructors (`h.button`, `h.input`, etc.) accept `ChildAttribute` alongside ordinary `Attribute<Message>` values, using the carried dispatcher when present.
+`ChildAttribute` is the branded attribute type returned by `childAttributes`. It is part of `Attribute<Message>`, so element constructors (`h.button`, `h.input`, etc.) accept it in the same array as ordinary attributes, using the carried dispatcher when present.
 
 With Model, Messages, update, view, Commands, and Submodels in place, you have the full vocabulary for describing a Foldkit app. The next page covers the [Runtime](/core/runtime): the engine that executes Commands, runs Subscriptions, manages Mount and ManagedResource lifecycles, and routes Messages back into update.

@@ -582,11 +582,18 @@ export type FoldkitMountMarker = Readonly<{
  *  When a Submodel publishes attribute groups to a consumer's `toView`
  *  slot, those attributes are wrapped via {@link childAttributes} into
  *  {@link ChildAttribute}, a distinct type that carries the Submodel's
- *  own dispatcher. Element constructors accept the union
- *  `ReadonlyArray<Attribute<Message> | ChildAttribute>`, so consumers
- *  can spread published bundles directly into their own attribute
- *  arrays. */
-export type Attribute<Message> = Data.TaggedEnum<{
+ *  own dispatcher. `Attribute<Message>` includes `ChildAttribute`, so
+ *  consumers can spread published bundles directly into their own
+ *  attribute arrays, and element constructors take
+ *  `ReadonlyArray<Attribute<Message>>`.
+ *
+ *  `ChildAttribute` is part of the alias, not a union written at each
+ *  element constructor, so that relating `Attribute<never>` to
+ *  `Attribute<Message>` is one check of the alias's type argument rather
+ *  than a structural check of every variant for every Message. */
+export type Attribute<Message> = TaggedAttribute<Message> | ChildAttribute
+
+type TaggedAttribute<Message> = Data.TaggedEnum<{
   Key: { readonly value: string }
   Class: { readonly value: string }
   Id: { readonly value: string }
@@ -982,7 +989,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
 }>
 
 interface AttributeDefinition extends Data.TaggedEnum.WithGenerics<1> {
-  readonly taggedEnum: Attribute<this['A']>
+  readonly taggedEnum: TaggedAttribute<this['A']>
 }
 
 const {
@@ -1627,13 +1634,14 @@ const sanitizeUrl = (value: string): string => {
 // NOTE: Built once at module load. Handlers are keyed by `_tag` and apply
 // their mutation to a per-VNode BuildContext directly, so applying an
 // attribute is one map lookup and one call with no per-attribute closure
-// allocation. The mapped type keeps the record exhaustive over the Attribute
-// union exactly like `Match.tagsExhaustive` did. `Attribute<unknown>` is the
-// runtime-erased shape. Message is purely a TypeScript parameter at this
-// level and DispatchSync already accepts unknown.
+// allocation. The mapped type keeps the record exhaustive over the tagged
+// attribute union exactly like `Match.tagsExhaustive` did.
+// `TaggedAttribute<unknown>` is the runtime-erased shape. Message is purely a
+// TypeScript parameter at this level and DispatchSync already accepts
+// unknown.
 type AttributeHandlers = {
-  readonly [Tag in Attribute<unknown>['_tag']]: (
-    attribute: Extract<Attribute<unknown>, Readonly<{ _tag: Tag }>>,
+  readonly [Tag in TaggedAttribute<unknown>['_tag']]: (
+    attribute: Extract<TaggedAttribute<unknown>, Readonly<{ _tag: Tag }>>,
     ctx: BuildContext,
   ) => void
 }
@@ -2617,7 +2625,7 @@ const attributeHandlers: AttributeHandlers = {
 }
 
 const applyAttribute = (
-  attribute: Attribute<unknown>,
+  attribute: TaggedAttribute<unknown>,
   ctx: BuildContext,
 ): void => {
   // NOTE: the mapped record type correlates each handler's attribute
@@ -2625,7 +2633,7 @@ const applyAttribute = (
   // widened call site.
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const handler = attributeHandlers[attribute._tag] as (
-    attribute: Attribute<unknown>,
+    attribute: TaggedAttribute<unknown>,
     ctx: BuildContext,
   ) => void
   handler(attribute, ctx)
@@ -2761,7 +2769,7 @@ const attachControlledContentOwnershipHook = (data: VNodeData): void => {
 }
 
 const buildVNodeData = <Message>(
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+  attributes: ReadonlyArray<Attribute<Message>>,
 ): VNodeData => {
   const data: VNodeData = { [vnodeDataMaskKey]: 0 }
   if (attributes.length === 0) {
@@ -2809,7 +2817,7 @@ const buildVNodeData = <Message>(
         boundaryCtxByDispatch.set(item.dispatch, ctx)
       }
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      applyAttribute(item.attribute as Attribute<unknown>, ctx)
+      applyAttribute(item.attribute as TaggedAttribute<unknown>, ctx)
     } else {
       if (mainCtx === undefined) {
         mainCtx = {
@@ -2822,7 +2830,7 @@ const buildVNodeData = <Message>(
         }
       }
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      applyAttribute(item as Attribute<unknown>, mainCtx)
+      applyAttribute(item as TaggedAttribute<unknown>, mainCtx)
     }
   }
 
@@ -3215,7 +3223,7 @@ const buildElement = (
 
 const createElement = <Message>(
   tagName: string,
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+  attributes: ReadonlyArray<Attribute<Message>> = [],
   children: ReadonlyArray<Child> = [],
 ): Html => buildElement(tagName, buildVNodeData(attributes), children)
 
@@ -3223,7 +3231,7 @@ const element =
   <Message>() =>
   (tagName: TagName) =>
   (
-    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+    attributes: ReadonlyArray<Attribute<Message>> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     createElement(tagName, attributes, children)
@@ -3232,7 +3240,7 @@ export const customElement =
   <Message>() =>
   (tagName: string) =>
   (
-    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+    attributes: ReadonlyArray<Attribute<Message>> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     createElement(tagName, attributes, children)
@@ -3240,7 +3248,7 @@ export const customElement =
 const voidElement =
   <Message>() =>
   (tagName: TagName) =>
-  (attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = []): Html =>
+  (attributes: ReadonlyArray<Attribute<Message>> = []): Html =>
     createElement(tagName, attributes, [])
 
 const keyed =
@@ -3248,7 +3256,7 @@ const keyed =
   (tagName: TagName) =>
   (
     key: PropertyKey,
-    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+    attributes: ReadonlyArray<Attribute<Message>> = [],
     children: ReadonlyArray<Child> = [],
   ): Html => {
     const data = buildVNodeData(attributes)
@@ -3257,12 +3265,12 @@ const keyed =
   }
 
 type ElementFunction<Message> = (
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+  attributes: ReadonlyArray<Attribute<Message>>,
   children?: ReadonlyArray<Child>,
 ) => Html
 
 type VoidElementFunction<Message> = (
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+  attributes: ReadonlyArray<Attribute<Message>>,
 ) => Html
 
 /** An attribute accepted by textarea builders. Textarea content must use
@@ -3274,18 +3282,18 @@ export type TextareaAttribute<Message> = Exclude<
 >
 
 type TextValueElementFunction<Message> = (
-  attributes: ReadonlyArray<TextareaAttribute<Message> | ChildAttribute>,
+  attributes: ReadonlyArray<TextareaAttribute<Message>>,
 ) => Html
 
 type KeyedElementFunction<Message> = (
   key: PropertyKey,
-  attributes?: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+  attributes?: ReadonlyArray<Attribute<Message>>,
   children?: ReadonlyArray<Child>,
 ) => Html
 
 type KeyedTextValueElementFunction<Message> = (
   key: PropertyKey,
-  attributes?: ReadonlyArray<TextareaAttribute<Message> | ChildAttribute>,
+  attributes?: ReadonlyArray<TextareaAttribute<Message>>,
 ) => Html
 
 type KeyedFunction<Message> = <Name extends TagName>(
