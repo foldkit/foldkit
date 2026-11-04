@@ -1,6 +1,6 @@
 from pathlib import Path
-import shutil,json
-w=Path(__file__).resolve().parent.parent;d=w/'probe/ordinary-checkpoint-frozen';d.mkdir(exist_ok=True)
+import shutil,json,tempfile
+w=Path(__file__).resolve().parent.parent;d=Path(tempfile.mkdtemp(prefix='foldkit-unified-relocated-'))
 core=d/'package-core';shutil.copytree(w/'packages/foldkit/dist',core/'dist');shutil.copy2(w/'packages/foldkit/package.json',core/'package.json')
 for name in ['effect','parse5','@effect/platform-browser']:
  p=core/'node_modules'/name;p.parent.mkdir(parents=True,exist_ok=True);p.symlink_to((w/'packages/foldkit/node_modules'/name).resolve(),target_is_directory=True)

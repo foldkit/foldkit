@@ -58,10 +58,15 @@ repeat discovery before final release sign-off.
       scaffolds, guidance, lint recognition and migration material. Preserve
       historical content, compiler workloads and the reviewed ceilings.
 - [x] Record the user's acceptance of the measured Workspace 4/8 compiler cost.
-      Set only their instantiation ceilings to the exact observed 2,687,288 and
-      4,999,644, with no added tolerance. Preserve every other budget and fixture.
-- [ ] Verify actual Query/UI families and the complete Workspace trial against
-      the accepted baseline before authorizing broad migration.
+      Set only their instantiation ceilings to exact measured counts, with no
+      added tolerance. Preserve every other budget and fixture. The
+      [completion checks](block-api-simplification/constructor-alternatives-20261104.md)
+      record the small correctness cost after that accepted checkpoint.
+- [x] Verify the complete Workspace root trial: whole source and declaration
+      emission, all 153 existing tests, and strict relocated public consumers.
+      Preserve all domain, update/view, child and assertion behavior.
+- [ ] Verify actual Query/UI families against the corrected accepted baseline
+      before authorizing broad migration.
 - [x] Reconcile every actionable preview PR comment and relevant issue/PR,
       recording concrete source/test evidence and actual unresolved requests.
 - [x] Verify the canonical API through source, emitted and strict relocated
@@ -87,9 +92,11 @@ compiler workloads pass; adapted deep and wide now pass too. Adapted Workspace 4
 and Workspace 8 originally exceeded their ceilings by about 1.7% and 10.7%.
 The user accepted that measured cost; their new ceilings equal the observed
 counts with no headroom. The [accepted-cost decision](block-api-simplification/accepted-cost-20261104.md)
-preserves the old comparison and records the new checks. Actual fixed families
-and the complete Workspace trial are the next gates. No broad migration is
-performed or completion claimed from this bounded proof.
+preserves that comparison. The
+[constructor alternative proof](block-api-simplification/constructor-alternatives-20261104.md)
+records completion checks and their small additional compiler cost. The actual
+Workspace root trial passes without application typing workarounds. Fixed-family
+verification and the final combined checks precede broad migration.
 
 The canonical Source ownership repair (`30069d58a0`) and UI selection-component docs
 (`3c515660a9`) were reviewed separately and are being integrated into the preview.
@@ -990,8 +997,13 @@ Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime 
       instantiation ceilings, preserving the original frozen comparison and
       every other budget. Verify the reproducible runner fails when a check
       fails and the retained compiler workloads pass the accepted baseline.
-- [ ] Verify actual fixed families, whole Workspace and editor workflows before
-      broad migration; historical checks are not fresh checkpoint evidence.
+- [x] Verify the actual Workspace root with whole source/declaration emission,
+      strict relocated consumers and all 153 existing tests. The normal locked
+      integration checkout also passes source and runtime checks.
+- [ ] Verify actual fixed families and combined editor workflows before broad
+      migration; historical checks are not fresh checkpoint evidence.
+- [ ] Independently review per-alternative completion, handler selection and
+      InMessage operation projection before integrating the corrected proof.
 
 - [x] Review the isolated Instance-array proof's consumer surface, exact channels,
       opt-in field boundary, strict declarations, and unchanged compiler budgets

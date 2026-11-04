@@ -11,7 +11,7 @@ type PlanSourcePairs<Value, ExpectedSource> = Value extends undefined
 
 type BodyPlanSourcePairs<
   Body extends ConstructorBody,
-  Key extends 'update' | 'view',
+  Key extends 'update' | 'view' | 'inMessageUpdate',
 > = Body extends unknown
   ? Key extends keyof Body
     ? PlanSourcePairs<Body[Key], SourceOf<Body>>
@@ -30,8 +30,15 @@ type IncompatibleSourcePair<Pair> = Pair extends readonly [unknown, unknown]
 
 type IncompatibleBodyPlanSource<
   Body extends ConstructorBody,
-  Key extends 'update' | 'view',
+  Key extends 'update' | 'view' | 'inMessageUpdate',
 > = IncompatibleSourcePair<BodyPlanSourcePairs<Body, Key>>
+
+/** @internal Checks exact InMessage ownership before projecting operation contracts. */
+export type InMessagePlanSourceValidation<Body extends ConstructorBody> = [
+  IncompatibleBodyPlanSource<Body, 'inMessageUpdate'>,
+] extends [never]
+  ? readonly []
+  : readonly [inMessageUpdateBelongsToAnotherComposition: never]
 
 /** @internal Preserves each constructor alternative's exact portable plan ownership. */
 export type PlanSourceValidation<Body extends ConstructorBody> = [

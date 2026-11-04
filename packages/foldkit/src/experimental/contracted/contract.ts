@@ -67,6 +67,7 @@ import type {
   ResultContract,
   ViewContract,
 } from '../constructed/contract.js'
+import type { InMessagePlanSourceValidation } from '../constructed/planSourceValidation.js'
 import type {
   AuthoringSource,
   Plan,
@@ -602,16 +603,17 @@ type NativeBodyFields<Body extends ConstructorBody> = Body extends unknown
 export type NativeBody<
   Body extends ConstructorBody,
   Config,
-> = NativeBodyFields<Body> &
-  Readonly<{ operations: ContractOperations<Config, Body> }>
+> = Body extends unknown
+  ? NativeBodyFields<Body> &
+      Readonly<{ operations: ContractOperations<Config, Body> }>
+  : never
 
 type InputUpdateOf<Body> =
   Body extends Readonly<{ inMessageUpdate: infer InputUpdate }>
     ? InputUpdate
     : never
 
-/** @internal Checks the original InMessage plan for both completion surfaces. */
-export type InMessageUpdateBodyValidation<
+type InMessageUpdateAlternativeValidation<
   Body extends ConstructorBody,
   Config,
 > =
@@ -637,6 +639,25 @@ export type InMessageUpdateBodyValidation<
     : [InputUpdateOf<Body>] extends [never]
       ? readonly []
       : readonly [undeclaredInMessageSchema: never]
+
+type InMessageUpdateBodyFailures<
+  Body extends ConstructorBody,
+  Config,
+> = Body extends unknown
+  ? Exclude<InMessageUpdateAlternativeValidation<Body, Config>, readonly []>
+  : never
+
+/** @internal Checks every constructor alternative's complete InMessage plan. */
+export type InMessageUpdateBodyValidation<
+  Body extends ConstructorBody,
+  Config,
+> =
+  InMessagePlanSourceValidation<Body> extends readonly []
+    ? [InMessageUpdateBodyFailures<Body, Config>] extends [never]
+      ? readonly []
+      : InMessageUpdateBodyFailures<Body, Config>
+    : InMessagePlanSourceValidation<Body>
+
 type NativeFacts<
   MessageSchema extends AnySchema,
   Body extends ConstructorBody,
@@ -697,10 +718,12 @@ export type ActualFacts<
   MessageSchema extends AnySchema,
   Body extends ConstructorBody,
   Config,
-> = RuntimeClosedFacts<
-  SourceOf<Body>['owner'],
-  NativeFacts<MessageSchema, Body, Config>
->
+> = Body extends unknown
+  ? RuntimeClosedFacts<
+      SourceOf<Body>['owner'],
+      NativeFacts<MessageSchema, Body, Config>
+    >
+  : never
 
 type IsErased<Value> = [Value] extends [never]
   ? false
@@ -826,6 +849,15 @@ export type HostDefinitions<Body> =
     ? Definitions[number]
     : never
 
+type WithoutPendingOperation<Operation, Handlers> =
+  Operation extends OperationContract<
+    infer Args,
+    infer OutMessage,
+    infer Requirements
+  >
+    ? OperationContract<Args, OutMessage, Exclude<Requirements, Handlers>>
+    : never
+
 /** @internal Removes only the handler requirements supplied by the original host recipe. */
 export type WithoutPendingHandlers<Facts extends PublicFacts, Handlers> = Omit<
   Facts,
@@ -841,10 +873,9 @@ export type WithoutPendingHandlers<Facts extends PublicFacts, Handlers> = Omit<
       Exclude<Facts['update']['requirements'], Handlers>
     >
     operations: {
-      readonly [Name in keyof Facts['operations']]: OperationContract<
-        Facts['operations'][Name]['args'],
-        Facts['operations'][Name]['outMessage'],
-        Exclude<Facts['operations'][Name]['requirements'], Handlers>
+      readonly [Name in keyof Facts['operations']]: WithoutPendingOperation<
+        Facts['operations'][Name],
+        Handlers
       >
     }
     hostRequirements: Exclude<Facts['hostRequirements'], Handlers>

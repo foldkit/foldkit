@@ -14,6 +14,7 @@ import type {
   LocalMountsTypeId,
   PublicMountRequirementsTypeId,
 } from '../../block/identity.js'
+import type { LayerOutputs } from '../../block/layerOutputs.js'
 import type { OperationEmission } from '../../block/operationEmission.js'
 import type {
   OperationOutputOf,
@@ -42,12 +43,8 @@ type ReturnOf<Operation> = Operation extends (
   : never
 type AnySchema = Schema.Codec<any, any, any, any>
 /** @internal Only outputs supplied by every possible provider satisfy a dependency. */
-export type GuaranteedLayerOutputs<Dependencies extends Layer.Any> = Extract<
-  Layer.Success<Dependencies>,
-  [Dependencies] extends [Layer.Layer<infer Outputs, any, any>]
-    ? Outputs
-    : never
->
+export type GuaranteedLayerOutputs<Dependencies extends Layer.Any> =
+  LayerOutputs<Dependencies>
 type Tail<Args extends ReadonlyArray<unknown>> = Args extends readonly [
   unknown,
   ...infer Rest,

@@ -200,9 +200,13 @@ type CanonicalContracts<Body extends ConstructorBody> =
     : never
 
 type Equal<Left, Right> = [Left, Right] extends [Right, Left] ? true : false
+type IsUnion<Value, Whole = Value> = Value extends unknown
+  ? [Whole] extends [Value]
+    ? false
+    : true
+  : never
 
-/** @internal Validates original contracts, acquired children, and native completion channels. */
-export type Validate<
+type ValidateConstructorAlternative<
   Id extends string,
   ModelSchema,
   MessageSchema,
@@ -238,6 +242,58 @@ export type Validate<
         : readonly [missingConnections: MissingConnections<Body>]
       : readonly [incompatibleDefinition: never]
     : PlanSourceValidation<Body>
+
+type ConstructorValidationFailures<
+  Id extends string,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  Body extends ConstructorBody,
+  HandlerValidation extends 'Indexed' | 'Equivalent',
+> = Body extends unknown
+  ? Exclude<
+      ValidateConstructorAlternative<
+        Id,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Body,
+        HandlerValidation
+      >,
+      readonly []
+    >
+  : never
+
+/** @internal Validates each constructor alternative's contracts, children and completion channels. */
+export type Validate<
+  Id extends string,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  Body extends ConstructorBody,
+  HandlerValidation extends 'Indexed' | 'Equivalent' = 'Indexed',
+> =
+  true extends IsUnion<Body>
+    ? ConstructorValidationFailures<
+        Id,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Body,
+        HandlerValidation
+      > extends infer Failures extends ReadonlyArray<unknown>
+      ? [Failures] extends [never]
+        ? readonly []
+        : Failures
+      : never
+    : ValidateConstructorAlternative<
+        Id,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Body,
+        HandlerValidation
+      >
 
 /** Completes existing Composition builders through one explicit constructor. */
 export interface MakeBlock<

@@ -120,6 +120,7 @@ import type {
   ValidateUniqueInitialFields,
 } from './initialization.js'
 import { makeInit } from './initializationRuntime.js'
+import type { LayerOutputs } from './layerOutputs.js'
 import { type MakeMapBinding, makeMapBinding } from './mapBinding.js'
 import { isOperationMessageConstructor, prepareOperation } from './operation.js'
 import type { OperationEmission } from './operationEmission.js'
@@ -1328,7 +1329,8 @@ type CompleteEffectsLayer<
   EffectsLayer extends AnyLayer,
   Children extends ReadonlyArray<AnyBinding>,
 > = Layer.Layer<
-  Layer.Success<EffectsLayer | AggregatedChildren<Children>['EffectsLayer']>,
+  | LayerOutputs<EffectsLayer>
+  | Layer.Success<AggregatedChildren<Children>['EffectsLayer']>,
   Layer.Error<EffectsLayer | AggregatedChildren<Children>['EffectsLayer']>,
   Layer.Services<EffectsLayer | AggregatedChildren<Children>['EffectsLayer']>
 >
@@ -2023,7 +2025,7 @@ type ImplementationForValidation<
 }>
 
 type MergeLayers<Left extends Layer.Any, Right extends Layer.Any> = Layer.Layer<
-  Layer.Success<Left | Right>,
+  LayerOutputs<Left> | LayerOutputs<Right>,
   Layer.Error<Left | Right>,
   Layer.Services<Left | Right>
 >

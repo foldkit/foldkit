@@ -21,6 +21,7 @@ import type {
 } from './binding.js'
 import type { InputOperationOutputOf } from './compiledOperation.js'
 import type { LocalMountsTypeId } from './definition.js'
+import type { LayerOutputs } from './layerOutputs.js'
 import type { IsConcreteOwner, Owner } from './owner.js'
 import type { Qualify, Scoped } from './scope.js'
 
@@ -292,12 +293,7 @@ export type ManagedResourceLifecycleRequirements<ManagedResources> =
 export type ManagedResourceRuntimeServices<ManagedResources> =
   ManagedResourceServicesOf<ManagedResources>
 
-/**
- * @internal Extracts the services produced by a Layer recipe.
- */
-export type LayerOutputs<LayerRecipe> = LayerRecipe extends Layer.Any
-  ? Layer.Success<LayerRecipe>
-  : never
+export type { LayerOutputs } from './layerOutputs.js'
 
 /**
  * @internal Extracts the services needed to construct a Layer recipe.

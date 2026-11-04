@@ -316,3 +316,6 @@ export type {
 
 /** @internal Names native view-channel projection in emitted descriptor Binding declarations. */
 export type { BindingViewContract } from './bindChild.js'
+
+/** @internal Retains exact selected-handler facts in emitted declarations. */
+export type { WithoutPendingHandlers } from '../experimental/contracted/contract.js'

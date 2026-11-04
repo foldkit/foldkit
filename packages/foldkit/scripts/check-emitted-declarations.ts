@@ -879,6 +879,12 @@ const checks: ReadonlyArray<
     consumers: ['inmessages.consume.ts'],
   },
   {
+    name: 'constructor-union-ownership',
+    accepted: ['constructor-union-ownership.accepted.ts'],
+    rejected: ['constructor-union-ownership.rejected.ts'],
+    consumers: ['constructor-union-ownership.consume.ts'],
+  },
+  {
     name: 'message-steps',
     accepted: ['message-steps.accepted.ts', 'message-steps.definition.ts'],
     rejected: ['message-steps.rejected.ts'],

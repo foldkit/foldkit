@@ -63,8 +63,7 @@ import {
 
 type AnySchema = Schema.Codec<any, any, any, any>
 
-/** @internal Validates an ordinary Layer's selected original host handlers. */
-export type ValidateLayerHandlerSelection<
+type ValidateLayerHandlerSelectionAlternative<
   LayerValue extends Layer.Any,
   Handlers,
 > =
@@ -89,6 +88,29 @@ export type ValidateLayerHandlerSelection<
     : Readonly<{
         'Select handlers from an original Block implementation Layer': LayerValue
       }>
+
+type InvalidLayerHandlerSelection<
+  LayerValue extends Layer.Any,
+  Handlers,
+> = LayerValue extends unknown
+  ? unknown extends ValidateLayerHandlerSelectionAlternative<
+      LayerValue,
+      Handlers
+    >
+    ? never
+    : ValidateLayerHandlerSelectionAlternative<LayerValue, Handlers>
+  : never
+
+/** @internal Validates each selected implementation Layer's original host handlers. */
+export type ValidateLayerHandlerSelection<
+  LayerValue extends Layer.Any,
+  Handlers,
+> =
+  true extends IsUnion<LayerValue>
+    ? [InvalidLayerHandlerSelection<LayerValue, Handlers>] extends [never]
+      ? unknown
+      : InvalidLayerHandlerSelection<LayerValue, Handlers>
+    : ValidateLayerHandlerSelectionAlternative<LayerValue, Handlers>
 
 /** Completes a declared Block directly to its selected ordinary implementation Layer. */
 export interface MakeLayer<
