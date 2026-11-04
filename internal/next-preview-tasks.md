@@ -27,6 +27,9 @@ repository migration, passed component checks and remaining combined gates.
 - [x] Refresh feedback through November 4 at 08:40 UTC. No new actionable replies;
       assess the new attribute performance contribution, PR #1882.
 - [x] Complete the focused preview adaptation of PR #1882 and its verification.
+- [x] Address PR #1883's paired Scene specialization Error/Service finding with
+      exact Source, emitted, relocated and runtime controls. Preserve runtime JS.
+- [x] Refresh feedback again through 09:10 UTC; no other new actionable item.
 
 Daybreak source transfer remains explicitly on hold.
 

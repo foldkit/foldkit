@@ -54,7 +54,8 @@
       ],
       "rules": {
         "effecttsgo/any-unknown-in-error-context": "off",
-        "effecttsgo/floating-effect": "off"
+        "effecttsgo/floating-effect": "off",
+        "effecttsgo/missing-effect-error": "off"
       }
     },
     {

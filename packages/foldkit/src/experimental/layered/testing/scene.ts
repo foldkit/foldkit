@@ -111,7 +111,11 @@ export function scene<
   ...steps: ReadonlyArray<
     Step<SelectedLayeredRoot<Block, LayerValue>, undefined>
   >
-): Effect.Effect<void, Layer.Error<LayerValue>, Layer.Services<LayerValue>>
+): Effect.Effect<
+  void,
+  Effect.Error<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>,
+  Effect.Services<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>
+>
 export function scene<
   const Block extends DeclaredRootBlock,
   const LayerValue extends Layer.Layer<any, any, any>,
@@ -138,7 +142,11 @@ export function scene<
       >
     >
   >
-): Effect.Effect<void, Layer.Error<LayerValue>, Layer.Services<LayerValue>>
+): Effect.Effect<
+  void,
+  Effect.Error<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>,
+  Effect.Services<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>
+>
 export function scene<const Block extends BlockSubject>(
   config: TestConfig<Block> &
     ViewInputs<NoInfer<Block>> &

@@ -1062,6 +1062,12 @@ const checks: ReadonlyArray<
     consumers: ['query-modes.consume.ts'],
   },
   {
+    name: 'scene-family-construction',
+    accepted: ['scene-family-construction.accepted.ts'],
+    rejected: ['scene-family-construction.rejected.ts'],
+    consumers: ['scene-family-construction.consume.ts'],
+  },
+  {
     name: 'focused',
     accepted: [
       'parent-owned-binding.accepted.ts',
@@ -1204,6 +1210,7 @@ const main = async (): Promise<void> => {
     'message-steps',
     'machine',
     'scene-routing',
+    'scene-family-construction',
     'scene-mount-stream',
     'append-initialization',
     'set-initialization',

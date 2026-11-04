@@ -22,6 +22,8 @@
 - [ ] Review final release notes and evidence, then push.
 - [x] Recheck feedback through November 4 at 08:40 UTC; no new actionable replies.
       The focused PR #1882 preview adaptation passes its local verification.
+- [x] Reconcile the new PR #1883 paired Scene constructor-channel review.
+      The focused proof preserves exact family types without a runtime change.
 
 The [adoption report](block-api-simplification/adoption-20261104.md) owns the
 current status. Earlier checkpoints below retain their original verification
