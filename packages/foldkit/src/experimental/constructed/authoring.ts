@@ -86,6 +86,7 @@ import type {
   LayeredDescriptor,
   ProjectFacts,
 } from './contract.js'
+import type { PlanSourceValidation } from './planSourceValidation.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
@@ -237,32 +238,34 @@ export type Validate<
   Body extends ConstructorBody,
   HandlerValidation extends 'Indexed' | 'Equivalent' = 'Indexed',
 > =
-  Equal<
-    CanonicalContracts<Body>,
-    readonly [Owner<Id, true>, ModelSchema, MessageSchema, OutMessageSchema]
-  > extends true
-    ? [MissingConnections<Body>] extends [never]
-      ? [InvalidConnections<Body>] extends [never]
-        ? ImplementationRecipeArguments<
-            ExecutableImplementation<Body>,
-            ImplementationRecipeValidation<
-              SourceOf<Body>['owner'],
-              SourceOf<Body>['Model'],
-              SourceOf<Body>['Message'],
-              SourceOf<Body> extends {
-                readonly OutMessage: infer Out extends AnySchema
-              }
-                ? Out
-                : undefined,
-              SourceOf<Body>[typeof LocalMountsTypeId],
-              SourceOf<Body>['bindings'],
+  PlanSourceValidation<Body> extends readonly []
+    ? Equal<
+        CanonicalContracts<Body>,
+        readonly [Owner<Id, true>, ModelSchema, MessageSchema, OutMessageSchema]
+      > extends true
+      ? [MissingConnections<Body>] extends [never]
+        ? [InvalidConnections<Body>] extends [never]
+          ? ImplementationRecipeArguments<
               ExecutableImplementation<Body>,
-              HandlerValidation
+              ImplementationRecipeValidation<
+                SourceOf<Body>['owner'],
+                SourceOf<Body>['Model'],
+                SourceOf<Body>['Message'],
+                SourceOf<Body> extends {
+                  readonly OutMessage: infer Out extends AnySchema
+                }
+                  ? Out
+                  : undefined,
+                SourceOf<Body>[typeof LocalMountsTypeId],
+                SourceOf<Body>['bindings'],
+                ExecutableImplementation<Body>,
+                HandlerValidation
+              >
             >
-          >
-        : readonly [incompatibleConnections: InvalidConnections<Body>]
-      : readonly [missingConnections: MissingConnections<Body>]
-    : readonly [incompatibleDefinition: never]
+          : readonly [incompatibleConnections: InvalidConnections<Body>]
+        : readonly [missingConnections: MissingConnections<Body>]
+      : readonly [incompatibleDefinition: never]
+    : PlanSourceValidation<Body>
 
 /** Completes existing Composition builders through one explicit constructor. */
 export interface MakeBlock<
