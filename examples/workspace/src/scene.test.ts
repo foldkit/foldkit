@@ -50,16 +50,15 @@ import { issuesRouter, savedViewRouter } from './route'
 import { appliedIssueFilters } from './selection'
 import { subscriptions } from './subscription'
 
+const application = { block: ApplicationBlock, layer }
+
 const firstIssue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 const issuePath = issuesRouter({ issueId: firstIssue.id })
 
 const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
 
-const loadedModel = (
-  executable: TestBlock<typeof ApplicationBlock>,
-  path = '/',
-) => {
+const loadedModel = (executable: TestBlock<typeof application>, path = '/') => {
   const init = executable.init
   const update = executable.update
 
@@ -77,7 +76,7 @@ describe('workspace application', () => {
   it.effect('marks the current workspace and project navigation links', () => {
     return Effect.gen(function* () {
       yield* scene(
-        ApplicationBlock,
+        application,
         init(url('/projects/platform/board')),
         Command.resolve(
           LoadWorkspace,
@@ -92,7 +91,7 @@ describe('workspace application', () => {
       )
 
       yield* scene(
-        ApplicationBlock,
+        application,
         init(url('/people')),
         Command.resolve(
           LoadWorkspace,
@@ -107,7 +106,7 @@ describe('workspace application', () => {
           'aria-current',
         ),
       )
-    }).pipe(Effect.provide(layer))
+    })
   })
 
   it.effect(
@@ -116,6 +115,7 @@ describe('workspace application', () => {
       scene(
         {
           block: ApplicationBlock,
+          layer,
           routing: {
             onUrlChange: url => Message.ChangedUrl({ url }),
             origin: 'https://workspace.test',
@@ -132,14 +132,14 @@ describe('workspace application', () => {
         expect(role('heading', { name: 'People' })).toExist(),
         expect(label('Issue title')).not.toExist(),
         expect(role('button', { name: 'Close issue' })).not.toExist(),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 
   it.effect(
     'selects the active member through its Listbox before requesting activity',
     () => {
       return scene(
-        ApplicationBlock,
+        application,
         init(url('/settings')),
         Command.resolve(
           LoadWorkspace,
@@ -182,7 +182,7 @@ describe('workspace application', () => {
           AppendActivity,
           Message.FailedAppendActivity({ error: 'Activity is unavailable.' }),
         ),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -221,7 +221,7 @@ describe('workspace application', () => {
         },
       })
       return scene(
-        ApplicationBlock,
+        application,
         init(url(issuePath)),
         Command.resolve(
           LoadWorkspace,
@@ -301,13 +301,13 @@ describe('workspace application', () => {
           }),
         ),
         expect(label('Issue title')).toHaveValue(savedIssueSnapshot.title),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect('renders the loading and loaded workspace states', () =>
     scene(
-      ApplicationBlock,
+      application,
       init(url('/')),
       expect(text('Loading workspace…')).toExist(),
       Command.resolve(
@@ -319,13 +319,13 @@ describe('workspace application', () => {
       expect(
         role('link', { name: `${firstIssue.identifier} ${firstIssue.title}` }),
       ).toExist(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect(
     'preserves saved filters in an issue panel without saved view metadata',
     () => {
-      return withBlock(ApplicationBlock, executable =>
+      return withBlock(application, executable =>
         Effect.gen(function* () {
           const update = executable.update
 
@@ -369,7 +369,7 @@ describe('workspace application', () => {
           expectValue(appliedIssueFilters(reloadedIssueModel)).toEqual(filters)
 
           yield* scene(
-            ApplicationBlock,
+            application,
             given(reloadedIssueModel),
             click(role('button', { name: 'Close issue' })),
             Command.expectExact(NavigateInternal({ url: savedViewPath })),
@@ -380,7 +380,7 @@ describe('workspace application', () => {
           )
 
           yield* scene(
-            ApplicationBlock,
+            application,
             init(url(savedViewPath)),
             Command.resolve(
               LoadWorkspace,
@@ -399,7 +399,7 @@ describe('workspace application', () => {
             ).not.toExist(),
           )
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -411,7 +411,7 @@ describe('workspace application', () => {
         version: version => version + 1,
       })
       return scene(
-        ApplicationBlock,
+        application,
         init(url(issuePath)),
         Command.resolve(
           LoadWorkspace,
@@ -438,7 +438,7 @@ describe('workspace application', () => {
         ).toExist(),
         expect(label('Issue title')).toHaveValue(savedIssueSnapshot.title),
         expect(text(`${savedIssueSnapshot.identifier} saved`)).toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -454,6 +454,7 @@ describe('workspace application', () => {
       return scene(
         {
           block: ApplicationBlock,
+          layer,
           routing: {
             onUrlChange: url => Message.ChangedUrl({ url }),
             origin: 'https://workspace.test',
@@ -511,7 +512,7 @@ describe('workspace application', () => {
             name: `${savedIssueSnapshot.identifier} ${savedIssueSnapshot.title}`,
           }),
         ).toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -519,7 +520,7 @@ describe('workspace application', () => {
     'announces a failed load and renders the workspace after retrying',
     () => {
       return scene(
-        ApplicationBlock,
+        application,
         init(url('/')),
         Command.resolve(
           LoadWorkspace,
@@ -544,7 +545,7 @@ describe('workspace application', () => {
             name: `${firstIssue.identifier} ${firstIssue.title}`,
           }),
         ).toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -560,7 +561,7 @@ describe('workspace application', () => {
 
       const error = 'The project service is temporarily unavailable.'
       return scene(
-        ApplicationBlock,
+        application,
         init(url(`/projects/${project.id}/settings`)),
         Command.resolve(
           LoadWorkspace,
@@ -598,7 +599,7 @@ describe('workspace application', () => {
         expect(role('link', { name: savedProject.name })).toExist(),
         expect(text('Project saved')).toExist(),
         expect(role('button', { name: 'Save changes' })).toBeDisabled(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -625,7 +626,7 @@ describe('workspace application', () => {
 
       const error = 'Activity could not be added.'
       return scene(
-        ApplicationBlock,
+        application,
         init(url('/settings')),
         Command.resolve(
           LoadWorkspace,
@@ -662,14 +663,14 @@ describe('workspace application', () => {
         ),
         expect(text(error)).not.toExist(),
         expect(text('2 activity events requested')).toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'keeps the routed editor and its draft visible during a failed refresh',
     () => {
-      return withBlock(ApplicationBlock, executable =>
+      return withBlock(application, executable =>
         Effect.gen(function* () {
           const update = executable.update
 
@@ -692,7 +693,7 @@ describe('workspace application', () => {
           )
 
           yield* scene(
-            ApplicationBlock,
+            application,
             given(workspaceReload.model),
             expect(label('Issue title')).toHaveValue(
               'Keep this draft while refreshing',
@@ -713,7 +714,7 @@ describe('workspace application', () => {
           )
 
           yield* scene(
-            ApplicationBlock,
+            application,
             given(workspaceRefreshFailure.model),
             expect(label('Issue title')).toHaveValue(
               'Keep this draft while refreshing',
@@ -727,14 +728,14 @@ describe('workspace application', () => {
             expect(text('Unable to load workspace')).not.toExist(),
           )
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'keeps a dirty editor draft and offers the latest revision after a successful refresh',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const update = executable.update
 
         const toParentMessage = toParentMessageFor(executable)
@@ -771,7 +772,7 @@ describe('workspace application', () => {
           Message.SucceededLoadWorkspace({ workspace: latestWorkspace }),
         )
         return scene(
-          ApplicationBlock,
+          application,
           given(workspaceRefresh.model),
           expect(label('Issue title')).toHaveValue('Keep this unsaved title'),
           expect(
@@ -784,7 +785,7 @@ describe('workspace application', () => {
           expect(label('Issue title')).toHaveValue(latestIssue.title),
           expect(role('alert')).not.toExist(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 })

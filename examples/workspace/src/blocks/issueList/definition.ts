@@ -9,7 +9,7 @@ import { ViewInputs } from './viewInputs'
 
 export const IssueListKey = Symbol('IssueList')
 
-export const IssueListDefinition = Block.makeDefinition('IssueList', {
+export const IssueListBlock = Block.make('IssueList', {
   key: IssueListKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: ViewInputs },
@@ -22,8 +22,6 @@ export const IssueListDefinition = Block.makeDefinition('IssueList', {
   OutMessage,
 })
 
-export const IssueListBlock = IssueListDefinition.contract
-
 export const {
   makeFieldsStep,
   makeOutMessageStep,
@@ -31,4 +29,4 @@ export const {
   makeBinding,
   makeOutMessageFold,
   makeComposition,
-} = IssueListDefinition
+} = IssueListBlock

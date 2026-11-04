@@ -1,11 +1,11 @@
 import { Effect } from 'effect'
 
-import { MemberDirectoryDefinition } from './definition'
+import { MemberDirectoryBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const block = MemberDirectoryDefinition.makeBlock(
+export const layer = MemberDirectoryBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -16,4 +16,4 @@ const block = MemberDirectoryDefinition.makeBlock(
   }),
 )
 
-export const layer = block.layer
+export { MemberDirectoryBlock } from './definition'

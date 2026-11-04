@@ -1,4 +1,4 @@
-import { Effect } from 'effect'
+import {} from 'effect'
 import {
   Command,
   expectNoOutMessage,
@@ -29,7 +29,7 @@ describe('CommandPaletteBlock', () => {
     'initializes closed and resets its search when the user closes it',
     () => {
       return story(
-        CommandPaletteBlock,
+        { block: CommandPaletteBlock, layer },
         init(),
         model(model => {
           expect(model.dialog.isOpen).toBe(false)
@@ -60,14 +60,14 @@ describe('CommandPaletteBlock', () => {
           expect(model.activeResultIndex).toBe(0)
         }),
         expectNoOutMessage(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'declares public open and close operations and selects an issue',
     () => {
-      return withBlock(CommandPaletteBlock, executable => {
+      return withBlock({ block: CommandPaletteBlock, layer }, executable => {
         const paletteInit = executable.init()
 
         const paletteOpen = executable.operations.requestOpen(paletteInit.model)
@@ -80,7 +80,7 @@ describe('CommandPaletteBlock', () => {
 
         expect(paletteClose.model.dialog.isOpen).toBe(false)
         return story(
-          CommandPaletteBlock,
+          { block: CommandPaletteBlock, layer },
           given(paletteOpen.model),
           message(
             Message.ClickedResult({
@@ -97,7 +97,7 @@ describe('CommandPaletteBlock', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 })

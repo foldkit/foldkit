@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   Command,
   Subscription,
@@ -20,7 +20,7 @@ import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
 import { initialWorkspace } from '../../domain'
-import { CommandPaletteImplementation, layer } from './block'
+import { CommandPaletteBlock, layer } from './block'
 import { ScrollActiveResult } from './command'
 import { Message } from './message'
 import { OutMessage } from './outMessage'
@@ -54,7 +54,8 @@ describe('command palette search', () => {
 
       return scene(
         {
-          block: CommandPaletteImplementation,
+          block: CommandPaletteBlock,
+          layer,
           viewInputs: {
             issues: initialWorkspace.issues,
             projects: initialWorkspace.projects,
@@ -83,14 +84,15 @@ describe('command palette search', () => {
         expectOutMessage(OutMessage.SelectedIssue({ issueId: secondIssue.id })),
         closeDialog,
         expect(label('Search issues and projects')).not.toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect('selects a project from current search inputs', () => {
     return scene(
       {
-        block: CommandPaletteImplementation,
+        block: CommandPaletteBlock,
+        layer,
         viewInputs: {
           issues: initialWorkspace.issues,
           projects: initialWorkspace.projects,
@@ -105,7 +107,7 @@ describe('command palette search', () => {
       click(role('option')),
       expectOutMessage(OutMessage.SelectedProject({ projectId: 'platform' })),
       closeDialog,
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
@@ -113,7 +115,8 @@ describe('command palette search', () => {
     () => {
       return scene(
         {
-          block: CommandPaletteImplementation,
+          block: CommandPaletteBlock,
+          layer,
           viewInputs: {
             issues: initialWorkspace.issues,
             projects: initialWorkspace.projects,
@@ -128,7 +131,7 @@ describe('command palette search', () => {
         keydown(label('Search issues and projects'), 'Enter'),
         expectHandled(),
         expect(role('button', { name: 'Close search' })).toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 })

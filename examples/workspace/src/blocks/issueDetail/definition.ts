@@ -12,7 +12,7 @@ import { ViewInputs } from './viewInputs'
 
 export const IssueDetailKey = Symbol('IssueDetail')
 
-export const IssueDetailDefinition = Block.makeDefinition('IssueDetail', {
+export const IssueDetailBlock = Block.make('IssueDetail', {
   key: IssueDetailKey,
   Init: Schema.Tuple([Issue]),
   view: { kind: 'Element', Inputs: ViewInputs },
@@ -24,8 +24,6 @@ export const IssueDetailDefinition = Block.makeDefinition('IssueDetail', {
   ChildInitContext,
 })
 
-export const IssueDetailBlock = IssueDetailDefinition.contract
-
 export const {
   makeStep,
   makeOutMessageStep,
@@ -33,4 +31,4 @@ export const {
   makeBinding,
   makeOutMessageFold,
   makeComposition,
-} = IssueDetailDefinition
+} = IssueDetailBlock

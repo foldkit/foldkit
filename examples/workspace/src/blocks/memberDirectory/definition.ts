@@ -7,17 +7,12 @@ import { ViewInputs } from './viewInputs'
 
 export const MemberDirectoryKey = Symbol('MemberDirectory')
 
-export const MemberDirectoryDefinition = Block.makeDefinition(
-  'MemberDirectory',
-  {
-    key: MemberDirectoryKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element', Inputs: ViewInputs },
-    Model,
-    Message,
-  },
-)
+export const MemberDirectoryBlock = Block.make('MemberDirectory', {
+  key: MemberDirectoryKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  Model,
+  Message,
+})
 
-export const MemberDirectoryBlock = MemberDirectoryDefinition.contract
-
-export const { makeComposition, makeFieldsStep } = MemberDirectoryDefinition
+export const { makeComposition, makeFieldsStep } = MemberDirectoryBlock

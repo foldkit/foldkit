@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   Command,
   Mount,
@@ -45,11 +45,13 @@ import { Message } from './message'
 import { CreateState } from './model'
 import { OutMessage } from './outMessage'
 
+const createIssueSubject = { block: CreateIssueBlock, layer }
+
 const viewInputs = {
   projects: initialWorkspace.projects,
 }
 const createIssueRequestOpen = (
-  executable: TestBlock<typeof CreateIssueBlock>,
+  executable: TestBlock<typeof createIssueSubject>,
 ) => {
   return executable.operations.requestOpen(executable.init().model, {
     projectId: 'experience',
@@ -91,7 +93,7 @@ const selectField = (fieldLabel: string, optionLabel: string) => [
 describe('Create Issue view', () => {
   it.effect('validates a whitespace title without submitting the draft', () => {
     return scene(
-      { block: CreateIssueBlock, viewInputs },
+      { ...createIssueSubject, viewInputs },
       init(),
       inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
       Command.resolve(
@@ -109,7 +111,7 @@ describe('Create Issue view', () => {
       expect(role('button', { name: 'Create issue' })).toBeEnabled(),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
@@ -133,7 +135,7 @@ describe('Create Issue view', () => {
         comments: [],
       })
       return scene(
-        { block: CreateIssueBlock, viewInputs },
+        { ...createIssueSubject, viewInputs },
         init(),
         inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
         Command.resolve(
@@ -177,12 +179,12 @@ describe('Create Issue view', () => {
         expectOutMessage(OutMessage.Created({ issue })),
         closeDialog,
         expect(label('Title')).not.toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect('reopens a dismissed pending form when creation fails', () => {
-    return withBlock(CreateIssueBlock, executable => {
+    return withBlock(createIssueSubject, executable => {
       const update = executable.update
 
       const draft = IssueDraft.make({
@@ -271,7 +273,7 @@ describe('Create Issue view', () => {
         focusSelector: dialogInitialFocusMarkerSelector,
       })
       return scene(
-        { block: CreateIssueBlock, viewInputs },
+        { ...createIssueSubject, viewInputs },
         given(creationFailure.model),
         acquireDialog,
         expect(role('alert')).toContainText(error),
@@ -289,12 +291,12 @@ describe('Create Issue view', () => {
         expect(role('alert')).toContainText('Retry also failed.'),
         Command.expectNone(),
       )
-    }).pipe(Effect.provide(layer))
+    })
   })
 
   it.effect('cancels through its Dialog without creating an issue', () => {
     return scene(
-      { block: CreateIssueBlock, viewInputs },
+      { ...createIssueSubject, viewInputs },
       init(),
       inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
       Command.resolve(
@@ -307,6 +309,6 @@ describe('Create Issue view', () => {
       expect(label('Title')).not.toExist(),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })

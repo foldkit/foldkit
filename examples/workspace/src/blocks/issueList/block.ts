@@ -1,4 +1,4 @@
-import { Effect } from 'effect'
+import { Effect, Layer } from 'effect'
 
 import { layer as ListboxLayer } from '@foldkit/ui/listbox'
 
@@ -7,13 +7,13 @@ import {
   SortListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { IssueListDefinition } from './definition'
+import { IssueListBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const block = IssueListDefinition.makeBlock(
+export const layer = IssueListBlock.makeLayer(
   Effect.gen(function* () {
     const statusListbox = yield* StatusListboxBinding
     const sortListbox = yield* SortListboxBinding
@@ -27,6 +27,6 @@ const block = IssueListDefinition.makeBlock(
       view,
     }
   }),
-).provide(ListboxLayer)
+).pipe(Layer.provide(ListboxLayer))
 
-export const layer = block.layer
+export { IssueListBlock } from './definition'

@@ -23,14 +23,14 @@ import {
   NotificationCenterBinding,
   ProjectSettingsBinding,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const activeMember = yield* ActiveMemberListboxBinding
     const projectSettings = yield* ProjectSettingsBinding
@@ -61,18 +61,20 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(
-  Layer.mergeAll(
-    ListboxLayer,
-    CommandPalette.layer,
-    CreateIssue.layer,
-    IssueList.layer,
-    IssueBoard.layer,
-    MemberDirectory.layer,
-    NotificationCenter.layer,
-    IssueDetail.layer,
-    ProjectSettings.layer,
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      ListboxLayer,
+      CommandPalette.layer,
+      CreateIssue.layer,
+      IssueList.layer,
+      IssueBoard.layer,
+      MemberDirectory.layer,
+      NotificationCenter.layer,
+      IssueDetail.layer,
+      ProjectSettings.layer,
+    ),
   ),
 )
 
-export const layer = ApplicationBlock.layer
+export { ApplicationBlock }

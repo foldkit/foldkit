@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   click,
   expect,
@@ -27,7 +27,7 @@ const viewInputs = {
 describe('member directory', () => {
   it.effect('filters members by name and reports an empty search', () => {
     return scene(
-      { block: MemberDirectoryBlock, viewInputs },
+      { block: MemberDirectoryBlock, layer, viewInputs },
       init(),
       expect(text('3 members')).toExist(),
       type(label('Search members'), 'maya'),
@@ -35,7 +35,7 @@ describe('member directory', () => {
       expect(role('button', { name: 'View Alex Rivera' })).not.toExist(),
       type(label('Search members'), 'no matching teammate'),
       expect(role('status')).toContainText('No matching members.'),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
@@ -43,14 +43,14 @@ describe('member directory', () => {
     () => {
       const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
       return scene(
-        { block: MemberDirectoryBlock, viewInputs },
+        { block: MemberDirectoryBlock, layer, viewInputs },
         init(),
         click(role('button', { name: 'View Maya Chen' })),
         expect(role('heading', { name: 'Maya Chen' })).toExist(),
         expect(
           role('link', { name: `${issue.identifier} ${issue.title}` }),
         ).toHaveAttr('href', '/issues/issue-101'),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -61,6 +61,7 @@ describe('member directory', () => {
       return scene(
         {
           block: MemberDirectoryBlock,
+          layer,
           viewInputs: { ...viewInputs, issueHrefs: {} },
         },
         init(),
@@ -69,7 +70,7 @@ describe('member directory', () => {
           role('link', { name: `${issue.identifier} ${issue.title}` }),
         ).not.toExist(),
         expect(text(issue.title)).toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -80,12 +81,13 @@ describe('member directory', () => {
     return scene(
       {
         block: MemberDirectoryBlock,
+        layer,
         viewInputs: { ...viewInputs, issues: nextIssues },
       },
       init(),
       click(role('button', { name: 'View Maya Chen' })),
       expect(role('heading', { name: 'Maya Chen' })).toExist(),
       expect(text('No assigned issues.')).toExist(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })

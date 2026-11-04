@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import {
   Command,
   expectNoOutMessage,
@@ -33,7 +33,7 @@ import { OutMessage } from './outMessage'
 describe('IssueListBlock', () => {
   it.effect('emits controlled filter changes from typed local facts', () => {
     return story(
-      IssueListBlock,
+      { block: IssueListBlock, layer },
       init(),
       message(Message.UpdatedQuery({ value: 'keyboard' })),
       expectOutMessage(OutMessage.ChangedQuery({ query: 'keyboard' })),
@@ -46,7 +46,7 @@ describe('IssueListBlock', () => {
         OutMessage.ChangedStatusFilter({ maybeStatus: Option.none() }),
       ),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it('rejects unknown filter values when decoding Messages', () => {
@@ -64,10 +64,10 @@ describe('IssueListBlock', () => {
   })
 
   it.effect('folds Listbox selections into controlled filter changes', () => {
-    return withBlock(IssueListBlock, executable => {
+    return withBlock({ block: IssueListBlock, layer }, executable => {
       const initialModel = executable.init().model
       return story(
-        IssueListBlock,
+        { block: IssueListBlock, layer },
         given(initialModel),
         messageFrom(
           StatusListboxBinding,
@@ -115,6 +115,6 @@ describe('IssueListBlock', () => {
         }),
         Command.expectNone(),
       )
-    }).pipe(Effect.provide(layer))
+    })
   })
 })

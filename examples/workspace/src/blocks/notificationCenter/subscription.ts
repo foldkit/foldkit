@@ -1,11 +1,11 @@
 import { Clock, Duration, Schema, Stream } from 'effect'
 
-import { NotificationCenterDefinition } from './definition'
+import { NotificationCenterBlock } from './definition'
 import { Message } from './message'
 
 const CLOCK_INTERVAL = Duration.minutes(1)
 
-export const subscriptions = NotificationCenterDefinition.makeSubscriptions(
+export const subscriptions = NotificationCenterBlock.makeSubscriptions(
   entry => ({
     clock: entry(
       'Clock',

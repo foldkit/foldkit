@@ -1,4 +1,4 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import {
   expectNoOutMessage,
   expectOutMessage,
@@ -27,7 +27,7 @@ describe('Issue Board update', () => {
   it.effect('folds a keyboard drop into a move request', () => {
     const itemId = draggableId('issue-101')
     return story(
-      IssueBoardBlock,
+      { block: IssueBoardBlock, layer },
       init(),
       messageFrom(
         DragAndDropBinding,
@@ -68,12 +68,12 @@ describe('Issue Board update', () => {
         expect(model.dragAndDrop.dragState._tag).toBe('Idle')
         expect(model.announcement).toBe('Position 2 in Done.')
       }),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('announces an applied move and a persistence rollback', () => {
     return story(
-      IssueBoardBlock,
+      { block: IssueBoardBlock, layer },
       init(),
       inMessage(
         InMessage.InformedOfIssueMove({
@@ -90,12 +90,12 @@ describe('Issue Board update', () => {
           'Could not save the move. Issue position restored.',
         )
       }),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('folds a pointer drop into a move request', () => {
     return story(
-      IssueBoardBlock,
+      { block: IssueBoardBlock, layer },
       init(),
       messageFrom(
         DragAndDropBinding,
@@ -131,7 +131,7 @@ describe('Issue Board update', () => {
           insertionIndex: 2,
         }),
       ),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
@@ -139,7 +139,7 @@ describe('Issue Board update', () => {
     () => {
       const itemId = draggableId('issue-101')
       return story(
-        IssueBoardBlock,
+        { block: IssueBoardBlock, layer },
         init(),
         messageFrom(
           DragAndDropBinding,
@@ -161,14 +161,14 @@ describe('Issue Board update', () => {
             'Drag cancelled. Issue order is unchanged.',
           )
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   describe('when a pointer drop stays in the same column', () => {
     it.effect('preserves the insertion index reported by DragAndDrop', () => {
       return story(
-        IssueBoardBlock,
+        { block: IssueBoardBlock, layer },
         init(),
         messageFrom(
           DragAndDropBinding,
@@ -204,7 +204,7 @@ describe('Issue Board update', () => {
             insertionIndex: 3,
           }),
         ),
-      ).pipe(Effect.provide(layer))
+      )
     })
   })
 
@@ -224,7 +224,7 @@ describe('Issue Board update', () => {
       'ignores the drop when $reason',
       ({ containerId: targetContainerId, index }) => {
         return story(
-          IssueBoardBlock,
+          { block: IssueBoardBlock, layer },
           init(),
           messageFrom(
             DragAndDropBinding,
@@ -257,7 +257,7 @@ describe('Issue Board update', () => {
           model(model => {
             expect(model.dragAndDrop.dragState._tag).toBe('Idle')
           }),
-        ).pipe(Effect.provide(layer))
+        )
       },
     )
   })

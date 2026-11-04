@@ -1,10 +1,10 @@
 import { Effect, Schema } from 'effect'
 import { Dom } from 'foldkit'
 
-import { CommandPaletteDefinition } from './definition'
+import { CommandPaletteBlock } from './definition'
 import { Message } from './message'
 
-export const ScrollActiveResult = CommandPaletteDefinition.makeCommand(
+export const ScrollActiveResult = CommandPaletteBlock.makeCommand(
   'ScrollActiveResult',
   {
     args: { index: Schema.Number },

@@ -9,20 +9,15 @@ import { ViewInputs } from './viewInputs'
 
 export const NotificationCenterKey = Symbol('NotificationCenter')
 
-export const NotificationCenterDefinition = Block.makeDefinition(
-  'NotificationCenter',
-  {
-    key: NotificationCenterKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element', Inputs: ViewInputs },
-    Model,
-    Message,
-    InMessage,
-    OutMessage,
-  },
-)
-
-export const NotificationCenterBlock = NotificationCenterDefinition.contract
+export const NotificationCenterBlock = Block.make('NotificationCenter', {
+  key: NotificationCenterKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+})
 
 export const {
   makeFieldsStep,
@@ -30,4 +25,4 @@ export const {
   makeOutMessageFold,
   makeBinding,
   makeComposition,
-} = NotificationCenterDefinition
+} = NotificationCenterBlock
