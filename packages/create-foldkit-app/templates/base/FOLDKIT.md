@@ -279,7 +279,9 @@ Extract substantial parent policy into `composition/<child>.ts`, with `compositi
 
 Only entries start execution. Client rendering uses `Runtime.run`; SSR/SSG uses `Runtime.hydrate`. A client app references `entry.ts` from `index.html`. SSR/SSG instead names `ssr.clientEntry` in `vite.config.ts`, imports CSS there, and exports `renderDocument` from `entry.server.ts`; it has no source `index.html`. Keep passive definitions importable by tests and server rendering.
 
-When a server entry creates a long-lived `ManagedRuntime` or another resource, register an `import.meta.hot.dispose` callback in that entry to release it during development reloads. Keep the resource in the entry so its lifetime matches the callback.
+When a server entry creates a long-lived `ManagedRuntime` or another resource, register an `import.meta.hot.dispose` callback in that entry to release it during hot updates. Keep the resource in the entry so its lifetime matches the callback.
+
+With `server.hmr: false`, server modules still reevaluate after edits, but `import.meta.hot` is unavailable and the callback cannot run. Stop and restart the dev-server process after editing server modules that own long-lived resources; an in-process Vite restart does not invoke that missing callback.
 
 Use section headers only when a long file needs wayfinding. Use `// NOTE:` for a surprising browser or timing constraint; ordinary behavior should be clear from names and structure.
 

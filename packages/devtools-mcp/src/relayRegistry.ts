@@ -31,6 +31,10 @@ import {
 const RUNTIME_DIRECTORY_VARIABLE = 'XDG_RUNTIME_DIR'
 const RECORD_FILE_EXTENSION = '.json'
 const RETIRING_RECORD_SUFFIX = '.retiring'
+const AUTOMATIC_RELAY_HOST = '127.0.0.1'
+const AUTOMATIC_RELAY_PATH = '/__foldkit/devtools-mcp'
+const RELAY_TOKEN_PARAMETER = 'token'
+const RELAY_TOKEN_PATTERN = /^[0-9a-f]{64}$/
 
 export type RelayRegistryServices = FileSystem.FileSystem | Path.Path
 
@@ -40,6 +44,45 @@ export type RelayRegistryReader = Readonly<{
 }>
 
 type RootPathApi = Pick<Path.Path, 'isAbsolute' | 'relative' | 'sep'>
+
+const parseUrl = Option.liftThrowable((url: string) => new URL(url))
+
+const hasValidPort = (url: URL): boolean => {
+  const port = globalThis.Number(url.port)
+
+  return (
+    url.port !== '' &&
+    globalThis.Number.isInteger(port) &&
+    port > 0 &&
+    port <= 65_535
+  )
+}
+
+const isPublishedRelayUrl = (value: string): boolean =>
+  Option.exists(parseUrl(value), url => {
+    if (
+      url.protocol !== 'ws:' ||
+      url.username !== '' ||
+      url.password !== '' ||
+      url.hash !== '' ||
+      !hasValidPort(url)
+    ) {
+      return false
+    }
+
+    const parameters = Array.fromIterable(url.searchParams)
+
+    return (
+      url.hostname === AUTOMATIC_RELAY_HOST &&
+      url.pathname === AUTOMATIC_RELAY_PATH &&
+      Array.length(parameters) === 1 &&
+      Option.exists(
+        Array.head(parameters),
+        ([name, token]) =>
+          name === RELAY_TOKEN_PARAMETER && RELAY_TOKEN_PATTERN.test(token),
+      )
+    )
+  })
 
 const decodeRelayRecord = Schema.decodeUnknownOption(
   Schema.fromJsonString(RelayRecord),
@@ -116,6 +159,11 @@ const readLiveRecordFile = (
     }
 
     const record = maybeRecord.value
+
+    if (!isPublishedRelayUrl(record.url)) {
+      return Option.none<RelayRecord>()
+    }
+
     const status = yield* checkRelay(record, maybeOwnNamespaces)
 
     if (status === 'Gone') {

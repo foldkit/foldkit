@@ -30,11 +30,15 @@
       control, source checks for 16 fixture modules and 188 plugin tests. Row
       alignment assertions, browser projects, timeouts and negative controls
       are preserved.
-- [ ] Complete exact review and the required push/CI checks before integration.
+- [x] Complete exact review and the required push/CI checks before integration.
 
 The [adoption report](block-api-simplification/adoption-20261104.md) owns the
 current status. Earlier checkpoints below retain their original verification
-scope. Publication and Daybreak transfer remain held.
+scope. PR #1883 merged as `44e94feeba0e`. Daybreak subsequently completed its
+authorized review of that commit with no substantiated new security or
+release-blocking correctness finding. The two requested
+[hardening follow-ups](daybreak-hardening-20261104.md) require their own exact
+review and integration checks. Publication remains held.
 
 ## November 3 scoped tests and InMessage update checkpoint
 
