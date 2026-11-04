@@ -18,7 +18,7 @@ Check out how RadioGroup is wired up in a [real Foldkit app](https://github.com/
 
 ### Vertical
 
-Declare the radio group once at module scope with `RadioGroup.makeBlock<Value>()` to lift the option type through `view` and `update` without casting. Read the current selection from your Model into `selectedValue`, pass the typed `options` array, and provide a `toView` callback that receives one `OptionInfo<Value>` per option (with attribute bundles for the option, label, and description).
+Declare the radio group once at module scope with `RadioGroup.makeBlock<Value>()` to type its view inputs and `Selected` OutMessage. Read the current selection from your Model into `selectedValue`, pass the typed `options` array, and provide a `toView` callback that receives one `OptionInfo<Value>` per option (with attribute bundles for the option, label, and description).
 
 Bind the public contract returned by `RadioGroup.makeBlock`, provide `RadioGroup.layer` for construction, then store the value from the `Selected` OutMessage in the selected `fold` policy. Moving focus onto the newly selected option is the radio group's own concern. The fold maps the `FocusOption` Command into the parent Message type.
 

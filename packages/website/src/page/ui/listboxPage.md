@@ -6,7 +6,7 @@ A custom select dropdown with keyboard navigation, typeahead search, and anchor 
 
 ### Create a Typed Listbox
 
-Embed Listbox via the [`Listbox.makeBlock<Item, Value?>()` factory](/ui/selection-blocks) at module scope: `const PlanListbox = Listbox.makeBlock<Plan>()`. The factory binds the view, update, and programmatic helpers to the same `Item` type, so the `Selected` OutMessage carries a `Plan`.
+Declare a typed Listbox at module scope with the [`Listbox.makeBlock<Item, Value>()` factory](/ui/selection-blocks). Its type arguments describe the view inputs, `requestSelectItem` input and typed `Selected` OutMessage.
 
 What the factory returns is typed [`Completed<Item, Value>` from `@foldkit/ui/listbox`](/ui/selection-blocks#completed-type). The multi-select namespace exports its own `Completed<Item, Value>` type, for the cases where a created Block has to be named rather than called directly.
 
@@ -117,7 +117,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Binding for the public contract returned by `Listbox.makeBlock<Item>()` or `Listbox.Multi.makeBlock<Item>()`.
+Startup configuration for Bindings created from `Listbox.makeBlock()` or `Listbox.Multi.makeBlock()`.
 
 | Name          | Type                         | Default      | Description                                                                                                                                          |
 | ------------- | ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |

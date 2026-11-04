@@ -625,6 +625,12 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'constructor-plan-ownership',
+    accepted: ['constructor-plan-ownership.accepted.ts'],
+    rejected: ['constructor-plan-ownership.rejected.ts'],
+    consumers: ['constructor-plan-ownership.consume.ts'],
+  },
+  {
     name: 'constructor-host-handlers',
     accepted: ['host-handlers/accepted.ts'],
     rejected: ['host-handlers/selection.rejected.ts'],
@@ -1184,6 +1190,7 @@ const main = async (): Promise<void> => {
   )
 
   for (const name of [
+    'constructor-plan-ownership',
     'program',
     'command-args',
     'keyed-map-field',
