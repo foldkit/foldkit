@@ -944,7 +944,9 @@ const renderMiddleware =
  * entry accepts its own updates, and the server graph is reevaluated so Block
  * Definitions and their declarations are created together. Unless
  * `server.hmr` is `false`, an `import.meta.hot.dispose` callback in the entry
- * runs before a hot update replaces it.
+ * runs before a hot update replaces it. With HMR disabled, stop and restart
+ * the dev-server process after editing server modules that own long-lived
+ * resources; an in-process restart cannot invoke the missing callback.
  */
 export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
   let isDevelopmentHost = false

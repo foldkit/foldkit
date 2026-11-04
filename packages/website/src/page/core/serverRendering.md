@@ -335,6 +335,8 @@ Some reloads skip the callback, and the old copy keeps running until the dev ser
 - A dev server restart, such as after an edit to `vite.config.ts`, discards the module runner.
 - With `server.hmr` set to `false`, `import.meta.hot` is `undefined`, so the callback is never registered.
 
+If you disable HMR, stop and restart the dev-server process after editing server modules that own long-lived resources. Module reevaluation and an in-process Vite restart cannot invoke the missing callback.
+
 #### Testing hydration during development
 
 A development reload does not exercise hydration. Foldkit restores the Model but rebuilds the DOM under the root. That DOM came from code that predates the edit. Refresh the page manually to test hydration itself. The stamped root remains required during a development reload; without it, startup fails as it would on a fresh load.

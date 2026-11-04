@@ -35,10 +35,16 @@ repository migration, passed component checks and remaining combined gates.
       All 87 browser cases pass with the original 21 skips; the readiness
       negative control, source checks for 16 fixture modules and 188 plugin
       tests pass.
-- [ ] Integrate PR #1883 through exact-commit review, the mandatory push hook
+- [x] Integrate PR #1883 through exact-commit review, the mandatory push hook
       and its required CI checks. Preserve publication and Daybreak holds.
 
-Daybreak source transfer remains explicitly on hold.
+PR #1883 merged as `44e94feeba0e` after required PR and merge-group checks.
+The user subsequently authorized Daybreak review and small review-driven
+follow-ups. The completed review found no substantiated new security or
+release-blocking correctness finding. Both requested hardening improvements are
+implemented; their [follow-up evidence](daybreak-hardening-20261104.md) records
+focused verification. Complete exact review, the scoped Daybreak follow-up and
+required integration checks before release sign-off. Publication remains held.
 
 ## Final GitHub feedback check
 

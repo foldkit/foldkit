@@ -63,17 +63,6 @@ test('a failed git diff is an unknown diff rather than an empty one', () => {
   assert.equal(isUnknownDiff, true)
 })
 
-test('a real revision range resolves the files it touched', () => {
-  const { changedFiles, isUnknownDiff } = resolveChangedFiles([
-    'HEAD~1',
-    'HEAD',
-  ])
-
-  assert.equal(isUnknownDiff, false)
-  assert.ok(changedFiles.length > 0)
-  assert.ok(changedFiles.every(fileName => fileName !== ''))
-})
-
 const git = (repositoryDir, ...args) => {
   const result = spawnSync(
     'git',
@@ -103,6 +92,53 @@ const commitFile = (repositoryDir, fileName) => {
 
   return git(repositoryDir, 'rev-parse', 'HEAD')
 }
+
+test('a real revision range resolves the files it touched', () => {
+  const repositoryDir = mkdtempSync(join(tmpdir(), 'changed-files-'))
+  const originalCwd = process.cwd()
+
+  try {
+    git(repositoryDir, 'init', '-b', 'main')
+    const baseSha = commitFile(repositoryDir, 'common.txt')
+    const headSha = commitFile(repositoryDir, 'added.txt')
+
+    process.chdir(repositoryDir)
+    const { changedFiles, isUnknownDiff } = resolveChangedFiles([
+      baseSha,
+      headSha,
+    ])
+
+    assert.equal(isUnknownDiff, false)
+    assert.deepEqual(changedFiles, ['added.txt'])
+  } finally {
+    process.chdir(originalCwd)
+    rmSync(repositoryDir, { recursive: true, force: true })
+  }
+})
+
+test('a range containing an empty commit is a known empty diff', () => {
+  const repositoryDir = mkdtempSync(join(tmpdir(), 'changed-files-'))
+  const originalCwd = process.cwd()
+
+  try {
+    git(repositoryDir, 'init', '-b', 'main')
+    const baseSha = commitFile(repositoryDir, 'common.txt')
+    git(repositoryDir, 'commit', '--allow-empty', '-m', 'empty')
+    const headSha = git(repositoryDir, 'rev-parse', 'HEAD')
+
+    process.chdir(repositoryDir)
+    const { changedFiles, isUnknownDiff } = resolveChangedFiles([
+      baseSha,
+      headSha,
+    ])
+
+    assert.equal(isUnknownDiff, false)
+    assert.deepEqual(changedFiles, [])
+  } finally {
+    process.chdir(originalCwd)
+    rmSync(repositoryDir, { recursive: true, force: true })
+  }
+})
 
 test('a diverged base does not leak its own commits into the diff', () => {
   const repositoryDir = mkdtempSync(join(tmpdir(), 'changed-files-'))

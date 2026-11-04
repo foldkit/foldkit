@@ -44,8 +44,13 @@ passes all 87 browser cases with the original 21 skips, the resize-readiness
 negative control, source checks for 16 fixture modules and 188 plugin tests.
 Exact review and required checks precede integration; the adoption report records
 current status.
-Publication and Daybreak source transfer remain held. Only #1662 and #1663
-have an explicit post-main deferral.
+PR #1883 subsequently merged as `44e94feeba0e` with an identical reviewed tree
+and all required checks passing. The authorized Daybreak review of that commit
+completed with no substantiated new security or release-blocking correctness
+finding. The user requested both non-blocking
+[hardening improvements](daybreak-hardening-20261104.md); their implementation
+retains a separate verification and review scope. Publication remains held.
+Only #1662 and #1663 have an explicit post-main deferral.
 
 ## October 30 stabilization follow-up
 
