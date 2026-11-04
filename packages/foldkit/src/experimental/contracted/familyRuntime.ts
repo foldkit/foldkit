@@ -7,7 +7,13 @@ import {
   acquisitionOf,
   registerAcquisitionAlias,
 } from '../constructed/symbolic.js'
-import { makeDefinitionRuntime, selectContractHandlers } from './runtime.js'
+import {
+  makeDefinitionRuntime,
+  registerDeclaredLayerReader,
+  registerDeclaredLayerSelection,
+  selectContractHandlers,
+  selectDeclaredLayerHandlers,
+} from './runtime.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 type RuntimeBlock = Readonly<{
@@ -72,6 +78,25 @@ export const makeFamilyDefinitionRuntime = (
   return familyDefinition
 }
 
+/** @internal Declares a family Block with ordinary Layer completion. */
+export const makeFamilyLayerDefinitionRuntime = (
+  id: string,
+  config: Parameters<typeof makeDefinitionRuntime>[1],
+  sourceDefinition?: object,
+): object => {
+  const definition = makeDefinitionRuntime(id, config, false, sourceDefinition)
+  const {
+    contract: _contract,
+    makeBlock: _makeBlock,
+    provideHandlers: _provideHandlers,
+    ...authoring
+  } = definition
+  const familyBlock = Object.freeze(authoring)
+  definitions.set(familyBlock, definition)
+
+  return familyBlock
+}
+
 /** @internal Acquires an authenticated specialization through one universal implementation provider. */
 export const makeFamilyContractRuntime = (
   definition: object,
@@ -82,6 +107,7 @@ export const makeFamilyContractRuntime = (
     members?: object
     handlers?: Layer.Any
   }> = {},
+  transport: 'Recipe' | 'Layer' = 'Recipe',
 ): object => {
   const declared = definitions.get(definition)
 
@@ -106,7 +132,10 @@ export const makeFamilyContractRuntime = (
   ])
 
   for (const name of Object.keys(members)) {
-    if (reservedMembers.has(name)) {
+    if (
+      reservedMembers.has(name) ||
+      (transport === 'Layer' && Object.hasOwn(definition, name))
+    ) {
       throw new Error(`[foldkit] Family member "${name}" is reserved.`)
     }
   }
@@ -127,59 +156,90 @@ export const makeFamilyContractRuntime = (
   }
 
   const Result = Context.Service<object>(`foldkit/FamilyResult/${nextResult++}`)
+  const ImplementationFacts = Context.Service<object>(
+    `foldkit/FamilyFacts/${nextResult++}`,
+  )
+  const authenticate = (executable: object): object => {
+    const acquiredBlock = acquisitionOf(executable).block
+    const expectedHosts = selectedHandlers === undefined ? hostHandlers : []
+
+    if (
+      acquiredBlock.hostHandlers.length !== expectedHosts.length ||
+      Array.some(
+        acquiredBlock.hostHandlers,
+        handler => !expectedHosts.includes(handler),
+      )
+    ) {
+      throw new Error(
+        '[foldkit] A family specialization requires all host handlers before acquisition or their explicit original declarations.',
+      )
+    }
+
+    const alias = Object.freeze({ ...executable })
+    registerExecutableHandle(alias, acquiredBlock)
+    registerAcquisitionAlias(
+      alias,
+      contract,
+      acquiredBlock,
+      acquisitionOf(executable),
+    )
+    registerDefaultView(alias, defaultViewOf(executable))
+
+    return alias
+  }
   const specialization = Layer.effect(
     Result,
     Effect.gen(function* () {
       const implementation = yield* implementationKey
-      const recipe = recipes.get(toRecipe(implementation))
+      const result = toRecipe(implementation)
+      const recipe = transport === 'Recipe' ? recipes.get(result) : undefined
 
-      if (recipe === undefined || recipe.definition !== definition) {
+      if (
+        transport === 'Recipe' &&
+        (recipe === undefined || recipe.definition !== definition)
+      ) {
         throw new Error(
           '[foldkit] A family provider returned a foreign specialization recipe.',
         )
       }
 
+      if (transport === 'Layer' && !Layer.isLayer(result)) {
+        throw new Error(
+          '[foldkit] A family provider must return an ordinary Effect Layer.',
+        )
+      }
+
       const block =
-        selectedHandlers === undefined
-          ? recipe.block
-          : selectContractHandlers(recipe.block, selectedHandlers, hostHandlers)
+        transport === 'Recipe'
+          ? selectedHandlers === undefined
+            ? recipe!.block
+            : selectContractHandlers(
+                recipe!.block,
+                selectedHandlers,
+                hostHandlers,
+              )
+          : {
+              get: declared.contract.get,
+              layer:
+                selectedHandlers === undefined
+                  ? result
+                  : selectDeclaredLayerHandlers(
+                      declared,
+                      result,
+                      selectedHandlers,
+                      hostHandlers,
+                    ),
+            }
       const context = yield* Layer.buildWithMemoMap(
         block.layer,
         implementation.memoMap,
         implementation.scope,
       )
       const executable = yield* block.get.pipe(Effect.provideContext(context))
-      const acquiredBlock = acquisitionOf(executable).block
-
-      const expectedHosts = selectedHandlers === undefined ? hostHandlers : []
-
-      if (
-        acquiredBlock.hostHandlers.length !== expectedHosts.length ||
-        Array.some(
-          acquiredBlock.hostHandlers,
-          handler => !expectedHosts.includes(handler),
-        )
-      ) {
-        throw new Error(
-          '[foldkit] A family specialization requires all host handlers before acquisition or their explicit original declarations.',
-        )
-      }
-
-      const alias = Object.freeze({ ...executable })
-
-      registerExecutableHandle(alias, acquiredBlock)
-      registerAcquisitionAlias(
-        alias,
-        contract,
-        acquiredBlock,
-        acquisitionOf(executable),
-      )
-      registerDefaultView(alias, defaultViewOf(executable))
-
-      return alias
+      return authenticate(executable)
     }),
   )
-  const get = Effect.flatMap(implementationKey, implementation =>
+  const constructDefault = Effect.flatMap(implementationKey, implementation =>
     Layer.buildWithMemoMap(
       specialization,
       implementation.memoMap,
@@ -189,7 +249,48 @@ export const makeFamilyContractRuntime = (
       Effect.map(context => Context.get(context, Result)),
     ),
   )
+  const get = Effect.flatMap(Effect.serviceOption(Result), maybeProvided =>
+    Option.match(maybeProvided, {
+      onSome: executable => Effect.succeed(executable),
+      onNone: () => constructDefault,
+    }),
+  )
+  const makeLayer = (
+    constructor: Effect.Effect<any, any, any>,
+  ): Layer.Layer<any, any, any> => {
+    const rawLayer = declared.makeLayer(constructor)
+    const graphLayer =
+      selectedHandlers === undefined
+        ? rawLayer
+        : selectDeclaredLayerHandlers(
+            declared,
+            rawLayer,
+            selectedHandlers,
+            hostHandlers,
+          )
+
+    return Layer.fromBuildMemo((memoMap, scope) =>
+      Effect.gen(function* () {
+        const context = yield* Layer.buildWithMemoMap(
+          graphLayer,
+          memoMap,
+          scope,
+        )
+        const executable = yield* declared.contract.get.pipe(
+          Effect.provideContext(context),
+        )
+        const alias = authenticate(executable)
+
+        return Context.add(
+          Context.make(Result, alias),
+          ImplementationFacts,
+          alias,
+        )
+      }),
+    )
+  }
   const contract: object = Object.freeze({
+    ...(transport === 'Layer' ? definition : {}),
     ...members,
     owner: declared.contract.owner,
     Model: declared.contract.Model,
@@ -197,7 +298,8 @@ export const makeFamilyContractRuntime = (
     Message: declared.contract.Message,
     InMessage: declared.contract.InMessage,
     OutMessage: declared.contract.OutMessage,
-    get,
+    ...(transport === 'Recipe' ? { get } : {}),
+    ...(transport === 'Layer' ? { makeLayer } : {}),
     ...(Array.isReadonlyArrayEmpty(hostHandlers)
       ? {}
       : {
@@ -217,10 +319,73 @@ export const makeFamilyContractRuntime = (
                 hostHandlers,
                 handlers,
               },
+              transport,
             )
           },
         }),
   })
+  if (transport === 'Layer') {
+    registerDeclaredLayerReader(
+      contract,
+      Effect.map(Result, executable => acquisitionOf(executable).block),
+      Result,
+    )
+    registerDeclaredLayerSelection(contract, selectedLayer => {
+      const Selected = Context.Service<object>(
+        `foldkit/FamilySelection/${nextResult++}`,
+      )
+      const selectedConstruction = Layer.fromBuildMemo((memoMap, scope) =>
+        Effect.gen(function* () {
+          const selectedContext = yield* Layer.buildWithMemoMap(
+            selectedLayer,
+            memoMap,
+            scope,
+          )
+          const maybeExact = Context.getOption(selectedContext, Result)
+          const maybeShared = Context.getOption(
+            selectedContext,
+            implementationKey,
+          )
+          const executable = yield* Option.match(maybeExact, {
+            onSome: executable => Effect.succeed(executable),
+            onNone: () =>
+              Option.match(maybeShared, {
+                onSome: implementation =>
+                  Effect.provideService(
+                    constructDefault,
+                    implementationKey,
+                    implementation,
+                  ),
+                onNone: () =>
+                  Effect.die(
+                    new Error(
+                      '[foldkit] The selected family Layer does not provide this Block specialization or its universal implementation.',
+                    ),
+                  ),
+              }),
+          })
+          const acquired = acquisitionOf(executable)
+
+          if (acquired.descriptor !== contract || !acquired.isCurrent()) {
+            throw new Error(
+              '[foldkit] The selected family Layer must provide the current original Block specialization.',
+            )
+          }
+
+          return Context.add(selectedContext, Selected, executable)
+        }),
+      )
+
+      return {
+        layer: selectedConstruction,
+        read: Effect.map(
+          Selected,
+          executable => acquisitionOf(executable).block,
+        ),
+        readForTesting: Selected,
+      }
+    })
+  }
   registerDeclaredDescriptor(
     contract,
     () => get,

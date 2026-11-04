@@ -10,6 +10,7 @@ import {
   ApplicationRoute,
   Message,
   Model,
+  layer,
   viewTransition,
 } from './application'
 
@@ -29,7 +30,7 @@ const FILTER_PLACEHOLDER = 'Filter by title or medium…'
 describe('gallery', () => {
   it.effect('renders a card for every artwork', () =>
     Scene.scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       Scene.given(gallery),
       Scene.expect(Scene.text('Dawn Chorus')).toExist(),
       Scene.expect(Scene.text('Deep Water')).toExist(),
@@ -39,7 +40,7 @@ describe('gallery', () => {
 
   it.effect('typing in the filter narrows the grid', () =>
     Scene.scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       Scene.given(gallery),
       Scene.type(Scene.placeholder(FILTER_PLACEHOLDER), 'graphite'),
       Scene.expect(Scene.text('Graphite')).toExist(),
@@ -49,7 +50,7 @@ describe('gallery', () => {
 
   it.effect('a filter with no matches shows the empty state', () =>
     Scene.scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       Scene.given(gallery),
       Scene.type(Scene.placeholder(FILTER_PLACEHOLDER), 'watercolor'),
       Scene.expect(Scene.text('No artworks match the filter.')).toExist(),
@@ -60,7 +61,7 @@ describe('gallery', () => {
 describe('artwork detail', () => {
   it.effect('renders the artwork with its description and a back link', () =>
     Scene.scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       Scene.given(artworkDetail(2)),
       Scene.expect(Scene.text('Deep Water')).toExist(),
       Scene.expect(Scene.role('link', { name: '← Back to gallery' })).toExist(),
@@ -69,7 +70,7 @@ describe('artwork detail', () => {
 
   it.effect('renders a missing state for an unknown artwork ID', () =>
     Scene.scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       Scene.given(artworkDetail(999)),
       Scene.expect(Scene.text('Artwork not found')).toExist(),
     ),
@@ -79,7 +80,7 @@ describe('artwork detail', () => {
 describe('not found', () => {
   it.effect('renders the missing path', () =>
     Scene.scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       Scene.given(notFound),
       Scene.expect(Scene.text('Page not found')).toExist(),
     ),

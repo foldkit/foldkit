@@ -1,10 +1,11 @@
 import { Effect, Layer } from 'effect'
 import { Server } from 'foldkit/experimental'
+import { withBlock } from 'foldkit/story'
 
 import { revision, subscriptions } from './declarations'
-import { ApplicationDefinition, Model } from './definition'
+import { ApplicationBlock, Model } from './definition'
 
-const composition = ApplicationDefinition.makeComposition()
+const composition = ApplicationBlock.makeComposition()
 
 const init = composition.makeInit(() => ({
   model: Model.make({ isTicking: false }),
@@ -13,7 +14,7 @@ const update = composition.makeUpdate({
   Ticked: model => ({ model }),
   CompletedLoadPreferences: model => ({ model }),
 })
-const block = ApplicationDefinition.makeBlock(
+const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -27,12 +28,9 @@ const block = ApplicationDefinition.makeBlock(
 
 export const renderPage = async (): Promise<Server.EntryResult> => {
   await Effect.runPromise(
-    Effect.scoped(
-      Effect.gen(function* () {
-        const application = yield* block.get
-        yield* Layer.build(application.EffectsLayer)
-      }),
-    ).pipe(Effect.provide(block.layer)),
+    withBlock({ block: ApplicationBlock, layer }, application =>
+      Effect.asVoid(Layer.build(application.EffectsLayer)),
+    ),
   )
 
   return Server.Responded(new Response(`revision ${revision}`))

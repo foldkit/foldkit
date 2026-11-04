@@ -2,12 +2,12 @@
 import { Update } from 'foldkit'
 
 import {
-  ApplicationDefinition,
+  ApplicationBlock,
   DialogBinding,
   SelectionBinding,
 } from './composition'
 
-export const finishEditing = ApplicationDefinition.makeStep(() =>
+export const finishEditing = ApplicationBlock.makeStep(() =>
   Update.combineSteps([
     DialogBinding.requestClose(),
     SelectionBinding.requestClear(),

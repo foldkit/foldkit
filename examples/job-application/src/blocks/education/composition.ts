@@ -2,33 +2,30 @@ import { Array } from 'effect'
 import type { Block } from 'foldkit'
 
 import { EducationEntryBlock } from './blocks/educationEntry'
-import { EducationDefinition, makeFieldsStep } from './definition'
+import { EducationBlock, makeFieldsStep } from './definition'
 
 const foldEntryOutMessage = (entryId: string) =>
-  EducationDefinition.makeOutMessageFold(EducationEntryBlock, {
+  EducationBlock.makeOutMessageFold(EducationEntryBlock, {
     Removed: () =>
       makeFieldsStep(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
       })),
   })
 
-export const EntriesBinding = EducationDefinition.makeBinding(
-  EducationEntryBlock,
-  {
-    field: 'entries',
-    key: 'id',
-    init: {
-      instances: ({ initialEntryId }) => [
-        { key: initialEntryId, args: [initialEntryId] },
-      ],
-      toItem: (_occurrence, entry) => entry,
-    },
+export const EntriesBinding = EducationBlock.makeBinding(EducationEntryBlock, {
+  field: 'entries',
+  key: 'id',
+  init: {
+    instances: ({ initialEntryId }) => [
+      { key: initialEntryId, args: [initialEntryId] },
+    ],
+    toItem: (_occurrence, entry) => entry,
   },
-).withOutMessagePolicy({
+}).withOutMessagePolicy({
   fold: (entryId, outMessage) => foldEntryOutMessage(entryId)(outMessage),
 })
 
-export const EducationComposition = EducationDefinition.makeComposition({
+export const EducationComposition = EducationBlock.makeComposition({
   bindings: [EntriesBinding],
 })
 export type EducationViewBuilder = Block.ViewBuilderFor<

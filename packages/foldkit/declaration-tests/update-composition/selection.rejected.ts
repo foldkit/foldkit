@@ -7,7 +7,7 @@ import {
   EditorBinding,
   makeUpdate,
 } from './composition.js'
-import { ApplicationDefinition } from './definition.js'
+import { ApplicationBlock } from './definition.js'
 import type { ChannelsOf, PlanOutput } from './types.js'
 import { editDocument, update } from './update.js'
 
@@ -32,7 +32,7 @@ const init = ApplicationComposition.makeInit(() => ({
   model: { title: '', editCount: 0, dispatchCount: 0 },
 }))
 // @ts-expect-error A focused bundle is not a complete executable update.
-ApplicationDefinition.makeBlock(
+ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const editor = yield* EditorBinding
 

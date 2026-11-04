@@ -6,7 +6,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { LoadCatalog, LoadPainting, SaveDraft } from './command'
 import { Message } from './message'
 import { Model, PaintingStatus } from './model'
@@ -33,7 +33,7 @@ describe('init', () => {
     'a cold load into the gallery logs the transition and loads the catalog',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         init(urlOrThrow('http://localhost/gallery')),
         model(model => {
           expect(model.route._tag).toBe('Gallery')
@@ -50,7 +50,7 @@ describe('init', () => {
 
   it.effect('a cold load into the home route loads nothing', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       init(urlOrThrow('http://localhost/')),
       model(model => {
         expect(model.route._tag).toBe('Home')
@@ -67,7 +67,7 @@ describe('update', () => {
     'entering the gallery loads the catalog and logs the transition',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modelOn(ApplicationRoute.Home())),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery') }),
@@ -89,7 +89,7 @@ describe('update', () => {
     're-entering the gallery while a catalog load is in flight does not fire another',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(modelOn(ApplicationRoute.Home()), {
             catalogStatus: () => 'Loading',
@@ -109,7 +109,7 @@ describe('update', () => {
     'entering a painting loads it with the payload from the route',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modelOn(ApplicationRoute.Gallery())),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery/3') }),
@@ -134,7 +134,7 @@ describe('update', () => {
 
   it.effect('staying on the painting route with a new id refetches', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(modelOn(ApplicationRoute.Painting({ paintingId: 1 })), {
           paintingStatus: () => PaintingStatus.Ready({ paintingId: 1 }),
@@ -170,7 +170,7 @@ describe('update', () => {
     'staying on the painting route with the same id does not refetch',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(modelOn(ApplicationRoute.Painting({ paintingId: 1 })), {
             paintingStatus: () => PaintingStatus.Ready({ paintingId: 1 }),
@@ -190,7 +190,7 @@ describe('update', () => {
 
   it.effect('a stale painting response for another id is ignored', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(modelOn(ApplicationRoute.Painting({ paintingId: 2 })), {
           paintingStatus: () => PaintingStatus.Loading({ paintingId: 2 }),
@@ -207,7 +207,7 @@ describe('update', () => {
 
   it.effect('leaving the studio saves the draft', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(modelOn(ApplicationRoute.Studio()), {
           studioDraft: () => 'half-finished thought',
@@ -229,7 +229,7 @@ describe('update', () => {
 
   it.effect('leaving the studio with an empty draft saves nothing', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelOn(ApplicationRoute.Studio())),
       message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
       Command.expectNone(),

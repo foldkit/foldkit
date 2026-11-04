@@ -40,22 +40,19 @@ export type OutMessage = typeof OutMessage.Type
 
 export const WorkHistoryEntryKey = Symbol('WorkHistoryEntry')
 
-export const WorkHistoryEntryDefinition = Block.makeDefinition(
-  'WorkHistoryEntry',
-  {
-    key: WorkHistoryEntryKey,
-    Init: Schema.Tuple([Schema.String, CalendarDate]),
-    view: { kind: 'Element' },
-    Model,
-    Message,
-    InMessage,
-    OutMessage,
-    ChildInitContext: Schema.Struct({
-      entryId: Schema.String,
-      today: CalendarDate,
-    }),
-  },
-)
+export const WorkHistoryEntryBlock = Block.make('WorkHistoryEntry', {
+  key: WorkHistoryEntryKey,
+  Init: Schema.Tuple([Schema.String, CalendarDate]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+  ChildInitContext: Schema.Struct({
+    entryId: Schema.String,
+    today: CalendarDate,
+  }),
+})
 
 export const { makeFieldsStep, makeOutMessageStep, makeNoopStep } =
-  WorkHistoryEntryDefinition
+  WorkHistoryEntryBlock

@@ -3,10 +3,10 @@ import { Dom } from 'foldkit'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
 import { RoomsClient } from '../../rpc'
-import { HomeDefinition } from './definition'
+import { HomeBlock } from './definition'
 import { Message } from './message'
 
-export const CreateRoom = HomeDefinition.makeCommand('CreateRoom', {
+export const CreateRoom = HomeBlock.makeCommand('CreateRoom', {
   args: { username: Schema.String },
   messages: [Message.SucceededCreateRoom, Message.FailedCreateRoom],
   handler: function* () {
@@ -24,7 +24,7 @@ export const CreateRoom = HomeDefinition.makeCommand('CreateRoom', {
   },
 })
 
-export const JoinRoomFromHome = HomeDefinition.makeCommand('JoinRoomFromHome', {
+export const JoinRoomFromHome = HomeBlock.makeCommand('JoinRoomFromHome', {
   args: { username: Schema.String, roomId: Schema.String },
   messages: [Message.SucceededJoinRoomFromHome, Message.FailedJoinRoomFromHome],
   handler: function* () {
@@ -44,21 +44,18 @@ export const JoinRoomFromHome = HomeDefinition.makeCommand('JoinRoomFromHome', {
   },
 })
 
-export const FocusUsernameInput = HomeDefinition.makeCommand(
-  'FocusUsernameInput',
-  {
-    messages: [Message.CompletedFocusUsernameInput],
-    handler: function* () {
-      return () =>
-        Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusUsernameInput()),
-        )
-    },
+export const FocusUsernameInput = HomeBlock.makeCommand('FocusUsernameInput', {
+  messages: [Message.CompletedFocusUsernameInput],
+  handler: function* () {
+    return () =>
+      Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusUsernameInput()),
+      )
   },
-)
+})
 
-export const FocusRoomIdInput = HomeDefinition.makeCommand('FocusRoomIdInput', {
+export const FocusRoomIdInput = HomeBlock.makeCommand('FocusRoomIdInput', {
   messages: [Message.CompletedFocusRoomIdInput],
   handler: function* () {
     return () =>

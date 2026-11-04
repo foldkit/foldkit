@@ -17,6 +17,8 @@ import { Message } from './message'
 import { type Model, SnippetSize } from './model'
 import { MeasureSnippetHeight } from './mount'
 
+const snippetDisclosureSubject = { block: SnippetDisclosureBlock, layer }
+
 const snippetId = 'counter-example'
 const shortCode = 'const count = 0'
 const longCode = pipe(
@@ -24,7 +26,7 @@ const longCode = pipe(
   Array.join('\n'),
 )
 
-const makeFixture = (block: TestBlock<typeof SnippetDisclosureBlock>) => {
+const makeFixture = (block: TestBlock<typeof snippetDisclosureSubject>) => {
   const init = block.init
   const update = block.update
   const view = block.view
@@ -32,7 +34,7 @@ const makeFixture = (block: TestBlock<typeof SnippetDisclosureBlock>) => {
     (rawCode: string) =>
     (
       model: Model,
-      h: Parameters<TestBlock<typeof SnippetDisclosureBlock>['view']>[2],
+      h: Parameters<TestBlock<typeof snippetDisclosureSubject>['view']>[2],
     ) =>
       view(
         model,
@@ -48,7 +50,7 @@ const makeFixture = (block: TestBlock<typeof SnippetDisclosureBlock>) => {
       )
   const groupedView = (
     model: Model,
-    h: Parameters<TestBlock<typeof SnippetDisclosureBlock>['view']>[2],
+    h: Parameters<TestBlock<typeof snippetDisclosureSubject>['view']>[2],
   ) => {
     return h.div(
       [],
@@ -88,7 +90,7 @@ const makeFixture = (block: TestBlock<typeof SnippetDisclosureBlock>) => {
 describe('snippet disclosure', () => {
   test('shows and hides the full code', async () => {
     await Effect.runPromise(
-      withBlock(SnippetDisclosureBlock, executable => {
+      withBlock(snippetDisclosureSubject, executable => {
         const { init, update, testView } = makeFixture(executable)
 
         scene(
@@ -112,13 +114,13 @@ describe('snippet disclosure', () => {
           click(role('button', { name: 'Hide code' })),
           expect(role('button', { name: 'Show code' })).toExist(),
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('does not offer to expand code that fits', async () => {
     await Effect.runPromise(
-      withBlock(SnippetDisclosureBlock, executable => {
+      withBlock(snippetDisclosureSubject, executable => {
         const { init, update, testView } = makeFixture(executable)
 
         scene(
@@ -134,13 +136,13 @@ describe('snippet disclosure', () => {
           expect(role('button', { name: 'Show code' })).not.toExist(),
           expect(role('button', { name: 'Hide code' })).not.toExist(),
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('shares open state across snippets in one disclosure group', async () => {
     await Effect.runPromise(
-      withBlock(SnippetDisclosureBlock, executable => {
+      withBlock(snippetDisclosureSubject, executable => {
         const { init, update, groupedView } = makeFixture(executable)
 
         scene(
@@ -185,7 +187,7 @@ describe('snippet disclosure', () => {
             ),
           ).toExist(),
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 })

@@ -9,7 +9,7 @@ import {
   story,
 } from 'foldkit/story'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 // Set the initial Model.
 given(model)
@@ -71,7 +71,7 @@ expectOutMessage(SucceededLogin({ session }))
 // Run the scoped Story. Every pending Command must be resolved.
 await Effect.runPromise(
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(model),
     message(ClickedSubmit()),
     Command.expectHas(FetchData),

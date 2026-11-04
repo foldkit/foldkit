@@ -9,7 +9,7 @@ import { ViewInputs } from './viewInputs'
 
 export const CommandPaletteKey = Symbol('CommandPalette')
 
-export const CommandPaletteDefinition = Block.makeDefinition('CommandPalette', {
+export const CommandPaletteBlock = Block.make('CommandPalette', {
   key: CommandPaletteKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: ViewInputs },
@@ -19,8 +19,6 @@ export const CommandPaletteDefinition = Block.makeDefinition('CommandPalette', {
   OutMessage,
 })
 
-export const CommandPaletteBlock = CommandPaletteDefinition.contract
-
 export const {
   makeStep,
   makeFieldsStep,
@@ -28,4 +26,4 @@ export const {
   makeBinding,
   makeOutMessageFold,
   makeComposition,
-} = CommandPaletteDefinition
+} = CommandPaletteBlock

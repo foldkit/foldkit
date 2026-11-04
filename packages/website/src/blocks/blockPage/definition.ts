@@ -7,7 +7,7 @@ import type { ViewInputs } from './viewInputs'
 
 export const BlockPageKey = Symbol('BlockPage')
 
-export const BlockPageDefinition = Block.makeDefinition('BlockPage', {
+export const BlockPageBlock = Block.make('BlockPage', {
   key: BlockPageKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
@@ -15,4 +15,4 @@ export const BlockPageDefinition = Block.makeDefinition('BlockPage', {
   Message,
 })
 
-export const { makeFieldsStep } = BlockPageDefinition
+export const { makeFieldsStep } = BlockPageBlock

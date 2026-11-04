@@ -48,7 +48,7 @@ Values the app announces to the host leave through an outbound Port, written fro
 
 ::Snippet{name="embeddingOutboundCommand" label="Outbound Command"}
 
-The feature Definition’s `makeStep` retains the helper’s Command requirements. Return `EffectsLayer: ReportCount.layer` from `FeatureDefinition.makeBlock`. The Element host acquires that implementation and its child graph under the host lifetime.
+The feature Block’s `makeStep` retains the helper’s Command requirements. Return `EffectsLayer: ReportCount.layer` from `FeatureBlock.makeLayer`. The Element host acquires that implementation and its child graph under the host lifetime.
 
 When the program runs without an embed handle (started with `Runtime.run`), emitting is a no-op, so the same app works embedded and standalone.
 

@@ -60,7 +60,7 @@ export type InMessage = typeof InMessage.Type
 
 export const PlaygroundKey = Symbol('Playground')
 
-export const PlaygroundDefinition = Block.makeDefinition('Playground', {
+export const PlaygroundBlock = Block.make('Playground', {
   key: PlaygroundKey,
   Init: Schema.Tuple([
     Schema.String,
@@ -72,4 +72,4 @@ export const PlaygroundDefinition = Block.makeDefinition('Playground', {
   InMessage,
 })
 
-export const { makeFieldsStep, makeNoopStep } = PlaygroundDefinition
+export const { makeFieldsStep, makeNoopStep } = PlaygroundBlock

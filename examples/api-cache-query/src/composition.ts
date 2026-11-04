@@ -1,19 +1,19 @@
 import { Match } from 'effect'
 import { type Block, Update } from 'foldkit'
 
-import { ApplicationDefinition, makeFieldsStep, makeStep } from './definition'
+import { ApplicationBlock, makeFieldsStep, makeStep } from './definition'
 import { AppTabsBlock, TABS_ID, type Tab } from './model'
 import { postQuery, postsQuery, statsQuery } from './query'
 
-export const PostsBinding = ApplicationDefinition.makeBinding(postsQuery, {
+export const PostsBinding = ApplicationBlock.makeBinding(postsQuery, {
   field: 'posts',
 })
 
-export const StatsBinding = ApplicationDefinition.makeBinding(statsQuery, {
+export const StatsBinding = ApplicationBlock.makeBinding(statsQuery, {
   field: 'stats',
 })
 
-export const PostDetailsBinding = ApplicationDefinition.makeBinding(postQuery, {
+export const PostDetailsBinding = ApplicationBlock.makeBinding(postQuery, {
   field: 'postDetails',
 })
 
@@ -31,16 +31,16 @@ const activateTab = (tab: Tab) => {
   return makeStep(() => Update.combineSteps([selectTab, loadTab]))
 }
 
-export const TabsBinding = ApplicationDefinition.makeBinding(AppTabsBlock, {
+export const TabsBinding = ApplicationBlock.makeBinding(AppTabsBlock, {
   field: 'tabs',
   init: { contextToArgs: () => [{ id: TABS_ID }] },
 }).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(AppTabsBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(AppTabsBlock, {
     Selected: ({ value }) => activateTab(value),
   }),
 })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [TabsBinding, PostsBinding, StatsBinding, PostDetailsBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

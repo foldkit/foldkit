@@ -1,19 +1,22 @@
-export { SlowPhase, defaultSlowCallback, embed, hydrate, run } from './index.js'
-
+export { SlowPhase, defaultSlowCallback } from './slowPhase.js'
+export { embed, hydrate, run } from './start.js'
+export type { RoutingConfig } from './browserListeners.js'
 export type {
-  RoutingConfig,
   CrashConfig,
   CrashContext,
   ElementCrashConfig,
+} from './crashUI.js'
+export type {
   EmbedHandle,
-  HydrateOptions,
   InboundPortHandle,
   InboundPortHandles,
   OutboundPortHandle,
   OutboundPortHandles,
   PortHandles,
-  RunOptions,
-  Visibility,
+} from './hostConnector.js'
+export type { HydrateOptions, RunOptions } from './start.js'
+export type { Visibility } from './visibility.js'
+export type {
   SlowConfig,
   SlowContext,
   SlowPatchContext,
@@ -21,11 +24,15 @@ export type {
   SlowThresholdOverrides,
   SlowUpdateContext,
   SlowViewContext,
+} from './slowPhase.js'
+export type {
   DevToolsConfig,
   DevToolsMode,
   DevToolsModeConfig,
   DevToolsPosition,
+} from './devToolsConfig.js'
+export type {
   ViewTransitionConfig,
   ViewTransitionContext,
   ViewTransitionDecision,
-} from './index.js'
+} from './viewTransition.js'

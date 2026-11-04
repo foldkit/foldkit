@@ -4,14 +4,14 @@ import { layer as DialogLayer } from '@foldkit/ui/dialog'
 
 import { ScrollActiveResult } from './command'
 import { DialogBinding } from './composition'
-import { CommandPaletteDefinition } from './definition'
+import { CommandPaletteBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const CommandPaletteImplementation = CommandPaletteDefinition.makeBlock(
+export const layer = CommandPaletteBlock.makeLayer(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
 
@@ -28,6 +28,6 @@ export const CommandPaletteImplementation = CommandPaletteDefinition.makeBlock(
       ),
     }
   }),
-).provide(DialogLayer)
+).pipe(Layer.provide(DialogLayer))
 
-export const layer = CommandPaletteImplementation.layer
+export { CommandPaletteBlock } from './definition'

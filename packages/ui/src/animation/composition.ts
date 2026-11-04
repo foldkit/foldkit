@@ -1,4 +1,4 @@
-import { AnimationDefinition } from './definition.js'
+import { AnimationBlock } from './definition.js'
 
 /** @internal Animation relationship and view inventory. */
-export const AnimationComposition = AnimationDefinition.makeComposition()
+export const AnimationComposition = AnimationBlock.makeComposition()

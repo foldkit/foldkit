@@ -2,9 +2,9 @@
 
 ## Overview
 
-A Block-aware `scene(Block, init(...args), ...steps)` returns an Effect that acquires and scopes the implementation graph. Supply the feature's construction Layer through ordinary test Layers. A checked application descriptor carries its selected default Layer. Use `given(model)` for an existing Model, and pass `{ block, viewInputs, updateContext, routing }` when the view or test requires those inputs. Handler Services are unnecessary for pure Scenes because handlers do not run.
+A Block-aware `scene({ block: FeatureBlock, layer }, init(...args), ...steps)` returns an Effect that acquires and scopes the implementation graph. The selected Layer supplies the feature's construction providers. Use `given(model)` for an existing Model, and pass `{ block, layer, viewInputs, updateContext, routing }` when the view or test requires those inputs. Handler Services are unnecessary for pure Scenes because handlers do not run.
 
-In Vitest, return the Scene Effect from `it.effect` in `@effect/vitest`. The integration owns execution and test cleanup, so normal tests need no `Effect.runPromise` wrapper or manual extraction of update and view. Use `init` and explicit Command resolution for startup scenarios. A selected application descriptor supplies its own construction Layer; add test Layers for the construction dependencies the test actually needs.
+In Vitest, return the Scene Effect from `it.effect` in `@effect/vitest`. The integration owns execution and test cleanup, so normal tests need no `Effect.runPromise` wrapper or manual extraction of update and view. Use `init` and explicit Command resolution for startup scenarios. Provide test Layers for any remaining construction dependencies through ordinary `Effect.provide`.
 
 Use `withBlock` for an advanced fixture that needs acquired pure functions or a custom test view. Keep the Scope alive throughout the test.
 
@@ -285,7 +285,7 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 | `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                         |
 | `Mount.expectEnded(A)`                        | A's element was removed or replaced. Required for every Mount that fired before its element was removed or replaced, regardless of whether it was resolved first; otherwise the scene throws at the end.                             |
 
-UI components expose their Mount Definitions as `Popover.test.AnchorPopover`, `Listbox.test.AnchorListbox`, and so on. These are the original declarations, so source-identity matching survives placement-qualified runtime names. The [testing migration cookbook](/testing#migrate-an-existing-test-suite) shows the completed Block and public test namespace together.
+UI components expose their Mount Definitions as `Popover.test.AnchorPopover`, `Listbox.test.AnchorListbox`, and so on. These are the original declarations, so source-identity matching survives placement-qualified runtime names. The [testing migration cookbook](/testing#migrate-an-existing-test-suite) shows the public Block contract and test namespace together.
 
 ### Stream Mount emissions
 

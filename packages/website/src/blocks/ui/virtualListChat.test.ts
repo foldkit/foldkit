@@ -20,6 +20,8 @@ import {
   VirtualListChatHistoryModeGroupBinding,
 } from './virtualListChat'
 
+const uiSubject = { block: UiBlock, layer }
+
 type ChatVirtualListBlockMessage = typeof ChatVirtualListBlock.Message.Type
 
 const olderMessages = (beforeId: number, count: number) =>
@@ -28,7 +30,7 @@ const olderMessages = (beforeId: number, count: number) =>
     return { id, body: `Older message ${id}`, isExpanded: false }
   })
 
-const makeFixture = (block: TestBlock<typeof UiBlock>) => {
+const makeFixture = (block: TestBlock<typeof uiSubject>) => {
   const init = block.init
   const update = block.update
   const toParentMessage = toParentMessageFor(block)
@@ -56,7 +58,7 @@ const makeFixture = (block: TestBlock<typeof UiBlock>) => {
 
 test('waits for the loaded-start OutMessage and ignores repeated requests while loading', async () => {
   await Effect.runPromise(
-    withBlock(UiBlock, executable => {
+    withBlock(uiSubject, executable => {
       const { update, chatMessage, initialModel } = makeFixture(executable)
 
       const initial = initialModel()
@@ -104,13 +106,13 @@ test('waits for the loaded-start OutMessage and ignores repeated requests while 
 
       expect(repeated.model).toEqual(requested.model)
       expect(repeated.commands ?? []).toEqual([])
-    }).pipe(Effect.provide(layer)),
+    }),
   )
 })
 
 test('prepends a loaded page without a scroll Command and announces it when scrolling ends', async () => {
   await Effect.runPromise(
-    withBlock(UiBlock, executable => {
+    withBlock(uiSubject, executable => {
       const { update, chatMessage, initialModel } = makeFixture(executable)
 
       const requested = update(
@@ -150,13 +152,13 @@ test('prepends a loaded page without a scroll Command and announces it when scro
       )
 
       expect(ended.model.virtualListChatAnnouncedOlderCount).toBe(64)
-    }).pipe(Effect.provide(layer)),
+    }),
   )
 })
 
 test('removes the finite history buffer with the final page and stops fetching', async () => {
   await Effect.runPromise(
-    withBlock(UiBlock, executable => {
+    withBlock(uiSubject, executable => {
       const { update, chatMessage, selectHistoryMode, initialModel } =
         makeFixture(executable)
 
@@ -195,13 +197,13 @@ test('removes the finite history buffer with the final page and stops fetching',
 
       expect(approached.model).toEqual(completed.model)
       expect(approached.commands ?? []).toEqual([])
-    }).pipe(Effect.provide(layer)),
+    }),
   )
 })
 
 test('ignores a delayed page after changing history mode and resetting the conversation', async () => {
   await Effect.runPromise(
-    withBlock(UiBlock, executable => {
+    withBlock(uiSubject, executable => {
       const { update, selectHistoryMode, initialModel } =
         makeFixture(executable)
 
@@ -234,13 +236,13 @@ test('ignores a delayed page after changing history mode and resetting the conve
         'Unbounded',
       )
       expect(completed.commands ?? []).toEqual([])
-    }).pipe(Effect.provide(layer)),
+    }),
   )
 })
 
 test('ignores programmatic initial scroll completion when deciding to load history', async () => {
   await Effect.runPromise(
-    withBlock(UiBlock, executable => {
+    withBlock(uiSubject, executable => {
       const { update, chatMessage, initialModel } = makeFixture(executable)
 
       const initial = initialModel()
@@ -267,6 +269,6 @@ test('ignores programmatic initial scroll completion when deciding to load histo
       expect(completed.model.virtualListChatDemo.scrollTop).toBe(20)
       expect(completed.model.virtualListChatHistoryLoad._tag).toBe('Idle')
       expect(completed.model.virtualListChatMessages).toHaveLength(24)
-    }).pipe(Effect.provide(layer)),
+    }),
   )
 })

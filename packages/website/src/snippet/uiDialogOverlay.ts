@@ -41,9 +41,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const FilterDialogKey = Symbol('FilterDialog')
+export const FilterDialogKey = Symbol('FilterDialog')
 
-const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
+export const FilterDialogBlock = Block.make('FilterDialog', {
   key: FilterDialogKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -51,18 +51,15 @@ const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = FilterDialogDefinition
+const { makeFieldsStep, makeNoopStep } = FilterDialogBlock
 
-const foldDialogOutMessage = FilterDialogDefinition.makeOutMessageFold(
-  DialogBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-    CompletedClose: makeNoopStep,
-  },
-)
+const foldDialogOutMessage = FilterDialogBlock.makeOutMessageFold(DialogBlock, {
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
+  CompletedClose: makeNoopStep,
+})
 
-const foldComboboxOutMessage = FilterDialogDefinition.makeOutMessageFold(
+const foldComboboxOutMessage = FilterDialogBlock.makeOutMessageFold(
   CityCombobox,
   {
     Selected: ({ value }) =>
@@ -73,17 +70,17 @@ const foldComboboxOutMessage = FilterDialogDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = FilterDialogDefinition.makeBinding(DialogBlock, {
+const DialogBinding = FilterDialogBlock.makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'edit-filters' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const ComboboxBinding = FilterDialogDefinition.makeBinding(CityCombobox, {
+const ComboboxBinding = FilterDialogBlock.makeBinding(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => [{ id: 'city' }] },
 }).withOutMessagePolicy({ fold: foldComboboxOutMessage })
 
-const FilterDialogComposition = FilterDialogDefinition.makeComposition({
+const FilterDialogComposition = FilterDialogBlock.makeComposition({
   bindings: [DialogBinding, ComboboxBinding],
 })
 
@@ -157,7 +154,7 @@ const view = FilterDialogComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = FilterDialogDefinition.makeBlock(
+export const layer = FilterDialogBlock.makeLayer(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
     const combobox = yield* ComboboxBinding
@@ -169,4 +166,4 @@ export const ApplicationBlock = FilterDialogDefinition.makeBlock(
       view,
     }
   }),
-).provide(Layer.mergeAll(DialogLayer, ComboboxLayer))
+).pipe(Layer.provide(Layer.mergeAll(DialogLayer, ComboboxLayer)))

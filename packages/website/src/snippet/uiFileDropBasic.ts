@@ -1,4 +1,4 @@
-import { Array, Effect, Schema } from 'effect'
+import { Array, Effect, Layer, Schema } from 'effect'
 import { Block, File } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -19,9 +19,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const FileDropExampleKey = Symbol('FileDropExample')
+export const FileDropExampleKey = Symbol('FileDropExample')
 
-const FileDropExampleDefinition = Block.makeDefinition('FileDropExample', {
+export const FileDropExampleBlock = Block.make('FileDropExample', {
   key: FileDropExampleKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -29,14 +29,14 @@ const FileDropExampleDefinition = Block.makeDefinition('FileDropExample', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = FileDropExampleDefinition
+const { makeFieldsStep, makeNoopStep } = FileDropExampleBlock
 
 // At module scope, fold the OutMessage FileDrop emits when files arrive (via
 // drop or input change) into your own Model. Each arm returns an Update.Step
 // over the parent Model, which already has the next FileDrop Model written
-// back. The parent Definition checks every named child variant and infers the
+// back. The parent Block checks every named child variant and infers the
 // parent Step from each handler:
-const foldFileDropOutMessage = FileDropExampleDefinition.makeOutMessageFold(
+const foldFileDropOutMessage = FileDropExampleBlock.makeOutMessageFold(
   FileDropBlock,
   {
     ReceivedFiles: ({ files }) =>
@@ -51,12 +51,12 @@ const foldFileDropOutMessage = FileDropExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const UploaderBinding = FileDropExampleDefinition.makeBinding(FileDropBlock, {
+const UploaderBinding = FileDropExampleBlock.makeBinding(FileDropBlock, {
   field: 'uploader',
   init: { contextToArgs: () => [{ id: 'uploader' }] },
 }).withOutMessagePolicy({ fold: foldFileDropOutMessage })
 
-const FileDropExampleComposition = FileDropExampleDefinition.makeComposition({
+const FileDropExampleComposition = FileDropExampleBlock.makeComposition({
   bindings: [UploaderBinding],
 })
 
@@ -104,7 +104,7 @@ const view = FileDropExampleComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = FileDropExampleDefinition.makeBlock(
+export const layer = FileDropExampleBlock.makeLayer(
   Effect.gen(function* () {
     const fileDrop = yield* UploaderBinding
 
@@ -115,4 +115,4 @@ export const ApplicationBlock = FileDropExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(FileDropLayer)
+).pipe(Layer.provide(FileDropLayer))

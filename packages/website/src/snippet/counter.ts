@@ -15,9 +15,9 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
@@ -25,7 +25,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 export const update = ApplicationComposition.makeUpdate({
   ClickedDecrement: model => ({
@@ -75,7 +75,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

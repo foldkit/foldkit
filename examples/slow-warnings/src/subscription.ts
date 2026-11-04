@@ -1,7 +1,7 @@
 import { Match, Option, Schema, Stream, pipe } from 'effect'
 import { type Block, Dom, Runtime } from 'foldkit'
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message } from './message'
 import { type Model, SlowWarningReport, Workload } from './model'
 import { SUBSCRIPTION_DEPENDENCIES_WORK_MS, burnCpu } from './workload'
@@ -13,7 +13,7 @@ const slowWarningTarget: Dom.TypedEventTarget<{
 }> = new EventTarget()
 
 type ApplicationMessage = Block.ExecutableOf<
-  typeof ApplicationDefinition.contract
+  typeof ApplicationBlock
 >['Message']['Type']
 type SlowContext = Runtime.SlowContext<Model, ApplicationMessage>
 
@@ -72,7 +72,7 @@ export const handleSlow = (context: SlowContext): void => {
   )
 }
 
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
+export const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
   slowWarningReports: entry('SlowWarningReports', {
     messages: [Message.RecordedSlowWarning],
     handler: function* () {

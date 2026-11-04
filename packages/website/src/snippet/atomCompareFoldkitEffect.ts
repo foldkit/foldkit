@@ -5,9 +5,9 @@ import { Api, ApiLayer } from './api'
 import { Message } from './message'
 import { Model } from './model'
 
-const TodoKey = Symbol('Todo')
+export const TodoKey = Symbol('Todo')
 
-const TodoDefinition = Block.makeDefinition('Todo', {
+const TodoBlock = Block.make('Todo', {
   key: TodoKey,
   Init: Schema.Tuple([]),
   Model,
@@ -17,7 +17,7 @@ const TodoDefinition = Block.makeDefinition('Todo', {
 // A side effect is a Command returned from update. It has a name, shows up
 // in DevTools next to the Message that produced it, and is assertable in
 // tests. Api is an Effect service; ApiLayer provides it.
-const CreateTodo = TodoDefinition.makeCommand('CreateTodo', {
+const CreateTodo = TodoBlock.makeCommand('CreateTodo', {
   args: { text: Schema.String },
   messages: [Message.SucceededCreateTodo, Message.FailedCreateTodo],
   handler: function* () {
@@ -34,7 +34,7 @@ const CreateTodo = TodoDefinition.makeCommand('CreateTodo', {
 // Here the global listener becomes a Subscription: an external event source
 // bound to a slice of the Model. The runtime subscribes and unsubscribes as
 // model.isDrawing changes. No addEventListener, no cleanup, no stale closure.
-export const subscriptions = TodoDefinition.makeSubscriptions(entry => ({
+export const subscriptions = TodoBlock.makeSubscriptions(entry => ({
   mouseReleases: entry(
     'MouseReleases',
     { isDrawing: Schema.Boolean },

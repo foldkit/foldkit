@@ -20,9 +20,9 @@ const AccountSettingsMessage = defineMessageUnion({
 })
 type AccountSettingsMessage = typeof AccountSettingsMessage.Type
 
-const AccountSettingsKey = Symbol('AccountSettings')
+export const AccountSettingsKey = Symbol('AccountSettings')
 
-const AccountSettingsDefinition = Block.makeDefinition('AccountSettings', {
+export const AccountSettingsBlock = Block.make('AccountSettings', {
   key: AccountSettingsKey,
   Init: Schema.Tuple([]),
   Context: Schema.Tuple([CurrentUser]),
@@ -31,7 +31,7 @@ const AccountSettingsDefinition = Block.makeDefinition('AccountSettings', {
   Message: AccountSettingsMessage,
 })
 
-const AccountSettingsComposition = AccountSettingsDefinition.makeComposition()
+const AccountSettingsComposition = AccountSettingsBlock.makeComposition()
 
 const accountSettingsInit = AccountSettingsComposition.makeInit(() => ({
   model: AccountSettingsModel.make({
@@ -52,9 +52,8 @@ const accountSettingsUpdate = AccountSettingsComposition.makeUpdate.withContext(
 const accountSettingsView = AccountSettingsComposition.makeView((model, h) =>
   h.p([], [`${model.theme}; audit: ${Array.join(model.auditTrail, ', ')}`]),
 )
-const AccountSettingsBlock = AccountSettingsDefinition.contract
 
-const layer = AccountSettingsDefinition.makeBlock(
+const layer = AccountSettingsBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -63,7 +62,7 @@ const layer = AccountSettingsDefinition.makeBlock(
       view: accountSettingsView,
     }
   }),
-).layer
+)
 
 const ProfileModel = Schema.Struct({
   currentUser: CurrentUser,
@@ -74,16 +73,16 @@ type ProfileModel = typeof ProfileModel.Type
 const ProfileMessage = defineMessageUnion({})
 type ProfileMessage = typeof ProfileMessage.Type
 
-const ProfileKey = Symbol('Profile')
+export const ProfileKey = Symbol('Profile')
 
-const ProfileDefinition = Block.makeDefinition('Profile', {
+const ProfileBlock = Block.make('Profile', {
   key: ProfileKey,
   Init: Schema.Tuple([]),
   Model: ProfileModel,
   Message: ProfileMessage,
 })
 
-export const AccountSettingsBinding = ProfileDefinition.makeBinding(
+export const AccountSettingsBinding = ProfileBlock.makeBinding(
   AccountSettingsBlock,
   {
     field: 'accountSettings',
@@ -93,6 +92,6 @@ export const AccountSettingsBinding = ProfileDefinition.makeBinding(
   },
 )
 
-export const ProfileComposition = ProfileDefinition.makeComposition({
+export const ProfileComposition = ProfileBlock.makeComposition({
   bindings: [AccountSettingsBinding],
 })

@@ -25,7 +25,7 @@ export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
@@ -33,9 +33,9 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const { makeFieldsStep } = ApplicationDefinition
+const { makeFieldsStep } = ApplicationBlock
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -328,7 +328,7 @@ const previewView = (model: Model, h: ApplicationViewBuilder): Html => {
   )
 }
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

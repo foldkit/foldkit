@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   Command,
   Mount,
@@ -74,7 +74,7 @@ describe('Issue Detail view', () => {
         maybeAssigneeId: () => Option.none(),
       })
       return scene(
-        { block: IssueDetailBlock, viewInputs },
+        { block: IssueDetailBlock, layer, viewInputs },
         init(issue),
         expect(label('Assignee')).toHaveText('Maya Chen'),
         ...selectField('Assignee', 'Unassigned'),
@@ -100,7 +100,7 @@ describe('Issue Detail view', () => {
         ),
         expect(label('Assignee')).toHaveText('Unassigned'),
         expect(role('button', { name: 'Retry save' })).toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -116,7 +116,7 @@ describe('Issue Detail view', () => {
         createdAt: '2026-10-22T14:30:00.000Z',
       }
       return scene(
-        { block: IssueDetailBlock, viewInputs },
+        { block: IssueDetailBlock, layer, viewInputs },
         init(issue),
         type(label('Issue title'), draftTitle),
         type(label('Write a comment'), comment.body),
@@ -133,7 +133,7 @@ describe('Issue Detail view', () => {
         expectOutMessage(
           OutMessage.AddedComment({ issueId: issue.id, comment }),
         ),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -152,7 +152,7 @@ describe('Issue Detail view', () => {
         version: version => version + 1,
       })
       return scene(
-        { block: IssueDetailBlock, viewInputs },
+        { block: IssueDetailBlock, layer, viewInputs },
         init(issue),
         type(label('Issue title'), title),
         type(label('Description'), savedIssueSnapshot.description),
@@ -218,7 +218,7 @@ describe('Issue Detail view', () => {
         ),
         expect(role('status')).toContainText('All changes saved'),
         expect(role('button', { name: 'Save changes' })).toBeDisabled(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 })

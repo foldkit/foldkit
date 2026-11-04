@@ -64,12 +64,12 @@ import {
   VirtualListVariableDemoBinding,
 } from './composition'
 import { AnimationDemoBinding } from './composition/animation'
-import { UiDefinition } from './definition'
+import { UiBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
 
-export const layer = UiDefinition.makeBlock(
+export const layer = UiBlock.makeLayer(
   Effect.gen(function* () {
     const mobileMenuDialog = yield* MobileMenuDialogBinding
     const comboboxDemo = yield* ComboboxDemoBinding
@@ -156,26 +156,28 @@ export const layer = UiDefinition.makeBlock(
       inMessageUpdate,
     }
   }),
-).provide(
-  Layer.mergeAll(
-    AnimationLayer,
-    CalendarLayer,
-    ComboboxLayer,
-    DatePickerLayer,
-    DialogLayer,
-    DragAndDropLayer,
-    FileDropLayer,
-    HoverIntentLayer,
-    ListboxLayer,
-    MenuLayer,
-    PopoverLayer,
-    RadioGroupLayer,
-    SliderLayer,
-    TabsLayer,
-    ToastLayer,
-    TooltipLayer,
-    VirtualListLayer,
-    MultiCombobox.layer,
-    MultiListbox.layer,
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      AnimationLayer,
+      CalendarLayer,
+      ComboboxLayer,
+      DatePickerLayer,
+      DialogLayer,
+      DragAndDropLayer,
+      FileDropLayer,
+      HoverIntentLayer,
+      ListboxLayer,
+      MenuLayer,
+      PopoverLayer,
+      RadioGroupLayer,
+      SliderLayer,
+      TabsLayer,
+      ToastLayer,
+      TooltipLayer,
+      VirtualListLayer,
+      MultiCombobox.layer,
+      MultiListbox.layer,
+    ),
   ),
-).layer
+)

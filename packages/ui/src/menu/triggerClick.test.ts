@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
@@ -12,30 +12,27 @@ const TestMenu = makeBlock<string>()
 const Model = Schema.Struct({ menu: TestMenu.Model })
 type Model = typeof Model.Type
 const MenuTriggerClickTestKey = Symbol('MenuTriggerClickTest')
-const MenuTriggerClickTestDefinition = Block.makeDefinition(
-  'MenuTriggerClickTest',
-  {
-    key: MenuTriggerClickTestKey,
-    Model,
-    Message: Schema.Never,
-    Init: Schema.Tuple([]),
-    ChildInitContext: InitConfig,
-    view: { kind: 'Element' },
-  },
-)
-const foldMenuOutMessage = MenuTriggerClickTestDefinition.makeOutMessageFold(
+const MenuTriggerClickTestBlock = Block.make('MenuTriggerClickTest', {
+  key: MenuTriggerClickTestKey,
+  Model,
+  Message: Schema.Never,
+  Init: Schema.Tuple([]),
+  ChildInitContext: InitConfig,
+  view: { kind: 'Element' },
+})
+const foldMenuOutMessage = MenuTriggerClickTestBlock.makeOutMessageFold(
   TestMenu,
   {
-    Selected: () => MenuTriggerClickTestDefinition.makeNoopStep(),
-    Closed: () => MenuTriggerClickTestDefinition.makeNoopStep(),
+    Selected: () => MenuTriggerClickTestBlock.makeNoopStep(),
+    Closed: () => MenuTriggerClickTestBlock.makeNoopStep(),
   },
 )
-const MenuBinding = MenuTriggerClickTestDefinition.makeBinding(TestMenu, {
+const MenuBinding = MenuTriggerClickTestBlock.makeBinding(TestMenu, {
   field: 'menu',
   init: { contextToArgs: config => [config] },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 const MenuTriggerClickTestComposition =
-  MenuTriggerClickTestDefinition.makeComposition({
+  MenuTriggerClickTestBlock.makeComposition({
     bindings: [MenuBinding],
   })
 const view = MenuTriggerClickTestComposition.makeView((model, h) =>
@@ -62,18 +59,21 @@ const init = MenuTriggerClickTestComposition.makeInit(() => ({
   childInitContext: { id: 'actions', isModal: true },
 }))
 const update = MenuTriggerClickTestComposition.makeUpdate({})
-const ApplicationBlock = MenuTriggerClickTestDefinition.makeBlock(
-  Effect.gen(function* () {
-    const menu = yield* MenuBinding
+const ApplicationBlock = {
+  block: MenuTriggerClickTestBlock,
+  layer: MenuTriggerClickTestBlock.makeLayer(
+    Effect.gen(function* () {
+      const menu = yield* MenuBinding
 
-    return {
-      children: [menu],
-      init,
-      update,
-      view,
-    }
-  }),
-).provide(MenuLayer)
+      return {
+        children: [menu],
+        init,
+        update,
+        view,
+      }
+    }),
+  ).pipe(Layer.provide(MenuLayer)),
+}
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)
@@ -106,7 +106,7 @@ describe('Menu trigger click', () => {
     container.id = 'app'
     document.body.append(background, container)
     const handle = Runtime.embed(
-      Program.makeElement({ block: ApplicationBlock, container }),
+      Program.makeElement({ ...ApplicationBlock, container }),
     )
 
     try {

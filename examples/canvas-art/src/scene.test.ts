@@ -4,7 +4,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, type Model } from './application'
+import { ApplicationBlock, type Model, layer } from './application'
 
 const emptyModel: Model = {
   balls: [],
@@ -17,7 +17,7 @@ describe('view', () => {
     'initial view shows the heading, prompt, and Pause + Clear controls',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         expect(role('heading', { name: 'Canvas Art' })).toExist(),
         expect(text('Click the canvas to spawn a ball.')).toExist(),
@@ -29,7 +29,7 @@ describe('view', () => {
 
   it.effect('Pause toggles to Play when the simulation is stopped', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       click(role('button', { name: 'Pause' })),
       expect(role('button', { name: 'Play' })).toExist(),
@@ -48,7 +48,7 @@ describe('view', () => {
     })
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(populatedModel),
       expect(text('3 balls')).toExist(),
     )
@@ -63,7 +63,7 @@ describe('view', () => {
     })
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(populatedModel),
       expect(text('1 balls')).toExist(),
       click(role('button', { name: 'Clear' })),

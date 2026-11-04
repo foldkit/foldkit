@@ -52,21 +52,18 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const MessageListExampleKey = Symbol('MessageListExample')
+export const MessageListExampleKey = Symbol('MessageListExample')
 
-const MessageListExampleDefinition = Block.makeDefinition(
-  'MessageListExample',
-  {
-    key: MessageListExampleKey,
-    Init: Schema.Tuple([Schema.Array(ChatMessage)]),
-    view: { kind: 'Element' },
-    Model,
-    Message,
-  },
-)
-const { makeFieldsStep, makeNoopStep, makeStep } = MessageListExampleDefinition
+export const MessageListExampleBlock = Block.make('MessageListExample', {
+  key: MessageListExampleKey,
+  Init: Schema.Tuple([Schema.Array(ChatMessage)]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
+const { makeFieldsStep, makeNoopStep, makeStep } = MessageListExampleBlock
 
-const FetchHistory = MessageListExampleDefinition.makeCommand('FetchHistory', {
+const FetchHistory = MessageListExampleBlock.makeCommand('FetchHistory', {
   args: { maybeBeforeId: Schema.Option(Schema.String) },
   messages: [Message.SucceededFetchHistory, Message.FailedFetchHistory],
   handler: function* () {
@@ -113,7 +110,7 @@ const requestHistory = makeStep(model => {
   }
 })
 
-const MessageListBinding = MessageListExampleDefinition.makeBinding(
+const MessageListBinding = MessageListExampleBlock.makeBinding(
   MessageListBlock,
   {
     field: 'messageList',
@@ -130,17 +127,16 @@ const MessageListBinding = MessageListExampleDefinition.makeBinding(
     },
   },
 ).withOutMessagePolicy({
-  fold: MessageListExampleDefinition.makeOutMessageFold(MessageListBlock, {
+  fold: MessageListExampleBlock.makeOutMessageFold(MessageListBlock, {
     ObservedContainerScroll: makeNoopStep,
     ApproachedLoadedStart: () => requestHistory,
     EndedContainerScroll: makeNoopStep,
   }),
 })
 
-const MessageListExampleComposition =
-  MessageListExampleDefinition.makeComposition({
-    bindings: [MessageListBinding],
-  })
+const MessageListExampleComposition = MessageListExampleBlock.makeComposition({
+  bindings: [MessageListBinding],
+})
 const init = MessageListExampleComposition.makeInit(initialMessages => ({
   model: { messages: initialMessages, historyLoad: HistoryLoad.Idle() },
 }))
@@ -219,9 +215,7 @@ const view = MessageListExampleComposition.makeView((model, h) =>
   ),
 )
 
-export const MessageListExampleBlock = MessageListExampleDefinition.contract
-
-export const layer = MessageListExampleDefinition.makeBlock(
+export const layer = MessageListExampleBlock.makeLayer(
   Effect.gen(function* () {
     const messageList = yield* MessageListBinding
 
@@ -233,4 +227,4 @@ export const layer = MessageListExampleDefinition.makeBlock(
       EffectsLayer: FetchHistory.layer,
     }
   }),
-).provide(VirtualListLayer).layer
+).pipe(Layer.provide(VirtualListLayer))

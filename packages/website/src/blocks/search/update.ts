@@ -6,7 +6,7 @@ import { modifyFields } from 'foldkit/struct'
 import { PagefindService } from '../../pagefind'
 import { clearSearchQuery } from './clear'
 import { SearchComposition } from './composition'
-import { SearchDefinition, makeFieldsStep, makeNoopStep } from './definition'
+import { SearchBlock, makeFieldsStep, makeNoopStep } from './definition'
 import { SearchResult, SearchState, resultsFromState } from './domain'
 import { Message } from './message'
 
@@ -14,7 +14,7 @@ const MAX_RESULTS = 8
 
 const SEARCH_RESULT_SELECTOR = '[data-search-result-index='
 
-export const FetchSearchResults = SearchDefinition.makeCommand(
+export const FetchSearchResults = SearchBlock.makeCommand(
   'FetchSearchResults',
   {
     args: { query: Schema.String },
@@ -58,7 +58,7 @@ export const FetchSearchResults = SearchDefinition.makeCommand(
   },
 )
 
-export const ScrollToResult = SearchDefinition.makeCommand('ScrollToResult', {
+export const ScrollToResult = SearchBlock.makeCommand('ScrollToResult', {
   args: { index: Schema.Number },
   messages: [Message.CompletedScrollToResult],
   handler: function* () {
@@ -70,17 +70,14 @@ export const ScrollToResult = SearchDefinition.makeCommand('ScrollToResult', {
   },
 })
 
-export const NavigateToResult = SearchDefinition.makeCommand(
-  'NavigateToResult',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateToResult],
-    handler: function* () {
-      return ({ url }) =>
-        pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult()))
-    },
+export const NavigateToResult = SearchBlock.makeCommand('NavigateToResult', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateToResult],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult()))
   },
-)
+})
 
 export const update = SearchComposition.makeUpdate({
   UpdatedSearchQuery: (model, { query }) => {

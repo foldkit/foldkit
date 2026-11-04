@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { init, message, model, story } from 'foldkit/story'
 import { describe, expect } from 'vitest'
 
@@ -7,15 +6,17 @@ import { it } from '@effect/vitest'
 import { BlockPageBlock, layer } from './block'
 import { Message } from './message'
 
+const blockPageSubject = { block: BlockPageBlock, layer }
+
 describe('Block page', () => {
   it.effect('owns the mapMessages disclosure state', () =>
     story(
-      BlockPageBlock,
+      blockPageSubject,
       init(),
       message(Message.ToggledMapMessagesUnderHood({ isOpen: true })),
       model(model => {
         expect(model.isMapMessagesUnderHoodOpen).toBe(true)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 })

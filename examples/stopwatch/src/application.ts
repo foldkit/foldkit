@@ -36,7 +36,7 @@ export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
@@ -44,14 +44,14 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const { makeFieldsStep, makeCommandsStep } = ApplicationDefinition
+const { makeFieldsStep, makeCommandsStep } = ApplicationBlock
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const DetermineStartTime = ApplicationDefinition.makeCommand(
+export const DetermineStartTime = ApplicationBlock.makeCommand(
   'DetermineStartTime',
   {
     args: { elapsedMs: Schema.Number },
@@ -71,7 +71,7 @@ export const DetermineStartTime = ApplicationDefinition.makeCommand(
   },
 )
 
-export const DetermineTickTime = ApplicationDefinition.makeCommand(
+export const DetermineTickTime = ApplicationBlock.makeCommand(
   'DetermineTickTime',
   {
     args: { startTime: Schema.Number },
@@ -128,7 +128,7 @@ export const init = ApplicationComposition.makeInit(() => ({
   },
 }))
 
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
+export const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
   stopwatchTicks: entry('StopwatchTicks', {
     messages: [Message.Ticked],
     when: model => model.isRunning,
@@ -246,7 +246,7 @@ const startStopButton = (
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

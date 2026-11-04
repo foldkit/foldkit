@@ -7,7 +7,7 @@ import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { ExportPng, SaveCanvas } from './command'
 import {
   GridSizeRadioGroupBlock,
@@ -107,7 +107,7 @@ const createPaintedModel = (): Model =>
 describe('export workflow', () => {
   it.effect('clicking Export PNG produces ExportPng Command', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createTestModel()),
       click(role('button', { name: 'Export PNG' })),
       Command.expectExact(ExportPng),
@@ -118,7 +118,7 @@ describe('export workflow', () => {
 
   it.effect('failed export opens error dialog with message', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createTestModel()),
       click(role('button', { name: 'Export PNG' })),
       Command.resolve(
@@ -137,7 +137,7 @@ describe('export workflow', () => {
 
   it.effect('dismissing error dialog closes it', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createTestModel()),
       click(role('button', { name: 'Export PNG' })),
       Command.resolve(
@@ -162,7 +162,7 @@ describe('export workflow', () => {
 describe('header', () => {
   it.effect('renders PixelForge title and Export PNG button', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createTestModel()),
       expect(role('heading', { name: 'PixelForge' })).toExist(),
       expect(role('button', { name: 'Export PNG' })).toExist(),
@@ -173,7 +173,7 @@ describe('header', () => {
 describe('toolbar', () => {
   it.effect('Brush tool is selected by default', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createTestModel()),
       expect(role('radio', { name: /^Brush/, checked: true })).toExist(),
       expect(role('radio', { name: /^Fill/, checked: false })).toExist(),
@@ -183,7 +183,7 @@ describe('toolbar', () => {
 
   it.effect('clear canvas button is disabled when canvas is empty', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createTestModel()),
       expect(role('button', { name: 'Clear Canvas' })).toBeDisabled(),
     ),
@@ -191,7 +191,7 @@ describe('toolbar', () => {
 
   it.effect('clicking Fill tool selects it', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createTestModel()),
       click(role('radio', { name: /^Fill/ })),
       resolveFocusOption,
@@ -204,7 +204,7 @@ describe('toolbar', () => {
     'clear canvas enables after painting then disables after clearing',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(createPaintedModel()),
         expect(role('button', { name: 'Clear Canvas' })).toBeEnabled(),
         click(role('button', { name: 'Clear Canvas' })),
@@ -217,7 +217,7 @@ describe('toolbar', () => {
 describe('history panel', () => {
   it.effect('undo and redo buttons are disabled with no history', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createTestModel()),
       expect(role('button', { name: /^Undo/ })).toBeDisabled(),
       expect(role('button', { name: /^Redo/ })).toBeDisabled(),
@@ -226,7 +226,7 @@ describe('history panel', () => {
 
   it.effect('current history entry is visible', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createTestModel()),
       expect(text('Current')).toExist(),
     ),
@@ -244,7 +244,7 @@ describe('history panel', () => {
     })
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithHistory),
       expect(role('button', { name: /^Undo/ })).toBeEnabled(),
       expect(role('button', { name: /^Redo/ })).toBeDisabled(),
@@ -259,7 +259,7 @@ describe('history panel', () => {
 describe('grid size change', () => {
   it.effect('painted canvas opens confirmation dialog', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createPaintedModel()),
       click(role('radio', { name: '8' })),
       resolveFocusOption,
@@ -284,7 +284,7 @@ describe('grid size change', () => {
       })
 
       return scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(paintedModel),
         click(role('radio', { name: '8' })),
         resolveFocusOption,
@@ -306,7 +306,7 @@ describe('grid size change', () => {
 
   it.effect('cancelling grid size change keeps current size', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(createPaintedModel()),
       click(role('radio', { name: '8' })),
       resolveFocusOption,

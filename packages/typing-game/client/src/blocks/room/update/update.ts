@@ -20,7 +20,7 @@ import {
 import { RoomComposition } from '../composition'
 import type { Context } from '../context'
 import {
-  RoomDefinition,
+  RoomBlock,
   makeCommandsStep,
   makeFieldsStep,
   makeNoopStep,
@@ -31,7 +31,7 @@ import { recordJoinedPlayer } from '../steps'
 import { validateUserTextInput } from '../userGameText'
 import { handleUpdatedRoom } from './handleUpdatedRoom'
 
-export const NavigateHome = RoomDefinition.makeCommand('NavigateHome', {
+export const NavigateHome = RoomBlock.makeCommand('NavigateHome', {
   messages: [Message.CompletedNavigateHome],
   handler: function* () {
     return () =>

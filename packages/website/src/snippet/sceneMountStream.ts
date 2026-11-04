@@ -1,9 +1,9 @@
 import * as Scene from 'foldkit/scene'
 
-import { CanvasBlock, Message, ObserveCanvas } from './canvas'
+import { CanvasBlock, Message, ObserveCanvas, layer } from './canvas'
 
 export const resizeCanvas = Scene.scene(
-  CanvasBlock,
+  { block: CanvasBlock, layer },
   Scene.init(),
   Scene.Mount.resolve(
     ObserveCanvas,

@@ -14,35 +14,35 @@ export const Message = defineMessageUnion({
   ChangedDraft: { text: Schema.String },
 })
 export type Message = typeof Message.Type
-const ConversationKey = Symbol('Conversation')
-const ConversationDefinition = Block.makeDefinition('Conversation', {
+export const ConversationKey = Symbol('Conversation')
+const ConversationBlock = Block.make('Conversation', {
   key: ConversationKey,
   Model,
   Message,
   Init: Schema.Tuple([]),
 })
 
-export const ComposerBinding = ConversationDefinition.makeBinding(
+export const ComposerBinding = ConversationBlock.makeBinding(
   MessageComposerBlock,
   {
     field: 'composer',
     init: { contextToArgs: () => ['message'] },
   },
 ).withOutMessagePolicy({
-  fold: ConversationDefinition.makeOutMessageFold(MessageComposerBlock, {
+  fold: ConversationBlock.makeOutMessageFold(MessageComposerBlock, {
     Submitted: ({ text }) =>
-      ConversationDefinition.makeFieldsStep(() => ({
+      ConversationBlock.makeFieldsStep(() => ({
         maybeSubmittedText: () => Option.some(text),
       })),
   }),
 })
-const ConversationComposition = ConversationDefinition.makeComposition({
+const ConversationComposition = ConversationBlock.makeComposition({
   bindings: [ComposerBinding],
 })
 
 export const update = ConversationComposition.makeUpdate({
   ClickedSend: ComposerBinding.requestSubmit(),
-  ChangedDraft: ConversationDefinition.makeStep.fromMessage(({ text }) =>
+  ChangedDraft: ConversationBlock.makeStep.fromMessage(({ text }) =>
     ComposerBinding.informDraftChanged({ text }),
   ),
 })

@@ -47,3 +47,12 @@ export type {
   QueryLocalMessage,
   QueryInMessage,
 } from './queryContract.js'
+
+/** @internal Keeps selected Query factory contracts nameable in consumer declarations. */
+export type {
+  FamilyLayerDefinition,
+  UnifiedFamilyBlock,
+} from '../contracted/familyLayer.js'
+
+/** @internal Names inferred Query Message contracts without an additional consumer import. */
+export type { CallableTaggedStruct, MessageUnion } from '../../schema/index.js'

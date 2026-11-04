@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   Command,
   click,
@@ -31,7 +31,7 @@ describe('Comment Composer view', () => {
   it.effect('shows and discards a retained comment draft', () => {
     const body = 'Keep this comment available.'
     return scene(
-      { block: CommentComposerBlock, viewInputs },
+      { block: CommentComposerBlock, layer, viewInputs },
       init(issue.id, body),
       expect(label('Write a comment')).toHaveValue(body),
       expect(text('Comment draft kept for this session')).toExist(),
@@ -39,13 +39,13 @@ describe('Comment Composer view', () => {
       expect(label('Write a comment')).toHaveValue(''),
       expect(role('button', { name: 'Discard comment' })).not.toExist(),
       expect(text('Comment draft kept for this session')).not.toExist(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('keeps the comment available after failure and retries it', () => {
     const body = 'Please review this change.'
     return scene(
-      { block: CommentComposerBlock, viewInputs },
+      { block: CommentComposerBlock, layer, viewInputs },
       init(issue.id),
       type(label('Write a comment'), body),
       click(role('button', { name: 'Post comment' })),
@@ -73,6 +73,6 @@ describe('Comment Composer view', () => {
           error: 'The workspace is temporarily unavailable.',
         }),
       ),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })

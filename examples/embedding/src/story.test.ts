@@ -9,6 +9,7 @@ import {
   Message,
   type Model,
   ReportCount,
+  layer,
 } from './application'
 
 const initialModel: Model = { count: 10, step: 1 }
@@ -19,7 +20,7 @@ describe('update', () => {
       'Ticked advances the count by the step and reports it on the outbound port',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(modifyFields(initialModel, { step: () => 3 })),
           message(Message.Ticked()),
           model(model => {
@@ -34,7 +35,7 @@ describe('update', () => {
       'ClickedAdvance advances the count by the step and reports it',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           message(Message.ClickedAdvance()),
           model(model => {
@@ -49,7 +50,7 @@ describe('update', () => {
   describe('host input', () => {
     it.effect('ChangedStep stores the step pushed in by the host', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ChangedStep({ step: 7 })),
         model(model => {
@@ -62,7 +63,7 @@ describe('update', () => {
 
     it.effect('a changed step applies from the next tick onward', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ChangedStep({ step: 5 })),
         message(Message.Ticked()),

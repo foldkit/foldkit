@@ -8,7 +8,7 @@ import { Model } from './model'
 
 export const PeopleKey = Symbol('People')
 
-export const PeopleDefinition = Block.makeDefinition('People', {
+export const PeopleBlock = Block.make('People', {
   key: PeopleKey,
   Init: Schema.Tuple([ApplicationRoute.People]),
   view: { kind: 'Element' },
@@ -17,5 +17,4 @@ export const PeopleDefinition = Block.makeDefinition('People', {
   InMessage,
 })
 
-export const { makeFieldsStep, makeCommandsStep, makeNoopStep } =
-  PeopleDefinition
+export const { makeFieldsStep, makeCommandsStep, makeNoopStep } = PeopleBlock

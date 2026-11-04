@@ -12,9 +12,9 @@ type Message = typeof Message.Type
 const InMessage = defineMessageUnion({ RequestedReset: {} })
 type InMessage = typeof InMessage.Type
 
-const CounterKey = Symbol('Counter')
+export const CounterKey = Symbol('Counter')
 
-const CounterDefinition = Block.makeDefinition('Counter', {
+export const CounterBlock = Block.make('Counter', {
   key: CounterKey,
   Init: Schema.Tuple([Schema.Number]),
   view: { kind: 'Element' },
@@ -24,7 +24,7 @@ const CounterDefinition = Block.makeDefinition('Counter', {
   Message,
 })
 
-const CounterComposition = CounterDefinition.makeComposition()
+const CounterComposition = CounterBlock.makeComposition()
 
 const init = CounterComposition.makeInit(initialCount => ({
   model: { count: initialCount },
@@ -43,9 +43,7 @@ const view = CounterComposition.makeView((model, h) =>
   h.button([h.OnClick(Message.ClickedIncrement())], [`Count: ${model.count}`]),
 )
 
-export const CounterBlock = CounterDefinition.contract
-
-export const layer = CounterDefinition.makeBlock(
+export const layer = CounterBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -55,4 +53,4 @@ export const layer = CounterDefinition.makeBlock(
       view,
     }
   }),
-).layer
+)

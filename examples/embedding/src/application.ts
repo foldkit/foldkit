@@ -24,7 +24,7 @@ export type Flags = typeof Flags.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Flags]),
   view: { kind: 'Element' },
@@ -32,9 +32,9 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+const { makeFieldsStep, makeNoopStep } = ApplicationBlock
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 // PORT
 
@@ -47,7 +47,7 @@ export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({ count: flags.initialCount, step: 1 }),
 }))
 
-export const ReportCount = ApplicationDefinition.makeCommand('ReportCount', {
+export const ReportCount = ApplicationBlock.makeCommand('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
   handler: function* () {
@@ -77,7 +77,7 @@ export const update = ApplicationComposition.makeUpdate({
 
 const TICK_INTERVAL = Duration.seconds(1)
 
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
+export const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
   widgetTicks: entry('WidgetTicks', {
     messages: [Message.Ticked],
     handler: function* () {
@@ -148,7 +148,7 @@ export const view = ApplicationComposition.makeView((model, h) =>
   ),
 )
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

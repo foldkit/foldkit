@@ -7,7 +7,7 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { ExportPng, SaveCanvas } from './command'
 import {
   GridSizeRadioGroupBlock,
@@ -98,7 +98,7 @@ const errorDialogMessage = (message: DialogMessage) =>
 describe('brush tool', () => {
   it.effect('painting a cell sets its color and pushes undo history', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.PressedCell({ x: 1, y: 2 })),
       model(model => {
@@ -112,7 +112,7 @@ describe('brush tool', () => {
 
   it.effect('dragging paints multiple cells within a single undo entry', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.PressedCell({ x: 0, y: 0 })),
       message(Message.EnteredCell({ x: 1, y: 0 })),
@@ -133,7 +133,7 @@ describe('brush tool', () => {
 describe('undo and redo', () => {
   it.effect('undo restores the previous grid state', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.PressedCell({ x: 0, y: 0 })),
       message(Message.ReleasedMouse()),
@@ -154,7 +154,7 @@ describe('undo and redo', () => {
 
   it.effect('redo re-applies the undone state', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.PressedCell({ x: 0, y: 0 })),
       message(Message.ReleasedMouse()),
@@ -173,7 +173,7 @@ describe('undo and redo', () => {
 
   it.effect('new stroke after undo clears the redo stack', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.PressedCell({ x: 0, y: 0 })),
       message(Message.ReleasedMouse()),
@@ -195,7 +195,7 @@ describe('undo and redo', () => {
 
   it.effect('undo on empty stack is a no-op', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.ClickedUndo()),
       model(model => {
@@ -207,7 +207,7 @@ describe('undo and redo', () => {
 
   it.effect('redo on empty stack is a no-op', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.ClickedRedo()),
       model(model => {
@@ -219,7 +219,7 @@ describe('undo and redo', () => {
 
   it.effect('multiple undo steps walk back through history', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.PressedCell({ x: 0, y: 0 })),
       message(Message.ReleasedMouse()),
@@ -253,7 +253,7 @@ describe('undo and redo', () => {
 describe('mirror mode', () => {
   it.effect('horizontal mirror paints at mirrored x position', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.ToggledMirrorHorizontal()),
       message(Message.PressedCell({ x: 0, y: 1 })),
@@ -266,7 +266,7 @@ describe('mirror mode', () => {
 
   it.effect('vertical mirror paints at mirrored y position', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.ToggledMirrorVertical()),
       message(Message.PressedCell({ x: 1, y: 0 })),
@@ -279,7 +279,7 @@ describe('mirror mode', () => {
 
   it.effect('both mirrors paint at all four symmetric positions', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.ToggledMirrorHorizontal()),
       message(Message.ToggledMirrorVertical()),
@@ -298,7 +298,7 @@ describe('mirror mode', () => {
 describe('fill tool', () => {
   it.effect('flood fill colors a contiguous region', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.SelectedTool({ tool: 'Fill' })),
       message(Message.PressedCell({ x: 0, y: 0 })),
@@ -322,7 +322,7 @@ describe('fill tool', () => {
     })
 
     return story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithBarrier),
       message(Message.SelectedTool({ tool: 'Fill' })),
       message(Message.PressedCell({ x: 0, y: 0 })),
@@ -340,7 +340,7 @@ describe('fill tool', () => {
 describe('grid size', () => {
   it.effect('blank canvas resizes immediately without confirmation', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.SelectedGridSize({ size: 8 })),
       model(model => {
@@ -363,7 +363,7 @@ describe('grid size', () => {
     })
 
     return story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(paintedModel),
       message(Message.SelectedGridSize({ size: 8 })),
       Command.resolve(
@@ -390,7 +390,7 @@ describe('grid size', () => {
     })
 
     return story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(paintedModel),
       message(Message.SelectedGridSize({ size: 8 })),
       Command.resolve(
@@ -416,7 +416,7 @@ describe('grid size', () => {
 
   it.effect('selecting the same grid size is a no-op', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.SelectedGridSize({ size: 4 })),
       model(model => {
@@ -429,7 +429,7 @@ describe('grid size', () => {
 describe('clear canvas', () => {
   it.effect('clear resets all cells and pushes undo history', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.PressedCell({ x: 0, y: 0 })),
       message(Message.ReleasedMouse()),
@@ -452,7 +452,7 @@ describe('clear canvas', () => {
 describe('export', () => {
   it.effect('successful export resolves without changing Model', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.ClickedExport()),
       Command.expectHas(ExportPng),
@@ -469,7 +469,7 @@ describe('export', () => {
 describe('hover preview', () => {
   it.effect('entering a cell sets hover position', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.EnteredCell({ x: 2, y: 3 })),
       model(model => {
@@ -480,7 +480,7 @@ describe('hover preview', () => {
 
   it.effect('leaving canvas clears hover position', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.EnteredCell({ x: 2, y: 3 })),
       message(Message.LeftCanvas()),
@@ -494,7 +494,7 @@ describe('hover preview', () => {
 describe('eraser tool', () => {
   it.effect('eraser removes color from a painted cell', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(Message.PressedCell({ x: 0, y: 0 })),
       message(Message.ReleasedMouse()),
@@ -517,7 +517,7 @@ describe('eraser tool', () => {
 describe('export failure', () => {
   it.effect('failed export sets error and opens error dialog', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
@@ -537,7 +537,7 @@ describe('export failure', () => {
 
   it.effect('dismissing error dialog clears error and closes dialog', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       message(
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),

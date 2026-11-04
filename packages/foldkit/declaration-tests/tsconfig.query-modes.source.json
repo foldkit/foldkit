@@ -2,7 +2,16 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "rootDir": ".."
+    "rootDir": "..",
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/*": ["../src/*/public.ts"]
+    }
   },
-  "include": ["query-modes.accepted.ts", "query-modes.consume.ts"]
+  "include": [
+    "../src/vite-env.d.ts",
+    "query-modes.accepted.ts",
+    "query-modes.rejected.ts",
+    "query-modes.consume.ts"
+  ]
 }

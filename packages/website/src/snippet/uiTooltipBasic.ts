@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -18,9 +18,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const TooltipExampleKey = Symbol('TooltipExample')
+export const TooltipExampleKey = Symbol('TooltipExample')
 
-const TooltipExampleDefinition = Block.makeDefinition('TooltipExample', {
+export const TooltipExampleBlock = Block.make('TooltipExample', {
   key: TooltipExampleKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -28,14 +28,14 @@ const TooltipExampleDefinition = Block.makeDefinition('TooltipExample', {
   Message,
 })
 
-const { makeNoopStep } = TooltipExampleDefinition
+const { makeNoopStep } = TooltipExampleBlock
 
 // At module scope, fold the OutMessage into your own Model. `Shown` and
 // `Hidden` mark the visibility transitions. Fire analytics or coordinate with
 // the rest of your UI from the parent. Each arm returns an Update.Step over
 // the parent Model, which already has the next Tooltip Model written back.
-// The parent Definition checks every named child variant:
-const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
+// The parent Block checks every named child variant:
+const foldTooltipOutMessage = TooltipExampleBlock.makeOutMessageFold(
   TooltipBlock,
   {
     // The child has emitted `Shown`. In this arm the parent can update its
@@ -51,12 +51,12 @@ const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const TooltipBinding = TooltipExampleDefinition.makeBinding(TooltipBlock, {
+const TooltipBinding = TooltipExampleBlock.makeBinding(TooltipBlock, {
   field: 'tooltip',
   init: { contextToArgs: () => [{ id: 'save-button' }] },
 }).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
-const TooltipExampleComposition = TooltipExampleDefinition.makeComposition({
+const TooltipExampleComposition = TooltipExampleBlock.makeComposition({
   bindings: [TooltipBinding],
 })
 
@@ -113,7 +113,7 @@ const view = TooltipExampleComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = TooltipExampleDefinition.makeBlock(
+export const layer = TooltipExampleBlock.makeLayer(
   Effect.gen(function* () {
     const tooltip = yield* TooltipBinding
 
@@ -124,4 +124,4 @@ export const ApplicationBlock = TooltipExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(TooltipLayer)
+).pipe(Layer.provide(TooltipLayer))

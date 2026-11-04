@@ -18,6 +18,7 @@ export type {
   KeyboardModifiers,
   MessageOf,
   TagName,
+  TaggedAttribute,
   TextareaAttribute,
 } from './index.js'
 export type { VNode } from '../vdom.js'

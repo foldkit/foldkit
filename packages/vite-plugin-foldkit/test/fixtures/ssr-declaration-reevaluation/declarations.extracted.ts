@@ -1,10 +1,10 @@
 import { Stream } from 'effect'
 
-import { ApplicationDefinition, Message } from './definition'
+import { ApplicationBlock, Message } from './definition'
 
 export { LoadPreferences } from './extracted'
 
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
+export const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
   ticks: entry('Ticks', {
     messages: [Message.Ticked],
     handler: function* () {

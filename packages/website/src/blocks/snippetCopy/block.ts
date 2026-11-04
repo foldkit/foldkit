@@ -1,13 +1,11 @@
 import { Effect } from 'effect'
 
-import { SnippetCopyDefinition } from './definition'
+import { SnippetCopyBlock } from './definition'
 import { init } from './init'
 import { EffectsLayer, update } from './update'
 import { view } from './view'
 
-export const SnippetCopyBlock = SnippetCopyDefinition.contract
-
-const block = SnippetCopyDefinition.makeBlock(
+export const layer = SnippetCopyBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -18,4 +16,5 @@ const block = SnippetCopyDefinition.makeBlock(
     }
   }),
 )
-export const layer = block.layer
+
+export { SnippetCopyBlock }

@@ -30,6 +30,8 @@ Let `.withMessage(h)` infer the builder type. If a helper needs an explicit anno
 
 The bound element builder is callable. Pass attributes, including generated property and event factories, as the first argument and children as the second. Either argument can be omitted when it is not needed. Schema keeps both directions typed: a property factory accepts its declared value, while an event factory receives its declared `detail` and returns a Message.
 
+A CustomElement accepts the same `Attribute<Message, MountRequirements>` collections as ordinary elements, including published child Attributes. `withMessage(h)` preserves the caller's Message and registered Mount capabilities, including Mounts supplied through a child Binding.
+
 ## Properties and Events
 
 ### Properties

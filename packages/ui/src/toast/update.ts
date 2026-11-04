@@ -13,6 +13,7 @@ import {
 } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
+import * as BlockFamily from 'foldkit/internal/block'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
@@ -131,7 +132,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       Tuple.make(MessageSchema.RequestedDismiss({ entryId })),
   }
 
-  const ToastDefinition = Block.makeFamilyDefinition('Toast', {
+  const ToastDefinition = BlockFamily.makeFamilyDeclaration('Toast', {
     key: ToastKey,
     Init: Block.makeInputContract<readonly [config: InitConfig]>(),
     view: {

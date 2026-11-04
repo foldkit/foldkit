@@ -26,41 +26,38 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedJumpToLastInvoice: {} })
 type Message = typeof Message.Type
 
-const InvoiceTableKey = Symbol('InvoiceTable')
+export const InvoiceTableKey = Symbol('InvoiceTable')
 
-const InvoiceTableDefinition = Block.makeDefinition('InvoiceTable', {
+export const InvoiceTableBlock = Block.make('InvoiceTable', {
   key: InvoiceTableKey,
   Init: Schema.Tuple([Schema.Array(Invoice)]),
   view: { kind: 'Element' },
   Model,
   Message,
 })
-const { makeNoopStep } = InvoiceTableDefinition
+const { makeNoopStep } = InvoiceTableBlock
 
-const InvoiceRowsBinding = InvoiceTableDefinition.makeBinding(
-  InvoiceRowsBlock,
-  {
-    field: 'invoiceRows',
-    init: {
-      contextToArgs: () => [
-        {
-          id: 'invoice-rows',
-          rowHeightPx: 48,
-          scrollContainer: VirtualListScrollContainer.Ancestor({
-            selector: '#invoice-scroll',
-          }),
-        },
-      ],
-    },
+const InvoiceRowsBinding = InvoiceTableBlock.makeBinding(InvoiceRowsBlock, {
+  field: 'invoiceRows',
+  init: {
+    contextToArgs: () => [
+      {
+        id: 'invoice-rows',
+        rowHeightPx: 48,
+        scrollContainer: VirtualListScrollContainer.Ancestor({
+          selector: '#invoice-scroll',
+        }),
+      },
+    ],
   },
-).withOutMessagePolicy({
-  fold: InvoiceTableDefinition.makeOutMessageFold(InvoiceRowsBlock, {
+}).withOutMessagePolicy({
+  fold: InvoiceTableBlock.makeOutMessageFold(InvoiceRowsBlock, {
     ObservedContainerScroll: makeNoopStep,
     ApproachedLoadedStart: makeNoopStep,
     EndedContainerScroll: makeNoopStep,
   }),
 })
-const InvoiceTableComposition = InvoiceTableDefinition.makeComposition({
+const InvoiceTableComposition = InvoiceTableBlock.makeComposition({
   bindings: [InvoiceRowsBinding],
 })
 const init = InvoiceTableComposition.makeInit(invoices => ({
@@ -135,9 +132,7 @@ const view = InvoiceTableComposition.makeView((model, h) =>
   ),
 )
 
-export const InvoiceTableBlock = InvoiceTableDefinition.contract
-
-export const layer = InvoiceTableDefinition.makeBlock(
+export const layer = InvoiceTableBlock.makeLayer(
   Effect.gen(function* () {
     const invoiceRows = yield* InvoiceRowsBinding
 
@@ -148,4 +143,4 @@ export const layer = InvoiceTableDefinition.makeBlock(
       view,
     }
   }),
-).provide(VirtualListLayer).layer
+).pipe(Layer.provide(VirtualListLayer))

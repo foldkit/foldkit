@@ -1,14 +1,14 @@
 import { DateTime, Effect, Schema } from 'effect'
 
 import { ChatSocket } from './chatSocket'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message } from './message'
 
 const getZonedTime = DateTime.now.pipe(
   Effect.map(utc => DateTime.setZone(utc, DateTime.zoneMakeLocal())),
 )
 
-export const TimestampSentMessage = ApplicationDefinition.makeCommand(
+export const TimestampSentMessage = ApplicationBlock.makeCommand(
   'TimestampSentMessage',
   {
     args: { text: Schema.String },
@@ -24,7 +24,7 @@ export const TimestampSentMessage = ApplicationDefinition.makeCommand(
   },
 )
 
-export const TimestampReceivedMessage = ApplicationDefinition.makeCommand(
+export const TimestampReceivedMessage = ApplicationBlock.makeCommand(
   'TimestampReceivedMessage',
   {
     args: { text: Schema.String },
@@ -40,7 +40,7 @@ export const TimestampReceivedMessage = ApplicationDefinition.makeCommand(
   },
 )
 
-export const SendMessage = ApplicationDefinition.makeCommand('SendMessage', {
+export const SendMessage = ApplicationBlock.makeCommand('SendMessage', {
   args: { text: Schema.String },
   messages: [Message.SucceededSendMessage, Message.FailedSendMessage],
   handler: function* () {

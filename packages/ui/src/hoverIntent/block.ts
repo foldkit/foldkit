@@ -27,7 +27,7 @@ export type Model = typeof Model.Type
 /** @internal Stable identity of the HoverIntent contract. */
 export const HoverIntentKey = Symbol('HoverIntent')
 
-const HoverIntentDefinition = Block.makeDefinition('HoverIntent', {
+export const HoverIntentBlock = Block.make('HoverIntent', {
   key: HoverIntentKey,
   Model,
   Message,
@@ -42,13 +42,10 @@ const HoverIntentDefinition = Block.makeDefinition('HoverIntent', {
   },
 })
 
-type HoverIntentContract = typeof HoverIntentDefinition.contract
-/** Public HoverIntent contract with a stable named declaration boundary. */
-export interface HoverIntentBlock extends HoverIntentContract {}
-/** Passive HoverIntent contract selected through the module implementation Layer. */
-export const HoverIntentBlock: HoverIntentBlock = HoverIntentDefinition.contract
+/** Public HoverIntent authoring contract and passive graph identity. */
+export type HoverIntentBlock = typeof HoverIntentBlock
 
-const HoverIntentComposition = HoverIntentDefinition.makeComposition()
+const HoverIntentComposition = HoverIntentBlock.makeComposition()
 
 const DEFAULT_OPEN_DELAY = Duration.millis(200)
 const DEFAULT_CLOSE_DELAY = Duration.millis(300)
@@ -85,7 +82,7 @@ export const init = HoverIntentComposition.makeInit(
 // COMMAND
 
 /** Waits before opening, then emits the version that scheduled the wait. */
-export const WaitBeforeOpening = HoverIntentDefinition.makeCommand(
+export const WaitBeforeOpening = HoverIntentBlock.makeCommand(
   'WaitBeforeOpening',
   {
     args: { delay: Schema.DurationFromMillis, version: Schema.Number },
@@ -100,7 +97,7 @@ export const WaitBeforeOpening = HoverIntentDefinition.makeCommand(
 )
 
 /** Waits before closing, then emits the version that scheduled the wait. */
-export const WaitBeforeClosing = HoverIntentDefinition.makeCommand(
+export const WaitBeforeClosing = HoverIntentBlock.makeCommand(
   'WaitBeforeClosing',
   {
     args: { delay: Schema.DurationFromMillis, version: Schema.Number },
@@ -148,7 +145,7 @@ const finishClosing = (model: Model) => {
   }
 }
 
-const scheduleOpen = HoverIntentDefinition.makeStep(model => {
+const scheduleOpen = HoverIntentBlock.makeStep(model => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
     model: modifyFields(model, { pendingOpenVersion: () => version }),
@@ -157,7 +154,7 @@ const scheduleOpen = HoverIntentDefinition.makeStep(model => {
 })
 
 const scheduleClose = (delay: Duration.Duration) =>
-  HoverIntentDefinition.makeStep(model => {
+  HoverIntentBlock.makeStep(model => {
     const version = Number.increment(model.pendingCloseVersion)
     return {
       model: modifyFields(model, { pendingCloseVersion: () => version }),
@@ -255,7 +252,7 @@ const dismiss = (model: Model, isTriggerFocused: boolean) => {
 
 /** Processes a parent close request without routing it through local Messages. */
 export const inMessageUpdate = HoverIntentComposition.makeInMessageUpdate({
-  RequestedClose: HoverIntentDefinition.makeStep(model =>
+  RequestedClose: HoverIntentBlock.makeStep(model =>
     dismiss(
       model,
       Option.exists(
@@ -374,8 +371,8 @@ export const view = HoverIntentComposition.makeView.withInputs(
   },
 )
 
-/** @internal Checked HoverIntent implementation used as a scoped testing root. */
-const block = HoverIntentDefinition.makeBlock(
+/** Constructs the HoverIntent implementation without starting occurrence effects. */
+export const layer = HoverIntentBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -388,5 +385,5 @@ const block = HoverIntentDefinition.makeBlock(
   }),
 )
 
-/** Constructs HoverIntent without starting Commands or occurrence lifecycles. */
-export const layer = block.layer
+/** @internal Selected implementation used by component tests. */
+export const block = { block: HoverIntentBlock, layer }

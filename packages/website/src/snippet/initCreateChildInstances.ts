@@ -1,9 +1,9 @@
-import { Array, Effect } from 'effect'
+import { Array, Effect, Layer } from 'effect'
 import { Update } from 'foldkit'
 
 import {
+  ApplicationBlock,
   ApplicationComposition,
-  ApplicationDefinition,
   CountersBinding,
   addCounter,
   makeFieldsStep,
@@ -31,7 +31,7 @@ const update = ApplicationComposition.makeUpdate({
   })),
 })
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const counters = yield* CountersBinding
 
@@ -41,4 +41,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       update,
     }
   }),
-).provide(Counter.layer)
+).pipe(Layer.provide(Counter.layer))
+
+export { ApplicationBlock } from './blockInstanceArray'

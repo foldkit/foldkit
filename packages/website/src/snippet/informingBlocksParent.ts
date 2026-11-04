@@ -19,9 +19,9 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   effects: { services: [PeopleDirectory] },
@@ -29,17 +29,14 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+const { makeFieldsStep, makeNoopStep } = ApplicationBlock
 
-export const PeopleBinding = ApplicationDefinition.makeBinding(
-  People.PeopleBlock,
-  {
-    field: 'people',
-    init: false,
-  },
-)
+export const PeopleBinding = ApplicationBlock.makeBinding(People.PeopleBlock, {
+  field: 'people',
+  init: false,
+})
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [PeopleBinding],
 })
 

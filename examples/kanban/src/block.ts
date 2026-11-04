@@ -4,12 +4,12 @@ import { layer as DragAndDropLayer } from '@foldkit/ui/dragAndDrop'
 
 import { EffectsLayer } from './command'
 import { DragAndDropBinding } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const dragAndDrop = yield* DragAndDropBinding
 
@@ -21,4 +21,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(DragAndDropLayer))
+).pipe(Layer.provide(Layer.mergeAll(DragAndDropLayer)))
+
+export { ApplicationBlock } from './definition'

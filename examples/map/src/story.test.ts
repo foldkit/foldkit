@@ -5,7 +5,7 @@ import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { FlyTo, Geolocate, LockBodyScroll, UnlockBodyScroll } from './command'
 import { Message } from './message'
 import { GeolocateState } from './model'
@@ -13,7 +13,7 @@ import { eiffelTower, initialModel, mountedModel } from './model.fixture'
 
 it.effect('mounting the map records the host id in the Model', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(initialModel),
     message(Message.SucceededMountMap({ hostId: 'map-host-1' })),
     model(model => {
@@ -24,7 +24,7 @@ it.effect('mounting the map records the host id in the Model', () =>
 
 it.effect('movement events update the Model bounds', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(mountedModel),
     message(
       Message.MovedMap({
@@ -41,7 +41,7 @@ it.effect('movement events update the Model bounds', () =>
 
 it.effect('clicking a marker selects the corresponding location', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(mountedModel),
     message(Message.ClickedMarker({ locationId: eiffelTower.id })),
     model(model => {
@@ -56,7 +56,7 @@ it.effect(
   'clicking a sidebar location selects it and emits a fly Command',
   () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(mountedModel),
       message(Message.ClickedLocation({ locationId: eiffelTower.id })),
       model(model => {
@@ -73,7 +73,7 @@ it.effect(
   'clicking a sidebar location before the map mounts still emits FlyTo',
   () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedLocation({ locationId: eiffelTower.id })),
       model(model => {
@@ -89,7 +89,7 @@ it.effect(
 
 it.effect('a failed map mount surfaces the reason in the Model', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(initialModel),
     message(Message.FailedMountMap({ reason: 'Network timeout' })),
     model(model => {
@@ -100,7 +100,7 @@ it.effect('a failed map mount surfaces the reason in the Model', () =>
 
 it.effect('clicking a sidebar location with an unknown id is a no-op', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(mountedModel),
     message(Message.ClickedLocation({ locationId: 'does-not-exist' })),
     model(model => {
@@ -112,7 +112,7 @@ it.effect('clicking a sidebar location with an unknown id is a no-op', () =>
 
 it.effect('typing in the filter input updates the query', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(initialModel),
     message(Message.UpdatedSearchQuery({ value: 'Paris' })),
     model(model => {
@@ -125,7 +125,7 @@ it.effect(
   'clicking find-me transitions to the locating state and emits Geolocate',
   () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedFindMe()),
       model(model => {
@@ -144,7 +144,7 @@ it.effect(
   'a successful geolocation result clears the locating state and flies the map',
   () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(mountedModel, {
           geolocateState: () => GeolocateState.Locating(),
@@ -167,7 +167,7 @@ it.effect(
   'a failed geolocation result surfaces the reason in the geolocate state',
   () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(initialModel, {
           geolocateState: () => GeolocateState.Locating(),
@@ -185,7 +185,7 @@ it.effect(
 
 it.effect('dismissing the geolocate overlay returns to idle', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(
       modifyFields(initialModel, {
         geolocateState: () => GeolocateState.Failed({ reason: 'Timed out' }),

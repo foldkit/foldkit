@@ -10,7 +10,7 @@ import {
   test as DragAndDropTest,
 } from '@foldkit/ui/dragAndDrop'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { DragAndDropBinding } from './composition'
 import { Column } from './domain'
@@ -84,7 +84,7 @@ describe('update', () => {
 
     it.effect('ClickedAddCard opens the add card form for the column', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         message(Message.ClickedAddCard({ columnId: 'todo' })),
         acknowledgeFocusInput,
@@ -97,7 +97,7 @@ describe('update', () => {
 
     it.effect('ChangedNewCardTitle updates the title', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         message(Message.ClickedAddCard({ columnId: 'todo' })),
         acknowledgeFocusInput,
@@ -110,7 +110,7 @@ describe('update', () => {
 
     it.effect('SubmittedNewCard adds card to the column and saves', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         message(Message.ClickedAddCard({ columnId: 'done' })),
         acknowledgeFocusInput,
@@ -137,7 +137,7 @@ describe('update', () => {
 
     it.effect('SubmittedNewCard ignores empty title', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         message(Message.ClickedAddCard({ columnId: 'todo' })),
         acknowledgeFocusInput,
@@ -150,7 +150,7 @@ describe('update', () => {
 
     it.effect('CancelledNewCard closes the form', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         message(Message.ClickedAddCard({ columnId: 'todo' })),
         acknowledgeFocusInput,
@@ -168,7 +168,7 @@ describe('update', () => {
     it.effect('reorders a card within the same column', () => {
       const firstCardId = emptyModel.columns[0]!.cards[0]!.id
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         dragAndDropMessage(
           DragAndDropBlock.Message.PressedDraggable({
@@ -201,7 +201,7 @@ describe('update', () => {
     it.effect('moves a card to a different column', () => {
       const cardId = emptyModel.columns[0]!.cards[0]!.id
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         dragAndDropMessage(
           DragAndDropBlock.Message.PressedDraggable({
@@ -242,7 +242,7 @@ describe('update', () => {
     it.effect('keyboard drag reorders within the same column', () => {
       const firstCardId = emptyModel.columns[0]!.cards[0]!.id
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         dragAndDropMessage(
           DragAndDropBlock.Message.ActivatedKeyboardDrag({
@@ -279,7 +279,7 @@ describe('update', () => {
     it.effect('keyboard drag moves a card to a different column', () => {
       const cardId = emptyModel.columns[0]!.cards[0]!.id
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         dragAndDropMessage(
           DragAndDropBlock.Message.ActivatedKeyboardDrag({
@@ -322,7 +322,7 @@ describe('update', () => {
       const cardId = 'card-1'
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         dragAndDropMessage(
           DragAndDropBlock.Message.ActivatedKeyboardDrag({
@@ -344,7 +344,7 @@ describe('update', () => {
 
     it.effect('cancelled drag does not change columns', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         dragAndDropMessage(
           DragAndDropBlock.Message.PressedDraggable({

@@ -9,6 +9,7 @@ import {
 } from 'effect'
 import { Block, Message, Program, Struct, Update } from 'foldkit'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
+import * as Story from 'foldkit/story'
 
 import * as Animation from '@foldkit/ui/animation'
 import * as Calendar from '@foldkit/ui/calendar'
@@ -55,16 +56,13 @@ export const ListPicker = Listbox.makeBlock<'Apple' | 'Pear'>()
 export const MultiListPicker = Listbox.Multi.makeBlock<'Apple' | 'Pear'>()
 export const MenuPicker = Menu.makeBlock<'Apple' | 'Pear'>()
 const MenuFoldModel = Schema.Struct({ selected: Item })
-export const MenuFoldFixtureDefinition = Block.makeDefinition(
-  'MenuFoldFixture',
-  {
-    key: MenuFoldFixtureKey,
-    Init: Schema.Tuple([]),
-    Model: MenuFoldModel,
-    Message: Schema.Never,
-  },
-)
-export const foldMenuChoice = MenuFoldFixtureDefinition.makeOutMessageFold(
+export const MenuFoldFixtureBlock = Block.make('MenuFoldFixture', {
+  key: MenuFoldFixtureKey,
+  Init: Schema.Tuple([]),
+  Model: MenuFoldModel,
+  Message: Schema.Never,
+})
+export const foldMenuChoice = MenuFoldFixtureBlock.makeOutMessageFold(
   MenuPicker,
   {
     Selected:
@@ -72,7 +70,7 @@ export const foldMenuChoice = MenuFoldFixtureDefinition.makeOutMessageFold(
       model => ({
         model: Struct.modifyFields(model, { selected: () => value }),
       }),
-    Closed: () => MenuFoldFixtureDefinition.makeNoopStep(),
+    Closed: () => MenuFoldFixtureBlock.makeNoopStep(),
   },
 )
 export type FoldedMenuModel = Expect<
@@ -122,22 +120,22 @@ const ToastFixtureModel = Schema.Struct({
   toast: ToastBlock.Model,
   otherToast: OtherToastBlock.Model,
 })
-const ToastFixtureDefinition = Block.makeDefinition('ToastFixture', {
+const ToastFixtureBlock = Block.make('ToastFixture', {
   key: ToastFixtureKey,
   Init: Schema.Tuple([]),
   Model: ToastFixtureModel,
   Message: Schema.Never,
 })
-export const ToastBinding = ToastFixtureDefinition.makeBinding(ToastBlock, {
+export const ToastBinding = ToastFixtureBlock.makeBinding(ToastBlock, {
   placement: 'Toast',
   read: model => Option.some(model.toast),
   write: (model, toast) => Struct.modifyFields(model, { toast: () => toast }),
 }).withOutMessagePolicy({
-  fold: ToastFixtureDefinition.makeOutMessageFold(ToastBlock, {
-    DismissedToast: () => ToastFixtureDefinition.makeNoopStep(),
+  fold: ToastFixtureBlock.makeOutMessageFold(ToastBlock, {
+    DismissedToast: () => ToastFixtureBlock.makeNoopStep(),
   }),
 })
-export const OtherToastBinding = ToastFixtureDefinition.makeBinding(
+export const OtherToastBinding = ToastFixtureBlock.makeBinding(
   OtherToastBlock,
   {
     placement: 'OtherToast',
@@ -146,8 +144,8 @@ export const OtherToastBinding = ToastFixtureDefinition.makeBinding(
       Struct.modifyFields(model, { otherToast: () => otherToast }),
   },
 ).withOutMessagePolicy({
-  fold: ToastFixtureDefinition.makeOutMessageFold(OtherToastBlock, {
-    DismissedToast: () => ToastFixtureDefinition.makeNoopStep(),
+  fold: ToastFixtureBlock.makeOutMessageFold(OtherToastBlock, {
+    DismissedToast: () => ToastFixtureBlock.makeNoopStep(),
   }),
 })
 export const drainToastEntry = ToastBlock.test.drainEntry({
@@ -158,19 +156,19 @@ const ToastInstance = Schema.Struct({
   id: Schema.Literal('Primary'),
   model: ToastBlock.Model,
 })
-const KeyedToastFixtureDefinition = Block.makeDefinition('KeyedToastFixture', {
+const KeyedToastFixtureBlock = Block.make('KeyedToastFixture', {
   key: KeyedToastFixtureKey,
   Init: Schema.Tuple([]),
   Model: Schema.Struct({ toasts: Schema.Array(ToastInstance) }),
   Message: Schema.Never,
 })
-const foldKeyedToastOutMessage = KeyedToastFixtureDefinition.makeOutMessageFold(
+const foldKeyedToastOutMessage = KeyedToastFixtureBlock.makeOutMessageFold(
   ToastBlock,
   {
-    DismissedToast: () => KeyedToastFixtureDefinition.makeNoopStep(),
+    DismissedToast: () => KeyedToastFixtureBlock.makeNoopStep(),
   },
 )
-export const KeyedToastBinding = KeyedToastFixtureDefinition.makeBinding(
+export const KeyedToastBinding = KeyedToastFixtureBlock.makeBinding(
   ToastBlock,
   {
     field: 'toasts',
@@ -188,26 +186,22 @@ export const drainKeyedToastEntry = ToastBlock.test.drainEntry({
 const DragAndDropFixtureModel = Schema.Struct({
   dragAndDrop: DragAndDrop.DragAndDropBlock.Model,
 })
-const DragAndDropFixtureDefinition = Block.makeDefinition(
-  'DragAndDropFixture',
+const DragAndDropFixtureBlock = Block.make('DragAndDropFixture', {
+  key: DragAndDropFixtureKey,
+  Init: Schema.Tuple([]),
+  Model: DragAndDropFixtureModel,
+  Message: Schema.Never,
+})
+const foldDragAndDropOutMessage = DragAndDropFixtureBlock.makeOutMessageFold(
+  DragAndDrop.DragAndDropBlock,
   {
-    key: DragAndDropFixtureKey,
-    Init: Schema.Tuple([]),
-    Model: DragAndDropFixtureModel,
-    Message: Schema.Never,
+    StartedKeyboardDrag: DragAndDropFixtureBlock.makeNoopStep,
+    ChangedKeyboardTarget: DragAndDropFixtureBlock.makeNoopStep,
+    Reordered: () => DragAndDropFixtureBlock.makeNoopStep(),
+    Cancelled: () => DragAndDropFixtureBlock.makeNoopStep(),
   },
 )
-const foldDragAndDropOutMessage =
-  DragAndDropFixtureDefinition.makeOutMessageFold(
-    DragAndDrop.DragAndDropBlock,
-    {
-      StartedKeyboardDrag: DragAndDropFixtureDefinition.makeNoopStep,
-      ChangedKeyboardTarget: DragAndDropFixtureDefinition.makeNoopStep,
-      Reordered: () => DragAndDropFixtureDefinition.makeNoopStep(),
-      Cancelled: () => DragAndDropFixtureDefinition.makeNoopStep(),
-    },
-  )
-export const DragAndDropBinding = DragAndDropFixtureDefinition.makeBinding(
+export const DragAndDropBinding = DragAndDropFixtureBlock.makeBinding(
   DragAndDrop.DragAndDropBlock,
   {
     placement: 'DragAndDrop',
@@ -232,29 +226,27 @@ const DragAndDropInstance = Schema.Struct({
   id: Schema.Literal('Primary'),
   model: DragAndDrop.DragAndDropBlock.Model,
 })
-const KeyedDragAndDropFixtureDefinition = Block.makeDefinition(
-  'KeyedDragAndDropFixture',
-  {
-    key: KeyedDragAndDropFixtureKey,
-    Init: Schema.Tuple([]),
-    Model: Schema.Struct({
-      dragAndDrops: Schema.Array(DragAndDropInstance),
-    }),
-    Message: Schema.Never,
-  },
-)
+const KeyedDragAndDropFixtureBlock = Block.make('KeyedDragAndDropFixture', {
+  key: KeyedDragAndDropFixtureKey,
+  Init: Schema.Tuple([]),
+  Model: Schema.Struct({
+    dragAndDrops: Schema.Array(DragAndDropInstance),
+  }),
+  Message: Schema.Never,
+})
 const foldKeyedDragAndDropOutMessage =
-  KeyedDragAndDropFixtureDefinition.makeOutMessageFold(
+  KeyedDragAndDropFixtureBlock.makeOutMessageFold(
     DragAndDrop.DragAndDropBlock,
     {
-      StartedKeyboardDrag: KeyedDragAndDropFixtureDefinition.makeNoopStep,
-      ChangedKeyboardTarget: KeyedDragAndDropFixtureDefinition.makeNoopStep,
-      Reordered: () => KeyedDragAndDropFixtureDefinition.makeNoopStep(),
-      Cancelled: () => KeyedDragAndDropFixtureDefinition.makeNoopStep(),
+      StartedKeyboardDrag: KeyedDragAndDropFixtureBlock.makeNoopStep,
+      ChangedKeyboardTarget: KeyedDragAndDropFixtureBlock.makeNoopStep,
+      Reordered: () => KeyedDragAndDropFixtureBlock.makeNoopStep(),
+      Cancelled: () => KeyedDragAndDropFixtureBlock.makeNoopStep(),
     },
   )
-export const KeyedDragAndDropBinding =
-  KeyedDragAndDropFixtureDefinition.makeBinding(DragAndDrop.DragAndDropBlock, {
+export const KeyedDragAndDropBinding = KeyedDragAndDropFixtureBlock.makeBinding(
+  DragAndDrop.DragAndDropBlock,
+  {
     placement: 'DragAndDrops',
     keySchema: Schema.Literal('Primary'),
     readAll: model => model.dragAndDrops,
@@ -268,9 +260,10 @@ export const KeyedDragAndDropBinding =
             : instance,
         ),
       }),
-  }).withOutMessagePolicy({
-    fold: (_key, outMessage) => foldKeyedDragAndDropOutMessage(outMessage),
-  })
+  },
+).withOutMessagePolicy({
+  fold: (_key, outMessage) => foldKeyedDragAndDropOutMessage(outMessage),
+})
 export const settleKeyedDragAndDropFocus = DragAndDrop.test.settleFocus({
   binding: KeyedDragAndDropBinding,
   key: 'Primary',
@@ -290,29 +283,28 @@ const AnimationInstance = Schema.Struct({
   id: Schema.Literal('Primary'),
   model: Animation.AnimationBlock.Model,
 })
-const KeyedAnimationFixtureDefinition = Block.makeDefinition(
-  'KeyedAnimationFixture',
+const KeyedAnimationFixtureBlock = Block.make('KeyedAnimationFixture', {
+  key: KeyedAnimationFixtureKey,
+  Init: Schema.Tuple([]),
+  Model: Schema.Struct({ animations: Schema.Array(AnimationInstance) }),
+  Message: Schema.Never,
+})
+export const KeyedAnimationBinding = KeyedAnimationFixtureBlock.makeBinding(
+  Animation.AnimationBlock,
   {
-    key: KeyedAnimationFixtureKey,
-    Init: Schema.Tuple([]),
-    Model: Schema.Struct({ animations: Schema.Array(AnimationInstance) }),
-    Message: Schema.Never,
-  },
-)
-export const KeyedAnimationBinding =
-  KeyedAnimationFixtureDefinition.makeBinding(Animation.AnimationBlock, {
     field: 'animations',
     key: 'id',
     childField: 'model',
-  })
+  },
+)
 const makeKeyedAnimationOutMessageFold = (key: 'Primary') =>
-  KeyedAnimationFixtureDefinition.makeOutMessageFold(Animation.AnimationBlock, {
+  KeyedAnimationFixtureBlock.makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: () =>
       KeyedAnimationBinding.requestWaitForLeaveSettlement(key),
-    TransitionedOut: KeyedAnimationFixtureDefinition.makeNoopStep,
+    TransitionedOut: KeyedAnimationFixtureBlock.makeNoopStep,
   })
 export const KeyedAnimationFixtureComposition =
-  KeyedAnimationFixtureDefinition.makeComposition({
+  KeyedAnimationFixtureBlock.makeComposition({
     bindings: [
       KeyedAnimationBinding.withOutMessagePolicy({
         fold: (key, outMessage) =>
@@ -332,7 +324,7 @@ export const Model = Schema.Struct({
 export const ParentMessage = Message.defineMessageUnion({
   ClickedClear: {},
 })
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -340,51 +332,48 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: ParentMessage,
 })
 
-export const AnimationBinding = ApplicationDefinition.makeBinding(
+export const AnimationBinding = ApplicationBlock.makeBinding(
   Animation.AnimationBlock,
   {
     field: 'animation',
     init: { contextToArgs: () => [{ id: 'details-animation' }] },
   },
 )
-const foldAnimationOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldAnimationOutMessage = ApplicationBlock.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: () =>
       AnimationBinding.requestWaitForLeaveSettlement(),
-    TransitionedOut: ApplicationDefinition.makeNoopStep,
+    TransitionedOut: ApplicationBlock.makeNoopStep,
   },
 )
 export const AnimationBindingWithOutMessagePolicy =
   AnimationBinding.withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
-export const DialogBinding = ApplicationDefinition.makeBinding(
-  Dialog.DialogBlock,
-  {
-    field: 'dialog',
-    init: { contextToArgs: () => [{ id: 'details' }] },
-  },
-).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(Dialog.DialogBlock, {
-    Opened: () => ApplicationDefinition.makeNoopStep(),
-    Closed: () => ApplicationDefinition.makeNoopStep(),
-    CompletedClose: () => ApplicationDefinition.makeNoopStep(),
+export const DialogBinding = ApplicationBlock.makeBinding(Dialog.DialogBlock, {
+  field: 'dialog',
+  init: { contextToArgs: () => [{ id: 'details' }] },
+}).withOutMessagePolicy({
+  fold: ApplicationBlock.makeOutMessageFold(Dialog.DialogBlock, {
+    Opened: () => ApplicationBlock.makeNoopStep(),
+    Closed: () => ApplicationBlock.makeNoopStep(),
+    CompletedClose: () => ApplicationBlock.makeNoopStep(),
   }),
 })
 
-export const PickerBinding = ApplicationDefinition.makeBinding(Picker, {
+export const PickerBinding = ApplicationBlock.makeBinding(Picker, {
   field: 'picker',
   init: { contextToArgs: () => [{ id: 'fruit' }] },
 }).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(Picker, {
+  fold: ApplicationBlock.makeOutMessageFold(Picker, {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeStep(model => ({
+      ApplicationBlock.makeStep(model => ({
         model: Struct.modifyFields(model, {
           maybeSelected: () => Option.some(value),
         }),
       })),
     ClearedSelection: () =>
-      ApplicationDefinition.makeStep(model => ({
+      ApplicationBlock.makeStep(model => ({
         model: Struct.modifyFields(model, {
           maybeSelected: () => Option.none(),
         }),
@@ -392,21 +381,21 @@ export const PickerBinding = ApplicationDefinition.makeBinding(Picker, {
   }),
 })
 
-export const PopoverBinding = ApplicationDefinition.makeBinding(
+export const PopoverBinding = ApplicationBlock.makeBinding(
   Popover.PopoverBlock,
   {
     field: 'popover',
     init: { contextToArgs: () => [{ id: 'help' }] },
   },
 ).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(Popover.PopoverBlock, {
-    Opened: () => ApplicationDefinition.makeNoopStep(),
-    Closed: () => ApplicationDefinition.makeNoopStep(),
+  fold: ApplicationBlock.makeOutMessageFold(Popover.PopoverBlock, {
+    Opened: () => ApplicationBlock.makeNoopStep(),
+    Closed: () => ApplicationBlock.makeNoopStep(),
   }),
 })
 
 export const createComposition = () =>
-  ApplicationDefinition.makeComposition({
+  ApplicationBlock.makeComposition({
     bindings: [
       AnimationBindingWithOutMessagePolicy,
       DialogBinding,
@@ -470,7 +459,7 @@ export const author = (composition: Composition) => {
   })
   const view = composition.makeView((model, h) => helper(model, h))
 
-  return ApplicationDefinition.makeBlock(
+  return ApplicationBlock.makeLayer(
     Effect.gen(function* () {
       const animation = yield* AnimationBindingWithOutMessagePolicy
       const dialog = yield* DialogBinding
@@ -484,19 +473,22 @@ export const author = (composition: Composition) => {
         view,
       }
     }),
-  ).provide(
-    Layer.mergeAll(
-      Animation.layer,
-      Dialog.layer,
-      Combobox.layer,
-      Popover.layer,
+  ).pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        Animation.layer,
+        Dialog.layer,
+        Combobox.layer,
+        Popover.layer,
+      ),
     ),
   )
 }
 
-export const ElementBlock = author(createComposition())
+export const ElementLayer = author(createComposition())
 export const application = Program.makeElement({
-  block: ElementBlock,
+  block: ApplicationBlock,
+  layer: ElementLayer,
   container: null,
 })
 
@@ -640,78 +632,60 @@ export type GenericAssertions = [
   >,
 ]
 
-export const sliderRangeChange = Slider.SliderBlock.get.pipe(
-  Effect.map(slider =>
-    slider.operations.informRangeChange(
-      slider.init({ id: 'volume', min: 0, max: 100, step: 1 }).model,
-      { min: 10, max: 90 },
-    ),
+export const sliderRangeChange = Story.withBlock(Slider.SliderBlock, slider =>
+  slider.operations.informRangeChange(
+    slider.init({ id: 'volume', min: 0, max: 100, step: 1 }).model,
+    { min: 10, max: 90 },
   ),
-  Effect.provide(Slider.layer),
-)
-export const rootSliderRangeChange = RootSlider.get.pipe(
-  Effect.map(slider =>
-    slider.operations.informRangeChange(
-      slider.init({ id: 'root-volume', min: 0, max: 100, step: 1 }).model,
-      { min: 20, max: 80 },
-    ),
+).pipe(Effect.provide(Slider.layer))
+export const rootSliderRangeChange = Story.withBlock(RootSlider, slider =>
+  slider.operations.informRangeChange(
+    slider.init({ id: 'root-volume', min: 0, max: 100, step: 1 }).model,
+    { min: 20, max: 80 },
   ),
-  Effect.provide(Slider.layer),
-)
-export const tooltipDelayFromString = Tooltip.TooltipBlock.get.pipe(
-  Effect.map(tooltip =>
+).pipe(Effect.provide(Slider.layer))
+export const tooltipDelayFromString = Story.withBlock(
+  Tooltip.TooltipBlock,
+  tooltip =>
     tooltip.operations.informShowDelayChanged(
       tooltip.init({ id: 'help' }).model,
       '250 millis',
     ),
-  ),
-  Effect.provide(Tooltip.layer),
-)
-export const tooltipDelayFromNumber = Tooltip.TooltipBlock.get.pipe(
-  Effect.map(tooltip =>
+).pipe(Effect.provide(Tooltip.layer))
+export const tooltipDelayFromNumber = Story.withBlock(
+  Tooltip.TooltipBlock,
+  tooltip =>
     tooltip.operations.informShowDelayChanged(
       tooltip.init({ id: 'details' }).model,
       300,
     ),
-  ),
-  Effect.provide(Tooltip.layer),
-)
-export const tooltipDelayFromDuration = Tooltip.TooltipBlock.get.pipe(
-  Effect.map(tooltip =>
+).pipe(Effect.provide(Tooltip.layer))
+export const tooltipDelayFromDuration = Story.withBlock(
+  Tooltip.TooltipBlock,
+  tooltip =>
     tooltip.operations.informShowDelayChanged(
       tooltip.init({ id: 'settings' }).model,
       Duration.millis(350),
     ),
-  ),
-  Effect.provide(Tooltip.layer),
-)
-export const toastFromStringDuration = ToastBlock.get.pipe(
-  Effect.map(toast =>
-    toast.operations.requestShow(toast.init({ id: 'notifications' }).model, {
-      payload: { kind: 'Saved' },
-      duration: '1 second',
-    }),
-  ),
-  Effect.provide(Toast.layer),
-)
-export const toastFromNumberDuration = ToastBlock.get.pipe(
-  Effect.map(toast =>
-    toast.operations.requestShow(toast.init({ id: 'notifications' }).model, {
-      payload: { kind: 'Failed' },
-      duration: 1_000,
-    }),
-  ),
-  Effect.provide(Toast.layer),
-)
-export const toastFromDuration = ToastBlock.get.pipe(
-  Effect.map(toast =>
-    toast.operations.requestShow(toast.init({ id: 'notifications' }).model, {
-      payload: { kind: 'Saved' },
-      duration: Duration.seconds(2),
-    }),
-  ),
-  Effect.provide(Toast.layer),
-)
+).pipe(Effect.provide(Tooltip.layer))
+export const toastFromStringDuration = Story.withBlock(ToastBlock, toast =>
+  toast.operations.requestShow(toast.init({ id: 'notifications' }).model, {
+    payload: { kind: 'Saved' },
+    duration: '1 second',
+  }),
+).pipe(Effect.provide(Toast.layer))
+export const toastFromNumberDuration = Story.withBlock(ToastBlock, toast =>
+  toast.operations.requestShow(toast.init({ id: 'notifications' }).model, {
+    payload: { kind: 'Failed' },
+    duration: 1_000,
+  }),
+).pipe(Effect.provide(Toast.layer))
+export const toastFromDuration = Story.withBlock(ToastBlock, toast =>
+  toast.operations.requestShow(toast.init({ id: 'notifications' }).model, {
+    payload: { kind: 'Saved' },
+    duration: Duration.seconds(2),
+  }),
+).pipe(Effect.provide(Toast.layer))
 
 const ShapeModel = Schema.Struct({ value: Schema.String })
 const ShapeMessage = Message.defineMessageUnion({ Changed: {} })
@@ -719,30 +693,28 @@ const ShapeOutMessage = Message.defineMessageUnion({ Changed: {} })
 type ShapeViewInputs = Readonly<{ label: string }>
 
 export const WithViewAndOutMessageKey = Symbol('WithViewAndOutMessage')
-const WithViewAndOutMessageDefinition = Block.makeDefinition(
-  'WithViewAndOutMessage',
-  {
-    key: WithViewAndOutMessageKey,
-    Model: ShapeModel,
-    Message: ShapeMessage,
-    OutMessage: ShapeOutMessage,
-    Init: Schema.Tuple([]),
-    view: {
-      kind: 'Element',
-      Inputs: Block.makeInputContract<ShapeViewInputs>(),
-    },
+const WithViewAndOutMessageBlock = Block.make('WithViewAndOutMessage', {
+  key: WithViewAndOutMessageKey,
+  Model: ShapeModel,
+  Message: ShapeMessage,
+  OutMessage: ShapeOutMessage,
+  Init: Schema.Tuple([]),
+  view: {
+    kind: 'Element',
+    Inputs: Block.makeInputContract<ShapeViewInputs>(),
   },
-)
+})
 const WithViewAndOutMessageComposition =
-  WithViewAndOutMessageDefinition.makeComposition()
-export const WithViewAndOutMessage = WithViewAndOutMessageDefinition.makeBlock(
+  WithViewAndOutMessageBlock.makeComposition()
+export const WithViewAndOutMessage = WithViewAndOutMessageBlock
+export const WithViewAndOutMessageLayer = WithViewAndOutMessageBlock.makeLayer(
   Effect.succeed({
     children: [],
     init: WithViewAndOutMessageComposition.makeInit(() => ({
       model: ShapeModel.make({ value: '' }),
     })),
     update: WithViewAndOutMessageComposition.makeUpdate({
-      Changed: WithViewAndOutMessageDefinition.makeNoopStep(),
+      Changed: WithViewAndOutMessageBlock.makeNoopStep(),
     }),
     view: WithViewAndOutMessageComposition.makeView.withInputs(
       (_model, { label }, h) => h.div([], [label]),
@@ -752,48 +724,46 @@ export const WithViewAndOutMessage = WithViewAndOutMessageDefinition.makeBlock(
 )
 
 export const WithOutMessageOnlyKey = Symbol('WithOutMessageOnly')
-const WithOutMessageOnlyDefinition = Block.makeDefinition(
-  'WithOutMessageOnly',
-  {
-    key: WithOutMessageOnlyKey,
-    Model: ShapeModel,
-    Message: ShapeMessage,
-    OutMessage: ShapeOutMessage,
-    Init: Schema.Tuple([]),
-  },
-)
-const WithOutMessageOnlyComposition =
-  WithOutMessageOnlyDefinition.makeComposition()
-export const WithOutMessageOnly = WithOutMessageOnlyDefinition.makeBlock(
+const WithOutMessageOnlyBlock = Block.make('WithOutMessageOnly', {
+  key: WithOutMessageOnlyKey,
+  Model: ShapeModel,
+  Message: ShapeMessage,
+  OutMessage: ShapeOutMessage,
+  Init: Schema.Tuple([]),
+})
+const WithOutMessageOnlyComposition = WithOutMessageOnlyBlock.makeComposition()
+export const WithOutMessageOnly = WithOutMessageOnlyBlock
+export const WithOutMessageOnlyLayer = WithOutMessageOnlyBlock.makeLayer(
   Effect.succeed({
     children: [],
     init: WithOutMessageOnlyComposition.makeInit(() => ({
       model: ShapeModel.make({ value: '' }),
     })),
     update: WithOutMessageOnlyComposition.makeUpdate({
-      Changed: WithOutMessageOnlyDefinition.makeNoopStep(),
+      Changed: WithOutMessageOnlyBlock.makeNoopStep(),
     }),
     EffectsLayer: Layer.empty,
   }),
 )
 
 export const WithViewOnlyKey = Symbol('WithViewOnly')
-const WithViewOnlyDefinition = Block.makeDefinition('WithViewOnly', {
+const WithViewOnlyBlock = Block.make('WithViewOnly', {
   key: WithViewOnlyKey,
   Model: ShapeModel,
   Message: ShapeMessage,
   Init: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ShapeViewInputs>() },
 })
-const WithViewOnlyComposition = WithViewOnlyDefinition.makeComposition()
-export const WithViewOnly = WithViewOnlyDefinition.makeBlock(
+const WithViewOnlyComposition = WithViewOnlyBlock.makeComposition()
+export const WithViewOnly = WithViewOnlyBlock
+export const WithViewOnlyLayer = WithViewOnlyBlock.makeLayer(
   Effect.succeed({
     children: [],
     init: WithViewOnlyComposition.makeInit(() => ({
       model: ShapeModel.make({ value: '' }),
     })),
     update: WithViewOnlyComposition.makeUpdate({
-      Changed: WithViewOnlyDefinition.makeNoopStep(),
+      Changed: WithViewOnlyBlock.makeNoopStep(),
     }),
     view: WithViewOnlyComposition.makeView.withInputs((_model, { label }, h) =>
       h.div([], [label]),
@@ -803,26 +773,24 @@ export const WithViewOnly = WithViewOnlyDefinition.makeBlock(
 )
 
 export const WithoutViewOrOutMessageKey = Symbol('WithoutViewOrOutMessage')
-const WithoutViewOrOutMessageDefinition = Block.makeDefinition(
-  'WithoutViewOrOutMessage',
-  {
-    key: WithoutViewOrOutMessageKey,
-    Model: ShapeModel,
-    Message: ShapeMessage,
-    Init: Schema.Tuple([]),
-  },
-)
+const WithoutViewOrOutMessageBlock = Block.make('WithoutViewOrOutMessage', {
+  key: WithoutViewOrOutMessageKey,
+  Model: ShapeModel,
+  Message: ShapeMessage,
+  Init: Schema.Tuple([]),
+})
 const WithoutViewOrOutMessageComposition =
-  WithoutViewOrOutMessageDefinition.makeComposition()
-export const WithoutViewOrOutMessage =
-  WithoutViewOrOutMessageDefinition.makeBlock(
+  WithoutViewOrOutMessageBlock.makeComposition()
+export const WithoutViewOrOutMessage = WithoutViewOrOutMessageBlock
+export const WithoutViewOrOutMessageLayer =
+  WithoutViewOrOutMessageBlock.makeLayer(
     Effect.succeed({
       children: [],
       init: WithoutViewOrOutMessageComposition.makeInit(() => ({
         model: ShapeModel.make({ value: '' }),
       })),
       update: WithoutViewOrOutMessageComposition.makeUpdate({
-        Changed: WithoutViewOrOutMessageDefinition.makeNoopStep(),
+        Changed: WithoutViewOrOutMessageBlock.makeNoopStep(),
       }),
       EffectsLayer: Layer.empty,
     }),

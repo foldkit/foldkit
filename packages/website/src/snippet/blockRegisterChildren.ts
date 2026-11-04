@@ -1,20 +1,20 @@
 import * as Composer from './composer'
-import { ChatDefinition } from './definition'
+import { ChatBlock } from './definition'
 
-export const PrimaryComposerBinding = ChatDefinition.makeBinding(
+export const PrimaryComposerBinding = ChatBlock.makeBinding(
   Composer.ComposerBlock,
   {
     field: 'primaryComposer',
   },
 )
 
-export const SecondaryComposerBinding = ChatDefinition.makeBinding(
+export const SecondaryComposerBinding = ChatBlock.makeBinding(
   Composer.ComposerBlock,
   {
     field: 'secondaryComposer',
   },
 )
 
-export const ChatComposition = ChatDefinition.makeComposition({
+export const ChatComposition = ChatBlock.makeComposition({
   bindings: [PrimaryComposerBinding, SecondaryComposerBinding],
 })

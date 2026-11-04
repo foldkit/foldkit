@@ -3,12 +3,12 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 describe('view', () => {
   it.effect('initial view shows the Crash button', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(null),
       expect(role('button', { name: 'Crash' })).toExist(),
     ),

@@ -6,7 +6,7 @@ A Block-aware Story acquires the chosen implementation, then calls its pure upda
 
 In Vitest, return that Effect from `it.effect` in `@effect/vitest`. The runner awaits the result and manages the test Scope. Prefer direct Block-aware calls for ordinary scenarios; keep `withBlock` for fixtures needing acquired operations or deliberately modified initialized Models. Start startup scenarios with `init` and explicit Command resolution so their initial Commands remain visible.
 
-Pass the public Block and its implementation Layer, or a checked application descriptor with its default Layer. Start with `init(...args)` to retain startup Model and Commands, or `given(model)` for a deliberate fixture. Send Messages, resolve Commands, and assert on the Model. `withBlock` supports advanced fixtures that need direct synchronous operations.
+Pass `{ block: FeatureBlock, layer }` so the runner checks the declaration against its selected implementation Layer. Start with `init(...args)` to retain startup Model and Commands, or `given(model)` for a deliberate fixture. Send Messages, resolve Commands, and assert on the Model. `withBlock` supports advanced fixtures that need direct synchronous operations.
 
 ## The API
 
@@ -92,7 +92,7 @@ Inside `withBlock`, use `Subscription.from(block.subscriptions)` to deliver a fa
 
 ::Snippet{name="testingStorySubscription" label="Deliver a registered Subscription Message"}
 
-Pass the raw child entry only when it identifies one registration. If a child Subscription appears at multiple placements, select the intended bound entry from the completed Block's `subscriptions` record. The public contract does not reveal private lifecycle inventory. Keep those tests beside the implementation that owns the declarations.
+Pass the raw child entry only when it identifies one registration. If a child Subscription appears at multiple placements, select the intended bound entry from the acquired executable's `subscriptions` record inside `withBlock`. The public contract does not reveal private lifecycle inventory. Keep those tests beside the implementation that owns the declarations.
 
 ### Resolve Child Commands
 

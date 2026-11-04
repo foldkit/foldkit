@@ -3,14 +3,14 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Model } from './application'
+import { ApplicationBlock, Model, layer } from './application'
 
 const initialModel = Model.make({ count: 0 })
 
 describe('view', () => {
   it.effect('renders the initial count and three buttons', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       expect(text('0')).toExist(),
       expect(role('button', { name: '+' })).toExist(),
@@ -21,7 +21,7 @@ describe('view', () => {
 
   it.effect('clicking + increments the displayed count', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       click(role('button', { name: '+' })),
       expect(text('1')).toExist(),
@@ -32,7 +32,7 @@ describe('view', () => {
 
   it.effect('clicking - decrements the displayed count', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given({ count: 3 }),
       click(role('button', { name: '-' })),
       expect(text('2')).toExist(),
@@ -41,7 +41,7 @@ describe('view', () => {
 
   it.effect('clicking - past zero produces a negative count', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       click(role('button', { name: '-' })),
       expect(text('-1')).toExist(),
@@ -50,7 +50,7 @@ describe('view', () => {
 
   it.effect('Reset returns the count to zero', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given({ count: 42 }),
       click(role('button', { name: 'Reset' })),
       expect(text('0')).toExist(),

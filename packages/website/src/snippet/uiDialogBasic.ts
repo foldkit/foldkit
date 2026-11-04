@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -21,9 +21,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const DialogExampleKey = Symbol('DialogExample')
+export const DialogExampleKey = Symbol('DialogExample')
 
-const DialogExampleDefinition = Block.makeDefinition('DialogExample', {
+export const DialogExampleBlock = Block.make('DialogExample', {
   key: DialogExampleKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -31,11 +31,11 @@ const DialogExampleDefinition = Block.makeDefinition('DialogExample', {
   Message,
 })
 
-const { makeNoopStep } = DialogExampleDefinition
+const { makeNoopStep } = DialogExampleBlock
 
 // One boundary handles Dialog Messages, Commands, and OutMessages. Replace
 // either no-op arm with the parent transition that should follow that event.
-const foldDialogOutMessage = DialogExampleDefinition.makeOutMessageFold(
+const foldDialogOutMessage = DialogExampleBlock.makeOutMessageFold(
   DialogBlock,
   {
     Opened: makeNoopStep,
@@ -44,12 +44,12 @@ const foldDialogOutMessage = DialogExampleDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = DialogExampleDefinition.makeBinding(DialogBlock, {
+const DialogBinding = DialogExampleBlock.makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const DialogExampleComposition = DialogExampleDefinition.makeComposition({
+const DialogExampleComposition = DialogExampleBlock.makeComposition({
   bindings: [DialogBinding],
 })
 
@@ -114,7 +114,7 @@ const view = DialogExampleComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = DialogExampleDefinition.makeBlock(
+export const layer = DialogExampleBlock.makeLayer(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
 
@@ -125,4 +125,4 @@ export const ApplicationBlock = DialogExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(DialogLayer)
+).pipe(Layer.provide(DialogLayer))

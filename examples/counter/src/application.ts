@@ -18,7 +18,7 @@ export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,
   Message,
@@ -26,9 +26,9 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   view: { kind: 'Document' },
 })
 
-const { makeFieldsStep } = ApplicationDefinition
+const { makeFieldsStep } = ApplicationBlock
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: { count: 0 },
@@ -97,7 +97,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

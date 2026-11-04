@@ -22,12 +22,12 @@ import {
   StepTabsBinding,
   WorkHistoryBinding,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view/view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const personalInfo = yield* PersonalInfoBinding
     const workHistory = yield* WorkHistoryBinding
@@ -55,15 +55,19 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(
-  Layer.mergeAll(
-    PersonalInfo.layer,
-    WorkHistory.layer,
-    Education.layer,
-    Skills.layer,
-    CoverLetter.layer,
-    Attachments.layer,
-    MenuLayer,
-    TabsLayer,
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      PersonalInfo.layer,
+      WorkHistory.layer,
+      Education.layer,
+      Skills.layer,
+      CoverLetter.layer,
+      Attachments.layer,
+      MenuLayer,
+      TabsLayer,
+    ),
   ),
 )
+
+export { ApplicationBlock } from './definition'

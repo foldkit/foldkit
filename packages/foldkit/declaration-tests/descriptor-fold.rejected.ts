@@ -1,12 +1,14 @@
 import { Effect } from 'effect'
-import { Command } from 'foldkit'
+import { Block, Command } from 'foldkit'
 
 import {
   FoldParityChildDefinition,
   FoldParityParentDefinition,
   conditionalFold,
+  connectedComposition,
   connectedFold,
   contextFold,
+  plainComposition,
 } from './descriptor-fold.accepted.js'
 import {
   ChildMessage,
@@ -52,3 +54,22 @@ declare const model: typeof Model.Type
 const chooseConnected = connectedFold(ChildOutMessage.Chose({ value: 'Pear' }))
 // @ts-expect-error Connected results still require the original registered graph on their Model input.
 export const missingGraph = chooseConnected(model)
+
+declare const retainedPlain: (typeof plainComposition.bindings)[0]
+export const wrongInventoryChoice = retainedPlain.requestChoose({
+  // @ts-expect-error Raw inventory retains the operation's exact Choice payload.
+  value: 'Banana',
+})
+
+type ConnectedPolicy =
+  (typeof connectedComposition.bindings)[0] extends Block.BindingPolicyEvidence<
+    infer Policy
+  >
+    ? Policy
+    : never
+declare const retainedConnectedFold: ConnectedPolicy['fold']
+const chooseFromInventory = retainedConnectedFold(
+  ChildOutMessage.Chose({ value: 'Pear' }),
+)
+// @ts-expect-error Raw inventory preserves the fold's registered sibling graph requirement.
+export const missingInventoryGraph = chooseFromInventory(model)

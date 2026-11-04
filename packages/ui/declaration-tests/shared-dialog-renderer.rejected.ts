@@ -14,7 +14,7 @@ import {
 import { confirmDialogInputs } from './shared-dialog-renderer.js'
 
 const MissingDialogKey = Symbol('SharedDialogMissingBinding')
-const MissingDialogComposition = Block.makeDefinition('MissingDialog', {
+const MissingDialogComposition = Block.make('MissingDialog', {
   key: MissingDialogKey,
   Model: DeleteIssueModel,
   Message: DeleteIssueMessage,
@@ -80,7 +80,7 @@ DeleteIssueComposition.makeView((_model, h) => {
 })
 
 const MissingMountKey = Symbol('SharedDialogMissingMount')
-const MissingMountComposition = Block.makeDefinition('MissingMount', {
+const MissingMountComposition = Block.make('MissingMount', {
   key: MissingMountKey,
   Model: Schema.Struct({}),
   Message: Schema.Never,

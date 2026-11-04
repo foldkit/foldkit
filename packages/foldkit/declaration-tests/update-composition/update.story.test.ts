@@ -2,7 +2,7 @@ import { Effect } from 'effect'
 import * as Story from 'foldkit/story'
 import { describe, expect, it } from 'vitest'
 
-import { ApplicationBlock } from './block.js'
+import { ApplicationBlock, layer } from './block.js'
 import { SaveDraft } from './command.js'
 import { EditorBinding } from './composition.js'
 import { Message } from './definition.js'
@@ -12,7 +12,7 @@ describe('composed document update', () => {
   it('persists edits and lets completion pass through the same update', async () => {
     await Effect.runPromise(
       Story.story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         Story.init(),
         Story.message(Message.UpdatedTitle({ title: 'First draft' })),
         Story.Command.expectExact(SaveDraft({ text: 'First draft\n' })),
@@ -32,7 +32,7 @@ describe('composed document update', () => {
   it('accepts saved content quietly and persists later child edits after its fold', async () => {
     await Effect.runPromise(
       Story.story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         Story.init(),
         Story.message(
           Message.ReceivedDraft({ title: 'Existing', text: 'Loaded' }),
@@ -56,7 +56,7 @@ describe('composed document update', () => {
 
   it('provides acquired direct and curried calls without executing effects', async () => {
     await Effect.runPromise(
-      Story.withBlock(ApplicationBlock, block => {
+      Story.withBlock({ block: ApplicationBlock, layer }, block => {
         const applicationInit = block.init()
         const updated = block.update(
           applicationInit.model,

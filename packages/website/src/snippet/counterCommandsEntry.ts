@@ -1,9 +1,10 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './counterCommands'
+import { ApplicationBlock, layer } from './counterCommands'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
 })
 

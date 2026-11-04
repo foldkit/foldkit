@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { init } from 'foldkit/scene'
 import { expect, label, scene, text, type } from 'foldkit/scene'
 import { describe } from 'vitest'
@@ -10,19 +9,19 @@ import { CoverLetterBlock, layer } from './block'
 describe('coverLetter', () => {
   it.effect('renders the cover letter field', () =>
     scene(
-      CoverLetterBlock,
+      { block: CoverLetterBlock, layer },
       init(),
       expect(label('Cover Letter')).toExist(),
       expect(text('2000 characters remaining')).toExist(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('typing updates the remaining character count', () =>
     scene(
-      CoverLetterBlock,
+      { block: CoverLetterBlock, layer },
       init(),
       type(label('Cover Letter'), 'Hello'),
       expect(text('1995 characters remaining')).toExist(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 })

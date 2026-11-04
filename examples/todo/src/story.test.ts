@@ -5,7 +5,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { GenerateTodo, SaveTodos } from './command'
 import { Message } from './message'
 import { EditingState, type Model } from './model'
@@ -46,7 +46,7 @@ describe('update', () => {
   describe('add todo', () => {
     it.effect('AddedTodo with text produces a GenerateTodo Command', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(emptyModel, { newTodoText: () => 'Buy milk' })),
         message(Message.AddedTodo()),
         Command.expectHas(GenerateTodo),
@@ -83,7 +83,7 @@ describe('update', () => {
 
     it.effect('AddedTodo with empty text is ignored', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(emptyModel, { newTodoText: () => '' })),
         message(Message.AddedTodo()),
         Command.expectNone(),
@@ -92,7 +92,7 @@ describe('update', () => {
 
     it.effect('AddedTodo with whitespace-only text is ignored', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(emptyModel, { newTodoText: () => '   ' })),
         message(Message.AddedTodo()),
         Command.expectNone(),
@@ -101,7 +101,7 @@ describe('update', () => {
 
     it.effect('UpdatedNewTodo updates the input text', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         message(Message.UpdatedNewTodo({ text: 'Walk' })),
         model(model => {
@@ -120,7 +120,7 @@ describe('update', () => {
       )
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modelWithTodos),
         message(Message.ToggledTodo({ id: 'abc' })),
         Command.resolve(
@@ -144,7 +144,7 @@ describe('update', () => {
       )
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modelWithTodos),
         message(Message.ToggledTodo({ id: 'ghi' })),
         Command.resolve(
@@ -166,7 +166,7 @@ describe('update', () => {
       )
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modelWithTodos),
         message(Message.DeletedTodo({ id: 'abc' })),
         Command.resolve(
@@ -186,7 +186,7 @@ describe('update', () => {
   describe('editing', () => {
     it.effect('StartedEditing enters editing state with the todo text', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modelWithTodos),
         message(Message.StartedEditing({ id: 'abc' })),
         model(model => {
@@ -203,7 +203,7 @@ describe('update', () => {
       })
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(editingModel),
         message(Message.UpdatedEditingTodo({ text: 'Buy oat milk' })),
         model(model => {
@@ -227,7 +227,7 @@ describe('update', () => {
       )
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(editingModel),
         message(Message.SavedEdit()),
         Command.resolve(
@@ -250,7 +250,7 @@ describe('update', () => {
       })
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(editingModel),
         message(Message.SavedEdit()),
         model(model => {
@@ -271,7 +271,7 @@ describe('update', () => {
       })
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(editingModel),
         message(Message.CancelledEdit()),
         model(model => {
@@ -294,7 +294,7 @@ describe('update', () => {
         )
 
         return story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(modelWithTodos),
           message(Message.ToggledAll()),
           Command.resolve(
@@ -325,7 +325,7 @@ describe('update', () => {
         )
 
         return story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(allCompletedModel),
           message(Message.ToggledAll()),
           Command.resolve(
@@ -347,7 +347,7 @@ describe('update', () => {
       )
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modelWithTodos),
         message(Message.ClearedCompleted()),
         Command.resolve(
@@ -367,7 +367,7 @@ describe('update', () => {
   describe('filter', () => {
     it.effect('SelectedFilter changes the active filter', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modelWithTodos),
         message(Message.SelectedFilter({ filter: 'Active' })),
         model(model => {

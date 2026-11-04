@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": false,
+    "rootDir": "..",
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/message": ["../src/message/index.ts"]
+    }
+  },
+  "files": [
+    "constructor-union-ownership.accepted.ts",
+    "constructor-union-ownership.rejected.ts",
+    "constructor-union-ownership.consume.ts",
+    "../src/vite-env.d.ts"
+  ],
+  "include": []
+}

@@ -120,9 +120,18 @@ export type {
 export { makeNamespace } from './makeNamespace.js'
 export type { Namespace, NamespaceMakeDefinition } from './makeNamespace.js'
 export { makeDefinition } from './makeDefinition.js'
+/** Declares one Block and binds its authoring helpers to that contract. */
+export { makeUnifiedBlock as make } from '../experimental/contracted/unified.js'
+/** @internal Names the unified authoring surface in downstream declarations. */
+export type {
+  UnifiedBlockFields,
+  UnifiedBlock,
+} from '../experimental/contracted/unified.js'
 /** @internal Names inferred input contracts in downstream declarations. */
 export type {
   BaseDefinition,
+  ImplementationFacts,
+  SelectedImplementationFacts,
   DeclaredFacts,
   InMessageDefinition,
   MakeComposition as ContractMakeComposition,
@@ -173,6 +182,7 @@ export type {
 export type {
   CoreContract,
   DescriptorContract,
+  Executable,
   ExecutableOf,
   ExecutableInMessageUpdate,
   ExecutableReturn,
@@ -199,19 +209,22 @@ export type {
 export type { MakeMapBinding as DescriptorMakeMapBinding } from '../experimental/constructed/authoring.js'
 /** @internal Keeps exact portable Binding contracts nameable in downstream declarations. */
 export type {
-  BindingSpecs,
-  BindingsFromSpecs,
+  BindingChildContract,
   DescriptorBinding,
   DescriptorBindingFields,
   DescriptorBindingMember,
   DescriptorBindingPolicyFields,
   DescriptorBindingPolicySelector,
-  DescriptorBindingSpec,
-  FoldOnlyPolicySpec,
   DescriptorBindingWithPolicyFields,
   ParentDescriptorBindingFields,
 } from '../experimental/constructed/bindingContract.js'
-export type { Plan, ViewPlan } from '../experimental/hybrid/authoring.js'
+/** @internal Names the exact child-routing channels retained by portable update plans. */
+export type { CompositionRouteChannels } from './delivery.js'
+export type {
+  CanonicalUpdatePlan,
+  Plan,
+  ViewPlan,
+} from '../experimental/hybrid/authoring.js'
 /** @internal Keeps inferred focused and composed update plans nameable in declarations. */
 export type {
   CompositionMetadata,
@@ -303,3 +316,40 @@ export type {
 
 /** @internal Names native view-channel projection in emitted descriptor Binding declarations. */
 export type { BindingViewContract } from './bindChild.js'
+
+/** @internal Closed library-family metadata retained in emitted UI contracts. */
+export type {
+  FixedRefinement,
+  FixedRefinementProvider,
+  SelectedPublicIdentity,
+} from '../experimental/contracted/implementationFacts.js'
+/** @internal Private reader admission for closed library providers. */
+export type {
+  ClosedFamilyCapability,
+  ReadableProvider,
+  ExactReadable,
+  FamilyReaderCapability,
+  FamilySelection,
+  ValidateReadableAdmission,
+  ReadableAdmissionValidation,
+} from '../experimental/contracted/readableProvider.js'
+
+/** @internal Retains exact selected-handler facts in emitted declarations. */
+export type { WithoutPendingHandlers } from '../experimental/contracted/contract.js'
+/** @internal Names an acquired connection returned from a portable Binding. */
+export type { ExecutableConnection } from './bindingConnection.js'
+
+export type {
+  DescriptorBindingSpec,
+  FoldOnlyPolicySpec,
+  BindingSpecs,
+  BindingsFromSpecs,
+} from '../experimental/constructed/bindingContract.js'
+
+export type {
+  AuthoredViewPlan,
+  AuthoredDocumentViewPlan,
+} from '../experimental/contracted/contract.js'
+
+export type { AuthoredInitPlan } from '../experimental/contracted/contract.js'
+export type { AuthoredUpdatePlan } from '../experimental/hybrid/authoring.js'

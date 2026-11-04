@@ -3,14 +3,13 @@ import { Effect, Layer } from 'effect'
 import { WorkHistoryEntry as Entry } from './blocks'
 import { EffectsLayer } from './command'
 import { EntriesBinding } from './composition'
-import { WorkHistoryDefinition } from './definition'
+import { WorkHistoryBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const WorkHistoryBlock = WorkHistoryDefinition.contract
-export const layer = WorkHistoryDefinition.makeBlock(
+export const layer = WorkHistoryBlock.makeLayer(
   Effect.gen(function* () {
     const entries = yield* EntriesBinding
 
@@ -23,4 +22,6 @@ export const layer = WorkHistoryDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(Entry.layer)).layer
+).pipe(Layer.provide(Layer.mergeAll(Entry.layer)))
+
+export { WorkHistoryBlock } from './definition'

@@ -3,7 +3,7 @@ import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchTelemetry, SyncChart } from './command'
-import { ApplicationDefinition, makeStep } from './definition'
+import { ApplicationBlock, makeStep } from './definition'
 import { Model } from './model'
 import { MountChart } from './mount'
 import {
@@ -68,46 +68,46 @@ const selectControl = (updateModel: (model: Model) => Model) =>
     }
   })
 
-export const ChartModeRadioGroupBinding = ApplicationDefinition.makeBinding(
+export const ChartModeRadioGroupBinding = ApplicationBlock.makeBinding(
   ChartModeRadioGroupBlock,
   {
     field: 'chartModeRadioGroup',
     init: { contextToArgs: () => [{ id: CHART_MODE_RADIO_GROUP_ID }] },
   },
 ).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(ChartModeRadioGroupBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(ChartModeRadioGroupBlock, {
     Selected: ({ value }) =>
       selectControl(modifyFields({ chartMode: () => value })),
   }),
 })
 
-export const PeriodRadioGroupBinding = ApplicationDefinition.makeBinding(
+export const PeriodRadioGroupBinding = ApplicationBlock.makeBinding(
   PeriodRadioGroupBlock,
   {
     field: 'periodRadioGroup',
     init: { contextToArgs: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
   },
 ).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(PeriodRadioGroupBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(PeriodRadioGroupBlock, {
     Selected: ({ value }) =>
       selectControl(modifyFields({ period: () => value })),
   }),
 })
 
-export const PackageRadioGroupBinding = ApplicationDefinition.makeBinding(
+export const PackageRadioGroupBinding = ApplicationBlock.makeBinding(
   PackageRadioGroupBlock,
   {
     field: 'packageRadioGroup',
     init: { contextToArgs: () => [{ id: PACKAGE_RADIO_GROUP_ID }] },
   },
 ).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(PackageRadioGroupBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(PackageRadioGroupBlock, {
     Selected: ({ value }) =>
       selectControl(modifyFields({ selectedPackageId: () => value })),
   }),
 })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   mounts: [MountChart],
   bindings: [
     ChartModeRadioGroupBinding,

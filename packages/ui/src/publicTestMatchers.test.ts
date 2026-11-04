@@ -70,7 +70,7 @@ it.effect(
       )
       expect(Menu.test.AnchorMenu).toBe(AnchorMenu)
       expect(Menu.test.PortalMenuBackdrop).toBe(PortalMenuBackdrop)
-      expect(TestMenu).not.toHaveProperty('mounts')
+      expect(TestMenu.makeMount).toBeTypeOf('function')
       expect(menu).not.toHaveProperty('mounts')
       expectTypeOf<
         Block.FactsOf<typeof TestMenu>['mountRequirements']

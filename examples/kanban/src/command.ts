@@ -4,30 +4,27 @@ import { KeyValueStore } from 'effect/persistence'
 import { Dom } from 'foldkit'
 
 import { ADD_CARD_INPUT_ID, STORAGE_KEY } from './constant'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Column } from './domain'
 import { Message } from './message'
 import { SavedBoardJsonString } from './model'
 
-export const GenerateCardId = ApplicationDefinition.makeCommand(
-  'GenerateCardId',
-  {
-    args: { columnId: Schema.String, title: Schema.String },
-    messages: [Message.CompletedGenerateCardId],
-    handler: function* () {
-      const secureRandom = yield* SecureRandom.SecureRandom
+export const GenerateCardId = ApplicationBlock.makeCommand('GenerateCardId', {
+  args: { columnId: Schema.String, title: Schema.String },
+  messages: [Message.CompletedGenerateCardId],
+  handler: function* () {
+    const secureRandom = yield* SecureRandom.SecureRandom
 
-      return ({ columnId, title }) =>
-        Effect.gen(function* () {
-          const cardId = yield* secureRandom.uuidV4()
+    return ({ columnId, title }) =>
+      Effect.gen(function* () {
+        const cardId = yield* secureRandom.uuidV4()
 
-          return Message.CompletedGenerateCardId({ cardId, columnId, title })
-        })
-    },
+        return Message.CompletedGenerateCardId({ cardId, columnId, title })
+      })
   },
-)
+})
 
-export const SaveBoard = ApplicationDefinition.makeCommand('SaveBoard', {
+export const SaveBoard = ApplicationBlock.makeCommand('SaveBoard', {
   args: { columns: Schema.Array(Column.Column) },
   messages: [Message.CompletedSaveBoard],
   handler: function* () {
@@ -44,7 +41,7 @@ export const SaveBoard = ApplicationDefinition.makeCommand('SaveBoard', {
   },
 })
 
-export const FocusAddCardInput = ApplicationDefinition.makeCommand(
+export const FocusAddCardInput = ApplicationBlock.makeCommand(
   'FocusAddCardInput',
   {
     messages: [Message.CompletedFocusAddCardInput],

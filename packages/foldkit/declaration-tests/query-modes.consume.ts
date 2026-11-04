@@ -3,6 +3,7 @@ import type { FactsOf } from 'foldkit/block'
 import type * as Command from 'foldkit/command'
 import type { KeyedQueryFamily } from 'foldkit/experimental/query'
 import * as Query from 'foldkit/experimental/query'
+import * as Story from 'foldkit/story'
 
 import {
   DefaultAttached,
@@ -119,9 +120,38 @@ Query.define({
   },
 })
 
+export const notifyingKeyedAcquisition = Story.withBlock(
+  NotifyingKeyedAttached,
+  block => block.Model,
+)
+
+// @ts-expect-error The public acquisition still requires an original family provider.
+Effect.runPromise(notifyingKeyedAcquisition)
+
+export const providedNotifyingKeyedAcquisition = notifyingKeyedAcquisition.pipe(
+  Effect.provide(Query.layer),
+)
+
 export type KeyedAcquisitionDoesNotBuildHandler = Assert<
-  Equal<Effect.Services<typeof NotifyingKeyedAttached.get>, KeyedQueryFamily>
+  Effect.Services<typeof notifyingKeyedAcquisition> extends KeyedQueryFamily
+    ? true
+    : false
+>
+export type KeyedFamilyProviderClosesAcquisition = Assert<
+  Equal<Effect.Services<typeof providedNotifyingKeyedAcquisition>, never>
+>
+export type KeyedFamilyProviderCannotRaiseHandlerFailure = Assert<
+  Equal<Effect.Error<typeof providedNotifyingKeyedAcquisition>, never>
+>
+export type KeyedAcquisitionDoesNotRequireHandlerServices = Assert<
+  Equal<
+    Extract<
+      Effect.Services<typeof notifyingKeyedAcquisition>,
+      ModeConstructorSource | ModeInvocationSource
+    >,
+    never
+  >
 >
 export type KeyedAcquisitionCannotRaiseHandlerConstructorFailure = Assert<
-  Equal<Effect.Error<typeof NotifyingKeyedAttached.get>, never>
+  Equal<Effect.Error<typeof notifyingKeyedAcquisition>, never>
 >

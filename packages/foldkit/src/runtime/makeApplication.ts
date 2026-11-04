@@ -409,8 +409,8 @@ type ValidUpdate<Model, Update> = Update extends (
  * Its view returns a Document, so the runtime manages document.title and the
  * canonical and og:url tags. Add routing configuration for URL routing, and
  * use one Application per document. Complete the root with
- * `ApplicationDefinition.makeBlock`, returning local handler recipes as
- * `EffectsLayer` from its constructor. Pass that Block to `Program.make` and
+ * `ApplicationBlock.makeLayer`, returning local handler recipes as
+ * `EffectsLayer` from its constructor. Pass `{ block: ApplicationBlock, layer }` to `Program.make` and
  * supply Services required by handlers or Flags through the Program's
  * `provide` method. Use `Program.makeElement` for rendering scoped to a node
  * without changing the document head.

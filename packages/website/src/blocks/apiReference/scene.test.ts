@@ -6,11 +6,13 @@ import { toParentMessageFor } from 'foldkit/test'
 import * as Url from 'foldkit/url'
 import { describe, test } from 'vitest'
 
-import { ApplicationBlock } from '../../block'
+import { ApplicationBlock, layer } from '../../block'
 import { ApiReferenceBinding } from '../../composition'
 import { Deployment } from '../../deployment'
 import { ApiData, ApiModule, ApiType } from './domain'
 import { Message as ApiReferenceMessage } from './message'
+
+const application = { block: ApplicationBlock, layer }
 const seededData = ApiData.make({
   parsedApi: {
     modules: [
@@ -37,7 +39,7 @@ const url = pipe(
   Option.getOrThrow,
 )
 
-const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
+const makeFixture = (block: TestBlock<typeof application>) => {
   const init = block.init
   const update = block.update
   const view = block.view
@@ -48,7 +50,7 @@ const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
 describe('prerendered API Reference', () => {
   test('displays the seeded module during refresh and after full-load failure', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { block, init, update, view } = makeFixture(executable)
 
         const initialization = init(

@@ -1,0 +1,374 @@
+{
+  "decision": "User accepted the measured 1.7% and 10.7% Workspace instantiation cost for further API verification",
+  "baseCommit": "c55fb523ec8537d940f39f6b53204d1b29f12da3",
+  "previousCeilings": {
+    "workspace-composition-4": 2642699,
+    "workspace-composition-8": 4515010
+  },
+  "acceptedCeilings": {
+    "workspace-composition-4": 2687288,
+    "workspace-composition-8": 4999644
+  },
+  "budgetFile": "packages/foldkit/type-performance/budgets.json",
+  "budgetSha256": "876713733ecbb593838a6a527024349e4a62cf246e72069d61a305984ceb05cc",
+  "onlyTwoMaxInstantiationsChanged": true,
+  "extraHeadroom": 0,
+  "allTypesAndOtherBudgetsUnchanged": true,
+  "sourceFiles": 615,
+  "sourceTreeSha256": "7e56b34dade1806ed954db05624e883bd69f46f28c673f963d39a106d4255c5d",
+  "distTreeSha256": "000be063bfea0659bfec06f77ad603d45c06369022bd71293172ca1a6b458ce0",
+  "coreSourceAndDistMatchFrozenProof": true,
+  "fixtureInputChanges": ["type-performance/budgets.json"],
+  "transformationsMatchFrozenProof": true,
+  "driverSha256": "af65d92c320dc42d938c171e0e540a8ff036ecf2a65fe8eb86d5310f8edda07b",
+  "adapterSha256": "289ad36cddc5dfdb0345ffd211a0d50da81d3390950fa13025355e1e3f8606a5",
+  "checkerSha256": "bfd0baed03229435de3093cc79e56c546ff2aa5ce4da874f1cb4ca7732c8ffc4",
+  "originalSeven": {
+    "status": 0,
+    "command": [
+      "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+      "packages/foldkit/scripts/check-block-type-performance.ts"
+    ],
+    "logSha256": "c6a2510092e7b3de23164c45447fee3e079af4e241aa5f94b091b9efa91645bf"
+  },
+  "retainedFourGraph": {
+    "status": 0,
+    "command": [
+      "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+      "internal/direct-block-performance/verify.mjs"
+    ],
+    "receiptOriginalPath": "/private/tmp/foldkit-direct-block-performance-iVi05W/receipt.json",
+    "receiptSha256": "c4d9ac8668178fc0ff9a80173f9487baddf812c1b0f7b439baef309a3a444cf1",
+    "logSha256": "66b9f00a438d86072cb96ea55ee564ace395af9e8026cd9bc9d4d5cf59fcac39",
+    "measurements": [
+      {
+        "mode": "original",
+        "fixture": "deep-composition-8",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-iVi05W/original/scripts/check-block-type-performance.ts",
+          "deep-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-iVi05W/logs/original-deep-composition-8.log",
+        "instantiations": 663497,
+        "maxInstantiations": 1152618,
+        "types": 54111,
+        "maxTypes": 55843,
+        "symbols": 87856,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "original",
+        "fixture": "wide-composition-100",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-iVi05W/original/scripts/check-block-type-performance.ts",
+          "wide-composition-100"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-iVi05W/logs/original-wide-composition-100.log",
+        "instantiations": 1396891,
+        "maxInstantiations": 3132298,
+        "types": 82013,
+        "maxTypes": 216662,
+        "symbols": 131454,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "original",
+        "fixture": "workspace-composition-4",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-iVi05W/original/scripts/check-block-type-performance.ts",
+          "workspace-composition-4"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-iVi05W/logs/original-workspace-composition-4.log",
+        "instantiations": 2552571,
+        "maxInstantiations": 2687288,
+        "types": 208828,
+        "maxTypes": 229173,
+        "symbols": 276530,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "original",
+        "fixture": "workspace-composition-8",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-iVi05W/original/scripts/check-block-type-performance.ts",
+          "workspace-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-iVi05W/logs/original-workspace-composition-8.log",
+        "instantiations": 4321423,
+        "maxInstantiations": 4999644,
+        "types": 282625,
+        "maxTypes": 299721,
+        "symbols": 404145,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "adapted",
+        "fixture": "deep-composition-8",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-iVi05W/adapted/scripts/check-block-type-performance.ts",
+          "deep-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-iVi05W/logs/adapted-deep-composition-8.log",
+        "instantiations": 371285,
+        "maxInstantiations": 1152618,
+        "types": 48897,
+        "maxTypes": 55843,
+        "symbols": 75569,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "adapted",
+        "fixture": "wide-composition-100",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-iVi05W/adapted/scripts/check-block-type-performance.ts",
+          "wide-composition-100"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-iVi05W/logs/adapted-wide-composition-100.log",
+        "instantiations": 2057610,
+        "maxInstantiations": 3132298,
+        "types": 71315,
+        "maxTypes": 216662,
+        "symbols": 110540,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "adapted",
+        "fixture": "workspace-composition-4",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-iVi05W/adapted/scripts/check-block-type-performance.ts",
+          "workspace-composition-4"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-iVi05W/logs/adapted-workspace-composition-4.log",
+        "instantiations": 2687288,
+        "maxInstantiations": 2687288,
+        "types": 174611,
+        "maxTypes": 229173,
+        "symbols": 294414,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "adapted",
+        "fixture": "workspace-composition-8",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-iVi05W/adapted/scripts/check-block-type-performance.ts",
+          "workspace-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-iVi05W/logs/adapted-workspace-composition-8.log",
+        "instantiations": 4999644,
+        "maxInstantiations": 4999644,
+        "types": 264339,
+        "maxTypes": 299721,
+        "symbols": 467569,
+        "budgetStatus": "ok"
+      }
+    ]
+  },
+  "runnableHarness": {
+    "previousSha256": "ce736449a487bc9f509a1917509c25f85f3fc6a254995bb5fe1aaae4a16e5acf",
+    "currentHashes": {
+      "probe/run-recovered-checks.py": "066ac2b85ce6b2717e924d384ce9c62a1f211de59f73ec862905815530a9efe7",
+      "probe/check-runner-failure.py": "5f6dc98521da2fc68dd4bdc8c6342eecb9973a1d5a519487f342618180fb1af7",
+      "probe/tsconfig.current-source.json": "db70156a50709c65ea0ea68a76b856057e7e91418b6e0d1b318b5a55c8fd38ea"
+    },
+    "failureControl": {
+      "runnerBeforeSha256": "066ac2b85ce6b2717e924d384ce9c62a1f211de59f73ec862905815530a9efe7",
+      "runnerAfterSha256": "066ac2b85ce6b2717e924d384ce9c62a1f211de59f73ec862905815530a9efe7",
+      "isolatedChecks": "checks = [\n    ('isolated-failure', ['--eval', 'process.exit(7)']),\n    ('subsequent-success', ['--eval', 'process.exit(0)']),\n]",
+      "checkStatuses": [7, 0],
+      "runnerExitStatus": 1,
+      "isolatedCopyDeleted": true,
+      "liveSourceAndDistMutated": false,
+      "output": "isolated-failure 7 \nsubsequent-success 0 \n"
+    },
+    "normalRunStatus": 0,
+    "checks": [
+      {
+        "name": "native-source-restored",
+        "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "packages/foldkit/node_modules/typescript/bin/tsc",
+          "-p",
+          "packages/foldkit/tsconfig.json",
+          "--incremental",
+          "false",
+          "--pretty",
+          "false"
+        ],
+        "strictPackageVersion": "6.0.2",
+        "strictCompiler": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+        "status": 0,
+        "seconds": 5.220109125,
+        "log": "/private/tmp/foldkit-unified-recovery-20261103/probe/recovered-check-results/native-source-restored.log"
+      },
+      {
+        "name": "current-source-strict-final",
+        "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+          "-p",
+          "probe/tsconfig.current-source.json",
+          "--pretty",
+          "false"
+        ],
+        "strictPackageVersion": "6.0.2",
+        "strictCompiler": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+        "status": 0,
+        "seconds": 10.214771959,
+        "log": "/private/tmp/foldkit-unified-recovery-20261103/probe/recovered-check-results/current-source-strict-final.log"
+      },
+      {
+        "name": "current-emitted-strict-final",
+        "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+          "-p",
+          "probe/tsconfig.current-emitted.json",
+          "--pretty",
+          "false"
+        ],
+        "strictPackageVersion": "6.0.2",
+        "strictCompiler": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+        "status": 0,
+        "seconds": 3.038921833,
+        "log": "/private/tmp/foldkit-unified-recovery-20261103/probe/recovered-check-results/current-emitted-strict-final.log"
+      },
+      {
+        "name": "selected-source-strict-final",
+        "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+          "-p",
+          "probe/selected-provider-current/tsconfig.source.json",
+          "--pretty",
+          "false"
+        ],
+        "strictPackageVersion": "6.0.2",
+        "strictCompiler": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+        "status": 0,
+        "seconds": 8.9733855,
+        "log": "/private/tmp/foldkit-unified-recovery-20261103/probe/recovered-check-results/selected-source-strict-final.log"
+      },
+      {
+        "name": "selected-emitted-strict-final",
+        "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+          "-p",
+          "probe/selected-provider-current/tsconfig.emitted.json",
+          "--pretty",
+          "false"
+        ],
+        "strictPackageVersion": "6.0.2",
+        "strictCompiler": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+        "status": 0,
+        "seconds": 2.743716583000001,
+        "log": "/private/tmp/foldkit-unified-recovery-20261103/probe/recovered-check-results/selected-emitted-strict-final.log"
+      },
+      {
+        "name": "source-gate-source-strict-final",
+        "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+          "-p",
+          "probe/source-gate-current/tsconfig.source.json",
+          "--pretty",
+          "false"
+        ],
+        "strictPackageVersion": "6.0.2",
+        "strictCompiler": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+        "status": 0,
+        "seconds": 8.217088208,
+        "log": "/private/tmp/foldkit-unified-recovery-20261103/probe/recovered-check-results/source-gate-source-strict-final.log"
+      },
+      {
+        "name": "source-gate-emitted-strict-final",
+        "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+          "-p",
+          "probe/source-gate-current/tsconfig.emitted.json",
+          "--pretty",
+          "false"
+        ],
+        "strictPackageVersion": "6.0.2",
+        "strictCompiler": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+        "status": 0,
+        "seconds": 2.8570907499999976,
+        "log": "/private/tmp/foldkit-unified-recovery-20261103/probe/recovered-check-results/source-gate-emitted-strict-final.log"
+      },
+      {
+        "name": "split-consumer-declaration-emit",
+        "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "packages/foldkit/node_modules/typescript/bin/tsc",
+          "-p",
+          "probe/tsconfig.current-consumer-emit.json",
+          "--pretty",
+          "false"
+        ],
+        "strictPackageVersion": "6.0.2",
+        "strictCompiler": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+        "status": 0,
+        "seconds": 0.48301433299999985,
+        "log": "/private/tmp/foldkit-unified-recovery-20261103/probe/recovered-check-results/split-consumer-declaration-emit.log"
+      },
+      {
+        "name": "test-subject-consumer-declaration-emit",
+        "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "packages/foldkit/node_modules/typescript/bin/tsc",
+          "-p",
+          "probe/tsconfig.testing-subject-emit.json",
+          "--pretty",
+          "false"
+        ],
+        "strictPackageVersion": "6.0.2",
+        "strictCompiler": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+        "status": 0,
+        "seconds": 0.34571174999999954,
+        "log": "/private/tmp/foldkit-unified-recovery-20261103/probe/recovered-check-results/test-subject-consumer-declaration-emit.log"
+      }
+    ]
+  },
+  "historicalArtifacts": {
+    "internal/block-api-simplification/current-proof-20261104-extraction.json": "da9b6c8d3a331c6043ec726fcb3dbc1e13193ba501d04ada116de6b39a36d393",
+    "internal/block-api-simplification/current-proof-20261104-hashes.json": "566a22dff75c83882491cac38198064bb66d85cbb1002c73c3c47fb394bedf0f",
+    "internal/block-api-simplification/current-proof-20261104-performance.json": "ad5dadd4b4c973dc85cfc7f1f9cdc6b95da67df6937bc39535ccd4b5f481ea26",
+    "internal/block-api-simplification/current-proof-20261104.json": "41904bc5bbc2832f447eed24a9493a4b66216c4fb552c5fc2d6cd1a06f9a4dcb",
+    "internal/block-api-simplification/current-proof-20261104.md": "1dd3ca49dda6a37d50ad81e2337119ca3e6abebf5affb764ed382533b286028a",
+    "internal/block-api-simplification/current-proof-20261104.patch": "d909db088d006b5eb85b8d57b7ce4a000402aedc36f24570d4bd7c50f25ce21f"
+  },
+  "remainingGates": [
+    "Actual complete Workspace trial",
+    "Actual Query/UI-family combined verification",
+    "Applicable editor workflows before broad migration"
+  ],
+  "broadMigrationAuthorizedByThisDecision": false,
+  "publicationHeld": true,
+  "daybreakHeld": true
+}

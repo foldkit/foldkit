@@ -10,8 +10,8 @@ import {
   NOISE_SCALE_MIN_DIVISOR,
   NOISE_SCALE_STEP,
 } from './constant'
-import { ApplicationDefinition, makeFieldsStep } from './definition'
-export const FlowStrengthSliderBinding = ApplicationDefinition.makeBinding(
+import { ApplicationBlock, makeFieldsStep } from './definition'
+export const FlowStrengthSliderBinding = ApplicationBlock.makeBinding(
   SliderBlock,
   {
     field: 'flowStrengthSlider',
@@ -27,7 +27,7 @@ export const FlowStrengthSliderBinding = ApplicationDefinition.makeBinding(
     },
   },
 ).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(SliderBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(SliderBlock, {
     ChangedValue: ({ value }) =>
       makeFieldsStep(() => ({
         flowStrength: () => value,
@@ -35,7 +35,7 @@ export const FlowStrengthSliderBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-export const NoiseScaleSliderBinding = ApplicationDefinition.makeBinding(
+export const NoiseScaleSliderBinding = ApplicationBlock.makeBinding(
   SliderBlock,
   {
     field: 'noiseScaleSlider',
@@ -51,13 +51,13 @@ export const NoiseScaleSliderBinding = ApplicationDefinition.makeBinding(
     },
   },
 ).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(SliderBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(SliderBlock, {
     ChangedValue: ({ value }) =>
       makeFieldsStep(() => ({ noiseScale: () => value })),
   }),
 })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [FlowStrengthSliderBinding, NoiseScaleSliderBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

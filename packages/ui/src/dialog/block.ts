@@ -126,7 +126,7 @@ export const AcquireResources = DialogNamespace.makeMount('AcquireResources', {
 /** Mount definitions rendered by Dialog. */
 export const mounts = [AcquireResources]
 
-const DialogDefinition = DialogNamespace.makeDefinition({
+export const DialogBlock = Block.make(DialogNamespace, {
   key: DialogKey,
   Init: Block.makeInputContract<readonly [config: InitConfig]>(),
   view: {
@@ -148,6 +148,9 @@ const DialogDefinition = DialogNamespace.makeDefinition({
   Message,
   OutMessage,
 })
+
+/** Public Dialog authoring contract and passive graph identity. */
+export type DialogBlock = typeof DialogBlock
 
 // INIT
 
@@ -230,7 +233,7 @@ const acquireDialogResourcesResult = (
  *  acquisition becomes uninterruptible after the committed element is found,
  *  so modal resources and the scroll lock cannot split. A concurrent
  *  lifecycle acquisition reuses the resources already held by the id. */
-export const ShowDialog = DialogDefinition.makeCommand('ShowDialog', {
+export const ShowDialog = DialogBlock.makeCommand('ShowDialog', {
   args: { id: Schema.String, focusSelector: Schema.String },
   messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
   handler: function* () {
@@ -247,7 +250,7 @@ export const ShowDialog = DialogDefinition.makeCommand('ShowDialog', {
  *  close runs, the Command calls `Dom.releaseDialogResources` instead. That
  *  releases the scroll lock, focus trap, return focus, and stack entry if the
  *  dialog still holds them. The background is restored before return focus. */
-export const CloseDialog = DialogDefinition.makeCommand('CloseDialog', {
+export const CloseDialog = DialogBlock.makeCommand('CloseDialog', {
   args: { id: Schema.String },
   messages: [Message.CompletedCloseDialog],
   handler: function* () {
@@ -266,7 +269,7 @@ export const CloseDialog = DialogDefinition.makeCommand('CloseDialog', {
  *  focus trap, return focus, stack entry, background isolation) when the
  *  element unmounts without a purposeful close. Calling it after
  *  `CloseDialog` released those resources is a no-op. */
-export const ReleaseDialogResources = DialogDefinition.makeCommand(
+export const ReleaseDialogResources = DialogBlock.makeCommand(
   'ReleaseDialogResources',
   {
     args: { id: Schema.String },
@@ -295,19 +298,16 @@ const isLeaving = (model: Model): boolean =>
 const isOpenOrAnimating = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
-const BaseAnimationBinding = DialogDefinition.makeBinding(
-  Animation.AnimationBlock,
-  {
-    field: 'animation',
-    init: { contextToArgs: id => [{ id: `${id}-panel` }] },
-  },
-)
+const BaseAnimationBinding = DialogBlock.makeBinding(Animation.AnimationBlock, {
+  field: 'animation',
+  init: { contextToArgs: id => [{ id: `${id}-panel` }] },
+})
 
-const closeNativeDialog = DialogDefinition.makeCommandsStep(model => [
+const closeNativeDialog = DialogBlock.makeCommandsStep(model => [
   CloseDialog({ id: model.id }),
 ])
 
-const foldAnimationOutMessage = DialogDefinition.makeOutMessageFold(
+const foldAnimationOutMessage = DialogBlock.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: () =>
@@ -318,13 +318,13 @@ const foldAnimationOutMessage = DialogDefinition.makeOutMessageFold(
 
 const resumeAnimationAfterAcquisition = BaseAnimationBinding.requestResume()
 const resetAnimationImmediately = BaseAnimationBinding.requestImmediateReset()
-const markDialogClosed = DialogDefinition.makeFieldsStep(() => ({
+const markDialogClosed = DialogBlock.makeFieldsStep(() => ({
   isOpen: () => false,
 }))
-const resetToClosed = DialogDefinition.makeStep(() =>
+const resetToClosed = DialogBlock.makeStep(() =>
   Update.combineSteps([markDialogClosed, resetAnimationImmediately]),
 )
-const resetAndReportClose = DialogDefinition.makeStep(model =>
+const resetAndReportClose = DialogBlock.makeStep(model =>
   Function.compose(
     resetToClosed,
     Update.withOutMessage(model.isOpen ? OutMessage.Closed() : undefined),
@@ -335,7 +335,7 @@ const AnimationBinding = BaseAnimationBinding.withOutMessagePolicy({
   fold: foldAnimationOutMessage,
 })
 
-const DialogComposition = DialogDefinition.makeComposition({
+const DialogComposition = DialogBlock.makeComposition({
   mounts,
   bindings: [AnimationBinding],
 })
@@ -346,12 +346,12 @@ export const init = DialogComposition.makeInit((config: InitConfig) => ({
   childInitContext: config.id,
 }))
 
-const leaveDialogUnchanged = DialogDefinition.makeNoopStep()
-const reportCompletedClose = DialogDefinition.makeOutMessageStep(() =>
+const leaveDialogUnchanged = DialogBlock.makeNoopStep()
+const reportCompletedClose = DialogBlock.makeOutMessageStep(() =>
   OutMessage.CompletedClose(),
 )
 
-const openDialog = DialogDefinition.makeStep(model => {
+const openDialog = DialogBlock.makeStep(model => {
   const wasClosed = !model.isOpen
   const commands = Array.filter(
     [
@@ -367,12 +367,12 @@ const openDialog = DialogDefinition.makeStep(model => {
   )
 
   if (model.isAnimated) {
-    return DialogDefinition.makeStep(() =>
+    return DialogBlock.makeStep(() =>
       Function.compose(
         Update.combineSteps([
-          DialogDefinition.makeCommandsStep(() => commands),
+          DialogBlock.makeCommandsStep(() => commands),
           BaseAnimationBinding.requestShow(),
-          DialogDefinition.makeFieldsStep(() => ({ isOpen: () => true })),
+          DialogBlock.makeFieldsStep(() => ({ isOpen: () => true })),
         ]),
         Update.withOutMessage(wasClosed ? OutMessage.Opened() : undefined),
       ),
@@ -389,7 +389,7 @@ const openDialog = DialogDefinition.makeStep(model => {
     : dialogOpen
 })
 
-const closeDialog = DialogDefinition.makeStep(model => {
+const closeDialog = DialogBlock.makeStep(model => {
   if (isLeaving(model)) {
     return leaveDialogUnchanged(model)
   }
@@ -397,7 +397,7 @@ const closeDialog = DialogDefinition.makeStep(model => {
   const wasOpen = model.isOpen
 
   if (model.isAnimated) {
-    return DialogDefinition.makeStep(() =>
+    return DialogBlock.makeStep(() =>
       Function.compose(
         Update.combineSteps([
           markDialogClosed,
@@ -434,7 +434,7 @@ export const update = DialogComposition.makeUpdate({
     if (isOpenOrAnimating(model)) {
       const dialogUnmount = Update.combineSteps(model, [
         resetToClosed,
-        DialogDefinition.makeCommandsStep(stepModel => [
+        DialogBlock.makeCommandsStep(stepModel => [
           ReleaseDialogResources({ id: stepModel.id }),
         ]),
       ])
@@ -452,7 +452,7 @@ export const update = DialogComposition.makeUpdate({
     if (model.isOpen || isLeaving(model)) {
       return leaveDialogUnchanged(model)
     } else {
-      return DialogDefinition.makeCommandsStep(stepModel => [
+      return DialogBlock.makeCommandsStep(stepModel => [
         CloseDialog({ id: stepModel.id }),
       ])(model)
     }
@@ -470,7 +470,7 @@ export const update = DialogComposition.makeUpdate({
     if (model.isOpen || isLeaving(model)) {
       return resumeAnimationAfterAcquisition(model)
     } else {
-      return DialogDefinition.makeCommandsStep(stepModel => [
+      return DialogBlock.makeCommandsStep(stepModel => [
         CloseDialog({ id: stepModel.id }),
       ])(model)
     }
@@ -683,13 +683,7 @@ export const view = DialogComposition.makeView.withInputs(
   },
 )
 
-type DialogContract = typeof DialogDefinition.contract
-/** Independent Dialog contract for parent Bindings. */
-export interface DialogBlock extends DialogContract {}
-/** Passive Dialog contract supplied through the module implementation Layer. */
-export const DialogBlock: DialogBlock = DialogDefinition.contract
-
-const block = DialogDefinition.makeBlock(
+export const layer = DialogBlock.makeLayer(
   Effect.gen(function* () {
     const animation = yield* AnimationBinding
 
@@ -702,7 +696,7 @@ const block = DialogDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Animation.layer)
+).pipe(Layer.provide(Animation.layer))
 
-/** Supplies the Dialog implementation and its Animation child. */
-export const layer = block.layer
+/** @internal Selected implementation used by component tests. */
+export const block = { block: DialogBlock, layer }

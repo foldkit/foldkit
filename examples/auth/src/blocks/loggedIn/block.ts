@@ -1,13 +1,11 @@
 import { Effect } from 'effect'
 
-import { LoggedInDefinition } from './composition'
+import { LoggedInBlock } from './composition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const LoggedInBlock = LoggedInDefinition.contract
-
-export const layer = LoggedInDefinition.makeBlock(
+export const layer = LoggedInBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -16,4 +14,6 @@ export const layer = LoggedInDefinition.makeBlock(
       view,
     }
   }),
-).layer
+)
+
+export { LoggedInBlock } from './composition'

@@ -1,6 +1,5 @@
-export { ApplicationBlock } from './block.js'
+export { ApplicationBlock, layer } from './block.js'
 export {
-  ApplicationDefinition,
   InMessage,
   Message,
   Model,
@@ -9,13 +8,17 @@ export {
 } from './definition.js'
 export { makeInMessageUpdate } from './composition.js'
 export { increment, focused, inMessageUpdate } from './update.js'
-export { ContextBlock, InMessage as ContextInMessage } from './context.js'
+export {
+  ContextBlock,
+  contextLayer,
+  InMessage as ContextInMessage,
+} from './context.js'
 
-import { Effect } from 'effect'
+import { withBlock } from 'foldkit/story'
 
-import { ApplicationBlock } from './block.js'
+import { ApplicationBlock, layer } from './block.js'
 
-export const acquiredInputEntry = Effect.map(
-  ApplicationBlock.get,
+export const acquiredInputEntry = withBlock(
+  { block: ApplicationBlock, layer },
   block => block.inMessageUpdate,
 )

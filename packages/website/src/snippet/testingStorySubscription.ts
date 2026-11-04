@@ -1,19 +1,18 @@
 import { Effect } from 'effect'
-import { Subscription, given, model, story, withBlock } from 'foldkit/story'
+import { Subscription, init, model, story } from 'foldkit/story'
 
-// The selected implementation owns this registry; Streams are not executed.
+import { Message, OrderFeedBlock, layer, subscriptions } from './orderFeed'
+
 await Effect.runPromise(
-  withBlock(OrderFeedImplementation, block =>
-    story(
-      block.update,
-      given(block.init().model),
-      Subscription.emit(
-        block.subscriptions.entries,
-        block.Message.ReceivedEntry({ sequence: 13, order }),
-      ),
-      model(model => {
-        expect(model.latestSequence).toBe(13)
-      }),
+  story(
+    { block: OrderFeedBlock, layer },
+    init(),
+    Subscription.emit(
+      subscriptions.entries,
+      Message.ReceivedEntry({ sequence: 13, order }),
     ),
+    model(model => {
+      expect(model.latestSequence).toBe(13)
+    }),
   ),
 )

@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
@@ -19,30 +19,27 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ RequestedShowToast: {} })
 type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-const { makeNoopStep } = ApplicationDefinition
+const { makeNoopStep } = ApplicationBlock
 
-const foldToastOutMessage = ApplicationDefinition.makeOutMessageFold(
-  ToastBlock,
-  {
-    DismissedToast: makeNoopStep,
-  },
-)
-const ToastBinding = ApplicationDefinition.makeBinding(ToastBlock, {
+const foldToastOutMessage = ApplicationBlock.makeOutMessageFold(ToastBlock, {
+  DismissedToast: makeNoopStep,
+})
+const ToastBinding = ApplicationBlock.makeBinding(ToastBlock, {
   field: 'toast',
   init: {
     contextToArgs: () => [{ id: 'notifications' }],
   },
 }).withOutMessagePolicy({ fold: foldToastOutMessage })
-const ApplicationComposition = ApplicationDefinition.makeComposition({
+const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [ToastBinding],
 })
 
@@ -51,7 +48,7 @@ const update = ApplicationComposition.makeUpdate({
   RequestedShowToast: ToastBinding.requestShow({ payload: { body: 'Saved' } }),
 })
 
-const ApplicationBlock = ApplicationDefinition.makeBlock(
+const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const toast = yield* ToastBinding
 
@@ -61,11 +58,11 @@ const ApplicationBlock = ApplicationDefinition.makeBlock(
       update,
     }
   }),
-).provide(ToastLayer)
+).pipe(Layer.provide(ToastLayer))
 
 await Effect.runPromise(
   Story.story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     Story.init(),
     Story.message(Message.RequestedShowToast()),
     ToastBlock.test.drainEntry({

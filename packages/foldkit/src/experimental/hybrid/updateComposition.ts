@@ -452,16 +452,7 @@ export type ComposedUpdate<
 export type MakeComposableUpdatePlan<
   Source extends AuthoringSource,
   Context extends ReadonlyArray<unknown> = ReadonlyArray<unknown>,
-> = MakeUpdatePlan<
-  Source['Model']['Type'],
-  LocalMessage<Source>,
-  OutMessage<Source>,
-  Source['bindings'],
-  Source['Message']['Type'],
-  Source,
-  Context
-> &
-  ComposableUpdates<Source, Context>
+> = MakeUpdatePlan<Source, Context> & ComposableUpdates<Source, Context>
 
 /** @internal Reads the per-Message channels of a focused plan. */
 export type RowsOf<Stage> = StageRows<Stage>

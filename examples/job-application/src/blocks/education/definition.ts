@@ -25,7 +25,7 @@ export type InMessage = typeof InMessage.Type
 
 export const EducationKey = Symbol('Education')
 
-export const EducationDefinition = Block.makeDefinition('Education', {
+export const EducationBlock = Block.make('Education', {
   key: EducationKey,
   Init: Schema.Tuple([Calendar.CalendarDate, Schema.String]),
   view: { kind: 'Element' },
@@ -39,4 +39,4 @@ export const EducationDefinition = Block.makeDefinition('Education', {
   }),
 })
 
-export const { makeFieldsStep, makeCommandsStep } = EducationDefinition
+export const { makeFieldsStep, makeCommandsStep } = EducationBlock

@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -33,9 +33,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const CharacterPickerKey = Symbol('CharacterPicker')
+export const CharacterPickerKey = Symbol('CharacterPicker')
 
-const CharacterPickerDefinition = Block.makeDefinition('CharacterPicker', {
+export const CharacterPickerBlock = Block.make('CharacterPicker', {
   key: CharacterPickerKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -43,14 +43,14 @@ const CharacterPickerDefinition = Block.makeDefinition('CharacterPicker', {
   Message,
 })
 
-const { makeFieldsStep } = CharacterPickerDefinition
+const { makeFieldsStep } = CharacterPickerBlock
 
 // At module scope, fold the OutMessage into your own Model. On selection, the
 // `Selected` variant carries the chosen item's string value (the result of
 // `itemToValue`). The arm returns an Update.Step over the parent Model, which
 // already has the next Listbox Model written back. The whole child Block
 // preserves the refined string payload without repeated Step types:
-const foldListboxOutMessage = CharacterPickerDefinition.makeOutMessageFold(
+const foldListboxOutMessage = CharacterPickerBlock.makeOutMessageFold(
   CharacterListbox,
   {
     Selected: ({ value }) =>
@@ -62,12 +62,12 @@ const foldListboxOutMessage = CharacterPickerDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const ListboxBinding = CharacterPickerDefinition.makeBinding(CharacterListbox, {
+const ListboxBinding = CharacterPickerBlock.makeBinding(CharacterListbox, {
   field: 'listbox',
   init: { contextToArgs: () => [{ id: 'character' }] },
 }).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
-const CharacterPickerComposition = CharacterPickerDefinition.makeComposition({
+const CharacterPickerComposition = CharacterPickerBlock.makeComposition({
   bindings: [ListboxBinding],
 })
 
@@ -134,7 +134,7 @@ const view = CharacterPickerComposition.makeView((model, h) =>
   ),
 )
 
-export const ApplicationBlock = CharacterPickerDefinition.makeBlock(
+export const layer = CharacterPickerBlock.makeLayer(
   Effect.gen(function* () {
     const characterListbox = yield* ListboxBinding
 
@@ -145,4 +145,4 @@ export const ApplicationBlock = CharacterPickerDefinition.makeBlock(
       view,
     }
   }),
-).provide(ListboxLayer)
+).pipe(Layer.provide(ListboxLayer))

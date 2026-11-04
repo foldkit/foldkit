@@ -25,7 +25,7 @@ export type InMessage = typeof InMessage.Type
 
 export const WorkHistoryKey = Symbol('WorkHistory')
 
-export const WorkHistoryDefinition = Block.makeDefinition('WorkHistory', {
+export const WorkHistoryBlock = Block.make('WorkHistory', {
   key: WorkHistoryKey,
   Init: Schema.Tuple([Calendar.CalendarDate, Schema.String]),
   view: { kind: 'Element' },
@@ -39,4 +39,4 @@ export const WorkHistoryDefinition = Block.makeDefinition('WorkHistory', {
   }),
 })
 
-export const { makeFieldsStep, makeCommandsStep } = WorkHistoryDefinition
+export const { makeFieldsStep, makeCommandsStep } = WorkHistoryBlock

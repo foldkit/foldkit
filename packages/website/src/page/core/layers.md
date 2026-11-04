@@ -25,21 +25,21 @@ The application starts by requesting one user. Its update handles the Command's 
 
 ::Snippet{name="layersApplication" label="Application using the API handler"}
 
-The completed Block carries the local handler recipe. The entry provides its remaining services and starts the Runtime:
+The construction Layer retains the local handler recipe. The entry selects that Layer with `ApplicationBlock`, provides remaining Services and starts the Runtime:
 
 ::Snippet{name="layersEntry" label="Provide Services and run the application"}
 
-When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureDefinition.makeBlock` instead. Registering its Binding carries the checked handler graph upward. The root still supplies shared services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
+When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureBlock.makeLayer` instead. The parent registers a Binding to that public contract and provides the child's construction Layer. Its acquired connection contributes the checked handler graph upward. The root still supplies shared Services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
 
 Defining handlers, binding features, completing the Application, and calling `provide` all describe configuration. `Runtime.run` builds the Layers and starts execution. Attaching `handler` makes `.layer` available; the completed graph still needs to include that recipe.
 
-For several local handlers, compose their recipes with Effect's `Layer.mergeAll` and pass the result as `EffectsLayer` to `Definition.makeBlock`:
+For several local handlers, compose their recipes with Effect's `Layer.mergeAll` and pass the result as `EffectsLayer` to `FeatureBlock.makeLayer`:
 
 ::Snippet{name="blockLocalHandlerLayers" label="Combining local Command handlers"}
 
 Use `subscriptions.layer` and `managedResources.layer` for a registry whose entries all have attached handlers. There is no aggregate Command registry; merge the individual Command definitions' `.layer` recipes. Registered child Bindings contribute their own handler Layers automatically.
 
-Compose the concrete definitions' `.layer` values, whose types retain their Services and constructor errors, and let `Definition.makeBlock` infer the recipe. The completed Block carries both local and child handler Layers. Do not annotate the recipe as `unknown` or merge child `EffectsLayer` values again at the root.
+Compose the concrete definitions' `.layer` values, whose types retain their Services and constructor errors, and let `FeatureBlock.makeLayer` infer the recipe. The selected implementation retains both local and acquired child handler Layers; the passive Block declaration does not expose a private `EffectsLayer`. Do not annotate the recipe as `unknown` or merge child `EffectsLayer` values again at the root.
 
 `ApplicationTestLayer` supplies `ApiTestLayer` beneath the same real handler. The `LoadUser` result mapping and error policy still execute. The replaced API implementation is outside that test path; [Testing Through Service Boundaries](#testing-through-service-boundaries) explains how to choose what a test exercises.
 
@@ -97,7 +97,7 @@ The host implements that Service with browser storage or a document API:
 
 The implementation Layer retains the real Command handler. The host’s provider supplies the storage dependency. An execution test can replace the storage transport and still exercise request construction, error handling, and result mapping.
 
-When the integrator owns a handler implementation, an ordinary Block constructor can list the original definition under `hostHandlers`. Its selected implementation descriptor remains pending until `provideHandlers(layer)` supplies providers for every listed definition through their original `toLayer` methods. Provider Services and constructor errors must fit the Definition's declared effects contract. This selection is passive; handler Layers are built later by the Runtime.
+When the integrator owns a handler implementation, an ordinary Block constructor can list the original definition under `hostHandlers`. Select providers for every listed definition with `layer.pipe(FeatureBlock.provideHandlers(HandlersLayer))`, using their original `toLayer` methods. Provider Services and constructor errors must fit the Block's declared effects contract. This selection is passive; handler Layers are built later by the Runtime.
 
 The passive public child contract does not expose the implementation's private handler inventory. Some generic family APIs, including Query, deliberately publish original host-handler contracts with their own checked `provideHandlers` selector. For normal storage or transport variation, keep the feature's workflow in its attached handler and provide the ordinary Service boundary shown above.
 
@@ -180,7 +180,7 @@ The root Block collects the split implementation from each owner. The entry supp
 
 If the service Layer fails to build, startup cannot reach init or the first render. There is no Model for a crash view yet. A service used only by one Flags Effect may be private to that Effect when the application should never select or share it. Shared services stay exposed from the root Layer with `Layer.provideMerge` so Flags and handlers receive the same instance.
 
-`ApplicationDefinition.makeBlock` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Program.make` carries them into the Program, and `Runtime.run` requires them to be supplied. A Flags Effect can use a Service produced by a Layer passed to `program.provide(layer)`, as shown above.
+`ApplicationBlock.makeLayer` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Program.make` carries them into the Program, and `Runtime.run` requires them to be supplied. A Flags Effect can use a Service produced by a Layer passed to `program.provide(layer)`, as shown above.
 
 A hydrating start validates the server handoff before acquiring the application Layer. [Init & Flags](/core/init-and-flags#server-rendering-and-hydration) covers server-supplied startup data.
 
@@ -192,6 +192,7 @@ Import Effect's module as `Layer`. Use these names to keep local implementations
 | ---------------------- | ------------------------------------------------------------- |
 | `LoadUser.layer`       | One attached handler recipe                                   |
 | `EffectsLayer`         | Handler recipes owned by the current feature                  |
+| `layer`                | The feature's checked executable graph construction recipe    |
 | `ApplicationLayer`     | Root HTTP, storage, RPC, and other ordinary service providers |
 | `ApplicationTestLayer` | Alternate root services for the same handler graph            |
 
@@ -203,19 +204,19 @@ Commands remain explicit because they have no closed owner registry: list each s
 
 `Layer.mergeAll` and Block completion build passive recipes. The Runtime constructs the handlers when the Program starts. A ManagedResource acquires its handle when its Model condition becomes active; including its handler Layer does not acquire the handle.
 
-A Block passes its local bundle to `FeatureDefinition.makeBlock`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
+A Block passes its local bundle to `FeatureBlock.makeLayer`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
 
 A feature can provide a business service it owns beneath its local `EffectsLayer`. Leave concrete environment providers open for the root to select. Those ordinary requirements flow through parents until `program.provide(ApplicationLayer)` satisfies them. `ServicesLayer` is a useful name for an intermediate service bundle when root composition needs one.
 
 ### Share Services Across Owners
 
-Reuse one Command Definition across transitions owned by the same Block. The [state machine example](https://github.com/foldkit/foldkit/tree/main/examples/state-machine/src) defines `PlaceOrder` on `ApplicationDefinition`; the checkout Machine returns it from an Edge, and its result remains an Application Message handled by that same state machine.
+Reuse one Command Definition across transitions owned by the same Block. The [state machine example](https://github.com/foldkit/foldkit/tree/main/examples/state-machine/src) defines `PlaceOrder` on `ApplicationBlock`; the checkout Machine returns it from an Edge, and its result remains an Application Message handled by that same state machine.
 
 When separate Blocks need the same HTTP, storage, or domain operation, share an Effect Service instead. Each Block defines its own Command and result Messages against that Service, then includes the Command's handler recipe in its own `EffectsLayer`. The root supplies the shared Service implementation once. This keeps each result in the Message union and update function that own the transition while reusing the external capability.
 
 ::Snippet{name="layersMultiple" label="Multiple shared services"}
 
-Keep a small feature bundle in `block.ts`, or beside root Command definitions in `command.ts`. Extract `layer.ts` when composition is substantial or reused. Root `services.ts` exports `ApplicationLayer`; `block.ts` assembles `ApplicationBlock`, and `entry.ts` supplies the Layer to the Program. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete compact and split layouts.
+Keep a small feature bundle in `block.ts`, or beside root Command definitions in `command.ts`. Extract `layer.ts` when composition is substantial or reused. Root `services.ts` exports `ApplicationLayer`; `block.ts` exports the construction `layer`, and `entry.ts` supplies the Layer to the Program. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete compact and split layouts.
 
 Choose an implementation through its Layer and provide controlled ordinary Services beneath its real handlers. APIs that deliberately publish host-handler contracts, such as Query, expose their checked provider selector. See [handler providers](/core/block#select-a-local-handler-recipe).
 
@@ -223,7 +224,7 @@ Keep handler declarations and their local `EffectsLayer` with the owning impleme
 
 ### Construction and runtime providers
 
-A Block implementation Layer constructs its executable graph. Its `EffectsLayer` constructs handlers for Commands and lifecycle work. Keep ordinary request dependencies in those handler constructors. Provide child implementation Layers through the parent descriptor’s `.provide(...)` or ordinary `Layer.provide`.
+A Block implementation Layer constructs its executable graph. Its `EffectsLayer` constructs handlers for Commands and lifecycle work. Keep ordinary request dependencies in those handler constructors. Provide child implementation Layers with ordinary `.pipe(Layer.provide(...))`.
 
 A Program’s `provide(layer)` supplies runtime providers. If a host Service is also needed while constructing the graph, use `provide({ services: ServicesLayer, runtime: RuntimeLayer })`. The shared `services` build before graph construction and remain available to handlers and Flags. The optional `runtime` providers build after ManagedResource handles exist. Both remain under the host Scope; runtime-only outputs cannot satisfy an earlier construction requirement.
 
@@ -242,16 +243,16 @@ Most authored pieces infer their requirements. When a standalone signature needs
 
 The expanded forms require every protocol argument. Definitions, update helpers, Bindings, and handler recipes carry the same information without explicit annotations.
 
-`FeatureDefinition.makeBlock` checks local handler coverage against `EffectsLayer` and any explicitly declared `hostHandlers`. It checks remaining Services and errors against the declared effect contract. Select pending host handlers before hosting the descriptor. Parent Bindings carry the selected implementation's checked graph. The Program's `provide` method supplies the root Block's remaining ordinary Service requirements.
+`FeatureBlock.makeLayer` checks local handler coverage against `EffectsLayer` and any explicitly declared `hostHandlers`. It checks remaining Services and errors against the declared effect contract. Select pending host handlers on the construction Layer before hosting the Block. Parent Bindings carry the selected implementation's checked graph. The Program's `provide` method supplies the root Block's remaining ordinary Service requirements.
 
 Owned definitions include the Block's name and local operation name. Each definition also retains a private runtime identity, checked when its handler runs. Create alternative implementations through that original definition's `toLayer` so the implementation retains the declared identity.
 
 ## UI Effects and Mount Registrations
 
-Bind a completed UI Block and include that Binding in the parent's `bindings` list. Its handler recipes and Mount registrations then reach the parent together. This keeps the implementation graph aligned with the update and view placement.
+Bind the public UI Block contract and include that Binding in the parent's `bindings` list. Provide the component's implementation Layer to the parent's construction Layer. The acquired child contributes its handler recipes and Mount registrations together, keeping the implementation graph aligned with update and view placement.
 
-View-only components need no Block. Stateful Foldkit UI components provide completed values such as `DialogBlock`. Generic factories such as `Combobox.makeBlock(ItemSchema)` return a completed Block; name that result `ItemComboboxBlock`. Bind each used placement, including keyed collections, and include those Bindings under `bindings`.
+View-only components need no Block. Stateful Foldkit UI components export public declarations such as `DialogBlock` and implementation providers such as `Dialog.layer`. Generic factories such as `Combobox.makeBlock(ItemSchema)` return a passive public Block; name that result `ItemComboboxBlock` and supply `Combobox.layer`. Bind each used placement, including keyed collections, and include those Bindings under `bindings`.
 
-Component factories such as a Schema-refined Combobox return a completed Block with the factory's inferred Model, Message, OutMessage, view inputs, and public API operations. Bind the returned value exactly like a non-generic component.
+A Schema-refined Combobox contract retains the factory's inferred Model, Message, OutMessage, view inputs and Binding operations. Bind the returned declaration exactly like a non-generic component; callable init, update and view functions belong to the acquired executable.
 
 Including Mounts in a Composition gives its view builder the allowed Mount contracts and adds their handler requirements to the application. TypeScript rejects a Mount outside that capability set or an embedded child view whose Mount requirements are missing. `FeatureComposition.makeView` derives this evidence from the local `mounts` and child Bindings. Providing the handler Layer satisfies execution; Composition declares which definitions the view may render. Composition starts no element work until the Mount appears in the view. Its included handler Layer builds at application startup. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for attribute and child-view composition.

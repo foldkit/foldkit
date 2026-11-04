@@ -1,13 +1,13 @@
 import {
   ProficiencyRadioGroup,
-  SkillsEntryDefinition,
+  SkillsEntryBlock,
   makeFieldsStep,
 } from './definition'
 
 const proficiencyRadioGroupId = (entryId: string): string =>
   `${entryId}-proficiency`
 
-export const ProficiencyRadioGroupBinding = SkillsEntryDefinition.makeBinding(
+export const ProficiencyRadioGroupBinding = SkillsEntryBlock.makeBinding(
   ProficiencyRadioGroup,
   {
     field: 'proficiencyRadioGroup',
@@ -16,7 +16,7 @@ export const ProficiencyRadioGroupBinding = SkillsEntryDefinition.makeBinding(
     },
   },
 ).withOutMessagePolicy({
-  fold: SkillsEntryDefinition.makeOutMessageFold(ProficiencyRadioGroup, {
+  fold: SkillsEntryBlock.makeOutMessageFold(ProficiencyRadioGroup, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({
         proficiency: () => value,
@@ -24,6 +24,6 @@ export const ProficiencyRadioGroupBinding = SkillsEntryDefinition.makeBinding(
   }),
 })
 
-export const SkillsEntryComposition = SkillsEntryDefinition.makeComposition({
+export const SkillsEntryComposition = SkillsEntryBlock.makeComposition({
   bindings: [ProficiencyRadioGroupBinding],
 })

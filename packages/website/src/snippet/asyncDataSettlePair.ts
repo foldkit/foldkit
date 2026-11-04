@@ -1,4 +1,4 @@
-const LoadAllNotes = ApplicationDefinition.makeCommand('LoadAllNotes', {
+const LoadAllNotes = ApplicationBlock.makeCommand('LoadAllNotes', {
   messages: [SucceededLoadAllNotes, FailedLoadAllNotes],
   handler: function* () {
     return () =>
@@ -13,12 +13,12 @@ const LoadAllNotes = ApplicationDefinition.makeCommand('LoadAllNotes', {
 })
 
 const update = ApplicationComposition.makeUpdate({
-  SucceededLoadAllNotes: ApplicationDefinition.makeFieldsStep.fromMessage(
+  SucceededLoadAllNotes: ApplicationBlock.makeFieldsStep.fromMessage(
     ({ notes }) => ({
       allNotes: () => AsyncData.Success({ data: notes }),
     }),
   ),
-  FailedLoadAllNotes: ApplicationDefinition.makeFieldsStep.fromMessage(
+  FailedLoadAllNotes: ApplicationBlock.makeFieldsStep.fromMessage(
     ({ error }) => ({
       allNotes: () => AsyncData.Failure({ error }),
     }),

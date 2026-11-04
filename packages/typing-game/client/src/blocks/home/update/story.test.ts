@@ -1,4 +1,4 @@
-import { Effect, Option } from 'effect'
+import { Option } from 'effect'
 import {
   Command,
   expectOutMessage,
@@ -20,6 +20,8 @@ import {
 } from '../command'
 import { Message, OutMessage } from '../message'
 import { HomeStep } from '../model'
+
+const homeSubject = { block: HomeBlock, layer }
 
 const alice = { id: 'p1', username: 'alice' }
 
@@ -47,7 +49,7 @@ const givenEnterRoomIdStep = () =>
 describe('entering a username', () => {
   it.effect('typing updates the username', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenEnterUsernameStep(),
       message(Message.ChangedUsername({ value: 'alice' })),
       model(model => {
@@ -56,12 +58,12 @@ describe('entering a username', () => {
           username: 'alice',
         })
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('submitting advances to action selection', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenEnterUsernameStep(),
       message(Message.ChangedUsername({ value: 'alice' })),
       message(Message.SubmittedUsernameForm()),
@@ -72,25 +74,25 @@ describe('entering a username', () => {
           selectedAction: 'CreateRoom',
         })
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('submitting with an empty username does nothing', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenEnterUsernameStep(),
       message(Message.SubmittedUsernameForm()),
       model(model => {
         expect(model.homeStep._tag).toBe('EnterUsername')
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 })
 
 describe('selecting an action', () => {
   it.effect('ArrowDown cycles through actions with wraparound', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenSelectActionStep(),
       message(Message.PressedKey({ key: 'ArrowDown' })),
       model(model => {
@@ -113,12 +115,12 @@ describe('selecting an action', () => {
           selectedAction: 'CreateRoom',
         })
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('ArrowUp wraps from first to last', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenSelectActionStep(),
       message(Message.PressedKey({ key: 'ArrowUp' })),
       model(model => {
@@ -127,12 +129,12 @@ describe('selecting an action', () => {
           selectedAction: 'ChangeUsername',
         })
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('selecting JoinRoom transitions to room ID input', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenSelectActionStep(),
       message(Message.PressedKey({ key: 'ArrowDown' })),
       message(Message.PressedKey({ key: 'Enter' })),
@@ -144,12 +146,12 @@ describe('selecting an action', () => {
           roomId: '',
         })
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('selecting ChangeUsername goes back to username input', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenSelectActionStep(),
       message(Message.PressedKey({ key: 'ArrowDown' })),
       message(Message.PressedKey({ key: 'ArrowDown' })),
@@ -161,14 +163,14 @@ describe('selecting an action', () => {
       model(model => {
         expect(model.homeStep._tag).toBe('EnterUsername')
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect(
     'selecting CreateRoom creates the room and signals the parent',
     () =>
       story(
-        HomeBlock,
+        homeSubject,
         givenSelectActionStep(),
         message(Message.PressedKey({ key: 'Enter' })),
         Command.resolve(
@@ -178,14 +180,14 @@ describe('selecting an action', () => {
         expectOutMessage(
           OutMessage.CreatedRoom({ roomId: 'r1', player: alice }),
         ),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 })
 
 describe('joining a room', () => {
   it.effect('typing a room ID updates the model', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenEnterRoomIdStep(),
       message(Message.ChangedRoomId({ value: 'abc' })),
       model(model => {
@@ -194,12 +196,12 @@ describe('joining a room', () => {
           roomId: 'abc',
         })
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('typing clears a previous error', () =>
     story(
-      HomeBlock,
+      homeSubject,
       given({
         homeStep: HomeStep.EnterRoomId({ username: 'alice', roomId: '' }),
         formError: Option.some('Room not found'),
@@ -208,12 +210,12 @@ describe('joining a room', () => {
       model(model => {
         expect(Option.isNone(model.formError)).toBe(true)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('submitting joins the room and signals the parent', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenEnterRoomIdStep(),
       message(Message.ChangedRoomId({ value: 'r1' })),
       message(Message.SubmittedJoinRoomForm()),
@@ -222,12 +224,12 @@ describe('joining a room', () => {
         Message.SucceededJoinRoomFromHome({ roomId: 'r1', player: alice }),
       ),
       expectOutMessage(OutMessage.JoinedRoom({ roomId: 'r1', player: alice })),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('a failed join sets the error', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenEnterRoomIdStep(),
       message(Message.FailedJoinRoomFromHome({ error: 'Room not found' })),
       model(model => {
@@ -236,12 +238,12 @@ describe('joining a room', () => {
           value: 'Room not found',
         })
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('typing "exit" goes back to action selection', () =>
     story(
-      HomeBlock,
+      homeSubject,
       givenEnterRoomIdStep(),
       message(Message.ChangedRoomId({ value: 'exit' })),
       message(Message.SubmittedJoinRoomForm()),
@@ -251,6 +253,6 @@ describe('joining a room', () => {
           selectedAction: 'JoinRoom',
         })
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 })

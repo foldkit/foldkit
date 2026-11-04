@@ -14,9 +14,9 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({})
 export type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
@@ -25,4 +25,4 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const { makeFieldsStep } = ApplicationDefinition
+export const { makeFieldsStep } = ApplicationBlock

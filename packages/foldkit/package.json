@@ -63,6 +63,10 @@
       "types": "./dist/http/public.d.ts",
       "import": "./dist/http/public.js"
     },
+    "./internal/block": {
+      "types": "./dist/internal/block/public.d.ts",
+      "import": "./dist/internal/block/public.js"
+    },
     "./managedResource": {
       "types": "./dist/managedResource/public.d.ts",
       "import": "./dist/managedResource/public.js"

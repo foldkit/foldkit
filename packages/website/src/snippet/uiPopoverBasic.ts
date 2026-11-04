@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -19,9 +19,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const PopoverExampleKey = Symbol('PopoverExample')
+export const PopoverExampleKey = Symbol('PopoverExample')
 
-const PopoverExampleDefinition = Block.makeDefinition('PopoverExample', {
+export const PopoverExampleBlock = Block.make('PopoverExample', {
   key: PopoverExampleKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -29,14 +29,14 @@ const PopoverExampleDefinition = Block.makeDefinition('PopoverExample', {
   Message,
 })
 
-const { makeNoopStep } = PopoverExampleDefinition
+const { makeNoopStep } = PopoverExampleBlock
 
 // At module scope, fold the OutMessage into your own Model. `Opened` and
 // `Closed` mark the visibility transitions. Fire analytics, coordinate with
 // other UI, or clear ephemeral state on close. Each arm returns an
 // parent Step over the Model that already has the next Popover Model written
-// back. The parent Definition checks every named variant:
-const foldPopoverOutMessage = PopoverExampleDefinition.makeOutMessageFold(
+// back. The parent Block checks every named variant:
+const foldPopoverOutMessage = PopoverExampleBlock.makeOutMessageFold(
   PopoverBlock,
   {
     // The child has emitted `Opened`. In this arm the parent can update its
@@ -52,12 +52,12 @@ const foldPopoverOutMessage = PopoverExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const PopoverBinding = PopoverExampleDefinition.makeBinding(PopoverBlock, {
+const PopoverBinding = PopoverExampleBlock.makeBinding(PopoverBlock, {
   field: 'popover',
   init: { contextToArgs: () => [{ id: 'info' }] },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const PopoverExampleComposition = PopoverExampleDefinition.makeComposition({
+const PopoverExampleComposition = PopoverExampleBlock.makeComposition({
   bindings: [PopoverBinding],
 })
 
@@ -126,7 +126,7 @@ const view = PopoverExampleComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = PopoverExampleDefinition.makeBlock(
+export const layer = PopoverExampleBlock.makeLayer(
   Effect.gen(function* () {
     const popover = yield* PopoverBinding
 
@@ -137,4 +137,4 @@ export const ApplicationBlock = PopoverExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(PopoverLayer)
+).pipe(Layer.provide(PopoverLayer))

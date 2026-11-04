@@ -11,13 +11,13 @@ import {
   ProjectListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { IssueDetailDefinition } from './definition'
+import { IssueDetailBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const block = IssueDetailDefinition.makeBlock(
+export const layer = IssueDetailBlock.makeLayer(
   Effect.gen(function* () {
     const commentComposer = yield* CommentComposerBinding
     const statusListbox = yield* StatusListboxBinding
@@ -40,6 +40,6 @@ const block = IssueDetailDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(ListboxLayer, CommentComposer.layer))
+).pipe(Layer.provide(Layer.mergeAll(ListboxLayer, CommentComposer.layer)))
 
-export const layer = block.layer
+export { IssueDetailBlock } from './definition'

@@ -1,7 +1,7 @@
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { ReaderBlock } from './reader'
 
-const ReaderBinding = ApplicationDefinition.makeBinding(ReaderBlock, {
+const ReaderBinding = ApplicationBlock.makeBinding(ReaderBlock, {
   field: 'reader',
   delivery: {
     toUpdateContext: model => [model.authority === 'Confirmed'],

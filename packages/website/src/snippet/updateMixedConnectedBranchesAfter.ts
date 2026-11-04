@@ -1,7 +1,7 @@
-// ✅ Give the local branch its Definition-owned result contract.
+// ✅ Give the local branch its Block-owned result contract.
 import * as Parent from './blockDeferredConnectedStepSetup'
 
-const { makeNoopStep } = Parent.ApplicationDefinition
+const { makeNoopStep } = Parent.ApplicationBlock
 
 export const update = Parent.ApplicationComposition.makeUpdate({
   RequestedResetSettings: model => {

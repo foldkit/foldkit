@@ -7,7 +7,7 @@ import { Model } from './model'
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Url]),
   view: { kind: 'Document' },
@@ -15,4 +15,4 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+export const { makeFieldsStep, makeNoopStep } = ApplicationBlock

@@ -16,7 +16,7 @@ The counter's update function has only changed the count so far. Add a button th
 
 ### Definition Fields
 
-`ApplicationDefinition.makeCommand` gives the work a name within the Application and declares its result contract. This example keeps the definition and its handler together:
+`ApplicationBlock.makeCommand` gives the work a name within the Application and declares its result contract. This example keeps the definition and its handler together:
 
 ::Snippet{name="counterCommands" label="Counter with a delayed reset"}
 
@@ -35,13 +35,13 @@ Constructors prepare execution machinery. Application state and workflow decisio
 
 Three pieces connect the work to update:
 
-- `ApplicationDefinition.makeCommand` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
+- `ApplicationBlock.makeCommand` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
 - `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 
 `ApplicationComposition.makeUpdate` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
-This counter is genuinely compact: `application.ts` owns its Model, Message, `ApplicationDefinition`, graphless `ApplicationComposition`, `ApplicationBlock`, init, update, view, Command, and local handler recipe. `entry.ts` passes the Block to `Program.make`, supplies any remaining Services through `program.provide(layer)`, and starts the Runtime. A split root instead puts every responsibility in its named file and removes the emptied `application.ts`:
+This counter is genuinely compact: `application.ts` owns its Model, Message, `ApplicationBlock`, graphless `ApplicationComposition`, construction `layer`, init, update, view, Command, and local handler recipe. `entry.ts` passes `{ block: ApplicationBlock, layer }` to `Program.make`, supplies any remaining Services through `program.provide(ApplicationLayer)`, and starts the Runtime. A split root instead puts every responsibility in its named file and removes the emptied `application.ts`:
 
 ::Snippet{name="counterCommandsEntry" label="Starting the counter"}
 
@@ -122,7 +122,7 @@ The entry imports that provider:
 
 ::Snippet{name="commandHttpLayer" label="Providing the HTTP service"}
 
-The graphless root passes `FetchCountLayer` to `ApplicationDefinition.makeBlock` as its local `EffectsLayer`. Its remaining `HttpClient` requirement is supplied by `ApplicationLayer` from `services.ts`. `program.provide(ApplicationLayer)` satisfies that ordinary Service requirement, and `Runtime.run` requires a runnable Program.
+The graphless root passes `FetchCountLayer` to `ApplicationBlock.makeLayer` as its local `EffectsLayer`. Its remaining `HttpClient` requirement is supplied by `ApplicationLayer` from `services.ts`. `program.provide(ApplicationLayer)` satisfies that ordinary Service requirement, and `Runtime.run` requires a runnable Program.
 
 `Http.layer` is Foldkit's Fetch-backed client. The [Http guide](/core/http) explains its browser tracing defaults and customization. Keep the concrete provider at the root so the application and execution tests can select it, and so Commands share the same client.
 
@@ -168,9 +168,9 @@ Check that every result Message returned by the handler appears in `messages`, t
 
 Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that provider is intentionally public or independently reused, as it is by this tutorial's direct execution test.
 
-Pass the local bundle to `FeatureDefinition.makeBlock`. Registered child Bindings carry their own recipes automatically. At root, complete `ApplicationBlock` through its Definition’s constructor, provide child implementation Layers, then create the Program in the entry. Ordinary Services used only by handlers can be supplied through `program.provide(ApplicationLayer)`. A simple root bundle can stay with its Command definitions in `command.ts`; extract `layer.ts` for substantial or reused composition. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide covers compact and split layouts.
+Pass the local bundle to `FeatureBlock.makeLayer`. Registered child Bindings carry their own recipes automatically. At root, complete `ApplicationBlock` through its `makeLayer` constructor, provide child implementation Layers, then create the Program in the entry. Ordinary Services used only by handlers can be supplied through `program.provide(ApplicationLayer)`. A simple root bundle can stay with its Command definitions in `command.ts`; extract `layer.ts` for substantial or reused composition. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide covers compact and split layouts.
 
-Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `FeatureDefinition.makeBlock` checks that the feature's `EffectsLayer` supplies each local handler and preserves its declared Service and error channels.
+Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `FeatureBlock.makeLayer` checks that the feature's `EffectsLayer` supplies each local handler and preserves its declared Service and error channels.
 
 Derive an explicit handler requirement from its owning definition. `Command.HandlerOf` keeps the annotation aligned with the definition's args Schema and declared result Messages:
 

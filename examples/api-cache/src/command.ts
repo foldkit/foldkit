@@ -1,11 +1,11 @@
 import { Clock, Effect, Schema, pipe } from 'effect'
 
 import { fetchPostDetail, fetchPosts, fetchStats } from './data'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message } from './message'
 import { FetchedPostDetail, FetchedPosts, FetchedStats } from './model'
 
-export const FetchPosts = ApplicationDefinition.makeCommand('FetchPosts', {
+export const FetchPosts = ApplicationBlock.makeCommand('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
     const clock = yield* Clock.Clock
@@ -24,32 +24,29 @@ export const FetchPosts = ApplicationDefinition.makeCommand('FetchPosts', {
   },
 })
 
-export const FetchPostDetail = ApplicationDefinition.makeCommand(
-  'FetchPostDetail',
-  {
-    args: { postId: Schema.String },
-    messages: [Message.CompletedFetchPostDetail],
-    handler: function* () {
-      const clock = yield* Clock.Clock
+export const FetchPostDetail = ApplicationBlock.makeCommand('FetchPostDetail', {
+  args: { postId: Schema.String },
+  messages: [Message.CompletedFetchPostDetail],
+  handler: function* () {
+    const clock = yield* Clock.Clock
 
-      return ({ postId }) =>
-        pipe(
-          Effect.gen(function* () {
-            const detail = yield* fetchPostDetail(postId)
-            const fetchedAt = yield* clock.currentTimeMillis
+    return ({ postId }) =>
+      pipe(
+        Effect.gen(function* () {
+          const detail = yield* fetchPostDetail(postId)
+          const fetchedAt = yield* clock.currentTimeMillis
 
-            return FetchedPostDetail.make({ detail, fetchedAt })
-          }),
-          Effect.result,
-          Effect.map(result =>
-            Message.CompletedFetchPostDetail({ postId, result }),
-          ),
-        )
-    },
+          return FetchedPostDetail.make({ detail, fetchedAt })
+        }),
+        Effect.result,
+        Effect.map(result =>
+          Message.CompletedFetchPostDetail({ postId, result }),
+        ),
+      )
   },
-)
+})
 
-export const FetchStats = ApplicationDefinition.makeCommand('FetchStats', {
+export const FetchStats = ApplicationBlock.makeCommand('FetchStats', {
   messages: [Message.CompletedFetchStats],
   handler: function* () {
     const clock = yield* Clock.Clock

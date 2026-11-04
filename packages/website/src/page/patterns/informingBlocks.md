@@ -24,17 +24,17 @@ This page builds on the [Blocks](/core/block) pattern. Read that first for the l
 
 ### Separate Inputs From Local Messages
 
-People declares its Model, Message, InMessage, and early `PeopleDefinition` in cycle-safe files. `InMessage.InformedOfRouteChange` carries only the `PeopleRoute` alias derived from `ApplicationRoute.People`, the part of the application Route that the feature understands. Command results remain local Messages. Commands import the early Definition and the Message constructors they produce; the completed Block imports the Commands and their handler recipes.
+People declares its Model, Message, InMessage, and early `PeopleBlock` in cycle-safe files. `InMessage.InformedOfRouteChange` carries only the `PeopleRoute` alias derived from `ApplicationRoute.People`, the part of the application Route that the feature understands. Command results remain local Messages. Commands import the Block declaration and the Message constructors they produce; `block.ts` imports the implementation pieces and completes the construction Layer.
 
 ::Snippet{name="informingBlocksMessage" label="People Message and InMessage contracts"}
 
-::Snippet{name="informingBlocksDefinition" label="Early People Definition"}
+::Snippet{name="informingBlocksDefinition" label="People Block declaration"}
 
 The InMessage handler copies the route query into the input, records it in recent searches, and returns `FetchPeople` for the new results. Update handles the Command's completion.
 
 ### Handle the Notification
 
-The Definition generates `informRouteChange` from `InMessage.InformedOfRouteChange`. It takes the variant's payload object, with constructor defaults honored. Its InMessage handler owns the invariant, Model transition, and `FetchPeople` Command. Return the portable InMessage update from the Block constructor alongside update and init.
+The Block generates `informRouteChange` from `InMessage.InformedOfRouteChange`. It takes the variant's payload object, with constructor defaults honored. Its InMessage handler owns the invariant, Model transition, and `FetchPeople` Command. Return the portable InMessage update from the Block constructor alongside update and init.
 
 ::Snippet{name="informingBlocksChild" label="Receiving a route change"}
 

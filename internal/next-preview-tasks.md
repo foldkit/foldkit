@@ -1,5 +1,45 @@
 # Next preview tasks
 
+## November 4 unified Block adoption
+
+The user accepted the measured Workspace compiler cost. The
+[adoption report](block-api-simplification/adoption-20261104.md) records the
+repository migration, passed component checks and remaining combined gates.
+
+- [x] Migrate Workspace, other examples, Website, Typing Game, UI implementations,
+      scoped tests, scaffold templates, active documentation, skills and lint
+      recognition to unified declarations and ordinary construction Layers.
+- [x] Preserve historical posts and migration-before examples, existing
+      application assertions and compiler-workload bodies.
+- [x] Verify exact provider guarantees across public host configuration unions
+      in source, emitted and source-free native and TypeScript 6 consumers.
+- [x] Finish whole Website declaration emission and the complete snippet check,
+      including source-free native and TypeScript 6 consumers.
+- [x] Reject every foreign Layer alternative at paired host entry points while
+      preserving merged multi-output Layers and exact constructor channels.
+- [x] Pass the complete source, emitted, relocated, installed-consumer, compiler
+      and repository pre-push checks on one coherent final snapshot.
+- [x] Review the exact migration commits and integrate preview head `b36cb7c5ad`.
+- [x] Record both complete rendering batches and the bounded profile/Set trial.
+      Retain all 64 samples and the unresolved optimized runtime gap.
+- [x] Review the evidence update and push through the required checks. Keep
+      publication held; compiler acceptance does not accept rendering costs.
+- [x] Refresh feedback through November 4 at 08:40 UTC. No new actionable replies;
+      assess the new attribute performance contribution, PR #1882.
+- [x] Complete the focused preview adaptation of PR #1882 and its verification.
+- [x] Address PR #1883's paired Scene specialization Error/Service finding with
+      exact Source, emitted, relocated and runtime controls. Preserve runtime JS.
+- [x] Refresh feedback again through 09:10 UTC; no other new actionable item.
+- [x] Refresh feedback again through 10:11 UTC; no new actionable item.
+- [x] Finish the standalone VirtualList and plugin execution fixture migration.
+      All 87 browser cases pass with the original 21 skips; the readiness
+      negative control, source checks for 16 fixture modules and 188 plugin
+      tests pass.
+- [ ] Integrate PR #1883 through exact-commit review, the mandatory push hook
+      and its required CI checks. Preserve publication and Daybreak holds.
+
+Daybreak source transfer remains explicitly on hold.
+
 ## Final GitHub feedback check
 
 - [x] Refresh issues, PRs, discussion replies and review threads, including
@@ -45,18 +85,28 @@ repeat discovery before final release sign-off.
 
 - [x] Prototype one `Block.make` value carrying declared contracts and bound
       authoring helpers without a separate Definition or contract projection.
-- [ ] Prove checked `Block.makeLayer` completion returning an ordinary Layer,
+- [x] Prove ordinary checked `Block.makeLayer` completion returning a Layer,
       exact root hosting/providers, host-owned handlers, constructor failures,
       implementation-specific test access, passive initialization and cleanup.
 - [x] Rename receive to `inMessageUpdate`, including its module, builder,
       direct/curried entry points, public types and tooling.
 - [x] Reuse ordered update composition for InMessages, preserving the original
       before Model, exact input narrowing, Commands and OutMessage checks.
-- [ ] Preserve Element, Document and viewless contracts; reject Document
+- [x] Preserve ordinary Element, Document and viewless contracts; reject Document
       embedding without prohibiting every state/operation Binding to it.
-- [ ] After the proof passes, migrate all active consumers, factories, tests,
+- [x] After the proof passes, migrate all active consumers, factories, tests,
       scaffolds, guidance, lint recognition and migration material. Preserve
-      historical content and unchanged compiler workloads and ceilings.
+      historical content, compiler workloads and the reviewed ceilings.
+- [x] Record the user's acceptance of the measured Workspace 4/8 compiler cost.
+      Set only their instantiation ceilings to exact measured counts, with no
+      added tolerance. Preserve every other budget and fixture. The
+      [completion checks](block-api-simplification/constructor-alternatives-20261104.md)
+      record the small correctness cost after that accepted checkpoint.
+- [x] Verify the complete Workspace root trial: whole source and declaration
+      emission, all 153 existing tests, and strict relocated public consumers.
+      Preserve all domain, update/view, child and assertion behavior.
+- [x] Verify actual Query/UI families through source, emitted and relocated
+      consumers, runtime tests and the corrected compiler baseline.
 - [x] Reconcile every actionable preview PR comment and relevant issue/PR,
       recording concrete source/test evidence and actual unresolved requests.
 - [x] Verify the canonical API through source, emitted and strict relocated
@@ -73,13 +123,25 @@ repeat discovery before final release sign-off.
 - [ ] Review the exact committed release-gate follow-up and push it through
       the mandatory pre-push hook to the preview branch. Do not publish.
 
-The [frozen Block API proof](block-api-simplification/README.md) does not meet the
-required adoption gates. Focused ordinary and generic consumers work, but the
-adapted deep/wide/Workspace workloads exceed the unchanged compiler ceilings.
-A same-owner, different-handler Layer pairing is rejected at Runtime but still
-accepted by TypeScript. No broad migration is performed, no budget is raised,
-and this work is not marked complete or approved for deferral. Reproducible
-patches, preserved assertions and bounded controls are included in the report.
+The [current recovered proof](block-api-simplification/current-proof-20261104.md)
+supersedes the active status of the preserved
+[earlier frozen proof](block-api-simplification/README.md). Exact selected-result
+association and constructor Plan Source validation pass ordinary source,
+emitted-declaration, relocated-consumer and runtime checks. All seven original
+compiler workloads pass; adapted deep and wide now pass too. Adapted Workspace 4
+and Workspace 8 originally exceeded their ceilings by about 1.7% and 10.7%.
+The user accepted that measured cost; their new ceilings equal the observed
+counts with no headroom. The [accepted-cost decision](block-api-simplification/accepted-cost-20261104.md)
+preserves that comparison. The
+[constructor alternative proof](block-api-simplification/constructor-alternatives-20261104.md)
+records completion checks and their small additional compiler cost. The actual
+Workspace root trial passes without application typing workarounds. Fixed-family
+verification and the final combined checks precede broad migration.
+
+The canonical Source ownership repair (`30069d58a0`) and UI selection-component docs
+(`3c515660a9`) were reviewed separately and are being integrated into the preview.
+Their ancestry is not part of this isolated c55-based proof. Publication and
+Daybreak review remain held.
 
 ## November 3 input-update and scoped-test checkpoint
 
@@ -965,6 +1027,23 @@ The [MyRemotely report](https://github.com/foldkit/foldkit/pull/1655#issuecommen
 Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime behavior, inference, and realistic split-file consumers before broad conversion.
 
 ## Release review checklist
+
+- [x] Recover and verify the ordinary unified Block/direct Layer checkpoint:
+      exact selected-provider association, constructor Plan Source checks,
+      native build/full source, strict source/emitted and relocated consumers,
+      eight runtime files, and all seven original compiler workloads.
+      [Current proof and exact scope](block-api-simplification/current-proof-20261104.md).
+- [x] Record the accepted Workspace 4/8 compiler costs and exact measured
+      instantiation ceilings, preserving the original frozen comparison and
+      every other budget. Verify the reproducible runner fails when a check
+      fails and the retained compiler workloads pass the accepted baseline.
+- [x] Verify the actual Workspace root with whole source/declaration emission,
+      strict relocated consumers and all 153 existing tests. The normal locked
+      integration checkout also passes source and runtime checks.
+- [ ] Verify actual fixed families and combined editor workflows before broad
+      migration; historical checks are not fresh checkpoint evidence.
+- [ ] Independently review per-alternative completion, handler selection and
+      InMessage operation projection before integrating the corrected proof.
 
 - [x] Review the isolated Instance-array proof's consumer surface, exact channels,
       opt-in field boundary, strict declarations, and unchanged compiler budgets

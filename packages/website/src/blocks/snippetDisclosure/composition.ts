@@ -1,7 +1,7 @@
-import { SnippetDisclosureDefinition } from './definition'
+import { SnippetDisclosureBlock } from './definition'
 import { MeasureSnippetHeight } from './mount'
 
 export const SnippetDisclosureComposition =
-  SnippetDisclosureDefinition.makeComposition({
+  SnippetDisclosureBlock.makeComposition({
     mounts: [MeasureSnippetHeight],
   })

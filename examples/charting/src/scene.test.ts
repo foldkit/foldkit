@@ -15,7 +15,7 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { SyncChart } from './command'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
@@ -41,7 +41,7 @@ const resolveFocusOption = Command.resolve(
 describe('view', () => {
   it.effect('loading view shows a telemetry progress state', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadingModel),
       expect(label('Loading telemetry')).toExist(),
     ),
@@ -49,7 +49,7 @@ describe('view', () => {
 
   it.effect('ready view shows summaries and chart controls', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(readyModel),
       acknowledgeChartMount,
       acknowledgeChartSync,
@@ -62,7 +62,7 @@ describe('view', () => {
 
   it.effect('clicking a chart mode updates the visible selected control', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(readyModel),
       acknowledgeChartMount,
       acknowledgeChartSync,
@@ -78,7 +78,7 @@ describe('view', () => {
 
   it.effect('refreshing state keeps the dashboard visible', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(readyModel, {
           telemetry: () =>
@@ -94,7 +94,7 @@ describe('view', () => {
 
   it.effect('failure without stale data shows retry', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(loadingModel, {
           telemetry: () => TelemetryAsyncData.Failure({ error: 'offline' }),

@@ -1,0 +1,453 @@
+{
+  "status": "Isolated ordinary proof verified; adapted Workspace 4/8 ceilings fail; no broad migration or approved deferral",
+  "baseCommit": "c55fb523ec8537d940f39f6b53204d1b29f12da3",
+  "recoveredAt": "2026-11-04T02:57:22.902969+00:00",
+  "worktree": "/private/tmp/foldkit-unified-recovery-20261103",
+  "node": "v22.22.3",
+  "compilers": {
+    "native": {
+      "path": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/typescript@7.1.0-beta/node_modules/typescript/bin/tsc",
+      "sha256": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+      "version": "Version 7.1.0-beta"
+    },
+    "strict": {
+      "path": "/private/tmp/foldkit-preview-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6/bin/tsc6",
+      "sha256": "8d5fa5bd883fec0979fc2004f1fe1d99aef40570155d550eadc0b03b55513bf0",
+      "version": "Version 6.0.3"
+    }
+  },
+  "sourceFiles": 615,
+  "distFiles": 1095,
+  "declarationFiles": 365,
+  "sourceTreeSha256": "7e56b34dade1806ed954db05624e883bd69f46f28c673f963d39a106d4255c5d",
+  "distTreeSha256": "000be063bfea0659bfec06f77ad603d45c06369022bd71293172ca1a6b458ce0",
+  "patch": {
+    "path": "internal/block-api-simplification/current-proof-20261104.patch",
+    "sha256": "d909db088d006b5eb85b8d57b7ce4a000402aedc36f24570d4bd7c50f25ce21f",
+    "reverseApplicationCheck": true
+  },
+  "hashManifest": "internal/block-api-simplification/current-proof-20261104-hashes.json",
+  "performanceReceipt": "internal/block-api-simplification/current-proof-20261104-performance.json",
+  "originalSeven": {
+    "status": 0,
+    "logSha256": "36fadcdfcdea39a33d4ff34b56dfa4bc3b5d6c35447b11299ab35a0080b17c03",
+    "machineInstantiations": 70759,
+    "machineTypes": 13405,
+    "command": [
+      "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+      "packages/foldkit/scripts/check-block-type-performance.ts"
+    ]
+  },
+  "retainedFourGraph": {
+    "driverSha256": "af65d92c320dc42d938c171e0e540a8ff036ecf2a65fe8eb86d5310f8edda07b",
+    "adapterSha256": "289ad36cddc5dfdb0345ffd211a0d50da81d3390950fa13025355e1e3f8606a5",
+    "checkerSha256": "bfd0baed03229435de3093cc79e56c546ff2aa5ce4da874f1cb4ca7732c8ffc4",
+    "snapshotReceiptOriginalPath": "/private/tmp/foldkit-direct-block-performance-UZalGR/receipt.json",
+    "measurements": [
+      {
+        "mode": "original",
+        "fixture": "deep-composition-8",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-UZalGR/original/scripts/check-block-type-performance.ts",
+          "deep-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-UZalGR/logs/original-deep-composition-8.log",
+        "instantiations": 663497,
+        "maxInstantiations": 1152618,
+        "types": 54111,
+        "maxTypes": 55843,
+        "symbols": 87856,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "original",
+        "fixture": "wide-composition-100",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-UZalGR/original/scripts/check-block-type-performance.ts",
+          "wide-composition-100"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-UZalGR/logs/original-wide-composition-100.log",
+        "instantiations": 1396891,
+        "maxInstantiations": 3132298,
+        "types": 82013,
+        "maxTypes": 216662,
+        "symbols": 131454,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "original",
+        "fixture": "workspace-composition-4",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-UZalGR/original/scripts/check-block-type-performance.ts",
+          "workspace-composition-4"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-UZalGR/logs/original-workspace-composition-4.log",
+        "instantiations": 2552571,
+        "maxInstantiations": 2642699,
+        "types": 208828,
+        "maxTypes": 229173,
+        "symbols": 276530,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "original",
+        "fixture": "workspace-composition-8",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-UZalGR/original/scripts/check-block-type-performance.ts",
+          "workspace-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-UZalGR/logs/original-workspace-composition-8.log",
+        "instantiations": 4321423,
+        "maxInstantiations": 4515010,
+        "types": 282625,
+        "maxTypes": 299721,
+        "symbols": 404145,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "adapted",
+        "fixture": "deep-composition-8",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-UZalGR/adapted/scripts/check-block-type-performance.ts",
+          "deep-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-UZalGR/logs/adapted-deep-composition-8.log",
+        "instantiations": 371285,
+        "maxInstantiations": 1152618,
+        "types": 48897,
+        "maxTypes": 55843,
+        "symbols": 75569,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "adapted",
+        "fixture": "wide-composition-100",
+        "status": 0,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-UZalGR/adapted/scripts/check-block-type-performance.ts",
+          "wide-composition-100"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-UZalGR/logs/adapted-wide-composition-100.log",
+        "instantiations": 2057610,
+        "maxInstantiations": 3132298,
+        "types": 71315,
+        "maxTypes": 216662,
+        "symbols": 110540,
+        "budgetStatus": "ok"
+      },
+      {
+        "mode": "adapted",
+        "fixture": "workspace-composition-4",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-UZalGR/adapted/scripts/check-block-type-performance.ts",
+          "workspace-composition-4"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-UZalGR/logs/adapted-workspace-composition-4.log",
+        "instantiations": 2687288,
+        "maxInstantiations": 2642699,
+        "types": 174611,
+        "maxTypes": 229173,
+        "symbols": 294414,
+        "budgetStatus": "failed: Instantiations"
+      },
+      {
+        "mode": "adapted",
+        "fixture": "workspace-composition-8",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-direct-block-performance-UZalGR/adapted/scripts/check-block-type-performance.ts",
+          "workspace-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-direct-block-performance-UZalGR/logs/adapted-workspace-composition-8.log",
+        "instantiations": 4999644,
+        "maxInstantiations": 4515010,
+        "types": 264339,
+        "maxTypes": 299721,
+        "symbols": 467569,
+        "budgetStatus": "failed: Instantiations"
+      }
+    ],
+    "originalSourcesUnchanged": true,
+    "frameworkDistUnchanged": true
+  },
+  "focusedChecks": [
+    {
+      "name": "native-source-restored",
+      "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "packages/foldkit/node_modules/typescript/bin/tsc",
+        "-p",
+        "packages/foldkit/tsconfig.json",
+        "--incremental",
+        "false",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "seconds": 7.796685959,
+      "log": "/private/tmp/foldkit-recovery-artifacts/unified/native-source-restored.log"
+    },
+    {
+      "name": "current-source-strict-final",
+      "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "node_modules/typescript/bin/tsc6",
+        "-p",
+        "probe/tsconfig.current-source.json",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "seconds": 20.86091025,
+      "log": "/private/tmp/foldkit-recovery-artifacts/unified/current-source-strict-final.log"
+    },
+    {
+      "name": "current-emitted-strict-final",
+      "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "node_modules/typescript/bin/tsc6",
+        "-p",
+        "probe/tsconfig.current-emitted.json",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "seconds": 7.246748542000002,
+      "log": "/private/tmp/foldkit-recovery-artifacts/unified/current-emitted-strict-final.log"
+    },
+    {
+      "name": "selected-source-strict-final",
+      "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "node_modules/typescript/bin/tsc6",
+        "-p",
+        "probe/selected-provider-current/tsconfig.source.json",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "seconds": 16.622072875,
+      "log": "/private/tmp/foldkit-recovery-artifacts/unified/selected-source-strict-final.log"
+    },
+    {
+      "name": "selected-emitted-strict-final",
+      "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "node_modules/typescript/bin/tsc6",
+        "-p",
+        "probe/selected-provider-current/tsconfig.emitted.json",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "seconds": 3.952787999999998,
+      "log": "/private/tmp/foldkit-recovery-artifacts/unified/selected-emitted-strict-final.log"
+    },
+    {
+      "name": "source-gate-source-strict-final",
+      "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "node_modules/typescript/bin/tsc6",
+        "-p",
+        "probe/source-gate-current/tsconfig.source.json",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "seconds": 8.844693833000008,
+      "log": "/private/tmp/foldkit-recovery-artifacts/unified/source-gate-source-strict-final.log"
+    },
+    {
+      "name": "source-gate-emitted-strict-final",
+      "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "node_modules/typescript/bin/tsc6",
+        "-p",
+        "probe/source-gate-current/tsconfig.emitted.json",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "seconds": 2.7852769589999866,
+      "log": "/private/tmp/foldkit-recovery-artifacts/unified/source-gate-emitted-strict-final.log"
+    },
+    {
+      "name": "split-consumer-declaration-emit",
+      "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "packages/foldkit/node_modules/typescript/bin/tsc",
+        "-p",
+        "probe/tsconfig.current-consumer-emit.json",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "seconds": 0.44820141700000704,
+      "log": "/private/tmp/foldkit-recovery-artifacts/unified/split-consumer-declaration-emit.log"
+    },
+    {
+      "name": "test-subject-consumer-declaration-emit",
+      "cwd": "/private/tmp/foldkit-unified-recovery-20261103",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "packages/foldkit/node_modules/typescript/bin/tsc",
+        "-p",
+        "probe/tsconfig.testing-subject-emit.json",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "seconds": 0.33731104099999243,
+      "log": "/private/tmp/foldkit-recovery-artifacts/unified/test-subject-consumer-declaration-emit.log"
+    }
+  ],
+  "runtime": {
+    "files": 8,
+    "tests": 44,
+    "status": 0,
+    "logSha256": "04109f78ada27d07fd363ff1c59d25b7709918029fd969bc66da408b9b49e97e",
+    "javaScriptUnchangedAfterFinalFormatting": true,
+    "command": [
+      "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+      "packages/foldkit/node_modules/vitest/vitest.mjs",
+      "run",
+      "--root",
+      "/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit",
+      "--config",
+      "/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/vitest.config.ts",
+      "src/experimental/contracted/directBlockLayer.test.ts",
+      "src/experimental/constructed/directLayerPrototype.test.ts",
+      "src/experimental/contracted/mixedUnifiedBoundary.test.ts",
+      "src/experimental/contracted/inMessageUpdateComposition.test.ts",
+      "src/test/apps/childInstances/occurrences.test.ts",
+      "src/block/instanceSchema.test.ts",
+      "src/block/variantBinding.test.ts",
+      "src/block/unifiedVariantBinding.test.ts"
+    ]
+  },
+  "relocatedAudit": {
+    "inputFiles": 391,
+    "frameworkSourceInputs": [],
+    "copiedCoreDeclarations": 125,
+    "status": 0,
+    "command": [
+      "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+      "node_modules/typescript/bin/tsc6",
+      "-p",
+      "probe/ordinary-checkpoint-frozen/relocated/tsconfig.json",
+      "--listFiles",
+      "--pretty",
+      "false"
+    ]
+  },
+  "runtimeIdentity": {
+    "validAcquisition": true,
+    "foreignUpdateRejected": true,
+    "foreignViewRejected": true,
+    "distinctSameOwnerCompositionRejected": true
+  },
+  "extractionReceipt": "internal/block-api-simplification/current-proof-20261104-extraction.json",
+  "logHashes": {
+    "native-build-frozen.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-source-restored.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "current-source-strict-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "current-emitted-strict-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "selected-source-strict-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "selected-emitted-strict-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source-gate-source-strict-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source-gate-emitted-strict-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "split-consumer-declaration-emit.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "test-subject-consumer-declaration-emit.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "relocated-frozen-consumer.log": "f91ff3bb356a2100bc1cb9b886b77108fd617f3f049f95b1e350561bce23fa37",
+    "runtime-source-identity-final.log": "33d40918e3de975565c40531f2f2b2b2c800cf399e07dcfdd076dfde2e723b31",
+    "focused-runtime-final.log": "04109f78ada27d07fd363ff1c59d25b7709918029fd969bc66da408b9b49e97e",
+    "original-seven-frozen.log": "36fadcdfcdea39a33d4ff34b56dfa4bc3b5d6c35447b11299ab35a0080b17c03",
+    "retained-four-graph-frozen.log": "7edabcc30fbf42a50a11cfd4f54612eb2bbf82d92a3cbfa0336373094a95fa04"
+  },
+  "fixtureHashes": {
+    "probe/current-child-instances/block.ts": "f2b2da4ab44045138e3d7e84f75f51c18a20a54e17ccbacaf9c90cc6e7c83718",
+    "probe/current-child-instances/composition.ts": "1e9c88b9199a609533f9d5c52f632624cd8b3589ae50ca07b0df1ce6b84b5101",
+    "probe/current-child-instances/counter.ts": "38da180aa5dc59826f07a52abc6799a8e385622b0c01c1ba1d797f228596da5c",
+    "probe/current-child-instances/definition.ts": "f5161b3ad8ac3822d7022233d8672bc6708c04dabb4d47e51130756b28e216d1",
+    "probe/current-child-instances/negative.ts": "3386ff48abade8cef6890a3e4331230a3fba15749bf56dbe3e58e1c865be33d0",
+    "probe/current-child-instances/transitions.ts": "8da9be80f8c9e6217a4c1d559aec54b6ff5c2665536d4353873e9eb89dd0d503",
+    "probe/measure-workspace4.mjs": "fb5706eece4e7340710a45975c8c9453e945e628fb436c4cb6cf4e2917e17fbd",
+    "probe/measure-workspace8.mjs": "2ed8d8a08f9f83630944a9e9e31ffea7d6dc2d1f4ef10f1ccf02bd614717368f",
+    "probe/prepare-relocated-proof.py": "b586133e004797bf032452beccb39147829ee9af9f8d3a5304d055b806edd81e",
+    "probe/run-recovered-checks.py": "ce736449a487bc9f509a1917509c25f85f3fc6a254995bb5fe1aaae4a16e5acf",
+    "probe/selected-provider-current/ambiguous-selection.control.ts": "3e7f323a18bd1949ce41cb950b6bea22df8d8d843d66774f9ab4bc9d677a2fa3",
+    "probe/selected-provider-current/construction-channels.emitted.ts": "2206c17c2bdecf801c5a88b4943232ac57d569535c1a586167a4ddc5ae828815",
+    "probe/selected-provider-current/construction-channels.source.ts": "4d9ee9ea5161a9280dab1ea1f8d672e44bf0f8bdf9093ac481cf346ca62117fb",
+    "probe/selected-provider-current/selection-contracts.emitted.ts": "2a0888c16876a66d3730cb5d14e2afdca538c54661a75da0d204c74308fed5de",
+    "probe/selected-provider-current/selection-contracts.source.ts": "85367891e9d5e4697dcb72575172e6a55f10e0457d3011dd0b2301d41524de96",
+    "probe/selected-provider-current/tsconfig.emitted.json": "d6c8a522e28ce7fd07bb069bb0a5a3d2e7983bed192b97768d6390addc8e6d77",
+    "probe/selected-provider-current/tsconfig.source.json": "bc3bcb20c27eb94f237fd5f3734314924b307abc3ff6371a8892d68c2e32e88f",
+    "probe/source-gate-current/plan-source-gate.emitted.ts": "689755b439a56d7818d0578cf1a03a362f8bf0d8032335c04932a8762c170028",
+    "probe/source-gate-current/plan-source-gate.source.ts": "fb827118c7a932f65e09d95a1d8749e4487829009fb2d832df55ab6f9ea9ab83",
+    "probe/source-gate-current/runtime-source-control.json": "c28c52677de846acf600526d8fff9adcb188285d060c7cdb246fd32efb5b049e",
+    "probe/source-gate-current/runtime-source-control.mjs": "e3331c3f6565d1da5ae3740610f06534873af344e3a4715f8757980446a5841f",
+    "probe/source-gate-current/tsconfig.emitted.json": "7b30a99b054c9ace4f3d4471d2174662fd52f416ce5e019414f12b2d5e497cf9",
+    "probe/source-gate-current/tsconfig.source.json": "88b94ffdee4b55573c84757b02af95a829efc56c4fcec3d32812a6de21db1c8a",
+    "probe/testing-subjects.ts": "a1cb0e9f63c6c9f87a736088eb6714f798e43a879104e5a49427d1204b6a6221",
+    "probe/tsconfig.current-consumer-emit.json": "2869e367d4f2c26eed3cd08c6e08c8ed89ec3bbecc0e2eaf9bcc924fa17e18f3",
+    "probe/tsconfig.current-emitted.json": "e183362933f4230f597a4249b659fb848c6e87967d4cf9484695a64fe1ff4090",
+    "probe/tsconfig.current-source.json": "ceee728971f3a9e057e1477549f4f1e1db7d0e60a2942b6be2d18ed81da75d98",
+    "probe/tsconfig.testing-subject-emit.json": "61c13db21095e8d879e966fc08bfd8c30303abd6fea22b4b28595269e4ecef20",
+    "probe/unified-variant.ts": "38a9c848ecdf38a5a42e135ee2c58d74d3dc39a26c2206bfffe79c98171c2166"
+  },
+  "freshNotVerified": [
+    "actual complete Workspace source/declaration/test/editor trial",
+    "fixed Single/Multi UI-family combined proof",
+    "actual generic Query/UI-family migration",
+    "new packed browser cohort",
+    "rendering benchmark",
+    "Daybreak/security review"
+  ],
+  "canonicalSeparateReviewedPrefixes": ["30069d58a0", "3c515660a9"],
+  "publicationHeld": true,
+  "daybreakHeld": true,
+  "recoveryNotes": [
+    "Exact accepted a84 starting source confirmed against four saved frozen hashes.",
+    "Current combined source reconstructed from saved transforms and current canonical Source helper.",
+    "All measurements and pass counts above are fresh, not restored historical claims.",
+    "An existing Program negative test names its unchanged configuration to stabilize diagnostic placement.",
+    "Moved declarations are token-equal; shared NativeBody has a formatting-only trailing generic comma."
+  ],
+  "nativeBuild": {
+    "status": 0,
+    "command": [
+      "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+      "packages/foldkit/node_modules/typescript/bin/tsc",
+      "-p",
+      "packages/foldkit/tsconfig.build.json",
+      "--incremental",
+      "false",
+      "--composite",
+      "false",
+      "--pretty",
+      "false"
+    ]
+  }
+}

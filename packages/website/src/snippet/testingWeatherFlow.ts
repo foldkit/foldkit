@@ -3,11 +3,11 @@ import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 it.effect('weather search: success then failure', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(model),
 
     message(UpdatedZipCodeInput({ value: '90210' })),

@@ -17,7 +17,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import {
   SendMessage,
   TimestampReceivedMessage,
@@ -42,7 +42,7 @@ describe('view', () => {
     'initial view shows the heading, status, and a Connect button',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(idleModel),
         expect(text('WebSocket Chat')).toExist(),
         expect(text('Disconnected')).toExist(),
@@ -53,7 +53,7 @@ describe('view', () => {
 
   it.effect('connecting state renders the Connecting message', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(idleModel, {
           connection: () => ConnectionState.Connecting(),
@@ -65,7 +65,7 @@ describe('view', () => {
 
   it.effect('connected state shows the message input and Send button', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(idleModel, {
           connection: () => ConnectionState.Connected(),
@@ -80,7 +80,7 @@ describe('view', () => {
 
   it.effect('error state renders the error and a Try Again button', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(idleModel, {
           connection: () =>
@@ -97,7 +97,7 @@ describe('view', () => {
 
   it.effect('messages render in the conversation list', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(idleModel, {
           connection: () => ConnectionState.Connected(),
@@ -117,7 +117,7 @@ describe('view', () => {
     'a successful acquisition connects the chat and the user can send a message',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(idleModel),
         click(role('button', { name: 'Connect to Chat' })),
         expect(text('Connecting...')).toExist(),
@@ -145,7 +145,7 @@ describe('view', () => {
 
   it.effect('a failed socket acquisition shows the connection error', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(idleModel),
       click(role('button', { name: 'Connect to Chat' })),
       expect(text('Connecting...')).toExist(),
@@ -163,7 +163,7 @@ describe('view', () => {
     'a message arriving on the socket Subscription lands in the conversation',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(idleModel, {
             connection: () => ConnectionState.Connected(),

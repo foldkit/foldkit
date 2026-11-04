@@ -21,9 +21,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const FrequentlyAskedQuestionsKey = Symbol('FrequentlyAskedQuestions')
+export const FrequentlyAskedQuestionsKey = Symbol('FrequentlyAskedQuestions')
 
-const FrequentlyAskedQuestionsDefinition = Block.makeDefinition(
+export const FrequentlyAskedQuestionsBlock = Block.make(
   'FrequentlyAskedQuestions',
   {
     key: FrequentlyAskedQuestionsKey,
@@ -35,7 +35,7 @@ const FrequentlyAskedQuestionsDefinition = Block.makeDefinition(
 )
 
 const FrequentlyAskedQuestionsComposition =
-  FrequentlyAskedQuestionsDefinition.makeComposition()
+  FrequentlyAskedQuestionsBlock.makeComposition()
 
 // In your init function, start it closed:
 const init = FrequentlyAskedQuestionsComposition.makeInit(() => ({
@@ -95,7 +95,7 @@ const view = FrequentlyAskedQuestionsComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = FrequentlyAskedQuestionsDefinition.makeBlock(
+export const layer = FrequentlyAskedQuestionsBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

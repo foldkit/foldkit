@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -20,22 +20,19 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const AnimatedDialogExampleKey = Symbol('AnimatedDialogExample')
+export const AnimatedDialogExampleKey = Symbol('AnimatedDialogExample')
 
-const AnimatedDialogExampleDefinition = Block.makeDefinition(
-  'AnimatedDialogExample',
-  {
-    key: AnimatedDialogExampleKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element' },
-    Model,
-    Message,
-  },
-)
+export const AnimatedDialogExampleBlock = Block.make('AnimatedDialogExample', {
+  key: AnimatedDialogExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
 
-const { makeNoopStep } = AnimatedDialogExampleDefinition
+const { makeNoopStep } = AnimatedDialogExampleBlock
 
-const foldDialogOutMessage = AnimatedDialogExampleDefinition.makeOutMessageFold(
+const foldDialogOutMessage = AnimatedDialogExampleBlock.makeOutMessageFold(
   DialogBlock,
   {
     Opened: makeNoopStep,
@@ -44,7 +41,7 @@ const foldDialogOutMessage = AnimatedDialogExampleDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = AnimatedDialogExampleDefinition.makeBinding(DialogBlock, {
+const DialogBinding = AnimatedDialogExampleBlock.makeBinding(DialogBlock, {
   field: 'dialog',
   init: {
     contextToArgs: () => [{ id: 'confirm', isAnimated: true }],
@@ -52,7 +49,7 @@ const DialogBinding = AnimatedDialogExampleDefinition.makeBinding(DialogBlock, {
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const AnimatedDialogExampleComposition =
-  AnimatedDialogExampleDefinition.makeComposition({
+  AnimatedDialogExampleBlock.makeComposition({
     bindings: [DialogBinding],
   })
 
@@ -134,7 +131,7 @@ const view = AnimatedDialogExampleComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = AnimatedDialogExampleDefinition.makeBlock(
+export const layer = AnimatedDialogExampleBlock.makeLayer(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
 
@@ -145,4 +142,4 @@ export const ApplicationBlock = AnimatedDialogExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(DialogLayer)
+).pipe(Layer.provide(DialogLayer))

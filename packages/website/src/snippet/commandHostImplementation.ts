@@ -8,6 +8,7 @@ import {
   EditorBlock,
   EditorStartup,
   EditorStorage,
+  layer,
 } from './commandHostContract'
 
 const DOCUMENT_STORAGE_KEY = 'editor-document'
@@ -32,6 +33,7 @@ export const ApplicationLayer = EditorStorageLayer.pipe(
 
 export const program = Program.makeElement({
   block: EditorBlock,
+  layer,
   Flags: EditorStartup,
   flags: Effect.succeed(EditorStartup.make({ contents: 'My document' })),
   container: document.getElementById('root'),

@@ -1,10 +1,10 @@
 import { Effect, Layer, Schema } from 'effect'
 import { load, pushUrl } from 'foldkit/navigation'
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message } from './message'
 
-export const NavigateInternal = ApplicationDefinition.makeCommand(
+export const NavigateInternal = ApplicationBlock.makeCommand(
   'NavigateInternal',
   {
     args: { url: Schema.String },
@@ -16,7 +16,7 @@ export const NavigateInternal = ApplicationDefinition.makeCommand(
   },
 )
 
-export const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
+export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

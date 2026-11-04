@@ -343,6 +343,7 @@ const makeDescriptor = (
     )
     registerRootConstruction(descriptor, {
       layer,
+      readForTesting: descriptor.get,
       read: Effect.map(
         descriptor.get,
         executable => acquisitionOf(executable).block,

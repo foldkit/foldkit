@@ -1,6 +1,7 @@
 import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { withBlock } from 'foldkit/story'
 import * as Update from 'foldkit/update'
 
 const Model = Schema.Struct({
@@ -15,9 +16,9 @@ type Message = typeof Message.Type
 const DispatchContext = Schema.Struct({ requestId: Schema.String })
 type DispatchContext = typeof DispatchContext.Type
 
-const ContextualRefreshKey = Symbol('ContextualRefresh')
+export const ContextualRefreshKey = Symbol('ContextualRefresh')
 
-const ContextualRefreshDefinition = Block.makeDefinition('ContextualRefresh', {
+export const ContextualRefreshBlock = Block.make('ContextualRefresh', {
   key: ContextualRefreshKey,
   Init: Schema.Tuple([]),
   Context: Schema.Tuple([DispatchContext]),
@@ -26,10 +27,9 @@ const ContextualRefreshDefinition = Block.makeDefinition('ContextualRefresh', {
   Message,
 })
 
-const { makeFieldsStep } = ContextualRefreshDefinition
+const { makeFieldsStep } = ContextualRefreshBlock
 
-const ContextualRefreshComposition =
-  ContextualRefreshDefinition.makeComposition()
+const ContextualRefreshComposition = ContextualRefreshBlock.makeComposition()
 const update = ContextualRefreshComposition.makeUpdate.withContext(
   ({ requestId }: DispatchContext) => ({
     RequestedRefresh: makeFieldsStep(() => ({
@@ -42,7 +42,7 @@ const init = ContextualRefreshComposition.makeInit(() => ({
   model: { lastRequestId: '', refreshCount: 0 },
 }))
 
-const ContextualRefreshBlock = ContextualRefreshDefinition.makeBlock(
+const layer = ContextualRefreshBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -52,13 +52,15 @@ const ContextualRefreshBlock = ContextualRefreshDefinition.makeBlock(
   }),
 )
 
-export const requestRefresh = Effect.gen(function* () {
-  const block = yield* ContextualRefreshBlock.get
-  const refresh = (model: Model) =>
-    block.update(Message.RequestedRefresh())(model, { requestId: 'current' })
-  const countRefresh = makeFieldsStep(() => ({
-    refreshCount: count => count + 1,
-  }))
+export const requestRefresh = withBlock(
+  { block: ContextualRefreshBlock, layer },
+  block => {
+    const refresh = (model: Model) =>
+      block.update(Message.RequestedRefresh())(model, { requestId: 'current' })
+    const countRefresh = makeFieldsStep(() => ({
+      refreshCount: count => count + 1,
+    }))
 
-  return Update.combineSteps(block.init().model, [refresh, countRefresh])
-}).pipe(Effect.provide(ContextualRefreshBlock.layer))
+    return Update.combineSteps(block.init().model, [refresh, countRefresh])
+  },
+)

@@ -1,9 +1,9 @@
 import { Effect } from 'effect'
 import { SecureRandom } from 'effect/crypto'
 
-import { Message, WorkHistoryDefinition } from './definition'
+import { Message, WorkHistoryBlock } from './definition'
 
-export const GenerateWorkHistoryEntryId = WorkHistoryDefinition.makeCommand(
+export const GenerateWorkHistoryEntryId = WorkHistoryBlock.makeCommand(
   'GenerateWorkHistoryEntryId',
   {
     messages: [Message.CompletedGenerateWorkHistoryEntryId],

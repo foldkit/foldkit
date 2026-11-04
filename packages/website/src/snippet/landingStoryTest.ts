@@ -3,12 +3,12 @@ import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 // Story: test the state machine
 it.effect('fetch weather updates the model', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(model),
     message(SubmittedWeatherForm()),
     model(model => {

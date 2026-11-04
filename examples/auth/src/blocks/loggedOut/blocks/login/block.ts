@@ -1,12 +1,10 @@
 import { Effect } from 'effect'
 
-import { LoginDefinition } from './definition'
+import { LoginBlock } from './definition'
 import { EffectsLayer, init, update } from './login'
 import { view } from './view'
 
-export const LoginBlock = LoginDefinition.contract
-
-export const layer = LoginDefinition.makeBlock(
+export const layer = LoginBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -16,4 +14,6 @@ export const layer = LoginDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).layer
+)
+
+export { LoginBlock } from './definition'

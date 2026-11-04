@@ -6,7 +6,7 @@ import { Message } from './message'
 import type { Model } from './model'
 
 // ✅ Run random work in a Command
-const GenerateApplePosition = ApplicationDefinition.makeCommand(
+const GenerateApplePosition = ApplicationBlock.makeCommand(
   'GenerateApplePosition',
   {
     messages: [Message.CompletedGenerateApplePosition],

@@ -160,7 +160,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the composed
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy. The same shape applies to the completed Block returned by `Listbox.Multi.makeBlock()`.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy. The same shape applies to the public contract returned by `Listbox.Multi.makeBlock()`.
 
 | Name       | Type               | Default | Description                                                                                                                                                                                                                                                                                                                                                                   |
 | ---------- | ------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

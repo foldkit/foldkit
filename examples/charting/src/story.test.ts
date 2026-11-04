@@ -6,7 +6,7 @@ import { expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { FetchTelemetry, SyncChart } from './command'
 import {
   ChartModeRadioGroupBinding,
@@ -48,7 +48,7 @@ const resolveChartModeFocus = Command.resolve(
 
 it.effect('mounting the chart syncs current telemetry into ECharts', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(readyModel),
     message(Message.SucceededMountChart({ hostId: 'chart-host' })),
     Command.expectHas(SyncChart),
@@ -60,7 +60,7 @@ it.effect(
   'selecting a chart mode clears selected datum and syncs the chart',
   () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(readyModel),
       message(
         Message.ClickedChartDatum({ datumId: 'Velocity:Commits:2026-06-15' }),
@@ -79,7 +79,7 @@ it.effect(
 
 it.effect('selecting a package syncs the selected package into the chart', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(readyModel),
     selectedPackage('Ui'),
     resolveChartModeFocus,
@@ -93,7 +93,7 @@ it.effect('selecting a package syncs the selected package into the chart', () =>
 
 it.effect('refreshing with data keeps the old dashboard while fetching', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(readyModel),
     message(Message.ClickedRefresh()),
     model(model => {
@@ -112,7 +112,7 @@ it.effect('refreshing with data keeps the old dashboard while fetching', () =>
 
 it.effect('a failed refresh preserves stale data in the stale state', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(
       modifyFields(readyModel, {
         telemetry: () =>
@@ -134,7 +134,7 @@ it.effect(
   'failed fetch transitions to failure without stale data when loading',
   () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadingModel),
       message(Message.FailedFetchTelemetry({ error: 'offline' })),
       model(model => {
@@ -148,7 +148,7 @@ it.effect(
 
 it.effect('successful fetch stores data and syncs when mounted', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(readyModel),
     message(Message.SucceededFetchTelemetry({ telemetry: sampleTelemetry })),
     model(model => {

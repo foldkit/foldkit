@@ -8,7 +8,7 @@ import { WorkspaceRepository } from './repository'
 
 export const ApplicationKey = Symbol('WorkspaceApplication')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Url]),
   view: { kind: 'Document' },
@@ -26,4 +26,4 @@ export const {
   makeBinding,
   makeMapBinding,
   makeComposition,
-} = ApplicationDefinition
+} = ApplicationBlock

@@ -5,7 +5,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { CancelUploadFile, UploadFile } from './command'
 import { initialModel } from './init'
 import { Message } from './message'
@@ -16,7 +16,7 @@ const firstFile = Array.headNonEmpty(FAKE_FILES)
 describe('view', () => {
   it.effect('initial view shows the start button and an empty state', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       expect(role('heading', { name: 'File Uploads' })).toExist(),
       expect(role('button', { name: 'Upload a file' })).toExist(),
@@ -28,7 +28,7 @@ describe('view', () => {
     'starting an upload shows an Uploading row with a cancel button',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         click(role('button', { name: 'Upload a file' })),
         expect(text(firstFile.name)).toExist(),
@@ -46,7 +46,7 @@ describe('view', () => {
     'cancelling an upload marks it Cancelled and offers a restart',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         click(role('button', { name: 'Upload a file' })),
         click(role('button', { name: 'Cancel upload 0' })),
@@ -73,7 +73,7 @@ describe('view', () => {
     'the cancel all button appears only while an upload is running',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         expect(role('button', { name: 'Cancel all' })).toBeAbsent(),
         click(role('button', { name: 'Upload a file' })),

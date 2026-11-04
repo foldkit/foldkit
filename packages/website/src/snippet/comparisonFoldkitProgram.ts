@@ -28,7 +28,7 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -46,8 +46,11 @@ import { Flags, flags } from './flags'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   Flags,
   container: document.getElementById('root'),
 })
 
 Runtime.run(program, { flags })
+
+export { ApplicationBlock } from './application'

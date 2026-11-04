@@ -6,7 +6,7 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 import { SliderBlock } from '@foldkit/ui/slider'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import {
   FLOW_STRENGTH_MAX,
   FLOW_STRENGTH_MIN,
@@ -74,7 +74,7 @@ describe('view', () => {
     'initial view shows Pause and Reset buttons and a zero particle counter',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         expect(role('button', { name: 'Pause' })).toExist(),
         expect(role('button', { name: 'Reset' })).toExist(),
@@ -84,7 +84,7 @@ describe('view', () => {
 
   it.effect('clicking Pause swaps the toggle to Play', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       click(role('button', { name: 'Pause' })),
       expect(role('button', { name: 'Play' })).toExist(),
@@ -94,7 +94,7 @@ describe('view', () => {
 
   it.effect('clicking Reset empties the particles list', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithParticles(8)),
       expect(text('8 particles')).toExist(),
       click(role('button', { name: 'Reset' })),
@@ -104,7 +104,7 @@ describe('view', () => {
 
   it.effect('Turbulence and Noise scale sliders are present and labeled', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       expect(label('Turbulence')).toExist(),
       expect(label('Noise scale')).toExist(),

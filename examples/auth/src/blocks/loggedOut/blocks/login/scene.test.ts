@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Valid } from 'foldkit/fieldValidation'
 import {
   Command,
@@ -35,58 +34,58 @@ const submittingButton = role('button', { name: 'Signing in...' })
 describe('login', () => {
   it.effect('renders the heading, both fields, and the submit button', () =>
     scene(
-      LoginBlock,
+      { block: LoginBlock, layer },
       given(initModel()),
       expect(heading).toExist(),
       expect(emailField).toExist(),
       expect(passwordField).toExist(),
       expect(submitButton).toExist(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('submit button starts disabled', () =>
     scene(
-      LoginBlock,
+      { block: LoginBlock, layer },
       given(initModel()),
       expect(submitButton).toBeDisabled(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('typing a valid email shows the checkmark', () =>
     scene(
-      LoginBlock,
+      { block: LoginBlock, layer },
       given(initModel()),
       type(emailField, 'alice@example.com'),
       expect(text('✓')).toExist(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('typing an invalid email shows the error message', () =>
     scene(
-      LoginBlock,
+      { block: LoginBlock, layer },
       given(initModel()),
       type(emailField, 'notanemail'),
       expect(text('Please enter a valid email')).toExist(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect(
     'submit button is enabled after typing a valid email and password',
     () =>
       scene(
-        LoginBlock,
+        { block: LoginBlock, layer },
         given(initModel()),
         type(emailField, 'alice@example.com'),
         type(passwordField, 'password'),
         expect(submitButton).toBeEnabled(),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 
   it.effect(
     'submitting with valid fields shows the loading state and requests auth',
     () =>
       scene(
-        LoginBlock,
+        { block: LoginBlock, layer },
         given(validModel),
         submit(role('form')),
         expect(submittingButton).toExist(),
@@ -96,14 +95,14 @@ describe('login', () => {
           SimulateAuthRequest,
           Message.FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
         ),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 
   it.effect(
     'failed auth shows the error and leaves submit disabled until the password changes',
     () =>
       scene(
-        LoginBlock,
+        { block: LoginBlock, layer },
         given(validModel),
         submit(role('form')),
         Command.expectExact(SimulateAuthRequest),
@@ -115,6 +114,6 @@ describe('login', () => {
         expect(submitButton).toBeDisabled(),
         type(passwordField, 'correcthorse'),
         expect(submitButton).toBeEnabled(),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 })

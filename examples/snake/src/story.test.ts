@@ -9,6 +9,7 @@ import {
   GenerateApplePosition,
   Message,
   type Model,
+  layer,
 } from './application'
 import { Snake } from './domain'
 
@@ -32,7 +33,7 @@ describe('update', () => {
   describe('movement controls', () => {
     it.effect('arrow key updates nextDirection while playing', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(playingModel),
         message(Message.PressedKey({ key: 'ArrowUp' })),
         model(model => {
@@ -43,7 +44,7 @@ describe('update', () => {
 
     it.effect('WASD key updates nextDirection while playing', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(playingModel),
         message(Message.PressedKey({ key: 'a' })),
         model(model => {
@@ -54,7 +55,7 @@ describe('update', () => {
 
     it.effect('arrow keys are ignored while the game is paused', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(playingModel, { gameState: () => 'Paused' })),
         message(Message.PressedKey({ key: 'ArrowDown' })),
         model(model => {
@@ -67,7 +68,7 @@ describe('update', () => {
   describe('space key', () => {
     it.effect('SPACE starts the game from NotStarted', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(notStartedModel),
         message(Message.PressedKey({ key: ' ' })),
         model(model => {
@@ -78,7 +79,7 @@ describe('update', () => {
 
     it.effect('SPACE pauses the game when Playing', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(playingModel),
         message(Message.PressedKey({ key: ' ' })),
         model(model => {
@@ -89,7 +90,7 @@ describe('update', () => {
 
     it.effect('SPACE on GameOver does nothing', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(playingModel, { gameState: () => 'GameOver' })),
         message(Message.PressedKey({ key: ' ' })),
         model(model => {
@@ -102,7 +103,7 @@ describe('update', () => {
   describe('restart', () => {
     it.effect('R fires GenerateApplePosition and resets the snake', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(playingModel, { points: () => 100 })),
         message(Message.PressedKey({ key: 'r' })),
         model(model => {
@@ -127,7 +128,7 @@ describe('update', () => {
   describe('TickedClock', () => {
     it.effect('moves the snake one cell while Playing', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(playingModel),
         message(Message.TickedClock()),
         model(model => {
@@ -138,7 +139,7 @@ describe('update', () => {
 
     it.effect('does nothing when not Playing', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(notStartedModel),
         message(Message.TickedClock()),
         model(model => {
@@ -156,7 +157,7 @@ describe('update', () => {
         const lengthBefore = aboutToEatModel.snake.length
 
         return story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(aboutToEatModel),
           message(Message.TickedClock()),
           Command.expectHas(GenerateApplePosition),

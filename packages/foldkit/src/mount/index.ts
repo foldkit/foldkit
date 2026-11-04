@@ -495,7 +495,7 @@ const wrapEffectAsStream =
  * `handler` is a generator function that constructs the handler. Foldkit
  * applies `Effect.gen` to the generator. Include the Definition in the owning
  * Block's `makeComposition({ mounts: [...] })` call and include its `layer`
- * recipe in the local `EffectsLayer` returned by the `Definition.makeBlock`
+ * recipe in the local `EffectsLayer` returned by the `FooBlock.makeLayer`
  * constructor. The returned handler receives the live `Element` as `element`
  * and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns an
@@ -811,7 +811,7 @@ export function define<
  * constructs a Stream handler. Foldkit applies `Effect.gen` to the generator.
  * Include the Definition in the owning Block's
  * `makeComposition({ mounts: [...] })` call and include its `layer` recipe in the
- * local `EffectsLayer` returned by the `Definition.makeBlock` constructor. The
+ * local `EffectsLayer` returned by the `FooBlock.makeLayer` constructor. The
  * completed Block carries the recipe without building it; a Runtime builds it
  * once for the application. The returned handler receives the live `Element`
  * as `element` and the runtime's

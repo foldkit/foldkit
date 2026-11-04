@@ -9,7 +9,7 @@ import { NpmApi } from './npmApi'
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
@@ -18,4 +18,4 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const { makeStep, makeFieldsStep } = ApplicationDefinition
+export const { makeStep, makeFieldsStep } = ApplicationBlock

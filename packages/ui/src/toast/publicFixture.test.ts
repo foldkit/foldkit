@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Schema } from 'effect'
+import { Array, Effect, Layer, Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
@@ -30,49 +30,49 @@ const ParentMessage = defineMessageUnion({
 type ParentMessage = typeof ParentMessage.Type
 
 const ToastFixtureParentKey = Symbol('ToastFixtureParent')
-const ToastFixtureParentDefinition = Block.makeDefinition(
-  'ToastFixtureParent',
+const ToastFixtureParentBlock = Block.make('ToastFixtureParent', {
+  key: ToastFixtureParentKey,
+  Model: ParentModel,
+  Message: ParentMessage,
+  Init: Schema.Tuple([]),
+  ChildInitContext: Schema.String,
+})
+
+const foldFirstToastOutMessage = ToastFixtureParentBlock.makeOutMessageFold(
+  FirstToast,
   {
-    key: ToastFixtureParentKey,
-    Model: ParentModel,
-    Message: ParentMessage,
-    Init: Schema.Tuple([]),
-    ChildInitContext: Schema.String,
+    DismissedToast: () => model => ({ model }),
   },
 )
 
-const foldFirstToastOutMessage =
-  ToastFixtureParentDefinition.makeOutMessageFold(FirstToast, {
+const foldSecondToastOutMessage = ToastFixtureParentBlock.makeOutMessageFold(
+  SecondToast,
+  {
     DismissedToast: () => model => ({ model }),
-  })
+  },
+)
 
-const foldSecondToastOutMessage =
-  ToastFixtureParentDefinition.makeOutMessageFold(SecondToast, {
-    DismissedToast: () => model => ({ model }),
-  })
-
-const LeftBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
+const LeftBinding = ToastFixtureParentBlock.makeBinding(FirstToast, {
   placement: 'LeftToast',
   field: 'left',
   init: { contextToArgs: id => [{ id }] },
 }).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
-const RightBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
+const RightBinding = ToastFixtureParentBlock.makeBinding(FirstToast, {
   placement: 'RightToast',
   field: 'right',
   init: { contextToArgs: id => [{ id }] },
 }).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
-const OtherBinding = ToastFixtureParentDefinition.makeBinding(SecondToast, {
+const OtherBinding = ToastFixtureParentBlock.makeBinding(SecondToast, {
   placement: 'OtherToast',
   field: 'other',
   init: { contextToArgs: id => [{ id }] },
 }).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
 
-const ToastFixtureParentComposition =
-  ToastFixtureParentDefinition.makeComposition({
-    bindings: [LeftBinding, RightBinding, OtherBinding],
-  })
+const ToastFixtureParentComposition = ToastFixtureParentBlock.makeComposition({
+  bindings: [LeftBinding, RightBinding, OtherBinding],
+})
 
 const requestShowAll = Update.combineSteps([
   LeftBinding.requestShow({
@@ -97,19 +97,22 @@ const parentInit = ToastFixtureParentComposition.makeInit(() => ({
   model: {},
   childInitContext: 'toast',
 }))
-const ParentBlock = ToastFixtureParentDefinition.makeBlock(
-  Effect.gen(function* () {
-    const left = yield* LeftBinding
-    const right = yield* RightBinding
-    const other = yield* OtherBinding
+const ParentBlock = {
+  block: ToastFixtureParentBlock,
+  layer: ToastFixtureParentBlock.makeLayer(
+    Effect.gen(function* () {
+      const left = yield* LeftBinding
+      const right = yield* RightBinding
+      const other = yield* OtherBinding
 
-    return {
-      children: [left, right, other],
-      init: parentInit,
-      update,
-    }
-  }),
-).provide(Toast.layer)
+      return {
+        children: [left, right, other],
+        init: parentInit,
+        update,
+      }
+    }),
+  ).pipe(Layer.provide(Toast.layer)),
+}
 
 const KeyedToastSlot = Schema.Struct({
   key: Schema.String,
@@ -123,37 +126,31 @@ type KeyedParentModel = typeof KeyedParentModel.Type
 const KeyedParentMessage = defineMessageUnion({ RequestedShow: {} })
 type KeyedParentMessage = typeof KeyedParentMessage.Type
 const KeyedToastFixtureParentKey = Symbol('KeyedToastFixtureParent')
-const KeyedToastFixtureParentDefinition = Block.makeDefinition(
-  'KeyedToastFixtureParent',
-  {
-    key: KeyedToastFixtureParentKey,
-    Model: KeyedParentModel,
-    Message: KeyedParentMessage,
-    Init: Schema.Tuple([]),
-    ChildInitContext: Schema.String,
-  },
-)
+const KeyedToastFixtureParentBlock = Block.make('KeyedToastFixtureParent', {
+  key: KeyedToastFixtureParentKey,
+  Model: KeyedParentModel,
+  Message: KeyedParentMessage,
+  Init: Schema.Tuple([]),
+  ChildInitContext: Schema.String,
+})
 const foldKeyedToastOutMessage =
-  KeyedToastFixtureParentDefinition.makeOutMessageFold(FirstToast, {
+  KeyedToastFixtureParentBlock.makeOutMessageFold(FirstToast, {
     DismissedToast: () => model => ({ model }),
   })
-const SlotsToastBinding = KeyedToastFixtureParentDefinition.makeBinding(
-  FirstToast,
-  {
-    placement: 'KeyedToast',
-    field: 'slots',
-    key: 'key',
-    childField: 'toast',
-    init: {
-      instances: id => [{ key: 'selected', args: [{ id }] }],
-      toItem: ({ key }, toast) => ({ key, toast }),
-    },
+const SlotsToastBinding = KeyedToastFixtureParentBlock.makeBinding(FirstToast, {
+  placement: 'KeyedToast',
+  field: 'slots',
+  key: 'key',
+  childField: 'toast',
+  init: {
+    instances: id => [{ key: 'selected', args: [{ id }] }],
+    toItem: ({ key }, toast) => ({ key, toast }),
   },
-).withOutMessagePolicy({
+}).withOutMessagePolicy({
   fold: (_key, outMessage) => foldKeyedToastOutMessage(outMessage),
 })
 const KeyedToastFixtureParentComposition =
-  KeyedToastFixtureParentDefinition.makeComposition({
+  KeyedToastFixtureParentBlock.makeComposition({
     bindings: [SlotsToastBinding],
   })
 // @ts-expect-error A keyed Toast Binding requires its occurrence key.
@@ -179,17 +176,20 @@ const keyedInit = KeyedToastFixtureParentComposition.makeInit(() => ({
   model: {},
   childInitContext: 'toast',
 }))
-const KeyedParentBlock = KeyedToastFixtureParentDefinition.makeBlock(
-  Effect.gen(function* () {
-    const toast = yield* SlotsToastBinding
+const KeyedParentBlock = {
+  block: KeyedToastFixtureParentBlock,
+  layer: KeyedToastFixtureParentBlock.makeLayer(
+    Effect.gen(function* () {
+      const toast = yield* SlotsToastBinding
 
-    return {
-      children: [toast],
-      init: keyedInit,
-      update: keyedUpdate,
-    }
-  }),
-).provide(Toast.layer)
+      return {
+        children: [toast],
+        init: keyedInit,
+        update: keyedUpdate,
+      }
+    }),
+  ).pipe(Layer.provide(Toast.layer)),
+}
 
 const makeParentFixture = (block: Story.TestBlock<typeof ParentBlock>) => ({
   update: block.update,

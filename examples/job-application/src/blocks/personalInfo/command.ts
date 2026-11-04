@@ -1,7 +1,7 @@
 import { Array, Duration, Effect, Schema } from 'effect'
 import { Invalid, Valid } from 'foldkit/fieldValidation'
 
-import { Message, PersonalInfoDefinition } from './definition'
+import { Message, PersonalInfoBlock } from './definition'
 
 const FAKE_API_DELAY_MS = 600
 
@@ -17,7 +17,7 @@ const isEmailTaken = (emailInput: string): Effect.Effect<boolean> =>
     return Array.contains(TAKEN_EMAILS, emailInput.toLowerCase())
   })
 
-export const ValidateEmailAsync = PersonalInfoDefinition.makeCommand(
+export const ValidateEmailAsync = PersonalInfoBlock.makeCommand(
   'ValidateEmailAsync',
   {
     args: { emailInput: Schema.String, validationId: Schema.Number },

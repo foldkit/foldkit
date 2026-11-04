@@ -1,8 +1,8 @@
 import { Effect } from 'effect'
 
-import { ApplicationDefinition, init, update, view } from './counterFlagsRoot'
+import { ApplicationBlock, init, update, view } from './counterFlagsRoot'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -12,3 +12,5 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
     }
   }),
 )
+
+export { ApplicationBlock } from './counterFlagsRoot'

@@ -12,15 +12,12 @@ import type {
   ValidateGeneralKeyedSourceWithoutPolicy,
   ValidateStaticBindingConfigWithoutPolicy,
 } from '../../block/bindChild.js'
-import type { AnyBinding } from '../../block/binding.js'
-import type {
-  BindingParent,
-  ExecutableConnection,
-} from '../../block/bindingConnection.js'
+import type { AggregatedChildren, AnyBinding } from '../../block/binding.js'
+import type { ExecutableConnection } from '../../block/bindingConnection.js'
+import type { DispatchSchemaFor } from '../../block/childEnvelope.js'
 import type { AuthoringDefinition } from '../../block/define.js'
 import type {
   Completed,
-  Composition,
   ViewBuilderFor as CoreViewBuilderFor,
   ImplementationRecipeArguments,
   ImplementationRecipeValidation,
@@ -67,6 +64,7 @@ import type {
   BoundBlockView,
 } from '../../html/block.js'
 import type * as Mount from '../../mount/index.js'
+import type { ReadableAdmissionValidation } from '../contracted/readableProvider.js'
 import type {
   AuthoringCompositionOf,
   AuthoringSource,
@@ -76,7 +74,12 @@ import type {
   PlanSource,
 } from '../hybrid/authoring.js'
 import type { ExecutableImplementation } from '../hybrid/hybrid.js'
-import type { BindingsFromSpecs, DescriptorBinding } from './bindingContract.js'
+import type {
+  BindingSpecs,
+  BindingsFromSpecs,
+  DescriptorBinding,
+  ValidateBindingParents,
+} from './bindingContract.js'
 import type {
   CoreContract,
   CoreOutMessageContract,
@@ -98,7 +101,6 @@ export type ConstructionKind = 'Effect' | 'Layer' | 'Provided'
 export type AnyDescriptor = DescriptorContract
 
 interface ProvidedChildContract {
-  readonly get: Effect.Effect<object, any, any>
   readonly layer?: never
   readonly construct?: never
 }
@@ -115,46 +117,30 @@ export interface SourceContracts<MessageSchema, OutMessageSchema> {
   ]
 }
 
-/** @internal Keeps the exact native Composition surface while naming its static graph once. */
+/** @internal Names the exact static graph metadata retained by portable authoring plans. */
 export interface StaticSourceFields<
   OwnerValue extends Owner<string>,
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
-  Bindings extends ReadonlyArray<unknown>,
-> extends Pick<
-  Composition<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    BindingsFromSpecs<Bindings, ModelSchema, MessageSchema, OutMessageSchema>
-  >,
-  'makeInit' | 'makeUpdate' | 'makeView' | 'prepareBlock'
-> {
+  Specs extends ReadonlyArray<unknown>,
+> extends SourceContracts<MessageSchema, OutMessageSchema> {
   readonly owner: OwnerValue
   readonly Model: ModelSchema
-  readonly Message: Composition<
-    OwnerValue,
-    ModelSchema,
+  readonly Message: DispatchSchemaFor<
     MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    BindingsFromSpecs<Bindings, ModelSchema, MessageSchema, OutMessageSchema>
-  >['Message']
-  readonly mounts: Composition<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    BindingsFromSpecs<Bindings, ModelSchema, MessageSchema, OutMessageSchema>
-  >['mounts']
+    BindingsFromSpecs<Specs, ModelSchema, MessageSchema, OutMessageSchema>
+  >
+  readonly mounts: readonly [
+    ...Mounts,
+    ...AggregatedChildren<
+      BindingsFromSpecs<Specs, ModelSchema, MessageSchema, OutMessageSchema>
+    >['mounts'],
+  ]
   readonly [LocalMountsTypeId]: Mounts
   readonly bindings: BindingsFromSpecs<
-    Bindings,
+    Specs,
     ModelSchema,
     MessageSchema,
     OutMessageSchema
@@ -168,16 +154,15 @@ export type StaticSource<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
-  Bindings extends ReadonlyArray<unknown>,
+  Specs extends ReadonlyArray<unknown>,
 > = StaticSourceFields<
   OwnerValue,
   ModelSchema,
   MessageSchema,
   OutMessageSchema,
   Mounts,
-  Bindings
+  Specs
 > &
-  SourceContracts<MessageSchema, OutMessageSchema> &
   (OutMessageSchema extends AnySchema
     ? Readonly<{ OutMessage: OutMessageSchema }>
     : Readonly<{ OutMessage?: never }>)
@@ -228,9 +213,13 @@ type CanonicalContracts<Body extends ConstructorBody> =
     : never
 
 type Equal<Left, Right> = [Left, Right] extends [Right, Left] ? true : false
+type IsUnion<Value, Whole = Value> = Value extends unknown
+  ? [Whole] extends [Value]
+    ? false
+    : true
+  : never
 
-/** @internal Validates original contracts, acquired children, and native completion channels. */
-export type Validate<
+type ValidateConstructorAlternative<
   Id extends string,
   ModelSchema,
   MessageSchema,
@@ -266,6 +255,58 @@ export type Validate<
         : readonly [missingConnections: MissingConnections<Body>]
       : readonly [incompatibleDefinition: never]
     : PlanSourceValidation<Body>
+
+type ConstructorValidationFailures<
+  Id extends string,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  Body extends ConstructorBody,
+  HandlerValidation extends 'Indexed' | 'Equivalent',
+> = Body extends unknown
+  ? Exclude<
+      ValidateConstructorAlternative<
+        Id,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Body,
+        HandlerValidation
+      >,
+      readonly []
+    >
+  : never
+
+/** @internal Validates each constructor alternative's contracts, children and completion channels. */
+export type Validate<
+  Id extends string,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  Body extends ConstructorBody,
+  HandlerValidation extends 'Indexed' | 'Equivalent' = 'Indexed',
+> =
+  true extends IsUnion<Body>
+    ? ConstructorValidationFailures<
+        Id,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Body,
+        HandlerValidation
+      > extends infer Failures extends ReadonlyArray<unknown>
+      ? [Failures] extends [never]
+        ? readonly []
+        : Failures
+      : never
+    : ValidateConstructorAlternative<
+        Id,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Body,
+        HandlerValidation
+      >
 
 /** Completes existing Composition builders through one explicit constructor. */
 export interface MakeBlock<
@@ -469,6 +510,7 @@ export interface MakeBinding<
               : never
           >),
     ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
       ...ValidateStaticBindingConfigWithoutPolicy<
         CoreContract<Child>,
         ModelSchema,
@@ -541,6 +583,7 @@ export interface MakeBinding<
         keySchema?: never
       }>,
     ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
       ...ValidateGeneralKeyedSourceWithoutPolicy<NoInfer<Source>>,
       ...(Extract<
         'construct' | 'connect',
@@ -615,6 +658,7 @@ export interface MakeBinding<
               KeyValue
             >),
     ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
       ...ValidateGeneralKeyedSourceWithoutPolicy<NoInfer<Source>>,
       ...(Extract<
         'construct' | 'connect',
@@ -679,6 +723,7 @@ export interface MakeMapBinding<
             MapKeyFor<ModelSchema, Field>
           >),
     ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
       ...ValidateMapConfig<CoreContract<Child>, NoInfer<Keys>, NoInfer<Config>>,
       ...ValidateConcreteMap<CoreContract<Child>>,
       ...(Extract<
@@ -700,21 +745,31 @@ export interface MakeMapBinding<
   >
 }
 
+declare const AuthoringSourceTypeId: unique symbol
+
+/** @internal Retains the exact source for graph-aware portable builders. */
+export interface AuthoringSourceEvidence<Source extends AuthoringSource> {
+  readonly [AuthoringSourceTypeId]: () => Source
+}
+
 /** Static inference is retained; executable dispatch Codecs are available after construction. */
 export type AuthoringComposition<Source extends AuthoringSource> = Omit<
   AuthoringCompositionOf<Source>,
   'Message'
->
+> &
+  AuthoringSourceEvidence<Source>
 
 /** Derives an extracted view helper's builder from the static authoring graph. */
 export type ViewBuilderFor<CompositionValue> =
-  CompositionValue extends Readonly<{
-    makeInit: AnyFunction
-  }>
-    ? CoreViewBuilderFor<
-        CompositionOfPlan<ReturnType<CompositionValue['makeInit']>>
-      >
-    : never
+  CompositionValue extends AuthoringSourceEvidence<infer Source>
+    ? CoreViewBuilderFor<Source>
+    : CompositionValue extends Readonly<{
+          makeInit: AnyFunction
+        }>
+      ? CoreViewBuilderFor<
+          CompositionOfPlan<ReturnType<CompositionValue['makeInit']>>
+        >
+      : never
 
 /** Registers the same static Binding inventory without acquiring child implementations. */
 export interface MakeComposition<
@@ -746,8 +801,9 @@ export interface MakeComposition<
   >(
     graph: Readonly<{
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
-      bindings?: Bindings & ReadonlyArray<BindingParent<Owner<Id, true>>>
+      bindings?: Bindings
     }> &
+      ValidateBindingParents<Bindings, Owner<Id, true>> &
       ValidateChildInitContext<Bindings, ChildContext<ChildInitContextSchema>> &
       ValidateChildBindings<
         Bindings,
@@ -762,7 +818,7 @@ export interface MakeComposition<
       MessageSchema,
       OutMessageSchema,
       Mounts,
-      Bindings
+      BindingSpecs<Bindings>
     >
   >
 }

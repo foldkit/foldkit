@@ -92,7 +92,7 @@ const nextStage = (
   }
   if (
     (stage === 'Block' || stage === 'Namespace') &&
-    method === 'makeDefinition'
+    (method === 'makeDefinition' || (stage === 'Block' && method === 'make'))
   ) {
     return 'Definition'
   }
@@ -1252,7 +1252,7 @@ export const makeCompletedBlockProvenance = (
   return node => stageOf(node) === 'Completed'
 }
 
-/** Recognizes Definition owners through proven Foldkit factories and imports. */
+/** Recognizes typed Block authoring owners through proven factories and imports. */
 export const makeBlockDefinitionProvenance = (
   references: WeakMap<ESTree.Node, Reference>,
   filename: string | undefined,

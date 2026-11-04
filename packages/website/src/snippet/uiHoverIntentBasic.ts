@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -18,28 +18,27 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const HoverIntentExampleKey = Symbol('HoverIntentExample')
+export const HoverIntentExampleKey = Symbol('HoverIntentExample')
 
-const HoverIntentExampleDefinition = Block.makeDefinition(
-  'HoverIntentExample',
+export const HoverIntentExampleBlock = Block.make('HoverIntentExample', {
+  key: HoverIntentExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
+
+const { makeNoopStep } = HoverIntentExampleBlock
+
+const foldHoverIntentOutMessage = HoverIntentExampleBlock.makeOutMessageFold(
+  HoverIntentBlock,
   {
-    key: HoverIntentExampleKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element' },
-    Model,
-    Message,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 
-const { makeNoopStep } = HoverIntentExampleDefinition
-
-const foldHoverIntentOutMessage =
-  HoverIntentExampleDefinition.makeOutMessageFold(HoverIntentBlock, {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-  })
-
-const HoverIntentBinding = HoverIntentExampleDefinition.makeBinding(
+const HoverIntentBinding = HoverIntentExampleBlock.makeBinding(
   HoverIntentBlock,
   {
     field: 'hoverIntent',
@@ -49,10 +48,9 @@ const HoverIntentBinding = HoverIntentExampleDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
-const HoverIntentExampleComposition =
-  HoverIntentExampleDefinition.makeComposition({
-    bindings: [HoverIntentBinding],
-  })
+const HoverIntentExampleComposition = HoverIntentExampleBlock.makeComposition({
+  bindings: [HoverIntentBinding],
+})
 
 // Initialize it. This behavior primitive owns no DOM id:
 const init = HoverIntentExampleComposition.makeInit(() => ({
@@ -110,7 +108,7 @@ const view = HoverIntentExampleComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = HoverIntentExampleDefinition.makeBlock(
+export const layer = HoverIntentExampleBlock.makeLayer(
   Effect.gen(function* () {
     const hoverIntent = yield* HoverIntentBinding
 
@@ -121,4 +119,4 @@ export const ApplicationBlock = HoverIntentExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(HoverIntentLayer)
+).pipe(Layer.provide(HoverIntentLayer))

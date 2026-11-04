@@ -699,3 +699,9 @@ export { default as serverRenderingBlockServerEntryRaw } from './serverRendering
 export { default as serverRenderingBlockServerEntryHighlighted } from './serverRenderingBlockServerEntry.ts?highlighted'
 export { default as serverRenderingHotDisposeRaw } from './serverRenderingHotDispose.ts?raw'
 export { default as serverRenderingHotDisposeHighlighted } from './serverRenderingHotDispose.ts?highlighted'
+
+export { default as blockGenericConsumerRaw } from './blockGenericConsumer.ts?raw'
+export { default as blockGenericConsumerHighlighted } from './blockGenericConsumer.ts?highlighted'
+
+export { default as attributeKindsRaw } from './attributeKinds.ts?raw'
+export { default as attributeKindsHighlighted } from './attributeKinds.ts?highlighted'

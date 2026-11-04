@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "..",
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "noEmitOnError": true,
+    "skipLibCheck": false
+  },
+  "include": ["../src/vite-env.d.ts", "attribute-alias.accepted.ts"]
+}

@@ -1,4 +1,4 @@
-import { Effect, Option, Result } from 'effect'
+import { Option, Result } from 'effect'
 import {
   Command,
   given,
@@ -12,9 +12,8 @@ import { expect } from 'vitest'
 
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { TabsBinding } from './composition'
-import { AppLayer } from './layer'
 import { Message } from './message'
 import { AppTabsBlock, type Model } from './model'
 import {
@@ -52,7 +51,7 @@ it.effect(
   'first visit to the Stats tab fetches stats',
   ({ models: { loadedPostsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadedPostsModel),
       selectedStatsTab,
       model(model => {
@@ -73,14 +72,14 @@ it.effect(
       model(model => {
         expect(statsQuery.read(model.stats)._tag).toBe('Success')
       }),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'returning to a tab with cached data does not refetch',
   ({ models: { loadedStatsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadedStatsModel),
       selectedPostsTab,
       resolveFocusTab,
@@ -91,14 +90,14 @@ it.effect(
       model(model => {
         expect(statsQuery.read(model.stats)._tag).toBe('Success')
       }),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'a revalidation tick keeps stale stats on screen while refetching',
   ({ models: { loadedStatsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadedStatsModel),
       message(Message.TickedStatsRefreshInterval()),
       model(model => {
@@ -125,14 +124,14 @@ it.effect(
           expect(statsAsyncData.data.stats.activeUsers).toBe(99)
         }
       }),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'a failed refresh keeps the stale stats on screen with the error',
   ({ models: { loadedStatsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadedStatsModel),
       message(Message.TickedStatsRefreshInterval()),
       Command.resolve(
@@ -150,36 +149,36 @@ it.effect(
           expect(statsAsyncData.error).toBe('The server is down.')
         }
       }),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'refresh clicks during an in-flight fetch are deduplicated',
   ({ models: { loadingStatsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadingStatsModel),
       message(Message.ClickedRefreshStats()),
       Command.expectNone(),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'a revalidation tick during a refresh is deduplicated',
   ({ models: { refreshingStatsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(refreshingStatsModel),
       message(Message.TickedStatsRefreshInterval()),
       Command.expectNone(),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'refreshing posts refetches while keeping the current list',
   ({ models: { loadedPostsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadedPostsModel),
       message(Message.ClickedRefreshPosts()),
       model(model => {
@@ -202,14 +201,14 @@ it.effect(
       model(model => {
         expect(postsQuery.read(model.posts)._tag).toBe('Success')
       }),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'retrying failed posts shows the loading state and refetches',
   ({ models: { failedPostsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(failedPostsModel),
       message(Message.ClickedRetryPosts()),
       model(model => {
@@ -228,14 +227,14 @@ it.effect(
       model(model => {
         expect(postsQuery.read(model.posts)._tag).toBe('Success')
       }),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'opening a post once reuses its retained data on later visits',
   ({ models: { loadedPostsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadedPostsModel),
       message(Message.ClickedPost({ postId: 'first-post' })),
       model(model => {
@@ -260,14 +259,14 @@ it.effect(
         expect(postAsyncDataTag(model, 'first-post')).toBe('Success')
         expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
       }),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'a failed post fetch enters Failure and retry fetches it again',
   ({ models: { loadedPostsModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(loadedPostsModel),
       message(Message.ClickedPost({ postId: 'first-post' })),
       Command.resolve(
@@ -301,14 +300,14 @@ it.effect(
       model(model => {
         expect(postAsyncDataTag(model, 'first-post')).toBe('Success')
       }),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )
 
 it.effect(
   'revisiting a post with a cached failure loads it again',
   ({ models: { failedFirstPostModel } }) =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(failedFirstPostModel),
       message(Message.ClickedPost({ postId: 'first-post' })),
       model(model => {
@@ -327,5 +326,5 @@ it.effect(
       model(model => {
         expect(postAsyncDataTag(model, 'first-post')).toBe('Failure')
       }),
-    ).pipe(Effect.provide(AppLayer)),
+    ),
 )

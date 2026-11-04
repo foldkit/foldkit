@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -21,9 +21,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const VolumeSliderKey = Symbol('VolumeSlider')
+export const VolumeSliderKey = Symbol('VolumeSlider')
 
-const VolumeSliderDefinition = Block.makeDefinition('VolumeSlider', {
+export const VolumeSliderBlock = Block.make('VolumeSlider', {
   key: VolumeSliderKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -31,36 +31,33 @@ const VolumeSliderDefinition = Block.makeDefinition('VolumeSlider', {
   Message,
 })
 
-const { makeFieldsStep } = VolumeSliderDefinition
+const { makeFieldsStep } = VolumeSliderBlock
 
 // At module scope, fold the OutMessage into your own Model. `ChangedValue`
 // carries the new number. Lift it to domain state, validate, or persist on
 // each commit. The arm returns an Update.Step over the parent Model, which
-// already has the next Slider Model written back. The parent Definition
+// already has the next Slider Model written back. The parent Block
 // checks the complete child union and infers the handler's Model:
-const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
-  SliderBlock,
-  {
-    // The child has emitted `ChangedValue`. Store the new value in the field
-    // you own. This arm is also where the parent can validate, persist, or
-    // trigger a downstream Command.
-    ChangedValue: ({ value }) =>
-      makeFieldsStep(() => ({
-        ratingValue: () => value,
-      })),
-  },
-)
+const foldSliderOutMessage = VolumeSliderBlock.makeOutMessageFold(SliderBlock, {
+  // The child has emitted `ChangedValue`. Store the new value in the field
+  // you own. This arm is also where the parent can validate, persist, or
+  // trigger a downstream Command.
+  ChangedValue: ({ value }) =>
+    makeFieldsStep(() => ({
+      ratingValue: () => value,
+    })),
+})
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const RatingDemoBinding = VolumeSliderDefinition.makeBinding(SliderBlock, {
+const RatingDemoBinding = VolumeSliderBlock.makeBinding(SliderBlock, {
   field: 'ratingDemo',
   init: {
     contextToArgs: () => [{ id: 'rating', min: 0, max: 10, step: 1 }],
   },
 }).withOutMessagePolicy({ fold: foldSliderOutMessage })
 
-const VolumeSliderComposition = VolumeSliderDefinition.makeComposition({
+const VolumeSliderComposition = VolumeSliderBlock.makeComposition({
   bindings: [RatingDemoBinding],
 })
 
@@ -137,7 +134,7 @@ const view = VolumeSliderComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = VolumeSliderDefinition.makeBlock(
+export const layer = VolumeSliderBlock.makeLayer(
   Effect.gen(function* () {
     const slider = yield* RatingDemoBinding
 
@@ -148,4 +145,4 @@ export const ApplicationBlock = VolumeSliderDefinition.makeBlock(
       view,
     }
   }),
-).provide(SliderLayer)
+).pipe(Layer.provide(SliderLayer))

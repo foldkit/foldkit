@@ -70,7 +70,7 @@ Prevents constructing Messages by typing or casting object literals. Use the cal
 
 ### foldkit/command-define-pascal-const {#command-define-pascal-const}
 
-Requires a Command declaration to use a nonempty PascalCase `const` whose name matches the declared Command name. It recognizes standalone `Command.define(...)` and owned `Definition.makeCommand(...)` declarations. This rule includes the former `command-binding-matches-name` checks; remove that retired rule ID from explicit configurations.
+Requires a Command declaration to use a nonempty PascalCase `const` whose name matches the declared Command name. It recognizes standalone `Command.define(...)` and owned `FeatureBlock.makeCommand(...)` declarations. This rule includes the former `command-binding-matches-name` checks; remove that retired rule ID from explicit configurations.
 
 ::Snippet{name="lintCommandDefinePascalConst" label="Rule: foldkit/command-define-pascal-const"}
 
@@ -256,7 +256,7 @@ Flags turning off the freezeModel or slow dev guardrails. Fix the mutation or sl
 
 ### foldkit/block-name-matches-variable {#block-name-matches-variable}
 
-Requires a direct `Block.makeDefinition` declaration with a literal name to use `<BlockId>Definition` while preserving the runtime Block ID, such as `SearchDefinition = Block.makeDefinition('Search', ...)`. Root Blocks use the same rule, so `ApplicationDefinition = Block.makeDefinition('Application', ...)`; Composition values keep `<BlockId>Composition` and `ApplicationComposition`. The rule follows imports from `foldkit` and `foldkit/block`, including aliases and namespace imports. It leaves dynamic names, locally shadowed bindings, and unrelated `makeDefinition` methods alone.
+Requires a direct `Block.make` declaration with a literal name to use `<BlockId>Block` while preserving the runtime Block ID, such as `SearchBlock = Block.make('Search', ...)`. Root Blocks use the same rule, so `ApplicationBlock = Block.make('Application', ...)`; Composition values keep `<BlockId>Composition` and `ApplicationComposition`. The rule follows imports from `foldkit` and `foldkit/block`, including aliases and namespace imports. It leaves dynamic names, locally shadowed bindings, and unrelated factory methods alone.
 
 The rule reports without changing the source. Whether the identifier or runtime name should change depends on the Block's public identity.
 
@@ -288,7 +288,7 @@ The rule follows inline and top-level extracted handler records in the same file
 
 Rejects constructing a child Message variant from a parent, including through a local `const` alias of the child constructor or namespace. Declare the parent input in the child's InMessage Schema and handle it through `inMessageUpdate`, then call the generated Binding method, such as `PeopleBinding.requestClearSelection()`. Existing explicit operation adapters also preserve this boundary. Forward received child Messages through `PeopleBinding.fold(model, message)` instead. Child-owned authoring helpers may construct that child's Messages. Schema/type references to the completed Block remain valid, and tests may construct local Messages to exercise updates. The rule cannot infer the origin of an arbitrary prebuilt Message value. See [Informing Blocks](/patterns/informing-blocks) for the complete pattern.
 
-Focused Step producers, including `.fromMessage` and named local producers, retain their Definition's Message ownership. A producer shared by parent and child must satisfy both owners.
+Focused Step producers, including `.fromMessage` and named local producers, retain their Block's Message ownership. A producer shared by parent and child must satisfy both owners.
 
 ::Snippet{name="lintNoChildMessageConstructionInRoot" label="Rule: foldkit/no-child-message-construction-in-root"}
 
@@ -357,7 +357,7 @@ annotation at those boundaries when lint recognition is needed.
 Replace `foldkit/command-binding-matches-name` with
 `foldkit/command-define-pascal-const` in explicit rule configurations. The latter
 now includes all Command declaration-name checks, including owned
-`Definition.makeCommand(...)` declarations.
+`FeatureBlock.makeCommand(...)` declarations.
 
 ### Child update results {#require-fold-for-child-update-result}
 

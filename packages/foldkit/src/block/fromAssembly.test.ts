@@ -290,7 +290,7 @@ describe('Checked Block completion', () => {
       Reflect.apply(Program.makeElement, undefined, [
         { block: draft, container: null },
       ]),
-    ).toThrow('Definition.makeBlock or native Block.assemble')
+    ).toThrow('supply its makeLayer implementation as layer')
   })
 })
 

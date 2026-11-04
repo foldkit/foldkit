@@ -247,7 +247,7 @@ export type { FamilyLifetime } from './familyRuntime.js'
 /** Allocates specialization lifetime state once per selected implementation Layer. */
 export const familyLifetime = familyLifetimeRuntime
 
-type FamilyAuthoring = Readonly<{
+export type FamilyAuthoring = Readonly<{
   [FamilyDefinitionTypeId]: Readonly<{
     [DescriptorTypeId]: PublicFacts
     owner: Owner<string>

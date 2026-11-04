@@ -1,0 +1,22 @@
+{
+  "originalArtifactReceiptSha256": "64a62dc2fe1c1857e24834ca06fc6b815f599be43dcddd21e637c7c2d3c409e2",
+  "recordedAt": "2026-11-04T08:25:01.977Z",
+  "unchangedOriginalReceipts": true,
+  "explanation": "The canonicalRoot paths describe the original shared build. Later shared rebuilds can change those paths; each recorded frozenRoot retains the independently verified byte-identical distributions for historical replay.",
+  "copies": [
+    {
+      "component": "foldkit",
+      "formerCanonicalRoot": "/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit",
+      "retainedRoot": "/private/tmp/foldkit-unified-rendering-20261104/candidate/packages/foldkit",
+      "inventorySha256": "09554ea391d0d90d40608e49339630d73581dac2f7f8d3ea88d4cf3a71a21fbf",
+      "files": 1108
+    },
+    {
+      "component": "vite-plugin-foldkit",
+      "formerCanonicalRoot": "/private/tmp/foldkit-unified-recovery-20261103/packages/vite-plugin-foldkit",
+      "retainedRoot": "/private/tmp/foldkit-unified-rendering-20261104/candidate/packages/vite-plugin-foldkit",
+      "inventorySha256": "c00535eb5f36648ddf8f3b62a571d316c57381948ed862bc97aa780c33b159f1",
+      "files": 37
+    }
+  ]
+}

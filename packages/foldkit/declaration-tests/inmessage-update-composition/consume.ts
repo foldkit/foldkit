@@ -1,24 +1,16 @@
-import { Effect } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Story from 'foldkit/story'
 
-import { ApplicationBlock } from './accepted.js'
-import { ContextBlock, ContextInMessage } from './accepted.js'
-import {
-  ApplicationDefinition,
-  InMessage,
-  Message,
-  Model,
-  OutMessage,
-  SaveDraft,
-} from './accepted.js'
+import { ApplicationBlock, layer } from './accepted.js'
+import { ContextBlock, ContextInMessage, contextLayer } from './accepted.js'
+import { InMessage, Message, Model, OutMessage, SaveDraft } from './accepted.js'
 
 export { makeInMessageUpdate } from './accepted.js'
 export { focused, increment, inMessageUpdate } from './accepted.js'
 
-export const inspect = Effect.scoped(
-  Effect.gen(function* () {
-    const app = yield* ApplicationBlock.get
+export const inspect = Story.withBlock(
+  { block: ApplicationBlock, layer },
+  app => {
     const initial = app.init().model
     const silent = app.inMessageUpdate(
       initial,
@@ -29,32 +21,34 @@ export const inspect = Effect.scoped(
     )(initial)
     const noOut: undefined = silent.outMessage
     const out: typeof OutMessage.Submitted.Type | undefined = emitted.outMessage
-    return { noOut, out }
-  }),
-).pipe(Effect.provide(ApplicationBlock.layer))
 
-export const contexts = Effect.scoped(
-  Effect.gen(function* () {
-    const app = yield* ContextBlock.get
+    return { noOut, out }
+  },
+)
+
+export const contexts = Story.withBlock(
+  { block: ContextBlock, layer: contextLayer },
+  app => {
     const initial = app.init().model
     const input = ContextInMessage.RequestedValue({ value: 1 })
+
     return [
       app.inMessageUpdate(initial, input),
       app.inMessageUpdate(input)(initial, 'Remote', 'A', 'B'),
     ]
-  }),
-).pipe(Effect.provide(ContextBlock.layer))
+  },
+)
 
 export const pureStory = Story.story(
-  ApplicationBlock,
+  { block: ApplicationBlock, layer },
   Story.init(),
   Story.inMessage(InMessage.RequestedSave({ text: 'intent only' })),
   Story.Command.expectExact(SaveDraft({ text: 'intent only' })),
   Story.Command.resolve(SaveDraft, Message.CompletedSaveDraft()),
-).pipe(Effect.provide(ApplicationBlock.layer))
+)
 
 export function rejected(
-  app: Block.ExecutableOf<typeof ApplicationDefinition.contract>,
+  app: Block.ExecutableOf<typeof ApplicationBlock>,
   model: Model,
 ) {
   // @ts-expect-error A local Message is not an InMessage.

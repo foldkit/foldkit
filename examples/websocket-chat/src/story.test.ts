@@ -5,7 +5,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import {
   SendMessage,
   TimestampReceivedMessage,
@@ -30,7 +30,7 @@ describe('update', () => {
   describe('connection state', () => {
     it.effect('ClickedConnect moves into Connecting', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(idleModel),
         message(Message.ClickedConnect()),
         model(model => {
@@ -41,7 +41,7 @@ describe('update', () => {
 
     it.effect('ConnectedChatSocket moves into Connected', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(idleModel, {
             connection: () => ConnectionState.Connecting(),
@@ -58,7 +58,7 @@ describe('update', () => {
       'DisconnectedChatSocket returns to Disconnected and clears messages',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(
             modifyFields(connectedModel, {
               messages: () => [{ text: 'old', zoned: zonedNow, isSent: true }],
@@ -74,7 +74,7 @@ describe('update', () => {
 
     it.effect('FailedConnectChatSocket captures the error message', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(idleModel, {
             connection: () => ConnectionState.Connecting(),
@@ -93,7 +93,7 @@ describe('update', () => {
 
     it.effect('releasing the socket preserves a connection error', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(connectedModel),
         message(Message.FailedChatSocket({ error: 'Connection error' })),
         message(Message.ReleasedChatSocket()),
@@ -107,7 +107,7 @@ describe('update', () => {
 
     it.effect('FailedSendMessage reports an unavailable socket', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(connectedModel),
         message(Message.FailedSendMessage({ error: 'Socket unavailable' })),
         model(model => {
@@ -122,7 +122,7 @@ describe('update', () => {
   describe('message input', () => {
     it.effect('UpdatedMessageInput stores the new input value', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(connectedModel),
         message(Message.UpdatedMessageInput({ value: 'Hello' })),
         model(model => {
@@ -135,7 +135,7 @@ describe('update', () => {
   describe('SubmittedMessage', () => {
     it.effect('an empty input is ignored', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(connectedModel, { messageInput: () => '' })),
         message(Message.SubmittedMessage()),
         Command.expectNone(),
@@ -144,7 +144,7 @@ describe('update', () => {
 
     it.effect('whitespace-only input is ignored', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(connectedModel, { messageInput: () => '   ' })),
         message(Message.SubmittedMessage()),
         Command.expectNone(),
@@ -153,7 +153,7 @@ describe('update', () => {
 
     it.effect('connected client fires SendMessage and clears the input', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(connectedModel, { messageInput: () => 'Hello there' }),
         ),
@@ -185,7 +185,7 @@ describe('update', () => {
 
     it.effect('disconnected client ignores SubmittedMessage', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(idleModel, { messageInput: () => 'Hello' })),
         message(Message.SubmittedMessage()),
         Command.expectNone(),
@@ -201,7 +201,7 @@ describe('update', () => {
       'ReceivedMessage queues TimestampReceivedMessage that appends to the list',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(connectedModel),
           message(Message.ReceivedMessage({ text: 'echo' })),
           Command.expectHas(TimestampReceivedMessage),

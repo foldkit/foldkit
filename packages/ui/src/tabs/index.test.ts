@@ -23,7 +23,7 @@ const disabledAt =
   (index: number) =>
     indices.includes(index)
 
-type TabsOperations = Pick<Effect.Success<typeof block.get>, 'init' | 'update'>
+type TabsOperations = Pick<Story.TestBlock<typeof block>, 'init' | 'update'>
 const makeFixture = ({ init, update }: TabsOperations) => ({ init, update })
 const it = makeMethods(
   baseIt.extend<{ tabs: TabsOperations }>({

@@ -4,7 +4,7 @@ import * as Update from 'foldkit/update'
 
 import { ApplicationComposition, makeInMessageUpdate } from './composition.js'
 import {
-  ApplicationDefinition,
+  ApplicationBlock,
   InMessage,
   Message,
   Model,
@@ -15,13 +15,13 @@ import { EditorBlock } from './editor.js'
 import { focused } from './update.js'
 
 const InputOnlyKey = Symbol('InputOnly')
-const InputOnly = Block.makeDefinition('InputOnly', {
+const InputOnlyBlock = Block.make('InputOnly', {
   key: InputOnlyKey,
   Model,
   Message: InMessage,
   Init: Schema.Tuple([]),
 })
-const SendInput = InputOnly.makeCommand('SendInput', {
+const SendInput = InputOnlyBlock.makeCommand('SendInput', {
   messages: [InMessage.RequestedSet],
 })
 
@@ -38,7 +38,7 @@ if (false) {
   // @ts-expect-error Input Commands still return local Messages.
   makeCommandsStep(() => [SendInput()])
   makeInMessageUpdate.cases({
-    RequestedSubmit: ApplicationDefinition.makeFieldsStep((_model, input) => ({
+    RequestedSubmit: ApplicationBlock.makeFieldsStep((_model, input) => ({
       // @ts-expect-error This exact input has text, not value.
       count: () => input.value,
     })),
@@ -69,7 +69,7 @@ if (false) {
     }),
   )
   // @ts-expect-error Focused-only bundles cannot complete an input entry point.
-  ApplicationDefinition.makeBlock(
+  ApplicationBlock.makeLayer(
     Effect.succeed({
       children: [],
       init: ApplicationComposition.makeInit(() => ({
@@ -85,11 +85,11 @@ if (false) {
   )
 }
 
-const UnregisteredBinding = ApplicationDefinition.makeBinding(EditorBlock, {
+const UnregisteredBinding = ApplicationBlock.makeBinding(EditorBlock, {
   field: 'editor',
   placement: 'unregistered',
 }).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(EditorBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(EditorBlock, {
     Edited: () => Update.defineStep((model: Model) => ({ model })),
   }),
 })
@@ -101,7 +101,7 @@ if (false) {
 }
 
 export function inspect(
-  app: Block.ExecutableOf<typeof ApplicationDefinition.contract>,
+  app: Block.ExecutableOf<typeof ApplicationBlock>,
   model: Model,
 ) {
   const silent = app.inMessageUpdate(
@@ -121,7 +121,7 @@ export function inspect(
 }
 
 const ForeignKey = Symbol('ForeignInput')
-const ForeignDefinition = Block.makeDefinition('ForeignInput', {
+const ForeignInputBlock = Block.make('ForeignInput', {
   key: ForeignKey,
   Model,
   Message,
@@ -129,7 +129,7 @@ const ForeignDefinition = Block.makeDefinition('ForeignInput', {
   Init: Schema.Tuple([]),
 })
 const foreignBundle =
-  ForeignDefinition.makeComposition().makeInMessageUpdate.each(model => ({
+  ForeignInputBlock.makeComposition().makeInMessageUpdate.each(model => ({
     model,
   }))
 const wrongModelStep = Update.defineStep(
@@ -142,18 +142,18 @@ if (false) {
   makeInMessageUpdate.each(() => wrongModelStep)
 }
 
-const EmittingBinding = ApplicationDefinition.makeBinding(EditorBlock, {
+const EmittingBinding = ApplicationBlock.makeBinding(EditorBlock, {
   field: 'editor',
   placement: 'emitting',
 }).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(EditorBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(EditorBlock, {
     Edited: () =>
-      ApplicationDefinition.makeOutMessageStep(() =>
+      ApplicationBlock.makeOutMessageStep(() =>
         OutMessage.Submitted({ text: 'child' }),
       ),
   }),
 })
-const EmittingComposition = ApplicationDefinition.makeComposition({
+const EmittingComposition = ApplicationBlock.makeComposition({
   bindings: [EmittingBinding],
 })
 if (false) {

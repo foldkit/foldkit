@@ -15,7 +15,7 @@ import { describe, expect, test } from 'vitest'
 
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import {
   ApiReferenceBlock,
   ExampleDetailBlock,
@@ -53,6 +53,8 @@ import { Deployment } from './deployment'
 import { Message } from './message'
 import { type Model } from './model'
 import { ThemeMenuBlock } from './view/themeMenu'
+
+const application = { block: ApplicationBlock, layer }
 
 type HomeBlockModel = typeof HomeBlock.Model.Type
 const parseUrl = (value: string): Url.Url =>
@@ -122,7 +124,7 @@ const resolvePathChangeCommands = () => [
 
 const updateApiUrl = parseUrl('https://foldkit.dev/api-reference/update')
 
-const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
+const makeFixture = (block: TestBlock<typeof application>) => {
   const init = block.init
   const update = block.update
   const toParentMessage = toParentMessageFor(block)
@@ -134,7 +136,7 @@ const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
 describe('application', () => {
   test('cold startup collects root Commands before initialized child Commands', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { init } = makeFixture(executable)
 
         const initialization = init(
@@ -154,7 +156,7 @@ describe('application', () => {
   })
   test('startup includes the initial anchor in its root Commands', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { init } = makeFixture(executable)
 
         const initialization = init(flags, counterExampleUrlWithHash)
@@ -177,7 +179,7 @@ describe('application', () => {
   })
   test('navigation opens an existing closed sidebar group', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         const initialModel = initAt(homeUrl)
@@ -195,7 +197,7 @@ describe('application', () => {
   })
   test('navigation within an open sidebar group preserves its state', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         const initialModel = initAt(commandApiUrl)
@@ -210,7 +212,7 @@ describe('application', () => {
   })
   test('prerendered API startup retains its slice through failure and route retry', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { init, update, toParentMessage } = makeFixture(executable)
 
         const seededData = ApiReference.ApiData.make({
@@ -255,7 +257,7 @@ describe('application', () => {
   })
   test('remaining on a Playground slug preserves its Model', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         const initialModel = initAt(playgroundCounterUrl)
@@ -280,7 +282,7 @@ describe('application', () => {
   })
   test('changing Playground slugs initializes a fresh Model', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         const initialModel = initAt(playgroundCounterUrl)
@@ -302,7 +304,7 @@ describe('application', () => {
     'entering Playground reuses cached browser support ($isPlaygroundSupported)',
     async ({ isPlaygroundSupported }) => {
       await Effect.runPromise(
-        withBlock(ApplicationBlock, executable => {
+        withBlock(application, executable => {
           const { update, initAt } = makeFixture(executable)
 
           const loadedBrowserEnvironment = update(
@@ -330,7 +332,7 @@ describe('application', () => {
   )
   test('entering and exiting Playground adds and removes its Model', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         const enteredPlayground = update(
@@ -375,7 +377,7 @@ describe('application', () => {
     'remaining on the same $routeName slug does not reload route data',
     async ({ initialUrl, urlWithHash }) => {
       await Effect.runPromise(
-        withBlock(ApplicationBlock, executable => {
+        withBlock(application, executable => {
           const { update, initAt } = makeFixture(executable)
 
           const routeChange = update(
@@ -391,7 +393,7 @@ describe('application', () => {
   )
   test('route cleanup precedes scrolling to an anchor on a new path', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         const openedSearch = update(
@@ -413,7 +415,7 @@ describe('application', () => {
   })
   test('changing API module slugs retries missing API data', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, toParentMessage, initAt } = makeFixture(executable)
 
         const failedLoad = update(
@@ -436,7 +438,7 @@ describe('application', () => {
   })
   test('changing example slugs requests the next example sources', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, toParentMessage, initAt } = makeFixture(executable)
 
         const failedLoad = update(
@@ -463,7 +465,7 @@ describe('application', () => {
   })
   test('newsletter email follows navigation between Home and Newsletter', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, toParentMessage, initAt } = makeFixture(executable)
 
         story(
@@ -500,7 +502,7 @@ describe('application', () => {
   })
   test('entering Home initializes fresh state', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         story(
@@ -519,7 +521,7 @@ describe('application', () => {
   })
   test('leaving Home removes the Home Block', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         story(
@@ -535,7 +537,7 @@ describe('application', () => {
   })
   test('remaining on Home preserves the existing Home Model', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         const initialModel = initAt(homeUrl)
@@ -553,7 +555,7 @@ describe('application', () => {
   })
   test('returning to Home initializes fresh default state', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, toParentMessage, toHomeMessage, initAt } =
           makeFixture(executable)
 
@@ -588,7 +590,7 @@ describe('application', () => {
   })
   test('late Home Messages are ignored while Home is absent', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, toParentMessage, toHomeMessage, initAt } =
           makeFixture(executable)
 
@@ -614,7 +616,7 @@ describe('application', () => {
   })
   test('Home playground selections load a fresh document', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, toParentMessage, toHomeMessage, initAt } =
           makeFixture(executable)
 
@@ -640,7 +642,7 @@ describe('application', () => {
   })
   test('the parent opens Search through its child update capability', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, initAt } = makeFixture(executable)
 
         story(
@@ -664,7 +666,7 @@ describe('application', () => {
   })
   test('the parent delegates snippet copying to the child Block', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, toParentMessage, initAt } = makeFixture(executable)
 
         const snippetId = 'root-story-snippet'
@@ -701,7 +703,7 @@ describe('application', () => {
   })
   test('the parent owns each snippet disclosure state', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { update, toParentMessage, initAt } = makeFixture(executable)
 
         const disclosureId = 'root-story-snippet'

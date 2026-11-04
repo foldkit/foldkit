@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": false,
+    "rootDir": "..",
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/*": ["../src/*/public.ts"]
+    }
+  },
+  "files": [
+    "../src/vite-env.d.ts",
+    "family-layer-members.accepted.ts",
+    "family-layer-members.rejected.ts",
+    "family-layer-members.consume.ts"
+  ],
+  "include": []
+}

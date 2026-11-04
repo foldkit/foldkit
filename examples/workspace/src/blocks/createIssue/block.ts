@@ -10,13 +10,13 @@ import {
   ProjectListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { CreateIssueDefinition } from './definition'
+import { CreateIssueBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const block = CreateIssueDefinition.makeBlock(
+export const layer = CreateIssueBlock.makeLayer(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
     const projectListbox = yield* ProjectListboxBinding
@@ -32,6 +32,6 @@ const block = CreateIssueDefinition.makeBlock(
       EffectsLayer: CreateIssue.layer,
     }
   }),
-).provide(Layer.mergeAll(DialogLayer, ListboxLayer))
+).pipe(Layer.provide(Layer.mergeAll(DialogLayer, ListboxLayer)))
 
-export const layer = block.layer
+export { CreateIssueBlock } from './definition'

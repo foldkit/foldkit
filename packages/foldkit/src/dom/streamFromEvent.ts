@@ -328,8 +328,14 @@ export type StreamFromEventFilterMapPreventDefaultConfig<
  *
  * @example
  * ```typescript
- * const ExampleDefinition = Block.makeDefinition('Example', { Model, Message })
- * const subscriptions = ExampleDefinition.makeSubscriptions(entry => ({
+ * const ExampleKey = Symbol('Example')
+ * const ExampleBlock = Block.make('Example', {
+ *   key: ExampleKey,
+ *   Model,
+ *   Message,
+ *   Init: Schema.Tuple([]),
+ * })
+ * const subscriptions = ExampleBlock.makeSubscriptions(entry => ({
  *   escapeKey: entry(
  *     'EscapeKey',
  *     { isListening: Schema.Boolean },
@@ -395,8 +401,14 @@ export const streamFromEventFilterMap = <
  *
  * @example
  * ```typescript
- * const ExampleDefinition = Block.makeDefinition('Example', { Model, Message })
- * const subscriptions = ExampleDefinition.makeSubscriptions(entry => ({
+ * const ExampleKey = Symbol('Example')
+ * const ExampleBlock = Block.make('Example', {
+ *   key: ExampleKey,
+ *   Model,
+ *   Message,
+ *   Init: Schema.Tuple([]),
+ * })
+ * const subscriptions = ExampleBlock.makeSubscriptions(entry => ({
  *   shortcut: entry(
  *     'KeyboardShortcut',
  *     { isListening: Schema.Boolean },
@@ -471,8 +483,14 @@ export const streamFromEvent = <
  *
  * @example
  * ```typescript
- * const ExampleDefinition = Block.makeDefinition('Example', { Model, Message })
- * const subscriptions = ExampleDefinition.makeSubscriptions(entry => ({
+ * const ExampleKey = Symbol('Example')
+ * const ExampleBlock = Block.make('Example', {
+ *   key: ExampleKey,
+ *   Model,
+ *   Message,
+ *   Init: Schema.Tuple([]),
+ * })
+ * const subscriptions = ExampleBlock.makeSubscriptions(entry => ({
  *   wheelLock: entry(
  *     'WheelLock',
  *     { isModalOpen: Schema.Boolean },

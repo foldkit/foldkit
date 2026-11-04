@@ -16,6 +16,8 @@ import {
 import { Message } from './message'
 import { type Model } from './model'
 
+const apiReferenceSubject = { block: ApiReferenceBlock, layer }
+
 const apiModule = ApiModule.make({
   name: 'Command',
   functions: [
@@ -48,7 +50,7 @@ const fullData = ApiData.make({
 })
 const signatureId = scopedId('function', 'Command', 'define')
 
-const makeFixture = (block: TestBlock<typeof ApiReferenceBlock>) => {
+const makeFixture = (block: TestBlock<typeof apiReferenceSubject>) => {
   const init = block.init
   const update = block.update
   const failedLoad = (model: Model) =>
@@ -59,7 +61,7 @@ const makeFixture = (block: TestBlock<typeof ApiReferenceBlock>) => {
 describe('API Reference startup', () => {
   test('cold startup schedules the full reference load', async () => {
     await Effect.runPromise(
-      withBlock(ApiReferenceBlock, executable => {
+      withBlock(apiReferenceSubject, executable => {
         const { block, init } = makeFixture(executable)
 
         const initialDataLoad = init()
@@ -75,13 +77,13 @@ describe('API Reference startup', () => {
         expectTypeOf<
           Layer.Services<typeof block.EffectsLayer>
         >().toEqualTypeOf<never>()
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('prerendered data stays visible while the full reference loads', async () => {
     await Effect.runPromise(
-      withBlock(ApiReferenceBlock, executable => {
+      withBlock(apiReferenceSubject, executable => {
         const { block, init } = makeFixture(executable)
 
         const initialDataLoad = init(Option.some(seededData))
@@ -100,13 +102,13 @@ describe('API Reference startup', () => {
         ).toEqual({
           model: initialDataLoad.model,
         })
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('failed cold loads can be requested again', async () => {
     await Effect.runPromise(
-      withBlock(ApiReferenceBlock, executable => {
+      withBlock(apiReferenceSubject, executable => {
         const { block, init, failedLoad } = makeFixture(executable)
 
         const initialDataLoad = init()
@@ -122,13 +124,13 @@ describe('API Reference startup', () => {
         expect(retry.commands?.map(command => command.name)).toEqual([
           LoadApiData.name,
         ])
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('failed full loads retain the seeded slice and retry on entry', async () => {
     await Effect.runPromise(
-      withBlock(ApiReferenceBlock, executable => {
+      withBlock(apiReferenceSubject, executable => {
         const { block, init, failedLoad } = makeFixture(executable)
 
         const initialDataLoad = init(Option.some(seededData))
@@ -152,13 +154,13 @@ describe('API Reference startup', () => {
         expect(block.operations.informRouteChange(retry.model)).toEqual({
           model: retry.model,
         })
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('full success adds disclosures without resetting the seeded selection', async () => {
     await Effect.runPromise(
-      withBlock(ApiReferenceBlock, executable => {
+      withBlock(apiReferenceSubject, executable => {
         const { block, init, update } = makeFixture(executable)
 
         const initialDataLoad = init(Option.some(seededData))
@@ -182,7 +184,7 @@ describe('API Reference startup', () => {
             model: succeededLoad.model,
           },
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 })

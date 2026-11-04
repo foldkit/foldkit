@@ -2,10 +2,10 @@ import { Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import * as Composer from './composer'
-import { ChatDefinition } from './definition'
+import { ChatBlock } from './definition'
 import { Message } from './message'
 
-export const PrimaryComposerBinding = ChatDefinition.makeBinding(
+export const PrimaryComposerBinding = ChatBlock.makeBinding(
   Composer.ComposerBlock,
   {
     read: model => Option.some(model.primaryPanel.composer),
@@ -17,7 +17,7 @@ export const PrimaryComposerBinding = ChatDefinition.makeBinding(
   },
 )
 
-export const SecondaryComposerBinding = ChatDefinition.makeBinding(
+export const SecondaryComposerBinding = ChatBlock.makeBinding(
   Composer.ComposerBlock,
   {
     placement: 'SecondaryComposer',

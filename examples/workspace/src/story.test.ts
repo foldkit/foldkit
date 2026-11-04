@@ -91,6 +91,8 @@ import {
   visibleWorkspaceAsyncData,
 } from './selection'
 
+const application = { block: ApplicationBlock, layer }
+
 type IssueDetailBlockMessage = Block.ExecutableOf<
   typeof IssueDetailBlock
 >['Message']['Type']
@@ -105,10 +107,7 @@ const issueC = Option.getOrThrow(Array.get(initialWorkspace.issues, 2))
 const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
 
-const loadedModel = (
-  executable: TestBlock<typeof ApplicationBlock>,
-  path = '/',
-) => {
+const loadedModel = (executable: TestBlock<typeof application>, path = '/') => {
   const init = executable.init
   const update = executable.update
 
@@ -144,7 +143,7 @@ describe('workspace navigation', () => {
 
       const projectPath = projectRouter({ projectId: issueB.projectId })
       return story(
-        ApplicationBlock,
+        application,
         init(url('/')),
         Command.resolve(
           LoadWorkspace,
@@ -188,13 +187,13 @@ describe('workspace navigation', () => {
           )
           expect(Record.values(model.issueDetails)).toHaveLength(1)
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect('retains the editor when leaving the issue route', () => {
     return story(
-      ApplicationBlock,
+      application,
       init(url(issueRouter({ issueId: issueA.id }))),
       Command.resolve(
         LoadWorkspace,
@@ -206,13 +205,13 @@ describe('workspace navigation', () => {
         expect(Record.values(model.issueDetails)).toHaveLength(1)
       }),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
     'reuses each retained editor when navigating between issues',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const initialModel = loadedModel(
           executable,
           issueRouter({ issueId: issueA.id }),
@@ -222,7 +221,7 @@ describe('workspace navigation', () => {
 
         const issueBPath = issueRouter({ issueId: issueB.id })
         return story(
-          ApplicationBlock,
+          application,
           given(initialModel),
           message(Message.ChangedUrl({ url: url(issueBPath) })),
           model(model => {
@@ -240,7 +239,7 @@ describe('workspace navigation', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
@@ -250,7 +249,7 @@ describe('workspace navigation', () => {
       version: Number.increment,
     })
     return story(
-      ApplicationBlock,
+      application,
       init(url(issueRouter({ issueId: issueA.id }))),
       Command.resolve(
         LoadWorkspace,
@@ -307,12 +306,12 @@ describe('workspace navigation', () => {
       ),
       Command.expectExact(NavigateInternal({ url: '/' })),
       Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('closes a direct issue URL to All issues', () => {
     return story(
-      ApplicationBlock,
+      application,
       init(url(issueRouter({ issueId: issueA.id }))),
       Command.resolve(
         LoadWorkspace,
@@ -325,7 +324,7 @@ describe('workspace navigation', () => {
       ),
       Command.expectExact(NavigateInternal({ url: '/' })),
       Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
@@ -361,7 +360,7 @@ describe('workspace navigation', () => {
 
       const localTitle = 'Keep this local title'
       return story(
-        ApplicationBlock,
+        application,
         init(url(issueRouter({ issueId: issueA.id }))),
         Command.resolve(
           LoadWorkspace,
@@ -403,7 +402,7 @@ describe('workspace navigation', () => {
           expect(retainedIssueC.baseline).toEqual(revisionFromIssue(issueC))
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 })
@@ -452,7 +451,7 @@ describe('workspace notifications', () => {
 
       const notificationId = `comment:${comment.id}:maya`
       return story(
-        ApplicationBlock,
+        application,
         init(url('/')),
         Command.resolve(
           LoadWorkspace,
@@ -517,7 +516,7 @@ describe('workspace notifications', () => {
           expect(visibleIssue.comments).toContainEqual(staleComment)
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -529,7 +528,7 @@ describe('workspace notifications', () => {
         maybeAssigneeId: () => Option.some('maya'),
       })
       return story(
-        ApplicationBlock,
+        application,
         init(url(issueRouter({ issueId: issueB.id }))),
         Command.resolve(
           LoadWorkspace,
@@ -584,7 +583,7 @@ describe('workspace notifications', () => {
           )
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -613,7 +612,7 @@ describe('workspace notifications', () => {
         comments: Array.append(unrelatedComment),
       })
       return story(
-        ApplicationBlock,
+        application,
         init(url('/')),
         Command.resolve(
           LoadWorkspace,
@@ -649,7 +648,7 @@ describe('workspace notifications', () => {
           )
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -674,7 +673,7 @@ describe('workspace notifications', () => {
 
       const alexNotificationId = `comment:${comment.id}:alex`
       return story(
-        ApplicationBlock,
+        application,
         init(url('/')),
         Command.resolve(
           LoadWorkspace,
@@ -753,16 +752,16 @@ describe('workspace notifications', () => {
             }),
           ])
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'preserves a foreground notice when background activity succeeds',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         return story(
-          ApplicationBlock,
+          application,
           given(
             modifyFields(loadedModel(executable), {
               maybeNotice: () => Option.some('Saved view “My work”'),
@@ -786,7 +785,7 @@ describe('workspace notifications', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 })
@@ -805,7 +804,7 @@ describe('workspace project settings', () => {
     'preserves project edits when the current URL is delivered again',
     () => {
       return story(
-        ApplicationBlock,
+        application,
         init(url(projectSettingsPath)),
         Command.resolve(
           LoadWorkspace,
@@ -825,7 +824,7 @@ describe('workspace project settings', () => {
           )
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -833,7 +832,7 @@ describe('workspace project settings', () => {
     'keeps separate drafts across project switches and workspace refreshes',
     () => {
       return story(
-        ApplicationBlock,
+        application,
         init(url(projectSettingsPath)),
         Command.resolve(
           LoadWorkspace,
@@ -867,14 +866,14 @@ describe('workspace project settings', () => {
           expect(Record.values(model.projectSettings)).toHaveLength(2)
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'saves project settings while an unrelated issue move is pending',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const savedProject = modifyFields(project, { name: () => 'New name' })
 
         const initialModel = modifyFields(
@@ -890,7 +889,7 @@ describe('workspace project settings', () => {
           },
         )
         return story(
-          ApplicationBlock,
+          application,
           given(initialModel),
           messageFrom(
             ProjectSettingsBinding,
@@ -912,14 +911,14 @@ describe('workspace project settings', () => {
             }),
           ),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect(
     'settles a project save after navigating away without touching another editor',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const savedProject = modifyFields(project, {
           name: () => 'Saved while away',
         })
@@ -946,7 +945,7 @@ describe('workspace project settings', () => {
           },
         )
         return story(
-          ApplicationBlock,
+          application,
           given(initialModel),
           message(
             Message.ChangedUrl({
@@ -990,7 +989,7 @@ describe('workspace project settings', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
@@ -999,7 +998,7 @@ describe('workspace project settings', () => {
       name: () => 'Platform engineering',
     })
     return story(
-      ApplicationBlock,
+      application,
       init(url(projectSettingsPath)),
       Command.resolve(
         LoadWorkspace,
@@ -1030,12 +1029,12 @@ describe('workspace project settings', () => {
           initialWorkspace.issues,
         )
       }),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('does not initialize settings for an unknown project', () => {
     return story(
-      ApplicationBlock,
+      application,
       init(url('/projects/missing/settings')),
       Command.resolve(
         LoadWorkspace,
@@ -1045,13 +1044,13 @@ describe('workspace project settings', () => {
         expect(model.projectSettings).toEqual({})
       }),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })
 
 describe('Application child policies', () => {
   it.effect('retains one Board instance per project across navigation', () => {
-    return withBlock(ApplicationBlock, executable =>
+    return withBlock(application, executable =>
       Effect.gen(function* () {
         const initialModel = loadedModel(executable, '/projects/platform/board')
         const issueBoard = activeIssueBoardModel(initialModel)
@@ -1063,7 +1062,7 @@ describe('Application child policies', () => {
         )
 
         yield* story(
-          ApplicationBlock,
+          application,
           given(initialModel),
           message(
             Message.ChangedUrl({
@@ -1104,7 +1103,7 @@ describe('Application child policies', () => {
         )
 
         yield* story(
-          ApplicationBlock,
+          application,
           init(url('/projects/missing/board')),
           Command.resolve(
             LoadWorkspace,
@@ -1116,7 +1115,7 @@ describe('Application child policies', () => {
           Command.expectNone(),
         )
       }),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
@@ -1147,7 +1146,7 @@ describe('Application child policies', () => {
         }),
       })
       return story(
-        ApplicationBlock,
+        application,
         init(url('/projects/platform/board')),
         Command.resolve(
           LoadWorkspace,
@@ -1186,7 +1185,7 @@ describe('Application child policies', () => {
             }),
           }),
         ),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -1208,7 +1207,7 @@ describe('Application child policies', () => {
         query: '',
       })
       return story(
-        ApplicationBlock,
+        application,
         init(url('/')),
         Command.resolve(
           LoadWorkspace,
@@ -1287,14 +1286,14 @@ describe('Application child policies', () => {
         model(model => {
           expect(appliedIssueFilters(model)).toEqual(clearedFilters)
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'restores saved filters and preserves explicit URL overrides',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const savedFilters = IssueFilters.make({
           ...defaultIssueFilters,
           query: 'keyboard',
@@ -1312,7 +1311,7 @@ describe('Application child policies', () => {
           nextSavedViewId: () => 2,
         })
         return story(
-          ApplicationBlock,
+          application,
           given(initialModel),
           message(Message.ChangedUrl({ url: url('/views/view-1') })),
           model(model => {
@@ -1335,14 +1334,14 @@ describe('Application child policies', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect(
     'deletes unrelated and displayed saved views without changing filters',
     () => {
-      return withBlock(ApplicationBlock, executable =>
+      return withBlock(application, executable =>
         Effect.gen(function* () {
           const savedFilters = IssueFilters.make({
             ...defaultIssueFilters,
@@ -1373,7 +1372,7 @@ describe('Application child policies', () => {
           )
 
           yield* story(
-            ApplicationBlock,
+            application,
             given(initialModel),
             message(
               Message.ClickedDeleteSavedView({ viewId: unrelatedView.id }),
@@ -1392,7 +1391,7 @@ describe('Application child policies', () => {
           )
 
           yield* story(
-            ApplicationBlock,
+            application,
             given(initialModel),
             message(
               Message.ClickedDeleteSavedView({ viewId: displayedView.id }),
@@ -1408,14 +1407,14 @@ describe('Application child policies', () => {
             ),
           )
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'deleting a saved view behind an issue preserves its filters for close',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const savedFilters = IssueFilters.make({
           ...defaultIssueFilters,
           query: 'keyboard',
@@ -1455,7 +1454,7 @@ describe('Application child policies', () => {
           nextSavedViewId: () => 2,
         })
         return story(
-          ApplicationBlock,
+          application,
           given(initialModel),
           message(Message.ClickedDeleteSavedView({ viewId: savedView.id })),
           Command.expectExact(ReplaceInternalUrl({ url: repairedIssuePath })),
@@ -1486,13 +1485,13 @@ describe('Application child policies', () => {
             Message.CompletedNavigateInternal(),
           ),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect('requests teammate activity from the always-on stream fact', () => {
     return story(
-      ApplicationBlock,
+      application,
       init(url('/')),
       Command.resolve(
         LoadWorkspace,
@@ -1513,7 +1512,7 @@ describe('Application child policies', () => {
         AppendActivity,
         Message.FailedAppendActivity({ error: 'Activity is unavailable.' }),
       ),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })
 
@@ -1529,7 +1528,7 @@ describe('Issue drafts', () => {
   const issuePath = (issueId: string) => issueRouter({ issueId })
 
   const loadedModel = (
-    executable: TestBlock<typeof ApplicationBlock>,
+    executable: TestBlock<typeof application>,
     issueId = issueA.id,
   ) =>
     executable.update(
@@ -1541,7 +1540,7 @@ describe('Issue drafts', () => {
     Option.getOrThrow(maybeActiveIssueDetail(model))
 
   const issueDetailMessage = (
-    executable: TestBlock<typeof ApplicationBlock>,
+    executable: TestBlock<typeof application>,
     model: Model,
     childMessage: IssueDetailBlockMessage,
   ) => {
@@ -1555,7 +1554,7 @@ describe('Issue drafts', () => {
   }
 
   const commentComposerMessage = (
-    executable: TestBlock<typeof ApplicationBlock>,
+    executable: TestBlock<typeof application>,
     model: Model,
     childMessage: CommentComposerMessage,
   ) => {
@@ -1580,7 +1579,7 @@ describe('Issue drafts', () => {
     )
 
   const updatedComment = (
-    executable: TestBlock<typeof ApplicationBlock>,
+    executable: TestBlock<typeof application>,
     model: Model,
     value = commentBody,
   ) => {
@@ -1595,7 +1594,7 @@ describe('Issue drafts', () => {
     'retains field edits and clears the draft indicator when clean',
     () => {
       return story(
-        ApplicationBlock,
+        application,
         init(url(issuePath(issueA.id))),
         Command.resolve(
           LoadWorkspace,
@@ -1625,12 +1624,12 @@ describe('Issue drafts', () => {
           IssueDetailMessage.UpdatedTitle({ value: issueA.title }),
         ),
         model(model => expect(unsavedIssueDrafts(model)).toEqual([])),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect('retains a comment by itself and alongside field edits', () => {
-    return withBlock(ApplicationBlock, executable => {
+    return withBlock(application, executable => {
       const initialModel = loadedModel(executable)
       return story(
         executable.update,
@@ -1673,13 +1672,13 @@ describe('Issue drafts', () => {
         ),
         model(model => expect(unsavedIssueDrafts(model)).toEqual([])),
       )
-    }).pipe(Effect.provide(layer))
+    })
   })
 
   it.effect(
     'preserves an unsent comment after saving fields and clears a clean draft indicator',
     () => {
-      return withBlock(ApplicationBlock, executable =>
+      return withBlock(application, executable =>
         Effect.gen(function* () {
           const initialModel = loadedModel(executable)
           const savedIssueSnapshot = modifyFields(issueA, {
@@ -1751,12 +1750,12 @@ describe('Issue drafts', () => {
             Command.expectNone(),
           )
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect('rebases retained field edits after a comment succeeds', () => {
-    return withBlock(ApplicationBlock, executable => {
+    return withBlock(application, executable => {
       const initialModel = loadedModel(executable)
 
       const savedComment = Comment.make({
@@ -1811,13 +1810,13 @@ describe('Issue drafts', () => {
         }),
         Command.expectNone(),
       )
-    }).pipe(Effect.provide(layer))
+    })
   })
 
   it.effect(
     'keeps the newest issue when save and comment successes arrive out of order',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const initialModel = loadedModel(executable)
 
         const savedIssueSnapshot = modifyFields(issueA, {
@@ -1895,14 +1894,14 @@ describe('Issue drafts', () => {
             expect(unsavedIssueDrafts(model)).toEqual([])
           }),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect(
     'merges out-of-order comments without losing newer activity',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const initialModel = loadedModel(executable)
 
         const activityComment = Comment.make({
@@ -1971,14 +1970,14 @@ describe('Issue drafts', () => {
             expect(unsavedIssueDrafts(model)).toEqual([])
           }),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect(
     'preserves an unsent comment when shared issue data changes',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const initialModel = loadedModel(executable)
 
         const activityComment = Comment.make({
@@ -2031,7 +2030,7 @@ describe('Issue drafts', () => {
             expect(issueDetail.commentComposer.body).toBe(commentBody)
           }),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
@@ -2047,7 +2046,7 @@ describe('Issue drafts', () => {
       comments: Array.append(activityComment),
     })
     return story(
-      ApplicationBlock,
+      application,
       init(url(issuePath(issueA.id))),
       Command.resolve(
         LoadWorkspace,
@@ -2078,13 +2077,13 @@ describe('Issue drafts', () => {
         )
         expect(retainedIssueDetail.draft.title).toBe(editedTitle)
       }),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
     'reconciles retained state when reopening after compatible and conflicting changes',
     () => {
-      return withBlock(ApplicationBlock, executable =>
+      return withBlock(application, executable =>
         Effect.gen(function* () {
           const initialModel = loadedModel(executable)
           const activityComment = Comment.make({
@@ -2190,14 +2189,14 @@ describe('Issue drafts', () => {
             }),
           )
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'discarding or reloading field edits preserves an unsent comment',
     () => {
-      return withBlock(ApplicationBlock, executable =>
+      return withBlock(application, executable =>
         Effect.gen(function* () {
           const initialModel = loadedModel(executable)
           const newerIssue = modifyFields(issueA, {
@@ -2284,7 +2283,7 @@ describe('Issue drafts', () => {
             }),
           )
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 })
@@ -2304,7 +2303,7 @@ describe('Board moves', () => {
   const visibleIssueIds = (model: Model) =>
     Array.map(visibleWorkspaceOf(model).issues, issue => issue.id)
 
-  const loadedBoardModel = (executable: TestBlock<typeof ApplicationBlock>) => {
+  const loadedBoardModel = (executable: TestBlock<typeof application>) => {
     const init = executable.init
     const update = executable.update
     return update(
@@ -2350,7 +2349,7 @@ describe('Board moves', () => {
   it.effect(
     'opens an editor from confirmed fields while a board move is pending',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const initialModel = loadedBoardModel(executable)
 
         const issue = visibleIssueOf(initialModel, 'issue-103')
@@ -2364,7 +2363,7 @@ describe('Board moves', () => {
 
         const title = 'A title edited after a failed move'
         return story(
-          ApplicationBlock,
+          application,
           given(movingModel),
           message(
             Message.ChangedUrl({
@@ -2433,14 +2432,14 @@ describe('Board moves', () => {
             expect(visibleIssueOf(model, issue.id).status).toBe(issue.status)
           }),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect(
     'retains a teammate comment between an optimistic move and its rollback',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const toParentMessage = toParentMessageFor(executable)
 
         const initialModel = loadedBoardModel(executable)
@@ -2575,14 +2574,14 @@ describe('Board moves', () => {
             )
           }),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect(
     'restores the original same-column placement and preserves a concurrent comment',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const initialModel = loadedBoardModel(executable)
 
         const issue = visibleIssueOf(initialModel, 'issue-103')
@@ -2607,7 +2606,7 @@ describe('Board moves', () => {
           visibleIssueIds(initialModel),
         )
         return story(
-          ApplicationBlock,
+          application,
           given(withWorkspaceIssue(movingModel, commentedIssue)),
           message(
             Message.FailedMoveIssue({
@@ -2631,14 +2630,14 @@ describe('Board moves', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect(
     'preserves concurrent issue edits and unrelated rows when restoring the original global position',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const initialModel = loadedBoardModel(executable)
 
         const issue = visibleIssueOf(initialModel, 'issue-103')
@@ -2670,7 +2669,7 @@ describe('Board moves', () => {
 
         expect(visibleIssueOf(movingModel, issue.id).status).toBe('Done')
         return story(
-          ApplicationBlock,
+          application,
           given(
             withWorkspaceIssue(
               withWorkspaceIssue(movingModel, editedIssue),
@@ -2699,14 +2698,14 @@ describe('Board moves', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect(
     'restores placement before applying the canonical issue from a conflict result',
     () => {
-      return withBlock(ApplicationBlock, executable => {
+      return withBlock(application, executable => {
         const initialModel = loadedBoardModel(executable)
 
         const issue = visibleIssueOf(initialModel, 'issue-103')
@@ -2724,7 +2723,7 @@ describe('Board moves', () => {
           version: Number.increment,
         })
         return story(
-          ApplicationBlock,
+          application,
           given(movingModel),
           message(
             Message.FailedMoveIssue({
@@ -2756,7 +2755,7 @@ describe('Board moves', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 })
@@ -2769,7 +2768,7 @@ describe('when refreshing the workspace with an unsaved issue draft', () => {
 
       const error = 'The workspace is temporarily unavailable.'
       return story(
-        ApplicationBlock,
+        application,
         init(url(issueRouter({ issueId: issueA.id }))),
         Command.resolve(
           LoadWorkspace,
@@ -2802,7 +2801,7 @@ describe('when refreshing the workspace with an unsaved issue draft', () => {
           )
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -2822,7 +2821,7 @@ describe('when refreshing the workspace with an unsaved issue draft', () => {
         ),
       })
       return story(
-        ApplicationBlock,
+        application,
         init(url(issueRouter({ issueId: issueA.id }))),
         Command.resolve(
           LoadWorkspace,
@@ -2849,7 +2848,7 @@ describe('when refreshing the workspace with an unsaved issue draft', () => {
           )
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 })

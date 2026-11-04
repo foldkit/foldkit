@@ -5,7 +5,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { PlaceOrder } from './command'
 import { Message } from './message'
 import { CheckoutState, type Model, Promo } from './model'
@@ -20,7 +20,7 @@ const maybeLatestTransitionSummary = (model: Model): Option.Option<string> =>
 describe('update', () => {
   it.effect('physical carts visit Shipping before Payment', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       initialize(),
       message(Message.ClickedContinue()),
       Command.expectNone(),
@@ -43,7 +43,7 @@ describe('update', () => {
 
   it.effect('digital carts skip Shipping through the otherwise branch', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       initialize(),
       message(Message.SelectedEdition({ isShippingRequired: false })),
       message(Message.ClickedContinue()),
@@ -59,7 +59,7 @@ describe('update', () => {
 
   it.effect('starting over after cancelling keeps the selected edition', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       initialize(),
       message(Message.SelectedEdition({ isShippingRequired: false })),
       message(Message.ClickedCancel()),
@@ -79,7 +79,7 @@ describe('update', () => {
     'a known promo code resolves to a discount and an unknown one clears it',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         initialize(),
         message(Message.SelectedEdition({ isShippingRequired: false })),
         message(Message.ClickedContinue()),
@@ -113,7 +113,7 @@ describe('update', () => {
 
   it.effect('unaccepted review ignores place order without a Command', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       initialize(),
       message(Message.SelectedEdition({ isShippingRequired: false })),
       message(Message.ClickedContinue()),
@@ -132,7 +132,7 @@ describe('update', () => {
 
   it.effect('ready review emits PlaceOrder after its guard passes', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       initialize(),
       message(Message.SelectedEdition({ isShippingRequired: false })),
       message(Message.ClickedContinue()),
@@ -158,7 +158,7 @@ describe('update', () => {
     const messageCount = TRANSITION_LOG_LIMIT + 5
 
     return story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       initialize(),
       ...Array.map(
         Array.makeBy(messageCount, index =>

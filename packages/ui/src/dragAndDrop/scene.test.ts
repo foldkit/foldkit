@@ -1,6 +1,6 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
-import type { Attribute, ChildAttribute } from 'foldkit/html'
+import type { ChildAttribute, TaggedAttribute } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import { expectTypeOf } from 'vitest'
 
@@ -9,7 +9,7 @@ import { describe, it } from '@effect/vitest'
 import { DragAndDropBlock, type RenderInfo, layer } from './block.js'
 
 const DragAndDropSceneKey = Symbol('DragAndDropScene')
-const DragAndDropSceneDefinition = Block.makeDefinition('DragAndDropScene', {
+const DragAndDropSceneBlock = Block.make('DragAndDropScene', {
   key: DragAndDropSceneKey,
   Init: Block.makeInputContract<readonly []>(),
   Model: Schema.Struct({ dragAndDrop: DragAndDropBlock.Model }),
@@ -17,7 +17,7 @@ const DragAndDropSceneDefinition = Block.makeDefinition('DragAndDropScene', {
   view: { kind: 'Element' },
 })
 
-const foldDragAndDropOutMessage = DragAndDropSceneDefinition.makeOutMessageFold(
+const foldDragAndDropOutMessage = DragAndDropSceneBlock.makeOutMessageFold(
   DragAndDropBlock,
   {
     StartedKeyboardDrag: () => model => ({ model }),
@@ -27,15 +27,12 @@ const foldDragAndDropOutMessage = DragAndDropSceneDefinition.makeOutMessageFold(
   },
 )
 
-const DragAndDropBinding = DragAndDropSceneDefinition.makeBinding(
-  DragAndDropBlock,
-  {
-    field: 'dragAndDrop',
-    init: { contextToArgs: () => [{ id: 'board' }] },
-  },
-).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+const DragAndDropBinding = DragAndDropSceneBlock.makeBinding(DragAndDropBlock, {
+  field: 'dragAndDrop',
+  init: { contextToArgs: () => [{ id: 'board' }] },
+}).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
-const DragAndDropSceneComposition = DragAndDropSceneDefinition.makeComposition({
+const DragAndDropSceneComposition = DragAndDropSceneBlock.makeComposition({
   bindings: [DragAndDropBinding],
 })
 
@@ -78,18 +75,21 @@ const view = DragAndDropSceneComposition.makeView((model, h) =>
 
 const card = Scene.selector('#card')
 
-const DragAndDropSceneBlock = DragAndDropSceneDefinition.makeBlock(
-  Effect.gen(function* () {
-    const child = yield* DragAndDropBinding
+const dragAndDropScene = {
+  block: DragAndDropSceneBlock,
+  layer: DragAndDropSceneBlock.makeLayer(
+    Effect.gen(function* () {
+      const child = yield* DragAndDropBinding
 
-    return {
-      children: [child],
-      init,
-      update,
-      view: view,
-    }
-  }),
-).provide(layer)
+      return {
+        children: [child],
+        init,
+        update,
+        view: view,
+      }
+    }),
+  ).pipe(Layer.provide(layer)),
+}
 
 describe('DragAndDrop view', () => {
   it('publishes child attributes rather than raw local Message attributes', () => {
@@ -97,7 +97,7 @@ describe('DragAndDrop view', () => {
       ReadonlyArray<ChildAttribute>
     >()
     expectTypeOf<ReturnType<RenderInfo['draggable']>>().not.toMatchTypeOf<
-      ReadonlyArray<Attribute<never>>
+      ReadonlyArray<TaggedAttribute<never>>
     >()
   })
 
@@ -105,7 +105,7 @@ describe('DragAndDrop view', () => {
     'routes consumer-placed handlers through the embedded Block boundary',
     () =>
       Scene.scene(
-        DragAndDropSceneBlock,
+        dragAndDropScene,
         Scene.init(),
         Scene.expect(card).toHaveAttr('data-draggable-id', 'card-1'),
         Scene.expect(card).toHaveHandler('pointerdown'),

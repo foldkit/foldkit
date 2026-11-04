@@ -1,10 +1,11 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { Flags, flags } from './flags'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   Flags,
   container: document.getElementById('root'),
   routing: {

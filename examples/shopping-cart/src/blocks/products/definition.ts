@@ -28,7 +28,7 @@ export type OutMessage = typeof OutMessage.Type
 
 export const ProductsKey = Symbol('Products')
 
-export const ProductsDefinition = Block.makeDefinition('Products', {
+export const ProductsBlock = Block.make('Products', {
   key: ProductsKey,
   Init: Schema.Tuple([Schema.Array(Item.Item)]),
   view: { kind: 'Element', Inputs: Schema.Struct({ cart: Cart.Cart }) },
@@ -38,4 +38,4 @@ export const ProductsDefinition = Block.makeDefinition('Products', {
   OutMessage,
 })
 
-export const { makeOutMessageStep, makeNoopStep } = ProductsDefinition
+export const { makeOutMessageStep, makeNoopStep } = ProductsBlock

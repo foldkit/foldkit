@@ -131,7 +131,7 @@ const render = async (origin: string): Promise<string> => {
   return response.text()
 }
 
-const readDefinitionOwner = (root: string, { server }: DevServer): object => {
+const readBlockOwner = (root: string, { server }: DevServer): object => {
   const environment = server.environments.ssr
 
   if (!isRunnableDevEnvironment(environment)) {
@@ -144,20 +144,20 @@ const readDefinitionOwner = (root: string, { server }: DevServer): object => {
   const definitionModule = Option.getOrThrow(
     Array.head(Array.fromIterable(modules ?? [])),
   )
-  const definition: unknown = definitionModule.exports?.ApplicationDefinition
+  const block: unknown = definitionModule.exports?.ApplicationBlock
 
   if (
-    !Predicate.isObject(definition) ||
-    !Predicate.hasProperty(definition, 'owner') ||
-    !Predicate.isObject(definition.owner)
+    !Predicate.isObject(block) ||
+    !Predicate.hasProperty(block, 'owner') ||
+    !Predicate.isObject(block.owner)
   ) {
-    throw new Error('Expected the evaluated Block Definition owner')
+    throw new Error('Expected the evaluated Block declaration owner')
   }
 
-  return definition.owner
+  return block.owner
 }
 
-describe('Block Definition declarations under the SSR dev server', () => {
+describe('Block declarations under the SSR dev server', () => {
   it(
     'keeps non-HMR requests consistent across asynchronous file invalidation',
     async () => {
@@ -202,9 +202,9 @@ describe('Block Definition declarations under the SSR dev server', () => {
 
       try {
         expect(await render(devServer.origin)).toBe('revision 1')
-        const originalOwner = readDefinitionOwner(root, devServer)
+        const originalOwner = readBlockOwner(root, devServer)
         expect(await render(devServer.origin)).toBe('revision 1')
-        expect(readDefinitionOwner(root, devServer)).toBe(originalOwner)
+        expect(readBlockOwner(root, devServer)).toBe(originalOwner)
 
         writeFileSync(
           file,
@@ -217,7 +217,7 @@ describe('Block Definition declarations under the SSR dev server', () => {
         await entered
 
         expect(await render(devServer.origin)).toBe('revision 1')
-        const duringOwner = readDefinitionOwner(root, devServer)
+        const duringOwner = readBlockOwner(root, devServer)
 
         const overlappingRequest = render(devServer.origin)
         changes.emit('released')
@@ -233,10 +233,10 @@ describe('Block Definition declarations under the SSR dev server', () => {
         expect(following).toEqual(['revision 2', 'revision 2', 'revision 2'])
         expect(duringOwner).toBe(originalOwner)
 
-        const nextOwner = readDefinitionOwner(root, devServer)
+        const nextOwner = readBlockOwner(root, devServer)
         expect(nextOwner).not.toBe(originalOwner)
         expect(await render(devServer.origin)).toBe('revision 2')
-        expect(readDefinitionOwner(root, devServer)).toBe(nextOwner)
+        expect(readBlockOwner(root, devServer)).toBe(nextOwner)
       } finally {
         changes.emit('released')
       }
@@ -245,7 +245,7 @@ describe('Block Definition declarations under the SSR dev server', () => {
   )
 
   it(
-    'reevaluates a split Block Definition when HMR is disabled',
+    'reevaluates a split Block declaration when HMR is disabled',
     async () => {
       const root = copyFixtureToTemporaryRoot()
       const devServer = await startServer(root, { hmr: false })
@@ -270,7 +270,7 @@ describe('Block Definition declarations under the SSR dev server', () => {
   )
 
   it(
-    'renders after an edit to a module that declares against a Block Definition it imports',
+    'renders after an edit to a module that declares against an imported Block declaration',
     async () => {
       const root = copyFixtureToTemporaryRoot()
       const devServer = await startServer(root)

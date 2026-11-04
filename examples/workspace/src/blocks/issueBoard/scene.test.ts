@@ -1,4 +1,4 @@
-import { Effect } from 'effect'
+import {} from 'effect'
 import {
   Command,
   click,
@@ -29,27 +29,27 @@ describe('Issue Board view', () => {
   it.effect('renders all statuses and exposes accessible drag handles', () => {
     const handle = role('button', { name: 'Drag WSP-101' })
     return scene(
-      { block: IssueBoardBlock, viewInputs },
+      { block: IssueBoardBlock, layer, viewInputs },
       init(),
       expect(role('heading', { name: 'Backlog' })).toExist(),
       expect(role('heading', { name: 'Todo' })).toExist(),
       expect(role('heading', { name: 'In progress' })).toExist(),
       expect(role('heading', { name: 'Done' })).toExist(),
       expect(handle).toExist(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
     'renders a native issue title link when its href is supplied',
     () => {
       return scene(
-        { block: IssueBoardBlock, viewInputs },
+        { block: IssueBoardBlock, layer, viewInputs },
         init(),
         expect(
           role('link', { name: 'Build a faster command menu' }),
         ).toHaveAttr('href', '/issues/issue-101'),
         expectNoOutMessage(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -57,6 +57,7 @@ describe('Issue Board view', () => {
     return scene(
       {
         block: IssueBoardBlock,
+        layer,
         viewInputs: { ...viewInputs, ...{ issueHrefs: {} } },
       },
       init(),
@@ -64,16 +65,16 @@ describe('Issue Board view', () => {
         role('link', { name: 'Build a faster command menu' }),
       ).not.toExist(),
       expect(text('Build a faster command menu')).toExist(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('requests issue creation in the selected column', () => {
     return scene(
-      { block: IssueBoardBlock, viewInputs },
+      { block: IssueBoardBlock, layer, viewInputs },
       init(),
       click(role('button', { name: 'Create issue in In progress' })),
       expectOutMessage(OutMessage.RequestedCreation({ status: 'InProgress' })),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('disables issue actions while saving', () => {
@@ -87,6 +88,7 @@ describe('Issue Board view', () => {
     return scene(
       {
         block: IssueBoardBlock,
+        layer,
         viewInputs: { ...viewInputs, ...{ isSaving: true } },
       },
       init(),
@@ -98,6 +100,6 @@ describe('Issue Board view', () => {
       expect(createIssueButton).toBeDisabled(),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })

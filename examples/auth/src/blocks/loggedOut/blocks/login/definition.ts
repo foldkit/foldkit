@@ -28,7 +28,7 @@ export type OutMessage = typeof OutMessage.Type
 
 export const LoginKey = Symbol('Login')
 
-export const LoginDefinition = Block.makeDefinition('Login', {
+export const LoginBlock = Block.make('Login', {
   key: LoginKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -38,4 +38,4 @@ export const LoginDefinition = Block.makeDefinition('Login', {
   OutMessage,
 })
 
-export const { makeFieldsStep, makeOutMessageStep } = LoginDefinition
+export const { makeFieldsStep, makeOutMessageStep } = LoginBlock

@@ -43,20 +43,20 @@ Import the `Query` namespace from `foldkit/experimental`. Define the data and er
 With no `args`, `Query.define` returns a Query that retains one value. In this definition:
 
 - `data` and `error` determine the `AsyncData` and Message Schemas.
-- The `handler` generator constructs the fetch function. The completed Query carries its handler recipe in `EffectsLayer`.
+- The `handler` generator constructs the fetch function. The returned Query contract retains that attached handler recipe in `EffectsLayer`.
 - `name: 'Posts'` names the Query Block. Its local `Fetch` Command is qualified by the Block and its parent placement.
 
 Set `staleTime` to an Effect `Duration.Input` when the parent should revalidate successful data after a fixed interval. The default is `Duration.infinity`, so successful data remains fresh until the parent explicitly requests revalidation. Query records the successful fetch's completion time from Effect Clock; a failed refresh keeps the previous successful timestamp. The interval does not change `read` or remove retained data.
 
-Bind the Query contract through the parent Definition, register that Binding in the Composition, and yield it in the parent constructor. Provide `Query.layer` so construction can acquire the implementation. The selected child contributes its handler recipe; do not duplicate it in the parent’s local `EffectsLayer`. The entry supplies ordinary service providers through `ApplicationLayer`. The handler generator captures stable services when the Runtime builds its Layer, and the fetch function uses those services for each request.
+Bind the Query contract through the parent Block, register that Binding in the Composition, and yield it in the parent constructor. Provide `Query.layer` so construction can acquire the implementation. The selected child contributes its handler recipe; do not duplicate it in the parent’s local `EffectsLayer`. The entry supplies ordinary service providers through `ApplicationLayer`. The handler generator captures stable services when the Runtime builds its Layer, and the fetch function uses those services for each request.
 
 Omit `handler` when an external host supplies the fetch implementation. Complete that Query with `query.provideHandlers(query.toLayer(constructor))` before binding it into a runnable application. `toLayer` accepts an Effect constructor and can also provide an alternative to an attached handler. For direct `query.run` outside application composition, provide `query.EffectsLayer` to the Effect. Ordinary execution tests retain the handler and replace its underlying services.
 
 The `data` and `error` values must be Schema Codecs that require no encoding or decoding services. Query uses them to build its Model and completion Message Schemas.
 
-#### Returned Definition
+#### Returned Contract {#returned-definition}
 
-The returned `postsQuery` is the public contract for a viewless Block. It exposes its Model, Message, and InMessage Schemas, selectors, and projected operation contracts. Provide `Query.layer` for graph construction. Its no-argument request methods apply the corresponding InMessage through `inMessageUpdate` synchronously. Fetch and cancellation completions remain local Messages handled by update. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Definition. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.requestLoadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
+The returned `postsQuery` is the public contract for a viewless Block. It exposes its Model, Message, and InMessage Schemas, selectors, and projected operation contracts. Provide `Query.layer` for graph construction. The registered Binding projects its no-argument requests as methods that apply the corresponding InMessage through the acquired child's `inMessageUpdate` synchronously. Fetch and cancellation completions remain local Messages handled by update. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Block. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.requestLoadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
 
 ### Bind the Query to Its Parent
 
@@ -66,7 +66,7 @@ Composition derives delivery for the Query's Messages from its registered Bindin
 
 #### Binding Configuration
 
-The `field` form tells `makeBinding` which exact field contains the Query Model or `Option<QueryModel>`. Composition derives a `Got*Message` envelope carrying the Binding's placement and originating instance generation; parents do not declare a wrapper or supply a Message mapper. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Definition-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
+The `field` form tells `makeBinding` which exact field contains the Query Model or `Option<QueryModel>`. Composition derives a `Got*Message` envelope carrying the Binding's placement and originating instance generation; parents do not declare a wrapper or supply a Message mapper. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Block-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
 
 #### Bound Operations
 
@@ -118,7 +118,7 @@ Read the current time in a Command using Effect Clock and return it in a Message
 
 ::Snippet{name="queryFreshnessClock" label="Checking Query freshness after a Clock Command"}
 
-Both forms expose `isFresh` for a read-only freshness check: `query.isFresh(model, nowMillis)` or `keyedQuery.isFresh(model, args, nowMillis)`. It does not update access recency. `requestLoadIfStale(model, args, nowMillis)` is available directly on a KeyedQuery, and a registered Binding projects it as `Binding.requestLoadIfStale(args, nowMillis)`.
+Both forms expose `isFresh` for a read-only freshness check: `query.isFresh(model, nowMillis)` or `keyedQuery.isFresh(model, args, nowMillis)`. It does not update access recency. A registered KeyedQuery Binding exposes `Binding.requestLoadIfStale(args, nowMillis)`; direct execution requires the acquired implementation’s operation and its child Model.
 
 ### Settling Completed Requests
 
@@ -183,7 +183,7 @@ Add a non-empty `args` record to `Query.define` when one definition should retai
 
 Adding `args` makes `Query.define` return a KeyedQuery. Each distinct argument key has its own `AsyncData` entry. Bind `postQuery` to the parent’s `postDetails` field as `PostDetailsBinding`, following the parent-binding pattern above.
 
-KeyedQuery accepts reset through `InMessage.RequestedReset`. Its argument-taking methods remain explicit operations, preserving calls such as `requestLoadIfMissing(args)`, `requestCancel(args)`, and `requestLoadIfStale(args, nowMillis)`. The unkeyed Clock adapter likewise remains `requestLoadIfStale(nowMillis)`.
+KeyedQuery accepts reset through `InMessage.RequestedReset`. Its argument-taking requests remain explicit operation contracts, projected by a registered Binding as `requestLoadIfMissing(args)`, `requestCancel(args)`, and `requestLoadIfStale(args, nowMillis)`. The unkeyed Clock adapter likewise projects `Binding.requestLoadIfStale(nowMillis)`.
 
 The keyed operations receive the arguments they should act on:
 

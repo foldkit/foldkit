@@ -39,7 +39,9 @@ import { Message } from './message'
 import { CreateState } from './model'
 import { OutMessage } from './outMessage'
 
-const initModel = (executable: TestBlock<typeof CreateIssueBlock>) => {
+const createIssueSubject = { block: CreateIssueBlock, layer }
+
+const initModel = (executable: TestBlock<typeof createIssueSubject>) => {
   return executable.init().model
 }
 
@@ -49,7 +51,7 @@ describe('CreateIssueBlock update', () => {
     () => {
       return Effect.gen(function* () {
         yield* story(
-          CreateIssueBlock,
+          createIssueSubject,
           init(),
           inMessage(InMessage.RequestedOpen({ projectId: 'launch' })),
           Command.resolve(
@@ -67,7 +69,7 @@ describe('CreateIssueBlock update', () => {
         )
 
         yield* story(
-          CreateIssueBlock,
+          createIssueSubject,
           init(),
           inMessage(
             InMessage.RequestedOpen({
@@ -85,7 +87,7 @@ describe('CreateIssueBlock update', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
@@ -93,7 +95,7 @@ describe('CreateIssueBlock update', () => {
     'folds Listbox selections and rejects a status outside its domain',
     () => {
       return story(
-        CreateIssueBlock,
+        createIssueSubject,
         init(),
         messageFrom(
           ProjectListboxBinding,
@@ -124,13 +126,13 @@ describe('CreateIssueBlock update', () => {
         }),
         expectNoOutMessage(),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect('rejects a whitespace title without scheduling creation', () => {
     return story(
-      CreateIssueBlock,
+      createIssueSubject,
       init(),
       inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
       Command.resolve(
@@ -150,7 +152,7 @@ describe('CreateIssueBlock update', () => {
       }),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('retains a failed draft and emits the issue after retry', () => {
@@ -174,7 +176,7 @@ describe('CreateIssueBlock update', () => {
 
     const error = 'The workspace is temporarily unavailable.'
     return story(
-      CreateIssueBlock,
+      createIssueSubject,
       init(),
       inMessage(
         InMessage.RequestedOpen({
@@ -220,11 +222,11 @@ describe('CreateIssueBlock update', () => {
         expect(model.createState).toEqual(CreateState.Idle())
       }),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('preserves a pending form across close and reopen requests', () => {
-    return withBlock(CreateIssueBlock, executable => {
+    return withBlock(createIssueSubject, executable => {
       const initialModel = modifyFields(
         executable.operations.requestOpen(initModel(executable), {
           projectId: 'launch',
@@ -236,7 +238,7 @@ describe('CreateIssueBlock update', () => {
         },
       )
       return story(
-        CreateIssueBlock,
+        createIssueSubject,
         given(initialModel),
         inMessage(InMessage.RequestedClose()),
         Command.resolve(
@@ -262,11 +264,11 @@ describe('CreateIssueBlock update', () => {
         message(Message.SubmittedIssueForm()),
         Command.expectNone(),
       )
-    }).pipe(Effect.provide(layer))
+    })
   })
 
   it.effect('ignores every draft edit while creation is pending', () => {
-    return withBlock(CreateIssueBlock, executable => {
+    return withBlock(createIssueSubject, executable => {
       const initialModel = modifyFields(initModel(executable), {
         title: () => 'A pending issue',
         description: () => 'Keep the submitted description.',
@@ -279,7 +281,7 @@ describe('CreateIssueBlock update', () => {
         )(initialModel).model,
       ).toBe(initialModel)
       return story(
-        CreateIssueBlock,
+        createIssueSubject,
         given(initialModel),
         message(Message.UpdatedTitle({ value: 'A different title' })),
         message(
@@ -312,6 +314,6 @@ describe('CreateIssueBlock update', () => {
         expectNoOutMessage(),
         Command.expectNone(),
       )
-    }).pipe(Effect.provide(layer))
+    })
   })
 })

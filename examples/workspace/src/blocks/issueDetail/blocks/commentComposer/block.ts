@@ -1,12 +1,12 @@
 import { Effect } from 'effect'
 
 import { EffectsLayer } from './command'
-import { CommentComposerDefinition } from './definition'
+import { CommentComposerBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const block = CommentComposerDefinition.makeBlock(
+export const layer = CommentComposerBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -18,4 +18,4 @@ const block = CommentComposerDefinition.makeBlock(
   }),
 )
 
-export const layer = block.layer
+export { CommentComposerBlock } from './definition'

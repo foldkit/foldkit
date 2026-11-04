@@ -755,13 +755,14 @@ const isFoldkitViewBuilderType = (
 const isFoldkitDefinitionViewCallback = (
   references: WeakMap<ESTree.Node, Reference>,
   functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
+  importerFilename?: string,
 ): boolean => {
   const parent = functionNode.parent
   if (!isCallExpression(parent) || !parent.arguments.includes(functionNode)) {
     return false
   }
 
-  if (isOwnedDefinitionCall(parent, 'makeView', references)) {
+  if (isOwnedDefinitionCall(parent, 'makeView', references, importerFilename)) {
     return true
   }
 
@@ -773,7 +774,12 @@ const isFoldkitDefinitionViewCallback = (
 
     return (
       isMemberExpression(parent.callee) &&
-      isOwnedDefinitionCallee(parent.callee.object, 'makeView', references)
+      isOwnedDefinitionCallee(
+        parent.callee.object,
+        'makeView',
+        references,
+        importerFilename,
+      )
     )
   })
 }
@@ -825,7 +831,12 @@ const isHtmlBuilderParameter = (
         Option.exists(
           Array.last(definition.node.params),
           parameter => parameter === definition.name,
-        ) && isFoldkitDefinitionViewCallback(references, definition.node)
+        ) &&
+        isFoldkitDefinitionViewCallback(
+          references,
+          definition.node,
+          importerFilename,
+        )
       )
     }),
   )
@@ -1266,6 +1277,12 @@ const directlyExportedDefinitionMethodOwner = (
     return Option.none()
   }
 
+  const isBlockAuthoringOwner = (name: string): boolean =>
+    new RegExp(
+      `^\\s*(?:export\\s+)?const\\s+${escapedRegExp(name)}\\s*=\\s*Block\\.(?:makeDefinition|make)\\s*\\(`,
+      'mu',
+    ).test(source.text)
+
   const declarations = source.text.matchAll(
     /^\s*export\s+const\s*\{([^}]*)\}\s*=\s*([A-Za-z_$][\w$]*)/gmu,
   )
@@ -1292,11 +1309,18 @@ const directlyExportedDefinitionMethodOwner = (
       continue
     }
 
-    const ownsFoldkitDefinition = new RegExp(
-      `^\\s*(?:export\\s+)?const\\s+${escapedRegExp(ownerName)}\\s*=\\s*Block\\.makeDefinition\\s*\\(`,
+    if (isBlockAuthoringOwner(ownerName)) {
+      return Option.some(ownerName)
+    }
+
+    const compositionOwner = new RegExp(
+      `^\\s*(?:export\\s+)?const\\s+${escapedRegExp(ownerName)}\\s*=\\s*([A-Za-z_$][\\w$]*)\\.makeComposition\\s*\\(`,
       'mu',
-    ).test(source.text)
-    if (ownsFoldkitDefinition) {
+    ).exec(source.text)?.[1]
+    if (
+      compositionOwner !== undefined &&
+      isBlockAuthoringOwner(compositionOwner)
+    ) {
       return Option.some(ownerName)
     }
   }
@@ -1545,6 +1569,7 @@ const isOwnedDefinitionPath = (
           apiPath => {
             const resolvedPath = Array.join(apiPath, '.')
             return (
+              resolvedPath === 'Block.make' ||
               resolvedPath === 'Block.makeDefinition' ||
               resolvedPath === 'Block.makeNamespace'
             )

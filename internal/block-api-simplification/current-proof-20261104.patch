@@ -1,0 +1,4807 @@
+diff --git a/packages/foldkit/src/block/delivery.ts b/packages/foldkit/src/block/delivery.ts
+index 7a7934b4ca..392ae085da 100644
+--- a/packages/foldkit/src/block/delivery.ts
++++ b/packages/foldkit/src/block/delivery.ts
+@@ -520,6 +520,15 @@ type RouteRegistration<Bindings extends ReadonlyArray<AnyBinding>> =
+     ResolveCompositionOutput<ReturnType<RouteFold<Bindings>>, Bindings>
+   >
+ 
++/** @internal Exact aggregate result channels contributed by child routing. */
++export type CompositionRouteChannels<
++  Bindings extends ReadonlyArray<AnyBinding>,
++> = readonly [
++  outMessage: RouteOutMessage<Bindings>,
++  requirements: RouteRequirements<Bindings>,
++  registration: RouteRegistration<Bindings>,
++]
++
+ type AuthoredRequirements<Output> = Update.RequirementsOfResult<Output>
+ 
+ type AuthoredRegistration<Output> = Update.RegistrationEvidenceOf<Output>
+diff --git a/packages/foldkit/src/block/public.ts b/packages/foldkit/src/block/public.ts
+index a17e450d40..2f9edf5dd3 100644
+--- a/packages/foldkit/src/block/public.ts
++++ b/packages/foldkit/src/block/public.ts
+@@ -120,9 +120,18 @@ export type {
+ export { makeNamespace } from './makeNamespace.js'
+ export type { Namespace, NamespaceMakeDefinition } from './makeNamespace.js'
+ export { makeDefinition } from './makeDefinition.js'
++/** Declares one Block and binds its authoring helpers to that contract. */
++export { makeUnifiedBlock as make } from '../experimental/contracted/unified.js'
++/** @internal Names the unified authoring surface in downstream declarations. */
++export type {
++  UnifiedBlockFields,
++  UnifiedBlock,
++} from '../experimental/contracted/unified.js'
+ /** @internal Names inferred input contracts in downstream declarations. */
+ export type {
+   BaseDefinition,
++  ImplementationFacts,
++  SelectedImplementationFacts,
+   DeclaredFacts,
+   InMessageDefinition,
+   MakeComposition as ContractMakeComposition,
+@@ -173,6 +182,7 @@ export type {
+ export type {
+   CoreContract,
+   DescriptorContract,
++  Executable,
+   ExecutableOf,
+   ExecutableInMessageUpdate,
+   ExecutableReturn,
+@@ -199,19 +209,22 @@ export type {
+ export type { MakeMapBinding as DescriptorMakeMapBinding } from '../experimental/constructed/authoring.js'
+ /** @internal Keeps exact portable Binding contracts nameable in downstream declarations. */
+ export type {
+-  BindingSpecs,
+-  BindingsFromSpecs,
++  BindingChildContract,
+   DescriptorBinding,
+   DescriptorBindingFields,
+   DescriptorBindingMember,
+   DescriptorBindingPolicyFields,
+   DescriptorBindingPolicySelector,
+-  DescriptorBindingSpec,
+-  FoldOnlyPolicySpec,
+   DescriptorBindingWithPolicyFields,
+   ParentDescriptorBindingFields,
+ } from '../experimental/constructed/bindingContract.js'
+-export type { Plan, ViewPlan } from '../experimental/hybrid/authoring.js'
++/** @internal Names the exact child-routing channels retained by portable update plans. */
++export type { CompositionRouteChannels } from './delivery.js'
++export type {
++  CanonicalUpdatePlan,
++  Plan,
++  ViewPlan,
++} from '../experimental/hybrid/authoring.js'
+ /** @internal Keeps inferred focused and composed update plans nameable in declarations. */
+ export type {
+   CompositionMetadata,
+diff --git a/packages/foldkit/src/block/variantBinding.ts b/packages/foldkit/src/block/variantBinding.ts
+index 2ef0462f77..6c37abd532 100644
+--- a/packages/foldkit/src/block/variantBinding.ts
++++ b/packages/foldkit/src/block/variantBinding.ts
+@@ -102,7 +102,7 @@ type IsExactVariant<Parent, Child> =
+ type VariantDefinition = Readonly<{
+   Model: AnySchema & Readonly<{ members: ReadonlyArray<Schema.Top> }>
+   Message: AnySchema
+-  OutMessage?: AnySchema
++  OutMessage?: AnySchema | undefined
+   ChildInitContext?: AnySchema
+ }>
+ 
+@@ -318,7 +318,6 @@ type ContractBindingMethod<Definition extends ContractVariantDefinition> =
+ 
+ type ChildContract = AnyDescriptor &
+   Readonly<{
+-    get: Effect.Effect<object, any, any>
+     layer?: never
+     construct?: never
+   }>
+@@ -458,7 +457,7 @@ const assertOptionsRecord: (
+   }
+ }
+ 
+-/** Creates a native static Binding for exact whole-variant child storage.
++/** Creates a static Binding for exact whole-variant child storage.
+  * Include the child Block.Model Schema directly in the parent Schema.Union.
+  * Its tag controls presence. Subscription gates only control Streams.
+  * Initialization and changing the active variant remain parent-owned. */
+@@ -478,7 +477,7 @@ export const makeVariantBinding = ((): MakeVariantBinding =>
+       !Schema.isSchema(block.Model)
+     ) {
+       throw new Error(
+-        '[foldkit] makeVariantBinding requires a parent Definition and completed child Block.',
++        '[foldkit] makeVariantBinding requires a parent authoring contract and a child Block.',
+       )
+     }
+     const subscriptions = Reflect.get(config, 'subscriptions')
+diff --git a/packages/foldkit/src/experimental/constructed/authoring.ts b/packages/foldkit/src/experimental/constructed/authoring.ts
+index e43fbaa571..9de2afa61d 100644
+--- a/packages/foldkit/src/experimental/constructed/authoring.ts
++++ b/packages/foldkit/src/experimental/constructed/authoring.ts
+@@ -12,15 +12,12 @@ import type {
+   ValidateGeneralKeyedSourceWithoutPolicy,
+   ValidateStaticBindingConfigWithoutPolicy,
+ } from '../../block/bindChild.js'
+-import type { AnyBinding } from '../../block/binding.js'
+-import type {
+-  BindingParent,
+-  ExecutableConnection,
+-} from '../../block/bindingConnection.js'
++import type { AggregatedChildren, AnyBinding } from '../../block/binding.js'
++import type { ExecutableConnection } from '../../block/bindingConnection.js'
++import type { DispatchSchemaFor } from '../../block/childEnvelope.js'
+ import type { AuthoringDefinition } from '../../block/define.js'
+ import type {
+   Completed,
+-  Composition,
+   ViewBuilderFor as CoreViewBuilderFor,
+   ImplementationRecipeArguments,
+   ImplementationRecipeValidation,
+@@ -76,7 +73,10 @@ import type {
+   PlanSource,
+ } from '../hybrid/authoring.js'
+ import type { ExecutableImplementation } from '../hybrid/hybrid.js'
+-import type { BindingsFromSpecs, DescriptorBinding } from './bindingContract.js'
++import type {
++  DescriptorBinding,
++  ValidateBindingParents,
++} from './bindingContract.js'
+ import type {
+   CoreContract,
+   CoreOutMessageContract,
+@@ -86,6 +86,7 @@ import type {
+   LayeredDescriptor,
+   ProjectFacts,
+ } from './contract.js'
++import type { PlanSourceValidation } from './planSourceValidation.js'
+ 
+ type AnySchema = Schema.Codec<any, any, any, any>
+ type AnyFunction = (...args: ReadonlyArray<any>) => any
+@@ -97,7 +98,6 @@ export type ConstructionKind = 'Effect' | 'Layer' | 'Provided'
+ export type AnyDescriptor = DescriptorContract
+ 
+ interface ProvidedChildContract {
+-  readonly get: Effect.Effect<object, any, any>
+   readonly layer?: never
+   readonly construct?: never
+ }
+@@ -114,50 +114,24 @@ export interface SourceContracts<MessageSchema, OutMessageSchema> {
+   ]
+ }
+ 
+-/** @internal Keeps the exact native Composition surface while naming its static graph once. */
++/** @internal Names the exact static graph metadata retained by portable authoring plans. */
+ export interface StaticSourceFields<
+   OwnerValue extends Owner<string>,
+   ModelSchema extends AnySchema,
+   MessageSchema extends AnySchema,
+   OutMessageSchema extends AnySchema | undefined,
+   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+-  Bindings extends ReadonlyArray<unknown>,
+-> extends Pick<
+-  Composition<
+-    OwnerValue,
+-    ModelSchema,
+-    MessageSchema,
+-    OutMessageSchema,
+-    Mounts,
+-    BindingsFromSpecs<Bindings, ModelSchema, MessageSchema, OutMessageSchema>
+-  >,
+-  'makeInit' | 'makeUpdate' | 'makeView' | 'prepareBlock'
+-> {
++  Bindings extends ReadonlyArray<AnyBinding>,
++> extends SourceContracts<MessageSchema, OutMessageSchema> {
+   readonly owner: OwnerValue
+   readonly Model: ModelSchema
+-  readonly Message: Composition<
+-    OwnerValue,
+-    ModelSchema,
+-    MessageSchema,
+-    OutMessageSchema,
+-    Mounts,
+-    BindingsFromSpecs<Bindings, ModelSchema, MessageSchema, OutMessageSchema>
+-  >['Message']
+-  readonly mounts: Composition<
+-    OwnerValue,
+-    ModelSchema,
+-    MessageSchema,
+-    OutMessageSchema,
+-    Mounts,
+-    BindingsFromSpecs<Bindings, ModelSchema, MessageSchema, OutMessageSchema>
+-  >['mounts']
++  readonly Message: DispatchSchemaFor<MessageSchema, Bindings>
++  readonly mounts: readonly [
++    ...Mounts,
++    ...AggregatedChildren<Bindings>['mounts'],
++  ]
+   readonly [LocalMountsTypeId]: Mounts
+-  readonly bindings: BindingsFromSpecs<
+-    Bindings,
+-    ModelSchema,
+-    MessageSchema,
+-    OutMessageSchema
+-  >
++  readonly bindings: Bindings
+ }
+ 
+ /** @internal Names the exact static graph retained by portable authoring plans. */
+@@ -167,7 +141,7 @@ export type StaticSource<
+   MessageSchema extends AnySchema,
+   OutMessageSchema extends AnySchema | undefined,
+   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+-  Bindings extends ReadonlyArray<unknown>,
++  Bindings extends ReadonlyArray<AnyBinding>,
+ > = StaticSourceFields<
+   OwnerValue,
+   ModelSchema,
+@@ -176,7 +150,6 @@ export type StaticSource<
+   Mounts,
+   Bindings
+ > &
+-  SourceContracts<MessageSchema, OutMessageSchema> &
+   (OutMessageSchema extends AnySchema
+     ? Readonly<{ OutMessage: OutMessageSchema }>
+     : Readonly<{ OutMessage?: never }>)
+@@ -237,32 +210,34 @@ export type Validate<
+   Body extends ConstructorBody,
+   HandlerValidation extends 'Indexed' | 'Equivalent' = 'Indexed',
+ > =
+-  Equal<
+-    CanonicalContracts<Body>,
+-    readonly [Owner<Id, true>, ModelSchema, MessageSchema, OutMessageSchema]
+-  > extends true
+-    ? [MissingConnections<Body>] extends [never]
+-      ? [InvalidConnections<Body>] extends [never]
+-        ? ImplementationRecipeArguments<
+-            ExecutableImplementation<Body>,
+-            ImplementationRecipeValidation<
+-              SourceOf<Body>['owner'],
+-              SourceOf<Body>['Model'],
+-              SourceOf<Body>['Message'],
+-              SourceOf<Body> extends {
+-                readonly OutMessage: infer Out extends AnySchema
+-              }
+-                ? Out
+-                : undefined,
+-              SourceOf<Body>[typeof LocalMountsTypeId],
+-              SourceOf<Body>['bindings'],
++  PlanSourceValidation<Body> extends readonly []
++    ? Equal<
++        CanonicalContracts<Body>,
++        readonly [Owner<Id, true>, ModelSchema, MessageSchema, OutMessageSchema]
++      > extends true
++      ? [MissingConnections<Body>] extends [never]
++        ? [InvalidConnections<Body>] extends [never]
++          ? ImplementationRecipeArguments<
+               ExecutableImplementation<Body>,
+-              HandlerValidation
++              ImplementationRecipeValidation<
++                SourceOf<Body>['owner'],
++                SourceOf<Body>['Model'],
++                SourceOf<Body>['Message'],
++                SourceOf<Body> extends {
++                  readonly OutMessage: infer Out extends AnySchema
++                }
++                  ? Out
++                  : undefined,
++                SourceOf<Body>[typeof LocalMountsTypeId],
++                SourceOf<Body>['bindings'],
++                ExecutableImplementation<Body>,
++                HandlerValidation
++              >
+             >
+-          >
+-        : readonly [incompatibleConnections: InvalidConnections<Body>]
+-      : readonly [missingConnections: MissingConnections<Body>]
+-    : readonly [incompatibleDefinition: never]
++          : readonly [incompatibleConnections: InvalidConnections<Body>]
++        : readonly [missingConnections: MissingConnections<Body>]
++      : readonly [incompatibleDefinition: never]
++    : PlanSourceValidation<Body>
+ 
+ /** Completes existing Composition builders through one explicit constructor. */
+ export interface MakeBlock<
+@@ -697,21 +672,31 @@ export interface MakeMapBinding<
+   >
+ }
+ 
++declare const AuthoringSourceTypeId: unique symbol
++
++/** @internal Retains the exact source for graph-aware portable builders. */
++export interface AuthoringSourceEvidence<Source extends AuthoringSource> {
++  readonly [AuthoringSourceTypeId]: () => Source
++}
++
+ /** Static inference is retained; executable dispatch Codecs are available after construction. */
+ export type AuthoringComposition<Source extends AuthoringSource> = Omit<
+   AuthoringCompositionOf<Source>,
+   'Message'
+->
++> &
++  AuthoringSourceEvidence<Source>
+ 
+ /** Derives an extracted view helper's builder from the static authoring graph. */
+ export type ViewBuilderFor<CompositionValue> =
+-  CompositionValue extends Readonly<{
+-    makeInit: AnyFunction
+-  }>
+-    ? CoreViewBuilderFor<
+-        CompositionOfPlan<ReturnType<CompositionValue['makeInit']>>
+-      >
+-    : never
++  CompositionValue extends AuthoringSourceEvidence<infer Source>
++    ? CoreViewBuilderFor<Source>
++    : CompositionValue extends Readonly<{
++          makeInit: AnyFunction
++        }>
++      ? CoreViewBuilderFor<
++          CompositionOfPlan<ReturnType<CompositionValue['makeInit']>>
++        >
++      : never
+ 
+ /** Registers the same static Binding inventory without acquiring child implementations. */
+ export interface MakeComposition<
+@@ -743,8 +728,9 @@ export interface MakeComposition<
+   >(
+     graph: Readonly<{
+       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
+-      bindings?: Bindings & ReadonlyArray<BindingParent<Owner<Id, true>>>
++      bindings?: Bindings
+     }> &
++      ValidateBindingParents<Bindings, Owner<Id, true>> &
+       ValidateChildInitContext<Bindings, ChildContext<ChildInitContextSchema>> &
+       ValidateChildBindings<
+         Bindings,
+diff --git a/packages/foldkit/src/experimental/constructed/bindingContract.ts b/packages/foldkit/src/experimental/constructed/bindingContract.ts
+index e421c4732c..72adc36cd8 100644
+--- a/packages/foldkit/src/experimental/constructed/bindingContract.ts
++++ b/packages/foldkit/src/experimental/constructed/bindingContract.ts
+@@ -23,11 +23,6 @@ import type {
+ import type { InitialBindingEvidence } from '../../block/initialization.js'
+ import type { InstanceEvidence } from '../../block/instanceSchema.js'
+ import type { OccurrenceCreation } from '../../block/occurrence.js'
+-import type {
+-  NormalizedFoldEvidence,
+-  NormalizedOutMessageFold,
+-  RestoredFoldContext,
+-} from '../../block/outMessageFoldContract.js'
+ import type { BindingPolicyEvidence } from '../../block/policyEvidence.js'
+ import type { Qualify } from '../../block/scope.js'
+ import type * as Update from '../../update/index.js'
+@@ -41,10 +36,42 @@ import type {
+   DescriptorContract as AnyDescriptor,
+   ConstructorEffectOf,
+   CoreContract,
++  DescriptorTypeId,
++  PublicFacts,
+ } from './contract.js'
+ 
+ type AnySchema = Schema.Codec<any, any, any, any>
+ 
++/** @internal Names a Binding's selected public child contract in declarations. */
++export interface BindingChildContract<
++  OwnerValue extends AnyDescriptor['owner'],
++  ModelSchema extends AnySchema,
++  MessageSchema extends AnySchema,
++  OutSchema extends AnySchema | undefined,
++  Facts extends PublicFacts,
++  Acquisition,
++> {
++  readonly owner: OwnerValue
++  readonly Model: ModelSchema
++  readonly Message: MessageSchema
++  readonly OutMessage: OutSchema
++  readonly [DescriptorTypeId]: Facts
++  readonly get: Acquisition
++}
++
++/** @internal Checks each Binding's parent ownership without comparing tuple authoring methods. */
++export type ValidateBindingParents<
++  Bindings extends ReadonlyArray<AnyBinding>,
++  ParentOwner,
++> = [Exclude<Bindings[number], BindingParent<ParentOwner>>] extends [never]
++  ? unknown
++  : Readonly<{
++      'Block child bindings must belong to this Definition': Exclude<
++        Bindings[number],
++        BindingParent<ParentOwner>
++      >
++    }>
++
+ type ChildInitContext<SchemaValue> = SchemaValue extends AnySchema
+   ? SchemaValue['Type']
+   : never
+@@ -111,7 +138,7 @@ export interface DescriptorBindingFields<
+       OutSchema,
+       Config,
+       InitSchema,
+-      Policy
++      never
+     >['embedView']
+   readonly connect: ConnectExecutable<
+     CoreContract<Child>,
+@@ -447,7 +474,6 @@ export type DescriptorBindingMember<
+       >
+     >
+   > &
+-  DescriptorBindingSpec<Child, Config, InitSchema, Kind, ParentOwner, Policy> &
+   InitialEvidenceOfBinding<
+     NativeDescriptorBinding<
+       Child,
+@@ -496,7 +522,14 @@ export type DescriptorBinding<
+   Policy = DefaultBindingPolicy<Child>,
+ > = Child extends AnyDescriptor
+   ? DescriptorBindingMember<
+-      Child,
++      BindingChildContract<
++        Child['owner'],
++        Child['Model'],
++        Child['Message'],
++        Child['OutMessage'],
++        Child[typeof DescriptorTypeId],
++        ConstructorEffectOf<Child>
++      >,
+       ModelSchema,
+       MessageSchema,
+       OutSchema,
+@@ -511,143 +544,3 @@ export type DescriptorBinding<
+         : never
+     >
+   : never
+-
+-declare const DescriptorBindingSpecTypeId: unique symbol
+-
+-/** @internal Retains one validated child relationship without repeating its parent Schema contracts. */
+-export interface DescriptorBindingSpec<
+-  Child extends AnyDescriptor,
+-  Config,
+-  InitSchema extends AnySchema | undefined,
+-  Kind extends ConstructionKind,
+-  ParentOwner,
+-  Policy,
+-> {
+-  readonly [DescriptorBindingSpecTypeId]: readonly [
+-    Child,
+-    Config,
+-    InitSchema,
+-    Kind,
+-    ParentOwner,
+-    Policy,
+-  ]
+-}
+-
+-declare const FoldOnlyPolicySpecTypeId: unique symbol
+-
+-/** @internal Stores an exact helper-only fold policy without repeating its parent Model. */
+-export interface FoldOnlyPolicySpec<ChildOutMessage, Context, Data> {
+-  readonly [FoldOnlyPolicySpecTypeId]: readonly [ChildOutMessage, Context, Data]
+-}
+-
+-type ExactPolicy<Left, Right> =
+-  (<Value>() => Value extends Left ? 1 : 2) extends <
+-    Value,
+-  >() => Value extends Right ? 1 : 2
+-    ? true
+-    : false
+-
+-type PolicySpecOf<Policy, Model> =
+-  Policy extends Readonly<{ fold: infer Fold }>
+-    ? ExactPolicy<Policy, Readonly<{ fold: Fold }>> extends true
+-      ? Fold extends NormalizedFoldEvidence<
+-          infer ChildOutMessage,
+-          infer Context,
+-          infer Data
+-        >
+-        ? ExactPolicy<
+-            Fold,
+-            NormalizedOutMessageFold<
+-              Model,
+-              ChildOutMessage,
+-              RestoredFoldContext<Model, Context>,
+-              Data
+-            >
+-          > extends true
+-          ? FoldOnlyPolicySpec<ChildOutMessage, Context, Data>
+-          : Policy
+-        : Policy
+-      : Policy
+-    : Policy
+-
+-type PolicyFromSpec<Policy, Model> =
+-  Policy extends FoldOnlyPolicySpec<
+-    infer ChildOutMessage,
+-    infer Context,
+-    infer Data
+-  >
+-    ? Readonly<{
+-        fold: NormalizedOutMessageFold<
+-          Model,
+-          ChildOutMessage,
+-          RestoredFoldContext<Model, Context>,
+-          Data
+-        >
+-      }>
+-    : Policy
+-
+-type BindingSpecOf<Value> =
+-  Value extends DescriptorBindingSpec<
+-    infer Child,
+-    infer Config,
+-    infer InitSchema,
+-    infer Kind,
+-    infer ParentOwner,
+-    infer Policy
+-  >
+-    ? DescriptorBindingSpec<
+-        Child,
+-        Config,
+-        InitSchema,
+-        Kind,
+-        ParentOwner,
+-        PolicySpecOf<Policy, ParentModelOfBinding<Value>>
+-      >
+-    : Value
+-
+-/** @internal Preserves each relationship independently while retaining tuple mutability and union correlations. */
+-export type BindingSpecs<Bindings extends ReadonlyArray<unknown>> = {
+-  [Index in keyof Bindings]: BindingSpecOf<Bindings[Index]>
+-}
+-
+-type BindingFromSpec<
+-  Value,
+-  ModelSchema extends AnySchema,
+-  MessageSchema extends AnySchema,
+-  OutSchema extends AnySchema | undefined,
+-> =
+-  Value extends DescriptorBindingSpec<
+-    infer Child,
+-    infer Config,
+-    infer InitSchema,
+-    infer Kind,
+-    infer ParentOwner,
+-    infer Policy
+-  >
+-    ? DescriptorBinding<
+-        Child,
+-        ModelSchema,
+-        MessageSchema,
+-        OutSchema,
+-        Config,
+-        InitSchema,
+-        Kind,
+-        ParentOwner,
+-        PolicyFromSpec<Policy, ModelSchema['Type']>
+-      >
+-    : Extract<Value, AnyBinding>
+-
+-/** @internal Restores complete Binding contracts against the same validated parent Schema contracts. */
+-export type BindingsFromSpecs<
+-  Specs extends ReadonlyArray<unknown>,
+-  ModelSchema extends AnySchema,
+-  MessageSchema extends AnySchema,
+-  OutSchema extends AnySchema | undefined,
+-> = {
+-  [Index in keyof Specs]: BindingFromSpec<
+-    Specs[Index],
+-    ModelSchema,
+-    MessageSchema,
+-    OutSchema
+-  >
+-}
+diff --git a/packages/foldkit/src/experimental/constructed/contract.ts b/packages/foldkit/src/experimental/constructed/contract.ts
+index e861bd1dfe..cc14586135 100644
+--- a/packages/foldkit/src/experimental/constructed/contract.ts
++++ b/packages/foldkit/src/experimental/constructed/contract.ts
+@@ -66,6 +66,8 @@ declare const PrivateDeliveryTypeId: unique symbol
+ declare const PrivateEncodedDeliveryTypeId: unique symbol
+ declare const InternalExecutionTypeId: unique symbol
+ declare const GraphTypeId: unique symbol
++/** @internal Supplies constructor typing for a unified Block declaration. */
++export declare const DeclaredBlockReaderTypeId: unique symbol
+ declare const ImplementationSubscriptionsTypeId: unique symbol
+ 
+ /** Identifies a Layer-owned executable graph without exposing its Context key. */
+@@ -74,12 +76,14 @@ export interface Graph<
+   ModelSchema,
+   MessageSchema,
+   OutMessageSchema,
++  Facts extends PublicFacts = PublicFacts,
+ > {
+   readonly [GraphTypeId]: readonly [
+     OwnerValue,
+     ModelSchema,
+     MessageSchema,
+     OutMessageSchema,
++    Facts,
+   ]
+ }
+ 
+@@ -110,7 +114,7 @@ export interface LayeredDescriptor<
+   readonly Message: LocalMessageSchema
+   readonly OutMessage: OutMessageSchema
+   readonly layer: Layer.Layer<
+-    Graph<OwnerValue, ModelSchema, LocalMessageSchema, OutMessageSchema>,
++    Graph<OwnerValue, ModelSchema, LocalMessageSchema, OutMessageSchema, Facts>,
+     ConstructorError,
+     Exclude<ConstructorRequirements, Scope.Scope | Layer.CurrentMemoMap>
+   >
+@@ -123,7 +127,7 @@ export interface LayeredDescriptor<
+       Facts
+     >,
+     never,
+-    Graph<OwnerValue, ModelSchema, LocalMessageSchema, OutMessageSchema>
++    Graph<OwnerValue, ModelSchema, LocalMessageSchema, OutMessageSchema, Facts>
+   >
+   /** Supplies graph-construction Services under the graph Layer's resource lifetime.
+    * Returns a new passive descriptor with canonical Schemas and an isolated
+@@ -725,25 +729,29 @@ interface DescriptorContracts extends DefinitionContract {
+ }
+ 
+ /** @internal Common bound for descriptors with a known construction owner. */
+-export type DescriptorContract = DescriptorContracts &
+-  (
+-    | Readonly<{ construct: () => Effect.Effect<object, any, any> }>
+-    | Readonly<{ get: Effect.Effect<object, any, any> }>
+-  )
++export type DescriptorContract = DescriptorContracts
+ 
+ /** @internal Preserves construction channels for native, Layer-owned, and provided children. */
+ export type ConstructorEffectOf<Value> =
+-  Value extends Readonly<{ layer: infer GraphLayer extends Layer.Any }>
+-    ? Effect.Effect<
+-        object,
+-        Layer.Error<GraphLayer>,
+-        Layer.Services<GraphLayer> | Scope.Scope | Layer.CurrentMemoMap
+-      >
+-    : Value extends Readonly<{ construct: () => infer Construction }>
+-      ? Construction
+-      : Value extends Readonly<{ get: infer Construction }>
++  Value extends Readonly<{
++    [DeclaredBlockReaderTypeId]: infer Construction extends Effect.Effect<
++      object,
++      any,
++      any
++    >
++  }>
++    ? Construction
++    : Value extends Readonly<{ layer: infer GraphLayer extends Layer.Any }>
++      ? Effect.Effect<
++          object,
++          Layer.Error<GraphLayer>,
++          Layer.Services<GraphLayer> | Scope.Scope | Layer.CurrentMemoMap
++        >
++      : Value extends Readonly<{ construct: () => infer Construction }>
+         ? Construction
+-        : never
++        : Value extends Readonly<{ get: infer Construction }>
++          ? Construction
++          : never
+ 
+ /**
+  * Internal shorthand for assignability checks. Factory signatures spell the
+diff --git a/packages/foldkit/src/experimental/constructed/runtime.ts b/packages/foldkit/src/experimental/constructed/runtime.ts
+index c0153d3053..c063a8aa9e 100644
+--- a/packages/foldkit/src/experimental/constructed/runtime.ts
++++ b/packages/foldkit/src/experimental/constructed/runtime.ts
+@@ -343,6 +343,7 @@ const makeDescriptor = (
+     )
+     registerRootConstruction(descriptor, {
+       layer,
++      readForTesting: descriptor.get,
+       read: Effect.map(
+         descriptor.get,
+         executable => acquisitionOf(executable).block,
+diff --git a/packages/foldkit/src/experimental/contracted/contract.ts b/packages/foldkit/src/experimental/contracted/contract.ts
+index bbf1523c07..ff487459bc 100644
+--- a/packages/foldkit/src/experimental/contracted/contract.ts
++++ b/packages/foldkit/src/experimental/contracted/contract.ts
+@@ -31,6 +31,10 @@ import type {
+ } from '../../block/operation.js'
+ import type { MakeOutMessageStep } from '../../block/outMessageStep.js'
+ import type { Owner } from '../../block/owner.js'
++export type {
++  ImplementationFacts,
++  SelectedImplementationFacts,
++} from './implementationFacts.js'
+ import type {
+   HandlerOfHostDefinition,
+   HandlerRequirements,
+@@ -41,17 +45,17 @@ import type { ManagedResource, ServiceOf } from '../../managedResource/index.js'
+ import type * as Mount from '../../mount/index.js'
+ import type { VNode } from '../../vdom.js'
+ import type {
+-  AuthoringComposition,
+-  BindingParent,
++  AuthoringSourceEvidence,
+   Definition as ConstructedDefinition,
+   ConstructorBody,
+   SourceOf,
+   StaticSource,
+   Validate,
+ } from '../constructed/authoring.js'
+-import type { BindingSpecs } from '../constructed/bindingContract.js'
++import type { ValidateBindingParents } from '../constructed/bindingContract.js'
+ import type {
+   DescriptorTypeId,
++  DeclaredBlockReaderTypeId,
+   Executable,
+   Graph,
+   GuaranteedLayerOutputs,
+@@ -333,7 +337,8 @@ type DeclaredView<Config> = [Channel<Config, 'view'>] extends [never]
+       }>
+     ? ViewContract<ViewInputs<Channel<Config, 'view'>>, Kind>
+     : undefined
+-type OutValue<SchemaValue> = SchemaValue extends AnySchema
++/** @internal Retains the decoded public OutMessage channel across authoring modules. */
++export type OutValue<SchemaValue> = SchemaValue extends AnySchema
+   ? SchemaValue['Type']
+   : never
+ type PublishedMounts<Config> = Channel<
+@@ -341,7 +346,8 @@ type PublishedMounts<Config> = Channel<
+   'mounts',
+   readonly []
+ >
+-type PublishedMountValidation<Source, Config> = [
++/** @internal Checks the declared Mount registry for both completion surfaces. */
++export type PublishedMountValidation<Source, Config> = [
+   Exclude<
+     ElementOf<PublishedMounts<Config>>,
+     Source extends Readonly<{
+@@ -440,15 +446,20 @@ declare const ContractGraphTypeId: unique symbol
+ 
+ /** @internal Retains ordinary implementation readiness without widening family contracts. */
+ export declare const PendingHostHandlersTypeId: unique symbol
+-
+ /** An implementation capability retaining every independently declared public channel. */
+ export interface ContractGraph<
+   OwnerValue,
+   ModelSchema,
+   MessageSchema,
+   OutMessageSchema,
+-  Facts,
+-> extends Graph<OwnerValue, ModelSchema, MessageSchema, OutMessageSchema> {
++  Facts extends PublicFacts,
++> extends Graph<
++  OwnerValue,
++  ModelSchema,
++  MessageSchema,
++  OutMessageSchema,
++  Facts
++> {
+   readonly [ContractGraphTypeId]: (facts: Facts) => Facts
+ }
+ 
+@@ -556,7 +567,8 @@ type PendingHandlerFacts<Facts extends PublicFacts, Pending> = [
+           | HandlerOfHostDefinition<Pending>
+       }>
+ 
+-type ValidateHandlerSelection<
++/** @internal Checks selected original host providers against the same declared bounds. */
++export type ValidateHandlerSelection<
+   Facts extends PublicFacts,
+   Handlers extends Layer.Any,
+ > =
+@@ -579,12 +591,18 @@ type WithOperations<Body extends ConstructorBody, Config> = Omit<
+ > &
+   Readonly<{ operations: ContractOperations<Config, Body> }>
+ 
+-type NativeBody<Body extends ConstructorBody, Config> = ([
+-  InputUpdateOf<Body>,
+-] extends [never]
+-  ? Body
+-  : Omit<Body, 'inMessageUpdate'> &
+-      Pick<Body, 'children' | 'init' | 'update'>) &
++type NativeBodyFields<Body extends ConstructorBody> = Body extends unknown
++  ? Pick<Body, 'children' | 'init' | 'update'> &
++      ([InputUpdateOf<Body>] extends [never]
++        ? Body
++        : Omit<Body, 'inMessageUpdate'>)
++  : never
++
++/** @internal Lowers the original constructor Body for native completion. */
++export type NativeBody<
++  Body extends ConstructorBody,
++  Config,
++> = NativeBodyFields<Body> &
+   Readonly<{ operations: ContractOperations<Config, Body> }>
+ 
+ type InputUpdateOf<Body> =
+@@ -592,7 +610,11 @@ type InputUpdateOf<Body> =
+     ? InputUpdate
+     : never
+ 
+-type InMessageUpdateBodyValidation<Body extends ConstructorBody, Config> =
++/** @internal Checks the original InMessage plan for both completion surfaces. */
++export type InMessageUpdateBodyValidation<
++  Body extends ConstructorBody,
++  Config,
++> =
+   Config extends Readonly<{ InMessage: AnySchema }>
+     ? InputUpdateOf<Body> extends Plan<
+         infer InputUpdate,
+@@ -625,44 +647,53 @@ type NativeFacts<
+   Extract<PlanOutput<Body['update']>, AnyFunction>
+ >
+ 
+-type RuntimeClosedFacts<OwnerValue, Facts extends PublicFacts> = Omit<
+-  Facts,
+-  | 'init'
+-  | 'update'
+-  | 'operations'
+-  | 'effectsLayerRequirements'
+-  | 'runtimeServices'
+-> &
+-  Readonly<{
+-    init: ResultContract<
+-      Facts['init']['outMessage'],
+-      | Exclude<Facts['init']['requirements'], Facts['runtimeServices']>
+-      | RuntimeCapability<OwnerValue>
+-    >
+-    update: ResultContract<
+-      Facts['update']['outMessage'],
+-      | Exclude<Facts['update']['requirements'], Facts['runtimeServices']>
+-      | RuntimeCapability<OwnerValue>
+-    >
+-    operations: {
+-      readonly [Name in keyof Facts['operations']]: OperationContract<
+-        Facts['operations'][Name]['args'],
+-        Facts['operations'][Name]['outMessage'],
+-        | Exclude<
+-            Facts['operations'][Name]['requirements'],
+-            Facts['runtimeServices']
+-          >
+-        | RuntimeCapability<OwnerValue>
+-      >
+-    }
+-    effectsLayerRequirements: Exclude<
+-      Facts['effectsLayerRequirements'],
+-      Facts['runtimeServices']
+-    >
+-    runtimeServices: RuntimeCapability<OwnerValue>
+-  }>
++type ClosedResult<
++  OwnerValue,
++  Result extends ResultContract<unknown, unknown>,
++  RuntimeServices,
++> = ResultContract<
++  Result['outMessage'],
++  | Exclude<Result['requirements'], RuntimeServices>
++  | RuntimeCapability<OwnerValue>
++>
+ 
+-type ActualFacts<
++type RuntimeClosedFacts<OwnerValue, Facts extends PublicFacts> = {
++  readonly [Key in keyof Facts]: Key extends 'init'
++    ? ClosedResult<OwnerValue, Facts['init'], Facts['runtimeServices']>
++    : Key extends 'update'
++      ? ClosedResult<OwnerValue, Facts['update'], Facts['runtimeServices']>
++      : Key extends 'updates'
++        ? {
++            readonly [Tag in keyof Facts['updates']]: ClosedResult<
++              OwnerValue,
++              Facts['updates'][Tag],
++              Facts['runtimeServices']
++            >
++          }
++        : Key extends 'operations'
++          ? {
++              readonly [Name in keyof Facts['operations']]: OperationContract<
++                Facts['operations'][Name]['args'],
++                Facts['operations'][Name]['outMessage'],
++                | Exclude<
++                    Facts['operations'][Name]['requirements'],
++                    Facts['runtimeServices']
++                  >
++                | RuntimeCapability<OwnerValue>
++              >
++            }
++          : Key extends 'effectsLayerRequirements'
++            ? Exclude<
++                Facts['effectsLayerRequirements'],
++                Facts['runtimeServices']
++              >
++            : Key extends 'runtimeServices'
++              ? RuntimeCapability<OwnerValue>
++              : Facts[Key]
++}
++
++/** @internal Projects exact runtime-closed facts for both completion surfaces. */
++export type ActualFacts<
+   MessageSchema extends AnySchema,
+   Body extends ConstructorBody,
+   Config,
+@@ -783,17 +814,20 @@ type ContractValidation<
+     ]
+ 
+ type KeysOfUnion<Value> = Value extends unknown ? keyof Value : never
+-type ValidateConstructorBody<Body> =
++/** @internal Retains the original constructor field restrictions. */
++export type ValidateConstructorBody<Body> =
+   'operations' extends KeysOfUnion<Body> ? never : unknown
+ 
+-type HostDefinitions<Body> =
++/** @internal Retains the original pending host definitions. */
++export type HostDefinitions<Body> =
+   Body extends Readonly<{
+     hostHandlers: infer Definitions extends ReadonlyArray<unknown>
+   }>
+     ? Definitions[number]
+     : never
+ 
+-type WithoutPendingHandlers<Facts extends PublicFacts, Handlers> = Omit<
++/** @internal Removes only the handler requirements supplied by the original host recipe. */
++export type WithoutPendingHandlers<Facts extends PublicFacts, Handlers> = Omit<
+   Facts,
+   'init' | 'update' | 'operations' | 'hostRequirements' | 'programRequirements'
+ > &
+@@ -831,7 +865,8 @@ type PendingBounds<Facts extends PublicFacts, Config> = Omit<
+     hostRequirements: never
+   }>
+ 
+-type HostContractValidation<
++/** @internal Checks original host readiness against the declared facts. */
++export type HostContractValidation<
+   Actual extends PublicFacts,
+   Declared extends PublicFacts,
+   Hosts,
+@@ -875,25 +910,27 @@ export interface MakeFamilyBlock<
+   <const Body extends ConstructorBody, Error, Requirements>(
+     constructor: Effect.Effect<Body, Error, Requirements> &
+       ValidateConstructorBody<Body>,
+-    ...validation: readonly [
+-      ...Validate<
+-        NominalId<Id, Config['key']>,
+-        ModelSchema,
+-        MessageSchema,
+-        OutMessageSchema,
+-        NativeBody<NoInfer<Body>, Config>,
+-        'Equivalent'
+-      >,
+-      ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
+-      ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
+-      ...FamilyValidation<
+-        MessageSchema,
+-        OutMessageSchema,
+-        Config,
+-        NoInfer<Body>,
+-        Owner<NominalId<Id, Config['key']>, true>
+-      >,
+-    ]
++    ...validation: NoInfer<
++      readonly [
++        ...Validate<
++          NominalId<Id, Config['key']>,
++          ModelSchema,
++          MessageSchema,
++          OutMessageSchema,
++          NativeBody<Body, Config>,
++          'Equivalent'
++        >,
++        ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
++        ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
++        ...FamilyValidation<
++          MessageSchema,
++          OutMessageSchema,
++          Config,
++          NoInfer<Body>,
++          Owner<NominalId<Id, Config['key']>, true>
++        >,
++      ]
++    >
+   ): FamilyRecipe<
+     Contract<
+       Owner<NominalId<Id, Config['key']>, true>,
+@@ -931,27 +968,29 @@ export interface MakeBlock<
+   <const Body extends ConstructorBody, Error, Requirements>(
+     constructor: Effect.Effect<Body, Error, Requirements> &
+       ValidateConstructorBody<Body>,
+-    ...validation: readonly [
+-      ...Validate<
+-        NominalId<Id, Config['key']>,
+-        ModelSchema,
+-        MessageSchema,
+-        OutMessageSchema,
+-        NativeBody<NoInfer<Body>, Config>
+-      >,
+-      ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
+-      ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
+-      ...HostContractValidation<
+-        ActualFacts<MessageSchema, NoInfer<Body>, Config>,
+-        DeclaredFacts<
++    ...validation: NoInfer<
++      readonly [
++        ...Validate<
++          NominalId<Id, Config['key']>,
++          ModelSchema,
+           MessageSchema,
+           OutMessageSchema,
+-          Config,
+-          Owner<NominalId<Id, Config['key']>, true>
++          NativeBody<Body, Config>
+         >,
+-        HostDefinitions<NoInfer<Body>>
+-      >,
+-    ]
++        ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
++        ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
++        ...HostContractValidation<
++          ActualFacts<MessageSchema, NoInfer<Body>, Config>,
++          DeclaredFacts<
++            MessageSchema,
++            OutMessageSchema,
++            Config,
++            Owner<NominalId<Id, Config['key']>, true>
++          >,
++          HostDefinitions<NoInfer<Body>>
++        >,
++      ]
++    >
+   ): Block<
+     Owner<NominalId<Id, Config['key']>, true>,
+     ModelSchema,
+@@ -1104,7 +1143,11 @@ export interface MakeView<Source extends AuthoringSource, Inputs> {
+ export type ContractComposition<
+   Source extends AuthoringSource,
+   Config extends ContractConfiguration,
+-> = Omit<AuthoringComposition<Source>, 'makeInit' | 'makeUpdate' | 'makeView'> &
++> = Omit<
++  Source,
++  'Message' | 'prepareBlock' | 'makeInit' | 'makeUpdate' | 'makeView'
++> &
++  AuthoringSourceEvidence<Source> &
+   Readonly<{
+     makeInit: MakeInit<Source, InputOf<Config['Init']>>
+     makeView: MakeView<Source, ViewInputs<Channel<Config, 'view'>>>
+@@ -1147,7 +1190,7 @@ export interface MakeComposition<
+       MessageSchema,
+       OutMessageSchema,
+       readonly [],
+-      BindingSpecs<readonly []>
++      readonly []
+     >,
+     Readonly<{ key: Config['key']; Init: Config['Init'] }> &
+       (Config extends Readonly<{ Context: infer Context }>
+@@ -1170,9 +1213,12 @@ export interface MakeComposition<
+   >(
+     graph: Readonly<{
+       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
+-      bindings?: Bindings &
+-        ReadonlyArray<BindingParent<Owner<NominalId<Id, Config['key']>, true>>>
++      bindings?: Bindings
+     }> &
++      ValidateBindingParents<
++        Bindings,
++        Owner<NominalId<Id, Config['key']>, true>
++      > &
+       ValidateChildInitContext<Bindings, OutValue<ChildInitContextSchema>> &
+       ValidateChildBindings<
+         Bindings,
+@@ -1187,7 +1233,7 @@ export interface MakeComposition<
+       MessageSchema,
+       OutMessageSchema,
+       Mounts,
+-      BindingSpecs<Bindings>
++      Bindings
+     >,
+     Readonly<{ key: Config['key']; Init: Config['Init'] }> &
+       (Config extends Readonly<{ Context: infer Context }>
+@@ -1205,7 +1251,8 @@ export interface MakeComposition<
+   >
+ }
+ 
+-interface DefinitionFields<
++/** @internal Retains the shared declared identity and reader slots. */
++export interface DefinitionFields<
+   Id extends string,
+   ModelSchema extends AnySchema,
+   MessageSchema extends AnySchema,
+@@ -1241,6 +1288,28 @@ interface DefinitionFields<
+   | 'makeMountStream'
+   | 'makeResource'
+ > {
++  readonly [DescriptorTypeId]: DeclaredFacts<
++    MessageSchema,
++    OutMessageSchema,
++    Config,
++    Owner<NominalId<Id, Config['key']>, true>
++  >
++  readonly [DeclaredBlockReaderTypeId]: Effect.Effect<
++    object,
++    never,
++    ContractGraph<
++      Owner<NominalId<Id, Config['key']>, true>,
++      ModelSchema,
++      MessageSchema,
++      OutMessageSchema,
++      DeclaredFacts<
++        MessageSchema,
++        OutMessageSchema,
++        Config,
++        Owner<NominalId<Id, Config['key']>, true>
++      >
++    >
++  >
+   readonly contract: Contract<
+     Owner<NominalId<Id, Config['key']>, true>,
+     ModelSchema,
+diff --git a/packages/foldkit/src/experimental/contracted/runtime.ts b/packages/foldkit/src/experimental/contracted/runtime.ts
+index 0c775ef896..75812f3208 100644
+--- a/packages/foldkit/src/experimental/contracted/runtime.ts
++++ b/packages/foldkit/src/experimental/contracted/runtime.ts
+@@ -2,18 +2,26 @@ import {
+   Context,
+   Effect,
+   Layer,
++  Option,
+   Predicate,
+   Schema,
+   SchemaAST,
+   Scope,
+ } from 'effect'
+ 
++import type { AnyBlock } from '../../block/definition.js'
+ import { copyBlockInMessageUpdate } from '../../block/inMessageUpdate.js'
+ import { makeInstanceSchema } from '../../block/instanceSchema.js'
+ import { isOperationMessageConstructor } from '../../block/operation.js'
+ import { compositionOperationGraphOf } from '../../block/operationGraph.js'
+ import { registerRuntimeAcquisition } from '../../block/runtimeCapability.js'
+-import { registerRootConstruction } from '../../runtime/rootBlock.js'
++import {
++  registerRootConstruction,
++  rootConstructionOf,
++  selectLayeredRoot,
++  type DeclaredRootBlock,
++  type SelectedLayeredRoot,
++} from '../../runtime/rootBlock.js'
+ import {
+   type CompileInMessageUpdate,
+   constructAuthoredImplementation,
+@@ -48,24 +56,28 @@ import {
+ 
+ type AnySchema = Schema.Codec<any, any, any, any>
+ type AnyFunction = (...args: ReadonlyArray<any>) => any
+-type Declaration = ContractConfiguration &
++/** @internal Retains the shared exact declaration configuration. */
++export type Declaration = ContractConfiguration &
+   Readonly<{
+     Model: AnySchema
+     Message: AnySchema
+     OutMessage?: AnySchema
+     ChildInitContext?: AnySchema
+   }>
+-type OptionalSchema<Config, Key extends PropertyKey> =
++/** @internal Selects the original optional Schema contract. */
++export type OptionalSchema<Config, Key extends PropertyKey> =
+   Config extends Readonly<Record<Key, infer Value extends AnySchema>>
+     ? Value
+     : undefined
+ 
+-type IsUnion<Value, Whole = Value> = Value extends unknown
++/** @internal Retains the declaration key and identifier restrictions. */
++export type IsUnion<Value, Whole = Value> = Value extends unknown
+   ? [Whole] extends [Value]
+     ? false
+     : true
+   : never
+-type LiteralContractId<Id extends string> = [Id] extends ['']
++/** @internal Retains the original literal identifier restriction. */
++export type LiteralContractId<Id extends string> = [Id] extends ['']
+   ? never
+   : {} extends Record<Id, unknown>
+     ? never
+@@ -89,6 +101,14 @@ const handlerSelections = new WeakMap<
+   (handlers: Layer.Any, declaredHosts?: ReadonlyArray<unknown>) => object
+ >()
+ let nextServiceKey = 0
++const declaredBlockReaders = new WeakMap<
++  object,
++  Effect.Effect<AnyBlock, never, any>
++>()
++const declaredExecutableReaders = new WeakMap<
++  object,
++  Effect.Effect<object, never, unknown>
++>()
+ 
+ const snapshotArray = (
+   value: unknown,
+@@ -412,6 +432,7 @@ export const makeDefinitionRuntime = (
+   config: Declaration,
+   isOrdinaryDeclaration = true,
+   sourceDefinition?: object,
++  publicDescriptor: 'Contract' | 'Block' = 'Contract',
+ ): any => {
+   config = snapshotDefinitionConfiguration(config)
+ 
+@@ -460,6 +481,12 @@ export const makeDefinitionRuntime = (
+   const service = Context.Service<unknown, object>(
+     `foldkit/ContractedBlock/${nextServiceKey++}/${id}`,
+   )
++  const hostSelectionService = Context.Service<Layer.Any, object>(
++    `foldkit/HostSelection/${nextServiceKey++}/${id}`,
++  )
++  const implementationFactsService = Context.Service<unknown, object>(
++    `foldkit/ImplementationFacts/${nextServiceKey++}/${id}`,
++  )
+   const contract = Object.freeze({
+     owner: definition.owner,
+     Model: config.Model,
+@@ -483,6 +510,8 @@ export const makeDefinitionRuntime = (
+     () => Effect.serviceOption(service),
+   )
+ 
++  let declaredBlock: object
++
+   const complete = (
+     constructor: Effect.Effect<any, any, any>,
+     provision: (
+@@ -490,6 +519,7 @@ export const makeDefinitionRuntime = (
+     ) => Layer.Layer<any, any, any> = layer => layer,
+     selectedHandlers?: Layer.Any,
+     declaredHosts?: ReadonlyArray<unknown>,
++    allowPendingHandlers = false,
+   ): any => {
+     const layer = provision(
+       Layer.fromBuildMemo((memoMap, scope) =>
+@@ -500,6 +530,12 @@ export const makeDefinitionRuntime = (
+               Effect.provideService(Layer.CurrentMemoMap, memoMap),
+               Effect.flatMap(constructorBody =>
+                 Effect.gen(function* () {
++                  const maybeLayerHandlers =
++                    yield* Effect.serviceOption(hostSelectionService)
++                  const effectiveHandlers =
++                    selectedHandlers ??
++                    Option.getOrUndefined(maybeLayerHandlers)
++
+                   if (Object.hasOwn(constructorBody, 'operations')) {
+                     throw new Error(
+                       '[foldkit] Contract operations are declared once on the Definition.',
+@@ -585,13 +621,16 @@ export const makeDefinitionRuntime = (
+                   }
+ 
+                   const implementation =
+-                    selectedHandlers === undefined
++                    effectiveHandlers === undefined
+                       ? authoredImplementation
+-                      : authoredImplementation.provideHandlers(selectedHandlers)
++                      : authoredImplementation.provideHandlers(
++                          effectiveHandlers,
++                        )
+ 
+                   if (
+                     isOrdinaryDeclaration &&
+-                    implementation.hostHandlers.length !== 0
++                    implementation.hostHandlers.length !== 0 &&
++                    !allowPendingHandlers
+                   ) {
+                     throw new Error(
+                       '[foldkit] A Block implementation must resolve its original host handlers with provideHandlers before acquisition.',
+@@ -639,13 +678,17 @@ export const makeDefinitionRuntime = (
+                     }),
+                   )
+                   const executable = wrapExecutable(
+-                    contract,
++                    publicDescriptor === 'Block' ? declaredBlock : contract,
+                     implementation,
+                     true,
+                     { graph, isCurrent: () => isActive },
+                   )
+ 
+-                  return Context.make(service, executable)
++                  return Context.add(
++                    Context.make(service, executable),
++                    implementationFactsService,
++                    executable,
++                  )
+                 }),
+               ),
+             ),
+@@ -663,17 +706,19 @@ export const makeDefinitionRuntime = (
+             Layer.provide(Layer.fresh(provision(current)), dependencies),
+           selectedHandlers,
+           declaredHosts,
++          allowPendingHandlers,
+         ),
+       provideHandlers: (handlers: Layer.Any) =>
+         selectContractHandlers(block, handlers, declaredHosts),
+     })
+ 
+     handlerSelections.set(block, (handlers, hosts) =>
+-      complete(constructor, provision, handlers, hosts),
++      complete(constructor, provision, handlers, hosts, allowPendingHandlers),
+     )
+ 
+     registerRootConstruction(block, {
+       layer,
++      readForTesting: block.get,
+       read: Effect.map(
+         block.get,
+         executable => acquisitionOf(executable).block,
+@@ -683,8 +728,9 @@ export const makeDefinitionRuntime = (
+     return block
+   }
+ 
+-  return {
++  const block = {
+     ...definition,
++    Instance: contract.Instance,
+     InMessage: config.InMessage,
+     contract,
+     makeComposition: (graph: unknown = {}) => {
+@@ -702,5 +748,72 @@ export const makeDefinitionRuntime = (
+       })
+     },
+     makeBlock: complete,
++    makeLayer: (constructor: Effect.Effect<any, any, any>) =>
++      complete(constructor).layer,
++    provideHandlers: (handlers: Layer.Any) => (layer: Layer.Any) => {
++      if (!Layer.isLayer(handlers) || !Layer.isLayer(layer)) {
++        throw new Error(
++          '[foldkit] Block handler selection requires Effect Layers.',
++        )
++      }
++
++      return Layer.provide(layer, Layer.succeed(hostSelectionService, handlers))
++    },
++  }
++
++  declaredBlock = block
++
++  registerDeclaredDescriptor(
++    block,
++    () => contract.get,
++    () => Effect.serviceOption(service),
++  )
++  declaredBlockReaders.set(
++    block,
++    Effect.map(contract.get, executable => acquisitionOf(executable).block),
++  )
++  declaredExecutableReaders.set(block, contract.get)
++
++  return block
++}
++
++/** @internal Pairs an original public Block with one selected ordinary Layer. */
++export const selectLayer = <
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++>(
++  block: BlockValue,
++  layer: LayerValue,
++): SelectedLayeredRoot<BlockValue, LayerValue> => {
++  const read = declaredBlockReaders.get(block)
++
++  if (read === undefined) {
++    throw new Error('[foldkit] Layer selection requires an original Block.')
+   }
++
++  return selectLayeredRoot(block, layer, read)
++}
++
++/** @internal Selects the wrapped executable for scoped Story and Scene fixtures. */
++export const selectLayerForTesting = <
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++>(
++  block: BlockValue,
++  layer: LayerValue,
++): SelectedLayeredRoot<BlockValue, LayerValue> => {
++  const selected = selectLayer(block, layer)
++  const read = declaredExecutableReaders.get(block)
++  const construction = rootConstructionOf(selected)
++
++  if (read === undefined || construction === undefined) {
++    throw new Error('[foldkit] Layer selection requires an original Block.')
++  }
++
++  registerRootConstruction(selected, {
++    ...construction,
++    readForTesting: read,
++  })
++
++  return selected
+ }
+diff --git a/packages/foldkit/src/experimental/hybrid/authoring.ts b/packages/foldkit/src/experimental/hybrid/authoring.ts
+index 55ac00cdce..471b8ccb34 100644
+--- a/packages/foldkit/src/experimental/hybrid/authoring.ts
++++ b/packages/foldkit/src/experimental/hybrid/authoring.ts
+@@ -3,6 +3,7 @@ import { Predicate, type Schema } from 'effect'
+ import type { AnyBinding, RequirementsOfBindings } from '../../block/binding.js'
+ import type { GeneratedEnvelopeOf } from '../../block/childEnvelope.js'
+ import type {
++  DefinedUpdate,
+   AuthoredViewInputs,
+   OwnedAuthoredView,
+   OwnedDocumentView,
+@@ -13,7 +14,7 @@ import type {
+   AuthoredMessageTag,
+   AuthoredUpdateCases,
+   CaseOutputChannels,
+-  CompositionDefinedUpdate,
++  CompositionRouteChannels,
+   ContextualUpdateCases,
+   ContextualUpdateCasesFactory,
+   ContextualUpdateOutputs,
+@@ -89,7 +90,7 @@ export type CompositionOfPlan<Value> =
+   Value extends Plan<unknown, PlanKind, infer Composition> ? Composition : never
+ 
+ /** @internal Reads a constrained plan's exact source without repeating inference. */
+-export type PlanSource<Value extends Plan<unknown, PlanKind, AuthoringSource>> =
++export type PlanSource<Value extends Plan<unknown, PlanKind, unknown>> =
+   ReturnType<Value[typeof PlanTypeId][2]>
+ 
+ /** The runtime helper surface consumed when compiling a passive plan. */
+@@ -309,6 +310,41 @@ export interface MakeInitPlan<
+   >
+ }
+ 
++type LocalUpdateChannels = readonly [
++  tag: PropertyKey,
++  outMessage: unknown,
++  requirements: unknown,
++  registration: unknown,
++]
++
++type RoutingUpdateChannels = readonly [
++  outMessage: unknown,
++  requirements: unknown,
++  registration: unknown,
++]
++
++/** @internal Names a complete validated update plan through its exact result channels. */
++export interface CanonicalUpdatePlan<
++  Model,
++  Message,
++  Context extends ReadonlyArray<unknown>,
++  LocalRows extends LocalUpdateChannels,
++  Routing extends RoutingUpdateChannels,
++  SourceComposition,
++> extends Plan<
++  DefinedUpdate<
++    Model,
++    Message,
++    Context,
++    LocalRows[1] | Routing[0],
++    LocalRows[2] | Routing[1],
++    LocalRows[3] | Routing[2]
++  > &
++    OperationOutputs<LocalRows>,
++  'Update',
++  SourceComposition
++> {}
++
+ type ValidMakeUpdatePlan<
+   Model,
+   Message,
+@@ -354,17 +390,12 @@ type ValidMakeUpdatePlan<
+         ...invalidMessageContract: AuthoredMessageArguments<
+           AuthoredMessage<Message, Bindings>
+         >
+-      ): Plan<
+-        CompositionDefinedUpdate<
+-          Model,
+-          DispatchMessage,
+-          readonly [],
+-          Outputs[keyof Outputs],
+-          Bindings,
+-          false
+-        > &
+-          OperationOutputs<CaseOutputChannels<Bindings, Outputs>>,
+-        'Update',
++      ): CanonicalUpdatePlan<
++        Model,
++        DispatchMessage,
++        readonly [],
++        CaseOutputChannels<Bindings, Outputs>,
++        CompositionRouteChannels<Bindings>,
+         SourceComposition
+       >
+       readonly withContext: <
+@@ -403,22 +434,15 @@ type ValidMakeUpdatePlan<
+         ...invalidMessageContract: AuthoredMessageArguments<
+           AuthoredMessage<Message, Bindings>
+         >
+-      ) => Plan<
+-        CompositionDefinedUpdate<
+-          Model,
+-          DispatchMessage,
+-          Context,
+-          ContextualUpdateOutputs<Model, Message, Bindings, Cases>[keyof Cases],
++      ) => CanonicalUpdatePlan<
++        Model,
++        DispatchMessage,
++        Context,
++        CaseOutputChannels<
+           Bindings,
+-          false
+-        > &
+-          OperationOutputs<
+-            CaseOutputChannels<
+-              Bindings,
+-              ContextualUpdateOutputs<Model, Message, Bindings, Cases>
+-            >
+-          >,
+-        'Update',
++          ContextualUpdateOutputs<Model, Message, Bindings, Cases>
++        >,
++        CompositionRouteChannels<Bindings>,
+         SourceComposition
+       >
+     }
+diff --git a/packages/foldkit/src/experimental/layered/testing/scene.ts b/packages/foldkit/src/experimental/layered/testing/scene.ts
+index b8cbc1822c..2d35ebb324 100644
+--- a/packages/foldkit/src/experimental/layered/testing/scene.ts
++++ b/packages/foldkit/src/experimental/layered/testing/scene.ts
+@@ -1,5 +1,10 @@
+-import { type Effect, Predicate } from 'effect'
++import { type Effect, Predicate, type Layer } from 'effect'
+ 
++import type {
++  DeclaredRootBlock,
++  SelectedBlockLayerFacts,
++  SelectedLayeredRoot,
++} from '../../../runtime/rootBlock.js'
+ import * as CoreScene from '../../../test/scene.js'
+ import type { Url } from '../../../url/index.js'
+ import type { FactsOf, ViewContract } from '../../constructed/contract.js'
+@@ -13,10 +18,10 @@ import type {
+   TestModel,
+   TestOutMessage,
+   TestSubject,
++  SelectedTestConfig,
+ } from './subject.js'
+ import {
+   initialStep,
+-  subjectBlock,
+   subjectInMessageUpdate,
+   subjectUpdate,
+ } from './subject.js'
+@@ -24,6 +29,7 @@ import {
+   type BlockSubject,
+   type TestBlock,
+   type TestEffect,
++  TestContract,
+   withBlock,
+ } from './withBlock.js'
+ 
+@@ -32,7 +38,7 @@ export { type InitStep, init } from './initialState.js'
+ export { type InMessageStep, inMessage } from './inMessage.js'
+ 
+ type ViewInputs<Block extends BlockSubject> =
+-  FactsOf<Block>['view'] extends ViewContract<
++  FactsOf<TestContract<Block>>['view'] extends ViewContract<
+     infer Inputs,
+     'Element' | 'Document'
+   >
+@@ -42,10 +48,26 @@ type ViewInputs<Block extends BlockSubject> =
+     : Readonly<{ 'A Scene requires a Block with a view': never }>
+ 
+ type DefaultView<Block extends BlockSubject> =
+-  FactsOf<Block>['view'] extends ViewContract<void, 'Element' | 'Document'>
++  FactsOf<TestContract<Block>>['view'] extends ViewContract<
++    void,
++    'Element' | 'Document'
++  >
+     ? unknown
+     : Readonly<{ 'Supply required viewInputs in the Scene config': never }>
+ 
++type SelectedViewInputs<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++> =
++  SelectedBlockLayerFacts<BlockValue, LayerValue>['view'] extends ViewContract<
++    infer Inputs,
++    'Element' | 'Document'
++  >
++    ? [Inputs] extends [void]
++      ? Readonly<{ viewInputs?: never }>
++      : Readonly<{ viewInputs: Inputs }>
++    : Readonly<{ 'A Scene requires a Block with a view': never }>
++
+ type InitialState<Block extends BlockSubject> =
+   | TestInit<Block>
+   | ReturnType<typeof CoreScene.given<TestModel<Block>>>
+@@ -75,6 +97,48 @@ export function scene<const Block extends BlockSubject>(
+   Effect.Error<TestEffect<Block, void>>,
+   Effect.Services<TestEffect<Block, void>>
+ >
++export function scene<
++  const Block extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++>(
++  config: Omit<
++    SelectedTestConfig<Block, LayerValue>,
++    'viewInputs' | 'routing'
++  > &
++    SelectedViewInputs<Block, LayerValue> &
++    Readonly<{ routing?: undefined }>,
++  initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
++  ...steps: ReadonlyArray<
++    Step<SelectedLayeredRoot<Block, LayerValue>, undefined>
++  >
++): Effect.Effect<void, Layer.Error<LayerValue>, Layer.Services<LayerValue>>
++export function scene<
++  const Block extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++>(
++  config: Omit<
++    SelectedTestConfig<Block, LayerValue>,
++    'viewInputs' | 'routing'
++  > &
++    SelectedViewInputs<Block, LayerValue> &
++    Readonly<{
++      routing: Readonly<{
++        onUrlChange: (
++          url: Url,
++        ) => TestMessage<SelectedLayeredRoot<Block, LayerValue>>
++        origin?: string
++      }>
++    }>,
++  initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
++  ...steps: ReadonlyArray<
++    Step<
++      SelectedLayeredRoot<Block, LayerValue>,
++      CoreScene.SceneRouting<
++        TestMessage<SelectedLayeredRoot<Block, LayerValue>>
++      >
++    >
++  >
++): Effect.Effect<void, Layer.Error<LayerValue>, Layer.Services<LayerValue>>
+ export function scene<const Block extends BlockSubject>(
+   config: TestConfig<Block> &
+     ViewInputs<NoInfer<Block>> &
+@@ -114,7 +178,7 @@ export function scene(
+   initial: unknown,
+   ...steps: ReadonlyArray<unknown>
+ ): Effect.Effect<unknown, unknown, unknown> {
+-  return withBlock(subjectBlock(subject), block => {
++  const run = (block: object) => {
+     const view = Reflect.get(block, 'view')
+ 
+     if (!Predicate.isFunction(view)) {
+@@ -133,7 +197,7 @@ export function scene(
+       {
+         update: subjectUpdate(subject, block),
+         view: render,
+-        subscriptions: block.subscriptions,
++        subscriptions: Reflect.get(block, 'subscriptions'),
+         ...('block' in subject
+           ? { routing: Reflect.get(subject, 'routing') }
+           : {}),
+@@ -141,5 +205,11 @@ export function scene(
+       initialStep(block, initial, CoreScene.__givenInit),
+       ...resolveInMessageSteps(steps, subjectInMessageUpdate(subject, block)),
+     ])
+-  })
++  }
++
++  if ('layer' in subject) {
++    return withBlock(subject, run)
++  }
++
++  return withBlock('block' in subject ? subject.block : subject, run)
+ }
+diff --git a/packages/foldkit/src/experimental/layered/testing/story.ts b/packages/foldkit/src/experimental/layered/testing/story.ts
+index 1afff2de88..c82ac2747a 100644
+--- a/packages/foldkit/src/experimental/layered/testing/story.ts
++++ b/packages/foldkit/src/experimental/layered/testing/story.ts
+@@ -1,5 +1,9 @@
+-import type { Effect } from 'effect'
++import type { Effect, Layer } from 'effect'
+ 
++import type {
++  DeclaredRootBlock,
++  SelectedLayeredRoot,
++} from '../../../runtime/rootBlock.js'
+ import * as CoreStory from '../../../test/story.js'
+ import { resolveInMessageSteps } from './inMessage.js'
+ import { resolveStorySteps } from './messageFrom.js'
+@@ -12,10 +16,10 @@ import type {
+   TestModel,
+   TestOutMessage,
+   TestSubject,
++  SelectedTestConfig,
+ } from './subject.js'
+ import {
+   initialStep,
+-  subjectBlock,
+   subjectInMessageUpdate,
+   subjectUpdate,
+ } from './subject.js'
+@@ -56,6 +60,18 @@ export function story<const Block extends BlockSubject>(
+   Effect.Error<TestEffect<Block, void>>,
+   Effect.Services<TestEffect<Block, void>>
+ >
++export function story<
++  const Block extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++>(
++  config: SelectedTestConfig<Block, LayerValue>,
++  initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
++  ...steps: ReadonlyArray<Step<SelectedLayeredRoot<Block, LayerValue>>>
++): Effect.Effect<
++  void,
++  Effect.Error<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>,
++  Effect.Services<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>
++>
+ export function story<const Block extends BlockSubject>(
+   config: TestConfig<Block>,
+   initial: InitialState<NoInfer<Block>>,
+@@ -70,7 +86,7 @@ export function story(
+   initial: unknown,
+   ...steps: ReadonlyArray<unknown>
+ ): Effect.Effect<unknown, unknown, unknown> {
+-  return withBlock(subjectBlock(subject), block => {
++  const run = (block: object) => {
+     Reflect.apply(CoreStory.story, undefined, [
+       subjectUpdate(subject, block),
+       initialStep(block, initial, CoreStory.__givenInit),
+@@ -79,5 +95,11 @@ export function story(
+         subjectInMessageUpdate(subject, block),
+       ),
+     ])
+-  })
++  }
++
++  if ('layer' in subject) {
++    return withBlock(subject, run)
++  }
++
++  return withBlock('block' in subject ? subject.block : subject, run)
+ }
+diff --git a/packages/foldkit/src/experimental/layered/testing/subject.ts b/packages/foldkit/src/experimental/layered/testing/subject.ts
+index b427eb8783..a8c66ba9fe 100644
+--- a/packages/foldkit/src/experimental/layered/testing/subject.ts
++++ b/packages/foldkit/src/experimental/layered/testing/subject.ts
+@@ -1,11 +1,24 @@
+-import { Predicate, Schema } from 'effect'
+-
++import { Predicate, Schema, type Layer } from 'effect'
++
++import type {
++  DeclaredRootBlock,
++  LayeredRoot,
++  SelectedLayeredRoot,
++  ValidateSelectedLayer,
++} from '../../../runtime/rootBlock.js'
+ import type { FactsOf } from '../../constructed/contract.js'
+ import type { InitStep } from './initialState.js'
+-import type { BlockSubject, TestBlock, ValidateTestBlock } from './withBlock.js'
++import type {
++  BlockLayerSubject,
++  BlockSubject,
++  TestBlock,
++  TestContract,
++  ValidateTestBlock,
++} from './withBlock.js'
+ 
+ /** @internal The exact parent Model used by the test steps. */
+-export type TestModel<Block extends BlockSubject> = Block['Model']['Type']
++export type TestModel<Block extends BlockSubject> =
++  TestContract<Block>['Model']['Type']
+ 
+ /** @internal Includes the completed graph's generated child envelopes. */
+ export type TestMessage<Block extends BlockSubject> =
+@@ -15,24 +28,24 @@ export type TestMessage<Block extends BlockSubject> =
+ 
+ /** @internal Assertions use the declared OutMessage contract. */
+ export type TestOutMessage<Block extends BlockSubject> = Schema.Schema.Type<
+-  Extract<Block['OutMessage'], Schema.Top>
++  Extract<TestContract<Block>['OutMessage'], Schema.Top>
+ >
+ 
+ /** @internal Exact startup arguments, including optional and rest parameters. */
+ export type TestInit<Block extends BlockSubject> = InitStep<
+-  FactsOf<Block>['initArgs']
++  FactsOf<TestContract<Block>>['initArgs']
+ >
+ 
+ /** @internal The separate decoded input accepted by the selected Block. */
+ export type TestInMessage<Block extends BlockSubject> =
+-  FactsOf<Block> extends Readonly<{
++  FactsOf<TestContract<Block>> extends Readonly<{
+     inMessage: Readonly<{ Schema: infer InputSchema extends Schema.Top }>
+   }>
+     ? InputSchema['Type']
+     : never
+ 
+ type InMessageContext<Block extends BlockSubject> =
+-  FactsOf<Block> extends Readonly<{
++  FactsOf<TestContract<Block>> extends Readonly<{
+     inMessage: Readonly<{
+       context: infer Context extends ReadonlyArray<unknown>
+     }>
+@@ -43,7 +56,7 @@ type InMessageContext<Block extends BlockSubject> =
+ /** @internal A direct subject needs no required per-dispatch context. */
+ export type DirectSubject<Block extends BlockSubject> = Block &
+   ValidateTestBlock<Block> &
+-  ([] extends FactsOf<Block>['updateContext']
++  ([] extends FactsOf<TestContract<Block>>['updateContext']
+     ? unknown
+     : Readonly<{
+         'Supply the Block updateContext in the test config': never
+@@ -57,15 +70,18 @@ export type DirectSubject<Block extends BlockSubject> = Block &
+ /** @internal Each dispatch path requires only its own declared Context tuple. */
+ export type TestConfig<Block extends BlockSubject> = Readonly<{
+   block: Block & ValidateTestBlock<Block>
++  layer?: never
+   update?: never
+   view?: never
+ }> &
+-  ([] extends FactsOf<Block>['updateContext']
++  ([] extends FactsOf<TestContract<Block>>['updateContext']
+     ? Readonly<{
+-        updateContext?: FactsOf<Block>['updateContext'] & ReadonlyArray<unknown>
++        updateContext?: FactsOf<TestContract<Block>>['updateContext'] &
++          ReadonlyArray<unknown>
+       }>
+     : Readonly<{
+-        updateContext: FactsOf<Block>['updateContext'] & ReadonlyArray<unknown>
++        updateContext: FactsOf<TestContract<Block>>['updateContext'] &
++          ReadonlyArray<unknown>
+       }>) &
+   ([] extends InMessageContext<Block>
+     ? Readonly<{ inMessageContext?: InMessageContext<Block> }>
+@@ -73,16 +89,47 @@ export type TestConfig<Block extends BlockSubject> = Readonly<{
+ 
+ /** @internal Erased runtime shape behind the checked subject overloads. */
+ export type TestSubject =
+-  | BlockSubject
++  | Exclude<
++      BlockSubject,
++      | LayeredRoot
++      | BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>>
++    >
++  | SelectedTestConfig<DeclaredRootBlock, Layer.Layer<any, any, any>>
+   | Readonly<{
+-      block: BlockSubject
++      block: Exclude<
++        BlockSubject,
++        BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>>
++      >
+       updateContext?: ReadonlyArray<unknown>
+       inMessageContext?: ReadonlyArray<unknown>
+     }>
+ 
+-/** @internal Reads the descriptor without acquiring its graph. */
+-export const subjectBlock = (subject: TestSubject): BlockSubject =>
+-  'block' in subject ? subject.block : subject
++/** @internal A selected Layer plus the optional per-dispatch test context. */
++export type SelectedTestConfig<
++  Block extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++> = BlockLayerSubject<Block, LayerValue> &
++  Readonly<{
++    layer: ValidateSelectedLayer<NoInfer<Block>, NoInfer<LayerValue>>
++  }> &
++  Omit<TestConfig<SelectedLayeredRoot<Block, LayerValue>>, 'block' | 'layer'> &
++  Readonly<{
++    viewInputs?: unknown
++    routing?: unknown
++  }>
++
++/** @internal Reads the subject without acquiring its graph. */
++export const subjectBlock = (
++  subject: TestSubject,
++):
++  | BlockSubject
++  | BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>> => {
++  if ('layer' in subject) {
++    return subject
++  }
++
++  return 'block' in subject ? subject.block : subject
++}
+ 
+ /** @internal Adapts explicit dispatch context to the synchronous test runner. */
+ export const subjectUpdate = (subject: TestSubject, block: object) => {
+diff --git a/packages/foldkit/src/experimental/layered/testing/withBlock.ts b/packages/foldkit/src/experimental/layered/testing/withBlock.ts
+index 64addef792..29269bf601 100644
+--- a/packages/foldkit/src/experimental/layered/testing/withBlock.ts
++++ b/packages/foldkit/src/experimental/layered/testing/withBlock.ts
+@@ -2,7 +2,14 @@ import { Effect, Layer, Predicate, type Schema, type Scope } from 'effect'
+ 
+ import { defaultViewOf } from '../../../block/defaultView.js'
+ import type { BlockView, DocumentView } from '../../../html/index.js'
+-import { rootConstructionOf } from '../../../runtime/rootBlock.js'
++import {
++  type LayeredContract,
++  type LayeredRoot,
++  type DeclaredRootBlock,
++  type SelectedLayeredRoot,
++  type ValidateSelectedLayer,
++  rootConstructionOf,
++} from '../../../runtime/rootBlock.js'
+ import {
+   type AcquiredTestBlock,
+   registerTestGraph,
+@@ -20,6 +27,7 @@ import {
+   descriptorConstructorOf,
+ } from '../../constructed/symbolic.js'
+ import type { PendingHostHandlersTypeId } from '../../contracted/contract.js'
++import { selectLayerForTesting } from '../../contracted/runtime.js'
+ 
+ type TestSource = Readonly<{
+   owner: unknown
+@@ -34,26 +42,48 @@ type TestSource = Readonly<{
+   EffectsLayer: Layer.Any
+ }>
+ 
++export type TestContract<Block extends BlockSubject> =
++  Block extends BlockLayerSubject<infer Declared, infer SelectedLayer>
++    ? LayeredContract<SelectedLayeredRoot<Declared, SelectedLayer>>
++    : Block extends DescriptorSubject
++      ? Block
++      : Block extends LayeredRoot
++        ? LayeredContract<Block>
++        : never
++
+ /** @internal An original descriptor acquired through its getter or default Layer. */
+-export type BlockSubject = DescriptorContract &
++type DescriptorSubject = DescriptorContract &
+   Readonly<{
+     get: Effect.Effect<TestSource, unknown, unknown>
+   }>
+ 
++export type BlockSubject =
++  | DescriptorSubject
++  | LayeredRoot
++  | BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>>
++
++/** @internal A test subject pairing one public Block with its selected Layer. */
++export type BlockLayerSubject<
++  Block extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++> = Readonly<{ block: Block; layer: LayerValue }>
++
+ /** @internal Ordinary implementation tests require a selected host-provider contract. */
+ export type ValidateTestBlock<Block> =
+-  Block extends Readonly<{
+-    [PendingHostHandlersTypeId]: infer Pending
+-  }>
+-    ? [Pending] extends [never]
+-      ? unknown
+-      : Readonly<{
+-          'Block tests must select the original host handlers with provideHandlers': Pending
++  Block extends BlockLayerSubject<infer Declared, infer SelectedLayer>
++    ? ValidateSelectedLayer<Declared, SelectedLayer>
++    : Block extends Readonly<{
++          [PendingHostHandlersTypeId]: infer Pending
+         }>
+-    : unknown
++      ? [Pending] extends [never]
++        ? unknown
++        : Readonly<{
++            'Block tests must select the original host handlers with provideHandlers': Pending
++          }>
++      : unknown
+ 
+-type DispatchMessageOf<Block> =
+-  ExecutableOf<Block> extends Readonly<{
++type DispatchMessageOf<Block extends BlockSubject> =
++  TestExecutable<Block> extends Readonly<{
+     Message: infer MessageSchema extends Schema.Top
+   }>
+     ? MessageSchema['Type']
+@@ -64,20 +94,23 @@ type RenderFunction<View> = View extends (...args: infer Args) => infer Rendered
+   : never
+ 
+ type TestView<Block extends BlockSubject> =
+-  FactsOf<Block>['view'] extends ViewContract<infer Inputs, infer Kind>
++  FactsOf<TestContract<Block>>['view'] extends ViewContract<
++    infer Inputs,
++    infer Kind
++  >
+     ? Readonly<{
+         view: RenderFunction<
+           Kind extends 'Document'
+             ? DocumentView<
+-                Block['Model']['Type'],
++                TestContract<Block>['Model']['Type'],
+                 DispatchMessageOf<Block>,
+-                FactsOf<Block>['mountRequirements']
++                FactsOf<TestContract<Block>>['mountRequirements']
+               >
+             : BlockView<
+-                Block['Model']['Type'],
++                TestContract<Block>['Model']['Type'],
+                 DispatchMessageOf<Block>,
+                 Inputs,
+-                FactsOf<Block>['mountRequirements']
++                FactsOf<TestContract<Block>>['mountRequirements']
+               >
+         >
+       }>
+@@ -87,21 +120,24 @@ type TestView<Block extends BlockSubject> =
+  * The acquired pure operations and default view available inside `withBlock`.
+  * This fixture is for Story and Scene; it is not a child connection handle.
+  */
++type TestExecutable<Block extends BlockSubject> =
++  Block extends DescriptorSubject ? ExecutableOf<Block> : TestContract<Block>
++
+ export type TestBlock<Block extends BlockSubject> = Pick<
+-  ExecutableOf<Block>,
++  TestExecutable<Block>,
+   Exclude<keyof TestSource, 'InMessage' | 'inMessageUpdate'>
+ > &
+   Pick<
+-    ExecutableOf<Block>,
+-    Extract<'InMessage' | 'inMessageUpdate', keyof ExecutableOf<Block>>
++    TestExecutable<Block>,
++    Extract<'InMessage' | 'inMessageUpdate', keyof TestExecutable<Block>>
+   > &
+   TestView<Block> &
+-  AcquiredTestBlock<Block['owner']> &
++  AcquiredTestBlock<TestContract<Block>['owner']> &
+   Readonly<{
+     subscriptions: SubscriptionsFromFacts<
+-      Block['Model']['Type'],
++      TestContract<Block>['Model']['Type'],
+       DispatchMessageOf<Block>,
+-      ImplementationSubscriptionsOf<Block>
++      ImplementationSubscriptionsOf<TestContract<Block>>
+     >
+   }>
+ 
+@@ -135,12 +171,15 @@ type DefaultLayer<Block> =
+ export type TestEffect<Block extends BlockSubject, Output> = Effect.Effect<
+   CallbackValue<Output>,
+   | Layer.Error<DefaultLayer<Block>>
+-  | Effect.Error<Block['get']>
++  | (Block extends DescriptorSubject ? Effect.Error<Block['get']> : never)
+   | CallbackError<Output>,
+   Exclude<
+     | Layer.Services<DefaultLayer<Block>>
+     | Exclude<
+-        Effect.Services<Block['get']> | CallbackRequirements<Output>,
++        | (Block extends DescriptorSubject
++            ? Effect.Services<Block['get']>
++            : never)
++        | CallbackRequirements<Output>,
+         Layer.Success<DefaultLayer<Block>>
+       >,
+     Scope.Scope
+@@ -195,7 +234,10 @@ const toTestBlock = (executable: unknown): object => {
+  * )
+  * ```
+  */
+-export function withBlock<Block extends BlockSubject, Output>(
++export function withBlock<
++  Block extends DescriptorSubject | LayeredRoot,
++  Output,
++>(
+   block: Block & ValidateTestBlock<NoInfer<Block>>,
+   use: (
+     block: TestBlock<NoInfer<Block>>,
+@@ -205,10 +247,43 @@ export function withBlock<Block extends BlockSubject, Output>(
+   Effect.Error<TestEffect<Block, Output>>,
+   Effect.Services<TestEffect<Block, Output>>
+ >
++export function withBlock<
++  const Block extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  Output,
++>(
++  selection: BlockLayerSubject<Block, LayerValue> &
++    Readonly<{
++      layer: ValidateSelectedLayer<NoInfer<Block>, NoInfer<LayerValue>>
++    }>,
++  use: (
++    block: TestBlock<SelectedLayeredRoot<Block, LayerValue>>,
++  ) => Output & SynchronousOrEffect<Output>,
++): Effect.Effect<
++  Effect.Success<TestEffect<SelectedLayeredRoot<Block, LayerValue>, Output>>,
++  Effect.Error<TestEffect<SelectedLayeredRoot<Block, LayerValue>, Output>>,
++  Effect.Services<TestEffect<SelectedLayeredRoot<Block, LayerValue>, Output>>
++>
+ export function withBlock(
+-  block: BlockSubject,
++  blockOrSelection:
++    | BlockSubject
++    | BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>>,
+   use: (block: never) => unknown,
+ ): Effect.Effect<unknown, unknown, unknown> {
++  const isLayerSelection = (
++    value: typeof blockOrSelection,
++  ): value is BlockLayerSubject<
++    DeclaredRootBlock,
++    Layer.Layer<any, any, any>
++  > =>
++    'block' in value &&
++    'layer' in value &&
++    rootConstructionOf(value) === undefined
++
++  const block = isLayerSelection(blockOrSelection)
++    ? selectTestLayer(blockOrSelection)
++    : blockOrSelection
++
+   return Effect.suspend(() => {
+     const construction = rootConstructionOf(block)
+     const construct = descriptorConstructorOf(block)
+@@ -246,7 +321,10 @@ export function withBlock(
+ 
+     if (construction !== undefined) {
+       return Effect.scoped(
+-        Effect.flatMap(block.get, useAcquired).pipe(
++        Effect.flatMap(
++          construction.readForTesting ?? construction.read,
++          useAcquired,
++        ).pipe(
+           Effect.scoped,
+           Effect.provide([construction.layer], { local: true }),
+         ),
+@@ -266,3 +344,10 @@ export function withBlock(
+     )
+   })
+ }
++
++const selectTestLayer = <
++  const Block extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++>(
++  selection: BlockLayerSubject<Block, LayerValue>,
++) => selectLayerForTesting(selection.block, selection.layer)
+diff --git a/packages/foldkit/src/experimental/server/server.ts b/packages/foldkit/src/experimental/server/server.ts
+index 521193bf66..35a6eb9a2e 100644
+--- a/packages/foldkit/src/experimental/server/server.ts
++++ b/packages/foldkit/src/experimental/server/server.ts
+@@ -3,6 +3,7 @@ import {
+   Context,
+   Data,
+   Effect,
++  Layer,
+   Option,
+   Predicate,
+   Schema,
+@@ -56,17 +57,21 @@ import {
+   assertProgramConfig,
+ } from '../../runtime/programRoot.js'
+ import {
++  type DeclaredRootBlock,
+   type LayeredRoot,
+   type RootBlock,
+   type RootConstructionError,
+   type RootConstructionRequirements,
+   type RootContract,
+   resolveRootBlock,
++  type SelectedLayeredRoot,
++  type ValidateSelectedLayer,
+ } from '../../runtime/rootBlock.js'
+ import type { VNode } from '../../snabbdom/vnode.js'
+ import { tagNameFromSelector } from '../../tagName.js'
+ import type { Return as UpdateReturn } from '../../update/index.js'
+ import { Url, fromString } from '../../url/index.js'
++import { selectLayer } from '../contracted/runtime.js'
+ import { type ParsedFragmentModes, parseFragmentModes } from './fragment.js'
+ import {
+   controlledValueContent,
+@@ -1183,6 +1188,20 @@ type ExactServerHostConfig<Config> = Readonly<{
+   [Key in Exclude<keyof Config, 'Flags' | 'routing'>]: never
+ }>
+ 
++type ServerLayerSelection<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++> = Readonly<{
++  block: BlockValue
++  layer: LayerValue &
++    ValidateSelectedLayer<NoInfer<BlockValue>, NoInfer<LayerValue>>
++}>
++
++type ServerLayerRoot<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++> = SelectedLayeredRoot<BlockValue, LayerValue>
++
+ /** Server host configuration for a root Block initialized with Flags and a URL.
+  * The Block already contains its init, update, view, and handler recipes. */
+ export type RoutingApplicationConfigWithFlags<
+@@ -1452,6 +1471,112 @@ const validateHydrationRoot = (
+  *
+  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
+  */
++export function renderToString<
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  const Config extends Readonly<{
++    Flags: ServerFlagsSchema
++    routing: object
++  }>,
++>(
++  selection: ServerLayerSelection<BlockValue, LayerValue> &
++    NoInfer<
++      ValidateProgramBlock<
++        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
++        'Document'
++      >
++    >,
++  config: Config &
++    NoInfer<
++      RoutingApplicationConfigWithFlags<
++        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
++        Config['Flags']['Type']
++      >
++    > &
++    NoInfer<ExactServerHostConfig<Config>>,
++  options: RenderUrlFlagsOptions<NoInfer<Config['Flags']['Type']>>,
++): Effect.Effect<
++  RenderedApplication,
++  RenderError | RootConstructionError<ServerLayerRoot<BlockValue, LayerValue>>,
++  RootConstructionRequirements<ServerLayerRoot<BlockValue, LayerValue>>
++>
++export function renderToString<
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  const Config extends Readonly<{ routing: object; Flags?: never }>,
++>(
++  selection: ServerLayerSelection<BlockValue, LayerValue> &
++    NoInfer<
++      ValidateProgramBlock<
++        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
++        'Document'
++      >
++    >,
++  config: Config &
++    NoInfer<
++      RoutingApplicationConfig<
++        RootContract<ServerLayerRoot<BlockValue, LayerValue>>
++      >
++    > &
++    NoInfer<ExactServerHostConfig<Config>>,
++  options: RenderUrlOptions,
++): Effect.Effect<
++  RenderedApplication,
++  RenderError | RootConstructionError<ServerLayerRoot<BlockValue, LayerValue>>,
++  RootConstructionRequirements<ServerLayerRoot<BlockValue, LayerValue>>
++>
++export function renderToString<
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  const Config extends Readonly<{
++    Flags: ServerFlagsSchema
++    routing?: never
++  }>,
++>(
++  selection: ServerLayerSelection<BlockValue, LayerValue> &
++    NoInfer<
++      ValidateProgramBlock<
++        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
++        'Document'
++      >
++    >,
++  config: Config &
++    NoInfer<
++      ApplicationConfigWithFlags<
++        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
++        Config['Flags']['Type']
++      >
++    > &
++    NoInfer<ExactServerHostConfig<Config>>,
++  options: RenderFlagsOptions<NoInfer<Config['Flags']['Type']>>,
++): Effect.Effect<
++  RenderedApplication,
++  RenderError | RootConstructionError<ServerLayerRoot<BlockValue, LayerValue>>,
++  RootConstructionRequirements<ServerLayerRoot<BlockValue, LayerValue>>
++>
++export function renderToString<
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  const Config extends object,
++>(
++  selection: ServerLayerSelection<BlockValue, LayerValue> &
++    NoInfer<
++      ValidateProgramBlock<
++        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
++        'Document'
++      >
++    >,
++  config: Config &
++    NoInfer<
++      ApplicationConfig<RootContract<ServerLayerRoot<BlockValue, LayerValue>>>
++    > &
++    NoInfer<ExactServerHostConfig<Config>>,
++  options?: RenderOptions,
++): Effect.Effect<
++  RenderedApplication,
++  RenderError | RootConstructionError<ServerLayerRoot<BlockValue, LayerValue>>,
++  RootConstructionRequirements<ServerLayerRoot<BlockValue, LayerValue>>
++>
+ export function renderToString<
+   const BlockValue extends LayeredRoot,
+   const Config extends Readonly<{
+@@ -1577,14 +1702,21 @@ export function renderToString<
+   options?: RenderOptions,
+ ): Effect.Effect<RenderedApplication, RenderError>
+ export function renderToString(
+-  block: RootBlock,
++  block:
++    | RootBlock
++    | ServerLayerSelection<DeclaredRootBlock, Layer.Layer<any, any, any>>,
+   config: Readonly<{
+     Flags?: Schema.Codec<any, any, never, never>
+     routing?: unknown
+   }>,
+   options?: RenderOptions & Readonly<{ url?: string; flags?: unknown }>,
+ ): Effect.Effect<RenderedApplication, any, any> {
+-  assertProgramConfig({ block, container: null }, 'Document')
++  const root =
++    'block' in block && 'layer' in block
++      ? selectLayer(block.block, block.layer)
++      : block
++
++  assertProgramConfig({ block: root, container: null }, 'Document')
+ 
+   if (!Predicate.isObject(config)) {
+     throw new Error('[foldkit] Server host configuration must be an object.')
+@@ -1610,7 +1742,7 @@ export function renderToString(
+   }
+ 
+   return Effect.scoped(
+-    Effect.flatMap(resolveRootBlock(block), resolved => {
++    Effect.flatMap(resolveRootBlock(root), resolved => {
+       assertProgramConfig({ block: resolved, container: null }, 'Document')
+       const { init, view: blockView } = lowerBlock(resolved)
+       const view = (...args: ReadonlyArray<any>) => {
+diff --git a/packages/foldkit/src/runtime/program.ts b/packages/foldkit/src/runtime/program.ts
+index 42f8feed8d..9065e13218 100644
+--- a/packages/foldkit/src/runtime/program.ts
++++ b/packages/foldkit/src/runtime/program.ts
+@@ -6,6 +6,7 @@ import type {
+   RequirementsOfBlock,
+   RuntimeServicesOfBlock,
+ } from '../block/requirements.js'
++import { selectLayer } from '../experimental/contracted/runtime.js'
+ import type { UrlRequest } from '../navigation/urlRequest.js'
+ import type { Ports } from '../port/index.js'
+ import type { Url } from '../url/index.js'
+@@ -33,10 +34,13 @@ import {
+   assertProgramConfig,
+ } from './programRoot.js'
+ import {
++  type DeclaredRootBlock,
+   type LayeredContract,
+   type LayeredRoot,
+   type RootRequirements,
+   type RootRuntimeServices,
++  type SelectedLayeredRoot,
++  type ValidateSelectedLayer,
+   assertCompletedRoot,
+   rootConstructionOf,
+ } from './rootBlock.js'
+@@ -56,6 +60,11 @@ type BlockModel<BlockValue extends AnyBlock> = BlockValue['Model']['Type']
+ type BlockMessage<BlockValue extends AnyBlock> = BlockValue['Message']['Type']
+ type BlockInit<BlockValue extends AnyBlock> = BlockValue['init']
+ 
++type ImplementationLayer<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Any,
++> = ValidateSelectedLayer<BlockValue, LayerValue>
++
+ type BlocksRejectingMessage<
+   BlockValue extends AnyBlock,
+   Message,
+@@ -323,6 +332,7 @@ type PageHostConfigKeys =
+ 
+ type ElementHostConfigKeys =
+   | 'block'
++  | 'layer'
+   | 'Flags'
+   | 'flags'
+   | keyof ElementHostOptions<AnyBlock, Ports | undefined>
+@@ -479,6 +489,44 @@ type LayeredElementFromBlock<
+   'Element'
+ >
+ 
++type SelectedElementFromBlock<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++  Config,
++  PortsValue extends Ports | undefined,
++> = ConstructionProgramFromRoot<
++  SelectedLayeredRoot<BlockValue, LayerValue>,
++  RootPorts<PortsValue>,
++  void,
++  LayeredProgramRequirements<
++    SelectedLayeredRoot<BlockValue, LayerValue>,
++    Config
++  >,
++  'Element'
++>
++
++type SelectedPageFromBlock<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++  Config,
++  PortsValue extends Ports | undefined,
++  FlagsSchema extends AnyFlagsSchema | undefined = undefined,
++> = ConstructionProgramFromRoot<
++  SelectedLayeredRoot<BlockValue, LayerValue>,
++  RootPorts<PortsValue>,
++  RootFlags<FlagsSchema>,
++  LayeredProgramRequirements<
++    SelectedLayeredRoot<BlockValue, LayerValue>,
++    Config
++  >,
++  'Application'
++>
++
++type SelectedBlockContract<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++> = LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>
++
+ /**
+  * Creates a passive page-owning Program from a completed root Block whose view
+  * returns a Document. Use `makeElement` for an Html view. Set a unique, nonempty
+@@ -489,6 +537,114 @@ type LayeredElementFromBlock<
+  * graph, and optional runtime providers build after ManagedResource handles
+  * exist. Plain `provide(layer)` supplies runtime providers only.
+  */
++export function make<
++  const Config extends object,
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  const PortsValue extends Ports | undefined = undefined,
++>(
++  config: Config &
++    Readonly<{
++      block: BlockValue
++      layer: LayerValue & ImplementationLayer<BlockValue, LayerValue>
++    }> &
++    PageHostOptions<
++      NoInfer<LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>>,
++      PortsValue
++    > &
++    PageWithoutRoutingModeFields<
++      NoInfer<LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>>,
++      undefined
++    > &
++    NoInfer<
++      ValidateProgramBlock<
++        LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>,
++        'Document'
++      >
++    > &
++    NoInfer<ExactHostConfig<Config, PageHostConfigKeys | 'layer'>> &
++    NoInfer<ExactDevToolsConfig<Config>>,
++): SelectedPageFromBlock<BlockValue, LayerValue, Config, PortsValue>
++export function make<
++  const Config extends object,
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  const FlagsSchema extends AnyFlagsSchema,
++  const PortsValue extends Ports | undefined = undefined,
++>(
++  config: Config &
++    Readonly<{
++      block: BlockValue
++      layer: LayerValue & ImplementationLayer<BlockValue, LayerValue>
++    }> &
++    PageHostOptions<
++      NoInfer<LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>>,
++      PortsValue
++    > &
++    PageWithoutRoutingModeFields<
++      NoInfer<LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>>,
++      FlagsSchema
++    > &
++    NoInfer<
++      ValidateProgramBlock<
++        LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>,
++        'Document'
++      >
++    > &
++    NoInfer<ExactHostConfig<Config, PageHostConfigKeys | 'layer'>> &
++    NoInfer<ExactDevToolsConfig<Config>>,
++): ConstructionProgramFromRoot<
++  SelectedLayeredRoot<BlockValue, LayerValue>,
++  RootPorts<PortsValue>,
++  RootFlags<FlagsSchema>,
++  LayeredProgramRequirements<
++    SelectedLayeredRoot<BlockValue, LayerValue>,
++    Config
++  >,
++  'Application'
++>
++export function make<
++  const Config extends object,
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  const FlagsSchema extends AnyFlagsSchema | undefined,
++  const PortsValue extends Ports | undefined = undefined,
++>(
++  config: Config &
++    Readonly<{
++      block: BlockValue
++      layer: LayerValue & ImplementationLayer<BlockValue, LayerValue>
++    }> &
++    PageHostOptions<
++      NoInfer<LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>>,
++      PortsValue
++    > &
++    PageWithRoutingModeFields<
++      NoInfer<LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>>,
++      FlagsSchema,
++      RoutingInputConfig<
++        NoInfer<
++          CommonBlockMessage<
++            LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>
++          >
++        >
++      >
++    > &
++    NoInfer<
++      ValidateProgramBlock<
++        LayeredContract<SelectedLayeredRoot<BlockValue, LayerValue>>,
++        'Document'
++      >
++    > &
++    NoInfer<ExactHostConfig<Config, PageHostConfigKeys | 'layer'>> &
++    NoInfer<ExactDevToolsConfig<Config>>,
++): SelectedPageFromBlock<
++  BlockValue,
++  LayerValue,
++  Config,
++  PortsValue,
++  FlagsSchema
++>
+ export function make<
+   const Config extends object,
+   const BlockValue extends LayeredRoot,
+@@ -736,6 +892,21 @@ export function make<
+ >
+ export function make(config: unknown): unknown {
+   assertProgramConfig(config, 'Document')
++  if ('layer' in config) {
++    const { layer, ...hostOptions } = config
++
++    if (!Layer.isLayer(layer)) {
++      throw new Error('[foldkit] Program root layer must be an Effect Layer.')
++    }
++
++    return Reflect.apply(make, undefined, [
++      {
++        ...hostOptions,
++        block: Reflect.apply(selectLayer, undefined, [config.block, layer]),
++      },
++    ])
++  }
++
+   if (rootConstructionOf(config.block) !== undefined) {
+     const snapshot = { ...config }
+ 
+@@ -795,6 +966,72 @@ type ElementFromBlock<
+  * `provide({ services, runtime })`. The graph is acquired under the host Scope
+  * at startup. Plain `provide(layer)` remains runtime-only.
+  */
++export function makeElement<
++  const Config extends object,
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  const PortsValue extends Ports | undefined = undefined,
++>(
++  config: Config &
++    Readonly<{
++      block: BlockValue
++      layer: LayerValue & ImplementationLayer<BlockValue, LayerValue>
++    }> &
++    ElementHostOptions<
++      NoInfer<SelectedBlockContract<BlockValue, LayerValue>>,
++      PortsValue
++    > &
++    ElementWithoutFlagsModeFields<
++      NoInfer<SelectedBlockContract<BlockValue, LayerValue>>
++    > &
++    NoInfer<
++      ValidateProgramBlock<
++        SelectedBlockContract<BlockValue, LayerValue>,
++        'Element'
++      >
++    > &
++    NoInfer<ExactElementHostConfig<Config>>,
++): SelectedElementFromBlock<BlockValue, LayerValue, Config, PortsValue>
++export function makeElement<
++  const Config extends object,
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++  const FlagsSchema extends AnyFlagsSchema,
++  const FlagsEffect extends Effect.Effect<FlagsSchema['Type'], never, any>,
++  const PortsValue extends Ports | undefined = undefined,
++>(
++  config: Config &
++    Readonly<{
++      block: BlockValue
++      layer: LayerValue & ImplementationLayer<BlockValue, LayerValue>
++    }> &
++    ElementHostOptions<
++      NoInfer<SelectedBlockContract<BlockValue, LayerValue>>,
++      PortsValue
++    > &
++    ElementWithFlagsModeFields<
++      NoInfer<SelectedBlockContract<BlockValue, LayerValue>>,
++      FlagsSchema,
++      FlagsEffect
++    > &
++    NoInfer<
++      ValidateProgramBlock<
++        SelectedBlockContract<BlockValue, LayerValue>,
++        'Element'
++      >
++    > &
++    NoInfer<ExactElementHostConfig<Config>>,
++): ConstructionProgramFromRoot<
++  SelectedLayeredRoot<BlockValue, LayerValue>,
++  RootPorts<PortsValue>,
++  void,
++  | LayeredProgramRequirements<
++      SelectedLayeredRoot<BlockValue, LayerValue>,
++      Config
++    >
++  | FlagsRequirements<FlagsEffect>,
++  'Element'
++>
+ export function makeElement<
+   const Config extends object,
+   const BlockValue extends LayeredRoot,
+@@ -865,6 +1102,21 @@ export function makeElement<
+ >
+ export function makeElement(config: unknown): unknown {
+   assertProgramConfig(config, 'Element')
++  if ('layer' in config) {
++    const { layer, ...hostOptions } = config
++
++    if (!Layer.isLayer(layer)) {
++      throw new Error('[foldkit] Program root layer must be an Effect Layer.')
++    }
++
++    return Reflect.apply(makeElement, undefined, [
++      {
++        ...hostOptions,
++        block: Reflect.apply(selectLayer, undefined, [config.block, layer]),
++      },
++    ])
++  }
++
+   if (rootConstructionOf(config.block) !== undefined) {
+     const snapshot = { ...config }
+ 
+diff --git a/packages/foldkit/src/runtime/programRoot.ts b/packages/foldkit/src/runtime/programRoot.ts
+index cf12c4d881..1d12160460 100644
+--- a/packages/foldkit/src/runtime/programRoot.ts
++++ b/packages/foldkit/src/runtime/programRoot.ts
+@@ -1,4 +1,4 @@
+-import { Array, Effect, Predicate, Schema } from 'effect'
++import { Array, Effect, Layer, Predicate, Schema } from 'effect'
+ 
+ import { assertCompletedBlock } from '../block/assemblyState.js'
+ import { type DefaultViewOf, defaultViewOf } from '../block/defaultView.js'
+@@ -197,6 +197,7 @@ const blockImplementationFields = new Set([
+ 
+ const commonHostFields = [
+   'block',
++  'layer',
+   'container',
+   'ports',
+   'slow',
+@@ -321,8 +322,14 @@ export function assertProgramConfig(
+     )
+   }
+ 
++  if ('layer' in config) {
++    if (!Layer.isLayer(Reflect.get(config, 'layer'))) {
++      throw new Error('[foldkit] Program root layer must be an Effect Layer.')
++    }
++  }
++
+   const construction = rootConstructionOf(block)
+-  if (construction === undefined) {
++  if (construction === undefined && !('layer' in config)) {
+     if (
+       !Schema.isSchema(Reflect.get(block, 'Model')) ||
+       !Schema.isSchema(Reflect.get(block, 'Message')) ||
+@@ -343,7 +350,7 @@ export function assertProgramConfig(
+     throw new Error('[foldkit] A Program root Block cannot declare OutMessage.')
+   }
+ 
+-  if (construction === undefined) {
++  if (construction === undefined && !('layer' in config)) {
+     const hostHandlers = Reflect.get(block, 'hostHandlers')
+     if (
+       globalThis.Array.isArray(hostHandlers) &&
+diff --git a/packages/foldkit/src/runtime/rootBlock.ts b/packages/foldkit/src/runtime/rootBlock.ts
+index f974495d55..728463e8d0 100644
+--- a/packages/foldkit/src/runtime/rootBlock.ts
++++ b/packages/foldkit/src/runtime/rootBlock.ts
+@@ -1,49 +1,91 @@
+ import { Effect, Layer, Predicate, type Scope } from 'effect'
++import type { Schema } from 'effect'
+ 
+ import { assertCompletedBlock } from '../block/assemblyState.js'
+ import type { AnyBlock } from '../block/definition.js'
++import type { Owner } from '../block/owner.js'
+ import type {
+   RequirementsOfBlock,
+   RuntimeServicesOfBlock,
+ } from '../block/requirements.js'
++import type {
++  CoreContractFromFacts,
++  DescriptorTypeId,
++  PublicFacts,
++} from '../experimental/constructed/contract.js'
++import type { ContractGraph } from '../experimental/contracted/contract.js'
++import type {
++  ImplementationFacts,
++  SelectedImplementationFacts,
++} from '../experimental/contracted/implementationFacts.js'
++
++type AnySchema = Schema.Codec<any, any, any, any>
++
++export type DeclaredRootBlock = Readonly<{
++  owner: Owner<string>
++  Model: AnySchema
++  Message: AnySchema
++  OutMessage: AnySchema | undefined
++  [DescriptorTypeId]: PublicFacts
++}>
+ /** @internal Flat host evidence, independent of experimental authoring machinery. */
+ export declare const LayeredRootTypeId: unique symbol
+ 
+ /** @internal A Layer-owned root whose exact host contracts were inferred during completion. */
+-export interface LayeredRoot {
+-  readonly [LayeredRootTypeId]: Readonly<{
+-    contract: AnyBlock
+-    requirements: unknown
+-    runtimeServices: unknown
++export interface LayeredRoot<
++  Contract extends AnyBlock = AnyBlock,
++  Requirements = unknown,
++  RuntimeServices = unknown,
++  LayerValue extends Layer.Layer<any, any, any> = Layer.Layer<any, any, any>,
++> {
++  readonly [LayeredRootTypeId]?: Readonly<{
++    contract: Contract
++    requirements: Requirements
++    runtimeServices: RuntimeServices
+   }>
+-  readonly layer: Layer.Any
++  readonly layer: LayerValue
+   readonly get: Effect.Effect<object, any, any>
+ }
+ 
++/** A public Block paired with the exact ordinary implementation Layer selected by its host. */
++export interface LayeredRootSelection<
++  Contract extends AnyBlock,
++  Requirements,
++  RuntimeServices,
++  LayerValue extends Layer.Layer<any, any, any>,
++  BlockValue extends object = object,
++> extends LayeredRoot<Contract, Requirements, RuntimeServices, LayerValue> {
++  readonly block: BlockValue
++}
++
+ /** @internal Roots accepted by browser and server hosts. */
+ export type RootBlock = AnyBlock | LayeredRoot
+ 
+ /** @internal Projects an already-known Layer-owned root without union dispatch. */
+ export type LayeredContract<Value extends LayeredRoot> =
+-  Value[typeof LayeredRootTypeId]['contract']
++  Value extends LayeredRoot<infer Contract, any, any, any> ? Contract : never
+ 
+ /** @internal Projects host contracts without constructing a completed facade. */
+ export type RootContract<Value extends RootBlock> = Value extends AnyBlock
+   ? Value
+   : Value extends LayeredRoot
+-    ? Value[typeof LayeredRootTypeId]['contract']
++    ? LayeredContract<Value>
+     : never
+ 
+ /** @internal Ordinary Services retained by the completed executable graph. */
+ export type RootRequirements<Value extends RootBlock> =
+   Value extends LayeredRoot
+-    ? Value[typeof LayeredRootTypeId]['requirements']
++    ? Value extends LayeredRoot<any, infer Requirements, any, any>
++      ? Requirements
++      : never
+     : RequirementsOfBlock<Value>
+ 
+ /** @internal ManagedResource handles supplied by the runtime after graph construction. */
+ export type RootRuntimeServices<Value extends RootBlock> =
+   Value extends LayeredRoot
+-    ? Value[typeof LayeredRootTypeId]['runtimeServices']
++    ? Value extends LayeredRoot<any, any, infer RuntimeServices, any>
++      ? RuntimeServices
++      : never
+     : RuntimeServicesOfBlock<Value>
+ 
+ /** @internal Failure of the graph Layer, separate from handler construction. */
+@@ -54,10 +96,124 @@ export type RootConstructionError<Value extends RootBlock> =
+ export type RootConstructionRequirements<Value extends RootBlock> =
+   Value extends LayeredRoot ? Layer.Services<Value['layer']> : never
+ 
++type SelectedResultOf<BlockValue extends DeclaredRootBlock> = ContractGraph<
++  BlockValue['owner'],
++  BlockValue['Model'],
++  BlockValue['Message'],
++  BlockValue['OutMessage'],
++  BlockValue[typeof DescriptorTypeId]
++>
++
++type MatchedImplementation<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Any,
++> = Extract<
++  Layer.Success<LayerValue>,
++  SelectedImplementationFacts<SelectedResultOf<BlockValue>, any, any, any>
++>
++
++/** @internal Checks the complete selected public contract and correlated host readiness. */
++export type ValidateSelectedLayer<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Any,
++> = [Extract<Layer.Success<LayerValue>, SelectedResultOf<BlockValue>>] extends [
++  never,
++]
++  ? Readonly<{
++      'Selected Layer must implement the paired Block public contract': LayerValue
++    }>
++  : [MatchedImplementation<BlockValue, LayerValue>] extends [never]
++    ? Readonly<{
++        'Layer has no checked implementation Facts for the paired Block': LayerValue
++      }>
++    : MatchedImplementation<
++          BlockValue,
++          LayerValue
++        > extends SelectedImplementationFacts<any, any, any, infer Pending>
++      ? [Pending] extends [never]
++        ? unknown
++        : Readonly<{
++            'Select this Block Layer’s host handlers before hosting it': Pending
++          }>
++      : never
++
++/** @internal Projects only private facts associated with the paired public result. */
++export type SelectedBlockLayerFacts<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Any,
++> =
++  MatchedImplementation<
++    BlockValue,
++    LayerValue
++  > extends SelectedImplementationFacts<any, any, infer Facts, any>
++    ? Facts extends PublicFacts
++      ? Facts
++      : never
++    : never
++
++type FactsOfLayer<Value extends Layer.Layer<any, any, any>, OwnerValue> =
++  Extract<
++    Layer.Success<Value>,
++    ImplementationFacts<OwnerValue, any, any>
++  > extends ImplementationFacts<OwnerValue, infer Facts, any>
++    ? Facts extends PublicFacts
++      ? Facts
++      : never
++    : never
++
++/** @internal Exact implementation facts carried by an ordinary selected Layer. */
++export type SelectedLayerFacts<
++  Value extends Layer.Layer<any, any, any>,
++  OwnerValue,
++> = FactsOfLayer<Value, OwnerValue>
++
++/** @internal Types an explicit public Block and selected implementation Layer pair. */
++export type SelectedLayeredRoot<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++> = LayeredRoot<
++  SelectedLayerContract<BlockValue, LayerValue>,
++  SelectedBlockLayerFacts<BlockValue, LayerValue>['programRequirements'],
++  SelectedBlockLayerFacts<BlockValue, LayerValue>['runtimeServices'],
++  LayerValue
++> &
++  Readonly<{ block: BlockValue }>
++
++type SelectedLayerContract<
++  BlockValue extends DeclaredRootBlock,
++  LayerValue extends Layer.Layer<any, any, any>,
++> = CoreContractFromFacts<
++  BlockValue['owner'],
++  BlockValue['Model'],
++  BlockValue['Message'],
++  BlockValue['OutMessage'],
++  SelectedBlockLayerFacts<BlockValue, LayerValue>
++> &
++  Readonly<{
++    [DescriptorTypeId]: SelectedBlockLayerFacts<BlockValue, LayerValue>
++  }>
++
++/** @internal Makes the explicit public Block/Layer host selection consumable. */
++export const selectLayeredRoot = <
++  const BlockValue extends DeclaredRootBlock,
++  const LayerValue extends Layer.Layer<any, any, any>,
++>(
++  block: BlockValue,
++  layer: LayerValue,
++  read: Effect.Effect<AnyBlock, never, any>,
++): SelectedLayeredRoot<BlockValue, LayerValue> => {
++  const selected = Object.freeze({ block, layer, get: read })
++
++  registerRootConstruction(selected, { layer, read })
++
++  return selected
++}
++
+ /** @internal A registered construction recipe and private reader for its genuine core Block. */
+ export interface RootConstruction {
+   readonly layer: Layer.Layer<any, any, any>
+   readonly read: Effect.Effect<AnyBlock, never, any>
++  readonly readForTesting?: Effect.Effect<object, any, any>
+ }
+ 
+ const constructions = new WeakMap<object, RootConstruction>()
+diff --git a/packages/foldkit/src/story/story.ts b/packages/foldkit/src/story/story.ts
+index 96423ec5ee..1335803965 100644
+--- a/packages/foldkit/src/story/story.ts
++++ b/packages/foldkit/src/story/story.ts
+@@ -1,15 +1,105 @@
+-import { Predicate } from 'effect'
++import { Predicate, type Layer } from 'effect'
+ 
+ import * as ScopedStory from '../experimental/layered/testing/story.js'
++import type {
++  DirectSubject,
++  TestConfig,
++  SelectedTestConfig,
++  TestModel,
++  TestMessage,
++  TestOutMessage,
++  TestInMessage,
++  TestInit,
++} from '../experimental/layered/testing/subject.js'
++import type {
++  BlockSubject,
++  TestEffect,
++} from '../experimental/layered/testing/withBlock.js'
++import type {
++  DeclaredRootBlock,
++  SelectedLayeredRoot,
++} from '../runtime/rootBlock.js'
+ import * as CoreStory from '../test/story.js'
+ 
++type StoryBlock<Subject> =
++  Subject extends Readonly<{
++    block: infer Block extends DeclaredRootBlock
++    layer: infer LayerValue extends Layer.Layer<any, any, any>
++  }>
++    ? SelectedLayeredRoot<Block, LayerValue>
++    : Subject extends Readonly<{ block: infer Block extends BlockSubject }>
++      ? Block
++      : Subject extends BlockSubject
++        ? Subject
++        : never
++
++type StoryUpdate = (...args: ReadonlyArray<never>) => unknown
++type StoryOutMessage<Output> =
++  Output extends Readonly<{ outMessage?: infer OutMessage }>
++    ? OutMessage
++    : undefined
++
++type StorySteps<Subject> = Subject extends StoryUpdate
++  ? ReadonlyArray<
++      CoreStory.StoryStep<
++        Parameters<Subject>[0],
++        Parameters<Subject>[1],
++        StoryOutMessage<ReturnType<Subject>>
++      >
++    >
++  : readonly [
++      initial:
++        | TestInit<StoryBlock<Subject>>
++        | CoreStory.GivenStep<TestModel<StoryBlock<Subject>>>,
++      ...steps: ReadonlyArray<
++        CoreStory.StoryStep<
++          TestModel<StoryBlock<Subject>>,
++          TestMessage<StoryBlock<Subject>>,
++          TestOutMessage<StoryBlock<Subject>>,
++          TestInMessage<StoryBlock<Subject>>
++        >
++      >,
++    ]
++
++type StorySubjectValidation<Subject> = Subject extends StoryUpdate
++  ? Subject extends (
++      model: Parameters<Subject>[0],
++      message: Parameters<Subject>[1],
++    ) => Readonly<{
++      model: Parameters<Subject>[0]
++      commands?: ReadonlyArray<CoreStory.AnyCommand> | undefined
++    }>
++    ? unknown
++    : never
++  : Subject extends Readonly<{
++        block: infer Block extends DeclaredRootBlock
++        layer: infer LayerValue extends Layer.Layer<any, any, any>
++      }>
++    ? SelectedTestConfig<Block, LayerValue>
++    : Subject extends Readonly<{ block: infer Block extends BlockSubject }>
++      ? TestConfig<Block>
++      : Subject extends BlockSubject
++        ? DirectSubject<Subject>
++        : never
++
++interface ContextualStory {
++  <const Subject>(
++    subject: Subject & StorySubjectValidation<NoInfer<Subject>>,
++    ...steps: StorySteps<NoInfer<Subject>>
++  ): Subject extends (...args: ReadonlyArray<never>) => unknown
++    ? void
++    : TestEffect<StoryBlock<Subject>, void>
++}
++
+ /**
+  * Runs ordinary Story steps synchronously when given an update function.
+  * A Block descriptor or `{ block, updateContext? }` config returns a deferred
+  * Effect that acquires and scopes the Block graph before running the steps.
+  * Block-aware Stories start with `init(...)` or `given(model)`.
+  */
+-export const story: typeof ScopedStory.story & typeof CoreStory.story = (
++export const story: ContextualStory &
++  typeof ScopedStory.story &
++  typeof CoreStory.story = (
+   subject: unknown,
+   ...steps: ReadonlyArray<unknown>
+ ) => {
+diff --git a/packages/foldkit/src/block/unifiedVariantBinding.test.ts b/packages/foldkit/src/block/unifiedVariantBinding.test.ts
+new file mode 100644
+index 0000000000..68b9774deb
+--- /dev/null
++++ b/packages/foldkit/src/block/unifiedVariantBinding.test.ts
+@@ -0,0 +1,176 @@
++import { Effect, Layer, Schema } from 'effect'
++import { describe, expect, expectTypeOf } from 'vitest'
++
++import { it } from '@effect/vitest'
++
++import { defineMessageUnion } from '../message/public.js'
++import { withBlock } from '../story/public.js'
++import * as Block from './public.js'
++import { makeVariantBinding } from './variantBinding.js'
++
++const Active = Schema.Struct({
++  _tag: Schema.Literal('Active'),
++  count: Schema.Number,
++})
++const Inactive = Schema.Struct({
++  _tag: Schema.Literal('Inactive'),
++  reason: Schema.String,
++})
++const Model = Schema.Union([Active, Inactive])
++const ChildMessage = defineMessageUnion({
++  UpdatedCount: { count: Schema.Number },
++  RequestedNotify: {},
++})
++const ChildOutMessage = defineMessageUnion({
++  Notified: { count: Schema.Number },
++})
++const Message = defineMessageUnion({
++  RequestedSetCount: { count: Schema.Number },
++  RequestedNotify: {},
++})
++const OutMessage = defineMessageUnion({
++  Notified: { count: Schema.Number },
++})
++const ChildKey = Symbol('UnifiedActiveVariant')
++const ChildBlock = Block.make('UnifiedActiveVariant', {
++  key: ChildKey,
++  Model: Active,
++  Message: ChildMessage,
++  OutMessage: ChildOutMessage,
++  Init: Schema.Tuple([Schema.Number]),
++  operations: {
++    setCount: ChildMessage.UpdatedCount,
++    notify: {
++      message: ChildMessage.RequestedNotify,
++      outMessage: ChildOutMessage.Notified,
++    },
++  },
++})
++const ChildComposition = ChildBlock.makeComposition()
++const childLayer = ChildBlock.makeLayer(
++  Effect.gen(function* () {
++    return {
++      children: [],
++      init: ChildComposition.makeInit(count => ({
++        model: Active.make({ _tag: 'Active', count }),
++      })),
++      update: ChildComposition.makeUpdate({
++        UpdatedCount: ChildBlock.makeFieldsStep.fromMessage(({ count }) => ({
++          count: () => count,
++        })),
++        RequestedNotify: ChildBlock.makeOutMessageStep(model =>
++          ChildOutMessage.Notified({ count: model.count }),
++        ),
++      }),
++    }
++  }),
++)
++const ParentKey = Symbol('UnifiedVariantParent')
++const ParentBlock = Block.make('UnifiedVariantParent', {
++  key: ParentKey,
++  Model,
++  Message,
++  OutMessage,
++  Init: Schema.Tuple([Schema.Number]),
++})
++const ActiveBinding = makeVariantBinding(
++  ParentBlock,
++  ChildBlock,
++).withOutMessagePolicy({
++  fold: ParentBlock.makeOutMessageFold(ChildBlock, {
++    Notified: ({ count }) =>
++      ParentBlock.makeOutMessageStep(() => OutMessage.Notified({ count })),
++  }),
++})
++const ParentComposition = ParentBlock.makeComposition({
++  bindings: [ActiveBinding],
++})
++const layer = ParentBlock.makeLayer(
++  Effect.gen(function* () {
++    const active = yield* ActiveBinding
++
++    return {
++      children: [active],
++      init: ParentComposition.makeInit(count =>
++        ActiveBinding.init({
++          args: [count],
++          toParentModel: child => child,
++        }),
++      ),
++      update: ParentComposition.makeUpdate({
++        RequestedSetCount: (model, { count }) =>
++          ActiveBinding.setCount({ count })(model),
++        RequestedNotify: ActiveBinding.notify(),
++      }),
++    }
++  }),
++).pipe(Layer.provide(childLayer))
++
++describe('whole-variant storage through a unified Block', () => {
++  it.effect('initializes, routes operations and folds the active child', () =>
++    withBlock({ block: ParentBlock, layer }, executable => {
++      const parentInit = executable.init(2)
++      const setCount = executable.update(
++        parentInit.model,
++        Message.RequestedSetCount({ count: 8 }),
++      )
++      const notify = executable.update(
++        setCount.model,
++        Message.RequestedNotify(),
++      )
++
++      expect(parentInit.model).toEqual(
++        Active.make({ _tag: 'Active', count: 2 }),
++      )
++      expect(setCount.model).toEqual(Active.make({ _tag: 'Active', count: 8 }))
++      expect(notify.model).toBe(setCount.model)
++      expect(notify.outMessage).toEqual(OutMessage.Notified({ count: 8 }))
++      expectTypeOf(parentInit.model).toEqualTypeOf<typeof Model.Type>()
++
++      const inactive = Inactive.make({ _tag: 'Inactive', reason: 'Signed out' })
++      const ignored = executable.update(
++        inactive,
++        Message.RequestedSetCount({ count: 4 }),
++      )
++
++      expect(ignored.model).toBe(inactive)
++    }),
++  )
++
++  it('preserves exact variant and parent ownership checks', () => {
++    const UnrelatedKey = Symbol('UnrelatedVariantParent')
++    const UnrelatedBlock = Block.make('UnrelatedVariantParent', {
++      key: UnrelatedKey,
++      Model,
++      Message,
++      OutMessage,
++      Init: Schema.Tuple([Schema.Number]),
++    })
++    const NarrowKey = Symbol('NarrowVariantParent')
++    const NarrowBlock = Block.make('NarrowVariantParent', {
++      key: NarrowKey,
++      Model: Schema.Union([
++        Schema.Struct({ _tag: Schema.Literal('Active'), count: Schema.String }),
++        Inactive,
++      ]),
++      Message,
++      Init: Schema.Tuple([]),
++    })
++
++    if (false) {
++      // @ts-expect-error The relationship belongs to its original parent.
++      UnrelatedBlock.makeComposition({ bindings: [ActiveBinding] })
++      // @ts-expect-error A child must equal the complete selected parent variant.
++      makeVariantBinding(NarrowBlock, ChildBlock)
++      // @ts-expect-error Child startup arguments retain their exact tuple.
++      ActiveBinding.init({ args: ['2'], toParentModel: child => child })
++      // @ts-expect-error The bound operation retains the exact Message payload.
++      ActiveBinding.setCount({ count: '8' })
++    }
++
++    expectTypeOf(ActiveBinding.setCount)
++      .parameter(0)
++      .toHaveProperty('count')
++      .toEqualTypeOf<number>()
++  })
++})
+diff --git a/packages/foldkit/src/experimental/constructed/directLayerPrototype.test.ts b/packages/foldkit/src/experimental/constructed/directLayerPrototype.test.ts
+new file mode 100644
+index 0000000000..31c6de8558
+--- /dev/null
++++ b/packages/foldkit/src/experimental/constructed/directLayerPrototype.test.ts
+@@ -0,0 +1,124 @@
++import { Context, Effect, Layer, Schema } from 'effect'
++import { describe, expect, expectTypeOf, it } from 'vitest'
++
++import { makeDefinition } from '../layered/runtime.js'
++import type { FactsOf, Graph } from './contract.js'
++
++class ConstructorValue extends Context.Service<
++  ConstructorValue,
++  { value: number }
++>()('foldkit/test/DirectLayerConstructorValue') {}
++
++type FactsFromLayer<LayerValue extends Layer.Any> =
++  Layer.Success<LayerValue> extends Graph<any, any, any, any, infer Facts>
++    ? Facts
++    : never
++
++const makeLeaf = () => {
++  let releases = 0
++
++  const Model = Schema.Struct({ value: Schema.Number })
++  const Message = Schema.Never
++  const Definition = makeDefinition('DirectLayerLeaf', { Model, Message })
++  const Composition = Definition.makeComposition()
++  const init = Composition.makeInit(() => ({ model: { value: 7 } }))
++  const update = Composition.makeUpdate({})
++  const Block = Definition.makeBlock(
++    Effect.gen(function* () {
++      yield* Effect.acquireRelease(Effect.void, () =>
++        Effect.sync(() => {
++          releases += 1
++        }),
++      )
++
++      return { children: [], init, update }
++    }),
++  )
++
++  return { Block, releases: () => releases }
++}
++
++describe('ordinary Layer prototype', () => {
++  it('builds a selected root Layer, resolves its Block from the Layer Context, and keeps construction passive', async () => {
++    const leaf = makeLeaf()
++    const Model = Schema.Struct({ child: leaf.Block.Model })
++    const Message = Schema.Never
++    const Definition = makeDefinition('DirectLayerRoot', { Model, Message })
++    let initArgumentReads = 0
++    const Child = Definition.makeBinding(leaf.Block, {
++      field: 'child',
++      init: {
++        contextToArgs: () => {
++          initArgumentReads += 1
++
++          return []
++        },
++      },
++    })
++    const Composition = Definition.makeComposition({ bindings: [Child] })
++    const init = Composition.makeInit(() => ({ model: {} }))
++    const update = Composition.makeUpdate({})
++    const Block = Definition.makeBlock(
++      Effect.gen(function* () {
++        const child = yield* Child
++
++        return { children: [child], init, update }
++      }),
++    )
++    const selectedLayer = Layer.provide(Block.layer, leaf.Block.layer)
++    const application = { block: Block, layer: selectedLayer }
++
++    expect(leaf.releases()).toBe(0)
++    expect(initArgumentReads).toBe(0)
++
++    const root = await Effect.runPromise(
++      Effect.scoped(
++        Layer.build(application.layer).pipe(
++          Effect.flatMap(context =>
++            Effect.provide(application.block.get, context).pipe(
++              Effect.flatMap(executable =>
++                Effect.sync(() => executable.init().model),
++              ),
++            ),
++          ),
++        ),
++      ),
++    )
++
++    expect(root).toEqual({ child: { value: 7 } })
++    expect(initArgumentReads).toBe(1)
++    expect(leaf.releases()).toBe(1)
++  })
++
++  it('retains exact checked Facts on the ordinary implementation Layer', () => {
++    const Model = Schema.Struct({ value: Schema.Number })
++    const Message = Schema.Never
++    const Definition = makeDefinition('DirectLayerFacts', { Model, Message })
++    const Composition = Definition.makeComposition()
++    const Block = Definition.makeBlock(
++      Effect.gen(function* () {
++        const constructorValue = yield* ConstructorValue
++
++        return {
++          children: [],
++          init: Composition.makeInit(() => ({
++            model: { value: constructorValue.value },
++          })),
++          update: Composition.makeUpdate({}),
++        }
++      }),
++    )
++    const selectedLayer = Layer.provide(
++      Block.layer,
++      Layer.succeed(ConstructorValue, { value: 1 }),
++    )
++
++    expectTypeOf<FactsFromLayer<typeof Block.layer>>().toEqualTypeOf<
++      FactsOf<typeof Block>
++    >()
++    expectTypeOf<
++      Layer.Services<typeof Block.layer>
++    >().toEqualTypeOf<ConstructorValue>()
++    expectTypeOf<Layer.Services<typeof selectedLayer>>().toEqualTypeOf<never>()
++  })
++})
+diff --git a/packages/foldkit/src/experimental/constructed/planSourceValidation.ts b/packages/foldkit/src/experimental/constructed/planSourceValidation.ts
+new file mode 100644
+index 0000000000..9a822a5f11
+--- /dev/null
++++ b/packages/foldkit/src/experimental/constructed/planSourceValidation.ts
+@@ -0,0 +1,43 @@
++import type { Plan, PlanKind, PlanSource } from '../hybrid/authoring.js'
++import type { ConstructorBody, SourceOf } from './authoring.js'
++
++type Equal<Left, Right> = [Left, Right] extends [Right, Left] ? true : false
++
++type PlanSourcePairs<Value, ExpectedSource> = Value extends undefined
++  ? never
++  : Value extends Plan<unknown, PlanKind, unknown>
++    ? readonly [expected: ExpectedSource, actual: PlanSource<Value>]
++    : readonly [expected: ExpectedSource, actual: unknown]
++
++type BodyPlanSourcePairs<
++  Body extends ConstructorBody,
++  Key extends 'update' | 'view',
++> = Body extends unknown
++  ? Key extends keyof Body
++    ? PlanSourcePairs<Body[Key], SourceOf<Body>>
++    : never
++  : never
++
++type IncompatibleSourcePair<Pair> = Pair extends readonly [unknown, unknown]
++  ? 0 extends 1 & Pair[1]
++    ? true
++    : unknown extends Pair[1]
++      ? true
++      : Equal<Pair[0], Pair[1]> extends true
++        ? never
++        : true
++  : never
++
++type IncompatibleBodyPlanSource<
++  Body extends ConstructorBody,
++  Key extends 'update' | 'view',
++> = IncompatibleSourcePair<BodyPlanSourcePairs<Body, Key>>
++
++/** @internal Preserves each constructor alternative's exact portable plan ownership. */
++export type PlanSourceValidation<Body extends ConstructorBody> = [
++  IncompatibleBodyPlanSource<Body, 'update'>,
++] extends [never]
++  ? [IncompatibleBodyPlanSource<Body, 'view'>] extends [never]
++    ? readonly []
++    : readonly [viewBelongsToAnotherComposition: never]
++  : readonly [updateBelongsToAnotherComposition: never]
+diff --git a/packages/foldkit/src/experimental/contracted/directBlockLayer.test.ts b/packages/foldkit/src/experimental/contracted/directBlockLayer.test.ts
+new file mode 100644
+index 0000000000..68a7e91deb
+--- /dev/null
++++ b/packages/foldkit/src/experimental/contracted/directBlockLayer.test.ts
+@@ -0,0 +1,773 @@
++import { Context, Effect, Layer, Schema, Stream } from 'effect'
++import { describe, expect, expectTypeOf, it, vi } from 'vitest'
++
++import * as Block from '../../block/public.js'
++import { __htmlBuilder } from '../../html/index.js'
++import { defineMessageUnion } from '../../message/index.js'
++import type * as Mount from '../../mount/index.js'
++import { UrlRequest } from '../../navigation/urlRequest.js'
++import * as Program from '../../runtime/programPublic.js'
++import { resolveProgramRoot } from '../../runtime/rootBlock.js'
++import type {
++  DeclaredRootBlock,
++  SelectedLayerFacts,
++} from '../../runtime/rootBlock.js'
++import { embed } from '../../runtime/start.js'
++import * as Story from '../../story/public.js'
++import { modifyFields } from '../../struct/index.js'
++import { Url } from '../../url/index.js'
++import type { DeclaredBlockReaderTypeId } from '../constructed/contract.js'
++import * as Scene from '../layered/testing/scene.js'
++import { withBlock } from '../layered/testing/withBlock.js'
++import * as Server from '../server/public.js'
++import type { ImplementationFacts } from './contract.js'
++import { selectLayer } from './runtime.js'
++
++const ChildKey = Symbol('DirectBlockLayerChild')
++const ChildModel = Schema.Struct({ value: Schema.Number })
++const ChildMessage = Schema.Never
++const Child = Block.make('DirectBlockLayerChild', {
++  key: ChildKey,
++  Model: ChildModel,
++  Message: ChildMessage,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++})
++const ChildComposition = Child.makeComposition()
++const childInit = ChildComposition.makeInit(() => ({ model: { value: 7 } }))
++const childUpdate = ChildComposition.makeUpdate({})
++const childLayer = Child.makeLayer(
++  Effect.succeed({ children: [], init: childInit, update: childUpdate }),
++)
++
++const ParentKey = Symbol('DirectBlockLayerParent')
++const ParentModel = Schema.Struct({ child: ChildModel })
++const ParentMessage = Schema.Never
++const Parent = Block.make('DirectBlockLayerParent', {
++  key: ParentKey,
++  Model: ParentModel,
++  Message: ParentMessage,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++  view: { kind: 'Element' },
++})
++const ChildBinding = Parent.makeBinding(Child, { field: 'child' })
++const ParentComposition = Parent.makeComposition({ bindings: [ChildBinding] })
++const parentInit = ParentComposition.makeInit(() => ({ model: {} }))
++const parentUpdate = ParentComposition.makeUpdate({})
++let parentViewRuns = 0
++const parentView = ParentComposition.makeView((model, h) => {
++  parentViewRuns += 1
++
++  return h.div([], [`Child value: ${model.child.value}`])
++})
++let parentConstructorRuns = 0
++class ParentService extends Context.Service<
++  ParentService,
++  Readonly<{ value: string }>
++>()('DirectBlockLayerParent/ParentService') {}
++
++const parentLayer = Parent.makeLayer(
++  Effect.gen(function* () {
++    yield* ParentService
++    yield* Effect.sync(() => {
++      parentConstructorRuns += 1
++    })
++
++    const child = yield* ChildBinding
++
++    return {
++      children: [child],
++      init: parentInit,
++      update: parentUpdate,
++      view: parentView,
++    }
++  }),
++)
++const selectedParentLayer = Layer.provide(parentLayer, childLayer)
++expectTypeOf<
++  Layer.Services<typeof selectedParentLayer>
++>().toEqualTypeOf<ParentService>()
++const alternativeChildInit = ChildComposition.makeInit(() => ({
++  model: { value: 9 },
++}))
++const alternativeChildLayer = Child.makeLayer(
++  Effect.succeed({
++    children: [],
++    init: alternativeChildInit,
++    update: childUpdate,
++  }),
++)
++const selectedParentLayerWithAlternativeChild = Layer.provide(
++  parentLayer,
++  alternativeChildLayer,
++)
++const ForeignChildKey = Symbol('DirectBlockLayerForeignChild')
++const ForeignChild = Block.make('DirectBlockLayerForeignChild', {
++  key: ForeignChildKey,
++  Model: ChildModel,
++  Message: ChildMessage,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++})
++const ForeignChildComposition = ForeignChild.makeComposition()
++const foreignChildLayer = ForeignChild.makeLayer(
++  Effect.succeed({
++    children: [],
++    init: ForeignChildComposition.makeInit(() => ({ model: { value: 9 } })),
++    update: ForeignChildComposition.makeUpdate({}),
++  }),
++)
++const DocumentChildModel = Schema.Struct({ title: Schema.String })
++const DocumentChildKey = Symbol('DirectBlockLayerDocumentChild')
++const DocumentChild = Block.make('DirectBlockLayerDocumentChild', {
++  key: DocumentChildKey,
++  Model: DocumentChildModel,
++  Message: Schema.Never,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++  view: { kind: 'Document' },
++})
++const ParentWithDocumentKey = Symbol('DirectBlockLayerParentWithDocument')
++const ParentWithDocument = Block.make('DirectBlockLayerParentWithDocument', {
++  key: ParentWithDocumentKey,
++  Model: Schema.Struct({ document: DocumentChildModel }),
++  Message: Schema.Never,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++  view: { kind: 'Document' },
++})
++const DocumentStateBinding = ParentWithDocument.makeBinding(DocumentChild, {
++  field: 'document',
++})
++const ParentWithDocumentComposition = ParentWithDocument.makeComposition({
++  bindings: [DocumentStateBinding],
++})
++ParentWithDocumentComposition.makeView((model, h) => ({
++  title: model.document.title,
++  body: h.div([], [model.document.title]),
++}))
++const documentComposition = DocumentChild.makeComposition()
++const documentChildLayer = DocumentChild.makeLayer(
++  Effect.succeed({
++    children: [],
++    init: documentComposition.makeInit(() => ({
++      model: { title: 'Preview' },
++    })),
++    update: documentComposition.makeUpdate({}),
++    view: documentComposition.makeView((model, h) => ({
++      title: model.title,
++      body: h.div([], [model.title]),
++    })),
++  }),
++)
++
++const PageKey = Symbol('DirectBlockLayerPage')
++const PageFlags = Schema.Struct({ language: Schema.String })
++const PageMessage = defineMessageUnion({
++  ClickedLink: { request: UrlRequest },
++  ChangedUrl: { url: Url },
++})
++const PageBlock = Block.make('DirectBlockLayerPage', {
++  key: PageKey,
++  Model: Schema.Struct({ url: Url, language: Schema.String }),
++  Message: PageMessage,
++  Init: Schema.Tuple([PageFlags, Url]),
++  view: { kind: 'Document' },
++})
++const PageComposition = PageBlock.makeComposition()
++const pageInit = PageComposition.makeInit((flags, url) => ({
++  model: { url, language: flags.language },
++}))
++const pageUpdate = PageComposition.makeUpdate({
++  ClickedLink: model => ({ model }),
++  ChangedUrl: (model, { url }) => ({
++    model: modifyFields(model, { url: () => url }),
++  }),
++})
++const pageView = PageComposition.makeView((model, h) => ({
++  title: model.url.pathname,
++  body: h.div([], [`${model.language}:${model.url.pathname}`]),
++}))
++const pageLayer = PageBlock.makeLayer(
++  Effect.succeed({
++    children: [],
++    init: pageInit,
++    update: pageUpdate,
++    view: pageView,
++  }),
++)
++
++const HandlerKey = Symbol('DirectBlockLayerHandlers')
++const HandlerModel = Schema.Struct({ value: Schema.String })
++const HandlerMessage = defineMessageUnion({ CompletedRead: {} })
++const HandlerBlock = Block.make('DirectBlockLayerHandlers', {
++  key: HandlerKey,
++  Model: HandlerModel,
++  Message: HandlerMessage,
++  Init: Schema.Tuple([]),
++  view: { kind: 'Element' },
++})
++const Read = HandlerBlock.makeCommand('Read', {
++  messages: [HandlerMessage.CompletedRead],
++})
++const handlerComposition = HandlerBlock.makeComposition()
++const handlerInit = handlerComposition.makeInit(() => ({
++  model: { value: '' },
++  commands: [Read()],
++}))
++const handlerUpdate = handlerComposition.makeUpdate({
++  CompletedRead: (_model, _message) => ({ model: { value: 'ready' } }),
++})
++const handlerView = handlerComposition.makeView((model, h) =>
++  h.div([], [model.value]),
++)
++const handlerEvents: Array<string> = []
++class HandlerGraphService extends Context.Service<
++  HandlerGraphService,
++  Readonly<{ value: string }>
++>()('DirectBlockLayerHandlers/GraphService') {}
++const handlerImplementation = HandlerBlock.makeLayer(
++  Effect.gen(function* () {
++    yield* HandlerGraphService
++    yield* Effect.acquireRelease(
++      Effect.sync(() => handlerEvents.push('graph acquired')),
++      () => Effect.sync(() => handlerEvents.push('graph released')),
++    )
++
++    return {
++      children: [],
++      init: handlerInit,
++      update: handlerUpdate,
++      view: handlerView,
++      hostHandlers: [Read],
++    }
++  }),
++)
++const selectedHandlers = Read.toLayer(
++  Effect.gen(function* () {
++    yield* Effect.acquireRelease(
++      Effect.sync(() => handlerEvents.push('handler acquired')),
++      () => Effect.sync(() => handlerEvents.push('handler released')),
++    )
++
++    return () => Effect.succeed(HandlerMessage.CompletedRead())
++  }),
++)
++const selectedHandlerImplementation = HandlerBlock.provideHandlers(
++  selectedHandlers,
++)(handlerImplementation)
++const handlerGraphLayer = Layer.succeed(HandlerGraphService, { value: 'graph' })
++const handlerSelectionBeforeDependencies = Layer.provide(
++  selectedHandlerImplementation,
++  handlerGraphLayer,
++)
++const handlerSelectionAfterDependencies = HandlerBlock.provideHandlers(
++  selectedHandlers,
++)(Layer.provide(handlerImplementation, handlerGraphLayer))
++
++if (false) {
++  const parentDeclaredRoot: DeclaredRootBlock = Parent
++  void parentDeclaredRoot
++
++  const missingChildLayer = Layer.provide(parentLayer, Layer.empty)
++  const incompleteProgram = Program.makeElement({
++    block: Parent,
++    layer: missingChildLayer,
++    container: null,
++  })
++  // @ts-expect-error The selected root Layer still needs the child binding.
++  embed(incompleteProgram)
++
++  // @ts-expect-error A foreign Block's Layer cannot implement Parent.
++  Program.makeElement({
++    block: Parent,
++    layer: foreignChildLayer,
++    container: null,
++  })
++
++  const alternativeProgram = Program.makeElement({
++    block: Parent,
++    layer: selectedParentLayerWithAlternativeChild,
++    container: null,
++  })
++  expectTypeOf(alternativeProgram).not.toBeAny()
++
++  const pageProgram = Program.make({
++    block: PageBlock,
++    layer: pageLayer,
++    container: document.createElement('div'),
++    Flags: PageFlags,
++    routing: {
++      onUrlRequest: PageMessage.ClickedLink,
++      onUrlChange: PageMessage.ChangedUrl,
++    },
++  })
++  expectTypeOf(pageProgram).not.toBeAny()
++
++  // @ts-expect-error Page roots require a Document view.
++  Program.make({ block: Parent, layer: parentLayer, container: null })
++
++  const invalidPageConfiguration = {
++    block: PageBlock,
++    layer: pageLayer,
++    container: document.createElement('div'),
++    Flags: PageFlags,
++    routing: {
++      onUrlRequest: PageMessage.ChangedUrl,
++      onUrlChange: PageMessage.ClickedLink,
++    },
++  }
++
++  // @ts-expect-error Routing constructors must belong to the selected Message Schema.
++  Program.make(invalidPageConfiguration)
++
++  const documentProgram = Program.make({
++    block: DocumentChild,
++    layer: documentChildLayer,
++    container: document.createElement('div'),
++  })
++  expectTypeOf(documentProgram).not.toBeAny()
++
++  // @ts-expect-error A host provider must implement the original Read command.
++  HandlerBlock.provideHandlers(Layer.empty)(handlerImplementation)
++
++  ParentWithDocumentComposition.makeView((model, h) => ({
++    title: model.document.title,
++    body: h.block(
++      // @ts-expect-error Document Bindings can supply state but cannot embed a Block view.
++      DocumentStateBinding.embedView({
++        slotId: 'document-child',
++        model: model.document,
++      }),
++    ),
++  }))
++}
++
++// @ts-expect-error Block.make returns the completed authoring value directly.
++void Parent.makeBlock
++// @ts-expect-error The public Block value does not expose the contract stage.
++void Parent.contract
++
++type LayerFacts<LayerValue extends Layer.Any> =
++  Extract<
++    Layer.Success<LayerValue>,
++    ImplementationFacts<any, any, any>
++  > extends ImplementationFacts<any, infer Facts, any>
++    ? Facts
++    : never
++
++type DeclaredGraph<BlockValue> =
++  BlockValue extends Readonly<{
++    [DeclaredBlockReaderTypeId]: Effect.Effect<any, any, infer Requirements>
++  }>
++    ? Requirements
++    : never
++
++type Assert<Condition extends true> = Condition
++
++type ParentLayerRetainsDeclaredGraph = Assert<
++  DeclaredGraph<typeof Parent> extends Layer.Success<typeof parentLayer>
++    ? true
++    : false
++>
++type SelectedHandlerLayerRetainsDeclaredGraph = Assert<
++  DeclaredGraph<typeof HandlerBlock> extends Layer.Success<
++    typeof handlerSelectionBeforeDependencies
++  >
++    ? true
++    : false
++>
++
++expectTypeOf<ParentLayerRetainsDeclaredGraph>().toEqualTypeOf<true>()
++expectTypeOf<SelectedHandlerLayerRetainsDeclaredGraph>().toEqualTypeOf<true>()
++expectTypeOf<LayerFacts<typeof parentLayer>>().not.toEqualTypeOf<never>()
++expectTypeOf<
++  Layer.Success<typeof selectedHandlerImplementation>
++>().not.toBeAny()
++const mergedParentAndForeignLayer = Layer.mergeAll(
++  selectedParentLayer,
++  foreignChildLayer,
++)
++expectTypeOf<
++  SelectedLayerFacts<typeof mergedParentAndForeignLayer, typeof Parent.owner>
++>().toEqualTypeOf<
++  SelectedLayerFacts<typeof selectedParentLayer, typeof Parent.owner>
++>()
++expectTypeOf<
++  SelectedLayerFacts<
++    typeof mergedParentAndForeignLayer,
++    typeof ForeignChild.owner
++  >
++>().toEqualTypeOf<
++  SelectedLayerFacts<typeof foreignChildLayer, typeof ForeignChild.owner>
++>()
++expectTypeOf<
++  SelectedLayerFacts<typeof parentLayer, typeof ForeignChild.owner>
++>().toBeNever()
++
++const LifecycleMessage = defineMessageUnion({ CompletedPulse: {} })
++const LifecycleKey = Symbol('DirectBlockLayerLifecycle')
++const LifecycleBlock = Block.make('DirectBlockLayerLifecycle', {
++  key: LifecycleKey,
++  Model: Schema.Struct({ value: Schema.Number }),
++  Message: LifecycleMessage,
++  Init: Schema.Tuple([]),
++  view: { kind: 'Element' },
++})
++const Pulse = LifecycleBlock.makeMount('Pulse', {
++  args: { label: Schema.String },
++  messages: [LifecycleMessage.CompletedPulse],
++  handler: function* () {
++    return () => Effect.succeed(LifecycleMessage.CompletedPulse())
++  },
++})
++const LifecycleComposition = LifecycleBlock.makeComposition({ mounts: [Pulse] })
++const lifecycleInit = LifecycleComposition.makeInit(() => ({
++  model: { value: 1 },
++}))
++const lifecycleUpdate = LifecycleComposition.makeUpdate({
++  CompletedPulse: model => ({ model }),
++})
++const lifecycleSubscriptions = LifecycleBlock.makeSubscriptions(entry => ({
++  pulse: entry(
++    'PulseSubscription',
++    { value: Schema.Number },
++    {
++      messages: [LifecycleMessage.CompletedPulse],
++      modelToDependencies: model => ({ value: model.value }),
++      handler: function* () {
++        return () => Stream.empty
++      },
++    },
++  ),
++}))
++const lifecycleView = LifecycleComposition.makeView((model, h) =>
++  h.div([h.OnMount(Pulse({ label: globalThis.String(model.value) }))]),
++)
++const lifecycleLayer = LifecycleBlock.makeLayer(
++  Effect.succeed({
++    children: [],
++    init: lifecycleInit,
++    update: lifecycleUpdate,
++    view: lifecycleView,
++    subscriptions: lifecycleSubscriptions,
++    EffectsLayer: Layer.mergeAll(Pulse.layer, lifecycleSubscriptions.layer),
++  }),
++)
++
++expectTypeOf<
++  LayerFacts<typeof lifecycleLayer>['mountRequirements']
++>().toEqualTypeOf<Mount.RequirementsOf<typeof Pulse>>()
++type OwnerOfLayer<LayerValue extends Layer.Any> =
++  Extract<
++    Layer.Success<LayerValue>,
++    ImplementationFacts<any, any, any>
++  > extends ImplementationFacts<infer OwnerValue, any, any>
++    ? OwnerValue
++    : never
++expectTypeOf<OwnerOfLayer<typeof lifecycleLayer>>().toEqualTypeOf<
++  typeof LifecycleBlock.owner
++>()
++expectTypeOf<
++  SelectedLayerFacts<
++    typeof lifecycleLayer,
++    typeof LifecycleBlock.owner
++  >['subscriptions']
++>().toEqualTypeOf<LayerFacts<typeof lifecycleLayer>['subscriptions']>()
++
++const DocumentModel = Schema.Struct({ title: Schema.String })
++const DocumentKey = Symbol('DirectBlockLayerServerDocument')
++const DocumentBlock = Block.make('DirectBlockLayerServerDocument', {
++  key: DocumentKey,
++  Model: DocumentModel,
++  Message: Schema.Never,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++  view: { kind: 'Document' },
++})
++const DocumentComposition = DocumentBlock.makeComposition()
++const documentLayer = DocumentBlock.makeLayer(
++  Effect.succeed({
++    children: [],
++    init: DocumentComposition.makeInit(() => ({ model: { title: 'Preview' } })),
++    update: DocumentComposition.makeUpdate({}),
++    view: DocumentComposition.makeView(model => ({
++      title: model.title,
++      body: __htmlBuilder<never>().main([], [model.title]),
++    })),
++  }),
++)
++
++describe('unified Block.make and makeLayer prototype', () => {
++  it('hosts a selected page with Flags and dispatches URL changes through its update', async () => {
++    const originalUrl = window.location.href
++    const originalTitle = document.title
++    const container = document.createElement('div')
++    container.id = 'direct-block-layer-page-root'
++    const wrapper = document.createElement('section')
++    wrapper.append(container)
++    document.body.append(wrapper)
++    window.history.replaceState({}, '', '/direct-layer/first')
++
++    const program = Program.make({
++      block: PageBlock,
++      layer: pageLayer,
++      container,
++      Flags: PageFlags,
++      routing: {
++        onUrlRequest: PageMessage.ClickedLink,
++        onUrlChange: PageMessage.ChangedUrl,
++      },
++    })
++    const handle = embed(program, {
++      flags: Effect.succeed({ language: 'en' }),
++    })
++
++    try {
++      await vi.waitFor(() => {
++        expect(wrapper.textContent).toBe('en:/direct-layer/first')
++        expect(document.title).toBe('/direct-layer/first')
++      })
++
++      window.history.replaceState({}, '', '/direct-layer/second')
++      window.dispatchEvent(new PopStateEvent('popstate'))
++
++      await vi.waitFor(() => {
++        expect(wrapper.textContent).toBe('en:/direct-layer/second')
++        expect(document.title).toBe('/direct-layer/second')
++      })
++    } finally {
++      await handle.dispose()
++      window.history.replaceState({}, '', originalUrl)
++      document.title = originalTitle
++      wrapper.remove()
++    }
++  })
++
++  it('renders a selected routing page using request Flags and URL on Server', async () => {
++    const rendered = await Effect.runPromise(
++      Server.renderToString(
++        { block: PageBlock, layer: pageLayer },
++        { Flags: PageFlags, routing: {} },
++        {
++          isHydratable: false,
++          flags: { language: 'fr' },
++          url: 'https://workspace.example/direct-layer/server',
++        },
++      ),
++    )
++
++    expect(rendered.title).toBe('/direct-layer/server')
++    expect(rendered.html).toContain('<div>fr:/direct-layer/server</div>')
++  })
++
++  it('selects original host handlers after graph acquisition without building their Layer', async () => {
++    handlerEvents.length = 0
++
++    const selectedRoot = selectLayer(
++      HandlerBlock,
++      handlerSelectionBeforeDependencies,
++    )
++    const implementation = await Effect.runPromise(
++      Effect.scoped(resolveProgramRoot(selectedRoot)),
++    )
++
++    expect(handlerEvents).toEqual(['graph acquired', 'graph released'])
++    expect(implementation.hostHandlers).toEqual([])
++  })
++
++  it('selects original handlers whether dependencies are provided before or after selection', async () => {
++    for (const layer of [
++      handlerSelectionBeforeDependencies,
++      handlerSelectionAfterDependencies,
++    ]) {
++      const implementation = await Effect.runPromise(
++        Effect.scoped(resolveProgramRoot(selectLayer(HandlerBlock, layer))),
++      )
++
++      expect(implementation.hostHandlers).toEqual([])
++    }
++  })
++
++  it('rejects an unselected implementation that declares host handlers', async () => {
++    handlerEvents.length = 0
++
++    await expect(
++      Effect.runPromise(
++        Effect.scoped(
++          Layer.build(Layer.provide(handlerImplementation, handlerGraphLayer)),
++        ),
++      ),
++    ).rejects.toThrow('must resolve its original host handlers')
++
++    expect(handlerEvents).toEqual(['graph acquired', 'graph released'])
++  })
++
++  it('rejects a foreign implementation Layer for a registered child Binding', async () => {
++    const wrongProviderLayer = Layer.provide(
++      Layer.provide(parentLayer, foreignChildLayer),
++      Layer.succeed(ParentService, { value: 'parent' }),
++    )
++
++    await expect(
++      Effect.runPromise(
++        Effect.scoped(
++          resolveProgramRoot(selectLayer(Parent, wrongProviderLayer)),
++        ),
++      ),
++    ).rejects.toThrow()
++  })
++
++  it('hosts the selected handler recipe in Program without building it at selection', async () => {
++    handlerEvents.length = 0
++    const container = document.createElement('div')
++    container.id = 'direct-block-layer-host-handler-root'
++    const wrapper = document.createElement('section')
++    wrapper.append(container)
++    document.body.append(wrapper)
++    const program = Program.makeElement({
++      block: HandlerBlock,
++      layer: handlerSelectionBeforeDependencies,
++      container,
++    })
++
++    expect(handlerEvents).toEqual([])
++    const handle = embed(program)
++
++    try {
++      await vi.waitFor(() => {
++        expect(wrapper.textContent).toBe('ready')
++      })
++      expect(handlerEvents).toContain('handler acquired')
++    } finally {
++      await handle.dispose()
++    }
++
++    expect(handlerEvents).toContain('handler released')
++  })
++
++  it('hosts the explicit public Block and selected Layer pair through Program', async () => {
++    parentConstructorRuns = 0
++    const container = document.createElement('div')
++    container.id = 'direct-block-layer-root'
++    const wrapper = document.createElement('section')
++    wrapper.append(container)
++    document.body.append(wrapper)
++    const pendingProgram = Program.makeElement({
++      block: Parent,
++      layer: selectedParentLayer,
++      container,
++    })
++    type ProgramConstruction = NonNullable<
++      (typeof pendingProgram)['~foldkit/ProgramConstruction']
++    >
++    expectTypeOf<
++      Parameters<ProgramConstruction['construction']>[0]
++    >().toEqualTypeOf<Layer.Services<typeof selectedParentLayer>>()
++    if (false) {
++      // @ts-expect-error The selected root Layer's host Service remains required.
++      embed(pendingProgram)
++    }
++    const program = pendingProgram.provide({
++      services: Layer.succeed(ParentService, { value: 'provided' }),
++    })
++    expect(parentConstructorRuns).toBe(0)
++    const handle = embed(program)
++
++    try {
++      await vi.waitFor(() => expect(parentConstructorRuns).toBe(1))
++      expect(parentViewRuns).toBeGreaterThan(0)
++
++      await vi.waitFor(() => {
++        expect(wrapper.textContent).toContain('Child value: 7')
++      })
++      expect(wrapper.textContent).toContain('Child value: 7')
++    } finally {
++      await handle.dispose()
++      wrapper.remove()
++    }
++  })
++
++  it('keeps the declared Block and selected implementation Layer channels exact', () => {
++    expectTypeOf<Layer.Services<typeof selectedParentLayer>>().not.toBeAny()
++    expectTypeOf<
++      Layer.Services<typeof selectedParentLayerWithAlternativeChild>
++    >().not.toBeAny()
++    expectTypeOf<Layer.Services<typeof parentLayer>>().not.toBeAny()
++    expectTypeOf<Layer.Error<typeof parentLayer>>().toEqualTypeOf<never>()
++    expectTypeOf(Child.Model).toEqualTypeOf<typeof ChildModel>()
++    expectTypeOf<Layer.Services<typeof childLayer>>().toEqualTypeOf<never>()
++    expectTypeOf<LayerFacts<typeof childLayer>>().not.toBeAny()
++    expectTypeOf<LayerFacts<typeof parentLayer>['view']>().not.toBeAny()
++    expectTypeOf<
++      LayerFacts<typeof parentLayer>['view']
++    >().not.toEqualTypeOf<never>()
++  })
++
++  it('acquires the explicit public Block and selected Layer pair in withBlock', async () => {
++    const testLayer = Layer.provide(
++      selectedParentLayer,
++      Layer.succeed(ParentService, { value: 'test' }),
++    )
++
++    await Effect.runPromise(
++      withBlock({ block: Parent, layer: testLayer }, selected => {
++        expect(selected.Model).toBe(ParentModel)
++        expect(selected.Message).not.toBe(ParentMessage)
++        expect(selected.view).toBeTypeOf('function')
++      }),
++    )
++  })
++
++  it('runs a Story against the explicit public Block and selected Layer pair', async () => {
++    const testLayer = Layer.provide(
++      selectedParentLayer,
++      Layer.succeed(ParentService, { value: 'story' }),
++    )
++
++    await Effect.runPromise(
++      Story.story(
++        { block: Parent, layer: testLayer },
++        Story.given({ child: { value: 7 } }),
++      ),
++    )
++  })
++
++  it('runs a Scene against the explicit public Block and selected Layer pair', async () => {
++    const testLayer = Layer.provide(
++      selectedParentLayer,
++      Layer.succeed(ParentService, { value: 'scene' }),
++    )
++    await Effect.runPromise(
++      Scene.scene(
++        { block: Parent, layer: testLayer },
++        Scene.given({ child: { value: 7 } }),
++        Scene.expect(Scene.text('Child value: 7')).toExist(),
++      ),
++    )
++  })
++
++  it('keeps selected Subscription and Mount facts on the matching Block', async () => {
++    await Effect.runPromise(
++      withBlock({ block: LifecycleBlock, layer: lifecycleLayer }, selected => {
++        expect(Object.keys(selected.subscriptions)).toEqual(['pulse'])
++        expectTypeOf<
++          keyof typeof selected.subscriptions
++        >().toEqualTypeOf<'pulse'>()
++      }),
++    )
++  })
++
++  it('renders a selected public Block and ordinary Layer through Server', async () => {
++    const rendered = await Effect.runPromise(
++      Server.renderToString(
++        { block: DocumentBlock, layer: documentLayer },
++        {},
++        { isHydratable: false },
++      ),
++    )
++
++    expect(rendered.html).toContain('<main>Preview</main>')
++  })
++})
+diff --git a/packages/foldkit/src/experimental/contracted/implementationFacts.ts b/packages/foldkit/src/experimental/contracted/implementationFacts.ts
+new file mode 100644
+index 0000000000..e96848ee98
+--- /dev/null
++++ b/packages/foldkit/src/experimental/contracted/implementationFacts.ts
+@@ -0,0 +1,26 @@
++/** @internal Names private implementation facts carried by a selected Layer. */
++export declare const LayerOriginalFactsTypeId: unique symbol
++
++/** @internal Exact implementation facts carried by an ordinary completed Layer. */
++export interface ImplementationFacts<OwnerValue, Facts, Pending = never> {
++  readonly [LayerOriginalFactsTypeId]: Readonly<{
++    owner: OwnerValue
++    facts: Facts
++    pending: Pending
++  }>
++}
++
++/** @internal Associates private implementation facts with their exact public result capability. */
++export declare const LayerSelectedResultTypeId: unique symbol
++
++/** @internal A selected result and its correlated native implementation evidence. */
++export interface SelectedImplementationFacts<
++  SelectedResult,
++  OwnerValue,
++  Facts,
++  Pending = never,
++> extends ImplementationFacts<OwnerValue, Facts, Pending> {
++  readonly [LayerSelectedResultTypeId]: (
++    selected: SelectedResult,
++  ) => SelectedResult
++}
+diff --git a/packages/foldkit/src/experimental/contracted/mixedUnifiedBoundary.test.ts b/packages/foldkit/src/experimental/contracted/mixedUnifiedBoundary.test.ts
+new file mode 100644
+index 0000000000..081096760b
+--- /dev/null
++++ b/packages/foldkit/src/experimental/contracted/mixedUnifiedBoundary.test.ts
+@@ -0,0 +1,137 @@
++import { Effect, Layer, Schema } from 'effect'
++import { expect, it } from 'vitest'
++
++import * as Block from '../../block/public.js'
++import { resolveProgramRoot } from '../../runtime/rootBlock.js'
++import { selectLayer } from './runtime.js'
++
++const LegacyChildKey = Symbol('MixedLegacyChild')
++const LegacyChildDefinition = Block.makeDefinition('MixedLegacyChild', {
++  key: LegacyChildKey,
++  Model: Schema.Number,
++  Message: Schema.Never,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++})
++const LegacyChild = LegacyChildDefinition.contract
++const LegacyChildComposition = LegacyChildDefinition.makeComposition()
++const legacyChildLayer = LegacyChildDefinition.makeBlock(
++  Effect.succeed({
++    children: [],
++    init: LegacyChildComposition.makeInit(() => ({ model: 7 })),
++    update: LegacyChildComposition.makeUpdate({}),
++  }),
++).layer
++
++const UnifiedParentKey = Symbol('MixedUnifiedParent')
++const UnifiedParent = Block.make('MixedUnifiedParent', {
++  key: UnifiedParentKey,
++  Model: Schema.Struct({ child: LegacyChild.Model }),
++  Message: Schema.Never,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++})
++const LegacyChildBinding = UnifiedParent.makeBinding(LegacyChild, {
++  field: 'child',
++})
++const UnifiedParentComposition = UnifiedParent.makeComposition({
++  bindings: [LegacyChildBinding],
++})
++const unifiedParentLayer = UnifiedParent.makeLayer(
++  Effect.gen(function* () {
++    const child = yield* LegacyChildBinding
++    return {
++      children: [child],
++      init: UnifiedParentComposition.makeInit(() => ({ model: {} })),
++      update: UnifiedParentComposition.makeUpdate({}),
++    }
++  }),
++).pipe(Layer.provide(legacyChildLayer))
++
++const UnifiedChildKey = Symbol('MixedUnifiedChild')
++const UnifiedChild = Block.make('MixedUnifiedChild', {
++  key: UnifiedChildKey,
++  Model: Schema.Number,
++  Message: Schema.Never,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++})
++const UnifiedChildComposition = UnifiedChild.makeComposition()
++const unifiedChildLayer = UnifiedChild.makeLayer(
++  Effect.succeed({
++    children: [],
++    init: UnifiedChildComposition.makeInit(() => ({ model: 9 })),
++    update: UnifiedChildComposition.makeUpdate({}),
++  }),
++)
++const LegacyParentKey = Symbol('MixedLegacyParent')
++const LegacyParent = Block.makeDefinition('MixedLegacyParent', {
++  key: LegacyParentKey,
++  Model: Schema.Struct({ child: UnifiedChild.Model }),
++  Message: Schema.Never,
++  isMessageFree: true,
++  Init: Schema.Tuple([]),
++})
++const UnifiedChildBinding = LegacyParent.makeBinding(UnifiedChild, {
++  field: 'child',
++})
++const LegacyParentComposition = LegacyParent.makeComposition({
++  bindings: [UnifiedChildBinding],
++})
++const legacyParent = LegacyParent.makeBlock(
++  Effect.gen(function* () {
++    const child = yield* UnifiedChildBinding
++    return {
++      children: [child],
++      init: LegacyParentComposition.makeInit(() => ({ model: {} })),
++      update: LegacyParentComposition.makeUpdate({}),
++    }
++  }),
++).provide(unifiedChildLayer)
++
++it('unified parent consumes the exact legacy public contract', async () => {
++  await Effect.runPromise(
++    Effect.scoped(
++      Effect.gen(function* () {
++        const parent = yield* resolveProgramRoot(
++          selectLayer(UnifiedParent, unifiedParentLayer),
++        )
++        expect(parent.init().model).toEqual({ child: 7 })
++      }),
++    ),
++  )
++})
++
++it('legacy parent consumes the exact unified public Block', async () => {
++  await Effect.runPromise(
++    Effect.scoped(
++      Effect.gen(function* () {
++        const parent = yield* legacyParent.get
++        expect(parent.init().model).toEqual({ child: 9 })
++      }),
++    ).pipe(Effect.provide(legacyParent.layer)),
++  )
++})
++
++import * as Story from '../../story/public.js'
++import { makeDefinition as makeLayeredDefinition } from '../layered/runtime.js'
++
++it('retains the wrapped executable when a legacy Layered root enters a pure runner', async () => {
++  const Definition = makeLayeredDefinition('MixedLayeredPureRoot', {
++    Model: Schema.Number,
++    Message: Schema.Never,
++  })
++  const Composition = Definition.makeComposition()
++  const block = Definition.makeBlock(
++    Effect.succeed({
++      children: [],
++      init: Composition.makeInit(() => ({ model: 12 })),
++      update: Composition.makeUpdate({}),
++    }),
++  )
++  await Effect.runPromise(
++    Story.withBlock(block, executable => {
++      expect(executable.init().model).toBe(12)
++    }),
++  )
++})
+diff --git a/packages/foldkit/src/experimental/contracted/unified.ts b/packages/foldkit/src/experimental/contracted/unified.ts
+new file mode 100644
+index 0000000000..864868915d
+--- /dev/null
++++ b/packages/foldkit/src/experimental/contracted/unified.ts
+@@ -0,0 +1,432 @@
++import type { Effect, Layer, Schema } from 'effect'
++
++import type { MakeCommandsStep } from '../../block/commandsStep.js'
++import type { Primitives } from '../../block/define.js'
++import type {
++  DefineManagedResources,
++  DefineStep,
++  DefineSubscriptions,
++} from '../../block/definition.js'
++import type { DefineStepFields, DefineStepNoop } from '../../block/fieldStep.js'
++import type { LocalMountsTypeId } from '../../block/identity.js'
++import type { InstanceSchema } from '../../block/instanceSchema.js'
++import type { MakeOutMessageStep } from '../../block/outMessageStep.js'
++import type { Owner } from '../../block/owner.js'
++import type { HandlerOfHostDefinition } from '../../block/requirements.js'
++import type {
++  ConstructorBody,
++  MakeBinding,
++  MakeMapBinding,
++  MakeDescriptorOutMessageFold,
++  MakeDescriptorOutMessageForward,
++  SourceOf,
++  Validate,
++} from '../constructed/authoring.js'
++import type {
++  DeclaredBlockReaderTypeId,
++  DescriptorTypeId,
++  PublicFacts,
++} from '../constructed/contract.js'
++import type {
++  ActualFacts,
++  Block,
++  ContractConfiguration,
++  ContractGraph,
++  DeclaredFacts,
++  DefinitionFields,
++  HostContractValidation,
++  HostDefinitions,
++  InMessageConfigurationArguments,
++  InMessageUpdateBodyValidation,
++  MakeComposition,
++  NativeBody,
++  NominalId,
++  OutValue,
++  PublishedMountValidation,
++  ValidateConstructorBody,
++  ValidateFamilyHandlers,
++  ValidateHandlerSelection,
++  WithoutPendingHandlers,
++} from './contract.js'
++import type {
++  ImplementationFacts,
++  SelectedImplementationFacts,
++} from './implementationFacts.js'
++import {
++  makeDefinitionRuntime,
++  type Declaration,
++  type IsUnion,
++  type LiteralContractId,
++  type MessageFreeValidation,
++  type OptionalSchema,
++} from './runtime.js'
++
++type AnySchema = Schema.Codec<any, any, any, any>
++
++/** @internal Validates an ordinary Layer's selected original host handlers. */
++export type ValidateLayerHandlerSelection<
++  LayerValue extends Layer.Any,
++  Handlers,
++> =
++  Extract<
++    Layer.Success<LayerValue>,
++    ImplementationFacts<any, any, any>
++  > extends ImplementationFacts<
++    any,
++    infer Facts extends PublicFacts,
++    infer Pending
++  >
++    ? [Pending] extends [never]
++      ? Readonly<{
++          'This Block Layer has no pending host handlers': Handlers
++        }>
++      : Handlers extends Layer.Any
++        ? ValidateFamilyHandlers<Pending, Handlers> &
++            ValidateHandlerSelection<Facts, Handlers>
++        : Readonly<{
++            'Select the original host handlers for this Block Layer': Pending
++          }>
++    : Readonly<{
++        'Select handlers from an original Block implementation Layer': LayerValue
++      }>
++
++/** Completes a declared Block directly to its selected ordinary implementation Layer. */
++export interface MakeLayer<
++  Id extends string,
++  ModelSchema extends AnySchema,
++  MessageSchema extends AnySchema,
++  OutMessageSchema extends AnySchema | undefined,
++  Config extends ContractConfiguration,
++> {
++  <const Body extends ConstructorBody, Error, Requirements>(
++    constructor: Effect.Effect<Body, Error, Requirements> &
++      ValidateConstructorBody<Body>,
++    ...validation: NoInfer<
++      readonly [
++        ...Validate<
++          NominalId<Id, Config['key']>,
++          ModelSchema,
++          MessageSchema,
++          OutMessageSchema,
++          NativeBody<Body, Config>
++        >,
++        ...PublishedMountValidation<SourceOf<Body>, Config>,
++        ...InMessageUpdateBodyValidation<Body, Config>,
++        ...HostContractValidation<
++          ActualFacts<MessageSchema, Body, Config>,
++          DeclaredFacts<
++            MessageSchema,
++            OutMessageSchema,
++            Config,
++            Owner<NominalId<Id, Config['key']>, true>
++          >,
++          HostDefinitions<Body>
++        >,
++      ]
++    >
++  ): Block<
++    Owner<NominalId<Id, Config['key']>, true>,
++    ModelSchema,
++    MessageSchema,
++    OutMessageSchema,
++    DeclaredFacts<
++      MessageSchema,
++      OutMessageSchema,
++      Config,
++      Owner<NominalId<Id, Config['key']>, true>
++    >,
++    Error,
++    Requirements,
++    ActualFacts<MessageSchema, NoInfer<Body>, Config>['subscriptions'],
++    HostDefinitions<Body>
++  >['layer'] extends infer GraphLayer extends Layer.Layer<any, any, any>
++    ? LayerWithImplementationFacts<
++        GraphLayer,
++        Owner<NominalId<Id, Config['key']>, true>,
++        ActualFacts<MessageSchema, Body, Config>,
++        HostDefinitions<Body>
++      >
++    : never
++}
++
++type LayerWithImplementationFacts<
++  GraphLayer extends Layer.Layer<any, any, any>,
++  OwnerValue,
++  Facts extends PublicFacts,
++  Pending,
++> = Layer.Layer<
++  | Layer.Success<GraphLayer>
++  | SelectedImplementationFacts<
++      Layer.Success<GraphLayer>,
++      OwnerValue,
++      Facts,
++      Pending
++    >,
++  Layer.Error<GraphLayer>,
++  Layer.Services<GraphLayer>
++>
++
++/** @internal Adds the original host handler recipe to an ordinary Block Layer. */
++export interface ProvideLayerHandlers<
++  OwnerValue extends Owner<string>,
++  ModelSchema extends AnySchema,
++  MessageSchema extends AnySchema,
++  OutMessageSchema extends AnySchema | undefined,
++> {
++  <const Handlers extends Layer.Any>(
++    handlers: Handlers,
++  ): <const LayerValue extends Layer.Layer<any, any, any>>(
++    layer: LayerValue &
++      ValidateLayerHandlerSelection<LayerValue, Handlers> &
++      (Extract<
++        Layer.Success<LayerValue>,
++        ImplementationFacts<any, any, any>
++      > extends ImplementationFacts<OwnerValue, PublicFacts, any>
++        ? unknown
++        : Readonly<{ 'Layer belongs to this Block': LayerValue }>) &
++      (Extract<
++        Layer.Success<LayerValue>,
++        ContractGraph<any, any, any, any, any>
++      > extends ContractGraph<
++        OwnerValue,
++        ModelSchema,
++        MessageSchema,
++        OutMessageSchema,
++        any
++      >
++        ? unknown
++        : Readonly<{ 'Layer belongs to this Block': LayerValue }>),
++  ) => Layer.Layer<
++    SelectedLayerOutput<Layer.Success<LayerValue>>,
++    Layer.Error<LayerValue>,
++    Layer.Services<LayerValue>
++  >
++}
++
++type SelectedLayerPending<Success> =
++  Extract<
++    Success,
++    ImplementationFacts<any, any, any>
++  > extends ImplementationFacts<any, any, infer Pending>
++    ? Pending
++    : never
++
++type SelectedLayerOutput<Success> = SelectedLayerOutputForPending<
++  Success,
++  SelectedLayerPending<Success>
++>
++
++type SelectedLayerOutputForPending<Success, Pending> =
++  Success extends SelectedImplementationFacts<
++    infer SelectedResult,
++    infer OwnerValue,
++    infer Facts extends PublicFacts,
++    infer OriginalPending
++  >
++    ? SelectedImplementationFacts<
++        SelectedLayerOutputForPending<SelectedResult, OriginalPending>,
++        OwnerValue,
++        WithoutPendingHandlers<Facts, HandlerOfHostDefinition<OriginalPending>>,
++        never
++      >
++    : Success extends ContractGraph<
++          infer OwnerValue,
++          infer ModelSchema,
++          infer MessageSchema,
++          infer OutMessageSchema,
++          infer Facts extends PublicFacts
++        >
++      ? ContractGraph<
++          OwnerValue,
++          ModelSchema,
++          MessageSchema,
++          OutMessageSchema,
++          WithoutPendingHandlers<Facts, HandlerOfHostDefinition<Pending>>
++        >
++      : Success
++
++/** @internal Names the unified authoring surface in consumer declarations. */
++export interface UnifiedBlockFields<
++  Id extends string,
++  ModelSchema extends AnySchema,
++  MessageSchema extends AnySchema,
++  OutMessageSchema extends AnySchema | undefined,
++  ChildInitContextSchema extends AnySchema | undefined,
++  Config extends ContractConfiguration,
++  IncomingMessage,
++>
++  extends
++    Pick<
++      DefinitionFields<
++        Id,
++        ModelSchema,
++        MessageSchema,
++        OutMessageSchema,
++        ChildInitContextSchema,
++        Config
++      >,
++      typeof DescriptorTypeId | typeof DeclaredBlockReaderTypeId
++    >,
++    Primitives<NominalId<Id, Config['key']>, MessageSchema['Type']> {
++  readonly owner: Owner<NominalId<Id, Config['key']>, true>
++  readonly Model: ModelSchema
++  readonly Instance: InstanceSchema<
++    Owner<NominalId<Id, Config['key']>, true>,
++    ModelSchema
++  >
++  readonly Message: MessageSchema
++  readonly OutMessage: OutMessageSchema
++  readonly mounts: ReadonlyArray<never>
++  readonly bindings: readonly []
++  readonly [LocalMountsTypeId]: readonly []
++  readonly makeStep: DefineStep<
++    ModelSchema['Type'],
++    MessageSchema['Type'],
++    OutValue<OutMessageSchema>,
++    IncomingMessage
++  >
++  readonly makeFieldsStep: DefineStepFields<
++    ModelSchema['Type'],
++    MessageSchema['Type'],
++    IncomingMessage,
++    Owner<NominalId<Id, Config['key']>, true>
++  >
++  readonly makeCommandsStep: MakeCommandsStep<
++    ModelSchema['Type'],
++    MessageSchema['Type'],
++    IncomingMessage
++  >
++  readonly makeNoopStep: DefineStepNoop<ModelSchema['Type']>
++  readonly makeSubscriptions: DefineSubscriptions<
++    NominalId<Id, Config['key']>,
++    ModelSchema['Type'],
++    MessageSchema['Type']
++  >
++  readonly makeManagedResources: DefineManagedResources<
++    NominalId<Id, Config['key']>,
++    ModelSchema['Type'],
++    MessageSchema['Type']
++  >
++  readonly makeBinding: MakeBinding<
++    ModelSchema,
++    MessageSchema,
++    OutMessageSchema,
++    ChildInitContextSchema,
++    'Provided',
++    Owner<NominalId<Id, Config['key']>, true>
++  >
++  readonly makeMapBinding: MakeMapBinding<
++    ModelSchema,
++    MessageSchema,
++    OutMessageSchema,
++    ChildInitContextSchema,
++    'Provided',
++    Owner<NominalId<Id, Config['key']>, true>
++  >
++  readonly makeOutMessageFold: MakeDescriptorOutMessageFold<
++    ModelSchema['Type'],
++    MessageSchema['Type'],
++    OutValue<OutMessageSchema>
++  >
++  readonly makeOutMessageForward: MakeDescriptorOutMessageForward<
++    OutValue<OutMessageSchema>
++  >
++  readonly makeComposition: MakeComposition<
++    Id,
++    ModelSchema,
++    MessageSchema,
++    OutMessageSchema,
++    ChildInitContextSchema,
++    Config
++  >
++  readonly makeLayer: MakeLayer<
++    Id,
++    ModelSchema,
++    MessageSchema,
++    OutMessageSchema,
++    Config
++  >
++  readonly provideHandlers: ProvideLayerHandlers<
++    Owner<NominalId<Id, Config['key']>, true>,
++    ModelSchema,
++    MessageSchema,
++    OutMessageSchema
++  >
++}
++
++type UnifiedIncomingMessage<MessageSchema extends AnySchema, Config> =
++  | MessageSchema['Type']
++  | (Config extends Readonly<{ InMessage: infer In extends AnySchema }>
++      ? In['Type']
++      : never)
++
++/** @internal One unified Block with ordinary Layer completion helpers. */
++export type UnifiedBlock<
++  Id extends string,
++  ModelSchema extends AnySchema,
++  MessageSchema extends AnySchema,
++  OutMessageSchema extends AnySchema | undefined,
++  ChildInitContextSchema extends AnySchema | undefined,
++  Config extends ContractConfiguration,
++> = UnifiedBlockFields<
++  Id,
++  ModelSchema,
++  MessageSchema,
++  OutMessageSchema,
++  ChildInitContextSchema,
++  Config,
++  UnifiedIncomingMessage<MessageSchema, Config>
++> &
++  (ChildInitContextSchema extends AnySchema
++    ? Readonly<{ ChildInitContext: ChildInitContextSchema }>
++    : unknown) &
++  (Config extends Readonly<{ InMessage: infer In extends AnySchema }>
++    ? Readonly<{ InMessage: In }>
++    : unknown) &
++  (OutMessageSchema extends AnySchema
++    ? Readonly<{
++        makeOutMessageStep: MakeOutMessageStep<
++          ModelSchema['Type'],
++          MessageSchema['Type'],
++          OutMessageSchema['Type'],
++          UnifiedIncomingMessage<MessageSchema, Config>
++        >
++      }>
++    : unknown)
++
++/** Declares one Block and binds its authoring helpers to that contract. */
++export function makeUnifiedBlock<
++  const Id extends string,
++  const Key extends symbol,
++  const Config extends Omit<Declaration, 'key'>,
++>(
++  id: Id & LiteralContractId<Id>,
++  config: Config &
++    Readonly<{ key: Key }> &
++    (symbol extends Key ? never : true extends IsUnion<Key> ? never : unknown),
++  ...validation: readonly [
++    ...MessageFreeValidation<NoInfer<Config & Readonly<{ key: Key }>>>,
++    ...InMessageConfigurationArguments<
++      NoInfer<Config & Readonly<{ key: Key }>>
++    >,
++  ]
++): UnifiedBlock<
++  Id,
++  Config['Model'],
++  Config['Message'],
++  OptionalSchema<Config, 'OutMessage'>,
++  OptionalSchema<Config, 'ChildInitContext'>,
++  Config & Readonly<{ key: Key }>
++>
++export function makeUnifiedBlock(
++  id: string,
++  config: Declaration,
++  ..._validation: ReadonlyArray<unknown>
++): object {
++  const block = makeDefinitionRuntime(id, config, true, undefined, 'Block')
++
++  Reflect.deleteProperty(block, 'contract')
++  Reflect.deleteProperty(block, 'makeBlock')
++
++  return block
++}

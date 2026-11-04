@@ -41,9 +41,41 @@ import type {
   DescriptorContract as AnyDescriptor,
   ConstructorEffectOf,
   CoreContract,
+  DescriptorTypeId,
+  PublicFacts,
 } from './contract.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+
+/** @internal Names a Binding's selected public child contract in declarations. */
+export interface BindingChildContract<
+  OwnerValue extends AnyDescriptor['owner'],
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutSchema extends AnySchema | undefined,
+  Facts extends PublicFacts,
+  Acquisition,
+> {
+  readonly owner: OwnerValue
+  readonly Model: ModelSchema
+  readonly Message: MessageSchema
+  readonly OutMessage: OutSchema
+  readonly [DescriptorTypeId]: Facts
+  readonly get: Acquisition
+}
+
+/** @internal Checks each Binding's parent ownership without comparing tuple authoring methods. */
+export type ValidateBindingParents<
+  Bindings extends ReadonlyArray<AnyBinding>,
+  ParentOwner,
+> = [Exclude<Bindings[number], BindingParent<ParentOwner>>] extends [never]
+  ? unknown
+  : Readonly<{
+      'Block child bindings must belong to this Definition': Exclude<
+        Bindings[number],
+        BindingParent<ParentOwner>
+      >
+    }>
 
 type ChildInitContext<SchemaValue> = SchemaValue extends AnySchema
   ? SchemaValue['Type']
@@ -111,7 +143,7 @@ export interface DescriptorBindingFields<
       OutSchema,
       Config,
       InitSchema,
-      Policy
+      never
     >['embedView']
   readonly connect: ConnectExecutable<
     CoreContract<Child>,
@@ -496,7 +528,14 @@ export type DescriptorBinding<
   Policy = DefaultBindingPolicy<Child>,
 > = Child extends AnyDescriptor
   ? DescriptorBindingMember<
-      Child,
+      BindingChildContract<
+        Child['owner'],
+        Child['Model'],
+        Child['Message'],
+        Child['OutMessage'],
+        Child[typeof DescriptorTypeId],
+        ConstructorEffectOf<Child>
+      >,
       ModelSchema,
       MessageSchema,
       OutSchema,
@@ -624,7 +663,7 @@ type BindingFromSpec<
     infer ParentOwner,
     infer Policy
   >
-    ? DescriptorBinding<
+    ? DescriptorBindingMember<
         Child,
         ModelSchema,
         MessageSchema,

@@ -53,11 +53,11 @@ The Counter starter begins with these files:
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
-In a small starter, `src/application.ts` declares `ApplicationDefinition` with a stable unique key, Model, Message, initialization inputs, and view contract. It creates `ApplicationComposition`, authors init, update, and view through that Composition, and completes `ApplicationBlock` with `ApplicationDefinition.makeBlock`. Local Commands and lifecycle declarations stay with their implementation. Larger examples split those responsibilities into named files.
+In a small starter, `src/application.ts` declares `ApplicationBlock` with a stable unique key, Model, Message, initialization inputs, and view contract. It creates `ApplicationComposition`, authors init, update, and view through that Composition, and completes its construction `layer` with `ApplicationBlock.makeLayer`. Local Commands and lifecycle declarations stay with their implementation. Larger examples split those responsibilities into named files.
 
 ### Runtime Entry
 
-For the Counter starter, `src/entry.ts` imports `ApplicationBlock` and passes it with the page container to `Program.make`. The returned lowercase `program` is a passive runtime input. A starter whose handlers need application Services defines `ApplicationLayer` in `services.ts`, then the entry calls `program.provide(ApplicationLayer)`. Importing the Block, creating the Program, and providing a Layer remain passive; startup happens only when the Runtime starts the Program.
+For the Counter starter, `src/entry.ts` imports `ApplicationBlock` and `layer` and passes `{ block: ApplicationBlock, layer }` with the page container to `Program.make`. The returned lowercase `program` is a passive runtime input. A starter whose handlers need application Services defines `ApplicationLayer` in `services.ts`, then the entry calls `program.provide(ApplicationLayer)`. Importing the Block, creating the Program, and providing a Layer remain passive; startup happens only when the Runtime starts the Program.
 
 ### Project Scripts
 

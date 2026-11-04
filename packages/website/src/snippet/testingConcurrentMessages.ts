@@ -8,11 +8,12 @@ import {
   Message,
   Model,
   WaitBeforeReset,
+  layer,
 } from './counterCommands'
 
 it.effect('accepts another click while the reset is pending', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(Model.make({ count: 5 })),
     message(Message.ClickedResetAfterDelay()),
     Command.expectExact(WaitBeforeReset),

@@ -488,10 +488,10 @@ type RuntimeHandlerGenerator = () => Generator<
  * Low-level builder for a Subscription registry. The Model and Message
  * generics are provided up front; the callback builds a record with `entry`.
  *
- * Application features use `Definition.makeSubscriptions`, which also
+ * Application features use `FooBlock.makeSubscriptions`, which also
  * qualifies the handler identities. Pass the registry as `subscriptions` and
  * compose its local handler recipes in the
- * `EffectsLayer` returned by the `Definition.makeBlock` constructor. Child
+ * `EffectsLayer` returned by the `FooBlock.makeLayer` constructor. Child
  * Bindings collect their own registries automatically.
  *
  * @example

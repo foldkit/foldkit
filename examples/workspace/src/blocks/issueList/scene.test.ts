@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   Command,
   Mount,
@@ -73,6 +73,7 @@ describe('Issue List view', () => {
       return scene(
         {
           block: IssueListBlock,
+          layer,
           viewInputs: {
             issues: [],
             members: initialWorkspace.members,
@@ -84,7 +85,7 @@ describe('Issue List view', () => {
         },
         init(),
         expect(role('button', { name: 'New issue' })).toBeDisabled(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -96,7 +97,7 @@ describe('Issue List view', () => {
         query: 'no matching issue',
       })
       return scene(
-        { block: IssueListBlock, viewInputs: viewInputs(filters) },
+        { block: IssueListBlock, layer, viewInputs: viewInputs(filters) },
         init(),
         expect(label('Search issues')).toHaveValue('no matching issue'),
         expect(role('heading', { name: 'No matching issues' })).toExist(),
@@ -105,7 +106,7 @@ describe('Issue List view', () => {
         click(role('button', { name: 'Clear filters' })),
         expectOutMessage(OutMessage.RequestedClearFilters()),
         expect(label('Search issues')).toHaveValue('no matching issue'),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -113,7 +114,7 @@ describe('Issue List view', () => {
     'renders issue hrefs and leaves issues without hrefs as content',
     () => {
       return scene(
-        { block: IssueListBlock, viewInputs: viewInputs() },
+        { block: IssueListBlock, layer, viewInputs: viewInputs() },
         init(),
         expect(
           role('link', { name: 'WSP-101 Build a faster command menu' }),
@@ -124,7 +125,7 @@ describe('Issue List view', () => {
           }),
         ).not.toExist(),
         expect(text('Keep issue drafts when switching projects')).toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -138,7 +139,7 @@ describe('Issue List view', () => {
         groupBy: 'Project',
       })
       return scene(
-        { block: IssueListBlock, viewInputs: viewInputs(filters) },
+        { block: IssueListBlock, layer, viewInputs: viewInputs(filters) },
         init(),
         expect(role('heading', { name: 'Experience · 1' })).toExist(),
         expect(role('heading', { name: 'Platform · 1' })).toExist(),
@@ -151,7 +152,7 @@ describe('Issue List view', () => {
           }),
         ),
         expect(label('Saved view name')).toHaveValue(''),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -159,7 +160,7 @@ describe('Issue List view', () => {
     'reports validated Listbox selections without changing controlled values',
     () => {
       return scene(
-        { block: IssueListBlock, viewInputs: viewInputs() },
+        { block: IssueListBlock, layer, viewInputs: viewInputs() },
         init(),
         ...openFilter('Filter by status'),
         click(role('option', { name: 'Todo' })),
@@ -181,7 +182,7 @@ describe('Issue List view', () => {
         expectOutMessage(OutMessage.ChangedGrouping({ groupBy: 'Status' })),
         ...finishSelection(),
         expect(text('2 issues')).toExist(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 })

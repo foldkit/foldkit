@@ -3,14 +3,13 @@ import { Effect, Layer } from 'effect'
 import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
 
 import { ProficiencyRadioGroupBinding } from './composition'
-import { SkillsEntryDefinition } from './definition'
+import { SkillsEntryBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const SkillsEntryBlock = SkillsEntryDefinition.contract
-export const layer = SkillsEntryDefinition.makeBlock(
+export const layer = SkillsEntryBlock.makeLayer(
   Effect.gen(function* () {
     const proficiencyRadioGroup = yield* ProficiencyRadioGroupBinding
 
@@ -22,4 +21,6 @@ export const layer = SkillsEntryDefinition.makeBlock(
       view,
     }
   }),
-).provide(Layer.mergeAll(RadioGroupLayer)).layer
+).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
+
+export { SkillsEntryBlock } from './definition'

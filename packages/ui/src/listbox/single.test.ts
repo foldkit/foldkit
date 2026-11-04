@@ -64,7 +64,7 @@ const STALE_CLEAR_SEARCH_VERSION = 9999
 const STALE_ANIMATION_GENERATION = -1
 
 type ListboxOperations = Pick<
-  Effect.Success<typeof block.get>,
+  Story.TestBlock<typeof block>,
   'init' | 'update' | 'operations'
 >
 

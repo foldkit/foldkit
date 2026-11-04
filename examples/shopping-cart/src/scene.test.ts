@@ -5,7 +5,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { ProductsBlock } from './blocks'
 import { products } from './data/products'
 import type { Model } from './model'
@@ -25,7 +25,7 @@ const baseModel: Model = {
 describe('view', () => {
   it.effect('the nav bar lists every section', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(baseModel),
       expect(role('link', { name: 'Products' })).toExist(),
       expect(role('link', { name: 'Cart' })).toExist(),
@@ -37,7 +37,7 @@ describe('view', () => {
     'the Cart link displays the item count when the cart has items',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(baseModel, {
             cart: () => [
@@ -52,7 +52,7 @@ describe('view', () => {
 
   it.effect('the Products route renders the Products heading', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(baseModel),
       expect(role('heading', { name: 'Products' })).toExist(),
     ),
@@ -62,7 +62,7 @@ describe('view', () => {
     'the Cart route shows the empty state when no items have been added',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(baseModel, { route: () => ApplicationRoute.Cart() }),
         ),
@@ -73,7 +73,7 @@ describe('view', () => {
 
   it.effect('the Cart route renders items and the running total', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(baseModel, {
           cart: () => [{ item: apple, quantity: 2 }],
@@ -92,7 +92,7 @@ describe('view', () => {
     'the Checkout route shows the empty state when the cart is empty',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(baseModel, { route: () => ApplicationRoute.Checkout() }),
         ),
@@ -105,7 +105,7 @@ describe('view', () => {
     'the Checkout route renders the order summary and a Place Order button',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 2 }],
@@ -121,7 +121,7 @@ describe('view', () => {
 
   it.effect('placing an order swaps the form for the success panel', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(baseModel, {
           cart: () => [{ item: apple, quantity: 1 }],
@@ -135,7 +135,7 @@ describe('view', () => {
 
   it.effect('an unmatched route renders 404 NotFound', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(baseModel, {
           route: () => ApplicationRoute.NotFound({ path: '/oops' }),

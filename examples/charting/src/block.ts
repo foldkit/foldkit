@@ -7,13 +7,13 @@ import {
   PackageRadioGroupBinding,
   PeriodRadioGroupBinding,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const chartModeRadioGroup = yield* ChartModeRadioGroupBinding
     const periodRadioGroup = yield* PeriodRadioGroupBinding
@@ -27,4 +27,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(RadioGroupLayer))
+).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
+
+export { ApplicationBlock } from './definition'

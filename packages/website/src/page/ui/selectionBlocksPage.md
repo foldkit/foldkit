@@ -6,9 +6,9 @@ Foldkit UI ships five Blocks for selecting values from a set: [Listbox](/ui/list
 
 For example: a Listbox of plans, a Combobox of cities, Tabs for view modes, a Menu of actions, or a RadioGroup of pricing plans.
 
-### Typed Completed Blocks
+### Typed Block Contracts {#typed-completed-blocks}
 
-Each factory types its view inputs and `Selected` OutMessage for the values your application uses. Listbox and Menu also type their `requestSelectItem` operations. Most factories take a type parameter. Combobox takes the Item Schema itself so its completed Block also carries exact Message and OutMessage Schemas.
+Each factory declares a passive Block contract with view inputs and a `Selected` OutMessage typed for the values your application uses. Listbox and Menu also type their `requestSelectItem` Binding operations. Most factories take a type parameter. Combobox takes the Item Schema itself so its public contract also carries exact Message and OutMessage Schemas.
 
 A Listbox over a literal-union `Plan` type:
 
@@ -16,17 +16,17 @@ A Listbox over a literal-union `Plan` type:
 
 ## Make a typed Block {#make-block-factory}
 
-The Block returned by `Listbox.makeBlock<Plan>()` accepts `items: ReadonlyArray<Plan>` in its view inputs. Its `requestSelectItem` operation takes a `Plan`, and its typed `Selected` OutMessage carries a `Plan`. Declare the factory once at module scope and use the same Block at every site that needs it. Construction is passive. The Block's `init` creates each occurrence's initial Model and Commands.
+A call to `Listbox.makeBlock<Plan>()` returns a passive Block contract bound to `Plan`. Its view inputs accept `items: ReadonlyArray<Plan>`, its `requestSelectItem` Binding operation takes a `Plan`, and its typed `Selected` OutMessage carries a `Plan`. Declare the factory once at module scope, bind that value in the parent, and provide `Listbox.layer` to the parent's construction Layer. Building that Layer acquires the child implementation; the parent's init later creates each occurrence's Model and Commands. The public declaration has no callable `init`, `update`, or `view`.
 
 There is no inbound inform operation for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is no child Model field to update. When an external value changes the selection, the parent writes its own field. Components that store parent-provided configuration provide child operations instead: Calendar and DatePicker provide `informMinDateChanged`, `informMaxDateChanged`, `informDisabledDatesChanged`, and `informDisabledDaysOfWeekChanged`; Slider provides `informRangeChange`. See [Informing a child about external state](/core/block#informing-external-state).
 
 ## Naming What a Factory Returns {#completed-type}
 
-Each component subpath exports a `Completed` type for what its factory returns. `Completed<Plan>` from `@foldkit/ui/listbox` is what `Listbox.makeBlock<Plan>()` produces. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup subpaths expose their corresponding `Completed` types.
+Each component subpath exports a `Completed` type for the passive contract its factory returns. The name does not mean an acquired executable: `Completed<Plan>` from `@foldkit/ui/listbox` describes `Listbox.makeBlock<Plan>()`. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup subpaths expose their corresponding `Completed` types.
 
-### When to Name the Completed Block
+### When to Name the Returned Contract {#when-to-name-the-completed-block}
 
-Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for `Completed` when a created Block has to be named instead. For example, a config object may hold a `Completed<City>` imported from `@foldkit/ui/combobox`, or a view helper may accept `Completed<Plan>` from `@foldkit/ui/listbox` because it receives the completed Block rather than calling the factory itself.
+Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for `Completed` when a returned contract needs a type name. For example, a config object may hold a `Completed<City>` imported from `@foldkit/ui/combobox`, or an authoring helper may accept `Completed<Plan>` from `@foldkit/ui/listbox` instead of calling the factory itself.
 
 ### Declaration Output
 

@@ -6,12 +6,12 @@
 
 This counter puts the core loop from [Architecture](/core/architecture) into one small application. Its Model holds the count. Its Messages record button clicks. Its update function decides the next count, and its view renders the result.
 
-The example uses two files. `src/application.ts` defines the root through `Block.makeDefinition('Application', ...)`, creates the named graphless `ApplicationComposition`, authors init, update, and the primary view through that Composition, then assembles `ApplicationBlock`. Each `make*` method returns a function or configured value without calling it. `src/entry.ts` passes the Block and browser container to `Program.make`, producing a passive runtime input for `Runtime.run`. Importing the application pieces in a test does not start the browser application. When a larger root extracts one of these responsibilities, split all of its standard pieces into their named files as described in [Project Organization](/patterns/project-organization#root-application-assembly).
+The example uses two files. `src/application.ts` defines the root through `Block.make('Application', ...)`, creates the named graphless `ApplicationComposition`, authors init, update, and the primary view through that Composition, then completes its construction `layer`. Each `make*` method returns a function or configured value without calling it. `src/entry.ts` passes `{ block: ApplicationBlock, layer }` and the browser container to `Program.make`, producing a passive runtime input for `Runtime.run`. Importing the application pieces in a test does not start the browser application. When a larger root extracts one of these responsibilities, split all of its standard pieces into their named files as described in [Project Organization](/patterns/project-organization#root-application-assembly).
 ::Snippet{name="counter" label="Counter Application"}
 
 ### Runtime Entry
 
-The entry imports `ApplicationBlock` and passes it to `Program.make` with the page container. The returned lowercase `program` is passive configuration. `Runtime.run` constructs its Layers and starts the application.
+The entry imports `ApplicationBlock` and `layer` and passes their pair to `Program.make` with the page container. The returned lowercase `program` is passive configuration. `Runtime.run` constructs its Layers and starts the application.
 ::Snippet{name="counterEntry" label="Counter entry.ts"}
 
 ### Where to Go Next

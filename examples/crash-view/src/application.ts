@@ -16,7 +16,7 @@ type ClickedCrash = typeof Message.ClickedCrash.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,
   Message,
@@ -25,10 +25,10 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 
 type ApplicationMessage = Block.ExecutableOf<
-  typeof ApplicationDefinition.contract
+  typeof ApplicationBlock
 >['Message']['Type']
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 const handleClickedCrash = (
   _model: Model,
@@ -115,7 +115,7 @@ export const crashView = (
   ),
 })
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

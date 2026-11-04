@@ -1,0 +1,25 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/command": ["../src/command/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/navigation": ["../src/navigation/public.ts"],
+      "foldkit/program": ["../src/runtime/programPublic.ts"],
+      "foldkit/runtime": ["../src/runtime/public.ts"],
+      "foldkit/struct": ["../src/struct/public.ts"],
+      "foldkit/url": ["../src/url/public.ts"],
+      "foldkit/*": ["../src/*/public.ts"]
+    }
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "unified-root-selection.accepted.ts",
+    "unified-root-selection.rejected.ts",
+    "unified-root-selection.consume.ts"
+  ]
+}

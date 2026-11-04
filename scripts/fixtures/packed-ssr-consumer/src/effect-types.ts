@@ -31,17 +31,14 @@ const Message = Foldkit.Message.defineMessageUnion({ CompletedWait: {} })
 type Message = typeof Message.Type
 
 export const PackedEffectConsumerKey = Symbol('PackedEffectConsumer')
-const PackedEffectConsumerDefinition = Foldkit.Block.makeDefinition(
-  'PackedEffectConsumer',
-  {
-    key: PackedEffectConsumerKey,
-    Model,
-    Message,
-    Init: Schema.Tuple([]),
-  },
-)
+const PackedEffectConsumerBlock = Foldkit.Block.make('PackedEffectConsumer', {
+  key: PackedEffectConsumerKey,
+  Model,
+  Message,
+  Init: Schema.Tuple([]),
+})
 
-const Wait = PackedEffectConsumerDefinition.makeCommand('Wait', {
+const Wait = PackedEffectConsumerBlock.makeCommand('Wait', {
   messages: [Message.CompletedWait],
   handler: function* () {
     return () =>

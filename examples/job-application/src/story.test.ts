@@ -10,7 +10,7 @@ import { FileDropBlock } from '@foldkit/ui/fileDrop'
 import { test as MenuTest } from '@foldkit/ui/menu'
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import {
   CoverLetterBlock,
   EducationBlock,
@@ -80,7 +80,7 @@ describe('update', () => {
       'ClickedNext advances to the next step',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           message(Message.ClickedNext()),
           Command.expectNone(),
@@ -94,7 +94,7 @@ describe('update', () => {
       'ClickedPrevious goes back to the previous step',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(modifyFields(initialModel, { currentStep: () => 'Education' })),
           message(Message.ClickedPrevious()),
           model(model => {
@@ -107,7 +107,7 @@ describe('update', () => {
       'ClickedPrevious on the first step stays put',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           message(Message.ClickedPrevious()),
           model(model => {
@@ -120,7 +120,7 @@ describe('update', () => {
       'ClickedNext on the last step stays put',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(modifyFields(initialModel, { currentStep: () => 'Review' })),
           message(Message.ClickedNext()),
           model(model => {
@@ -133,7 +133,7 @@ describe('update', () => {
       'a generated Tabs Message selects the matching step',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           stepTabsMessage(
             StepTabsBlock.Message.SelectedTab({ index: 6, value: 'Review' }),
@@ -149,7 +149,7 @@ describe('update', () => {
       'a generated Menu Message selects the matching step',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           stepMenuMessage(
             StepMenuBlock.Message.Opened({
@@ -179,7 +179,7 @@ describe('update', () => {
       'ToggledPreview flips visibility',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           message(Message.ToggledPreview()),
           model(model => {
@@ -198,7 +198,7 @@ describe('update', () => {
       'a generated PersonalInfo Message writes through',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           personalInfoMessage(
             PersonalInfoBlock.Message.UpdatedFirstName({ value: 'Jane' }),
@@ -213,7 +213,7 @@ describe('update', () => {
       'a generated WorkHistory Message writes through',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           workHistoryMessage(
             WorkHistoryBlock.Message.CompletedGenerateWorkHistoryEntryId({
@@ -230,7 +230,7 @@ describe('update', () => {
       'a generated Education Message writes through',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           educationMessage(
             EducationBlock.Message.CompletedGenerateEducationEntryId({
@@ -247,7 +247,7 @@ describe('update', () => {
       'a generated Skills Message writes through',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           skillsMessage(
             SkillsBlock.Message.CompletedGenerateSkillsEntryId({
@@ -264,7 +264,7 @@ describe('update', () => {
       'a generated CoverLetter Message writes through',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           coverLetterMessage(
             CoverLetterBlock.Message.UpdatedContent({
@@ -286,7 +286,7 @@ describe('update', () => {
           type: 'application/pdf',
         })
 
-        return withBlock(ApplicationBlock, application => {
+        return withBlock({ block: ApplicationBlock, layer }, application => {
           const toApplicationMessage = toParentMessageFor(application)
           const toAttachmentsMessage = toParentMessageFor(
             application,
@@ -319,7 +319,7 @@ describe('update', () => {
       'ClickedSubmit on a complete application transitions to Submitting and fires command',
       ({ models: { completeModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(modifyFields(completeModel, { currentStep: () => 'Review' })),
           message(Message.ClickedSubmit()),
           Command.expectExact(SubmitApplication),
@@ -361,7 +361,7 @@ describe('update', () => {
         })
 
         return story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(modelWithMultipleEntries),
           message(Message.ClickedSubmit()),
           Command.expectNone(),
@@ -403,7 +403,7 @@ describe('update', () => {
       'ClickedSubmit with pending validation does not submit',
       ({ models: { completeModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(
             modifyFields(completeModel, {
               currentStep: () => 'Review',
@@ -426,7 +426,7 @@ describe('update', () => {
       'ClickedSubmit preserves Valid fields rather than re-running validation',
       ({ models: { completeModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(modifyFields(completeModel, { currentStep: () => 'Review' })),
           message(Message.ClickedSubmit()),
           Command.resolve(
@@ -444,7 +444,7 @@ describe('update', () => {
       'successful submission shows success',
       ({ models: { initialModel } }) =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(
             modifyFields(initialModel, {
               currentStep: () => 'Review',
@@ -460,7 +460,7 @@ describe('update', () => {
 
     it.effect('failed submission shows error', ({ models: { initialModel } }) =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(initialModel, {
             currentStep: () => 'Review',

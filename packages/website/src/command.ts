@@ -7,7 +7,7 @@ import * as SpeedInsights from '@vercel/speed-insights'
 
 import { ExampleSlug } from './blocks/exampleDetail/meta'
 import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { DOCS_SIDEBAR_NAV_ID, MOBILE_MENU_NAV_ID } from './docsNav'
 import { Message, type ResolvedTheme, ThemePreference } from './message'
 import { playgroundRouter } from './route'
@@ -75,20 +75,17 @@ const loadBrowserEnvironment = Effect.gen(function* () {
   })
 })
 
-export const InjectAnalytics = ApplicationDefinition.makeCommand(
-  'InjectAnalytics',
-  {
-    messages: [Message.CompletedInjectAnalytics],
-    handler: function* () {
-      return () =>
-        Effect.sync(() => inject()).pipe(
-          Effect.as(Message.CompletedInjectAnalytics()),
-        )
-    },
+export const InjectAnalytics = ApplicationBlock.makeCommand('InjectAnalytics', {
+  messages: [Message.CompletedInjectAnalytics],
+  handler: function* () {
+    return () =>
+      Effect.sync(() => inject()).pipe(
+        Effect.as(Message.CompletedInjectAnalytics()),
+      )
   },
-)
+})
 
-export const LoadBrowserEnvironment = ApplicationDefinition.makeCommand(
+export const LoadBrowserEnvironment = ApplicationBlock.makeCommand(
   'LoadBrowserEnvironment',
   {
     messages: [Message.CompletedLoadBrowserEnvironment],
@@ -98,7 +95,7 @@ export const LoadBrowserEnvironment = ApplicationDefinition.makeCommand(
   },
 )
 
-export const InjectSpeedInsights = ApplicationDefinition.makeCommand(
+export const InjectSpeedInsights = ApplicationBlock.makeCommand(
   'InjectSpeedInsights',
   {
     messages: [Message.CompletedInjectSpeedInsights],
@@ -111,7 +108,7 @@ export const InjectSpeedInsights = ApplicationDefinition.makeCommand(
   },
 )
 
-export const CopyLink = ApplicationDefinition.makeCommand('CopyLink', {
+export const CopyLink = ApplicationBlock.makeCommand('CopyLink', {
   args: { url: Schema.String },
   messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
   handler: function* () {
@@ -126,7 +123,7 @@ export const CopyLink = ApplicationDefinition.makeCommand('CopyLink', {
   },
 })
 
-export const ScrollToTop = ApplicationDefinition.makeCommand('ScrollToTop', {
+export const ScrollToTop = ApplicationBlock.makeCommand('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     return () =>
@@ -137,24 +134,22 @@ export const ScrollToTop = ApplicationDefinition.makeCommand('ScrollToTop', {
   },
 })
 
-export const ScrollToAnchor = ApplicationDefinition.makeCommand(
-  'ScrollToAnchor',
-  {
-    args: { hash: Schema.String },
-    messages: [Message.CompletedScrollToAnchor],
-    handler: function* () {
-      return ({ hash }) =>
-        Effect.gen(function* () {
-          const target = `#${CSS.escape(hash)}`
-          yield* Dom.scrollIntoViewAfterPaint(target, { block: 'start' })
-          yield* Dom.focus(target, { preventScroll: true, makeFocusable: true })
-        }).pipe(Effect.ignore, Effect.as(Message.CompletedScrollToAnchor()))
-    },
+export const ScrollToAnchor = ApplicationBlock.makeCommand('ScrollToAnchor', {
+  args: { hash: Schema.String },
+  messages: [Message.CompletedScrollToAnchor],
+  handler: function* () {
+    return ({ hash }) =>
+      Effect.gen(function* () {
+        const target = `#${CSS.escape(hash)}`
+        yield* Dom.scrollIntoViewAfterPaint(target, { block: 'start' })
+        yield* Dom.focus(target, { preventScroll: true, makeFocusable: true })
+      }).pipe(Effect.ignore, Effect.as(Message.CompletedScrollToAnchor()))
   },
-)
+})
 
-export const ScrollSidebarActiveLinkIntoView =
-  ApplicationDefinition.makeCommand('ScrollSidebarActiveLinkIntoView', {
+export const ScrollSidebarActiveLinkIntoView = ApplicationBlock.makeCommand(
+  'ScrollSidebarActiveLinkIntoView',
+  {
     messages: [Message.CompletedScrollSidebarActiveLinkIntoView],
     handler: function* () {
       return () =>
@@ -165,12 +160,14 @@ export const ScrollSidebarActiveLinkIntoView =
           Effect.as(Message.CompletedScrollSidebarActiveLinkIntoView()),
         )
     },
-  })
+  },
+)
 
 const MOBILE_MENU_ACTIVE_LINK = `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`
 
-export const ScrollMobileMenuActiveLinkIntoView =
-  ApplicationDefinition.makeCommand('ScrollMobileMenuActiveLinkIntoView', {
+export const ScrollMobileMenuActiveLinkIntoView = ApplicationBlock.makeCommand(
+  'ScrollMobileMenuActiveLinkIntoView',
+  {
     messages: [Message.CompletedScrollMobileMenuActiveLinkIntoView],
     handler: function* () {
       return () =>
@@ -181,9 +178,10 @@ export const ScrollMobileMenuActiveLinkIntoView =
           Effect.as(Message.CompletedScrollMobileMenuActiveLinkIntoView()),
         )
     },
-  })
+  },
+)
 
-export const SaveSidebarState = ApplicationDefinition.makeCommand(
+export const SaveSidebarState = ApplicationBlock.makeCommand(
   'SaveSidebarState',
   {
     args: { state: SidebarState },
@@ -205,7 +203,7 @@ export const SaveSidebarState = ApplicationDefinition.makeCommand(
   },
 )
 
-export const NavigateInternal = ApplicationDefinition.makeCommand(
+export const NavigateInternal = ApplicationBlock.makeCommand(
   'NavigateInternal',
   {
     args: { url: Schema.String },
@@ -217,21 +215,18 @@ export const NavigateInternal = ApplicationDefinition.makeCommand(
   },
 )
 
-export const LoadPlayground = ApplicationDefinition.makeCommand(
-  'LoadPlayground',
-  {
-    args: { exampleSlug: ExampleSlug },
-    messages: [Message.CompletedLoadPlayground],
-    handler: function* () {
-      return ({ exampleSlug }) =>
-        load(playgroundRouter({ exampleSlug })).pipe(
-          Effect.as(Message.CompletedLoadPlayground()),
-        )
-    },
+export const LoadPlayground = ApplicationBlock.makeCommand('LoadPlayground', {
+  args: { exampleSlug: ExampleSlug },
+  messages: [Message.CompletedLoadPlayground],
+  handler: function* () {
+    return ({ exampleSlug }) =>
+      load(playgroundRouter({ exampleSlug })).pipe(
+        Effect.as(Message.CompletedLoadPlayground()),
+      )
   },
-)
+})
 
-export const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
+export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

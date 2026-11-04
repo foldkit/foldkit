@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import { defineMessageUnion } from 'foldkit/message'
@@ -14,17 +14,17 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const AnimationExampleKey = Symbol('AnimationExample')
+export const AnimationExampleKey = Symbol('AnimationExample')
 
-const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
+export const AnimationExampleBlock = Block.make('AnimationExample', {
   key: AnimationExampleKey,
   Model,
   Message,
   Init: Schema.Tuple([]),
 })
-const { makeCommandsStep, makeNoopStep } = AnimationExampleDefinition
+const { makeCommandsStep, makeNoopStep } = AnimationExampleBlock
 
-const WaitForPanelSettled = AnimationExampleDefinition.makeCommand(
+const WaitForPanelSettled = AnimationExampleBlock.makeCommand(
   'WaitForPanelSettled',
   {
     args: { generation: Schema.Number },
@@ -38,7 +38,7 @@ const WaitForPanelSettled = AnimationExampleDefinition.makeCommand(
   },
 )
 
-const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
+const foldAnimationOutMessage = AnimationExampleBlock.makeOutMessageFold(
   AnimationBlock,
   {
     StartedLeaveAnimating: ({ generation }) =>
@@ -46,16 +46,13 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
     TransitionedOut: makeNoopStep,
   },
 )
-const AnimationBinding = AnimationExampleDefinition.makeBinding(
-  AnimationBlock,
-  {
-    field: 'animation',
-    init: { contextToArgs: () => [{ id: 'drawer' }] },
-  },
-).withOutMessagePolicy({
+const AnimationBinding = AnimationExampleBlock.makeBinding(AnimationBlock, {
+  field: 'animation',
+  init: { contextToArgs: () => [{ id: 'drawer' }] },
+}).withOutMessagePolicy({
   fold: foldAnimationOutMessage,
 })
-const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
+const AnimationExampleComposition = AnimationExampleBlock.makeComposition({
   bindings: [AnimationBinding],
 })
 const init = AnimationExampleComposition.makeInit(() => ({ model: {} }))
@@ -67,7 +64,7 @@ const update = AnimationExampleComposition.makeUpdate({
     AnimationBinding.requestFinish(generation)(model),
 })
 
-export const ApplicationBlock = AnimationExampleDefinition.makeBlock(
+export const layer = AnimationExampleBlock.makeLayer(
   Effect.gen(function* () {
     const animation = yield* AnimationBinding
 
@@ -78,4 +75,4 @@ export const ApplicationBlock = AnimationExampleDefinition.makeBlock(
       EffectsLayer: WaitForPanelSettled.layer,
     }
   }),
-).provide(AnimationLayer)
+).pipe(Layer.provide(AnimationLayer))

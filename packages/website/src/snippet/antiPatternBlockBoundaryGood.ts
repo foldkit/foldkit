@@ -6,9 +6,9 @@ import { InMessage } from './settings/inMessage'
 import { Message, OutMessage } from './settings/message'
 import { Model } from './settings/model'
 
-const SettingsKey = Symbol('Settings')
+export const SettingsKey = Symbol('Settings')
 
-export const SettingsDefinition = Block.makeDefinition('Settings', {
+export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   Model,
   Message,

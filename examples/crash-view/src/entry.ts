@@ -1,10 +1,11 @@
 import { Option } from 'effect'
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock, crashView } from './application'
+import { ApplicationBlock, crashView, layer } from './application'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
   crash: {
     view: crashView,

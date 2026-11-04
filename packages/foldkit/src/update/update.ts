@@ -183,11 +183,12 @@ export type GraphModelOf<FunctionValue> = FunctionValue extends (
 type GraphModelOfValue<Value> = GraphCapabilityModel<Value>
 
 /** @internal Carries child registration evidence without adding Effect services. */
-export declare const RegistrationEvidenceTypeId: unique symbol
+export const RegistrationEvidenceTypeId = Symbol('foldkit/RegistrationEvidence')
 
-type NoRegistrationEvidence = Readonly<{
-  [RegistrationEvidenceTypeId]?: never
-}>
+/** @internal Names results that carry no child registration evidence. */
+export interface NoRegistrationEvidence {
+  readonly [RegistrationEvidenceTypeId]?: never
+}
 
 /** Type-level proof that an update result uses a child Binding registered in its
  * owning Composition. It adds no Effect service requirement at runtime. */

@@ -473,10 +473,22 @@ for (const scenario of [
     }
 
     await page.setViewportSize({ width: 360, height: 640 })
+
+    if (scenario.scrollMode === 'Window') {
+      await expect(page.locator('#status')).toHaveAttribute(
+        'data-measured-height',
+        '640',
+      )
+    }
+
     await expect
       .poll(async () => (await anchoredRow.boundingBox())?.height)
       .toBe(60)
     await expectRowAlignment(page, scenario, 120, 'Start')
+    await expect(page.locator('#status')).toHaveAttribute(
+      'data-scroll-state',
+      'Idle',
+    )
     await page.getByRole('button', { name: 'List end', exact: true }).click()
     await expectRowAlignment(page, scenario, ROW_COUNT - 1, 'End')
   })

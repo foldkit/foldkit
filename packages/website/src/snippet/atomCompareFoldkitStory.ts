@@ -4,13 +4,13 @@ import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 it.effect(
   'loading a user: the Command fires, resolves, the Model lands on Success',
   () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given({ user: AsyncData.Idle() }),
       message(ClickedLoadUser()),
       Command.expectExact(FetchUser),

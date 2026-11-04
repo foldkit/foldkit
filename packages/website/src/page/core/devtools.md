@@ -49,13 +49,13 @@ The `devTools` field accepts an object with the following optional properties, o
 
 ### dispatch
 
-`false` by default. Set `dispatch: true` to let external DevTools clients discover and dispatch Messages. Foldkit derives the dispatch Schema from the completed root Block, including generated envelopes for registered child Blocks. Incoming values are decoded against that Codec before they reach update.
+`false` by default. Set `dispatch: true` to let external DevTools clients discover and dispatch Messages. Foldkit derives the dispatch Schema from the acquired root executable, including generated envelopes for registered child Blocks. Incoming values are decoded against that Codec before they reach update.
 
 Inspection and replay remain available when `dispatch` is omitted or `false`. Message Schema discovery returns `None`, and dispatch requests are rejected.
 
 Enable dispatch only for trusted development clients. Schema decoding validates Message data; it does not authenticate its sender. Generated child envelopes carry runtime-local generations and are not a portable live-dispatch protocol between applications or sessions. See [generated child delivery](/core/block#debugging-in-devtools) for their admission contract.
 
-When the completed root Message Codec needs Services for decoding, `dispatch: true` adds them to the Program's requirements. Supply any remaining decoding Services through `program.provide(...)`. Leaving dispatch disabled adds no Message decoding requirements.
+When the acquired root Message Codec needs Services for decoding, `dispatch: true` adds them to the Program's requirements. Supply any remaining decoding Services through `program.provide(...)`. Leaving dispatch disabled adds no Message decoding requirements.
 
 ### show
 

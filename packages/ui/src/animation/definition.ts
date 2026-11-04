@@ -7,7 +7,7 @@ import type { ViewInputs } from './types.js'
 /** @internal Stable identity of the Animation contract. */
 export const AnimationKey = Symbol('Animation')
 /** @internal Animation authoring contracts and helpers. */
-export const AnimationDefinition = Block.makeDefinition('Animation', {
+export const AnimationBlock = Block.make('Animation', {
   key: AnimationKey,
   Model,
   Message,
@@ -24,5 +24,5 @@ export const AnimationDefinition = Block.makeDefinition('Animation', {
   },
 })
 
-/** Passive Animation contract, selected through the module implementation Layer. */
-export const AnimationBlock = AnimationDefinition.contract
+/** Public Animation authoring contract and passive graph identity. */
+export type AnimationBlock = typeof AnimationBlock

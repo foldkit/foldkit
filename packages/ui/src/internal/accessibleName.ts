@@ -1,4 +1,4 @@
-import type { Attribute, HtmlBuilder } from 'foldkit/html'
+import type { HtmlBuilder, TaggedAttribute } from 'foldkit/html'
 
 type AccessibleNameConfig = Readonly<{
   ariaLabel: string | undefined
@@ -9,7 +9,7 @@ type AccessibleNameConfig = Readonly<{
 export const accessibleNameAttributes = <Message>(
   config: AccessibleNameConfig,
   h: HtmlBuilder<Message>,
-): ReadonlyArray<Attribute<Message>> => {
+): ReadonlyArray<TaggedAttribute<Message>> => {
   if (config.ariaLabel !== undefined) {
     return [h.AriaLabel(config.ariaLabel)]
   } else if (config.ariaLabelledBy !== undefined) {

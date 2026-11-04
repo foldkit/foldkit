@@ -13,10 +13,10 @@ import {
 import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import {
-  type Attribute,
   type ChildAttribute,
   type Html,
   type HtmlBuilder,
+  type TaggedAttribute,
   childAttributes,
   inertHtml as ih,
 } from 'foldkit/html'
@@ -170,7 +170,7 @@ export type OutMessage = typeof OutMessage.Type
 /** @internal Stable identity of the DragAndDrop contract. */
 export const DragAndDropKey = Symbol('DragAndDrop')
 
-const DragAndDropDefinition = Block.makeDefinition('DragAndDrop', {
+export const DragAndDropBlock = Block.make('DragAndDrop', {
   key: DragAndDropKey,
   Model,
   Message,
@@ -179,13 +179,10 @@ const DragAndDropDefinition = Block.makeDefinition('DragAndDrop', {
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
 })
 
-type DragAndDropContract = typeof DragAndDropDefinition.contract
-/** Public DragAndDrop contract with a stable named declaration boundary. */
-export interface DragAndDropBlock extends DragAndDropContract {}
-/** Passive DragAndDrop contract selected through the module implementation Layer. */
-export const DragAndDropBlock: DragAndDropBlock = DragAndDropDefinition.contract
+/** Public DragAndDrop authoring contract and passive graph identity. */
+export type DragAndDropBlock = typeof DragAndDropBlock
 
-const DragAndDropComposition = DragAndDropDefinition.makeComposition()
+const DragAndDropComposition = DragAndDropBlock.makeComposition()
 
 // INIT
 
@@ -215,7 +212,7 @@ export const init = DragAndDropComposition.makeInit((config: InitConfig) => ({
 type Direction = (typeof Message.PressedArrowKey.Type)['direction']
 
 /** Focuses a draggable item by ID after a keyboard move, drop, or cancel. */
-export const FocusItem = DragAndDropDefinition.makeCommand('FocusItem', {
+export const FocusItem = DragAndDropBlock.makeCommand('FocusItem', {
   args: { itemId: Schema.String },
   messages: [Message.CompletedFocusItem],
   handler: function* () {
@@ -363,7 +360,7 @@ export const ResolveKeyboardMoveArgs = Schema.Struct({
 export type ResolveKeyboardMoveArgs = typeof ResolveKeyboardMoveArgs.Type
 
 /** Resolves the next keyboard drag position by querying the DOM for adjacent sortable items and containers. */
-export const ResolveKeyboardMove = DragAndDropDefinition.makeCommand(
+export const ResolveKeyboardMove = DragAndDropBlock.makeCommand(
   'ResolveKeyboardMove',
   {
     args: ResolveKeyboardMoveArgs.fields,
@@ -378,7 +375,7 @@ export const ResolveKeyboardMove = DragAndDropDefinition.makeCommand(
 /** Processes a drag-and-drop Message and returns the next Model, optional
  *  Commands, and an optional OutMessage for the parent. */
 export const update = DragAndDropComposition.makeUpdate({
-  PressedDraggable: DragAndDropDefinition.makeFieldsStep.fromMessage(
+  PressedDraggable: DragAndDropBlock.makeFieldsStep.fromMessage(
     ({ itemId, containerId, index, screenX, screenY }) => ({
       dragState: () =>
         DragState.Pending({
@@ -566,8 +563,8 @@ export const update = DragAndDropComposition.makeUpdate({
       })),
       Match.orElse(() => ({ model })),
     ),
-  AdvancedAutoScrollFrame: DragAndDropDefinition.makeNoopStep(),
-  CompletedFocusItem: DragAndDropDefinition.makeNoopStep(),
+  AdvancedAutoScrollFrame: DragAndDropBlock.makeNoopStep(),
+  CompletedFocusItem: DragAndDropBlock.makeNoopStep(),
 })
 
 // SUBSCRIPTION
@@ -692,7 +689,7 @@ const streamKeyboardDragEvents = () =>
     },
   })
 
-export const subscriptions = DragAndDropDefinition.makeSubscriptions(entry => ({
+export const subscriptions = DragAndDropBlock.makeSubscriptions(entry => ({
   documentPointer: entry(
     'DragAndDropDocumentPointer',
     {
@@ -850,7 +847,7 @@ const draggable = (
   model: Model,
   input: DraggableAttributesInput,
   h: HtmlBuilder<Message>,
-): ReadonlyArray<Attribute<Message>> => {
+): ReadonlyArray<TaggedAttribute<Message>> => {
   const isKeyboardDragActivationKey = (key: string): boolean =>
     key === ' ' || key === 'Enter'
 
@@ -904,7 +901,7 @@ const draggable = (
 export const droppable = (
   containerId: string,
   label?: string,
-): ReadonlyArray<Attribute<never>> => [
+): ReadonlyArray<TaggedAttribute<never>> => [
   ih.DataAttribute('droppable-id', containerId),
   ih.Role('listbox'),
   ...(label ? [ih.AriaLabel(label)] : []),
@@ -914,7 +911,9 @@ export const droppable = (
  *  Typically combined with `draggable`. Handler-free, so the bundle is built
  *  with `inertHtml` and spreads into any Message universe's attribute
  *  array. */
-export const sortable = (itemId: string): ReadonlyArray<Attribute<never>> => [
+export const sortable = (
+  itemId: string,
+): ReadonlyArray<TaggedAttribute<never>> => [
   ih.DataAttribute('sortable-id', itemId),
 ]
 
@@ -993,8 +992,8 @@ export const maybeDropTarget = (model: Model): Option.Option<DropTarget> =>
     Match.orElse(() => Option.none()),
   )
 
-/** @internal Checked DragAndDrop implementation used as a scoped testing root. */
-const block = DragAndDropDefinition.makeBlock(
+/** Constructs the DragAndDrop implementation without starting occurrence effects. */
+export const layer = DragAndDropBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -1007,5 +1006,5 @@ const block = DragAndDropDefinition.makeBlock(
   }),
 )
 
-/** Constructs DragAndDrop without starting Commands or occurrence lifecycles. */
-export const layer = block.layer
+/** @internal Selected implementation used by component tests. */
+export const block = { block: DragAndDropBlock, layer }

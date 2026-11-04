@@ -1,0 +1,22 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": false,
+    "rootDir": "..",
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/message": ["../src/message/index.ts"],
+      "foldkit/story": ["../src/story/public.ts"],
+      "foldkit/test": ["../src/test/public.ts"],
+      "foldkit/update": ["../src/update/public.ts"]
+    }
+  },
+  "files": [
+    "unified-inmessages.accepted.ts",
+    "unified-inmessages.rejected.ts",
+    "unified-inmessages.consume.ts",
+    "../src/vite-env.d.ts"
+  ],
+  "include": []
+}

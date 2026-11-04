@@ -11,9 +11,9 @@ const InMessage = defineMessageUnion({
 })
 type InMessage = typeof InMessage.Type
 
-const EntryKey = Symbol('Entry')
+export const EntryKey = Symbol('Entry')
 
-const EntryDefinition = Block.makeDefinition('Entry', {
+export const EntryBlock = Block.make('Entry', {
   key: EntryKey,
   Init: Schema.Tuple([Schema.String]),
   InMessage,
@@ -23,10 +23,9 @@ const EntryDefinition = Block.makeDefinition('Entry', {
   Message: Schema.Never,
 })
 
-const EntryComposition = EntryDefinition.makeComposition()
-export const EntryBlock = EntryDefinition.contract
+const EntryComposition = EntryBlock.makeComposition()
 
-export const layer = EntryDefinition.makeBlock(
+export const layer = EntryBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -41,4 +40,4 @@ export const layer = EntryDefinition.makeBlock(
       }),
     }
   }),
-).layer
+)

@@ -1,8 +1,8 @@
 import { RoomBlock } from '../blocks'
-import { ApplicationDefinition } from '../definition'
+import { ApplicationBlock } from '../definition'
 import * as ApplicationRoute from '../route'
 
-export const MaybeRoomInstanceBinding = ApplicationDefinition.makeBinding(
+export const MaybeRoomInstanceBinding = ApplicationBlock.makeBinding(
   RoomBlock,
   {
     field: 'maybeRoomInstance',

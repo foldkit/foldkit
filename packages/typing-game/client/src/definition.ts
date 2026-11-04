@@ -7,7 +7,7 @@ import { Model } from './model'
 import { RoomsClient } from './rpc'
 
 export const ApplicationKey = Symbol('Application')
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Block.makeInputContract<readonly [url: Url]>(),
   view: { kind: 'Document' },
@@ -17,4 +17,4 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 
 export const { makeCommandsStep, makeFieldsStep, makeNoopStep, makeStep } =
-  ApplicationDefinition
+  ApplicationBlock

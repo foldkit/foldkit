@@ -3,7 +3,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { CounterBlock } from './blocks'
 import { Model } from './model'
 import { ApplicationRoute } from './route'
@@ -32,7 +32,7 @@ describe('view', () => {
     'the header renders the site title and navigation on every route',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         expect(role('link', { name: 'Devin Jameson' })).toExist(),
         expect(role('link', { name: 'About' })).toExist(),
@@ -42,7 +42,7 @@ describe('view', () => {
 
   it.effect('the Home route renders the about prose from markdown', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(home),
       expect(text('human man living in Boston', { exact: false })).toExist(),
       expect(role('link', { name: 'Foldkit' })).toExist(),
@@ -52,7 +52,7 @@ describe('view', () => {
 
   it.effect('the Posts route lists every post with its summary', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(postsIndex),
       expect(role('heading', { name: 'Making This Blog' })).toExist(),
       expect(role('heading', { name: 'Shooting Film' })).toExist(),
@@ -62,7 +62,7 @@ describe('view', () => {
 
   it.effect('a post renders markdown headings, code, and blockquotes', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(post('making-this-blog')),
       expect(role('heading', { name: 'Making This Blog' })).toExist(),
       expect(role('heading', { name: 'Why bother' })).toExist(),
@@ -74,7 +74,7 @@ describe('view', () => {
 
   it.effect('the Counter island renders live inside the post prose', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(post('making-this-blog')),
       expect(text('Clicks while reading this post')).toExist(),
       expect(role('button', { name: '+' })).toExist(),
@@ -84,7 +84,7 @@ describe('view', () => {
 
   it.effect('the Note island wraps nested markdown content', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(post('making-this-blog')),
       expect(text('Islands can wrap markdown too', { exact: false })).toExist(),
     ),
@@ -92,7 +92,7 @@ describe('view', () => {
 
   it.effect('a post renders markdown tables and ordered lists', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(post('shooting-film')),
       expect(role('table')).toExist(),
       expect(text('Low light, pushed')).toExist(),
@@ -102,7 +102,7 @@ describe('view', () => {
 
   it.effect('an unknown post slug renders the missing panel', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(post('missing-post')),
       expect(role('heading', { name: 'Post Not Found' })).toExist(),
       expect(text('There is no post named "missing-post".')).toExist(),
@@ -111,7 +111,7 @@ describe('view', () => {
 
   it.effect('an unmatched URL renders the NotFound view', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(notFound('/missing')),
       expect(role('heading', { name: '404' })).toExist(),
       expect(role('link', { name: '← Go home' })).toExist(),

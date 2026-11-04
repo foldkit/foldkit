@@ -1,8 +1,8 @@
 import { Effect, Schema, pipe } from 'effect'
 
-import { ApplicationDefinition, DraftStore, Message } from './definition.js'
+import { ApplicationBlock, DraftStore, Message } from './definition.js'
 
-export const SaveDraft = ApplicationDefinition.makeCommand('SaveDraft', {
+export const SaveDraft = ApplicationBlock.makeCommand('SaveDraft', {
   args: { text: Schema.String },
   messages: [Message.CompletedSaveDraft],
   handler: function* () {

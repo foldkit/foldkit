@@ -25,7 +25,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('DraftApplication')
-export const ApplicationDefinition = Block.makeDefinition('DraftApplication', {
+export const ApplicationBlock = Block.make('DraftApplication', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   effects: { services: [DraftStore] },
@@ -40,4 +40,4 @@ export const {
   makeNoopStep,
   makeMapBinding,
   makeComposition,
-} = ApplicationDefinition
+} = ApplicationBlock

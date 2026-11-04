@@ -36,7 +36,7 @@ import {
 type HistoryItem = Readonly<{ key: string; estimatedHeightPx: number }>
 const HistoryBlock = makeBlock<HistoryItem>()
 type VirtualListOperations = Pick<
-  Effect.Success<typeof HistoryBlock.get>,
+  Story.TestBlock<typeof HistoryBlock>,
   'init' | 'update' | 'operations'
 >
 type ScrollReturn = ReturnType<

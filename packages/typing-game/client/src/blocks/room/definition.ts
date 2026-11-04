@@ -9,7 +9,7 @@ import { Message } from './message'
 import { Model } from './model'
 
 export const RoomKey = Symbol('Room')
-export const RoomDefinition = Block.makeDefinition('Room', {
+export const RoomBlock = Block.make('Room', {
   key: RoomKey,
   Init: Schema.Tuple([Schema.Option(Schema.String)]),
   Context: Schema.Tuple([Context]),
@@ -21,4 +21,4 @@ export const RoomDefinition = Block.makeDefinition('Room', {
   InMessage,
 })
 
-export const { makeCommandsStep, makeFieldsStep, makeNoopStep } = RoomDefinition
+export const { makeCommandsStep, makeFieldsStep, makeNoopStep } = RoomBlock

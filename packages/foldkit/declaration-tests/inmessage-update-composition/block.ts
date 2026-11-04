@@ -1,10 +1,12 @@
-import { Effect } from 'effect'
+import { Effect, Layer } from 'effect'
 
 import { ApplicationComposition, EditorBinding } from './composition.js'
-import { ApplicationDefinition, SaveDraft } from './definition.js'
+import { ApplicationBlock, SaveDraft } from './definition.js'
 import * as Editor from './editor.js'
 import { inMessageUpdate, update } from './update.js'
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export { ApplicationBlock } from './definition.js'
+
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const editor = yield* EditorBinding
 
@@ -18,4 +20,4 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer: SaveDraft.layer,
     }
   }),
-).provide(Editor.layer)
+).pipe(Layer.provide(Editor.layer))

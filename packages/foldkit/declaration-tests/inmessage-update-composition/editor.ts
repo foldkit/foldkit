@@ -10,7 +10,7 @@ const InMessage = defineMessageUnion({
   InformedOfTextChange: { text: Schema.String },
 })
 const OutMessage = defineMessageUnion({ Edited: {} })
-const EditorDefinition = Block.makeDefinition('InputEditor', {
+export const EditorBlock = Block.make('InputEditor', {
   key: EditorKey,
   Model,
   Message,
@@ -19,9 +19,8 @@ const EditorDefinition = Block.makeDefinition('InputEditor', {
   Init: Schema.Tuple([]),
   inMessageOutputs: { InformedOfTextChange: { outMessage: OutMessage.Edited } },
 })
-const EditorComposition = EditorDefinition.makeComposition()
-export const EditorBlock = EditorDefinition.contract
-export const layer = EditorDefinition.makeBlock(
+const EditorComposition = EditorBlock.makeComposition()
+export const layer = EditorBlock.makeLayer(
   Effect.succeed({
     children: [],
     init: EditorComposition.makeInit(() => ({
@@ -40,4 +39,4 @@ export const layer = EditorDefinition.makeBlock(
       }),
     }),
   }),
-).layer
+)

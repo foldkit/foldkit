@@ -16,32 +16,29 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-const { makeFieldsStep, makeCommandsStep, makeNoopStep } = ApplicationDefinition
+const { makeFieldsStep, makeCommandsStep, makeNoopStep } = ApplicationBlock
 
-const ApplicationComposition = ApplicationDefinition.makeComposition()
+const ApplicationComposition = ApplicationBlock.makeComposition()
 
-export const WaitBeforeReset = ApplicationDefinition.makeCommand(
-  'WaitBeforeReset',
-  {
-    messages: [Message.CompletedWaitBeforeReset],
-    interrupt: true,
-    handler: function* () {
-      return () =>
-        Effect.sleep('1 second').pipe(
-          Effect.as(Message.CompletedWaitBeforeReset()),
-        )
-    },
+export const WaitBeforeReset = ApplicationBlock.makeCommand('WaitBeforeReset', {
+  messages: [Message.CompletedWaitBeforeReset],
+  interrupt: true,
+  handler: function* () {
+    return () =>
+      Effect.sleep('1 second').pipe(
+        Effect.as(Message.CompletedWaitBeforeReset()),
+      )
   },
-)
+})
 
 export const EffectsLayer = WaitBeforeReset.layer
 

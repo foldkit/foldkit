@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Schema } from 'effect'
+import { Array, Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
@@ -27,42 +27,35 @@ const ParentMessage = defineMessageUnion({
 type ParentMessage = typeof ParentMessage.Type
 
 const DragAndDropTestParentKey = Symbol('DragAndDropTestParent')
-const DragAndDropTestParentDefinition = Block.makeDefinition(
-  'DragAndDropTestParent',
-  {
-    key: DragAndDropTestParentKey,
-    Init: Block.makeInputContract<readonly []>(),
-    Model: ParentModel,
-    Message: ParentMessage,
-  },
-)
+const DragAndDropTestParentBlock = Block.make('DragAndDropTestParent', {
+  key: DragAndDropTestParentKey,
+  Init: Block.makeInputContract<readonly []>(),
+  Model: ParentModel,
+  Message: ParentMessage,
+})
 
-const foldDragAndDropOutMessage =
-  DragAndDropTestParentDefinition.makeOutMessageFold(DragAndDropBlock, {
+const foldDragAndDropOutMessage = DragAndDropTestParentBlock.makeOutMessageFold(
+  DragAndDropBlock,
+  {
     StartedKeyboardDrag: () => model => ({ model }),
     ChangedKeyboardTarget: () => model => ({ model }),
     Reordered: () => model => ({ model }),
     Cancelled: () => model => ({ model }),
-  })
-
-const LeftBinding = DragAndDropTestParentDefinition.makeBinding(
-  DragAndDropBlock,
-  {
-    field: 'left',
-    init: false,
   },
-).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+)
 
-const RightBinding = DragAndDropTestParentDefinition.makeBinding(
-  DragAndDropBlock,
-  {
-    field: 'right',
-    init: false,
-  },
-).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+const LeftBinding = DragAndDropTestParentBlock.makeBinding(DragAndDropBlock, {
+  field: 'left',
+  init: false,
+}).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+
+const RightBinding = DragAndDropTestParentBlock.makeBinding(DragAndDropBlock, {
+  field: 'right',
+  init: false,
+}).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
 const DragAndDropTestParentComposition =
-  DragAndDropTestParentDefinition.makeComposition({
+  DragAndDropTestParentBlock.makeComposition({
     bindings: [LeftBinding, RightBinding],
   })
 
@@ -117,21 +110,24 @@ const initialModel: ParentModel = {
 const parentInit = DragAndDropTestParentComposition.makeInit(() => ({
   model: initialModel,
 }))
-const ParentBlock = DragAndDropTestParentDefinition.makeBlock(
-  Effect.gen(function* () {
-    const left = yield* LeftBinding
-    const right = yield* RightBinding
+const ParentBlock = {
+  block: DragAndDropTestParentBlock,
+  layer: DragAndDropTestParentBlock.makeLayer(
+    Effect.gen(function* () {
+      const left = yield* LeftBinding
+      const right = yield* RightBinding
 
-    return {
-      children: [left, right],
-      init: parentInit,
-      update,
-    }
-  }),
-).provide(layer)
-const NestedParentBlock = DragAndDropTestParentDefinition.contract
+      return {
+        children: [left, right],
+        init: parentInit,
+        update,
+      }
+    }),
+  ).pipe(Layer.provide(layer)),
+}
+const NestedParentBlock = DragAndDropTestParentBlock
 const OtherDragAndDropKey = Symbol('OtherDragAndDrop')
-const OtherDragAndDropDefinition = Block.makeDefinition('OtherDragAndDrop', {
+const OtherDragAndDropBlock = Block.make('OtherDragAndDrop', {
   key: OtherDragAndDropKey,
   Init: Block.makeInputContract<readonly []>(),
   Model: DragAndDropBlock.Model,
@@ -140,7 +136,7 @@ const OtherDragAndDropDefinition = Block.makeDefinition('OtherDragAndDrop', {
 
 if (false) {
   __bindCommandMatcher(
-    OtherDragAndDropDefinition.contract,
+    OtherDragAndDropBlock,
     // @ts-expect-error Matching Model storage does not permit another child contract.
     LeftBinding,
     FocusItem({ itemId: 'left-item' }),
@@ -151,7 +147,7 @@ describe('DragAndDrop.test Binding selection', () => {
   it('rejects a different original child contract through an erased call', () => {
     expect(() =>
       Reflect.apply(__bindCommandMatcher, undefined, [
-        OtherDragAndDropDefinition.contract,
+        OtherDragAndDropBlock,
         LeftBinding,
         FocusItem({ itemId: 'left-item' }),
       ]),
@@ -332,7 +328,7 @@ const NestedMessage = defineMessageUnion({ RequestedBothMoves: {} })
 type NestedMessage = typeof NestedMessage.Type
 
 const NestedDragAndDropTestParentKey = Symbol('NestedDragAndDropTestParent')
-const NestedDragAndDropTestParentDefinition = Block.makeDefinition(
+const NestedDragAndDropTestParentBlock = Block.make(
   'NestedDragAndDropTestParent',
   {
     key: NestedDragAndDropTestParentKey,
@@ -342,7 +338,7 @@ const NestedDragAndDropTestParentDefinition = Block.makeDefinition(
   },
 )
 
-const NestedBinding = NestedDragAndDropTestParentDefinition.makeBinding(
+const NestedBinding = NestedDragAndDropTestParentBlock.makeBinding(
   NestedParentBlock,
   {
     placement: 'parents',
@@ -362,7 +358,7 @@ const NestedBinding = NestedDragAndDropTestParentDefinition.makeBinding(
 )
 
 const NestedDragAndDropTestParentComposition =
-  NestedDragAndDropTestParentDefinition.makeComposition({
+  NestedDragAndDropTestParentBlock.makeComposition({
     bindings: [NestedBinding],
   })
 
@@ -394,17 +390,20 @@ const nestedInitialModel: NestedModel = {
 const NestedBlockInit = NestedDragAndDropTestParentComposition.makeInit(() => ({
   model: nestedInitialModel,
 }))
-const NestedBlock = NestedDragAndDropTestParentDefinition.makeBlock(
-  Effect.gen(function* () {
-    const child = yield* NestedBinding
+const NestedBlock = {
+  block: NestedDragAndDropTestParentBlock,
+  layer: NestedDragAndDropTestParentBlock.makeLayer(
+    Effect.gen(function* () {
+      const child = yield* NestedBinding
 
-    return {
-      children: [child],
-      init: NestedBlockInit,
-      update: nestedUpdate,
-    }
-  }),
-).provide(ParentBlock.layer)
+      return {
+        children: [child],
+        init: NestedBlockInit,
+        update: nestedUpdate,
+      }
+    }),
+  ).pipe(Layer.provide(ParentBlock.layer)),
+}
 
 describe('DragAndDrop.test nested ancestor selection', () => {
   it.effect(
@@ -443,7 +442,7 @@ const KeyedParentMessage = defineMessageUnion({
 type KeyedParentMessage = typeof KeyedParentMessage.Type
 
 const KeyedDragAndDropTestParentKey = Symbol('KeyedDragAndDropTestParent')
-const KeyedDragAndDropTestParentDefinition = Block.makeDefinition(
+const KeyedDragAndDropTestParentBlock = Block.make(
   'KeyedDragAndDropTestParent',
   {
     key: KeyedDragAndDropTestParentKey,
@@ -454,14 +453,14 @@ const KeyedDragAndDropTestParentDefinition = Block.makeDefinition(
 )
 
 const foldKeyedDragAndDropOutMessage =
-  KeyedDragAndDropTestParentDefinition.makeOutMessageFold(DragAndDropBlock, {
+  KeyedDragAndDropTestParentBlock.makeOutMessageFold(DragAndDropBlock, {
     StartedKeyboardDrag: () => model => ({ model }),
     ChangedKeyboardTarget: () => model => ({ model }),
     Reordered: () => model => ({ model }),
     Cancelled: () => model => ({ model }),
   })
 
-const KeyedBinding = KeyedDragAndDropTestParentDefinition.makeBinding(
+const KeyedBinding = KeyedDragAndDropTestParentBlock.makeBinding(
   DragAndDropBlock,
   {
     placement: 'boards',
@@ -483,7 +482,7 @@ const KeyedBinding = KeyedDragAndDropTestParentDefinition.makeBinding(
 })
 
 const KeyedDragAndDropTestParentComposition =
-  KeyedDragAndDropTestParentDefinition.makeComposition({
+  KeyedDragAndDropTestParentBlock.makeComposition({
     bindings: [KeyedBinding],
   })
 
@@ -512,17 +511,20 @@ const keyedInitialModel: KeyedParentModel = {
 const KeyedBlockInit = KeyedDragAndDropTestParentComposition.makeInit(() => ({
   model: keyedInitialModel,
 }))
-const KeyedBlock = KeyedDragAndDropTestParentDefinition.makeBlock(
-  Effect.gen(function* () {
-    const child = yield* KeyedBinding
+const KeyedBlock = {
+  block: KeyedDragAndDropTestParentBlock,
+  layer: KeyedDragAndDropTestParentBlock.makeLayer(
+    Effect.gen(function* () {
+      const child = yield* KeyedBinding
 
-    return {
-      children: [child],
-      init: KeyedBlockInit,
-      update: keyedUpdate,
-    }
-  }),
-).provide(layer)
+      return {
+        children: [child],
+        init: KeyedBlockInit,
+        update: keyedUpdate,
+      }
+    }),
+  ).pipe(Layer.provide(layer)),
+}
 
 if (false) {
   // @ts-expect-error The selected Binding requires its decoded string key.

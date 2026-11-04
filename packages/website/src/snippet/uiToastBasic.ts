@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -36,9 +36,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const NotificationsKey = Symbol('Notifications')
+export const NotificationsKey = Symbol('Notifications')
 
-const NotificationsDefinition = Block.makeDefinition('Notifications', {
+export const NotificationsBlock = Block.make('Notifications', {
   key: NotificationsKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -46,13 +46,13 @@ const NotificationsDefinition = Block.makeDefinition('Notifications', {
   Message,
 })
 
-const { makeFieldsStep } = NotificationsDefinition
+const { makeFieldsStep } = NotificationsBlock
 
 // At module scope, fold the OutMessage into your own Model, lifting the
 // DismissedToast event into domain state. The arm returns an Update.Step over
 // the parent Model, which already has the next Toast Model written back. The
-// parent Definition infers the factory-refined payload from the whole Block:
-const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
+// parent Block infers the factory-refined payload from the whole Block:
+const foldToastOutMessage = NotificationsBlock.makeOutMessageFold(Toast, {
   DismissedToast: ({ payload }) =>
     makeFieldsStep(() => ({
       maybeLastDismissedBody: () => Option.some(payload.bodyText),
@@ -60,14 +60,14 @@ const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
 })
 
 // The Binding retains the child contract; construction supplies its implementation.
-const ToastBinding = NotificationsDefinition.makeBinding(Toast, {
+const ToastBinding = NotificationsBlock.makeBinding(Toast, {
   field: 'toast',
   init: {
     contextToArgs: () => [{ id: 'app-toast', swipeToDismiss: {} }],
   },
 }).withOutMessagePolicy({ fold: foldToastOutMessage })
 
-const NotificationsComposition = NotificationsDefinition.makeComposition({
+const NotificationsComposition = NotificationsBlock.makeComposition({
   bindings: [ToastBinding],
 })
 
@@ -146,7 +146,7 @@ const view = NotificationsComposition.makeView((model, h) =>
   ),
 )
 
-export const ApplicationBlock = NotificationsDefinition.makeBlock(
+export const layer = NotificationsBlock.makeLayer(
   Effect.gen(function* () {
     const toast = yield* ToastBinding
 
@@ -157,4 +157,4 @@ export const ApplicationBlock = NotificationsDefinition.makeBlock(
       view,
     }
   }),
-).provide(ToastLayer)
+).pipe(Layer.provide(ToastLayer))

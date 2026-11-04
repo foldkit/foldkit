@@ -1,8 +1,8 @@
 import type { Block } from 'foldkit'
 
-import { ApiReferenceDefinition } from './definition'
+import { ApiReferenceBlock } from './definition'
 
-export const ApiReferenceComposition = ApiReferenceDefinition.makeComposition()
+export const ApiReferenceComposition = ApiReferenceBlock.makeComposition()
 export type ApiReferenceViewBuilder = Block.ViewBuilderFor<
   typeof ApiReferenceComposition
 >

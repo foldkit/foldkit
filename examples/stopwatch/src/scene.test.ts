@@ -18,6 +18,7 @@ import {
   DetermineTickTime,
   Message,
   Model,
+  layer,
   subscriptions,
 } from './application'
 
@@ -32,7 +33,7 @@ describe('view', () => {
     'initial view shows the zeroed time and Start + Reset buttons',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         expect(text('00:00.00')).toExist(),
         expect(role('button', { name: 'Start' })).toExist(),
@@ -45,7 +46,7 @@ describe('view', () => {
     'clicking Start fires DetermineStartTime and switches to Stop',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         click(role('button', { name: 'Start' })),
         Command.expectExact(DetermineStartTime({ elapsedMs: 0 })),
@@ -66,7 +67,7 @@ describe('view', () => {
     })
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(runningModel),
       expect(role('button', { name: 'Stop' })).toExist(),
       click(role('button', { name: 'Stop' })),
@@ -83,7 +84,7 @@ describe('view', () => {
     })
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(runningModel),
       expect(text('00:12.34')).toExist(),
       click(role('button', { name: 'Reset' })),
@@ -103,7 +104,7 @@ describe('view', () => {
       })
 
       return scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(runningModel),
         expect(text('00:00.00')).toExist(),
         Subscription.expectActive(subscriptions.stopwatchTicks),
@@ -128,7 +129,7 @@ describe('view', () => {
     })
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(longRunModel),
       expect(text('01:07.89')).toExist(),
     )

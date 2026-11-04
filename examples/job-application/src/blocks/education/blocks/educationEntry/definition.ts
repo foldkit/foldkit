@@ -41,7 +41,7 @@ export type OutMessage = typeof OutMessage.Type
 
 export const EducationEntryKey = Symbol('EducationEntry')
 
-export const EducationEntryDefinition = Block.makeDefinition('EducationEntry', {
+export const EducationEntryBlock = Block.make('EducationEntry', {
   key: EducationEntryKey,
   Init: Schema.Tuple([Schema.String]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
@@ -52,4 +52,4 @@ export const EducationEntryDefinition = Block.makeDefinition('EducationEntry', {
   ChildInitContext: Schema.String,
 })
 
-export const { makeFieldsStep, makeOutMessageStep } = EducationEntryDefinition
+export const { makeFieldsStep, makeOutMessageStep } = EducationEntryBlock

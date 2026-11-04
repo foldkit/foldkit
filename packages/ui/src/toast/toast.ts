@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Match, Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import { type Html, childAttributes } from 'foldkit/html'
+import * as BlockFamily from 'foldkit/internal/block'
 
 import { layer as AnimationLayer } from '../animation/index.js'
 import { type EntryHandlers, Position, SwipeState, Variant } from './schema.js'
@@ -292,7 +293,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const publicTest: ToastTest<ToastContract<A, I>> = {
     drainEntry: test.drainEntry,
   }
-  const block = Block.makeFamilyContract(
+  const block = BlockFamily.resolveFamily(
     runtime.ToastDefinition,
     ToastFamily,
     implementation => implementation.construct(runtime, view),
@@ -309,7 +310,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 }
 
 type ToastRuntime<A, I> = ReturnType<typeof makeRuntime<A, I>>
-type ToastContract<A, I> = Block.FamilyContract<
+type ToastContract<A, I> = BlockFamily.UnifiedFamilyBlock<
   ToastRuntime<A, I>['ToastDefinition'],
   ToastFamily
 >
@@ -319,7 +320,7 @@ interface ToastConstructor {
   <A, I>(
     runtime: ToastRuntime<A, I>,
     view: ToastView<A, I>,
-  ): Block.FamilyRecipe<
+  ): BlockFamily.FamilySpecializationLayer<
     Block.FamilyContractOf<ToastRuntime<A, I>['ToastDefinition']>
   >
 }
@@ -334,7 +335,7 @@ export class ToastFamily extends Context.Service<
 >()('@foldkit/ui/ToastFamily') {}
 
 const constructToast: ToastConstructor = (runtime, view) =>
-  runtime.ToastDefinition.makeBlock(
+  runtime.ToastDefinition.makeLayer(
     Effect.gen(function* () {
       const animation = yield* runtime.EntryAnimationBinding
 
@@ -348,7 +349,7 @@ const constructToast: ToastConstructor = (runtime, view) =>
         EffectsLayer: runtime.EffectsLayer,
       }
     }),
-  ).provide(AnimationLayer)
+  ).pipe(Layer.provide(AnimationLayer))
 
 /** Constructs Toast payload specializations and their private Animation dependency. */
 export const layer = Layer.effect(ToastFamily)(

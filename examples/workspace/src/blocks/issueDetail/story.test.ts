@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   Command,
   type TestBlock,
@@ -36,8 +36,10 @@ import { Message } from './message'
 import { SaveState } from './model'
 import { OutMessage } from './outMessage'
 
+const issueDetailSubject = { block: IssueDetailBlock, layer }
+
 const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
-const makeInitialModel = (executable: TestBlock<typeof IssueDetailBlock>) => {
+const makeInitialModel = (executable: TestBlock<typeof issueDetailSubject>) => {
   const init = executable.init
   return init(issue).model
 }
@@ -68,10 +70,10 @@ describe('Issue Detail', () => {
   it.effect(
     'ignores a malformed assignee selection without clearing the current assignee',
     () => {
-      return withBlock(IssueDetailBlock, executable => {
+      return withBlock(issueDetailSubject, executable => {
         const initialModel = makeInitialModel(executable)
         return story(
-          IssueDetailBlock,
+          issueDetailSubject,
           given(initialModel),
           messageFrom(
             AssigneeListboxBinding,
@@ -86,7 +88,7 @@ describe('Issue Detail', () => {
           expectNoOutMessage(),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
@@ -95,7 +97,7 @@ describe('Issue Detail', () => {
       description: () => 'Include all active projects.',
     })
     return story(
-      IssueDetailBlock,
+      issueDetailSubject,
       init(issue),
       message(Message.UpdatedTitle({ value: editedTitle })),
       message(
@@ -109,14 +111,14 @@ describe('Issue Detail', () => {
       }),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
     'saves the draft with its original revision and emits the saved issue',
     () => {
       return story(
-        IssueDetailBlock,
+        issueDetailSubject,
         init(issue),
         message(Message.UpdatedTitle({ value: editedTitle })),
         inMessage(InMessage.RequestedSave()),
@@ -148,7 +150,7 @@ describe('Issue Detail', () => {
             savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           }),
         ),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -156,7 +158,7 @@ describe('Issue Detail', () => {
     'preserves every draft field after failure and retries the same revision',
     () => {
       return story(
-        IssueDetailBlock,
+        issueDetailSubject,
         init(issue),
         message(Message.UpdatedTitle({ value: editedTitle })),
         message(Message.SubmittedIssueForm()),
@@ -197,7 +199,7 @@ describe('Issue Detail', () => {
             savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           }),
         ),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -210,7 +212,7 @@ describe('Issue Detail', () => {
 
       const error = 'The workspace is temporarily unavailable.'
       return story(
-        IssueDetailBlock,
+        issueDetailSubject,
         init(issue),
         message(Message.UpdatedTitle({ value: editedTitle })),
         inMessage(InMessage.RequestedSave()),
@@ -233,7 +235,7 @@ describe('Issue Detail', () => {
           expect(model.maybeIncomingRevision).toEqual(Option.none())
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -241,7 +243,7 @@ describe('Issue Detail', () => {
     'refreshes a clean draft when the same issue has a newer revision',
     () => {
       return story(
-        IssueDetailBlock,
+        issueDetailSubject,
         init(issue),
         inMessage(InMessage.InformedOfIssueChange({ issue: newerIssue })),
         model(model => {
@@ -249,7 +251,7 @@ describe('Issue Detail', () => {
           expect(model.draft).toEqual(draftFromIssue(newerIssue))
           expect(model.saveState._tag).toBe('Idle')
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -257,7 +259,7 @@ describe('Issue Detail', () => {
     'reports a conflicting revision to the parent before accepting an issue update',
     () => {
       return story(
-        IssueDetailBlock,
+        issueDetailSubject,
         init(issue),
         message(Message.UpdatedTitle({ value: editedTitle })),
         inMessage(InMessage.RequestedSave()),
@@ -297,7 +299,7 @@ describe('Issue Detail', () => {
         }),
         expectNoOutMessage(),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -310,7 +312,7 @@ describe('Issue Detail', () => {
       comments: () => issueWithConcurrentComment.comments,
     })
     return story(
-      IssueDetailBlock,
+      issueDetailSubject,
       init(issue),
       message(Message.UpdatedTitle({ value: editedTitle })),
       inMessage(InMessage.RequestedSave()),
@@ -359,7 +361,7 @@ describe('Issue Detail', () => {
           savedIssue: savedIssueFromIssue(savedIssueWithConcurrentComment),
         }),
       ),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect(
@@ -369,7 +371,7 @@ describe('Issue Detail', () => {
         version: () => savedIssueSnapshot.version + 1,
       })
       return story(
-        IssueDetailBlock,
+        issueDetailSubject,
         init(issue),
         message(Message.UpdatedTitle({ value: editedTitle })),
         inMessage(InMessage.RequestedSave()),
@@ -397,7 +399,7 @@ describe('Issue Detail', () => {
             savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           }),
         ),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -405,7 +407,7 @@ describe('Issue Detail', () => {
     'retains a dirty draft until the user reloads the latest revision',
     () => {
       return story(
-        IssueDetailBlock,
+        issueDetailSubject,
         init(issue),
         message(Message.UpdatedTitle({ value: editedTitle })),
         inMessage(InMessage.InformedOfIssueChange({ issue: newerIssue })),
@@ -426,21 +428,21 @@ describe('Issue Detail', () => {
           expect(model.maybeIncomingRevision).toEqual(Option.none())
           expect(model.saveState._tag).toBe('Idle')
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'ignores unrelated issues, older revisions, and completions without an active save',
     () => {
-      return withBlock(IssueDetailBlock, executable => {
+      return withBlock(issueDetailSubject, executable => {
         const initialModel = makeInitialModel(executable)
 
         const unrelatedIssue = modifyFields(newerIssue, {
           id: () => 'another-issue',
         })
         return story(
-          IssueDetailBlock,
+          issueDetailSubject,
           given(initialModel),
           inMessage(InMessage.InformedOfIssueChange({ issue: unrelatedIssue })),
           inMessage(InMessage.InformedOfIssueChange({ issue })),
@@ -455,18 +457,18 @@ describe('Issue Detail', () => {
           }),
           expectNoOutMessage(),
         )
-      }).pipe(Effect.provide(layer))
+      })
     },
   )
 
   it.effect('closes without emitting unsaved draft data', () => {
     return story(
-      IssueDetailBlock,
+      issueDetailSubject,
       init(issue),
       message(Message.UpdatedTitle({ value: editedTitle })),
       message(Message.ClickedClose()),
       expectOutMessage(OutMessage.Closed()),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })

@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   Command,
   expectNoOutMessage,
@@ -28,7 +28,7 @@ describe('CommentComposerBlock update', () => {
   it.effect('keeps edits local and discards an idle draft', () => {
     const body = 'This draft changed.'
     return story(
-      CommentComposerBlock,
+      { block: CommentComposerBlock, layer },
       init(issue.id),
       message(Message.UpdatedBody({ value: body })),
       expectNoOutMessage(),
@@ -40,7 +40,7 @@ describe('CommentComposerBlock update', () => {
         expect(model.postState).toEqual(PostState.Idle())
       }),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('keeps a posting draft locked', () => {
@@ -52,7 +52,7 @@ describe('CommentComposerBlock update', () => {
       postState: PostState.Posting(),
     })
     return story(
-      CommentComposerBlock,
+      { block: CommentComposerBlock, layer },
       given(postingModel),
       message(Message.UpdatedBody({ value: 'An edit during posting.' })),
       expectNoOutMessage(),
@@ -64,7 +64,7 @@ describe('CommentComposerBlock update', () => {
       expectNoOutMessage(),
       model(model => expect(model).toBe(postingModel)),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect.each([PostState.Idle(), PostState.Failed({ error: 'Try again.' })])(
@@ -76,7 +76,7 @@ describe('CommentComposerBlock update', () => {
         postState,
       })
       return story(
-        CommentComposerBlock,
+        { block: CommentComposerBlock, layer },
         given(currentModel),
         message(Message.SucceededAddComment({ comment: existingComment })),
         expectNoOutMessage(),
@@ -85,7 +85,7 @@ describe('CommentComposerBlock update', () => {
         expectNoOutMessage(),
         model(model => expect(model).toBe(currentModel)),
         Command.expectNone(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -101,7 +101,7 @@ describe('CommentComposerBlock update', () => {
 
     const error = 'The workspace is temporarily unavailable.'
     return story(
-      CommentComposerBlock,
+      { block: CommentComposerBlock, layer },
       init(issue.id, `  ${body}  `),
       message(Message.SubmittedCommentForm({ authorId: 'maya' })),
       Command.expectExact(
@@ -124,6 +124,6 @@ describe('CommentComposerBlock update', () => {
         expect(model.postState).toEqual(PostState.Idle())
       }),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })

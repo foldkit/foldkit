@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
@@ -9,30 +9,26 @@ import { PopoverBlock, layer } from './block.js'
 const Model = Schema.Struct({ popover: PopoverBlock.Model })
 type Model = typeof Model.Type
 const PopoverTriggerClickTestKey = Symbol('PopoverTriggerClickTest')
-const PopoverTriggerClickTestDefinition = Block.makeDefinition(
-  'PopoverTriggerClickTest',
-  {
-    key: PopoverTriggerClickTestKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element' },
-    Model,
-    Message: Schema.Never,
-  },
-)
-const foldPopoverOutMessage =
-  PopoverTriggerClickTestDefinition.makeOutMessageFold(PopoverBlock, {
-    Opened: () => PopoverTriggerClickTestDefinition.makeNoopStep(),
-    Closed: () => PopoverTriggerClickTestDefinition.makeNoopStep(),
-  })
-const PopoverBinding = PopoverTriggerClickTestDefinition.makeBinding(
+const PopoverTriggerClickTestBlock = Block.make('PopoverTriggerClickTest', {
+  key: PopoverTriggerClickTestKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message: Schema.Never,
+})
+const foldPopoverOutMessage = PopoverTriggerClickTestBlock.makeOutMessageFold(
   PopoverBlock,
   {
-    field: 'popover',
-    init: false,
+    Opened: () => PopoverTriggerClickTestBlock.makeNoopStep(),
+    Closed: () => PopoverTriggerClickTestBlock.makeNoopStep(),
   },
-).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+)
+const PopoverBinding = PopoverTriggerClickTestBlock.makeBinding(PopoverBlock, {
+  field: 'popover',
+  init: false,
+}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 const PopoverTriggerClickTestComposition =
-  PopoverTriggerClickTestDefinition.makeComposition({
+  PopoverTriggerClickTestBlock.makeComposition({
     bindings: [PopoverBinding],
   })
 const view = PopoverTriggerClickTestComposition.makeView((model, h) =>
@@ -74,26 +70,29 @@ const view = PopoverTriggerClickTestComposition.makeView((model, h) =>
 )
 
 const makeProgram = (container: HTMLElement, isModal: boolean) => {
-  const block = PopoverTriggerClickTestDefinition.makeBlock(
-    Effect.gen(function* () {
-      const popover = yield* PopoverBinding
+  const block = {
+    block: PopoverTriggerClickTestBlock,
+    layer: PopoverTriggerClickTestBlock.makeLayer(
+      Effect.gen(function* () {
+        const popover = yield* PopoverBinding
 
-      return {
-        children: [popover],
-        init: PopoverTriggerClickTestComposition.makeInit(() =>
-          PopoverBinding.init({
-            args: [{ id: 'sort', isModal }],
-            toParentModel: popover => ({ popover }),
-          }),
-        ),
-        update: PopoverTriggerClickTestComposition.makeUpdate({}),
-        view,
-      }
-    }),
-  ).provide(layer)
+        return {
+          children: [popover],
+          init: PopoverTriggerClickTestComposition.makeInit(() =>
+            PopoverBinding.init({
+              args: [{ id: 'sort', isModal }],
+              toParentModel: popover => ({ popover }),
+            }),
+          ),
+          update: PopoverTriggerClickTestComposition.makeUpdate({}),
+          view,
+        }
+      }),
+    ).pipe(Layer.provide(layer)),
+  }
 
   return Program.makeElement({
-    block,
+    ...block,
     container,
   })
 }

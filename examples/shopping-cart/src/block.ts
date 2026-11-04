@@ -1,14 +1,14 @@
-import { Effect } from 'effect'
+import { Effect, Layer } from 'effect'
 
 import { Products } from './blocks'
 import { EffectsLayer } from './command'
 import { ProductsPageBinding } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const products = yield* ProductsPageBinding
 
@@ -20,4 +20,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Products.layer)
+).pipe(Layer.provide(Products.layer))
+
+export { ApplicationBlock } from './definition'

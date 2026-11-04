@@ -1,4 +1,4 @@
-import { Array, Effect, String } from 'effect'
+import { Array, String } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect } from 'vitest'
 
@@ -26,7 +26,7 @@ describe('people', () => {
     'ChangedSearchInput updates the input without recording history or fetching',
     () =>
       story(
-        PeopleBlock,
+        { block: PeopleBlock, layer },
         givenLoaded(''),
         message(Message.ChangedSearchInput({ value: 'd' })),
         message(Message.ChangedSearchInput({ value: 'de' })),
@@ -36,24 +36,24 @@ describe('people', () => {
           expect(model.searchInput).toBe('designer')
           expect(model.searchHistory).toStrictEqual([])
         }),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 
   it.effect('SubmittedSearch pushes the current input to the URL', () =>
     story(
-      PeopleBlock,
+      { block: PeopleBlock, layer },
       givenLoaded('designer'),
       message(Message.SubmittedSearch()),
       Command.expectHas(PushSearchUrl),
       Command.resolve(PushSearchUrl, Message.CompletedPushSearchUrl()),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('CompletedFetchPeople stores the loaded results', () => {
     const people = searchPeople('designer')
 
     return story(
-      PeopleBlock,
+      { block: PeopleBlock, layer },
       givenLoaded(''),
       message(
         Message.CompletedFetchPeople({
@@ -68,6 +68,6 @@ describe('people', () => {
           expect(model.results.people).toStrictEqual(people)
         }
       }),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })

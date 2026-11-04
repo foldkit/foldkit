@@ -1,13 +1,11 @@
 import { Effect } from 'effect'
 
-import { ComingFromReactDefinition } from './definition'
+import { ComingFromReactBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const ComingFromReactBlock = ComingFromReactDefinition.contract
-
-const block = ComingFromReactDefinition.makeBlock(
+export const layer = ComingFromReactBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -17,4 +15,5 @@ const block = ComingFromReactDefinition.makeBlock(
     }
   }),
 )
-export const layer = block.layer
+
+export { ComingFromReactBlock }

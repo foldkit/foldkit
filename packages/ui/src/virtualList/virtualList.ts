@@ -1,5 +1,6 @@
 import {
   Array,
+  Context,
   Effect,
   HashSet,
   Layer,
@@ -21,11 +22,13 @@ import {
   type TagName,
   childAttributes,
 } from 'foldkit/html'
+import * as BlockFamily from 'foldkit/internal/block'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Render from 'foldkit/render'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFixedFamilyLayer } from '../internal/fixedFamily.js'
 import {
   ScrollContainer,
   contentHeight,
@@ -350,7 +353,7 @@ const makeOperations = <Item>() => ({
 
 /** @internal Nominal identity of this component contract. */
 export const VirtualListKey = Symbol('VirtualList')
-const VirtualListDefinition = Block.makeDefinition('VirtualList', {
+const VirtualListBlock = Block.make('VirtualList', {
   key: VirtualListKey,
   Model,
   Message,
@@ -729,7 +732,7 @@ const scrollTopForRequest = (
 
 const mountedContainers = new Map<string, Set<HTMLElement>>()
 
-export const ApplyScroll = VirtualListDefinition.makeCommand('ApplyScroll', {
+export const ApplyScroll = VirtualListBlock.makeCommand('ApplyScroll', {
   args: {
     id: Schema.String,
     request: ScrollRequest,
@@ -836,7 +839,7 @@ export type ScrollToOptions = Readonly<{
 }>
 
 const applyScrollRequest = (request: ScrollRequest) =>
-  VirtualListDefinition.makeStep(model => {
+  VirtualListBlock.makeStep(model => {
     const nextVersion = Number.increment(model.pendingScrollVersion)
     return {
       model: modifyFields(model, {
@@ -873,7 +876,7 @@ const currentScrollRequest = (model: Model): ScrollRequest =>
     Pending: ({ request }) => request,
   })
 
-const reconcileLayout = VirtualListDefinition.makeStep(model =>
+const reconcileLayout = VirtualListBlock.makeStep(model =>
   applyScrollRequest(currentScrollRequest(model)),
 )
 
@@ -964,16 +967,14 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurement = VirtualListDefinition.makeFieldsStep(
-    () => ({
-      measurement: () =>
-        Measurement.Measured({ containerWidth, containerHeight }),
-      measuredRowHeights: measuredRowHeights =>
-        didWidthChange ? Record.empty() : measuredRowHeights,
-      layoutVersion: layoutVersion =>
-        didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
-    }),
-  )
+  const recordContainerMeasurement = VirtualListBlock.makeFieldsStep(() => ({
+    measurement: () =>
+      Measurement.Measured({ containerWidth, containerHeight }),
+    measuredRowHeights: measuredRowHeights =>
+      didWidthChange ? Record.empty() : measuredRowHeights,
+    layoutVersion: layoutVersion =>
+      didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
+  }))
 
   const { initialScroll } = model
   if (initialScroll._tag === 'Pending') {
@@ -1083,7 +1084,7 @@ const requestScroll = (
   maybeAlignment: Option.Option<ScrollAlignment>,
 ) =>
   Update.combineSteps(model, [
-    VirtualListDefinition.makeFieldsStep(() => ({
+    VirtualListBlock.makeFieldsStep(() => ({
       initialScroll: () => InitialScroll.Applied(),
     })),
     applyScrollRequest(
@@ -1097,7 +1098,7 @@ const requestScroll = (
 const applyItemsChange = (model: Model, itemKeys: ReadonlyArray<string>) => {
   const currentKeys = HashSet.fromIterable(itemKeys)
   return Update.combineSteps(model, [
-    VirtualListDefinition.makeFieldsStep(() => ({
+    VirtualListBlock.makeFieldsStep(() => ({
       measuredRowHeights: Record.filter((_, key) =>
         HashSet.has(currentKeys, key),
       ),
@@ -2022,7 +2023,7 @@ const observeVirtualList = (
 
 /** Container-owned Mount that tracks scrolling, container resizing, and
  *  rendered row measurements for dynamic-height lists. */
-export const ObserveVirtualList = VirtualListDefinition.makeMountStream(
+export const ObserveVirtualList = VirtualListBlock.makeMountStream(
   'ObserveVirtualList',
   {
     args: {
@@ -2064,7 +2065,7 @@ export const ObserveVirtualList = VirtualListDefinition.makeMountStream(
 /** Mount Definitions rendered by VirtualList views. */
 export const mounts = [ObserveVirtualList]
 
-const VirtualListComposition = VirtualListDefinition.makeComposition({
+const VirtualListComposition = VirtualListBlock.makeComposition({
   mounts,
 })
 
@@ -2609,7 +2610,7 @@ const viewImpl = VirtualListComposition.makeView.withInputs(
 )
 
 /** @internal Checked canonical implementation for scoped library tests. */
-export const block = VirtualListDefinition.makeBlock(
+const canonicalLayer = VirtualListBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -2623,9 +2624,54 @@ export const block = VirtualListDefinition.makeBlock(
 )
 
 /** Constructs the shared implementation without starting browser observation. */
-export const layer = block.layer
+type CanonicalIdentity = Block.SelectedPublicIdentity<typeof VirtualListBlock>
+const VirtualListRefinementRule = Symbol('VirtualList.Refinement')
+/** @internal Closed type-only refinement identity. */
+export interface VirtualListRefinementKey {
+  readonly [VirtualListRefinementRule]: true
+}
+type CanonicalImplementation = Extract<
+  Layer.Success<typeof canonicalLayer>,
+  Block.SelectedImplementationFacts<
+    CanonicalIdentity,
+    unknown,
+    unknown,
+    unknown
+  >
+>
+/** @internal Captured implementation capability for this fixed family. */
+export interface SharedVirtualListProof extends Block.ClosedFamilyCapability<VirtualListRefinementKey> {}
+/** @internal The shared provider's original canonical implementation facts. */
+export interface SharedVirtualListFacts extends Block.FixedRefinementProvider<
+  VirtualListRefinementKey,
+  CanonicalIdentity,
+  CanonicalImplementation
+> {}
+const SharedVirtualListProof = Context.Service<
+  SharedVirtualListProof,
+  Readonly<{ executable: object }>
+>('foldkit/ui/private/VirtualList.SharedImplementation')
+const SharedVirtualListFacts = Context.Service<
+  SharedVirtualListFacts,
+  Readonly<Record<never, never>>
+>('foldkit/ui/private/VirtualList.SharedFacts')
+/** Constructs the original shared implementation for type-only specializations. */
+export const layer = makeFixedFamilyLayer(
+  VirtualListBlock,
+  canonicalLayer,
+  BlockFamily.readDeclaredExecutable(VirtualListBlock),
+  SharedVirtualListProof,
+  SharedVirtualListFacts,
+)
 
-type CanonicalContract = typeof VirtualListDefinition.contract
+Reflect.deleteProperty(VirtualListBlock, 'makeLayer')
+Reflect.deleteProperty(VirtualListBlock, 'provideHandlers')
+Object.freeze(VirtualListBlock)
+
+/** @internal Selected implementation used by component tests. */
+export const block = { block: VirtualListBlock, layer }
+
+type CanonicalContract = typeof VirtualListBlock
 type CanonicalFacts = Block.FactsOf<CanonicalContract>
 type RefinedFacts<Item> = Omit<CanonicalFacts, 'view' | 'operations'> &
   Readonly<{
@@ -2647,16 +2693,47 @@ type RefinedContract<Item> = Block.Contract<
   RefinedFacts<Item>
 >
 
-/** Passive VirtualList contract with exact row rendering and history-input types. */
-export interface Completed<Item> extends Omit<RefinedContract<Item>, 'get'> {
-  readonly get: Effect.Effect<
-    Effect.Success<RefinedContract<Item>['get']>,
-    never,
-    Effect.Services<CanonicalContract['get']>
-  >
-}
+type RefinedConfiguration<Item> = Readonly<{
+  key: typeof VirtualListKey
+  InMessage: typeof InMessage
+  Init: Schema.Tuple<readonly [typeof InitConfig]>
+  view: Readonly<{
+    kind: 'Element'
+    Inputs: Block.InputContract<ViewInputs<Item>>
+  }>
+  operations: ReturnType<typeof makeOperations<Item>>
+}>
+/** @internal Names the exact private reader of this fixed-family specialization. */
+export interface VirtualListReader<Item> extends Block.ReadableProvider<
+  VirtualListRefinementKey,
+  Block.SelectedPublicIdentity<RefinedContract<Item>>
+> {}
+
+type RefinedBlock<Item> = Omit<
+  Block.UnifiedBlock<
+    'VirtualList',
+    CanonicalContract['Model'],
+    CanonicalContract['Message'],
+    CanonicalContract['OutMessage'],
+    undefined,
+    RefinedConfiguration<Item>,
+    CanonicalIdentity,
+    VirtualListReader<Item>
+  >,
+  'makeLayer' | 'provideHandlers' | keyof RefinedContract<Item>
+> &
+  Omit<RefinedContract<Item>, 'get'>
+/** Passive VirtualList contract retaining exact controlled inputs and result channels. */
+export interface Completed<Item>
+  extends
+    RefinedBlock<Item>,
+    Block.FixedRefinement<
+      VirtualListRefinementKey,
+      CanonicalIdentity,
+      Block.SelectedPublicIdentity<RefinedContract<Item>>
+    > {}
 
 /** Creates a typed VirtualList contract; provide this module's layer during graph construction. */
 export const makeBlock = <Item>(): Completed<Item> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  VirtualListDefinition.contract as unknown as Completed<Item>
+  VirtualListBlock as unknown as Completed<Item>

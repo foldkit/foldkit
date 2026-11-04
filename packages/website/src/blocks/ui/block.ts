@@ -66,15 +66,13 @@ import {
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
-import { UiDefinition } from './definition'
+import { UiBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 import { FetchVirtualListChatHistory } from './virtualListChat'
 
-export const UiBlock = UiDefinition.contract
-
-const block = UiDefinition.makeBlock(
+export const layer = UiBlock.makeLayer(
   Effect.gen(function* () {
     const animationDemo = yield* AnimationDemoBinding
     const calendarBasicDemo = yield* CalendarBasicDemoBinding
@@ -167,27 +165,30 @@ const block = UiDefinition.makeBlock(
       EffectsLayer: FetchVirtualListChatHistory.layer,
     }
   }),
-).provide(
-  Layer.mergeAll(
-    AnimationLayer,
-    CalendarLayer,
-    ComboboxLayer,
-    MultiCombobox.layer,
-    DatePickerLayer,
-    DialogLayer,
-    DragAndDropLayer,
-    FileDropLayer,
-    HoverIntentLayer,
-    ListboxLayer,
-    MultiListbox.layer,
-    MenuLayer,
-    PopoverLayer,
-    RadioGroupLayer,
-    SliderLayer,
-    TabsLayer,
-    ToastLayer,
-    TooltipLayer,
-    VirtualListLayer,
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      AnimationLayer,
+      CalendarLayer,
+      ComboboxLayer,
+      MultiCombobox.layer,
+      DatePickerLayer,
+      DialogLayer,
+      DragAndDropLayer,
+      FileDropLayer,
+      HoverIntentLayer,
+      ListboxLayer,
+      MultiListbox.layer,
+      MenuLayer,
+      PopoverLayer,
+      RadioGroupLayer,
+      SliderLayer,
+      TabsLayer,
+      ToastLayer,
+      TooltipLayer,
+      VirtualListLayer,
+    ),
   ),
 )
-export const layer = block.layer
+
+export { UiBlock }

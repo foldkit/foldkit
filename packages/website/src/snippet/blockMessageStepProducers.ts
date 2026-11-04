@@ -17,9 +17,9 @@ type Message = typeof Message.Type
 const OutMessage = defineMessageUnion({ Closed: { reason: Schema.String } })
 type OutMessage = typeof OutMessage.Type
 
-const EditorKey = Symbol('Editor')
+export const EditorKey = Symbol('Editor')
 
-const EditorDefinition = Block.makeDefinition('Editor', {
+const EditorBlock = Block.make('Editor', {
   key: EditorKey,
   Init: Schema.Tuple([]),
   Model,
@@ -33,10 +33,10 @@ const {
   makeCommandsStep,
   makeOutMessageStep,
   makeNoopStep,
-} = EditorDefinition
+} = EditorBlock
 
-const EditorComposition = EditorDefinition.makeComposition()
-const SaveTitle = EditorDefinition.makeCommand('SaveTitle', {
+const EditorComposition = EditorBlock.makeComposition()
+const SaveTitle = EditorBlock.makeCommand('SaveTitle', {
   args: { issueId: Schema.String, title: Schema.String },
   messages: [Message.CompletedSaveTitle],
 })

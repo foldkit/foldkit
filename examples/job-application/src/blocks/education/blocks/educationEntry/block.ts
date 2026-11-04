@@ -3,14 +3,13 @@ import { Effect, Layer } from 'effect'
 import { layer as ListboxLayer } from '@foldkit/ui/listbox'
 
 import { GraduationYearListboxBinding } from './composition'
-import { EducationEntryDefinition } from './definition'
+import { EducationEntryBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const EducationEntryBlock = EducationEntryDefinition.contract
-export const layer = EducationEntryDefinition.makeBlock(
+export const layer = EducationEntryBlock.makeLayer(
   Effect.gen(function* () {
     const graduationYearListbox = yield* GraduationYearListboxBinding
 
@@ -22,4 +21,6 @@ export const layer = EducationEntryDefinition.makeBlock(
       view,
     }
   }),
-).provide(Layer.mergeAll(ListboxLayer)).layer
+).pipe(Layer.provide(Layer.mergeAll(ListboxLayer)))
+
+export { EducationEntryBlock } from './definition'

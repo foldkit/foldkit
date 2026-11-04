@@ -14,7 +14,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Model, hexColorPicker } from './application'
+import { ApplicationBlock, Model, hexColorPicker, layer } from './application'
 
 const initialModel = Model.make({
   content: 'https://foldkit.dev',
@@ -25,7 +25,7 @@ const initialModel = Model.make({
 describe('view', () => {
   it.effect('initial view shows the page heading and field labels', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       expect(role('heading', { name: 'QR Designer' })).toExist(),
       expect(label('Encoded value')).toExist(),
@@ -36,7 +36,7 @@ describe('view', () => {
 
   it.effect('the encoded-value input reflects the Model content', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       expect(label('Encoded value')).toHaveValue('https://foldkit.dev'),
     ),
@@ -44,7 +44,7 @@ describe('view', () => {
 
   it.effect('typing into the input updates the rendered value', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       type(label('Encoded value'), 'WIFI:S:Net;P:secret;;'),
       expect(label('Encoded value')).toHaveValue('WIFI:S:Net;P:secret;;'),
@@ -55,7 +55,7 @@ describe('view', () => {
     'clicking the first preset swatch updates the fill color hex readout',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         expect(text('#1E1B4B')).toExist(),
         click(role('button', { name: 'Use #0f766e' })),
@@ -67,7 +67,7 @@ describe('view', () => {
     'a color-changed CustomEvent from the fill picker updates the hex readout',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         CustomElement.emit(
           hexColorPicker,
@@ -83,7 +83,7 @@ describe('view', () => {
     'a color-changed CustomEvent from the background picker leaves the fill readout alone',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         CustomElement.emit(
           hexColorPicker,

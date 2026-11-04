@@ -4,20 +4,20 @@ import type { Block } from 'foldkit'
 import { DatePickerBlock } from '@foldkit/ui/datePicker'
 
 import {
-  PersonalInfoDefinition,
+  PersonalInfoBlock,
   PronounsListboxBlock,
   makeFieldsStep,
   makeNoopStep,
 } from './definition'
 
-export const PronounsBinding = PersonalInfoDefinition.makeBinding(
+export const PronounsBinding = PersonalInfoBlock.makeBinding(
   PronounsListboxBlock,
   {
     field: 'pronouns',
     init: { contextToArgs: () => [{ id: 'pronouns' }] },
   },
 ).withOutMessagePolicy({
-  fold: PersonalInfoDefinition.makeOutMessageFold(PronounsListboxBlock, {
+  fold: PersonalInfoBlock.makeOutMessageFold(PronounsListboxBlock, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({
         maybeSelectedPronoun: () => Option.some(value),
@@ -25,7 +25,7 @@ export const PronounsBinding = PersonalInfoDefinition.makeBinding(
   }),
 })
 
-export const AvailableDateBinding = PersonalInfoDefinition.makeBinding(
+export const AvailableDateBinding = PersonalInfoBlock.makeBinding(
   DatePickerBlock,
   {
     field: 'availableDate',
@@ -34,7 +34,7 @@ export const AvailableDateBinding = PersonalInfoDefinition.makeBinding(
     },
   },
 ).withOutMessagePolicy({
-  fold: PersonalInfoDefinition.makeOutMessageFold(DatePickerBlock, {
+  fold: PersonalInfoBlock.makeOutMessageFold(DatePickerBlock, {
     SelectedDate: ({ date }) =>
       makeFieldsStep(() => ({
         maybeAvailableDate: () => Option.some(date),
@@ -47,7 +47,7 @@ export const AvailableDateBinding = PersonalInfoDefinition.makeBinding(
   }),
 })
 
-export const PersonalInfoComposition = PersonalInfoDefinition.makeComposition({
+export const PersonalInfoComposition = PersonalInfoBlock.makeComposition({
   bindings: [PronounsBinding, AvailableDateBinding],
 })
 export type PersonalInfoViewBuilder = Block.ViewBuilderFor<

@@ -18,21 +18,18 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const NotificationSettingsKey = Symbol('NotificationSettings')
+export const NotificationSettingsKey = Symbol('NotificationSettings')
 
-const NotificationSettingsDefinition = Block.makeDefinition(
-  'NotificationSettings',
-  {
-    key: NotificationSettingsKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element' },
-    Model,
-    Message,
-  },
-)
+export const NotificationSettingsBlock = Block.make('NotificationSettings', {
+  key: NotificationSettingsKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
 
 const NotificationSettingsComposition =
-  NotificationSettingsDefinition.makeComposition()
+  NotificationSettingsBlock.makeComposition()
 
 // In your init function, start it off:
 const init = NotificationSettingsComposition.makeInit(() => ({
@@ -102,7 +99,7 @@ const view = NotificationSettingsComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = NotificationSettingsDefinition.makeBlock(
+export const layer = NotificationSettingsBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

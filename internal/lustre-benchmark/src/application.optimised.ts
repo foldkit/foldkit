@@ -1,16 +1,20 @@
-import { Block } from 'foldkit'
+import { Effect } from 'effect'
 
-import { ApplicationComposition, init, update } from './application'
-import type { Model } from './todo'
+import {
+  ApplicationBlock,
+  ApplicationComposition,
+  init,
+  update,
+} from './application'
 import { view } from './view.optimised'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
+export { ApplicationBlock } from './application'
+
+export const layer = ApplicationBlock.makeLayer(
+  Effect.succeed({
+    children: [],
     init,
     update,
     view: ApplicationComposition.makeView(view),
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+  }),
+)

@@ -1,9 +1,13 @@
 import { Effect } from 'effect'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 await Effect.runPromise(
   scene(
-    { block: ApplicationBlock, routing: { onUrlChange: Message.ChangedUrl } },
+    {
+      block: ApplicationBlock,
+      layer,
+      routing: { onUrlChange: Message.ChangedUrl },
+    },
     given(initialModel),
     type(label('Search'), 'foldkit'),
     Command.resolveAllExact(

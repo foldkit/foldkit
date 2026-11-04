@@ -10,7 +10,7 @@ import { view as buttonView } from '@foldkit/ui/button'
 import * as DemoView from '../../../../page/demoView'
 import {
   AnimationPhase,
-  AsyncCounterDemoDefinition,
+  AsyncCounterDemoBlock,
   Message,
   Model,
 } from './definition'
@@ -29,7 +29,7 @@ const clampResetSeconds = (seconds: number): number =>
   })
 
 export const AsyncCounterDemoComposition =
-  AsyncCounterDemoDefinition.makeComposition()
+  AsyncCounterDemoBlock.makeComposition()
 type AsyncCounterDemoViewBuilder = Block.ViewBuilderFor<
   typeof AsyncCounterDemoComposition
 >
@@ -45,8 +45,9 @@ export const init = AsyncCounterDemoComposition.makeInit(() => ({
   }),
 }))
 
-export const DelayAdvanceAsyncCounterPhase =
-  AsyncCounterDemoDefinition.makeCommand('DelayAdvanceAsyncCounterPhase', {
+export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemoBlock.makeCommand(
+  'DelayAdvanceAsyncCounterPhase',
+  {
     args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
     messages: [Message.CompletedDelayAdvanceAsyncCounterPhase],
     handler: function* () {
@@ -57,7 +58,8 @@ export const DelayAdvanceAsyncCounterPhase =
           ),
         )
     },
-  })
+  },
+)
 
 export const EffectsLayer = DelayAdvanceAsyncCounterPhase.layer
 

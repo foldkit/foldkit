@@ -3,12 +3,12 @@ import { KeyValueStore } from 'effect/persistence'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
 import { SESSION_STORAGE_KEY } from './constant'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Session, SessionJsonString } from './domain/session'
 import { Message } from './message'
 import { dashboardRouter, homeRouter, loginRouter } from './route'
 
-export const SaveSession = ApplicationDefinition.makeCommand('SaveSession', {
+export const SaveSession = ApplicationBlock.makeCommand('SaveSession', {
   args: { session: Session },
   messages: [Message.SucceededSaveSession, Message.FailedSaveSession],
   handler: function* () {
@@ -28,7 +28,7 @@ export const SaveSession = ApplicationDefinition.makeCommand('SaveSession', {
   },
 })
 
-export const ClearSession = ApplicationDefinition.makeCommand('ClearSession', {
+export const ClearSession = ApplicationBlock.makeCommand('ClearSession', {
   messages: [Message.SucceededClearSession, Message.FailedClearSession],
   handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
@@ -43,7 +43,7 @@ export const ClearSession = ApplicationDefinition.makeCommand('ClearSession', {
   },
 })
 
-export const LogError = ApplicationDefinition.makeCommand('LogError', {
+export const LogError = ApplicationBlock.makeCommand('LogError', {
   args: { entries: Schema.Array(Schema.Unknown) },
   messages: [Message.CompletedLogError],
   handler: function* () {
@@ -52,7 +52,7 @@ export const LogError = ApplicationDefinition.makeCommand('LogError', {
   },
 })
 
-export const NavigateInternal = ApplicationDefinition.makeCommand(
+export const NavigateInternal = ApplicationBlock.makeCommand(
   'NavigateInternal',
   {
     args: { url: Schema.String },
@@ -64,7 +64,7 @@ export const NavigateInternal = ApplicationDefinition.makeCommand(
   },
 )
 
-export const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
+export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -73,20 +73,17 @@ export const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
   },
 })
 
-export const RedirectToLogin = ApplicationDefinition.makeCommand(
-  'RedirectToLogin',
-  {
-    messages: [Message.CompletedRedirectToLogin],
-    handler: function* () {
-      return () =>
-        replaceUrl(loginRouter()).pipe(
-          Effect.as(Message.CompletedRedirectToLogin()),
-        )
-    },
+export const RedirectToLogin = ApplicationBlock.makeCommand('RedirectToLogin', {
+  messages: [Message.CompletedRedirectToLogin],
+  handler: function* () {
+    return () =>
+      replaceUrl(loginRouter()).pipe(
+        Effect.as(Message.CompletedRedirectToLogin()),
+      )
   },
-)
+})
 
-export const RedirectToDashboard = ApplicationDefinition.makeCommand(
+export const RedirectToDashboard = ApplicationBlock.makeCommand(
   'RedirectToDashboard',
   {
     messages: [Message.CompletedRedirectToDashboard],
@@ -99,18 +96,15 @@ export const RedirectToDashboard = ApplicationDefinition.makeCommand(
   },
 )
 
-export const RedirectToHome = ApplicationDefinition.makeCommand(
-  'RedirectToHome',
-  {
-    messages: [Message.CompletedRedirectToHome],
-    handler: function* () {
-      return () =>
-        replaceUrl(homeRouter()).pipe(
-          Effect.as(Message.CompletedRedirectToHome()),
-        )
-    },
+export const RedirectToHome = ApplicationBlock.makeCommand('RedirectToHome', {
+  messages: [Message.CompletedRedirectToHome],
+  handler: function* () {
+    return () =>
+      replaceUrl(homeRouter()).pipe(
+        Effect.as(Message.CompletedRedirectToHome()),
+      )
   },
-)
+})
 
 export const EffectsLayer = Layer.mergeAll(
   SaveSession.layer,

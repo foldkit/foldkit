@@ -1,5 +1,5 @@
 // ✅ Bind the public contract and resolve the original Mount Definition.
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block, Scene } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -15,9 +15,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedOpenConfirm: {} })
 type Message = typeof Message.Type
 
-const ConfirmKey = Symbol('Confirm')
+export const ConfirmKey = Symbol('Confirm')
 
-const ConfirmDefinition = Block.makeDefinition('Confirm', {
+export const ConfirmBlock = Block.make('Confirm', {
   key: ConfirmKey,
   Model,
   Message,
@@ -25,19 +25,19 @@ const ConfirmDefinition = Block.makeDefinition('Confirm', {
   view: { kind: 'Element' },
 })
 
-const { makeNoopStep } = ConfirmDefinition
+const { makeNoopStep } = ConfirmBlock
 
-const DialogBinding = ConfirmDefinition.makeBinding(DialogBlock, {
+const DialogBinding = ConfirmBlock.makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({
-  fold: ConfirmDefinition.makeOutMessageFold(DialogBlock, {
+  fold: ConfirmBlock.makeOutMessageFold(DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: makeNoopStep,
   }),
 })
-const ConfirmComposition = ConfirmDefinition.makeComposition({
+const ConfirmComposition = ConfirmBlock.makeComposition({
   bindings: [DialogBinding],
 })
 
@@ -69,7 +69,7 @@ const view = ConfirmComposition.makeView((model, h) =>
   ),
 )
 
-export const ConfirmBlock = ConfirmDefinition.makeBlock(
+export const layer = ConfirmBlock.makeLayer(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
 
@@ -80,11 +80,11 @@ export const ConfirmBlock = ConfirmDefinition.makeBlock(
       view,
     }
   }),
-).provide(DialogLayer)
+).pipe(Layer.provide(DialogLayer))
 
 await Effect.runPromise(
   Scene.scene(
-    ConfirmBlock,
+    { block: ConfirmBlock, layer },
     Scene.init(),
     Scene.click(Scene.role('button', { name: 'Open confirmation' })),
     Scene.Command.resolve(

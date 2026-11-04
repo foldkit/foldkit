@@ -885,6 +885,24 @@ const checks: ReadonlyArray<
     consumers: ['inmessages.consume.ts'],
   },
   {
+    name: 'constructor-union-ownership',
+    accepted: ['constructor-union-ownership.accepted.ts'],
+    rejected: ['constructor-union-ownership.rejected.ts'],
+    consumers: ['constructor-union-ownership.consume.ts'],
+  },
+  {
+    name: 'unified-inmessages',
+    accepted: ['unified-inmessages.accepted.ts'],
+    rejected: ['unified-inmessages.rejected.ts'],
+    consumers: ['unified-inmessages.consume.ts'],
+  },
+  {
+    name: 'unified-root-selection',
+    accepted: ['unified-root-selection.accepted.ts'],
+    rejected: ['unified-root-selection.rejected.ts'],
+    consumers: ['unified-root-selection.consume.ts'],
+  },
+  {
     name: 'message-steps',
     accepted: ['message-steps.accepted.ts', 'message-steps.definition.ts'],
     rejected: ['message-steps.rejected.ts'],
@@ -1032,6 +1050,24 @@ const checks: ReadonlyArray<
     consumers: ['consume-emitted.ts'],
   },
   {
+    name: 'family-layer-members',
+    accepted: ['family-layer-members.accepted.ts'],
+    rejected: ['family-layer-members.rejected.ts'],
+    consumers: ['family-layer-members.consume.ts'],
+  },
+  {
+    name: 'query-factory-modes',
+    accepted: ['query-modes.accepted.ts'],
+    rejected: ['query-modes.rejected.ts'],
+    consumers: ['query-modes.consume.ts'],
+  },
+  {
+    name: 'scene-family-construction',
+    accepted: ['scene-family-construction.accepted.ts'],
+    rejected: ['scene-family-construction.rejected.ts'],
+    consumers: ['scene-family-construction.consume.ts'],
+  },
+  {
     name: 'focused',
     accepted: [
       'parent-owned-binding.accepted.ts',
@@ -1050,6 +1086,12 @@ const checks: ReadonlyArray<
       'query-policy.consume.ts',
       'query-modes.consume.ts',
     ],
+  },
+  {
+    name: 'attribute-alias',
+    accepted: ['attribute-alias.accepted.ts'],
+    rejected: ['attribute-alias.rejected.ts'],
+    consumers: ['attribute-alias.consume.ts'],
   },
   {
     name: 'view-helper',
@@ -1168,6 +1210,7 @@ const main = async (): Promise<void> => {
     'message-steps',
     'machine',
     'scene-routing',
+    'scene-family-construction',
     'scene-mount-stream',
     'append-initialization',
     'set-initialization',
@@ -1175,6 +1218,11 @@ const main = async (): Promise<void> => {
     'insert-initialization',
     'generic-service-factory',
     'testing-event-delivery',
+    'unified-inmessages',
+    'query-modes',
+    'family-layer-members',
+    'unified-root-selection',
+    'attribute-alias',
   ]) {
     runCompiler(`Checking direct source ${name} contracts`, [
       '-p',

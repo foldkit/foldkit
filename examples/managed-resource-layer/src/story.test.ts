@@ -11,6 +11,7 @@ import {
   EngineState,
   Message,
   type Model,
+  layer,
 } from './application'
 
 const offModel: Model = {
@@ -31,7 +32,7 @@ describe('update', () => {
       'ClickedStartEngine requests the engine by entering Booting',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(offModel),
           message(Message.ClickedStartEngine()),
           model(model => {
@@ -42,7 +43,7 @@ describe('update', () => {
 
     it.effect('StartedEngine marks the engine ready with its id', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
         message(Message.StartedEngine({ engineId: 'engine-7' })),
         model(model => {
@@ -55,7 +56,7 @@ describe('update', () => {
 
     it.effect('ClickedStopEngine releases the engine by entering Off', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(readyModel),
         message(Message.ClickedStopEngine()),
         model(model => {
@@ -66,7 +67,7 @@ describe('update', () => {
 
     it.effect('StoppedEngine is a no-op lifecycle ack', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(offModel),
         message(Message.StoppedEngine()),
         model(model => {
@@ -77,7 +78,7 @@ describe('update', () => {
 
     it.effect('FailedStartEngine records the failure reason', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
         message(Message.FailedStartEngine({ reason: 'boot timeout' })),
         model(model => {
@@ -94,7 +95,7 @@ describe('update', () => {
       'ClickedCompute increments the counter and fires Compute with the next value',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(readyModel),
           message(Message.ClickedCompute()),
           model(model => {
@@ -110,7 +111,7 @@ describe('update', () => {
 
     it.effect('FailedCompute leaves the model unchanged', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(readyModel),
         message(Message.FailedCompute()),
         model(model => {

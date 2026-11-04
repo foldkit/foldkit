@@ -1,14 +1,14 @@
 import { Array, Duration, Schema, Stream } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { protectUnsavedChanges } from './draftProtection'
 import { Message } from './message'
 import { unsavedIssueDrafts } from './selection'
 
 const ACTIVITY_TICK_INTERVAL = Duration.seconds(20)
 
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
+export const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
   draftExitGuard: entry(
     'DraftExitGuard',
     { isProtecting: Schema.Boolean },

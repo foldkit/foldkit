@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   expectNoOutMessage,
   expectOutMessage,
@@ -51,7 +51,7 @@ describe('NotificationCenterBlock', () => {
     'deduplicates activity and retains each recipient read state',
     () => {
       return story(
-        NotificationCenterBlock,
+        { block: NotificationCenterBlock, layer },
         init(),
         inMessage(InMessage.InformedOfActivity({ activity })),
         message(
@@ -76,7 +76,7 @@ describe('NotificationCenterBlock', () => {
           ).toBe(false)
         }),
         expectNoOutMessage(),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -84,7 +84,7 @@ describe('NotificationCenterBlock', () => {
     'marks the selected notification read without changing another recipient',
     () => {
       return story(
-        NotificationCenterBlock,
+        { block: NotificationCenterBlock, layer },
         init(),
         inMessage(InMessage.InformedOfActivity({ activity })),
         message(
@@ -107,7 +107,7 @@ describe('NotificationCenterBlock', () => {
             ).pipe(Option.getOrThrow).isRead,
           ).toBe(false)
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 })

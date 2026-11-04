@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -21,24 +21,23 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const PopoverSiblingRuntimeTestKey = Symbol('PopoverSiblingRuntimeTest')
-const PopoverSiblingRuntimeTestDefinition = Block.makeDefinition(
-  'PopoverSiblingRuntimeTest',
+const PopoverSiblingRuntimeTestBlock = Block.make('PopoverSiblingRuntimeTest', {
+  key: PopoverSiblingRuntimeTestKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
+
+const foldPopoverOutMessage = PopoverSiblingRuntimeTestBlock.makeOutMessageFold(
+  PopoverBlock,
   {
-    key: PopoverSiblingRuntimeTestKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element' },
-    Model,
-    Message,
+    Opened: () => PopoverSiblingRuntimeTestBlock.makeNoopStep(),
+    Closed: () => PopoverSiblingRuntimeTestBlock.makeNoopStep(),
   },
 )
 
-const foldPopoverOutMessage =
-  PopoverSiblingRuntimeTestDefinition.makeOutMessageFold(PopoverBlock, {
-    Opened: () => PopoverSiblingRuntimeTestDefinition.makeNoopStep(),
-    Closed: () => PopoverSiblingRuntimeTestDefinition.makeNoopStep(),
-  })
-
-const PopoverBinding = PopoverSiblingRuntimeTestDefinition.makeBinding(
+const PopoverBinding = PopoverSiblingRuntimeTestBlock.makeBinding(
   PopoverBlock,
   {
     field: 'popover',
@@ -47,7 +46,7 @@ const PopoverBinding = PopoverSiblingRuntimeTestDefinition.makeBinding(
 ).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 const PopoverSiblingRuntimeTestComposition =
-  PopoverSiblingRuntimeTestDefinition.makeComposition({
+  PopoverSiblingRuntimeTestBlock.makeComposition({
     bindings: [PopoverBinding],
   })
 
@@ -89,23 +88,26 @@ const view = PopoverSiblingRuntimeTestComposition.makeView((model, h) =>
   ),
 )
 
-const ApplicationBlock = PopoverSiblingRuntimeTestDefinition.makeBlock(
-  Effect.gen(function* () {
-    const popover = yield* PopoverBinding
+const ApplicationBlock = {
+  block: PopoverSiblingRuntimeTestBlock,
+  layer: PopoverSiblingRuntimeTestBlock.makeLayer(
+    Effect.gen(function* () {
+      const popover = yield* PopoverBinding
 
-    return {
-      children: [popover],
-      init: PopoverSiblingRuntimeTestComposition.makeInit(() =>
-        PopoverBinding.init({
-          args: [{ id: popoverId }],
-          toParentModel: popover => ({ popover, isBadgeShown: false }),
-        }),
-      ),
-      update,
-      view,
-    }
-  }),
-).provide(layer)
+      return {
+        children: [popover],
+        init: PopoverSiblingRuntimeTestComposition.makeInit(() =>
+          PopoverBinding.init({
+            args: [{ id: popoverId }],
+            toParentModel: popover => ({ popover, isBadgeShown: false }),
+          }),
+        ),
+        update,
+        view,
+      }
+    }),
+  ).pipe(Layer.provide(layer)),
+}
 
 describe('Popover with a portaled panel', () => {
   afterEach(() => {
@@ -119,7 +121,7 @@ describe('Popover with a portaled panel', () => {
     container.id = 'badge-popover-app'
     document.body.append(container)
     const handle = Runtime.embed(
-      Program.makeElement({ block: ApplicationBlock, container }),
+      Program.makeElement({ ...ApplicationBlock, container }),
     )
 
     try {

@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 const server = await import('foldkit/experimental/server')
 const program = await import('foldkit/program')
 const block = await import('foldkit/block')
+const libraryBlock = await import('foldkit/internal/block')
 const message = await import('foldkit/message')
 const runtime = await import('foldkit/runtime')
 const umbrella = await import('foldkit/experimental')
@@ -15,6 +16,20 @@ const check = (condition, message) => {
   }
 }
 
+check(
+  typeof libraryBlock.makeFamilyDeclaration === 'function' &&
+    typeof libraryBlock.resolveFamily === 'function' &&
+    typeof libraryBlock.readDeclaredExecutable === 'function' &&
+    typeof libraryBlock.registerFixedProviderGuard === 'function',
+  'foldkit/internal/block does not expose the library-family friend seam',
+)
+check(
+  !('makeFamilyDeclaration' in block) &&
+    !('resolveFamily' in block) &&
+    !('readDeclaredExecutable' in block) &&
+    !('registerFixedProviderGuard' in block),
+  'library-family completion must stay off the application Block entry',
+)
 check(
   typeof server.MissingBuildId === 'function',
   'foldkit/experimental/server does not export MissingBuildId',
@@ -41,11 +56,18 @@ check(
 const { Effect, Schema } = await import('effect')
 const Model = Schema.Struct({})
 const Message = message.defineMessageUnion({ IgnoredRender: {} })
-const ApplicationComposition = block
-  .makeDefinition('Application', { Model, Message })
-  .makeComposition()
-const ApplicationBlock = block.assemble(() =>
-  ApplicationComposition.prepareBlock({
+const ApplicationKey = Symbol('PackedEntrypoint/Application')
+const ApplicationBlock = block.make('Application', {
+  key: ApplicationKey,
+  Model,
+  Message,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+})
+const ApplicationComposition = ApplicationBlock.makeComposition()
+const layer = ApplicationBlock.makeLayer(
+  Effect.succeed({
+    children: [],
     init: ApplicationComposition.makeInit(() => ({ model: Model.make({}) })),
     update: ApplicationComposition.makeUpdate({
       IgnoredRender: model => ({ model }),
@@ -54,7 +76,9 @@ const ApplicationBlock = block.assemble(() =>
   }),
 )
 const error = await Effect.runPromise(
-  Effect.flip(server.renderToString(ApplicationBlock, {}, {})),
+  Effect.flip(
+    server.renderToString({ block: ApplicationBlock, layer }, {}, {}),
+  ),
 )
 check(
   error._tag === 'MissingBuildId',

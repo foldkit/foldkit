@@ -9,7 +9,7 @@ export const Message = defineMessageUnion({})
 export type Message = typeof Message.Type
 
 const ApplicationKey = Symbol('Application')
-const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   isMessageFree: true,
   Init: Schema.Tuple([]),
@@ -17,7 +17,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
@@ -30,7 +30,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.main([], [model.count.toString()]),
 }))
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

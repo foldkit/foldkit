@@ -18,6 +18,7 @@ import {
   type HtmlBuilder,
   childAttributes,
 } from 'foldkit/html'
+import * as BlockFamily from 'foldkit/internal/block'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -117,7 +118,7 @@ export type InitConfig = typeof InitConfig.Type
 /** @internal Nominal identity shared by Slider specializations. */
 export const SliderKey = Symbol('Slider')
 const makeSliderDefinition = () =>
-  Block.makeFamilyDefinition('Slider', {
+  BlockFamily.makeFamilyDeclaration('Slider', {
     key: SliderKey,
     Model,
     Message,
@@ -856,7 +857,7 @@ const defineSlider = (getTrackRoot: () => Document | ShadowRoot) => {
 }
 
 type SliderAuthoring = ReturnType<typeof defineSlider>
-const makeSliderRecipe = ({
+const makeSliderLayer = ({
   Definition,
   init,
   update,
@@ -864,7 +865,7 @@ const makeSliderRecipe = ({
   view,
   subscriptions,
 }: SliderAuthoring) =>
-  Definition.makeBlock(
+  Definition.makeLayer(
     Effect.succeed({
       children: [],
       init,
@@ -876,9 +877,9 @@ const makeSliderRecipe = ({
     }),
   )
 
-type SliderRecipe = ReturnType<typeof makeSliderRecipe>
+type SliderLayer = ReturnType<typeof makeSliderLayer>
 interface SliderImplementation extends Block.FamilyLifetime {
-  readonly construct: (authoring: SliderAuthoring) => SliderRecipe
+  readonly construct: (authoring: SliderAuthoring) => SliderLayer
 }
 
 /** @internal Universal implementation capability for Slider's track-root selections. */
@@ -892,7 +893,7 @@ export const layer = Layer.effect(SliderFamily)(
   Effect.gen(function* () {
     const lifetime = yield* Block.familyLifetime
 
-    return { ...lifetime, construct: makeSliderRecipe }
+    return { ...lifetime, construct: makeSliderLayer }
   }),
 )
 
@@ -900,7 +901,7 @@ export const layer = Layer.effect(SliderFamily)(
 export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
   const authoring = defineSlider(getTrackRoot)
 
-  return Block.makeFamilyContract(
+  return BlockFamily.resolveFamily(
     authoring.Definition,
     SliderFamily,
     implementation => implementation.construct(authoring),

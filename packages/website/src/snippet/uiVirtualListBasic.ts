@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -32,42 +32,39 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ActivityListExampleKey = Symbol('ActivityListExample')
+export const ActivityListExampleKey = Symbol('ActivityListExample')
 
-const ActivityListExampleDefinition = Block.makeDefinition(
-  'ActivityListExample',
+export const ActivityListExampleBlock = Block.make('ActivityListExample', {
+  key: ActivityListExampleKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
+
+const { makeNoopStep } = ActivityListExampleBlock
+
+const foldActivityListOutMessage = ActivityListExampleBlock.makeOutMessageFold(
+  ActivityList,
   {
-    key: ActivityListExampleKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element' },
-    Model,
-    Message,
-  },
-)
-
-const { makeNoopStep } = ActivityListExampleDefinition
-
-const foldActivityListOutMessage =
-  ActivityListExampleDefinition.makeOutMessageFold(ActivityList, {
     ObservedContainerScroll: makeNoopStep,
     ApproachedLoadedStart: makeNoopStep,
     EndedContainerScroll: makeNoopStep,
-  })
-
-const ActivityListBinding = ActivityListExampleDefinition.makeBinding(
-  ActivityList,
-  {
-    field: 'activityList',
-    init: {
-      contextToArgs: () => [{ id: 'activity-list', rowHeightPx: 56 }],
-    },
   },
-).withOutMessagePolicy({ fold: foldActivityListOutMessage })
+)
 
-const ActivityListExampleComposition =
-  ActivityListExampleDefinition.makeComposition({
+const ActivityListBinding = ActivityListExampleBlock.makeBinding(ActivityList, {
+  field: 'activityList',
+  init: {
+    contextToArgs: () => [{ id: 'activity-list', rowHeightPx: 56 }],
+  },
+}).withOutMessagePolicy({ fold: foldActivityListOutMessage })
+
+const ActivityListExampleComposition = ActivityListExampleBlock.makeComposition(
+  {
     bindings: [ActivityListBinding],
-  })
+  },
+)
 
 // In your init function, give the list a unique id and a row height in
 // pixels. All rows share this height:
@@ -132,7 +129,7 @@ const view = ActivityListExampleComposition.makeView(
   // Subscription wiring is required.
 )
 
-export const ApplicationBlock = ActivityListExampleDefinition.makeBlock(
+export const layer = ActivityListExampleBlock.makeLayer(
   Effect.gen(function* () {
     const activityList = yield* ActivityListBinding
 
@@ -143,4 +140,4 @@ export const ApplicationBlock = ActivityListExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(VirtualListLayer)
+).pipe(Layer.provide(VirtualListLayer))

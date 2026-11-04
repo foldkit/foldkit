@@ -9,6 +9,7 @@ import {
   GenerateBall,
   Message,
   type Model,
+  layer,
 } from './application'
 
 const emptyModel: Model = {
@@ -31,7 +32,7 @@ describe('update', () => {
       'ClickedCanvas fires GenerateBall with the click coordinates',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(emptyModel),
           message(Message.ClickedCanvas({ x: 150, y: 200 })),
           Command.expectHas(GenerateBall),
@@ -64,7 +65,7 @@ describe('update', () => {
       'CompletedGenerateBall increments nextId for each ball added',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(emptyModel),
           message(
             Message.CompletedGenerateBall({
@@ -97,7 +98,7 @@ describe('update', () => {
   describe('TickedFrame', () => {
     it.effect('advances ball positions based on velocity and delta time', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(populatedModel),
         message(Message.TickedFrame({ deltaTime: 1000 })),
         model(model => {
@@ -126,7 +127,7 @@ describe('update', () => {
         })
 
         return story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(movingRightModel),
           message(Message.TickedFrame({ deltaTime: 1000 })),
           model(model => {
@@ -141,7 +142,7 @@ describe('update', () => {
   describe('controls', () => {
     it.effect('ClickedClear empties the balls list', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(populatedModel),
         message(Message.ClickedClear()),
         model(model => {
@@ -152,7 +153,7 @@ describe('update', () => {
 
     it.effect('ClickedTogglePlay flips the isRunning flag', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(emptyModel),
         message(Message.ClickedTogglePlay()),
         model(model => {

@@ -2,5 +2,4 @@
 
 // PARENT UPDATE
 
-ClickedResetSettings: () =>
-  SettingsBinding.requestThemeChange({ theme: 'Light' })(model)
+ClickedResetSettings: SettingsBinding.requestThemeChange({ theme: 'Light' })

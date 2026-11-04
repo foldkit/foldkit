@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { DragAndDropBlock, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import { SaveBoard } from '../command'
-import { ApplicationDefinition, makeFieldsStep, makeStep } from '../definition'
+import { ApplicationBlock, makeFieldsStep, makeStep } from '../definition'
 import { Column } from '../domain'
 
 const findCardTitle = (
@@ -34,7 +34,7 @@ const findColumnName = (
     }),
   )
 
-const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldDragAndDropOutMessage = ApplicationBlock.makeOutMessageFold(
   DragAndDropBlock,
   {
     StartedKeyboardDrag: ({ itemId }) =>
@@ -82,7 +82,7 @@ const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-export const DragAndDropBinding = ApplicationDefinition.makeBinding(
+export const DragAndDropBinding = ApplicationBlock.makeBinding(
   DragAndDropBlock,
   {
     field: 'dragAndDrop',

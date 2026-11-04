@@ -1,11 +1,11 @@
 import { Duration, Effect, Schema } from 'effect'
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message } from './message'
 
 const PLACE_ORDER_DELAY = Duration.seconds(1)
 
-export const PlaceOrder = ApplicationDefinition.makeCommand('PlaceOrder', {
+export const PlaceOrder = ApplicationBlock.makeCommand('PlaceOrder', {
   args: { isShippingRequired: Schema.Boolean },
   messages: [Message.CompletedPlaceOrder],
   handler: function* () {

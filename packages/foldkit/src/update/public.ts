@@ -18,6 +18,7 @@ export type {
   DeferredCombinedStepsPolicy,
   DeferredResultEvidence,
   GraphCapability,
+  NoRegistrationEvidence,
   RegistrationEvidence,
   RegistrationEvidenceOf,
   ResultRecipe,
@@ -47,3 +48,6 @@ export type {
   FoldWithOutMessage,
   WithRegistrationEvidence,
 } from './index.js'
+
+/** @internal Names exact registration evidence in inferred combined Step results. */
+export { RegistrationEvidenceTypeId } from './update.js'

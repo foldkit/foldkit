@@ -43,7 +43,7 @@ export type OutMessage = typeof OutMessage.Type
 /** @internal Stable identity of the FileDrop contract. */
 export const FileDropKey = Symbol('FileDrop')
 
-const FileDropDefinition = Block.makeDefinition('FileDrop', {
+export const FileDropBlock = Block.make('FileDrop', {
   key: FileDropKey,
   Model,
   Message,
@@ -52,12 +52,10 @@ const FileDropDefinition = Block.makeDefinition('FileDrop', {
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
 })
 
-type FileDropContract = typeof FileDropDefinition.contract
-/** Public FileDrop contract with a stable named declaration boundary. */
-export interface FileDropBlock extends FileDropContract {}
-/** Passive FileDrop contract selected through the module implementation Layer. */
-export const FileDropBlock: FileDropBlock = FileDropDefinition.contract
-const FileDropComposition = FileDropDefinition.makeComposition()
+/** Public FileDrop authoring contract and passive graph identity. */
+export type FileDropBlock = typeof FileDropBlock
+
+const FileDropComposition = FileDropBlock.makeComposition()
 
 // INIT
 
@@ -79,10 +77,10 @@ export const init = FileDropComposition.makeInit((config: InitConfig) => ({
 /** Processes a file-drop Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
 export const update = FileDropComposition.makeUpdate({
-  EnteredDragZone: FileDropDefinition.makeFieldsStep(() => ({
+  EnteredDragZone: FileDropBlock.makeFieldsStep(() => ({
     isDragOver: () => true,
   })),
-  LeftDragZone: FileDropDefinition.makeFieldsStep(() => ({
+  LeftDragZone: FileDropBlock.makeFieldsStep(() => ({
     isDragOver: () => false,
   })),
   DroppedFiles: (model, { files }) => ({
@@ -167,8 +165,8 @@ export const view = FileDropComposition.makeView.withInputs(
   },
 )
 
-/** @internal Checked FileDrop implementation used as a scoped testing root. */
-const block = FileDropDefinition.makeBlock(
+/** Constructs the FileDrop implementation without starting occurrence effects. */
+export const layer = FileDropBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -179,5 +177,5 @@ const block = FileDropDefinition.makeBlock(
   }),
 )
 
-/** Constructs FileDrop without starting Commands or occurrence lifecycles. */
-export const layer = block.layer
+/** @internal Selected implementation used by component tests. */
+export const block = { block: FileDropBlock, layer }

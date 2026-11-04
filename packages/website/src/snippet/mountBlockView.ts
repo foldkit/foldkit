@@ -10,9 +10,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const PanelKey = Symbol('Panel')
+export const PanelKey = Symbol('Panel')
 
-const PanelDefinition = Block.makeDefinition('Panel', {
+export const PanelBlock = Block.make('Panel', {
   key: PanelKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -20,9 +20,9 @@ const PanelDefinition = Block.makeDefinition('Panel', {
   Message,
 })
 
-const { makeNoopStep } = PanelDefinition
+const { makeNoopStep } = PanelBlock
 
-const MeasurePanel = PanelDefinition.makeMount('MeasurePanel', {
+const MeasurePanel = PanelBlock.makeMount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
     return ({ element }) =>
@@ -34,7 +34,7 @@ const MeasurePanel = PanelDefinition.makeMount('MeasurePanel', {
   },
 })
 
-const PanelComposition = PanelDefinition.makeComposition({
+const PanelComposition = PanelBlock.makeComposition({
   mounts: [MeasurePanel],
 })
 type PanelViewBuilder = Block.ViewBuilderFor<typeof PanelComposition>
@@ -45,16 +45,14 @@ const panelView = <Builder extends PanelViewBuilder>(
 ) => h.div([h.OnMount(MeasurePanel())], [model.label])
 
 const init = PanelComposition.makeInit(() => ({
-  model: Model.make({ label: 'PanelDefinition' }),
+  model: Model.make({ label: 'Panel' }),
 }))
 const update = PanelComposition.makeUpdate({
   CompletedMeasurePanel: makeNoopStep(),
 })
 const view = PanelComposition.makeView((model, h) => panelView(model, h))
 
-export const PanelBlock = PanelDefinition.contract
-
-export const layer = PanelDefinition.makeBlock(
+export const layer = PanelBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -64,4 +62,4 @@ export const layer = PanelDefinition.makeBlock(
       EffectsLayer: MeasurePanel.layer,
     }
   }),
-).layer
+)

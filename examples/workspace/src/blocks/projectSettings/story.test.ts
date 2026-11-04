@@ -24,9 +24,11 @@ import { Message } from './message'
 import { Model, SaveState } from './model'
 import { OutMessage } from './outMessage'
 
+const projectSettingsSubject = { block: ProjectSettingsBlock, layer }
+
 const project = Option.getOrThrow(Array.head(initialWorkspace.projects))
 const makeInitialModel = (
-  executable: TestBlock<typeof ProjectSettingsBlock>,
+  executable: TestBlock<typeof projectSettingsSubject>,
 ) => {
   const init = executable.init
   return Model.make(init(project).model)
@@ -36,7 +38,7 @@ describe('Project Settings', () => {
   it.effect(
     'does not save unchanged, normalized, or invalid project settings',
     () => {
-      return withBlock(ProjectSettingsBlock, executable =>
+      return withBlock(projectSettingsSubject, executable =>
         Effect.gen(function* () {
           const initialModel = makeInitialModel(executable)
 
@@ -53,7 +55,7 @@ describe('Project Settings', () => {
             blankNameModel,
           ]) {
             yield* story(
-              ProjectSettingsBlock,
+              projectSettingsSubject,
               given(unsavableModel),
               message(Message.SubmittedProjectSettings()),
               model(model => {
@@ -64,7 +66,7 @@ describe('Project Settings', () => {
             )
           }
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -75,7 +77,7 @@ describe('Project Settings', () => {
         name: () => 'A new project name',
       })
       return story(
-        ProjectSettingsBlock,
+        projectSettingsSubject,
         init(project),
         message(Message.UpdatedProjectName({ value: savedProject.name })),
         message(Message.SubmittedProjectSettings()),
@@ -99,14 +101,14 @@ describe('Project Settings', () => {
           Message.SucceededSaveProject({ project: savedProject }),
         ),
         expectOutMessage(OutMessage.Saved({ project: savedProject })),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
   it.effect(
     'does not publish an unsolicited or mismatched project save',
     () => {
-      return withBlock(ProjectSettingsBlock, executable =>
+      return withBlock(projectSettingsSubject, executable =>
         Effect.gen(function* () {
           const initialModel = makeInitialModel(executable)
 
@@ -118,7 +120,7 @@ describe('Project Settings', () => {
           )
 
           yield* story(
-            ProjectSettingsBlock,
+            projectSettingsSubject,
             given(initialModel),
             message(Message.SucceededSaveProject({ project })),
             model(model => {
@@ -132,7 +134,7 @@ describe('Project Settings', () => {
           })
 
           yield* story(
-            ProjectSettingsBlock,
+            projectSettingsSubject,
             given(savingModel),
             message(Message.SucceededSaveProject({ project: otherProject })),
             model(model => {
@@ -141,7 +143,7 @@ describe('Project Settings', () => {
             expectNoOutMessage(),
           )
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 
@@ -150,7 +152,7 @@ describe('Project Settings', () => {
     () => {
       const savedProject = modifyFields(project, { name: () => 'A new name' })
       return story(
-        ProjectSettingsBlock,
+        projectSettingsSubject,
         init(project),
         message(Message.UpdatedProjectName({ value: ' A new name ' })),
         message(Message.SubmittedProjectSettings()),
@@ -164,7 +166,7 @@ describe('Project Settings', () => {
           expect(model.baseline).toEqual(savedProject)
           expect(model.draft.name).toBe(savedProject.name)
         }),
-      ).pipe(Effect.provide(layer))
+      )
     },
   )
 })

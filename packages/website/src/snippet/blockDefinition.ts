@@ -33,9 +33,9 @@ export class SettingsStore extends Context.Service<
   }>
 >()('SettingsStore') {}
 
-const SettingsKey = Symbol('Settings')
+export const SettingsKey = Symbol('Settings')
 
-export const SettingsDefinition = Block.makeDefinition('Settings', {
+export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -51,11 +51,11 @@ export const SettingsDefinition = Block.makeDefinition('Settings', {
   OutMessage,
 })
 
-export const { makeStep, makeNoopStep } = SettingsDefinition
+export const { makeStep, makeNoopStep } = SettingsBlock
 
-export const SettingsComposition = SettingsDefinition.makeComposition()
+export const SettingsComposition = SettingsBlock.makeComposition()
 
-export const SaveTheme = SettingsDefinition.makeCommand('SaveTheme', {
+export const SaveTheme = SettingsBlock.makeCommand('SaveTheme', {
   args: { theme: Theme },
   messages: [Message.CompletedSaveTheme, Message.FailedSaveTheme],
   handler: function* () {
@@ -68,5 +68,3 @@ export const SaveTheme = SettingsDefinition.makeCommand('SaveTheme', {
       )
   },
 })
-
-export const SettingsBlock = SettingsDefinition.contract

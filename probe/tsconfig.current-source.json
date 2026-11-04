@@ -1,0 +1,87 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ESNext", "DOM"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": false,
+    "noEmit": true,
+    "types": [],
+    "paths": {
+      "foldkit": ["../packages/foldkit/src/index.ts"],
+      "foldkit/asyncData": ["../packages/foldkit/src/asyncData/public.ts"],
+      "foldkit/brand": ["../packages/foldkit/src/brand/public.ts"],
+      "foldkit/calendar": ["../packages/foldkit/src/calendar/public.ts"],
+      "foldkit/canvas": ["../packages/foldkit/src/canvas/public.ts"],
+      "foldkit/command": ["../packages/foldkit/src/command/public.ts"],
+      "foldkit/customElement": [
+        "../packages/foldkit/src/customElement/public.ts"
+      ],
+      "foldkit/dom": ["../packages/foldkit/src/dom/public.ts"],
+      "foldkit/experimental": [
+        "../packages/foldkit/src/experimental/public.ts"
+      ],
+      "foldkit/experimental/machine": [
+        "../packages/foldkit/src/experimental/machine/public.ts"
+      ],
+      "foldkit/experimental/query": [
+        "../packages/foldkit/src/experimental/query/public.ts"
+      ],
+      "foldkit/experimental/server": [
+        "../packages/foldkit/src/experimental/server/public.ts"
+      ],
+      "foldkit/html": ["../packages/foldkit/src/html/public.ts"],
+      "foldkit/http": ["../packages/foldkit/src/http/public.ts"],
+      "foldkit/managedResource": [
+        "../packages/foldkit/src/managedResource/public.ts"
+      ],
+      "foldkit/message": ["../packages/foldkit/src/message/public.ts"],
+      "foldkit/mount": ["../packages/foldkit/src/mount/public.ts"],
+      "foldkit/navigation": ["../packages/foldkit/src/navigation/public.ts"],
+      "foldkit/port": ["../packages/foldkit/src/port/public.ts"],
+      "foldkit/program": ["../packages/foldkit/src/runtime/programPublic.ts"],
+      "foldkit/render": ["../packages/foldkit/src/render/public.ts"],
+      "foldkit/route": ["../packages/foldkit/src/route/public.ts"],
+      "foldkit/runtime": ["../packages/foldkit/src/runtime/public.ts"],
+      "foldkit/scene": ["../packages/foldkit/src/scene/public.ts"],
+      "foldkit/story": ["../packages/foldkit/src/story/public.ts"],
+      "foldkit/model-preservation": [
+        "../packages/foldkit/src/runtime/modelPreservationPublic.ts"
+      ],
+      "foldkit/fieldValidation": [
+        "../packages/foldkit/src/fieldValidation/public.ts"
+      ],
+      "foldkit/file": ["../packages/foldkit/src/file/public.ts"],
+      "foldkit/schema": ["../packages/foldkit/src/schema/public.ts"],
+      "foldkit/struct": ["../packages/foldkit/src/struct/public.ts"],
+      "foldkit/block": ["../packages/foldkit/src/block/public.ts"],
+      "foldkit/subscription": [
+        "../packages/foldkit/src/subscription/public.ts"
+      ],
+      "foldkit/test": ["../packages/foldkit/src/test/public.ts"],
+      "foldkit/test/vitest": ["../packages/foldkit/src/test/vitest.ts"],
+      "foldkit/update": ["../packages/foldkit/src/update/public.ts"],
+      "foldkit/url": ["../packages/foldkit/src/url/public.ts"],
+      "foldkit/devtools-protocol": [
+        "../packages/foldkit/src/devTools/public.ts"
+      ],
+      "foldkit/devtools-host": ["../packages/foldkit/src/devTools/host.ts"],
+      "foldkit/variantBinding": [
+        "../packages/foldkit/src/block/variantBinding.ts"
+      ],
+      "foldkit/bindingInit": ["../packages/foldkit/src/block/bindingInit.ts"]
+    },
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "files": [
+    "../packages/foldkit/src/vite-env.d.ts",
+    "../packages/foldkit/src/experimental/contracted/directBlockLayer.test.ts",
+    "../packages/foldkit/src/experimental/constructed/directLayerPrototype.test.ts",
+    "current-child-instances/block.ts",
+    "current-child-instances/negative.ts",
+    "../packages/foldkit/src/experimental/contracted/mixedUnifiedBoundary.test.ts",
+    "testing-subjects.ts"
+  ]
+}

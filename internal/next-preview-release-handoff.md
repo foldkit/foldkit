@@ -1,5 +1,52 @@
 # Next preview release handoff
 
+## November 4 candidate
+
+The last verified publication remains `90746b32d2ca`; this candidate is not
+published. The [unified adoption report](block-api-simplification/adoption-20261104.md)
+owns the current verification and integration status.
+
+Changes since that publication include:
+
+- One passive `FooBlock = Block.make(...)` carries the public contracts and
+  typed authoring helpers. `FooBlock.makeLayer(...)` returns an ordinary Effect
+  Layer; Program, Server, Story and Scene select `{ block, layer }`.
+- Effectful graph construction retains portable init, update, view and Binding
+  expressions, deferred child initialization and Model-owned lifecycles.
+- Separate InMessages and `makeInMessageUpdate` share checked ordered
+  composition with local updates. Exhaustive handler records remain the default.
+- Standard child arrays can use ready Instance Schemas and passive Binding
+  creation requests, demonstrated by Counters.
+- Main's Effect 4.1 integration and preview feedback repairs cover Mount cleanup,
+  SSR development identity/reloads, embedding disposal, DevTools and VirtualList.
+- Examples, Website, Typing Game, UI/Query families, scoped tests, scaffolds,
+  active guidance and lint recognition adopt the same construction model.
+- The [attribute typing adaptation](pr1882-preview-adaptation.md) preserves
+  child Mount capabilities and reduces compiler work for shared attribute bundles.
+
+Machine authoring, Query cache/cancellation capabilities and the earlier
+VirtualList additions already shipped in the October 29 snapshot. Their factory
+and construction migrations here are not new versions of those features.
+
+The complete repository pre-push gate, all 22 Website browser tests, installed
+packed consumers in Chromium/Firefox/WebKit, original compiler fixtures and
+retained adapted workloads pass. The corrected foundation and migration commits
+pass exact independent review. The final
+[rendering comparison](block-api-simplification/rendering-20261104/README.md)
+records a 10.42% naive and 29.69% optimized execution-time increase against actual
+main, plus 43,981/44,615 gzip bytes. All 64 samples from both batches remain.
+The bounded Mount-validation bookkeeping trial preserves all checks but does not
+establish an optimized speedup. These runtime and bundle costs need review;
+the user's compiler-cost acceptance does not accept them. The migration is
+pushed through `9c276260f9` in [PR #1883](https://github.com/foldkit/foldkit/pull/1883).
+Its [standalone fixture follow-up](block-api-simplification/execution-fixtures-20261104.md)
+passes all 87 browser cases with the original 21 skips, the resize-readiness
+negative control, source checks for 16 fixture modules and 188 plugin tests.
+Exact review and required checks precede integration; the adoption report records
+current status.
+Publication and Daybreak source transfer remain held. Only #1662 and #1663
+have an explicit post-main deferral.
+
 ## October 30 stabilization follow-up
 
 The [current feedback pass](preview-feedback-stabilization-20261030.md) repairs

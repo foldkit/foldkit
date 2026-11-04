@@ -1,16 +1,22 @@
 import { Effect } from 'effect'
 import { Scene } from 'foldkit'
 
-import { ApplicationBlock, Message, rootSubscriptions } from './application'
 import {
-  ChatImplementation,
+  ApplicationBlock,
+  Message,
+  layer,
+  rootSubscriptions,
+} from './application'
+import {
+  ChatBlock,
+  layer as ChatLayer,
   Message as ChatMessage,
   subscriptions as chatSubscriptions,
 } from './chat'
 
 await Effect.runPromise(
   Scene.scene(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     Scene.init(),
     Scene.Subscription.emit(rootSubscriptions.clockTicks, Message.Ticked()),
   ),
@@ -19,7 +25,7 @@ await Effect.runPromise(
 // Exercise a private child stream in the Scene owned by that implementation.
 await Effect.runPromise(
   Scene.scene(
-    ChatImplementation,
+    { block: ChatBlock, layer: ChatLayer },
     Scene.init(),
     Scene.Subscription.emit(
       chatSubscriptions.chatServerFrames,

@@ -12,11 +12,11 @@ Application-scoped Layers are the kitchen equipment available all night. A Manag
 
 ### Defining the Lifecycle
 
-Create the handle accessor from the named feature with `FeatureDefinition.makeResource<Value>()('ResourceName')`, then define its lifecycle through `FeatureDefinition.makeManagedResources`. The feature name qualifies the accessor's local identity. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
+Create the handle accessor from the named feature with `FeatureBlock.makeResource<Value>()('ResourceName')`, then define its lifecycle through `FeatureBlock.makeManagedResources`. The feature name qualifies the accessor's local identity. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
 
-Give each entry a stable local handler name and attach a generator constructor returning both `acquire` and `release`. Include `managedResources.layer` in the local `EffectsLayer` when every entry has a handler. Return the registry under `managedResources` from `Definition.makeBlock`. Construction connects the graph; the Runtime acquires and releases each handle according to the Model.
+Give each entry a stable local handler name and attach a generator constructor returning both `acquire` and `release`. Include `managedResources.layer` in the local `EffectsLayer` when every entry has a handler. Return the registry under `managedResources` from `FeatureBlock.makeLayer`. Construction connects the graph; the Runtime acquires and releases each handle according to the Model.
 
-Keep `CameraDefinition` in `definition.ts` and its Composition in `composition.ts`. Put the `CameraStream` accessor in `resource.ts`, importing the Definition. Both the lifecycle registry and Commands import that same accessor from `resource.ts`, which imports neither consumer. This gives them one identity without a cycle through Block assembly.
+Keep `CameraBlock` in `definition.ts` and its Composition in `composition.ts`. Put the `CameraStream` accessor in `resource.ts`, importing the Block. Both the lifecycle registry and Commands import that same accessor from `resource.ts`, which imports neither consumer. This gives them one identity without a cycle through Block assembly.
 
 ::Snippet{name="managedResourcesDefinition" label="Defining a shared resource accessor"}
 
@@ -53,11 +53,11 @@ When the feature owns that lifecycle, keep its real handler attached and let the
 
 ManagedResource names are local to their named Block. Two features can both declare `ManageSession`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. Reusing one child implementation at two placements shares its handler recipe while giving each occurrence a separate handle lifecycle.
 
-A ManagedResource handler requirement contains its owned name, decoded acquire params, and resource value type. `FeatureDefinition.makeBlock` checks that `EffectsLayer` supplies each local handler and preserves its declared Service and error channels. Use `ManagedResource.HandlerOf<typeof managedResources.camera>` for an explicit requirement; the expanded form is `ManagedResource.Handler<Name, Params, Value>`, with all three arguments required.
+A ManagedResource handler requirement contains its owned name, decoded acquire params, and resource value type. `FeatureBlock.makeLayer` checks that `EffectsLayer` supplies each local handler and preserves its declared Service and error channels. Use `ManagedResource.HandlerOf<typeof managedResources.camera>` for an explicit requirement; the expanded form is `ManagedResource.Handler<Name, Params, Value>`, with all three arguments required.
 
 Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. An external implementation should use the declared entry's `toLayer` so it keeps that identity.
 
-Within one Block Definition, each local lifecycle owner needs its own resource accessor. Completion rejects two local entries that share an accessor. Acquiring a child Binding derives a placement-scoped accessor, so the same child can appear more than once with independent handles. A keyed Binding applies the same rule per active collection key.
+Within one Block declaration, each local lifecycle owner needs its own resource accessor. Completion rejects two local entries that share an accessor. Acquiring a child Binding derives a placement-scoped accessor, so the same child can appear more than once with independent handles. A keyed Binding applies the same rule per active collection key.
 
 The record key identifies the local lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation and becomes part of its owned path. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`. The registry key `layer` is reserved for the aggregate Layer, matching Subscriptions; use another key for a resource entry. An empty owned registry supplies `Layer.empty`.
 
@@ -91,7 +91,7 @@ The resource accessor holds that bare value, so Commands read it through `.get` 
 
 ## Composing Child Blocks
 
-A child Block defines its ManagedResources in its own Model and Message terms, with no knowledge of its parent. Create the registry through `FeatureDefinition.makeManagedResources` and include it in `FeatureDefinition.makeBlock`.
+A child Block defines its ManagedResources in its own Model and Message terms, with no knowledge of its parent. Create the registry through `FeatureBlock.makeManagedResources` and include it in `FeatureBlock.makeLayer`.
 
 A Binding lifts the child’s entries through its Model access and generated delivery. Register the Binding in the Composition, yield it in the constructor, and return that connection under `children`. Each placement retains its own resource identity and lifecycle. Completion rejects one local resource accessor used by two lifecycle owners.
 
@@ -106,7 +106,7 @@ Use an exact `Option<ChildModel>` field for direct optional storage. `None` rele
 `makeBinding` automates composition for static, optional, and keyed placements. Every active collection key receives an independent ManagedResource lifetime. [Subscription Organization](/patterns/subscription-organization) traces the equivalent leaf-to-root shape with Subscriptions.
 
 :::Info{label="Layers vs Managed Resources"}
-Use the root `ApplicationLayer` and the completed program's `provide` method for services that live with the runtime, such as an `RpcClient` or analytics client. The completed Block already carries its handler recipes. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections. These are separate scopes: restarting or releasing a ManagedResource handle does not rebuild the app service or handler Layer that implements its lifecycle.
+Use the root `ApplicationLayer` and the completed program's `provide` method for services that live with the runtime, such as an `RpcClient` or analytics client. The selected executable graph retains its handler recipes. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections. These are separate scopes: restarting or releasing a ManagedResource handle does not rebuild the app service or handler Layer that implements its lifecycle.
 :::
 
 Layers and Managed Resources cover app-lifetime services and Model-scoped handles. Unrecoverable errors in update, view, or a Command follow a different runtime path. The next page covers crash views.

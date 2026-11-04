@@ -8,12 +8,7 @@ import {
   ScrollTarget as VirtualListScrollTarget,
 } from '@foldkit/ui/virtualList'
 
-import {
-  UiDefinition,
-  makeFieldsStep,
-  makeNoopStep,
-  makeStep,
-} from './definition'
+import { UiBlock, makeFieldsStep, makeNoopStep, makeStep } from './definition'
 import {
   ChatVirtualListBlock,
   HistoryModeRadioGroupBlock,
@@ -77,7 +72,7 @@ const virtualListChatInitConfig = (
   followEnd: { thresholdPx: 8 },
 })
 
-export const FetchVirtualListChatHistory = UiDefinition.makeCommand(
+export const FetchVirtualListChatHistory = UiBlock.makeCommand(
   'FetchVirtualListChatHistory',
   {
     args: {
@@ -130,7 +125,7 @@ export const FetchVirtualListChatHistory = UiDefinition.makeCommand(
   },
 )
 
-const BaseVirtualListChatDemoBinding = UiDefinition.makeBinding(
+const BaseVirtualListChatDemoBinding = UiBlock.makeBinding(
   ChatVirtualListBlock,
   {
     field: 'virtualListChatDemo',
@@ -207,7 +202,7 @@ const markVirtualListChatHistoryAnnounced = makeStep(model => {
   }
 })
 
-const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
+const foldVirtualListChatOutMessage = UiBlock.makeOutMessageFold(
   ChatVirtualListBlock,
   {
     ObservedContainerScroll: makeNoopStep,
@@ -272,7 +267,7 @@ const selectVirtualListChatHistoryMode = (mode: VirtualListChatHistoryMode) =>
     })
   })
 
-export const VirtualListChatHistoryModeGroupBinding = UiDefinition.makeBinding(
+export const VirtualListChatHistoryModeGroupBinding = UiBlock.makeBinding(
   HistoryModeRadioGroupBlock,
   {
     field: 'virtualListChatHistoryModeGroup',
@@ -281,7 +276,7 @@ export const VirtualListChatHistoryModeGroupBinding = UiDefinition.makeBinding(
     },
   },
 ).withOutMessagePolicy({
-  fold: UiDefinition.makeOutMessageFold(HistoryModeRadioGroupBlock, {
+  fold: UiBlock.makeOutMessageFold(HistoryModeRadioGroupBlock, {
     Selected: ({ value }) => selectVirtualListChatHistoryMode(value),
   }),
 })

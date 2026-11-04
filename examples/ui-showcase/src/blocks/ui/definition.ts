@@ -7,7 +7,7 @@ import { Message } from './message'
 import { Model } from './model'
 
 const UiKey = Symbol('Ui')
-export const UiDefinition = Block.makeDefinition('Ui', {
+export const UiBlock = Block.make('Ui', {
   key: UiKey,
   Init: Schema.Tuple([CalendarDate]),
   Model,
@@ -16,6 +16,4 @@ export const UiDefinition = Block.makeDefinition('Ui', {
   ChildInitContext: CalendarDate,
 })
 
-export const { makeFieldsStep, makeNoopStep } = UiDefinition
-
-export const UiBlock = UiDefinition.contract
+export const { makeFieldsStep, makeNoopStep } = UiBlock

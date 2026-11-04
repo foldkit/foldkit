@@ -19,7 +19,7 @@ import {
 import { Message, ObservedAnchor, block } from './virtualList.js'
 
 type VirtualListOperations = Pick<
-  Effect.Success<typeof block.get>,
+  Story.TestBlock<typeof block>,
   'init' | 'update'
 >
 const it = baseIt.extend<{ virtualList: VirtualListOperations }>({

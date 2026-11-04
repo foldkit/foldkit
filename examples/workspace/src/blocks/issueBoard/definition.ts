@@ -9,7 +9,7 @@ import { ViewInputs } from './viewInputs'
 
 export const IssueBoardKey = Symbol('IssueBoard')
 
-export const IssueBoardDefinition = Block.makeDefinition('IssueBoard', {
+export const IssueBoardBlock = Block.make('IssueBoard', {
   key: IssueBoardKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: ViewInputs },
@@ -19,8 +19,6 @@ export const IssueBoardDefinition = Block.makeDefinition('IssueBoard', {
   OutMessage,
 })
 
-export const IssueBoardBlock = IssueBoardDefinition.contract
-
 export const {
   makeFieldsStep,
   makeOutMessageStep,
@@ -28,4 +26,4 @@ export const {
   makeOutMessageFold,
   makeBinding,
   makeComposition,
-} = IssueBoardDefinition
+} = IssueBoardBlock

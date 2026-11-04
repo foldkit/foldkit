@@ -13,25 +13,25 @@ type Model = typeof Model.Type
 export const Message = defineMessageUnion({ RequestedResetSettings: {} })
 export type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-const { makeNoopStep } = ApplicationDefinition
+const { makeNoopStep } = ApplicationBlock
 
-export const SettingsBinding = ApplicationDefinition.makeBinding(
+export const SettingsBinding = ApplicationBlock.makeBinding(
   Settings.SettingsBlock,
   { field: 'settings' },
 ).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(Settings.SettingsBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(Settings.SettingsBlock, {
     ChangedTheme: makeNoopStep,
   }),
 })
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [SettingsBinding],
 })

@@ -1,14 +1,16 @@
-import { Effect } from 'effect'
+import { Effect, Layer } from 'effect'
+
+import { layer as TabsLayer } from '@foldkit/ui/tabs'
 
 import { TabsBinding } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view/view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const tabs = yield* TabsBinding
 
@@ -21,4 +23,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-)
+).pipe(Layer.provide(TabsLayer))
+
+export { ApplicationBlock } from './definition'

@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { WaitForAnimationSettled, WaitForPaint } from './command.js'
 import { AnimationComposition } from './composition.js'
-import { AnimationDefinition } from './definition.js'
+import { AnimationBlock } from './definition.js'
 import { type Model, OutMessage } from './schema.js'
 
 const showTransition = (model: Model) => {
@@ -106,7 +106,7 @@ const resumeTransition = (model: Model) =>
     Match.exhaustive,
   )
 
-const resetImmediately = AnimationDefinition.makeFieldsStep(() => ({
+const resetImmediately = AnimationBlock.makeFieldsStep(() => ({
   isShowing: () => false,
   transitionState: () => 'Idle',
 }))

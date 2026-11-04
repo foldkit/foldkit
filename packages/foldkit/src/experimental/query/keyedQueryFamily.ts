@@ -1,6 +1,10 @@
 import { Context, type Effect, type Layer, type Schema } from 'effect'
 
 import type { ValidateConstructionRequirements } from '../../block/scope.js'
+import {
+  type FamilySpecializationLayer,
+  resolveFamily,
+} from '../contracted/familyLayer.js'
 import * as Contracted from '../contracted/public.js'
 import type { KeyedQueryConfig, SyncFields } from './keyedQueryContract.js'
 import {
@@ -81,7 +85,7 @@ export interface AttachedKeyedQueryMembers<
 export interface KeyedQueryConstructor {
   <Name extends string, A, AI, E, EI, Fields extends SyncFields>(
     authoring: KeyedQueryAuthoring<Name, A, AI, E, EI, Fields>,
-  ): Contracted.FamilyRecipe<
+  ): FamilySpecializationLayer<
     Contracted.FamilyContractOf<
       KeyedQueryAuthoring<Name, A, AI, E, EI, Fields>['Definition']
     >,
@@ -91,7 +95,7 @@ export interface KeyedQueryConstructor {
   >
   <Name extends string, A, AI, E, EI, Fields extends SyncFields>(
     authoring: SilentKeyedQueryAuthoring<Name, A, AI, E, EI, Fields>,
-  ): Contracted.FamilyRecipe<
+  ): FamilySpecializationLayer<
     Contracted.FamilyContractOf<
       SilentKeyedQueryAuthoring<Name, A, AI, E, EI, Fields>['Definition']
     >,
@@ -130,7 +134,7 @@ const makeNotifyingHostKeyedQuery = <
     pendingArgs: authoring.accessors.pendingArgs,
     ...authoring.fetchApi,
   }
-  return Contracted.makeFamilyContract(
+  return resolveFamily(
     authoring.Definition,
     KeyedQueryFamily,
     implementation =>
@@ -160,7 +164,7 @@ const makeSilentHostKeyedQuery = <
     pendingArgs: authoring.accessors.pendingArgs,
     ...authoring.fetchApi,
   }
-  return Contracted.makeFamilyContract(
+  return resolveFamily(
     authoring.Definition,
     KeyedQueryFamily,
     implementation =>
@@ -212,7 +216,7 @@ const makeNotifyingKeyedQuery = <
     EffectsLayer: handlers,
   }
 
-  return Contracted.makeFamilyContract(
+  return resolveFamily(
     authoring.Definition,
     KeyedQueryFamily,
     implementation =>
@@ -261,7 +265,7 @@ const makeSilentKeyedQuery = <
     EffectsLayer: handlers,
   }
 
-  return Contracted.makeFamilyContract(
+  return resolveFamily(
     authoring.Definition,
     KeyedQueryFamily,
     implementation =>

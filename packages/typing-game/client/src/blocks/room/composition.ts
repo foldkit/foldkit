@@ -1,6 +1,6 @@
 import type { Block } from 'foldkit'
 
-import { RoomDefinition } from './definition'
+import { RoomBlock } from './definition'
 
-export const RoomComposition = RoomDefinition.makeComposition()
+export const RoomComposition = RoomBlock.makeComposition()
 export type RoomViewBuilder = Block.ViewBuilderFor<typeof RoomComposition>

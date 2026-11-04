@@ -16,7 +16,7 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const CoverLetterKey = Symbol('CoverLetter')
-const CoverLetterDefinition = Block.makeDefinition('CoverLetter', {
+export const CoverLetterBlock = Block.make('CoverLetter', {
   key: CoverLetterKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -24,9 +24,9 @@ const CoverLetterDefinition = Block.makeDefinition('CoverLetter', {
   Message,
 })
 
-const { makeFieldsStep } = CoverLetterDefinition
+const { makeFieldsStep } = CoverLetterBlock
 
-const CoverLetterComposition = CoverLetterDefinition.makeComposition()
+const CoverLetterComposition = CoverLetterBlock.makeComposition()
 
 const init = CoverLetterComposition.makeInit(() => ({
   model: { content: '' },
@@ -100,8 +100,7 @@ export const view = CoverLetterComposition.makeView((model, h) => {
   )
 })
 
-export const CoverLetterBlock = CoverLetterDefinition.contract
-export const layer = CoverLetterDefinition.makeBlock(
+export const layer = CoverLetterBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -110,4 +109,4 @@ export const layer = CoverLetterDefinition.makeBlock(
       view,
     }
   }),
-).layer
+)

@@ -8,14 +8,14 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ Ticked: {} })
 type Message = typeof Message.Type
 export const ElementKey = Symbol('InferredElement')
-const ElementDefinition = Block.makeDefinition('Application', {
+const ElementBlock = Block.make('Application', {
   key: ElementKey,
   Model,
   Message,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const ElementComposition = ElementDefinition.makeComposition()
+const ElementComposition = ElementBlock.makeComposition()
 
 const elementInit = ElementComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
@@ -28,14 +28,14 @@ const elementView = ElementComposition.makeView((model, h) =>
 )
 
 export const ApplicationKey = Symbol('InferredPage')
-const ApplicationDefinition = Block.makeDefinition('Application', {
+const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,
   Message,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
 })
-const ApplicationComposition = ApplicationDefinition.makeComposition()
+const ApplicationComposition = ApplicationBlock.makeComposition()
 const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
@@ -51,7 +51,7 @@ const applicationView = ApplicationComposition.makeView(
 
 const EffectsLayer = Layer.empty
 
-const ElementBlock = ElementDefinition.makeBlock(
+const elementLayer = ElementBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -63,20 +63,28 @@ const ElementBlock = ElementDefinition.makeBlock(
   }),
 )
 
-const ApplicationBlock = ApplicationDefinition.makeBlock(
+const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    return { children: [], init, update, EffectsLayer, view: applicationView }
+    return {
+      children: [],
+      init,
+      update,
+      EffectsLayer,
+      view: applicationView,
+    }
   }),
 )
 
 export const makeInferredElement = (container: HTMLElement) =>
   Program.makeElement({
     block: ElementBlock,
+    layer: elementLayer,
     container,
   })
 
 export const makeInferredApplication = (container: HTMLElement | null) =>
   Program.make({
     block: ApplicationBlock,
+    layer,
     container,
   })

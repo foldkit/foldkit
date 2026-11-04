@@ -16,12 +16,14 @@ import { describe, test } from 'vitest'
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
 import { SnippetDisclosureBlock } from '..'
-import { ApplicationBlock } from '../../block'
+import { ApplicationBlock, layer } from '../../block'
 import { Deployment } from '../../deployment'
 import { SnippetSize } from '../snippetDisclosure/model'
 import { MeasureSnippetHeight } from '../snippetDisclosure/mount'
 import { SourceFileTabsBlock } from './fileTabs'
 import { type ExampleSources } from './sources'
+
+const application = { block: ApplicationBlock, layer }
 
 const longCode = pipe(
   Array.makeBy(16, index => `const value${index} = ${index}`),
@@ -57,7 +59,7 @@ const flags = {
   maybeExampleSources: Option.some(sources),
 }
 
-const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
+const makeFixture = (block: TestBlock<typeof application>) => {
   const init = block.init
   const update = block.update
   const view = block.view
@@ -68,7 +70,7 @@ const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
 describe('example detail', () => {
   test('source files share their code disclosure state', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { init, update, view } = makeFixture(executable)
 
         scene(

@@ -1,5 +1,41 @@
 # Next preview review
 
+## November 4 unified Block adoption
+
+- [x] Record the user's acceptance of the two measured Workspace instantiation
+      costs; preserve every other ceiling and original workload body.
+- [x] Verify component migrations through existing application tests, builds,
+      scoped runners, scaffold generation and lint-plugin controls.
+- [x] Independently review Workspace commit `dc00b1a82f` and constructor
+      alternative validation commit `0bb16a8aaf`.
+- [x] Verify exact selected-provider unions in native and TypeScript 6 source,
+      emitted and source-free relocated consumers.
+- [x] Finish whole Website and complete snippet declaration emission, with
+      strict source-free native and TypeScript 6 consumers.
+- [x] Correct the independent review's foreign-Layer union finding and verify
+      the exact follow-up across paired hosts.
+- [x] Verify the final combined source, emitted, relocated and packed consumers,
+      compiler workloads, runtime tests and browser behavior.
+- [x] Complete exact-commit migration review and mandatory pre-push checks.
+- [x] Record final rendering evidence and the bounded diagnostic/Set trial.
+      The optimized gap remains; no speedup or cost acceptance is inferred.
+- [x] Review final release notes and evidence, then push through the full hook.
+- [x] Recheck feedback through November 4 at 08:40 UTC; no new actionable replies.
+      The focused PR #1882 preview adaptation passes its local verification.
+- [x] Reconcile the new PR #1883 paired Scene constructor-channel review.
+      The focused proof preserves exact family types without a runtime change.
+- [x] Refresh feedback through 10:11 UTC; no new actionable item.
+- [x] Verify the standalone browser/plugin fixture follow-up. All 87 browser
+      cases pass with the original 21 skips, plus the readiness negative
+      control, source checks for 16 fixture modules and 188 plugin tests. Row
+      alignment assertions, browser projects, timeouts and negative controls
+      are preserved.
+- [ ] Complete exact review and the required push/CI checks before integration.
+
+The [adoption report](block-api-simplification/adoption-20261104.md) owns the
+current status. Earlier checkpoints below retain their original verification
+scope. Publication and Daybreak transfer remain held.
+
 ## November 3 scoped tests and InMessage update checkpoint
 
 - [x] Ordinary Story/Scene tests use Block-aware scoped Effects and `it.effect`.

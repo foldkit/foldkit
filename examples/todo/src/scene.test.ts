@@ -15,7 +15,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { GenerateTodo, SaveTodos } from './command'
 import { Message } from './message'
 import { EditingState, type Model } from './model'
@@ -38,7 +38,7 @@ const modelWithTodos: Model = modifyFields(emptyModel, {
 describe('view', () => {
   it.effect('empty state shows heading and placeholder message', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       expect(role('heading', { name: 'Todo App' })).toExist(),
       expect(text('No todos yet. Add one above!')).toExist(),
@@ -47,7 +47,7 @@ describe('view', () => {
 
   it.effect('renders existing todos', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithTodos),
       expect(text('Buy milk')).toExist(),
       expect(text('Walk the dog')).toExist(),
@@ -65,7 +65,7 @@ describe('view', () => {
     }
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(emptyModel),
       type(label('New todo'), 'Write tests'),
       submit(role('form')),
@@ -94,7 +94,7 @@ describe('view', () => {
     )
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithTodos),
       click(label('Buy milk')),
       Command.expectExact(SaveTodos),
@@ -110,7 +110,7 @@ describe('view', () => {
     const remainingTodos = modelWithTodos.todos.filter(({ id }) => id !== 'abc')
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithTodos),
       click(role('button', { name: 'Delete Buy milk' })),
       Command.expectExact(SaveTodos),
@@ -129,7 +129,7 @@ describe('view', () => {
     )
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithTodos),
       click(role('button', { name: 'Clear 1 completed' })),
       Command.expectExact(SaveTodos),
@@ -148,7 +148,7 @@ describe('view', () => {
     )
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithTodos),
       click(role('button', { name: 'Mark all complete' })),
       Command.expectExact(SaveTodos),
@@ -162,7 +162,7 @@ describe('view', () => {
 
   it.effect('keeps in-memory changes when saving fails', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithTodos),
       click(label('Buy milk')),
       Command.expectExact(SaveTodos),

@@ -1,10 +1,10 @@
 import { Effect, Schema } from 'effect'
 
 import { WorkspaceRepository } from '../../../../repository'
-import { CommentComposerDefinition } from './definition'
+import { CommentComposerBlock } from './definition'
 import { Message } from './message'
 
-export const AddComment = CommentComposerDefinition.makeCommand('AddComment', {
+export const AddComment = CommentComposerBlock.makeCommand('AddComment', {
   args: {
     issueId: Schema.String,
     body: Schema.String,

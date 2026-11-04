@@ -1,13 +1,13 @@
 import { Effect } from 'effect'
 
 import { EffectsLayer } from './command.js'
-import { AnimationDefinition } from './definition.js'
+import { AnimationBlock } from './definition.js'
 import { init } from './init.js'
 import { inMessageUpdate, update } from './update.js'
 import { view } from './view.js'
 
-/** @internal Checked implementation used as an internal testing root. */
-export const block = AnimationDefinition.makeBlock(
+/** Constructs the Animation implementation without starting occurrence effects. */
+export const layer = AnimationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -20,8 +20,8 @@ export const block = AnimationDefinition.makeBlock(
   }),
 )
 
-/** Constructs Animation without starting Commands or occurrence lifecycles. */
-export const layer = block.layer
+/** @internal Selected implementation used by component tests. */
+export const block = { block: AnimationBlock, layer }
 
 export { AnimationBlock } from './definition.js'
 export {

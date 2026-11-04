@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "skipLibCheck": false,
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/internal/block": ["../src/internal/block/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/scene": ["../src/scene/public.ts"],
+      "foldkit/story": ["../src/story/public.ts"],
+      "foldkit/struct": ["../src/struct/public.ts"],
+      "foldkit/url": ["../src/url/public.ts"]
+    }
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "scene-family-construction.accepted.ts",
+    "scene-family-construction.rejected.ts",
+    "scene-family-construction.consume.ts"
+  ]
+}

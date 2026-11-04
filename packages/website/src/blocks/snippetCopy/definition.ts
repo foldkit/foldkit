@@ -7,7 +7,7 @@ import type { ViewInputs } from './viewInputs'
 
 export const SnippetCopyKey = Symbol('SnippetCopy')
 
-export const SnippetCopyDefinition = Block.makeDefinition('SnippetCopy', {
+export const SnippetCopyBlock = Block.make('SnippetCopy', {
   key: SnippetCopyKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
@@ -16,4 +16,4 @@ export const SnippetCopyDefinition = Block.makeDefinition('SnippetCopy', {
 })
 
 export const { makeCommandsStep, makeFieldsStep, makeNoopStep } =
-  SnippetCopyDefinition
+  SnippetCopyBlock

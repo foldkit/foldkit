@@ -35,7 +35,7 @@ import {
   Note,
   NoteDuration,
   NoteHighlightPhase,
-  NotePlayerDemoDefinition,
+  NotePlayerDemoBlock,
   PlaybackState,
   makeFieldsStep,
   makeNoopStep,
@@ -112,7 +112,7 @@ export const init = NotePlayerDemoComposition.makeInit(() => ({
   },
 }))
 
-const DelayAdvanceNotePlayerPhase = NotePlayerDemoDefinition.makeCommand(
+const DelayAdvanceNotePlayerPhase = NotePlayerDemoBlock.makeCommand(
   'DelayAdvanceNotePlayerPhase',
   {
     args: { generation: Schema.Number },
@@ -354,9 +354,9 @@ export const update = NotePlayerDemoComposition.makeUpdate({
 // MANAGED RESOURCE
 
 const AudioContextResource =
-  NotePlayerDemoDefinition.makeResource<AudioContext>()('AudioContext')
+  NotePlayerDemoBlock.makeResource<AudioContext>()('AudioContext')
 
-export const managedResources = NotePlayerDemoDefinition.makeManagedResources(
+export const managedResources = NotePlayerDemoBlock.makeManagedResources(
   entry => ({
     audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
       resource: AudioContextResource,
@@ -380,7 +380,7 @@ export const managedResources = NotePlayerDemoDefinition.makeManagedResources(
   }),
 )
 
-const PlayNote = NotePlayerDemoDefinition.makeCommand('PlayNote', {
+const PlayNote = NotePlayerDemoBlock.makeCommand('PlayNote', {
   args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
   messages: [Message.CompletedPlayNote],
   handler: function* () {

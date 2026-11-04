@@ -13,3 +13,14 @@ export {
 export * as test from './test.js'
 
 export type { RadioGroupKey } from './index.js'
+
+/** @internal Nameable fixed-family evidence in emitted consumer declarations. */
+export type {
+  RadioGroupRefinementKey,
+  SharedRadioGroupProof,
+  SharedRadioGroupFacts,
+} from './radioGroup.js'
+export type { OutMessage, OutMessageSchema } from './radioGroup.js'
+
+/** @internal Preserves exact fixed-family reader names in emitted declarations. */
+export type { RadioGroupReader } from './radioGroup.js'

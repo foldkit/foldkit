@@ -12,7 +12,7 @@ import { modifyFields } from 'foldkit/struct'
 import { type Session } from '../../../../domain/session'
 import { LoginComposition } from './composition'
 import {
-  LoginDefinition,
+  LoginBlock,
   Message,
   type Model,
   OutMessage,
@@ -46,7 +46,7 @@ export const isFormValid = (model: Model): boolean =>
     [model.password, passwordRules],
   ])
 
-export const SimulateAuthRequest = LoginDefinition.makeCommand(
+export const SimulateAuthRequest = LoginBlock.makeCommand(
   'SimulateAuthRequest',
   {
     args: { email: Schema.String, password: Schema.String },

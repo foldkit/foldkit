@@ -9,19 +9,14 @@ import { OutMessage } from './outMessage'
 
 export const ProjectSettingsKey = Symbol('ProjectSettings')
 
-export const ProjectSettingsDefinition = Block.makeDefinition(
-  'ProjectSettings',
-  {
-    key: ProjectSettingsKey,
-    Init: Schema.Tuple([Project]),
-    view: { kind: 'Element' },
-    effects: { services: [WorkspaceRepository] },
-    Model,
-    Message,
-    OutMessage,
-  },
-)
+export const ProjectSettingsBlock = Block.make('ProjectSettings', {
+  key: ProjectSettingsKey,
+  Init: Schema.Tuple([Project]),
+  view: { kind: 'Element' },
+  effects: { services: [WorkspaceRepository] },
+  Model,
+  Message,
+  OutMessage,
+})
 
-export const ProjectSettingsBlock = ProjectSettingsDefinition.contract
-
-export const { makeStep, makeComposition } = ProjectSettingsDefinition
+export const { makeStep, makeComposition } = ProjectSettingsBlock

@@ -7,11 +7,12 @@ import {
   Message,
   PinsBlock,
   ReadPins,
+  layer,
 } from './testingMigrationFixture'
 
 await Effect.runPromise(
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     init(),
     message(Message.RequestedRefreshPins()),
     Command.expectHas(ReadPins),

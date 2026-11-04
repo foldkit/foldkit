@@ -118,6 +118,7 @@
     "repos/",
     "comparisons/",
     "internal/",
+    "probe/",
     "scripts/",
     "packages/create-foldkit-app/",
     "packages/devtools-mcp/",

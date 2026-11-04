@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { Block, Struct, Update } from 'foldkit'
+import { Block, Command, Struct, Update } from 'foldkit'
 
 import {
   ChildBlock,
@@ -450,6 +450,122 @@ export const forwardingBinding = FoldParityParentDefinition.makeBinding(
 
 type PolicyOf<Binding> =
   Binding extends Block.BindingPolicyEvidence<infer Policy> ? Policy : never
+export const plainComposition = FoldParityParentDefinition.makeComposition({
+  bindings: [plainBinding],
+})
+export const augmentedComposition = FoldParityParentDefinition.makeComposition({
+  bindings: [augmentedBinding],
+})
+export const mutableComposition = FoldParityParentDefinition.makeComposition({
+  bindings: [mutableBinding],
+})
+export const forwardingComposition = FoldParityParentDefinition.makeComposition(
+  {
+    bindings: [forwardingBinding],
+  },
+)
+export const connectedBinding = FoldParityParentDefinition.makeBinding(
+  FoldParityChildDefinition.contract,
+  { field: 'child' },
+).withOutMessagePolicy({ fold: connectedFold })
+export const connectedComposition = FoldParityParentDefinition.makeComposition({
+  bindings: [connectedBinding, FoldParitySiblingBinding],
+})
+
+type PlainRegisteredBinding = (typeof plainComposition.bindings)[0]
+type AugmentedRegisteredBinding = (typeof augmentedComposition.bindings)[0]
+type MutableRegisteredBinding = (typeof mutableComposition.bindings)[0]
+type ForwardingRegisteredBinding = (typeof forwardingComposition.bindings)[0]
+type ConnectedRegisteredBinding = (typeof connectedComposition.bindings)[0]
+type OutMessageOf<Output> = Output extends unknown
+  ? 'outMessage' extends keyof Output
+    ? Exclude<Output['outMessage'], undefined>
+    : never
+  : never
+
+type FoldGraphOf<Fold, Tag extends PropertyKey> =
+  Fold extends Block.NormalizedFoldEvidence<
+    infer _OutMessage,
+    infer _Context,
+    infer Cases
+  >
+    ? Extract<
+        Cases,
+        readonly [Tag, unknown, ...ReadonlyArray<unknown>]
+      > extends readonly [Tag, infer Graph, ...ReadonlyArray<unknown>]
+      ? Graph
+      : never
+    : never
+
+export type PolicyInventoryParity = readonly [
+  Expect<
+    Equal<typeof plainComposition.bindings, readonly [typeof plainBinding]>
+  >,
+  Expect<
+    Equal<PolicyOf<PlainRegisteredBinding>, PolicyOf<typeof plainBinding>>
+  >,
+  Expect<
+    Equal<
+      PolicyOf<AugmentedRegisteredBinding>,
+      PolicyOf<typeof augmentedBinding>
+    >
+  >,
+  Expect<Equal<PolicyOf<MutableRegisteredBinding>, typeof mutablePolicy>>,
+  Expect<
+    Equal<
+      PolicyOf<ForwardingRegisteredBinding>,
+      PolicyOf<typeof forwardingBinding>
+    >
+  >,
+  Expect<
+    Equal<PolicyOf<PlainRegisteredBinding>['fold'], typeof conditionalFold>
+  >,
+  Expect<
+    Equal<PolicyOf<AugmentedRegisteredBinding>['fold'], typeof augmentedFold>
+  >,
+  Expect<
+    Equal<PolicyOf<ForwardingRegisteredBinding>['forward'], typeof forward>
+  >,
+  Expect<Equal<PlainRegisteredBinding['placement'], 'child'>>,
+  Expect<
+    Equal<
+      PlainRegisteredBinding['requestChoose'],
+      typeof plainBinding.requestChoose
+    >
+  >,
+  Expect<
+    Equal<
+      Update.RequirementsOf<
+        ReturnType<PolicyOf<PlainRegisteredBinding>['fold']>
+      >,
+      Command.HandlerOf<typeof RecordChoice>
+    >
+  >,
+  Expect<
+    Equal<
+      OutMessageOf<
+        ReturnType<ReturnType<PolicyOf<PlainRegisteredBinding>['fold']>>
+      >,
+      typeof ParentOutMessage.Chose.Type
+    >
+  >,
+  Expect<
+    Equal<
+      typeof connectedComposition.bindings,
+      readonly [typeof connectedBinding, typeof FoldParitySiblingBinding]
+    >
+  >,
+  Expect<
+    Equal<PolicyOf<ConnectedRegisteredBinding>['fold'], typeof connectedFold>
+  >,
+  Expect<
+    Equal<
+      FoldGraphOf<PolicyOf<ConnectedRegisteredBinding>['fold'], 'Chose'>,
+      Block.RequirementOfBinding<typeof FoldParitySiblingBinding>
+    >
+  >,
+]
+
 type SpecPolicyOf<Binding> =
   Block.BindingSpecs<readonly [Binding]> extends readonly [
     Block.DescriptorBindingSpec<
@@ -514,6 +630,33 @@ export type PolicySpecParity = readonly [
     Equal<
       PolicyOf<RestoredBinding<typeof forwardingBinding>>,
       PolicyOf<typeof forwardingBinding>
+    >
+  >,
+]
+
+export type SpecInventoryParity = readonly [
+  Expect<
+    Equal<
+      Block.BindingsFromSpecs<
+        Block.BindingSpecs<[typeof plainBinding]>,
+        typeof Model,
+        typeof ParentMessage,
+        typeof ParentOutMessage
+      >,
+      [typeof plainBinding]
+    >
+  >,
+  Expect<
+    Equal<
+      Block.BindingsFromSpecs<
+        Block.BindingSpecs<
+          [typeof plainBinding] | readonly [typeof augmentedBinding]
+        >,
+        typeof Model,
+        typeof ParentMessage,
+        typeof ParentOutMessage
+      >,
+      [typeof plainBinding] | readonly [typeof augmentedBinding]
     >
   >,
 ]

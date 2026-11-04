@@ -1,7 +1,7 @@
 import { type Context, Predicate } from 'effect'
 
 import type { MountAction } from '../mount/index.js'
-import type { Attribute } from './index.js'
+import type { TaggedAttribute } from './index.js'
 import {
   type DispatchSync,
   type MountDispatchResolver,
@@ -27,11 +27,11 @@ type AttributeRequirements<Attribute> =
 
 type ChildAttributeValue<RequiredMountRequirements> =
   | Extract<
-      Attribute<unknown, RequiredMountRequirements>,
+      TaggedAttribute<unknown, RequiredMountRequirements>,
       Readonly<{ _tag: 'OnMount' }>
     >
   | Readonly<{
-      _tag: Exclude<Attribute<never>['_tag'], 'OnMount'>
+      _tag: Exclude<TaggedAttribute<never>['_tag'], 'OnMount'>
     }>
 
 /** An attribute carrying a handler that dispatches through a Block
@@ -49,10 +49,9 @@ type ChildAttributeValue<RequiredMountRequirements> =
  *  which binds the Mount to the acquiring render's dispatch owner while
  *  following that owner's current live wrappers.
  *
- *  Created via {@link childAttributes}. Element constructors accept
- *  `ChildAttribute` alongside `Attribute<Message>` in their attribute
- *  arrays. */
-export type ChildAttribute<RequiredMountRequirements = never> = Readonly<{
+ *  Created via {@link childAttributes}. It is part of `Attribute<Message>`
+ *  and can be spread directly into element attribute arrays. */
+export interface ChildAttribute<RequiredMountRequirements = never> {
   /** Identifies values created by {@link childAttributes}. */
   readonly [BRAND]: true
   /** Wrapped Attribute rendered by the receiving parent element. */
@@ -70,7 +69,7 @@ export type ChildAttribute<RequiredMountRequirements = never> = Readonly<{
    * @internal
    */
   readonly mountContext?: Context.Context<never>
-}>
+}
 
 /** @internal Runtime shape shared by ChildAttributes of every capability. */
 export type AnyChildAttribute = Readonly<{
@@ -86,10 +85,10 @@ export type AnyChildAttribute = Readonly<{
 export const isChildAttribute = (value: unknown): value is AnyChildAttribute =>
   typeof value === 'object' && value !== null && BRAND in value
 
-/** Captures the current boundary's dispatcher and wraps each attribute
- *  so handlers inside it route through that boundary's wrapping chain at
- *  event-fire time, even when the attribute is later spread into a
- *  parent's element in a different boundary.
+/** Captures the current boundary's dispatcher and wraps each raw
+ *  {@link TaggedAttribute} so its handlers route through that boundary's
+ *  wrapping chain at event-fire time. Published ChildAttributes retain their
+ *  existing dispatcher when spread into a parent's element.
  *
  *  Blocks call this when publishing attribute groups to a consumer's
  *  `toView` slot callback:
@@ -110,7 +109,7 @@ export const isChildAttribute = (value: unknown): value is AnyChildAttribute =>
  *  the consumer's `toView` runs in the parent's boundary), bypassing the
  *  Block's `toParentMessage`. */
 export const childAttributes = <
-  const Attributes extends ReadonlyArray<Attribute<unknown, unknown>>,
+  const Attributes extends ReadonlyArray<TaggedAttribute<unknown, unknown>>,
 >(
   attributes: Attributes,
 ): ReadonlyArray<ChildAttribute<AttributeRequirements<Attributes[number]>>> => {

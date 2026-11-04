@@ -214,7 +214,7 @@ Every helper that takes a tag answers for one named route. When several routes h
 
 `Transition.match` requires handlers for `Entered`, `Exited`, `Stayed`, and `Unrelated`; use it when each case has its own policy. `Transition.matchOrElse` accepts selected handlers and uses one fallback for the omitted cases. Both narrow handler payloads to the selected Route tag. Their `<RouteStep>()(...)` form requires every handler and fallback to return the same Step type while inferring the Route and tag:
 
-`Transition` uses parsed Route values; it does not inspect the raw URL. The `People.searchText` field below comes from `Route.query`, so changing it produces `Stayed`. The handler compares both values and fetches only when they differ. Query parameters omitted from the Route Schema are unavailable to a Transition. The snippet reuses `ApplicationRoute` and `FetchPeople` from the cold-load policy above. `ApplicationDefinition` supplies the Model and Message types for its Steps.
+`Transition` uses parsed Route values; it does not inspect the raw URL. The `People.searchText` field below comes from `Route.query`, so changing it produces `Stayed`. The handler compares both values and fetches only when they differ. Query parameters omitted from the Route Schema are unavailable to a Transition. The snippet reuses `ApplicationRoute` and `FetchPeople` from the cold-load policy above. `ApplicationBlock` supplies the Model and Message types for its Steps.
 
 ::Snippet{name="routingTransitionMatch" label="Route transition policy"}
 

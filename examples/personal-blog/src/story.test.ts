@@ -6,7 +6,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { CounterBlock } from './blocks'
 import { CounterBinding } from './composition'
 import { Message } from './message'
@@ -33,7 +33,7 @@ describe('update', () => {
   describe('ChangedUrl', () => {
     it.effect('navigating to / parses to the Home route', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
         model(model => {
@@ -44,7 +44,7 @@ describe('update', () => {
 
     it.effect('navigating to /posts parses to the Posts route', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
@@ -57,7 +57,7 @@ describe('update', () => {
 
     it.effect('navigating to /posts/making-this-blog captures the slug', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(
           Message.ChangedUrl({
@@ -78,7 +78,7 @@ describe('update', () => {
       'an unknown path falls through to NotFound with the path captured',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(home),
           message(
             Message.ChangedUrl({ url: urlOrThrow('http://localhost/missing') }),
@@ -99,7 +99,7 @@ describe('update', () => {
       'increments route through the Counter Block without commands',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(home),
           counterMessage(CounterBlock.Message.ClickedIncrement()),
           counterMessage(CounterBlock.Message.ClickedIncrement()),
@@ -112,7 +112,7 @@ describe('update', () => {
 
     it.effect('the count survives navigating between routes', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         counterMessage(CounterBlock.Message.ClickedIncrement()),
         message(

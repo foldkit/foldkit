@@ -13,7 +13,7 @@ import {
 /** @internal Stable identity of the Tabs contract. */
 export const TabsKey = Symbol('Tabs')
 /** @internal Canonical Tabs authoring contracts. */
-export const TabsDefinition = TabsNamespace.makeDefinition({
+export const TabsBlock = Block.make(TabsNamespace, {
   key: TabsKey,
   Model,
   Message,

@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import {
   Command,
   expectOutMessage,
@@ -23,7 +22,7 @@ describe('products', () => {
     'ChangedSearchInput stores the query and replaces the search URL',
     () =>
       story(
-        ProductsBlock,
+        { block: ProductsBlock, layer },
         init(products),
         message(Message.ChangedSearchInput({ value: 'app' })),
         model(model => {
@@ -31,33 +30,33 @@ describe('products', () => {
         }),
         Command.expectHas(ReplaceSearchUrl),
         Command.resolve(ReplaceSearchUrl, Message.CompletedReplaceSearchUrl()),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 
   it.effect('ClickedAddToCart emits AddedToCart', () =>
     story(
-      ProductsBlock,
+      { block: ProductsBlock, layer },
       init(products),
       message(Message.ClickedAddToCart({ item: apple })),
       expectOutMessage(OutMessage.AddedToCart({ item: apple })),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('ClickedIncrementQuantity emits IncrementedQuantity', () =>
     story(
-      ProductsBlock,
+      { block: ProductsBlock, layer },
       init(products),
       message(Message.ClickedIncrementQuantity({ itemId: '1' })),
       expectOutMessage(OutMessage.IncrementedQuantity({ itemId: '1' })),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('ClickedDecrementQuantity emits DecrementedQuantity', () =>
     story(
-      ProductsBlock,
+      { block: ProductsBlock, layer },
       init(products),
       message(Message.ClickedDecrementQuantity({ itemId: '1' })),
       expectOutMessage(OutMessage.DecrementedQuantity({ itemId: '1' })),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 })

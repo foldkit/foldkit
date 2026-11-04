@@ -3,7 +3,7 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Button } from '@foldkit/ui'
+import { view as buttonView } from '@foldkit/ui/button'
 
 import { COUNT_COOKIE } from './cookie'
 
@@ -30,7 +30,7 @@ export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Flags]),
   view: { kind: 'Document' },
@@ -38,7 +38,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 export const update = ApplicationComposition.makeUpdate({
   ClickedDecrement: model => {
@@ -60,7 +60,7 @@ export const update = ApplicationComposition.makeUpdate({
 
 const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
 
-export const PersistCount = ApplicationDefinition.makeCommand('PersistCount', {
+export const PersistCount = ApplicationBlock.makeCommand('PersistCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedPersistCount],
   handler: function* () {
@@ -104,7 +104,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
       h.div(
         [h.Class('flex flex-wrap justify-center gap-4')],
         [
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedDecrement(),
               toView: attributes =>
@@ -112,7 +112,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
             },
             h,
           ),
-          Button.view(
+          buttonView(
             {
               onClick: Message.ClickedIncrement(),
               toView: attributes =>
@@ -139,7 +139,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

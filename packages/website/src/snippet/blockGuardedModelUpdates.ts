@@ -9,9 +9,9 @@ type SaveState = typeof SaveState.Type
 const Model = Schema.Struct({ title: Schema.String, saveState: SaveState })
 type Model = typeof Model.Type
 
-const DraftKey = Symbol('Draft')
+export const DraftKey = Symbol('Draft')
 
-const DraftDefinition = Block.makeDefinition('Draft', {
+const DraftBlock = Block.make('Draft', {
   key: DraftKey,
   Init: Schema.Tuple([]),
   isMessageFree: true,
@@ -20,7 +20,7 @@ const DraftDefinition = Block.makeDefinition('Draft', {
   Message: Schema.Never,
 })
 
-const { makeStep } = DraftDefinition
+const { makeStep } = DraftBlock
 
 const editDraft = (change: (model: Model) => Model) =>
   makeStep(model => {

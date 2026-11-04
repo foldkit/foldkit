@@ -11,9 +11,9 @@ const RoomInMessage = defineMessageUnion({
 })
 type RoomInMessage = typeof RoomInMessage.Type
 
-const RoomKey = Symbol('Room')
+export const RoomKey = Symbol('Room')
 
-const RoomDefinition = Block.makeDefinition('Room', {
+export const RoomBlock = Block.make('Room', {
   key: RoomKey,
   Init: Schema.Tuple([Schema.String]),
   InMessage: RoomInMessage,
@@ -23,10 +23,9 @@ const RoomDefinition = Block.makeDefinition('Room', {
   Message: Schema.Never,
 })
 
-const RoomComposition = RoomDefinition.makeComposition()
-const RoomBlock = RoomDefinition.contract
+const RoomComposition = RoomBlock.makeComposition()
 
-const layer = RoomDefinition.makeBlock(
+const layer = RoomBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -39,7 +38,7 @@ const layer = RoomDefinition.makeBlock(
       }),
     }
   }),
-).layer
+)
 
 const RoomInstance = Schema.Struct({
   roomId: Schema.String,
@@ -58,21 +57,21 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-const MaybeRoomInstanceBinding = ApplicationDefinition.makeBinding(RoomBlock, {
+const MaybeRoomInstanceBinding = ApplicationBlock.makeBinding(RoomBlock, {
   field: 'maybeRoomInstance',
   key: 'roomId',
   childField: 'model',
 })
-const ApplicationComposition = ApplicationDefinition.makeComposition({
+const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [MaybeRoomInstanceBinding],
 })
 

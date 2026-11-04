@@ -1,12 +1,13 @@
 import { Effect, Schema } from 'effect'
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 import { FixtureConfig } from './config'
 import './style.css'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
   Flags: FixtureConfig,
 })

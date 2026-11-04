@@ -6,8 +6,8 @@ import {
   Model,
   OutMessage,
   SaveTheme,
+  SettingsBlock,
   SettingsComposition,
-  SettingsDefinition,
   Theme,
   makeNoopStep,
   makeStep,
@@ -49,7 +49,7 @@ const init = SettingsComposition.makeInit(() => ({
 
 export { SettingsBlock } from './blockDefinition'
 
-export const layer = SettingsDefinition.makeBlock(
+export const layer = SettingsBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -60,4 +60,4 @@ export const layer = SettingsDefinition.makeBlock(
       EffectsLayer: SaveTheme.layer,
     }
   }),
-).layer
+)

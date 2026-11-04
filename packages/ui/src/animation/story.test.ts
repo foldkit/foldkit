@@ -24,7 +24,7 @@ const resolveStaleSettle = Story.Command.resolve(
 )
 
 type AnimationOperations = Pick<
-  Effect.Success<typeof block.get>,
+  Story.TestBlock<typeof block>,
   'init' | 'update' | 'inMessageUpdate' | 'operations'
 >
 

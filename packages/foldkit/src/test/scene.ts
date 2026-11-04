@@ -359,7 +359,7 @@ export function subscriptions(
 ): AnySubscriptions {
   if (!isComposition(composition)) {
     throw new Error(
-      '[foldkit] Scene.subscriptions Composition must come from Block.makeDefinition(...).makeComposition(...).',
+      '[foldkit] Scene.subscriptions Composition must come from Block.make(...).makeComposition(...).',
     )
   }
 

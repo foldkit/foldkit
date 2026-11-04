@@ -6,9 +6,9 @@ import { Model } from './informingBlocksModel'
 import { ApplicationRoute } from './informingBlocksRoute'
 import { PeopleDirectory } from './informingBlocksService'
 
-const PeopleKey = Symbol('People')
+export const PeopleKey = Symbol('People')
 
-export const PeopleDefinition = Block.makeDefinition('People', {
+export const PeopleBlock = Block.make('People', {
   key: PeopleKey,
   Init: Schema.Tuple([ApplicationRoute.People]),
   InMessage,
@@ -17,4 +17,4 @@ export const PeopleDefinition = Block.makeDefinition('People', {
   Model,
   Message,
 })
-export const PeopleComposition = PeopleDefinition.makeComposition()
+export const PeopleComposition = PeopleBlock.makeComposition()

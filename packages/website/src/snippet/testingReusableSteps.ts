@@ -3,13 +3,13 @@ import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Message } from './counter'
+import { ApplicationBlock, Message, layer } from './counter'
 
 const increment = steps(message(Message.ClickedIncrement()))
 
 it.effect('increments again', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given({ count: 0 }),
     increment,
     message(Message.ClickedIncrement()),
@@ -21,7 +21,7 @@ it.effect('increments again', () =>
 
 it.effect('decrements from the shared setup', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given({ count: 0 }),
     increment,
     message(Message.ClickedDecrement()),

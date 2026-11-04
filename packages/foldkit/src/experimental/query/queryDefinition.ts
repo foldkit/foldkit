@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 
-import * as Contracted from '../contracted/public.js'
+import { makeFamilyDeclaration } from '../contracted/familyLayer.js'
 import type { QueryConfig } from './queryContract.js'
 import {
   makeQueryAccessors,
@@ -23,7 +23,7 @@ export const defineQuery = <Name extends string, A, AI, E, EI>(
   const Message = makeQueryLocalMessage(config.data, config.error)
   const InMessage = makeQueryInMessage()
   const OutMessage = makeQueryOutMessage(config.data, config.error)
-  const Definition = Contracted.makeFamilyDefinition(config.name, {
+  const Definition = makeFamilyDeclaration(config.name, {
     key: QueryKey,
     Model,
     Message,
@@ -58,7 +58,7 @@ export const defineSilentQuery = <Name extends string, A, AI, E, EI>(
   const Model = makeQueryModel(config.data, config.error)
   const Message = makeQueryLocalMessage(config.data, config.error)
   const InMessage = makeQueryInMessage()
-  const Definition = Contracted.makeFamilyDefinition(config.name, {
+  const Definition = makeFamilyDeclaration(config.name, {
     key: QueryKey,
     Model,
     Message,

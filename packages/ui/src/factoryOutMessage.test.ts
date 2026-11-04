@@ -1,5 +1,4 @@
 import { Effect, Layer, Schema } from 'effect'
-import type * as Block from 'foldkit/block'
 import * as Story from 'foldkit/story'
 import type * as Update from 'foldkit/update'
 import { expect, expectTypeOf } from 'vitest'
@@ -62,35 +61,35 @@ it.effect(
                 Update.RequirementsOf<typeof fruitListbox.update>
               >().toEqualTypeOf<
                 Update.RequirementsOf<
-                  Block.ExecutableOf<typeof Listbox.block>['update']
+                  Story.TestBlock<typeof Listbox.block>['update']
                 >
               >()
               expectTypeOf<
                 Update.RequirementsOf<typeof fruitMultiListbox.update>
               >().toEqualTypeOf<
                 Update.RequirementsOf<
-                  Block.ExecutableOf<typeof MultiListbox.block>['update']
+                  Story.TestBlock<typeof MultiListbox.block>['update']
                 >
               >()
               expectTypeOf<
                 Update.RequirementsOf<typeof fruitMenu.update>
               >().toEqualTypeOf<
                 Update.RequirementsOf<
-                  Block.ExecutableOf<typeof Menu.block>['update']
+                  Story.TestBlock<typeof Menu.block>['update']
                 >
               >()
               expectTypeOf<
                 Update.RequirementsOf<typeof fruitRadioGroup.update>
               >().toEqualTypeOf<
                 Update.RequirementsOf<
-                  Block.ExecutableOf<typeof RadioGroup.block>['update']
+                  Story.TestBlock<typeof RadioGroup.block>['update']
                 >
               >()
               expectTypeOf<
                 Update.RequirementsOf<typeof fruitTabs.update>
               >().toEqualTypeOf<
                 Update.RequirementsOf<
-                  Block.ExecutableOf<typeof Tabs.block>['update']
+                  Story.TestBlock<typeof Tabs.block>['update']
                 >
               >()
 

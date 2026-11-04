@@ -13,7 +13,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { LoginBlock } from './blocks/loggedOut/blocks/login'
 import {
   SimulateAuthRequest,
@@ -44,7 +44,7 @@ describe('login flow', () => {
     'successful login saves the session and lands on the dashboard',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(validModel),
         submit(role('form')),
         Command.expectExact(SimulateAuthRequest),

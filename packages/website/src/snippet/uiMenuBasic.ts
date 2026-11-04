@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -21,9 +21,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const ActionMenuExampleKey = Symbol('ActionMenuExample')
+export const ActionMenuExampleKey = Symbol('ActionMenuExample')
 
-const ActionMenuExampleDefinition = Block.makeDefinition('ActionMenuExample', {
+export const ActionMenuExampleBlock = Block.make('ActionMenuExample', {
   key: ActionMenuExampleKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -31,7 +31,7 @@ const ActionMenuExampleDefinition = Block.makeDefinition('ActionMenuExample', {
   Message,
 })
 
-const { makeNoopStep } = ActionMenuExampleDefinition
+const { makeNoopStep } = ActionMenuExampleBlock
 
 const actions: ReadonlyArray<Action> = [
   'Edit',
@@ -43,9 +43,9 @@ const actions: ReadonlyArray<Action> = [
 // At module scope, fold the OutMessage into your own Model. `Selected` carries
 // the picked item directly (typed as `Action`), while `Closed` reports a close
 // without selection. Each arm returns an Update.Step over the parent Model,
-// which already has the next Menu Model written back. The parent Definition
+// which already has the next Menu Model written back. The parent Block
 // infers the factory-refined child contract from the completed Block:
-const foldMenuOutMessage = ActionMenuExampleDefinition.makeOutMessageFold(
+const foldMenuOutMessage = ActionMenuExampleBlock.makeOutMessageFold(
   ActionMenu,
   {
     // The child has emitted `Selected`. In this arm the parent can update
@@ -58,15 +58,14 @@ const foldMenuOutMessage = ActionMenuExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const MenuBinding = ActionMenuExampleDefinition.makeBinding(ActionMenu, {
+const MenuBinding = ActionMenuExampleBlock.makeBinding(ActionMenu, {
   field: 'menu',
   init: { contextToArgs: () => [{ id: 'actions' }] },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
-const ActionMenuExampleComposition =
-  ActionMenuExampleDefinition.makeComposition({
-    bindings: [MenuBinding],
-  })
+const ActionMenuExampleComposition = ActionMenuExampleBlock.makeComposition({
+  bindings: [MenuBinding],
+})
 
 // In your init function, initialize the Menu Block with a unique id:
 const init = ActionMenuExampleComposition.makeInit(() => ({
@@ -106,7 +105,7 @@ const view = ActionMenuExampleComposition.makeView((model, h) =>
   ),
 )
 
-export const ApplicationBlock = ActionMenuExampleDefinition.makeBlock(
+export const layer = ActionMenuExampleBlock.makeLayer(
   Effect.gen(function* () {
     const menu = yield* MenuBinding
 
@@ -117,4 +116,4 @@ export const ApplicationBlock = ActionMenuExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(MenuLayer)
+).pipe(Layer.provide(MenuLayer))

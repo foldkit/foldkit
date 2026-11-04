@@ -898,6 +898,7 @@ const isInsideDeferredEffectCallback = (
 const isEntryBuilderCall = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   call: ESTree.CallExpression,
+  filename: string | undefined,
 ): boolean => {
   const callee = innermostExpression(call.callee)
   if (!isIdentifierReference(callee)) {
@@ -942,6 +943,14 @@ const isEntryBuilderCall = (
         Option.exists(
           apiCallKey(references, builderCall),
           key => key === 'Subscription.make' || key === 'ManagedResource.make',
+        ) ||
+        ['makeSubscriptions', 'makeManagedResources'].some(method =>
+          isOwnedDefinitionCallee(
+            builderCall.callee,
+            method,
+            references,
+            filename,
+          ),
         ),
     )
   }
@@ -972,6 +981,7 @@ const handlerConfigValue = (
 const handlerConstructorArgument = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   call: ESTree.CallExpression,
+  filename: string | undefined,
 ): Option.Option<ESTree.Node> => {
   if (isToLayerCall(call) && call.arguments.length === 1) {
     return Array.head(call.arguments)
@@ -986,11 +996,16 @@ const handlerConstructorArgument = (
           key === 'Mount.defineStream')) ||
       (call.arguments.length === 1 && key === 'Query.define'),
   )
+  const isOwnedDefinition =
+    call.arguments.length === 2 &&
+    ['makeCommand', 'makeMount', 'makeMountStream'].some(method =>
+      isOwnedDefinitionCallee(call.callee, method, references, filename),
+    )
   const isEntry =
     (call.arguments.length === 2 || call.arguments.length === 3) &&
-    isEntryBuilderCall(references, call)
+    isEntryBuilderCall(references, call, filename)
 
-  return isDefinition || isEntry
+  return isDefinition || isOwnedDefinition || isEntry
     ? pipe(
         call.arguments,
         Array.last,
@@ -1012,6 +1027,7 @@ const handlerConstructorValue = (
 const enclosingHandlerConstructor = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   node: ESTree.Node,
+  filename: string | undefined,
 ): Option.Option<ESTree.Node> => {
   const parent = node.parent
   if (parent === null) {
@@ -1019,13 +1035,13 @@ const enclosingHandlerConstructor = (
   }
 
   if (parent.type === 'CallExpression') {
-    const maybeBuild = handlerConstructorArgument(references, parent)
+    const maybeBuild = handlerConstructorArgument(references, parent, filename)
     if (Option.isSome(maybeBuild)) {
       return maybeBuild
     }
   }
 
-  return enclosingHandlerConstructor(references, parent)
+  return enclosingHandlerConstructor(references, parent, filename)
 }
 
 const variableHandlerUse = (
@@ -1034,6 +1050,7 @@ const variableHandlerUse = (
   variable: Variable,
   fn: ESTree.ArrowFunctionExpression | ESTree.Function,
   visited: Set<Variable>,
+  filename: string | undefined,
 ): HandlerUse => {
   if (!isImmutableLocalVariable(variable) || visited.has(variable)) {
     return { isHandler: false, isUnsafe: true }
@@ -1055,7 +1072,11 @@ const variableHandlerUse = (
       continue
     }
 
-    const maybeBuild = enclosingHandlerConstructor(references, identifier)
+    const maybeBuild = enclosingHandlerConstructor(
+      references,
+      identifier,
+      filename,
+    )
     if (
       Option.exists(maybeBuild, build =>
         Option.exists(handlerConstructorValue(build, references), handler =>
@@ -1081,6 +1102,7 @@ const variableHandlerUse = (
           maybeContainer.value,
           fn,
           path,
+          filename,
         ),
       )
       continue
@@ -1100,8 +1122,9 @@ const isConstructedHandlerFunction = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   definitions: WeakMap<ESTree.Node, Variable> | undefined,
   fn: ESTree.ArrowFunctionExpression | ESTree.Function,
+  filename: string | undefined,
 ): boolean => {
-  const maybeBuild = enclosingHandlerConstructor(references, fn)
+  const maybeBuild = enclosingHandlerConstructor(references, fn, filename)
   if (
     Option.exists(maybeBuild, build =>
       Option.exists(handlerConstructorValue(build, references), handler =>
@@ -1123,6 +1146,7 @@ const isConstructedHandlerFunction = (
       variable,
       fn,
       new Set(),
+      filename,
     )
     return use.isHandler && !use.isUnsafe
   })
@@ -1132,9 +1156,10 @@ const isDeferredFunction = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   definitions: WeakMap<ESTree.Node, Variable> | undefined,
   fn: ESTree.ArrowFunctionExpression | ESTree.Function,
+  filename: string | undefined,
 ): boolean =>
   isEffectOrStreamCallback(references, fn) ||
-  isConstructedHandlerFunction(references, definitions, fn)
+  isConstructedHandlerFunction(references, definitions, fn, filename)
 
 const pureAuthoringMethods = [
   'makeInit',
@@ -1327,7 +1352,7 @@ const isInsideEffectBoundary = (
     return false
   }
   if (isFunction(parent)) {
-    if (isDeferredFunction(references, definitions, parent)) {
+    if (isDeferredFunction(references, definitions, parent, filename)) {
       return true
     }
     if (isPureAuthoringFunction(references, definitions, filename, parent)) {

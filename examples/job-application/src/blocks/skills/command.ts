@@ -1,9 +1,9 @@
 import { Effect } from 'effect'
 import { SecureRandom } from 'effect/crypto'
 
-import { Message, SkillsDefinition } from './definition'
+import { Message, SkillsBlock } from './definition'
 
-export const GenerateSkillsEntryId = SkillsDefinition.makeCommand(
+export const GenerateSkillsEntryId = SkillsBlock.makeCommand(
   'GenerateSkillsEntryId',
   {
     messages: [Message.CompletedGenerateSkillsEntryId],

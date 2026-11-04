@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -26,9 +26,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const PlanPickerKey = Symbol('PlanPicker')
+export const PlanPickerKey = Symbol('PlanPicker')
 
-const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
+export const PlanPickerBlock = Block.make('PlanPicker', {
   key: PlanPickerKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -36,7 +36,7 @@ const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Message,
 })
 
-const { makeFieldsStep } = PlanPickerDefinition
+const { makeFieldsStep } = PlanPickerBlock
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
@@ -50,7 +50,7 @@ const descriptions: Record<Plan, string> = {
 // arm carries the chosen value (typed as `Plan`) and its index, and returns
 // a parent Step. This arm is also where the parent updates its own state or
 // dispatches Commands, for example to persist the choice or price the order.
-const foldPlanRadioGroupOutMessage = PlanPickerDefinition.makeOutMessageFold(
+const foldPlanRadioGroupOutMessage = PlanPickerBlock.makeOutMessageFold(
   PlanRadioGroup,
   {
     Selected: ({ value }) =>
@@ -62,12 +62,12 @@ const foldPlanRadioGroupOutMessage = PlanPickerDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const PlanRadioGroupBinding = PlanPickerDefinition.makeBinding(PlanRadioGroup, {
+const PlanRadioGroupBinding = PlanPickerBlock.makeBinding(PlanRadioGroup, {
   field: 'planRadioGroup',
   init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldPlanRadioGroupOutMessage })
 
-const PlanPickerComposition = PlanPickerDefinition.makeComposition({
+const PlanPickerComposition = PlanPickerBlock.makeComposition({
   bindings: [PlanRadioGroupBinding],
 })
 
@@ -123,7 +123,7 @@ const view = PlanPickerComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = PlanPickerDefinition.makeBlock(
+export const layer = PlanPickerBlock.makeLayer(
   Effect.gen(function* () {
     const planRadioGroup = yield* PlanRadioGroupBinding
 
@@ -134,4 +134,4 @@ export const ApplicationBlock = PlanPickerDefinition.makeBlock(
       view,
     }
   }),
-).provide(RadioGroupLayer)
+).pipe(Layer.provide(RadioGroupLayer))

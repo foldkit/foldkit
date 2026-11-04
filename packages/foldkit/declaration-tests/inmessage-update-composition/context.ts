@@ -13,7 +13,7 @@ export const Message = defineMessageUnion({
 export const InMessage = defineMessageUnion({
   RequestedValue: { value: Schema.Number },
 })
-const Definition = Block.makeDefinition('InputContexts', {
+export const ContextBlock = Block.make('InputContexts', {
   key: ContextKey,
   Model,
   Message,
@@ -25,7 +25,7 @@ const Definition = Block.makeDefinition('InputContexts', {
       readonly [label?: string, ...parts: ReadonlyArray<string>]
     >(),
 })
-const Composition = Definition.makeComposition()
+const Composition = ContextBlock.makeComposition()
 const base = Composition.makeInMessageUpdate.withContext(
   (label = 'Default', ...parts: ReadonlyArray<string>) => ({
     RequestedValue: (model, { value }) => ({
@@ -49,7 +49,7 @@ export const inputBundle = Composition.makeInMessageUpdate.compose(
     model: modifyFields(model, { before: values => [...values, before.value] }),
   })),
 )
-export const ContextBlock = Definition.makeBlock(
+export const contextLayer = ContextBlock.makeLayer(
   Effect.succeed({
     children: [],
     init: Composition.makeInit(() => ({

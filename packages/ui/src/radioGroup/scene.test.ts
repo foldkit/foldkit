@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
@@ -25,7 +25,7 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 const RadioGroupSceneKey = Symbol('RadioGroupScene')
-const RadioGroupSceneDefinition = Block.makeDefinition('RadioGroupScene', {
+const RadioGroupSceneBlock = Block.make('RadioGroupScene', {
   key: RadioGroupSceneKey,
   Model,
   Message: Schema.Never,
@@ -38,7 +38,7 @@ const givenSelection = (maybeSelectedValue: Option.Option<string>) =>
   Scene.init(maybeSelectedValue)
 const givenNothingSelected = givenSelection(Option.none())
 
-const foldRadioGroupOutMessage = RadioGroupSceneDefinition.makeOutMessageFold(
+const foldRadioGroupOutMessage = RadioGroupSceneBlock.makeOutMessageFold(
   TestRadioGroup,
   {
     Selected:
@@ -51,15 +51,12 @@ const foldRadioGroupOutMessage = RadioGroupSceneDefinition.makeOutMessageFold(
   },
 )
 
-const RadioGroupBinding = RadioGroupSceneDefinition.makeBinding(
-  TestRadioGroup,
-  {
-    field: 'radioGroup',
-    init: { contextToArgs: id => [{ id }] },
-  },
-).withOutMessagePolicy({ fold: foldRadioGroupOutMessage })
+const RadioGroupBinding = RadioGroupSceneBlock.makeBinding(TestRadioGroup, {
+  field: 'radioGroup',
+  init: { contextToArgs: id => [{ id }] },
+}).withOutMessagePolicy({ fold: foldRadioGroupOutMessage })
 
-const RadioGroupSceneComposition = RadioGroupSceneDefinition.makeComposition({
+const RadioGroupSceneComposition = RadioGroupSceneBlock.makeComposition({
   bindings: [RadioGroupBinding],
 })
 
@@ -100,18 +97,21 @@ const init = RadioGroupSceneComposition.makeInit(maybeSelectedValue => ({
   model: { maybeSelectedValue },
   childInitContext: RADIO_ID,
 }))
-const RadioGroupSceneBlock = RadioGroupSceneDefinition.makeBlock(
-  Effect.gen(function* () {
-    const radioGroup = yield* RadioGroupBinding
+const radioGroupScene = {
+  block: RadioGroupSceneBlock,
+  layer: RadioGroupSceneBlock.makeLayer(
+    Effect.gen(function* () {
+      const radioGroup = yield* RadioGroupBinding
 
-    return {
-      children: [radioGroup],
-      init,
-      update,
-      view: rootView,
-    }
-  }),
-).provide(RadioGroupLayer)
+      return {
+        children: [radioGroup],
+        init,
+        update,
+        view: rootView,
+      }
+    }),
+  ).pipe(Layer.provide(RadioGroupLayer)),
+}
 
 const resolveFocusOption = Scene.Command.resolve(
   FocusOption,
@@ -125,7 +125,7 @@ describe('RadioGroup', () => {
   describe('descriptions', () => {
     it.effect('omits aria-describedby by default', () => {
       return Scene.scene(
-        { block: RadioGroupSceneBlock, viewInputs: {} },
+        { block: radioGroupScene, viewInputs: {} },
         givenNothingSelected,
         Scene.expect(option(0)).not.toHaveAttr('aria-describedby'),
         Scene.expect(option(1)).not.toHaveAttr('aria-describedby'),
@@ -135,7 +135,7 @@ describe('RadioGroup', () => {
     it.effect('references descriptions only for matching options', () => {
       return Scene.scene(
         {
-          block: RadioGroupSceneBlock,
+          block: radioGroupScene,
           viewInputs: {
             hasOptionDescription: (_value, index) => index === 1,
           },
@@ -156,7 +156,7 @@ describe('RadioGroup', () => {
       'gives the first option a roving tabindex when nothing is selected',
       () => {
         return Scene.scene(
-          { block: RadioGroupSceneBlock, viewInputs: {} },
+          { block: radioGroupScene, viewInputs: {} },
           givenNothingSelected,
           Scene.expect(option(0)).toHaveAttr('tabIndex', '0'),
           Scene.expect(option(0)).toHaveAttr('data-active', ''),
@@ -170,7 +170,7 @@ describe('RadioGroup', () => {
       'checks the clicked option and moves the roving tabindex onto it',
       () => {
         return Scene.scene(
-          { block: RadioGroupSceneBlock, viewInputs: {} },
+          { block: radioGroupScene, viewInputs: {} },
           givenNothingSelected,
           Scene.expect(option(1)).toHaveHandler('click'),
           Scene.click(option(1)),
@@ -185,7 +185,7 @@ describe('RadioGroup', () => {
 
     it.effect('moves the selection with the arrow keys', () => {
       return Scene.scene(
-        { block: RadioGroupSceneBlock, viewInputs: {} },
+        { block: radioGroupScene, viewInputs: {} },
         givenSelection(Option.some('Brush')),
         Scene.keydown(option(0), 'ArrowDown'),
         resolveFocusOption,
@@ -196,7 +196,7 @@ describe('RadioGroup', () => {
 
     it.effect('selects the focused option on Space', () => {
       return Scene.scene(
-        { block: RadioGroupSceneBlock, viewInputs: {} },
+        { block: radioGroupScene, viewInputs: {} },
         givenNothingSelected,
         Scene.keydown(option(0), ' '),
         resolveFocusOption,
@@ -207,7 +207,7 @@ describe('RadioGroup', () => {
     it.effect('skips a disabled option when navigating', () => {
       return Scene.scene(
         {
-          block: RadioGroupSceneBlock,
+          block: radioGroupScene,
           viewInputs: { isOptionDisabled: value => value === 'Eraser' },
         },
         givenSelection(Option.some('Fill')),
@@ -223,7 +223,7 @@ describe('RadioGroup', () => {
       () => {
         return Scene.scene(
           {
-            block: RadioGroupSceneBlock,
+            block: radioGroupScene,
             viewInputs: { isOptionDisabled: value => value === 'Brush' },
           },
           givenSelection(Option.some('Brush')),
@@ -238,7 +238,7 @@ describe('RadioGroup', () => {
       'sets type button so a button option does not submit a form',
       () => {
         return Scene.scene(
-          { block: RadioGroupSceneBlock, viewInputs: {} },
+          { block: radioGroupScene, viewInputs: {} },
           givenNothingSelected,
           Scene.expect(option(0)).toHaveAttr('type', 'button'),
           Scene.expect(option(1)).toHaveAttr('type', 'button'),
@@ -249,7 +249,7 @@ describe('RadioGroup', () => {
     it.effect('keeps type button on a disabled option', () => {
       return Scene.scene(
         {
-          block: RadioGroupSceneBlock,
+          block: radioGroupScene,
           viewInputs: { isOptionDisabled: value => value === 'Brush' },
         },
         givenNothingSelected,
@@ -263,7 +263,7 @@ describe('RadioGroup', () => {
       'announces itself with aria-readonly and marks the group and every option',
       () => {
         return Scene.scene(
-          { block: RadioGroupSceneBlock, viewInputs: { isReadOnly: true } },
+          { block: radioGroupScene, viewInputs: { isReadOnly: true } },
           givenSelection(Option.some('Brush')),
           Scene.expect(group).toHaveAttr('aria-readonly', 'true'),
           Scene.expect(group).toHaveAttr('data-readonly', ''),
@@ -278,7 +278,7 @@ describe('RadioGroup', () => {
       'moves focus with the arrow keys without changing the selection',
       () => {
         return Scene.scene(
-          { block: RadioGroupSceneBlock, viewInputs: { isReadOnly: true } },
+          { block: radioGroupScene, viewInputs: { isReadOnly: true } },
           givenSelection(Option.some('Brush')),
           Scene.keydown(option(0), 'ArrowDown'),
           resolveFocusOption,
@@ -296,7 +296,7 @@ describe('RadioGroup', () => {
       'jumps to the last option on End and back to the first on Home',
       () => {
         return Scene.scene(
-          { block: RadioGroupSceneBlock, viewInputs: { isReadOnly: true } },
+          { block: radioGroupScene, viewInputs: { isReadOnly: true } },
           givenSelection(Option.some('Brush')),
           Scene.keydown(option(0), 'End'),
           resolveFocusOption,
@@ -311,7 +311,7 @@ describe('RadioGroup', () => {
 
     it.effect('ignores Space', () => {
       return Scene.scene(
-        { block: RadioGroupSceneBlock, viewInputs: { isReadOnly: true } },
+        { block: radioGroupScene, viewInputs: { isReadOnly: true } },
         givenNothingSelected,
         Scene.keydown(option(1), ' '),
         Scene.expectIgnored(),
@@ -324,7 +324,7 @@ describe('RadioGroup', () => {
       'drops the click handler while keeping the keydown handler',
       () => {
         return Scene.scene(
-          { block: RadioGroupSceneBlock, viewInputs: { isReadOnly: true } },
+          { block: radioGroupScene, viewInputs: { isReadOnly: true } },
           givenNothingSelected,
           Scene.expect(option(1)).not.toHaveHandler('click'),
           Scene.expect(option(1)).toHaveHandler('keydown'),
@@ -339,7 +339,7 @@ describe('RadioGroup', () => {
       () => {
         return Scene.scene(
           {
-            block: RadioGroupSceneBlock,
+            block: radioGroupScene,
             viewInputs: { isReadOnly: true, isDisabled: true },
           },
           givenSelection(Option.some('Brush')),

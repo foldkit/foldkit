@@ -1,4 +1,4 @@
-const forwardDatePickerOutMessage = DateRangeDefinition.makeOutMessageForward(
+const forwardDatePickerOutMessage = DateRangeBlock.makeOutMessageForward(
   DatePickerBlock,
   {
     SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
@@ -6,7 +6,6 @@ const forwardDatePickerOutMessage = DateRangeDefinition.makeOutMessageForward(
   },
 )
 
-export const DatePickerBinding = DateRangeDefinition.makeBinding(
-  DatePickerBlock,
-  { field: 'datePicker' },
-).withOutMessagePolicy({ forward: forwardDatePickerOutMessage })
+export const DatePickerBinding = DateRangeBlock.makeBinding(DatePickerBlock, {
+  field: 'datePicker',
+}).withOutMessagePolicy({ forward: forwardDatePickerOutMessage })

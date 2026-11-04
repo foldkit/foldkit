@@ -82,7 +82,7 @@ The mappings below are starting points, not one-to-one replacements:
 | `useReducer`                                     | The update function and Message union                                                                       |
 | Event-driven side effect                         | A Command returned from update                                                                              |
 | External event source tied to state              | A Subscription gated by Model dependencies                                                                  |
-| DOM work tied to an element                      | `FeatureDefinition.makeMount` or `FeatureDefinition.makeMountStream`                                        |
+| DOM work tied to an element                      | `FeatureBlock.makeMount` or `FeatureBlock.makeMountStream`                                                  |
 | Stateful resource shared with Commands           | ManagedResource                                                                                             |
 | Context used for application state               | The Model                                                                                                   |
 | Context used for services                        | Effect services and Layers                                                                                  |

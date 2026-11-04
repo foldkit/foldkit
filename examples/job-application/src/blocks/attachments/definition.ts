@@ -20,7 +20,7 @@ export type Message = typeof Message.Type
 
 export const AttachmentsKey = Symbol('Attachments')
 
-export const AttachmentsDefinition = Block.makeDefinition('Attachments', {
+export const AttachmentsBlock = Block.make('Attachments', {
   key: AttachmentsKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -28,4 +28,4 @@ export const AttachmentsDefinition = Block.makeDefinition('Attachments', {
   Message,
 })
 
-export const { makeFieldsStep, makeNoopStep } = AttachmentsDefinition
+export const { makeFieldsStep, makeNoopStep } = AttachmentsBlock

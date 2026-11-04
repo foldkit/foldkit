@@ -3,7 +3,7 @@ import { Block } from 'foldkit'
 
 import { TakePhoto } from './command'
 import { CameraComposition } from './composition'
-import { CameraDefinition } from './definition'
+import { CameraBlock } from './definition'
 import { init } from './init'
 import { Message } from './message'
 import type { Model } from './model'
@@ -11,7 +11,7 @@ import { CameraStream } from './resource'
 import { update } from './update'
 import { view } from './view'
 
-const managedResources = CameraDefinition.makeManagedResources(entry => ({
+const managedResources = CameraBlock.makeManagedResources(entry => ({
   camera: entry(
     'ManageCamera',
     Schema.Option(Schema.Struct({ facingMode: Schema.String })),
@@ -43,9 +43,7 @@ const managedResources = CameraDefinition.makeManagedResources(entry => ({
   ),
 }))
 
-export const CameraBlock = CameraDefinition.contract
-
-export const layer = CameraDefinition.makeBlock(
+export const layer = CameraBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -56,4 +54,4 @@ export const layer = CameraDefinition.makeBlock(
       EffectsLayer: Layer.mergeAll(TakePhoto.layer, managedResources.layer),
     }
   }),
-).layer
+)

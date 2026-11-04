@@ -33,6 +33,7 @@
     "repos/",
     "packages/oxlint-plugin-foldkit/test/integration/fixtures/",
     // Generated compiler output and immutable research captures.
+    "probe/",
     "internal/**/measurements/",
     "internal/**/.relocated/",
     "internal/**/artifacts/",

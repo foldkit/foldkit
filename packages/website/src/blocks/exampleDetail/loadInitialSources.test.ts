@@ -9,6 +9,8 @@ import { LoadExampleSources, Message } from './example'
 import { SourceFileTabsBlock } from './fileTabs'
 import type { ExampleSources } from './sources'
 
+const exampleDetailSubject = { block: ExampleDetailBlock, layer }
+
 const sources: ExampleSources = {
   files: [
     {
@@ -19,7 +21,7 @@ const sources: ExampleSources = {
   ],
 }
 
-const makeFixture = (block: TestBlock<typeof ExampleDetailBlock>) => {
+const makeFixture = (block: TestBlock<typeof exampleDetailSubject>) => {
   const init = block.init
   const update = block.update
   const commandNames = (
@@ -35,7 +37,7 @@ const makeFixture = (block: TestBlock<typeof ExampleDetailBlock>) => {
 describe('example detail initial sources', () => {
   test('initializes idle when there is no initial slug, ignoring supplied sources', async () => {
     await Effect.runPromise(
-      withBlock(ExampleDetailBlock, executable => {
+      withBlock(exampleDetailSubject, executable => {
         const { init } = makeFixture(executable)
 
         const unseededInit = init()
@@ -48,13 +50,13 @@ describe('example detail initial sources', () => {
         expect(unseededInit.commands).toEqual([])
         expect(seededInit.model).toEqual(unseededInit.model)
         expect(seededInit.commands).toEqual([])
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('initializes an available unseeded example in Loading with its Command', async () => {
     await Effect.runPromise(
-      withBlock(ExampleDetailBlock, executable => {
+      withBlock(exampleDetailSubject, executable => {
         const { block, init, commandNames } = makeFixture(executable)
 
         const exampleInit = init(Option.some('counter'))
@@ -77,13 +79,13 @@ describe('example detail initial sources', () => {
         expectTypeOf<
           Layer.Services<typeof block.EffectsLayer>
         >().toEqualTypeOf<never>()
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('creates independent Tabs Models for repeated initializations', async () => {
     await Effect.runPromise(
-      withBlock(ExampleDetailBlock, executable => {
+      withBlock(exampleDetailSubject, executable => {
         const { init } = makeFixture(executable)
 
         const firstInit = init(Option.some('counter'))
@@ -102,13 +104,13 @@ describe('example detail initial sources', () => {
         expect(secondInit.model.sourceFileTabs).not.toBe(
           firstInit.model.sourceFileTabs,
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('initializes supplied sources as Success without fetching them', async () => {
     await Effect.runPromise(
-      withBlock(ExampleDetailBlock, executable => {
+      withBlock(exampleDetailSubject, executable => {
         const { init } = makeFixture(executable)
 
         const exampleInit = init(Option.some('counter'), Option.some(sources))
@@ -121,13 +123,13 @@ describe('example detail initial sources', () => {
           Option.some('src/application.ts'),
         )
         expect(exampleInit.commands).toEqual([])
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('initializes an empty supplied source list without a selected file', async () => {
     await Effect.runPromise(
-      withBlock(ExampleDetailBlock, executable => {
+      withBlock(exampleDetailSubject, executable => {
         const { init } = makeFixture(executable)
 
         const emptySources: ExampleSources = { files: [] }
@@ -144,13 +146,13 @@ describe('example detail initial sources', () => {
           Option.none(),
         )
         expect(exampleInit.commands).toEqual([])
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('initializes unavailable examples as idle with or without supplied sources', async () => {
     await Effect.runPromise(
-      withBlock(ExampleDetailBlock, executable => {
+      withBlock(exampleDetailSubject, executable => {
         const { init } = makeFixture(executable)
 
         const baseline = init()
@@ -161,13 +163,13 @@ describe('example detail initial sources', () => {
         expect(unseededInit.commands).toEqual([])
         expect(seededInit.model).toEqual(baseline.model)
         expect(seededInit.commands).toEqual([])
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('route changes reset existing source and child state before loading', async () => {
     await Effect.runPromise(
-      withBlock(ExampleDetailBlock, executable => {
+      withBlock(exampleDetailSubject, executable => {
         const { block, init, update } = makeFixture(executable)
 
         const exampleInit = init(Option.some('counter'), Option.some(sources))
@@ -202,13 +204,13 @@ describe('example detail initial sources', () => {
         expect(routeChange.commands?.map(command => command.name)).toEqual([
           LoadExampleSources.name,
         ])
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 
   test('clears existing sources when routing to an unavailable example', async () => {
     await Effect.runPromise(
-      withBlock(ExampleDetailBlock, executable => {
+      withBlock(exampleDetailSubject, executable => {
         const { block, init, update } = makeFixture(executable)
 
         const exampleInit = init(Option.some('counter'), Option.some(sources))
@@ -234,7 +236,7 @@ describe('example detail initial sources', () => {
           }),
         )
         expect(routeChange.commands).toEqual([])
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 })

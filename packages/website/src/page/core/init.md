@@ -24,13 +24,13 @@ The counter starts at zero and has no startup work:
 
 ::Snippet{name="initSimple" label="Using init"}
 
-A non-routing Program calls `init` with no arguments. A routing Program passes the current URL, so its first Model can reflect the route. When the Program declares Flags, they become the first argument in either form. `ApplicationDefinition.makeBlock` receives `init` explicitly and checks it against the registered child and handler graph. `Program.make` or `Program.makeElement` then checks the initializer's arguments against its Flags and routing configuration.
+A non-routing Program calls `init` with no arguments. A routing Program passes the current URL, so its first Model can reflect the route. When the Program declares Flags, they become the first argument in either form. `ApplicationBlock.makeLayer` receives `init` explicitly and checks it against the registered child and handler graph. `Program.make` or `Program.makeElement` then checks the initializer's arguments against its Flags and routing configuration.
 
 Give `ApplicationComposition.makeInit` one concrete function signature. Optional, default, and rest parameters are supported. Wrap an overloaded domain helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete.
 
 ## Assemble Child Models {#child-initialization}
 
-A completed Block already carries its initializer. The parent Binding decides whether that child should be present at startup and which arguments it receives. Composition calls the selected child initializers, stores their Models, and retains their Commands. The parent init callback supplies only fields the parent owns.
+The child's construction Layer supplies its initializer when the graph is acquired. The parent Binding decides whether that child should be present at startup and which arguments it receives. Acquiring the graph does not run init: Composition calls the selected child initializers when parent init runs, stores their Models, and retains their Commands. The parent init callback supplies only fields the parent owns.
 
 For a child stored in an exact required direct field:
 
@@ -38,7 +38,7 @@ For a child stored in an exact required direct field:
 - Use `init: { contextToArgs }` when the child needs arguments from the parent's child init context.
 - Use `init: false` when the parent supplies that field in the init plan's `model`.
 
-When several Bindings read the same child init context, add a `ChildInitContext` Schema to the parent Definition. That Schema contextually types each `init.contextToArgs` selector. Put its decoded value in the Composition init plan's `childInitContext` field.
+When several Bindings read the same child init context, add a `ChildInitContext` Schema to the parent Block. That Schema contextually types each `init.contextToArgs` selector. Put its decoded value in the Composition init plan's `childInitContext` field.
 
 `contextToArgs` maps that context to the child's initializer arguments. It does not describe the current Block's own init arguments. The separate `Binding.init({ args, toParentModel })` operation takes a concrete argument tuple for one initialization. Keyed `init.instances` also keeps each occurrence's concrete `args` tuple.
 
@@ -66,7 +66,7 @@ The final parent Model determines which initialized occurrences are active. Init
 
 For custom storage or deliberate replacement, call the registered Binding's explicit `init` operation. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. `Binding.init` returns a passive initialization recipe. The recipe has no `.model` or `.commands` fields to project. Standard Instance arrays can instead use the field-Step creation path below.
 
-Return that recipe directly from the owning Composition's `makeInit` callback or `makeUpdate` handler, or preserve it through the owning Definition's `makeStep` producer. The Composition authoring boundary interprets it directly. Checked execution enters the registered graph, then returns the complete parent Model with every lifted child init Command followed by the optional parent Commands. That collection order does not sequence their effects or completion. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and exact Binding requirement at these boundaries.
+Return that recipe directly from the owning Composition's `makeInit` callback or `makeUpdate` handler, or preserve it through the owning Block's `makeStep` producer. The Composition authoring boundary interprets it directly. Checked execution enters the registered graph, then returns the complete parent Model with every lifted child init Command followed by the optional parent Commands. That collection order does not sequence their effects or completion. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and exact Binding requirement at these boundaries.
 
 During checked execution, runtime validation verifies the active composition frame, validates the complete parent Model against its Schema, checks that `toParentModel` stores a schema-equivalent initialized child, and checks that a keyed result contains exactly one occurrence with the requested key. These guards protect JavaScript with erased types and operations captured for later execution. Ordinary Model construction remains available for fixtures and other pure values.
 
@@ -107,7 +107,7 @@ For example, assume `MaybeRoomInstanceBinding` declares `field: 'maybeRoomInstan
 
 Direct fields need no startup policy for `initAndSet`. A custom unkeyed accessor may reuse an existing `init.toParentFields` projection. Keep explicit `Binding.init` when creating additional wrapper metadata, changing sibling fields, selecting a different accessor target, adding parent Commands, or replacing an entire tagged parent variant. Do not add a startup policy solely to enable a helper.
 
-For a direct-value map created with `ParentDefinition.makeMapBinding`, insertion keeps every other entry and rejects an occupied key before child init. Assume `EditorsBinding` stores Issue editor Models by Issue ID:
+For a direct-value map created with `ParentBlock.makeMapBinding`, insertion keeps every other entry and rejects an occupied key before child init. Assume `EditorsBinding` stores Issue editor Models by Issue ID:
 
 ::Snippet{name="initInsertMappedChild" label="Inserting a mapped child"}
 
@@ -115,7 +115,7 @@ When an existing child should be retained, use `makeInitIfMissingStep(Binding, {
 
 ::Snippet{name="initMappedChildIfMissing" label="Retaining a mapped child"}
 
-Pass the Step directly to `Update.combineSteps` or a compatible update handler. Use the owning Definition's `makeStep` when a producer selects or combines Steps. Keep entity lookup and handling of unknown URL IDs in the application.
+Pass the Step directly to `Update.combineSteps` or a compatible update handler. Use the owning Block's `makeStep` when a producer selects or combines Steps. Keep entity lookup and handling of unknown URL IDs in the application.
 
 Wrapped maps keep explicit construction so the parent supplies their metadata. Keyed identity identifies an occurrence; it does not require storing multiple children. Same-key reinitialization does not create a fresh generation or cancel pending work. Replacing a keyed Option with a different key follows ordinary occurrence removal and creation.
 
@@ -139,7 +139,7 @@ A keyed-array Binding can declare `init.instances` and `init.toItem`. The first 
 
 Return each wrapper as a plain record so its child field keeps the exact initialized object. A wrapper Schema constructor may reconstruct that child and fail the identity check. Composition constructs the full parent Model through its Schema after collecting these records.
 
-The following custom-wrapper example starts three Counter instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` returns a `CountersBinding.init({ key, args, toParentModel })` recipe, so the Definition defers initialization until it can produce the parent result with the child init Commands:
+The following custom-wrapper example starts three Counter instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` returns a `CountersBinding.init({ key, args, toParentModel })` recipe, so Composition defers initialization until it can produce the parent result with the child init Commands:
 
 ::Snippet{name="initKeyedChildren" label="Initializing keyed child instances"}
 
@@ -185,7 +185,7 @@ Define the boundary with a Flags Schema. For a fresh client start, also define a
 
 ### Fresh Client Start
 
-This compact Counter keeps the graphless root in `application.ts` with its Model, Message, init, update, view, and `ApplicationBlock`. Because the Definition has no other use, it creates `ApplicationComposition` with a top-level `Block.makeDefinition('Application', ...).makeComposition()` chain. The entry imports the Block and passes the Schema to `Program.make` as `Flags`.
+The Counter declares `ApplicationBlock` once and authors its graphless Composition from that declaration. Its construction `layer` returns the portable init, update, and view plans. The entry passes `{ block: ApplicationBlock, layer }` and the Flags Schema to `Program.make`.
 
 ::Snippet{name="counterApplicationWithFlags" label="Assembling the Application Block"}
 
@@ -203,7 +203,7 @@ The Flags Effect leaves `KeyValueStore` in its requirements, and the Program sup
 
 #### Server-Supplied Flags
 
-Server rendering provides Flags from the request or build instead of running a client Flags Effect. `Server.renderToString(ApplicationBlock, { Flags }, { flags })` uses that value to call the Block's `init`, encodes it through the Schema, and embeds the result in the HTML. `Runtime.hydrate` decodes the same value and calls the same `init`, so the client reconstructs the Model that produced the server HTML.
+Server rendering provides Flags from the request or build instead of running a client Flags Effect. `Server.renderToString({ block: ApplicationBlock, layer }, { Flags }, { flags })` acquires the selected executable and calls init with those Flags. It encodes the startup data through the Schema and embeds it in the HTML. `Runtime.hydrate` acquires the browser graph, decodes the same startup data and calls the same init, so the client reconstructs the Model that produced the server HTML.
 
 #### Handoff Validation
 

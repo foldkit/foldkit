@@ -5,7 +5,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { SubmitForm, ValidateEmail } from './command'
 import { initialModel } from './init'
 import { Message } from './message'
@@ -20,7 +20,7 @@ describe('update', () => {
   describe('name field', () => {
     it.effect('typing a long name produces a Valid field', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.UpdatedName({ value: 'Alice' })),
         model(model => {
@@ -34,7 +34,7 @@ describe('update', () => {
       'typing a short name produces an Invalid field with the min-length error',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           message(Message.UpdatedName({ value: 'A' })),
           model(model => {
@@ -54,7 +54,7 @@ describe('update', () => {
       'typing a well-formed email transitions to Validating and fires ValidateEmail',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           message(Message.UpdatedEmail({ value: 'alice@example.com' })),
           model(model => {
@@ -77,7 +77,7 @@ describe('update', () => {
       'typing a malformed email produces Invalid without an async command',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(initialModel),
           message(Message.UpdatedEmail({ value: 'not-an-email' })),
           Command.expectNone(),
@@ -96,7 +96,7 @@ describe('update', () => {
         })
 
         return story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(inFlightModel),
           message(
             Message.CompletedValidateEmail({
@@ -119,7 +119,7 @@ describe('update', () => {
         })
 
         return story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(inFlightModel),
           message(
             Message.CompletedValidateEmail({
@@ -140,7 +140,7 @@ describe('update', () => {
   describe('message text field', () => {
     it.effect('UpdatedMessageText stores the value as Valid', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.UpdatedMessageText({ value: 'Hello there.' })),
         model(model => {
@@ -154,7 +154,7 @@ describe('update', () => {
   describe('submission', () => {
     it.effect('ClickedFormSubmit on an invalid form is ignored', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ClickedFormSubmit()),
         Command.expectNone(),
@@ -168,7 +168,7 @@ describe('update', () => {
       'ClickedFormSubmit on a valid form fires SubmitForm and enters Submitting',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(validModel),
           message(Message.ClickedFormSubmit()),
           model(model => {
@@ -190,7 +190,7 @@ describe('update', () => {
 
     it.effect('FailedSubmitForm sets SubmitError', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(validModel),
         message(Message.ClickedFormSubmit()),
         Command.resolve(SubmitForm, Message.FailedSubmitForm()),

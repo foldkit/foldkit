@@ -3,7 +3,7 @@ import { Effect, Layer } from 'effect'
 import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
 
 import { NoteDurationRadioGroupBinding } from './composition'
-import { NotePlayerDemoDefinition } from './definition'
+import { NotePlayerDemoBlock } from './definition'
 import {
   EffectsLayer,
   init,
@@ -12,9 +12,7 @@ import {
   view,
 } from './notePlayerDemo'
 
-export const NotePlayerDemoBlock = NotePlayerDemoDefinition.contract
-
-const block = NotePlayerDemoDefinition.makeBlock(
+export const layer = NotePlayerDemoBlock.makeLayer(
   Effect.gen(function* () {
     const noteDurationRadioGroup = yield* NoteDurationRadioGroupBinding
 
@@ -27,5 +25,6 @@ const block = NotePlayerDemoDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(RadioGroupLayer))
-export const layer = block.layer
+).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
+
+export { NotePlayerDemoBlock }

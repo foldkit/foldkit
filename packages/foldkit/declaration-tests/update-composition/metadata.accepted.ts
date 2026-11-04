@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import type * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
@@ -11,18 +11,18 @@ import type { PlanOutput } from './types.js'
 import { editDocument, update } from './update.js'
 
 export const MessageFreeKey = Symbol('MessageFreeComposition')
-const MessageFreeDefinition = Block.makeDefinition('MessageFreeComposition', {
+export const MessageFreeBlock = Block.make('MessageFreeComposition', {
   key: MessageFreeKey,
   Model: Schema.Struct({ count: Schema.Number }),
   Message: Schema.Never,
   Init: Schema.Tuple([]),
   isMessageFree: true,
 })
-const MessageFreeComposition = MessageFreeDefinition.makeComposition()
+const MessageFreeComposition = MessageFreeBlock.makeComposition()
 export const messageFreeUpdate = MessageFreeComposition.makeUpdate.compose(
   MessageFreeComposition.makeUpdate({}),
 )
-export const MessageFreeBlock = MessageFreeDefinition.makeBlock(
+export const messageFreeLayer = MessageFreeBlock.makeLayer(
   Effect.succeed({
     children: [],
     init: MessageFreeComposition.makeInit(() => ({ model: { count: 0 } })),
@@ -31,26 +31,26 @@ export const MessageFreeBlock = MessageFreeDefinition.makeBlock(
 )
 
 export const RoutedKey = Symbol('RoutedComposition')
-const RoutedDefinition = Block.makeDefinition('RoutedComposition', {
+export const RoutedBlock = Block.make('RoutedComposition', {
   key: RoutedKey,
   Model: Schema.Struct({ editor: Editor.EditorBlock.Model }),
   Message: Schema.Never,
   Init: Schema.Tuple([]),
 })
-const RoutedEditorBinding = RoutedDefinition.makeBinding(Editor.EditorBlock, {
+const RoutedEditorBinding = RoutedBlock.makeBinding(Editor.EditorBlock, {
   field: 'editor',
 }).withOutMessagePolicy({
-  fold: RoutedDefinition.makeOutMessageFold(Editor.EditorBlock, {
-    Edited: RoutedDefinition.makeNoopStep,
+  fold: RoutedBlock.makeOutMessageFold(Editor.EditorBlock, {
+    Edited: RoutedBlock.makeNoopStep,
   }),
 })
-const RoutedComposition = RoutedDefinition.makeComposition({
+const RoutedComposition = RoutedBlock.makeComposition({
   bindings: [RoutedEditorBinding],
 })
 export const routedUpdate = RoutedComposition.makeUpdate.compose(
   RoutedComposition.makeUpdate({}),
 )
-export const RoutedBlock = RoutedDefinition.makeBlock(
+export const routedLayer = RoutedBlock.makeLayer(
   Effect.gen(function* () {
     const editor = yield* RoutedEditorBinding
 
@@ -60,7 +60,7 @@ export const RoutedBlock = RoutedDefinition.makeBlock(
       update: routedUpdate,
     }
   }),
-).provide(Editor.layer)
+).pipe(Layer.provide(Editor.layer))
 
 const FamilyMessage = defineMessageUnion({ CompletedRefresh: {} })
 export const GenericKey = Symbol('GenericComposition')

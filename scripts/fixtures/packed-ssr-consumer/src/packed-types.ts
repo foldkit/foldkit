@@ -13,6 +13,7 @@ import type {
   ResponseOptions,
   StaticRenderOptions,
 } from 'foldkit/experimental/server'
+import type * as LibraryBlock from 'foldkit/internal/block'
 import type { HydrateOptions } from 'foldkit/runtime'
 
 const hydratable: HydratableRenderOptions = { buildId: 'deployment-1' }
@@ -34,3 +35,8 @@ export type Used = [
 ]
 
 export const count = either.length + Number(hydrate.buildId === '')
+
+export type LibraryFamilyEntries = readonly [
+  typeof LibraryBlock.makeFamilyDeclaration,
+  typeof LibraryBlock.resolveFamily,
+]
