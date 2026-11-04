@@ -22,7 +22,7 @@ repository migration, passed component checks and remaining combined gates.
 - [x] Review the exact migration commits and integrate preview head `b36cb7c5ad`.
 - [x] Record both complete rendering batches and the bounded profile/Set trial.
       Retain all 64 samples and the unresolved optimized runtime gap.
-- [ ] Review the evidence update and push through the required checks. Keep
+- [x] Review the evidence update and push through the required checks. Keep
       publication held; compiler acceptance does not accept rendering costs.
 - [x] Refresh feedback through November 4 at 08:40 UTC. No new actionable replies;
       assess the new attribute performance contribution, PR #1882.
@@ -30,6 +30,13 @@ repository migration, passed component checks and remaining combined gates.
 - [x] Address PR #1883's paired Scene specialization Error/Service finding with
       exact Source, emitted, relocated and runtime controls. Preserve runtime JS.
 - [x] Refresh feedback again through 09:10 UTC; no other new actionable item.
+- [x] Refresh feedback again through 10:11 UTC; no new actionable item.
+- [x] Finish the standalone VirtualList and plugin execution fixture migration.
+      All 87 browser cases pass with the original 21 skips; the readiness
+      negative control, source checks for 16 fixture modules and 188 plugin
+      tests pass.
+- [ ] Integrate PR #1883 through exact-commit review, the mandatory push hook
+      and its required CI checks. Preserve publication and Daybreak holds.
 
 Daybreak source transfer remains explicitly on hold.
 

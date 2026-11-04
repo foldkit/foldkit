@@ -37,8 +37,13 @@ records a 10.42% naive and 29.69% optimized execution-time increase against actu
 main, plus 43,981/44,615 gzip bytes. All 64 samples from both batches remain.
 The bounded Mount-validation bookkeeping trial preserves all checks but does not
 establish an optimized speedup. These runtime and bundle costs need review;
-the user's compiler-cost acceptance does not accept them. Final push remains
-pending; the adoption report records integration status.
+the user's compiler-cost acceptance does not accept them. The migration is
+pushed through `9c276260f9` in [PR #1883](https://github.com/foldkit/foldkit/pull/1883).
+Its [standalone fixture follow-up](block-api-simplification/execution-fixtures-20261104.md)
+passes all 87 browser cases with the original 21 skips, the resize-readiness
+negative control, source checks for 16 fixture modules and 188 plugin tests.
+Exact review and required checks precede integration; the adoption report records
+current status.
 Publication and Daybreak source transfer remain held. Only #1662 and #1663
 have an explicit post-main deferral.
 

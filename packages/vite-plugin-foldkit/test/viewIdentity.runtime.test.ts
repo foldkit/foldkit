@@ -16,10 +16,15 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationComposition = Block.makeDefinition('Application', {
+const ApplicationKey = Symbol('Application')
+const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
   Model,
   Message,
-}).makeComposition()
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+})
+const ApplicationComposition = ApplicationBlock.makeComposition()
 
 const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ mode: 'Viewing' }),
@@ -174,19 +179,18 @@ const withRunningApp = async (
   view: View,
   run: () => Promise<void>,
 ): Promise<void> => {
-  const prepare = () =>
-    ApplicationComposition.prepareBlock({
+  const layer = ApplicationBlock.makeLayer(
+    Effect.succeed({
+      children: [],
       init,
       update,
       view: ApplicationComposition.makeView(model => view(model)),
       EffectsLayer: Layer.empty,
-    })
-  const ApplicationBlock: Block.FromAssemblyWithView<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
+    }),
+  )
   const element = Program.makeElement({
     block: ApplicationBlock,
+    layer,
     container,
   })
   const fiber = Effect.runFork(element.start())
