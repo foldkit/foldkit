@@ -18,6 +18,7 @@ export type {
   DeferredCombinedStepsPolicy,
   DeferredResultEvidence,
   GraphCapability,
+  NoRegistrationEvidence,
   RegistrationEvidence,
   RegistrationEvidenceOf,
   ResultRecipe,

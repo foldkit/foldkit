@@ -2,6 +2,7 @@ import { Context, Effect, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import { Command, inMessage, init, story, withBlock } from 'foldkit/story'
+import * as Update from 'foldkit/update'
 
 export const Model = Schema.Struct({ count: Schema.Number })
 export type Model = typeof Model.Type
@@ -83,3 +84,16 @@ export const acquiredInput = withBlock(
       2,
     ).model,
 )
+
+export const acquiredCurriedContext = withBlock(subject, executable => {
+  const applyCompletedSave = (model: Model) =>
+    executable.update(Message.CompletedSave({ value: 2 }))(model, 'local')
+  const incrementCount = CounterBlock.makeFieldsStep(() => ({
+    count: count => count + 1,
+  }))
+
+  return Update.combineSteps(executable.init().model, [
+    applyCompletedSave,
+    incrementCount,
+  ])
+})

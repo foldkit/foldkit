@@ -22,3 +22,8 @@ counter.inMessageUpdate(model, requestedSet, 'wrong')
 counter.inMessageUpdate(model, completedSave, 2)
 // @ts-expect-error InMessages cannot be delivered through the local update entry point.
 counter.update(model, requestedSet, 'local')
+
+// @ts-expect-error A curried local update retains its string Context.
+counter.update(completedSave)(model, 1)
+// @ts-expect-error A curried local update retains the exact Message payload.
+counter.update({ _tag: 'CompletedSave', value: 'wrong' })(model, 'local')

@@ -1,12 +1,15 @@
 import type { Effect, Layer } from 'effect'
 import type * as Block from 'foldkit/block'
 import type { TestBlock } from 'foldkit/story'
+import type * as Update from 'foldkit/update'
 
 import {
   CounterBlock,
   InMessage,
   Message,
+  type Model,
   Store,
+  acquiredCurriedContext,
   acquiredInput,
   scenario,
   subject,
@@ -45,4 +48,22 @@ export type PureStoryNeedsNoHandlerService = Assert<
 >
 export type ScopedInputNeedsNoHandlerService = Assert<
   Equal<Effect.Services<typeof acquiredInput>, never>
+>
+
+type CurriedContextResult = Effect.Success<typeof acquiredCurriedContext>
+export type ExactCurriedContextModel = Assert<
+  Equal<CurriedContextResult['model'], Model>
+>
+export type CurriedContextHasNoRegistration = Assert<
+  Equal<Update.RegistrationEvidenceOf<CurriedContextResult>, never>
+>
+export type CurriedContextNeedsNoHandlerService = Assert<
+  Equal<Effect.Services<typeof acquiredCurriedContext>, never>
+>
+
+export type ExactAbsentEvidenceShape = Assert<
+  Equal<
+    Update.NoRegistrationEvidence,
+    Readonly<{ [Key in typeof Update.RegistrationEvidenceTypeId]?: never }>
+  >
 >
