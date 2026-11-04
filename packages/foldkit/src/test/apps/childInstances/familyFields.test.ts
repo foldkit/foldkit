@@ -51,8 +51,9 @@ it('rejects erased family members that replace the declared Instance Schema', ()
 })
 
 it('rejects erased layer-family conveniences that replace the ready Instance Schema', () => {
+  const LayerFamilyInstanceReviewKey = Symbol('LayerFamilyInstanceReview')
   const Definition = makeFamilyDeclaration('LayerFamilyInstanceReview', {
-    key: Symbol('LayerFamilyInstanceReview'),
+    key: LayerFamilyInstanceReviewKey,
     Model: Schema.Number,
     Message: Schema.Never,
     isMessageFree: true,
