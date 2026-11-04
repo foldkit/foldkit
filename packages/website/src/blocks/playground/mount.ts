@@ -14,7 +14,7 @@ import {
   type EditedPlaygroundFile,
   type FailedMountPlaygroundEditor,
   Message,
-  PlaygroundDefinition,
+  PlaygroundBlock,
   type SucceededMountPlaygroundEditor,
 } from './definition'
 import { reasonFromError } from './playgroundWebContainer'
@@ -274,7 +274,7 @@ const streamPlaygroundEditorMessages = (
     ),
   )
 
-export const MountPlaygroundEditor = PlaygroundDefinition.makeMountStream(
+export const MountPlaygroundEditor = PlaygroundBlock.makeMountStream(
   'MountPlaygroundEditor',
   {
     args: {

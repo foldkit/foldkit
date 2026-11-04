@@ -9,7 +9,7 @@ import type { ViewInputs } from './viewInputs'
 
 export const ExampleDetailKey = Symbol('ExampleDetail')
 
-export const ExampleDetailDefinition = Block.makeDefinition('ExampleDetail', {
+export const ExampleDetailBlock = Block.make('ExampleDetail', {
   key: ExampleDetailKey,
   Init: Schema.Tuple([
     Schema.optional(Schema.Option(Schema.String)),
@@ -21,4 +21,4 @@ export const ExampleDetailDefinition = Block.makeDefinition('ExampleDetail', {
   InMessage,
 })
 
-export const { makeFieldsStep, makeStep } = ExampleDetailDefinition
+export const { makeFieldsStep, makeStep } = ExampleDetailBlock

@@ -10,16 +10,14 @@ import {
   NotePlayerDemoBinding,
   PlaygroundMenuBinding,
 } from './composition'
-import { HomeDefinition } from './definition'
+import { HomeBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
 export { view } from './view'
 
-export const HomeBlock = HomeDefinition.contract
-
-const block = HomeDefinition.makeBlock(
+export const layer = HomeBlock.makeLayer(
   Effect.gen(function* () {
     const asyncCounterDemo = yield* AsyncCounterDemoBinding
     const demoTabs = yield* DemoTabsBinding
@@ -33,12 +31,15 @@ const block = HomeDefinition.makeBlock(
       view,
     }
   }),
-).provide(
-  Layer.mergeAll(
-    AsyncCounterDemo.layer,
-    NotePlayerDemo.layer,
-    TabsLayer,
-    MenuLayer,
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      AsyncCounterDemo.layer,
+      NotePlayerDemo.layer,
+      TabsLayer,
+      MenuLayer,
+    ),
   ),
 )
-export const layer = block.layer
+
+export { HomeBlock }

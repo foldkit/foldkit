@@ -1,4 +1,4 @@
-import { Array, Duration, Effect } from 'effect'
+import { Array, Duration } from 'effect'
 import { Command, init, message, model, story } from 'foldkit/story'
 import { describe, expect } from 'vitest'
 
@@ -7,6 +7,8 @@ import { it } from '@effect/vitest'
 import { DelayAdvanceAsyncCounterPhase } from './asyncCounterDemo'
 import { AsyncCounterDemoBlock, layer } from './block'
 import { Message } from './definition'
+
+const asyncCounterDemoSubject = { block: AsyncCounterDemoBlock, layer }
 
 const INCREMENT_PHASE_STEPS = 3
 const DURATION_PHASE_STEPS = 3
@@ -26,7 +28,7 @@ const advancePhases = (steps: number, generation: number) =>
 describe('async counter demo', () => {
   it.effect('Add 1 runs the increment animation and keeps the count', () =>
     story(
-      AsyncCounterDemoBlock,
+      asyncCounterDemoSubject,
       init(),
       message(Message.ClickedDemoIncrement()),
       model(model => {
@@ -40,14 +42,14 @@ describe('async counter demo', () => {
         expect(model.phase).toBe('Idle')
         expect(model.count).toBe(1)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect(
     'a reset holds isResetting until the delay lands, then zeroes',
     () =>
       story(
-        AsyncCounterDemoBlock,
+        asyncCounterDemoSubject,
         init(),
         message(Message.ClickedDemoIncrement()),
         Command.resolveAll(...advancePhases(INCREMENT_PHASE_STEPS, 1)),
@@ -63,12 +65,12 @@ describe('async counter demo', () => {
           expect(model.phase).toBe('Idle')
           expect(model.messageLog).toContain('CompletedDelayReset')
         }),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 
   it.effect('changing the delay runs its own Message animation', () =>
     story(
-      AsyncCounterDemoBlock,
+      asyncCounterDemoSubject,
       init(),
       message(Message.ChangedDemoResetDuration({ seconds: 4 })),
       model(model => {
@@ -83,40 +85,40 @@ describe('async counter demo', () => {
         expect(model.phase).toBe('Idle')
         expect(model.resetDuration).toBe(4)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect(
     'a delay below the allowed range is clamped before it reaches the Model',
     () =>
       story(
-        AsyncCounterDemoBlock,
+        asyncCounterDemoSubject,
         init(),
         message(Message.ChangedDemoResetDuration({ seconds: 0 })),
         model(model => {
           expect(model.resetDuration).toBe(1)
         }),
         Command.resolveAll(...advancePhases(DURATION_PHASE_STEPS, 1)),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 
   it.effect(
     'a delay above the allowed range is clamped before it reaches the Model',
     () =>
       story(
-        AsyncCounterDemoBlock,
+        asyncCounterDemoSubject,
         init(),
         message(Message.ChangedDemoResetDuration({ seconds: 99 })),
         model(model => {
           expect(model.resetDuration).toBe(5)
         }),
         Command.resolveAll(...advancePhases(DURATION_PHASE_STEPS, 1)),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 
   it.effect('the reset Command waits the delay the Model reports', () =>
     story(
-      AsyncCounterDemoBlock,
+      asyncCounterDemoSubject,
       init(),
       message(Message.ChangedDemoResetDuration({ seconds: 0 })),
       model(model => {
@@ -141,14 +143,14 @@ describe('async counter demo', () => {
         expect(model.phase).toBe('Idle')
         expect(model.count).toBe(0)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect(
     'a stale phase Message from a superseded interaction is ignored',
     () =>
       story(
-        AsyncCounterDemoBlock,
+        asyncCounterDemoSubject,
         init(),
         message(Message.ClickedDemoIncrement()),
         Command.resolveAll(...advancePhases(INCREMENT_PHASE_STEPS, 1)),
@@ -164,6 +166,6 @@ describe('async counter demo', () => {
         model(model => {
           expect(model.phase).toBe('ResetMessage')
         }),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 })

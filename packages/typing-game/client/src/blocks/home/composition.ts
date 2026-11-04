@@ -1,6 +1,6 @@
 import type { Block } from 'foldkit'
 
-import { HomeDefinition } from './definition'
+import { HomeBlock } from './definition'
 
-export const HomeComposition = HomeDefinition.makeComposition()
+export const HomeComposition = HomeBlock.makeComposition()
 export type HomeViewBuilder = Block.ViewBuilderFor<typeof HomeComposition>

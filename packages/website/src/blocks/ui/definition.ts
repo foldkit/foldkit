@@ -8,7 +8,7 @@ import type { ViewInputs } from './viewInputs'
 
 export const UiKey = Symbol('Ui')
 
-export const UiDefinition = Block.makeDefinition('Ui', {
+export const UiBlock = Block.make('Ui', {
   key: UiKey,
   Init: Schema.Tuple([CalendarDate]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
@@ -17,4 +17,4 @@ export const UiDefinition = Block.makeDefinition('Ui', {
   ChildInitContext: CalendarDate,
 })
 
-export const { makeFieldsStep, makeNoopStep, makeStep } = UiDefinition
+export const { makeFieldsStep, makeNoopStep, makeStep } = UiBlock

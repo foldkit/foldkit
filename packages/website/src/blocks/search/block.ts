@@ -3,16 +3,14 @@ import { Effect, Layer } from 'effect'
 import { layer as DialogLayer } from '@foldkit/ui/dialog'
 
 import { DialogBinding } from './composition'
-import { SearchDefinition } from './definition'
+import { SearchBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { update } from './update'
 import { view } from './view'
 
-export const SearchBlock = SearchDefinition.contract
-
-const block = SearchDefinition.makeBlock(
+export const layer = SearchBlock.makeLayer(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
 
@@ -25,5 +23,6 @@ const block = SearchDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(DialogLayer))
-export const layer = block.layer
+).pipe(Layer.provide(Layer.mergeAll(DialogLayer)))
+
+export { SearchBlock }

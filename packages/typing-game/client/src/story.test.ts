@@ -17,7 +17,7 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 import { it } from '@effect/vitest'
 import * as Shared from '@typing-game/shared'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { HomeBlock, Room, RoomBlock } from './blocks'
 import { HomeStep } from './blocks/home/model'
 import {
@@ -40,6 +40,9 @@ import { Message } from './message'
 import { Model, RoomInstance } from './model'
 import { ApplicationRoute } from './route'
 import { RoomsClient } from './rpc'
+
+const application = { block: ApplicationBlock, layer }
+const roomSubject = { block: RoomBlock, layer: Room.layer }
 
 type HomeModel = typeof HomeBlock.Model.Type
 type RoomModel = typeof RoomBlock.Model.Type
@@ -154,7 +157,7 @@ describe('key presses on the Home route', () => {
     'a Home key press moves the home selection and leaves the room alone',
     () => {
       return story(
-        ApplicationBlock,
+        application,
         givenHomeRoute,
         toHomeMessage(HomeBlock.Message.PressedKey({ key: 'ArrowDown' })),
         model(model => {
@@ -171,7 +174,7 @@ describe('key presses on the Home route', () => {
 
   it.effect('a Room key press does nothing', () => {
     return story(
-      ApplicationBlock,
+      application,
       givenHomeRoute,
       toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
       model(model => {
@@ -185,7 +188,7 @@ describe('key presses on the Home route', () => {
 describe('key presses on the Room route', () => {
   it.effect('a Room key press starts the game and leaves home alone', () => {
     return story(
-      ApplicationBlock,
+      application,
       givenRoomRoute,
       toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
       Command.resolve(StartGame, RoomBlock.Message.SucceededStartGame()),
@@ -203,14 +206,12 @@ describe('Room navigation', () => {
       ROOM_A,
     )
     const expectedRoomModel = await Effect.runPromise(
-      withBlock(RoomBlock, room => room.init(Option.some(ROOM_B)).model).pipe(
-        Effect.provide(Room.layer),
-      ),
+      withBlock(roomSubject, room => room.init(Option.some(ROOM_B)).model),
     )
 
     await Effect.runPromise(
       story(
-        ApplicationBlock,
+        application,
         given(initialModel),
         message(Message.ChangedUrl({ url: roomUrl(ROOM_B) })),
         model(model => {
@@ -247,7 +248,7 @@ describe('Room navigation', () => {
       ROOM_A,
     )
     return story(
-      ApplicationBlock,
+      application,
       given(initialModel),
       message(Message.ChangedUrl({ url: homeUrl })),
       model(model => {
@@ -266,7 +267,7 @@ describe('Room navigation', () => {
       roomModel,
     )
     return story(
-      ApplicationBlock,
+      application,
       given(initialModel),
       message(Message.ChangedUrl({ url: roomUrl(ROOM_A) })),
       model(model => {
@@ -301,7 +302,7 @@ describe('Room occurrence identity', () => {
       staleMessages,
       staleMessage =>
         story(
-          ApplicationBlock,
+          application,
           given(initialModel),
           toRoomMessage(ROOM_A, staleMessage),
           model(model => {
@@ -329,7 +330,7 @@ describe('Room occurrence identity', () => {
         mismatchedRoomModel,
       )
       return story(
-        ApplicationBlock,
+        application,
         given(initialModel),
         toRoomMessage(
           ROOM_A,
@@ -361,7 +362,7 @@ describe('Room occurrence identity', () => {
         mismatchedRoomModel,
       )
       return story(
-        ApplicationBlock,
+        application,
         given(initialModel),
         toRoomMessage(ROOM_A, RoomBlock.Message.PressedKey({ key: 'Enter' })),
         Command.resolveAllExact([
@@ -381,6 +382,7 @@ describe('Home and Room coordination', () => {
       return story(
         {
           block: RoomBlock,
+          layer: Room.layer,
           updateContext: [{ roomId: ROOM_A }],
           inMessageContext: [{ roomId: ROOM_B }],
         },
@@ -394,13 +396,13 @@ describe('Home and Room coordination', () => {
           SavePlayerSession,
           RoomBlock.Message.CompletedSavePlayerSession(),
         ),
-      ).pipe(Effect.provide(Room.layer))
+      )
     },
   )
 
   test('informJoin retains persistence and the canonical join transition', async () => {
     await Effect.runPromise(
-      withBlock(RoomBlock, room => {
+      withBlock(roomSubject, room => {
         expectTypeOf<Layer.Services<typeof room.EffectsLayer>>().toEqualTypeOf<
           RoomsClient | KeyValueStore.KeyValueStore
         >()
@@ -428,7 +430,7 @@ describe('Home and Room coordination', () => {
           Array.map(joined.commands ?? [], Command.argsOf(SavePlayerSession)),
         ).toEqual([Option.some({ session: expectedSession })])
         expect(informed.outMessage).toBeUndefined()
-      }).pipe(Effect.provide(Room.layer)),
+      }),
     )
   })
 
@@ -454,7 +456,7 @@ describe('Home and Room coordination', () => {
     )
 
     return story(
-      ApplicationBlock,
+      application,
       given(initialModel),
       toHomeMessage(homeMessage),
       model(model => {
@@ -491,7 +493,7 @@ describe('Home and Room coordination', () => {
       ROOM_B,
     )
     return story(
-      ApplicationBlock,
+      application,
       given(initialModel),
       toHomeMessage(
         HomeBlock.Message.SucceededCreateRoom({

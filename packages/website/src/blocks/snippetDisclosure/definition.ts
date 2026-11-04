@@ -7,15 +7,12 @@ import type { ViewInputs } from './viewInputs'
 
 export const SnippetDisclosureKey = Symbol('SnippetDisclosure')
 
-export const SnippetDisclosureDefinition = Block.makeDefinition(
-  'SnippetDisclosure',
-  {
-    key: SnippetDisclosureKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
-    Model,
-    Message,
-  },
-)
+export const SnippetDisclosureBlock = Block.make('SnippetDisclosure', {
+  key: SnippetDisclosureKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  Model,
+  Message,
+})
 
-export const { makeFieldsStep } = SnippetDisclosureDefinition
+export const { makeFieldsStep } = SnippetDisclosureBlock

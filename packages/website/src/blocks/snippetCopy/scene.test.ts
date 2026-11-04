@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Command, click, expect, init, role, scene, text } from 'foldkit/scene'
 import { describe } from 'vitest'
 
@@ -17,6 +16,7 @@ describe('snippet copy', () => {
       scene(
         {
           block: SnippetCopyBlock,
+          layer,
           viewInputs: {
             snippetId,
             text: 'const count = 0',
@@ -42,6 +42,6 @@ describe('snippet copy', () => {
           Message.CompletedWaitBeforeHidingCopiedIndicator({ snippetId }),
         ),
         expect(text('Copied')).not.toExist(),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 })

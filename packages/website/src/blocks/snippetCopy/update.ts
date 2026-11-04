@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { SnippetCopyComposition } from './composition'
 import {
-  SnippetCopyDefinition,
+  SnippetCopyBlock,
   makeCommandsStep,
   makeFieldsStep,
   makeNoopStep,
@@ -34,7 +34,7 @@ export const update = SnippetCopyComposition.makeUpdate({
   ),
 })
 
-export const CopySnippet = SnippetCopyDefinition.makeCommand('CopySnippet', {
+export const CopySnippet = SnippetCopyBlock.makeCommand('CopySnippet', {
   args: { snippetId: Schema.String, text: Schema.String },
   messages: [Message.SucceededCopySnippet, Message.FailedCopySnippet],
   handler: function* () {
@@ -51,8 +51,9 @@ export const CopySnippet = SnippetCopyDefinition.makeCommand('CopySnippet', {
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-export const WaitBeforeHidingCopiedIndicator =
-  SnippetCopyDefinition.makeCommand('WaitBeforeHidingCopiedIndicator', {
+export const WaitBeforeHidingCopiedIndicator = SnippetCopyBlock.makeCommand(
+  'WaitBeforeHidingCopiedIndicator',
+  {
     args: { snippetId: Schema.String },
     messages: [Message.CompletedWaitBeforeHidingCopiedIndicator],
     handler: function* () {
@@ -63,7 +64,8 @@ export const WaitBeforeHidingCopiedIndicator =
           ),
         )
     },
-  })
+  },
+)
 
 export const EffectsLayer = Layer.mergeAll(
   CopySnippet.layer,

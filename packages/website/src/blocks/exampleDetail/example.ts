@@ -21,7 +21,7 @@ import {
   SOURCE_FILE_TABS_ID,
   SourceFileTabsBinding,
 } from './composition'
-import { ExampleDetailDefinition, makeFieldsStep, makeStep } from './definition'
+import { ExampleDetailBlock, makeFieldsStep, makeStep } from './definition'
 import { SourceFileTabsBlock } from './fileTabs'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
@@ -42,7 +42,7 @@ export { CurrentSourcesAsyncData, Model } from './model'
 /** Loads the source files for the example identified by `slug`, producing the
  *  loaded sources on success or a failure Message when the fetch does not
  *  complete. */
-export const LoadExampleSources = ExampleDetailDefinition.makeCommand(
+export const LoadExampleSources = ExampleDetailBlock.makeCommand(
   'LoadExampleSources',
   {
     args: { slug: Schema.String },

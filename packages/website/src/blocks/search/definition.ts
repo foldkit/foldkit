@@ -8,7 +8,7 @@ import { Model } from './model'
 
 export const SearchKey = Symbol('Search')
 
-export const SearchDefinition = Block.makeDefinition('Search', {
+export const SearchBlock = Block.make('Search', {
   key: SearchKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -19,4 +19,4 @@ export const SearchDefinition = Block.makeDefinition('Search', {
 })
 
 export const { makeCommandsStep, makeFieldsStep, makeNoopStep, makeStep } =
-  SearchDefinition
+  SearchBlock

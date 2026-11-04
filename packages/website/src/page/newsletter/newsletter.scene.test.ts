@@ -4,8 +4,10 @@ import { expect, given, role, scene, selector, type } from 'foldkit/scene'
 import { type TestBlock, withBlock } from 'foldkit/story'
 import { describe, test } from 'vitest'
 
-import { ApplicationBlock } from '../../block'
+import { ApplicationBlock, layer } from '../../block'
 import { Deployment } from '../../deployment'
+
+const application = { block: ApplicationBlock, layer }
 
 const url = pipe(
   Url.fromString('https://foldkit.dev/newsletter'),
@@ -20,7 +22,7 @@ const flags = {
   maybeExampleSources: Option.none(),
 }
 
-const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
+const makeFixture = (block: TestBlock<typeof application>) => {
   const init = block.init
   const update = block.update
   const view = block.view
@@ -31,7 +33,7 @@ const makeFixture = (block: TestBlock<typeof ApplicationBlock>) => {
 describe('newsletter', () => {
   test('the email field reflects input while the form uses native submission', async () => {
     await Effect.runPromise(
-      withBlock(ApplicationBlock, executable => {
+      withBlock(application, executable => {
         const { init, update, view } = makeFixture(executable)
 
         const emailField = role('textbox', { name: 'Email address' })

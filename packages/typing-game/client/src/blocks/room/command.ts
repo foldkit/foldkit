@@ -8,14 +8,14 @@ import {
   USER_GAME_TEXT_INPUT_ID,
 } from '../../constant'
 import { RoomsClient } from '../../rpc'
-import { RoomDefinition } from './definition'
+import { RoomBlock } from './definition'
 import { Message } from './message'
 import { RoomPlayerSession, RoomPlayerSessionJsonString } from './model'
 
 const roomPlayerSessionKey = (roomId: string) =>
   `${ROOM_PLAYER_SESSION_KEY}:${roomId}`
 
-export const FetchRoom = RoomDefinition.makeCommand('FetchRoom', {
+export const FetchRoom = RoomBlock.makeCommand('FetchRoom', {
   args: { roomId: Schema.String },
   messages: [Message.SucceededFetchRoom, Message.FailedFetchRoom],
   handler: function* () {
@@ -29,7 +29,7 @@ export const FetchRoom = RoomDefinition.makeCommand('FetchRoom', {
   },
 })
 
-export const LoadSession = RoomDefinition.makeCommand('LoadSession', {
+export const LoadSession = RoomBlock.makeCommand('LoadSession', {
   args: { roomId: Schema.String },
   messages: [Message.CompletedLoadSession],
   handler: function* () {
@@ -65,7 +65,7 @@ export const LoadSession = RoomDefinition.makeCommand('LoadSession', {
   },
 })
 
-export const JoinRoom = RoomDefinition.makeCommand('JoinRoom', {
+export const JoinRoom = RoomBlock.makeCommand('JoinRoom', {
   args: { username: Schema.String, roomId: Schema.String },
   messages: [Message.SucceededJoinRoom, Message.FailedJoinRoom],
   handler: function* () {
@@ -79,7 +79,7 @@ export const JoinRoom = RoomDefinition.makeCommand('JoinRoom', {
   },
 })
 
-export const StartGame = RoomDefinition.makeCommand('StartGame', {
+export const StartGame = RoomBlock.makeCommand('StartGame', {
   args: { roomId: Schema.String, playerId: Schema.String },
   messages: [Message.SucceededStartGame, Message.FailedStartGame],
   handler: function* () {
@@ -93,7 +93,7 @@ export const StartGame = RoomDefinition.makeCommand('StartGame', {
   },
 })
 
-export const UpdatePlayerProgress = RoomDefinition.makeCommand(
+export const UpdatePlayerProgress = RoomBlock.makeCommand(
   'UpdatePlayerProgress',
   {
     args: {
@@ -124,7 +124,7 @@ export const UpdatePlayerProgress = RoomDefinition.makeCommand(
   },
 )
 
-export const CopyRoomId = RoomDefinition.makeCommand('CopyRoomId', {
+export const CopyRoomId = RoomBlock.makeCommand('CopyRoomId', {
   args: { roomId: Schema.String },
   messages: [Message.SucceededCopyRoomId, Message.FailedCopyRoomId],
   handler: function* () {
@@ -139,7 +139,7 @@ export const CopyRoomId = RoomDefinition.makeCommand('CopyRoomId', {
   },
 })
 
-export const WaitForExitCountdownInterval = RoomDefinition.makeCommand(
+export const WaitForExitCountdownInterval = RoomBlock.makeCommand(
   'WaitForExitCountdownInterval',
   {
     messages: [Message.CompletedWaitForExitCountdownInterval],
@@ -154,7 +154,7 @@ export const WaitForExitCountdownInterval = RoomDefinition.makeCommand(
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-export const WaitBeforeHidingRoomIdCopiedIndicator = RoomDefinition.makeCommand(
+export const WaitBeforeHidingRoomIdCopiedIndicator = RoomBlock.makeCommand(
   'WaitBeforeHidingRoomIdCopiedIndicator',
   {
     messages: [Message.CompletedWaitBeforeHidingRoomIdCopiedIndicator],
@@ -169,30 +169,27 @@ export const WaitBeforeHidingRoomIdCopiedIndicator = RoomDefinition.makeCommand(
 
 // SESSION COMMANDS
 
-export const SavePlayerSession = RoomDefinition.makeCommand(
-  'SavePlayerSession',
-  {
-    args: { session: RoomPlayerSession },
-    messages: [Message.CompletedSavePlayerSession],
-    handler: function* () {
-      const store = yield* KeyValueStore.KeyValueStore
+export const SavePlayerSession = RoomBlock.makeCommand('SavePlayerSession', {
+  args: { session: RoomPlayerSession },
+  messages: [Message.CompletedSavePlayerSession],
+  handler: function* () {
+    const store = yield* KeyValueStore.KeyValueStore
 
-      return ({ session }) =>
-        Effect.gen(function* () {
-          const encodeSession = Schema.encodeEffect(RoomPlayerSessionJsonString)
-          const sessionJson = yield* encodeSession(session)
-          yield* store.set(roomPlayerSessionKey(session.roomId), sessionJson)
-          return Message.CompletedSavePlayerSession()
-        }).pipe(
-          Effect.catch(() =>
-            Effect.succeed(Message.CompletedSavePlayerSession()),
-          ),
-        )
-    },
+    return ({ session }) =>
+      Effect.gen(function* () {
+        const encodeSession = Schema.encodeEffect(RoomPlayerSessionJsonString)
+        const sessionJson = yield* encodeSession(session)
+        yield* store.set(roomPlayerSessionKey(session.roomId), sessionJson)
+        return Message.CompletedSavePlayerSession()
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(Message.CompletedSavePlayerSession()),
+        ),
+      )
   },
-)
+})
 
-export const ClearSession = RoomDefinition.makeCommand('ClearSession', {
+export const ClearSession = RoomBlock.makeCommand('ClearSession', {
   args: { roomId: Schema.String },
   messages: [Message.CompletedClearSession],
   handler: function* () {
@@ -223,7 +220,7 @@ export const ClearSession = RoomDefinition.makeCommand('ClearSession', {
   },
 })
 
-export const FocusRoomPageUsernameInput = RoomDefinition.makeCommand(
+export const FocusRoomPageUsernameInput = RoomBlock.makeCommand(
   'FocusRoomPageUsernameInput',
   {
     messages: [Message.CompletedFocusRoomPageUsernameInput],
@@ -237,7 +234,7 @@ export const FocusRoomPageUsernameInput = RoomDefinition.makeCommand(
   },
 )
 
-export const FocusUserGameTextInput = RoomDefinition.makeCommand(
+export const FocusUserGameTextInput = RoomBlock.makeCommand(
   'FocusUserGameTextInput',
   {
     messages: [Message.CompletedFocusUserGameTextInput],

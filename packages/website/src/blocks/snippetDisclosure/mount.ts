@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 
-import { SnippetDisclosureDefinition } from './definition'
+import { SnippetDisclosureBlock } from './definition'
 import { Message } from './message'
 import { SnippetSize } from './model'
 
@@ -10,7 +10,7 @@ export const MINIMUM_EXPANSION_HEIGHT_PX = 48
 const COLLAPSIBLE_HEIGHT_PX =
   COLLAPSED_PREVIEW_HEIGHT_PX + MINIMUM_EXPANSION_HEIGHT_PX
 
-export const MeasureSnippetHeight = SnippetDisclosureDefinition.makeMount(
+export const MeasureSnippetHeight = SnippetDisclosureBlock.makeMount(
   'MeasureSnippetHeight',
   {
     args: { snippetId: Schema.String },

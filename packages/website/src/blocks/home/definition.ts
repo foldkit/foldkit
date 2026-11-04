@@ -7,7 +7,7 @@ import type { ViewInputs } from './viewInputs'
 
 export const HomeKey = Symbol('Home')
 
-export const HomeDefinition = Block.makeDefinition('Home', {
+export const HomeBlock = Block.make('Home', {
   key: HomeKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
@@ -16,5 +16,4 @@ export const HomeDefinition = Block.makeDefinition('Home', {
   OutMessage,
 })
 
-export const { makeFieldsStep, makeNoopStep, makeOutMessageStep } =
-  HomeDefinition
+export const { makeFieldsStep, makeNoopStep, makeOutMessageStep } = HomeBlock

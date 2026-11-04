@@ -6,7 +6,7 @@ import { Message, OutMessage } from './message'
 import { Model } from './model'
 
 export const HomeKey = Symbol('Home')
-export const HomeDefinition = Block.makeDefinition('Home', {
+export const HomeBlock = Block.make('Home', {
   key: HomeKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -21,4 +21,4 @@ export const {
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageStep,
-} = HomeDefinition
+} = HomeBlock

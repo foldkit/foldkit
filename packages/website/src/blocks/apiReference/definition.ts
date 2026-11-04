@@ -9,7 +9,7 @@ import type { ViewInputs } from './viewInputs'
 
 export const ApiReferenceKey = Symbol('ApiReference')
 
-export const ApiReferenceDefinition = Block.makeDefinition('ApiReference', {
+export const ApiReferenceBlock = Block.make('ApiReference', {
   key: ApiReferenceKey,
   Init: Schema.Tuple([Schema.optional(Schema.Option(ApiData))]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
@@ -18,4 +18,4 @@ export const ApiReferenceDefinition = Block.makeDefinition('ApiReference', {
   InMessage,
 })
 
-export const { makeFieldsStep, makeStep } = ApiReferenceDefinition
+export const { makeFieldsStep, makeStep } = ApiReferenceBlock

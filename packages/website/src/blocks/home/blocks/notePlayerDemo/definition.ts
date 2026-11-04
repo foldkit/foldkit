@@ -70,7 +70,7 @@ export type Message = typeof Message.Type
 export type CompletedPlayNote = typeof Message.CompletedPlayNote.Type
 export const NotePlayerDemoKey = Symbol('NotePlayerDemo')
 
-export const NotePlayerDemoDefinition = Block.makeDefinition('NotePlayerDemo', {
+export const NotePlayerDemoBlock = Block.make('NotePlayerDemo', {
   key: NotePlayerDemoKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -78,4 +78,4 @@ export const NotePlayerDemoDefinition = Block.makeDefinition('NotePlayerDemo', {
   Message,
 })
 
-export const { makeFieldsStep, makeNoopStep } = NotePlayerDemoDefinition
+export const { makeFieldsStep, makeNoopStep } = NotePlayerDemoBlock

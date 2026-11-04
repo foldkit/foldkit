@@ -1,13 +1,11 @@
 import { Effect } from 'effect'
 
-import { BlockPageDefinition } from './definition'
+import { BlockPageBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const BlockPageBlock = BlockPageDefinition.contract
-
-const block = BlockPageDefinition.makeBlock(
+export const layer = BlockPageBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -17,4 +15,5 @@ const block = BlockPageDefinition.makeBlock(
     }
   }),
 )
-export const layer = block.layer
+
+export { BlockPageBlock }

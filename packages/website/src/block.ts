@@ -29,14 +29,14 @@ import {
   ThemeMenuBinding,
   UiPagesBinding,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view/view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const apiReference = yield* ApiReferenceBinding
     const comingFromReact = yield* ComingFromReactBinding
@@ -73,19 +73,23 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(
-  Layer.mergeAll(
-    ApiReference.layer,
-    ComingFromReact.layer,
-    BlockPage.layer,
-    ExampleDetail.layer,
-    Home.layer,
-    Playground.layer,
-    Ui.layer,
-    Search.layer,
-    SnippetCopy.layer,
-    SnippetDisclosure.layer,
-    DialogLayer,
-    MenuLayer,
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      ApiReference.layer,
+      ComingFromReact.layer,
+      BlockPage.layer,
+      ExampleDetail.layer,
+      Home.layer,
+      Playground.layer,
+      Ui.layer,
+      Search.layer,
+      SnippetCopy.layer,
+      SnippetDisclosure.layer,
+      DialogLayer,
+      MenuLayer,
+    ),
   ),
 )
+
+export { ApplicationBlock }

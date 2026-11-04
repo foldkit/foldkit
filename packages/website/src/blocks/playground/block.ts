@@ -3,7 +3,7 @@ import { Effect, Layer } from 'effect'
 import { layer as TabsLayer } from '@foldkit/ui/tabs'
 
 import { FileTabsBinding } from './composition'
-import { PlaygroundDefinition } from './definition'
+import { PlaygroundBlock } from './definition'
 import {
   EffectsLayer,
   inMessageUpdate,
@@ -13,9 +13,7 @@ import {
   view,
 } from './playground'
 
-export const PlaygroundBlock = PlaygroundDefinition.contract
-
-const block = PlaygroundDefinition.makeBlock(
+export const layer = PlaygroundBlock.makeLayer(
   Effect.gen(function* () {
     const fileTabs = yield* FileTabsBinding
 
@@ -29,5 +27,6 @@ const block = PlaygroundDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(TabsLayer))
-export const layer = block.layer
+).pipe(Layer.provide(Layer.mergeAll(TabsLayer)))
+
+export { PlaygroundBlock }

@@ -25,6 +25,8 @@ import { InMessage } from './inMessage'
 import { Message } from './message'
 import { FetchSearchResults, NavigateToResult, ScrollToResult } from './update'
 
+const searchSubject = { block: SearchBlock, layer }
+
 const searchResults = [
   {
     url: '/docs/commands',
@@ -42,7 +44,7 @@ const searchResults = [
   },
 ]
 
-const makeFixture = (block: TestBlock<typeof SearchBlock>) => {
+const makeFixture = (block: TestBlock<typeof searchSubject>) => {
   const init = block.init
   const update = block.update
   const toParentMessage = toParentMessageFor(block)
@@ -55,7 +57,7 @@ describe('search', () => {
     'received open and route notifications retain focus and close cleanup',
     () =>
       story(
-        SearchBlock,
+        searchSubject,
         init(),
         inMessage(InMessage.RequestedOpen()),
         model(model => expect(model.dialog.isOpen).toBe(true)),
@@ -82,12 +84,12 @@ describe('search', () => {
           DialogTest.CloseDialog,
           DialogBlock.Message.CompletedCloseDialog(),
         ),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 
   it.effect('typing a query starts a search', () =>
     story(
-      SearchBlock,
+      searchSubject,
       init(),
       message(Message.UpdatedSearchQuery({ query: 'routing' })),
       model(model => {
@@ -109,11 +111,11 @@ describe('search', () => {
         })
         expect(model.activeResultIndex).toBe(0)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
   test('clearing the query resets to Idle', async () => {
     await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
+      withBlock(searchSubject, executable => {
         const { update, init_ } = makeFixture(executable)
 
         story(
@@ -127,12 +129,12 @@ describe('search', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
   test('same query is ignored', async () => {
     await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
+      withBlock(searchSubject, executable => {
         const { update, init_ } = makeFixture(executable)
 
         story(
@@ -144,12 +146,12 @@ describe('search', () => {
           }),
           Command.expectNone(),
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
   test('new query preserves previous results in Loading state', async () => {
     await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
+      withBlock(searchSubject, executable => {
         const { update, init_ } = makeFixture(executable)
 
         story(
@@ -177,12 +179,12 @@ describe('search', () => {
             }),
           ),
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
   test('stale results are ignored', async () => {
     await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
+      withBlock(searchSubject, executable => {
         const { update, init_ } = makeFixture(executable)
 
         story(
@@ -198,12 +200,12 @@ describe('search', () => {
             expect(model.searchState._tag).toBe('Idle')
           }),
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
   it.effect('selecting a result navigates and resets', () =>
     story(
-      SearchBlock,
+      searchSubject,
       init(),
       message(Message.SelectedSearchResult({ url: '/docs/commands' })),
       model(model => {
@@ -215,11 +217,11 @@ describe('search', () => {
       model(model => {
         expect(model.query).toBe('')
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
   test('arrow keys cycle through results', async () => {
     await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
+      withBlock(searchSubject, executable => {
         const { update, init_ } = makeFixture(executable)
 
         const modelWithResults = modifyFields(init_.model, {
@@ -246,12 +248,12 @@ describe('search', () => {
           }),
           Command.resolve(ScrollToResult, Message.CompletedScrollToResult()),
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
   test('clearing the query explicitly resets state', async () => {
     await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
+      withBlock(searchSubject, executable => {
         const { update, init_ } = makeFixture(executable)
 
         story(
@@ -270,12 +272,12 @@ describe('search', () => {
             expect(model.activeResultIndex).toBe(-1)
           }),
         )
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
   test('close completion clears Search after cleanup, including after a reopen', async () => {
     await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
+      withBlock(searchSubject, executable => {
         const { block, update, toParentMessage, init_ } =
           makeFixture(executable)
 
@@ -308,12 +310,12 @@ describe('search', () => {
         expect(completed.model.query).toBe('')
         expect(completed.model.searchState._tag).toBe('Idle')
         expect(completed.model.activeResultIndex).toBe(-1)
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
   test('route changes clear and close Search while keyboard clearing leaves it open', async () => {
     await Effect.runPromise(
-      withBlock(SearchBlock, executable => {
+      withBlock(searchSubject, executable => {
         const { block, update, init_ } = makeFixture(executable)
 
         const opened = block.inMessageUpdate(
@@ -337,7 +339,7 @@ describe('search', () => {
         expect(changedRoute.commands?.map(command => command.name)).toEqual([
           'dialog/CloseDialog',
         ])
-      }).pipe(Effect.provide(layer)),
+      }),
     )
   })
 })

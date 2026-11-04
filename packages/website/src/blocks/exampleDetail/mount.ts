@@ -1,6 +1,6 @@
 import { Effect, Queue, Stream } from 'effect'
 
-import { ExampleDetailDefinition } from './definition'
+import { ExampleDetailBlock } from './definition'
 import { type ChangedExampleUrl, Message } from './message'
 
 const BRIDGE_MESSAGE_TYPE = 'foldkit-example-url'
@@ -49,10 +49,12 @@ const observeExampleUrlMessages = (element: Element) => {
   )
 }
 
-export const ObserveExampleUrlMessages =
-  ExampleDetailDefinition.makeMountStream('ObserveExampleUrlMessages', {
+export const ObserveExampleUrlMessages = ExampleDetailBlock.makeMountStream(
+  'ObserveExampleUrlMessages',
+  {
     messages: [Message.ChangedExampleUrl],
     handler: function* () {
       return ({ element }) => observeExampleUrlMessages(element)
     },
-  })
+  },
+)

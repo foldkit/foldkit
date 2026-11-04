@@ -1,6 +1,6 @@
 import { Effect, Match } from 'effect'
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message, ResolvedTheme } from './message'
 import { LocalStorage } from './storage'
 import { ThemePreference } from './themePreference'
@@ -31,7 +31,7 @@ const setThemeColorMeta = (color: string): void => {
   }
 }
 
-export const ApplyTheme = ApplicationDefinition.makeCommand('ApplyTheme', {
+export const ApplyTheme = ApplicationBlock.makeCommand('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],
   handler: function* () {
@@ -53,7 +53,7 @@ export const ApplyTheme = ApplicationDefinition.makeCommand('ApplyTheme', {
   },
 })
 
-export const SaveThemePreference = ApplicationDefinition.makeCommand(
+export const SaveThemePreference = ApplicationBlock.makeCommand(
   'SaveThemePreference',
   {
     args: { preference: ThemePreference },

@@ -1,11 +1,9 @@
 import { Effect } from 'effect'
 
 import { EffectsLayer, init, update, view } from './asyncCounterDemo'
-import { AsyncCounterDemoDefinition } from './definition'
+import { AsyncCounterDemoBlock } from './definition'
 
-export const AsyncCounterDemoBlock = AsyncCounterDemoDefinition.contract
-
-const block = AsyncCounterDemoDefinition.makeBlock(
+export const layer = AsyncCounterDemoBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -16,4 +14,5 @@ const block = AsyncCounterDemoDefinition.makeBlock(
     }
   }),
 )
-export const layer = block.layer
+
+export { AsyncCounterDemoBlock }

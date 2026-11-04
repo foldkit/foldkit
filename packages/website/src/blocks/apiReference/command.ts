@@ -1,11 +1,11 @@
 import { Effect, Schema } from 'effect'
 
-import { ApiReferenceDefinition } from './definition'
+import { ApiReferenceBlock } from './definition'
 import { ParsedApiReference } from './domain'
 import { Message } from './message'
 
 /** Loads the complete reference, including modules omitted from hydration data. */
-export const LoadApiData = ApiReferenceDefinition.makeCommand('LoadApiData', {
+export const LoadApiData = ApiReferenceBlock.makeCommand('LoadApiData', {
   messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
   handler: function* () {
     return () =>

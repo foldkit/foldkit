@@ -10,7 +10,7 @@ import { LocalStorage, SessionStorage } from './storage'
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Flags, Url.Url]),
   view: { kind: 'Document' },
@@ -21,4 +21,4 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 
 export const { makeStep, makeFieldsStep, makeCommandsStep, makeNoopStep } =
-  ApplicationDefinition
+  ApplicationBlock

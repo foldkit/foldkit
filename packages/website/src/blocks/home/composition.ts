@@ -2,7 +2,7 @@ import type { Block } from 'foldkit'
 
 import { AsyncCounterDemoBlock, NotePlayerDemoBlock } from './blocks'
 import {
-  HomeDefinition,
+  HomeBlock,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageStep,
@@ -11,20 +11,17 @@ import * as DemoTab from './demoTab'
 import { OutMessage } from './message'
 import { PlaygroundMenuBlock } from './playgroundMenu'
 
-export const DemoTabsBinding = HomeDefinition.makeBinding(
-  DemoTab.DemoTabsBlock,
-  {
-    field: 'demoTabs',
-    init: { contextToArgs: () => [{ id: 'demo-tabs' }] },
-  },
-).withOutMessagePolicy({
-  fold: HomeDefinition.makeOutMessageFold(DemoTab.DemoTabsBlock, {
+export const DemoTabsBinding = HomeBlock.makeBinding(DemoTab.DemoTabsBlock, {
+  field: 'demoTabs',
+  init: { contextToArgs: () => [{ id: 'demo-tabs' }] },
+}).withOutMessagePolicy({
+  fold: HomeBlock.makeOutMessageFold(DemoTab.DemoTabsBlock, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({ activeDemoTab: () => value })),
   }),
 })
 
-const foldPlaygroundMenuOutMessage = HomeDefinition.makeOutMessageFold(
+const foldPlaygroundMenuOutMessage = HomeBlock.makeOutMessageFold(
   PlaygroundMenuBlock,
   {
     Selected: ({ value }) =>
@@ -37,7 +34,7 @@ const foldPlaygroundMenuOutMessage = HomeDefinition.makeOutMessageFold(
   },
 )
 
-export const PlaygroundMenuBinding = HomeDefinition.makeBinding(
+export const PlaygroundMenuBinding = HomeBlock.makeBinding(
   PlaygroundMenuBlock,
   {
     field: 'playgroundMenu',
@@ -47,21 +44,21 @@ export const PlaygroundMenuBinding = HomeDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldPlaygroundMenuOutMessage })
 
-export const AsyncCounterDemoBinding = HomeDefinition.makeBinding(
+export const AsyncCounterDemoBinding = HomeBlock.makeBinding(
   AsyncCounterDemoBlock,
   {
     field: 'asyncCounterDemo',
   },
 )
 
-export const NotePlayerDemoBinding = HomeDefinition.makeBinding(
+export const NotePlayerDemoBinding = HomeBlock.makeBinding(
   NotePlayerDemoBlock,
   {
     field: 'notePlayerDemo',
   },
 )
 
-export const HomeComposition = HomeDefinition.makeComposition({
+export const HomeComposition = HomeBlock.makeComposition({
   bindings: [
     AsyncCounterDemoBinding,
     DemoTabsBinding,

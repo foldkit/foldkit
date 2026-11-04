@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 
-import { SnippetDisclosureDefinition } from './definition'
+import { SnippetDisclosureBlock } from './definition'
 import { init } from './init'
 import { MeasureSnippetHeight } from './mount'
 import { update } from './update'
@@ -8,9 +8,7 @@ import { view } from './view'
 
 export const EffectsLayer = MeasureSnippetHeight.layer
 
-export const SnippetDisclosureBlock = SnippetDisclosureDefinition.contract
-
-const block = SnippetDisclosureDefinition.makeBlock(
+export const layer = SnippetDisclosureBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -21,4 +19,5 @@ const block = SnippetDisclosureDefinition.makeBlock(
     }
   }),
 )
-export const layer = block.layer
+
+export { SnippetDisclosureBlock }

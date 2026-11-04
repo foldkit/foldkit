@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Command, init, messageFrom, model, story } from 'foldkit/story'
 import { describe, expect } from 'vitest'
 
@@ -8,6 +7,8 @@ import { test as TabsTest } from '@foldkit/ui/tabs'
 import { HomeBlock, layer } from './block'
 import { DemoTabsBinding } from './composition'
 import { DemoTabsBlock } from './demoTab'
+
+const homeSubject = { block: HomeBlock, layer }
 
 describe('home', () => {
   it.effect('selecting a demo tab preserves both demo Models', () => {
@@ -19,7 +20,7 @@ describe('home', () => {
       | undefined
 
     return story(
-      HomeBlock,
+      homeSubject,
       init(),
       model(model => {
         initialAsyncCounterDemo = model.asyncCounterDemo
@@ -57,6 +58,6 @@ describe('home', () => {
         TabsTest.FocusTab,
         DemoTabsBlock.Message.CompletedFocusTab(),
       ),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })
