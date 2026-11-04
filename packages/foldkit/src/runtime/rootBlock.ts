@@ -231,8 +231,7 @@ type MatchedImplementation<
   | ExactImplementation<BlockValue, LayerValue>
   | FixedImplementation<BlockValue, LayerValue>
   | SharedFamilyImplementation<BlockValue, LayerValue>
-/** @internal Checks exact ordinary selection or authenticated closed fixed-family admission. */
-export type ValidateSelectedLayer<
+type ValidateSelectedLayerMember<
   BlockValue extends DeclaredRootBlock,
   LayerValue extends Layer.Any,
 > = ValidateReadableAdmission<BlockValue> &
@@ -250,6 +249,23 @@ export type ValidateSelectedLayer<
             'Select this Block Layer’s host handlers before hosting it': Pending
           }>
       : never)
+
+type SelectedLayerFailure<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Any,
+> = LayerValue extends unknown
+  ? unknown extends ValidateSelectedLayerMember<BlockValue, LayerValue>
+    ? never
+    : ValidateSelectedLayerMember<BlockValue, LayerValue>
+  : never
+
+/** @internal Checks every Layer alternative for exact or authenticated family admission. */
+export type ValidateSelectedLayer<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Any,
+> = [SelectedLayerFailure<BlockValue, LayerValue>] extends [never]
+  ? unknown
+  : SelectedLayerFailure<BlockValue, LayerValue>
 type PrivateFacts<Implementation> =
   Implementation extends SelectedImplementationFacts<any, any, infer Facts, any>
     ? Facts extends PublicFacts
@@ -282,16 +298,20 @@ type FixedFacts<
 export type SelectedBlockLayerFacts<
   BlockValue extends DeclaredRootBlock,
   LayerValue extends Layer.Any,
-> =
-  | PrivateFacts<ExactImplementation<BlockValue, LayerValue>>
-  | PrivateFacts<SharedFamilyImplementation<BlockValue, LayerValue>>
-  | ([PrivateFacts<FixedImplementation<BlockValue, LayerValue>>] extends [never]
-      ? never
-      : PrivateFacts<
-            FixedImplementation<BlockValue, LayerValue>
-          > extends infer Facts extends PublicFacts
-        ? FixedFacts<Facts, BlockValue[typeof DescriptorTypeId]>
-        : never)
+> = LayerValue extends unknown
+  ?
+      | PrivateFacts<ExactImplementation<BlockValue, LayerValue>>
+      | PrivateFacts<SharedFamilyImplementation<BlockValue, LayerValue>>
+      | ([PrivateFacts<FixedImplementation<BlockValue, LayerValue>>] extends [
+          never,
+        ]
+          ? never
+          : PrivateFacts<
+                FixedImplementation<BlockValue, LayerValue>
+              > extends infer Facts extends PublicFacts
+            ? FixedFacts<Facts, BlockValue[typeof DescriptorTypeId]>
+            : never)
+  : never
 
 type FactsOfLayer<Value extends Layer.Layer<any, any, any>, OwnerValue> =
   Extract<
@@ -348,19 +368,21 @@ type SelectedHostFacts<
 type SelectedConstructionLayer<
   BlockValue extends DeclaredRootBlock,
   LayerValue extends Layer.Layer<any, any, any>,
-> = [SharedFamilySelection<BlockValue, LayerValue>] extends [never]
-  ? LayerValue
-  : SharedFamilySelection<BlockValue, LayerValue> extends readonly [
-        infer Error,
-        infer Requirements,
-        unknown,
-      ]
-    ? Layer.Layer<
-        Layer.Success<LayerValue>,
-        Layer.Error<LayerValue> | Error,
-        Layer.Services<LayerValue> | Requirements
-      >
-    : never
+> = LayerValue extends unknown
+  ? [SharedFamilySelection<BlockValue, LayerValue>] extends [never]
+    ? LayerValue
+    : SharedFamilySelection<BlockValue, LayerValue> extends readonly [
+          infer Error,
+          infer Requirements,
+          unknown,
+        ]
+      ? Layer.Layer<
+          Layer.Success<LayerValue>,
+          Layer.Error<LayerValue> | Error,
+          Layer.Services<LayerValue> | Requirements
+        >
+      : never
+  : never
 /** @internal Types an explicit public Block and selected implementation Layer pair. */
 export type SelectedLayeredRoot<
   BlockValue extends DeclaredRootBlock,

@@ -14,12 +14,15 @@ import {
   SessionReaderLayer,
   declaredStoreParent,
   explicitUnionCallbackService,
+  otherRegisteredLayer,
   otherUnregistered,
   pageRegistered,
+  pageRegisteredLayer,
   pageUnregistered,
   registered,
   registeredLayer,
   simpleSetup,
+  simpleSetupPageLayer,
   unregistered,
   unregisteredLayer,
   withSetupService,
@@ -89,6 +92,12 @@ export const rejectCrossedUnion = (
 ) => {
   // @ts-expect-error Every original pair must use its own provider.
   Program.makeElement({ ...selection, container: null })
+  // @ts-expect-error Pure acquisition must reject a swapped original pair.
+  Story.withBlock(selection, () => undefined)
+  // @ts-expect-error Story must reject a swapped original pair.
+  Story.story(selection, Story.init())
+  // @ts-expect-error Scene must reject a swapped original pair.
+  Scene.scene(selection, Scene.init())
 }
 export const rejectWrongView = () => {
   // @ts-expect-error An Element view cannot be hosted as a Document.
@@ -134,4 +143,40 @@ export const rejectCallbackProviderUnion = (
 ) => {
   // @ts-expect-error A callback Service supplied by only one Layer alternative remains required.
   Effect.runPromise(explicitUnionCallbackService(selection))
+}
+
+export const rejectForeignLayerAlternative = (
+  layer: typeof registeredLayer | typeof otherRegisteredLayer,
+) => {
+  // @ts-expect-error Every Layer alternative must implement the selected Block.
+  Program.makeElement({ block: SessionBlock, layer, container: null })
+  // @ts-expect-error Pure acquisition must reject a foreign Layer alternative.
+  Story.withBlock({ block: SessionBlock, layer }, () => undefined)
+  // @ts-expect-error Story must reject a foreign Layer alternative.
+  Story.story({ block: SessionBlock, layer }, Story.init())
+  // @ts-expect-error Scene must reject a foreign Layer alternative.
+  Scene.scene({ block: SessionBlock, layer }, Scene.init())
+}
+
+export const rejectForeignPageLayerAlternative = (
+  layer: typeof pageRegisteredLayer | typeof simpleSetupPageLayer,
+) => {
+  // @ts-expect-error Every Page Layer alternative must implement the selected Block.
+  Program.make({ block: PageBlock, layer, container: null })
+  // @ts-expect-error Server must reject a foreign Layer alternative.
+  Server.renderToString({ block: PageBlock, layer }, {})
+}
+
+export const rejectCrossedPageSelection = (
+  selection:
+    | typeof pageRegistered
+    | Readonly<{
+        block: typeof simpleSetupPage.block
+        layer: typeof pageRegisteredLayer
+      }>,
+) => {
+  // @ts-expect-error Page hosts must reject every swapped original pair.
+  Program.make({ ...selection, container: null })
+  // @ts-expect-error Server must reject every swapped original pair.
+  Server.renderToString(selection, {})
 }

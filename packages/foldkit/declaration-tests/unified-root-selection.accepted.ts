@@ -609,3 +609,77 @@ export const startDifferentRegisteredPages = (
 export const makeDifferentPageKeysProgram = (
   selection: typeof pageRegistered | typeof simpleSetupPage,
 ) => Program.make({ ...selection, container: null })
+
+export const setupRegisteredLayer = Layer.unwrap(
+  Effect.gen(function* () {
+    const isReady = yield* Setup
+
+    if (!isReady) {
+      return yield* Effect.fail(new SetupFailure())
+    }
+
+    return registeredLayer
+  }),
+)
+export const makeSameBlockLayerUnionProgram = (
+  layer: typeof registeredLayer | typeof setupRegisteredLayer,
+) => Program.makeElement({ block: SessionBlock, layer, container: null })
+export const inspectSameBlockLayerUnion = (
+  layer: typeof registeredLayer | typeof setupRegisteredLayer,
+) =>
+  Story.withBlock({ block: SessionBlock, layer }, block => block.init().model)
+export const storySameBlockLayerUnion = (
+  layer: typeof registeredLayer | typeof setupRegisteredLayer,
+) => Story.story({ block: SessionBlock, layer }, Story.init())
+export const sceneSameBlockLayerUnion = (
+  layer: typeof registeredLayer | typeof setupRegisteredLayer,
+) => Scene.scene({ block: SessionBlock, layer }, Scene.init())
+
+export const mergedRootLayer = Layer.mergeAll(
+  registeredLayer,
+  otherRegisteredLayer,
+  Layer.succeed(Setup, true),
+)
+export const mergedRootProgram = Program.makeElement({
+  block: SessionBlock,
+  layer: mergedRootLayer,
+  container: null,
+})
+export const inspectMergedRoot = () =>
+  Story.withBlock({ block: SessionBlock, layer: mergedRootLayer }, () =>
+    Effect.asVoid(Setup),
+  )
+export const storyMergedRoot = () =>
+  Story.story({ block: SessionBlock, layer: mergedRootLayer }, Story.init())
+export const sceneMergedRoot = () =>
+  Scene.scene({ block: SessionBlock, layer: mergedRootLayer }, Scene.init())
+
+export const setupRegisteredPageLayer = Layer.unwrap(
+  Effect.gen(function* () {
+    const isReady = yield* Setup
+
+    if (!isReady) {
+      return yield* Effect.fail(new SetupFailure())
+    }
+
+    return pageRegisteredLayer
+  }),
+)
+export const makeSamePageLayerUnionProgram = (
+  layer: typeof pageRegisteredLayer | typeof setupRegisteredPageLayer,
+) => Program.make({ block: PageBlock, layer, container: null })
+export const renderSamePageLayerUnion = (
+  layer: typeof pageRegisteredLayer | typeof setupRegisteredPageLayer,
+) => Server.renderToString({ block: PageBlock, layer }, {})
+export const mergedPageLayer = Layer.mergeAll(
+  pageRegisteredLayer,
+  simpleSetupPageLayer,
+  Layer.succeed(Setup, true),
+)
+export const mergedPageProgram = Program.make({
+  block: PageBlock,
+  layer: mergedPageLayer,
+  container: null,
+})
+export const renderMergedPage = () =>
+  Server.renderToString({ block: PageBlock, layer: mergedPageLayer }, {})

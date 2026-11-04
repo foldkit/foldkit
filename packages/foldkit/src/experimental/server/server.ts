@@ -1193,8 +1193,7 @@ type ServerLayerSelection<
   LayerValue extends Layer.Layer<any, any, any>,
 > = Readonly<{
   block: BlockValue
-  layer: LayerValue &
-    ValidateSelectedLayer<NoInfer<BlockValue>, NoInfer<LayerValue>>
+  layer: LayerValue & NoInfer<ValidateSelectedLayer<BlockValue, LayerValue>>
 }>
 
 type ServerLayerRoot<

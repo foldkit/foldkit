@@ -110,7 +110,7 @@ export type SelectedTestConfig<
   LayerValue extends Layer.Layer<any, any, any>,
 > = BlockLayerSubject<Block, LayerValue> &
   Readonly<{
-    layer: ValidateSelectedLayer<NoInfer<Block>, NoInfer<LayerValue>>
+    layer: NoInfer<ValidateSelectedLayer<Block, LayerValue>>
   }> &
   Omit<TestConfig<SelectedLayeredRoot<Block, LayerValue>>, 'block' | 'layer'> &
   Readonly<{

@@ -8,10 +8,15 @@ import {
   Setup,
   SetupFailure,
   explicitUnionCallbackService,
+  inspectMergedRoot,
+  inspectSameBlockLayerUnion,
   inspectSetup,
+  renderSamePageLayerUnion,
   renderSetup,
+  sceneSameBlockLayerUnion,
   sceneSetup,
   simpleSetup,
+  storySameBlockLayerUnion,
   storySetup,
   suppliedCallbackService,
   withSetupService,
@@ -162,4 +167,38 @@ export type CallbackUtilityRetainsError = Expect<
 >
 export type CallbackUtilityClosesScope = Expect<
   Equal<Effect.Services<ScopedCallback>, Setup>
+>
+
+export type SameBlockAcquisitionKeepsError = Expect<
+  Equal<
+    Effect.Error<ReturnType<typeof inspectSameBlockLayerUnion>>,
+    SetupFailure
+  >
+>
+export type SameBlockAcquisitionKeepsService = Expect<
+  Equal<Effect.Services<ReturnType<typeof inspectSameBlockLayerUnion>>, Setup>
+>
+export type SameBlockStoryKeepsError = Expect<
+  Equal<Effect.Error<ReturnType<typeof storySameBlockLayerUnion>>, SetupFailure>
+>
+export type SameBlockStoryKeepsService = Expect<
+  Equal<Effect.Services<ReturnType<typeof storySameBlockLayerUnion>>, Setup>
+>
+export type SameBlockSceneKeepsError = Expect<
+  Equal<Effect.Error<ReturnType<typeof sceneSameBlockLayerUnion>>, SetupFailure>
+>
+export type SameBlockSceneKeepsService = Expect<
+  Equal<Effect.Services<ReturnType<typeof sceneSameBlockLayerUnion>>, Setup>
+>
+export type SamePageServerKeepsError = Expect<
+  Equal<
+    Effect.Error<ReturnType<typeof renderSamePageLayerUnion>>,
+    Server.RenderError | SetupFailure
+  >
+>
+export type SamePageServerKeepsService = Expect<
+  Equal<Effect.Services<ReturnType<typeof renderSamePageLayerUnion>>, Setup>
+>
+export type MergedLayerSuppliesUnrelatedService = Expect<
+  Equal<Effect.Services<ReturnType<typeof inspectMergedRoot>>, never>
 >

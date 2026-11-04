@@ -720,6 +720,47 @@ describe('unified Block.make and makeLayer prototype', () => {
     )
   })
 
+  it('rejects a foreign selected Layer supplied by an erased caller', async () => {
+    const use = vi.fn()
+    const acquire = Reflect.apply(withBlock, undefined, [
+      { block: Child, layer: foreignChildLayer },
+      use,
+    ])
+
+    await expect(Effect.runPromise(acquire)).rejects.toThrow()
+    expect(use).not.toHaveBeenCalled()
+  })
+
+  it.each([false, true])(
+    'acquires the selected same-Block Layer alternative when isAlternative is %s',
+    async isAlternative => {
+      const layer = isAlternative ? alternativeChildLayer : childLayer
+
+      await Effect.runPromise(
+        withBlock({ block: Child, layer }, selected => {
+          expect(selected.init().model.value).toBe(isAlternative ? 9 : 7)
+        }),
+      )
+    },
+  )
+
+  it('selects its implementation from a merged Layer with other Blocks and Services', async () => {
+    const layer = Layer.mergeAll(
+      childLayer,
+      foreignChildLayer,
+      Layer.succeed(ParentService, { value: 'merged' }),
+    )
+
+    await Effect.runPromise(
+      withBlock({ block: Child, layer }, selected =>
+        Effect.map(ParentService, service => {
+          expect(selected.init().model.value).toBe(7)
+          expect(service.value).toBe('merged')
+        }),
+      ),
+    )
+  })
+
   it('runs a Story against the explicit public Block and selected Layer pair', async () => {
     const testLayer = Layer.provide(
       selectedParentLayer,

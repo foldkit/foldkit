@@ -281,7 +281,7 @@ export function withBlock<
 >(
   selection: BlockLayerSubject<Block, LayerValue> &
     Readonly<{
-      layer: ValidateSelectedLayer<NoInfer<Block>, NoInfer<LayerValue>>
+      layer: NoInfer<ValidateSelectedLayer<Block, LayerValue>>
     }>,
   use: (
     block: TestBlock<SelectedLayeredRoot<Block, LayerValue>>,
