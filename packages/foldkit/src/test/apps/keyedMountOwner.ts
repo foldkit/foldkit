@@ -3,6 +3,8 @@ import { Array, Effect, Layer, Option, Schema, Stream } from 'effect'
 import * as Block from '../../block/public.js'
 import { defineMessageUnion } from '../../message/public.js'
 
+const MOUNT_ATTRIBUTE_WIDTH_LIMIT = 500
+
 const SurfaceModel = Schema.Struct({
   width: Schema.Number,
   isStreaming: Schema.Boolean,
@@ -46,18 +48,16 @@ const surfaceLayer = SurfaceBlock.makeLayer(
         width: () => width,
       })),
     }),
-    view: SurfaceComposition.makeView((model, h) =>
-      h.div(
-        model.width < 500
-          ? [
-              model.isStreaming
-                ? h.OnMount(ObserveSurface())
-                : h.OnMount(MeasureSurface()),
-            ]
-          : [],
+    view: SurfaceComposition.makeView((model, h) => {
+      const mountAttribute = model.isStreaming
+        ? h.OnMount(ObserveSurface())
+        : h.OnMount(MeasureSurface())
+
+      return h.div(
+        model.width < MOUNT_ATTRIBUTE_WIDTH_LIMIT ? [mountAttribute] : [],
         [`width ${model.width}`],
-      ),
-    ),
+      )
+    }),
     EffectsLayer: Layer.merge(ObserveSurface.layer, MeasureSurface.layer),
   }),
 )

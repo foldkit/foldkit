@@ -590,6 +590,17 @@ export const __flushReplayUnmountsAfterPatchFailure =
  *  observable by VNode walkers (Scene tests). */
 export const FOLDKIT_MOUNT_KEY = 'foldkitMount' as const
 
+const MountOccurrencePathTypeId = Symbol('MountOccurrencePath')
+
+type MountOccurrence = Readonly<{
+  [MountOccurrencePathTypeId]: ReadonlyArray<string>
+}>
+
+/** @internal */
+export const mountOccurrencePath = (
+  value: FoldkitMountMarker & Partial<MountOccurrence>,
+): ReadonlyArray<string> => value[MountOccurrencePathTypeId] ?? []
+
 /** Marker stamped on `VNodeData[FOLDKIT_MOUNT_KEY]` for any element with an
  *  `OnMount` attribute. Carries the Mount Definition's name (and args) so test
  *  introspection can identify pending mounts. When the mount lives inside a
@@ -2608,7 +2619,8 @@ const attributeHandlers: AttributeHandlers = {
       ? () => maybeTracker.value.ended(action.name, action.args)
       : Function.constVoid
     const registration = action[MountRegistrationTypeId]
-    const markerWithArgs: FoldkitMountMarker = {
+    const markerWithArgs: FoldkitMountMarker & MountOccurrence = {
+      [MountOccurrencePathTypeId]: mountOccurrencePath(action),
       name: action.name,
       [InvocationIdentityTypeId]: invocationIdentity(action),
       [InvocationNameTypeId]: invocationName(action),
@@ -5676,7 +5688,12 @@ const htmlAttributes = <Message, AllowedMountRequirements>(): HtmlAttributes<
       owned === undefined || Array.isReadonlyArrayEmpty(path)
         ? action.name
         : `${path.join('/')}/${action.name.slice(owned.owner.id.length + 1)}`
-    return { _tag: 'OnMount', action: { ...action, name } }
+    const capturedAction = {
+      ...action,
+      name,
+      [MountOccurrencePathTypeId]: [...path],
+    }
+    return { _tag: 'OnMount', action: capturedAction }
   },
   /**
    * Dispatches `message` when this element is removed from the DOM by a

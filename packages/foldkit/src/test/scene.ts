@@ -35,6 +35,7 @@ import {
   __clearRuntime as clearHtmlRuntime,
   __createBoundaryRegistry as createHtmlBoundaryRegistry,
   __htmlBuilder as htmlBuilderFor,
+  mountOccurrencePath,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
 import type {
@@ -492,6 +493,7 @@ type MountStatus =
 
 type MountSlotState = Readonly<{
   slot: PendingMount
+  occurrencePath: ReadonlyArray<string>
   status: MountStatus
   vnode: VNode
 }>
@@ -594,6 +596,7 @@ const reconcileMountSlots = (
     if (marker !== undefined) {
       renderedSlots.push({
         slot: slotOfMarker(marker, nextOccurrence(marker.name)),
+        occurrencePath: mountOccurrencePath(marker),
         status: PENDING,
         vnode: node,
       })
@@ -606,15 +609,31 @@ const reconcileMountSlots = (
 
   const visitPatched = (previousNode: VNode, node: VNode): void => {
     const liveState = liveByVNode.get(previousNode)
+    const marker = mountMarkerOf(node)
 
-    if (liveState !== undefined) {
+    if (
+      liveState !== undefined &&
+      (marker === undefined ||
+        Array.makeEquivalence(Equal.equals)(
+          liveState.occurrencePath,
+          mountOccurrencePath(marker),
+        ))
+    ) {
       carried.add(liveState)
       renderedSlots.push({
         slot: {
           ...liveState.slot,
           occurrence: nextOccurrence(liveState.slot.name),
         },
+        occurrencePath: liveState.occurrencePath,
         status: liveState.status,
+        vnode: node,
+      })
+    } else if (liveState !== undefined && marker !== undefined) {
+      renderedSlots.push({
+        slot: slotOfMarker(marker, nextOccurrence(marker.name)),
+        occurrencePath: mountOccurrencePath(marker),
+        status: PENDING,
         vnode: node,
       })
     }
