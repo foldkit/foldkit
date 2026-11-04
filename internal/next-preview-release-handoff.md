@@ -1,5 +1,38 @@
 # Next preview release handoff
 
+## November 4 candidate
+
+The last verified publication remains `90746b32d2ca`; this candidate is not
+published. The [unified adoption report](block-api-simplification/adoption-20261104.md)
+owns the current verification and integration status.
+
+Changes since that publication include:
+
+- One passive `FooBlock = Block.make(...)` carries the public contracts and
+  typed authoring helpers. `FooBlock.makeLayer(...)` returns an ordinary Effect
+  Layer; Program, Server, Story and Scene select `{ block, layer }`.
+- Effectful graph construction retains portable init, update, view and Binding
+  expressions, deferred child initialization and Model-owned lifecycles.
+- Separate InMessages and `makeInMessageUpdate` share checked ordered
+  composition with local updates. Exhaustive handler records remain the default.
+- Standard child arrays can use ready Instance Schemas and passive Binding
+  creation requests, demonstrated by Counters.
+- Main's Effect 4.1 integration and preview feedback repairs cover Mount cleanup,
+  SSR development identity/reloads, embedding disposal, DevTools and VirtualList.
+- Examples, Website, Typing Game, UI/Query families, scoped tests, scaffolds,
+  active guidance and lint recognition adopt the same construction model.
+- The [attribute typing adaptation](pr1882-preview-adaptation.md) preserves
+  child Mount capabilities and reduces compiler work for shared attribute bundles.
+
+Machine authoring, Query cache/cancellation capabilities and the earlier
+VirtualList additions already shipped in the October 29 snapshot. Their factory
+and construction migrations here are not new versions of those features.
+
+Final installed-consumer, repository pre-push, rendering-benchmark and
+exact-commit review results must be recorded before readiness is claimed.
+Publication and Daybreak source transfer remain held. Only #1662 and #1663
+have an explicit post-main deferral.
+
 ## October 30 stabilization follow-up
 
 The [current feedback pass](preview-feedback-stabilization-20261030.md) repairs

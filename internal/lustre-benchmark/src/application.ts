@@ -1,3 +1,4 @@
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 
 import {
@@ -8,21 +9,24 @@ import {
   view as view_,
 } from './todo'
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+export const ApplicationKey = Symbol('LustreBenchmark/Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
   Model,
   Message,
-}).makeComposition()
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+})
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 export const init = ApplicationComposition.makeInit(init_)
 export const update = ApplicationComposition.makeUpdate(updateHandlers)
 export const view = ApplicationComposition.makeView(view_)
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
+export const layer = ApplicationBlock.makeLayer(
+  Effect.succeed({
+    children: [],
     init,
     update,
     view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+  }),
+)

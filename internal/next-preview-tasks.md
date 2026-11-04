@@ -1,5 +1,32 @@
 # Next preview tasks
 
+## November 4 unified Block adoption
+
+The user accepted the measured Workspace compiler cost. The
+[adoption report](block-api-simplification/adoption-20261104.md) records the
+repository migration, passed component checks and remaining combined gates.
+
+- [x] Migrate Workspace, other examples, Website, Typing Game, UI implementations,
+      scoped tests, scaffold templates, active documentation, skills and lint
+      recognition to unified declarations and ordinary construction Layers.
+- [x] Preserve historical posts and migration-before examples, existing
+      application assertions and compiler-workload bodies.
+- [x] Verify exact provider guarantees across public host configuration unions
+      in source, emitted and source-free native and TypeScript 6 consumers.
+- [x] Finish whole Website declaration emission and the complete snippet check,
+      including source-free native and TypeScript 6 consumers.
+- [ ] Reject every foreign Layer alternative at paired host entry points while
+      preserving merged multi-output Layers and exact constructor channels.
+- [ ] Pass the complete source, emitted, relocated, installed-consumer, compiler
+      and repository pre-push checks on one coherent final snapshot.
+- [ ] Review the exact migration commits, integrate preview head `b36cb7c5ad`
+      and push through the required checks. Keep publication held.
+- [x] Refresh feedback through November 4 at 06:34 UTC. No new review replies;
+      assess the new attribute performance contribution, PR #1882.
+- [x] Complete the focused preview adaptation of PR #1882 and its verification.
+
+Daybreak source transfer remains explicitly on hold.
+
 ## Final GitHub feedback check
 
 - [x] Refresh issues, PRs, discussion replies and review threads, including
@@ -54,7 +81,7 @@ repeat discovery before final release sign-off.
       before Model, exact input narrowing, Commands and OutMessage checks.
 - [x] Preserve ordinary Element, Document and viewless contracts; reject Document
       embedding without prohibiting every state/operation Binding to it.
-- [ ] After the proof passes, migrate all active consumers, factories, tests,
+- [x] After the proof passes, migrate all active consumers, factories, tests,
       scaffolds, guidance, lint recognition and migration material. Preserve
       historical content, compiler workloads and the reviewed ceilings.
 - [x] Record the user's acceptance of the measured Workspace 4/8 compiler cost.
@@ -65,8 +92,8 @@ repeat discovery before final release sign-off.
 - [x] Verify the complete Workspace root trial: whole source and declaration
       emission, all 153 existing tests, and strict relocated public consumers.
       Preserve all domain, update/view, child and assertion behavior.
-- [ ] Verify actual Query/UI families against the corrected accepted baseline
-      before authorizing broad migration.
+- [x] Verify actual Query/UI families through source, emitted and relocated
+      consumers, runtime tests and the corrected compiler baseline.
 - [x] Reconcile every actionable preview PR comment and relevant issue/PR,
       recording concrete source/test evidence and actual unresolved requests.
 - [x] Verify the canonical API through source, emitted and strict relocated

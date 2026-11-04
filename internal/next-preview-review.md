@@ -1,5 +1,29 @@
 # Next preview review
 
+## November 4 unified Block adoption
+
+- [x] Record the user's acceptance of the two measured Workspace instantiation
+      costs; preserve every other ceiling and original workload body.
+- [x] Verify component migrations through existing application tests, builds,
+      scoped runners, scaffold generation and lint-plugin controls.
+- [x] Independently review Workspace commit `dc00b1a82f` and constructor
+      alternative validation commit `0bb16a8aaf`.
+- [x] Verify exact selected-provider unions in native and TypeScript 6 source,
+      emitted and source-free relocated consumers.
+- [x] Finish whole Website and complete snippet declaration emission, with
+      strict source-free native and TypeScript 6 consumers.
+- [ ] Correct the independent review's foreign-Layer union finding and verify
+      the exact follow-up across paired hosts.
+- [ ] Verify the final combined source, emitted, relocated and packed consumers,
+      compiler workloads, runtime tests and browser behavior.
+- [ ] Complete exact-commit review and mandatory pre-push checks, then push.
+- [x] Recheck feedback through November 4 at 06:34 UTC; no new review replies.
+      The focused PR #1882 preview adaptation passes its local verification.
+
+The [adoption report](block-api-simplification/adoption-20261104.md) owns the
+current status. Earlier checkpoints below retain their original verification
+scope. Publication and Daybreak transfer remain held.
+
 ## November 3 scoped tests and InMessage update checkpoint
 
 - [x] Ordinary Story/Scene tests use Block-aware scoped Effects and `it.effect`.
