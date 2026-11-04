@@ -7,8 +7,10 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { Message } from './message'
+
+const application = { block: ApplicationBlock, layer }
 
 const today = Calendar.make(2026, 4, 16)
 const urlOrThrow = (raw: string) =>
@@ -21,7 +23,7 @@ describe('update', () => {
   describe('routing', () => {
     it.effect('the root URL resolves to Home', () =>
       story(
-        ApplicationBlock,
+        application,
         init({ today }, urlOrThrow('http://localhost/')),
         message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
         model(model => {
@@ -32,7 +34,7 @@ describe('update', () => {
 
     it.effect('/button resolves to Button', () =>
       story(
-        ApplicationBlock,
+        application,
         init({ today }, urlOrThrow('http://localhost/')),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
@@ -45,7 +47,7 @@ describe('update', () => {
 
     it.effect('/calendar resolves to Calendar', () =>
       story(
-        ApplicationBlock,
+        application,
         init({ today }, urlOrThrow('http://localhost/')),
         message(
           Message.ChangedUrl({
@@ -60,7 +62,7 @@ describe('update', () => {
 
     it.effect('/date-picker resolves to DatePicker', () =>
       story(
-        ApplicationBlock,
+        application,
         init({ today }, urlOrThrow('http://localhost/')),
         message(
           Message.ChangedUrl({
@@ -75,7 +77,7 @@ describe('update', () => {
 
     it.effect('an unknown path resolves to NotFound', () =>
       story(
-        ApplicationBlock,
+        application,
         init({ today }, urlOrThrow('http://localhost/')),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/unknown') }),
@@ -94,7 +96,7 @@ describe('update', () => {
   describe('mobile menu', () => {
     it.effect('navigating to a new URL closes the mobile menu dialog', () =>
       story(
-        ApplicationBlock,
+        application,
         init({ today }, urlOrThrow('http://localhost/')),
         message(Message.ClickedOpenMobileMenu()),
         Command.resolve(

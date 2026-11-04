@@ -1,3 +1,4 @@
+import { Predicate } from 'effect'
 import type { Effect, Layer, Schema } from 'effect'
 
 import type { MakeCommandsStep } from '../../block/commandsStep.js'
@@ -10,15 +11,19 @@ import type {
 import type { DefineStepFields, DefineStepNoop } from '../../block/fieldStep.js'
 import type { LocalMountsTypeId } from '../../block/identity.js'
 import type { InstanceSchema } from '../../block/instanceSchema.js'
+import {
+  type NamespaceIdentity,
+  namespaceSourceOf,
+} from '../../block/namespaceIdentity.js'
 import type { MakeOutMessageStep } from '../../block/outMessageStep.js'
 import type { Owner } from '../../block/owner.js'
 import type { HandlerOfHostDefinition } from '../../block/requirements.js'
 import type {
   ConstructorBody,
   MakeBinding,
-  MakeMapBinding,
   MakeDescriptorOutMessageFold,
   MakeDescriptorOutMessageForward,
+  MakeMapBinding,
   SourceOf,
   Validate,
 } from '../constructed/authoring.js'
@@ -43,6 +48,7 @@ import type {
   NominalId,
   OutValue,
   PublishedMountValidation,
+  SelectedActualFacts,
   ValidateConstructorBody,
   ValidateFamilyHandlers,
   ValidateHandlerSelection,
@@ -52,13 +58,15 @@ import type {
   ImplementationFacts,
   SelectedImplementationFacts,
 } from './implementationFacts.js'
+import type { ExactReadable } from './readableProvider.js'
 import {
-  makeDefinitionRuntime,
   type Declaration,
   type IsUnion,
   type LiteralContractId,
   type MessageFreeValidation,
   type OptionalSchema,
+  makeDefinitionRuntime,
+  snapshotDefinitionConfiguration,
 } from './runtime.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
@@ -112,7 +120,17 @@ export type ValidateLayerHandlerSelection<
       : InvalidLayerHandlerSelection<LayerValue, Handlers>
     : ValidateLayerHandlerSelectionAlternative<LayerValue, Handlers>
 
-/** Completes a declared Block directly to its selected ordinary implementation Layer. */
+/**
+ * Checks a Block's constructor and returns its ordinary implementation Layer.
+ *
+ * The constructor acquires registered children and returns portable init, update,
+ * optional InMessage update and view plans, together with local handler recipes.
+ * Supply child implementation Layers with Effect's `Layer.provide`.
+ *
+ * Creating this Layer is passive. Building it constructs the executable graph;
+ * init creates Model occurrences later, and the Runtime executes Commands and
+ * starts Model-driven lifecycles. Request Services belong in handler constructors.
+ */
 export interface MakeLayer<
   Id extends string,
   ModelSchema extends AnySchema,
@@ -165,7 +183,7 @@ export interface MakeLayer<
     ? LayerWithImplementationFacts<
         GraphLayer,
         Owner<NominalId<Id, Config['key']>, true>,
-        ActualFacts<MessageSchema, Body, Config>,
+        SelectedActualFacts<MessageSchema, Body, Config>,
         HostDefinitions<Body>
       >
     : never
@@ -178,6 +196,7 @@ type LayerWithImplementationFacts<
   Pending,
 > = Layer.Layer<
   | Layer.Success<GraphLayer>
+  | ExactReadable<Layer.Success<GraphLayer>>
   | SelectedImplementationFacts<
       Layer.Success<GraphLayer>,
       OwnerValue,
@@ -267,6 +286,25 @@ type SelectedLayerOutputForPending<Success, Pending> =
         >
       : Success
 
+type DeclaredGraph<
+  Id extends string,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Config extends ContractConfiguration,
+> = ContractGraph<
+  Owner<NominalId<Id, Config['key']>, true>,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  DeclaredFacts<
+    MessageSchema,
+    OutMessageSchema,
+    Config,
+    Owner<NominalId<Id, Config['key']>, true>
+  >
+>
+
 /** @internal Names the unified authoring surface in consumer declarations. */
 export interface UnifiedBlockFields<
   Id extends string,
@@ -276,6 +314,8 @@ export interface UnifiedBlockFields<
   ChildInitContextSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
   IncomingMessage,
+  Acquisition,
+  Readable,
 >
   extends
     Pick<
@@ -287,9 +327,14 @@ export interface UnifiedBlockFields<
         ChildInitContextSchema,
         Config
       >,
-      typeof DescriptorTypeId | typeof DeclaredBlockReaderTypeId
+      typeof DescriptorTypeId
     >,
     Primitives<NominalId<Id, Config['key']>, MessageSchema['Type']> {
+  readonly [DeclaredBlockReaderTypeId]: Effect.Effect<
+    object,
+    never,
+    [Readable] extends [never] ? Acquisition : Readable
+  >
   readonly owner: Owner<NominalId<Id, Config['key']>, true>
   readonly Model: ModelSchema
   readonly Instance: InstanceSchema<
@@ -390,6 +435,14 @@ export type UnifiedBlock<
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
+  Acquisition = DeclaredGraph<
+    Id,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Config
+  >,
+  Readable = never,
 > = UnifiedBlockFields<
   Id,
   ModelSchema,
@@ -397,7 +450,9 @@ export type UnifiedBlock<
   OutMessageSchema,
   ChildInitContextSchema,
   Config,
-  UnifiedIncomingMessage<MessageSchema, Config>
+  UnifiedIncomingMessage<MessageSchema, Config>,
+  Acquisition,
+  Readable
 > &
   (ChildInitContextSchema extends AnySchema
     ? Readonly<{ ChildInitContext: ChildInitContextSchema }>
@@ -416,13 +471,24 @@ export type UnifiedBlock<
       }>
     : unknown)
 
-/** Declares one Block and binds its authoring helpers to that contract. */
+/**
+ * Declares a Block's Schemas and binds its typed authoring helpers once.
+ *
+ * Use this same value for parent Bindings, feature-local Commands and Steps,
+ * and `makeComposition`. Composition registers relationships for independently
+ * authored init, update, InMessage update and view plans. Complete an implementation
+ * through the Block's `makeLayer` helper and give hosts its Block/Layer pair.
+ *
+ * The declaration is passive and its public type is independent of the inferred
+ * implementation graph. Its unique symbol key preserves registration identity;
+ * its display name does not replace that identity.
+ */
 export function makeUnifiedBlock<
   const Id extends string,
   const Key extends symbol,
   const Config extends Omit<Declaration, 'key'>,
 >(
-  id: Id & LiteralContractId<Id>,
+  id: (Id & LiteralContractId<Id>) | NamespaceIdentity<Id>,
   config: Config &
     Readonly<{ key: Key }> &
     (symbol extends Key ? never : true extends IsUnion<Key> ? never : unknown),
@@ -441,11 +507,37 @@ export function makeUnifiedBlock<
   Config & Readonly<{ key: Key }>
 >
 export function makeUnifiedBlock(
-  id: string,
+  id: string | object,
   config: Declaration,
   ..._validation: ReadonlyArray<unknown>
 ): object {
-  const block = makeDefinitionRuntime(id, config, true, undefined, 'Block')
+  const snapshot = snapshotDefinitionConfiguration(config)
+  const source = Predicate.isString(id) ? undefined : namespaceSourceOf(id)
+  const block =
+    source === undefined
+      ? makeDefinitionRuntime(
+          globalThis.String(id),
+          snapshot,
+          true,
+          undefined,
+          'Block',
+        )
+      : makeDefinitionRuntime(
+          source.id,
+          snapshot,
+          true,
+          source.makeDefinition({
+            Model: snapshot.Model,
+            Message: snapshot.Message,
+            ...(snapshot.OutMessage === undefined
+              ? {}
+              : { OutMessage: snapshot.OutMessage }),
+            ...(snapshot.ChildInitContext === undefined
+              ? {}
+              : { ChildInitContext: snapshot.ChildInitContext }),
+          }),
+          'Block',
+        )
 
   Reflect.deleteProperty(block, 'contract')
   Reflect.deleteProperty(block, 'makeBlock')

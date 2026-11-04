@@ -114,7 +114,7 @@ export type SelectedDate = typeof OutMessage.SelectedDate.Type
 /** @internal Stable identity of the Calendar contract. */
 export const CalendarKey = Symbol('Calendar')
 
-const CalendarDefinition = Block.makeDefinition('Calendar', {
+export const CalendarBlock = Block.make('Calendar', {
   key: CalendarKey,
   Init: Block.makeInputContract<readonly [config: InitConfig]>(),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
@@ -149,7 +149,10 @@ const CalendarDefinition = Block.makeDefinition('Calendar', {
   OutMessage,
 })
 
-const CalendarComposition = CalendarDefinition.makeComposition()
+/** Public Calendar authoring contract and passive graph identity. */
+export type CalendarBlock = typeof CalendarBlock
+
+const CalendarComposition = CalendarBlock.makeComposition()
 type CalendarViewBuilder = Block.ViewBuilderFor<typeof CalendarComposition>
 
 // INIT
@@ -197,7 +200,7 @@ const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
 
 /** Focuses the calendar grid container. Parent components like DatePicker
  * dispatch this after opening to hand focus to the grid's keyboard layer. */
-export const FocusGrid = CalendarDefinition.makeCommand('FocusGrid', {
+export const FocusGrid = CalendarBlock.makeCommand('FocusGrid', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusGrid],
   handler: function* () {
@@ -658,19 +661,19 @@ export const update = CalendarComposition.makeUpdate({
   PagedYears: (model, { direction }) =>
     applyYearsFocusShift(model, direction * YEARS_PAGE_SIZE),
 
-  FocusedGrid: CalendarDefinition.makeFieldsStep(() => ({
+  FocusedGrid: CalendarBlock.makeFieldsStep(() => ({
     isGridFocused: () => true,
   })),
 
-  BlurredGrid: CalendarDefinition.makeFieldsStep(() => ({
+  BlurredGrid: CalendarBlock.makeFieldsStep(() => ({
     isGridFocused: () => false,
   })),
 
-  RefreshedToday: CalendarDefinition.makeFieldsStep.fromMessage(
-    ({ today }) => ({ today: () => today }),
-  ),
+  RefreshedToday: CalendarBlock.makeFieldsStep.fromMessage(({ today }) => ({
+    today: () => today,
+  })),
 
-  CompletedFocusGrid: CalendarDefinition.makeNoopStep(),
+  CompletedFocusGrid: CalendarBlock.makeNoopStep(),
 
   RequestedSelectDate: (model, { date }) => selectDateTransition(model, date),
 
@@ -1419,14 +1422,8 @@ export const view = CalendarComposition.makeView.withInputs(
     ),
 )
 
-type CalendarContract = typeof CalendarDefinition.contract
-/** Independent Calendar contract for parent Bindings. */
-export interface CalendarBlock extends CalendarContract {}
-/** Passive Calendar contract supplied through the module implementation Layer. */
-export const CalendarBlock: CalendarBlock = CalendarDefinition.contract
-
-/** @internal Checked Calendar implementation used as a scoped testing root. */
-export const block = CalendarDefinition.makeBlock(
+/** Constructs the Calendar implementation without starting occurrence effects. */
+export const layer = CalendarBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -1439,5 +1436,5 @@ export const block = CalendarDefinition.makeBlock(
   }),
 )
 
-/** Supplies the Calendar implementation without starting occurrence effects. */
-export const layer = block.layer
+/** @internal Selected implementation used by component tests. */
+export const block = { block: CalendarBlock, layer }

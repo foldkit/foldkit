@@ -1,15 +1,15 @@
-import { Predicate, type Layer } from 'effect'
+import { type Layer, Predicate } from 'effect'
 
 import * as ScopedStory from '../experimental/layered/testing/story.js'
 import type {
   DirectSubject,
-  TestConfig,
   SelectedTestConfig,
-  TestModel,
-  TestMessage,
-  TestOutMessage,
+  TestConfig,
   TestInMessage,
   TestInit,
+  TestMessage,
+  TestModel,
+  TestOutMessage,
 } from '../experimental/layered/testing/subject.js'
 import type {
   BlockSubject,

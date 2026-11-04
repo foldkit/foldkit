@@ -38,7 +38,7 @@ const constructNotifyingKeyedQuery = <
   const { RequestedReset, ...updateHandlers } = api.notifyingUpdateHandlers
   const update = Composition.makeUpdate(updateHandlers)
   const inMessageUpdate = Composition.makeInMessageUpdate({ RequestedReset })
-  return Definition.makeBlock(
+  return Definition.makeLayer(
     Effect.succeed({
       children: [],
       init,
@@ -75,7 +75,7 @@ const constructSilentKeyedQuery = <
   const { RequestedReset, ...updateHandlers } = api.updateHandlers
   const update = Composition.makeUpdate(updateHandlers)
   const inMessageUpdate = Composition.makeInMessageUpdate({ RequestedReset })
-  return Definition.makeBlock(
+  return Definition.makeLayer(
     Effect.succeed({
       children: [],
       init,

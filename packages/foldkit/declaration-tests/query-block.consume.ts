@@ -2,6 +2,8 @@ import { Effect, Layer, Schema } from 'effect'
 import type * as AsyncData from 'foldkit/asyncData'
 import type * as Block from 'foldkit/block'
 import type * as Command from 'foldkit/command'
+import * as Query from 'foldkit/experimental/query'
+import * as Story from 'foldkit/story'
 import type * as Update from 'foldkit/update'
 
 import {
@@ -125,10 +127,33 @@ export type QueryHostRetainsExactHandler = Expect<
     Command.HandlerOf<typeof Notes.Fetch>
   >
 >
+export const notesAcquisition = Story.withBlock(Notes, block => block.Model)
+
+// @ts-expect-error The public acquisition still requires an original family provider.
+Effect.runPromise(notesAcquisition)
+
+export const providedNotesAcquisition = notesAcquisition.pipe(
+  Effect.provide(Query.layer),
+)
+
 export type QueryConstructionRemainsLayerProvided = Expect<
+  Effect.Services<typeof notesAcquisition> extends Query.QueryFamily
+    ? true
+    : false
+>
+export type QueryFamilyProviderClosesAcquisition = Expect<
+  Equal<Effect.Services<typeof providedNotesAcquisition>, never>
+>
+export type QueryFamilyProviderCannotRaiseHandlerFailure = Expect<
+  Equal<Effect.Error<typeof providedNotesAcquisition>, never>
+>
+export type QueryAcquisitionDoesNotRequireFetchHandler = Expect<
   Equal<
-    Effect.Services<typeof Notes.get>,
-    import('foldkit/experimental/query').QueryFamily
+    Extract<
+      Effect.Services<typeof notesAcquisition>,
+      Command.HandlerOf<typeof Notes.Fetch>
+    >,
+    never
   >
 >
 export type KeyedRunArgs = Expect<

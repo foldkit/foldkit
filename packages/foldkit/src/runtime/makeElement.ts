@@ -341,9 +341,9 @@ const toCrashConfig = <Model, Message>(
  * `makeApplication` when the app owns the page and should manage those tags, and
  * `makeElement` when it is one component among others on a page it does not
  * control. Embedded apps do not own the URL bar, so `makeElement` has no
- * `routing` config. Complete the root with `ApplicationDefinition.makeBlock`,
+ * `routing` config. Complete the root with `ApplicationBlock.makeLayer`,
  * returning local handler recipes as `EffectsLayer` from its constructor.
- * Pass that Block to `Program.makeElement` and supply Services through the
+ * Pass `{ block: ApplicationBlock, layer }` to `Program.makeElement` and supply Services through the
  * Program's `provide` method when Commands, Flags, Subscriptions, Mounts, or
  * ManagedResources need them.
  */

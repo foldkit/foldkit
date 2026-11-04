@@ -1,4 +1,4 @@
-import { Predicate, Schema, type Layer } from 'effect'
+import { type Layer, Predicate, Schema } from 'effect'
 
 import type {
   DeclaredRootBlock,

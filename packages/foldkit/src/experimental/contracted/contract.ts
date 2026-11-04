@@ -52,7 +52,10 @@ import type {
   StaticSource,
   Validate,
 } from '../constructed/authoring.js'
-import type { ValidateBindingParents } from '../constructed/bindingContract.js'
+import type {
+  BindingSpecs,
+  ValidateBindingParents,
+} from '../constructed/bindingContract.js'
 import type {
   DescriptorTypeId,
   DeclaredBlockReaderTypeId,
@@ -729,6 +732,27 @@ export type ActualFacts<
       InputFacts<Config>
   : never
 
+type WithSelectedRuntimeServices<
+  Closed extends PublicFacts,
+  RuntimeServices,
+> = {
+  readonly [Key in keyof Closed]: Key extends 'runtimeServices'
+    ? Closed[Key] | RuntimeServices
+    : Closed[Key]
+}
+
+/** @internal Retains actual installed Services only on the selected implementation Layer. */
+export type SelectedActualFacts<
+  MessageSchema extends AnySchema,
+  Body extends ConstructorBody,
+  Config,
+> = Body extends unknown
+  ? WithSelectedRuntimeServices<
+      ActualFacts<MessageSchema, Body, Config>,
+      NativeFacts<MessageSchema, Body, Config>['runtimeServices']
+    >
+  : never
+
 type IsErased<Value> = [Value] extends [never]
   ? false
   : 0 extends 1 & Value
@@ -912,7 +936,8 @@ export type HostContractValidation<
       Declared
     >
 
-type FamilyValidation<
+/** @internal Checks family channels against selected or host-owned handler bounds. */
+export type FamilyValidation<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
@@ -1070,25 +1095,63 @@ export interface MakeInit<
   >(
     create: Create & ((...args: Args) => Output),
     ...validation: Validation
-  ): Plan<
-    NoInfer<
-      (
-        ...args: Args
-      ) => InitializationReturn<
-        Source['Model']['Type'],
-        Source['Message']['Type'],
-        BindingsOf<Source>,
-        Output
-      >
-    >,
-    'Init',
-    Source
-  >
+  ): AuthoredInitPlan<Source, Args, Output>
 }
+
+/** @internal Retains exact startup producer channels while deriving assembled output from one Source. */
+export interface AuthoredInitPlan<
+  Source extends AuthoringSource,
+  Args extends ReadonlyArray<unknown>,
+  Output,
+> extends Plan<
+  NoInfer<
+    (
+      ...args: Args
+    ) => InitializationReturn<
+      Source['Model']['Type'],
+      Source['Message']['Type'],
+      BindingsOf<Source>,
+      Output
+    >
+  >,
+  'Init',
+  Source
+> {}
 
 type ViewRequirements<Source extends AuthoringSource> =
   | Mount.RequirementsOf<Source[typeof LocalMountsTypeId]>
   | RequirementsOfBindings<Source['bindings']>
+
+/** @internal Derives a portable element view entirely from its validated Source and inputs. */
+export type AuthoredViewPlan<
+  Source extends AuthoringSource,
+  Inputs = void,
+> = ViewPlan<
+  OwnedAuthoredView<
+    BlockView<
+      Source['Model']['Type'],
+      Source['Message']['Type'],
+      Inputs,
+      ViewRequirements<Source>
+    >,
+    Source['owner'],
+    Source['Model']['Type'],
+    Source['Message']['Type'],
+    ViewRequirements<Source>
+  >,
+  Source
+>
+
+/** @internal Derives a portable document view entirely from its validated Source. */
+export type AuthoredDocumentViewPlan<Source extends AuthoringSource> = ViewPlan<
+  OwnedDocumentView<
+    Source['owner'],
+    Source['Model']['Type'],
+    Source['Message']['Type'],
+    ViewRequirements<Source>
+  >,
+  Source
+>
 
 /** A complete view expression whose input Schema also supplies contextual typing. */
 export interface MakeView<Source extends AuthoringSource, Inputs> {
@@ -1097,35 +1160,13 @@ export interface MakeView<Source extends AuthoringSource, Inputs> {
       model: Source['Model']['Type'],
       h: ViewBuilderFor<Source>,
     ) => Document,
-  ): ViewPlan<
-    OwnedDocumentView<
-      Source['owner'],
-      Source['Model']['Type'],
-      Source['Message']['Type'],
-      ViewRequirements<Source>
-    >,
-    Source
-  >
+  ): AuthoredDocumentViewPlan<Source>
   (
     view: (
       model: Source['Model']['Type'],
       h: ViewBuilderFor<Source>,
     ) => VNode | null,
-  ): ViewPlan<
-    OwnedAuthoredView<
-      BlockView<
-        Source['Model']['Type'],
-        Source['Message']['Type'],
-        void,
-        ViewRequirements<Source>
-      >,
-      Source['owner'],
-      Source['Model']['Type'],
-      Source['Message']['Type'],
-      ViewRequirements<Source>
-    >,
-    Source
-  >
+  ): AuthoredViewPlan<Source>
   readonly withInputs: {
     (
       view: (
@@ -1133,21 +1174,7 @@ export interface MakeView<Source extends AuthoringSource, Inputs> {
         inputs: Inputs,
         h: ViewBuilderFor<Source>,
       ) => VNode | null,
-    ): ViewPlan<
-      OwnedAuthoredView<
-        BlockView<
-          Source['Model']['Type'],
-          Source['Message']['Type'],
-          Inputs,
-          ViewRequirements<Source>
-        >,
-        Source['owner'],
-        Source['Model']['Type'],
-        Source['Message']['Type'],
-        ViewRequirements<Source>
-      >,
-      Source
-    >
+    ): AuthoredViewPlan<Source, Inputs>
     <LocalInputs>(
       view: ViewWithInputs<
         Source['Model']['Type'],
@@ -1156,21 +1183,7 @@ export interface MakeView<Source extends AuthoringSource, Inputs> {
         ViewRequirements<Source>,
         ViewBuilderFor<Source>
       >,
-    ): ViewPlan<
-      OwnedAuthoredView<
-        BlockView<
-          Source['Model']['Type'],
-          Source['Message']['Type'],
-          LocalInputs,
-          ViewRequirements<Source>
-        >,
-        Source['owner'],
-        Source['Model']['Type'],
-        Source['Message']['Type'],
-        ViewRequirements<Source>
-      >,
-      Source
-    >
+    ): AuthoredViewPlan<Source, LocalInputs>
   }
 }
 
@@ -1268,7 +1281,7 @@ export interface MakeComposition<
       MessageSchema,
       OutMessageSchema,
       Mounts,
-      Bindings
+      BindingSpecs<Bindings>
     >,
     Readonly<{ key: Config['key']; Init: Config['Init'] }> &
       (Config extends Readonly<{ Context: infer Context }>

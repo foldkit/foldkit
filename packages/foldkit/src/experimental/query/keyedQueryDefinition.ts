@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 
-import * as Contracted from '../contracted/public.js'
+import { makeFamilyDeclaration } from '../contracted/familyLayer.js'
 import type { KeyedQueryConfig, SyncFields } from './keyedQueryContract.js'
 import {
   makeKeyedQueryAccessors,
@@ -31,7 +31,7 @@ const makeNotifyingKeyedQueryAuthoring = <
   const Message = makeKeyedQueryLocalMessage(config.data, config.error, Args)
   const InMessage = makeKeyedQueryInMessage()
   const OutMessage = makeKeyedQueryOutMessage(config.data, config.error, Args)
-  const Definition = Contracted.makeFamilyDefinition(config.name, {
+  const Definition = makeFamilyDeclaration(config.name, {
     key: KeyedQueryKey,
     Model,
     Message,
@@ -86,7 +86,7 @@ const makeSilentKeyedQueryAuthoring = <
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   const Message = makeKeyedQueryLocalMessage(config.data, config.error, Args)
   const InMessage = makeKeyedQueryInMessage()
-  const Definition = Contracted.makeFamilyDefinition(config.name, {
+  const Definition = makeFamilyDeclaration(config.name, {
     key: KeyedQueryKey,
     Model,
     Message,

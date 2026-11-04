@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
 import type { MessageOf } from 'foldkit/html'
+import * as BlockFamily from 'foldkit/internal/block'
 import { modifyFields } from 'foldkit/struct'
 
 import { layer as AnimationLayer } from '../animation/block.js'
@@ -64,29 +65,32 @@ const makeAuthoring = <Item extends string, ItemEncoded>(
       }),
     )
 
-  const ComboboxDefinition = Block.makeFamilyDefinition(ComboboxNamespace, {
-    key: ComboboxKey,
-    Init: Schema.Tuple([InitConfigSchema]),
-    ChildInitContext: InitConfigSchema,
-    view: {
-      kind: 'Element',
-      Inputs: Block.makeInputContract<ViewInputs<Item>>(),
-    },
-    operations: {
-      requestClose: {
-        message: requestClose,
-        outMessage: ItemOutMessage.ClearedSelection,
+  const ComboboxDefinition = BlockFamily.makeFamilyDeclaration(
+    ComboboxNamespace,
+    {
+      key: ComboboxKey,
+      Init: Schema.Tuple([InitConfigSchema]),
+      ChildInitContext: InitConfigSchema,
+      view: {
+        kind: 'Element',
+        Inputs: Block.makeInputContract<ViewInputs<Item>>(),
       },
-      requestSelectItem: {
-        message: requestSelectItem,
-        outMessage: ItemOutMessage.Selected,
+      operations: {
+        requestClose: {
+          message: requestClose,
+          outMessage: ItemOutMessage.ClearedSelection,
+        },
+        requestSelectItem: {
+          message: requestSelectItem,
+          outMessage: ItemOutMessage.Selected,
+        },
       },
+      Model,
+      Message: ItemMessage,
+      InMessage,
+      OutMessage: ItemOutMessage,
     },
-    Model,
-    Message: ItemMessage,
-    InMessage,
-    OutMessage: ItemOutMessage,
-  })
+  )
 
   const itemUpdate = makeUpdateHandlers(
     ComboboxDefinition.makeBinding,
@@ -147,7 +151,7 @@ type Authoring<Item extends string, ItemEncoded> = ReturnType<
 const construct = <Item extends string, ItemEncoded>(
   authoring: Authoring<Item, ItemEncoded>,
 ) =>
-  authoring.Definition.makeBlock(
+  authoring.Definition.makeLayer(
     Effect.gen(function* () {
       const animation = yield* authoring.AnimationBinding
 
@@ -160,7 +164,7 @@ const construct = <Item extends string, ItemEncoded>(
         EffectsLayer,
       }
     }),
-  ).provide(AnimationLayer)
+  ).pipe(Layer.provide(AnimationLayer))
 
 interface ComboboxImplementation extends Block.FamilyLifetime {
   readonly construct: typeof construct
@@ -187,7 +191,7 @@ const declareBlock = <Item extends string, ItemEncoded>(
 ) => {
   const authoring = makeAuthoring(Item)
 
-  return Block.makeFamilyContract(
+  return BlockFamily.resolveFamily(
     authoring.Definition,
     ComboboxFamily,
     implementation => implementation.construct(authoring),

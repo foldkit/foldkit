@@ -238,7 +238,7 @@ export function assertProgramConfig(
   for (const field of blockImplementationFields) {
     if (field in config) {
       throw new Error(
-        `[foldkit] Program configuration cannot supply Block implementation field "${field}". Complete the Block with Definition.makeBlock or native Block.assemble, then pass it as block.`,
+        `[foldkit] Program configuration cannot supply Block implementation field "${field}". Return implementation fields from the Block's makeLayer constructor, then supply block and layer.`,
       )
     }
   }
@@ -318,7 +318,7 @@ export function assertProgramConfig(
   const block = Reflect.get(config, 'block')
   if (!Predicate.isObject(block)) {
     throw new Error(
-      '[foldkit] Program block must be completed with Definition.makeBlock or native Block.assemble.',
+      '[foldkit] Use a Block declaration and supply its makeLayer implementation as layer.',
     )
   }
 
@@ -339,7 +339,7 @@ export function assertProgramConfig(
       !Array.isArray(Reflect.get(block, 'hostHandlers'))
     ) {
       throw new Error(
-        '[foldkit] Program block must be completed with Definition.makeBlock or native Block.assemble.',
+        '[foldkit] Use a Block declaration and supply its makeLayer implementation as layer.',
       )
     }
 

@@ -27,3 +27,20 @@ export type {
   Completed as MultiCompleted,
   ViewInputs as MultiViewInputs,
 } from './multi.js'
+
+export type {
+  ListboxRefinementKey,
+  SharedListboxProof,
+  SharedListboxFacts,
+} from './single.js'
+
+/** @internal Names the Multi selection witness at the package boundary. */
+export type {
+  ListboxRefinementKey as MultiListboxRefinementKey,
+  SharedListboxProof as MultiSharedListboxProof,
+  SharedListboxFacts as MultiSharedListboxFacts,
+} from './multi.js'
+
+/** @internal Preserves exact fixed-family reader names in emitted declarations. */
+export type { ListboxReader } from './single.js'
+export type { ListboxReader as MultiListboxReader } from './multi.js'

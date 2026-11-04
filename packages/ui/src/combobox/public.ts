@@ -21,3 +21,6 @@ export type {
   Completed as MultiCompleted,
   ViewInputs as MultiViewInputs,
 } from './multi.js'
+
+/** @internal Keeps schema-specialized factory declarations nameable in external consumers. */
+export type { ItemSchema, MessageSchema, OutMessageSchema } from './shared.js'

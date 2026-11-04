@@ -63,7 +63,7 @@ export const AnchorTooltip = TooltipNamespace.makeMount('AnchorTooltip', {
 /** @internal Stable identity of the Tooltip contract. */
 export const TooltipKey = Symbol('Tooltip')
 
-const TooltipDefinition = TooltipNamespace.makeDefinition({
+export const TooltipBlock = Block.make(TooltipNamespace, {
   key: TooltipKey,
   Model,
   Message,
@@ -89,11 +89,8 @@ const TooltipDefinition = TooltipNamespace.makeDefinition({
   },
 })
 
-type TooltipContract = typeof TooltipDefinition.contract
-/** Public Tooltip contract with a stable named declaration boundary. */
-export interface TooltipBlock extends TooltipContract {}
-/** Passive Tooltip contract selected through the module implementation Layer. */
-export const TooltipBlock: TooltipBlock = TooltipDefinition.contract
+/** Public Tooltip authoring contract and passive graph identity. */
+export type TooltipBlock = typeof TooltipBlock
 
 // SELECTORS
 
@@ -133,19 +130,16 @@ const makeInitialModel = (config: InitConfig): Model => ({
 
 /** Waits for the tooltip's show delay before emitting
  *  `CompletedWaitBeforeShowing`. */
-export const WaitBeforeShowing = TooltipDefinition.makeCommand(
-  'WaitBeforeShowing',
-  {
-    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-    messages: [Message.CompletedWaitBeforeShowing],
-    handler: function* () {
-      return ({ delay, version }) =>
-        Effect.sleep(delay).pipe(
-          Effect.as(Message.CompletedWaitBeforeShowing({ version })),
-        )
-    },
+export const WaitBeforeShowing = TooltipBlock.makeCommand('WaitBeforeShowing', {
+  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+  messages: [Message.CompletedWaitBeforeShowing],
+  handler: function* () {
+    return ({ delay, version }) =>
+      Effect.sleep(delay).pipe(
+        Effect.as(Message.CompletedWaitBeforeShowing({ version })),
+      )
   },
-)
+})
 
 /** Mount definitions rendered by Tooltip. */
 export const mounts = [AnchorTooltip]
@@ -156,7 +150,7 @@ export const EffectsLayer = Layer.mergeAll(
   AnchorTooltip.layer,
 )
 
-const TooltipComposition = TooltipDefinition.makeComposition({ mounts })
+const TooltipComposition = TooltipBlock.makeComposition({ mounts })
 
 /** Creates an initial Tooltip Model and Commands from a config. Defaults to hidden. */
 export const init = TooltipComposition.makeInit((config: InitConfig) => ({
@@ -406,8 +400,8 @@ export const view = TooltipComposition.makeView.withInputs(
   },
 )
 
-/** @internal Checked Tooltip implementation used as a scoped testing root. */
-const block = TooltipDefinition.makeBlock(
+/** Constructs the Tooltip implementation without starting occurrence effects. */
+export const layer = TooltipBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -419,5 +413,5 @@ const block = TooltipDefinition.makeBlock(
   }),
 )
 
-/** Constructs Tooltip without starting Commands or occurrence lifecycles. */
-export const layer = block.layer
+/** @internal Selected implementation used by component tests. */
+export const block = { block: TooltipBlock, layer }

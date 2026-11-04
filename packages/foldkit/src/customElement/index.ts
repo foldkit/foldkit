@@ -1,12 +1,6 @@
 import { Array, Cause, Exit, Option, Schema, String, pipe } from 'effect'
 
-import type {
-  Attribute,
-  Child,
-  ChildAttribute,
-  Html,
-  HtmlBuilder,
-} from '../html/index.js'
+import type { Attribute, Child, Html, HtmlBuilder } from '../html/index.js'
 import {
   OnCustomEvent,
   Prop,
@@ -65,8 +59,8 @@ type EventFactories<
 /** Typed call site for a defined custom element. The element constructor
  *  itself is callable; each declared property gets a PascalCase factory
  *  method, and each declared event gets an `On{PascalCase}` factory method.
- *  The attribute array accepts {@link ChildAttribute} alongside
- *  `Attribute<Message>`, like every html element builder, so a Block's
+ *  The attribute array takes `Attribute<Message>`, including published
+ *  ChildAttributes with their Mount requirements, so a Block's
  *  published attribute groups can be spread into a custom element. */
 export type ElementBuilder<
   Message,
@@ -74,10 +68,7 @@ export type ElementBuilder<
   Events extends Record<string, EventSchema>,
   AllowedMountRequirements = never,
 > = ((
-  attributes?: ReadonlyArray<
-    | Attribute<Message, AllowedMountRequirements>
-    | ChildAttribute<AllowedMountRequirements>
-  >,
+  attributes?: ReadonlyArray<Attribute<Message, AllowedMountRequirements>>,
   children?: ReadonlyArray<Child>,
 ) => Html) &
   PropertyFactories<Message, AllowedMountRequirements, Properties> &
@@ -237,9 +228,7 @@ export const define = <
     )
 
     const elementFn = (
-      attributes: ReadonlyArray<
-        Attribute<unknown, AnyMountHandler> | ChildAttribute<AnyMountHandler>
-      > = [],
+      attributes: ReadonlyArray<Attribute<unknown, AnyMountHandler>> = [],
       children: ReadonlyArray<Child> = [],
     ): Html => createVNode(attributes, children)
 

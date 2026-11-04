@@ -3,14 +3,14 @@ import * as Dom from 'foldkit/dom'
 import * as Render from 'foldkit/render'
 
 import { idSelector } from '../internal/selectors.js'
-import { AnimationDefinition } from './definition.js'
+import { AnimationBlock } from './definition.js'
 import { Message } from './schema.js'
 
 const elementSelector = (id: string): string => idSelector(id)
 
 /** Waits for paint via double-rAF, then reports the transition generation that
  *  scheduled the wait. */
-export const WaitForPaint = AnimationDefinition.makeCommand('WaitForPaint', {
+export const WaitForPaint = AnimationBlock.makeCommand('WaitForPaint', {
   args: { generation: Schema.Number },
   messages: [Message.CompletedWaitForPaint],
   handler: function* () {
@@ -23,7 +23,7 @@ export const WaitForPaint = AnimationDefinition.makeCommand('WaitForPaint', {
 
 /** Waits for all CSS transitions and keyframe animations on the element to
  *  settle, then reports the transition generation that scheduled the wait. */
-export const WaitForAnimationSettled = AnimationDefinition.makeCommand(
+export const WaitForAnimationSettled = AnimationBlock.makeCommand(
   'WaitForAnimationSettled',
   {
     args: { id: Schema.String, generation: Schema.Number },

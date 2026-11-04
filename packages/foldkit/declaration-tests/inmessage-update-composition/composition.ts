@@ -1,13 +1,13 @@
-import { ApplicationDefinition, makeFieldsStep } from './definition.js'
+import { ApplicationBlock, makeFieldsStep } from './definition.js'
 import { EditorBlock } from './editor.js'
-export const EditorBinding = ApplicationDefinition.makeBinding(EditorBlock, {
+export const EditorBinding = ApplicationBlock.makeBinding(EditorBlock, {
   field: 'editor',
 }).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(EditorBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(EditorBlock, {
     Edited: () => makeFieldsStep(() => ({ count: count => count + 1 })),
   }),
 })
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [EditorBinding],
 })
 export const { makeUpdate, makeInMessageUpdate } = ApplicationComposition

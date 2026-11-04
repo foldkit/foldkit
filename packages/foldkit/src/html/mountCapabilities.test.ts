@@ -12,6 +12,7 @@ import {
   type ChildAttribute,
   type Html,
   type HtmlBuilder,
+  type TaggedAttribute,
   __htmlBuilder,
   childAttributes,
   createKeyedLazy,
@@ -284,9 +285,9 @@ describe('Mount capability types', () => {
   })
 
   it('does not erase requirements through public attribute containers', () => {
+    // @ts-expect-error Attribute defaults to MountActions with no requirements.
     const structuralAttribute: Attribute<Message> = {
       _tag: 'OnMount',
-      // @ts-expect-error Attribute defaults to raw MountActions with no requirements.
       action: MeasurePanel(),
     }
 
@@ -323,7 +324,7 @@ describe('Mount capability types', () => {
       // @ts-expect-error A tag-only array has erased the Attribute contract.
       childAttributes(tagOnlyAttributes)
 
-    const broadAttributes: ReadonlyArray<Attribute<unknown, unknown>> = [
+    const broadAttributes: ReadonlyArray<TaggedAttribute<unknown, unknown>> = [
       preciseBuilder.OnMount(MeasurePanel()),
     ]
     const acceptsUnknownRequirements = (

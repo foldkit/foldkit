@@ -23,14 +23,14 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,
   Message,
   Init: Schema.Tuple([Flags]),
   view: { kind: 'Document' },
 })
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({ count: flags.start, formState: 'Controlled' }),
@@ -252,7 +252,7 @@ export const view = ApplicationComposition.makeView((model, h): Document => {
 
 export const EffectsLayer = Layer.empty
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return { children: [], init, update, view, EffectsLayer }
   }),

@@ -31,23 +31,20 @@ const TestCombobox = Combobox.makeBlock()
 
 const ComboboxMountRequirementsKey = Symbol('ComboboxMountRequirements')
 
-const ComboboxMountRequirementsDefinition = Block.makeDefinition(
-  'ComboboxMountRequirements',
-  {
-    key: ComboboxMountRequirementsKey,
-    Init: Schema.Tuple([]),
-    Model: TestCombobox.Model,
-    Message: Schema.Never,
-  },
-)
+const ComboboxMountRequirementsBlock = Block.make('ComboboxMountRequirements', {
+  key: ComboboxMountRequirementsKey,
+  Init: Schema.Tuple([]),
+  Model: TestCombobox.Model,
+  Message: Schema.Never,
+})
 
 const foldComboboxOutMessage =
-  ComboboxMountRequirementsDefinition.makeOutMessageFold(TestCombobox, {
+  ComboboxMountRequirementsBlock.makeOutMessageFold(TestCombobox, {
     Selected: () => model => ({ model }),
     ClearedSelection: () => model => ({ model }),
   })
 
-const ComboboxBinding = ComboboxMountRequirementsDefinition.makeBinding(
+const ComboboxBinding = ComboboxMountRequirementsBlock.makeBinding(
   TestCombobox,
   {
     read: model => Option.some(model),
@@ -66,28 +63,24 @@ const TestListbox = Listbox.makeBlock()
 
 const ListboxMountRequirementsKey = Symbol('ListboxMountRequirements')
 
-const ListboxMountRequirementsDefinition = Block.makeDefinition(
-  'ListboxMountRequirements',
+const ListboxMountRequirementsBlock = Block.make('ListboxMountRequirements', {
+  key: ListboxMountRequirementsKey,
+  Init: Schema.Tuple([]),
+  Model: TestListbox.Model,
+  Message: Schema.Never,
+})
+
+const foldListboxOutMessage = ListboxMountRequirementsBlock.makeOutMessageFold(
+  TestListbox,
   {
-    key: ListboxMountRequirementsKey,
-    Init: Schema.Tuple([]),
-    Model: TestListbox.Model,
-    Message: Schema.Never,
+    Selected: () => model => ({ model }),
   },
 )
 
-const foldListboxOutMessage =
-  ListboxMountRequirementsDefinition.makeOutMessageFold(TestListbox, {
-    Selected: () => model => ({ model }),
-  })
-
-const ListboxBinding = ListboxMountRequirementsDefinition.makeBinding(
-  TestListbox,
-  {
-    read: model => Option.some(model),
-    write: (_model, nextListbox) => nextListbox,
-  },
-).withOutMessagePolicy({ fold: foldListboxOutMessage })
+const ListboxBinding = ListboxMountRequirementsBlock.makeBinding(TestListbox, {
+  read: model => Option.some(model),
+  write: (_model, nextListbox) => nextListbox,
+}).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const embedListbox = (
   model: typeof TestListbox.Model.Type,
@@ -100,17 +93,14 @@ const TestMenu = Menu.makeBlock()
 
 const MenuMountRequirementsKey = Symbol('MenuMountRequirements')
 
-const MenuMountRequirementsDefinition = Block.makeDefinition(
-  'MenuMountRequirements',
-  {
-    key: MenuMountRequirementsKey,
-    Init: Schema.Tuple([]),
-    Model: TestMenu.Model,
-    Message: Schema.Never,
-  },
-)
+const MenuMountRequirementsBlock = Block.make('MenuMountRequirements', {
+  key: MenuMountRequirementsKey,
+  Init: Schema.Tuple([]),
+  Model: TestMenu.Model,
+  Message: Schema.Never,
+})
 
-const foldMenuOutMessage = MenuMountRequirementsDefinition.makeOutMessageFold(
+const foldMenuOutMessage = MenuMountRequirementsBlock.makeOutMessageFold(
   TestMenu,
   {
     Selected: () => model => ({ model }),
@@ -118,7 +108,7 @@ const foldMenuOutMessage = MenuMountRequirementsDefinition.makeOutMessageFold(
   },
 )
 
-const MenuBinding = MenuMountRequirementsDefinition.makeBinding(TestMenu, {
+const MenuBinding = MenuMountRequirementsBlock.makeBinding(TestMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })

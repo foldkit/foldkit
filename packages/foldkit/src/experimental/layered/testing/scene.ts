@@ -1,4 +1,4 @@
-import { type Effect, Predicate, type Layer } from 'effect'
+import { type Effect, type Layer, Predicate } from 'effect'
 
 import type {
   DeclaredRootBlock,
@@ -11,6 +11,7 @@ import type { FactsOf, ViewContract } from '../../constructed/contract.js'
 import { resolveInMessageSteps } from './inMessage.js'
 import type {
   DirectSubject,
+  SelectedTestConfig,
   TestConfig,
   TestInMessage,
   TestInit,
@@ -18,7 +19,6 @@ import type {
   TestModel,
   TestOutMessage,
   TestSubject,
-  SelectedTestConfig,
 } from './subject.js'
 import {
   initialStep,
@@ -28,8 +28,8 @@ import {
 import {
   type BlockSubject,
   type TestBlock,
-  type TestEffect,
   TestContract,
+  type TestEffect,
   withBlock,
 } from './withBlock.js'
 

@@ -23,6 +23,11 @@ import type {
 import type { InitialBindingEvidence } from '../../block/initialization.js'
 import type { InstanceEvidence } from '../../block/instanceSchema.js'
 import type { OccurrenceCreation } from '../../block/occurrence.js'
+import type {
+  NormalizedFoldEvidence,
+  NormalizedOutMessageFold,
+  RestoredFoldContext,
+} from '../../block/outMessageFoldContract.js'
 import type { BindingPolicyEvidence } from '../../block/policyEvidence.js'
 import type { Qualify } from '../../block/scope.js'
 import type * as Update from '../../update/index.js'
@@ -474,6 +479,7 @@ export type DescriptorBindingMember<
       >
     >
   > &
+  DescriptorBindingSpec<Child, Config, InitSchema, Kind, ParentOwner, Policy> &
   InitialEvidenceOfBinding<
     NativeDescriptorBinding<
       Child,
@@ -544,3 +550,143 @@ export type DescriptorBinding<
         : never
     >
   : never
+
+declare const DescriptorBindingSpecTypeId: unique symbol
+
+/** @internal Retains one validated child relationship without repeating its parent Schema contracts. */
+export interface DescriptorBindingSpec<
+  Child extends AnyDescriptor,
+  Config,
+  InitSchema extends AnySchema | undefined,
+  Kind extends ConstructionKind,
+  ParentOwner,
+  Policy,
+> {
+  readonly [DescriptorBindingSpecTypeId]: readonly [
+    Child,
+    Config,
+    InitSchema,
+    Kind,
+    ParentOwner,
+    Policy,
+  ]
+}
+
+declare const FoldOnlyPolicySpecTypeId: unique symbol
+
+/** @internal Stores an exact helper-only fold policy without repeating its parent Model. */
+export interface FoldOnlyPolicySpec<ChildOutMessage, Context, Data> {
+  readonly [FoldOnlyPolicySpecTypeId]: readonly [ChildOutMessage, Context, Data]
+}
+
+type ExactPolicy<Left, Right> =
+  (<Value>() => Value extends Left ? 1 : 2) extends <
+    Value,
+  >() => Value extends Right ? 1 : 2
+    ? true
+    : false
+
+type PolicySpecOf<Policy, Model> =
+  Policy extends Readonly<{ fold: infer Fold }>
+    ? ExactPolicy<Policy, Readonly<{ fold: Fold }>> extends true
+      ? Fold extends NormalizedFoldEvidence<
+          infer ChildOutMessage,
+          infer Context,
+          infer Data
+        >
+        ? ExactPolicy<
+            Fold,
+            NormalizedOutMessageFold<
+              Model,
+              ChildOutMessage,
+              RestoredFoldContext<Model, Context>,
+              Data
+            >
+          > extends true
+          ? FoldOnlyPolicySpec<ChildOutMessage, Context, Data>
+          : Policy
+        : Policy
+      : Policy
+    : Policy
+
+type PolicyFromSpec<Policy, Model> =
+  Policy extends FoldOnlyPolicySpec<
+    infer ChildOutMessage,
+    infer Context,
+    infer Data
+  >
+    ? Readonly<{
+        fold: NormalizedOutMessageFold<
+          Model,
+          ChildOutMessage,
+          RestoredFoldContext<Model, Context>,
+          Data
+        >
+      }>
+    : Policy
+
+type BindingSpecOf<Value> =
+  Value extends DescriptorBindingSpec<
+    infer Child,
+    infer Config,
+    infer InitSchema,
+    infer Kind,
+    infer ParentOwner,
+    infer Policy
+  >
+    ? DescriptorBindingSpec<
+        Child,
+        Config,
+        InitSchema,
+        Kind,
+        ParentOwner,
+        PolicySpecOf<Policy, ParentModelOfBinding<Value>>
+      >
+    : Value
+
+/** @internal Preserves each relationship independently while retaining tuple mutability and union correlations. */
+export type BindingSpecs<Bindings extends ReadonlyArray<unknown>> = {
+  [Index in keyof Bindings]: BindingSpecOf<Bindings[Index]>
+}
+
+type BindingFromSpec<
+  Value,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutSchema extends AnySchema | undefined,
+> =
+  Value extends DescriptorBindingSpec<
+    infer Child,
+    infer Config,
+    infer InitSchema,
+    infer Kind,
+    infer ParentOwner,
+    infer Policy
+  >
+    ? DescriptorBindingMember<
+        Child,
+        ModelSchema,
+        MessageSchema,
+        OutSchema,
+        Config,
+        InitSchema,
+        Kind,
+        ParentOwner,
+        PolicyFromSpec<Policy, ModelSchema['Type']>
+      >
+    : Extract<Value, AnyBinding>
+
+/** @internal Restores complete Binding contracts against the same validated parent Schema contracts. */
+export type BindingsFromSpecs<
+  Specs extends ReadonlyArray<unknown>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutSchema extends AnySchema | undefined,
+> = {
+  [Index in keyof Specs]: BindingFromSpec<
+    Specs[Index],
+    ModelSchema,
+    MessageSchema,
+    OutSchema
+  >
+}

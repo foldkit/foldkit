@@ -2,12 +2,12 @@ import { Effect, Schema } from 'effect'
 import * as Dom from 'foldkit/dom'
 
 import { idSelector } from '../internal/selectors.js'
-import { TabsDefinition } from './definition.js'
+import { TabsBlock } from './definition.js'
 import { tabId } from './ids.js'
 import { Message } from './types.js'
 
 /** @internal Canonical Tabs implementation. */
-export const FocusTab = TabsDefinition.makeCommand('FocusTab', {
+export const FocusTab = TabsBlock.makeCommand('FocusTab', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedFocusTab],
   handler: function* () {

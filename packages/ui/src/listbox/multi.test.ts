@@ -35,7 +35,7 @@ const acknowledgeBackdrop = Scene.Mount.resolve(
 )
 
 type ListboxOperations = Pick<
-  Effect.Success<typeof block.get>,
+  Story.TestBlock<typeof block>,
   'init' | 'update' | 'operations'
 >
 

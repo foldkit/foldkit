@@ -1,5 +1,6 @@
 import {
   Array,
+  Context,
   Effect,
   Equal,
   Function,
@@ -15,6 +16,7 @@ import {
 import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, Html } from 'foldkit/html'
+import * as BlockFamily from 'foldkit/internal/block'
 import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
@@ -22,6 +24,7 @@ import * as Update from 'foldkit/update'
 import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
 import * as Animation from '../animation/index.js'
 import { groupContiguous } from '../group.js'
+import { makeFixedFamilyLayer } from '../internal/fixedFamily.js'
 import * as OptionExt from '../internal/optionExtensions.js'
 import { idSelector } from '../internal/selectors.js'
 import {
@@ -136,7 +139,7 @@ export const OutMessage = defineMessageUnion({
 
 /** The OutMessage union interface on a completed Menu, refined to its Item
  * type. */
-type OutMessageSchema<Item extends string = string> =
+export type OutMessageSchema<Item extends string = string> =
   typeof OutMessage extends MessageUnion<infer Cases>
     ? MessageUnion<
         Omit<Cases, 'Selected'> &
@@ -361,7 +364,7 @@ export const DetectMenuMovementOrAnimationEnd = MenuNamespace.makeCommand(
 )
 
 const detectMenuMovementOrAnimationEnd = (generation: number) =>
-  MenuDefinition.makeCommandsStep(model => [
+  MenuBlock.makeCommandsStep(model => [
     DetectMenuMovementOrAnimationEnd({ id: model.id, generation }),
   ])
 
@@ -390,12 +393,12 @@ const makeTransitions =
     const openMenu = (baseModel: Model) => {
       if (model.isAnimated) {
         return Update.combineSteps([
-          MenuDefinition.makeStep(() => ({
+          MenuBlock.makeStep(() => ({
             model: baseModel,
             commands: openCommands,
           })),
           animationBinding.requestShow(),
-          MenuDefinition.makeFieldsStep(() => ({ isOpen: () => true })),
+          MenuBlock.makeFieldsStep(() => ({ isOpen: () => true })),
         ])
       }
 
@@ -418,10 +421,10 @@ const makeTransitions =
       const closeOutMessage = outMessage ?? OutMessage.Closed()
 
       if (model.isAnimated) {
-        return MenuDefinition.makeStep(() =>
+        return MenuBlock.makeStep(() =>
           Function.compose(
             Update.combineSteps([
-              MenuDefinition.makeStep(() => ({ model: closed, commands })),
+              MenuBlock.makeStep(() => ({ model: closed, commands })),
               animationBinding.requestHide(),
             ]),
             Update.withOutMessage(closeOutMessage),
@@ -596,10 +599,10 @@ const makeTransitions =
               })
 
               if (model.isAnimated) {
-                return MenuDefinition.makeStep(() =>
+                return MenuBlock.makeStep(() =>
                   Function.compose(
                     Update.combineSteps([
-                      MenuDefinition.makeStep(() => ({
+                      MenuBlock.makeStep(() => ({
                         model: closed,
                         commands: closeWithFocusCommands,
                       })),
@@ -763,7 +766,7 @@ export const mounts = [AnchorMenu, PortalMenuBackdrop]
 
 /** @internal Nominal identity of the Menu contract. */
 export const MenuKey = Symbol('Menu')
-const MenuDefinition = MenuNamespace.makeDefinition({
+const MenuBlock = Block.make(MenuNamespace, {
   key: MenuKey,
   Model,
   Message,
@@ -789,21 +792,21 @@ const MenuDefinition = MenuNamespace.makeDefinition({
   },
 })
 
-const foldAnimationOutMessage = MenuDefinition.makeOutMessageFold(
+const foldAnimationOutMessage = MenuBlock.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: MenuDefinition.makeNoopStep,
+    TransitionedOut: MenuBlock.makeNoopStep,
   },
 )
 
-const AnimationBinding = MenuDefinition.makeBinding(Animation.AnimationBlock, {
+const AnimationBinding = MenuBlock.makeBinding(Animation.AnimationBlock, {
   field: 'animation',
   init: { contextToArgs: config => [{ id: `${config.id}-items` }] },
 }).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
-const MenuComposition = MenuDefinition.makeComposition({
+const MenuComposition = MenuBlock.makeComposition({
   mounts,
   bindings: [AnimationBinding],
 })
@@ -816,7 +819,7 @@ type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
 const transitions = makeTransitions(AnimationBinding)
 const defaultUpdate = (model: Model, message: Message) =>
   transitions(model).update(message)
-const applyMenuMessage = MenuDefinition.makeStep(
+const applyMenuMessage = MenuBlock.makeStep(
   (model, message: Parameters<typeof defaultUpdate>[1]) =>
     defaultUpdate(model, message),
 )
@@ -854,10 +857,8 @@ const update = MenuComposition.makeUpdate({
 })
 
 const inMessageUpdate = MenuComposition.makeInMessageUpdate({
-  RequestedOpen: MenuDefinition.makeStep(model =>
-    transitions(model).requestOpen(),
-  ),
-  RequestedClose: MenuDefinition.makeStep(model =>
+  RequestedOpen: MenuBlock.makeStep(model => transitions(model).requestOpen()),
+  RequestedClose: MenuBlock.makeStep(model =>
     transitions(model).requestClose(),
   ),
 })
@@ -1379,7 +1380,7 @@ const menuViewImpl = (
 const view = MenuComposition.makeView.withInputs(menuViewImpl)
 
 /** @internal Acquired implementation used by focused library tests. */
-export const block = MenuDefinition.makeBlock(
+const canonicalLayer = MenuBlock.makeLayer(
   Effect.gen(function* () {
     const animation = yield* AnimationBinding
 
@@ -1392,14 +1393,59 @@ export const block = MenuDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Animation.layer)
+).pipe(Layer.provide(Animation.layer))
 /** Constructs Menu and its private Animation dependency. */
-export const layer = block.layer
+type CanonicalIdentity = Block.SelectedPublicIdentity<typeof MenuBlock>
+const MenuRefinementRule = Symbol('Menu.Refinement')
+/** @internal Closed type-only refinement identity. */
+export interface MenuRefinementKey {
+  readonly [MenuRefinementRule]: true
+}
+type CanonicalImplementation = Extract<
+  Layer.Success<typeof canonicalLayer>,
+  Block.SelectedImplementationFacts<
+    CanonicalIdentity,
+    unknown,
+    unknown,
+    unknown
+  >
+>
+/** @internal Captured implementation capability for this fixed family. */
+export interface SharedMenuProof extends Block.ClosedFamilyCapability<MenuRefinementKey> {}
+/** @internal The shared provider's original canonical implementation facts. */
+export interface SharedMenuFacts extends Block.FixedRefinementProvider<
+  MenuRefinementKey,
+  CanonicalIdentity,
+  CanonicalImplementation
+> {}
+const SharedMenuProof = Context.Service<
+  SharedMenuProof,
+  Readonly<{ executable: object }>
+>('foldkit/ui/private/Menu.SharedImplementation')
+const SharedMenuFacts = Context.Service<
+  SharedMenuFacts,
+  Readonly<Record<never, never>>
+>('foldkit/ui/private/Menu.SharedFacts')
+/** Constructs the original shared implementation for type-only specializations. */
+export const layer = makeFixedFamilyLayer(
+  MenuBlock,
+  canonicalLayer,
+  BlockFamily.readDeclaredExecutable(MenuBlock),
+  SharedMenuProof,
+  SharedMenuFacts,
+)
+
+Reflect.deleteProperty(MenuBlock, 'makeLayer')
+Reflect.deleteProperty(MenuBlock, 'provideHandlers')
+Object.freeze(MenuBlock)
+
+/** @internal Selected implementation used by component tests. */
+export const block = { block: MenuBlock, layer }
 
 /** @internal Shared Animation relationship for focused transition tests. */
 export { AnimationBinding }
 
-type CanonicalContract = typeof MenuDefinition.contract
+type CanonicalContract = typeof MenuBlock
 type CanonicalFacts = Block.FactsOf<CanonicalContract>
 type RefinedFacts<Item extends string> = Omit<
   CanonicalFacts,
@@ -1436,18 +1482,61 @@ type RefinedContract<Item extends string> = Block.Contract<
   OutMessageSchema<Item>,
   RefinedFacts<Item>
 >
-/** Passive Menu contract with exact item inputs and selection payloads. */
-export interface Completed<Item extends string = string> extends Omit<
-  RefinedContract<Item>,
-  'get'
-> {
-  readonly get: Effect.Effect<
-    Effect.Success<RefinedContract<Item>['get']>,
-    never,
-    Effect.Services<CanonicalContract['get']>
-  >
-}
+type RefinedConfiguration<Item extends string> = Readonly<{
+  key: typeof MenuKey
+  InMessage: typeof InMessage
+  Init: Schema.Tuple<readonly [typeof InitConfig]>
+  ChildInitContext: typeof InitConfig
+  view: Readonly<{
+    kind: 'Element'
+    Inputs: Block.InputContract<ViewInputs<Item>>
+    mounts: typeof mounts
+  }>
+  inMessageOutputs: Readonly<{
+    RequestedOpen: Readonly<{ outMessage: OutMessageSchema<Item> }>
+    RequestedClose: Readonly<{ outMessage: OutMessageSchema<Item> }>
+  }>
+  operations: Readonly<{
+    requestSelectItem: Readonly<{
+      message: (
+        item: Item,
+        index: number,
+      ) => readonly [typeof Message.RequestedSelectItem.Type]
+      outMessage: OutMessageSchema<Item>
+    }>
+  }>
+}>
+/** @internal Names the exact private reader of this fixed-family specialization. */
+export interface MenuReader<Item extends string> extends Block.ReadableProvider<
+  MenuRefinementKey,
+  Block.SelectedPublicIdentity<RefinedContract<Item>>
+> {}
+
+type RefinedBlock<Item extends string> = Omit<
+  Block.UnifiedBlock<
+    'Menu',
+    CanonicalContract['Model'],
+    CanonicalContract['Message'],
+    OutMessageSchema<Item>,
+    typeof InitConfig,
+    RefinedConfiguration<Item>,
+    CanonicalIdentity,
+    MenuReader<Item>
+  >,
+  'makeLayer' | 'provideHandlers' | keyof RefinedContract<Item>
+> &
+  Omit<RefinedContract<Item>, 'get'>
+/** Passive Menu contract retaining exact controlled inputs and result channels. */
+export interface Completed<Item extends string = string>
+  extends
+    RefinedBlock<Item>,
+    Block.FixedRefinement<
+      MenuRefinementKey,
+      CanonicalIdentity,
+      Block.SelectedPublicIdentity<RefinedContract<Item>>
+    > {}
+
 /** Creates the typed contract; supply Menu.layer when constructing the parent. */
 export const makeBlock = <Item extends string = string>(): Completed<Item> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  MenuDefinition.contract as unknown as Completed<Item>
+  MenuBlock as unknown as Completed<Item>

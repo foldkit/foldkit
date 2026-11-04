@@ -31,7 +31,7 @@ const constructNotifyingQuery = <Name extends string, A, AI, E, EI>({
     RequestedLoadIfMissing: api.loadIfMissing,
     RequestedCancel: api.cancel,
   })
-  return Definition.makeBlock(
+  return Definition.makeLayer(
     Effect.succeed({
       children: [],
       init,
@@ -63,7 +63,7 @@ const constructSilentQuery = <Name extends string, A, AI, E, EI>({
     RequestedLoadIfMissing: api.loadIfMissing,
     RequestedCancel: api.cancel,
   })
-  return Definition.makeBlock(
+  return Definition.makeLayer(
     Effect.succeed({
       children: [],
       init,

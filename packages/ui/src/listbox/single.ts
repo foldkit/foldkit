@@ -1,6 +1,7 @@
-import { Effect, Option, Schema, Tuple } from 'effect'
+import { Context, Effect, Layer, Option, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
 import type { HtmlBuilder } from 'foldkit/html'
+import * as BlockFamily from 'foldkit/internal/block'
 
 import { layer as AnimationLayer } from '../animation/block.js'
 import { EffectsLayer, mounts } from './command.js'
@@ -35,7 +36,7 @@ export type ViewInputs<
 
 /** @internal Nominal identity of the single-selection contract. */
 export const ListboxKey = Symbol('Listbox.Single')
-const ListboxDefinition = ListboxNamespace.makeDefinition({
+const ListboxBlock = Block.make(ListboxNamespace, {
   key: ListboxKey,
   Model,
   Message,
@@ -56,19 +57,19 @@ const ListboxDefinition = ListboxNamespace.makeDefinition({
   },
 })
 const itemUpdate = makeUpdateHandlers(
-  ListboxDefinition.makeBinding,
-  ListboxDefinition.makeOutMessageFold,
-  ListboxDefinition.makeStep,
-  ListboxDefinition.makeFieldsStep,
-  ListboxDefinition.makeNoopStep,
-  ListboxDefinition.makeCommandsStep,
+  ListboxBlock.makeBinding,
+  ListboxBlock.makeOutMessageFold,
+  ListboxBlock.makeStep,
+  ListboxBlock.makeFieldsStep,
+  ListboxBlock.makeNoopStep,
+  ListboxBlock.makeCommandsStep,
   'CloseWithFocus',
   (model, item) => ({
     model,
     outMessage: OutMessage.Selected({ value: item }),
   }),
 )
-const ListboxComposition = ListboxDefinition.makeComposition({
+const ListboxComposition = ListboxBlock.makeComposition({
   mounts,
   bindings: [itemUpdate.AnimationBinding],
 })
@@ -102,7 +103,7 @@ const view = ListboxComposition.makeView.withInputs(
 /** @internal Shared Animation relationship used by internal transition tests. */
 export const AnimationBinding = itemUpdate.AnimationBinding
 /** @internal Selected implementation used as a scoped internal testing root. */
-export const block = ListboxDefinition.makeBlock(
+const canonicalLayer = ListboxBlock.makeLayer(
   Effect.gen(function* () {
     const animation = yield* itemUpdate.AnimationBinding
 
@@ -115,12 +116,83 @@ export const block = ListboxDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(AnimationLayer)
-/** Constructs this Listbox implementation and its private Animation dependency. */
-export const layer = block.layer
-
-type CanonicalContract = typeof ListboxDefinition.contract
+).pipe(Layer.provide(AnimationLayer))
+type CanonicalContract = typeof ListboxBlock
 type CanonicalFacts = Block.FactsOf<CanonicalContract>
+type CanonicalIdentity = Block.SelectedPublicIdentity<CanonicalContract>
+const ListboxRefinementRule = Symbol('Listbox.Single.Refinement')
+/** @internal Nominal identity of the closed Item/Value refinement rule. */
+export interface ListboxRefinementKey {
+  readonly [ListboxRefinementRule]: true
+}
+type CanonicalImplementation = Extract<
+  Layer.Success<typeof canonicalLayer>,
+  Block.SelectedImplementationFacts<
+    CanonicalIdentity,
+    unknown,
+    unknown,
+    unknown
+  >
+>
+/** @internal The shared provider's private reader capability. */
+export interface SharedListboxProof extends Block.ClosedFamilyCapability<ListboxRefinementKey> {}
+/** @internal The shared provider's exact canonical implementation association. */
+export interface SharedListboxFacts extends Block.FixedRefinementProvider<
+  ListboxRefinementKey,
+  CanonicalIdentity,
+  CanonicalImplementation
+> {}
+const SharedListboxProof = Context.Service<
+  SharedListboxProof,
+  Readonly<{ executable: object }>
+>('foldkit/ui/private/Listbox.Single.SharedImplementation')
+const SharedListboxFacts = Context.Service<
+  SharedListboxFacts,
+  Readonly<Record<never, never>>
+>('foldkit/ui/private/Listbox.Single.SharedFacts')
+const captures = new WeakSet<object>()
+const captureExecutable = (executable: object) => {
+  const capture = Object.freeze({ executable })
+
+  captures.add(capture)
+
+  return capture
+}
+const capturedExecutable = Effect.map(
+  Effect.serviceOption(SharedListboxProof),
+  maybeCapture =>
+    Option.map(maybeCapture, capture => {
+      if (!captures.has(capture)) {
+        throw new Error(
+          '[foldkit] A fixed family requires its original captured provider.',
+        )
+      }
+
+      return capture.executable
+    }),
+)
+BlockFamily.registerFixedProviderGuard(ListboxBlock, capturedExecutable)
+const readSharedCapture = Effect.map(
+  BlockFamily.readDeclaredExecutable(ListboxBlock),
+  captureExecutable,
+)
+const sharedProofLayer = Layer.effect(SharedListboxProof, readSharedCapture)
+const providedSharedProofLayer = Layer.provide(sharedProofLayer, canonicalLayer)
+const sharedFactsLayer = Layer.succeed(SharedListboxFacts, {})
+/** Constructs the shared Listbox implementation and its private Animation dependency. */
+export const layer = Layer.mergeAll(
+  canonicalLayer,
+  providedSharedProofLayer,
+  sharedFactsLayer,
+)
+
+Reflect.deleteProperty(ListboxBlock, 'makeLayer')
+Reflect.deleteProperty(ListboxBlock, 'provideHandlers')
+Object.freeze(ListboxBlock)
+
+/** @internal Selected implementation used as a scoped internal testing root. */
+export const block = { block: ListboxBlock, layer }
+
 type RefinedFacts<Item, Value extends string> = Omit<
   CanonicalFacts,
   'view' | 'update' | 'operations'
@@ -147,21 +219,63 @@ type RefinedContract<Item, Value extends string> = Block.Contract<
   OutMessageSchema<Value>,
   RefinedFacts<Item, Value>
 >
+type RefinedConfiguration<Item, Value extends string> = Readonly<{
+  key: typeof ListboxKey
+  InMessage: typeof InMessage
+  Init: Schema.Tuple<readonly [typeof InitConfigSchema]>
+  ChildInitContext: typeof InitConfigSchema
+  view: Readonly<{
+    kind: 'Element'
+    Inputs: Block.InputContract<ViewInputs<Item, Value>>
+  }>
+  operations: Readonly<{
+    requestSelectItem: Readonly<{
+      message: (
+        item: Value,
+      ) => readonly [typeof Message.RequestedSelectItem.Type]
+      outMessage: OutMessageSchema<Value>['Selected']
+    }>
+  }>
+}>
+/** @internal Names the exact private reader of this fixed-family specialization. */
+export interface ListboxReader<
+  Item,
+  Value extends string,
+> extends Block.ReadableProvider<
+  ListboxRefinementKey,
+  Block.SelectedPublicIdentity<RefinedContract<Item, Value>>
+> {}
+
+type RefinedBlock<Item, Value extends string> = Omit<
+  Block.UnifiedBlock<
+    'Listbox',
+    typeof Model,
+    typeof Message,
+    OutMessageSchema<Value>,
+    typeof InitConfigSchema,
+    RefinedConfiguration<Item, Value>,
+    CanonicalIdentity,
+    ListboxReader<Item, Value>
+  >,
+  'makeLayer' | 'provideHandlers' | keyof RefinedContract<Item, Value>
+> &
+  Omit<RefinedContract<Item, Value>, 'get'>
 /** Passive Listbox contract with exact Item, Value and operation result channels. */
 export interface Completed<
   Item = string,
   Value extends string = Item extends string ? Item : string,
-> extends Omit<RefinedContract<Item, Value>, 'get'> {
-  readonly get: Effect.Effect<
-    Effect.Success<RefinedContract<Item, Value>['get']>,
-    never,
-    Effect.Services<CanonicalContract['get']>
-  >
-}
+>
+  extends
+    RefinedBlock<Item, Value>,
+    Block.FixedRefinement<
+      ListboxRefinementKey,
+      CanonicalIdentity,
+      Block.SelectedPublicIdentity<RefinedContract<Item, Value>>
+    > {}
 /** Creates the typed contract; supply this module's layer when constructing the parent. */
 export const makeBlock = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
 >(): Completed<Item, Value> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  ListboxDefinition.contract as unknown as Completed<Item, Value>
+  ListboxBlock as unknown as Completed<Item, Value>

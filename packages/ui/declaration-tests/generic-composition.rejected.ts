@@ -1,4 +1,5 @@
 import { Effect } from 'effect'
+import * as Story from 'foldkit/story'
 
 import * as Animation from '@foldkit/ui/animation'
 import * as DragAndDrop from '@foldkit/ui/dragAndDrop'
@@ -9,13 +10,13 @@ import * as Tooltip from '@foldkit/ui/tooltip'
 
 import {
   AnimationBinding,
-  ApplicationDefinition,
+  ApplicationBlock,
   DialogBinding,
   DragAndDropBinding,
   KeyedAnimationBinding,
   KeyedDragAndDropBinding,
   KeyedToastBinding,
-  MenuFoldFixtureDefinition,
+  MenuFoldFixtureBlock,
   MenuPicker,
   OtherToastBinding,
   Picker,
@@ -26,18 +27,18 @@ import {
   helper,
 } from './generic-composition.accepted.js'
 
-MenuFoldFixtureDefinition.makeOutMessageFold(MenuPicker, {
+MenuFoldFixtureBlock.makeOutMessageFold(MenuPicker, {
   Selected: ({ value }) => {
     // @ts-expect-error Parent-owned folds preserve the generic Menu payload.
     const _wrong: 'Banana' = value
-    return MenuFoldFixtureDefinition.makeNoopStep()
+    return MenuFoldFixtureBlock.makeNoopStep()
   },
-  Closed: () => MenuFoldFixtureDefinition.makeNoopStep(),
+  Closed: () => MenuFoldFixtureBlock.makeNoopStep(),
 })
 
 // @ts-expect-error Parent-owned folds require every generic Menu OutMessage variant.
-MenuFoldFixtureDefinition.makeOutMessageFold(MenuPicker, {
-  Selected: () => MenuFoldFixtureDefinition.makeNoopStep(),
+MenuFoldFixtureBlock.makeOutMessageFold(MenuPicker, {
+  Selected: () => MenuFoldFixtureBlock.makeNoopStep(),
 })
 
 // @ts-expect-error Animation content must be rendered through the caller-scoped slot.
@@ -54,7 +55,7 @@ ToastBlock.Message.RequestedDismissAll()
 Picker.Message.RequestedOpen()
 
 const rejectAnimationInput = (
-  animation: Effect.Success<typeof Animation.AnimationBlock.get>,
+  animation: Story.TestBlock<typeof Animation.AnimationBlock>,
   model: typeof Animation.AnimationBlock.Model.Type,
 ) => {
   const settlement = Animation.AnimationBlock.Message.EndedAnimation({
@@ -104,8 +105,7 @@ MenuPicker.OutMessage.match<string>(
 // @ts-expect-error The connected operation preserves the item Schema.
 PickerBinding.requestSelectItem('Banana', 'Banana')
 
-export const invalidToastInputs = Effect.gen(function* () {
-  const toast = yield* ToastBlock.get
+export const invalidToastInputs = Story.withBlock(ToastBlock, toast => {
   toast.operations.requestShow(toast.init({ id: 'invalid-toast' }).model, {
     payload: {
       // @ts-expect-error Toast show retains the payload Schema refinement.
@@ -176,54 +176,56 @@ DragAndDrop.test.settleFocus({
   key: 'Primary',
   itemId: 'card-1',
 })
-export const invalidOperationInputs = Effect.gen(function* () {
-  const slider = yield* Slider.SliderBlock.get
-  const rootSlider = yield* RootSlider.get
-  const tooltip = yield* Tooltip.TooltipBlock.get
+export const invalidOperationInputs = Story.withBlock(
+  Slider.SliderBlock,
+  slider =>
+    Story.withBlock(RootSlider, rootSlider =>
+      Story.withBlock(Tooltip.TooltipBlock, tooltip => {
+        // @ts-expect-error Input method names are generated from the declared input tag.
+        slider.operations.informRangeChanged
 
-  // @ts-expect-error Input method names are generated from the declared input tag.
-  slider.operations.informRangeChanged
+        const sliderModel = slider.init({
+          id: 'input-range',
+          min: 0,
+          max: 100,
+          step: 1,
+        }).model
+        const rangeChange = Slider.InMessage.InformedOfRangeChange({
+          min: 10,
+          max: 90,
+        })
 
-  const sliderModel = slider.init({
-    id: 'input-range',
-    min: 0,
-    max: 100,
-    step: 1,
-  }).model
-  const rangeChange = Slider.InMessage.InformedOfRangeChange({
-    min: 10,
-    max: 90,
-  })
+        // @ts-expect-error Parent inputs do not enter the local dispatch protocol.
+        slider.update(sliderModel, rangeChange)
 
-  // @ts-expect-error Parent inputs do not enter the local dispatch protocol.
-  slider.update(sliderModel, rangeChange)
+        slider.operations.informRangeChange(
+          slider.init({ id: 'invalid-range', min: 0, max: 100, step: 1 }).model,
+          // @ts-expect-error The Slider range requires both numeric bounds.
+          { min: 10 },
+        )
+        rootSlider.operations.informRangeChange(
+          slider.init({
+            id: 'invalid-root-range',
+            min: 0,
+            max: 100,
+            step: 1,
+          }).model,
+          {
+            // @ts-expect-error A custom-root Slider retains numeric range arguments.
+            min: 'zero',
+            max: 100,
+          },
+        )
+        tooltip.operations.informShowDelayChanged(
+          tooltip.init({ id: 'invalid-delay' }).model,
+          // @ts-expect-error Tooltip delay accepts Effect Duration inputs only.
+          false,
+        )
+      }),
+    ),
+)
 
-  slider.operations.informRangeChange(
-    slider.init({ id: 'invalid-range', min: 0, max: 100, step: 1 }).model,
-    // @ts-expect-error The Slider range requires both numeric bounds.
-    { min: 10 },
-  )
-  rootSlider.operations.informRangeChange(
-    slider.init({
-      id: 'invalid-root-range',
-      min: 0,
-      max: 100,
-      step: 1,
-    }).model,
-    {
-      // @ts-expect-error A custom-root Slider retains numeric range arguments.
-      min: 'zero',
-      max: 100,
-    },
-  )
-  tooltip.operations.informShowDelayChanged(
-    tooltip.init({ id: 'invalid-delay' }).model,
-    // @ts-expect-error Tooltip delay accepts Effect Duration inputs only.
-    false,
-  )
-})
-
-const Missing = ApplicationDefinition.makeComposition()
+const Missing = ApplicationBlock.makeComposition()
 Missing.makeView((model, h) => {
   // @ts-expect-error The helper requires both registered child Bindings.
   helper(model, h)

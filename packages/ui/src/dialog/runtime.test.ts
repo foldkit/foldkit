@@ -1,4 +1,4 @@
-import { Array, Effect, Fiber, Schema } from 'effect'
+import { Array, Effect, Fiber, Layer, Schema } from 'effect'
 import { Block, Program, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -17,7 +17,7 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 const ApplicationKey = Symbol('DialogRuntimeApplication')
-const ApplicationDefinition = Block.makeDefinition('Application', {
+const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -25,7 +25,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: Schema.Never,
 })
 
-const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldDialogOutMessage = ApplicationBlock.makeOutMessageFold(
   Dialog.DialogBlock,
   {
     Opened: () => model => ({
@@ -42,12 +42,12 @@ const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = ApplicationDefinition.makeBinding(Dialog.DialogBlock, {
+const DialogBinding = ApplicationBlock.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: dialogId }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const ApplicationComposition = ApplicationDefinition.makeComposition({
+const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [DialogBinding],
 })
 
@@ -103,22 +103,25 @@ const preservedOpenModel = (config: Dialog.InitConfig) =>
       ).model,
   ).pipe(Effect.provide(Dialog.layer))
 
-const ApplicationBlock = ApplicationDefinition.makeBlock(
-  Effect.gen(function* () {
-    const dialog = yield* DialogBinding
+const application = {
+  block: ApplicationBlock,
+  layer: ApplicationBlock.makeLayer(
+    Effect.gen(function* () {
+      const dialog = yield* DialogBinding
 
-    return {
-      children: [dialog],
-      init,
-      update,
-      view,
-    }
-  }),
-).provide(Dialog.layer)
+      return {
+        children: [dialog],
+        init,
+        update,
+        view,
+      }
+    }),
+  ).pipe(Layer.provide(Dialog.layer)),
+}
 
 const makeDialogProgram = (container: HTMLElement) =>
   Program.makeElement({
-    block: ApplicationBlock,
+    ...application,
     container,
   })
 

@@ -317,5 +317,39 @@ export type {
 /** @internal Names native view-channel projection in emitted descriptor Binding declarations. */
 export type { BindingViewContract } from './bindChild.js'
 
+/** @internal Closed library-family metadata retained in emitted UI contracts. */
+export type {
+  FixedRefinement,
+  FixedRefinementProvider,
+  SelectedPublicIdentity,
+} from '../experimental/contracted/implementationFacts.js'
+/** @internal Private reader admission for closed library providers. */
+export type {
+  ClosedFamilyCapability,
+  ReadableProvider,
+  ExactReadable,
+  FamilyReaderCapability,
+  FamilySelection,
+  ValidateReadableAdmission,
+  ReadableAdmissionValidation,
+} from '../experimental/contracted/readableProvider.js'
+
 /** @internal Retains exact selected-handler facts in emitted declarations. */
 export type { WithoutPendingHandlers } from '../experimental/contracted/contract.js'
+/** @internal Names an acquired connection returned from a portable Binding. */
+export type { ExecutableConnection } from './bindingConnection.js'
+
+export type {
+  DescriptorBindingSpec,
+  FoldOnlyPolicySpec,
+  BindingSpecs,
+  BindingsFromSpecs,
+} from '../experimental/constructed/bindingContract.js'
+
+export type {
+  AuthoredViewPlan,
+  AuthoredDocumentViewPlan,
+} from '../experimental/contracted/contract.js'
+
+export type { AuthoredInitPlan } from '../experimental/contracted/contract.js'
+export type { AuthoredUpdatePlan } from '../experimental/hybrid/authoring.js'

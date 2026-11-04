@@ -14,11 +14,11 @@
       "maxTypesDelta": 389460
     },
     "workspace-composition-4": {
-      "maxInstantiationsDelta": 2687983,
+      "maxInstantiationsDelta": 2928527,
       "maxTypesDelta": 229173
     },
     "workspace-composition-8": {
-      "maxInstantiationsDelta": 5002523,
+      "maxInstantiationsDelta": 5497615,
       "maxTypesDelta": 299721
     },
     "wide-subscriptions-100": {
@@ -28,6 +28,10 @@
     "machine-search": {
       "maxInstantiationsDelta": 83700,
       "maxTypesDelta": 18800
+    },
+    "attribute-bundles-200": {
+      "maxInstantiationsDelta": 114377,
+      "maxTypesDelta": 29634
     }
   }
 }

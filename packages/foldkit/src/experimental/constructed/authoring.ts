@@ -64,6 +64,7 @@ import type {
   BoundBlockView,
 } from '../../html/block.js'
 import type * as Mount from '../../mount/index.js'
+import type { ReadableAdmissionValidation } from '../contracted/readableProvider.js'
 import type {
   AuthoringCompositionOf,
   AuthoringSource,
@@ -74,6 +75,8 @@ import type {
 } from '../hybrid/authoring.js'
 import type { ExecutableImplementation } from '../hybrid/hybrid.js'
 import type {
+  BindingSpecs,
+  BindingsFromSpecs,
   DescriptorBinding,
   ValidateBindingParents,
 } from './bindingContract.js'
@@ -121,17 +124,27 @@ export interface StaticSourceFields<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
-  Bindings extends ReadonlyArray<AnyBinding>,
+  Specs extends ReadonlyArray<unknown>,
 > extends SourceContracts<MessageSchema, OutMessageSchema> {
   readonly owner: OwnerValue
   readonly Model: ModelSchema
-  readonly Message: DispatchSchemaFor<MessageSchema, Bindings>
+  readonly Message: DispatchSchemaFor<
+    MessageSchema,
+    BindingsFromSpecs<Specs, ModelSchema, MessageSchema, OutMessageSchema>
+  >
   readonly mounts: readonly [
     ...Mounts,
-    ...AggregatedChildren<Bindings>['mounts'],
+    ...AggregatedChildren<
+      BindingsFromSpecs<Specs, ModelSchema, MessageSchema, OutMessageSchema>
+    >['mounts'],
   ]
   readonly [LocalMountsTypeId]: Mounts
-  readonly bindings: Bindings
+  readonly bindings: BindingsFromSpecs<
+    Specs,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema
+  >
 }
 
 /** @internal Names the exact static graph retained by portable authoring plans. */
@@ -141,14 +154,14 @@ export type StaticSource<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
-  Bindings extends ReadonlyArray<AnyBinding>,
+  Specs extends ReadonlyArray<unknown>,
 > = StaticSourceFields<
   OwnerValue,
   ModelSchema,
   MessageSchema,
   OutMessageSchema,
   Mounts,
-  Bindings
+  Specs
 > &
   (OutMessageSchema extends AnySchema
     ? Readonly<{ OutMessage: OutMessageSchema }>
@@ -497,6 +510,7 @@ export interface MakeBinding<
               : never
           >),
     ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
       ...ValidateStaticBindingConfigWithoutPolicy<
         CoreContract<Child>,
         ModelSchema,
@@ -569,6 +583,7 @@ export interface MakeBinding<
         keySchema?: never
       }>,
     ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
       ...ValidateGeneralKeyedSourceWithoutPolicy<NoInfer<Source>>,
       ...(Extract<
         'construct' | 'connect',
@@ -643,6 +658,7 @@ export interface MakeBinding<
               KeyValue
             >),
     ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
       ...ValidateGeneralKeyedSourceWithoutPolicy<NoInfer<Source>>,
       ...(Extract<
         'construct' | 'connect',
@@ -707,6 +723,7 @@ export interface MakeMapBinding<
             MapKeyFor<ModelSchema, Field>
           >),
     ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
       ...ValidateMapConfig<CoreContract<Child>, NoInfer<Keys>, NoInfer<Config>>,
       ...ValidateConcreteMap<CoreContract<Child>>,
       ...(Extract<
@@ -801,7 +818,7 @@ export interface MakeComposition<
       MessageSchema,
       OutMessageSchema,
       Mounts,
-      Bindings
+      BindingSpecs<Bindings>
     >
   >
 }

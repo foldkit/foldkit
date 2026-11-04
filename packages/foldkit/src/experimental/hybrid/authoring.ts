@@ -3,8 +3,8 @@ import { Predicate, type Schema } from 'effect'
 import type { AnyBinding, RequirementsOfBindings } from '../../block/binding.js'
 import type { GeneratedEnvelopeOf } from '../../block/childEnvelope.js'
 import type {
-  DefinedUpdate,
   AuthoredViewInputs,
+  DefinedUpdate,
   OwnedAuthoredView,
   OwnedDocumentView,
 } from '../../block/definition.js'
@@ -345,58 +345,78 @@ export interface CanonicalUpdatePlan<
   SourceComposition
 > {}
 
+type SourceOutMessage<Source extends AuthoringSource> =
+  Source extends Readonly<{ OutMessage: infer Out extends AnySchema }>
+    ? Out['Type']
+    : never
+
+/** @internal Derives dispatch and child-routing channels from one validated authoring Source. */
+export interface AuthoredUpdatePlan<
+  Source extends AuthoringSource,
+  Context extends ReadonlyArray<unknown>,
+  LocalRows extends LocalUpdateChannels,
+> extends CanonicalUpdatePlan<
+  Source['Model']['Type'],
+  Source['Message']['Type'],
+  Context,
+  LocalRows,
+  CompositionRouteChannels<Source['bindings']>,
+  Source
+> {}
+
 type ValidMakeUpdatePlan<
-  Model,
-  Message,
-  OutMessage,
-  Bindings extends ReadonlyArray<AnyBinding>,
-  DispatchMessage,
-  SourceComposition,
+  Source extends AuthoringSource,
   ContextConstraint extends ReadonlyArray<unknown>,
-> = [AuthoredMessage<Message, Bindings>] extends [never]
+> = [AuthoredMessage<LocalMessage<Source>, Source['bindings']>] extends [never]
   ? (
       cases: Readonly<Record<string, never>>,
     ) => Plan<
-      RoutedOnlyUpdate<Model, DispatchMessage, Bindings, false>,
+      RoutedOnlyUpdate<
+        Source['Model']['Type'],
+        Source['Message']['Type'],
+        Source['bindings'],
+        false
+      >,
       'Update',
-      SourceComposition
+      Source
     >
   : {
       <
         const Outputs extends Readonly<
           Record<
-            AuthoredMessageTag<AuthoredMessage<Message, Bindings>>,
+            AuthoredMessageTag<
+              AuthoredMessage<LocalMessage<Source>, Source['bindings']>
+            >,
             unknown
           >
         >,
       >(
         cases: AuthoredUpdateCases<
-          Model,
-          Message,
-          Bindings,
+          Source['Model']['Type'],
+          LocalMessage<Source>,
+          Source['bindings'],
           Outputs,
-          DispatchMessage,
-          OutMessage
+          Source['Message']['Type'],
+          SourceOutMessage<Source>
         > &
           Readonly<
             Record<
               Exclude<
                 keyof Outputs,
-                AuthoredMessageTag<AuthoredMessage<Message, Bindings>>
+                AuthoredMessageTag<
+                  AuthoredMessage<LocalMessage<Source>, Source['bindings']>
+                >
               >,
               never
             >
           >,
         ...invalidMessageContract: AuthoredMessageArguments<
-          AuthoredMessage<Message, Bindings>
+          AuthoredMessage<LocalMessage<Source>, Source['bindings']>
         >
-      ): CanonicalUpdatePlan<
-        Model,
-        DispatchMessage,
+      ): AuthoredUpdatePlan<
+        Source,
         readonly [],
-        CaseOutputChannels<Bindings, Outputs>,
-        CompositionRouteChannels<Bindings>,
-        SourceComposition
+        CaseOutputChannels<Source['bindings'], Outputs>
       >
       readonly withContext: <
         const Context extends ContextConstraint,
@@ -406,25 +426,32 @@ type ValidMakeUpdatePlan<
           Context,
           Cases &
             ContextualUpdateCases<
-              Model,
-              Message,
-              Bindings,
-              DispatchMessage,
-              OutMessage
+              Source['Model']['Type'],
+              LocalMessage<Source>,
+              Source['bindings'],
+              Source['Message']['Type'],
+              SourceOutMessage<Source>
             > &
             ValidatedContextualUpdateCases<
-              Model,
-              Message,
-              Bindings,
-              ContextualUpdateOutputs<Model, Message, Bindings, NoInfer<Cases>>,
-              DispatchMessage,
-              OutMessage
+              Source['Model']['Type'],
+              LocalMessage<Source>,
+              Source['bindings'],
+              ContextualUpdateOutputs<
+                Source['Model']['Type'],
+                LocalMessage<Source>,
+                Source['bindings'],
+                NoInfer<Cases>
+              >,
+              Source['Message']['Type'],
+              SourceOutMessage<Source>
             > &
             Readonly<
               Record<
                 Exclude<
                   keyof NoInfer<Cases>,
-                  AuthoredMessageTag<AuthoredMessage<Message, Bindings>>
+                  AuthoredMessageTag<
+                    AuthoredMessage<LocalMessage<Source>, Source['bindings']>
+                  >
                 >,
                 never
               >
@@ -432,42 +459,34 @@ type ValidMakeUpdatePlan<
         > &
           ValidateAnnotatedContext<NoInfer<Context>>,
         ...invalidMessageContract: AuthoredMessageArguments<
-          AuthoredMessage<Message, Bindings>
+          AuthoredMessage<LocalMessage<Source>, Source['bindings']>
         >
-      ) => CanonicalUpdatePlan<
-        Model,
-        DispatchMessage,
+      ) => AuthoredUpdatePlan<
+        Source,
         Context,
         CaseOutputChannels<
-          Bindings,
-          ContextualUpdateOutputs<Model, Message, Bindings, Cases>
-        >,
-        CompositionRouteChannels<Bindings>,
-        SourceComposition
+          Source['bindings'],
+          ContextualUpdateOutputs<
+            Source['Model']['Type'],
+            LocalMessage<Source>,
+            Source['bindings'],
+            Cases
+          >
+        >
       >
     }
 
 /** Composition-owned exhaustive Message handlers retained as a passive plan. */
 export type MakeUpdatePlan<
-  Model,
-  Message,
-  OutMessage,
-  Bindings extends ReadonlyArray<AnyBinding>,
-  DispatchMessage = Message,
-  SourceComposition = unknown,
+  Source extends AuthoringSource,
   ContextConstraint extends ReadonlyArray<unknown> = ReadonlyArray<unknown>,
 > =
-  unknown extends ValidateCompositionDelivery<Message, Bindings>
-    ? ValidMakeUpdatePlan<
-        Model,
-        Message,
-        OutMessage,
-        Bindings,
-        DispatchMessage,
-        SourceComposition,
-        ContextConstraint
-      >
-    : ValidateCompositionDelivery<Message, Bindings>
+  unknown extends ValidateCompositionDelivery<
+    LocalMessage<Source>,
+    Source['bindings']
+  >
+    ? ValidMakeUpdatePlan<Source, ContextConstraint>
+    : ValidateCompositionDelivery<LocalMessage<Source>, Source['bindings']>
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false
 

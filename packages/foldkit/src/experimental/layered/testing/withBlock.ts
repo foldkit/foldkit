@@ -1,6 +1,7 @@
 import { Effect, Layer, Predicate, type Schema, type Scope } from 'effect'
 
 import { defaultViewOf } from '../../../block/defaultView.js'
+import type { LayerOutputs } from '../../../block/layerOutputs.js'
 import type { BlockView, DocumentView } from '../../../html/index.js'
 import {
   type DeclaredRootBlock,
@@ -206,7 +207,7 @@ export type TestEffect<Block extends BlockSubject, Output> = Effect.Effect<
             ? Effect.Services<TestConstruction<Block>>
             : never)
         | CallbackRequirements<Output>,
-        Layer.Success<DefaultLayer<Block>>
+        LayerOutputs<DefaultLayer<Block>>
       >,
     Scope.Scope
   >
@@ -254,7 +255,7 @@ const toTestBlock = (executable: unknown): object => {
  * @example
  * ```ts
  * await Effect.runPromise(
- *   withBlock(ApplicationBlock, block => {
+ *   withBlock({ block: ApplicationBlock, layer }, block => {
  *     story(block.update, given(block.init().model), message(Message.ClickedIncrement()))
  *   }),
  * )

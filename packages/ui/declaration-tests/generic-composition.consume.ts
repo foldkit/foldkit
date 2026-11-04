@@ -1,5 +1,6 @@
-import { Duration, Effect, Layer } from 'effect'
+import { Duration, Layer } from 'effect'
 import type * as Block from 'foldkit/block'
+import * as Story from 'foldkit/story'
 
 import * as Animation from '@foldkit/ui/animation'
 import * as DragAndDrop from '@foldkit/ui/dragAndDrop'
@@ -17,10 +18,10 @@ import {
   type RootSliderExecutable,
   type SliderExecutable,
   ToastBlock,
-  WithOutMessageOnly,
-  WithViewAndOutMessage,
-  WithViewOnly,
-  WithoutViewOrOutMessage,
+  WithOutMessageOnlyLayer,
+  WithViewAndOutMessageLayer,
+  WithViewOnlyLayer,
+  WithoutViewOrOutMessageLayer,
   createComposition,
   dismissAllToasts,
   showAnimation,
@@ -120,33 +121,39 @@ DialogBinding.requestOpen('unexpected')
 
 PickerBinding.requestSelectItem('Apple', 'Apple')
 
-export const relocatedOperations = Effect.gen(function* () {
-  const slider = yield* Slider.SliderBlock.get
-  const rootSlider = yield* RootSlider.get
-  const tooltip = yield* Tooltip.TooltipBlock.get
-  const toast = yield* ToastBlock.get
-  slider.operations.informRangeChange(
-    slider.init({ id: 'relocated-range', min: 0, max: 100, step: 1 }).model,
-    { min: 10, max: 90 },
-  )
-  rootSlider.operations.informRangeChange(
-    slider.init({
-      id: 'relocated-root-range',
-      min: 0,
-      max: 100,
-      step: 1,
-    }).model,
-    { min: 20, max: 80 },
-  )
-  tooltip.operations.informShowDelayChanged(
-    tooltip.init({ id: 'relocated-tooltip' }).model,
-    Duration.millis(250),
-  )
-  toast.operations.requestShow(toast.init({ id: 'relocated-toast' }).model, {
-    payload: { kind: 'Saved' },
-    duration: '1 second',
-  })
-})
+export const relocatedOperations = Story.withBlock(Slider.SliderBlock, slider =>
+  Story.withBlock(RootSlider, rootSlider =>
+    Story.withBlock(Tooltip.TooltipBlock, tooltip =>
+      Story.withBlock(ToastBlock, toast => {
+        slider.operations.informRangeChange(
+          slider.init({ id: 'relocated-range', min: 0, max: 100, step: 1 })
+            .model,
+          { min: 10, max: 90 },
+        )
+        rootSlider.operations.informRangeChange(
+          slider.init({
+            id: 'relocated-root-range',
+            min: 0,
+            max: 100,
+            step: 1,
+          }).model,
+          { min: 20, max: 80 },
+        )
+        tooltip.operations.informShowDelayChanged(
+          tooltip.init({ id: 'relocated-tooltip' }).model,
+          Duration.millis(250),
+        )
+        toast.operations.requestShow(
+          toast.init({ id: 'relocated-toast' }).model,
+          {
+            payload: { kind: 'Saved' },
+            duration: '1 second',
+          },
+        )
+      }),
+    ),
+  ),
+)
 
 // @ts-expect-error The emitted generic operation rejects an unrelated item.
 PickerBinding.requestSelectItem('Banana', 'Banana')
@@ -158,10 +165,10 @@ Picker.Message.SelectedItem({
   wasSelected: false,
 })
 
-WithViewAndOutMessage.provide(Layer.empty)
-WithOutMessageOnly.provide(Layer.empty)
-WithViewOnly.provide(Layer.empty)
-WithoutViewOrOutMessage.provide(Layer.empty)
+WithViewAndOutMessageLayer.pipe(Layer.provide(Layer.empty))
+WithOutMessageOnlyLayer.pipe(Layer.provide(Layer.empty))
+WithViewOnlyLayer.pipe(Layer.provide(Layer.empty))
+WithoutViewOrOutMessageLayer.pipe(Layer.provide(Layer.empty))
 
 // @ts-expect-error A keyboard pickup includes its starting position.
 DragAndDrop.DragAndDropBlock.OutMessage.StartedKeyboardDrag({

@@ -27,6 +27,10 @@
     {
       "name": "machine-search",
       "file": "machine-search.ts"
+    },
+    {
+      "name": "attribute-bundles-200",
+      "file": "attribute-bundles-200.ts"
     }
   ]
 }

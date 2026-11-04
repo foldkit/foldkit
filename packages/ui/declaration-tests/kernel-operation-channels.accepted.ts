@@ -1,6 +1,7 @@
 import { Effect, Schema } from 'effect'
 import type * as Block from 'foldkit/block'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
+import * as Story from 'foldkit/story'
 
 import * as Combobox from '@foldkit/ui/combobox'
 import * as Listbox from '@foldkit/ui/listbox'
@@ -173,38 +174,29 @@ export const fruitAbsoluteViewInputs = (
   itemToAttributes: item => childAttributes([h.DataAttribute('fruit', item)]),
 })
 
-export const selfFruitList = FruitVirtualList.get.pipe(
-  Effect.map(list =>
-    list.init({
-      id: 'self-fruit-list',
-      rowHeightPx: 30,
-      scrollContainer: VirtualList.ScrollContainer.Self(),
+export const selfFruitList = Story.withBlock(FruitVirtualList, list =>
+  list.init({
+    id: 'self-fruit-list',
+    rowHeightPx: 30,
+    scrollContainer: VirtualList.ScrollContainer.Self(),
+  }),
+).pipe(Effect.provide(VirtualList.layer))
+export const ancestorFruitList = Story.withBlock(FruitVirtualList, list =>
+  list.init({
+    id: 'ancestor-fruit-list',
+    rowHeightPx: 30,
+    scrollContainer: VirtualList.ScrollContainer.Ancestor({
+      selector: '#fruit-scroll',
     }),
-  ),
-  Effect.provide(VirtualList.layer),
-)
-export const ancestorFruitList = FruitVirtualList.get.pipe(
-  Effect.map(list =>
-    list.init({
-      id: 'ancestor-fruit-list',
-      rowHeightPx: 30,
-      scrollContainer: VirtualList.ScrollContainer.Ancestor({
-        selector: '#fruit-scroll',
-      }),
-    }),
-  ),
-  Effect.provide(VirtualList.layer),
-)
-export const windowFruitList = FruitVirtualList.get.pipe(
-  Effect.map(list =>
-    list.init({
-      id: 'window-fruit-list',
-      rowHeightPx: 30,
-      scrollContainer: VirtualList.ScrollContainer.Window(),
-    }),
-  ),
-  Effect.provide(VirtualList.layer),
-)
+  }),
+).pipe(Effect.provide(VirtualList.layer))
+export const windowFruitList = Story.withBlock(FruitVirtualList, list =>
+  list.init({
+    id: 'window-fruit-list',
+    rowHeightPx: 30,
+    scrollContainer: VirtualList.ScrollContainer.Window(),
+  }),
+).pipe(Effect.provide(VirtualList.layer))
 
 export type VirtualListLayoutAssertions = [
   Expect<

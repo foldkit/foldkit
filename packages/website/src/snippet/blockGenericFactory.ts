@@ -1,5 +1,6 @@
 import { Array, Context, Effect, Layer, Option, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
+import * as BlockFamily from 'foldkit/internal/block'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -11,7 +12,7 @@ type ValueSchema<Value extends string> = Schema.Codec<Value, Value> &
   Readonly<{ '~type.make': Value }>
 
 const PickerNamespace = Block.makeNamespace('Picker')
-const PickerKey = Symbol('Picker')
+export const PickerKey = Symbol('Picker')
 
 const definePicker = <Value extends string>(Value: ValueSchema<Value>) => {
   const Model = Schema.Struct({ selected: Schema.Option(Value) })
@@ -22,7 +23,7 @@ const definePicker = <Value extends string>(Value: ValueSchema<Value>) => {
   })
   const OutMessage = defineMessageUnion({ Selected: { value: Value } })
 
-  const PickerDefinition = Block.makeFamilyDefinition(PickerNamespace, {
+  const PickerDefinition = BlockFamily.makeFamilyDeclaration(PickerNamespace, {
     key: PickerKey,
     Model,
     Message,
@@ -75,34 +76,17 @@ const definePicker = <Value extends string>(Value: ValueSchema<Value>) => {
   return { PickerDefinition, init, update, view }
 }
 
-type PickerRuntime<Value extends string> = ReturnType<
+type PickerAuthoring<Value extends string> = ReturnType<
   typeof definePicker<Value>
 >
 
-interface PickerConstructor {
-  <Value extends string>(
-    runtime: PickerRuntime<Value>,
-  ): Block.FamilyRecipe<
-    Block.FamilyContractOf<PickerRuntime<Value>['PickerDefinition']>
-  >
-}
-
-interface PickerImplementation extends Block.FamilyLifetime {
-  readonly construct: PickerConstructor
-}
-
-class PickerFamily extends Context.Service<
-  PickerFamily,
-  PickerImplementation
->()('PickerFamily') {}
-
-const constructPicker: PickerConstructor = ({
+const constructPicker = <Value extends string>({
   PickerDefinition,
   init,
   update,
   view,
-}) =>
-  PickerDefinition.makeBlock(
+}: PickerAuthoring<Value>) =>
+  PickerDefinition.makeLayer(
     Effect.gen(function* () {
       return {
         children: [],
@@ -112,6 +96,15 @@ const constructPicker: PickerConstructor = ({
       }
     }),
   )
+
+interface PickerImplementation extends Block.FamilyLifetime {
+  readonly construct: typeof constructPicker
+}
+
+class PickerFamily extends Context.Service<
+  PickerFamily,
+  PickerImplementation
+>()('PickerFamily') {}
 
 // One provider constructs every Schema specialization under the shared identity.
 export const layer = Layer.effect(PickerFamily)(
@@ -123,76 +116,11 @@ export const layer = Layer.effect(PickerFamily)(
 )
 
 export const makeBlock = <Value extends string>(Value: ValueSchema<Value>) => {
-  const runtime = definePicker(Value)
+  const authoring = definePicker(Value)
 
-  return Block.makeFamilyContract(
-    runtime.PickerDefinition,
+  return BlockFamily.resolveFamily(
+    authoring.PickerDefinition,
     PickerFamily,
-    implementation => implementation.construct(runtime),
+    implementation => implementation.construct(authoring),
   )
 }
-
-const Fruit = Schema.Literals(['Apple', 'Pear'])
-type Fruit = typeof Fruit.Type
-
-const FruitPicker = makeBlock(Fruit)
-const ParentModel = Schema.Struct({
-  picker: FruitPicker.Model,
-  selectionHistory: Schema.Array(Fruit),
-})
-type ParentModel = typeof ParentModel.Type
-
-const ParentMessage = defineMessageUnion({})
-type ParentMessage = typeof ParentMessage.Type
-
-const FruitSelectionKey = Symbol('FruitSelection')
-
-const FruitSelectionDefinition = Block.makeDefinition('FruitSelection', {
-  key: FruitSelectionKey,
-  Model: ParentModel,
-  Message: ParentMessage,
-  Init: Schema.Tuple([]),
-  view: { kind: 'Element' },
-})
-const { makeFieldsStep } = FruitSelectionDefinition
-
-const PickerBinding = FruitSelectionDefinition.makeBinding(FruitPicker, {
-  field: 'picker',
-}).withOutMessagePolicy({
-  fold: FruitSelectionDefinition.makeOutMessageFold(FruitPicker, {
-    Selected: ({ value }) =>
-      makeFieldsStep(() => ({ selectionHistory: Array.append(value) })),
-  }),
-})
-
-export const selectApple = PickerBinding.requestSelectValue('Apple')
-
-const FruitSelectionComposition = FruitSelectionDefinition.makeComposition({
-  bindings: [PickerBinding],
-})
-const init = FruitSelectionComposition.makeInit(() => ({
-  model: { selectionHistory: [] },
-}))
-const update = FruitSelectionComposition.makeUpdate({})
-const view = FruitSelectionComposition.makeView((model, h) =>
-  h.block(
-    PickerBinding.embedView({
-      slotId: 'fruit-picker',
-      model: model.picker,
-      viewInputs: { values: ['Apple', 'Pear'] },
-    }),
-  ),
-)
-
-export const ApplicationBlock = FruitSelectionDefinition.makeBlock(
-  Effect.gen(function* () {
-    const picker = yield* PickerBinding
-
-    return {
-      children: [picker],
-      init,
-      update,
-      view,
-    }
-  }),
-).provide(layer)

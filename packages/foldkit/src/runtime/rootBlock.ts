@@ -3,6 +3,7 @@ import type { Schema } from 'effect'
 
 import { assertCompletedBlock } from '../block/assemblyState.js'
 import type { AnyBlock } from '../block/definition.js'
+import type { LayerOutputs } from '../block/layerOutputs.js'
 import type { Owner } from '../block/owner.js'
 import type {
   RequirementsOfBlock,
@@ -11,13 +12,21 @@ import type {
 import type {
   CoreContractFromFacts,
   DescriptorTypeId,
+  OperationContract,
   PublicFacts,
+  ResultContract,
 } from '../experimental/constructed/contract.js'
 import type { ContractGraph } from '../experimental/contracted/contract.js'
 import type {
+  FixedRefinement,
+  FixedRefinementProvider,
   ImplementationFacts,
   SelectedImplementationFacts,
 } from '../experimental/contracted/implementationFacts.js'
+import type {
+  FamilySelection,
+  ValidateReadableAdmission,
+} from '../experimental/contracted/readableProvider.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 
@@ -81,12 +90,34 @@ export type RootRequirements<Value extends RootBlock> =
     : RequirementsOfBlock<Value>
 
 /** @internal ManagedResource handles supplied by the runtime after graph construction. */
-export type RootRuntimeServices<Value extends RootBlock> =
+type RootRuntimeServicesMember<Value extends RootBlock> =
   Value extends LayeredRoot
     ? Value extends LayeredRoot<any, any, infer RuntimeServices, any>
       ? RuntimeServices
       : never
     : RuntimeServicesOfBlock<Value>
+
+type RootsMissingRuntimeService<
+  Value extends RootBlock,
+  Service,
+> = Value extends unknown
+  ? [Service] extends [RootRuntimeServicesMember<Value>]
+    ? never
+    : Value
+  : never
+
+type RuntimeServiceProvidedByEveryRoot<
+  Value extends RootBlock,
+  Service = RootRuntimeServicesMember<Value>,
+> = Service extends unknown
+  ? [RootsMissingRuntimeService<Value, Service>] extends [never]
+    ? Service
+    : never
+  : never
+
+/** @internal Runtime handles installed by every possible selected root. */
+export type RootRuntimeServices<Value extends RootBlock> =
+  RuntimeServiceProvidedByEveryRoot<Value>
 
 /** @internal Failure of the graph Layer, separate from handler construction. */
 export type RootConstructionError<Value extends RootBlock> =
@@ -104,27 +135,110 @@ type SelectedResultOf<BlockValue extends DeclaredRootBlock> = ContractGraph<
   BlockValue[typeof DescriptorTypeId]
 >
 
-type MatchedImplementation<
-  BlockValue extends DeclaredRootBlock,
-  LayerValue extends Layer.Any,
-> = Extract<
-  Layer.Success<LayerValue>,
-  SelectedImplementationFacts<SelectedResultOf<BlockValue>, any, any, any>
->
+/** @internal Supplies declared Schema contracts to contextual host callbacks without completing a graph. */
+export type DeclaredHostContract<BlockValue extends DeclaredRootBlock> =
+  BlockValue extends unknown
+    ? CoreContractFromFacts<
+        BlockValue['owner'],
+        BlockValue['Model'],
+        BlockValue['Message'],
+        BlockValue['OutMessage'],
+        BlockValue[typeof DescriptorTypeId]
+      >
+    : never
 
-/** @internal Checks the complete selected public contract and correlated host readiness. */
-export type ValidateSelectedLayer<
+type ExactImplementation<
   BlockValue extends DeclaredRootBlock,
   LayerValue extends Layer.Any,
 > = [Extract<Layer.Success<LayerValue>, SelectedResultOf<BlockValue>>] extends [
   never,
 ]
-  ? Readonly<{
-      'Selected Layer must implement the paired Block public contract': LayerValue
-    }>
-  : [MatchedImplementation<BlockValue, LayerValue>] extends [never]
+  ? never
+  : Extract<
+      Layer.Success<LayerValue>,
+      SelectedImplementationFacts<SelectedResultOf<BlockValue>, any, any, any>
+    >
+type FixedImplementation<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Any,
+> =
+  BlockValue extends FixedRefinement<
+    infer Rule,
+    infer Canonical,
+    infer Admitted
+  >
+    ? unknown extends ValidateReadableAdmission<BlockValue>
+      ? [Admitted] extends [SelectedResultOf<BlockValue>]
+        ? Extract<
+            Layer.Success<LayerValue>,
+            FixedRefinementProvider<Rule, Canonical, any>
+          > extends infer Proof
+          ? Proof extends FixedRefinementProvider<
+              Rule,
+              Canonical,
+              infer Implementation
+            >
+            ? Implementation extends SelectedImplementationFacts<
+                Canonical,
+                any,
+                any,
+                any
+              >
+              ? Implementation
+              : never
+            : never
+          : never
+        : never
+      : never
+    : never
+type SharedFamilySelection<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Any,
+> =
+  BlockValue extends FamilySelection<
+    infer Identifier,
+    infer Selected,
+    infer Error,
+    infer Requirements,
+    infer Pending
+  >
+    ? [Selected] extends [SelectedResultOf<BlockValue>]
+      ? [SelectedResultOf<BlockValue>] extends [Selected]
+        ? [Identifier] extends [LayerOutputs<LayerValue>]
+          ? readonly [Error, Requirements, Pending]
+          : never
+        : never
+      : never
+    : never
+type SharedFamilyImplementation<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Any,
+> =
+  SharedFamilySelection<BlockValue, LayerValue> extends infer Selection
+    ? Selection extends readonly [unknown, unknown, infer Pending]
+      ? SelectedImplementationFacts<
+          SelectedResultOf<BlockValue>,
+          BlockValue['owner'],
+          BlockValue[typeof DescriptorTypeId],
+          Pending
+        >
+      : never
+    : never
+type MatchedImplementation<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Any,
+> =
+  | ExactImplementation<BlockValue, LayerValue>
+  | FixedImplementation<BlockValue, LayerValue>
+  | SharedFamilyImplementation<BlockValue, LayerValue>
+/** @internal Checks exact ordinary selection or authenticated closed fixed-family admission. */
+export type ValidateSelectedLayer<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Any,
+> = ValidateReadableAdmission<BlockValue> &
+  ([MatchedImplementation<BlockValue, LayerValue>] extends [never]
     ? Readonly<{
-        'Layer has no checked implementation Facts for the paired Block': LayerValue
+        'Selected Layer must implement the paired Block public contract': LayerValue
       }>
     : MatchedImplementation<
           BlockValue,
@@ -135,21 +249,49 @@ export type ValidateSelectedLayer<
         : Readonly<{
             'Select this Block Layer’s host handlers before hosting it': Pending
           }>
-      : never
-
-/** @internal Projects only private facts associated with the paired public result. */
-export type SelectedBlockLayerFacts<
-  BlockValue extends DeclaredRootBlock,
-  LayerValue extends Layer.Any,
-> =
-  MatchedImplementation<
-    BlockValue,
-    LayerValue
-  > extends SelectedImplementationFacts<any, any, infer Facts, any>
+      : never)
+type PrivateFacts<Implementation> =
+  Implementation extends SelectedImplementationFacts<any, any, infer Facts, any>
     ? Facts extends PublicFacts
       ? Facts
       : never
     : never
+type FixedFacts<
+  Actual extends PublicFacts,
+  Declared extends PublicFacts,
+> = Omit<Actual, 'view' | 'update' | 'operations'> &
+  Readonly<{
+    view: Declared['view']
+    update: ResultContract<
+      Declared['update']['outMessage'],
+      Actual['update']['requirements']
+    >
+    operations: {
+      readonly [
+        Key in keyof Actual['operations']
+      ]: Key extends keyof Declared['operations']
+        ? OperationContract<
+            Declared['operations'][Key]['args'],
+            Declared['operations'][Key]['outMessage'],
+            Actual['operations'][Key]['requirements']
+          >
+        : Actual['operations'][Key]
+    }
+  }>
+/** @internal Projects only implementation facts associated with this complete public selection. */
+export type SelectedBlockLayerFacts<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Any,
+> =
+  | PrivateFacts<ExactImplementation<BlockValue, LayerValue>>
+  | PrivateFacts<SharedFamilyImplementation<BlockValue, LayerValue>>
+  | ([PrivateFacts<FixedImplementation<BlockValue, LayerValue>>] extends [never]
+      ? never
+      : PrivateFacts<
+            FixedImplementation<BlockValue, LayerValue>
+          > extends infer Facts extends PublicFacts
+        ? FixedFacts<Facts, BlockValue[typeof DescriptorTypeId]>
+        : never)
 
 type FactsOfLayer<Value extends Layer.Layer<any, any, any>, OwnerValue> =
   Extract<
@@ -167,6 +309,58 @@ export type SelectedLayerFacts<
   OwnerValue,
 > = FactsOfLayer<Value, OwnerValue>
 
+type FactsMissingRuntimeService<
+  Facts extends PublicFacts,
+  Service,
+> = Facts extends unknown
+  ? [Service] extends [Facts['runtimeServices']]
+    ? never
+    : Facts
+  : never
+
+type GuaranteedRuntimeServices<
+  Facts extends PublicFacts,
+  Service = Facts['runtimeServices'],
+> = Service extends unknown
+  ? [FactsMissingRuntimeService<Facts, Service>] extends [never]
+    ? Service
+    : never
+  : never
+
+type WithGuaranteedRuntimeServices<
+  Facts extends PublicFacts,
+  Alternatives extends PublicFacts = Facts,
+> = Facts extends unknown
+  ? {
+      readonly [Key in keyof Facts]: Key extends 'runtimeServices'
+        ? GuaranteedRuntimeServices<Alternatives>
+        : Facts[Key]
+    }
+  : never
+
+type SelectedHostFacts<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Any,
+> = WithGuaranteedRuntimeServices<
+  SelectedBlockLayerFacts<BlockValue, LayerValue>
+>
+
+type SelectedConstructionLayer<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Layer<any, any, any>,
+> = [SharedFamilySelection<BlockValue, LayerValue>] extends [never]
+  ? LayerValue
+  : SharedFamilySelection<BlockValue, LayerValue> extends readonly [
+        infer Error,
+        infer Requirements,
+        unknown,
+      ]
+    ? Layer.Layer<
+        Layer.Success<LayerValue>,
+        Layer.Error<LayerValue> | Error,
+        Layer.Services<LayerValue> | Requirements
+      >
+    : never
 /** @internal Types an explicit public Block and selected implementation Layer pair. */
 export type SelectedLayeredRoot<
   BlockValue extends DeclaredRootBlock,
@@ -174,34 +368,69 @@ export type SelectedLayeredRoot<
 > = LayeredRoot<
   SelectedLayerContract<BlockValue, LayerValue>,
   SelectedBlockLayerFacts<BlockValue, LayerValue>['programRequirements'],
-  SelectedBlockLayerFacts<BlockValue, LayerValue>['runtimeServices'],
-  LayerValue
+  SelectedHostFacts<BlockValue, LayerValue>['runtimeServices'],
+  SelectedConstructionLayer<BlockValue, LayerValue>
 > &
   Readonly<{ block: BlockValue }>
+
+/** @internal The original paired host selection, including correlated alternatives. */
+export type SelectedRootOfConfig<Config> =
+  Config extends Readonly<{
+    block: infer BlockValue extends DeclaredRootBlock
+    layer: infer LayerValue extends Layer.Layer<any, any, any>
+  }>
+    ? SelectedLayeredRoot<BlockValue, LayerValue>
+    : never
+
+type SelectedConfigFailure<Config> =
+  Config extends Readonly<{
+    block: infer BlockValue extends DeclaredRootBlock
+    layer: infer LayerValue extends Layer.Layer<any, any, any>
+  }>
+    ? unknown extends ValidateSelectedLayer<BlockValue, LayerValue>
+      ? never
+      : ValidateSelectedLayer<BlockValue, LayerValue>
+    : Readonly<{
+        'Select a public Block together with its implementation Layer': never
+      }>
+
+/** @internal Validates every original pair without letting validation narrow inference. */
+export type ValidateSelectedConfig<Config> = [
+  SelectedConfigFailure<Config>,
+] extends [never]
+  ? unknown
+  : SelectedConfigFailure<Config>
 
 type SelectedLayerContract<
   BlockValue extends DeclaredRootBlock,
   LayerValue extends Layer.Layer<any, any, any>,
-> = CoreContractFromFacts<
-  BlockValue['owner'],
-  BlockValue['Model'],
-  BlockValue['Message'],
-  BlockValue['OutMessage'],
-  SelectedBlockLayerFacts<BlockValue, LayerValue>
-> &
-  Readonly<{
-    [DescriptorTypeId]: SelectedBlockLayerFacts<BlockValue, LayerValue>
-  }>
+> =
+  SelectedHostFacts<BlockValue, LayerValue> extends infer Facts extends
+    PublicFacts
+    ? CoreContractFromFacts<
+        BlockValue['owner'],
+        BlockValue['Model'],
+        BlockValue['Message'],
+        BlockValue['OutMessage'],
+        Facts
+      > &
+        Readonly<{ [DescriptorTypeId]: Facts }>
+    : never
 
 /** @internal Makes the explicit public Block/Layer host selection consumable. */
-export const selectLayeredRoot = <
+export function selectLayeredRoot<
   const BlockValue extends DeclaredRootBlock,
   const LayerValue extends Layer.Layer<any, any, any>,
 >(
   block: BlockValue,
   layer: LayerValue,
   read: Effect.Effect<AnyBlock, never, any>,
-): SelectedLayeredRoot<BlockValue, LayerValue> => {
+): SelectedLayeredRoot<BlockValue, LayerValue>
+export function selectLayeredRoot(
+  block: DeclaredRootBlock,
+  layer: Layer.Layer<any, any, any>,
+  read: Effect.Effect<AnyBlock, never, any>,
+): object {
   const selected = Object.freeze({ block, layer, get: read })
 
   registerRootConstruction(selected, { layer, read })

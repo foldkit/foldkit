@@ -9,6 +9,7 @@ import { resolveInMessageSteps } from './inMessage.js'
 import { resolveStorySteps } from './messageFrom.js'
 import type {
   DirectSubject,
+  SelectedTestConfig,
   TestConfig,
   TestInMessage,
   TestInit,
@@ -16,7 +17,6 @@ import type {
   TestModel,
   TestOutMessage,
   TestSubject,
-  SelectedTestConfig,
 } from './subject.js'
 import {
   initialStep,

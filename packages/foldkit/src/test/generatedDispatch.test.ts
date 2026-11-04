@@ -251,7 +251,9 @@ it('requires a framework-created root Composition for registry assembly', () => 
   expect(() =>
     // @ts-expect-error Erased JavaScript input must receive an actionable configuration error.
     Scene.subscriptions({}),
-  ).toThrow('Scene.subscriptions Composition must come from')
+  ).toThrow(
+    'Scene.subscriptions Composition must come from Block.make(...).makeComposition(...).',
+  )
 })
 
 it('decodes a complete dispatch contract and replays it through pure update', () => {

@@ -1,6 +1,7 @@
 import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { withBlock } from 'foldkit/story'
 
 import { Model } from '@fixture/shared-model'
 
@@ -10,15 +11,14 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const WorkspaceConsumerKey = Symbol('WorkspaceConsumer')
-const WorkspaceConsumerDefinition = Block.makeDefinition('WorkspaceConsumer', {
+export const WorkspaceConsumerBlock = Block.make('WorkspaceConsumer', {
   key: WorkspaceConsumerKey,
   Model,
   Message,
   Init: Schema.Tuple([]),
 })
-const WorkspaceConsumerComposition =
-  WorkspaceConsumerDefinition.makeComposition()
-const { makeFieldsStep } = WorkspaceConsumerDefinition
+const WorkspaceConsumerComposition = WorkspaceConsumerBlock.makeComposition()
+const { makeFieldsStep } = WorkspaceConsumerBlock
 
 const init = WorkspaceConsumerComposition.makeInit(() => ({
   model: Model.make({ title: 'Before' }),
@@ -30,15 +30,18 @@ export const update = WorkspaceConsumerComposition.makeUpdate({
   })),
 })
 
-export const WorkspaceConsumerBlock = WorkspaceConsumerDefinition.makeBlock(
+export const layer = WorkspaceConsumerBlock.makeLayer(
   Effect.gen(function* () {
-    return { children: [], init, update }
+    return {
+      children: [],
+      init,
+      update,
+    }
   }),
 )
 
 await Effect.runPromise(
-  Effect.gen(function* () {
-    const consumer = yield* WorkspaceConsumerBlock.get
+  withBlock({ block: WorkspaceConsumerBlock, layer }, consumer => {
     const initialized = consumer.init()
     const changedTitle = consumer.update(
       initialized.model,
@@ -48,7 +51,7 @@ await Effect.runPromise(
     if (changedTitle.model.title !== 'After') {
       throw new Error('The workspace consumer did not update the shared Model')
     }
-  }).pipe(Effect.provide(WorkspaceConsumerBlock.layer), Effect.scoped),
+  }),
 )
 
 console.log('The npm workspace consumer updates its shared Model')

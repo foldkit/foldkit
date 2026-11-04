@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
@@ -25,7 +25,7 @@ const OutMessage = defineMessageUnion({
 type OutMessage = typeof OutMessage.Type
 
 const GenericMenuBindingIdentityKey = Symbol('GenericMenuBindingIdentity')
-const GenericMenuBindingIdentityDefinition = Block.makeDefinition(
+const GenericMenuBindingIdentityBlock = Block.make(
   'GenericMenuBindingIdentity',
   {
     key: GenericMenuBindingIdentityKey,
@@ -37,25 +37,22 @@ const GenericMenuBindingIdentityDefinition = Block.makeDefinition(
   },
 )
 
-const MenuBinding = GenericMenuBindingIdentityDefinition.makeBinding(
-  RefinedMenu,
-  {
-    field: 'menu',
-    init: { contextToArgs: config => [config] },
-  },
-).withOutMessagePolicy({
-  fold: GenericMenuBindingIdentityDefinition.makeOutMessageFold(RefinedMenu, {
+const MenuBinding = GenericMenuBindingIdentityBlock.makeBinding(RefinedMenu, {
+  field: 'menu',
+  init: { contextToArgs: config => [config] },
+}).withOutMessagePolicy({
+  fold: GenericMenuBindingIdentityBlock.makeOutMessageFold(RefinedMenu, {
     Selected: ({ value }) =>
-      GenericMenuBindingIdentityDefinition.makeStep(model => ({
+      GenericMenuBindingIdentityBlock.makeStep(model => ({
         model,
         outMessage: OutMessage.SelectedMenuItem({ value }),
       })),
-    Closed: () => GenericMenuBindingIdentityDefinition.makeNoopStep(),
+    Closed: () => GenericMenuBindingIdentityBlock.makeNoopStep(),
   }),
 })
 
 const GenericMenuBindingIdentityComposition =
-  GenericMenuBindingIdentityDefinition.makeComposition({
+  GenericMenuBindingIdentityBlock.makeComposition({
     bindings: [MenuBinding],
   })
 
@@ -66,17 +63,20 @@ const init = GenericMenuBindingIdentityComposition.makeInit(() => ({
 const update = GenericMenuBindingIdentityComposition.makeUpdate({
   RequestedOpen: MenuBinding.requestOpen(),
 })
-const block = GenericMenuBindingIdentityDefinition.makeBlock(
-  Effect.gen(function* () {
-    const menu = yield* MenuBinding
+const block = {
+  block: GenericMenuBindingIdentityBlock,
+  layer: GenericMenuBindingIdentityBlock.makeLayer(
+    Effect.gen(function* () {
+      const menu = yield* MenuBinding
 
-    return {
-      children: [menu],
-      init,
-      update,
-    }
-  }),
-).provide(Menu.layer)
+      return {
+        children: [menu],
+        init,
+        update,
+      }
+    }),
+  ).pipe(Layer.provide(Menu.layer)),
+}
 
 it.effect(
   'uses the factory Menu Animation Binding through open and completion',

@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { FocusTab } from './command.js'
 import { TabsComposition } from './composition.js'
-import { TabsDefinition } from './definition.js'
+import { TabsBlock } from './definition.js'
 import { OutMessage } from './types.js'
 
 /** @internal Canonical Tabs implementation. */
@@ -19,5 +19,5 @@ export const update = TabsComposition.makeUpdate({
     }),
     commands: [FocusTab({ id: model.id, index })],
   }),
-  CompletedFocusTab: TabsDefinition.makeNoopStep(),
+  CompletedFocusTab: TabsBlock.makeNoopStep(),
 })

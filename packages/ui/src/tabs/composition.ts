@@ -1,4 +1,4 @@
-import { TabsDefinition } from './definition.js'
+import { TabsBlock } from './definition.js'
 
 /** @internal Canonical Tabs implementation. */
-export const TabsComposition = TabsDefinition.makeComposition()
+export const TabsComposition = TabsBlock.makeComposition()

@@ -5,23 +5,27 @@ const Model = Schema.Struct({ status: Schema.String })
 const RootMessage = Message.defineMessageUnion({
   CompletedWork: { value: Schema.String },
 })
-const Definition = Block.makeDefinition('InferredPortableProgram', {
+export const ApplicationKey = Symbol('InferredPortableProgram')
+const ApplicationBlock = Block.make('InferredPortableProgram', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
   Model,
   Message: RootMessage,
 })
-const RunWork = Definition.makeCommand('RunWork', {
+const RunWork = ApplicationBlock.makeCommand('RunWork', {
   messages: [RootMessage.CompletedWork],
   handler: function* () {
     return () => Effect.succeed(RootMessage.CompletedWork({ value: 'command' }))
   },
 })
-const ObserveElement = Definition.makeMount('ObserveElement', {
+const ObserveElement = ApplicationBlock.makeMount('ObserveElement', {
   messages: [RootMessage.CompletedWork],
   handler: function* () {
     return () => Effect.succeed(RootMessage.CompletedWork({ value: 'mount' }))
   },
 })
-const subscriptions = Definition.makeSubscriptions(entry => ({
+const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
   work: entry('ObserveWork', {
     messages: [RootMessage.CompletedWork],
     handler: function* () {
@@ -30,8 +34,8 @@ const subscriptions = Definition.makeSubscriptions(entry => ({
     },
   }),
 }))
-const Resource = Definition.makeResource<string>()('Resource')
-const managedResources = Definition.makeManagedResources(entry => ({
+const Resource = ApplicationBlock.makeResource<string>()('Resource')
+const managedResources = ApplicationBlock.makeManagedResources(entry => ({
   resource: entry('ManageResource', Schema.Option(Schema.Null), {
     resource: Resource,
     modelToMaybeRequirements: () => Option.none<null>(),
@@ -46,10 +50,15 @@ const managedResources = Definition.makeManagedResources(entry => ({
     },
   }),
 }))
-const Composition = Definition.makeComposition({ mounts: [ObserveElement] })
-const prepareRootBlock = () =>
-  Composition.prepareBlock({
-    init: () => ({ model: Model.make({ status: 'ready' }) }),
+const Composition = ApplicationBlock.makeComposition({
+  mounts: [ObserveElement],
+})
+const layer = ApplicationBlock.makeLayer(
+  Effect.succeed({
+    children: [],
+    init: Composition.makeInit(() => ({
+      model: Model.make({ status: 'ready' }),
+    })),
     update: Composition.makeUpdate({
       CompletedWork: (model, { value }) => ({
         model: Struct.modifyFields(model, { status: () => value }),
@@ -66,14 +75,12 @@ const prepareRootBlock = () =>
       subscriptions.work.layer,
       managedResources.resource.layer,
     ),
-  })
-const RootBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepareRootBlock
-> = Block.assemble(prepareRootBlock)
+  }),
+)
 
 export const inferredPortableProgram = Program.makeElement({
-  block: RootBlock,
+  block: ApplicationBlock,
+  layer,
   container: null,
   devTools: false,
 })

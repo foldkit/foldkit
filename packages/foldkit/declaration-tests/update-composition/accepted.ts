@@ -1,4 +1,4 @@
-export { ApplicationBlock } from './block.js'
+export { ApplicationBlock, layer } from './block.js'
 export { SaveDraft } from './command.js'
 export {
   ApplicationComposition,
@@ -10,8 +10,10 @@ export { commonUpdates } from './sharedUpdates.js'
 export { editDocument, update } from './update.js'
 export {
   MessageFreeBlock,
+  messageFreeLayer,
   messageFreeUpdate,
   RoutedBlock,
+  routedLayer,
   routedUpdate,
   makeGenericUpdate,
   makeConditionalUpdates,

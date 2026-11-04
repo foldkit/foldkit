@@ -8,7 +8,8 @@
       "foldkit/block": ["../src/block/public.ts"],
       "foldkit/message": ["../src/message/index.ts"],
       "foldkit/story": ["../src/story/public.ts"],
-      "foldkit/test": ["../src/test/public.ts"]
+      "foldkit/test": ["../src/test/public.ts"],
+      "foldkit/update": ["../src/update/public.ts"]
     }
   },
   "files": [

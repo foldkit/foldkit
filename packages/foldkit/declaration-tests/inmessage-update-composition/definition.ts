@@ -29,7 +29,7 @@ export const OutMessage = defineMessageUnion({
   Submitted: { text: Schema.String },
 })
 export const ApplicationKey = Symbol('InputApplication')
-export const ApplicationDefinition = Block.makeDefinition('InputApplication', {
+export const ApplicationBlock = Block.make('InputApplication', {
   key: ApplicationKey,
   Model,
   Message,
@@ -44,8 +44,8 @@ export const {
   makeCommandsStep,
   makeOutMessageStep,
   makeNoopStep,
-} = ApplicationDefinition
-export const SaveDraft = ApplicationDefinition.makeCommand('SaveDraft', {
+} = ApplicationBlock
+export const SaveDraft = ApplicationBlock.makeCommand('SaveDraft', {
   args: { text: Schema.String },
   messages: [Message.CompletedSaveDraft],
   handler: function* () {

@@ -16,7 +16,7 @@ import {
 } from './slider.js'
 
 type SliderOperations = Pick<
-  Effect.Success<typeof block.get>,
+  Story.TestBlock<typeof block>,
   'init' | 'update' | 'inMessageUpdate' | 'operations'
 >
 const makeFixture = ({

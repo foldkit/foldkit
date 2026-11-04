@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -23,40 +23,33 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 const DisabledButtonTestKey = Symbol('DisabledButtonTest')
-const DisabledButtonTestDefinition = Block.makeDefinition(
-  'DisabledButtonTest',
-  {
-    key: DisabledButtonTestKey,
-    Init: Schema.Tuple([]),
-    view: { kind: 'Element' },
-    Model,
-    Message,
-  },
-)
+const DisabledButtonTestBlock = Block.make('DisabledButtonTest', {
+  key: DisabledButtonTestKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+})
 
 // UPDATE
 
-const foldDialogOutMessage = DisabledButtonTestDefinition.makeOutMessageFold(
+const foldDialogOutMessage = DisabledButtonTestBlock.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: DisabledButtonTestDefinition.makeNoopStep,
-    Closed: DisabledButtonTestDefinition.makeNoopStep,
-    CompletedClose: DisabledButtonTestDefinition.makeNoopStep,
+    Opened: DisabledButtonTestBlock.makeNoopStep,
+    Closed: DisabledButtonTestBlock.makeNoopStep,
+    CompletedClose: DisabledButtonTestBlock.makeNoopStep,
   },
 )
 
-const DialogBinding = DisabledButtonTestDefinition.makeBinding(
-  Dialog.DialogBlock,
-  {
-    field: 'dialog',
-    init: { contextToArgs: () => [{ id: 'test-dialog' }] },
-  },
-).withOutMessagePolicy({ fold: foldDialogOutMessage })
+const DialogBinding = DisabledButtonTestBlock.makeBinding(Dialog.DialogBlock, {
+  field: 'dialog',
+  init: { contextToArgs: () => [{ id: 'test-dialog' }] },
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const DisabledButtonTestComposition =
-  DisabledButtonTestDefinition.makeComposition({
-    bindings: [DialogBinding],
-  })
+const DisabledButtonTestComposition = DisabledButtonTestBlock.makeComposition({
+  bindings: [DialogBinding],
+})
 
 // INIT
 
@@ -86,10 +79,10 @@ export const initialModel = modifyFields(makeInitialModel(), {
 })
 
 export const update = DisabledButtonTestComposition.makeUpdate({
-  ClickedToggle: DisabledButtonTestDefinition.makeFieldsStep(() => ({
+  ClickedToggle: DisabledButtonTestBlock.makeFieldsStep(() => ({
     isEnabled: isEnabled => !isEnabled,
   })),
-  ClickedSubmit: DisabledButtonTestDefinition.makeNoopStep(),
+  ClickedSubmit: DisabledButtonTestBlock.makeNoopStep(),
 })
 
 // VIEW
@@ -149,15 +142,18 @@ export const viewWithDialog = DisabledButtonTestComposition.makeView(
   },
 )
 
-export const block = DisabledButtonTestDefinition.makeBlock(
-  Effect.gen(function* () {
-    const dialog = yield* DialogBinding
+export const block = {
+  block: DisabledButtonTestBlock,
+  layer: DisabledButtonTestBlock.makeLayer(
+    Effect.gen(function* () {
+      const dialog = yield* DialogBinding
 
-    return {
-      children: [dialog],
-      init,
-      update,
-      view: viewWithDialog,
-    }
-  }),
-).provide(Dialog.layer)
+      return {
+        children: [dialog],
+        init,
+        update,
+        view: viewWithDialog,
+      }
+    }),
+  ).pipe(Layer.provide(Dialog.layer)),
+}

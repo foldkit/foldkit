@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Schema, Tuple } from 'effect'
+import { Array, Effect, Layer, Option, Schema, Tuple } from 'effect'
 import { Block, Scene, Story, Update } from 'foldkit'
 import { inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -50,7 +50,7 @@ type FruitParentMessage = typeof FruitParentMessage.Type
 
 const FruitComboboxTestKey = Symbol('FruitComboboxTest')
 
-const FruitComboboxTestDefinition = Block.makeDefinition('FruitComboboxTest', {
+const FruitComboboxTestBlock = Block.make('FruitComboboxTest', {
   key: FruitComboboxTestKey,
   Init: Schema.Tuple([]),
   operations: {
@@ -61,8 +61,9 @@ const FruitComboboxTestDefinition = Block.makeDefinition('FruitComboboxTest', {
   Message: FruitParentMessage,
 })
 
-const foldFruitComboboxOutMessage =
-  FruitComboboxTestDefinition.makeOutMessageFold(FruitCombobox, {
+const foldFruitComboboxOutMessage = FruitComboboxTestBlock.makeOutMessageFold(
+  FruitCombobox,
+  {
     Selected:
       ({ value }) =>
       model => ({
@@ -71,17 +72,17 @@ const foldFruitComboboxOutMessage =
         }),
       }),
     ClearedSelection: () => model => ({ model }),
-  })
+  },
+)
 
-const ComboboxBinding = FruitComboboxTestDefinition.makeBinding(FruitCombobox, {
+const ComboboxBinding = FruitComboboxTestBlock.makeBinding(FruitCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => [{ id: 'fruit' }] },
 }).withOutMessagePolicy({ fold: foldFruitComboboxOutMessage })
 
-const FruitComboboxTestComposition =
-  FruitComboboxTestDefinition.makeComposition({
-    bindings: [ComboboxBinding],
-  })
+const FruitComboboxTestComposition = FruitComboboxTestBlock.makeComposition({
+  bindings: [ComboboxBinding],
+})
 
 const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate({
   RequestedSelectFruitAndClose: (model, { item }) =>
@@ -91,19 +92,22 @@ const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate({
     ])(model),
 })
 
-const FruitComboboxTestBlock = FruitComboboxTestDefinition.makeBlock(
-  Effect.gen(function* () {
-    const combobox = yield* ComboboxBinding
+const fruitComboboxTest = {
+  block: FruitComboboxTestBlock,
+  layer: FruitComboboxTestBlock.makeLayer(
+    Effect.gen(function* () {
+      const combobox = yield* ComboboxBinding
 
-    return {
-      children: [combobox],
-      init: FruitComboboxTestComposition.makeInit(() => ({
-        model: { maybeSelectedFruit: Option.none() },
-      })),
-      update: fruitParentUpdate,
-    }
-  }),
-).provide(layer)
+      return {
+        children: [combobox],
+        init: FruitComboboxTestComposition.makeInit(() => ({
+          model: { maybeSelectedFruit: Option.none() },
+        })),
+        update: fruitParentUpdate,
+      }
+    }),
+  ).pipe(Layer.provide(layer)),
+}
 
 type TestHtmlBuilder = Parameters<
   Story.TestBlock<typeof TestCombobox>['view']
@@ -341,7 +345,7 @@ const it = makeMethods(
   baseIt.extend<{
     combobox: ReturnType<typeof makeFixture>
     fruit: Story.TestBlock<typeof FruitCombobox>
-    parentBlock: Story.TestBlock<typeof FruitComboboxTestBlock>
+    parentBlock: Story.TestBlock<typeof fruitComboboxTest>
   }>({
     combobox: async ({}, use) =>
       Effect.runPromise(
@@ -357,7 +361,7 @@ const it = makeMethods(
       ),
     parentBlock: async ({}, use) =>
       Effect.runPromise(
-        Story.withBlock(FruitComboboxTestBlock, parent =>
+        Story.withBlock(fruitComboboxTest, parent =>
           Effect.promise(() => use(parent)),
         ),
       ),

@@ -1,4 +1,5 @@
 import { Effect, Layer } from 'effect'
+import * as Story from 'foldkit/story'
 
 import * as Combobox from '@foldkit/ui/combobox'
 import * as Listbox from '@foldkit/ui/listbox'
@@ -113,41 +114,42 @@ export type RelocatedOperationAssertions = [
   >,
 ]
 
-export const operationChecks = Effect.gen(function* () {
-  const listbox = yield* FruitListbox.get
-  const combobox = yield* FruitCombobox.get
-  const virtualList = yield* FruitVirtualList.get
-  const listboxModel = listbox.init({ id: 'fruit-listbox' }).model
-  const comboboxModel = combobox.init({ id: 'fruit-combobox' }).model
+export const operationChecks = Story.withBlock(FruitListbox, listbox =>
+  Story.withBlock(FruitCombobox, combobox =>
+    Story.withBlock(FruitVirtualList, virtualList => {
+      const listboxModel = listbox.init({ id: 'fruit-listbox' }).model
+      const comboboxModel = combobox.init({ id: 'fruit-combobox' }).model
 
-  // @ts-expect-error The selected Value remains the factory's literal union.
-  listbox.operations.requestSelectItem(listboxModel, 'Banana')
-  // @ts-expect-error The selected Item remains the factory's Schema type.
-  combobox.operations.requestSelectItem(comboboxModel, 'Banana', 'Banana')
+      // @ts-expect-error The selected Value remains the factory's literal union.
+      listbox.operations.requestSelectItem(listboxModel, 'Banana')
+      // @ts-expect-error The selected Item remains the factory's Schema type.
+      combobox.operations.requestSelectItem(comboboxModel, 'Banana', 'Banana')
 
-  const prependFruitHistory = virtualList.operations.informHistoryPrepended(
-    virtualList.init({ id: 'fruit-history', rowHeightPx: 30 }).model,
-    {
-      items: ['Apple', 'Pear'],
-      prependedItems: ['Apple'],
-      itemToKey: item => item,
-      page: VirtualList.HistoryPage.More(),
-    },
-  )
+      const prependFruitHistory = virtualList.operations.informHistoryPrepended(
+        virtualList.init({ id: 'fruit-history', rowHeightPx: 30 }).model,
+        {
+          items: ['Apple', 'Pear'],
+          prependedItems: ['Apple'],
+          itemToKey: item => item,
+          page: VirtualList.HistoryPage.More(),
+        },
+      )
 
-  virtualList.operations.informHistoryPrepended(
-    virtualList.init({ id: 'fruit-history', rowHeightPx: 30 }).model,
-    {
-      // @ts-expect-error History notifications retain the completed Block's item type.
-      items: ['Banana'],
-      prependedItems: [],
-      itemToKey: item => item,
-      page: VirtualList.HistoryPage.Complete(),
-    },
-  )
+      virtualList.operations.informHistoryPrepended(
+        virtualList.init({ id: 'fruit-history', rowHeightPx: 30 }).model,
+        {
+          // @ts-expect-error History notifications retain the completed Block's item type.
+          items: ['Banana'],
+          prependedItems: [],
+          itemToKey: item => item,
+          page: VirtualList.HistoryPage.Complete(),
+        },
+      )
 
-  return prependFruitHistory
-}).pipe(
+      return prependFruitHistory
+    }),
+  ),
+).pipe(
   Effect.provide(
     Layer.mergeAll(Combobox.layer, Listbox.layer, VirtualList.layer),
   ),
@@ -210,23 +212,25 @@ export const invalidTableRow: VirtualList.ViewInputs<'Apple' | 'Pear'> = {
   tableColumns: 2,
 }
 
-export const invalidHistoryContainers = Effect.gen(function* () {
-  const virtualList = yield* FruitVirtualList.get
-  // @ts-expect-error History momentum requires the list's own scroll container.
-  virtualList.init({
-    id: 'ancestor-history',
-    rowHeightPx: 30,
-    history: { reservePx: 800, prefetchViewports: 3 },
-    scrollContainer: VirtualList.ScrollContainer.Ancestor({
-      selector: '#fruit-scroll',
-    }),
-  })
+export const invalidHistoryContainers = Story.withBlock(
+  FruitVirtualList,
+  virtualList => {
+    // @ts-expect-error History momentum requires the list's own scroll container.
+    virtualList.init({
+      id: 'ancestor-history',
+      rowHeightPx: 30,
+      history: { reservePx: 800, prefetchViewports: 3 },
+      scrollContainer: VirtualList.ScrollContainer.Ancestor({
+        selector: '#fruit-scroll',
+      }),
+    })
 
-  // @ts-expect-error History momentum requires the list's own scroll container.
-  virtualList.init({
-    id: 'window-history',
-    rowHeightPx: 30,
-    history: { reservePx: 800, prefetchViewports: 3 },
-    scrollContainer: VirtualList.ScrollContainer.Window(),
-  })
-}).pipe(Effect.provide(VirtualList.layer))
+    // @ts-expect-error History momentum requires the list's own scroll container.
+    virtualList.init({
+      id: 'window-history',
+      rowHeightPx: 30,
+      history: { reservePx: 800, prefetchViewports: 3 },
+      scrollContainer: VirtualList.ScrollContainer.Window(),
+    })
+  },
+).pipe(Effect.provide(VirtualList.layer))

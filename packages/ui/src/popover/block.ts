@@ -164,7 +164,7 @@ export const PortalPopoverBackdrop = PopoverNamespace.makeMount(
 /** Mount Definitions rendered by Popover views. */
 export const mounts = [AnchorPopover, PortalPopoverBackdrop]
 
-const PopoverDefinition = PopoverNamespace.makeDefinition({
+export const PopoverBlock = Block.make(PopoverNamespace, {
   key: PopoverKey,
   Init: Block.makeInputContract<readonly [config: InitConfig]>(),
   view: {
@@ -182,6 +182,9 @@ const PopoverDefinition = PopoverNamespace.makeDefinition({
   Message,
   OutMessage,
 })
+
+/** Public Popover authoring contract and passive graph identity. */
+export type PopoverBlock = typeof PopoverBlock
 
 // INIT
 
@@ -236,18 +239,15 @@ export const buttonId = (id: string): string => `${id}-button`
 export const arrowId = (id: string): string => `${id}-arrow`
 
 /** Prevents page scrolling while the popover is open in modal mode. */
-export const LockPopoverScroll = PopoverDefinition.makeCommand(
-  'LockPopoverScroll',
-  {
-    messages: [Message.CompletedLockPopoverScroll],
-    handler: function* () {
-      return () =>
-        Dom.lockScroll.pipe(Effect.as(Message.CompletedLockPopoverScroll()))
-    },
+export const LockPopoverScroll = PopoverBlock.makeCommand('LockPopoverScroll', {
+  messages: [Message.CompletedLockPopoverScroll],
+  handler: function* () {
+    return () =>
+      Dom.lockScroll.pipe(Effect.as(Message.CompletedLockPopoverScroll()))
   },
-)
+})
 /** Re-enables page scrolling after the popover closes. */
-export const UnlockPopoverScroll = PopoverDefinition.makeCommand(
+export const UnlockPopoverScroll = PopoverBlock.makeCommand(
   'UnlockPopoverScroll',
   {
     messages: [Message.CompletedUnlockPopoverScroll],
@@ -258,7 +258,7 @@ export const UnlockPopoverScroll = PopoverDefinition.makeCommand(
   },
 )
 /** Marks all elements outside the popover as inert for modal behavior. */
-export const InertPopoverOthers = PopoverDefinition.makeCommand(
+export const InertPopoverOthers = PopoverBlock.makeCommand(
   'InertPopoverOthers',
   {
     args: { id: Schema.String },
@@ -272,7 +272,7 @@ export const InertPopoverOthers = PopoverDefinition.makeCommand(
   },
 )
 /** Removes the inert attribute from elements outside the Popover. */
-export const RestorePopoverInert = PopoverDefinition.makeCommand(
+export const RestorePopoverInert = PopoverBlock.makeCommand(
   'RestorePopoverInert',
   {
     args: { id: Schema.String },
@@ -286,22 +286,19 @@ export const RestorePopoverInert = PopoverDefinition.makeCommand(
   },
 )
 /** Moves focus to the popover panel after opening. */
-export const FocusPopoverPanel = PopoverDefinition.makeCommand(
-  'FocusPopoverPanel',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedFocusPopoverPanel],
-    handler: function* () {
-      return ({ id }) =>
-        Dom.focus(panelSelector(id)).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusPopoverPanel()),
-        )
-    },
+export const FocusPopoverPanel = PopoverBlock.makeCommand('FocusPopoverPanel', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusPopoverPanel],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.focus(panelSelector(id)).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusPopoverPanel()),
+      )
   },
-)
+})
 /** Moves focus back to the popover button after closing. */
-export const FocusPopoverButton = PopoverDefinition.makeCommand(
+export const FocusPopoverButton = PopoverBlock.makeCommand(
   'FocusPopoverButton',
   {
     args: { id: Schema.String },
@@ -316,8 +313,9 @@ export const FocusPopoverButton = PopoverDefinition.makeCommand(
   },
 )
 /** Detects whether the popover button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectPopoverMovementOrAnimationEnd =
-  PopoverDefinition.makeCommand('DetectPopoverMovementOrAnimationEnd', {
+export const DetectPopoverMovementOrAnimationEnd = PopoverBlock.makeCommand(
+  'DetectPopoverMovementOrAnimationEnd',
+  {
     args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.CompletedDetectPopoverMovementOrAnimationEnd],
     handler: function* () {
@@ -339,24 +337,25 @@ export const DetectPopoverMovementOrAnimationEnd =
           ),
         )
     },
-  })
+  },
+)
 
 const detectPopoverMovementOrAnimationEnd = (generation: number) =>
-  PopoverDefinition.makeCommandsStep(model => [
+  PopoverBlock.makeCommandsStep(model => [
     DetectPopoverMovementOrAnimationEnd({ id: model.id, generation }),
   ])
 
-const foldAnimationOutMessage = PopoverDefinition.makeOutMessageFold(
+const foldAnimationOutMessage = PopoverBlock.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: ({ generation }) =>
       detectPopoverMovementOrAnimationEnd(generation),
-    TransitionedOut: PopoverDefinition.makeNoopStep,
+    TransitionedOut: PopoverBlock.makeNoopStep,
   },
 )
 
 /** @internal Original Animation relationship used by lifecycle test delivery. */
-export const AnimationBinding = PopoverDefinition.makeBinding(
+export const AnimationBinding = PopoverBlock.makeBinding(
   Animation.AnimationBlock,
   {
     field: 'animation',
@@ -364,7 +363,7 @@ export const AnimationBinding = PopoverDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
-const PopoverComposition = PopoverDefinition.makeComposition({
+const PopoverComposition = PopoverBlock.makeComposition({
   mounts,
   bindings: [AnimationBinding],
 })
@@ -397,15 +396,15 @@ const openPopover = (baseModel: Model) => {
   }
 
   if (baseModel.isAnimated) {
-    return PopoverDefinition.makeStep(() =>
+    return PopoverBlock.makeStep(() =>
       Function.compose(
         Update.combineSteps([
-          PopoverDefinition.makeStep(() => ({
+          PopoverBlock.makeStep(() => ({
             model: baseModel,
             commands: openCommands,
           })),
           AnimationBinding.requestShow(),
-          PopoverDefinition.makeFieldsStep(() => ({ isOpen: () => true })),
+          PopoverBlock.makeFieldsStep(() => ({ isOpen: () => true })),
         ]),
         Update.withOutMessage(OutMessage.Opened()),
       ),
@@ -430,10 +429,10 @@ const closePopover = (
   const closed = closedModel(baseModel)
 
   if (baseModel.isAnimated) {
-    return PopoverDefinition.makeStep(() =>
+    return PopoverBlock.makeStep(() =>
       Function.compose(
         Update.combineSteps([
-          PopoverDefinition.makeStep(() => ({ model: closed, commands })),
+          PopoverBlock.makeStep(() => ({ model: closed, commands })),
           AnimationBinding.requestHide(),
         ]),
         Update.withOutMessage(OutMessage.Closed()),
@@ -444,13 +443,13 @@ const closePopover = (
   return { model: closed, commands, outMessage: OutMessage.Closed() }
 }
 
-const closePopoverWithFocus = PopoverDefinition.makeStep(model =>
+const closePopoverWithFocus = PopoverBlock.makeStep(model =>
   closePopover(model, closePopoverCommands(model, true)),
 )
 
 /** Processes parent requests independently from local Message dispatch. */
 export const inMessageUpdate = PopoverComposition.makeInMessageUpdate({
-  RequestedOpen: PopoverDefinition.makeStep(openPopover),
+  RequestedOpen: PopoverBlock.makeStep(openPopover),
   RequestedClose: closePopoverWithFocus,
 })
 
@@ -491,10 +490,10 @@ const internalUpdate = (model: Model, message: Message) => {
           })
 
           if (model.isAnimated) {
-            return PopoverDefinition.makeStep(() =>
+            return PopoverBlock.makeStep(() =>
               Function.compose(
                 Update.combineSteps([
-                  PopoverDefinition.makeStep(() => ({
+                  PopoverBlock.makeStep(() => ({
                     model: closed,
                     commands: closeWithFocusCommands,
                   })),
@@ -553,7 +552,7 @@ const internalUpdate = (model: Model, message: Message) => {
   )
 }
 
-const applyPopoverMessage = PopoverDefinition.makeStep(
+const applyPopoverMessage = PopoverBlock.makeStep(
   (model, message: Parameters<typeof internalUpdate>[1]) =>
     internalUpdate(model, message),
 )
@@ -785,13 +784,7 @@ export const view = PopoverComposition.makeView.withInputs(
   },
 )
 
-type PopoverContract = typeof PopoverDefinition.contract
-/** Independent Popover contract for parent Bindings. */
-export interface PopoverBlock extends PopoverContract {}
-/** Passive Popover contract supplied through the module implementation Layer. */
-export const PopoverBlock: PopoverBlock = PopoverDefinition.contract
-
-const block = PopoverDefinition.makeBlock(
+export const layer = PopoverBlock.makeLayer(
   Effect.gen(function* () {
     const animation = yield* AnimationBinding
 
@@ -804,7 +797,7 @@ const block = PopoverDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Animation.layer)
+).pipe(Layer.provide(Animation.layer))
 
-/** Supplies the Popover implementation and its Animation child. */
-export const layer = block.layer
+/** @internal Selected implementation used by component tests. */
+export const block = { block: PopoverBlock, layer }

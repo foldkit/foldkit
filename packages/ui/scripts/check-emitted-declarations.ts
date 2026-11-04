@@ -180,6 +180,9 @@ const main = (): void => {
     'generic-composition.accepted.ts',
     'generic-composition.rejected.ts',
     'generic-composition.consume.ts',
+    'unified-factories.accepted.ts',
+    'unified-factories.rejected.ts',
+    'unified-factories.consume.ts',
     'test-namespaces.accepted.ts',
     'kernel-operation-channels.accepted.ts',
     'kernel-operation-channels.consume.ts',
@@ -205,9 +208,25 @@ const main = (): void => {
     join(fixtureRoot, 'tsconfig.shared-dialog-renderer.source.json'),
   ])
 
+  runCompiler('Checking unified UI factory source contracts', [
+    '-p',
+    join(fixtureRoot, 'tsconfig.unified-factories.source.json'),
+  ])
+
   const workspace = mkdtempSync(join(tmpdir(), 'foldkit-ui-declarations-'))
 
   try {
+    linkDependency(
+      workspace,
+      'effect',
+      join(foldkitRoot, 'node_modules', 'effect'),
+    )
+    linkDependency(
+      workspace,
+      'parse5',
+      join(foldkitRoot, 'node_modules', 'parse5'),
+    )
+
     const coreDist = join(workspace, 'packages', 'foldkit', 'dist')
     const uiDist = join(workspace, 'packages', 'ui', 'dist')
     const coreConfig = join(workspace, 'foldkit.build.json')
@@ -253,6 +272,8 @@ const main = (): void => {
     for (const fixture of [
       'generic-composition.accepted.ts',
       'generic-composition.rejected.ts',
+      'unified-factories.accepted.ts',
+      'unified-factories.rejected.ts',
       'test-namespaces.accepted.ts',
       'kernel-operation-channels.accepted.ts',
       'shared-dialog-renderer.ts',
@@ -276,6 +297,7 @@ const main = (): void => {
       },
       files: [
         join(sources, 'generic-composition.accepted.ts'),
+        join(sources, 'unified-factories.accepted.ts'),
         join(sources, 'test-namespaces.accepted.ts'),
         join(sources, 'kernel-operation-channels.accepted.ts'),
         join(sources, 'shared-dialog-renderer.accepted.ts'),
@@ -312,6 +334,7 @@ const main = (): void => {
       compilerOptions: { ...compilerOptions, noEmit: true },
       files: [
         join(sources, 'generic-composition.rejected.ts'),
+        join(sources, 'unified-factories.rejected.ts'),
         join(sources, 'shared-dialog-renderer.rejected.ts'),
       ],
     })
@@ -325,6 +348,8 @@ const main = (): void => {
     )
     for (const fixture of [
       'kernel-operation-channels.consume.ts',
+      'unified-factories.consume.ts',
+      'unified-factories.rejected.ts',
       'shared-dialog-renderer.consume.ts',
       'shared-dialog-renderer.rejected.ts',
     ]) {
@@ -335,6 +360,8 @@ const main = (): void => {
       compilerOptions: { ...compilerOptions, noEmit: true },
       files: [
         'generic-composition.consume.ts',
+        'unified-factories.consume.ts',
+        'unified-factories.rejected.ts',
         'kernel-operation-channels.consume.ts',
         'shared-dialog-renderer.consume.ts',
         'shared-dialog-renderer.rejected.ts',

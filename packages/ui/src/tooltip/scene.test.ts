@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
 import { expect } from 'vitest'
@@ -9,7 +9,7 @@ import { AnchorTooltip, TooltipBlock, layer, triggerId } from './block.js'
 import { Message } from './message.js'
 
 const TooltipSceneKey = Symbol('TooltipScene')
-const TooltipSceneDefinition = Block.makeDefinition('TooltipScene', {
+const TooltipSceneBlock = Block.make('TooltipScene', {
   key: TooltipSceneKey,
   Init: Block.makeInputContract<readonly []>(),
   Model: Schema.Struct({ tooltip: TooltipBlock.Model }),
@@ -17,7 +17,7 @@ const TooltipSceneDefinition = Block.makeDefinition('TooltipScene', {
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
 })
 
-const foldTooltipOutMessage = TooltipSceneDefinition.makeOutMessageFold(
+const foldTooltipOutMessage = TooltipSceneBlock.makeOutMessageFold(
   TooltipBlock,
   {
     Shown: () => model => ({ model }),
@@ -25,12 +25,12 @@ const foldTooltipOutMessage = TooltipSceneDefinition.makeOutMessageFold(
   },
 )
 
-const TooltipBinding = TooltipSceneDefinition.makeBinding(TooltipBlock, {
+const TooltipBinding = TooltipSceneBlock.makeBinding(TooltipBlock, {
   field: 'tooltip',
   init: { contextToArgs: () => [{ id: 'test' }] },
 }).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
-const TooltipSceneComposition = TooltipSceneDefinition.makeComposition({
+const TooltipSceneComposition = TooltipSceneBlock.makeComposition({
   bindings: [TooltipBinding],
 })
 
@@ -73,18 +73,21 @@ const rootView = TooltipSceneComposition.makeView.withInputs(
 const trigger = Scene.selector('#test-trigger')
 const panel = Scene.selector('#test-panel')
 
-const TooltipSceneBlock = TooltipSceneDefinition.makeBlock(
-  Effect.gen(function* () {
-    const child = yield* TooltipBinding
+const tooltipScene = {
+  block: TooltipSceneBlock,
+  layer: TooltipSceneBlock.makeLayer(
+    Effect.gen(function* () {
+      const child = yield* TooltipBinding
 
-    return {
-      children: [child],
-      init,
-      update,
-      view: rootView,
-    }
-  }),
-).provide(layer)
+      return {
+        children: [child],
+        init,
+        update,
+        view: rootView,
+      }
+    }),
+  ).pipe(Layer.provide(layer)),
+}
 
 describe('Tooltip', () => {
   describe('view', () => {
@@ -92,7 +95,7 @@ describe('Tooltip', () => {
       'renders the trigger with aria-describedby and no data-open when hidden',
       () =>
         Scene.scene(
-          { block: TooltipSceneBlock, viewInputs: {} },
+          { block: tooltipScene, viewInputs: {} },
           Scene.init(),
           Scene.expect(trigger).toHaveAttr('aria-describedby', 'test-panel'),
           Scene.expect(trigger).not.toHaveAttr('data-open'),
@@ -101,7 +104,7 @@ describe('Tooltip', () => {
 
     it.effect('does not render the panel when hidden', () =>
       Scene.scene(
-        { block: TooltipSceneBlock, viewInputs: {} },
+        { block: tooltipScene, viewInputs: {} },
         Scene.init(),
         Scene.expect(panel).toBeAbsent(),
       ),
@@ -109,7 +112,7 @@ describe('Tooltip', () => {
 
     it.effect('renders the panel with role=tooltip when open', () =>
       Scene.scene(
-        { block: TooltipSceneBlock, viewInputs: {} },
+        { block: tooltipScene, viewInputs: {} },
         Scene.init(),
         Scene.focus(trigger),
         Scene.expect(panel).toExist(),
@@ -121,7 +124,7 @@ describe('Tooltip', () => {
 
     it.effect('marks the trigger with data-open when visible', () =>
       Scene.scene(
-        { block: TooltipSceneBlock, viewInputs: {} },
+        { block: tooltipScene, viewInputs: {} },
         Scene.init(),
         Scene.focus(trigger),
         Scene.expect(trigger).toHaveAttr('data-open', ''),
@@ -131,7 +134,7 @@ describe('Tooltip', () => {
 
     it.effect('adds anchor positioning styles and hooks to the panel', () =>
       Scene.scene(
-        { block: TooltipSceneBlock, viewInputs: {} },
+        { block: tooltipScene, viewInputs: {} },
         Scene.init(),
         Scene.focus(trigger),
         Scene.expect(panel).toHaveStyle('position', 'absolute'),
@@ -146,7 +149,7 @@ describe('Tooltip', () => {
 
     it.effect('does not attach interaction handlers when disabled', () =>
       Scene.scene(
-        { block: TooltipSceneBlock, viewInputs: { isDisabled: true } },
+        { block: tooltipScene, viewInputs: { isDisabled: true } },
         Scene.init(),
         Scene.expect(trigger).toHaveAttr('aria-disabled', 'true'),
         Scene.expect(trigger).toHaveAttr('data-disabled', ''),
@@ -161,7 +164,7 @@ describe('Tooltip', () => {
       'no aria-label or aria-labelledby on the trigger by default',
       () =>
         Scene.scene(
-          { block: TooltipSceneBlock, viewInputs: {} },
+          { block: tooltipScene, viewInputs: {} },
           Scene.init(),
           Scene.expect(trigger).not.toHaveAttr('aria-label'),
           Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
@@ -172,7 +175,7 @@ describe('Tooltip', () => {
       'applies aria-label to the trigger when ariaLabel is provided',
       () =>
         Scene.scene(
-          { block: TooltipSceneBlock, viewInputs: { ariaLabel: 'More info' } },
+          { block: tooltipScene, viewInputs: { ariaLabel: 'More info' } },
           Scene.init(),
           Scene.expect(trigger).toHaveAttr('aria-label', 'More info'),
           Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
@@ -184,7 +187,7 @@ describe('Tooltip', () => {
       () =>
         Scene.scene(
           {
-            block: TooltipSceneBlock,
+            block: tooltipScene,
             viewInputs: { ariaLabelledBy: 'info-label' },
           },
           Scene.init(),
@@ -198,7 +201,7 @@ describe('Tooltip', () => {
       () =>
         Scene.scene(
           {
-            block: TooltipSceneBlock,
+            block: tooltipScene,
             viewInputs: {
               ariaLabel: 'More info',
               ariaLabelledBy: 'info-label',

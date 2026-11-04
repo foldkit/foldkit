@@ -93,7 +93,7 @@ export type InitConfig = typeof InitConfig.Type
 /** @internal Stable identity of the DatePicker contract. */
 export const DatePickerKey = Symbol('DatePicker')
 
-const DatePickerDefinition = Block.makeDefinition('DatePicker', {
+export const DatePickerBlock = Block.make('DatePicker', {
   key: DatePickerKey,
   Init: Schema.Tuple([InitConfig]),
   ChildInitContext: InitConfig,
@@ -128,10 +128,13 @@ const DatePickerDefinition = Block.makeDefinition('DatePicker', {
   },
 })
 
+/** Public DatePicker authoring contract and passive graph identity. */
+export type DatePickerBlock = typeof DatePickerBlock
+
 // UPDATE
 
 /** @internal DatePicker's Popover relationship for typed test delivery. */
-export const BasePopoverBinding = DatePickerDefinition.makeBinding(
+export const BasePopoverBinding = DatePickerBlock.makeBinding(
   Popover.PopoverBlock,
   {
     field: 'popover',
@@ -150,7 +153,7 @@ export const BasePopoverBinding = DatePickerDefinition.makeBinding(
 )
 
 /** @internal DatePicker's Calendar relationship for typed test delivery. */
-export const BaseCalendarBinding = DatePickerDefinition.makeBinding(
+export const BaseCalendarBinding = DatePickerBlock.makeBinding(
   UiCalendar.CalendarBlock,
   {
     field: 'calendar',
@@ -177,7 +180,7 @@ export const BaseCalendarBinding = DatePickerDefinition.makeBinding(
   },
 )
 
-const foldPopoverOutMessage = DatePickerDefinition.makeOutMessageFold(
+const foldPopoverOutMessage = DatePickerBlock.makeOutMessageFold(
   Popover.PopoverBlock,
   {
     Opened: () => BaseCalendarBinding.requestDropToDays(),
@@ -185,15 +188,15 @@ const foldPopoverOutMessage = DatePickerDefinition.makeOutMessageFold(
   },
 )
 
-const foldCalendarOutMessage = DatePickerDefinition.makeOutMessageFold(
+const foldCalendarOutMessage = DatePickerBlock.makeOutMessageFold(
   UiCalendar.CalendarBlock,
   {
-    ChangedViewMonth: DatePickerDefinition.makeNoopStep,
+    ChangedViewMonth: DatePickerBlock.makeNoopStep,
     SelectedDate: () => BasePopoverBinding.requestClose(),
   },
 )
 
-const forwardCalendarOutMessage = DatePickerDefinition.makeOutMessageForward(
+const forwardCalendarOutMessage = DatePickerBlock.makeOutMessageForward(
   UiCalendar.CalendarBlock,
   {
     ChangedViewMonth: ({ year, month }) =>
@@ -211,7 +214,7 @@ const CalendarBinding = BaseCalendarBinding.withOutMessagePolicy({
   forward: forwardCalendarOutMessage,
 })
 
-const DatePickerComposition = DatePickerDefinition.makeComposition({
+const DatePickerComposition = DatePickerBlock.makeComposition({
   bindings: [PopoverBinding, CalendarBinding],
 })
 
@@ -234,7 +237,7 @@ const closeDatePicker = Update.combineSteps([
   BasePopoverBinding.requestClose(),
   BaseCalendarBinding.requestDropToDays(),
 ])
-const clearDatePicker = DatePickerDefinition.makeOutMessageStep(() =>
+const clearDatePicker = DatePickerBlock.makeOutMessageStep(() =>
   OutMessage.ClearedDate(),
 )
 
@@ -476,13 +479,7 @@ export const view = DatePickerComposition.makeView.withInputs(
   },
 )
 
-type DatePickerContract = typeof DatePickerDefinition.contract
-/** Public DatePicker contract independent of its Calendar and Popover implementations. */
-export interface DatePickerBlock extends DatePickerContract {}
-/** Passive DatePicker contract selected through the module implementation Layer. */
-export const DatePickerBlock: DatePickerBlock = DatePickerDefinition.contract
-
-const block = DatePickerDefinition.makeBlock(
+export const layer = DatePickerBlock.makeLayer(
   Effect.gen(function* () {
     const popover = yield* PopoverBinding
     const calendar = yield* CalendarBinding
@@ -495,7 +492,7 @@ const block = DatePickerDefinition.makeBlock(
       view,
     }
   }),
-).provide(Layer.mergeAll(Popover.layer, UiCalendar.layer))
+).pipe(Layer.provide(Layer.mergeAll(Popover.layer, UiCalendar.layer)))
 
-/** Supplies DatePicker and both child implementations without initializing their Models. */
-export const layer = block.layer
+/** @internal Selected implementation used by component tests. */
+export const block = { block: DatePickerBlock, layer }

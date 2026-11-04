@@ -63,9 +63,9 @@ import {
   type RootConstructionError,
   type RootConstructionRequirements,
   type RootContract,
-  resolveRootBlock,
   type SelectedLayeredRoot,
   type ValidateSelectedLayer,
+  resolveRootBlock,
 } from '../../runtime/rootBlock.js'
 import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'

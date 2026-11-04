@@ -1,0 +1,25 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "paths": {
+      "@foldkit/ui/animation": ["../src/animation/public.ts"],
+      "@foldkit/ui/combobox": ["../src/combobox/public.ts"],
+      "foldkit": ["../../foldkit/src/index.ts"],
+      "foldkit/*": ["../../foldkit/src/*/public.ts"],
+      "foldkit/devtools-host": ["../../foldkit/src/devTools/host.ts"],
+      "@foldkit/ui/listbox": ["../src/listbox/public.ts"],
+      "@foldkit/ui/menu": ["../src/menu/public.ts"],
+      "@foldkit/ui/radioGroup": ["../src/radioGroup/public.ts"],
+      "@foldkit/ui/tabs": ["../src/tabs/public.ts"],
+      "@foldkit/ui/virtualList": ["../src/virtualList/public.ts"]
+    }
+  },
+  "files": [
+    "../../foldkit/src/vite-env.d.ts",
+    "unified-factories.accepted.ts",
+    "unified-factories.rejected.ts",
+    "unified-factories.consume.ts"
+  ],
+  "include": []
+}

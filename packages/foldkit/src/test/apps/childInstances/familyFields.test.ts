@@ -1,9 +1,13 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
 import { Block, Story } from '../../../index.js'
+import {
+  makeFamilyDeclaration,
+  resolveFamily,
+} from '../../../internal/block/public.js'
 import {
   FamilyBlock,
   FamilyMessage,
@@ -41,6 +45,33 @@ it('rejects erased family members that replace the declared Instance Schema', ()
       NumberFamily.definition,
       ValueFamily,
       () => NumberFamily.recipe,
+      { members: { Instance: Schema.String } },
+    ]),
+  ).toThrow('reserved')
+})
+
+it('rejects erased layer-family conveniences that replace the ready Instance Schema', () => {
+  const Definition = makeFamilyDeclaration('LayerFamilyInstanceReview', {
+    key: Symbol('LayerFamilyInstanceReview'),
+    Model: Schema.Number,
+    Message: Schema.Never,
+    isMessageFree: true,
+    Init: Schema.Tuple([]),
+  })
+  const Composition = Definition.makeComposition()
+  const implementation = Definition.makeLayer(
+    Effect.succeed({
+      children: [],
+      init: Composition.makeInit(() => ({ model: 0 })),
+      update: Composition.makeUpdate({}),
+    }),
+  )
+
+  expect(() =>
+    Reflect.apply(resolveFamily, undefined, [
+      Definition,
+      ValueFamily,
+      () => implementation,
       { members: { Instance: Schema.String } },
     ]),
   ).toThrow('reserved')

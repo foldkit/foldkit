@@ -473,3 +473,9 @@ graph requests improve, full-root diagnostics remain similar, and sampled RSS
 shows no material regression. Preserve the remaining roughly 1.7-second
 large-root diagnostic cost. The [adoption report](../../../internal/map-binding-method-adoption-20261027.md)
 contains timings, ranges, memory, correctness checks and reproduction artifacts.
+
+## Shared attribute bundles
+
+`attribute-bundles-200` passes one `ReadonlyArray<Attribute<never>>` bundle to 200 builders with distinct Message unions. It checks the element input alias through the published declarations. The fixture imports the shared warmup unchanged; its budget is additional to the original seven ceilings.
+
+When changing attribute aliases, also compare the one-checker workload with an array that mixes the shared spread and a local handler. That mixed array creates a distinct source union and can retain structural comparison cost. Source/emitted acceptance, raw-only publishing, Message payloads, and registered Mount capabilities are covered by the `attribute-alias` declaration fixtures.

@@ -6,7 +6,9 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
+
+const application = { block: ApplicationBlock, layer }
 
 const today = Calendar.make(2026, 4, 16)
 const initialRoute = (path: string) =>
@@ -15,7 +17,7 @@ const initialRoute = (path: string) =>
 describe('view', () => {
   it.effect('the sidebar nav lists a sample of every component link', () =>
     scene(
-      ApplicationBlock,
+      application,
       initialRoute('/'),
       expect(role('link', { name: 'Button' })).toExist(),
       expect(role('link', { name: 'Calendar' })).toExist(),
@@ -30,7 +32,7 @@ describe('view', () => {
 
   it.effect('the Home route shows the showcase heading and description', () =>
     scene(
-      ApplicationBlock,
+      application,
       initialRoute('/'),
       expect(role('heading', { name: 'Foldkit UI Showcase' })).toExist(),
       expect(
@@ -61,7 +63,7 @@ describe('view', () => {
 
       for (const route of routes) {
         yield* scene(
-          ApplicationBlock,
+          application,
           initialRoute(route),
           expect(role('link', { name: 'Button' })).toExist(),
         )
@@ -71,7 +73,7 @@ describe('view', () => {
 
   it.effect('the Hover Intent route renders its interactive trigger', () =>
     scene(
-      ApplicationBlock,
+      application,
       initialRoute('/hover-intent'),
       expect(role('heading', { name: 'Hover Intent' })).toExist(),
       expect(role('button', { name: 'More information' })).toExist(),
@@ -82,7 +84,7 @@ describe('view', () => {
     'the Disclosure panel stays mounted while collapsed so it can animate',
     () =>
       scene(
-        ApplicationBlock,
+        application,
         initialRoute('/disclosure'),
         expect(
           text('Foldkit is an Elm-inspired UI framework', { exact: false }),
@@ -94,7 +96,7 @@ describe('view', () => {
     'the Disclosure collapsed preview expands from its own control',
     () =>
       scene(
-        ApplicationBlock,
+        application,
         initialRoute('/disclosure'),
         expect(role('heading', { name: 'Basic' })).toExist(),
         expect(role('heading', { name: 'Animated' })).toExist(),
@@ -106,7 +108,7 @@ describe('view', () => {
 
   it.effect('the NotFound route renders the 404 panel and a Go Home link', () =>
     scene(
-      ApplicationBlock,
+      application,
       initialRoute('/oops'),
       expect(role('heading', { name: '404 — Page Not Found' })).toExist(),
       expect(text('The path "/oops" was not found.')).toExist(),

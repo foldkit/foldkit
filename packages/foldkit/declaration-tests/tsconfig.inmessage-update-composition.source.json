@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/program": ["../src/runtime/programPublic.ts"],
+      "foldkit/*": ["../src/*/public.ts"]
+    }
+  },
+  "include": ["../src/vite-env.d.ts", "inmessage-update-composition/**/*.ts"]
+}

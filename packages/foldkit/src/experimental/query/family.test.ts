@@ -14,6 +14,129 @@ class QuoteSource extends Context.Service<
 
 describe('Layer-constructed Query', () => {
   it.effect(
+    'accepts an explicitly selected shared provider without acquiring handlers',
+    () => {
+      const events: Array<string> = []
+      const Quotes = Query.define({
+        name: 'PairedSharedQuotes',
+        data: Schema.String,
+        error: Schema.String,
+        handler: function* () {
+          events.push('handler')
+
+          return () => Effect.succeed('checked')
+        },
+      })
+      const Windows = Query.define({
+        name: 'PairedSharedWindows',
+        args: { label: Schema.String },
+        data: Schema.String,
+        error: Schema.String,
+        handler: function* () {
+          return ({ label }) => Effect.succeed(label)
+        },
+      })
+
+      return Effect.gen(function* () {
+        yield* Story.withBlock(
+          { block: Quotes, layer: Query.layer },
+          executable => {
+            expect(Quotes.read(executable.init().model)).toEqual(
+              AsyncData.Idle(),
+            )
+          },
+        )
+        yield* Story.withBlock(
+          { block: Windows, layer: Query.layer },
+          executable => {
+            expect(Windows.pendingArgs(executable.init().model)).toEqual([])
+          },
+        )
+
+        expect(events).toEqual([])
+      })
+    },
+  )
+
+  it.effect(
+    'pairs custom family outputs exactly without ambient shared-provider fallback',
+    () => {
+      const Quotes = Query.define({
+        name: 'PairedCustomQuotes',
+        data: Schema.String,
+        error: Schema.String,
+        handler: function* () {
+          return () => Effect.succeed('checked')
+        },
+      })
+      const OtherQuotes = Quotes.provideHandlers(Quotes.EffectsLayer)
+      const makeImplementation = (Selected: typeof Quotes) => {
+        const Composition = Selected.makeComposition()
+        const init = Composition.makeInit(() => ({
+          model: Selected.Model.make({
+            data: AsyncData.Idle(),
+            generation: 10,
+          }),
+        }))
+        const update = Composition.makeUpdate({
+          RequestedLoadIfStale: Selected.makeCommandsStep(model => [
+            Selected.Fetch({ generation: model.generation + 1 }),
+          ]),
+          CompletedFetch: Selected.makeNoopStep(),
+          CompletedCancelFetch: Selected.makeNoopStep(),
+        })
+        const inMessageUpdate = Composition.makeInMessageUpdate({
+          RequestedReset: Selected.makeNoopStep(),
+          RequestedRevalidation: Selected.makeNoopStep(),
+          RequestedRevalidationOrLoad: Selected.makeNoopStep(),
+          RequestedLoadIfMissing: Selected.makeNoopStep(),
+          RequestedCancel: Selected.makeNoopStep(),
+        })
+
+        return Selected.makeLayer(
+          Effect.succeed({
+            children: [],
+            init,
+            update,
+            inMessageUpdate,
+            EffectsLayer: Layer.empty,
+            hostHandlers: [Selected.Fetch],
+          }),
+        )
+      }
+      const QuotesLayer = makeImplementation(Quotes)
+      const OtherQuotesLayer = makeImplementation(OtherQuotes)
+
+      return Effect.gen(function* () {
+        yield* Story.withBlock(
+          { block: Quotes, layer: QuotesLayer },
+          executable => {
+            expect(executable.init().model.generation).toBe(10)
+          },
+        )
+        yield* Story.withBlock(Quotes, executable => {
+          expect(executable.init().model.generation).toBe(10)
+        }).pipe(Effect.provide(QuotesLayer))
+
+        const wrongPair = Reflect.apply(Story.withBlock, undefined, [
+          { block: Quotes, layer: OtherQuotesLayer },
+          () => undefined,
+        ])
+
+        expect(Effect.isEffect(wrongPair)).toBe(true)
+
+        const rejected = yield* Effect.promise(() =>
+          Reflect.apply(Effect.runPromiseExit, undefined, [
+            wrongPair.pipe(Effect.provide(Query.layer)),
+          ]),
+        )
+
+        expect(rejected).toMatchObject({ _tag: 'Failure' })
+      })
+    },
+  )
+
+  it.effect(
     'keeps declarations passive and drives a pure Story without handler Services',
     () =>
       Effect.gen(function* () {
@@ -29,7 +152,7 @@ describe('Layer-constructed Query', () => {
           },
         })
 
-        expect(Effect.isEffect(Reflect.get(Quotes, 'get'))).toBe(true)
+        expect('get' in Quotes).toBe(false)
         expect(Layer.isLayer(Reflect.get(Query, 'layer'))).toBe(true)
         expect('init' in Quotes).toBe(false)
         expect(acquisitions).toEqual([])

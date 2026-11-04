@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
 
@@ -7,7 +7,7 @@ import { describe, it } from '@effect/vitest'
 import { HoverIntentBlock, layer } from './block.js'
 
 const HoverIntentSceneKey = Symbol('HoverIntentScene')
-const HoverIntentSceneDefinition = Block.makeDefinition('HoverIntentScene', {
+const HoverIntentSceneBlock = Block.make('HoverIntentScene', {
   key: HoverIntentSceneKey,
   Init: Block.makeInputContract<readonly []>(),
   Model: Schema.Struct({ hoverIntent: HoverIntentBlock.Model }),
@@ -15,7 +15,7 @@ const HoverIntentSceneDefinition = Block.makeDefinition('HoverIntentScene', {
   view: { kind: 'Element' },
 })
 
-const foldHoverIntentOutMessage = HoverIntentSceneDefinition.makeOutMessageFold(
+const foldHoverIntentOutMessage = HoverIntentSceneBlock.makeOutMessageFold(
   HoverIntentBlock,
   {
     Opened: () => model => ({ model }),
@@ -23,15 +23,12 @@ const foldHoverIntentOutMessage = HoverIntentSceneDefinition.makeOutMessageFold(
   },
 )
 
-const HoverIntentBinding = HoverIntentSceneDefinition.makeBinding(
-  HoverIntentBlock,
-  {
-    field: 'hoverIntent',
-    init: { contextToArgs: () => [{}] },
-  },
-).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
+const HoverIntentBinding = HoverIntentSceneBlock.makeBinding(HoverIntentBlock, {
+  field: 'hoverIntent',
+  init: { contextToArgs: () => [{}] },
+}).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
-const HoverIntentSceneComposition = HoverIntentSceneDefinition.makeComposition({
+const HoverIntentSceneComposition = HoverIntentSceneBlock.makeComposition({
   bindings: [HoverIntentBinding],
 })
 
@@ -62,24 +59,27 @@ const sceneView = HoverIntentSceneComposition.makeView((model, h) =>
 const trigger = Scene.selector('#trigger')
 const panel = Scene.selector('#panel')
 
-const HoverIntentSceneBlock = HoverIntentSceneDefinition.makeBlock(
-  Effect.gen(function* () {
-    const child = yield* HoverIntentBinding
+const hoverIntentScene = {
+  block: HoverIntentSceneBlock,
+  layer: HoverIntentSceneBlock.makeLayer(
+    Effect.gen(function* () {
+      const child = yield* HoverIntentBinding
 
-    return {
-      children: [child],
-      init,
-      update,
-      view: sceneView,
-    }
-  }),
-).provide(layer)
+      return {
+        children: [child],
+        init,
+        update,
+        view: sceneView,
+      }
+    }),
+  ).pipe(Layer.provide(layer)),
+}
 
 describe('HoverIntent', () => {
   describe('view', () => {
     it.effect('attaches hover, focus, and Escape handlers to the trigger', () =>
       Scene.scene(
-        HoverIntentSceneBlock,
+        hoverIntentScene,
         Scene.init(),
         Scene.expect(trigger).toHaveHandler('mouseenter'),
         Scene.expect(trigger).toHaveHandler('mouseleave'),
@@ -91,7 +91,7 @@ describe('HoverIntent', () => {
 
     it.effect('leaves panel markup to the consumer while hidden', () =>
       Scene.scene(
-        HoverIntentSceneBlock,
+        hoverIntentScene,
         Scene.init(),
         Scene.expect(panel).toBeAbsent(),
       ),
@@ -99,7 +99,7 @@ describe('HoverIntent', () => {
 
     it.effect('attaches the same interaction handlers to a visible panel', () =>
       Scene.scene(
-        HoverIntentSceneBlock,
+        hoverIntentScene,
         Scene.init(),
         Scene.focus(trigger),
         Scene.expect(panel).toHaveHandler('mouseenter'),
@@ -114,7 +114,7 @@ describe('HoverIntent', () => {
       'does not impose a role, ARIA attribute, or positioning style',
       () =>
         Scene.scene(
-          HoverIntentSceneBlock,
+          hoverIntentScene,
           Scene.init(),
           Scene.focus(trigger),
           Scene.expect(panel).not.toHaveAttr('role'),

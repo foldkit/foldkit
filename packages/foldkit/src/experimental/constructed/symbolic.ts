@@ -17,6 +17,7 @@ import {
   type OperationEnvironment,
   makeResultRecipe,
 } from '../../update/operationRecipe.js'
+import type { ConstructorEffectOf, DescriptorContract } from './contract.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 
@@ -142,6 +143,28 @@ export const descriptorConstructorOf = (
   descriptor: object,
 ): (() => Effect.Effect<object, any, any>) | undefined =>
   constructors.get(descriptor)
+
+/** @internal Reads an original declaration without exposing a public getter. */
+export function readDeclaredExecutable<Value extends DescriptorContract>(
+  descriptor: Value,
+): Effect.Effect<
+  object,
+  Effect.Error<ConstructorEffectOf<Value>>,
+  Effect.Services<ConstructorEffectOf<Value>>
+>
+export function readDeclaredExecutable(
+  descriptor: object,
+): Effect.Effect<object, any, any> {
+  const construct = descriptorConstructorOf(descriptor)
+
+  if (construct === undefined) {
+    throw new Error(
+      '[foldkit] A private reader requires an original declared Block.',
+    )
+  }
+
+  return Effect.suspend(construct)
+}
 
 /** @internal Requires an acquired executable rather than a descriptor or forged record. */
 export const acquisitionOf = (executable: object): Acquisition => {

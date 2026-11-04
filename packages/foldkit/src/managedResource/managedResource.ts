@@ -374,10 +374,10 @@ export interface EntryBuilder<Model, Message> {
  * Low-level builder for a ManagedResource registry. The Model and Message
  * generics are provided up front; the callback builds a record with `entry`.
  *
- * Application features create accessors through `Definition.makeResource` and
- * registries through `Definition.makeManagedResources`. Return the registry as
+ * Application features create accessors through `FooBlock.makeResource` and
+ * registries through `FooBlock.makeManagedResources`. Return the registry as
  * `managedResources` and compose its attached entry Layers in the local
- * `EffectsLayer` returned by the `Definition.makeBlock` constructor. Child
+ * `EffectsLayer` returned by the `FooBlock.makeLayer` constructor. Child
  * Bindings collect their own registries and derive independent occurrence
  * lifetimes.
  *

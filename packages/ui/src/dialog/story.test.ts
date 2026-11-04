@@ -63,14 +63,14 @@ const ParentMessage = defineMessageUnion({
 type ParentMessage = typeof ParentMessage.Type
 
 const DialogParentTestKey = Symbol('DialogParentTest')
-const DialogParentTestDefinition = Block.makeDefinition('DialogParentTest', {
+const DialogParentTestBlock = Block.make('DialogParentTest', {
   key: DialogParentTestKey,
   Init: Schema.Tuple([]),
   Model: ParentModel,
   Message: ParentMessage,
 })
 
-const foldDialogOutMessage = DialogParentTestDefinition.makeOutMessageFold(
+const foldDialogOutMessage = DialogParentTestBlock.makeOutMessageFold(
   DialogBlock,
   {
     Opened: () => model => ({
@@ -87,26 +87,23 @@ const foldDialogOutMessage = DialogParentTestDefinition.makeOutMessageFold(
   },
 )
 
-const LoadParentData = DialogParentTestDefinition.makeCommand(
-  'LoadParentData',
-  {
-    messages: [ParentMessage.CompletedLoadParentData],
-    handler: function* () {
-      return () => Effect.succeed(ParentMessage.CompletedLoadParentData())
-    },
+const LoadParentData = DialogParentTestBlock.makeCommand('LoadParentData', {
+  messages: [ParentMessage.CompletedLoadParentData],
+  handler: function* () {
+    return () => Effect.succeed(ParentMessage.CompletedLoadParentData())
   },
-)
+})
 
-const loadParentData = DialogParentTestDefinition.makeCommandsStep(() => [
+const loadParentData = DialogParentTestBlock.makeCommandsStep(() => [
   LoadParentData(),
 ])
 
-const DialogBinding = DialogParentTestDefinition.makeBinding(DialogBlock, {
+const DialogBinding = DialogParentTestBlock.makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'initial-dialog' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const DialogParentTestComposition = DialogParentTestDefinition.makeComposition({
+const DialogParentTestComposition = DialogParentTestBlock.makeComposition({
   bindings: [DialogBinding],
 })
 
@@ -114,20 +111,23 @@ const parentInit = DialogParentTestComposition.makeInit(() => ({
   model: { dialogEvents: [] },
   steps: [loadParentData, DialogBinding.requestOpen()],
 }))
-const ParentBlock = DialogParentTestDefinition.makeBlock(
-  Effect.gen(function* () {
-    const dialog = yield* DialogBinding
+const ParentBlock = {
+  block: DialogParentTestBlock,
+  layer: DialogParentTestBlock.makeLayer(
+    Effect.gen(function* () {
+      const dialog = yield* DialogBinding
 
-    return {
-      children: [dialog],
-      init: parentInit,
-      update: DialogParentTestComposition.makeUpdate({
-        CompletedLoadParentData: DialogParentTestDefinition.makeNoopStep(),
-      }),
-      EffectsLayer: LoadParentData.layer,
-    }
-  }),
-).provide(layer)
+      return {
+        children: [dialog],
+        init: parentInit,
+        update: DialogParentTestComposition.makeUpdate({
+          CompletedLoadParentData: DialogParentTestBlock.makeNoopStep(),
+        }),
+        EffectsLayer: LoadParentData.layer,
+      }
+    }),
+  ).pipe(Layer.provide(layer)),
+}
 
 const provideEffects = Effect.provide(
   Layer.mergeAll(

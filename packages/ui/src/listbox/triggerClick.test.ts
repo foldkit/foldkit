@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
@@ -12,30 +12,26 @@ const TestListbox = makeBlock<string>()
 const Model = Schema.Struct({ listbox: TestListbox.Model })
 type Model = typeof Model.Type
 const ListboxTriggerClickTestKey = Symbol('ListboxTriggerClickTest')
-const ListboxTriggerClickTestDefinition = Block.makeDefinition(
-  'ListboxTriggerClickTest',
-  {
-    key: ListboxTriggerClickTestKey,
-    Model,
-    Message: Schema.Never,
-    Init: Schema.Tuple([]),
-    ChildInitContext: InitConfig,
-    view: { kind: 'Element' },
-  },
-)
-const foldListboxOutMessage =
-  ListboxTriggerClickTestDefinition.makeOutMessageFold(TestListbox, {
-    Selected: () => ListboxTriggerClickTestDefinition.makeNoopStep(),
-  })
-const ListboxBinding = ListboxTriggerClickTestDefinition.makeBinding(
+const ListboxTriggerClickTestBlock = Block.make('ListboxTriggerClickTest', {
+  key: ListboxTriggerClickTestKey,
+  Model,
+  Message: Schema.Never,
+  Init: Schema.Tuple([]),
+  ChildInitContext: InitConfig,
+  view: { kind: 'Element' },
+})
+const foldListboxOutMessage = ListboxTriggerClickTestBlock.makeOutMessageFold(
   TestListbox,
   {
-    field: 'listbox',
-    init: { contextToArgs: config => [config] },
+    Selected: () => ListboxTriggerClickTestBlock.makeNoopStep(),
   },
-).withOutMessagePolicy({ fold: foldListboxOutMessage })
+)
+const ListboxBinding = ListboxTriggerClickTestBlock.makeBinding(TestListbox, {
+  field: 'listbox',
+  init: { contextToArgs: config => [config] },
+}).withOutMessagePolicy({ fold: foldListboxOutMessage })
 const ListboxTriggerClickTestComposition =
-  ListboxTriggerClickTestDefinition.makeComposition({
+  ListboxTriggerClickTestBlock.makeComposition({
     bindings: [ListboxBinding],
   })
 const view = ListboxTriggerClickTestComposition.makeView((model, h) =>
@@ -63,18 +59,21 @@ const init = ListboxTriggerClickTestComposition.makeInit(() => ({
   childInitContext: { id: 'sort', isModal: true },
 }))
 const update = ListboxTriggerClickTestComposition.makeUpdate({})
-const ApplicationBlock = ListboxTriggerClickTestDefinition.makeBlock(
-  Effect.gen(function* () {
-    const listbox = yield* ListboxBinding
+const ApplicationBlock = {
+  block: ListboxTriggerClickTestBlock,
+  layer: ListboxTriggerClickTestBlock.makeLayer(
+    Effect.gen(function* () {
+      const listbox = yield* ListboxBinding
 
-    return {
-      children: [listbox],
-      init,
-      update,
-      view,
-    }
-  }),
-).provide(ListboxLayer)
+      return {
+        children: [listbox],
+        init,
+        update,
+        view,
+      }
+    }),
+  ).pipe(Layer.provide(ListboxLayer)),
+}
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)
@@ -107,7 +106,7 @@ describe('Listbox trigger click', () => {
     container.id = 'app'
     document.body.append(background, container)
     const handle = Runtime.embed(
-      Program.makeElement({ block: ApplicationBlock, container }),
+      Program.makeElement({ ...ApplicationBlock, container }),
     )
 
     try {
