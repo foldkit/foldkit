@@ -1015,17 +1015,19 @@ const menuViewImpl = (
       Option.exists(item => isItemDisabled(item, index)),
     )
 
-  const firstEnabledIndex = findFirstEnabledIndex(
-    items.length,
-    0,
-    isDisabled,
-  )(0, 1)
+  const maybeFirstEnabledIndex = Array.isReadonlyArrayEmpty(items)
+    ? Option.none<number>()
+    : Option.some(findFirstEnabledIndex(items.length, 0, isDisabled)(0, 1))
 
-  const lastEnabledIndex = findFirstEnabledIndex(
-    items.length,
-    0,
-    isDisabled,
-  )(items.length - 1, -1)
+  const maybeLastEnabledIndex = Array.isReadonlyArrayEmpty(items)
+    ? Option.none<number>()
+    : Option.some(
+        findFirstEnabledIndex(
+          items.length,
+          0,
+          isDisabled,
+        )(items.length - 1, -1),
+      )
 
   const handleButtonKeyDown = (key: string): Option.Option<Message> => {
     if (isOpen) {
@@ -1036,14 +1038,14 @@ const menuViewImpl = (
       Match.whenOr('Enter', ' ', 'ArrowDown', () =>
         Option.some(
           Message.Opened({
-            maybeActiveItemIndex: Option.some(firstEnabledIndex),
+            maybeActiveItemIndex: maybeFirstEnabledIndex,
           }),
         ),
       ),
       Match.when('ArrowUp', () =>
         Option.some(
           Message.Opened({
-            maybeActiveItemIndex: Option.some(lastEnabledIndex),
+            maybeActiveItemIndex: maybeLastEnabledIndex,
           }),
         ),
       ),
@@ -1071,21 +1073,28 @@ const menuViewImpl = (
   const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
     OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
-  const resolveActiveIndex = (key: string): number =>
+  const resolveActiveIndex = (key: string): Option.Option<number> =>
     Option.match(maybeActiveItemIndex, {
       onNone: () =>
         Match.value(key).pipe(
-          Match.whenOr('ArrowUp', 'End', 'PageDown', () => lastEnabledIndex),
-          Match.orElse(() => firstEnabledIndex),
+          Match.whenOr(
+            'ArrowUp',
+            'End',
+            'PageDown',
+            () => maybeLastEnabledIndex,
+          ),
+          Match.orElse(() => maybeFirstEnabledIndex),
         ),
       onSome: activeIndex =>
-        keyToIndex(
-          'ArrowDown',
-          'ArrowUp',
-          items.length,
-          activeIndex,
-          isDisabled,
-        )(key),
+        Option.some(
+          keyToIndex(
+            'ArrowDown',
+            'ArrowUp',
+            items.length,
+            activeIndex,
+            isDisabled,
+          )(key),
+        ),
     })
 
   const searchForKey = (key: string): Option.Option<Message> => {
@@ -1124,9 +1133,9 @@ const menuViewImpl = (
         'PageUp',
         'PageDown',
         () =>
-          Option.some(
+          Option.map(resolveActiveIndex(key), index =>
             Message.ActivatedItem({
-              index: resolveActiveIndex(key),
+              index,
               activationTrigger: 'Keyboard',
             }),
           ),
