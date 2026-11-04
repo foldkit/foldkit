@@ -9,6 +9,7 @@ import {
   CountersBinding,
   Message,
   Model as ModelSchema,
+  layer,
 } from './application'
 import { CounterBlock } from './blocks/counter'
 
@@ -28,7 +29,7 @@ const counterMessage = (id: string, message: CounterMessage) =>
 describe('init', () => {
   it.effect('creates distinct parent-owned instances with Counter state', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       init(),
       model(applicationModel => {
         expect(applicationModel.counters).toEqual([
@@ -47,7 +48,7 @@ describe('update', () => {
     'ClickedAddCounter appends a fresh Counter instance with the next id',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ClickedAddCounter()),
         model(model => {
@@ -65,7 +66,7 @@ describe('update', () => {
 
   it.effect('ClickedRemoveCounter drops only the targeted instance', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
       model(model => {
@@ -81,7 +82,7 @@ describe('update', () => {
     'adding after deletions never duplicates or reuses a retired id',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
         message(Message.ClickedAddCounter()),
@@ -102,7 +103,7 @@ describe('update', () => {
     'generated Counter Message routes ClickedIncrement to the matching instance only',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         counterMessage('counter-1', CounterBlock.Message.ClickedIncrement()),
         model(model => {
@@ -120,7 +121,7 @@ describe('update', () => {
     'generated Counter Message routes ClickedDecrement to the matching instance only',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given({
           counters: [
             CounterBlock.Instance.make({
@@ -150,7 +151,7 @@ describe('update', () => {
     'generated Counter Message for a missing id leaves the model unchanged',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         counterMessage('counter-99', CounterBlock.Message.ClickedIncrement()),
         model(model => {
@@ -166,7 +167,7 @@ describe('update', () => {
 
   it.effect('successive Messages accumulate per instance independently', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
       counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),

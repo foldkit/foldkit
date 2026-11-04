@@ -15,7 +15,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { FetchWeather } from './command'
 import { Message } from './message'
 import { WeatherAsyncData } from './model'
@@ -24,7 +24,7 @@ import { weatherData, weatherModel } from './model.fixture'
 describe('view', () => {
   it.effect('initial view shows empty form with Get Weather button', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(weatherModel),
       expect(label('Zip code')).toExist(),
       expect(role('button', { name: 'Get Weather' })).toExist(),
@@ -34,7 +34,7 @@ describe('view', () => {
 
   it.effect('typing a zip code updates the input value', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(weatherModel),
       type(label('Zip code'), '10001'),
       expect(label('Zip code')).toHaveValue('10001'),
@@ -43,7 +43,7 @@ describe('view', () => {
 
   it.effect('submitting the form shows loading state', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(weatherModel),
       submit(role('form')),
       expect(role('button', { name: 'Loading...' })).toExist(),
@@ -57,7 +57,7 @@ describe('view', () => {
 
   it.effect('successful fetch renders weather card', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(weatherModel),
       submit(role('form')),
       Command.expectExact(FetchWeather({ zipCode: '90210' })),
@@ -79,7 +79,7 @@ describe('view', () => {
 
   it.effect('failed fetch renders error message', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(weatherModel),
       submit(role('form')),
       Command.expectExact(FetchWeather({ zipCode: '90210' })),
@@ -94,7 +94,7 @@ describe('view', () => {
 
   it.effect('full flow: type zip code, click get weather, see results', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given({ zipCodeInput: '', weather: WeatherAsyncData.Idle() }),
       type(label('Zip code'), '90210'),
       click(role('button', { name: 'Get Weather' })),

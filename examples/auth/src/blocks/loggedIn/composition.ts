@@ -8,7 +8,7 @@ import { Model } from './model'
 
 export const LoggedInKey = Symbol('LoggedIn')
 
-export const LoggedInDefinition = Block.makeDefinition('LoggedIn', {
+export const LoggedInBlock = Block.make('LoggedIn', {
   key: LoggedInKey,
   Init: Schema.Tuple([LoggedInRoute, Session]),
   view: { kind: 'Element' },
@@ -18,9 +18,9 @@ export const LoggedInDefinition = Block.makeDefinition('LoggedIn', {
   OutMessage,
 })
 
-export const { makeOutMessageStep } = LoggedInDefinition
+export const { makeOutMessageStep } = LoggedInBlock
 
-export const LoggedInComposition = LoggedInDefinition.makeComposition()
+export const LoggedInComposition = LoggedInBlock.makeComposition()
 export type LoggedInViewBuilder = Block.ViewBuilderFor<
   typeof LoggedInComposition
 >

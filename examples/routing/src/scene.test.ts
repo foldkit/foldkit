@@ -4,7 +4,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { PeopleBlock } from './blocks'
 import { SearchResults, searchPeople } from './blocks/people/model'
 import { Model } from './model'
@@ -60,7 +60,7 @@ const notFound = (path: string) =>
 describe('view', () => {
   it.effect('the nav bar appears on every route', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(home),
       expect(role('link', { name: 'Home' })).toExist(),
       expect(role('link', { name: 'People' })).toExist(),
@@ -71,7 +71,7 @@ describe('view', () => {
 
   it.effect('the Home route renders its welcome heading', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(home),
       expect(role('heading', { name: 'Welcome Home' })).toExist(),
     ),
@@ -79,7 +79,7 @@ describe('view', () => {
 
   it.effect('the Nested route renders its deep-route message', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(nested),
       expect(role('heading', { name: 'Very Nested Route!' })).toExist(),
     ),
@@ -87,7 +87,7 @@ describe('view', () => {
 
   it.effect('the People route renders the People heading', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(people('')),
       expect(role('heading', { name: 'People' })).toExist(),
     ),
@@ -95,7 +95,7 @@ describe('view', () => {
 
   it.effect('a valid Person route renders the person details', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(person(1)),
       expect(role('heading', { name: 'Alice Johnson' })).toExist(),
       expect(text('Designer')).toExist(),
@@ -105,7 +105,7 @@ describe('view', () => {
 
   it.effect('an unknown Person id renders the not-found panel', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(person(99)),
       expect(role('heading', { name: 'Person Not Found' })).toExist(),
       expect(text('No person found with ID: 99')).toExist(),
@@ -114,7 +114,7 @@ describe('view', () => {
 
   it.effect('the Files index lists the top-level entries', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(filesIndex),
       expect(role('link', { name: 'documents' })).toExist(),
       expect(role('link', { name: 'photos' })).toExist(),
@@ -124,7 +124,7 @@ describe('view', () => {
 
   it.effect('a directory path renders breadcrumb links and its entries', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(files(['documents', 'taxes'])),
       expect(role('link', { name: 'documents' })).toExist(),
       expect(role('link', { name: '2024.pdf' })).toExist(),
@@ -134,7 +134,7 @@ describe('view', () => {
 
   it.effect('a file path renders the file details', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(files(['documents', 'resume.pdf'])),
       expect(role('heading', { name: 'resume.pdf' })).toExist(),
       expect(text('47.1 KB')).toExist(),
@@ -143,7 +143,7 @@ describe('view', () => {
 
   it.effect('an unknown path under files renders the missing panel', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(files(['documents', 'missing.txt'])),
       expect(role('heading', { name: 'Nothing Here' })).toExist(),
       expect(role('link', { name: '← Back to Files' })).toExist(),
@@ -152,7 +152,7 @@ describe('view', () => {
 
   it.effect('an unmatched URL renders the NotFound view', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(notFound('/missing')),
       expect(role('heading', { name: '404 - Page Not Found' })).toExist(),
       expect(text('The path "/missing" was not found.')).toExist(),

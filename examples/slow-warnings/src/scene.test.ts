@@ -4,7 +4,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import type { Model } from './model'
 
 const initialModel: Model = {
@@ -18,7 +18,7 @@ const initialModel: Model = {
 describe('view', () => {
   it.effect('renders all workload controls', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       expect(text('Slow Warnings Lab')).toExist(),
       expect(role('button', { name: 'Run update work' })).toExist(),
@@ -30,7 +30,7 @@ describe('view', () => {
 
   it.effect('clicking patch work renders patch rows', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       click(role('button', { name: 'Run patch work' })),
       expect(text('Patch row 1')).toExist(),
@@ -39,7 +39,7 @@ describe('view', () => {
 
   it.effect('clear removes recorded warnings', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(initialModel, {
           warnings: () => [

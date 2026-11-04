@@ -2,13 +2,13 @@ import { Duration, Effect, Match, Option, Schema } from 'effect'
 import { Socket } from 'effect/socket'
 
 import { ChatSocket } from './chatSocket'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message } from './message'
 
 const WS_URL = 'wss://ws.postman-echo.com/raw'
 const CONNECTION_TIMEOUT_MS = 5000
 
-export const managedResources = ApplicationDefinition.makeManagedResources(
+export const managedResources = ApplicationBlock.makeManagedResources(
   entry => ({
     chatSocket: entry('ManageChatSocket', Schema.Option(Schema.Null), {
       resource: ChatSocket,

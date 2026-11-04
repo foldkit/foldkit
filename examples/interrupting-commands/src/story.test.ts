@@ -5,7 +5,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { CancelUploadFile, UploadFile } from './command'
 import { initialModel } from './init'
 import { Message } from './message'
@@ -19,7 +19,7 @@ describe('update', () => {
     'starting an upload appends an Uploading entry and fires UploadFile',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ClickedStartUpload()),
         model(model => {
@@ -50,7 +50,7 @@ describe('update', () => {
 
   it.effect('cancelling an upload interrupts it and marks it Cancelled', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedStartUpload()),
       message(Message.ClickedCancelUpload({ uploadId: 0 })),
@@ -74,7 +74,7 @@ describe('update', () => {
     'a cancel that lands after completion resolves NotFound and changes nothing',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ClickedStartUpload()),
         Command.resolve(
@@ -99,7 +99,7 @@ describe('update', () => {
 
   it.effect('cancelling one upload leaves the other running', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedStartUpload()),
       message(Message.ClickedStartUpload()),
@@ -131,7 +131,7 @@ describe('update', () => {
     'a new upload can start while a cancellation is still pending',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ClickedStartUpload()),
         message(Message.ClickedCancelUpload({ uploadId: 0 })),
@@ -158,7 +158,7 @@ describe('update', () => {
 
   it.effect('restarting a cancelled upload reuses its id and file', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedStartUpload()),
       message(Message.ClickedCancelUpload({ uploadId: 0 })),
@@ -192,7 +192,7 @@ describe('update', () => {
 
   it.effect('cancel all interrupts every running upload and only those', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedStartUpload()),
       message(Message.ClickedStartUpload()),

@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Valid } from 'foldkit/fieldValidation'
 import {
   Command,
@@ -28,7 +27,7 @@ const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
 describe('login', () => {
   it.effect('typing an email validates the field', () =>
     story(
-      LoginBlock,
+      { block: LoginBlock, layer },
       given(initModel()),
       message(Message.ChangedEmail({ value: '' })),
       model(model => {
@@ -39,12 +38,12 @@ describe('login', () => {
         expect(model.email._tag).toBe('Valid')
         expect(model.email.value).toBe('alice@example.com')
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('typing a password validates the field', () =>
     story(
-      LoginBlock,
+      { block: LoginBlock, layer },
       given(initModel()),
       message(Message.ChangedPassword({ value: '' })),
       model(model => {
@@ -54,24 +53,24 @@ describe('login', () => {
       model(model => {
         expect(model.password._tag).toBe('Valid')
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('submitting with invalid fields does nothing', () =>
     story(
-      LoginBlock,
+      { block: LoginBlock, layer },
       given(initModel()),
       message(Message.SubmittedForm()),
       model(model => {
         expect(model.isSubmitting).toBe(false)
       }),
       Command.expectNone(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('submitting with valid fields sends an auth request', () =>
     story(
-      LoginBlock,
+      { block: LoginBlock, layer },
       given(validModel),
       message(Message.SubmittedForm()),
       model(model => {
@@ -83,14 +82,14 @@ describe('login', () => {
         Message.SucceededSimulateAuthRequest({ session: aliceSession }),
       ),
       expectOutMessage(OutMessage.SucceededLogin({ session: aliceSession })),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect(
     'failed auth marks the password field invalid and stops submitting',
     () =>
       story(
-        LoginBlock,
+        { block: LoginBlock, layer },
         given(validModel),
         message(Message.SubmittedForm()),
         model(model => {
@@ -107,6 +106,6 @@ describe('login', () => {
           expect(model.password._tag).toBe('Invalid')
         }),
         expectNoOutMessage(),
-      ).pipe(Effect.provide(layer)),
+      ),
   )
 })

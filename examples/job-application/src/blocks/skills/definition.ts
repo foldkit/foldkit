@@ -24,7 +24,7 @@ export type InMessage = typeof InMessage.Type
 
 export const SkillsKey = Symbol('Skills')
 
-export const SkillsDefinition = Block.makeDefinition('Skills', {
+export const SkillsBlock = Block.make('Skills', {
   key: SkillsKey,
   Init: Schema.Tuple([Schema.String]),
   view: { kind: 'Element' },
@@ -35,4 +35,4 @@ export const SkillsDefinition = Block.makeDefinition('Skills', {
   ChildInitContext: Schema.String,
 })
 
-export const { makeFieldsStep, makeCommandsStep } = SkillsDefinition
+export const { makeFieldsStep, makeCommandsStep } = SkillsBlock

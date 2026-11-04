@@ -18,7 +18,7 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import type { Card } from './domain/card'
 import type { Column } from './domain/column'
@@ -72,7 +72,7 @@ const acknowledgeFocusInput = Command.resolve(
 describe('view', () => {
   it.effect('board renders columns with correct names', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(testModel),
       expect(role('heading', { name: 'To Do' })).toExist(),
       expect(role('heading', { name: 'In Progress' })).toExist(),
@@ -82,7 +82,7 @@ describe('view', () => {
 
   it.effect('columns show card counts from test data', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(testModel),
       expect(toDoColumn).toContainText('2'),
       expect(inProgressColumn).toContainText('1'),
@@ -92,7 +92,7 @@ describe('view', () => {
 
   it.effect('card titles are rendered within their columns', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(testModel),
       expect(within(toDoColumn, text('Write tests'))).toExist(),
       expect(within(toDoColumn, text('Fix bug'))).toExist(),
@@ -102,7 +102,7 @@ describe('view', () => {
 
   it.effect('clicking add card shows the form within the column', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(testModel),
       inside(
         toDoColumn,
@@ -115,7 +115,7 @@ describe('view', () => {
 
   it.effect('typing a card title updates the input', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(testModel),
       click(within(toDoColumn, role('button', { name: '+ Add card' }))),
       acknowledgeFocusInput,
@@ -126,7 +126,7 @@ describe('view', () => {
 
   it.effect('submitting the form adds a card to the column', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(testModel),
       inside(
         toDoColumn,
@@ -152,7 +152,7 @@ describe('view', () => {
 
   it.effect('cancelling closes the form and restores the add card button', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(testModel),
       click(within(toDoColumn, role('button', { name: '+ Add card' }))),
       acknowledgeFocusInput,

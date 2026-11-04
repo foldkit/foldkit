@@ -1,12 +1,10 @@
 import { Effect } from 'effect'
 
-import { ProductsDefinition } from './definition'
+import { ProductsBlock } from './definition'
 import { ReplaceSearchUrl, init, update } from './products'
 import { view } from './view'
 
-export const ProductsBlock = ProductsDefinition.contract
-
-export const layer = ProductsDefinition.makeBlock(
+export const layer = ProductsBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -16,4 +14,6 @@ export const layer = ProductsDefinition.makeBlock(
       EffectsLayer: ReplaceSearchUrl.layer,
     }
   }),
-).layer
+)
+
+export { ProductsBlock } from './definition'

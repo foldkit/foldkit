@@ -1,9 +1,9 @@
 import { Effect } from 'effect'
 import { SecureRandom } from 'effect/crypto'
 
-import { EducationDefinition, Message } from './definition'
+import { EducationBlock, Message } from './definition'
 
-export const GenerateEducationEntryId = EducationDefinition.makeCommand(
+export const GenerateEducationEntryId = EducationBlock.makeCommand(
   'GenerateEducationEntryId',
   {
     messages: [Message.CompletedGenerateEducationEntryId],

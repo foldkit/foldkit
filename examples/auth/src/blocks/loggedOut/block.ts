@@ -1,15 +1,13 @@
-import { Effect } from 'effect'
+import { Effect, Layer } from 'effect'
 
 import { Login } from './blocks'
 import { LoginModelBinding } from './composition'
-import { LoggedOutDefinition } from './definition'
+import { LoggedOutBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const LoggedOutBlock = LoggedOutDefinition.contract
-
-export const layer = LoggedOutDefinition.makeBlock(
+export const layer = LoggedOutBlock.makeLayer(
   Effect.gen(function* () {
     const login = yield* LoginModelBinding
 
@@ -20,4 +18,6 @@ export const layer = LoggedOutDefinition.makeBlock(
       view,
     }
   }),
-).provide(Login.layer).layer
+).pipe(Layer.provide(Login.layer))
+
+export { LoggedOutBlock } from './definition'

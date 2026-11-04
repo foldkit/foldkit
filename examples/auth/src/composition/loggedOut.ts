@@ -1,10 +1,10 @@
 import { LoggedOutBlock } from '../blocks'
 import { RedirectToDashboard, SaveSession } from '../command'
-import { ApplicationDefinition, makeStep } from '../definition'
+import { ApplicationBlock, makeStep } from '../definition'
 import { ApplicationRoute } from '../route'
 import { BaseLoggedInBinding, BaseLoggedOutBinding } from './bindings'
 
-const foldLoggedOutOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldLoggedOutOutMessage = ApplicationBlock.makeOutMessageFold(
   LoggedOutBlock,
   {
     SucceededLogin: ({ session }) =>

@@ -19,6 +19,7 @@ import {
   EngineState,
   Message,
   Model,
+  layer,
   managedResources,
 } from './application'
 
@@ -37,7 +38,7 @@ const readyModel = Model.make({
 describe('view', () => {
   it.effect('initial view shows the engine off with a Start button', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(offModel),
       expect(text('Engine is off.')).toExist(),
       expect(role('button', { name: 'Start engine' })).toExist(),
@@ -51,7 +52,7 @@ describe('view', () => {
     'clicking Start engine enters the booting state and shows Stop',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(offModel),
         click(role('button', { name: 'Start engine' })),
         expect(text('Booting engine...')).toExist(),
@@ -62,7 +63,7 @@ describe('view', () => {
 
   it.effect('a ready engine shows its id and the Stop button', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(readyModel),
       expect(text('Engine ready: engine-1')).toExist(),
       expect(role('button', { name: 'Stop engine' })).toExist(),
@@ -76,7 +77,7 @@ describe('view', () => {
     'clicking Compute fires the Compute command and renders the result',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(readyModel),
         click(role('button', { name: 'Compute next square' })),
         Command.expectExact(Compute({ value: 3 })),
@@ -89,7 +90,7 @@ describe('view', () => {
     'the engine lifecycle drives boot, ready, and stop through the resource steps',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(offModel),
         click(role('button', { name: 'Start engine' })),
         expect(text('Booting engine...')).toExist(),
@@ -109,7 +110,7 @@ describe('view', () => {
 
   it.effect('a failed engine boot shows the failure reason', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(offModel),
       click(role('button', { name: 'Start engine' })),
       ManagedResource.failAcquire(

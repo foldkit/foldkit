@@ -31,7 +31,7 @@ export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Flags]),
   view: { kind: 'Document' },
@@ -39,9 +39,9 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const { makeNoopStep } = ApplicationDefinition
+const { makeNoopStep } = ApplicationBlock
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -66,7 +66,7 @@ export const update = ApplicationComposition.makeUpdate({
 
 const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
 
-export const PersistCount = ApplicationDefinition.makeCommand('PersistCount', {
+export const PersistCount = ApplicationBlock.makeCommand('PersistCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedPersistCount],
   handler: function* () {
@@ -170,7 +170,7 @@ const parseEquivalenceView = (h: ApplicationViewBuilder): Html =>
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

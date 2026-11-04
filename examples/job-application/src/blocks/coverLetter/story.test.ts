@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { init } from 'foldkit/story'
 import { message, model, story } from 'foldkit/story'
 import { describe, expect } from 'vitest'
@@ -10,7 +9,7 @@ import { CoverLetterBlock, layer } from './block'
 describe('coverLetter', () => {
   it.effect('UpdatedContent replaces the letter text', () =>
     story(
-      CoverLetterBlock,
+      { block: CoverLetterBlock, layer },
       init(),
       message(
         CoverLetterBlock.Message.UpdatedContent({
@@ -20,6 +19,6 @@ describe('coverLetter', () => {
       model(model => {
         expect(model.content).toBe('I love the Elm Architecture.')
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 })

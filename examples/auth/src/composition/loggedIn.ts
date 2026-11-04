@@ -1,10 +1,10 @@
 import { LoggedInBlock } from '../blocks'
 import { ClearSession, RedirectToHome } from '../command'
-import { ApplicationDefinition, makeStep } from '../definition'
+import { ApplicationBlock, makeStep } from '../definition'
 import { ApplicationRoute } from '../route'
 import { BaseLoggedInBinding, BaseLoggedOutBinding } from './bindings'
 
-const foldLoggedInOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldLoggedInOutMessage = ApplicationBlock.makeOutMessageFold(
   LoggedInBlock,
   {
     RequestedLogout: () =>

@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Array, Option, pipe } from 'effect'
 import { Calendar } from 'foldkit'
 import { init, messageFrom } from 'foldkit/story'
@@ -24,7 +23,7 @@ const entryMessage = (entryId: string, message: WorkHistoryEntryMessage) =>
 describe('workHistory', () => {
   it.effect('ClickedAddEntry generates an id and appends an entry', () =>
     story(
-      WorkHistoryBlock,
+      { block: WorkHistoryBlock, layer },
       givenInitial,
       message(Message.ClickedAddEntry()),
       Command.expectHas(GenerateWorkHistoryEntryId),
@@ -37,12 +36,12 @@ describe('workHistory', () => {
       model(model => {
         expect(model.entries).toHaveLength(2)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('an entry OutMessage.Removed removes that entry', () =>
     story(
-      WorkHistoryBlock,
+      { block: WorkHistoryBlock, layer },
       givenInitial,
       entryMessage(
         'work-history-entry-1',
@@ -51,12 +50,12 @@ describe('workHistory', () => {
       model(model => {
         expect(model.entries).toHaveLength(0)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('a generated entry Message updates the matching entry', () =>
     story(
-      WorkHistoryBlock,
+      { block: WorkHistoryBlock, layer },
       givenInitial,
       entryMessage(
         'work-history-entry-1',
@@ -74,6 +73,6 @@ describe('workHistory', () => {
           ),
         ).toBe('Foldkit Inc.')
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 })

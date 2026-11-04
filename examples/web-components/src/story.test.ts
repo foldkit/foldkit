@@ -3,7 +3,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Message, type Model } from './application'
+import { ApplicationBlock, Message, type Model, layer } from './application'
 
 const initialModel: Model = {
   content: 'https://foldkit.dev',
@@ -15,7 +15,7 @@ describe('update', () => {
   describe('content', () => {
     it.effect('UpdatedContent stores the encoded value', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(
           Message.UpdatedContent({
@@ -30,7 +30,7 @@ describe('update', () => {
 
     it.effect('clearing the input stores the empty string', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.UpdatedContent({ value: '' })),
         model(model => {
@@ -43,7 +43,7 @@ describe('update', () => {
   describe('color changes', () => {
     it.effect('ChangedFillColor replaces only the fill', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ChangedFillColor({ value: '#0f766e' })),
         model(model => {
@@ -56,7 +56,7 @@ describe('update', () => {
 
     it.effect('ChangedBackgroundColor replaces only the background', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ChangedBackgroundColor({ value: '#ffffff' })),
         model(model => {
@@ -68,7 +68,7 @@ describe('update', () => {
 
     it.effect('successive color changes accumulate', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ChangedFillColor({ value: '#9d174d' })),
         message(Message.ChangedBackgroundColor({ value: '#ffffff' })),
@@ -82,7 +82,7 @@ describe('update', () => {
 
     it.effect('update never produces Commands', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ChangedFillColor({ value: '#9d174d' })),
         Command.expectNone(),

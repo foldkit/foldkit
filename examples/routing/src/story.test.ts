@@ -12,7 +12,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { PeopleBlock } from './blocks'
 import { FetchPeople } from './blocks/people/command'
 import { SearchResults, searchPeople } from './blocks/people/model'
@@ -77,7 +77,7 @@ describe('update', () => {
   describe('EnteredNavigationShortcut', () => {
     it.effect('GH produces the Home navigation Command', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(Message.EnteredNavigationShortcut({ shortcut: 'GH' })),
         Command.expectHas(NavigateInternal({ url: homeRouter() })),
@@ -87,7 +87,7 @@ describe('update', () => {
 
     it.effect('GP produces the People navigation Command', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(Message.EnteredNavigationShortcut({ shortcut: 'GP' })),
         Command.expectHas(
@@ -101,7 +101,7 @@ describe('update', () => {
 
     it.effect('GF produces the Files navigation Command', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(Message.EnteredNavigationShortcut({ shortcut: 'GF' })),
         Command.expectHas(NavigateInternal({ url: filesIndexRouter() })),
@@ -111,7 +111,7 @@ describe('update', () => {
 
     it.effect('GN produces the Nested navigation Command', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(Message.EnteredNavigationShortcut({ shortcut: 'GN' })),
         Command.expectHas(NavigateInternal({ url: nestedRouter() })),
@@ -123,7 +123,7 @@ describe('update', () => {
   describe('ChangedUrl', () => {
     it.effect('navigating to /people parses to a People route', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/people') }),
@@ -143,7 +143,7 @@ describe('update', () => {
       'navigating to /people?searchText=foo captures the query parameter',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(home),
           message(
             Message.ChangedUrl({
@@ -165,7 +165,7 @@ describe('update', () => {
       'navigating to /people/3 parses to a Person route with numeric id',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(home),
           message(
             Message.ChangedUrl({
@@ -186,7 +186,7 @@ describe('update', () => {
       'an unknown path falls through to NotFound with the path captured',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(home),
           message(
             Message.ChangedUrl({ url: urlOrThrow('http://localhost/missing') }),
@@ -203,7 +203,7 @@ describe('update', () => {
 
     it.effect('the deep nested path resolves to Nested', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(
           Message.ChangedUrl({
@@ -218,7 +218,7 @@ describe('update', () => {
 
     it.effect('navigating to /files parses to the FilesIndex route', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/files') }),
@@ -231,7 +231,7 @@ describe('update', () => {
 
     it.effect('navigating under /files captures the remaining segments', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(home),
         message(
           Message.ChangedUrl({
@@ -252,7 +252,7 @@ describe('update', () => {
       'a same-page URL change syncs the input, records history, and refetches',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(onPeople('')),
           message(
             Message.ChangedUrl({
@@ -280,7 +280,7 @@ describe('update', () => {
 
     it.effect('a hash-only URL change keeps the People page in sync', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(onPeople('designer')),
         message(
           Message.ChangedUrl({
@@ -303,7 +303,7 @@ describe('update', () => {
   describe('generated People Message', () => {
     it.effect('writes through to peoplePage', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(onPeople('')),
         peopleMessage(PeopleBlock.Message.ChangedSearchInput({ value: 'd' })),
         model(model => {

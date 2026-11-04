@@ -4,7 +4,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { Message } from './message'
 import type { Model } from './model'
 
@@ -19,7 +19,7 @@ const initialModel: Model = {
 describe('update', () => {
   it.effect('ClickedRunUpdateWork records update workload state', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedRunUpdateWork()),
       Command.expectNone(),
@@ -31,7 +31,7 @@ describe('update', () => {
 
   it.effect('ClickedRunViewWork records view workload state', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedRunViewWork()),
       model(model => {
@@ -42,7 +42,7 @@ describe('update', () => {
 
   it.effect('ClickedRunPatchWork mounts a large patch surface', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedRunPatchWork()),
       model(model => {
@@ -57,7 +57,7 @@ describe('update', () => {
     'ClickedRunSubscriptionDependenciesWork records subscription dependency workload state',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(Message.ClickedRunSubscriptionDependenciesWork()),
         model(model => {
@@ -70,7 +70,7 @@ describe('update', () => {
     'RecordedSlowWarning stores the warning and clears active workload',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(
           Message.RecordedSlowWarning({
@@ -104,7 +104,7 @@ describe('update', () => {
     'ClickedClearWarnings clears warnings without resetting the patch surface',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(initialModel, {
             patchRows: () => 4000,

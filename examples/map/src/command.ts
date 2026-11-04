@@ -1,7 +1,7 @@
 import { Effect, Option, Schema } from 'effect'
 import * as Dom from 'foldkit/dom'
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { MapRegistry } from './mapRegistry'
 import { Message } from './message'
 import type { FailedFlyTo, SucceededFlyTo } from './message'
@@ -36,7 +36,7 @@ const flyToMap = (
     })
   })
 
-export const FlyTo = ApplicationDefinition.makeCommand('FlyTo', {
+export const FlyTo = ApplicationBlock.makeCommand('FlyTo', {
   args: {
     maybeHostId: Schema.Option(Schema.String),
     lng: Schema.Number,
@@ -60,7 +60,7 @@ export const FlyTo = ApplicationDefinition.makeCommand('FlyTo', {
   },
 })
 
-export const Geolocate = ApplicationDefinition.makeCommand('Geolocate', {
+export const Geolocate = ApplicationBlock.makeCommand('Geolocate', {
   messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
   handler: function* () {
     return () =>
@@ -103,7 +103,7 @@ export const Geolocate = ApplicationDefinition.makeCommand('Geolocate', {
   },
 })
 
-export const FocusSearchInput = ApplicationDefinition.makeCommand(
+export const FocusSearchInput = ApplicationBlock.makeCommand(
   'FocusSearchInput',
   {
     messages: [Message.CompletedFocusSearchInput],
@@ -117,21 +117,18 @@ export const FocusSearchInput = ApplicationDefinition.makeCommand(
   },
 )
 
-export const LockBodyScroll = ApplicationDefinition.makeCommand(
-  'LockBodyScroll',
-  {
-    messages: [Message.CompletedLockBodyScroll],
-    handler: function* () {
-      return () =>
-        Effect.sync(() => {
-          document.body.classList.add('overflow-hidden')
-          return Message.CompletedLockBodyScroll()
-        })
-    },
+export const LockBodyScroll = ApplicationBlock.makeCommand('LockBodyScroll', {
+  messages: [Message.CompletedLockBodyScroll],
+  handler: function* () {
+    return () =>
+      Effect.sync(() => {
+        document.body.classList.add('overflow-hidden')
+        return Message.CompletedLockBodyScroll()
+      })
   },
-)
+})
 
-export const UnlockBodyScroll = ApplicationDefinition.makeCommand(
+export const UnlockBodyScroll = ApplicationBlock.makeCommand(
   'UnlockBodyScroll',
   {
     messages: [Message.CompletedUnlockBodyScroll],

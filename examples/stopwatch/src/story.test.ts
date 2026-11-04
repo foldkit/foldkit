@@ -10,6 +10,7 @@ import {
   DetermineTickTime,
   Message,
   type Model,
+  layer,
 } from './application'
 
 const idleModel: Model = {
@@ -30,7 +31,7 @@ describe('update', () => {
       'ClickedStart fires DetermineStartTime with current elapsed time',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(modifyFields(idleModel, { elapsedMs: () => 2000 })),
           message(Message.ClickedStart()),
           Command.expectHas(DetermineStartTime),
@@ -52,7 +53,7 @@ describe('update', () => {
       'CompletedDetermineStartTime stores the offset start time and starts running',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(idleModel),
           message(Message.CompletedDetermineStartTime({ startTime: 1000 })),
           model(model => {
@@ -66,7 +67,7 @@ describe('update', () => {
   describe('stop and reset', () => {
     it.effect('ClickedStop pauses the stopwatch without zeroing time', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(runningModel),
         message(Message.ClickedStop()),
         model(model => {
@@ -79,7 +80,7 @@ describe('update', () => {
 
     it.effect('ClickedReset zeros elapsedMs, isRunning, and startTime', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(runningModel),
         message(Message.ClickedReset()),
         model(model => {
@@ -92,7 +93,7 @@ describe('update', () => {
 
     it.effect('ClickedReset on an idle stopwatch is a no-op', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(idleModel),
         message(Message.ClickedReset()),
         model(model => {
@@ -105,7 +106,7 @@ describe('update', () => {
   describe('ticking', () => {
     it.effect('Ticked fires DetermineTickTime with the stored startTime', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(runningModel),
         message(Message.Ticked()),
         Command.expectHas(DetermineTickTime),
@@ -121,7 +122,7 @@ describe('update', () => {
 
     it.effect('CompletedDetermineTickTime stores the new elapsed time', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(runningModel),
         message(Message.CompletedDetermineTickTime({ elapsedMs: 7500 })),
         model(model => {

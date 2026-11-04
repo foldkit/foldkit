@@ -9,7 +9,7 @@ import {
   Message,
   Model,
   OutMessage,
-  ProductsDefinition,
+  ProductsBlock,
   makeNoopStep,
   makeOutMessageStep,
 } from './definition'
@@ -20,17 +20,14 @@ export const init = ProductsComposition.makeInit(
   }),
 )
 
-export const ReplaceSearchUrl = ProductsDefinition.makeCommand(
-  'ReplaceSearchUrl',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedReplaceSearchUrl],
-    handler: function* () {
-      return ({ url }) =>
-        replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl()))
-    },
+export const ReplaceSearchUrl = ProductsBlock.makeCommand('ReplaceSearchUrl', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedReplaceSearchUrl],
+  handler: function* () {
+    return ({ url }) =>
+      replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl()))
   },
-)
+})
 
 export const update = ProductsComposition.makeUpdate({
   CompletedReplaceSearchUrl: makeNoopStep(),

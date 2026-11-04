@@ -4,12 +4,12 @@ import { Update } from 'foldkit'
 import { DatePickerBlock } from '@foldkit/ui/datePicker'
 
 import {
-  WorkHistoryEntryDefinition,
+  WorkHistoryEntryBlock,
   makeFieldsStep,
   makeNoopStep,
 } from './definition'
 
-export const StartDateBinding = WorkHistoryEntryDefinition.makeBinding(
+export const StartDateBinding = WorkHistoryEntryBlock.makeBinding(
   DatePickerBlock,
   {
     field: 'startDate',
@@ -23,7 +23,7 @@ export const StartDateBinding = WorkHistoryEntryDefinition.makeBinding(
   fold: outMessage => foldStartDateOutMessage(outMessage),
 })
 
-export const EndDateBinding = WorkHistoryEntryDefinition.makeBinding(
+export const EndDateBinding = WorkHistoryEntryBlock.makeBinding(
   DatePickerBlock,
   {
     field: 'endDate',
@@ -35,7 +35,7 @@ export const EndDateBinding = WorkHistoryEntryDefinition.makeBinding(
   fold: outMessage => foldEndDateOutMessage(outMessage),
 })
 
-const foldStartDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
+const foldStartDateOutMessage = WorkHistoryEntryBlock.makeOutMessageFold(
   DatePickerBlock,
   {
     ChangedViewMonth: makeNoopStep,
@@ -56,7 +56,7 @@ const foldStartDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   },
 )
 
-const foldEndDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
+const foldEndDateOutMessage = WorkHistoryEntryBlock.makeOutMessageFold(
   DatePickerBlock,
   {
     ChangedViewMonth: makeNoopStep,
@@ -78,6 +78,6 @@ const foldEndDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
 )
 
 export const WorkHistoryEntryComposition =
-  WorkHistoryEntryDefinition.makeComposition({
+  WorkHistoryEntryBlock.makeComposition({
     bindings: [StartDateBinding, EndDateBinding],
   })

@@ -4,12 +4,12 @@ import { layer as ListboxLayer } from '@foldkit/ui/listbox'
 
 import { EffectsLayer } from './command'
 import { DietListboxBinding, PeriodListboxBinding } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const dietListbox = yield* DietListboxBinding
     const periodListbox = yield* PeriodListboxBinding
@@ -22,4 +22,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(ListboxLayer))
+).pipe(Layer.provide(Layer.mergeAll(ListboxLayer)))
+
+export { ApplicationBlock } from './definition'

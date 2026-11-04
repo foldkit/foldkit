@@ -4,12 +4,12 @@ import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
 
 import { EffectsLayer } from './command'
 import { EditionRadioGroupBinding } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const editionRadioGroup = yield* EditionRadioGroupBinding
 
@@ -21,4 +21,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(RadioGroupLayer))
+).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
+
+export { ApplicationBlock } from './definition'

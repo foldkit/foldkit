@@ -2,7 +2,7 @@ import { Effect, Predicate, Queue, Schema, Stream } from 'effect'
 import { Socket } from 'effect/socket'
 
 import { ChatSocket } from './chatSocket'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message } from './message'
 import type {
   DisconnectedChatSocket,
@@ -50,7 +50,7 @@ const streamChatSocketMessages = (socket: Socket.WebSocketLike) =>
       ).pipe(Effect.flatMap(() => Effect.never)),
   )
 
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
+export const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
   chatSocketMessages: entry(
     'ChatSocketMessages',
     { isConnected: Schema.Boolean },

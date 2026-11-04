@@ -2,14 +2,14 @@ import { Array, Effect, Predicate, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
 import { CANVAS_SIZE_PX, EXPORT_SCALE, STORAGE_KEY } from './constant'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message } from './message'
 import type { Model, SavedCanvas } from './model'
 import { Grid, PaletteIndex } from './model'
 import { SavedCanvasJsonString } from './model'
 import { PALETTE_THEMES, resolveColor } from './palette'
 
-export const SaveCanvas = ApplicationDefinition.makeCommand('SaveCanvas', {
+export const SaveCanvas = ApplicationBlock.makeCommand('SaveCanvas', {
   args: {
     grid: Grid,
     gridSize: Schema.Number,
@@ -45,7 +45,7 @@ export const saveCanvas = (model: Model) =>
     selectedColorIndex: model.selectedColorIndex,
   })
 
-export const ExportPng = ApplicationDefinition.makeCommand('ExportPng', {
+export const ExportPng = ApplicationBlock.makeCommand('ExportPng', {
   args: {
     grid: Grid,
     gridSize: Schema.Number,

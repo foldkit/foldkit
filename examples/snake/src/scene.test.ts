@@ -4,7 +4,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, type Model } from './application'
+import { ApplicationBlock, type Model, layer } from './application'
 import { Snake } from './domain'
 
 const baseModel: Model = {
@@ -20,7 +20,7 @@ const baseModel: Model = {
 describe('view', () => {
   it.effect('initial view shows the heading, score, and start prompt', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(baseModel),
       expect(role('heading', { name: 'Snake Game' })).toExist(),
       expect(text('Score: 0')).toExist(),
@@ -31,7 +31,7 @@ describe('view', () => {
 
   it.effect('renders the keyboard instructions', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(baseModel),
       expect(text('Use ARROW KEYS or WASD to move')).toExist(),
       expect(text('SPACE to pause/start')).toExist(),
@@ -41,7 +41,7 @@ describe('view', () => {
 
   it.effect('shows the playing prompt while the game is active', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modifyFields(baseModel, { gameState: () => 'Playing' })),
       expect(text('Playing - SPACE to pause')).toExist(),
     ),
@@ -49,7 +49,7 @@ describe('view', () => {
 
   it.effect('shows the paused prompt while the game is paused', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modifyFields(baseModel, { gameState: () => 'Paused' })),
       expect(text('Paused - SPACE to continue')).toExist(),
     ),
@@ -57,7 +57,7 @@ describe('view', () => {
 
   it.effect('shows the game-over prompt at the end of a run', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(baseModel, {
           gameState: () => 'GameOver',
@@ -71,7 +71,7 @@ describe('view', () => {
 
   it.effect('the current and high scores reflect the Model', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(baseModel, {
           gameState: () => 'Playing',

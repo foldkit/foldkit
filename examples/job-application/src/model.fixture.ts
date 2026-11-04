@@ -1,4 +1,4 @@
-import { Array, Effect, Layer } from 'effect'
+import { Array, Effect } from 'effect'
 import { Calendar } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
 import { withBlock } from 'foldkit/story'
@@ -7,7 +7,7 @@ import { test as baseTest } from 'vitest'
 
 import { makeMethods } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { EducationEntry } from './blocks/education/blocks'
 import { SkillsEntry } from './blocks/skills/blocks'
 import { WorkHistoryEntry } from './blocks/workHistory/blocks'
@@ -22,11 +22,26 @@ export const initialFlags = Flags.make({
   initialSkillsEntryId: 'skills-entry-1',
 })
 
-const models = withBlock(ApplicationBlock, application =>
+const models = withBlock({ block: ApplicationBlock, layer }, application =>
   Effect.gen(function* () {
-    const workHistoryEntry = yield* WorkHistoryEntry.WorkHistoryEntryBlock.get
-    const educationEntry = yield* EducationEntry.EducationEntryBlock.get
-    const skillsEntry = yield* SkillsEntry.SkillsEntryBlock.get
+    const secondWorkHistoryEntry = yield* withBlock(
+      {
+        block: WorkHistoryEntry.WorkHistoryEntryBlock,
+        layer: WorkHistoryEntry.layer,
+      },
+      entry => entry.init('work-history-entry-2', today).model,
+    )
+    const secondEducationEntry = yield* withBlock(
+      {
+        block: EducationEntry.EducationEntryBlock,
+        layer: EducationEntry.layer,
+      },
+      entry => entry.init('education-entry-2').model,
+    )
+    const secondSkillsEntry = yield* withBlock(
+      { block: SkillsEntry.SkillsEntryBlock, layer: SkillsEntry.layer },
+      entry => entry.init('skills-entry-2').model,
+    )
     const initialModel = application.init(initialFlags).model
 
     const completeModel: Model = modifyFields(initialModel, {
@@ -68,22 +83,11 @@ const models = withBlock(ApplicationBlock, application =>
     return {
       initialModel,
       completeModel,
-      secondWorkHistoryEntry: workHistoryEntry.init(
-        'work-history-entry-2',
-        today,
-      ).model,
-      secondEducationEntry: educationEntry.init('education-entry-2').model,
-      secondSkillsEntry: skillsEntry.init('skills-entry-2').model,
+      secondWorkHistoryEntry,
+      secondEducationEntry,
+      secondSkillsEntry,
     }
   }),
-).pipe(
-  Effect.provide(
-    Layer.mergeAll(
-      WorkHistoryEntry.layer,
-      EducationEntry.layer,
-      SkillsEntry.layer,
-    ),
-  ),
 )
 
 export const it = makeMethods(

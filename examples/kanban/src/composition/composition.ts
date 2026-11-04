@@ -1,9 +1,9 @@
 import type { Block } from 'foldkit'
 
-import { ApplicationDefinition } from '../definition'
+import { ApplicationBlock } from '../definition'
 import { DragAndDropBinding } from './dragAndDrop'
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [DragAndDropBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

@@ -6,7 +6,7 @@ import { Model } from './model'
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Block.makeInputContract<readonly [url: Url]>(),
   view: { kind: 'Document' },
@@ -15,4 +15,4 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 
 export const { makeFieldsStep, makeCommandsStep, makeNoopStep } =
-  ApplicationDefinition
+  ApplicationBlock

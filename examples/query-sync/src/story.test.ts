@@ -8,7 +8,7 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { test as ListboxTest } from '@foldkit/ui/listbox'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { ReplaceFilters } from './command'
 import { DietListboxBinding } from './composition'
 import { Message } from './message'
@@ -90,7 +90,7 @@ describe('update', () => {
   describe('ChangedUrl', () => {
     it.effect('parses search, sorting, diet, and period from the URL', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(browseModel),
         message(
           Message.ChangedUrl({
@@ -115,7 +115,7 @@ describe('update', () => {
 
     it.effect('an unknown path falls through to NotFound', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(browseModel),
         message(
           Message.ChangedUrl({
@@ -134,7 +134,7 @@ describe('update', () => {
       'typing search text fires a URL replacement with the new value',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(browseModel),
           message(Message.ChangedSearchInput({ value: 'rex' })),
           Command.expectHas(ReplaceFilters),
@@ -144,7 +144,7 @@ describe('update', () => {
 
     it.effect('clearing the search input fires a replacement', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(browseModel, {
             route: () =>
@@ -168,7 +168,7 @@ describe('update', () => {
       'first click on an Unsorted column produces an Ascending sort',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(browseModel),
           message(Message.ClickedColumnHeader({ column: 'Name' })),
           Command.expectHas(ReplaceFilters),
@@ -182,7 +182,7 @@ describe('update', () => {
       'selecting a diet refocuses the listbox button and replaces the URL',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(browseModel),
           dietMessage(
             DietListboxBlock.Message.Opened({

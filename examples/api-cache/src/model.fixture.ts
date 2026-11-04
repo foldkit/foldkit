@@ -1,11 +1,12 @@
 import { Effect, HashMap, Option } from 'effect'
+import { withBlock } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { test as baseTest } from 'vitest'
 
 import { makeMethods } from '@effect/vitest'
+import { layer as TabsLayer } from '@foldkit/ui/tabs'
 
 import type { Post, PostDetail, Stats } from './data'
-import { AppLayer } from './layer'
 import {
   ApplicationTabsBlock,
   type Model,
@@ -43,51 +44,52 @@ export const fixtureStats: Stats = {
   cacheHitRatePercent: 97,
 }
 
-const models = Effect.gen(function* () {
-  const tabs = yield* ApplicationTabsBlock.get
+const models = withBlock(
+  { block: ApplicationTabsBlock, layer: TabsLayer },
+  tabs => {
+    const loadingPostsModel: Model = {
+      tabs: tabs.init({ id: TABS_ID }).model,
+      activeTab: 'Posts',
+      posts: PostsData.Loading(),
+      postDetailById: HashMap.empty(),
+      maybeSelectedPostId: Option.none(),
+      stats: StatsData.Idle(),
+    }
 
-  const loadingPostsModel: Model = {
-    tabs: tabs.init({ id: TABS_ID }).model,
-    activeTab: 'Posts',
-    posts: PostsData.Loading(),
-    postDetailById: HashMap.empty(),
-    maybeSelectedPostId: Option.none(),
-    stats: StatsData.Idle(),
-  }
-
-  const loadedPostsModel: Model = modifyFields(loadingPostsModel, {
-    posts: () =>
-      PostsData.Success({
-        data: { posts: fixturePosts, fetchedAt: FETCHED_AT },
-      }),
-  })
-
-  const cachedFirstPostModel: Model = modifyFields(loadedPostsModel, {
-    postDetailById: () =>
-      HashMap.set(
-        HashMap.empty(),
-        'first-post',
-        PostDetailData.Success({
-          data: { detail: firstPostDetail, fetchedAt: FETCHED_AT },
+    const loadedPostsModel: Model = modifyFields(loadingPostsModel, {
+      posts: () =>
+        PostsData.Success({
+          data: { posts: fixturePosts, fetchedAt: FETCHED_AT },
         }),
-      ),
-  })
+    })
 
-  const loadedStatsModel: Model = modifyFields(loadedPostsModel, {
-    activeTab: () => 'Stats',
-    stats: () =>
-      StatsData.Success({
-        data: { stats: fixtureStats, fetchedAt: FETCHED_AT },
-      }),
-  })
+    const cachedFirstPostModel: Model = modifyFields(loadedPostsModel, {
+      postDetailById: () =>
+        HashMap.set(
+          HashMap.empty(),
+          'first-post',
+          PostDetailData.Success({
+            data: { detail: firstPostDetail, fetchedAt: FETCHED_AT },
+          }),
+        ),
+    })
 
-  return {
-    loadingPostsModel,
-    loadedPostsModel,
-    cachedFirstPostModel,
-    loadedStatsModel,
-  }
-}).pipe(Effect.scoped, Effect.provide(AppLayer))
+    const loadedStatsModel: Model = modifyFields(loadedPostsModel, {
+      activeTab: () => 'Stats',
+      stats: () =>
+        StatsData.Success({
+          data: { stats: fixtureStats, fetchedAt: FETCHED_AT },
+        }),
+    })
+
+    return {
+      loadingPostsModel,
+      loadedPostsModel,
+      cachedFirstPostModel,
+      loadedStatsModel,
+    }
+  },
+)
 
 export const it = makeMethods(
   baseTest.extend<{ models: Effect.Success<typeof models> }>({

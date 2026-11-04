@@ -14,7 +14,7 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const CounterKey = Symbol('Counter')
-const CounterDefinition = Block.makeDefinition('Counter', {
+export const CounterBlock = Block.make('Counter', {
   key: CounterKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -22,9 +22,9 @@ const CounterDefinition = Block.makeDefinition('Counter', {
   Message,
 })
 
-const { makeFieldsStep } = CounterDefinition
+const { makeFieldsStep } = CounterBlock
 
-const CounterComposition = CounterDefinition.makeComposition()
+const CounterComposition = CounterBlock.makeComposition()
 
 const init = CounterComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
@@ -70,8 +70,7 @@ const view = CounterComposition.makeView((model, h) =>
   ),
 )
 
-export const CounterBlock = CounterDefinition.contract
-export const layer = CounterDefinition.makeBlock(
+export const layer = CounterBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -80,4 +79,4 @@ export const layer = CounterDefinition.makeBlock(
       view,
     }
   }),
-).layer
+)

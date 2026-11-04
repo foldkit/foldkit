@@ -6,7 +6,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { ProductsBlock } from './blocks'
 import { ProductsPageBinding } from './composition'
 import { products } from './data/products'
@@ -40,7 +40,7 @@ describe('update', () => {
   describe('routing', () => {
     it.effect('root URL maps to Products with no search', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(baseModel),
         message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
         model(model => {
@@ -51,7 +51,7 @@ describe('update', () => {
 
     it.effect('/cart maps to Cart', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(baseModel),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/cart') }),
@@ -64,7 +64,7 @@ describe('update', () => {
 
     it.effect('/checkout maps to Checkout', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(baseModel),
         message(
           Message.ChangedUrl({
@@ -79,7 +79,7 @@ describe('update', () => {
 
     it.effect('an unmatched path falls back to NotFound', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(baseModel),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/wat') }),
@@ -100,7 +100,7 @@ describe('update', () => {
       'Products.AddedToCart OutMessage adds the item with quantity one',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(baseModel),
           productsMessage(
             ProductsBlock.Message.ClickedAddToCart({ item: apple }),
@@ -115,7 +115,7 @@ describe('update', () => {
 
     it.effect('adding the same item twice increments its quantity', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(baseModel),
         productsMessage(
           ProductsBlock.Message.ClickedAddToCart({ item: apple }),
@@ -132,7 +132,7 @@ describe('update', () => {
 
     it.effect('ClickedIncrementQuantity raises the quantity for an item', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 1 }],
@@ -147,7 +147,7 @@ describe('update', () => {
 
     it.effect('ClickedDecrementQuantity lowers the quantity for an item', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 2 }],
@@ -164,7 +164,7 @@ describe('update', () => {
       'ClickedDecrementQuantity removes the item when it reaches zero',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(
             modifyFields(baseModel, {
               cart: () => [{ item: apple, quantity: 1 }],
@@ -179,7 +179,7 @@ describe('update', () => {
 
     it.effect('ClickedRemoveCartItem drops the matching cart entry', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(baseModel, {
             cart: () => [
@@ -198,7 +198,7 @@ describe('update', () => {
 
     it.effect('ClickedClearCart empties the cart', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 2 }],
@@ -215,7 +215,7 @@ describe('update', () => {
   describe('checkout', () => {
     it.effect('UpdatedDeliveryInstructions stores the value', () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(baseModel),
         message(
           Message.UpdatedDeliveryInstructions({
@@ -232,7 +232,7 @@ describe('update', () => {
       'ClickedPlaceOrder sets orderPlaced, clears the cart, and resets instructions',
       () =>
         story(
-          ApplicationBlock,
+          { block: ApplicationBlock, layer },
           given(
             modifyFields(baseModel, {
               cart: () => [{ item: apple, quantity: 2 }],

@@ -12,14 +12,14 @@ import {
   ThemeListboxBinding,
   ToolRadioGroupBinding,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const errorDialog = yield* ErrorDialogBinding
     const themeListbox = yield* ThemeListboxBinding
@@ -44,4 +44,8 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(DialogLayer, ListboxLayer, RadioGroupLayer))
+).pipe(
+  Layer.provide(Layer.mergeAll(DialogLayer, ListboxLayer, RadioGroupLayer)),
+)
+
+export { ApplicationBlock } from './definition'

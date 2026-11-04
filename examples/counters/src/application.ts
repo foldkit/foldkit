@@ -1,4 +1,4 @@
-import { Array, Effect, Number, Schema } from 'effect'
+import { Array, Effect, Layer, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -25,7 +25,7 @@ export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
@@ -33,9 +33,9 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const { makeFieldsStep } = ApplicationDefinition
+const { makeFieldsStep } = ApplicationBlock
 
-export const CountersBinding = ApplicationDefinition.makeBinding(
+export const CountersBinding = ApplicationBlock.makeBinding(
   Counter.CounterBlock,
   {
     field: 'counters',
@@ -44,7 +44,7 @@ export const CountersBinding = ApplicationDefinition.makeBinding(
   },
 )
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [CountersBinding],
 })
 type ApplicationViewBuilder = Block.ViewBuilderFor<
@@ -154,7 +154,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const counters = yield* CountersBinding
 
@@ -165,4 +165,4 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       view,
     }
   }),
-).provide(Counter.layer)
+).pipe(Layer.provide(Counter.layer))

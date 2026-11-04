@@ -3,14 +3,14 @@ import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { FetchWeather } from './command'
 import { Message } from './message'
 import { weatherData, weatherModel } from './model.fixture'
 
 it.effect('submitting the weather form fetches weather and shows result', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(weatherModel),
     message(Message.SubmittedWeatherForm()),
     model(model => {
@@ -32,7 +32,7 @@ it.effect('submitting the weather form fetches weather and shows result', () =>
 
 it.effect('failed fetch shows failure state', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(weatherModel),
     message(Message.SubmittedWeatherForm()),
     Command.resolve(

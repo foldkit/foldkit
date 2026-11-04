@@ -33,7 +33,7 @@ export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Url]),
   view: { kind: 'Document' },
@@ -42,12 +42,12 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 
 type ApplicationMessage = Block.ExecutableOf<
-  typeof ApplicationDefinition.contract
+  typeof ApplicationBlock
 >['Message']['Type']
 
-const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+const { makeFieldsStep, makeNoopStep } = ApplicationBlock
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -56,7 +56,7 @@ export const init = ApplicationComposition.makeInit((url: Url) => ({
   model: Model.make({ route: urlToApplicationRoute(url), filterText: '' }),
 }))
 
-const NavigateInternal = ApplicationDefinition.makeCommand('NavigateInternal', {
+const NavigateInternal = ApplicationBlock.makeCommand('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -65,7 +65,7 @@ const NavigateInternal = ApplicationDefinition.makeCommand('NavigateInternal', {
   },
 })
 
-const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
+const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -360,7 +360,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
   }
 })
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

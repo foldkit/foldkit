@@ -2,7 +2,7 @@ import { Option, Schema, String, pipe } from 'effect'
 import type { Block } from 'foldkit'
 
 import { ReplaceFilters } from './command'
-import { ApplicationDefinition, makeCommandsStep } from './definition'
+import { ApplicationBlock, makeCommandsStep } from './definition'
 import { DietListboxBlock, PeriodListboxBlock } from './model'
 import { Diet, Period, routeToBrowseFields } from './route'
 
@@ -19,7 +19,7 @@ const selectionToParam = <A extends string>(
   )
 }
 
-const foldDietListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldDietListboxOutMessage = ApplicationBlock.makeOutMessageFold(
   DietListboxBlock,
   {
     Selected: ({ value }) =>
@@ -35,7 +35,7 @@ const foldDietListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-export const DietListboxBinding = ApplicationDefinition.makeBinding(
+export const DietListboxBinding = ApplicationBlock.makeBinding(
   DietListboxBlock,
   {
     field: 'dietListbox',
@@ -43,7 +43,7 @@ export const DietListboxBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldDietListboxOutMessage })
 
-const foldPeriodListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldPeriodListboxOutMessage = ApplicationBlock.makeOutMessageFold(
   PeriodListboxBlock,
   {
     Selected: ({ value }) =>
@@ -59,7 +59,7 @@ const foldPeriodListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-export const PeriodListboxBinding = ApplicationDefinition.makeBinding(
+export const PeriodListboxBinding = ApplicationBlock.makeBinding(
   PeriodListboxBlock,
   {
     field: 'periodListbox',
@@ -67,7 +67,7 @@ export const PeriodListboxBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldPeriodListboxOutMessage })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [DietListboxBinding, PeriodListboxBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

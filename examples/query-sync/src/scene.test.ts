@@ -5,7 +5,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { DietListboxBlock, type Model, PeriodListboxBlock } from './model'
 import { ApplicationRoute, Sorting } from './route'
 
@@ -59,7 +59,7 @@ const browseModel: Model = {
 describe('view', () => {
   it.effect('the Browse route renders the heading and search input', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(browseModel),
       expect(role('heading', { name: 'Dinosaur Explorer' })).toExist(),
       expect(placeholder('Search by name…')).toExist(),
@@ -68,7 +68,7 @@ describe('view', () => {
 
   it.effect('rendering shows the total dinosaur count', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(browseModel),
       expect(text('Showing', { exact: false })).toContainText('dinosaurs'),
     ),
@@ -76,7 +76,7 @@ describe('view', () => {
 
   it.effect('typing in the search input updates its rendered value', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(browseModel, {
           route: () =>
@@ -94,7 +94,7 @@ describe('view', () => {
 
   it.effect('a search with no matches shows the empty-state copy', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(browseModel, {
           route: () =>
@@ -112,7 +112,7 @@ describe('view', () => {
 
   it.effect('NotFound shows a friendly 404 and a back link', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(browseModel, {
           route: () => ApplicationRoute.NotFound({ path: '/oops' }),

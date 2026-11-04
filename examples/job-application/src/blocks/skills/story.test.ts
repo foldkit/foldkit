@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Array, Option, pipe } from 'effect'
 import { init, messageFrom } from 'foldkit/story'
 import { Command, message, model, story } from 'foldkit/story'
@@ -22,7 +21,7 @@ const entryMessage = (entryId: string, message: SkillsEntryMessage) =>
 describe('skills', () => {
   it.effect('ClickedAddEntry generates an id and appends an entry', () =>
     story(
-      SkillsBlock,
+      { block: SkillsBlock, layer },
       givenInitial,
       message(Message.ClickedAddEntry()),
       Command.expectHas(GenerateSkillsEntryId),
@@ -33,12 +32,12 @@ describe('skills', () => {
       model(model => {
         expect(model.entries).toHaveLength(2)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('an entry OutMessage.Removed removes that entry', () =>
     story(
-      SkillsBlock,
+      { block: SkillsBlock, layer },
       givenInitial,
       entryMessage(
         'skills-entry-1',
@@ -47,12 +46,12 @@ describe('skills', () => {
       model(model => {
         expect(model.entries).toHaveLength(0)
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('a generated entry Message updates the matching entry', () =>
     story(
-      SkillsBlock,
+      { block: SkillsBlock, layer },
       givenInitial,
       entryMessage(
         'skills-entry-1',
@@ -68,6 +67,6 @@ describe('skills', () => {
           ),
         ).toBe('TypeScript')
       }),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 })

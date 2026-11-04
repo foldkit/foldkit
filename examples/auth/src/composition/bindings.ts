@@ -1,14 +1,14 @@
 import { makeVariantBinding } from 'foldkit/variantBinding'
 
 import { LoggedInBlock, LoggedOutBlock } from '../blocks'
-import { ApplicationDefinition } from '../definition'
+import { ApplicationBlock } from '../definition'
 
 export const BaseLoggedInBinding = makeVariantBinding(
-  ApplicationDefinition,
+  ApplicationBlock,
   LoggedInBlock,
 )
 
 export const BaseLoggedOutBinding = makeVariantBinding(
-  ApplicationDefinition,
+  ApplicationBlock,
   LoggedOutBlock,
 )

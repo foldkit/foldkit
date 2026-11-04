@@ -14,7 +14,7 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { PlaceOrder } from './command'
 import { Message } from './message'
 import { EditionRadioGroupBlock } from './model'
@@ -29,7 +29,7 @@ describe('scene', () => {
     'initial view shows the hardcover order and state machine inspector',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         initialize(),
         expect(role('heading', { name: 'Your order' })).toExist(),
         expect(role('radio', { name: 'Hardcover' })).toBeChecked(),
@@ -40,7 +40,7 @@ describe('scene', () => {
 
   it.effect('digital order skips Shipping and can be confirmed', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       initialize(),
       click(role('radio', { name: 'E-book' })),
       resolveFocusOption,
@@ -68,7 +68,7 @@ describe('scene', () => {
 
   it.effect('an applied promo code discounts the order total', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       initialize(),
       click(role('radio', { name: 'E-book' })),
       resolveFocusOption,

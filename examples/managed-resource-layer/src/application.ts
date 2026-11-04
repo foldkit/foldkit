@@ -65,7 +65,7 @@ export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
@@ -74,17 +74,16 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+const { makeFieldsStep, makeNoopStep } = ApplicationBlock
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-const Engine =
-  ApplicationDefinition.makeResource<ComputeEngine>()('ComputeEngine')
+const Engine = ApplicationBlock.makeResource<ComputeEngine>()('ComputeEngine')
 
-export const Compute = ApplicationDefinition.makeCommand('Compute', {
+export const Compute = ApplicationBlock.makeCommand('Compute', {
   args: { value: Schema.Number },
   messages: [Message.SucceededCompute, Message.FailedCompute],
   handler: function* () {
@@ -145,7 +144,7 @@ export const init = ApplicationComposition.makeInit(() => ({
 
 // MANAGED RESOURCE
 
-export const managedResources = ApplicationDefinition.makeManagedResources(
+export const managedResources = ApplicationBlock.makeManagedResources(
   entry => ({
     engine: entry('ManageEngine', Schema.Option(Schema.Null), {
       resource: Engine,
@@ -307,7 +306,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
   }
 })
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

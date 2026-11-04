@@ -1,4 +1,7 @@
-import { Effect } from 'effect'
+import { Effect, Layer } from 'effect'
+import { Query } from 'foldkit/experimental'
+
+import { layer as TabsLayer } from '@foldkit/ui/tabs'
 
 import {
   PostDetailsBinding,
@@ -6,14 +9,14 @@ import {
   StatsBinding,
   TabsBinding,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const tabs = yield* TabsBinding
     const posts = yield* PostsBinding
@@ -29,4 +32,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-)
+).pipe(Layer.provide(Layer.mergeAll(Query.layer, TabsLayer)))
+
+export { ApplicationBlock } from './definition'

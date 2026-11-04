@@ -3,12 +3,12 @@ import { Effect, Layer } from 'effect'
 import { Counter } from './blocks'
 import { EffectsLayer } from './command'
 import { CounterBinding } from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const counter = yield* CounterBinding
 
@@ -20,4 +20,6 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).provide(Layer.mergeAll(Counter.layer))
+).pipe(Layer.provide(Layer.mergeAll(Counter.layer)))
+
+export { ApplicationBlock } from './definition'

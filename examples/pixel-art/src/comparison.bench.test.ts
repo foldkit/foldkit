@@ -12,7 +12,7 @@ import { it } from '@effect/vitest'
 import { createEmptyGrid as createReactGrid } from '../../../comparisons/pixel-art-react/src/grid'
 import { reducer } from '../../../comparisons/pixel-art-react/src/reducer'
 import type { State } from '../../../comparisons/pixel-art-react/src/types'
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { createEmptyGrid as createFoldkitGrid } from './grid'
 import { Message } from './message'
 import type { Model } from './model'
@@ -75,7 +75,7 @@ const pad = (text: string, width: number): string => text.padEnd(width)
 const padR = (text: string, width: number): string => text.padStart(width)
 
 it.effect('benchmark', () =>
-  Story.withBlock(ApplicationBlock, application => {
+  Story.withBlock({ block: ApplicationBlock, layer }, application => {
     const update = application.update
     const applicationInit = application.init({
       maybeSavedCanvas: Option.none(),

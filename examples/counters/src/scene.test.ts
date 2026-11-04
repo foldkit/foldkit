@@ -14,7 +14,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Model as ModelSchema } from './application'
+import { ApplicationBlock, Model as ModelSchema, layer } from './application'
 import { CounterBlock } from './blocks/counter'
 
 const initialModel: ModelSchema = {
@@ -28,7 +28,7 @@ const initialModel: ModelSchema = {
 describe('view', () => {
   it.effect('renders one Counter instance per entry', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       expectAll(all.role('button', { name: '+' })).toHaveCount(2),
       expectAll(all.role('button', { name: '-' })).toHaveCount(2),
@@ -40,7 +40,7 @@ describe('view', () => {
     'clicking + on a Counter dispatches through h.block back to the right instance',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         expectAll(all.text('0')).toHaveCount(2),
         click(nth(all.role('button', { name: '+' }), 1)),
@@ -53,7 +53,7 @@ describe('view', () => {
     'clicking - on a Counter dispatches through h.block and decrements',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given({
           counters: [
             CounterBlock.Instance.make({
@@ -71,7 +71,7 @@ describe('view', () => {
 
   it.effect('Add Counter creates a new instance with a fresh Counter', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       click(role('button', { name: '+ Add Counter' })),
       expectAll(all.role('button', { name: 'Remove' })).toHaveCount(3),
@@ -83,7 +83,7 @@ describe('view', () => {
     'Remove deletes an instance and routes future events to surviving counters',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given({
           counters: [
             CounterBlock.Instance.make({

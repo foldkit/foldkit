@@ -1,10 +1,11 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 import './styles.css'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
   routing: {
     onUrlRequest: ApplicationBlock.Message.ClickedLink,

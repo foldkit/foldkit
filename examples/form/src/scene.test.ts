@@ -15,7 +15,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { SubmitForm, ValidateEmail } from './command'
 import { initialModel } from './init'
 import { Message } from './message'
@@ -23,7 +23,7 @@ import { Message } from './message'
 describe('view', () => {
   it.effect('initial view shows all fields and a disabled submit button', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       expect(role('heading', { name: 'Join Our Waitlist' })).toExist(),
       expect(label('Name')).toExist(),
@@ -37,7 +37,7 @@ describe('view', () => {
     'typing a short name shows a validation error via accessible description',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         type(label('Name'), 'A'),
         expect(label('Name')).toHaveAccessibleDescription(
@@ -50,7 +50,7 @@ describe('view', () => {
     'typing a malformed email surfaces a synchronous validation error',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         type(label('Email'), 'not-an-email'),
         expect(label('Email')).toHaveAccessibleDescription(
@@ -65,7 +65,7 @@ describe('view', () => {
     })
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(modelWithValidName),
       type(label('Email'), 'alice@example.com'),
       expect(label('Email')).toHaveAccessibleDescription('Checking...'),
@@ -83,7 +83,7 @@ describe('view', () => {
 
   it.effect('async validation can flag an email as taken', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       type(label('Email'), 'test@example.com'),
       Command.expectExact(ValidateEmail),
@@ -109,7 +109,7 @@ describe('view', () => {
     })
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(validModel),
       expect(role('button', { name: 'Join Waitlist' })).toBeEnabled(),
     )
@@ -124,7 +124,7 @@ describe('view', () => {
       })
 
       return scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(validModel),
         click(role('button', { name: 'Join Waitlist' })),
         expect(role('button', { name: 'Joining...' })).toBeDisabled(),
@@ -146,7 +146,7 @@ describe('view', () => {
     })
 
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(validModel),
       submit(role('form')),
       Command.expectExact(SubmitForm),
@@ -159,7 +159,7 @@ describe('view', () => {
     'submitting an invalid form (e.g. via Enter key) is rejected by update',
     () =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
         submit(role('form')),

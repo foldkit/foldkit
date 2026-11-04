@@ -1,4 +1,4 @@
-import { Array, Effect, String } from 'effect'
+import { Array, String } from 'effect'
 import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe } from 'vitest'
 
@@ -20,7 +20,7 @@ const loaded = (searchInput: string) =>
 describe('people', () => {
   it.effect('lists every person', () =>
     scene(
-      PeopleBlock,
+      { block: PeopleBlock, layer },
       given(loaded('')),
       expect(role('heading', { name: 'People' })).toExist(),
       expect(text('Alice Johnson')).toExist(),
@@ -28,17 +28,17 @@ describe('people', () => {
       expect(text('Carol Davis')).toExist(),
       expect(text('David Wilson')).toExist(),
       expect(text('Eva Brown')).toExist(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 
   it.effect('a search filters matches by name or role', () =>
     scene(
-      PeopleBlock,
+      { block: PeopleBlock, layer },
       given(loaded('designer')),
       expect(text('Alice Johnson')).toExist(),
       expect(text('Eva Brown')).toExist(),
       expect(text('Bob Smith')).toBeAbsent(),
       expect(text('2 results', { exact: false })).toExist(),
-    ).pipe(Effect.provide(layer)),
+    ),
   )
 })

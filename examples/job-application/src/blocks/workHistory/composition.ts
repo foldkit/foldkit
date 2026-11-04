@@ -1,17 +1,17 @@
 import { Array } from 'effect'
 
 import { WorkHistoryEntryBlock } from './blocks/workHistoryEntry'
-import { WorkHistoryDefinition, makeFieldsStep } from './definition'
+import { WorkHistoryBlock, makeFieldsStep } from './definition'
 
 const foldEntryOutMessage = (entryId: string) =>
-  WorkHistoryDefinition.makeOutMessageFold(WorkHistoryEntryBlock, {
+  WorkHistoryBlock.makeOutMessageFold(WorkHistoryEntryBlock, {
     Removed: () =>
       makeFieldsStep(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
       })),
   })
 
-export const EntriesBinding = WorkHistoryDefinition.makeBinding(
+export const EntriesBinding = WorkHistoryBlock.makeBinding(
   WorkHistoryEntryBlock,
   {
     field: 'entries',
@@ -27,6 +27,6 @@ export const EntriesBinding = WorkHistoryDefinition.makeBinding(
   fold: (entryId, outMessage) => foldEntryOutMessage(entryId)(outMessage),
 })
 
-export const WorkHistoryComposition = WorkHistoryDefinition.makeComposition({
+export const WorkHistoryComposition = WorkHistoryBlock.makeComposition({
   bindings: [EntriesBinding],
 })

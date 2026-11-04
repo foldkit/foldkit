@@ -14,7 +14,7 @@ import { describe } from 'vitest'
 
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { Submission } from './model'
 import { it } from './model.fixture'
 import { StepTabsBlock } from './navigationComponents'
@@ -29,7 +29,7 @@ describe('view', () => {
     'initial view shows the page heading and the PersonalInfo step',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         expect(role('heading', { name: 'Apply to Work on Foldkit' })).toExist(),
         expect(role('heading', { name: 'Personal Info' })).toExist(),
@@ -39,7 +39,7 @@ describe('view', () => {
 
   it.effect('the step nav lists every step', ({ models: { initialModel } }) =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       inside(
         role('tablist', { name: 'Application steps' }),
@@ -58,7 +58,7 @@ describe('view', () => {
     'tabs can jump directly to any step',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         inside(
           role('tablist', { name: 'Application steps' }),
@@ -73,7 +73,7 @@ describe('view', () => {
     'clicking Next advances to the Work History step',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         click(role('button', { name: 'Next →' })),
         expect(role('heading', { name: 'Work History' })).toExist(),
@@ -85,7 +85,7 @@ describe('view', () => {
     'Previous on a later step returns to the prior step',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(initialModel, { currentStep: () => 'Education' })),
         expect(role('heading', { name: 'Education' })).toExist(),
         click(role('button', { name: '← Previous' })),
@@ -97,7 +97,7 @@ describe('view', () => {
     'the first step does not render a Previous button',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         expect(role('button', { name: '← Previous' })).toBeAbsent(),
       ),
@@ -107,7 +107,7 @@ describe('view', () => {
     'the Review step exposes a Submit button and hides Next',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(initialModel, { currentStep: () => 'Review' })),
         expect(role('button', { name: 'Submit Application' })).toExist(),
         expect(role('button', { name: 'Next →' })).toBeAbsent(),
@@ -118,7 +118,7 @@ describe('view', () => {
     'clicking Submit on an incomplete application shows a blocking notice',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(modifyFields(initialModel, { currentStep: () => 'Review' })),
         expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
         expect(
@@ -139,7 +139,7 @@ describe('view', () => {
     'a pending validation notice names the incomplete step',
     ({ models: { completeModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(completeModel, {
             currentStep: () => 'Review',
@@ -158,7 +158,7 @@ describe('view', () => {
     'submit blocking notices include multiple incomplete required steps',
     ({ models: { completeModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(completeModel, {
             currentStep: () => 'Review',
@@ -185,7 +185,7 @@ describe('view', () => {
     'a submitting application shows a Submitting button',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(initialModel, {
             currentStep: () => 'Review',
@@ -200,7 +200,7 @@ describe('view', () => {
     'a successful submission swaps the form for a success panel',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(initialModel, {
             currentStep: () => 'Review',
@@ -215,7 +215,7 @@ describe('view', () => {
     'a failed submission shows the error and a Try Again control',
     ({ models: { initialModel } }) =>
       scene(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(initialModel, {
             currentStep: () => 'Review',

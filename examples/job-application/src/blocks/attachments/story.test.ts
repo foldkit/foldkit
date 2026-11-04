@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { init, messageFrom } from 'foldkit/story'
 import { model, story } from 'foldkit/story'
 import { describe, expect } from 'vitest'
@@ -24,7 +23,7 @@ describe('attachments', () => {
     })
 
     return story(
-      AttachmentsBlock,
+      { block: AttachmentsBlock, layer },
       init(),
       resumeDropMessage(
         FileDropBlock.Message.DroppedFiles({ files: [resume] }),
@@ -32,7 +31,7 @@ describe('attachments', () => {
       model(model => {
         expect(model.maybeResume._tag).toBe('Some')
       }),
-    ).pipe(Effect.provide(layer))
+    )
   })
 
   it.effect('dropped additional files are appended to the list', () => {
@@ -41,7 +40,7 @@ describe('attachments', () => {
     })
 
     return story(
-      AttachmentsBlock,
+      { block: AttachmentsBlock, layer },
       init(),
       additionalFilesDropMessage(
         FileDropBlock.Message.DroppedFiles({ files: [file] }),
@@ -49,6 +48,6 @@ describe('attachments', () => {
       model(model => {
         expect(model.additionalFiles).toHaveLength(1)
       }),
-    ).pipe(Effect.provide(layer))
+    )
   })
 })

@@ -6,7 +6,7 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { SliderBlock } from '@foldkit/ui/slider'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { GenerateAmbientParticle } from './command'
 import {
   DELTA_SECONDS_CAP,
@@ -67,7 +67,7 @@ const makeParticle = (id: number, x: number, y: number): Particle => ({
 describe('update', () => {
   it.effect('ClickedTogglePlay flips isRunning', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.ClickedTogglePlay()),
       model(model => {
@@ -82,7 +82,7 @@ describe('update', () => {
 
   it.effect('ClickedReset clears particles and the mouse position', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(
         modifyFields(initialModel, {
           particles: () => [
@@ -102,7 +102,7 @@ describe('update', () => {
 
   it.effect('MovedPointer sets maybeMousePosition to the new coordinates', () =>
     story(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       message(Message.MovedPointer({ x: 250, y: 175 })),
       model(model => {
@@ -118,7 +118,7 @@ describe('update', () => {
     'CompletedGenerateAmbientParticle appends a particle and increments nextId',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(
           Message.CompletedGenerateAmbientParticle({
@@ -149,7 +149,7 @@ describe('update', () => {
       const startingParticleCount = startingParticles.length
 
       return story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(
           modifyFields(initialModel, {
             particles: () => startingParticles,
@@ -198,7 +198,7 @@ describe('update', () => {
     'CompletedGenerateBurstParticle appends a particle with its initial angle preserved',
     () =>
       story(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         given(initialModel),
         message(
           Message.CompletedGenerateBurstParticle({

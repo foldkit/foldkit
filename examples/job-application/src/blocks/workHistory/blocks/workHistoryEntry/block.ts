@@ -3,14 +3,13 @@ import { Effect, Layer } from 'effect'
 import { layer as DatePickerLayer } from '@foldkit/ui/datePicker'
 
 import { EndDateBinding, StartDateBinding } from './composition'
-import { WorkHistoryEntryDefinition } from './definition'
+import { WorkHistoryEntryBlock } from './definition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const WorkHistoryEntryBlock = WorkHistoryEntryDefinition.contract
-export const layer = WorkHistoryEntryDefinition.makeBlock(
+export const layer = WorkHistoryEntryBlock.makeLayer(
   Effect.gen(function* () {
     const startDatePicker = yield* StartDateBinding
     const endDatePicker = yield* EndDateBinding
@@ -23,4 +22,6 @@ export const layer = WorkHistoryEntryDefinition.makeBlock(
       view,
     }
   }),
-).provide(Layer.mergeAll(DatePickerLayer)).layer
+).pipe(Layer.provide(Layer.mergeAll(DatePickerLayer)))
+
+export { WorkHistoryEntryBlock } from './definition'

@@ -3,16 +3,17 @@ import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { test as baseTest, describe } from 'vitest'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { Flags } from './flags'
 import { createEmptyGrid } from './grid'
 import { Message } from './message'
 import type { Model } from './model'
 
 const GRID_SIZE = 16
+const applicationSubject = { block: ApplicationBlock, layer }
 
 const makeBenchmark = (
-  application: Story.TestBlock<typeof ApplicationBlock>,
+  application: Story.TestBlock<typeof applicationSubject>,
 ) => {
   const { update } = application
   const initialModel = modifyFields(
@@ -51,7 +52,7 @@ const test = baseTest.extend<{ application: ReturnType<typeof makeBenchmark> }>(
   {
     application: async ({}, use) =>
       Effect.runPromise(
-        Story.withBlock(ApplicationBlock, application =>
+        Story.withBlock(applicationSubject, application =>
           Effect.promise(() => use(makeBenchmark(application))),
         ),
       ),

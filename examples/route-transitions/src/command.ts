@@ -2,14 +2,14 @@ import { Layer } from 'effect'
 import { Duration, Effect, Schema } from 'effect'
 import { load, pushUrl } from 'foldkit/navigation'
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { Message } from './message'
 
 const CATALOG_LATENCY = Duration.millis(600)
 const PAINTING_LATENCY = Duration.millis(400)
 const SAVE_LATENCY = Duration.millis(300)
 
-export const NavigateInternal = ApplicationDefinition.makeCommand(
+export const NavigateInternal = ApplicationBlock.makeCommand(
   'NavigateInternal',
   {
     args: { url: Schema.String },
@@ -21,7 +21,7 @@ export const NavigateInternal = ApplicationDefinition.makeCommand(
   },
 )
 
-export const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
+export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -30,7 +30,7 @@ export const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
   },
 })
 
-export const LoadCatalog = ApplicationDefinition.makeCommand('LoadCatalog', {
+export const LoadCatalog = ApplicationBlock.makeCommand('LoadCatalog', {
   messages: [Message.CompletedLoadCatalog],
   handler: function* () {
     return () =>
@@ -40,7 +40,7 @@ export const LoadCatalog = ApplicationDefinition.makeCommand('LoadCatalog', {
   },
 })
 
-export const LoadPainting = ApplicationDefinition.makeCommand('LoadPainting', {
+export const LoadPainting = ApplicationBlock.makeCommand('LoadPainting', {
   args: { paintingId: Schema.Number },
   messages: [Message.CompletedLoadPainting],
   handler: function* () {
@@ -51,7 +51,7 @@ export const LoadPainting = ApplicationDefinition.makeCommand('LoadPainting', {
   },
 })
 
-export const SaveDraft = ApplicationDefinition.makeCommand('SaveDraft', {
+export const SaveDraft = ApplicationBlock.makeCommand('SaveDraft', {
   args: { draft: Schema.String },
   messages: [Message.CompletedSaveDraft],
   handler: function* () {
