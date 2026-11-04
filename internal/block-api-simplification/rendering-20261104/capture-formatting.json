@@ -1,0 +1,23 @@
+{
+  "explanation": "Durable JSON copies follow repository formatting. Original receipt hashes describe the retained raw private captures; raw timing logs and all parsed JSON values are unchanged.",
+  "records": [
+    {
+      "file": "internal/block-api-simplification/rendering-20261104/profiles/diagnostic-receipt.json",
+      "originalSha256": "a1086ea38255a3fd3e2915f7e47b95d6854ec1ef0aafc45246fd8cec0f2da8e2",
+      "formattedSha256": "bab41caaf4abffcdc9bedf856e4832e91815f93fb3a26fa40ef316a3ff91ac35",
+      "jsonValuesUnchanged": true
+    },
+    {
+      "file": "internal/block-api-simplification/rendering-20261104/profiles/summary.json",
+      "originalSha256": "b8fd4d76eb468585c34cfe9a50df052a5a1e0660c9e6eac8348e11e51001b476",
+      "formattedSha256": "3d3e78fc92c505d426411d3412d6d3b2e2e6beede8ccc63fccd612002b877cc8",
+      "jsonValuesUnchanged": true
+    },
+    {
+      "file": "internal/block-api-simplification/rendering-20261104/set-trial/delta-inputs.json",
+      "originalSha256": "feb649ebe949bd8f556f9d60b0f88bcfd71eaa344f2a33e8392123ccaf45e247",
+      "formattedSha256": "58fc56bea3eb055e28483fddef1207200f885cb290f568b45b3dfdce51bf3200",
+      "jsonValuesUnchanged": true
+    }
+  ]
+}

@@ -1,0 +1,241 @@
+{
+  "status": "complete",
+  "kind": "single-pair-browser-CPU-diagnostic",
+  "notOfficialTiming": true,
+  "createdAt": "2026-11-04T08:27:50.596622+00:00",
+  "candidateCommit": "a79a7f77182e06aa5a4115a016a44d4826a8b9f0",
+  "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "summaryFile": "profile-summary-final.json",
+  "profileCaptureReceipt": "profiles/receipt.json",
+  "driverAdaptation": {
+    "original": "/private/tmp/foldkit-unified-recovery-20261103/internal/layered-constructor/rendering-final/profile-pair.mjs",
+    "originalSha256": "5780161765909895bc3abb3ae280ed58019b1853da2e31f9e4c0486f98bf7baa",
+    "adapted": "/private/tmp/foldkit-unified-profile-20261104/profile-pair.mjs",
+    "adaptedSha256": "d57acd41c4695610f04073d65505149ed5819354a72f2bda291c0b01ec981e83",
+    "scope": "Receipt field names and optimized slot names only; runner, CDP and workload operations unchanged",
+    "diffSha256": "058abf24fe5592ec4d475411d2de3acc0cc476d6be3d5293a233f04d8c7b2d9d"
+  },
+  "captureBodyByteIdenticalToPriorPortableDriver": true,
+  "lifetime": {
+    "startedAt": "2026-11-04T08:18:36.554Z",
+    "completedAt": "2026-11-04T08:19:03.634Z",
+    "runsPerSlot": 1,
+    "order": ["foldkit-main-optimised", "foldkit-preview-optimised"],
+    "browserAndServerClosed": true,
+    "port": 38379,
+    "portNoLongerListening": true,
+    "mapBuildsBeganAfterBrowserClosed": true,
+    "mapBuildsCompletedAt": "2026-11-04T08:20:12.701578+00:00"
+  },
+  "coverage": [
+    {
+      "slot": "foldkit-main-optimised",
+      "profileSamples": 86459,
+      "profileDurationMs": 13379.752,
+      "sampledDurationMs": 13379.531,
+      "appBundleNodes": 499,
+      "mappedAppBundleNodes": 498,
+      "sampledBundleSelfMs": 52.78,
+      "mappedBundleSelfMs": 49.393,
+      "mappedShareOfBundleSelfPercent": 93.58,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      }
+    },
+    {
+      "slot": "foldkit-preview-optimised",
+      "profileSamples": 86487,
+      "profileDurationMs": 13377.115,
+      "sampledDurationMs": 13376.891,
+      "appBundleNodes": 655,
+      "mappedAppBundleNodes": 653,
+      "sampledBundleSelfMs": 75.358,
+      "mappedBundleSelfMs": 71.773,
+      "mappedShareOfBundleSelfPercent": 95.24,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      }
+    }
+  ],
+  "sourceVerificationAfterMapBuild": {
+    "candidateFiles": 1796,
+    "mainFiles": 349,
+    "hashesUnchanged": true
+  },
+  "hiddenMaps": [
+    {
+      "branch": "main",
+      "slot": "foldkit-main-optimised",
+      "cwd": "/private/tmp/foldkit-unified-rendering-20261104/main/internal/lustre-benchmark",
+      "args": [
+        "node",
+        "/private/tmp/foldkit-unified-rendering-20261104/main/internal/lustre-benchmark/node_modules/vite/bin/vite.js",
+        "build",
+        "--sourcemap",
+        "hidden",
+        "--outDir",
+        "/private/tmp/foldkit-unified-profile-20261104/maps-main"
+      ],
+      "BUILD_VARIANT": "optimised",
+      "startedAt": "2026-11-04T08:20:11.814988+00:00",
+      "completedAt": "2026-11-04T08:20:12.233134+00:00",
+      "exitCode": 0,
+      "matches": [
+        {
+          "file": "assets/index.optimised-UkWhNSKN.js",
+          "bytes": 306590,
+          "sha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+          "officialSha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+          "exactJavaScriptMatch": true,
+          "map": "/private/tmp/foldkit-unified-profile-20261104/maps-main/assets/index.optimised-UkWhNSKN.js.map",
+          "mapSha256": "9d632a69c71bc066080470498aa7eab3bd60388caf1e242dd07542e65bc8710a"
+        }
+      ]
+    },
+    {
+      "branch": "candidate",
+      "slot": "foldkit-preview-optimised",
+      "cwd": "/private/tmp/foldkit-unified-rendering-20261104/candidate/internal/lustre-benchmark",
+      "args": [
+        "node",
+        "/private/tmp/foldkit-unified-rendering-20261104/candidate/internal/lustre-benchmark/node_modules/vite/bin/vite.js",
+        "build",
+        "--sourcemap",
+        "hidden",
+        "--outDir",
+        "/private/tmp/foldkit-unified-profile-20261104/maps-candidate"
+      ],
+      "BUILD_VARIANT": "optimised",
+      "startedAt": "2026-11-04T08:20:12.236401+00:00",
+      "completedAt": "2026-11-04T08:20:12.701578+00:00",
+      "exitCode": 0,
+      "matches": [
+        {
+          "file": "assets/index.optimised-D5q9XrSK.js",
+          "bytes": 468919,
+          "sha256": "e38ca3aedf3c812362f267f9b43abdf05c337649fd8e5a4aef962d16d801ebdd",
+          "officialSha256": "e38ca3aedf3c812362f267f9b43abdf05c337649fd8e5a4aef962d16d801ebdd",
+          "exactJavaScriptMatch": true,
+          "map": "/private/tmp/foldkit-unified-profile-20261104/maps-candidate/assets/index.optimised-D5q9XrSK.js.map",
+          "mapSha256": "c6d6e6cf5c9e5051baf56da700086131e1d4070b9c03bfc14420a6b021e3e6cb"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "One profile per slot; sampling estimates identify investigation targets, not a precise attribution of the official median difference",
+    "Profiling includes boot and idle waits, unlike reset benchmark timing buckets",
+    "Diagnostic instrumented totals differ substantially from the official batch and are not comparable timing results",
+    "Inclusive times overlap across different ancestor functions/sources and must not be summed",
+    "Profiles cover the main-page CDP target including same-origin app iframe; native/browser work and unprofiled targets are not mapped to application functions",
+    "One fixed-order main-then-candidate pair shares a browser process with separate contexts; there is no repeated or randomized profile batch"
+  ],
+  "frozenInputs": [
+    {
+      "file": "/private/tmp/foldkit-unified-rendering-20261104/final-artifact-receipt.json",
+      "sha256": "64a62dc2fe1c1857e24834ca06fc6b815f599be43dcddd21e637c7c2d3c409e2"
+    },
+    {
+      "file": "/private/tmp/foldkit-unified-rendering-20261104/timing-final-execution.json",
+      "sha256": "2597e5d15a15183afcfd6d2935388fe01f2f472592b5a8397aebc0395e8ccef0"
+    },
+    {
+      "file": "/private/tmp/foldkit-unified-rendering-20261104/timing-analysis.json",
+      "sha256": "b152b93d916f191023a8d6b1a24c308c5d3aa089cab4123848d388c3cd226f90"
+    },
+    {
+      "file": "/private/tmp/foldkit-unified-rendering-20261104/timing-final.log",
+      "sha256": "9fa13844439521ed52d1a58942bd0917cd5c38fa2d4611faee76148ea32cf00d"
+    },
+    {
+      "file": "/private/tmp/foldkit-unified-rendering-20261104/preflight-final/results.json",
+      "sha256": "53c6ef31816c046a01cc49f5ee6cef69c7986e7e8c5c607f3a85e2933853a671"
+    }
+  ],
+  "outputFiles": [
+    {
+      "file": "profile-pair.mjs",
+      "bytes": 5467,
+      "sha256": "d57acd41c4695610f04073d65505149ed5819354a72f2bda291c0b01ec981e83"
+    },
+    {
+      "file": "driver-adaptation.diff",
+      "bytes": 1380,
+      "sha256": "058abf24fe5592ec4d475411d2de3acc0cc476d6be3d5293a233f04d8c7b2d9d"
+    },
+    {
+      "file": "driver-adaptation.json",
+      "bytes": 578,
+      "sha256": "b5618124d1134e2ef3df1624c3d73223204bb1d2540c9cc34a5790f09e9376a1"
+    },
+    {
+      "file": "profiles/receipt.json",
+      "bytes": 2872,
+      "sha256": "2fd46a2a52a96f7bb44edad8f4ec9b0fba45321826e1cdb24c26a130789ce027"
+    },
+    {
+      "file": "profiles/foldkit-main-optimised.cpuprofile",
+      "bytes": 661211,
+      "sha256": "3b621f1505592088ddd671ec0e34b41a9566074f57217166f093f655af42c06a"
+    },
+    {
+      "file": "profiles/foldkit-preview-optimised.cpuprofile",
+      "bytes": 704597,
+      "sha256": "627c93258a07191c83e29b8a888cb752abc58cc3b37075851fd1fe63aa2d199a"
+    },
+    {
+      "file": "map-build-receipt.json",
+      "bytes": 2325,
+      "sha256": "4152349ee3b12c00319563e948d848eff98ae94fe19658123d6b7f54a30ab24d"
+    },
+    {
+      "file": "maps-main.log",
+      "bytes": 1113,
+      "sha256": "201a49b0bc4a8e215c81af1f8b8bf90181cab65618621859d08ae3a33c338cec"
+    },
+    {
+      "file": "maps-candidate.log",
+      "bytes": 1128,
+      "sha256": "a468e6363e6ee119098c268855f0958d20dd7372895cb387bc8bee0004e299a0"
+    },
+    {
+      "file": "summarise-profiles.cjs",
+      "bytes": 11630,
+      "sha256": "ffaa5c3ec576456c25bb63035569893b32171436581328ffb29c241863c0057b"
+    },
+    {
+      "file": "profile-summary-final.json",
+      "bytes": 92016,
+      "sha256": "b8fd4d76eb468585c34cfe9a50df052a5a1e0660c9e6eac8348e11e51001b476"
+    },
+    {
+      "file": "maps-main/assets/index.optimised-UkWhNSKN.js",
+      "bytes": 306590,
+      "sha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded"
+    },
+    {
+      "file": "maps-main/assets/index.optimised-UkWhNSKN.js.map",
+      "bytes": 4496443,
+      "sha256": "9d632a69c71bc066080470498aa7eab3bd60388caf1e242dd07542e65bc8710a"
+    },
+    {
+      "file": "maps-candidate/assets/index.optimised-D5q9XrSK.js",
+      "bytes": 468919,
+      "sha256": "e38ca3aedf3c812362f267f9b43abdf05c337649fd8e5a4aef962d16d801ebdd"
+    },
+    {
+      "file": "maps-candidate/assets/index.optimised-D5q9XrSK.js.map",
+      "bytes": 6085271,
+      "sha256": "c6d6e6cf5c9e5051baf56da700086131e1d4070b9c03bfc14420a6b021e3e6cb"
+    }
+  ],
+  "provisionalSummary": "profile-summary.json is superseded by profile-summary-final.json; only display normalization of dependency paths changed, not captured samples or attribution arithmetic."
+}

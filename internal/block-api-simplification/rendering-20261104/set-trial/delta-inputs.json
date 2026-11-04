@@ -1,0 +1,12 @@
+{
+  "beforeCommit": "a79a7f77182e06aa5a4115a016a44d4826a8b9f0",
+  "afterCommit": "7acdcf3380dccd560da0900aad487eaa3bd826cb",
+  "changedInputs": [
+    "packages/foldkit/dist/runtime/renderer.d.ts.map",
+    "packages/foldkit/dist/runtime/renderer.js",
+    "packages/foldkit/src/runtime/renderer.ts"
+  ],
+  "onlyRuntimeJavaScript": ["packages/foldkit/dist/runtime/renderer.js"],
+  "declarationsUnchanged": true,
+  "pluginUnchanged": true
+}

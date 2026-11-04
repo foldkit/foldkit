@@ -2,7 +2,7 @@
 
 ## Contributor source
 
-[PR 1882](https://github.com/foldkit/foldkit/pull/1882), from `raulescobar-g`, targets main. The reviewed contributor head is `1c30d9092b5c9ac5768bfdc45cdc708413b55cea`, based on `a471adb24d750ab9e8d8312edad53ff6f26d961b`. The preview adapts that exact head's shared-attribute alias idea; it does not cherry-pick or merge the PR. At the 2026-11-04 06:34 UTC check, the PR was open, non-draft and unchanged, with no comments, reviews or review threads. Both GitHub workflows required maintainer action; remote CI was not green.
+[PR 1882](https://github.com/foldkit/foldkit/pull/1882), from `raulescobar-g`, targets main. The reviewed contributor head is `1c30d9092b5c9ac5768bfdc45cdc708413b55cea`, based on `a471adb24d750ab9e8d8312edad53ff6f26d961b`. The preview adapts that exact head's shared-attribute alias idea; it does not cherry-pick or merge the PR. At the 2026-11-04 07:46 UTC check, the PR was open, non-draft and unchanged, with no comments, reviews or review threads. Both GitHub workflows required maintainer action; remote CI was not green.
 
 ## Preview contract
 
@@ -26,10 +26,10 @@ Alternating before/after and after/before isolated checks produced these two-run
 
 The mixed-array control does not improve. These are compiler measurements on a loaded development machine, not rendering benchmarks or a universal structural-comparison guarantee.
 
-The normal shared `pnpm --filter foldkit check:block-type-performance` run also passes. After the final library reader naming, its unchanged Machine workload measures 70054 instantiations and 13402 Types over warmup, below the existing 83700/18800 limits. The new shared-attribute workload measures 114226 instantiations and 29370 Types, below its 114377/29634 limits. All seven original workload files are unchanged. The port does not relax their budgets; separate Workspace instantiation baseline updates belong to the Block API adoption.
+The final normal shared `pnpm --filter foldkit check:block-type-performance` run passes. With the complete dependency graph and the subsequent Runtime leaf-export repair, its unchanged Machine workload measures 81459 instantiations and 18269 Types over warmup, below the existing 83700/18800 limits. The earlier 70054/13402 diagnostic copy omitted parse5 and is not the release result. The new shared-attribute workload measures 114226 instantiations and 29370 Types, below its 114377/29634 limits. All seven original workload files are unchanged. The port does not relax their budgets; separate Workspace instantiation baseline updates belong to the Block API adoption. The Machine result covers the combined candidate and is not attributed solely to this adaptation.
 
 ## Combined verification
 
 The final coherent core/UI build resolves the declaration blockers. Normal Website and Typing Game Source checks pass. The actual complete Website project emits 461 declarations without Source path substitutions or application annotations; Typing Game emits all 69. All 58 complete current snippets pass Source checks and emit 62 declarations including dependencies. Their relocated consumers pass both native TypeScript and TypeScript 6.0.3 with full library checking and only the external consumer as non-declaration Source.
 
-The separate registration-evidence naming fix also passes its permanent contextual Source controls, external emitter and native/TypeScript 6.0.3 relocated accepted/rejected consumers. No original Source participates in those relocated checks. Combined release checks and publication approval remain owned by the release lead.
+The separate registration-evidence naming fix also passes its permanent contextual Source controls, external emitter and native/TypeScript 6.0.3 relocated accepted/rejected consumers. No original Source participates in those relocated checks. The combined mandatory pre-push gate and installed packed consumers pass, including Chromium, Firefox and WebKit. Publication remains held for the user's approval.

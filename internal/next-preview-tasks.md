@@ -15,13 +15,16 @@ repository migration, passed component checks and remaining combined gates.
       in source, emitted and source-free native and TypeScript 6 consumers.
 - [x] Finish whole Website declaration emission and the complete snippet check,
       including source-free native and TypeScript 6 consumers.
-- [ ] Reject every foreign Layer alternative at paired host entry points while
+- [x] Reject every foreign Layer alternative at paired host entry points while
       preserving merged multi-output Layers and exact constructor channels.
-- [ ] Pass the complete source, emitted, relocated, installed-consumer, compiler
+- [x] Pass the complete source, emitted, relocated, installed-consumer, compiler
       and repository pre-push checks on one coherent final snapshot.
-- [ ] Review the exact migration commits, integrate preview head `b36cb7c5ad`
-      and push through the required checks. Keep publication held.
-- [x] Refresh feedback through November 4 at 06:34 UTC. No new review replies;
+- [x] Review the exact migration commits and integrate preview head `b36cb7c5ad`.
+- [x] Record both complete rendering batches and the bounded profile/Set trial.
+      Retain all 64 samples and the unresolved optimized runtime gap.
+- [ ] Review the evidence update and push through the required checks. Keep
+      publication held; compiler acceptance does not accept rendering costs.
+- [x] Refresh feedback through November 4 at 08:40 UTC. No new actionable replies;
       assess the new attribute performance contribution, PR #1882.
 - [x] Complete the focused preview adaptation of PR #1882 and its verification.
 

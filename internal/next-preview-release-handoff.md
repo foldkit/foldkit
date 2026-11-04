@@ -28,8 +28,17 @@ Machine authoring, Query cache/cancellation capabilities and the earlier
 VirtualList additions already shipped in the October 29 snapshot. Their factory
 and construction migrations here are not new versions of those features.
 
-Final installed-consumer, repository pre-push, rendering-benchmark and
-exact-commit review results must be recorded before readiness is claimed.
+The complete repository pre-push gate, all 22 Website browser tests, installed
+packed consumers in Chromium/Firefox/WebKit, original compiler fixtures and
+retained adapted workloads pass. The corrected foundation and migration commits
+pass exact independent review. The final
+[rendering comparison](block-api-simplification/rendering-20261104/README.md)
+records a 10.42% naive and 29.69% optimized execution-time increase against actual
+main, plus 43,981/44,615 gzip bytes. All 64 samples from both batches remain.
+The bounded Mount-validation bookkeeping trial preserves all checks but does not
+establish an optimized speedup. These runtime and bundle costs need review;
+the user's compiler-cost acceptance does not accept them. Final push remains
+pending; the adoption report records integration status.
 Publication and Daybreak source transfer remain held. Only #1662 and #1663
 have an explicit post-main deferral.
 

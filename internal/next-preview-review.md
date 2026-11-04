@@ -12,12 +12,15 @@
       emitted and source-free relocated consumers.
 - [x] Finish whole Website and complete snippet declaration emission, with
       strict source-free native and TypeScript 6 consumers.
-- [ ] Correct the independent review's foreign-Layer union finding and verify
+- [x] Correct the independent review's foreign-Layer union finding and verify
       the exact follow-up across paired hosts.
-- [ ] Verify the final combined source, emitted, relocated and packed consumers,
+- [x] Verify the final combined source, emitted, relocated and packed consumers,
       compiler workloads, runtime tests and browser behavior.
-- [ ] Complete exact-commit review and mandatory pre-push checks, then push.
-- [x] Recheck feedback through November 4 at 06:34 UTC; no new review replies.
+- [x] Complete exact-commit migration review and mandatory pre-push checks.
+- [x] Record final rendering evidence and the bounded diagnostic/Set trial.
+      The optimized gap remains; no speedup or cost acceptance is inferred.
+- [ ] Review final release notes and evidence, then push.
+- [x] Recheck feedback through November 4 at 08:40 UTC; no new actionable replies.
       The focused PR #1882 preview adaptation passes its local verification.
 
 The [adoption report](block-api-simplification/adoption-20261104.md) owns the

@@ -1,0 +1,619 @@
+{
+  "status": "complete",
+  "evidenceKind": "measured",
+  "candidateCommit": "a79a7f77182e06aa5a4115a016a44d4826a8b9f0",
+  "sourceHead": "a79a7f77182e06aa5a4115a016a44d4826a8b9f0",
+  "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "sourceInputsSha256": "7d65967796880c6f333bfaa9bb697e35eb291c3c3df321fb98754eadd7f431cb",
+  "sourceInputCount": 1796,
+  "rounds": 8,
+  "samples": 32,
+  "discardedSamples": 0,
+  "itemCount": 100,
+  "rotation": "Cyclic; each slot appears in each ordinal position twice",
+  "samplesInOrder": [
+    {
+      "round": 1,
+      "slot": "foldkit-main",
+      "totalMs": 530.8
+    },
+    {
+      "round": 1,
+      "slot": "foldkit-preview",
+      "totalMs": 564.1
+    },
+    {
+      "round": 1,
+      "slot": "foldkit-main-optimised",
+      "totalMs": 203.1
+    },
+    {
+      "round": 1,
+      "slot": "foldkit-preview-optimised",
+      "totalMs": 256.8
+    },
+    {
+      "round": 2,
+      "slot": "foldkit-preview",
+      "totalMs": 636.9
+    },
+    {
+      "round": 2,
+      "slot": "foldkit-main-optimised",
+      "totalMs": 199.9
+    },
+    {
+      "round": 2,
+      "slot": "foldkit-preview-optimised",
+      "totalMs": 268.4
+    },
+    {
+      "round": 2,
+      "slot": "foldkit-main",
+      "totalMs": 563.1
+    },
+    {
+      "round": 3,
+      "slot": "foldkit-main-optimised",
+      "totalMs": 201.7
+    },
+    {
+      "round": 3,
+      "slot": "foldkit-preview-optimised",
+      "totalMs": 249.6
+    },
+    {
+      "round": 3,
+      "slot": "foldkit-main",
+      "totalMs": 552.5
+    },
+    {
+      "round": 3,
+      "slot": "foldkit-preview",
+      "totalMs": 627.8
+    },
+    {
+      "round": 4,
+      "slot": "foldkit-preview-optimised",
+      "totalMs": 263.3
+    },
+    {
+      "round": 4,
+      "slot": "foldkit-main",
+      "totalMs": 547
+    },
+    {
+      "round": 4,
+      "slot": "foldkit-preview",
+      "totalMs": 630.4
+    },
+    {
+      "round": 4,
+      "slot": "foldkit-main-optimised",
+      "totalMs": 190.6
+    },
+    {
+      "round": 5,
+      "slot": "foldkit-main",
+      "totalMs": 521.8
+    },
+    {
+      "round": 5,
+      "slot": "foldkit-preview",
+      "totalMs": 648.1
+    },
+    {
+      "round": 5,
+      "slot": "foldkit-main-optimised",
+      "totalMs": 202.9
+    },
+    {
+      "round": 5,
+      "slot": "foldkit-preview-optimised",
+      "totalMs": 269.1
+    },
+    {
+      "round": 6,
+      "slot": "foldkit-preview",
+      "totalMs": 637.5
+    },
+    {
+      "round": 6,
+      "slot": "foldkit-main-optimised",
+      "totalMs": 182.1
+    },
+    {
+      "round": 6,
+      "slot": "foldkit-preview-optimised",
+      "totalMs": 256.7
+    },
+    {
+      "round": 6,
+      "slot": "foldkit-main",
+      "totalMs": 544.3
+    },
+    {
+      "round": 7,
+      "slot": "foldkit-main-optimised",
+      "totalMs": 209.4
+    },
+    {
+      "round": 7,
+      "slot": "foldkit-preview-optimised",
+      "totalMs": 251.4
+    },
+    {
+      "round": 7,
+      "slot": "foldkit-main",
+      "totalMs": 557.1
+    },
+    {
+      "round": 7,
+      "slot": "foldkit-preview",
+      "totalMs": 645.2
+    },
+    {
+      "round": 8,
+      "slot": "foldkit-preview-optimised",
+      "totalMs": 265.8
+    },
+    {
+      "round": 8,
+      "slot": "foldkit-main",
+      "totalMs": 525.1
+    },
+    {
+      "round": 8,
+      "slot": "foldkit-preview",
+      "totalMs": 628.4
+    },
+    {
+      "round": 8,
+      "slot": "foldkit-main-optimised",
+      "totalMs": 201.3
+    }
+  ],
+  "reportedMedians": {
+    "foldkit-main": {
+      "crossOriginIsolated": true,
+      "total": 545.6,
+      "sync": 33,
+      "timeout": 0,
+      "animationFrame": 512.3,
+      "microtask": 0,
+      "promise": 0,
+      "boot": 0,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      },
+      "relativeToFastest": 2.71
+    },
+    "foldkit-preview": {
+      "crossOriginIsolated": true,
+      "total": 633.6,
+      "sync": 40.6,
+      "timeout": 0,
+      "animationFrame": 592.6,
+      "microtask": 0,
+      "promise": 0,
+      "boot": 0,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      },
+      "relativeToFastest": 3.14
+    },
+    "foldkit-main-optimised": {
+      "crossOriginIsolated": true,
+      "total": 201.5,
+      "sync": 40.8,
+      "timeout": 0,
+      "animationFrame": 161,
+      "microtask": 0,
+      "promise": 0,
+      "boot": 0,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      },
+      "relativeToFastest": 1
+    },
+    "foldkit-preview-optimised": {
+      "crossOriginIsolated": true,
+      "total": 260.1,
+      "sync": 47.7,
+      "timeout": 0,
+      "animationFrame": 212.3,
+      "microtask": 0,
+      "promise": 0,
+      "boot": 0,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      },
+      "relativeToFastest": 1.29
+    }
+  },
+  "pairedRounds": [
+    {
+      "round": 1,
+      "naive": {
+        "mainMs": 530.8,
+        "candidateMs": 564.1,
+        "addedMs": 33.3,
+        "percentChange": 6.27
+      },
+      "optimized": {
+        "mainMs": 203.1,
+        "candidateMs": 256.8,
+        "addedMs": 53.7,
+        "percentChange": 26.44
+      }
+    },
+    {
+      "round": 2,
+      "naive": {
+        "mainMs": 563.1,
+        "candidateMs": 636.9,
+        "addedMs": 73.8,
+        "percentChange": 13.11
+      },
+      "optimized": {
+        "mainMs": 199.9,
+        "candidateMs": 268.4,
+        "addedMs": 68.5,
+        "percentChange": 34.27
+      }
+    },
+    {
+      "round": 3,
+      "naive": {
+        "mainMs": 552.5,
+        "candidateMs": 627.8,
+        "addedMs": 75.3,
+        "percentChange": 13.63
+      },
+      "optimized": {
+        "mainMs": 201.7,
+        "candidateMs": 249.6,
+        "addedMs": 47.9,
+        "percentChange": 23.75
+      }
+    },
+    {
+      "round": 4,
+      "naive": {
+        "mainMs": 547,
+        "candidateMs": 630.4,
+        "addedMs": 83.4,
+        "percentChange": 15.25
+      },
+      "optimized": {
+        "mainMs": 190.6,
+        "candidateMs": 263.3,
+        "addedMs": 72.7,
+        "percentChange": 38.14
+      }
+    },
+    {
+      "round": 5,
+      "naive": {
+        "mainMs": 521.8,
+        "candidateMs": 648.1,
+        "addedMs": 126.3,
+        "percentChange": 24.2
+      },
+      "optimized": {
+        "mainMs": 202.9,
+        "candidateMs": 269.1,
+        "addedMs": 66.2,
+        "percentChange": 32.63
+      }
+    },
+    {
+      "round": 6,
+      "naive": {
+        "mainMs": 544.3,
+        "candidateMs": 637.5,
+        "addedMs": 93.2,
+        "percentChange": 17.12
+      },
+      "optimized": {
+        "mainMs": 182.1,
+        "candidateMs": 256.7,
+        "addedMs": 74.6,
+        "percentChange": 40.97
+      }
+    },
+    {
+      "round": 7,
+      "naive": {
+        "mainMs": 557.1,
+        "candidateMs": 645.2,
+        "addedMs": 88.1,
+        "percentChange": 15.81
+      },
+      "optimized": {
+        "mainMs": 209.4,
+        "candidateMs": 251.4,
+        "addedMs": 42,
+        "percentChange": 20.06
+      }
+    },
+    {
+      "round": 8,
+      "naive": {
+        "mainMs": 525.1,
+        "candidateMs": 628.4,
+        "addedMs": 103.3,
+        "percentChange": 19.67
+      },
+      "optimized": {
+        "mainMs": 201.3,
+        "candidateMs": 265.8,
+        "addedMs": 64.5,
+        "percentChange": 32.04
+      }
+    }
+  ],
+  "comparisons": {
+    "naive": {
+      "main": "foldkit-main",
+      "candidate": "foldkit-preview",
+      "totalMs": {
+        "main": 545.6,
+        "candidate": 633.6,
+        "added": 88,
+        "percentChange": 16.13
+      },
+      "syncMs": {
+        "main": 33,
+        "candidate": 40.6
+      },
+      "animationFrameMs": {
+        "main": 512.3,
+        "candidate": 592.6
+      },
+      "rangeMs": {
+        "main": {
+          "minimum": 521.8,
+          "maximum": 563.1
+        },
+        "candidate": {
+          "minimum": 564.1,
+          "maximum": 648.1
+        }
+      },
+      "bundle": {
+        "main": {
+          "files": [
+            {
+              "file": "assets/index-DN9U5aN7.js",
+              "sha256": "d3e37e9f695531f98727dadc3ead8bddd4b0bdb93f52b64029880c3d7a78adb4",
+              "bytes": 304187,
+              "gzipBytes": 99031
+            }
+          ],
+          "rawBytes": 304187,
+          "gzipBytes": 99031
+        },
+        "candidate": {
+          "files": [
+            {
+              "file": "assets/index-DkW0K56Y.js",
+              "sha256": "8843fcd5d59c4e46a75ee31a0194ecb79d73986b1b8062fbd73a3307460c6782",
+              "bytes": 462327,
+              "gzipBytes": 143009
+            }
+          ],
+          "rawBytes": 462327,
+          "gzipBytes": 143009
+        },
+        "addedRawBytes": 158140,
+        "addedGzipBytes": 43978,
+        "gzipPercentChange": 44.41
+      }
+    },
+    "optimized": {
+      "main": "foldkit-main-optimised",
+      "candidate": "foldkit-preview-optimised",
+      "totalMs": {
+        "main": 201.5,
+        "candidate": 260.1,
+        "added": 58.6,
+        "percentChange": 29.08
+      },
+      "syncMs": {
+        "main": 40.8,
+        "candidate": 47.7
+      },
+      "animationFrameMs": {
+        "main": 161,
+        "candidate": 212.3
+      },
+      "rangeMs": {
+        "main": {
+          "minimum": 182.1,
+          "maximum": 209.4
+        },
+        "candidate": {
+          "minimum": 249.6,
+          "maximum": 269.1
+        }
+      },
+      "bundle": {
+        "main": {
+          "files": [
+            {
+              "file": "assets/index.optimised-UkWhNSKN.js",
+              "sha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+              "bytes": 306590,
+              "gzipBytes": 99741
+            }
+          ],
+          "rawBytes": 306590,
+          "gzipBytes": 99741
+        },
+        "candidate": {
+          "files": [
+            {
+              "file": "assets/index.optimised-D5q9XrSK.js",
+              "sha256": "e38ca3aedf3c812362f267f9b43abdf05c337649fd8e5a4aef962d16d801ebdd",
+              "bytes": 468919,
+              "gzipBytes": 144328
+            }
+          ],
+          "rawBytes": 468919,
+          "gzipBytes": 144328
+        },
+        "addedRawBytes": 162329,
+        "addedGzipBytes": 44587,
+        "gzipPercentChange": 44.7
+      }
+    }
+  },
+  "execution": {
+    "status": "complete",
+    "exitCode": 0,
+    "startedAt": "2026-11-04T08:08:33.438Z",
+    "completedAt": "2026-11-04T08:15:45.205Z",
+    "env": {
+      "IMPLS": "foldkit-main,foldkit-preview,foldkit-main-optimised,foldkit-preview-optimised",
+      "RUNS": "8",
+      "HARNESS_DIR": "/private/tmp/foldkit-unified-rendering-20261104/harness",
+      "PORT": "8467"
+    },
+    "driver": "/private/tmp/foldkit-unified-rendering-20261104/driver/run.mjs",
+    "log": "timing-final.log",
+    "logSha256": "9fa13844439521ed52d1a58942bd0917cd5c38fa2d4611faee76148ea32cf00d",
+    "artifactReceiptSha256": "64a62dc2fe1c1857e24834ca06fc6b815f599be43dcddd21e637c7c2d3c409e2",
+    "preflightResultsSha256": "53c6ef31816c046a01cc49f5ee6cef69c7986e7e8c5c607f3a85e2933853a671",
+    "hostBefore": {
+      "file": "host-before.json",
+      "sha256": "75285f4ab2e4000c4deb1ddc09a0a946d53df9181935e6ad5f3a77b9a4c54613"
+    },
+    "hostAfter": {
+      "file": "host-after.json",
+      "sha256": "3a3ed30270473ae10f088a8526bc565e7a48bc2504c93570c9cea794ff3eb7f3"
+    },
+    "timingIsolation": {
+      "buildsAndTestsQuiet": true,
+      "otherBrowserChecksQuiet": true
+    },
+    "benchmarkPortClosedAfterRun": true
+  },
+  "preflights": [
+    {
+      "slot": "foldkit-main",
+      "startedAt": "2026-11-04T08:08:29.963Z",
+      "completedAt": "2026-11-04T08:08:30.823Z",
+      "exitCode": 0,
+      "log": "foldkit-main.log",
+      "logSha256": "a2f6b88eb6db658a84e8655b99870af08261f33deaa6402f1d90762776c35b63",
+      "artifactReceiptSha256": "64a62dc2fe1c1857e24834ca06fc6b815f599be43dcddd21e637c7c2d3c409e2"
+    },
+    {
+      "slot": "foldkit-preview",
+      "startedAt": "2026-11-04T08:08:30.824Z",
+      "completedAt": "2026-11-04T08:08:31.700Z",
+      "exitCode": 0,
+      "log": "foldkit-preview.log",
+      "logSha256": "69bbc339995771314029d95b48cd301b5e7c1cc4a683c04460892b5f6e58f081",
+      "artifactReceiptSha256": "64a62dc2fe1c1857e24834ca06fc6b815f599be43dcddd21e637c7c2d3c409e2"
+    },
+    {
+      "slot": "foldkit-main-optimised",
+      "startedAt": "2026-11-04T08:08:31.700Z",
+      "completedAt": "2026-11-04T08:08:32.561Z",
+      "exitCode": 0,
+      "log": "foldkit-main-optimised.log",
+      "logSha256": "84afb338389aa8897ec1555a33e6f07c75bc1f73aa40f33d9eef652577bb92fe",
+      "artifactReceiptSha256": "64a62dc2fe1c1857e24834ca06fc6b815f599be43dcddd21e637c7c2d3c409e2"
+    },
+    {
+      "slot": "foldkit-preview-optimised",
+      "startedAt": "2026-11-04T08:08:32.561Z",
+      "completedAt": "2026-11-04T08:08:33.437Z",
+      "exitCode": 0,
+      "log": "foldkit-preview-optimised.log",
+      "logSha256": "5640fa9de24b708b6d462cd48dd21209f6919ee08742cc9126b22384eb17f9b9",
+      "artifactReceiptSha256": "64a62dc2fe1c1857e24834ca06fc6b815f599be43dcddd21e637c7c2d3c409e2"
+    }
+  ],
+  "verification": {
+    "artifactReceiptSha256": "64a62dc2fe1c1857e24834ca06fc6b815f599be43dcddd21e637c7c2d3c409e2",
+    "executionReceiptSha256": "2597e5d15a15183afcfd6d2935388fe01f2f472592b5a8397aebc0395e8ccef0",
+    "preflightResultsSha256": "53c6ef31816c046a01cc49f5ee6cef69c7986e7e8c5c607f3a85e2933853a671",
+    "analyserSha256": "2a0490a88a43f79aef465f208a76d44519a1494ee3d01ac423e12b97fbe85c85",
+    "driverReportedHarnessRevision": "unknown",
+    "pinnedHarnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+    "driverFiles": {
+      "run.mjs": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0",
+      "runner.html": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1",
+      "verify.mjs": "8b85d2c9a8695bfcc6d3cb2de4a89cee332550bb08f63381d62d1276528d4cd9",
+      "package.json": "6dc1b06d6b093e9cccb20bee06a93836eee0420ae26803ca2ce4065d82f070d1",
+      "install.mjs": "909827f1f1f4570c90f7e97df9b17515a62be144a08c89752a7bf54f237c4215",
+      "server.mjs": "fb76bfaf628dd7ecd9932c008604b566a0cafaa20fc9f88f8f35bfa3ac980398"
+    },
+    "chromium": "153.0.8010.12",
+    "analysisNode": "v22.22.3",
+    "counterCoverage": "The fifth run per slot is printed as a representative counter row; the driver does not emit all per-run counters or bucket timings",
+    "isolationCoverage": "The hash-verified unchanged driver rejects page errors and loss of cross-origin isolation on every run; quiet timing and port closure are execution-receipt attestations"
+  },
+  "limitations": [
+    "One same-batch Todo comparison, not a general performance or statistical equivalence claim",
+    "Whole candidate versus main; no causal attribution to an individual feature",
+    "Individual totals are rounded to one decimal; reported total medians are checked within 0.1 ms",
+    "Sync and animation-frame bucket medians are independently reported and cannot be summed to reconstruct the total median",
+    "Only representative workload counters are observable; no claim that the analyser checks every run’s counters",
+    "Host metadata is captured before and after, not continuous whole-host profiling",
+    "Matched cached dependencies, not independent fresh installs from branch lockfiles",
+    "The copied harness has no Git metadata; its archive and tracked files are pinned independently",
+    "The main implementation was built in this scratch workspace and reused after source, bundle, and functional validation"
+  ],
+  "artifactSummary": {
+    "sourceInputsSha256": "7d65967796880c6f333bfaa9bb697e35eb291c3c3df321fb98754eadd7f431cb",
+    "sourceInputCount": 1796,
+    "mainSourceCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+    "mainSourceCount": 349,
+    "mainSourceSha256": "c61a90fcff22ad4b0fada3f48c99e119462451862a40bbb27aa1f8aeeea0d658",
+    "mainGitBlobChecksPassed": true,
+    "harnessFilesSha256": "a9e4e465f6ea603414633417baf964bafc5e37de63aeef2e7457f00a949d160a",
+    "harnessFileCount": 162,
+    "artifactChecks": [
+      {
+        "component": "foldkit",
+        "sha256": "09554ea391d0d90d40608e49339630d73581dac2f7f8d3ea88d4cf3a71a21fbf",
+        "fileCount": 1108
+      },
+      {
+        "component": "vite-plugin-foldkit",
+        "sha256": "c00535eb5f36648ddf8f3b62a571d316c57381948ed862bc97aa780c33b159f1",
+        "fileCount": 37
+      }
+    ],
+    "toolchain": {
+      "node": "v22.22.3",
+      "typescript": "7.1.0-beta",
+      "vite": "8.3.5",
+      "effect": "4.1.0",
+      "playwright": "1.63.0"
+    },
+    "adapter": "The identical Todo workload and optimized view use each branch’s existing completion API. Main uses Runtime.makeApplication; the candidate uses Block.make/makeLayer and a Program pair. Each optimized slot renames only its HTML entry to index.html for the unchanged driver.",
+    "fullReceipt": "/private/tmp/foldkit-unified-rendering-20261104/final-artifact-receipt.json",
+    "frozenSourceRoot": "/private/tmp/foldkit-unified-rendering-20261104/candidate"
+  }
+}
