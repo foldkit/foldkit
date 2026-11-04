@@ -205,6 +205,11 @@ const makeFixture = (menu: Story.TestBlock<typeof block>) => {
     operations,
     sceneUpdate,
     sceneView,
+    emptyItemsView: (model: Model, h: Parameters<typeof menu.view>[2]) => {
+      expect(model.maybeActiveItemIndex).toEqual(Option.none())
+
+      return menu.view(model, { ...sceneViewInputs(), items: [] }, h)
+    },
     openModel,
     givenClosed,
     givenOpen,
@@ -2289,6 +2294,127 @@ describe('Menu', () => {
       ])
     })
   })
+
+  describe('empty items', () => {
+    const menu = Scene.role('menu')
+    const hasNoActiveItem = [
+      Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
+      Scene.expect(menu).not.toHaveAttr('aria-activedescendant'),
+      Scene.expectAll(Scene.all.role('menuitem')).toBeEmpty(),
+      Scene.Command.expectNone(),
+    ]
+    const settleOpen = [
+      Scene.Command.resolve(FocusMenuItems, Message.CompletedFocusMenuItems()),
+      Scene.Mount.resolve(
+        PortalMenuBackdrop,
+        Message.CompletedPortalMenuBackdrop(),
+      ),
+      Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+    ]
+
+    for (const key of ['Enter', ' ', 'ArrowDown', 'ArrowUp']) {
+      it(`opens empty items with ${JSON.stringify(key)} without an active item`, ({
+        menu: { init, sceneUpdate, emptyItemsView },
+      }) =>
+        Scene.scene(
+          { update: sceneUpdate, view: emptyItemsView },
+          Scene.given(init({ id: 'test' }).model),
+          Scene.keydown(button, key),
+          ...settleOpen,
+          ...hasNoActiveItem,
+          Scene.keydown(menu, 'Enter'),
+          Scene.expectIgnored(),
+          ...hasNoActiveItem,
+          Scene.keydown(menu, ' '),
+          Scene.expectIgnored(),
+          ...hasNoActiveItem,
+          Scene.keydown(menu, 'Escape'),
+          Scene.Command.resolve(
+            FocusMenuButton,
+            Message.CompletedFocusMenuButton(),
+          ),
+          Scene.expect(button).toHaveAttr('aria-expanded', 'false'),
+          Scene.expect(menu).not.toExist(),
+          Scene.Mount.expectEnded(PortalMenuBackdrop),
+          Scene.Mount.expectEnded(AnchorMenu),
+          Scene.Command.expectNone(),
+        ))
+    }
+
+    for (const target of [button, menu]) {
+      for (const key of [
+        'ArrowDown',
+        'ArrowUp',
+        'Home',
+        'End',
+        'PageUp',
+        'PageDown',
+      ]) {
+        it(`ignores ${key} on ${target === button ? 'the trigger' : 'the menu'} with empty items`, ({
+          menu: { init, sceneUpdate, emptyItemsView },
+        }) =>
+          Scene.scene(
+            { update: sceneUpdate, view: emptyItemsView },
+            Scene.given(init({ id: 'test' }).model),
+            Scene.click(button),
+            ...settleOpen,
+            ...hasNoActiveItem,
+            Scene.keydown(target, key),
+            Scene.expectIgnored(),
+            ...hasNoActiveItem,
+            Scene.keydown(target, key),
+            Scene.expectIgnored(),
+            ...hasNoActiveItem,
+            Scene.keydown(target, 'Enter'),
+            Scene.expectIgnored(),
+            ...hasNoActiveItem,
+            Scene.keydown(target, ' '),
+            Scene.expectIgnored(),
+            ...hasNoActiveItem,
+          ))
+      }
+    }
+  })
+
+  it('uses index zero for all-disabled keyboard opening and navigation', ({
+    menu: { init, sceneUpdate, sceneView },
+  }) =>
+    Scene.scene(
+      { update: sceneUpdate, view: sceneView({ isItemDisabled: () => true }) },
+      Scene.given(init({ id: 'test' }).model),
+      Scene.keydown(button, 'ArrowUp'),
+      Scene.Command.resolve(FocusMenuItems, Message.CompletedFocusMenuItems()),
+      Scene.Mount.resolve(
+        PortalMenuBackdrop,
+        Message.CompletedPortalMenuBackdrop(),
+      ),
+      Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+      Scene.expect(Scene.role('menu')).toHaveAttr(
+        'aria-activedescendant',
+        'test-item-0',
+      ),
+      ...['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageUp', 'PageDown'].flatMap(
+        key => [
+          Scene.keydown(Scene.role('menu'), key),
+          Scene.Command.resolve(
+            ScrollMenuItemIntoView,
+            Message.CompletedScrollMenuItemIntoView(),
+          ),
+          Scene.expect(Scene.role('menu')).toHaveAttr(
+            'aria-activedescendant',
+            'test-item-0',
+          ),
+          Scene.expect(Scene.role('menuitem', { name: 'Edit' })).toHaveAttr(
+            'aria-disabled',
+            'true',
+          ),
+          Scene.expect(Scene.role('menuitem', { name: 'Edit' })).toHaveAttr(
+            'data-active',
+            '',
+          ),
+        ],
+      ),
+    ))
 
   describe('button labeling', () => {
     it.effect('no aria-label or aria-labelledby on the button by default', () =>
