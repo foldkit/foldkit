@@ -12,7 +12,7 @@ import {
   symlink,
   writeFile,
 } from 'node:fs/promises'
-import { createServer } from 'node:net'
+import { Socket, connect, createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, win32 } from 'node:path'
 import {
@@ -39,9 +39,17 @@ import {
   runWithNode,
 } from './relayRegistryFixtures.ts'
 
+vi.mock(import('node:net'), async importOriginal => {
+  const net = { ...(await importOriginal()) }
+  vi.spyOn(net, 'connect')
+
+  return { ...net }
+})
+
 const REGISTRY_DIRECTORY_NAME = 'foldkit-devtools-relays'
 const PRIVATE_DIRECTORY_MODE = 0o700
 const SHARED_DIRECTORY_MODE = 0o777
+const RELAY_TOKEN = 'a'.repeat(64)
 // NOTE: This exceeds every PID Linux or macOS can issue, so no live process can
 // carry it.
 const DEAD_PID = 2_147_483_647
@@ -57,7 +65,7 @@ const record = (
   version: 1,
   id: `relay-for-${root}`,
   root,
-  url: `ws://127.0.0.1:${port}/__foldkit/devtools-mcp`,
+  url: `ws://127.0.0.1:${port}/__foldkit/devtools-mcp?token=${RELAY_TOKEN}`,
   pid: process.pid,
   startedAt: 1_000,
   ...overrides,
@@ -130,6 +138,32 @@ describe('discoverRelays', () => {
       }),
     )
 
+  const discoverFromOtherPidNamespace = (projectRoot: string) =>
+    runWithNode(
+      Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem
+        const registryReader = yield* makeUncheckedRegistryReader
+        const namespacedFileSystem: FileSystem.FileSystem = {
+          ...fileSystem,
+          readLink: path => {
+            if (path === '/proc/self/ns/pid') {
+              return Effect.succeed('pid:[2]')
+            }
+
+            if (path === '/proc/self/ns/net') {
+              return Effect.succeed(OTHER_NETWORK_NAMESPACE)
+            }
+
+            return fileSystem.readLink(path)
+          },
+        }
+
+        return yield* discoverRelays(projectRoot, registryReader).pipe(
+          Effect.provideService(FileSystem.FileSystem, namespacedFileSystem),
+        )
+      }),
+    )
+
   const refusalLine = () =>
     `[foldkit-devtools-mcp] ignoring the relay registry at ${registryDirectory}: it is readable or writable by other users`
 
@@ -188,6 +222,7 @@ describe('discoverRelays', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks()
+    vi.mocked(connect).mockReset()
 
     if (previousRegistryDirectory === undefined) {
       delete process.env[RELAY_DIRECTORY_VARIABLE]
@@ -276,6 +311,60 @@ describe('discoverRelays', () => {
     expect(urls(await discover('/workspace/app'))).toStrictEqual([
       record('/workspace/app', 4100).url,
     ])
+  })
+
+  it.each([
+    `ws://remote.invalid:5173/__foldkit/devtools-mcp?token=${RELAY_TOKEN}`,
+    `wss://127.0.0.1:5173/__foldkit/devtools-mcp?token=${RELAY_TOKEN}`,
+    `ws://user@127.0.0.1:5173/__foldkit/devtools-mcp?token=${RELAY_TOKEN}`,
+    'ws://127.0.0.1:5173/__foldkit/devtools-mcp?token=short',
+    `ws://127.0.0.1:5173/other?token=${RELAY_TOKEN}`,
+    'not a URL',
+  ])(
+    'ignores an unsafe relay record without probing or removing it: %s',
+    async url => {
+      const probe = vi.mocked(connect).mockImplementation(() => {
+        const socket = new Socket()
+        queueMicrotask(() => socket.emit('connect'))
+
+        return socket
+      })
+      await publish(
+        'unsafe',
+        record('/workspace/app', 5173, {
+          url,
+          pid: DEAD_PID,
+          namespaces: {
+            pid: OTHER_PID_NAMESPACE,
+            network: OTHER_NETWORK_NAMESPACE,
+          },
+        }),
+      )
+
+      const discovered = await discoverFromOtherPidNamespace('/workspace/app')
+
+      expect(probe).not.toHaveBeenCalled()
+      expect(discovered).toStrictEqual([])
+      expect(await readdir(registryDirectory)).toEqual(['unsafe.json'])
+    },
+  )
+
+  it('probes a valid authenticated relay from another PID namespace', async () => {
+    const port = await acceptConnections()
+    const elsewhere = record('/workspace/app', port, {
+      pid: DEAD_PID,
+      namespaces: {
+        pid: OTHER_PID_NAMESPACE,
+        network: OTHER_NETWORK_NAMESPACE,
+      },
+    })
+    await publish('elsewhere', elsewhere)
+
+    expect(await discoverFromOtherPidNamespace('/workspace/app')).toEqual([
+      elsewhere,
+    ])
+    expect(connect).toHaveBeenCalledWith({ host: '127.0.0.1', port })
+    expect(await readdir(registryDirectory)).toEqual(['elsewhere.json'])
   })
 
   it('finds a relay published for a project inside the root', async () => {
