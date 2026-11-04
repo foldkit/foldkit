@@ -368,6 +368,13 @@ type UpdateContext<Config> = [Channel<Config, 'Context'>] extends [never]
       : readonly []
     : readonly []
 
+type InputFacts<Config> =
+  Config extends Readonly<{ InMessage: infer In extends AnySchema }>
+    ? Readonly<{
+        inMessage: Readonly<{ Schema: In; context: InMessageContext<Config> }>
+      }>
+    : unknown
+
 /** Flat stable facts whose values never depend on an implementation type. */
 export type DeclaredFacts<
   MessageSchema extends AnySchema,
@@ -397,11 +404,7 @@ export type DeclaredFacts<
   decodingServices: MessageSchema['DecodingServices'] | Decoding<Config>
   encodingServices: MessageSchema['EncodingServices'] | Encoding<Config>
 }> &
-  (Config extends Readonly<{ InMessage: infer In extends AnySchema }>
-    ? Readonly<{
-        inMessage: Readonly<{ Schema: In; context: InMessageContext<Config> }>
-      }>
-    : unknown)
+  InputFacts<Config>
 
 /**
  * An independent public Block contract. A Binding reads its implementation
@@ -722,7 +725,8 @@ export type ActualFacts<
   ? RuntimeClosedFacts<
       SourceOf<Body>['owner'],
       NativeFacts<MessageSchema, Body, Config>
-    >
+    > &
+      InputFacts<Config>
   : never
 
 type IsErased<Value> = [Value] extends [never]

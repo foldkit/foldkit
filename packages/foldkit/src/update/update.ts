@@ -183,7 +183,7 @@ export type GraphModelOf<FunctionValue> = FunctionValue extends (
 type GraphModelOfValue<Value> = GraphCapabilityModel<Value>
 
 /** @internal Carries child registration evidence without adding Effect services. */
-export declare const RegistrationEvidenceTypeId: unique symbol
+export const RegistrationEvidenceTypeId = Symbol('foldkit/RegistrationEvidence')
 
 type NoRegistrationEvidence = Readonly<{
   [RegistrationEvidenceTypeId]?: never

@@ -885,6 +885,12 @@ const checks: ReadonlyArray<
     consumers: ['constructor-union-ownership.consume.ts'],
   },
   {
+    name: 'unified-inmessages',
+    accepted: ['unified-inmessages.accepted.ts'],
+    rejected: ['unified-inmessages.rejected.ts'],
+    consumers: ['unified-inmessages.consume.ts'],
+  },
+  {
     name: 'message-steps',
     accepted: ['message-steps.accepted.ts', 'message-steps.definition.ts'],
     rejected: ['message-steps.rejected.ts'],
@@ -1174,6 +1180,7 @@ const main = async (): Promise<void> => {
     'insert-initialization',
     'generic-service-factory',
     'testing-event-delivery',
+    'unified-inmessages',
   ]) {
     runCompiler(`Checking direct source ${name} contracts`, [
       '-p',

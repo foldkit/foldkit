@@ -597,8 +597,18 @@ export type FactsOf<Value> =
   Value extends Readonly<{ [DescriptorTypeId]: infer Facts }> ? Facts : never
 
 /** Extracts an acquired facade from its passive descriptor. */
-export type ExecutableOf<Value> =
-  Value extends Readonly<{ get: Effect.Effect<infer Output, any, any> }>
+export type ExecutableOf<Value> = Value extends DescriptorContract &
+  Readonly<{
+    [DeclaredBlockReaderTypeId]: Effect.Effect<object, any, any>
+  }>
+  ? Executable<
+      Value['owner'],
+      Value['Model'],
+      Value['Message'],
+      Value['OutMessage'],
+      FactsOf<Value>
+    >
+  : Value extends Readonly<{ get: Effect.Effect<infer Output, any, any> }>
     ? Output
     : Value extends Readonly<{
           construct: () => Effect.Effect<infer Output, any, any>

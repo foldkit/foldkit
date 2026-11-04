@@ -3,9 +3,10 @@ import { Effect, Layer, Predicate, type Schema, type Scope } from 'effect'
 import { defaultViewOf } from '../../../block/defaultView.js'
 import type { BlockView, DocumentView } from '../../../html/index.js'
 import {
+  type DeclaredRootBlock,
   type LayeredContract,
   type LayeredRoot,
-  type DeclaredRootBlock,
+  type SelectedBlockLayerFacts,
   type SelectedLayeredRoot,
   type ValidateSelectedLayer,
   rootConstructionOf,
@@ -15,7 +16,10 @@ import {
   registerTestGraph,
 } from '../../../test/testGraph.js'
 import type {
+  ConstructorEffectOf,
+  DeclaredBlockReaderTypeId,
   DescriptorContract,
+  Executable,
   ExecutableOf,
   FactsOf,
   ImplementationSubscriptionsOf,
@@ -52,10 +56,15 @@ export type TestContract<Block extends BlockSubject> =
         : never
 
 /** @internal An original descriptor acquired through its getter or default Layer. */
-type DescriptorSubject = DescriptorContract &
-  Readonly<{
-    get: Effect.Effect<TestSource, unknown, unknown>
-  }>
+type DescriptorSubject =
+  | (DescriptorContract &
+      Readonly<{
+        get: Effect.Effect<TestSource, unknown, unknown>
+      }>)
+  | (DescriptorContract &
+      Readonly<{
+        [DeclaredBlockReaderTypeId]: Effect.Effect<object, unknown, unknown>
+      }>)
 
 export type BlockSubject =
   | DescriptorSubject
@@ -121,7 +130,17 @@ type TestView<Block extends BlockSubject> =
  * This fixture is for Story and Scene; it is not a child connection handle.
  */
 type TestExecutable<Block extends BlockSubject> =
-  Block extends DescriptorSubject ? ExecutableOf<Block> : TestContract<Block>
+  Block extends BlockLayerSubject<infer Declared, infer SelectedLayer>
+    ? Executable<
+        Declared['owner'],
+        Declared['Model'],
+        Declared['Message'],
+        Declared['OutMessage'],
+        SelectedBlockLayerFacts<Declared, SelectedLayer>
+      >
+    : Block extends DescriptorSubject
+      ? ExecutableOf<Block>
+      : TestContract<Block>
 
 export type TestBlock<Block extends BlockSubject> = Pick<
   TestExecutable<Block>,
@@ -167,17 +186,24 @@ type DefaultLayer<Block> =
     ? GraphLayer
     : never
 
+type TestConstruction<Block> =
+  Block extends Readonly<{ get: Effect.Effect<object, any, any> }>
+    ? Block['get']
+    : ConstructorEffectOf<Block>
+
 /** @internal The construction and callback channels retained by a scoped test. */
 export type TestEffect<Block extends BlockSubject, Output> = Effect.Effect<
   CallbackValue<Output>,
   | Layer.Error<DefaultLayer<Block>>
-  | (Block extends DescriptorSubject ? Effect.Error<Block['get']> : never)
+  | (Block extends DescriptorSubject
+      ? Effect.Error<TestConstruction<Block>>
+      : never)
   | CallbackError<Output>,
   Exclude<
     | Layer.Services<DefaultLayer<Block>>
     | Exclude<
         | (Block extends DescriptorSubject
-            ? Effect.Services<Block['get']>
+            ? Effect.Services<TestConstruction<Block>>
             : never)
         | CallbackRequirements<Output>,
         Layer.Success<DefaultLayer<Block>>
