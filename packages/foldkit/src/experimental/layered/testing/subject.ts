@@ -1,11 +1,24 @@
-import { Predicate, Schema } from 'effect'
+import { Predicate, Schema, type Layer } from 'effect'
 
+import type {
+  DeclaredRootBlock,
+  LayeredRoot,
+  SelectedLayeredRoot,
+  ValidateSelectedLayer,
+} from '../../../runtime/rootBlock.js'
 import type { FactsOf } from '../../constructed/contract.js'
 import type { InitStep } from './initialState.js'
-import type { BlockSubject, TestBlock, ValidateTestBlock } from './withBlock.js'
+import type {
+  BlockLayerSubject,
+  BlockSubject,
+  TestBlock,
+  TestContract,
+  ValidateTestBlock,
+} from './withBlock.js'
 
 /** @internal The exact parent Model used by the test steps. */
-export type TestModel<Block extends BlockSubject> = Block['Model']['Type']
+export type TestModel<Block extends BlockSubject> =
+  TestContract<Block>['Model']['Type']
 
 /** @internal Includes the completed graph's generated child envelopes. */
 export type TestMessage<Block extends BlockSubject> =
@@ -15,24 +28,24 @@ export type TestMessage<Block extends BlockSubject> =
 
 /** @internal Assertions use the declared OutMessage contract. */
 export type TestOutMessage<Block extends BlockSubject> = Schema.Schema.Type<
-  Extract<Block['OutMessage'], Schema.Top>
+  Extract<TestContract<Block>['OutMessage'], Schema.Top>
 >
 
 /** @internal Exact startup arguments, including optional and rest parameters. */
 export type TestInit<Block extends BlockSubject> = InitStep<
-  FactsOf<Block>['initArgs']
+  FactsOf<TestContract<Block>>['initArgs']
 >
 
 /** @internal The separate decoded input accepted by the selected Block. */
 export type TestInMessage<Block extends BlockSubject> =
-  FactsOf<Block> extends Readonly<{
+  FactsOf<TestContract<Block>> extends Readonly<{
     inMessage: Readonly<{ Schema: infer InputSchema extends Schema.Top }>
   }>
     ? InputSchema['Type']
     : never
 
 type InMessageContext<Block extends BlockSubject> =
-  FactsOf<Block> extends Readonly<{
+  FactsOf<TestContract<Block>> extends Readonly<{
     inMessage: Readonly<{
       context: infer Context extends ReadonlyArray<unknown>
     }>
@@ -43,7 +56,7 @@ type InMessageContext<Block extends BlockSubject> =
 /** @internal A direct subject needs no required per-dispatch context. */
 export type DirectSubject<Block extends BlockSubject> = Block &
   ValidateTestBlock<Block> &
-  ([] extends FactsOf<Block>['updateContext']
+  ([] extends FactsOf<TestContract<Block>>['updateContext']
     ? unknown
     : Readonly<{
         'Supply the Block updateContext in the test config': never
@@ -57,15 +70,18 @@ export type DirectSubject<Block extends BlockSubject> = Block &
 /** @internal Each dispatch path requires only its own declared Context tuple. */
 export type TestConfig<Block extends BlockSubject> = Readonly<{
   block: Block & ValidateTestBlock<Block>
+  layer?: never
   update?: never
   view?: never
 }> &
-  ([] extends FactsOf<Block>['updateContext']
+  ([] extends FactsOf<TestContract<Block>>['updateContext']
     ? Readonly<{
-        updateContext?: FactsOf<Block>['updateContext'] & ReadonlyArray<unknown>
+        updateContext?: FactsOf<TestContract<Block>>['updateContext'] &
+          ReadonlyArray<unknown>
       }>
     : Readonly<{
-        updateContext: FactsOf<Block>['updateContext'] & ReadonlyArray<unknown>
+        updateContext: FactsOf<TestContract<Block>>['updateContext'] &
+          ReadonlyArray<unknown>
       }>) &
   ([] extends InMessageContext<Block>
     ? Readonly<{ inMessageContext?: InMessageContext<Block> }>
@@ -73,16 +89,47 @@ export type TestConfig<Block extends BlockSubject> = Readonly<{
 
 /** @internal Erased runtime shape behind the checked subject overloads. */
 export type TestSubject =
-  | BlockSubject
+  | Exclude<
+      BlockSubject,
+      | LayeredRoot
+      | BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>>
+    >
+  | SelectedTestConfig<DeclaredRootBlock, Layer.Layer<any, any, any>>
   | Readonly<{
-      block: BlockSubject
+      block: Exclude<
+        BlockSubject,
+        BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>>
+      >
       updateContext?: ReadonlyArray<unknown>
       inMessageContext?: ReadonlyArray<unknown>
     }>
 
-/** @internal Reads the descriptor without acquiring its graph. */
-export const subjectBlock = (subject: TestSubject): BlockSubject =>
-  'block' in subject ? subject.block : subject
+/** @internal A selected Layer plus the optional per-dispatch test context. */
+export type SelectedTestConfig<
+  Block extends DeclaredRootBlock,
+  LayerValue extends Layer.Layer<any, any, any>,
+> = BlockLayerSubject<Block, LayerValue> &
+  Readonly<{
+    layer: ValidateSelectedLayer<NoInfer<Block>, NoInfer<LayerValue>>
+  }> &
+  Omit<TestConfig<SelectedLayeredRoot<Block, LayerValue>>, 'block' | 'layer'> &
+  Readonly<{
+    viewInputs?: unknown
+    routing?: unknown
+  }>
+
+/** @internal Reads the subject without acquiring its graph. */
+export const subjectBlock = (
+  subject: TestSubject,
+):
+  | BlockSubject
+  | BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>> => {
+  if ('layer' in subject) {
+    return subject
+  }
+
+  return 'block' in subject ? subject.block : subject
+}
 
 /** @internal Adapts explicit dispatch context to the synchronous test runner. */
 export const subjectUpdate = (subject: TestSubject, block: object) => {

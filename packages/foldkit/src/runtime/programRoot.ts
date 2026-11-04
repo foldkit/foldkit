@@ -1,4 +1,4 @@
-import { Array, Effect, Predicate, Schema } from 'effect'
+import { Array, Effect, Layer, Predicate, Schema } from 'effect'
 
 import { assertCompletedBlock } from '../block/assemblyState.js'
 import { type DefaultViewOf, defaultViewOf } from '../block/defaultView.js'
@@ -197,6 +197,7 @@ const blockImplementationFields = new Set([
 
 const commonHostFields = [
   'block',
+  'layer',
   'container',
   'ports',
   'slow',
@@ -321,8 +322,14 @@ export function assertProgramConfig(
     )
   }
 
+  if ('layer' in config) {
+    if (!Layer.isLayer(Reflect.get(config, 'layer'))) {
+      throw new Error('[foldkit] Program root layer must be an Effect Layer.')
+    }
+  }
+
   const construction = rootConstructionOf(block)
-  if (construction === undefined) {
+  if (construction === undefined && !('layer' in config)) {
     if (
       !Schema.isSchema(Reflect.get(block, 'Model')) ||
       !Schema.isSchema(Reflect.get(block, 'Message')) ||
@@ -343,7 +350,7 @@ export function assertProgramConfig(
     throw new Error('[foldkit] A Program root Block cannot declare OutMessage.')
   }
 
-  if (construction === undefined) {
+  if (construction === undefined && !('layer' in config)) {
     const hostHandlers = Reflect.get(block, 'hostHandlers')
     if (
       globalThis.Array.isArray(hostHandlers) &&

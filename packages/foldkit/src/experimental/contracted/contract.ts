@@ -31,6 +31,10 @@ import type {
 } from '../../block/operation.js'
 import type { MakeOutMessageStep } from '../../block/outMessageStep.js'
 import type { Owner } from '../../block/owner.js'
+export type {
+  ImplementationFacts,
+  SelectedImplementationFacts,
+} from './implementationFacts.js'
 import type {
   HandlerOfHostDefinition,
   HandlerRequirements,
@@ -41,17 +45,17 @@ import type { ManagedResource, ServiceOf } from '../../managedResource/index.js'
 import type * as Mount from '../../mount/index.js'
 import type { VNode } from '../../vdom.js'
 import type {
-  AuthoringComposition,
-  BindingParent,
+  AuthoringSourceEvidence,
   Definition as ConstructedDefinition,
   ConstructorBody,
   SourceOf,
   StaticSource,
   Validate,
 } from '../constructed/authoring.js'
-import type { BindingSpecs } from '../constructed/bindingContract.js'
+import type { ValidateBindingParents } from '../constructed/bindingContract.js'
 import type {
   DescriptorTypeId,
+  DeclaredBlockReaderTypeId,
   Executable,
   Graph,
   GuaranteedLayerOutputs,
@@ -333,7 +337,8 @@ type DeclaredView<Config> = [Channel<Config, 'view'>] extends [never]
       }>
     ? ViewContract<ViewInputs<Channel<Config, 'view'>>, Kind>
     : undefined
-type OutValue<SchemaValue> = SchemaValue extends AnySchema
+/** @internal Retains the decoded public OutMessage channel across authoring modules. */
+export type OutValue<SchemaValue> = SchemaValue extends AnySchema
   ? SchemaValue['Type']
   : never
 type PublishedMounts<Config> = Channel<
@@ -341,7 +346,8 @@ type PublishedMounts<Config> = Channel<
   'mounts',
   readonly []
 >
-type PublishedMountValidation<Source, Config> = [
+/** @internal Checks the declared Mount registry for both completion surfaces. */
+export type PublishedMountValidation<Source, Config> = [
   Exclude<
     ElementOf<PublishedMounts<Config>>,
     Source extends Readonly<{
@@ -440,15 +446,20 @@ declare const ContractGraphTypeId: unique symbol
 
 /** @internal Retains ordinary implementation readiness without widening family contracts. */
 export declare const PendingHostHandlersTypeId: unique symbol
-
 /** An implementation capability retaining every independently declared public channel. */
 export interface ContractGraph<
   OwnerValue,
   ModelSchema,
   MessageSchema,
   OutMessageSchema,
-  Facts,
-> extends Graph<OwnerValue, ModelSchema, MessageSchema, OutMessageSchema> {
+  Facts extends PublicFacts,
+> extends Graph<
+  OwnerValue,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  Facts
+> {
   readonly [ContractGraphTypeId]: (facts: Facts) => Facts
 }
 
@@ -556,7 +567,8 @@ type PendingHandlerFacts<Facts extends PublicFacts, Pending> = [
           | HandlerOfHostDefinition<Pending>
       }>
 
-type ValidateHandlerSelection<
+/** @internal Checks selected original host providers against the same declared bounds. */
+export type ValidateHandlerSelection<
   Facts extends PublicFacts,
   Handlers extends Layer.Any,
 > =
@@ -579,12 +591,18 @@ type WithOperations<Body extends ConstructorBody, Config> = Omit<
 > &
   Readonly<{ operations: ContractOperations<Config, Body> }>
 
-type NativeBody<Body extends ConstructorBody, Config> = ([
-  InputUpdateOf<Body>,
-] extends [never]
-  ? Body
-  : Omit<Body, 'inMessageUpdate'> &
-      Pick<Body, 'children' | 'init' | 'update'>) &
+type NativeBodyFields<Body extends ConstructorBody> = Body extends unknown
+  ? Pick<Body, 'children' | 'init' | 'update'> &
+      ([InputUpdateOf<Body>] extends [never]
+        ? Body
+        : Omit<Body, 'inMessageUpdate'>)
+  : never
+
+/** @internal Lowers the original constructor Body for native completion. */
+export type NativeBody<
+  Body extends ConstructorBody,
+  Config,
+> = NativeBodyFields<Body> &
   Readonly<{ operations: ContractOperations<Config, Body> }>
 
 type InputUpdateOf<Body> =
@@ -592,7 +610,11 @@ type InputUpdateOf<Body> =
     ? InputUpdate
     : never
 
-type InMessageUpdateBodyValidation<Body extends ConstructorBody, Config> =
+/** @internal Checks the original InMessage plan for both completion surfaces. */
+export type InMessageUpdateBodyValidation<
+  Body extends ConstructorBody,
+  Config,
+> =
   Config extends Readonly<{ InMessage: AnySchema }>
     ? InputUpdateOf<Body> extends Plan<
         infer InputUpdate,
@@ -625,44 +647,53 @@ type NativeFacts<
   Extract<PlanOutput<Body['update']>, AnyFunction>
 >
 
-type RuntimeClosedFacts<OwnerValue, Facts extends PublicFacts> = Omit<
-  Facts,
-  | 'init'
-  | 'update'
-  | 'operations'
-  | 'effectsLayerRequirements'
-  | 'runtimeServices'
-> &
-  Readonly<{
-    init: ResultContract<
-      Facts['init']['outMessage'],
-      | Exclude<Facts['init']['requirements'], Facts['runtimeServices']>
-      | RuntimeCapability<OwnerValue>
-    >
-    update: ResultContract<
-      Facts['update']['outMessage'],
-      | Exclude<Facts['update']['requirements'], Facts['runtimeServices']>
-      | RuntimeCapability<OwnerValue>
-    >
-    operations: {
-      readonly [Name in keyof Facts['operations']]: OperationContract<
-        Facts['operations'][Name]['args'],
-        Facts['operations'][Name]['outMessage'],
-        | Exclude<
-            Facts['operations'][Name]['requirements'],
-            Facts['runtimeServices']
-          >
-        | RuntimeCapability<OwnerValue>
-      >
-    }
-    effectsLayerRequirements: Exclude<
-      Facts['effectsLayerRequirements'],
-      Facts['runtimeServices']
-    >
-    runtimeServices: RuntimeCapability<OwnerValue>
-  }>
+type ClosedResult<
+  OwnerValue,
+  Result extends ResultContract<unknown, unknown>,
+  RuntimeServices,
+> = ResultContract<
+  Result['outMessage'],
+  | Exclude<Result['requirements'], RuntimeServices>
+  | RuntimeCapability<OwnerValue>
+>
 
-type ActualFacts<
+type RuntimeClosedFacts<OwnerValue, Facts extends PublicFacts> = {
+  readonly [Key in keyof Facts]: Key extends 'init'
+    ? ClosedResult<OwnerValue, Facts['init'], Facts['runtimeServices']>
+    : Key extends 'update'
+      ? ClosedResult<OwnerValue, Facts['update'], Facts['runtimeServices']>
+      : Key extends 'updates'
+        ? {
+            readonly [Tag in keyof Facts['updates']]: ClosedResult<
+              OwnerValue,
+              Facts['updates'][Tag],
+              Facts['runtimeServices']
+            >
+          }
+        : Key extends 'operations'
+          ? {
+              readonly [Name in keyof Facts['operations']]: OperationContract<
+                Facts['operations'][Name]['args'],
+                Facts['operations'][Name]['outMessage'],
+                | Exclude<
+                    Facts['operations'][Name]['requirements'],
+                    Facts['runtimeServices']
+                  >
+                | RuntimeCapability<OwnerValue>
+              >
+            }
+          : Key extends 'effectsLayerRequirements'
+            ? Exclude<
+                Facts['effectsLayerRequirements'],
+                Facts['runtimeServices']
+              >
+            : Key extends 'runtimeServices'
+              ? RuntimeCapability<OwnerValue>
+              : Facts[Key]
+}
+
+/** @internal Projects exact runtime-closed facts for both completion surfaces. */
+export type ActualFacts<
   MessageSchema extends AnySchema,
   Body extends ConstructorBody,
   Config,
@@ -783,17 +814,20 @@ type ContractValidation<
     ]
 
 type KeysOfUnion<Value> = Value extends unknown ? keyof Value : never
-type ValidateConstructorBody<Body> =
+/** @internal Retains the original constructor field restrictions. */
+export type ValidateConstructorBody<Body> =
   'operations' extends KeysOfUnion<Body> ? never : unknown
 
-type HostDefinitions<Body> =
+/** @internal Retains the original pending host definitions. */
+export type HostDefinitions<Body> =
   Body extends Readonly<{
     hostHandlers: infer Definitions extends ReadonlyArray<unknown>
   }>
     ? Definitions[number]
     : never
 
-type WithoutPendingHandlers<Facts extends PublicFacts, Handlers> = Omit<
+/** @internal Removes only the handler requirements supplied by the original host recipe. */
+export type WithoutPendingHandlers<Facts extends PublicFacts, Handlers> = Omit<
   Facts,
   'init' | 'update' | 'operations' | 'hostRequirements' | 'programRequirements'
 > &
@@ -831,7 +865,8 @@ type PendingBounds<Facts extends PublicFacts, Config> = Omit<
     hostRequirements: never
   }>
 
-type HostContractValidation<
+/** @internal Checks original host readiness against the declared facts. */
+export type HostContractValidation<
   Actual extends PublicFacts,
   Declared extends PublicFacts,
   Hosts,
@@ -875,25 +910,27 @@ export interface MakeFamilyBlock<
   <const Body extends ConstructorBody, Error, Requirements>(
     constructor: Effect.Effect<Body, Error, Requirements> &
       ValidateConstructorBody<Body>,
-    ...validation: readonly [
-      ...Validate<
-        NominalId<Id, Config['key']>,
-        ModelSchema,
-        MessageSchema,
-        OutMessageSchema,
-        NativeBody<NoInfer<Body>, Config>,
-        'Equivalent'
-      >,
-      ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
-      ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
-      ...FamilyValidation<
-        MessageSchema,
-        OutMessageSchema,
-        Config,
-        NoInfer<Body>,
-        Owner<NominalId<Id, Config['key']>, true>
-      >,
-    ]
+    ...validation: NoInfer<
+      readonly [
+        ...Validate<
+          NominalId<Id, Config['key']>,
+          ModelSchema,
+          MessageSchema,
+          OutMessageSchema,
+          NativeBody<Body, Config>,
+          'Equivalent'
+        >,
+        ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
+        ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
+        ...FamilyValidation<
+          MessageSchema,
+          OutMessageSchema,
+          Config,
+          NoInfer<Body>,
+          Owner<NominalId<Id, Config['key']>, true>
+        >,
+      ]
+    >
   ): FamilyRecipe<
     Contract<
       Owner<NominalId<Id, Config['key']>, true>,
@@ -931,27 +968,29 @@ export interface MakeBlock<
   <const Body extends ConstructorBody, Error, Requirements>(
     constructor: Effect.Effect<Body, Error, Requirements> &
       ValidateConstructorBody<Body>,
-    ...validation: readonly [
-      ...Validate<
-        NominalId<Id, Config['key']>,
-        ModelSchema,
-        MessageSchema,
-        OutMessageSchema,
-        NativeBody<NoInfer<Body>, Config>
-      >,
-      ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
-      ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
-      ...HostContractValidation<
-        ActualFacts<MessageSchema, NoInfer<Body>, Config>,
-        DeclaredFacts<
+    ...validation: NoInfer<
+      readonly [
+        ...Validate<
+          NominalId<Id, Config['key']>,
+          ModelSchema,
           MessageSchema,
           OutMessageSchema,
-          Config,
-          Owner<NominalId<Id, Config['key']>, true>
+          NativeBody<Body, Config>
         >,
-        HostDefinitions<NoInfer<Body>>
-      >,
-    ]
+        ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
+        ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
+        ...HostContractValidation<
+          ActualFacts<MessageSchema, NoInfer<Body>, Config>,
+          DeclaredFacts<
+            MessageSchema,
+            OutMessageSchema,
+            Config,
+            Owner<NominalId<Id, Config['key']>, true>
+          >,
+          HostDefinitions<NoInfer<Body>>
+        >,
+      ]
+    >
   ): Block<
     Owner<NominalId<Id, Config['key']>, true>,
     ModelSchema,
@@ -1104,7 +1143,11 @@ export interface MakeView<Source extends AuthoringSource, Inputs> {
 export type ContractComposition<
   Source extends AuthoringSource,
   Config extends ContractConfiguration,
-> = Omit<AuthoringComposition<Source>, 'makeInit' | 'makeUpdate' | 'makeView'> &
+> = Omit<
+  Source,
+  'Message' | 'prepareBlock' | 'makeInit' | 'makeUpdate' | 'makeView'
+> &
+  AuthoringSourceEvidence<Source> &
   Readonly<{
     makeInit: MakeInit<Source, InputOf<Config['Init']>>
     makeView: MakeView<Source, ViewInputs<Channel<Config, 'view'>>>
@@ -1147,7 +1190,7 @@ export interface MakeComposition<
       MessageSchema,
       OutMessageSchema,
       readonly [],
-      BindingSpecs<readonly []>
+      readonly []
     >,
     Readonly<{ key: Config['key']; Init: Config['Init'] }> &
       (Config extends Readonly<{ Context: infer Context }>
@@ -1170,9 +1213,12 @@ export interface MakeComposition<
   >(
     graph: Readonly<{
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
-      bindings?: Bindings &
-        ReadonlyArray<BindingParent<Owner<NominalId<Id, Config['key']>, true>>>
+      bindings?: Bindings
     }> &
+      ValidateBindingParents<
+        Bindings,
+        Owner<NominalId<Id, Config['key']>, true>
+      > &
       ValidateChildInitContext<Bindings, OutValue<ChildInitContextSchema>> &
       ValidateChildBindings<
         Bindings,
@@ -1187,7 +1233,7 @@ export interface MakeComposition<
       MessageSchema,
       OutMessageSchema,
       Mounts,
-      BindingSpecs<Bindings>
+      Bindings
     >,
     Readonly<{ key: Config['key']; Init: Config['Init'] }> &
       (Config extends Readonly<{ Context: infer Context }>
@@ -1205,7 +1251,8 @@ export interface MakeComposition<
   >
 }
 
-interface DefinitionFields<
+/** @internal Retains the shared declared identity and reader slots. */
+export interface DefinitionFields<
   Id extends string,
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
@@ -1241,6 +1288,28 @@ interface DefinitionFields<
   | 'makeMountStream'
   | 'makeResource'
 > {
+  readonly [DescriptorTypeId]: DeclaredFacts<
+    MessageSchema,
+    OutMessageSchema,
+    Config,
+    Owner<NominalId<Id, Config['key']>, true>
+  >
+  readonly [DeclaredBlockReaderTypeId]: Effect.Effect<
+    object,
+    never,
+    ContractGraph<
+      Owner<NominalId<Id, Config['key']>, true>,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      DeclaredFacts<
+        MessageSchema,
+        OutMessageSchema,
+        Config,
+        Owner<NominalId<Id, Config['key']>, true>
+      >
+    >
+  >
   readonly contract: Contract<
     Owner<NominalId<Id, Config['key']>, true>,
     ModelSchema,

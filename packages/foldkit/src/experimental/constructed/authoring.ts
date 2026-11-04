@@ -12,15 +12,12 @@ import type {
   ValidateGeneralKeyedSourceWithoutPolicy,
   ValidateStaticBindingConfigWithoutPolicy,
 } from '../../block/bindChild.js'
-import type { AnyBinding } from '../../block/binding.js'
-import type {
-  BindingParent,
-  ExecutableConnection,
-} from '../../block/bindingConnection.js'
+import type { AggregatedChildren, AnyBinding } from '../../block/binding.js'
+import type { ExecutableConnection } from '../../block/bindingConnection.js'
+import type { DispatchSchemaFor } from '../../block/childEnvelope.js'
 import type { AuthoringDefinition } from '../../block/define.js'
 import type {
   Completed,
-  Composition,
   ViewBuilderFor as CoreViewBuilderFor,
   ImplementationRecipeArguments,
   ImplementationRecipeValidation,
@@ -76,7 +73,10 @@ import type {
   PlanSource,
 } from '../hybrid/authoring.js'
 import type { ExecutableImplementation } from '../hybrid/hybrid.js'
-import type { BindingsFromSpecs, DescriptorBinding } from './bindingContract.js'
+import type {
+  DescriptorBinding,
+  ValidateBindingParents,
+} from './bindingContract.js'
 import type {
   CoreContract,
   CoreOutMessageContract,
@@ -86,6 +86,7 @@ import type {
   LayeredDescriptor,
   ProjectFacts,
 } from './contract.js'
+import type { PlanSourceValidation } from './planSourceValidation.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
@@ -97,7 +98,6 @@ export type ConstructionKind = 'Effect' | 'Layer' | 'Provided'
 export type AnyDescriptor = DescriptorContract
 
 interface ProvidedChildContract {
-  readonly get: Effect.Effect<object, any, any>
   readonly layer?: never
   readonly construct?: never
 }
@@ -114,50 +114,24 @@ export interface SourceContracts<MessageSchema, OutMessageSchema> {
   ]
 }
 
-/** @internal Keeps the exact native Composition surface while naming its static graph once. */
+/** @internal Names the exact static graph metadata retained by portable authoring plans. */
 export interface StaticSourceFields<
   OwnerValue extends Owner<string>,
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
-  Bindings extends ReadonlyArray<unknown>,
-> extends Pick<
-  Composition<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    BindingsFromSpecs<Bindings, ModelSchema, MessageSchema, OutMessageSchema>
-  >,
-  'makeInit' | 'makeUpdate' | 'makeView' | 'prepareBlock'
-> {
+  Bindings extends ReadonlyArray<AnyBinding>,
+> extends SourceContracts<MessageSchema, OutMessageSchema> {
   readonly owner: OwnerValue
   readonly Model: ModelSchema
-  readonly Message: Composition<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    BindingsFromSpecs<Bindings, ModelSchema, MessageSchema, OutMessageSchema>
-  >['Message']
-  readonly mounts: Composition<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    BindingsFromSpecs<Bindings, ModelSchema, MessageSchema, OutMessageSchema>
-  >['mounts']
+  readonly Message: DispatchSchemaFor<MessageSchema, Bindings>
+  readonly mounts: readonly [
+    ...Mounts,
+    ...AggregatedChildren<Bindings>['mounts'],
+  ]
   readonly [LocalMountsTypeId]: Mounts
-  readonly bindings: BindingsFromSpecs<
-    Bindings,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema
-  >
+  readonly bindings: Bindings
 }
 
 /** @internal Names the exact static graph retained by portable authoring plans. */
@@ -167,7 +141,7 @@ export type StaticSource<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
-  Bindings extends ReadonlyArray<unknown>,
+  Bindings extends ReadonlyArray<AnyBinding>,
 > = StaticSourceFields<
   OwnerValue,
   ModelSchema,
@@ -176,7 +150,6 @@ export type StaticSource<
   Mounts,
   Bindings
 > &
-  SourceContracts<MessageSchema, OutMessageSchema> &
   (OutMessageSchema extends AnySchema
     ? Readonly<{ OutMessage: OutMessageSchema }>
     : Readonly<{ OutMessage?: never }>)
@@ -237,32 +210,34 @@ export type Validate<
   Body extends ConstructorBody,
   HandlerValidation extends 'Indexed' | 'Equivalent' = 'Indexed',
 > =
-  Equal<
-    CanonicalContracts<Body>,
-    readonly [Owner<Id, true>, ModelSchema, MessageSchema, OutMessageSchema]
-  > extends true
-    ? [MissingConnections<Body>] extends [never]
-      ? [InvalidConnections<Body>] extends [never]
-        ? ImplementationRecipeArguments<
-            ExecutableImplementation<Body>,
-            ImplementationRecipeValidation<
-              SourceOf<Body>['owner'],
-              SourceOf<Body>['Model'],
-              SourceOf<Body>['Message'],
-              SourceOf<Body> extends {
-                readonly OutMessage: infer Out extends AnySchema
-              }
-                ? Out
-                : undefined,
-              SourceOf<Body>[typeof LocalMountsTypeId],
-              SourceOf<Body>['bindings'],
+  PlanSourceValidation<Body> extends readonly []
+    ? Equal<
+        CanonicalContracts<Body>,
+        readonly [Owner<Id, true>, ModelSchema, MessageSchema, OutMessageSchema]
+      > extends true
+      ? [MissingConnections<Body>] extends [never]
+        ? [InvalidConnections<Body>] extends [never]
+          ? ImplementationRecipeArguments<
               ExecutableImplementation<Body>,
-              HandlerValidation
+              ImplementationRecipeValidation<
+                SourceOf<Body>['owner'],
+                SourceOf<Body>['Model'],
+                SourceOf<Body>['Message'],
+                SourceOf<Body> extends {
+                  readonly OutMessage: infer Out extends AnySchema
+                }
+                  ? Out
+                  : undefined,
+                SourceOf<Body>[typeof LocalMountsTypeId],
+                SourceOf<Body>['bindings'],
+                ExecutableImplementation<Body>,
+                HandlerValidation
+              >
             >
-          >
-        : readonly [incompatibleConnections: InvalidConnections<Body>]
-      : readonly [missingConnections: MissingConnections<Body>]
-    : readonly [incompatibleDefinition: never]
+          : readonly [incompatibleConnections: InvalidConnections<Body>]
+        : readonly [missingConnections: MissingConnections<Body>]
+      : readonly [incompatibleDefinition: never]
+    : PlanSourceValidation<Body>
 
 /** Completes existing Composition builders through one explicit constructor. */
 export interface MakeBlock<
@@ -697,21 +672,31 @@ export interface MakeMapBinding<
   >
 }
 
+declare const AuthoringSourceTypeId: unique symbol
+
+/** @internal Retains the exact source for graph-aware portable builders. */
+export interface AuthoringSourceEvidence<Source extends AuthoringSource> {
+  readonly [AuthoringSourceTypeId]: () => Source
+}
+
 /** Static inference is retained; executable dispatch Codecs are available after construction. */
 export type AuthoringComposition<Source extends AuthoringSource> = Omit<
   AuthoringCompositionOf<Source>,
   'Message'
->
+> &
+  AuthoringSourceEvidence<Source>
 
 /** Derives an extracted view helper's builder from the static authoring graph. */
 export type ViewBuilderFor<CompositionValue> =
-  CompositionValue extends Readonly<{
-    makeInit: AnyFunction
-  }>
-    ? CoreViewBuilderFor<
-        CompositionOfPlan<ReturnType<CompositionValue['makeInit']>>
-      >
-    : never
+  CompositionValue extends AuthoringSourceEvidence<infer Source>
+    ? CoreViewBuilderFor<Source>
+    : CompositionValue extends Readonly<{
+          makeInit: AnyFunction
+        }>
+      ? CoreViewBuilderFor<
+          CompositionOfPlan<ReturnType<CompositionValue['makeInit']>>
+        >
+      : never
 
 /** Registers the same static Binding inventory without acquiring child implementations. */
 export interface MakeComposition<
@@ -743,8 +728,9 @@ export interface MakeComposition<
   >(
     graph: Readonly<{
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
-      bindings?: Bindings & ReadonlyArray<BindingParent<Owner<Id, true>>>
+      bindings?: Bindings
     }> &
+      ValidateBindingParents<Bindings, Owner<Id, true>> &
       ValidateChildInitContext<Bindings, ChildContext<ChildInitContextSchema>> &
       ValidateChildBindings<
         Bindings,

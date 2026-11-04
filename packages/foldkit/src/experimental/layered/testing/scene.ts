@@ -1,5 +1,10 @@
-import { type Effect, Predicate } from 'effect'
+import { type Effect, Predicate, type Layer } from 'effect'
 
+import type {
+  DeclaredRootBlock,
+  SelectedBlockLayerFacts,
+  SelectedLayeredRoot,
+} from '../../../runtime/rootBlock.js'
 import * as CoreScene from '../../../test/scene.js'
 import type { Url } from '../../../url/index.js'
 import type { FactsOf, ViewContract } from '../../constructed/contract.js'
@@ -13,10 +18,10 @@ import type {
   TestModel,
   TestOutMessage,
   TestSubject,
+  SelectedTestConfig,
 } from './subject.js'
 import {
   initialStep,
-  subjectBlock,
   subjectInMessageUpdate,
   subjectUpdate,
 } from './subject.js'
@@ -24,6 +29,7 @@ import {
   type BlockSubject,
   type TestBlock,
   type TestEffect,
+  TestContract,
   withBlock,
 } from './withBlock.js'
 
@@ -32,7 +38,7 @@ export { type InitStep, init } from './initialState.js'
 export { type InMessageStep, inMessage } from './inMessage.js'
 
 type ViewInputs<Block extends BlockSubject> =
-  FactsOf<Block>['view'] extends ViewContract<
+  FactsOf<TestContract<Block>>['view'] extends ViewContract<
     infer Inputs,
     'Element' | 'Document'
   >
@@ -42,9 +48,25 @@ type ViewInputs<Block extends BlockSubject> =
     : Readonly<{ 'A Scene requires a Block with a view': never }>
 
 type DefaultView<Block extends BlockSubject> =
-  FactsOf<Block>['view'] extends ViewContract<void, 'Element' | 'Document'>
+  FactsOf<TestContract<Block>>['view'] extends ViewContract<
+    void,
+    'Element' | 'Document'
+  >
     ? unknown
     : Readonly<{ 'Supply required viewInputs in the Scene config': never }>
+
+type SelectedViewInputs<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Layer<any, any, any>,
+> =
+  SelectedBlockLayerFacts<BlockValue, LayerValue>['view'] extends ViewContract<
+    infer Inputs,
+    'Element' | 'Document'
+  >
+    ? [Inputs] extends [void]
+      ? Readonly<{ viewInputs?: never }>
+      : Readonly<{ viewInputs: Inputs }>
+    : Readonly<{ 'A Scene requires a Block with a view': never }>
 
 type InitialState<Block extends BlockSubject> =
   | TestInit<Block>
@@ -75,6 +97,48 @@ export function scene<const Block extends BlockSubject>(
   Effect.Error<TestEffect<Block, void>>,
   Effect.Services<TestEffect<Block, void>>
 >
+export function scene<
+  const Block extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+>(
+  config: Omit<
+    SelectedTestConfig<Block, LayerValue>,
+    'viewInputs' | 'routing'
+  > &
+    SelectedViewInputs<Block, LayerValue> &
+    Readonly<{ routing?: undefined }>,
+  initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
+  ...steps: ReadonlyArray<
+    Step<SelectedLayeredRoot<Block, LayerValue>, undefined>
+  >
+): Effect.Effect<void, Layer.Error<LayerValue>, Layer.Services<LayerValue>>
+export function scene<
+  const Block extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+>(
+  config: Omit<
+    SelectedTestConfig<Block, LayerValue>,
+    'viewInputs' | 'routing'
+  > &
+    SelectedViewInputs<Block, LayerValue> &
+    Readonly<{
+      routing: Readonly<{
+        onUrlChange: (
+          url: Url,
+        ) => TestMessage<SelectedLayeredRoot<Block, LayerValue>>
+        origin?: string
+      }>
+    }>,
+  initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
+  ...steps: ReadonlyArray<
+    Step<
+      SelectedLayeredRoot<Block, LayerValue>,
+      CoreScene.SceneRouting<
+        TestMessage<SelectedLayeredRoot<Block, LayerValue>>
+      >
+    >
+  >
+): Effect.Effect<void, Layer.Error<LayerValue>, Layer.Services<LayerValue>>
 export function scene<const Block extends BlockSubject>(
   config: TestConfig<Block> &
     ViewInputs<NoInfer<Block>> &
@@ -114,7 +178,7 @@ export function scene(
   initial: unknown,
   ...steps: ReadonlyArray<unknown>
 ): Effect.Effect<unknown, unknown, unknown> {
-  return withBlock(subjectBlock(subject), block => {
+  const run = (block: object) => {
     const view = Reflect.get(block, 'view')
 
     if (!Predicate.isFunction(view)) {
@@ -133,7 +197,7 @@ export function scene(
       {
         update: subjectUpdate(subject, block),
         view: render,
-        subscriptions: block.subscriptions,
+        subscriptions: Reflect.get(block, 'subscriptions'),
         ...('block' in subject
           ? { routing: Reflect.get(subject, 'routing') }
           : {}),
@@ -141,5 +205,11 @@ export function scene(
       initialStep(block, initial, CoreScene.__givenInit),
       ...resolveInMessageSteps(steps, subjectInMessageUpdate(subject, block)),
     ])
-  })
+  }
+
+  if ('layer' in subject) {
+    return withBlock(subject, run)
+  }
+
+  return withBlock('block' in subject ? subject.block : subject, run)
 }

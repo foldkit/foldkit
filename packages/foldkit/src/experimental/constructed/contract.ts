@@ -66,6 +66,8 @@ declare const PrivateDeliveryTypeId: unique symbol
 declare const PrivateEncodedDeliveryTypeId: unique symbol
 declare const InternalExecutionTypeId: unique symbol
 declare const GraphTypeId: unique symbol
+/** @internal Supplies constructor typing for a unified Block declaration. */
+export declare const DeclaredBlockReaderTypeId: unique symbol
 declare const ImplementationSubscriptionsTypeId: unique symbol
 
 /** Identifies a Layer-owned executable graph without exposing its Context key. */
@@ -74,12 +76,14 @@ export interface Graph<
   ModelSchema,
   MessageSchema,
   OutMessageSchema,
+  Facts extends PublicFacts = PublicFacts,
 > {
   readonly [GraphTypeId]: readonly [
     OwnerValue,
     ModelSchema,
     MessageSchema,
     OutMessageSchema,
+    Facts,
   ]
 }
 
@@ -110,7 +114,7 @@ export interface LayeredDescriptor<
   readonly Message: LocalMessageSchema
   readonly OutMessage: OutMessageSchema
   readonly layer: Layer.Layer<
-    Graph<OwnerValue, ModelSchema, LocalMessageSchema, OutMessageSchema>,
+    Graph<OwnerValue, ModelSchema, LocalMessageSchema, OutMessageSchema, Facts>,
     ConstructorError,
     Exclude<ConstructorRequirements, Scope.Scope | Layer.CurrentMemoMap>
   >
@@ -123,7 +127,7 @@ export interface LayeredDescriptor<
       Facts
     >,
     never,
-    Graph<OwnerValue, ModelSchema, LocalMessageSchema, OutMessageSchema>
+    Graph<OwnerValue, ModelSchema, LocalMessageSchema, OutMessageSchema, Facts>
   >
   /** Supplies graph-construction Services under the graph Layer's resource lifetime.
    * Returns a new passive descriptor with canonical Schemas and an isolated
@@ -725,25 +729,29 @@ interface DescriptorContracts extends DefinitionContract {
 }
 
 /** @internal Common bound for descriptors with a known construction owner. */
-export type DescriptorContract = DescriptorContracts &
-  (
-    | Readonly<{ construct: () => Effect.Effect<object, any, any> }>
-    | Readonly<{ get: Effect.Effect<object, any, any> }>
-  )
+export type DescriptorContract = DescriptorContracts
 
 /** @internal Preserves construction channels for native, Layer-owned, and provided children. */
 export type ConstructorEffectOf<Value> =
-  Value extends Readonly<{ layer: infer GraphLayer extends Layer.Any }>
-    ? Effect.Effect<
-        object,
-        Layer.Error<GraphLayer>,
-        Layer.Services<GraphLayer> | Scope.Scope | Layer.CurrentMemoMap
-      >
-    : Value extends Readonly<{ construct: () => infer Construction }>
-      ? Construction
-      : Value extends Readonly<{ get: infer Construction }>
+  Value extends Readonly<{
+    [DeclaredBlockReaderTypeId]: infer Construction extends Effect.Effect<
+      object,
+      any,
+      any
+    >
+  }>
+    ? Construction
+    : Value extends Readonly<{ layer: infer GraphLayer extends Layer.Any }>
+      ? Effect.Effect<
+          object,
+          Layer.Error<GraphLayer>,
+          Layer.Services<GraphLayer> | Scope.Scope | Layer.CurrentMemoMap
+        >
+      : Value extends Readonly<{ construct: () => infer Construction }>
         ? Construction
-        : never
+        : Value extends Readonly<{ get: infer Construction }>
+          ? Construction
+          : never
 
 /**
  * Internal shorthand for assignability checks. Factory signatures spell the

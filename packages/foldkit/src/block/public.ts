@@ -120,9 +120,18 @@ export type {
 export { makeNamespace } from './makeNamespace.js'
 export type { Namespace, NamespaceMakeDefinition } from './makeNamespace.js'
 export { makeDefinition } from './makeDefinition.js'
+/** Declares one Block and binds its authoring helpers to that contract. */
+export { makeUnifiedBlock as make } from '../experimental/contracted/unified.js'
+/** @internal Names the unified authoring surface in downstream declarations. */
+export type {
+  UnifiedBlockFields,
+  UnifiedBlock,
+} from '../experimental/contracted/unified.js'
 /** @internal Names inferred input contracts in downstream declarations. */
 export type {
   BaseDefinition,
+  ImplementationFacts,
+  SelectedImplementationFacts,
   DeclaredFacts,
   InMessageDefinition,
   MakeComposition as ContractMakeComposition,
@@ -173,6 +182,7 @@ export type {
 export type {
   CoreContract,
   DescriptorContract,
+  Executable,
   ExecutableOf,
   ExecutableInMessageUpdate,
   ExecutableReturn,
@@ -199,19 +209,22 @@ export type {
 export type { MakeMapBinding as DescriptorMakeMapBinding } from '../experimental/constructed/authoring.js'
 /** @internal Keeps exact portable Binding contracts nameable in downstream declarations. */
 export type {
-  BindingSpecs,
-  BindingsFromSpecs,
+  BindingChildContract,
   DescriptorBinding,
   DescriptorBindingFields,
   DescriptorBindingMember,
   DescriptorBindingPolicyFields,
   DescriptorBindingPolicySelector,
-  DescriptorBindingSpec,
-  FoldOnlyPolicySpec,
   DescriptorBindingWithPolicyFields,
   ParentDescriptorBindingFields,
 } from '../experimental/constructed/bindingContract.js'
-export type { Plan, ViewPlan } from '../experimental/hybrid/authoring.js'
+/** @internal Names the exact child-routing channels retained by portable update plans. */
+export type { CompositionRouteChannels } from './delivery.js'
+export type {
+  CanonicalUpdatePlan,
+  Plan,
+  ViewPlan,
+} from '../experimental/hybrid/authoring.js'
 /** @internal Keeps inferred focused and composed update plans nameable in declarations. */
 export type {
   CompositionMetadata,

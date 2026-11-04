@@ -2,18 +2,26 @@ import {
   Context,
   Effect,
   Layer,
+  Option,
   Predicate,
   Schema,
   SchemaAST,
   Scope,
 } from 'effect'
 
+import type { AnyBlock } from '../../block/definition.js'
 import { copyBlockInMessageUpdate } from '../../block/inMessageUpdate.js'
 import { makeInstanceSchema } from '../../block/instanceSchema.js'
 import { isOperationMessageConstructor } from '../../block/operation.js'
 import { compositionOperationGraphOf } from '../../block/operationGraph.js'
 import { registerRuntimeAcquisition } from '../../block/runtimeCapability.js'
-import { registerRootConstruction } from '../../runtime/rootBlock.js'
+import {
+  registerRootConstruction,
+  rootConstructionOf,
+  selectLayeredRoot,
+  type DeclaredRootBlock,
+  type SelectedLayeredRoot,
+} from '../../runtime/rootBlock.js'
 import {
   type CompileInMessageUpdate,
   constructAuthoredImplementation,
@@ -48,24 +56,28 @@ import {
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
-type Declaration = ContractConfiguration &
+/** @internal Retains the shared exact declaration configuration. */
+export type Declaration = ContractConfiguration &
   Readonly<{
     Model: AnySchema
     Message: AnySchema
     OutMessage?: AnySchema
     ChildInitContext?: AnySchema
   }>
-type OptionalSchema<Config, Key extends PropertyKey> =
+/** @internal Selects the original optional Schema contract. */
+export type OptionalSchema<Config, Key extends PropertyKey> =
   Config extends Readonly<Record<Key, infer Value extends AnySchema>>
     ? Value
     : undefined
 
-type IsUnion<Value, Whole = Value> = Value extends unknown
+/** @internal Retains the declaration key and identifier restrictions. */
+export type IsUnion<Value, Whole = Value> = Value extends unknown
   ? [Whole] extends [Value]
     ? false
     : true
   : never
-type LiteralContractId<Id extends string> = [Id] extends ['']
+/** @internal Retains the original literal identifier restriction. */
+export type LiteralContractId<Id extends string> = [Id] extends ['']
   ? never
   : {} extends Record<Id, unknown>
     ? never
@@ -89,6 +101,14 @@ const handlerSelections = new WeakMap<
   (handlers: Layer.Any, declaredHosts?: ReadonlyArray<unknown>) => object
 >()
 let nextServiceKey = 0
+const declaredBlockReaders = new WeakMap<
+  object,
+  Effect.Effect<AnyBlock, never, any>
+>()
+const declaredExecutableReaders = new WeakMap<
+  object,
+  Effect.Effect<object, never, unknown>
+>()
 
 const snapshotArray = (
   value: unknown,
@@ -412,6 +432,7 @@ export const makeDefinitionRuntime = (
   config: Declaration,
   isOrdinaryDeclaration = true,
   sourceDefinition?: object,
+  publicDescriptor: 'Contract' | 'Block' = 'Contract',
 ): any => {
   config = snapshotDefinitionConfiguration(config)
 
@@ -460,6 +481,12 @@ export const makeDefinitionRuntime = (
   const service = Context.Service<unknown, object>(
     `foldkit/ContractedBlock/${nextServiceKey++}/${id}`,
   )
+  const hostSelectionService = Context.Service<Layer.Any, object>(
+    `foldkit/HostSelection/${nextServiceKey++}/${id}`,
+  )
+  const implementationFactsService = Context.Service<unknown, object>(
+    `foldkit/ImplementationFacts/${nextServiceKey++}/${id}`,
+  )
   const contract = Object.freeze({
     owner: definition.owner,
     Model: config.Model,
@@ -483,6 +510,8 @@ export const makeDefinitionRuntime = (
     () => Effect.serviceOption(service),
   )
 
+  let declaredBlock: object
+
   const complete = (
     constructor: Effect.Effect<any, any, any>,
     provision: (
@@ -490,6 +519,7 @@ export const makeDefinitionRuntime = (
     ) => Layer.Layer<any, any, any> = layer => layer,
     selectedHandlers?: Layer.Any,
     declaredHosts?: ReadonlyArray<unknown>,
+    allowPendingHandlers = false,
   ): any => {
     const layer = provision(
       Layer.fromBuildMemo((memoMap, scope) =>
@@ -500,6 +530,12 @@ export const makeDefinitionRuntime = (
               Effect.provideService(Layer.CurrentMemoMap, memoMap),
               Effect.flatMap(constructorBody =>
                 Effect.gen(function* () {
+                  const maybeLayerHandlers =
+                    yield* Effect.serviceOption(hostSelectionService)
+                  const effectiveHandlers =
+                    selectedHandlers ??
+                    Option.getOrUndefined(maybeLayerHandlers)
+
                   if (Object.hasOwn(constructorBody, 'operations')) {
                     throw new Error(
                       '[foldkit] Contract operations are declared once on the Definition.',
@@ -585,13 +621,16 @@ export const makeDefinitionRuntime = (
                   }
 
                   const implementation =
-                    selectedHandlers === undefined
+                    effectiveHandlers === undefined
                       ? authoredImplementation
-                      : authoredImplementation.provideHandlers(selectedHandlers)
+                      : authoredImplementation.provideHandlers(
+                          effectiveHandlers,
+                        )
 
                   if (
                     isOrdinaryDeclaration &&
-                    implementation.hostHandlers.length !== 0
+                    implementation.hostHandlers.length !== 0 &&
+                    !allowPendingHandlers
                   ) {
                     throw new Error(
                       '[foldkit] A Block implementation must resolve its original host handlers with provideHandlers before acquisition.',
@@ -639,13 +678,17 @@ export const makeDefinitionRuntime = (
                     }),
                   )
                   const executable = wrapExecutable(
-                    contract,
+                    publicDescriptor === 'Block' ? declaredBlock : contract,
                     implementation,
                     true,
                     { graph, isCurrent: () => isActive },
                   )
 
-                  return Context.make(service, executable)
+                  return Context.add(
+                    Context.make(service, executable),
+                    implementationFactsService,
+                    executable,
+                  )
                 }),
               ),
             ),
@@ -663,17 +706,19 @@ export const makeDefinitionRuntime = (
             Layer.provide(Layer.fresh(provision(current)), dependencies),
           selectedHandlers,
           declaredHosts,
+          allowPendingHandlers,
         ),
       provideHandlers: (handlers: Layer.Any) =>
         selectContractHandlers(block, handlers, declaredHosts),
     })
 
     handlerSelections.set(block, (handlers, hosts) =>
-      complete(constructor, provision, handlers, hosts),
+      complete(constructor, provision, handlers, hosts, allowPendingHandlers),
     )
 
     registerRootConstruction(block, {
       layer,
+      readForTesting: block.get,
       read: Effect.map(
         block.get,
         executable => acquisitionOf(executable).block,
@@ -683,8 +728,9 @@ export const makeDefinitionRuntime = (
     return block
   }
 
-  return {
+  const block = {
     ...definition,
+    Instance: contract.Instance,
     InMessage: config.InMessage,
     contract,
     makeComposition: (graph: unknown = {}) => {
@@ -702,5 +748,72 @@ export const makeDefinitionRuntime = (
       })
     },
     makeBlock: complete,
+    makeLayer: (constructor: Effect.Effect<any, any, any>) =>
+      complete(constructor).layer,
+    provideHandlers: (handlers: Layer.Any) => (layer: Layer.Any) => {
+      if (!Layer.isLayer(handlers) || !Layer.isLayer(layer)) {
+        throw new Error(
+          '[foldkit] Block handler selection requires Effect Layers.',
+        )
+      }
+
+      return Layer.provide(layer, Layer.succeed(hostSelectionService, handlers))
+    },
   }
+
+  declaredBlock = block
+
+  registerDeclaredDescriptor(
+    block,
+    () => contract.get,
+    () => Effect.serviceOption(service),
+  )
+  declaredBlockReaders.set(
+    block,
+    Effect.map(contract.get, executable => acquisitionOf(executable).block),
+  )
+  declaredExecutableReaders.set(block, contract.get)
+
+  return block
+}
+
+/** @internal Pairs an original public Block with one selected ordinary Layer. */
+export const selectLayer = <
+  const BlockValue extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+>(
+  block: BlockValue,
+  layer: LayerValue,
+): SelectedLayeredRoot<BlockValue, LayerValue> => {
+  const read = declaredBlockReaders.get(block)
+
+  if (read === undefined) {
+    throw new Error('[foldkit] Layer selection requires an original Block.')
+  }
+
+  return selectLayeredRoot(block, layer, read)
+}
+
+/** @internal Selects the wrapped executable for scoped Story and Scene fixtures. */
+export const selectLayerForTesting = <
+  const BlockValue extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+>(
+  block: BlockValue,
+  layer: LayerValue,
+): SelectedLayeredRoot<BlockValue, LayerValue> => {
+  const selected = selectLayer(block, layer)
+  const read = declaredExecutableReaders.get(block)
+  const construction = rootConstructionOf(selected)
+
+  if (read === undefined || construction === undefined) {
+    throw new Error('[foldkit] Layer selection requires an original Block.')
+  }
+
+  registerRootConstruction(selected, {
+    ...construction,
+    readForTesting: read,
+  })
+
+  return selected
 }

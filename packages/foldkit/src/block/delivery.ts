@@ -520,6 +520,15 @@ type RouteRegistration<Bindings extends ReadonlyArray<AnyBinding>> =
     ResolveCompositionOutput<ReturnType<RouteFold<Bindings>>, Bindings>
   >
 
+/** @internal Exact aggregate result channels contributed by child routing. */
+export type CompositionRouteChannels<
+  Bindings extends ReadonlyArray<AnyBinding>,
+> = readonly [
+  outMessage: RouteOutMessage<Bindings>,
+  requirements: RouteRequirements<Bindings>,
+  registration: RouteRegistration<Bindings>,
+]
+
 type AuthoredRequirements<Output> = Update.RequirementsOfResult<Output>
 
 type AuthoredRegistration<Output> = Update.RegistrationEvidenceOf<Output>

@@ -3,6 +3,7 @@ import { Predicate, type Schema } from 'effect'
 import type { AnyBinding, RequirementsOfBindings } from '../../block/binding.js'
 import type { GeneratedEnvelopeOf } from '../../block/childEnvelope.js'
 import type {
+  DefinedUpdate,
   AuthoredViewInputs,
   OwnedAuthoredView,
   OwnedDocumentView,
@@ -13,7 +14,7 @@ import type {
   AuthoredMessageTag,
   AuthoredUpdateCases,
   CaseOutputChannels,
-  CompositionDefinedUpdate,
+  CompositionRouteChannels,
   ContextualUpdateCases,
   ContextualUpdateCasesFactory,
   ContextualUpdateOutputs,
@@ -89,7 +90,7 @@ export type CompositionOfPlan<Value> =
   Value extends Plan<unknown, PlanKind, infer Composition> ? Composition : never
 
 /** @internal Reads a constrained plan's exact source without repeating inference. */
-export type PlanSource<Value extends Plan<unknown, PlanKind, AuthoringSource>> =
+export type PlanSource<Value extends Plan<unknown, PlanKind, unknown>> =
   ReturnType<Value[typeof PlanTypeId][2]>
 
 /** The runtime helper surface consumed when compiling a passive plan. */
@@ -309,6 +310,41 @@ export interface MakeInitPlan<
   >
 }
 
+type LocalUpdateChannels = readonly [
+  tag: PropertyKey,
+  outMessage: unknown,
+  requirements: unknown,
+  registration: unknown,
+]
+
+type RoutingUpdateChannels = readonly [
+  outMessage: unknown,
+  requirements: unknown,
+  registration: unknown,
+]
+
+/** @internal Names a complete validated update plan through its exact result channels. */
+export interface CanonicalUpdatePlan<
+  Model,
+  Message,
+  Context extends ReadonlyArray<unknown>,
+  LocalRows extends LocalUpdateChannels,
+  Routing extends RoutingUpdateChannels,
+  SourceComposition,
+> extends Plan<
+  DefinedUpdate<
+    Model,
+    Message,
+    Context,
+    LocalRows[1] | Routing[0],
+    LocalRows[2] | Routing[1],
+    LocalRows[3] | Routing[2]
+  > &
+    OperationOutputs<LocalRows>,
+  'Update',
+  SourceComposition
+> {}
+
 type ValidMakeUpdatePlan<
   Model,
   Message,
@@ -354,17 +390,12 @@ type ValidMakeUpdatePlan<
         ...invalidMessageContract: AuthoredMessageArguments<
           AuthoredMessage<Message, Bindings>
         >
-      ): Plan<
-        CompositionDefinedUpdate<
-          Model,
-          DispatchMessage,
-          readonly [],
-          Outputs[keyof Outputs],
-          Bindings,
-          false
-        > &
-          OperationOutputs<CaseOutputChannels<Bindings, Outputs>>,
-        'Update',
+      ): CanonicalUpdatePlan<
+        Model,
+        DispatchMessage,
+        readonly [],
+        CaseOutputChannels<Bindings, Outputs>,
+        CompositionRouteChannels<Bindings>,
         SourceComposition
       >
       readonly withContext: <
@@ -403,22 +434,15 @@ type ValidMakeUpdatePlan<
         ...invalidMessageContract: AuthoredMessageArguments<
           AuthoredMessage<Message, Bindings>
         >
-      ) => Plan<
-        CompositionDefinedUpdate<
-          Model,
-          DispatchMessage,
-          Context,
-          ContextualUpdateOutputs<Model, Message, Bindings, Cases>[keyof Cases],
+      ) => CanonicalUpdatePlan<
+        Model,
+        DispatchMessage,
+        Context,
+        CaseOutputChannels<
           Bindings,
-          false
-        > &
-          OperationOutputs<
-            CaseOutputChannels<
-              Bindings,
-              ContextualUpdateOutputs<Model, Message, Bindings, Cases>
-            >
-          >,
-        'Update',
+          ContextualUpdateOutputs<Model, Message, Bindings, Cases>
+        >,
+        CompositionRouteChannels<Bindings>,
         SourceComposition
       >
     }

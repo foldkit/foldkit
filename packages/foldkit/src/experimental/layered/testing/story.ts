@@ -1,5 +1,9 @@
-import type { Effect } from 'effect'
+import type { Effect, Layer } from 'effect'
 
+import type {
+  DeclaredRootBlock,
+  SelectedLayeredRoot,
+} from '../../../runtime/rootBlock.js'
 import * as CoreStory from '../../../test/story.js'
 import { resolveInMessageSteps } from './inMessage.js'
 import { resolveStorySteps } from './messageFrom.js'
@@ -12,10 +16,10 @@ import type {
   TestModel,
   TestOutMessage,
   TestSubject,
+  SelectedTestConfig,
 } from './subject.js'
 import {
   initialStep,
-  subjectBlock,
   subjectInMessageUpdate,
   subjectUpdate,
 } from './subject.js'
@@ -56,6 +60,18 @@ export function story<const Block extends BlockSubject>(
   Effect.Error<TestEffect<Block, void>>,
   Effect.Services<TestEffect<Block, void>>
 >
+export function story<
+  const Block extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+>(
+  config: SelectedTestConfig<Block, LayerValue>,
+  initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
+  ...steps: ReadonlyArray<Step<SelectedLayeredRoot<Block, LayerValue>>>
+): Effect.Effect<
+  void,
+  Effect.Error<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>,
+  Effect.Services<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>
+>
 export function story<const Block extends BlockSubject>(
   config: TestConfig<Block>,
   initial: InitialState<NoInfer<Block>>,
@@ -70,7 +86,7 @@ export function story(
   initial: unknown,
   ...steps: ReadonlyArray<unknown>
 ): Effect.Effect<unknown, unknown, unknown> {
-  return withBlock(subjectBlock(subject), block => {
+  const run = (block: object) => {
     Reflect.apply(CoreStory.story, undefined, [
       subjectUpdate(subject, block),
       initialStep(block, initial, CoreStory.__givenInit),
@@ -79,5 +95,11 @@ export function story(
         subjectInMessageUpdate(subject, block),
       ),
     ])
-  })
+  }
+
+  if ('layer' in subject) {
+    return withBlock(subject, run)
+  }
+
+  return withBlock('block' in subject ? subject.block : subject, run)
 }

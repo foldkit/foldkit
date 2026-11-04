@@ -1,0 +1,80 @@
+{
+  "movedDeclarations": [
+    {
+      "name": "ValidateLayerHandlerSelection",
+      "overload": 0,
+      "tokens": 100,
+      "sha256": "e8494f500172a7323ef9b4d9d8e2f8dbb02c3e6cf4e5ab667b261beb0d54a31e"
+    },
+    {
+      "name": "MakeLayer",
+      "overload": 0,
+      "tokens": 281,
+      "sha256": "e7b89e721be12b6978c76fff74a6f840fb7cc71be2ef1c78de619e831c5a31fe"
+    },
+    {
+      "name": "LayerWithImplementationFacts",
+      "overload": 0,
+      "tokens": 68,
+      "sha256": "7e5fc7ebb0bf4b1a8a2cb2415bab37cee29c748c91a2ef530e6e47c6b126eccf"
+    },
+    {
+      "name": "ProvideLayerHandlers",
+      "overload": 0,
+      "tokens": 190,
+      "sha256": "e6e85a77ea5d4fc743713893bd965cff0793b07b289726b9a69b8731bcaea4fa"
+    },
+    {
+      "name": "SelectedLayerPending",
+      "overload": 0,
+      "tokens": 33,
+      "sha256": "80cbec130b125f78a49b295e9149aefbefddf40585302f6b1d381c311796d4b8"
+    },
+    {
+      "name": "SelectedLayerOutput",
+      "overload": 0,
+      "tokens": 15,
+      "sha256": "7f8f0b4ce44b5cd8f6c2ad023eaab0b58fa55ce302b980d6fda66511a8ee413b"
+    },
+    {
+      "name": "SelectedLayerOutputForPending",
+      "overload": 0,
+      "tokens": 95,
+      "sha256": "429a4e898087b5321c7b84152f941ff7e13a5ab8dfb4202b650920c30fa03d8e"
+    },
+    {
+      "name": "UnifiedBlockFields",
+      "overload": 0,
+      "tokens": 430,
+      "sha256": "543447a6eb34d19dc4dc20557027629f988addaf143ceb77e7d37173e4e93ecf"
+    },
+    {
+      "name": "UnifiedIncomingMessage",
+      "overload": 0,
+      "tokens": 38,
+      "sha256": "c71d89016164490896d456a2818db2aafd49113d1223ee1d2a775023fe29504f"
+    },
+    {
+      "name": "UnifiedBlock",
+      "overload": 0,
+      "tokens": 139,
+      "sha256": "22d9f0917543f8fd85932cae89ffcafb4a84af8c73baaf9cd653747466f0266c"
+    },
+    {
+      "name": "makeUnifiedBlock",
+      "overload": 0,
+      "tokens": 150,
+      "sha256": "865bf3a772dc0e0cab314254ff11c651a6a70daea2d0a1db5a408732743fc8cd"
+    },
+    {
+      "name": "makeUnifiedBlock",
+      "overload": 1,
+      "tokens": 57,
+      "sha256": "c71483695ec98b27bd5c0e1466ac3f9f02bdb94cffa4cdcb77e5487bf8832613"
+    }
+  ],
+  "sharedHelperBodiesIdenticalIgnoringExportAndTrailingGenericComma": true,
+  "formatterException": "NativeBody exported generic parameters gained a trailing comma",
+  "publicBlockExportNamesIdentical": true,
+  "noUnifiedImportBackEdge": true
+}

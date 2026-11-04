@@ -3,6 +3,7 @@ import {
   Context,
   Data,
   Effect,
+  Layer,
   Option,
   Predicate,
   Schema,
@@ -56,17 +57,21 @@ import {
   assertProgramConfig,
 } from '../../runtime/programRoot.js'
 import {
+  type DeclaredRootBlock,
   type LayeredRoot,
   type RootBlock,
   type RootConstructionError,
   type RootConstructionRequirements,
   type RootContract,
   resolveRootBlock,
+  type SelectedLayeredRoot,
+  type ValidateSelectedLayer,
 } from '../../runtime/rootBlock.js'
 import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'
 import type { Return as UpdateReturn } from '../../update/index.js'
 import { Url, fromString } from '../../url/index.js'
+import { selectLayer } from '../contracted/runtime.js'
 import { type ParsedFragmentModes, parseFragmentModes } from './fragment.js'
 import {
   controlledValueContent,
@@ -1183,6 +1188,20 @@ type ExactServerHostConfig<Config> = Readonly<{
   [Key in Exclude<keyof Config, 'Flags' | 'routing'>]: never
 }>
 
+type ServerLayerSelection<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Layer<any, any, any>,
+> = Readonly<{
+  block: BlockValue
+  layer: LayerValue &
+    ValidateSelectedLayer<NoInfer<BlockValue>, NoInfer<LayerValue>>
+}>
+
+type ServerLayerRoot<
+  BlockValue extends DeclaredRootBlock,
+  LayerValue extends Layer.Layer<any, any, any>,
+> = SelectedLayeredRoot<BlockValue, LayerValue>
+
 /** Server host configuration for a root Block initialized with Flags and a URL.
  * The Block already contains its init, update, view, and handler recipes. */
 export type RoutingApplicationConfigWithFlags<
@@ -1453,6 +1472,112 @@ const validateHydrationRoot = (
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
 export function renderToString<
+  const BlockValue extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+  const Config extends Readonly<{
+    Flags: ServerFlagsSchema
+    routing: object
+  }>,
+>(
+  selection: ServerLayerSelection<BlockValue, LayerValue> &
+    NoInfer<
+      ValidateProgramBlock<
+        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
+        'Document'
+      >
+    >,
+  config: Config &
+    NoInfer<
+      RoutingApplicationConfigWithFlags<
+        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
+        Config['Flags']['Type']
+      >
+    > &
+    NoInfer<ExactServerHostConfig<Config>>,
+  options: RenderUrlFlagsOptions<NoInfer<Config['Flags']['Type']>>,
+): Effect.Effect<
+  RenderedApplication,
+  RenderError | RootConstructionError<ServerLayerRoot<BlockValue, LayerValue>>,
+  RootConstructionRequirements<ServerLayerRoot<BlockValue, LayerValue>>
+>
+export function renderToString<
+  const BlockValue extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+  const Config extends Readonly<{ routing: object; Flags?: never }>,
+>(
+  selection: ServerLayerSelection<BlockValue, LayerValue> &
+    NoInfer<
+      ValidateProgramBlock<
+        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
+        'Document'
+      >
+    >,
+  config: Config &
+    NoInfer<
+      RoutingApplicationConfig<
+        RootContract<ServerLayerRoot<BlockValue, LayerValue>>
+      >
+    > &
+    NoInfer<ExactServerHostConfig<Config>>,
+  options: RenderUrlOptions,
+): Effect.Effect<
+  RenderedApplication,
+  RenderError | RootConstructionError<ServerLayerRoot<BlockValue, LayerValue>>,
+  RootConstructionRequirements<ServerLayerRoot<BlockValue, LayerValue>>
+>
+export function renderToString<
+  const BlockValue extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+  const Config extends Readonly<{
+    Flags: ServerFlagsSchema
+    routing?: never
+  }>,
+>(
+  selection: ServerLayerSelection<BlockValue, LayerValue> &
+    NoInfer<
+      ValidateProgramBlock<
+        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
+        'Document'
+      >
+    >,
+  config: Config &
+    NoInfer<
+      ApplicationConfigWithFlags<
+        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
+        Config['Flags']['Type']
+      >
+    > &
+    NoInfer<ExactServerHostConfig<Config>>,
+  options: RenderFlagsOptions<NoInfer<Config['Flags']['Type']>>,
+): Effect.Effect<
+  RenderedApplication,
+  RenderError | RootConstructionError<ServerLayerRoot<BlockValue, LayerValue>>,
+  RootConstructionRequirements<ServerLayerRoot<BlockValue, LayerValue>>
+>
+export function renderToString<
+  const BlockValue extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+  const Config extends object,
+>(
+  selection: ServerLayerSelection<BlockValue, LayerValue> &
+    NoInfer<
+      ValidateProgramBlock<
+        RootContract<ServerLayerRoot<BlockValue, LayerValue>>,
+        'Document'
+      >
+    >,
+  config: Config &
+    NoInfer<
+      ApplicationConfig<RootContract<ServerLayerRoot<BlockValue, LayerValue>>>
+    > &
+    NoInfer<ExactServerHostConfig<Config>>,
+  options?: RenderOptions,
+): Effect.Effect<
+  RenderedApplication,
+  RenderError | RootConstructionError<ServerLayerRoot<BlockValue, LayerValue>>,
+  RootConstructionRequirements<ServerLayerRoot<BlockValue, LayerValue>>
+>
+export function renderToString<
   const BlockValue extends LayeredRoot,
   const Config extends Readonly<{
     Flags: ServerFlagsSchema
@@ -1577,14 +1702,21 @@ export function renderToString<
   options?: RenderOptions,
 ): Effect.Effect<RenderedApplication, RenderError>
 export function renderToString(
-  block: RootBlock,
+  block:
+    | RootBlock
+    | ServerLayerSelection<DeclaredRootBlock, Layer.Layer<any, any, any>>,
   config: Readonly<{
     Flags?: Schema.Codec<any, any, never, never>
     routing?: unknown
   }>,
   options?: RenderOptions & Readonly<{ url?: string; flags?: unknown }>,
 ): Effect.Effect<RenderedApplication, any, any> {
-  assertProgramConfig({ block, container: null }, 'Document')
+  const root =
+    'block' in block && 'layer' in block
+      ? selectLayer(block.block, block.layer)
+      : block
+
+  assertProgramConfig({ block: root, container: null }, 'Document')
 
   if (!Predicate.isObject(config)) {
     throw new Error('[foldkit] Server host configuration must be an object.')
@@ -1610,7 +1742,7 @@ export function renderToString(
   }
 
   return Effect.scoped(
-    Effect.flatMap(resolveRootBlock(block), resolved => {
+    Effect.flatMap(resolveRootBlock(root), resolved => {
       assertProgramConfig({ block: resolved, container: null }, 'Document')
       const { init, view: blockView } = lowerBlock(resolved)
       const view = (...args: ReadonlyArray<any>) => {

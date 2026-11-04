@@ -2,7 +2,14 @@ import { Effect, Layer, Predicate, type Schema, type Scope } from 'effect'
 
 import { defaultViewOf } from '../../../block/defaultView.js'
 import type { BlockView, DocumentView } from '../../../html/index.js'
-import { rootConstructionOf } from '../../../runtime/rootBlock.js'
+import {
+  type LayeredContract,
+  type LayeredRoot,
+  type DeclaredRootBlock,
+  type SelectedLayeredRoot,
+  type ValidateSelectedLayer,
+  rootConstructionOf,
+} from '../../../runtime/rootBlock.js'
 import {
   type AcquiredTestBlock,
   registerTestGraph,
@@ -20,6 +27,7 @@ import {
   descriptorConstructorOf,
 } from '../../constructed/symbolic.js'
 import type { PendingHostHandlersTypeId } from '../../contracted/contract.js'
+import { selectLayerForTesting } from '../../contracted/runtime.js'
 
 type TestSource = Readonly<{
   owner: unknown
@@ -34,26 +42,48 @@ type TestSource = Readonly<{
   EffectsLayer: Layer.Any
 }>
 
+export type TestContract<Block extends BlockSubject> =
+  Block extends BlockLayerSubject<infer Declared, infer SelectedLayer>
+    ? LayeredContract<SelectedLayeredRoot<Declared, SelectedLayer>>
+    : Block extends DescriptorSubject
+      ? Block
+      : Block extends LayeredRoot
+        ? LayeredContract<Block>
+        : never
+
 /** @internal An original descriptor acquired through its getter or default Layer. */
-export type BlockSubject = DescriptorContract &
+type DescriptorSubject = DescriptorContract &
   Readonly<{
     get: Effect.Effect<TestSource, unknown, unknown>
   }>
 
+export type BlockSubject =
+  | DescriptorSubject
+  | LayeredRoot
+  | BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>>
+
+/** @internal A test subject pairing one public Block with its selected Layer. */
+export type BlockLayerSubject<
+  Block extends DeclaredRootBlock,
+  LayerValue extends Layer.Layer<any, any, any>,
+> = Readonly<{ block: Block; layer: LayerValue }>
+
 /** @internal Ordinary implementation tests require a selected host-provider contract. */
 export type ValidateTestBlock<Block> =
-  Block extends Readonly<{
-    [PendingHostHandlersTypeId]: infer Pending
-  }>
-    ? [Pending] extends [never]
-      ? unknown
-      : Readonly<{
-          'Block tests must select the original host handlers with provideHandlers': Pending
+  Block extends BlockLayerSubject<infer Declared, infer SelectedLayer>
+    ? ValidateSelectedLayer<Declared, SelectedLayer>
+    : Block extends Readonly<{
+          [PendingHostHandlersTypeId]: infer Pending
         }>
-    : unknown
+      ? [Pending] extends [never]
+        ? unknown
+        : Readonly<{
+            'Block tests must select the original host handlers with provideHandlers': Pending
+          }>
+      : unknown
 
-type DispatchMessageOf<Block> =
-  ExecutableOf<Block> extends Readonly<{
+type DispatchMessageOf<Block extends BlockSubject> =
+  TestExecutable<Block> extends Readonly<{
     Message: infer MessageSchema extends Schema.Top
   }>
     ? MessageSchema['Type']
@@ -64,20 +94,23 @@ type RenderFunction<View> = View extends (...args: infer Args) => infer Rendered
   : never
 
 type TestView<Block extends BlockSubject> =
-  FactsOf<Block>['view'] extends ViewContract<infer Inputs, infer Kind>
+  FactsOf<TestContract<Block>>['view'] extends ViewContract<
+    infer Inputs,
+    infer Kind
+  >
     ? Readonly<{
         view: RenderFunction<
           Kind extends 'Document'
             ? DocumentView<
-                Block['Model']['Type'],
+                TestContract<Block>['Model']['Type'],
                 DispatchMessageOf<Block>,
-                FactsOf<Block>['mountRequirements']
+                FactsOf<TestContract<Block>>['mountRequirements']
               >
             : BlockView<
-                Block['Model']['Type'],
+                TestContract<Block>['Model']['Type'],
                 DispatchMessageOf<Block>,
                 Inputs,
-                FactsOf<Block>['mountRequirements']
+                FactsOf<TestContract<Block>>['mountRequirements']
               >
         >
       }>
@@ -87,21 +120,24 @@ type TestView<Block extends BlockSubject> =
  * The acquired pure operations and default view available inside `withBlock`.
  * This fixture is for Story and Scene; it is not a child connection handle.
  */
+type TestExecutable<Block extends BlockSubject> =
+  Block extends DescriptorSubject ? ExecutableOf<Block> : TestContract<Block>
+
 export type TestBlock<Block extends BlockSubject> = Pick<
-  ExecutableOf<Block>,
+  TestExecutable<Block>,
   Exclude<keyof TestSource, 'InMessage' | 'inMessageUpdate'>
 > &
   Pick<
-    ExecutableOf<Block>,
-    Extract<'InMessage' | 'inMessageUpdate', keyof ExecutableOf<Block>>
+    TestExecutable<Block>,
+    Extract<'InMessage' | 'inMessageUpdate', keyof TestExecutable<Block>>
   > &
   TestView<Block> &
-  AcquiredTestBlock<Block['owner']> &
+  AcquiredTestBlock<TestContract<Block>['owner']> &
   Readonly<{
     subscriptions: SubscriptionsFromFacts<
-      Block['Model']['Type'],
+      TestContract<Block>['Model']['Type'],
       DispatchMessageOf<Block>,
-      ImplementationSubscriptionsOf<Block>
+      ImplementationSubscriptionsOf<TestContract<Block>>
     >
   }>
 
@@ -135,12 +171,15 @@ type DefaultLayer<Block> =
 export type TestEffect<Block extends BlockSubject, Output> = Effect.Effect<
   CallbackValue<Output>,
   | Layer.Error<DefaultLayer<Block>>
-  | Effect.Error<Block['get']>
+  | (Block extends DescriptorSubject ? Effect.Error<Block['get']> : never)
   | CallbackError<Output>,
   Exclude<
     | Layer.Services<DefaultLayer<Block>>
     | Exclude<
-        Effect.Services<Block['get']> | CallbackRequirements<Output>,
+        | (Block extends DescriptorSubject
+            ? Effect.Services<Block['get']>
+            : never)
+        | CallbackRequirements<Output>,
         Layer.Success<DefaultLayer<Block>>
       >,
     Scope.Scope
@@ -195,7 +234,10 @@ const toTestBlock = (executable: unknown): object => {
  * )
  * ```
  */
-export function withBlock<Block extends BlockSubject, Output>(
+export function withBlock<
+  Block extends DescriptorSubject | LayeredRoot,
+  Output,
+>(
   block: Block & ValidateTestBlock<NoInfer<Block>>,
   use: (
     block: TestBlock<NoInfer<Block>>,
@@ -205,10 +247,43 @@ export function withBlock<Block extends BlockSubject, Output>(
   Effect.Error<TestEffect<Block, Output>>,
   Effect.Services<TestEffect<Block, Output>>
 >
+export function withBlock<
+  const Block extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+  Output,
+>(
+  selection: BlockLayerSubject<Block, LayerValue> &
+    Readonly<{
+      layer: ValidateSelectedLayer<NoInfer<Block>, NoInfer<LayerValue>>
+    }>,
+  use: (
+    block: TestBlock<SelectedLayeredRoot<Block, LayerValue>>,
+  ) => Output & SynchronousOrEffect<Output>,
+): Effect.Effect<
+  Effect.Success<TestEffect<SelectedLayeredRoot<Block, LayerValue>, Output>>,
+  Effect.Error<TestEffect<SelectedLayeredRoot<Block, LayerValue>, Output>>,
+  Effect.Services<TestEffect<SelectedLayeredRoot<Block, LayerValue>, Output>>
+>
 export function withBlock(
-  block: BlockSubject,
+  blockOrSelection:
+    | BlockSubject
+    | BlockLayerSubject<DeclaredRootBlock, Layer.Layer<any, any, any>>,
   use: (block: never) => unknown,
 ): Effect.Effect<unknown, unknown, unknown> {
+  const isLayerSelection = (
+    value: typeof blockOrSelection,
+  ): value is BlockLayerSubject<
+    DeclaredRootBlock,
+    Layer.Layer<any, any, any>
+  > =>
+    'block' in value &&
+    'layer' in value &&
+    rootConstructionOf(value) === undefined
+
+  const block = isLayerSelection(blockOrSelection)
+    ? selectTestLayer(blockOrSelection)
+    : blockOrSelection
+
   return Effect.suspend(() => {
     const construction = rootConstructionOf(block)
     const construct = descriptorConstructorOf(block)
@@ -246,7 +321,10 @@ export function withBlock(
 
     if (construction !== undefined) {
       return Effect.scoped(
-        Effect.flatMap(block.get, useAcquired).pipe(
+        Effect.flatMap(
+          construction.readForTesting ?? construction.read,
+          useAcquired,
+        ).pipe(
           Effect.scoped,
           Effect.provide([construction.layer], { local: true }),
         ),
@@ -266,3 +344,10 @@ export function withBlock(
     )
   })
 }
+
+const selectTestLayer = <
+  const Block extends DeclaredRootBlock,
+  const LayerValue extends Layer.Layer<any, any, any>,
+>(
+  selection: BlockLayerSubject<Block, LayerValue>,
+) => selectLayerForTesting(selection.block, selection.layer)

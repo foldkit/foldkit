@@ -45,18 +45,23 @@ repeat discovery before final release sign-off.
 
 - [x] Prototype one `Block.make` value carrying declared contracts and bound
       authoring helpers without a separate Definition or contract projection.
-- [ ] Prove checked `Block.makeLayer` completion returning an ordinary Layer,
+- [x] Prove ordinary checked `Block.makeLayer` completion returning a Layer,
       exact root hosting/providers, host-owned handlers, constructor failures,
       implementation-specific test access, passive initialization and cleanup.
 - [x] Rename receive to `inMessageUpdate`, including its module, builder,
       direct/curried entry points, public types and tooling.
 - [x] Reuse ordered update composition for InMessages, preserving the original
       before Model, exact input narrowing, Commands and OutMessage checks.
-- [ ] Preserve Element, Document and viewless contracts; reject Document
+- [x] Preserve ordinary Element, Document and viewless contracts; reject Document
       embedding without prohibiting every state/operation Binding to it.
 - [ ] After the proof passes, migrate all active consumers, factories, tests,
       scaffolds, guidance, lint recognition and migration material. Preserve
-      historical content and unchanged compiler workloads and ceilings.
+      historical content, compiler workloads and the reviewed ceilings.
+- [x] Record the user's acceptance of the measured Workspace 4/8 compiler cost.
+      Set only their instantiation ceilings to the exact observed 2,687,288 and
+      4,999,644, with no added tolerance. Preserve every other budget and fixture.
+- [ ] Verify actual Query/UI families and the complete Workspace trial against
+      the accepted baseline before authorizing broad migration.
 - [x] Reconcile every actionable preview PR comment and relevant issue/PR,
       recording concrete source/test evidence and actual unresolved requests.
 - [x] Verify the canonical API through source, emitted and strict relocated
@@ -73,13 +78,23 @@ repeat discovery before final release sign-off.
 - [ ] Review the exact committed release-gate follow-up and push it through
       the mandatory pre-push hook to the preview branch. Do not publish.
 
-The [frozen Block API proof](block-api-simplification/README.md) does not meet the
-required adoption gates. Focused ordinary and generic consumers work, but the
-adapted deep/wide/Workspace workloads exceed the unchanged compiler ceilings.
-A same-owner, different-handler Layer pairing is rejected at Runtime but still
-accepted by TypeScript. No broad migration is performed, no budget is raised,
-and this work is not marked complete or approved for deferral. Reproducible
-patches, preserved assertions and bounded controls are included in the report.
+The [current recovered proof](block-api-simplification/current-proof-20261104.md)
+supersedes the active status of the preserved
+[earlier frozen proof](block-api-simplification/README.md). Exact selected-result
+association and constructor Plan Source validation pass ordinary source,
+emitted-declaration, relocated-consumer and runtime checks. All seven original
+compiler workloads pass; adapted deep and wide now pass too. Adapted Workspace 4
+and Workspace 8 originally exceeded their ceilings by about 1.7% and 10.7%.
+The user accepted that measured cost; their new ceilings equal the observed
+counts with no headroom. The [accepted-cost decision](block-api-simplification/accepted-cost-20261104.md)
+preserves the old comparison and records the new checks. Actual fixed families
+and the complete Workspace trial are the next gates. No broad migration is
+performed or completion claimed from this bounded proof.
+
+The canonical Source ownership repair (`30069d58a0`) and UI selection-component docs
+(`3c515660a9`) were reviewed separately and are being integrated into the preview.
+Their ancestry is not part of this isolated c55-based proof. Publication and
+Daybreak review remain held.
 
 ## November 3 input-update and scoped-test checkpoint
 
@@ -965,6 +980,18 @@ The [MyRemotely report](https://github.com/foldkit/foldkit/pull/1655#issuecommen
 Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime behavior, inference, and realistic split-file consumers before broad conversion.
 
 ## Release review checklist
+
+- [x] Recover and verify the ordinary unified Block/direct Layer checkpoint:
+      exact selected-provider association, constructor Plan Source checks,
+      native build/full source, strict source/emitted and relocated consumers,
+      eight runtime files, and all seven original compiler workloads.
+      [Current proof and exact scope](block-api-simplification/current-proof-20261104.md).
+- [x] Record the accepted Workspace 4/8 compiler costs and exact measured
+      instantiation ceilings, preserving the original frozen comparison and
+      every other budget. Verify the reproducible runner fails when a check
+      fails and the retained compiler workloads pass the accepted baseline.
+- [ ] Verify actual fixed families, whole Workspace and editor workflows before
+      broad migration; historical checks are not fresh checkpoint evidence.
 
 - [x] Review the isolated Instance-array proof's consumer surface, exact channels,
       opt-in field boundary, strict declarations, and unchanged compiler budgets

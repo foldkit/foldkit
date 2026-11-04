@@ -102,7 +102,7 @@ type IsExactVariant<Parent, Child> =
 type VariantDefinition = Readonly<{
   Model: AnySchema & Readonly<{ members: ReadonlyArray<Schema.Top> }>
   Message: AnySchema
-  OutMessage?: AnySchema
+  OutMessage?: AnySchema | undefined
   ChildInitContext?: AnySchema
 }>
 
@@ -318,7 +318,6 @@ type ContractBindingMethod<Definition extends ContractVariantDefinition> =
 
 type ChildContract = AnyDescriptor &
   Readonly<{
-    get: Effect.Effect<object, any, any>
     layer?: never
     construct?: never
   }>
@@ -458,7 +457,7 @@ const assertOptionsRecord: (
   }
 }
 
-/** Creates a native static Binding for exact whole-variant child storage.
+/** Creates a static Binding for exact whole-variant child storage.
  * Include the child Block.Model Schema directly in the parent Schema.Union.
  * Its tag controls presence. Subscription gates only control Streams.
  * Initialization and changing the active variant remain parent-owned. */
@@ -478,7 +477,7 @@ export const makeVariantBinding = ((): MakeVariantBinding =>
       !Schema.isSchema(block.Model)
     ) {
       throw new Error(
-        '[foldkit] makeVariantBinding requires a parent Definition and completed child Block.',
+        '[foldkit] makeVariantBinding requires a parent authoring contract and a child Block.',
       )
     }
     const subscriptions = Reflect.get(config, 'subscriptions')
