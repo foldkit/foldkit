@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 
-import { PanelDefinition } from './definition'
+import { PanelBlock } from './definition'
 import { init } from './init'
 import { MeasurePanel } from './mount'
 import { update } from './update'
@@ -8,9 +8,7 @@ import { view } from './view'
 
 export const EffectsLayer = MeasurePanel.layer
 
-export const PanelBlock = PanelDefinition.contract
-
-export const layer = PanelDefinition.makeBlock(
+export const layer = PanelBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -20,4 +18,4 @@ export const layer = PanelDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).layer
+)

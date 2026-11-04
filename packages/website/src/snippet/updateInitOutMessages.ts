@@ -1,6 +1,6 @@
-import { ApplicationDefinition, makeFieldsStep } from './definition'
+import { ApplicationBlock, makeFieldsStep } from './definition'
 
-const foldSearchOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldSearchOutMessage = ApplicationBlock.makeOutMessageFold(
   Search.SearchBlock,
   {
     RestoredQuery: ({ query }) =>
@@ -10,7 +10,7 @@ const foldSearchOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-const foldEditorOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldEditorOutMessage = ApplicationBlock.makeOutMessageFold(
   Editor.EditorBlock,
   {
     RestoredDraft: ({ documentId }) =>
@@ -20,15 +20,15 @@ const foldEditorOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-const SearchBinding = ApplicationDefinition.makeBinding(Search.SearchBlock, {
+const SearchBinding = ApplicationBlock.makeBinding(Search.SearchBlock, {
   field: 'search',
 }).withOutMessagePolicy({ fold: foldSearchOutMessage })
 
-const EditorBinding = ApplicationDefinition.makeBinding(Editor.EditorBlock, {
+const EditorBinding = ApplicationBlock.makeBinding(Editor.EditorBlock, {
   field: 'editor',
 }).withOutMessagePolicy({ fold: foldEditorOutMessage })
 
-const ApplicationComposition = ApplicationDefinition.makeComposition({
+const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [SearchBinding, EditorBinding],
 })
 

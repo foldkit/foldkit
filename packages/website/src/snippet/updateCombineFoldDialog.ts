@@ -1,6 +1,6 @@
 return Update.combineSteps(model, [
   foldDialogClose,
-  ApplicationDefinition.makeFieldsStep(() => ({
+  ApplicationBlock.makeFieldsStep(() => ({
     isSubmitting: () => false,
   })),
 ])

@@ -13,12 +13,12 @@ import {
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 // Scene: test through the view
 it.effect('type a zip code, click get weather, see the forecast', () =>
   scene(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(model),
     type(label('Zip code'), '90210'),
     click(role('button', { name: 'Get Weather' })),

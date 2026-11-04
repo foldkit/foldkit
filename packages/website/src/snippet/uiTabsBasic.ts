@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -26,9 +26,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const TabsExampleKey = Symbol('TabsExample')
+export const TabsExampleKey = Symbol('TabsExample')
 
-const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
+export const TabsExampleBlock = Block.make('TabsExample', {
   key: TabsExampleKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -36,7 +36,7 @@ const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
   Message,
 })
 
-const { makeFieldsStep } = TabsExampleDefinition
+const { makeFieldsStep } = TabsExampleBlock
 
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
@@ -50,30 +50,27 @@ const descriptions: Record<Framework, string> = {
 // carries the chosen value (typed as `Framework`) and its index. Fold the
 // value into your own Model so it flows back in as selectedValue. The arm
 // returns an Update.Step over the parent Model, which already has the next
-// Tabs Model written back. Passing the whole child lets the parent Definition
+// Tabs Model written back. Passing the whole child lets the parent Block
 // infer the refined `Framework` OutMessage and parent Step:
-const foldTabsOutMessage = TabsExampleDefinition.makeOutMessageFold(
-  FrameworkTabs,
-  {
-    // The child has emitted `Selected`. Store the selected value as the new
-    // active tab. In this arm the parent can also update its own state or
-    // dispatch Commands, for example route to a new URL, persist the
-    // selection, or trigger a panel content fetch.
-    Selected: ({ value }) =>
-      makeFieldsStep(() => ({
-        activeFramework: () => value,
-      })),
-  },
-)
+const foldTabsOutMessage = TabsExampleBlock.makeOutMessageFold(FrameworkTabs, {
+  // The child has emitted `Selected`. Store the selected value as the new
+  // active tab. In this arm the parent can also update its own state or
+  // dispatch Commands, for example route to a new URL, persist the
+  // selection, or trigger a panel content fetch.
+  Selected: ({ value }) =>
+    makeFieldsStep(() => ({
+      activeFramework: () => value,
+    })),
+})
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const TabsBinding = TabsExampleDefinition.makeBinding(FrameworkTabs, {
+const TabsBinding = TabsExampleBlock.makeBinding(FrameworkTabs, {
   field: 'tabs',
   init: { contextToArgs: () => [{ id: 'framework-tabs' }] },
 }).withOutMessagePolicy({ fold: foldTabsOutMessage })
 
-const TabsExampleComposition = TabsExampleDefinition.makeComposition({
+const TabsExampleComposition = TabsExampleBlock.makeComposition({
   bindings: [TabsBinding],
 })
 
@@ -138,7 +135,7 @@ const view = TabsExampleComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = TabsExampleDefinition.makeBlock(
+export const layer = TabsExampleBlock.makeLayer(
   Effect.gen(function* () {
     const tabs = yield* TabsBinding
 
@@ -149,4 +146,4 @@ export const ApplicationBlock = TabsExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(TabsLayer)
+).pipe(Layer.provide(TabsLayer))

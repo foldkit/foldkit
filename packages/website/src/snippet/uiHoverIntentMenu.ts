@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -19,9 +19,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const HoverMenuKey = Symbol('HoverMenu')
+export const HoverMenuKey = Symbol('HoverMenu')
 
-const HoverMenuDefinition = Block.makeDefinition('HoverMenu', {
+export const HoverMenuBlock = Block.make('HoverMenu', {
   key: HoverMenuKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -29,9 +29,9 @@ const HoverMenuDefinition = Block.makeDefinition('HoverMenu', {
   Message,
 })
 
-const { makeNoopStep } = HoverMenuDefinition
+const { makeNoopStep } = HoverMenuBlock
 
-const foldHoverMenuOutMessage = HoverMenuDefinition.makeOutMessageFold(
+const foldHoverMenuOutMessage = HoverMenuBlock.makeOutMessageFold(
   HoverIntentBlock,
   {
     Opened: makeNoopStep,
@@ -39,11 +39,11 @@ const foldHoverMenuOutMessage = HoverMenuDefinition.makeOutMessageFold(
   },
 )
 
-const HoverMenuBinding = HoverMenuDefinition.makeBinding(HoverIntentBlock, {
+const HoverMenuBinding = HoverMenuBlock.makeBinding(HoverIntentBlock, {
   field: 'hoverMenu',
 }).withOutMessagePolicy({ fold: foldHoverMenuOutMessage })
 
-const HoverMenuComposition = HoverMenuDefinition.makeComposition({
+const HoverMenuComposition = HoverMenuBlock.makeComposition({
   bindings: [HoverMenuBinding],
 })
 
@@ -127,7 +127,7 @@ const view = HoverMenuComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = HoverMenuDefinition.makeBlock(
+export const layer = HoverMenuBlock.makeLayer(
   Effect.gen(function* () {
     const hoverMenu = yield* HoverMenuBinding
 
@@ -138,4 +138,4 @@ export const ApplicationBlock = HoverMenuDefinition.makeBlock(
       view,
     }
   }),
-).provide(HoverIntentLayer)
+).pipe(Layer.provide(HoverIntentLayer))

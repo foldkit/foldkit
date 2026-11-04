@@ -31,9 +31,9 @@ class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
 ) {}
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
@@ -42,7 +42,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const LoadUser = ApplicationDefinition.makeCommand('LoadUser', {
+export const LoadUser = ApplicationBlock.makeCommand('LoadUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {

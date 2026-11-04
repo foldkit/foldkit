@@ -1,7 +1,7 @@
 import { Program, Runtime } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import type { Message } from './message'
 import type { Model } from './model'
 
@@ -42,6 +42,7 @@ const crashView = (
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   crash: { view: crashView },
   container: document.getElementById('root'),
 })

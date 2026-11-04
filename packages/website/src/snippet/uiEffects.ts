@@ -7,19 +7,19 @@ import {
   makeBlock as makeMenuBlock,
 } from '@foldkit/ui/menu'
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 
-export const DialogBinding = ApplicationDefinition.makeBinding(DialogBlock, {
+export const DialogBinding = ApplicationBlock.makeBinding(DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 export const ApplicationMenu = makeMenuBlock<string>()
 
-export const MenuBinding = ApplicationDefinition.makeBinding(ApplicationMenu, {
+export const MenuBinding = ApplicationBlock.makeBinding(ApplicationMenu, {
   field: 'menu',
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [DialogBinding, MenuBinding],
 })
 
@@ -65,7 +65,7 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const dialog = yield* DialogBinding
     const menu = yield* MenuBinding
@@ -77,7 +77,7 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       view,
     }
   }),
-).provide(Layer.mergeAll(DialogLayer, MenuLayer))
+).pipe(Layer.provide(Layer.mergeAll(DialogLayer, MenuLayer)))
 
 // entry.ts
 
@@ -85,8 +85,11 @@ import { ApplicationBlock } from './block'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
   devTools: { dispatch: true },
 })
 
 Runtime.run(program)
+
+export { ApplicationBlock } from './definition'

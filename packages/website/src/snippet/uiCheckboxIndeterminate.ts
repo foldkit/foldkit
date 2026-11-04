@@ -25,9 +25,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const NotificationPreferencesKey = Symbol('NotificationPreferences')
+export const NotificationPreferencesKey = Symbol('NotificationPreferences')
 
-const NotificationPreferencesDefinition = Block.makeDefinition(
+export const NotificationPreferencesBlock = Block.make(
   'NotificationPreferences',
   {
     key: NotificationPreferencesKey,
@@ -39,7 +39,7 @@ const NotificationPreferencesDefinition = Block.makeDefinition(
 )
 
 const NotificationPreferencesComposition =
-  NotificationPreferencesDefinition.makeComposition()
+  NotificationPreferencesBlock.makeComposition()
 
 // In your init function, start each unchecked:
 const init = NotificationPreferencesComposition.makeInit(() => ({
@@ -111,7 +111,7 @@ const view = NotificationPreferencesComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = NotificationPreferencesDefinition.makeBlock(
+export const layer = NotificationPreferencesBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

@@ -16,12 +16,13 @@ import {
   Model,
   OutMessage,
   SettingsBinding,
+  layer,
 } from './blockExtractedConnectedStep'
 import { SettingsBlock } from './blockSettings'
 
 it.effect('folds a child fact without rendering its view', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(
       Model.make({
         settings: SettingsBlock.Model.make({ theme: 'System' }),

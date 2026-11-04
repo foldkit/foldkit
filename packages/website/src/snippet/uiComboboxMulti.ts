@@ -22,9 +22,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const CitiesPickerKey = Symbol('CitiesPicker')
+export const CitiesPickerKey = Symbol('CitiesPicker')
 
-const CitiesPickerDefinition = Block.makeDefinition('CitiesPicker', {
+export const CitiesPickerBlock = Block.make('CitiesPicker', {
   key: CitiesPickerKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -32,10 +32,10 @@ const CitiesPickerDefinition = Block.makeDefinition('CitiesPicker', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = CitiesPickerDefinition
+const { makeFieldsStep, makeNoopStep } = CitiesPickerBlock
 
 // The parent toggles the committed value in the selection it owns.
-const foldComboboxMultiOutMessage = CitiesPickerDefinition.makeOutMessageFold(
+const foldComboboxMultiOutMessage = CitiesPickerBlock.makeOutMessageFold(
   CitiesCombobox,
   {
     Selected: ({ value }) =>
@@ -49,17 +49,14 @@ const foldComboboxMultiOutMessage = CitiesPickerDefinition.makeOutMessageFold(
   },
 )
 
-const ComboboxMultiBinding = CitiesPickerDefinition.makeBinding(
-  CitiesCombobox,
-  {
-    field: 'comboboxMulti',
-    init: { contextToArgs: () => [{ id: 'cities-multi' }] },
-  },
-).withOutMessagePolicy({ fold: foldComboboxMultiOutMessage })
+const ComboboxMultiBinding = CitiesPickerBlock.makeBinding(CitiesCombobox, {
+  field: 'comboboxMulti',
+  init: { contextToArgs: () => [{ id: 'cities-multi' }] },
+}).withOutMessagePolicy({ fold: foldComboboxMultiOutMessage })
 
 // Including the Binding collects its lifecycle and handler graph.
 
-const CitiesPickerComposition = CitiesPickerDefinition.makeComposition({
+const CitiesPickerComposition = CitiesPickerBlock.makeComposition({
   bindings: [ComboboxMultiBinding],
 })
 
@@ -134,9 +131,7 @@ const view = CitiesPickerComposition.makeView((model, h) => {
   )
 })
 
-export const CitiesPickerBlock = CitiesPickerDefinition.contract
-
-export const layer = CitiesPickerDefinition.makeBlock(
+export const layer = CitiesPickerBlock.makeLayer(
   Effect.gen(function* () {
     const combobox = yield* ComboboxMultiBinding
 
@@ -147,4 +142,4 @@ export const layer = CitiesPickerDefinition.makeBlock(
       view,
     }
   }),
-).provide(MultiCombobox.layer).layer
+).pipe(Layer.provide(MultiCombobox.layer))

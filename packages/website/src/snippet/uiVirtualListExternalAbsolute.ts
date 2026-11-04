@@ -25,39 +25,36 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedJumpToLatestActivity: {} })
 type Message = typeof Message.Type
 
-const ActivityFeedKey = Symbol('ActivityFeed')
+export const ActivityFeedKey = Symbol('ActivityFeed')
 
-const ActivityFeedDefinition = Block.makeDefinition('ActivityFeed', {
+export const ActivityFeedBlock = Block.make('ActivityFeed', {
   key: ActivityFeedKey,
   Init: Schema.Tuple([Schema.Array(Activity)]),
   view: { kind: 'Element' },
   Model,
   Message,
 })
-const { makeNoopStep } = ActivityFeedDefinition
+const { makeNoopStep } = ActivityFeedBlock
 
-const ActivityListBinding = ActivityFeedDefinition.makeBinding(
-  ActivityListBlock,
-  {
-    field: 'activityList',
-    init: {
-      contextToArgs: () => [
-        {
-          id: 'activity-feed',
-          rowHeightPx: 88,
-          scrollContainer: VirtualListScrollContainer.Window(),
-        },
-      ],
-    },
+const ActivityListBinding = ActivityFeedBlock.makeBinding(ActivityListBlock, {
+  field: 'activityList',
+  init: {
+    contextToArgs: () => [
+      {
+        id: 'activity-feed',
+        rowHeightPx: 88,
+        scrollContainer: VirtualListScrollContainer.Window(),
+      },
+    ],
   },
-).withOutMessagePolicy({
-  fold: ActivityFeedDefinition.makeOutMessageFold(ActivityListBlock, {
+}).withOutMessagePolicy({
+  fold: ActivityFeedBlock.makeOutMessageFold(ActivityListBlock, {
     ObservedContainerScroll: makeNoopStep,
     ApproachedLoadedStart: makeNoopStep,
     EndedContainerScroll: makeNoopStep,
   }),
 })
-const ActivityFeedComposition = ActivityFeedDefinition.makeComposition({
+const ActivityFeedComposition = ActivityFeedBlock.makeComposition({
   bindings: [ActivityListBinding],
 })
 const init = ActivityFeedComposition.makeInit(activities => ({
@@ -100,9 +97,7 @@ const view = ActivityFeedComposition.makeView((model, h) =>
   ),
 )
 
-export const ActivityFeedBlock = ActivityFeedDefinition.contract
-
-export const layer = ActivityFeedDefinition.makeBlock(
+export const layer = ActivityFeedBlock.makeLayer(
   Effect.gen(function* () {
     const activityList = yield* ActivityListBinding
 
@@ -113,4 +108,4 @@ export const layer = ActivityFeedDefinition.makeBlock(
       view,
     }
   }),
-).provide(VirtualListLayer).layer
+).pipe(Layer.provide(VirtualListLayer))

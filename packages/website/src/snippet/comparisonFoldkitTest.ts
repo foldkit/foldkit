@@ -1,9 +1,9 @@
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 it.effect('undo restores the previous grid state', () =>
   story(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(emptyModel),
     message(PressedCell({ x: 0, y: 0 })),
     message(ReleasedMouse()),

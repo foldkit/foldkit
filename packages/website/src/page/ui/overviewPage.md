@@ -26,7 +26,7 @@ The Kind column below identifies each component category.
 
 ## Application Wiring
 
-Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Connect each stateful component’s completed Block value and include the Binding in the parent's `bindings`. The parent Composition collects the component's handlers and lifecycle registrations.
+Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Bind each stateful component's public Block contract, register that Binding in the parent's Composition, and provide the component's implementation Layer to the parent's construction Layer. The acquired connection contributes the component's handlers and lifecycle registrations.
 
 The example below shows two component Bindings included by one owning Block. Assume its Model, Message, init, named OutMessage folds, and component ViewInputs are defined in the application's other modules. The root includes its component Bindings in `ApplicationComposition` and assembles `ApplicationBlock`; the final lines show separate `entry.ts` startup through `Program.make`. Supply external service providers through the root `ApplicationLayer` as described in [Layers](/core/layers).
 
@@ -34,7 +34,7 @@ The example below shows two component Bindings included by one owning Block. Ass
 
 Mounted UI views and attribute slots carry their Mount requirements. Author the parent view through its Composition's `makeView`; its builder derives the component and Mount capabilities. Give ordinary feature-local helpers a `FeatureViewBuilder` parameter derived with `Block.ViewBuilderFor<typeof FeatureComposition>`, declared immediately after the Composition. Use the framework's general `HtmlBuilder<Message>` for a function genuinely shared across owners. TypeScript checks capabilities during composition and handler provision before startup. Foldkit also checks each rendered definition before patching the DOM. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views).
 
-Component factories with instance-specific behavior return completed Blocks. Connect the result of `Slider.forRoot(getTrackRoot)` or `Toast.makeBlock(PayloadSchema)` in the Block that owns the instance.
+Component factories with instance-specific behavior return passive public contracts. Bind the result of `Slider.forRoot(getTrackRoot)` or `Toast.makeBlock(PayloadSchema)` in the owner, and provide `Slider.layer` or `Toast.layer` when constructing that owner.
 
 ## Components
 

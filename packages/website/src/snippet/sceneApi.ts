@@ -36,7 +36,7 @@ import {
   within,
 } from 'foldkit/scene'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 // Accessible locators — find elements like a user would.
 role('button', { name: 'Submit' })
@@ -115,7 +115,7 @@ expectAll(all.role('alert')).toBeEmpty()
 // Run the scoped Scene. Every pending Command must be resolved.
 await Effect.runPromise(
   scene(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(model),
     type(label('Email'), 'alice@example.com'),
     submit(role('form')),

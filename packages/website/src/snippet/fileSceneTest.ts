@@ -14,7 +14,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 describe('resume upload flow', () => {
   const resume = new File(['%PDF-'], 'resume.pdf', {
@@ -23,7 +23,7 @@ describe('resume upload flow', () => {
 
   it.effect('inline file input: changeFiles simulates selection', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       changeFiles(label('resume'), [resume]),
       expect(text('resume.pdf')).toExist(),
@@ -33,7 +33,7 @@ describe('resume upload flow', () => {
   it.effect('button-triggered picker: resolve the SelectResume Command', () => {
     const previewDataUrl = 'data:application/pdf;base64,JVBERi0='
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       click(role('button', { name: 'Choose resume' })),
       Command.resolveAll(
@@ -52,7 +52,7 @@ describe('resume upload flow', () => {
       type: 'image/svg+xml',
     })
     return scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       dropFiles(label('attachments'), [coverLetter, portfolio]),
       expect(text('2 attachments selected')).toExist(),

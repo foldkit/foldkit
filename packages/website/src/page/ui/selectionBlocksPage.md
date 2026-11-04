@@ -6,9 +6,9 @@ Foldkit UI ships five Blocks for selecting values from a set: [Listbox](/ui/list
 
 For example: a Listbox of plans, a Combobox of cities, Tabs for view modes, a Menu of actions, or a RadioGroup of pricing plans.
 
-### Typed Completed Blocks
+### Typed Block Contracts {#typed-completed-blocks}
 
-Each exposes a factory that keeps one item type across its view, update, programmatic API, and `Selected` OutMessage. Most factories take a type parameter. Combobox takes the Item Schema itself so its completed Block also carries exact Message and OutMessage Schemas.
+Each exposes a factory that keeps one item type across its view inputs, transitions, Binding operations, and `Selected` OutMessage. Most factories take a type parameter. Combobox takes the Item Schema itself so its public contract also carries exact Message and OutMessage Schemas.
 
 A Listbox over a literal-union `Plan` type:
 
@@ -16,17 +16,17 @@ A Listbox over a literal-union `Plan` type:
 
 ## Make a typed Block {#make-block-factory}
 
-A call to `Listbox.makeBlock<Plan>()` returns a completed Block whose entry points are all bound to `Plan`. Its view accepts `items: ReadonlyArray<Plan>`. Its update and public `requestSelectItem` operation can return a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope and use the same Block at every site that needs it. Construction is passive. The Block's `init` creates each occurrence's initial Model and Commands.
+A call to `Listbox.makeBlock<Plan>()` returns a passive Block contract bound to `Plan`. Its view inputs accept `items: ReadonlyArray<Plan>`, and its transitions can emit a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope, bind that value in the parent, and provide `Listbox.layer` to the parent's construction Layer. Building that Layer acquires the child implementation; the parent's init later creates each occurrence's Model and Commands. The public declaration has no callable `init`, `update`, or `view`.
 
 There is no inbound inform operation for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is no child Model field to update. When an external value changes the selection, the parent writes its own field. Components that store parent-provided configuration provide child operations instead: Calendar and DatePicker provide `informMinDateChanged`, `informMaxDateChanged`, `informDisabledDatesChanged`, and `informDisabledDaysOfWeekChanged`; Slider provides `informRangeChange`. See [Informing a child about external state](/core/block#informing-external-state).
 
 ## Naming What a Factory Returns {#completed-type}
 
-Each component subpath exports a `Completed` type for what its factory returns. `Completed<Plan>` from `@foldkit/ui/listbox` is what `Listbox.makeBlock<Plan>()` produces. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup subpaths expose their corresponding `Completed` types.
+Each component subpath exports a `Completed` type for the passive contract its factory returns. The name does not mean an acquired executable: `Completed<Plan>` from `@foldkit/ui/listbox` describes `Listbox.makeBlock<Plan>()`. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup subpaths expose their corresponding `Completed` types.
 
-### When to Name the Completed Block
+### When to Name the Returned Contract {#when-to-name-the-completed-block}
 
-Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for `Completed` when a created Block has to be named instead. For example, a config object may hold a `Completed<City>` imported from `@foldkit/ui/combobox`, or a view helper may accept `Completed<Plan>` from `@foldkit/ui/listbox` because it receives the completed Block rather than calling the factory itself.
+Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for `Completed` when a returned contract needs a type name. For example, a config object may hold a `Completed<City>` imported from `@foldkit/ui/combobox`, or an authoring helper may accept `Completed<Plan>` from `@foldkit/ui/listbox` instead of calling the factory itself.
 
 ### Declaration Output
 
@@ -48,11 +48,11 @@ That split is why the Listbox Model can stay generic-free (no `Listbox.Model<Ite
 
 Without the factory, separately generic view and update functions could be instantiated with different item types at the same call site. The selected item could arrive in the OutMessage as one type while update treated it as another, and TypeScript would have no shared value through which to enforce the relationship.
 
-The factory closes that hole by setting `Item` once. The completed Block’s `view`, `update`, operations, Message, and OutMessage are bound to the same `Item` because they all come from the same factory call.
+The factory closes that hole by setting `Item` once in the public contract. Parent Bindings preserve that relationship across view inputs, transitions, operations and OutMessages when they acquire the implementation from its Layer. The declaration supplies the Schemas and authoring helpers; the acquired executable supplies callable init, update and view functions.
 
 ### The Schema Boundary
 
-Combobox builds its Message, OutMessage, view, and update from the supplied Item Schema, so it needs no erased generic cast at the factory boundary. The Schema also lets the parent Definition validate the child Message and OutMessage contracts when it creates a Binding.
+Combobox builds its Message, OutMessage, view, and update from the supplied Item Schema, so it needs no erased generic cast at the factory boundary. The Schema also lets the parent Block validate the child Message and OutMessage contracts when it creates a Binding.
 
 ## The Factories {#factories}
 

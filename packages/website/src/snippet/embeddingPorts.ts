@@ -1,7 +1,7 @@
 import { Effect, Schema } from 'effect'
 import { Port, Program } from 'foldkit'
 
-import { ApplicationBlock, Flags } from './application'
+import { ApplicationBlock, Flags, layer } from './application'
 import { ApplicationLayer } from './services'
 
 // Each Port carries a Schema. The host works with the Schema's Encoded
@@ -16,6 +16,7 @@ export const ports = {
 export const createElement = (container: HTMLElement, flags: Flags) =>
   Program.makeElement({
     block: ApplicationBlock,
+    layer,
     Flags,
     flags: Effect.succeed(flags),
     ports,

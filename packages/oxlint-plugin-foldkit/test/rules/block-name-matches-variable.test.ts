@@ -21,6 +21,35 @@ const callMethod = (object: unknown, methodName: string) => ({
 })
 
 describe('block-name-matches-variable', () => {
+  it('requires the public Block suffix for a unified declaration', () => {
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'SearchDefinition',
+        Testing.callOfMember('Block', 'make', [Testing.strLiteral('Search')]),
+      ),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain(
+      '"SearchDefinition" must be "SearchBlock"',
+    )
+  })
+
+  it('allows a unified declaration named after the public Block', () => {
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'SearchBlock',
+        Testing.callOfMember('Block', 'make', [Testing.strLiteral('Search')]),
+      ),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
   it('flags a declaration identifier that does not match the Block name', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,

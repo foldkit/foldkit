@@ -9,12 +9,12 @@ import {
   scene,
 } from 'foldkit/scene'
 
-import { ApplicationBlock } from './application'
-import { TreeRowBlock } from './treeRow'
+import { ApplicationBlock, layer } from './application'
+import { TreeRowBlock, layer as TreeRowLayer } from './treeRow'
 
 await Effect.runPromise(
   scene(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(initialModel),
     click(role('button', { name: 'Log out' })),
     expectOutMessage(OutMessage.RequestedLogout()),
@@ -25,7 +25,7 @@ await Effect.runPromise(
 
 await Effect.runPromise(
   scene(
-    TreeRowBlock,
+    { block: TreeRowBlock, layer: TreeRowLayer },
     given(initialModel),
     click(role('button', { name: 'Expand' })),
     expectOutMessages(

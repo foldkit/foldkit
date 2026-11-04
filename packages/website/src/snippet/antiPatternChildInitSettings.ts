@@ -24,9 +24,9 @@ export type OutMessage = typeof OutMessage.Type
 export const Model = Schema.Struct({ theme: Theme })
 export type Model = typeof Model.Type
 
-const SettingsKey = Symbol('Settings')
+export const SettingsKey = Symbol('Settings')
 
-export const SettingsDefinition = Block.makeDefinition('Settings', {
+export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   Init: Schema.Tuple([]),
   inMessageOutputs: {
@@ -44,9 +44,8 @@ export const SettingsDefinition = Block.makeDefinition('Settings', {
 import { modifyFields } from 'foldkit/struct'
 
 import { EffectsLayer, RefreshAvailableThemes } from './command'
-import { Message, Model, OutMessage, SettingsDefinition } from './definition'
 
-const SettingsComposition = SettingsDefinition.makeComposition()
+const SettingsComposition = SettingsBlock.makeComposition()
 
 export const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'Light' }),
@@ -64,9 +63,7 @@ export const inMessageUpdate = SettingsComposition.makeInMessageUpdate({
   }),
 })
 
-export const block = SettingsDefinition.contract
-
-export const layer = SettingsDefinition.makeBlock(
+export const layer = SettingsBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -76,4 +73,4 @@ export const layer = SettingsDefinition.makeBlock(
       EffectsLayer,
     }
   }),
-).layer
+)

@@ -1,4 +1,4 @@
-import { Effect, Result } from 'effect'
+import { Result } from 'effect'
 import { Query } from 'foldkit/experimental'
 import {
   Command,
@@ -11,7 +11,7 @@ import {
 import { postsQuery } from './queryDefine'
 
 export const loadPosts = story(
-  postsQuery,
+  { block: postsQuery, layer: Query.layer },
   init(),
   inMessage(postsQuery.InMessage.RequestedLoadIfMissing()),
   Command.resolve(
@@ -22,4 +22,4 @@ export const loadPosts = story(
     }),
   ),
   expectNoOutMessage(),
-).pipe(Effect.provide(Query.layer))
+)

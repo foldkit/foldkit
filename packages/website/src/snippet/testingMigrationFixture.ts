@@ -15,9 +15,9 @@ type PinsMessage = typeof PinsMessage.Type
 const PinsInMessage = defineMessageUnion({ RequestedReadPins: {} })
 type PinsInMessage = typeof PinsInMessage.Type
 
-const PinsKey = Symbol('Pins')
+export const PinsKey = Symbol('Pins')
 
-const PinsDefinition = Block.makeDefinition('Pins', {
+export const PinsBlock = Block.make('Pins', {
   key: PinsKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -27,14 +27,14 @@ const PinsDefinition = Block.makeDefinition('Pins', {
   InMessage: PinsInMessage,
 })
 
-export const ReadPins = PinsDefinition.makeCommand('ReadPins', {
+export const ReadPins = PinsBlock.makeCommand('ReadPins', {
   messages: [PinsMessage.CompletedReadPins],
   handler: function* () {
     return () => Effect.succeed(PinsMessage.CompletedReadPins({ count: 0 }))
   },
 })
 
-export const pinsSubscriptions = PinsDefinition.makeSubscriptions(entry => ({
+export const pinsSubscriptions = PinsBlock.makeSubscriptions(entry => ({
   observations: entry('Observations', {
     messages: [PinsMessage.ObservedPins],
     handler: function* () {
@@ -43,10 +43,9 @@ export const pinsSubscriptions = PinsDefinition.makeSubscriptions(entry => ({
   }),
 }))
 
-const PinsComposition = PinsDefinition.makeComposition()
-export const PinsBlock = PinsDefinition.contract
+const PinsComposition = PinsBlock.makeComposition()
 
-export const PinsImplementation = PinsDefinition.makeBlock(
+export const PinsLayer = PinsBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -74,28 +73,26 @@ export const PinsImplementation = PinsDefinition.makeBlock(
   }),
 )
 
-export const layer = PinsImplementation.layer
-
 const Model = Schema.Struct({ pins: PinsBlock.Model })
 type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({ RequestedRefreshPins: {} })
 export type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
   Model,
   Message,
 })
-const PinsBinding = ApplicationDefinition.makeBinding(PinsBlock, {
+const PinsBinding = ApplicationBlock.makeBinding(PinsBlock, {
   field: 'pins',
 })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
+export const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [PinsBinding],
 })
 export const init = ApplicationComposition.makeInit(() => ({ model: {} }))
@@ -110,7 +107,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const pins = yield* PinsBinding
 
@@ -121,4 +118,4 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       view,
     }
   }),
-).provide(layer)
+).pipe(Layer.provide(PinsLayer))

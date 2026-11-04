@@ -12,7 +12,7 @@ Event attributes complete the loop. They produce Messages for the runtime to dis
 
 In the [restaurant analogy](/core/architecture#the-restaurant-analogy), view is the meal on the table. The Model records the current facts; view presents them.
 
-The Counter's named `ApplicationComposition` supplies the primary view builder, so the view's Model, Message, child, and Mount capabilities come from the same Composition that assembles `ApplicationBlock`. This excerpt remains in the compact Counter's `application.ts` after the Application and Composition declarations.
+The Counter's named `ApplicationComposition` supplies the primary view builder, so the view's Model, Message, child, and Mount capabilities come from the same Composition used by the Block’s implementation Layer. This excerpt remains in the compact Counter's `application.ts` after the Application and Composition declarations.
 
 ::Snippet{name="counterView" label="Using view"}
 
@@ -89,13 +89,21 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block Composition's `makeView` supplies one for its child view.
 
-The Composition’s builder carries the local Mount and child Binding capabilities. `Definition.makeBlock` checks those authored views against the acquired child graph. The public contract hides the implementation graph. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+The Composition’s builder carries the local Mount and child Binding capabilities. `FeatureBlock.makeLayer` checks those authored views against the acquired child graph. The public contract hides the implementation graph. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
 
 #### Element Builder Arity
 
 Element builders that accept children take attributes first and optional children second. Omit the children argument when there are no children: `h.div([h.Class('divider')])`. Attributes remain required, so `h.div([])` represents an element with neither attributes nor children. `h.keyed` follows the element's rule, with the key before the attributes and children. Void elements such as `h.img` and `h.br` accept attributes only. A textarea is not void, but `h.textarea` and `h.keyed('textarea')` also accept attributes only; set their live content with `h.Value`, never children or `h.InnerHTML`. The `foldkit/no-empty-children-array` [lint rule](/tooling/oxlint-plugin#no-empty-children-array) catches a trailing `[]` that carries no information.
 
-#### Builder Ownership
+##### Attribute collections
+
+`Attribute<Message, MountRequirements>` describes an element input. It includes local tagged attributes and published `ChildAttribute` values carrying their own dispatcher and Mount requirements. Narrow with `'_tag' in attribute` before inspecting a general input's discriminator.
+
+Use `TaggedAttribute<Message, MountRequirements>` for a producer that returns only raw attributes. `childAttributes` accepts those raw entries and attaches the current child boundary; a published group already carries its dispatcher. Call it inside the child's view when supplying the parent's `toView` inputs.
+
+::Snippet{name="attributeKinds" label="Raw and published attribute collections"}
+
+## Builder Ownership
 
 Application code cannot construct a builder. Author owned views through `Composition.makeView` or `makeView.withInputs`; completion checks the primary view against the declared contract. Let its `h` parameter infer. Author an alternate view through the same child Composition, then pass that view plan to the Binding's `embedView`. The selected child implementation supplies its executable graph; the alternate view cannot change that graph.
 
@@ -103,7 +111,7 @@ Ordinary feature-local helpers remain plain functions. After establishing `Featu
 
 When an extracted renderer's attribute contract needs that builder's Message type, derive it with `Html.MessageOf<FeatureViewBuilder>`. The local Message union alone excludes private child delivery. The helper preserves the builder's exact Message contract without importing the feature's completed implementation.
 
-The owner prefix identifies the specific Composition at a plain type import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because a completed value supplies the feature context, such as `SearchBlock.Model`. Give a helper only the other parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether the helper returns one `Html` value or an array.
+The owner prefix identifies the specific Composition at a plain type import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because the public Block declaration supplies the feature context, such as `SearchBlock.Model`. Give a helper only the other parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether the helper returns one `Html` value or an array.
 
 ::Snippet{name="featureViewHelpers" label="View helpers within a feature"}
 
@@ -125,7 +133,7 @@ The callback keeps the caller's scoped Binding capability. Omitting `DialogBindi
 
 ### Inert HTML
 
-At module scope, where no view builder exists, `foldkit/html` exports `inertHtml`. It is an `HtmlBuilder<never>`, so it can build elements and styling attributes but cannot express a Foldkit event handler. Its `Attribute<never>` values can be used with any Message type, which lets a library publish reusable, handler-free attribute bundles. Import it as `ih` to distinguish it from the live builder passed to view. Markup built with `ih` may still vary with runtime data; inert means that it cannot dispatch a Message. Inside a view, use the builder supplied to that view.
+At module scope, where no view builder exists, `foldkit/html` exports `inertHtml`. It is an `HtmlBuilder<never>`, so it can build elements and styling attributes but cannot express a Foldkit event handler. Its raw `TaggedAttribute<never>` values can be used with any Message type, which lets a library publish reusable, handler-free attribute bundles. Import it as `ih` to distinguish it from the live builder passed to view. Markup built with `ih` may still vary with runtime data; inert means that it cannot dispatch a Message. Inside a view, use the builder supplied to that view.
 
 Inert HTML is inert to Foldkit dispatch, not to the browser. A raw DOM attribute can still trigger browser behavior. The [crash view](/core/crash-view), for example, uses `h.Attribute('onclick', 'location.reload()')` because its `HtmlBuilder<never>` cannot dispatch into a stopped update loop.
 

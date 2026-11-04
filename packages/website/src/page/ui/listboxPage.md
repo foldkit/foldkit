@@ -117,7 +117,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Binding for the completed Block returned by `Listbox.makeBlock(Item)` or `Listbox.Multi.makeBlock(Item)`.
+Configuration passed to the Binding for the public contract returned by `Listbox.makeBlock<Item>()` or `Listbox.Multi.makeBlock<Item>()`.
 
 | Name          | Type                         | Default      | Description                                                                                                                                          |
 | ------------- | ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -160,7 +160,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the composed
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy. The same shape applies to the completed Block returned by `Listbox.Multi.makeBlock()`.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy. The same shape applies to the public contract returned by `Listbox.Multi.makeBlock()`.
 
 | Name       | Type               | Default | Description                                                                                                                                                                                                                                                                                                                                                                   |
 | ---------- | ------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

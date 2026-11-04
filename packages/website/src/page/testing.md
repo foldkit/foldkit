@@ -6,7 +6,7 @@ Story and Scene test two parts of a Foldkit application. Story calls update dire
 
 For Vitest, use `it.effect` from a compatible `@effect/vitest` release and return the Story or Scene Effect directly. The integration manages execution, scoped cleanup, and test services. Keep ordinary synchronous tests synchronous, and use `it.live` when an execution test deliberately needs the live environment. With plain Vitest, return or await `Effect.runPromise`; returning a Fiber from `Effect.runFork` does not make the test runner wait for completion.
 
-Pass the Block directly in ordinary behavior tests. Use `withBlock` when a fixture needs acquired operations, a modified initialized Model, private registrations, or a custom multi-view renderer. A typed Vitest fixture may retain a Promise bridge to hold acquisition open while its callback runs.
+Pass the Block and its Layer directly in ordinary behavior tests. Use `withBlock` when a fixture needs acquired operations, a modified initialized Model, private registrations, or a custom multi-view renderer. A typed Vitest fixture may retain a Promise bridge to hold acquisition open while its callback runs.
 
 ### Compare the Boundaries
 
@@ -47,7 +47,7 @@ Story can test a root update or a child update in isolation. Pass the chosen Blo
 
 ### Test at the Owning Level
 
-Scene can start at the root or a child Block. Pass required view inputs in `{ block, viewInputs }`; `expectOutMessage` checks a child’s OutMessage directly. Both Story and Scene return Effects that own graph acquisition and cleanup. Their steps remain synchronous and do not execute handlers.
+Scene can start at the root or a child Block. Pass required view inputs in `{ block, layer, viewInputs }`; `expectOutMessage` checks a child’s OutMessage directly. Both Story and Scene return Effects that own graph acquisition and cleanup. Their steps remain synchronous and do not execute handlers.
 
 Choose the level by ownership. Test a Block's rendering, interactions, Commands, and OutMessages at the Block. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
 
@@ -99,10 +99,10 @@ The scaffolded `tsconfig.json` includes `src/**/*`, which keeps `*.test.ts` file
 
 Stateful UI components expose their declared Schemas and operation contracts through a public Block. Provide the component’s `layer` for construction. Scoped Story and Scene tests acquire the executable init, update, and operations. Derive a named alias such as `type FooModel = typeof FooBlock.Model.Type` once, then use `FooModel` in annotations. Let the parent Binding and Composition initialize the child so its startup Commands are retained.
 
-Command and Mount Definitions intended for Story and Scene live under the component's `test` namespace. Resolve the original public Definition with a result Message from the completed Block.
+Command and Mount Definitions intended for Story and Scene live under the component's `test` namespace. Resolve the original public Definition with a result Message from the selected public Block contract.
 
-::Snippet{name="testingMigrationUiBefore" label="❌ UI component test before completed Blocks"}
+::Snippet{name="testingMigrationUiBefore" label="❌ UI component test with the legacy module API"}
 
-::Snippet{name="testingMigrationUiAfter" label="✅ UI component test with a completed Block"}
+::Snippet{name="testingMigrationUiAfter" label="✅ UI component test with a Block contract"}
 
 The [Block guide](/core/block) covers connected Steps, owner-specific builder aliases, and child initialization. The [Mount guide](/core/mount#mount-requirements-in-reusable-views) covers reusable mounted view helpers. Component pages document helpers that drain a component's whole pending lifecycle when one public operation is clearer than several individual resolvers.

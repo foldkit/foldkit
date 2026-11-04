@@ -5,16 +5,16 @@ import { Message } from './message'
 import { Model } from './model'
 import { Row } from './row'
 
-const TableKey = Symbol('Table')
+export const TableKey = Symbol('Table')
 
-const TableDefinition = Block.makeDefinition('Table', {
+const TableBlock = Block.make('Table', {
   key: TableKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-export const RowsBinding = TableDefinition.makeBinding(Row.RowBlock, {
+export const RowsBinding = TableBlock.makeBinding(Row.RowBlock, {
   field: 'rows',
   key: 'id',
 })

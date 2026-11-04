@@ -1,4 +1,4 @@
-import { Effect, Match, Option, Schema } from 'effect'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -42,9 +42,9 @@ const flags = Effect.gen(function* () {
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const DatePickerExampleKey = Symbol('DatePickerExample')
+export const DatePickerExampleKey = Symbol('DatePickerExample')
 
-const DatePickerExampleDefinition = Block.makeDefinition('DatePickerExample', {
+export const DatePickerExampleBlock = Block.make('DatePickerExample', {
   key: DatePickerExampleKey,
   Init: Schema.Tuple([Flags]),
   view: { kind: 'Element' },
@@ -53,7 +53,7 @@ const DatePickerExampleDefinition = Block.makeDefinition('DatePickerExample', {
   ChildInitContext: Flags,
 })
 
-const { makeFieldsStep, makeNoopStep } = DatePickerExampleDefinition
+const { makeFieldsStep, makeNoopStep } = DatePickerExampleBlock
 
 // At module scope, fold the OutMessage into your own Model. `SelectedDate`
 // carries the committed date. The popover has already closed by the time it
@@ -62,8 +62,8 @@ const { makeFieldsStep, makeNoopStep } = DatePickerExampleDefinition
 // `ChangedViewMonth` fires when calendar navigation shifts the visible month
 // without selecting a date. Each arm returns an Update.Step over the parent
 // Model, which already has the next DatePicker Model written back. Pass the
-// completed child Block so the parent Definition infers both contracts:
-const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
+// completed child Block so the parent Block infers both contracts:
+const foldDatePickerOutMessage = DatePickerExampleBlock.makeOutMessageFold(
   DatePickerBlock,
   {
     // The child has emitted `SelectedDate`. This is where the parent lifts
@@ -88,7 +88,7 @@ const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const DatePickerDemoBinding = DatePickerExampleDefinition.makeBinding(
+const DatePickerDemoBinding = DatePickerExampleBlock.makeBinding(
   DatePickerBlock,
   {
     field: 'datePickerDemo',
@@ -105,10 +105,9 @@ const DatePickerDemoBinding = DatePickerExampleDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldDatePickerOutMessage })
 
-const DatePickerExampleComposition =
-  DatePickerExampleDefinition.makeComposition({
-    bindings: [DatePickerDemoBinding],
-  })
+const DatePickerExampleComposition = DatePickerExampleBlock.makeComposition({
+  bindings: [DatePickerDemoBinding],
+})
 type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
   typeof DatePickerExampleComposition
 >
@@ -351,7 +350,7 @@ const view = DatePickerExampleComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = DatePickerExampleDefinition.makeBlock(
+export const layer = DatePickerExampleBlock.makeLayer(
   Effect.gen(function* () {
     const datePicker = yield* DatePickerDemoBinding
 
@@ -362,4 +361,4 @@ export const ApplicationBlock = DatePickerExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(DatePickerLayer)
+).pipe(Layer.provide(DatePickerLayer))

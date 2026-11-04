@@ -3,10 +3,11 @@ import { Program, Runtime } from 'foldkit'
 
 import * as Sentry from '@sentry/browser'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   crash: {
     report: ({ error, model, message }) => {
       Sentry.captureException(error, {

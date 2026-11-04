@@ -15,18 +15,18 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
+export const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
   gameClockTicks: entry('GameClockTicks', {
     messages: [Message.Ticked],
     when: model => model.isAutoCounting,

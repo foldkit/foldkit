@@ -46,17 +46,17 @@ const ChessEngineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
   }),
 )
 
-const ChessKey = Symbol('Chess')
+export const ChessKey = Symbol('Chess')
 
-const ChessDefinition = Block.makeDefinition('Chess', {
+const ChessBlock = Block.make('Chess', {
   key: ChessKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
-const Engine = ChessDefinition.makeResource<ChessEngine>()('ChessEngine')
+const Engine = ChessBlock.makeResource<ChessEngine>()('ChessEngine')
 
-const managedResources = ChessDefinition.makeManagedResources(entry => ({
+const managedResources = ChessBlock.makeManagedResources(entry => ({
   engine: entry('ManageEngine', Schema.Option(Schema.Null), {
     resource: Engine,
     modelToMaybeRequirements: model => Option.as(model.maybeAnalysisSlug, null),

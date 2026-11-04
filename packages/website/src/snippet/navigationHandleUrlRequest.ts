@@ -35,20 +35,20 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+const { makeFieldsStep, makeNoopStep } = ApplicationBlock
 
-const ApplicationComposition = ApplicationDefinition.makeComposition()
+const ApplicationComposition = ApplicationBlock.makeComposition()
 
-const NavigateInternal = ApplicationDefinition.makeCommand('NavigateInternal', {
+const NavigateInternal = ApplicationBlock.makeCommand('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -59,7 +59,7 @@ const NavigateInternal = ApplicationDefinition.makeCommand('NavigateInternal', {
   },
 })
 
-const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
+const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

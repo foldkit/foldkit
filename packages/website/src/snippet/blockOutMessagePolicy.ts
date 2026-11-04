@@ -1,13 +1,13 @@
-import { ApplicationDefinition, makeFieldsStep } from './blockProfileContract'
+import { ApplicationBlock, makeFieldsStep } from './blockProfileContract'
 import * as Settings from './blockSettings'
 
-export const SettingsBinding = ApplicationDefinition.makeBinding(
+export const SettingsBinding = ApplicationBlock.makeBinding(
   Settings.SettingsBlock,
   {
     field: 'settings',
   },
 ).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(Settings.SettingsBlock, {
+  fold: ApplicationBlock.makeOutMessageFold(Settings.SettingsBlock, {
     ChangedTheme: ({ theme }) =>
       makeFieldsStep(() => ({
         previewTheme: () => theme,

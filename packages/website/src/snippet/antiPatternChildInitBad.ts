@@ -1,38 +1,20 @@
-// ❌ Bad: manually initializing and restoring the child drops its Commands and
-// RestoredTheme OutMessage when the parent keeps only the child Model.
-
-import { Effect, Option } from 'effect'
+// ❌ A connected initializer is a recipe; taking its Model discards its channels.
+import { Option } from 'effect'
 
 import { ApplicationComposition, SettingsBinding } from './composition'
-import { ApplicationDefinition } from './definition'
-import * as Settings from './settings'
-import { update } from './update'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
-  Effect.gen(function* () {
-    const settingsConnection = yield* SettingsBinding
-    const settings = yield* Settings.block.get
+export const init = ApplicationComposition.makeInit((username, savedTheme) => {
+  const settingsInit = SettingsBinding.init({
+    args: [],
+    toParentModel: settings => ({
+      username,
+      settings,
+      maybeRestoredTheme: Option.none(),
+    }),
+  })
 
-    const init = ApplicationComposition.makeInit((username, savedTheme) => {
-      const settingsInit = settings.init()
-      const settingsRestore = settings.inMessageUpdate(
-        settingsInit.model,
-        Settings.InMessage.RequestedRestore({ theme: savedTheme }),
-      )
-
-      return {
-        model: {
-          username,
-          settings: settingsRestore.model,
-          maybeRestoredTheme: Option.none(),
-        },
-      }
-    })
-
-    return {
-      children: [settingsConnection],
-      init,
-      update,
-    }
-  }),
-).provide(Settings.layer)
+  return {
+    model: settingsInit.model,
+    steps: [SettingsBinding.requestRestore({ theme: savedTheme })],
+  }
+})

@@ -1,13 +1,13 @@
 import { Effect } from 'effect'
 // block.ts
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationBlock } from './definition'
 import { init } from './init'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -27,6 +27,9 @@ import { ApplicationBlock } from './block'
 
 export const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
   devTools: { dispatch: true },
 })
+
+export { ApplicationBlock } from './definition'

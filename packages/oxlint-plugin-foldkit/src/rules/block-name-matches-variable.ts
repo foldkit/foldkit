@@ -22,7 +22,7 @@ import {
 
 const isBlockFactoryCall = (
   node: ESTree.CallExpression,
-  factoryName: 'makeDefinition' | 'makeNamespace',
+  factoryName: 'make' | 'makeDefinition' | 'makeNamespace',
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
   if (references === undefined) {
@@ -41,7 +41,7 @@ const isBlockFactoryCall = (
 }
 
 type AuthoringStage = Readonly<{
-  stage: 'Namespace' | 'Definition' | 'Composition'
+  stage: 'Namespace' | 'Definition' | 'Block' | 'Composition'
   identity: string | undefined
 }>
 
@@ -54,12 +54,17 @@ const authoringStage = (
     return undefined
   }
 
+  const isBlock = isBlockFactoryCall(node, 'make', references)
   const isBlockNamespace = isBlockFactoryCall(node, 'makeNamespace', references)
   const isBlockDefinition = isBlockFactoryCall(
     node,
     'makeDefinition',
     references,
   )
+  if (isBlock) {
+    return { stage: 'Block', identity: firstStringArgument(node)?.value }
+  }
+
   if (isBlockNamespace || isBlockDefinition) {
     return {
       stage: isBlockNamespace ? 'Namespace' : 'Definition',
@@ -120,7 +125,9 @@ const authoringStage = (
 
   if (
     (methodName === 'makeDefinition' && precedingStage.stage !== 'Namespace') ||
-    (methodName === 'makeComposition' && precedingStage.stage !== 'Definition')
+    (methodName === 'makeComposition' &&
+      precedingStage.stage !== 'Definition' &&
+      precedingStage.stage !== 'Block')
   ) {
     return undefined
   }
@@ -131,12 +138,12 @@ const authoringStage = (
   }
 }
 
-/** Requires Block bindings to use their authoring stage suffix. */
+/** Requires public Blocks and native authoring values to use their role suffix. */
 export const blockNameMatchesVariable = Rule.define({
   name: 'block-name-matches-variable',
   meta: Rule.meta({
     type: 'suggestion',
-    description: 'Name Block bindings for their authoring stage.',
+    description: 'Name public Blocks and their authoring stages consistently.',
   }),
   create: function* () {
     const ctx = yield* RuleContext
@@ -171,10 +178,12 @@ export const blockNameMatchesVariable = Rule.define({
           return Effect.void
         }
 
+        const role = stage.stage === 'Block' ? 'Block' : `Block ${stage.stage}`
+
         return ctx.report(
           Diagnostic.make({
             node: node.id,
-            message: `Block ${stage.stage} identifier "${node.id.name}" must be "${expectedName}".`,
+            message: `${role} identifier "${node.id.name}" must be "${expectedName}".`,
           }),
         )
       },

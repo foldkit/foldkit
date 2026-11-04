@@ -20,9 +20,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ArticlePreviewKey = Symbol('ArticlePreview')
+export const ArticlePreviewKey = Symbol('ArticlePreview')
 
-const ArticlePreviewDefinition = Block.makeDefinition('ArticlePreview', {
+export const ArticlePreviewBlock = Block.make('ArticlePreview', {
   key: ArticlePreviewKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -30,7 +30,7 @@ const ArticlePreviewDefinition = Block.makeDefinition('ArticlePreview', {
   Message,
 })
 
-const ArticlePreviewComposition = ArticlePreviewDefinition.makeComposition()
+const ArticlePreviewComposition = ArticlePreviewBlock.makeComposition()
 
 // In your init function, start it closed:
 const init = ArticlePreviewComposition.makeInit(() => ({
@@ -119,7 +119,7 @@ const view = ArticlePreviewComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = ArticlePreviewDefinition.makeBlock(
+export const layer = ArticlePreviewBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

@@ -30,9 +30,9 @@ export class EditorStorage extends Context.Service<
 export const EditorStartup = Schema.Struct({ contents: Schema.String })
 export type EditorStartup = typeof EditorStartup.Type
 
-const EditorKey = Symbol('Editor')
+export const EditorKey = Symbol('Editor')
 
-const EditorDefinition = Block.makeDefinition('Editor', {
+export const EditorBlock = Block.make('Editor', {
   key: EditorKey,
   Model,
   Message,
@@ -41,10 +41,10 @@ const EditorDefinition = Block.makeDefinition('Editor', {
   effects: { services: [EditorStorage] },
 })
 
-const { makeFieldsStep } = EditorDefinition
-const EditorComposition = EditorDefinition.makeComposition()
+const { makeFieldsStep } = EditorBlock
+const EditorComposition = EditorBlock.makeComposition()
 
-export const SaveDocument = EditorDefinition.makeCommand('SaveDocument', {
+export const SaveDocument = EditorBlock.makeCommand('SaveDocument', {
   args: { contents: Schema.String },
   messages: [Message.SucceededSaveDocument, Message.FailedSaveDocument],
   handler: function* () {
@@ -87,7 +87,7 @@ const view = EditorComposition.makeView((model, h) =>
   ),
 )
 
-export const EditorBlock = EditorDefinition.makeBlock(
+export const layer = EditorBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

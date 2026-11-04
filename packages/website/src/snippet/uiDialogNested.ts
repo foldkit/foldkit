@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -23,9 +23,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ProjectDialogsKey = Symbol('ProjectDialogs')
+export const ProjectDialogsKey = Symbol('ProjectDialogs')
 
-const ProjectDialogsDefinition = Block.makeDefinition('ProjectDialogs', {
+export const ProjectDialogsBlock = Block.make('ProjectDialogs', {
   key: ProjectDialogsKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -33,9 +33,9 @@ const ProjectDialogsDefinition = Block.makeDefinition('ProjectDialogs', {
   Message,
 })
 
-const { makeNoopStep } = ProjectDialogsDefinition
+const { makeNoopStep } = ProjectDialogsBlock
 
-const foldConfirmDialogOutMessage = ProjectDialogsDefinition.makeOutMessageFold(
+const foldConfirmDialogOutMessage = ProjectDialogsBlock.makeOutMessageFold(
   DialogBlock,
   {
     Opened: makeNoopStep,
@@ -44,20 +44,17 @@ const foldConfirmDialogOutMessage = ProjectDialogsDefinition.makeOutMessageFold(
   },
 )
 
-const SettingsDialogBinding = ProjectDialogsDefinition.makeBinding(
-  DialogBlock,
-  {
-    field: 'settingsDialog',
-    init: { contextToArgs: () => [{ id: 'settings' }] },
-  },
-).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
+const SettingsDialogBinding = ProjectDialogsBlock.makeBinding(DialogBlock, {
+  field: 'settingsDialog',
+  init: { contextToArgs: () => [{ id: 'settings' }] },
+}).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
-const ConfirmDialogBinding = ProjectDialogsDefinition.makeBinding(DialogBlock, {
+const ConfirmDialogBinding = ProjectDialogsBlock.makeBinding(DialogBlock, {
   field: 'confirmDialog',
   init: { contextToArgs: () => [{ id: 'confirm-delete' }] },
 }).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
-const ProjectDialogsComposition = ProjectDialogsDefinition.makeComposition({
+const ProjectDialogsComposition = ProjectDialogsBlock.makeComposition({
   bindings: [SettingsDialogBinding, ConfirmDialogBinding],
 })
 
@@ -159,7 +156,7 @@ const view = ProjectDialogsComposition.makeView((model, h) => {
   return h.div([], [settingsDialogViewNode, confirmDialogViewNode])
 })
 
-export const ApplicationBlock = ProjectDialogsDefinition.makeBlock(
+export const layer = ProjectDialogsBlock.makeLayer(
   Effect.gen(function* () {
     const settingsDialog = yield* SettingsDialogBinding
     const confirmDialog = yield* ConfirmDialogBinding
@@ -171,4 +168,4 @@ export const ApplicationBlock = ProjectDialogsDefinition.makeBlock(
       view,
     }
   }),
-).provide(DialogLayer)
+).pipe(Layer.provide(DialogLayer))

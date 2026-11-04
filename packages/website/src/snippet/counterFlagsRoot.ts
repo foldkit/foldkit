@@ -14,9 +14,9 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({ ClickedIncrement: {} })
 export type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Flags]),
   view: { kind: 'Document' },
@@ -24,7 +24,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 export const init = ApplicationComposition.makeInit(flags => ({
   model: Model.make({

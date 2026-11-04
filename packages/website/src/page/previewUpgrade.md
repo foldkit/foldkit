@@ -6,9 +6,9 @@ This guide covers upgrades from the Block previews listed below to the candidate
 
 | Installed canary source suffix                    | Upgrade path                                                                                                                                                                        |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `90746b32d2ca`                                    | [Upgrade from 90746b32d2ca](#upgrade-from-90746b32d2ca). Keep the Block APIs and upgrade Effect together with its platform packages.                                                |
-| `f3be22cfeefe`                                    | [Upgrade from f3be22cfeefe](#upgrade-from-f3be22cfeefe). Keep the existing Block assembly and update APIs.                                                                          |
-| `1f6776fa7ece`                                    | [Upgrade from 1f6776fa7ece](#upgrade-from-1f6776fa7ece). The preparation, assembly, and Program APIs already match.                                                                 |
+| `90746b32d2ca`                                    | [Upgrade from 90746b32d2ca](#upgrade-from-90746b32d2ca). Adopt the Block declaration and ordinary implementation Layer below, then upgrade Effect and its platform packages.        |
+| `f3be22cfeefe`                                    | [Upgrade from f3be22cfeefe](#upgrade-from-f3be22cfeefe). Adopt the Block declaration and ordinary implementation Layer below.                                                       |
+| `1f6776fa7ece`                                    | [Upgrade from 1f6776fa7ece](#upgrade-from-1f6776fa7ece). Replace preparation and assembly with the Block declaration and ordinary implementation Layer below.                       |
 | `1fbeaffe6563`                                    | [Upgrade from 1fbeaffe6563](#upgrade-from-1fbeaffe6563).                                                                                                                            |
 | `c701daa80af1`, `396b19976386`, or `bfd880b1e6ca` | Follow the complete guide, including the application boundary, Step composition, and UI call-site changes. These three snapshots share the same application API for this migration. |
 
@@ -56,20 +56,20 @@ After updating manifests and the lockfile, run `npm ci` to verify that the lockf
 
 This candidate establishes each public Block contract before its implementation. Keep your Model, Message, child relationships, and transition behavior while changing completion:
 
-1. Add a stable module-level unique `key` and `Init` tuple to each Definition. Declare Context, view inputs, operation channels, and ordinary handler Services there when needed.
-2. Export `Definition.contract` as the public child Block. Parent Schemas and Bindings use that value.
-3. Replace the preparation producer and assembly annotation with `Definition.makeBlock(Effect.gen(function* () { ... }))`. Yield each policy-selected Binding and return the acquired connections as `children`, alongside the portable builders and local lifecycle and handler declarations. A leaf returns `children: []`.
-4. Export the implementation `layer`. Supply child implementation Layers through `.provide(...)` or ordinary Layer composition.
-5. Use Block-aware `story` and `scene` tests. Each returns a scoped Effect; start with `init(...args)` or `given(model)`. Use `withBlock` for fixtures that need direct pure functions.
-6. Check emitted declarations and a relocated consumer when publishing a package. Ordinary application exports no longer need `FromAssembly*` annotations.
+1. Declare each concrete feature once as `FooBlock = Block.make(...)`. Retain its stable unique `key`, Model, Message, Init tuple, Context, view, operation, and effect contracts.
+2. Use that same `FooBlock` for local helpers and parent authorship. Remove a separate Definition and its `.contract` projection. Parent Schemas and Bindings use `FooBlock` directly.
+3. Complete the implementation with `layer = FooBlock.makeLayer(Effect.gen(function* () { ... }))`. Yield each registered Binding and return the acquired connections as `children`, alongside the portable builders and local lifecycle and handler declarations. A leaf returns `children: []`.
+4. Provide child implementations through ordinary Layer composition: `.pipe(Layer.provide(Child.layer))`.
+5. Pass `{ block: ApplicationBlock, layer }` to Program and Server. Use the same pair for normal `story` and `scene` tests, followed by `init(...args)` or `given(model)`. Use `withBlock` only for fixtures needing direct pure functions.
+6. Check emitted declarations and a relocated consumer when publishing a package. Ordinary application exports need no `FromAssembly*` annotations.
 
 ::Snippet{name="blockFeatureExports" label="Contract-first Block completion"}
 
 The constructor builds the executable graph. Initialization remains deferred, state stays in the Model, and ordinary request Services stay in Command handler constructors. See [Block](/core/block) and [Project Organization](/patterns/project-organization) for the complete layout.
 
-Keep canonical local handlers in the implementation's `EffectsLayer`. An attached handler normally receives host-selected HTTP, storage, or transport Services. When the integrator owns specific handler implementations, the constructor can instead return their original definitions under `hostHandlers`. The resulting implementation descriptor remains pending until `provideHandlers(layer)` selects providers for every listed definition, using those definitions' `toLayer` methods. Provider Services and constructor errors must fit the Definition's declared effects contract. Selection remains passive.
+Keep canonical local handlers in the implementation's `EffectsLayer`. An attached handler normally receives host-selected HTTP, storage, or transport Services. When the integrator owns specific handler implementations, the constructor can instead return their original definitions under `hostHandlers`. Select providers for every listed definition with `layer.pipe(FeatureBlock.provideHandlers(HandlersLayer))`, using those definitions' `toLayer` methods. Provider Services and constructor errors must fit the Block's declared effects contract. Selection remains passive.
 
-The passive public child contract does not expose the implementation's private handler inventory. Its selected implementation descriptor owns handler selection. Query and other generic family APIs can also expose a checked host-handler selector. See [host implementations](/core/layers#host-implementations-for-reusable-features).
+The passive public child contract does not expose the implementation's private handler inventory. Apply handler selection to its ordinary construction Layer with the Block's `provideHandlers` helper. Query and other generic family APIs can also expose a checked host-handler selector. See [host implementations](/core/layers#host-implementations-for-reusable-features).
 
 ## Create standard child-array occurrences
 
@@ -81,21 +81,21 @@ This addition covers standard string-keyed top-level arrays. Keep existing initi
 
 ### Rename a conflicting family member
 
-`Instance` is now a reserved Block member. If a generic family factory supplies a convenience named `Instance` through `Block.makeFamilyContract`'s `members` record, rename that convenience and update its callers. It cannot replace the ready Instance Schema. Both TypeScript and runtime validation reject the conflicting member, including JavaScript callers with erased types. See [Generic Blocks](/core/block#generic-blocks).
+`Instance` is now a reserved Block member. If an advanced generic library factory supplies a convenience named `Instance` through `BlockFamily.resolveFamily`'s `members` record, rename that convenience and update its callers. The resolver belongs to Foldkit’s internal library-authoring entry; ordinary application Blocks need no family machinery. It cannot replace the ready Instance Schema. Both TypeScript and runtime validation reject the conflicting member, including JavaScript callers with erased types. See [Generic Blocks](/core/block#generic-blocks).
 
 ## Upgrade from 90746b32d2ca
 
-The source snapshot is `90746b32d2ca8bc0476de7a051ace396ca590ae0`. It already includes the current Block, Machine, Query, and UI factory APIs. Keep those APIs and upgrade Effect and its platform packages to the supported 4.1 minor together. Follow [Effect compatibility](#effect-compatibility), including the UUID service migration and dependency-graph checks.
+The source snapshot is `90746b32d2ca8bc0476de7a051ace396ca590ae0`. It includes the earlier Block construction API and the Machine, Query, and UI factory changes. Adopt the Block declaration and ordinary construction Layer described above, and upgrade Effect and its platform packages to the supported 4.1 minor together. Follow [Effect compatibility](#effect-compatibility), including the UUID service migration and dependency-graph checks.
 
 ## Upgrade from f3be22cfeefe
 
 The source snapshot is `f3be22cfeefed437164ad614d08b16d9000e0703`. It already includes checked `Block.assemble(prepare)` exports, record-only `makeUpdate`, focused Step producer callbacks, and aggregate ManagedResource Layers. Keep the existing child graph and follow [Layer-based construction](#adopt-layer-based-block-construction) for the target completion API.
 
-After installing one coherent target, replace standalone `makeMapBinding` calls with the [parent Definition method](#move-map-bindings-to-their-parent-definition). The `foldkit/mapBinding` import is removed. Applications without map Bindings need no API migration for this change.
+After installing one coherent target, replace standalone `makeMapBinding` calls with the [parent Block method](#move-map-bindings-to-their-parent-block). The `foldkit/mapBinding` import is removed. Applications without map Bindings need no API migration for this change.
 
 For retained children stored directly in Record or HashMap fields, optionally use [makeInitIfMissingStep](/core/init-and-flags#dynamic-storage-helpers) to preserve an existing child or initialize a missing one with its Commands. [Route.parsePathWithFallback](/core/routing-and-navigation#parse-relative-paths) is also available for decoding origin-relative paths; it does not require changing existing Routes.
 
-The optional [makeStep.fromMessage](/core/block#featuredefinitionmakestep) adapter lets a Message-only producer select or compose Steps without an unused Model parameter. Inline handler records infer the Message payload; extracted producers need an exact variant annotation. Step validation also checks every possible result branch, so an invalid Model or result channel cannot be hidden beside a valid branch.
+The optional [makeStep.fromMessage](/core/block#featureblockmakestep) adapter lets a Message-only producer select or compose Steps without an unused Model parameter. Inline handler records infer the Message payload; extracted producers need an exact variant annotation. Step validation also checks every possible result branch, so an invalid Model or result channel cannot be hidden beside a valid branch.
 
 Run [the upgrade checks](#verify-the-upgrade), including public declaration output where applicable. The older snapshot sections below describe migrations already present in `f3be22cfeefe`.
 
@@ -129,17 +129,17 @@ Scene follows renderer element identity when tracking Mount lifetimes. A replace
 
 Subscription entries can declare a Model-based `when` gate. Scene adds explicit activity assertions; queued-event delivery stays supported. See [Subscriptions](/core/subscriptions) and [Scene testing](/testing/scene) for the contracts. Handler constructors still run at Runtime startup and retain their Service requirements and errors, even behind a closed Stream gate.
 
-SSR development reloads recreate Block Definitions together with their declarations. Server entries that own long-lived resources can register an HMR disposal callback. See [server entry cleanup](/core/server-rendering#releasing-resources-when-the-server-entry-reloads) for setup and reload limits.
+SSR development reloads recreate Block declarations with their implementation Layers. Server entries that own long-lived resources can register an HMR disposal callback. See [server entry cleanup](/core/server-rendering#releasing-resources-when-the-server-entry-reloads) for setup and reload limits.
 
 ### UI Block factories
 
 Rename `create` to `makeBlock` on Listbox, Combobox, Menu, RadioGroup, Tabs, and VirtualList, including the Listbox and Combobox Multi variants. Rename `Toast.make` to `Toast.makeBlock` too. Type parameters and Schema arguments stay the same; the old factory names have no compatibility aliases.
 
-Each factory returns a checked completed Block. Declare it once at module scope, then bind that value into its parent. Calling the factory does not initialize an occurrence or start effects; the Block's `init` produces its initial Model and Commands. See [Selection Blocks](/ui/selection-blocks#make-block-factory), [Toast](/ui/toast), and [VirtualList](/ui/virtual-list) for current usage.
+Each factory returns a passive public Block contract. Declare it once at module scope, bind that value in the parent, and provide the component's implementation Layer to the parent's construction Layer. Calling the factory does not initialize an occurrence or start effects. After graph acquisition, parent init calls the child's initializer and retains its Model and Commands. See [Selection Blocks](/ui/selection-blocks#make-block-factory), [Toast](/ui/toast), and [VirtualList](/ui/virtual-list) for current usage.
 
 ### Machine authoring
 
-The experimental [Machine API](/core/machine) now binds State, Message, and optional Context Schemas once with `Machine.makeDefinition`. Author inline transitions through its bound helpers, use `makeGuard`, `makeHandler`, and `makeTransitions` for extracted logic, and complete the checked table with `Definition.makeMachine`. This brings Machine authoring into the same vocabulary as Block Definitions, with exact source-state and Message narrowing and preserved Command requirements.
+The experimental [Machine API](/core/machine) now binds State, Message, and optional Context Schemas once with `Machine.makeDefinition`. Author inline transitions through its bound helpers, use `makeGuard`, `makeHandler`, and `makeTransitions` for extracted logic, and complete the checked table with `Definition.makeMachine`. This brings Machine authoring into the same authoring vocabulary as Blocks, with exact source-state and Message narrowing and preserved Command requirements.
 
 Replace the previous curried `Machine.define` and standalone authoring helpers with the Definition methods. Pure execution, folding, and graph analysis remain available. Machine's authoring changes are part of testing API consistency during the Blocks + Effect Layers preview.
 
@@ -158,12 +158,12 @@ The source snapshot is `1f6776fa7ececa766188df5201eefec6ba781b5d`. It already us
 
 After installing one coherent target:
 
-1. Replace every collection argument to `Definition.makeCommandsStep` with the [callback form](#pass-a-callback-to-makecommandsstep). The collection overload is removed.
+1. Replace every collection argument to `FeatureBlock.makeCommandsStep` with the [callback form](#pass-a-callback-to-makecommandsstep). The collection overload is removed.
 2. Convert callback-authored updates to exhaustive [handler records](#preserve-update-handler-contracts). Use `makeUpdate({})` without local Messages and `makeUpdate.withContext` for dispatch context. The callback overload is removed.
-3. Preserve connected result channels. A single handler mixing connected Binding recipes with raw local results must use Definition-owned Steps for those local branches. Keep the complete result of an OutMessage-producing operation instead of composing it where that OutMessage would be discarded.
-4. Replace value-taking `Definition.makeOutMessageStep` calls with a [producer callback](#use-focused-step-producers). The value overload is removed. The field, Command, and OutMessage helpers now share Model-aware, Message-aware, and `.fromMessage` forms.
+3. Preserve connected result channels. A single handler mixing connected Binding recipes with raw local results must use Block-owned Steps for those local branches. Keep the complete result of an OutMessage-producing operation instead of composing it where that OutMessage would be discarded.
+4. Replace value-taking `FeatureBlock.makeOutMessageStep` calls with a [producer callback](#use-focused-step-producers). The value overload is removed. The field, Command, and OutMessage helpers now share Model-aware, Message-aware, and `.fromMessage` forms.
 5. Rename any ManagedResource registry entry key named `layer`; that key now holds the aggregate handler Layer. A fully attached owned registry exposes [managedResources.layer](/core/managed-resources); mixed or host-owned registries use explicit entry providers.
-6. If the application uses DragAndDrop, add `StartedKeyboardDrag` and `ChangedKeyboardTarget` to exhaustive OutMessage policies. These report keyboard pickup and the proposed target; handle them in parent policy or use the owning Definition's no-op fold handler when no reaction is needed. Custom keyboard-move handlers and manually constructed `CompletedResolveKeyboardMove` Messages must echo the invocation's `keyboardDragGeneration`. The public Story helper derives that generation from the selected pending Command. The [DragAndDrop guide](/ui/drag-and-drop) shows the current contract.
+6. If the application uses DragAndDrop, add `StartedKeyboardDrag` and `ChangedKeyboardTarget` to exhaustive OutMessage policies. These report keyboard pickup and the proposed target; handle them in parent policy or use the owning Block's no-op fold handler when no reaction is needed. Custom keyboard-move handlers and manually constructed `CompletedResolveKeyboardMove` Messages must echo the invocation's `keyboardDragGeneration`. The public Story helper derives that generation from the selected pending Command. The [DragAndDrop guide](/ui/drag-and-drop) shows the current contract.
 7. Check keyed Command cancellation policies. `toKey` now receives only the own fields selected by `keyFields` on both invocation and interruption. It cannot read unrelated invocation args. Preserve precise selected fields in extracted `Command.InterruptOption<Args, Key>` annotations; broad policies must handle uncertain fields as optional. Narrow policy unions before construction. See [keyed interruption](/core/commands#choosing-an-interruption-key).
 8. Run [the upgrade checks](#verify-the-upgrade), including tests and public declaration output where applicable.
 
@@ -176,7 +176,7 @@ Reciprocal Binding policies now resolve converging paths without repeatedly expa
 The following additions are optional:
 
 - Paths stored in query parameters can use [Route.parsePathWithFallback](/core/routing-and-navigation#parse-relative-paths). Decode return locations through the query Schema and store typed Routes in the Model; application selectors can then use those values directly.
-- Schema-backed Record and HashMap child fields can use [ParentDefinition.makeMapBinding](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing standalone calls need the [map Binding migration](#move-map-bindings-to-their-parent-definition). General keyed Bindings remain supported for custom relationships.
+- Schema-backed Record and HashMap child fields can use [ParentBlock.makeMapBinding](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing standalone calls need the [map Binding migration](#move-map-bindings-to-their-parent-block). General keyed Bindings remain supported for custom relationships.
 - A closed, fully attached ManagedResource registry supplies its handler recipes through [managedResources.layer](/core/managed-resources), matching Subscriptions. Empty registries supply `Layer.empty`; mixed attached/host-owned registries require explicit provider selection.
 - Story and Scene helpers can inspect captured Command arguments through [Command.argsOf](/testing/story#inspect-captured-command-arguments), matching the original Definition's source identity without changing the pending Command or selecting an occurrence.
 - Parent Stories can wrap a child fact with [Story.messageFrom](/testing#send-a-child-fact-without-a-view), using the exact Binding without view setup or fabricated envelope fields. Existing Command and Subscription replay paths remain appropriate for their respective sources.
@@ -192,12 +192,12 @@ The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root alre
 
 - Child policies use `withOutMessagePolicy`.
 - Animation content uses `toView`.
-- Toast tests use the completed Block's helper.
+- Toast tests use the selected public Block's helper.
 - Step composition uses `Update.combineSteps`.
 
 After installing one coherent target, make the changes used by your application:
 
-1. Declare the independent public contract, complete the implementation through `Definition.makeBlock`, and supply its child implementation Layers. Remove the old preparation producer and assembly annotation.
+1. Declare the independent public contract, complete the implementation through `FeatureBlock.makeLayer`, and supply its child implementation Layers. Remove the old preparation producer and assembly annotation.
 2. Apply the [Definition and Namespace factory renames](#rename-definition-authoring-factories). The old names have no compatibility aliases.
 3. Convert existing `makeCommandsStep` collection arguments to the [required callback form](#pass-a-callback-to-makecommandsstep).
 4. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
@@ -226,21 +226,21 @@ This section applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
 ### Complete an ordinary root Block
 
-Declare the root's unique key, Init, Model, Message, and view contract in `ApplicationDefinition`. Complete it with `ApplicationDefinition.makeBlock`, yielding registered child Bindings and returning their connections under `children`. Provide the child implementation Layers and export that checked descriptor as `ApplicationBlock`.
+Declare the root's unique key, Init, Model, Message, and view contract in `ApplicationBlock`. Complete it with `ApplicationBlock.makeLayer`, yielding registered child Bindings and returning their connections under `children`. Export the returned ordinary `layer` and provide child implementations with `Layer.provide`. Program and Server receive `{ block: ApplicationBlock, layer }`.
 
 ::Snippet{name="blockFeatureExports" label="Independent contract and checked implementation"}
 
-Use a Document view for `Program.make` and an Element view for `Program.makeElement`. Importing the checked descriptor does not construct its graph or run init.
+Use a Document view for `Program.make` and an Element view for `Program.makeElement`. Importing the Block declaration or Layer does not construct its graph or run init.
 
 ### Create the browser Program
 
-Create the browser host in `entry.ts`. Use `Program.make` for a page-owning application or `Program.makeElement` for an application scoped to its container. Pass `ApplicationBlock`, the container, Flags, routing, DevTools, and other browser host options there. Supply ordinary Services with `program.provide(ApplicationLayer)` before starting the Runtime.
+Create the browser host in `entry.ts`. Use `Program.make` for a page-owning application or `Program.makeElement` for an application scoped to its container. Pass `block: ApplicationBlock` and its construction `layer`, alongside the container, Flags, routing, DevTools and other browser host options. Supply ordinary Services with `program.provide(ApplicationLayer)` before starting the Runtime.
 
 `Program.make` needs a `Document` view; `Program.makeElement` needs `Html`. Give a host-created container a unique, nonempty `id` before passing it to the Program constructor. See [the Runtime guide](/core/runtime) for the view and Flags differences.
 
 ::Snippet{name="applicationEntryPoint" label="Starting the browser Program"}
 
-Replace `devTools: { Message: ApplicationBlock.Message }` with `devTools: { dispatch: true }` when an external MCP client should discover and dispatch Messages. Program derives the dispatch Codec from the completed root Block, including generated child envelopes. Omitting `devTools` keeps development inspection enabled with external dispatch disabled. `devTools: false` disables the DevTools store, overlay, and browser bridge.
+Replace `devTools: { Message: ApplicationBlock.Message }` with `devTools: { dispatch: true }` when an external MCP client should discover and dispatch Messages. Program derives the dispatch Codec from the acquired root executable, including generated child envelopes. Omitting `devTools` keeps development inspection enabled with external dispatch disabled. `devTools: false` disables the DevTools store, overlay, and browser bridge.
 
 Remove annotations and imports that use the old loose root types from `Runtime`:
 
@@ -250,42 +250,42 @@ Remove annotations and imports that use the old loose root types from `Runtime`:
 - `ApplicationInit`, `RoutingApplicationInit`, and `ElementInit`
 - `MakeRuntimeReturn`
 
-Root behavior types now come from the completed Block and its Composition. Use `Program.Program`, `Program.Element`, or `Program.Runnable` when a public signature needs to describe a browser host value. Server rendering has separate host configuration types and keeps them.
+The Block declaration supplies public contracts, Composition supplies portable builders, and the acquired executable supplies callable behavior. Use `Program.Program`, `Program.Element`, or `Program.Runnable` when a public signature needs to describe a browser host value. Server rendering has separate host configuration types and keeps them.
 
-Declare a same-named decoded type immediately below each Schema, with no blank line, and use that alias in explicit value annotations. For example, put `type Model = typeof Model.Type` on the next line after the Model Schema, then annotate with `Model`. Keep `typeof Model` in checked assembly headers because those helpers take the Schema type. Across a child boundary, derive a named alias from the completed Block, such as `type ChildModel = typeof ChildBlock.Model.Type`. Let Definition and Composition callbacks infer their owned parameters. See [Schema and type organization](/patterns/project-organization#file-layout).
+Declare a same-named decoded type immediately below each Schema, with no blank line, and use that alias in explicit value annotations. For example, put `type Model = typeof Model.Type` on the next line after the Model Schema, then annotate with `Model`. Use `typeof Model` when a helper needs the Schema type; ordinary app exports need no assembly header. Across a child boundary, derive a named alias from the public Block declaration, such as `type ChildModel = typeof ChildBlock.Model.Type`. Let Block-owned helpers and Composition callbacks infer their owned parameters. See [Schema and type organization](/patterns/project-organization#file-layout).
 
 Canonical routing Messages can be passed directly when their payloads are `{ request }` and `{ url }`. Keep a callback when the application maps either value into a different payload.
 
-### Pass the completed Block to the server
+### Pass the Block and Layer to the server {#pass-the-completed-block-to-the-server}
 
-`Server.renderToString` now receives the same `ApplicationBlock` as the browser Program. Its second argument contains server host declarations such as `Flags` and `routing`. Its third argument contains request inputs such as `flags` and `url`. Remove `init`, `update`, `view`, lifecycle declarations, and handler recipes from the server call because the completed Block already carries them.
+`Server.renderToString` receives `{ block: ApplicationBlock, layer }`, selecting the same contract and construction Layer as the browser Program. Its second argument contains server host declarations such as `Flags` and `routing`. Its third argument contains request inputs such as `flags` and `url`. Keep init, update, view, lifecycle declarations and handler recipes in the implementation returned by `makeLayer`; the server acquires that graph before running init and view.
 
-::Snippet{name="serverRenderingBlockServerEntry" label="Rendering the completed root Block"}
+::Snippet{name="serverRenderingBlockServerEntry" label="Rendering the root Block and Layer"}
 
-## Move Map Bindings to Their Parent Definition
+## Move Map Bindings to Their Parent Block
 
-Remove the standalone `makeMapBinding` import from `foldkit/mapBinding`. Call the parent Definition's `makeMapBinding` method with the child Block and existing config. The parent Definition is no longer a positional argument. The standalone subpath is removed.
+Remove the standalone `makeMapBinding` import from `foldkit/mapBinding`. Call the parent Block's `makeMapBinding` method with the child Block and existing config. The parent Block is no longer a positional argument. The standalone subpath is removed.
 
 For a split feature, destructure and export `makeMapBinding` from its `definition.ts`, then import that factory from the feature module. Its parent contracts remain attached when destructured. Keep the existing Binding registration, key Schema, storage, OutMessage policy, and initialization. See [map Bindings](/core/block#keyed-map-fields) for the current calls.
 
 ## Rename Definition Authoring Factories
 
-Definition-owned factories now use the same `make*` naming as `makeInit`, `makeUpdate`, and `makeView`. Replace each removed name:
+Block-owned factories now use the same `make*` naming as `makeInit`, `makeUpdate`, and `makeView`. Replace each removed name:
 
-| Previous preview                   | Current API                            |
-| ---------------------------------- | -------------------------------------- |
-| `Definition.command(...)`          | `Definition.makeCommand(...)`          |
-| `Definition.mount(...)`            | `Definition.makeMount(...)`            |
-| `Definition.mountStream(...)`      | `Definition.makeMountStream(...)`      |
-| `Definition.resource(...)`         | `Definition.makeResource(...)`         |
-| `Definition.subscriptions(...)`    | `Definition.makeSubscriptions(...)`    |
-| `Definition.managedResources(...)` | `Definition.makeManagedResources(...)` |
-| `Definition.bindChild(...)`        | `Definition.makeBinding(...)`          |
-| `Definition.step(...)`             | `Definition.makeStep(...)`             |
-| `Definition.stepFields(...)`       | `Definition.makeFieldsStep(...)`       |
-| `Definition.stepNoop()`            | `Definition.makeNoopStep()`            |
+| Previous preview                   | Current API                              |
+| ---------------------------------- | ---------------------------------------- |
+| `Definition.command(...)`          | `FeatureBlock.makeCommand(...)`          |
+| `Definition.mount(...)`            | `FeatureBlock.makeMount(...)`            |
+| `Definition.mountStream(...)`      | `FeatureBlock.makeMountStream(...)`      |
+| `Definition.resource(...)`         | `FeatureBlock.makeResource(...)`         |
+| `Definition.subscriptions(...)`    | `FeatureBlock.makeSubscriptions(...)`    |
+| `Definition.managedResources(...)` | `FeatureBlock.makeManagedResources(...)` |
+| `Definition.bindChild(...)`        | `FeatureBlock.makeBinding(...)`          |
+| `Definition.step(...)`             | `FeatureBlock.makeStep(...)`             |
+| `Definition.stepFields(...)`       | `FeatureBlock.makeFieldsStep(...)`       |
+| `Definition.stepNoop()`            | `FeatureBlock.makeNoopStep()`            |
 
-Apply the primitive factory renames to an early Namespace used by a generic Block factory as well. `Definition.makeCommandsStep(...)` retains its name but now requires the [callback argument below](#pass-a-callback-to-makecommandsstep). Keep completion fields such as `subscriptions` and `managedResources`, completed Block metadata, and standalone Command and Update APIs unchanged. The removed factory names have no compatibility aliases.
+Apply the primitive factory renames to an early Namespace used by a generic Block factory as well. `FeatureBlock.makeCommandsStep(...)` retains its name but now requires the [callback argument below](#pass-a-callback-to-makecommandsstep). Keep completion fields such as `subscriptions` and `managedResources`, public Block metadata, and standalone Command and Update APIs unchanged. The removed factory names have no compatibility aliases.
 
 ## Rename Step Composition
 
@@ -295,9 +295,9 @@ Replace `Update.combine` with `Update.combineSteps` in both data-first and data-
 
 ## Pass a Callback to makeCommandsStep
 
-Existing `Definition.makeCommandsStep(commands)` calls must become `Definition.makeCommandsStep(() => commands)`. The collection overload has been removed. For an inline collection, move the array expression inside the callback, as in `Definition.makeCommandsStep(() => [FocusField()])`.
+Existing `FeatureBlock.makeCommandsStep(commands)` calls must become `FeatureBlock.makeCommandsStep(() => commands)`. The collection overload has been removed. For an inline collection, move the array expression inside the callback, as in `FeatureBlock.makeCommandsStep(() => [FocusField()])`.
 
-When Command arguments depend on the Model, read them inside `Definition.makeCommandsStep(model => commands)`. The callback receives the contextually typed current Model when the Step is applied, including changes from a preceding Step. Construction defers the callback, and application returns the same Model object with its Commands. Neither stage executes Effects; the Runtime executes the Commands.
+When Command arguments depend on the Model, read them inside `FeatureBlock.makeCommandsStep(model => commands)`. The callback receives the contextually typed current Model when the Step is applied, including changes from a preceding Step. Construction defers the callback, and application returns the same Model object with its Commands. Neither stage executes Effects; the Runtime executes the Commands.
 
 ::Snippet{name="blockCommandsStep" label="Producing Commands from the current Model"}
 
@@ -307,11 +307,11 @@ Converting existing calls is required. Adopting this helper where ordinary updat
 
 Use the exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record for local facts. It contextually types the Model and exact Message payload, checks every handler, and retains per-Message Commands and OutMessages for public operations. A selected silent operation can participate in `Update.combineSteps`; an emitting operation cannot lose its OutMessage there. Required dispatch context uses `makeUpdate.withContext(context => handlers)`.
 
-The callback-taking overload is removed. Convert every callback-authored update to an exhaustive handler record; use `makeUpdate({})` for message-free and routed-only Compositions. A handler receives `(model, message)`. Name an extracted single-Message handler `handle<MessageTag>` and pass compatible handlers or Steps directly. Keep callbacks when they adapt payloads, derive inputs, or supply contextual inference. Name application-authored Step values and factories for their operation, such as `clearSearch` and `changeSearchQuery(query)`, without a `make` prefix or `Step` suffix. Framework helpers and types, named OutMessage folds and matchers, and dedicated `handle<MessageTag>` handlers retain their established naming conventions. If one handler mixes connected Binding recipes with raw local result branches, use Definition-owned Steps for those local branches. Do not erase connected results through `.model`, a broad return annotation, or a cast.
+The callback-taking overload is removed. Convert every callback-authored update to an exhaustive handler record; use `makeUpdate({})` for message-free and routed-only Compositions. A handler receives `(model, message)`. Name an extracted single-Message handler `handle<MessageTag>` and pass compatible handlers or Steps directly. Keep callbacks when they adapt payloads, derive inputs, or supply contextual inference. Name application-authored Step values and factories for their operation, such as `clearSearch` and `changeSearchQuery(query)`, without a `make` prefix or `Step` suffix. Framework helpers and types, named OutMessage folds and matchers, and dedicated `handle<MessageTag>` handlers retain their established naming conventions. If one handler mixes connected Binding recipes with raw local result branches, use Block-owned Steps for those local branches. Do not erase connected results through `.model`, a broad return annotation, or a cast.
 
 ::Snippet{name="updateCanonicalLocalResults" label="Repairing mixed connected and local results"}
 
-The local no-op in a record can be `CompletedSave: Definition.makeNoopStep()`. The bare helper is a factory, not that Model-first handler. There is no need to name a no-op alias or wrap every normal handler with `makeStep`. [Update](/core/update) explains the forms and the context-factory adapter.
+The local no-op in a record can be `CompletedSave: FeatureBlock.makeNoopStep()`. The bare helper is a factory, not that Model-first handler. There is no need to name a no-op alias or wrap every normal handler with `makeStep`. [Update](/core/update) explains the forms and the context-factory adapter.
 
 ## Update UI Call Sites
 
@@ -329,11 +329,11 @@ Animation replaced its `content: Html` ViewInput with `toView: () => Html`. The 
 
 Keep a custom leave Command when settlement also watches another signal, such as trigger movement. Take its generation from `StartedLeaveAnimating`. A custom Command that returns `EndedAnimation` still uses the fold context's `liftCommand`; a parent-owned result Message can call `AnimationBinding.requestFinish(generation)`. See [Animation lifecycle coordination](/ui/animation#why) for both policies.
 
-### Select the completed Toast Block and Binding in tests
+### Select the Toast Contract and Binding in Tests {#select-the-completed-toast-block-and-binding-in-tests}
 
 This change applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
-The module-level `Toast.test` fixture is gone. Call `test.drainEntry` on the exact completed Block returned by `Toast.makeBlock`, and pass the exact Binding registered for that Block. A keyed Binding also needs its occurrence key.
+The module-level `Toast.test` fixture is gone. Call `test.drainEntry` on the exact public Block returned by `Toast.makeBlock`, and pass the exact Binding registered for that Block. A keyed Binding also needs its occurrence key.
 
 ::Snippet{name="uiToastDrainEntry" label="Selecting the Toast fixture and Binding"}
 
@@ -379,7 +379,7 @@ See the [official editor setup](https://github.com/oxc-project/tsrs/blob/467182f
 
 ## Keep Source Model Schemas Independent of Completion
 
-Parents use `ChildBlock.Model` from the independent public contract. Export `Definition.contract` before exposing the implementation Layer, and remove preparation producers and four-shape assembly annotations from ordinary application exports.
+Parents use `ChildBlock.Model` from the independent public contract. Declare `FeatureBlock` once with `Block.make`, export its implementation Layer, and remove preparation producers and four-shape assembly annotations from ordinary application exports.
 
 ::Snippet{name="parentSchemaGuardedModel" label="Parent Model through a public contract"}
 
@@ -394,15 +394,15 @@ Publish the contract, not an inferred descendant graph. Generic library interfac
 The checklist below applies to the older `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca` snapshots. For `1fbeaffe6563`, use [its direct upgrade path](#upgrade-from-1fbeaffe6563), then [verify the upgrade](#verify-the-upgrade). Search first, then change only the code the project contains:
 
 - Replace previous completion methods and preparation producers with the [declared contract and effectful constructor](#adopt-layer-based-block-construction).
-- Replace every removed Definition or Namespace factory name using the table above. Do not rename completion config fields, completed Block metadata, or standalone Command and Update APIs.
+- Replace every removed Definition or Namespace factory name using the table above. Do not rename completion config fields, public Block metadata, or standalone Command and Update APIs.
 - Convert each existing `makeCommandsStep(commands)` call to a callback. Construct Model-dependent Commands inside that callback so they read the Model at Step application time.
-- Replace remaining `makeApplicationDefinition`, `assembleApplication`, and `assembleElement` uses with the completed root Block and Program boundary above.
+- Replace remaining `makeApplicationDefinition`, `assembleApplication`, and `assembleElement` uses with the root Block/Layer pair and Program boundary above.
 - Update each server render whose first argument is an Application Composition or whose host config repeats `init`, `update`, or `view`.
 - Replace Animation `viewInputs.content` with a top-level `toView` renderer.
 - Replace `Animation.defaultLeaveCommand` and its Model read or `liftCommand` wiring with the bound `requestWaitForLeaveSettlement()` operation. Preserve custom leave Commands that also watch movement or another completion signal.
-- Replace module-level `Toast.test` calls with the completed Toast Block's fixture and exact Binding.
-- Move every child OutMessage policy out of the previous preview's `bindChild` config, rename that factory to `makeBinding`, and select the policy with `.withOutMessagePolicy({ fold?, forward? })`. Build every callable fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)`, including inline folds. The forwarding API is unchanged. Export and register the policy-complete `<Child>Binding`. Keep an unconfigured base internal when self-referential or reciprocal helpers need it to break a dependency cycle. No raw child matcher or return annotation is needed.
-- Run typechecking against every `makeInit` plan and connected Binding Step. An ordinary Step must return an update result. Preserve a deferred connected operation through the owning Definition's `makeStep`, and execute it only inside the Composition that registered its Binding. The stronger checks also retain Command requirements from combined initialization Steps.
+- Replace module-level `Toast.test` calls with the selected Toast contract's fixture and exact Binding.
+- Move every child OutMessage policy out of the previous preview's `bindChild` config, rename that factory to `makeBinding`, and select the policy with `.withOutMessagePolicy({ fold?, forward? })`. Build every callable fold with `ParentBlock.makeOutMessageFold(ChildBlock, handlers)`, including inline folds. The forwarding API is unchanged. Export and register the policy-complete `<Child>Binding`. Keep an unconfigured base internal when self-referential or reciprocal helpers need it to break a dependency cycle. No raw child matcher or return annotation is needed.
+- Run typechecking against every `makeInit` plan and connected Binding Step. An ordinary Step must return an update result. Preserve a deferred connected operation through the owning Block's `makeStep`, and execute it only inside the Composition that registered its Binding. The stronger checks also retain Command requirements from combined initialization Steps.
 - Keep callbacks at the top level of `viewInputs`. A callback nested in a record, array, tuple, union, or `Option` is rejected because its dispatch boundary is ambiguous. Return callback-bearing Html from a top-level renderer such as `toView` instead.
 
 ## Verify the Upgrade
@@ -438,8 +438,8 @@ When asking a coding agent to perform the migration, give it this page URL and t
 ## Troubleshooting
 
 - **An incomplete update reports a connected result with no `model`.** Check that every local Message tag has a handler before following the structural expansion. A missing Command completion can cause this cascade. The [Update troubleshooting guide](/core/update#checking-missing-handlers-before-structural-errors) explains the check without weakening result contracts.
-- **One handler mixes `{ model }` with a connected Binding recipe.** The diagnostic points at the handler and recommends `Definition.makeStep` or a focused Step helper for its local branch; ordinary raw-only handlers need no wrapper. See the [paired branch repair](/core/update#preserving-local-results-beside-connected-operations).
-- **An extracted Step cannot apply `combineSteps` to its Model.** Return the deferred `combineSteps(steps)` from the Definition-owned producer. The registered Composition applies it later; its own contextual handlers may use `combineSteps(model, steps)`. See [connected combinations](/core/update#child-bindings-and-multiple-steps).
+- **One handler mixes `{ model }` with a connected Binding recipe.** The diagnostic points at the handler and recommends `FeatureBlock.makeStep` or a focused Step helper for its local branch; ordinary raw-only handlers need no wrapper. See the [paired branch repair](/core/update#preserving-local-results-beside-connected-operations).
+- **An extracted Step cannot apply `combineSteps` to its Model.** Return the deferred `combineSteps(steps)` from the Block-owned producer. The registered Composition applies it later; its own contextual handlers may use `combineSteps(model, steps)`. See [connected combinations](/core/update#child-bindings-and-multiple-steps).
 - **The Program rejects `ApplicationBlock`.** Make sure the root has no OutMessage for a host to discard. Author its view through the same Composition used by its init and update builders; `Program.make` requires a `Document` view and `Program.makeElement` requires an Html view.
 - **Server init arguments do not match.** The presence of `Flags` and `routing` determines whether root init receives Flags, a URL, both, or neither. Keep request values in the third `renderToString` argument.
 - **A connected Step has no readable `model` or `commands`.** Return or compose the opaque result inside the registered Composition. Do not execute a Binding operation against a raw parent Model outside that graph.

@@ -2,7 +2,7 @@ import { Effect, Layer } from 'effect'
 import { Program } from 'foldkit'
 
 import { SettingsStore } from './blockDefinition'
-import { ApplicationBlock } from './blockProfile'
+import { ApplicationBlock, layer } from './blockProfile'
 
 const SettingsStoreTestLayer = Layer.succeed(SettingsStore, {
   saveTheme: () => Effect.void,
@@ -12,5 +12,6 @@ const SettingsStoreTestLayer = Layer.succeed(SettingsStore, {
 // the storage Service consumed by its Command handler constructor.
 export const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
 }).provide(SettingsStoreTestLayer)

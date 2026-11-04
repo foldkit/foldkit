@@ -1,7 +1,7 @@
 import { Effect, Layer, ManagedRuntime, Schedule } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import { readCountCookie } from './cookie'
 import { Flags } from './flags'
 
@@ -31,7 +31,7 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
   runtime.runPromise(
     Effect.gen(function* () {
       const renderedApplication = yield* Server.renderToString(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         { Flags },
         {
           flags: flagsForRequest(request),

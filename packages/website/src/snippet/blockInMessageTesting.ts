@@ -1,11 +1,15 @@
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 
-import { InMessage, OutMessage } from './blockInMessageDefinition'
-import { MessageComposerImplementation } from './blockInMessageImplementation'
+import {
+  InMessage,
+  MessageComposerBlock,
+  OutMessage,
+} from './blockInMessageDefinition'
+import { layer } from './blockInMessageImplementation'
 
 export const submissionStory = Story.story(
-  MessageComposerImplementation,
+  { block: MessageComposerBlock, layer },
   Story.init('message'),
   Story.inMessage(InMessage.InformedOfDraftChanged({ text: '  Hello  ' })),
   Story.inMessage(InMessage.RequestedSubmit()),
@@ -13,7 +17,7 @@ export const submissionStory = Story.story(
 )
 
 export const submissionScene = Scene.scene(
-  MessageComposerImplementation,
+  { block: MessageComposerBlock, layer },
   Scene.init('message'),
   Scene.type(Scene.label('Message'), '  Hello  '),
   Scene.inMessage(InMessage.RequestedSubmit()),

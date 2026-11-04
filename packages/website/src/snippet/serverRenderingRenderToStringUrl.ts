@@ -1,5 +1,5 @@
 Server.renderToString(
-  ApplicationBlock,
+  { block: ApplicationBlock, layer },
   { Flags, routing: {} },
   {
     url: request.url,

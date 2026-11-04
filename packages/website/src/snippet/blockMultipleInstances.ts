@@ -5,9 +5,9 @@ import { Applicant } from './applicant'
 import { Message } from './message'
 import { Model } from './model'
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -15,7 +15,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const ApplicantsBinding = ApplicationDefinition.makeBinding(
+export const ApplicantsBinding = ApplicationBlock.makeBinding(
   Applicant.ApplicantBlock,
   {
     field: 'applicants',
@@ -24,7 +24,7 @@ export const ApplicantsBinding = ApplicationDefinition.makeBinding(
   },
 )
 
-const ApplicationComposition = ApplicationDefinition.makeComposition({
+const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [ApplicantsBinding],
 })
 

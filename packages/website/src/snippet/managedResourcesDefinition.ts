@@ -1,5 +1,5 @@
 // resource.ts
-import { CameraDefinition } from './definition'
+import { CameraBlock } from './definition'
 
 export const CameraStream =
-  CameraDefinition.makeResource<MediaStream>()('CameraStream')
+  CameraBlock.makeResource<MediaStream>()('CameraStream')

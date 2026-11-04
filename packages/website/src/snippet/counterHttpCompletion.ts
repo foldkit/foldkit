@@ -1,8 +1,8 @@
 import { Effect } from 'effect'
 
 import {
+  ApplicationBlock,
   ApplicationComposition,
-  ApplicationDefinition,
   FetchCountLayer,
   update,
 } from './counterHttpCommand'
@@ -16,7 +16,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.p([], [model.count.toString()]),
 }))
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -27,3 +27,5 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
     }
   }),
 )
+
+export { ApplicationBlock } from './counterHttpCommand'

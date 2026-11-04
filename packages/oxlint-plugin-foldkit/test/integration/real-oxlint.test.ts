@@ -120,6 +120,24 @@ describe('real-oxlint rule fixtures', () => {
     })
   }
 
+  it.each([
+    ['block-name-matches-variable', 6],
+    ['no-binding-write-coordination', 3],
+    ['no-impure-call-at-decision-time', 5],
+    ['no-child-message-construction-in-root', 2],
+    ['no-direct-block-state-update', 1],
+    ['no-manual-composition-routing', 1],
+    ['no-empty-to-parent-out-message', 1],
+    ['no-empty-children-array', 2],
+  ])('recognizes unified Block authoring for %s', (rule, expectedCount) => {
+    const diagnostics = diagnosticsFor(rule, 'invalid').filter(diagnostic =>
+      diagnostic.filename.endsWith('/unified.ts'),
+    )
+
+    expect(diagnostics).toHaveLength(expectedCount)
+    expect(diagnosticsFor(rule, 'valid')).toEqual([])
+  })
+
   it('reports sibling coordination through proven Binding writers and aliases', () => {
     const diagnostics = diagnosticsFor(
       'no-binding-write-coordination',
@@ -136,6 +154,9 @@ describe('real-oxlint rule fixtures', () => {
       'map-namespace-method-alias.ts',
       'map-namespace-owner-alias.ts',
       'map-namespace-owner-destructured.ts',
+      'unified.ts',
+      'unified.ts',
+      'unified.ts',
     ])
     expect(
       diagnostics.every(diagnostic =>
@@ -174,7 +195,7 @@ describe('real-oxlint rule fixtures', () => {
 
   it('reports every direct decision-time operation in its invalid fixture', () => {
     expect(countDiagnostics('no-impure-call-at-decision-time', 'invalid')).toBe(
-      31,
+      36,
     )
   })
 
@@ -185,7 +206,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('traces direct, named, and automatically routed child updates', () => {
-    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(28)
+    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(29)
   })
 
   it('tracks HashMap child updates across direct, applied, and piped forms', () => {
@@ -240,7 +261,7 @@ describe('real-oxlint rule fixtures', () => {
 
   it('reports disabled, missing, and manual child routing', () => {
     expect(countDiagnostics('no-manual-composition-routing', 'invalid')).toBe(
-      18,
+      19,
     )
   })
 
@@ -258,6 +279,8 @@ describe('real-oxlint rule fixtures', () => {
       [
         'ApplicationComposition.Message.ClickedFromShadowedParameters',
         'Child.Message.ClickedAliasSave',
+        'Child.Message.ClickedUnifiedExtracted',
+        'Child.Message.ClickedUnifiedLocal',
         'Child.Message.ClickedBarrelSave',
         'Child.Message.ClickedDirectBarrelSave',
         'Child.Message.ClickedFromElementCompletion',
@@ -319,7 +342,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('resolves aliased constructors and helpers to their imported APIs', () => {
-    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(14)
+    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(20)
     expect(countDiagnostics('no-hardcoded-route-strings', 'invalid')).toBe(2)
     expect(countDiagnostics('keyed-required-for-mapped-rows', 'invalid')).toBe(
       3,
@@ -342,7 +365,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('recognizes explicit and contextual HtmlBuilder parameters', () => {
-    expect(countDiagnostics('no-empty-children-array', 'invalid')).toBe(8)
+    expect(countDiagnostics('no-empty-children-array', 'invalid')).toBe(10)
   })
 
   it('reports every invalid Mount handler', () => {

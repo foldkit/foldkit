@@ -94,13 +94,13 @@ describe('rendering templates', () => {
       'Runtime.hydrate',
     )
     expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
-      "ApplicationDefinition = Block.makeDefinition('Application', {",
+      "ApplicationBlock = Block.make('Application', {",
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
       'Program.make({',
     )
     expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
-      'ApplicationComposition = ApplicationDefinition.makeComposition()',
+      'ApplicationComposition = ApplicationBlock.makeComposition()',
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).not.toContain(
       '...implementation',
@@ -137,13 +137,13 @@ describe('rendering templates', () => {
       'Runtime.hydrate',
     )
     expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
-      "ApplicationDefinition = Block.makeDefinition('Application', {",
+      "ApplicationBlock = Block.make('Application', {",
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
       'Program.make({',
     )
     expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
-      'ApplicationComposition = ApplicationDefinition.makeComposition()',
+      'ApplicationComposition = ApplicationBlock.makeComposition()',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).not.toContain(
       '...implementation',

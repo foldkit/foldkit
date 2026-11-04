@@ -6,7 +6,7 @@ An accessible date picker that wraps `Calendar` in a `Popover`. Consumers provid
 
 ### State Ownership
 
-`DatePickerBlock` is a completed Block. Declare its startup arguments on the Binding, register that Binding in the parent Composition, and render it through `Binding.embedView`. The Composition update routes the generated child envelope through the Binding automatically.
+`DatePickerBlock` is the passive public contract; `DatePicker.layer` supplies its implementation. Declare its startup arguments on the Binding, register that Binding in the parent Composition, and render it through `Binding.embedView`. The Composition update routes the generated child envelope through the Binding automatically.
 
 The parent owns the selected date. Store it in the parent Model, pass it to the view as `maybeSelectedDate`, and handle `SelectedDate` and `ClearedDate` in the Binding's selected `fold` policy. DatePicker can also emit `ChangedViewMonth` when navigation changes the visible month.
 
@@ -89,7 +89,7 @@ Configuration passed to the DatePicker Binding's child initializer. Scoped tests
 
 ### Model
 
-The DatePicker Model. Store `DatePicker.DatePickerBlock.Model` on the parent Model; the registered Binding routes update and embeds the completed Block's view.
+The DatePicker Model. Store `DatePicker.DatePickerBlock.Model` on the parent Model; the registered Binding routes child updates and embeds the selected implementation's view.
 
 | Name       | Type                  | Default | Description                                                                                                                                                                                                   |
 | ---------- | --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

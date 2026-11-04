@@ -1,7 +1,7 @@
 import { ChildBlock } from './child'
-import { ApplicationDefinition, makeStep } from './definition'
+import { ApplicationBlock, makeStep } from './definition'
 
-const ChildBinding = ApplicationDefinition.makeBinding(ChildBlock, {
+const ChildBinding = ApplicationBlock.makeBinding(ChildBlock, {
   field: 'child',
 })
 

@@ -5,7 +5,11 @@ import { defineTaggedUnion } from 'foldkit/schema'
 
 const CreateState = defineTaggedUnion({ Idle: {}, Creating: {} })
 
-const CreateIssueDefinition = Block.makeDefinition('CreateIssue', {
+export const CreateIssueKey = Symbol('CreateIssue')
+
+const CreateIssueBlock = Block.make('CreateIssue', {
+  key: CreateIssueKey,
+  Init: Schema.Tuple([]),
   Model: Schema.Struct({
     projectId: Schema.String,
     createState: CreateState,
@@ -13,13 +17,13 @@ const CreateIssueDefinition = Block.makeDefinition('CreateIssue', {
   Message: Schema.Never,
 })
 
-export const updateProjectStep = (projectId: string) =>
-  CreateIssueDefinition.makeStep(model => {
+export const updateProject = (projectId: string) =>
+  CreateIssueBlock.makeStep(model => {
     if (model.createState._tag === 'Creating') {
-      return CreateIssueDefinition.makeNoopStep()(model)
+      return CreateIssueBlock.makeNoopStep()(model)
     }
 
-    return CreateIssueDefinition.makeFieldsStep(() => ({
+    return CreateIssueBlock.makeFieldsStep(() => ({
       projectId: () => projectId,
     }))(model)
   })

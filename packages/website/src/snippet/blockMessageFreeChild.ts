@@ -5,9 +5,9 @@ import { defineMessageUnion } from 'foldkit/message'
 const PreviewModel = Schema.Struct({ content: Schema.String })
 type PreviewModel = typeof PreviewModel.Type
 
-const PreviewKey = Symbol('Preview')
+export const PreviewKey = Symbol('Preview')
 
-const PreviewDefinition = Block.makeDefinition('Preview', {
+export const PreviewBlock = Block.make('Preview', {
   key: PreviewKey,
   Init: Schema.Tuple([]),
   isMessageFree: true,
@@ -16,13 +16,12 @@ const PreviewDefinition = Block.makeDefinition('Preview', {
   Message: Schema.Never,
 })
 
-const PreviewComposition = PreviewDefinition.makeComposition()
+const PreviewComposition = PreviewBlock.makeComposition()
 const previewInit = PreviewComposition.makeInit(() => ({
   model: PreviewModel.make({ content: '' }),
 }))
-const PreviewBlock = PreviewDefinition.contract
 
-const layer = PreviewDefinition.makeBlock(
+const layer = PreviewBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -30,7 +29,7 @@ const layer = PreviewDefinition.makeBlock(
       update: PreviewComposition.makeUpdate({}),
     }
   }),
-).layer
+)
 
 const PageModel = Schema.Struct({ preview: PreviewModel })
 type PageModel = typeof PageModel.Type
@@ -38,15 +37,15 @@ type PageModel = typeof PageModel.Type
 const PageMessage = defineMessageUnion({ ClickedPublish: {} })
 type PageMessage = typeof PageMessage.Type
 
-const PageKey = Symbol('Page')
+export const PageKey = Symbol('Page')
 
-const PageDefinition = Block.makeDefinition('Page', {
+const PageBlock = Block.make('Page', {
   key: PageKey,
   Init: Schema.Tuple([]),
   Model: PageModel,
   Message: PageMessage,
 })
 
-export const PreviewBinding = PageDefinition.makeBinding(PreviewBlock, {
+export const PreviewBinding = PageBlock.makeBinding(PreviewBlock, {
   field: 'preview',
 })

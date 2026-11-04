@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationBlock, Flags } from './application'
+import { ApplicationBlock, Flags, layer } from './application'
 import { readCountCookie } from './cookie'
 
 export const renderDocument = Server.renderDocument
@@ -34,7 +34,7 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
       }
 
       const renderedApplication = yield* Server.renderToString(
-        ApplicationBlock,
+        { block: ApplicationBlock, layer },
         { Flags },
         {
           flags: flagsForRequest(request.headers.get('cookie') ?? ''),

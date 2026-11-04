@@ -23,25 +23,20 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const MessageComposerKey = Symbol('MessageComposer')
+export const MessageComposerKey = Symbol('MessageComposer')
 
-export const MessageComposerDefinition = Block.makeDefinition(
-  'MessageComposer',
-  {
-    key: MessageComposerKey,
-    Model,
-    Message,
-    InMessage,
-    OutMessage,
-    Init: Schema.Tuple([Schema.String]),
-    view: { kind: 'Element' },
-    inMessageOutputs: {
-      RequestedSubmit: { outMessage: OutMessage.Submitted },
-    },
+export const MessageComposerBlock = Block.make('MessageComposer', {
+  key: MessageComposerKey,
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+  Init: Schema.Tuple([Schema.String]),
+  view: { kind: 'Element' },
+  inMessageOutputs: {
+    RequestedSubmit: { outMessage: OutMessage.Submitted },
   },
-)
+})
 
-export const MessageComposerBlock = MessageComposerDefinition.contract
-export const { makeFieldsStep, makeStep } = MessageComposerDefinition
-export const MessageComposerComposition =
-  MessageComposerDefinition.makeComposition()
+export const { makeFieldsStep, makeStep } = MessageComposerBlock
+export const MessageComposerComposition = MessageComposerBlock.makeComposition()

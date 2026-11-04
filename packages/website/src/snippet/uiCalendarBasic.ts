@@ -1,4 +1,4 @@
-import { Effect, Match, Option, Schema } from 'effect'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -39,9 +39,9 @@ const flags = Effect.gen(function* () {
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const CalendarExampleKey = Symbol('CalendarExample')
+export const CalendarExampleKey = Symbol('CalendarExample')
 
-const CalendarExampleDefinition = Block.makeDefinition('CalendarExample', {
+export const CalendarExampleBlock = Block.make('CalendarExample', {
   key: CalendarExampleKey,
   Init: Schema.Tuple([Flags]),
   view: { kind: 'Element' },
@@ -50,7 +50,7 @@ const CalendarExampleDefinition = Block.makeDefinition('CalendarExample', {
   ChildInitContext: Flags,
 })
 
-const { makeFieldsStep, makeNoopStep } = CalendarExampleDefinition
+const { makeFieldsStep, makeNoopStep } = CalendarExampleBlock
 
 // At module scope, fold the OutMessage into your own Model. When the user
 // commits a date (click, Enter, or Space) it carries `SelectedDate({ date })`.
@@ -58,7 +58,7 @@ const { makeFieldsStep, makeNoopStep } = CalendarExampleDefinition
 // selecting a date. Each arm returns an Update.Step over the parent Model,
 // which already has the next Calendar Model written back. The parent
 // Definition checks every named variant and infers the parent Step:
-const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
+const foldCalendarOutMessage = CalendarExampleBlock.makeOutMessageFold(
   CalendarBlock,
   {
     // The child has emitted `SelectedDate`. This is where the parent lifts
@@ -78,23 +78,20 @@ const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const CalendarDemoBinding = CalendarExampleDefinition.makeBinding(
-  CalendarBlock,
-  {
-    field: 'calendarDemo',
-    init: {
-      contextToArgs: flags => [
-        {
-          id: 'calendar-demo',
-          today: flags.today,
-          initialViewDate: flags.today,
-        },
-      ],
-    },
+const CalendarDemoBinding = CalendarExampleBlock.makeBinding(CalendarBlock, {
+  field: 'calendarDemo',
+  init: {
+    contextToArgs: flags => [
+      {
+        id: 'calendar-demo',
+        today: flags.today,
+        initialViewDate: flags.today,
+      },
+    ],
   },
-).withOutMessagePolicy({ fold: foldCalendarOutMessage })
+}).withOutMessagePolicy({ fold: foldCalendarOutMessage })
 
-const CalendarExampleComposition = CalendarExampleDefinition.makeComposition({
+const CalendarExampleComposition = CalendarExampleBlock.makeComposition({
   bindings: [CalendarDemoBinding],
 })
 type CalendarExampleViewBuilder = Block.ViewBuilderFor<
@@ -311,7 +308,7 @@ const view = CalendarExampleComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = CalendarExampleDefinition.makeBlock(
+export const layer = CalendarExampleBlock.makeLayer(
   Effect.gen(function* () {
     const calendar = yield* CalendarDemoBinding
 
@@ -322,4 +319,4 @@ export const ApplicationBlock = CalendarExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(CalendarLayer)
+).pipe(Layer.provide(CalendarLayer))

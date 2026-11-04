@@ -1,10 +1,10 @@
 import { Effect, Schema } from 'effect'
 
-import { PeopleDefinition } from './informingBlocksDefinition'
+import { PeopleBlock } from './informingBlocksDefinition'
 import { Message } from './informingBlocksMessage'
 import { PeopleDirectory } from './informingBlocksService'
 
-export const FetchPeople = PeopleDefinition.makeCommand('FetchPeople', {
+export const FetchPeople = PeopleBlock.makeCommand('FetchPeople', {
   args: { searchText: Schema.String },
   messages: [Message.CompletedFetchPeople],
   handler: function* () {

@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -26,9 +26,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const PlanPickerKey = Symbol('PlanPicker')
+export const PlanPickerKey = Symbol('PlanPicker')
 
-const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
+export const PlanPickerBlock = Block.make('PlanPicker', {
   key: PlanPickerKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -36,31 +36,28 @@ const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Message,
 })
 
-const { makeFieldsStep } = PlanPickerDefinition
+const { makeFieldsStep } = PlanPickerBlock
 
 // At module scope, fold the OutMessage into your own Model. When the user
 // commits a selection it carries `Selected({ value })` where `value: Plan`.
 // The arm returns an Update.Step over the parent Model, which already has the
 // next Listbox Model written back. Passing the completed child Block preserves
 // the factory's refined `Plan` payload without a repeated type argument:
-const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
-  PlanListbox,
-  {
-    Selected: ({ value }) =>
-      makeFieldsStep(() => ({
-        maybePlan: () => Option.some(value),
-      })),
-  },
-)
+const foldListboxOutMessage = PlanPickerBlock.makeOutMessageFold(PlanListbox, {
+  Selected: ({ value }) =>
+    makeFieldsStep(() => ({
+      maybePlan: () => Option.some(value),
+    })),
+})
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const ListboxBinding = PlanPickerDefinition.makeBinding(PlanListbox, {
+const ListboxBinding = PlanPickerBlock.makeBinding(PlanListbox, {
   field: 'listbox',
   init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
-const PlanPickerComposition = PlanPickerDefinition.makeComposition({
+const PlanPickerComposition = PlanPickerBlock.makeComposition({
   bindings: [ListboxBinding],
 })
 
@@ -122,7 +119,7 @@ const view = PlanPickerComposition.makeView((model, h) =>
   ),
 )
 
-export const ApplicationBlock = PlanPickerDefinition.makeBlock(
+export const layer = PlanPickerBlock.makeLayer(
   Effect.gen(function* () {
     const planListbox = yield* ListboxBinding
 
@@ -133,4 +130,4 @@ export const ApplicationBlock = PlanPickerDefinition.makeBlock(
       view,
     }
   }),
-).provide(ListboxLayer)
+).pipe(Layer.provide(ListboxLayer))

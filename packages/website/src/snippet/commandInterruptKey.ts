@@ -16,16 +16,16 @@ export type Message = typeof Message.Type
 const Model = Schema.Struct({})
 type Model = typeof Model.Type
 
-const UploadsKey = Symbol('Uploads')
+export const UploadsKey = Symbol('Uploads')
 
-const UploadsDefinition = Block.makeDefinition('Uploads', {
+const UploadsBlock = Block.make('Uploads', {
   key: UploadsKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-export const UploadFile = UploadsDefinition.makeCommand('UploadFile', {
+export const UploadFile = UploadsBlock.makeCommand('UploadFile', {
   args: {
     uploadId: Schema.Int,
     file: Schema.instanceOf(File),

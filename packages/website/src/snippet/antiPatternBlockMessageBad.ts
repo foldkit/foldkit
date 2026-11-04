@@ -2,7 +2,7 @@
 
 import { Message as SettingsMessage } from './settings/message'
 
-const SettingsBinding = ParentDefinition.makeBinding(Settings.block, {
+const SettingsBinding = ParentBlock.makeBinding(Settings.SettingsBlock, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
 })

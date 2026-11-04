@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -17,9 +17,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const AnimationExampleKey = Symbol('AnimationExample')
+export const AnimationExampleKey = Symbol('AnimationExample')
 
-const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
+export const AnimationExampleBlock = Block.make('AnimationExample', {
   key: AnimationExampleKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -27,19 +27,16 @@ const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
   Message,
 })
 
-const { makeNoopStep } = AnimationExampleDefinition
+const { makeNoopStep } = AnimationExampleBlock
 
 // Bind before defining the policy so its standard leave operation is available
 // inside the StartedLeaveAnimating branch.
-const BaseAnimationBinding = AnimationExampleDefinition.makeBinding(
-  AnimationBlock,
-  {
-    field: 'animation',
-    init: { contextToArgs: () => [{ id: 'content' }] },
-  },
-)
+const BaseAnimationBinding = AnimationExampleBlock.makeBinding(AnimationBlock, {
+  field: 'animation',
+  init: { contextToArgs: () => [{ id: 'content' }] },
+})
 
-const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
+const foldAnimationOutMessage = AnimationExampleBlock.makeOutMessageFold(
   AnimationBlock,
   {
     // The operation asks Animation to wait for its wrapper's CSS to settle.
@@ -61,7 +58,7 @@ const AnimationBinding = BaseAnimationBinding.withOutMessagePolicy({
   fold: foldAnimationOutMessage,
 })
 
-const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
+const AnimationExampleComposition = AnimationExampleBlock.makeComposition({
   bindings: [AnimationBinding],
 })
 
@@ -112,7 +109,7 @@ const view = AnimationExampleComposition.makeView((model, h) =>
   ),
 )
 
-export const ApplicationBlock = AnimationExampleDefinition.makeBlock(
+export const layer = AnimationExampleBlock.makeLayer(
   Effect.gen(function* () {
     const animation = yield* AnimationBinding
 
@@ -123,4 +120,4 @@ export const ApplicationBlock = AnimationExampleDefinition.makeBlock(
       view,
     }
   }),
-).provide(AnimationLayer)
+).pipe(Layer.provide(AnimationLayer))

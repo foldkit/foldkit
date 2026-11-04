@@ -1,4 +1,4 @@
-import { Effect, Number, Schema } from 'effect'
+import { Effect, Layer, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -20,9 +20,9 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   effects: { services: [SettingsStore] },
@@ -31,15 +31,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   OutMessage,
 })
 
-const { makeOutMessageStep } = ApplicationDefinition
+const { makeOutMessageStep } = ApplicationBlock
 
-export const SettingsBinding = ApplicationDefinition.makeBinding(
-  SettingsBlock,
-  {
-    field: 'settings',
-  },
-).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(SettingsBlock, {
+export const SettingsBinding = ApplicationBlock.makeBinding(SettingsBlock, {
+  field: 'settings',
+}).withOutMessagePolicy({
+  fold: ApplicationBlock.makeOutMessageFold(SettingsBlock, {
     ChangedTheme: ({ theme }) =>
       makeOutMessageStep(model =>
         OutMessage.ChangedTheme({
@@ -59,7 +56,7 @@ const changeTheme = (theme: Theme) => {
     )
 }
 
-const ApplicationComposition = ApplicationDefinition.makeComposition({
+const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [SettingsBinding],
 })
 
@@ -71,7 +68,7 @@ const init = ApplicationComposition.makeInit(() => ({
   model: { themeChangeCount: 3 },
 }))
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const settings = yield* SettingsBinding
 
@@ -81,4 +78,4 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       update,
     }
   }),
-).provide(SettingsLayer)
+).pipe(Layer.provide(SettingsLayer))

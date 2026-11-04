@@ -1,5 +1,6 @@
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationBlock } from './blockProfile'
+import { ApplicationBlock, layer } from './blockProfile'
 
-export const render = () => Server.renderToString(ApplicationBlock, {}, {})
+export const render = () =>
+  Server.renderToString({ block: ApplicationBlock, layer }, {}, {})

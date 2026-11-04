@@ -4,13 +4,13 @@ import { Scene } from 'foldkit'
 
 import {
   PinsBlock,
-  PinsImplementation,
+  PinsLayer,
   pinsSubscriptions,
 } from './testingMigrationFixture'
 
 await Effect.runPromise(
   Scene.scene(
-    PinsImplementation,
+    { block: PinsBlock, layer: PinsLayer },
     Scene.init(),
     Scene.Subscription.emit(
       pinsSubscriptions.observations,

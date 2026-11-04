@@ -867,7 +867,12 @@ const localDefinitionMessagePath = (
 
     const defineCall = definition.node.init
     const definePath = yield* staticMemberPath(defineCall.callee)
-    if (!Option.contains(Array.last(definePath.members), 'makeDefinition')) {
+    if (
+      !Option.exists(
+        Array.last(definePath.members),
+        method => method === 'makeDefinition' || method === 'make',
+      )
+    ) {
       return yield* Option.none()
     }
 

@@ -204,11 +204,11 @@ Manually copying the child Model from a helper result causes a separate problem.
 
 ::Snippet{name="antiPatternBlockResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
 
-Declare parent requests and notifications in the child's `InMessage` Schema and handle them with `Composition.makeInMessageUpdate`. The Definition generates Binding methods from those variants. The parent calls `binding.requestThemeChange(...)`, which returns a connected parent Update.Step and preserves the child's complete result. Apply it to the contextual Model inside the owning Composition. Keep explicit `operations` for existing positional, generic, or defaulting adapters.
+Declare parent requests and notifications in the child's `InMessage` Schema and handle them with `Composition.makeInMessageUpdate`. The Block generates Binding methods from those variants. The parent calls `binding.requestThemeChange(...)`, which returns a connected parent Update.Step and preserves the child's complete result. Apply it to the contextual Model inside the owning Composition. Keep explicit `operations` for existing positional, generic, or defaulting adapters.
 
 ::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A parent input preserves the child's transition boundary"}
 
-This excerpt focuses on the operation and its parent call. Complete the implementation with `Definition.makeBlock`, yielding the registered Binding and returning that connection under `children`. See [Block completion](/core/block#produce-the-completed-block) for the full constructor.
+This excerpt focuses on the operation and its parent call. Complete the implementation with `FeatureBlock.makeLayer`, yielding the registered Binding and returning that connection under `children`. See [Block completion](/core/block#construct-the-implementation) for the full constructor.
 
 The Binding writes the returned child Model into the parent, maps its Commands, and applies the required `fold` or `forward` selected through `withOutMessagePolicy`. The [Block guide](/core/block) explains child Messages and OutMessages. [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
 
@@ -220,9 +220,9 @@ A child's `init` can return a Model and Commands. Its generated `requestRestore`
 
 ::Snippet{name="antiPatternChildInitSettings" label="The restoration operation emits RestoredTheme" class="mb-4"}
 
-Copying the child Model from an update result can silently drop its Commands and OutMessage:
+A connected initializer retains the complete child transition. It exposes no `.model` field, so copying only the Model from that recipe is rejected:
 
-::Snippet{name="antiPatternChildInitBad" label="❌ Manual assembly loses an initialization OutMessage" class="mb-4"}
+::Snippet{name="antiPatternChildInitBad" label="❌ Extracting a Model discards the initialization recipe" class="mb-4"}
 
 Store Settings in a required direct field and omit `init`, then list the Binding-projected restoration Step in the Composition init plan. The Composition calls its zero-argument initializer, assembles the complete parent Model, and retains init Commands; the Binding maps restoration Commands and applies the exhaustive OutMessage policy declared at the composition boundary:
 

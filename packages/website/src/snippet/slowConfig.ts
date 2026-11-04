@@ -3,7 +3,7 @@ import { Program, Runtime } from 'foldkit'
 
 import * as Sentry from '@sentry/browser'
 
-import { ApplicationBlock } from './block'
+import { ApplicationBlock, layer } from './block'
 import type { Message } from './message'
 import type { Model } from './model'
 
@@ -30,6 +30,7 @@ const handleSlow = (context: Runtime.SlowContext<Model, Message>): void => {
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
   slow: {
     show: 'Always',

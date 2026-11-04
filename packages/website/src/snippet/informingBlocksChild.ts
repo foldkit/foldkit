@@ -2,10 +2,7 @@ import { Effect } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchPeople } from './informingBlocksCommand'
-import {
-  PeopleComposition,
-  PeopleDefinition,
-} from './informingBlocksDefinition'
+import { PeopleBlock, PeopleComposition } from './informingBlocksDefinition'
 import { init } from './informingBlocksInit'
 import {
   SearchResults,
@@ -36,9 +33,7 @@ export const inMessageUpdate = PeopleComposition.makeInMessageUpdate({
   },
 })
 
-export const PeopleBlock = PeopleDefinition.contract
-
-export const layer = PeopleDefinition.makeBlock(
+export const layer = PeopleBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],
@@ -48,4 +43,4 @@ export const layer = PeopleDefinition.makeBlock(
       EffectsLayer: FetchPeople.layer,
     }
   }),
-).layer
+)

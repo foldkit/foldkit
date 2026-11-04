@@ -1,11 +1,11 @@
 import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 it.effect('failed export shows error dialog that can be dismissed', () =>
   scene(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(createTestModel()),
     // Click Export PNG. The update function returns an ExportPng Command.
     click(role('button', { name: 'Export PNG' })),

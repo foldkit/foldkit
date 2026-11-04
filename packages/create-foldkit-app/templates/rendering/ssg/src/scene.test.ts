@@ -3,7 +3,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Model } from './application'
+import { ApplicationBlock, Model, layer } from './application'
 import { ApplicationRoute } from './route'
 
 const initialModel = Model.make({
@@ -14,7 +14,7 @@ const initialModel = Model.make({
 describe('view', () => {
   it.effect('renders the statically generated home page', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       expect(text('Statically generated home')).toExist(),
       expect(role('button', { name: 'Count: 0' })).toExist(),
@@ -23,7 +23,7 @@ describe('view', () => {
 
   it.effect('clicking the counter increments the count', () =>
     scene(
-      ApplicationBlock,
+      { block: ApplicationBlock, layer },
       given(initialModel),
       click(role('button', { name: 'Count: 0' })),
       expect(role('button', { name: 'Count: 1' })).toExist(),

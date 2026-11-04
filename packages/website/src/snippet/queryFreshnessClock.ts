@@ -1,4 +1,4 @@
-import { Clock, Effect, Schema } from 'effect'
+import { Clock, Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { Query } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
@@ -14,24 +14,24 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-const PostsBinding = ApplicationDefinition.makeBinding(postsQuery, {
+const PostsBinding = ApplicationBlock.makeBinding(postsQuery, {
   field: 'posts',
 })
 
-const ApplicationComposition = ApplicationDefinition.makeComposition({
+const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [PostsBinding],
 })
 
-const ReadCurrentTime = ApplicationDefinition.makeCommand('ReadCurrentTime', {
+const ReadCurrentTime = ApplicationBlock.makeCommand('ReadCurrentTime', {
   messages: [Message.CompletedReadCurrentTime],
   handler: function* () {
     return () =>
@@ -42,7 +42,7 @@ const ReadCurrentTime = ApplicationDefinition.makeCommand('ReadCurrentTime', {
 })
 
 const update = ApplicationComposition.makeUpdate({
-  EnteredPostsRoute: ApplicationDefinition.makeCommandsStep(() => [
+  EnteredPostsRoute: ApplicationBlock.makeCommandsStep(() => [
     ReadCurrentTime(),
   ]),
   CompletedReadCurrentTime: (model, { nowMillis }) =>
@@ -51,7 +51,7 @@ const update = ApplicationComposition.makeUpdate({
 
 const init = ApplicationComposition.makeInit(() => ({ model: {} }))
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const posts = yield* PostsBinding
 
@@ -62,4 +62,4 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       EffectsLayer: ReadCurrentTime.layer,
     }
   }),
-).provide(Query.layer)
+).pipe(Layer.provide(Query.layer))

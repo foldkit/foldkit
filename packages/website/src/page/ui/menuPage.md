@@ -10,7 +10,7 @@ Programmatic operations are exposed through the Binding. `requestOpen()` and `re
 
 What `Menu.makeBlock<Item>()` returns is typed [`Completed<Item>` from `@foldkit/ui/menu`](/ui/selection-blocks#completed-type), for the cases where a created Block has to be named rather than called directly.
 
-Use `Menu.makeBlock()` for plain strings. Connect the completed Block returned by `Menu.makeBlock<Item>()` when the item type is narrower.
+Use `Menu.makeBlock()` for plain strings. Bind the public contract returned by `Menu.makeBlock<Item>()` when the item type is narrower, and provide `Menu.layer` when constructing the parent.
 
 :::Info{label="See it in an app"}
 Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/menu.ts).
@@ -81,7 +81,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Binding for the completed Block returned by `Menu.makeBlock()`.
+Configuration passed to the Binding for the public contract returned by `Menu.makeBlock()`.
 
 | Name         | Type      | Default | Description                                                 |
 | ------------ | --------- | ------- | ----------------------------------------------------------- |

@@ -11,11 +11,11 @@ import {
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 it.effect('click load, resolve the fetch, see the profile', () =>
   scene(
-    ApplicationBlock,
+    { block: ApplicationBlock, layer },
     given(model),
     click(role('button', { name: 'Load user' })),
     expect(text('Loading…')).toExist(),

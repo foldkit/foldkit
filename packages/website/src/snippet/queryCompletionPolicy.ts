@@ -1,4 +1,4 @@
-import { Effect, Option, Result, Schema } from 'effect'
+import { Effect, Layer, Option, Result, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { Query } from 'foldkit/experimental'
 
@@ -10,9 +10,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
 
@@ -20,23 +20,23 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: Schema.Never,
 })
 
-const PostDetailsBinding = ApplicationDefinition.makeBinding(postQuery, {
+const PostDetailsBinding = ApplicationBlock.makeBinding(postQuery, {
   field: 'postDetails',
 }).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(postQuery, {
+  fold: ApplicationBlock.makeOutMessageFold(postQuery, {
     CompletedFetch: ({ args, result }) =>
       Result.isFailure(result)
-        ? ApplicationDefinition.makeFieldsStep(() => ({
+        ? ApplicationBlock.makeFieldsStep(() => ({
             maybeNotice: () =>
               Option.some(
                 `Could not load post ${args.postId}: ${result.failure}`,
               ),
           }))
-        : ApplicationDefinition.makeNoopStep(),
+        : ApplicationBlock.makeNoopStep(),
   }),
 })
 
-const ApplicationComposition = ApplicationDefinition.makeComposition({
+const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [PostDetailsBinding],
 })
 const init = ApplicationComposition.makeInit(() => ({
@@ -44,7 +44,7 @@ const init = ApplicationComposition.makeInit(() => ({
 }))
 const update = ApplicationComposition.makeUpdate({})
 
-export const ApplicationBlock = ApplicationDefinition.makeBlock(
+export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const postDetails = yield* PostDetailsBinding
 
@@ -54,4 +54,4 @@ export const ApplicationBlock = ApplicationDefinition.makeBlock(
       update,
     }
   }),
-).provide(Query.layer)
+).pipe(Layer.provide(Query.layer))

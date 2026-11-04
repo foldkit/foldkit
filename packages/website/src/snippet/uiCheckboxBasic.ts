@@ -21,9 +21,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const TermsFormKey = Symbol('TermsForm')
+export const TermsFormKey = Symbol('TermsForm')
 
-const TermsFormDefinition = Block.makeDefinition('TermsForm', {
+export const TermsFormBlock = Block.make('TermsForm', {
   key: TermsFormKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -31,7 +31,7 @@ const TermsFormDefinition = Block.makeDefinition('TermsForm', {
   Message,
 })
 
-const TermsFormComposition = TermsFormDefinition.makeComposition()
+const TermsFormComposition = TermsFormBlock.makeComposition()
 
 // In your init function, start it unchecked:
 const init = TermsFormComposition.makeInit(() => ({
@@ -88,7 +88,7 @@ const view = TermsFormComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = TermsFormDefinition.makeBlock(
+export const layer = TermsFormBlock.makeLayer(
   Effect.gen(function* () {
     return {
       children: [],

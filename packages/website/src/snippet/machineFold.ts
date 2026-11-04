@@ -11,16 +11,16 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-const ApplicationKey = Symbol('Application')
+export const ApplicationKey = Symbol('Application')
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
 
-const ApplicationComposition = ApplicationDefinition.makeComposition()
+const ApplicationComposition = ApplicationBlock.makeComposition()
 
 export const initialModel = Model.make({
   checkout: checkoutMachine.initial,

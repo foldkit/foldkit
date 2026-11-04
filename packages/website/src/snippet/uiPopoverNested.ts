@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -20,9 +20,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const AccountMenuKey = Symbol('AccountMenu')
+export const AccountMenuKey = Symbol('AccountMenu')
 
-const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
+export const AccountMenuBlock = Block.make('AccountMenu', {
   key: AccountMenuKey,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
@@ -30,9 +30,9 @@ const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
   Message,
 })
 
-const { makeNoopStep } = AccountMenuDefinition
+const { makeNoopStep } = AccountMenuBlock
 
-const foldPopoverOutMessage = AccountMenuDefinition.makeOutMessageFold(
+const foldPopoverOutMessage = AccountMenuBlock.makeOutMessageFold(
   PopoverBlock,
   {
     Opened: makeNoopStep,
@@ -40,14 +40,14 @@ const foldPopoverOutMessage = AccountMenuDefinition.makeOutMessageFold(
   },
 )
 
-const AccountPopoverBinding = AccountMenuDefinition.makeBinding(PopoverBlock, {
+const AccountPopoverBinding = AccountMenuBlock.makeBinding(PopoverBlock, {
   field: 'accountPopover',
   init: {
     contextToArgs: () => [{ id: 'account-popover', contentFocus: true }],
   },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const AccountDetailsPopoverBinding = AccountMenuDefinition.makeBinding(
+const AccountDetailsPopoverBinding = AccountMenuBlock.makeBinding(
   PopoverBlock,
   {
     field: 'accountDetailsPopover',
@@ -57,7 +57,7 @@ const AccountDetailsPopoverBinding = AccountMenuDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const AccountMenuComposition = AccountMenuDefinition.makeComposition({
+const AccountMenuComposition = AccountMenuBlock.makeComposition({
   bindings: [AccountPopoverBinding, AccountDetailsPopoverBinding],
 })
 
@@ -160,7 +160,7 @@ const view = AccountMenuComposition.makeView((model, h) => {
   )
 })
 
-export const ApplicationBlock = AccountMenuDefinition.makeBlock(
+export const layer = AccountMenuBlock.makeLayer(
   Effect.gen(function* () {
     const accountPopover = yield* AccountPopoverBinding
     const accountDetailsPopover = yield* AccountDetailsPopoverBinding
@@ -172,4 +172,4 @@ export const ApplicationBlock = AccountMenuDefinition.makeBlock(
       view,
     }
   }),
-).provide(PopoverLayer)
+).pipe(Layer.provide(PopoverLayer))
