@@ -89,7 +89,7 @@ export type CompositionOfPlan<Value> =
   Value extends Plan<unknown, PlanKind, infer Composition> ? Composition : never
 
 /** @internal Reads a constrained plan's exact source without repeating inference. */
-export type PlanSource<Value extends Plan<unknown, PlanKind, AuthoringSource>> =
+export type PlanSource<Value extends Plan<unknown, PlanKind, unknown>> =
   ReturnType<Value[typeof PlanTypeId][2]>
 
 /** The runtime helper surface consumed when compiling a passive plan. */

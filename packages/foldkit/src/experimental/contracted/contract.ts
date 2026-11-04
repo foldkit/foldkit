@@ -579,12 +579,14 @@ type WithOperations<Body extends ConstructorBody, Config> = Omit<
 > &
   Readonly<{ operations: ContractOperations<Config, Body> }>
 
-type NativeBody<Body extends ConstructorBody, Config> = ([
-  InputUpdateOf<Body>,
-] extends [never]
-  ? Body
-  : Omit<Body, 'inMessageUpdate'> &
-      Pick<Body, 'children' | 'init' | 'update'>) &
+type NativeBodyFields<Body extends ConstructorBody> = Body extends unknown
+  ? Pick<Body, 'children' | 'init' | 'update'> &
+      ([InputUpdateOf<Body>] extends [never]
+        ? Body
+        : Omit<Body, 'inMessageUpdate'>)
+  : never
+
+type NativeBody<Body extends ConstructorBody, Config> = NativeBodyFields<Body> &
   Readonly<{ operations: ContractOperations<Config, Body> }>
 
 type InputUpdateOf<Body> =
@@ -875,25 +877,27 @@ export interface MakeFamilyBlock<
   <const Body extends ConstructorBody, Error, Requirements>(
     constructor: Effect.Effect<Body, Error, Requirements> &
       ValidateConstructorBody<Body>,
-    ...validation: readonly [
-      ...Validate<
-        NominalId<Id, Config['key']>,
-        ModelSchema,
-        MessageSchema,
-        OutMessageSchema,
-        NativeBody<NoInfer<Body>, Config>,
-        'Equivalent'
-      >,
-      ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
-      ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
-      ...FamilyValidation<
-        MessageSchema,
-        OutMessageSchema,
-        Config,
-        NoInfer<Body>,
-        Owner<NominalId<Id, Config['key']>, true>
-      >,
-    ]
+    ...validation: NoInfer<
+      readonly [
+        ...Validate<
+          NominalId<Id, Config['key']>,
+          ModelSchema,
+          MessageSchema,
+          OutMessageSchema,
+          NativeBody<Body, Config>,
+          'Equivalent'
+        >,
+        ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
+        ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
+        ...FamilyValidation<
+          MessageSchema,
+          OutMessageSchema,
+          Config,
+          NoInfer<Body>,
+          Owner<NominalId<Id, Config['key']>, true>
+        >,
+      ]
+    >
   ): FamilyRecipe<
     Contract<
       Owner<NominalId<Id, Config['key']>, true>,
@@ -931,27 +935,29 @@ export interface MakeBlock<
   <const Body extends ConstructorBody, Error, Requirements>(
     constructor: Effect.Effect<Body, Error, Requirements> &
       ValidateConstructorBody<Body>,
-    ...validation: readonly [
-      ...Validate<
-        NominalId<Id, Config['key']>,
-        ModelSchema,
-        MessageSchema,
-        OutMessageSchema,
-        NativeBody<NoInfer<Body>, Config>
-      >,
-      ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
-      ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
-      ...HostContractValidation<
-        ActualFacts<MessageSchema, NoInfer<Body>, Config>,
-        DeclaredFacts<
+    ...validation: NoInfer<
+      readonly [
+        ...Validate<
+          NominalId<Id, Config['key']>,
+          ModelSchema,
           MessageSchema,
           OutMessageSchema,
-          Config,
-          Owner<NominalId<Id, Config['key']>, true>
+          NativeBody<Body, Config>
         >,
-        HostDefinitions<NoInfer<Body>>
-      >,
-    ]
+        ...PublishedMountValidation<SourceOf<NoInfer<Body>>, Config>,
+        ...InMessageUpdateBodyValidation<NoInfer<Body>, Config>,
+        ...HostContractValidation<
+          ActualFacts<MessageSchema, NoInfer<Body>, Config>,
+          DeclaredFacts<
+            MessageSchema,
+            OutMessageSchema,
+            Config,
+            Owner<NominalId<Id, Config['key']>, true>
+          >,
+          HostDefinitions<NoInfer<Body>>
+        >,
+      ]
+    >
   ): Block<
     Owner<NominalId<Id, Config['key']>, true>,
     ModelSchema,
