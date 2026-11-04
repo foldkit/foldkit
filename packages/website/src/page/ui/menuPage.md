@@ -20,7 +20,7 @@ Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldki
 
 ### Basic
 
-Pair `view` and `update` behind `Menu.makeBlock<Item>()` at module scope. The factory threads your item union through both, so `Selected({ value, index })` carries the picked value directly. Menu closes automatically after selection. It emits `Closed()` when it closes without a selection, allowing the parent to coordinate related state without inspecting child Messages.
+Declare `Menu.makeBlock<Item>()` at module scope to type its view inputs, `requestSelectItem` operation and `Selected` OutMessage with your item union. Menu closes automatically after selection. It emits `Closed()` when it closes without a selection, allowing the parent to coordinate related state without inspecting child Messages.
 
 ::Demo{name="basic"}
 

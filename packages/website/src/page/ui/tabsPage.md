@@ -22,7 +22,7 @@ Tabs switches content within one page and applies the `tablist`/`tab`/`tabpanel`
 
 ### Horizontal
 
-Declare the tabs component once at module scope with `Tabs.makeBlock<Value>()` to lift the tab type through `view` and `update` without casting. Pass the typed `tabs` array and a `toView` callback that receives one `TabInfo<Value>` per tab (with attribute bundles for the tab button and its panel).
+Declare the tabs component once at module scope with `Tabs.makeBlock<Value>()` to type its view inputs and `Selected` OutMessage. Pass the typed `tabs` array and a `toView` callback that receives one `TabInfo<Value>` per tab (with attribute bundles for the tab button and its panel).
 
 ::Demo{name="horizontal"}
 
