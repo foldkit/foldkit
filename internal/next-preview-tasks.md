@@ -1,5 +1,29 @@
 # Next preview tasks
 
+## November 5 candidate review
+
+The [current review](preview-review-20261105.md) compares this work with published
+preview `90746b32d2ca`. Earlier dated sections retain their checkpoint scope.
+
+- [x] Preserve user edits and comments and complete repository-wide Block file,
+      helper, key, Binding and Story/Scene conventions.
+- [x] Complete independent review of the exact convention commit and the
+      integrated Node, Menu, DragAndDrop, Query and Scene contributions.
+- [x] Verify current Source and all eight current compiler ceilings, with
+      normal mapped declaration output and the original workloads. Preserve
+      the earlier explicitly accepted Workspace adjustment without another raise.
+- [x] Pass all 10 Kanban and 33 Workspace browser cases and exercise Menu's
+      Website, Showcase, empty and changing-items browser behavior.
+- [x] Refresh relevant issue/PR heads and preview discussion/review threads.
+      [Contribution disposition](preview-feedback-integration-20261105.md).
+- [x] Finish Dialog's terminal failure cleanup through existing completion
+      signals and verify independently emitted UI provider Layers.
+- [ ] Complete the combined gates and push to preview.
+- [x] Record a final quiet Lustre comparison against actual main, retaining all
+      32 samples and the remaining rendering and bundle costs for release review.
+- [ ] Obtain authorization for a fresh Daybreak addendum for the final candidate.
+- [ ] Obtain user approval before publication.
+
 ## November 4 review follow-ups
 
 The [follow-up report](blocks-review-followups-20261104.md) records the user's
@@ -23,7 +47,7 @@ repository-wide convention and test migration on top of merged preview
 - [x] Finish the TypeScript 6 helper-export nameability repair and all eight
       unchanged mapped compiler ceilings; verify one physical Effect runtime.
 - [ ] Finish integrated checks and review the exact committed diff before push.
-- [ ] Reconcile newly arrived feedback, including Scene Mount routing, empty
+- [x] Reconcile newly arrived feedback, including Scene Mount routing, empty
       Menus, pointer drop indexes, Query runtime tests, and Node response cleanup.
 - [ ] Integrate reviewed code into the preview branch through required checks.
 

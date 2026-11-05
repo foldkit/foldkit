@@ -1,0 +1,8 @@
+labels: ["alpha","beta","gamma"]
+toggle -> completed ok
+count text: 2 items left
+destroy ok, remaining: ["beta","gamma"]
+edit flow ok
+active filter ok: ["gamma"]
+toggle-all + clear-completed ok
+VERIFY foldkit-preview-final-optimised: OK

@@ -40,6 +40,10 @@ construction are retained.
 Publication remains held for the user's review and approval. This follow-up is
 separate from #1884's test-only contribution.
 
+This report retains the convention checkpoint's component evidence. The
+[November 5 review](preview-review-20261105.md) records the combined candidate,
+incoming fixes, final checks and publication boundary.
+
 ## API conclusions
 
 The explicit `makeStep<ChangedUrl>(producer)` and
@@ -90,7 +94,7 @@ precise Message annotation after the generic prototype's failed channel checks.
 The inlined browser-environment loader and Workspace Command handler bodies are
 preserved by AST parity checks.
 
-## Verification in progress
+## Convention checkpoint verification
 
 The framework contribution has 59 focused runtime cases, strict Source and
 source-free emitted/relocated controls on both compilers, five caught/restored
@@ -145,8 +149,9 @@ individual canonical links and direct Node execution.
 ## New feedback
 
 The November 5 refresh finds no new discussion comments or review threads on
-#1655 after the previously assessed October 30 report. New contribution heads
-include #1886, #1888, #1889, #1890, #1891 and #1893 against the preview, plus
-the main-targeted Dialog proposal #1892. Issue #1887 describes the Scene routing
-case addressed by #1893. These contributions are under separate review; this
-checkpoint does not count them as implemented or deferred.
+#1655 after the previously assessed October 30 report. Contributions #1886,
+#1888, #1889, #1890, #1891 and #1893 are integrated after this convention
+checkpoint. The conditional-parent workflow in main-targeted #1892 is repaired
+through existing Dialog completion signals. Issue #1887 is addressed by the
+Scene integration. The [feedback report](preview-feedback-integration-20261105.md)
+records original attribution, separate maintainer repairs and verification.

@@ -57,10 +57,22 @@ by the earlier preview main-sync work. [#1879](https://github.com/foldkit/foldki
 has the existing unsupported SSR build-watch diagnostic repair, rather than an
 unimplemented promise of full build-watch support.
 
-The separate main-targeted [Dialog proposal #1892](https://github.com/foldkit/foldkit/pull/1892)
-was revised during preparation and is being reconciled against the preview's
-existing completion and failure signals. Assessment is not recorded as adoption
-or an approved deferral.
+The conditional-parent workflow reported by
+[Awjin in the main-targeted Dialog proposal #1892](https://github.com/foldkit/foldkit/pull/1892)
+is repaired through the preview's existing signals. Failed opening or lifecycle
+acquisition schedules `CloseDialog`, and its acknowledgement emits `CompletedClose`
+after native cleanup. `Closed` retains its existing Model-transition timing; no
+additional `FailedOpen` OutMessage is adopted. All 74 Dialog Story/runtime tests
+pass, including plain and animated parents and stale acknowledgements during
+replacement. Public-only parent Layer/Story consumers pass on both compilers.
+
+The same public-consumer checks exposed provider declaration nameability gaps in
+five UI entry points. Type-only re-exports make their original child keys reachable
+without changing runtime exports or identities. All 17 ordinary UI providers emit
+independently on both compilers. The permanent checker keeps the five affected
+providers in separate programs, where missing names cannot be masked by imports
+of another component. Nine behavior and declaration mutation controls verify
+the two repairs and restore exact source.
 
 Publication remains held for user review. This new candidate has no authorized
 Daybreak source transfer; earlier exact-commit approvals do not cover it.

@@ -1,4 +1,8 @@
-# Next preview review summary
+# November 3 preview review checkpoint
+
+This report records the checkpoint before unified Block adoption. Its prototype
+status and verification receipts describe that earlier source. For the current
+candidate, use the [November 5 review](../preview-review-20261105.md).
 
 ## Comparison
 
