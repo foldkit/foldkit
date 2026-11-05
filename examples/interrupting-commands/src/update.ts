@@ -2,9 +2,9 @@ import { Array, Number, Option, Schema, pipe } from 'effect'
 import { Command } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeCommandsStep, makeFieldsStep } from './block'
 import { CancelUploadFile, UploadFile } from './command'
 import { ApplicationComposition } from './composition'
-import { makeCommandsStep, makeFieldsStep } from './definition'
 import { Upload, type UploadStatus } from './model'
 
 export const FakeFile = Schema.Struct({

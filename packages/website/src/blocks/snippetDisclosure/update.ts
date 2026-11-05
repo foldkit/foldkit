@@ -1,7 +1,7 @@
 import { HashMap, HashSet } from 'effect'
 
+import { makeFieldsStep } from './block'
 import { SnippetDisclosureComposition } from './composition'
-import { makeFieldsStep } from './definition'
 
 export const update = SnippetDisclosureComposition.makeUpdate({
   ToggledCodeDisclosure: makeFieldsStep.fromMessage(

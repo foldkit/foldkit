@@ -1,8 +1,8 @@
 import { Array, Option } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 
+import { makeStep } from '../block'
 import { IssueDetailsBinding } from '../composition'
-import { makeStep } from '../definition'
 import type { Issue, SavedIssue } from '../domain'
 import { applyIssueSnapshot, applySavedIssue } from '../steps'
 

@@ -1,26 +1,30 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
+import { KeyValueStore } from 'effect/persistence'
+import { Block } from 'foldkit'
 
-import { layer as DragAndDropLayer } from '@foldkit/ui/dragAndDrop'
+import { Flags } from './flags'
+import { Message } from './message'
+import { Model } from './model'
 
-import { EffectsLayer } from './command'
-import { DragAndDropBinding } from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Flags]),
+  view: { kind: 'Document' },
+  effects: {
+    services: [SecureRandom.SecureRandom, KeyValueStore.KeyValueStore],
+  },
+  Model,
+  Message,
+})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const dragAndDrop = yield* DragAndDropBinding
-
-    return {
-      children: [dragAndDrop],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(DragAndDropLayer)))
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+} = ApplicationBlock

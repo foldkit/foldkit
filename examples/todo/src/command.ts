@@ -1,11 +1,11 @@
-import { Clock, Effect, Layer, Random, Schema } from 'effect'
+import { Clock, Effect, Random, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
-import { ApplicationBlock } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 import { TODOS_STORAGE_KEY, Todos, TodosJsonString } from './model'
 
-export const GenerateTodo = ApplicationBlock.makeCommand('GenerateTodo', {
+export const GenerateTodo = makeCommand('GenerateTodo', {
   args: { text: Schema.String },
   messages: [Message.CompletedGenerateTodo],
   handler: function* () {
@@ -24,7 +24,7 @@ export const GenerateTodo = ApplicationBlock.makeCommand('GenerateTodo', {
   },
 })
 
-export const SaveTodos = ApplicationBlock.makeCommand('SaveTodos', {
+export const SaveTodos = makeCommand('SaveTodos', {
   args: { todos: Todos },
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
   handler: function* () {
@@ -38,5 +38,3 @@ export const SaveTodos = ApplicationBlock.makeCommand('SaveTodos', {
       }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())))
   },
 })
-
-export const EffectsLayer = Layer.mergeAll(GenerateTodo.layer, SaveTodos.layer)

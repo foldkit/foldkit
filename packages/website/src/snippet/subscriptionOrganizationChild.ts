@@ -1,7 +1,7 @@
 // blocks/settings/blocks/themeMenu/subscription.ts
 import { Effect, Schema, Stream } from 'effect'
 
-import { themeMenu } from './definition'
+import { themeMenu } from './block'
 import { Message } from './message'
 
 export const subscriptions = themeMenu.makeSubscriptions(entry => ({

@@ -236,7 +236,10 @@ export type { RuntimeCapability } from './runtimeCapability.js'
 export type { DefineStepFields, DefineStepNoop } from './fieldStep.js'
 export type { CommandsStep, MakeCommandsStep } from './commandsStep.js'
 /** @internal Keeps extracted field helpers nameable in consumer declarations. */
-export type { FocusedObjectStepFields } from './fieldStep.js'
+export type {
+  FocusedObjectStepFields,
+  MessageFreeObjectStepFields,
+} from './fieldStep.js'
 /** @internal Keeps extracted Command helpers nameable in consumer declarations. */
 export type { FocusedMakeCommandsStep } from './commandsStep.js'
 export type { OutMessageStep, MakeOutMessageStep } from './outMessageStep.js'

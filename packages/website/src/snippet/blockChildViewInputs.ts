@@ -2,7 +2,7 @@
 import { Array } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { CommandMenuComposition } from './definition'
+import { CommandMenuComposition } from './composition'
 import { Message } from './message'
 
 export type ViewInputs = Readonly<{

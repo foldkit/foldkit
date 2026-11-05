@@ -1,4 +1,6 @@
-const enterStatsRoute = ApplicationBlock.makeStep(model =>
+import { makeStep } from './block'
+
+const enterStatsRoute = makeStep(model =>
   Option.match(AsyncData.loadIfMissing(model.stats), {
     onNone: () => ({ model }),
     onSome: loadingStats => ({

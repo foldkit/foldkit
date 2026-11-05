@@ -2,11 +2,13 @@
 
 ## Overview
 
+Application behavior tests use the Story or Scene DSL. Deliver Messages or InMessages, resolve Commands and assert through those steps. Do not replace the runner with a chain of acquired update calls or direct Step applications. A pure fixture may build an initial Model or deliberately use `given(model)`; an advanced scoped fixture may need acquired initialization, graph identity or view context. Keep the behavior itself in the DSL. Pure domain and selector unit tests remain separate; raw transition tests belong to framework infrastructure.
+
 A Block-aware Story acquires the chosen implementation, then calls its pure update with the Model and Messages you provide. Commands stay as data until the test supplies their result Messages. The returned Effect owns graph construction and cleanup; it does not run Command handlers or Streams.
 
-In Vitest, return that Effect from `it.effect` in `@effect/vitest`. The runner awaits the result and manages the test Scope. Prefer direct Block-aware calls for ordinary scenarios; keep `withBlock` for fixtures needing acquired operations or deliberately modified initialized Models. Start startup scenarios with `init` and explicit Command resolution so their initial Commands remain visible.
+In Vitest, return that Effect from `it.effect` in `@effect/vitest`. The runner awaits the result and manages the test Scope. Prefer direct Block-aware calls for ordinary scenarios; keep `withBlock` for fixtures needing initialized state, graph identity or custom view context. Start startup scenarios with `init` and explicit Command resolution so their initial Commands remain visible.
 
-Pass `{ block: FeatureBlock, layer }` so the runner checks the declaration against its selected implementation Layer. Start with `init(...args)` to retain startup Model and Commands, or `given(model)` for a deliberate fixture. Send Messages, resolve Commands, and assert on the Model. `withBlock` supports advanced fixtures that need direct synchronous operations.
+Pass `{ block: FeatureBlock, layer }` so the runner checks the declaration against its selected implementation Layer. Start with `init(...args)` to retain startup Model and Commands, or `given(model)` for a deliberate fixture. Send Messages, resolve Commands, and assert on the Model. `withBlock` supplies acquired initialization, graph identity, or custom view context for advanced fixtures. Keep subsequent application interactions in the Story or Scene DSL.
 
 ## The API
 

@@ -1,7 +1,7 @@
 import { Array } from 'effect'
 
+import type { Model } from './block'
 import { EducationEntry } from './blocks'
-import type { Model } from './definition'
 
 export const hasErrors = (model: Model): boolean =>
   Array.some(model.entries, EducationEntry.hasErrors)

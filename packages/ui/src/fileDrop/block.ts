@@ -42,7 +42,6 @@ export type OutMessage = typeof OutMessage.Type
 
 /** @internal Stable identity of the FileDrop contract. */
 export const FileDropKey = Symbol('FileDrop')
-
 export const FileDropBlock = Block.make('FileDrop', {
   key: FileDropKey,
   Model,

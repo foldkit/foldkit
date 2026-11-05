@@ -1,15 +1,16 @@
 import { Option } from 'effect'
 
-import { HomeBlock } from '../blocks'
-import { LoadPlayground } from '../command'
 import {
-  ApplicationBlock,
+  makeBinding,
   makeCommandsStep,
   makeFieldsStep,
-} from '../definition'
+  makeOutMessageFold,
+} from '../block'
+import { HomeBlock } from '../blocks'
+import { LoadPlayground } from '../command'
 import { ApplicationRoute } from '../route'
 
-const foldHomeOutMessage = ApplicationBlock.makeOutMessageFold(HomeBlock, {
+const foldHomeOutMessage = makeOutMessageFold(HomeBlock, {
   SelectedPlaygroundExample: ({ exampleSlug }) =>
     makeCommandsStep(() => [LoadPlayground({ exampleSlug })]),
   UpdatedNewsletterEmail: ({ value }) =>
@@ -18,7 +19,7 @@ const foldHomeOutMessage = ApplicationBlock.makeOutMessageFold(HomeBlock, {
     })),
 })
 
-export const MaybeHomeBinding = ApplicationBlock.makeBinding(HomeBlock, {
+export const MaybeHomeBinding = makeBinding(HomeBlock, {
   field: 'maybeHome',
   init: {
     contextToArgs: ({ route }) =>

@@ -20,7 +20,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const HoverMenuKey = Symbol('HoverMenu')
-
 export const HoverMenuBlock = Block.make('HoverMenu', {
   key: HoverMenuKey,
   Init: Schema.Tuple([]),
@@ -29,21 +28,19 @@ export const HoverMenuBlock = Block.make('HoverMenu', {
   Message,
 })
 
-const { makeNoopStep } = HoverMenuBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  HoverMenuBlock
 
-const foldHoverMenuOutMessage = HoverMenuBlock.makeOutMessageFold(
-  HoverIntentBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-  },
-)
+const foldHoverMenuOutMessage = makeOutMessageFold(HoverIntentBlock, {
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
+})
 
-const HoverMenuBinding = HoverMenuBlock.makeBinding(HoverIntentBlock, {
+const HoverMenuBinding = makeBinding(HoverIntentBlock, {
   field: 'hoverMenu',
 }).withOutMessagePolicy({ fold: foldHoverMenuOutMessage })
 
-const HoverMenuComposition = HoverMenuBlock.makeComposition({
+const HoverMenuComposition = makeComposition({
   bindings: [HoverMenuBinding],
 })
 

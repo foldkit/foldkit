@@ -12,7 +12,7 @@ The [weather example](/example-apps/weather) connects form input, Command args, 
 
 ## Anatomy of a Command
 
-The counter's update function has only changed the count so far. Add a button that resets it after one second. Put this application code in `application.ts`:
+The counter's update function has only changed the count so far. Add a button that resets it after one second. Put this application code in `block.ts`:
 
 ### Definition Fields
 
@@ -41,7 +41,7 @@ Three pieces connect the work to update:
 
 `ApplicationComposition.makeUpdate` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
-This counter is genuinely compact: `application.ts` owns its Model, Message, `ApplicationBlock`, graphless `ApplicationComposition`, construction `layer`, init, update, view, Command, and local handler recipe. `entry.ts` passes `{ block: ApplicationBlock, layer }` to `Program.make`, supplies any remaining Services through `program.provide(ApplicationLayer)`, and starts the Runtime. A split root instead puts every responsibility in its named file and removes the emptied `application.ts`:
+This counter is genuinely compact: `block.ts` owns its Model, Message, `ApplicationBlock`, graphless `ApplicationComposition`, construction `layer`, init, update, view, Command, and local handler recipe. `entry.ts` passes `{ block: ApplicationBlock, layer }` to `Program.make`, supplies any remaining Services through `program.provide(ApplicationLayer)`, and starts the Runtime. A split root keeps `ApplicationBlock` in `block.ts` and moves construction to `layer.ts`, with the remaining responsibilities in their named modules:
 
 ::Snippet{name="counterCommandsEntry" label="Starting the counter"}
 
@@ -168,7 +168,7 @@ Check that every result Message returned by the handler appears in `messages`, t
 
 Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that provider is intentionally public or independently reused, as it is by this tutorial's direct execution test.
 
-Pass the local bundle to `FeatureBlock.makeLayer`. Registered child Bindings carry their own recipes automatically. At root, complete `ApplicationBlock` through its `makeLayer` constructor, provide child implementation Layers, then create the Program in the entry. Ordinary Services used only by handlers can be supplied through `program.provide(ApplicationLayer)`. A simple root bundle can stay with its Command definitions in `command.ts`; extract `layer.ts` for substantial or reused composition. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide covers compact and split layouts.
+Pass the local bundle to `FeatureBlock.makeLayer`. Registered child Bindings carry their own recipes automatically. At root, complete `ApplicationBlock` through its `makeLayer` constructor, provide child implementation Layers, then create the Program in the entry. Ordinary Services used only by handlers can be supplied through `program.provide(ApplicationLayer)`. A compact root can keep the bundle in its complete `block.ts`. A split root puts a separate local bundle in `effectsLayer.ts`; its Command definitions remain in `command.ts` or beside their owning behavior. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide covers compact and split layouts.
 
 Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `FeatureBlock.makeLayer` checks that the feature's `EffectsLayer` supplies each local handler and preserves its declared Service and error channels.
 

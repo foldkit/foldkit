@@ -1,20 +1,23 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { SnippetCopyBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer, update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
+import type { ViewInputs } from './viewInputs'
 
-export const layer = SnippetCopyBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const SnippetCopyKey = Symbol('SnippetCopy')
+export const SnippetCopyBlock = Block.make('SnippetCopy', {
+  key: SnippetCopyKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  Model,
+  Message,
+})
 
-export { SnippetCopyBlock }
+export const {
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+} = SnippetCopyBlock

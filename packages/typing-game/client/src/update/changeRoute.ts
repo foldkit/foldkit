@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import { Url } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { makeFieldsStep, makeNoopStep } from '../definition'
+import { makeFieldsStep, makeNoopStep } from '../block'
 import { type Model } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 import { initRoom } from '../steps'

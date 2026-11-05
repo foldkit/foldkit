@@ -29,9 +29,9 @@ If a section only renders parent state, use a view function. A card that receive
 
 ### Establish the feature boundary
 
-Call `Block.make` once at module scope. Supply a stable unique `key`, the Model and local Message Schemas, and an `Init` tuple. Declare an OutMessage Schema when the child reports facts to its parent.
+Call `Block.make` once at module scope. Put its unique key immediately above the declaration without a blank line, using the same Symbol description as the readable Block name. Supply that `key`, the Model and local Message Schemas, and an `Init` tuple. Declare an OutMessage Schema when the child reports facts to its parent.
 
-When published inferred declarations carry the Block’s unique-symbol identity, export its key value through the feature’s public barrel. TypeScript needs that value to name computed-property identities in downstream declarations.
+A compact key can remain private when it does not cross an emitted boundary. Split implementation modules commonly need to export the original key declaration because their inferred contracts carry that identity. When downstream declarations need to name it, the feature’s public barrel can use a type-only re-export of the original declaration. Verify real source and relocated declarations before removing an export.
 
 `Init` describes initializer arguments. `Context` describes read-only per-dispatch arguments. `ChildInitContext` describes the value that the parent's init passes to deferred child argument producers. These are separate inputs; none starts construction or lifecycle work.
 
@@ -109,7 +109,7 @@ Return `inMessageUpdate` from the constructor with init, update, and view:
 
 ::Snippet{name="blockInMessageImplementation" label="Completing a Block with parent input handling"}
 
-The Block generates Binding methods directly from each tag:
+The Block generates Binding methods directly from its InMessage tags. `RequestedX` becomes `requestX`; `InformedOfX` becomes `informX`. The remaining suffix is preserved exactly. Other prefixes and empty suffixes are rejected:
 
 | InMessage tag            | Binding method                 |
 | ------------------------ | ------------------------------ |
@@ -117,17 +117,17 @@ The Block generates Binding methods directly from each tag:
 | `RequestedClear`         | `requestClear()`               |
 | `InformedOfDraftChanged` | `informDraftChanged({ text })` |
 
-Each method takes the variant's constructor payload when it has fields. Keyed Bindings take the occurrence key first. The parent calls the method from its own Composition-authored transition:
+Each method takes the variant's constructor payload when it has fields. Keyed Bindings take the occurrence key first. The method invokes the matching `makeInMessageUpdate` handler through a connected parent Step; authors do not write a separate wrapper or `operations` mapping for that request. Pass the Step directly to a handler record or compose it in a parent transition:
 
 ::Snippet{name="blockInMessageParent" label="Calling generated request and inform methods"}
 
-`inMessageOutputs` declares each input's public result bounds. Include an entry when that input can emit an OutMessage or needs additional `services` or `resources`. An omitted entry is silent and adds no public requirements. Commands returned from `inMessageUpdate` still produce local Messages, which enter update when the Runtime completes them.
+`inMessageOutputs` declares each input's public result bounds. Include an entry when that input can emit an OutMessage or needs additional `services` or `managedResources`. An omitted entry is silent and adds no public requirements. Commands returned from `inMessageUpdate` still produce local Messages, which enter update when the Runtime completes them.
 
 Declare an `InMessageContext` tuple when `inMessageUpdate` needs read-only per-call values. Author the record with `Composition.makeInMessageUpdate.withContext`, whose factory receives those values. Generated Binding methods take the InMessage context after the payload. This context is separate from update's `Context`; `delivery.toUpdateContext` supplies only incoming child update context.
 
 Receiving an InMessage is synchronous and pure. It returns the next Model, Commands, and optional OutMessage without enqueueing another Runtime Message. Binding storage, OutMessage policy, occurrence identity, and lifecycle ownership remain the same. Defining or acquiring an InMessage update does not create Model occurrences or start effects.
 
-Use `Story.inMessage` and `Scene.inMessage` in Block-aware tests. The runner acquires the selected implementation before applying the cause; Command results still use the ordinary resolution steps. Supply required InMessage context through `{ block, inMessageContext: [...] }`, independently of `updateContext`.
+Use `Story.inMessage` and `Scene.inMessage` in Block-aware tests. The runner acquires the selected implementation before applying the cause; Command results still use the ordinary resolution steps. Supply required InMessage context through `{ block, layer, inMessageContext: [...] }`, independently of `updateContext`.
 
 ::Snippet{name="blockInMessageTesting" label="Testing a parent input through Story and Scene"}
 
@@ -150,6 +150,8 @@ Generated input methods and explicit operation adapters produce connected parent
 ::Snippet{name="blockProjectedSteps" label="Calling a bound public operation"}
 
 These calls are pure. A Binding operation produces a connected parent Update.Step whose Model input requires the exact registered graph. A raw domain Model cannot satisfy that input. Return or compose the connected result intact from `makeUpdate` or startup processing; its public type exposes no `.model` or `.commands` before checked execution. A Block-owned `makeStep` may preserve or wrap a connected Step for later execution. The Composition consumes it while the graph is active and returns the readable next Model, optional Commands, and optional OutMessage. An acquired Block operation is also a checked executor: it accepts the raw Block Model and returns the readable result. Explicit operations retain their declared Command requirements and OutMessage bounds. Aggregate update utilities retain the union across local handlers. Calling a pure operation does not run effects returned by another branch. Ordinary internal Update.Steps remain directly callable. The Runtime executes returned Commands later.
+
+Use a payload-mapping callback when the parent needs to derive different inputs. A wrapper that only renames the generated request adds no transition behavior.
 
 ### Adapt explicit operation arguments
 
@@ -600,7 +602,35 @@ The returned ordinary Layer is passive. Compose child implementation providers w
 
 `ChildBlock.Instance` is the ready Schema for `{ key: string, model: ChildModel }`. Use `Schema.Array(ChildBlock.Instance)` for a required top-level collection with standard occurrence storage. The Schema retains the exact child contract's ownership. Its `make` constructor creates a ready value from an existing child Model; it does not call child init or produce its Commands. Schema decoding likewise restores ready data without initialization.
 
-### ParentBlock.makeBinding
+### Handler requirement bounds
+
+The public `effects` contract describes runtime handler capabilities. The implementation chooses the corresponding handlers in its local `EffectsLayer`.
+
+| Contract field             | What it bounds                                              |
+| -------------------------- | ----------------------------------------------------------- |
+| `effects.services`         | Ordinary Services required while building the handler Layer |
+| `effects.managedResources` | ManagedResource handle requirements                         |
+| `effects.Error`            | Failures while building the handler Layer                   |
+
+Graph-constructor requirements and errors are inferred separately from the Effect passed to `makeLayer`. A Command invocation's ordinary failures still become Messages. Use `Block.makeEffectsContract<E, R>()` as the type-based alternative for generic handler-Layer errors and ordinary Service bounds. Extra ManagedResource requirements on an explicit operation or `inMessageOutputs` use the same `managedResources` spelling.
+
+## Advanced Message codec bounds
+
+Ordinary serializable Messages should be self-contained. Local Message Schema decoding and encoding Services are already inferred; most apps need no `codec` configuration.
+
+The complete dispatch Schema also contains opaque child delivery envelopes. A parent declaration exists before its implementation graph and cannot derive those hidden child requirements from its own local Message Schema. `codec.decoding` and `codec.encoding` publish the additional bounds when a child deliberately uses Service-dependent transformations.
+
+Here, a library-owned LegacyEditor delegates compatibility policy to the host's `MessageMigration` Service. The host chooses how older serialized labels become current values and how values are encoded. The child's declared Message carries that decoding and encoding requirement:
+
+::Snippet{name="blockCodecChild" label="Child Messages with a migration Service"}
+
+The parent's local `ClickedReload` Message needs no Service. Its complete dispatch Schema still needs `MessageMigration` when decoding a child delivery. The parent declares that additional bound. Enabling DevTools dispatch requires its decoder provider, while the quiet Program has no decoding requirement:
+
+::Snippet{name="blockCodecParent" label="Complete Message requirements at the DevTools boundary"}
+
+Encoding requires the declared encoder Services when a caller explicitly encodes the complete Message Schema. It does not add an encoder requirement to every Program. These bounds preserve the child Schema's requirements; they do not move transformation state into the Block constructor.
+
+## ParentBlock.makeBinding
 
 `ParentBlock.makeBinding(FooBlock, config)` creates one static, optional, or keyed Binding in the parent Model context. Use `field` for an exact Struct field containing the child Model or `Option<ChildModel>`. Use `presentWhen` for whole-child presence policy, or explicit `read`/`write` for custom storage. Generated delivery carries each child's exact Message Schema and occurrence identity. A child with OutMessages requires `.withOutMessagePolicy({ fold?, forward? })`; register and use that returned full Binding. Chain the call for an ordinary one-way policy. Name the complete value after its Model field: `activeMemberListbox` becomes `ActiveMemberListboxBinding`, and `issueDetails` becomes `IssueDetailsBinding`. Preserve optional prefixes, plurals, and control roles. For wrapped storage, include the nested role when the container alone would hide it, such as `EntriesAnimationBinding` for `entries[].animation`. Custom and whole-variant storage use a meaningful relationship name. Keep a necessary `Base<Field>Binding` internal when a self-referential or reciprocal policy needs its operations to break a dependency cycle.
 
@@ -610,7 +640,7 @@ The returned ordinary Layer is passive. Compose child implementation providers w
 
 Call `ParentBlock.makeMapBinding(ChildBlock, { field })` for a required `Schema.Record(Key, ChildBlock.Model)` or `Schema.HashMap(Key, ChildBlock.Model)` field. The parent Block supplies the exact child relationship and key contract from its Model Schema. The property or map key identifies the child occurrence; the child Model does not need to repeat it. Add `childField` when each value is a closed parent-owned wrapper containing the child Model.
 
-The factory can also be destructured from the parent Block. In a split feature, export `makeMapBinding` from its `definition.ts` and import it from that module when authoring Bindings. The factory retains its parent Block's contracts.
+The factory can also be destructured from the parent Block. In a split feature, export `makeMapBinding` from its `block.ts` and import it from that module when authoring Bindings. The factory retains its parent Block's contracts.
 
 The Entry implementation owns its rename transition:
 
@@ -668,6 +698,12 @@ When combined after another Step, the callback receives the Model produced by th
 
 `FeatureBlock.makeStep(producer)` handles reusable mixed transitions, additional producer arguments, connected Binding operations, initialization, delegated results, and other composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Cohesive mixed handlers can return `{ model, commands, outMessage }` directly. Declare parent inputs through InMessage and inMessageUpdate; retain `operations` for explicit adapters.
 
+An inline handler gets its exact Message from the Composition. An extracted Message-dependent callback needs that contract at its parameter when no handler record supplies it. Annotate the variant; let `makeStep` infer the output, Command requirements and connected graph evidence. The same convention applies to `makeStep.fromMessage`:
+
+::Snippet{name="updateExtractedMessage" label="Exact Message contracts for extracted Steps"}
+
+Do not pass a single Message type argument to these helpers. TypeScript cannot infer the remaining output parameters through the tested one-call encodings; broad defaults lose the exact result channels. The parameter annotation keeps the current inference intact.
+
 Use `makeStep.fromMessage(producer)` when only the Message is needed to select or construct a Step, compose Steps, or create an initialization recipe. An inline `makeUpdate` entry infers the exact Message variant for both the ordinary Model-aware form and `.fromMessage`, including `.withContext` records. The returned handler receives `(model, message)`; applying it evaluates the producer and passes the incoming Model to a returned Step. Construction is passive. An extracted producer needs a precise Message variant annotation, as with the focused helpers. Dispatch context stays in `makeUpdate.withContext`, where the producer can close over it.
 
 Choose the helper when authoring a Step. Inside a local `makeStep` callback, return results directly, including `{ model }` for an unchanged Model. Constructing and immediately applying another local Step merely to express a branch adds an unnecessary layer:
@@ -690,7 +726,7 @@ Calling an existing reusable Step still expresses a named operation, and `Update
 
 ### Declaring operation adapters
 
-Declare ordinary parent inputs through [InMessage and inMessageUpdate](#inmessages). Keep the Block's `operations` record for explicit adapters. A local Message constructor is the short form. Use an operation declaration with `message`, `outMessage`, `services`, or `resources` when the adapter exposes those channels. Completion checks the implementation against the declaration; it cannot silently drop an OutMessage or Service requirement.
+Declare ordinary parent inputs through [InMessage and inMessageUpdate](#inmessages). Keep the Block's `operations` record for explicit adapters. A local Message constructor is the short form. Use an operation declaration with `message`, `outMessage`, `services`, or `managedResources` when the adapter exposes those channels. Completion checks the implementation against the declaration; it cannot silently drop an OutMessage or Service requirement.
 
 The acquired implementation dispatches the produced Message through its update. A constructor with fields becomes `(model, payload, ...context)` on its `operations`; a constructor without fields becomes `(model, ...context)`. A Binding operation omits the child Model, and a keyed Binding prepends the occurrence key.
 

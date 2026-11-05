@@ -1,9 +1,9 @@
 import { Url } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 
+import { makeNoopStep } from '../block'
 import { LoadExternal, NavigateInternal } from '../command'
 import { ApplicationComposition } from '../composition'
-import { makeNoopStep } from '../definition'
 import { changeRoute } from './changeRoute'
 
 export const update = ApplicationComposition.makeUpdate({

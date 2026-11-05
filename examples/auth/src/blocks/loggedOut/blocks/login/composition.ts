@@ -1,6 +1,6 @@
 import type { Block } from 'foldkit'
 
-import { LoginBlock } from './definition'
+import { makeComposition } from './block'
 
-export const LoginComposition = LoginBlock.makeComposition()
+export const LoginComposition = makeComposition()
 export type LoginViewBuilder = Block.ViewBuilderFor<typeof LoginComposition>

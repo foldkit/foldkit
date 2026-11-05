@@ -13,9 +13,9 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 
 import { Comment, Issue, NotificationActivity } from '../../domain'
-import { layer } from './block'
-import { NotificationCenterBlock } from './definition'
+import { NotificationCenterBlock } from './block'
 import { InMessage } from './inMessage'
+import { layer } from './layer'
 import { Message } from './message'
 import { OutMessage } from './outMessage'
 

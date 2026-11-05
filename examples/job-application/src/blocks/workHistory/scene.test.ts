@@ -5,7 +5,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { WorkHistoryBlock, layer } from './block'
+import { WorkHistoryBlock, layer } from './index'
 
 const today = Calendar.make(2026, 4, 16)
 

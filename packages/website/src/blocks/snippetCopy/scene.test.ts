@@ -3,7 +3,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { SnippetCopyBlock, layer } from './block'
+import { SnippetCopyBlock, layer } from './index'
 import { Message } from './message'
 import { CopySnippet, WaitBeforeHidingCopiedIndicator } from './update'
 

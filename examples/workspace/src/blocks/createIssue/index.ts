@@ -1,2 +1,2 @@
-export { CreateIssueBlock } from './definition'
-export { layer } from './block'
+export { CreateIssueBlock } from './block'
+export { layer } from './layer'

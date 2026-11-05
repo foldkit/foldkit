@@ -12,7 +12,6 @@ const RoomInMessage = defineMessageUnion({
 type RoomInMessage = typeof RoomInMessage.Type
 
 export const RoomKey = Symbol('Room')
-
 export const RoomBlock = Block.make('Room', {
   key: RoomKey,
   Init: Schema.Tuple([Schema.String]),
@@ -58,7 +57,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),

@@ -4,9 +4,9 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { PeopleBlock } from './blocks'
 import { SearchResults, searchPeople } from './blocks/people/model'
+import { ApplicationBlock, layer } from './index'
 import { Model } from './model'
 import { ApplicationRoute } from './route'
 

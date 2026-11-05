@@ -1,5 +1,6 @@
 import { Array, Number, Option } from 'effect'
 
+import { makeFieldsStep } from './block'
 import {
   AnimationDemoBinding,
   DialogAnimatedDemoBinding,
@@ -12,7 +13,6 @@ import {
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
-import { makeFieldsStep } from './definition'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './virtualList'
 
 export const update = UiComposition.makeUpdate({

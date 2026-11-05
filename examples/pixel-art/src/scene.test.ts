@@ -7,7 +7,6 @@ import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
-import { ApplicationBlock, layer } from './block'
 import { ExportPng, SaveCanvas } from './command'
 import {
   GridSizeRadioGroupBlock,
@@ -16,6 +15,7 @@ import {
   ToolRadioGroupBlock,
 } from './components'
 import { createEmptyGrid } from './grid'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
 

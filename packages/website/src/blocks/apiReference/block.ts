@@ -1,25 +1,21 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { LoadApiData } from './command'
-import { ApiReferenceBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { ApiData } from './domain'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
+import type { ViewInputs } from './viewInputs'
 
-const EffectsLayer = LoadApiData.layer
+export const ApiReferenceKey = Symbol('ApiReference')
+export const ApiReferenceBlock = Block.make('ApiReference', {
+  key: ApiReferenceKey,
+  Init: Schema.Tuple([Schema.optional(Schema.Option(ApiData))]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  Model,
+  Message,
+  InMessage,
+})
 
-export const layer = ApiReferenceBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
-
-export { ApiReferenceBlock }
+export const { makeCommand, makeComposition, makeFieldsStep, makeStep } =
+  ApiReferenceBlock

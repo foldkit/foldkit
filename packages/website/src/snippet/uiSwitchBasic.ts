@@ -19,7 +19,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const NotificationSettingsKey = Symbol('NotificationSettings')
-
 export const NotificationSettingsBlock = Block.make('NotificationSettings', {
   key: NotificationSettingsKey,
   Init: Schema.Tuple([]),
@@ -28,8 +27,9 @@ export const NotificationSettingsBlock = Block.make('NotificationSettings', {
   Message,
 })
 
-const NotificationSettingsComposition =
-  NotificationSettingsBlock.makeComposition()
+const { makeComposition } = NotificationSettingsBlock
+
+const NotificationSettingsComposition = makeComposition()
 
 // In your init function, start it off:
 const init = NotificationSettingsComposition.makeInit(() => ({

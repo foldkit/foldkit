@@ -6,9 +6,9 @@ import { expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
-import { layer } from './block'
-import { UiBlock } from './definition'
+import { UiBlock } from './block'
 import { InMessage } from './inMessage'
+import { layer } from './layer'
 
 it.effect(
   'parent requests open and close the mobile menu through its Dialog',

@@ -14,7 +14,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Model, hexColorPicker, layer } from './application'
+import { ApplicationBlock, Model, hexColorPicker, layer } from './block'
 
 const initialModel = Model.make({
   content: 'https://foldkit.dev',

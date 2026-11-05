@@ -12,7 +12,6 @@ const Message = defineMessageUnion({ ClickedArticle: { id: Schema.String } })
 type Message = typeof Message.Type
 
 export const ArticlesKey = Symbol('Articles')
-
 const ArticlesBlock = Block.make('Articles', {
   key: ArticlesKey,
   Init: Schema.Tuple([]),
@@ -21,7 +20,9 @@ const ArticlesBlock = Block.make('Articles', {
   Message,
 })
 
-const ArticlesComposition = ArticlesBlock.makeComposition()
+const { makeComposition } = ArticlesBlock
+
+const ArticlesComposition = makeComposition()
 type ArticlesViewBuilder = Block.ViewBuilderFor<typeof ArticlesComposition>
 
 const headerView = (h: ArticlesViewBuilder) => h.h2([], ['Articles'])

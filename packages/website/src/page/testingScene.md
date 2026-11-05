@@ -2,11 +2,13 @@
 
 ## Overview
 
+Application behavior tests use the Story or Scene DSL. Deliver Messages or InMessages, resolve Commands and assert through those steps. Do not replace the runner with a chain of acquired update calls or direct Step applications. A pure fixture may build an initial Model or deliberately use `given(model)`; an advanced scoped fixture may need acquired initialization, graph identity or view context. Keep the behavior itself in the DSL. Pure domain and selector unit tests remain separate; raw transition tests belong to framework infrastructure.
+
 A Block-aware `scene({ block: FeatureBlock, layer }, init(...args), ...steps)` returns an Effect that acquires and scopes the implementation graph. The selected Layer supplies the feature's construction providers. Use `given(model)` for an existing Model, and pass `{ block, layer, viewInputs, updateContext, routing }` when the view or test requires those inputs. Handler Services are unnecessary for pure Scenes because handlers do not run.
 
 In Vitest, return the Scene Effect from `it.effect` in `@effect/vitest`. The integration owns execution and test cleanup, so normal tests need no `Effect.runPromise` wrapper or manual extraction of update and view. Use `init` and explicit Command resolution for startup scenarios. Provide test Layers for any remaining construction dependencies through ordinary `Effect.provide`.
 
-Use `withBlock` for an advanced fixture that needs acquired pure functions or a custom test view. Keep the Scope alive throughout the test.
+Use `withBlock` for an advanced fixture that needs initialized state or a custom test view. Keep the Scope alive throughout the test.
 
 ## Testing Through the View
 

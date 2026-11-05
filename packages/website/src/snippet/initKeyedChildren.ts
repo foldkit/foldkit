@@ -1,13 +1,14 @@
 import { Array, Number } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeStep } from './block'
+import { makeBinding, makeComposition } from './block'
 import * as Counter from './counter'
-import { makeStep } from './definition'
 import { CounterInstance } from './model'
 
 const INITIAL_COUNTER_COUNT = 3
 
-const CountersBinding = ApplicationBlock.makeBinding(Counter.CounterBlock, {
+const CountersBinding = makeBinding(Counter.CounterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
@@ -21,7 +22,7 @@ const CountersBinding = ApplicationBlock.makeBinding(Counter.CounterBlock, {
   },
 })
 
-const ApplicationComposition = ApplicationBlock.makeComposition({
+const ApplicationComposition = makeComposition({
   bindings: [CountersBinding],
 })
 

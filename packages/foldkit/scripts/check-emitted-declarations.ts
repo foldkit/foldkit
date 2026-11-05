@@ -909,6 +909,18 @@ const checks: ReadonlyArray<
     consumers: ['message-steps.consume.ts'],
   },
   {
+    name: 'codec-contract',
+    accepted: ['codec-contract.accepted.ts'],
+    rejected: ['codec-contract.rejected.ts'],
+    consumers: ['codec-contract.consume.ts'],
+  },
+  {
+    name: 'managed-resource-contract',
+    accepted: ['managed-resource-contract.accepted.ts'],
+    rejected: ['managed-resource-contract.rejected.ts'],
+    consumers: ['managed-resource-contract.consume.ts'],
+  },
+  {
     name: 'managed-resource-registry',
     accepted: ['managed-resource-registry.accepted.ts'],
     rejected: ['managed-resource-registry.rejected.ts'],
@@ -1202,6 +1214,8 @@ const main = async (): Promise<void> => {
     'keyed-map-field',
     'map-binding-method',
     'variant-binding',
+    'codec-contract',
+    'managed-resource-contract',
     'managed-resource-registry',
     'policy-graph',
     'story-concurrency',

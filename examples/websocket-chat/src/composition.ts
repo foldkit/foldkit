@@ -1,8 +1,8 @@
 import type { Block } from 'foldkit'
 
-import { ApplicationBlock } from './definition'
+import { makeComposition } from './block'
 
-export const ApplicationComposition = ApplicationBlock.makeComposition()
+export const ApplicationComposition = makeComposition()
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >

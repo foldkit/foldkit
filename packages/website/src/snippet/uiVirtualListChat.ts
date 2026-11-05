@@ -53,7 +53,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const MessageListExampleKey = Symbol('MessageListExample')
-
 export const MessageListExampleBlock = Block.make('MessageListExample', {
   key: MessageListExampleKey,
   Init: Schema.Tuple([Schema.Array(ChatMessage)]),
@@ -61,9 +60,17 @@ export const MessageListExampleBlock = Block.make('MessageListExample', {
   Model,
   Message,
 })
-const { makeFieldsStep, makeNoopStep, makeStep } = MessageListExampleBlock
+const {
+  makeFieldsStep,
+  makeNoopStep,
+  makeStep,
+  makeCommand,
+  makeBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = MessageListExampleBlock
 
-const FetchHistory = MessageListExampleBlock.makeCommand('FetchHistory', {
+const FetchHistory = makeCommand('FetchHistory', {
   args: { maybeBeforeId: Schema.Option(Schema.String) },
   messages: [Message.SucceededFetchHistory, Message.FailedFetchHistory],
   handler: function* () {
@@ -110,31 +117,28 @@ const requestHistory = makeStep(model => {
   }
 })
 
-const MessageListBinding = MessageListExampleBlock.makeBinding(
-  MessageListBlock,
-  {
-    field: 'messageList',
-    init: {
-      contextToArgs: () => [
-        {
-          id: 'message-list',
-          rowHeightPx: 64,
-          initialScroll: { target: VirtualListScrollTarget.End() },
-          followEnd: { thresholdPx: 8 },
-          history: { reservePx: 800, prefetchViewports: 3 },
-        },
-      ],
-    },
+const MessageListBinding = makeBinding(MessageListBlock, {
+  field: 'messageList',
+  init: {
+    contextToArgs: () => [
+      {
+        id: 'message-list',
+        rowHeightPx: 64,
+        initialScroll: { target: VirtualListScrollTarget.End() },
+        followEnd: { thresholdPx: 8 },
+        history: { reservePx: 800, prefetchViewports: 3 },
+      },
+    ],
   },
-).withOutMessagePolicy({
-  fold: MessageListExampleBlock.makeOutMessageFold(MessageListBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(MessageListBlock, {
     ObservedContainerScroll: makeNoopStep,
     ApproachedLoadedStart: () => requestHistory,
     EndedContainerScroll: makeNoopStep,
   }),
 })
 
-const MessageListExampleComposition = MessageListExampleBlock.makeComposition({
+const MessageListExampleComposition = makeComposition({
   bindings: [MessageListBinding],
 })
 const init = MessageListExampleComposition.makeInit(initialMessages => ({

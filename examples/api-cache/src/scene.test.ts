@@ -13,8 +13,8 @@ import { describe } from 'vitest'
 
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { ApplicationBlock, layer } from './block'
 import { FetchPostDetail, FetchStats } from './command'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { ApplicationTabsBlock } from './model'
 import { FETCHED_AT, firstPostDetail, fixtureStats, it } from './model.fixture'

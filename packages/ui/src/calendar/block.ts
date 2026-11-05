@@ -113,7 +113,6 @@ export type SelectedDate = typeof OutMessage.SelectedDate.Type
 
 /** @internal Stable identity of the Calendar contract. */
 export const CalendarKey = Symbol('Calendar')
-
 export const CalendarBlock = Block.make('Calendar', {
   key: CalendarKey,
   Init: Block.makeInputContract<readonly [config: InitConfig]>(),

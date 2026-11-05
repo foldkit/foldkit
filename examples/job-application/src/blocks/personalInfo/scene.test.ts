@@ -5,8 +5,8 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { PersonalInfoBlock, layer } from './block'
-import { InMessage } from './definition'
+import { InMessage } from './block'
+import { PersonalInfoBlock, layer } from './index'
 
 const today = Calendar.make(2026, 4, 16)
 

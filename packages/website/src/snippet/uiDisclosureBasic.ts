@@ -22,7 +22,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const FrequentlyAskedQuestionsKey = Symbol('FrequentlyAskedQuestions')
-
 export const FrequentlyAskedQuestionsBlock = Block.make(
   'FrequentlyAskedQuestions',
   {
@@ -34,8 +33,9 @@ export const FrequentlyAskedQuestionsBlock = Block.make(
   },
 )
 
-const FrequentlyAskedQuestionsComposition =
-  FrequentlyAskedQuestionsBlock.makeComposition()
+const { makeComposition } = FrequentlyAskedQuestionsBlock
+
+const FrequentlyAskedQuestionsComposition = makeComposition()
 
 // In your init function, start it closed:
 const init = FrequentlyAskedQuestionsComposition.makeInit(() => ({

@@ -705,3 +705,12 @@ export { default as blockGenericConsumerHighlighted } from './blockGenericConsum
 
 export { default as attributeKindsRaw } from './attributeKinds.ts?raw'
 export { default as attributeKindsHighlighted } from './attributeKinds.ts?highlighted'
+
+export { default as updateExtractedMessageRaw } from './updateExtractedMessage.ts?raw'
+export { default as updateExtractedMessageHighlighted } from './updateExtractedMessage.ts?highlighted'
+
+export { default as blockCodecChildRaw } from './blockCodecChild.ts?raw'
+export { default as blockCodecChildHighlighted } from './blockCodecChild.ts?highlighted'
+
+export { default as blockCodecParentRaw } from './blockCodecParent.ts?raw'
+export { default as blockCodecParentHighlighted } from './blockCodecParent.ts?highlighted'

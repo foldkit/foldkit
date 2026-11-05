@@ -1,9 +1,9 @@
 import { UrlRequest } from 'foldkit/navigation'
 import { toString as urlToString } from 'foldkit/url'
 
+import { makeFieldsStep, makeNoopStep } from './block'
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition } from './composition'
-import { makeFieldsStep, makeNoopStep } from './definition'
 import { Cart } from './domain'
 import { urlToApplicationRoute } from './route'
 

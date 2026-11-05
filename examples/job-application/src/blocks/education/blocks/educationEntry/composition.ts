@@ -1,12 +1,14 @@
 import { Option } from 'effect'
 
 import {
-  EducationEntryBlock,
   GraduationYearListboxBlock,
+  makeBinding,
+  makeComposition,
   makeFieldsStep,
-} from './definition'
+  makeOutMessageFold,
+} from './block'
 
-export const GraduationYearListboxBinding = EducationEntryBlock.makeBinding(
+export const GraduationYearListboxBinding = makeBinding(
   GraduationYearListboxBlock,
   {
     field: 'graduationYearListbox',
@@ -15,7 +17,7 @@ export const GraduationYearListboxBinding = EducationEntryBlock.makeBinding(
     },
   },
 ).withOutMessagePolicy({
-  fold: EducationEntryBlock.makeOutMessageFold(GraduationYearListboxBlock, {
+  fold: makeOutMessageFold(GraduationYearListboxBlock, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({
         maybeGraduationYear: () => Option.some(value),
@@ -23,6 +25,6 @@ export const GraduationYearListboxBinding = EducationEntryBlock.makeBinding(
   }),
 })
 
-export const EducationEntryComposition = EducationEntryBlock.makeComposition({
+export const EducationEntryComposition = makeComposition({
   bindings: [GraduationYearListboxBinding],
 })

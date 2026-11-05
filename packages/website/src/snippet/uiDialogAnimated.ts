@@ -21,7 +21,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const AnimatedDialogExampleKey = Symbol('AnimatedDialogExample')
-
 export const AnimatedDialogExampleBlock = Block.make('AnimatedDialogExample', {
   key: AnimatedDialogExampleKey,
   Init: Schema.Tuple([]),
@@ -30,28 +29,25 @@ export const AnimatedDialogExampleBlock = Block.make('AnimatedDialogExample', {
   Message,
 })
 
-const { makeNoopStep } = AnimatedDialogExampleBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  AnimatedDialogExampleBlock
 
-const foldDialogOutMessage = AnimatedDialogExampleBlock.makeOutMessageFold(
-  DialogBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-    CompletedClose: makeNoopStep,
-  },
-)
+const foldDialogOutMessage = makeOutMessageFold(DialogBlock, {
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
+  CompletedClose: makeNoopStep,
+})
 
-const DialogBinding = AnimatedDialogExampleBlock.makeBinding(DialogBlock, {
+const DialogBinding = makeBinding(DialogBlock, {
   field: 'dialog',
   init: {
     contextToArgs: () => [{ id: 'confirm', isAnimated: true }],
   },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const AnimatedDialogExampleComposition =
-  AnimatedDialogExampleBlock.makeComposition({
-    bindings: [DialogBinding],
-  })
+const AnimatedDialogExampleComposition = makeComposition({
+  bindings: [DialogBinding],
+})
 
 // In your init function, set isAnimated: true to coordinate CSS transitions:
 const init = AnimatedDialogExampleComposition.makeInit(() => ({

@@ -67,7 +67,7 @@ describe('rendering templates', () => {
     expect(listTemplateFiles('rendering/ssg')).toEqual([
       'README.md',
       'package.json',
-      'src/application.ts',
+      'src/block.ts',
       'src/entry.server.ts',
       'src/entry.ts',
       'src/route.ts',
@@ -93,14 +93,14 @@ describe('rendering templates', () => {
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
       'Runtime.hydrate',
     )
-    expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
+    expect(readTemplateFile('rendering/ssg/src/block.ts')).toContain(
       "ApplicationBlock = Block.make('Application', {",
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
       'Program.make({',
     )
-    expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
-      'ApplicationComposition = ApplicationBlock.makeComposition()',
+    expect(readTemplateFile('rendering/ssg/src/block.ts')).toContain(
+      'ApplicationComposition = makeComposition()',
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).not.toContain(
       '...implementation',
@@ -112,7 +112,7 @@ describe('rendering templates', () => {
       'README.md',
       'package.json',
       'scripts/serve.ts',
-      'src/application.ts',
+      'src/block.ts',
       'src/cookie.ts',
       'src/entry.server.ts',
       'src/entry.ts',
@@ -136,14 +136,14 @@ describe('rendering templates', () => {
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
       'Runtime.hydrate',
     )
-    expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
+    expect(readTemplateFile('rendering/ssr/src/block.ts')).toContain(
       "ApplicationBlock = Block.make('Application', {",
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
       'Program.make({',
     )
-    expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
-      'ApplicationComposition = ApplicationBlock.makeComposition()',
+    expect(readTemplateFile('rendering/ssr/src/block.ts')).toContain(
+      'ApplicationComposition = makeComposition()',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).not.toContain(
       '...implementation',

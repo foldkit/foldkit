@@ -44,7 +44,7 @@ When update composition is used, check it against the shared [Composing updates 
 
 ## Phase 1: Scope the audit
 
-For testing audits, expect ordinary Block behavior tests to pass the selected `{ block, layer }` pair to scoped Story or Scene and return that Effect from `it.effect` in `@effect/vitest`. Keep synchronous low-level runner tests synchronous. Flag routine executable extraction or dropped startup Commands; keep intentional `given(model)` fixtures and acquisition needed for direct operations, modified initialized Models, private registrations, or custom views. A typed Vitest fixture may retain a necessary Promise bridge. Do not replace explicit Command resolution with running handlers, or use `runFork` without awaiting completion and managing its lifetime.
+For testing audits, expect ordinary Block behavior tests to pass the selected `{ block, layer }` pair to scoped Story or Scene and return that Effect from `it.effect` in `@effect/vitest`. Keep pure selector/domain tests synchronous; reserve low-level runner tests for framework infrastructure. Flag routine executable extraction or dropped startup Commands; keep intentional `given(model)` fixtures and acquisition needed for initialized fixtures, private registrations, or custom view context. A typed Vitest fixture may retain a necessary Promise bridge. Do not replace explicit Command resolution with running handlers, or use `runFork` without awaiting completion and managing its lifetime.
 
 Sketch the audit plan in one sentence and confirm before reading code:
 
@@ -92,7 +92,7 @@ Before deep review, build a model of the audited code:
    - **Tier 7**: real-time, WebSocket, ManagedResources
 3. **Foldkit modules used**. Grep imports for `AsyncData`, `Calendar`, `File`, `Http`, `Update`, `Port`, `Subscription`, `Command`, `Mount`, `ManagedResource`, `CustomElement`, `Dom` from `foldkit`, plus `foldkit/fieldValidation` and any component imported from `@foldkit/ui`. HTTP usage shows up as `HttpClient` / `HttpClientRequest` imported from `effect/http`, not as a `foldkit` import, so grep for those separately; `Http` from `foldkit` is only the `layer` that provides the client. Tells you which checklist sections apply.
 4. **Tier-matching exemplar**. Pick at least one to read alongside the audited code:
-   - Tier 1-2 → `${CLAUDE_SKILL_DIR}/../../examples/counter/src/application.ts`, `${CLAUDE_SKILL_DIR}/../../examples/stopwatch/src/application.ts`
+   - Tier 1-2 → `${CLAUDE_SKILL_DIR}/../../examples/counter/src/block.ts`, `${CLAUDE_SKILL_DIR}/../../examples/stopwatch/src/block.ts`
    - Tier 3 → `${CLAUDE_SKILL_DIR}/../../examples/weather/src/command.ts` and `update.ts`, `${CLAUDE_SKILL_DIR}/../../examples/form/src/update.ts`
    - Tier 4 → `${CLAUDE_SKILL_DIR}/../../examples/routing/src/update.ts`
    - Tier 5 → `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/`
@@ -205,7 +205,7 @@ Use `Agent` with `subagent_type: general-purpose`. Suggested fan-out:
 
 Use `FeatureBlock.makeFieldsStep(producer)` for owning field transformations, `FeatureBlock.makeCommandsStep(producer)` for Commands with an unchanged Model, and `FeatureBlock.makeOutMessageStep(producer)` for one declared OutMessage with an unchanged Model.
 
-Check the helper's authoring boundary. A split `definition.ts` exports the Step helpers its implementation uses, and implementation modules named-import them from that file. A colocated feature destructures helpers beside its Block declaration. Block-qualified calls remain appropriate when several Blocks in one module need visible ownership. Feature barrels keep these helpers private and export the passive Block contract and construction `layer`.
+Check the helper's authoring boundary. A split `block.ts` exports the Step helpers its implementation uses, and implementation modules named-import them from that file. A colocated feature destructures helpers beside its Block declaration. Block-qualified calls remain appropriate when several Blocks in one module need visible ownership. Feature barrels keep these helpers private and export the passive Block contract and construction `layer`.
 
 Put reusable parent Steps shared by update, inMessageUpdate, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Name shared transitions for their operation, without a `make` prefix or `Step` suffix, and defer cyclic Binding access until the producer is applied.
 
@@ -228,7 +228,7 @@ Check both direct-field writer coordination caught by `foldkit/no-binding-write-
 Review child retention, rendering, and activity separately. Route-driven deletion should have a product reason. When editors are retained by identity, view must select the active child from the Route; hidden save completions must still reach their occurrence. Check that route-wide delivery gates do not discard those results. Require interaction cleanup only when the product actually needs it; do not add exhaustive navigation/interleaving policy to a normal example application. Use `init` in initialization function, helper, Step and file names, with `init...IfMissing` for conditional creation. Name pure transitions for their actual Model change; vague `sync` or `observe` helpers can conceal several responsibilities.
 
 Record/HashMap Bindings come from `ParentBlock.makeMapBinding(ChildBlock, config)`
-or a destructured factory imported from the owning feature's `definition.ts`.
+or a destructured factory imported from the owning feature's `block.ts`.
 Check that the child relationship and key contract come from that parent Block.
 
 Review dynamic initialization for the optional `foldkit/bindingInit` helpers:
@@ -390,3 +390,9 @@ For focused `blocks` or `effects` audits, read
 its decision tables and review invariants to the selected files. Include startup
 policy in that trace; do not infer TypeScript initializer arity from Runtime
 metadata.
+
+## Block file and authoring boundaries
+
+Audit the four file roles: `block.ts` declares contracts/key/helpers, `composition.ts` registers relationships, `layer.ts` completes construction, and `effectsLayer.ts` composes a separate local handler bundle. Check named helper imports, adjacent matching key descriptions and private keys unless emitted nameability requires export. Application behavior belongs in Story or Scene. Use their DSL to deliver Messages and InMessages, resolve Commands, and assert Models, OutMessages and views. Do not manually chain acquired `update` calls or invoke application Steps as a substitute for the DSL. Pure fixture construction and intentional `given(model)` remain valid; use scoped acquisition only when a fixture genuinely needs initialized state, graph identity or custom view context. Keep pure domain/selector tests separate from application behavior, and reserve low-level transition tests for framework infrastructure.
+
+Generated `requestX`/`informX` methods should be used directly; flag an adapter that only forwards an InMessage constructor. Verify `effects.services`, `effects.managedResources` and `effects.Error` bound the actual selected capabilities. Treat codec declarations as advanced complete-dispatch requirements, not boilerplate every app must copy. Read the shared composition reference and the generation architecture/conventions snapshots for the full contract.

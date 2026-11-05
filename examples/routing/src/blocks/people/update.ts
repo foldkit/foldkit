@@ -1,9 +1,9 @@
 import { Option } from 'effect'
 
 import type { PeopleRoute } from '../../route'
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './block'
 import { FetchPeople, PushSearchUrl } from './command'
 import { PeopleComposition } from './composition'
-import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import {
   Model,
   SearchResults,

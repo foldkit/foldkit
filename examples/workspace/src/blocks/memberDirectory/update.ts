@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 
+import { makeFieldsStep } from './block'
 import { MemberDirectoryComposition } from './composition'
-import { makeFieldsStep } from './definition'
 
 export const update = MemberDirectoryComposition.makeUpdate({
   UpdatedQuery: makeFieldsStep.fromMessage(({ value }) => ({

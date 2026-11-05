@@ -38,10 +38,10 @@ import type {
   ContractConfiguration,
   ContractGraph,
   DeclaredFacts,
+  DefinitionConfigurationArguments,
   DefinitionFields,
   HostContractValidation,
   HostDefinitions,
-  InMessageConfigurationArguments,
   InMessageUpdateBodyValidation,
   MakeComposition,
   NativeBody,
@@ -494,7 +494,7 @@ export function makeUnifiedBlock<
     (symbol extends Key ? never : true extends IsUnion<Key> ? never : unknown),
   ...validation: readonly [
     ...MessageFreeValidation<NoInfer<Config & Readonly<{ key: Key }>>>,
-    ...InMessageConfigurationArguments<
+    ...DefinitionConfigurationArguments<
       NoInfer<Config & Readonly<{ key: Key }>>
     >,
   ]

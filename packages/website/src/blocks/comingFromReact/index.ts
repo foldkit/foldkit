@@ -1,1 +1,2 @@
-export { ComingFromReactBlock, layer } from './block'
+export { ComingFromReactBlock } from './block'
+export { layer } from './layer'

@@ -6,7 +6,6 @@ import { Model } from './model'
 import * as ThemeMenu from './themeMenu'
 
 export const SettingsKey = Symbol('Settings')
-
 export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   Init: Schema.Tuple([]),
@@ -14,20 +13,18 @@ export const SettingsBlock = Block.make('Settings', {
   Message,
 })
 
-const { makeNoopStep } = SettingsBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  SettingsBlock
 
-const foldThemeMenuOutMessage = SettingsBlock.makeOutMessageFold(
-  ThemeMenu.ThemeMenuBlock,
-  {
-    Selected: makeNoopStep,
-    Closed: makeNoopStep,
-  },
-)
+const foldThemeMenuOutMessage = makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
+  Selected: makeNoopStep,
+  Closed: makeNoopStep,
+})
 
-const ThemeMenuBinding = SettingsBlock.makeBinding(ThemeMenu.ThemeMenuBlock, {
+const ThemeMenuBinding = makeBinding(ThemeMenu.ThemeMenuBlock, {
   field: 'themeMenu',
 }).withOutMessagePolicy({ fold: foldThemeMenuOutMessage })
 
-export const SettingsComposition = SettingsBlock.makeComposition({
+export const SettingsComposition = makeComposition({
   bindings: [ThemeMenuBinding],
 })

@@ -1,2 +1,3 @@
-export { WorkHistoryEntryBlock, layer } from './block'
+export { WorkHistoryEntryBlock } from './block'
+export { layer } from './layer'
 export { hasErrors, isComplete } from './validation'

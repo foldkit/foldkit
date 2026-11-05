@@ -10,7 +10,7 @@ import {
   Message,
   type Model,
   layer,
-} from './application'
+} from './block'
 
 const emptyModel: Model = {
   balls: [],

@@ -14,8 +14,8 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
-import { ApplicationBlock, layer } from './block'
 import { PlaceOrder } from './command'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { EditionRadioGroupBlock } from './model'
 

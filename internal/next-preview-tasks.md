@@ -1,5 +1,35 @@
 # Next preview tasks
 
+## November 4 review follow-ups
+
+The [follow-up report](blocks-review-followups-20261104.md) records the user's
+working-directory edits, the rejected constructor-local experiment, and the
+repository-wide convention and test migration on top of merged preview
+`f0c3c102d33b6f4db3826743c2a29dc08c2d57df`.
+
+- [x] Preserve the eleven user-edited files and review comments while rotating
+      concrete Block declarations, implementation Layers, and local bundles.
+- [x] Standardize adjacent identity keys and feature-owned helper imports; retain
+      exported keys where checked declarations need their unique identities.
+- [x] Complete the Story/Scene migration across all application test inventories,
+      preserving meaningful assertions and recording fixture/domain exceptions.
+- [x] Rename all three public ManagedResource requirement lists with Source,
+      emitted, runtime and mutation checks, without changing lifecycle APIs.
+- [x] Prove the opaque-child Message Codec boundary and retain advanced bounds.
+- [x] Investigate explicit Message generics; retain the precise parameter
+      annotation because the proposed spelling loses exact inferred channels.
+- [x] Reconcile canonical guidance, skills, scaffolds, active docs, InMessage
+      method documentation and source-backed snippets.
+- [x] Finish the TypeScript 6 helper-export nameability repair and all eight
+      unchanged mapped compiler ceilings; verify one physical Effect runtime.
+- [ ] Finish integrated checks and review the exact committed diff before push.
+- [ ] Reconcile newly arrived feedback, including Scene Mount routing, empty
+      Menus, pointer drop indexes, Query runtime tests, and Node response cleanup.
+- [ ] Integrate reviewed code into the preview branch through required checks.
+
+Publication remains held for the user's review and approval. No new private
+source review transfer is authorized by earlier commit-specific approvals.
+
 ## November 4 unified Block adoption
 
 The user accepted the measured Workspace compiler cost. The

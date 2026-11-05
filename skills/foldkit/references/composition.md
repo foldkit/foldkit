@@ -17,7 +17,7 @@ The Block declaration establishes the public contract and typed helpers. The Com
 
 Declare an independent public contract before its implementation. `Block.make` binds a stable module-level unique `key`, Model, local Message, optional OutMessage, and an `Init` tuple. Add a `Context` tuple for dispatch context, `ChildInitContext` for deferred child startup, and a `view` descriptor when the Block renders. A serializable tuple uses `Schema.Tuple`; callbacks or other deliberately nonserialized inputs use `Block.makeInputContract<...>()`.
 
-Export the same `FooBlock` declaration for parent authorship. Parents derive Schemas from `FooBlock.Model`, configure Bindings, author extracted Steps, and render through their Composition without importing the child implementation. The key identifies the contract; the readable Block name is a label and may repeat across independent modules. Declare one unique key at module scope. When published inferred declarations carry a Block’s unique-symbol identity, export the key value through the owning public barrel so TypeScript can name it downstream.
+Export the same `FooBlock` declaration for parent authorship. Parents derive Schemas from `FooBlock.Model`, configure Bindings, author extracted Steps, and render through their Composition without importing the child implementation. The key identifies the contract; the readable Block name is a label and may repeat across independent modules. Declare one unique key at module scope. When verified declaration emission needs a Block’s unique-symbol identity, export its original key declaration from the owning module. A public barrel may re-export it with `export type` when downstream declarations only need to name that identity.
 
 A Block feature's explicit barrel exposes its passive Block, construction `layer`, stable read-only queries, and necessary public Schema/type contracts. A child may expose pure read-only selectors such as `isComplete` and `hasErrors`; the parent passes the child Model and the child owns interpreting its fields. Keep substantial selectors with their responsibility, such as `validation.ts`, rather than exporting them from update. These ordinary exports are independent of implementation Layer selection, so give them stable semantics over the public Model. Keep authoring helpers and update implementations internal. Do not copy derived values into parent state or introduce Messages solely to read them.
 
@@ -100,7 +100,7 @@ Shared `each`, `on`, and `except` pieces cannot emit OutMessages. Handler record
 
 Declare an optional `InMessage` Schema for requests and notifications a parent can initiate. Its tags are disjoint from local `Message`: `RequestedSubmit` generates `Binding.requestSubmit()`, and `InformedOfIssueChanged` generates `Binding.informIssueChanged(payload)`. Fields use the variant constructor's exact payload contract. A keyed Binding takes its occurrence key first. Do not inflect or alias the generated names.
 
-Author an exhaustive `Composition.makeInMessageUpdate` record and return `inMessageUpdate` with init, update and view from `FeatureBlock.makeLayer`. Local UI facts and Command results remain in `makeUpdate`. Share a reusable Step in `steps.ts` when local `SubmittedForm` and received `RequestedSubmit` need the same transition. Sparse `inMessageOutputs` entries declare emitting OutMessage bounds and additional `services` or `resources`; an omitted entry is silent and adds no public requirements. Commands returned from inMessageUpdate produce local Messages, never InMessages.
+Author an exhaustive `Composition.makeInMessageUpdate` record and return `inMessageUpdate` with init, update and view from `FeatureBlock.makeLayer`. Local UI facts and Command results remain in `makeUpdate`. Share a reusable Step in `steps.ts` when local `SubmittedForm` and received `RequestedSubmit` need the same transition. Sparse `inMessageOutputs` entries declare emitting OutMessage bounds and additional `services` or `managedResources`; an omitted entry is silent and adds no public requirements. Commands returned from inMessageUpdate produce local Messages, never InMessages.
 
 Declare a separate `InMessageContext` tuple and use `makeInMessageUpdate.withContext` for InMessage context. Binding methods take that context after the payload. The update `Context` and `delivery.toUpdateContext` do not supply it. InMessage handling remains synchronous and pure; it preserves the existing Binding's storage, OutMessage policy, occurrence identity and lifecycle. Acquisition does not call inMessageUpdate or initialize Model state.
 
@@ -123,7 +123,7 @@ update in a unary adapter that supplies every required context argument.
 
 Use `FeatureBlock.makeFieldsStep(producer)` for owning field transformations, `FeatureBlock.makeCommandsStep(producer)` for Commands with an unchanged Model, and `FeatureBlock.makeOutMessageStep(producer)` for one declared OutMessage with an unchanged Model.
 
-In a split feature, `definition.ts` exports the Step helpers used by its implementation and those modules named-import the helpers from that file. A colocated feature destructures helpers beside its Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Feature barrels keep authoring helpers private and export the passive Block contract and construction `layer`.
+In a split feature, `block.ts` exports the Step helpers used by its implementation and those modules named-import the helpers from that file. A colocated feature destructures helpers beside its Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Feature barrels keep authoring helpers private and export the passive Block contract and construction `layer`.
 
 Put reusable parent Steps shared by update, inMessageUpdate, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Name shared transitions for their operation, without a `make` prefix or `Step` suffix, and defer cyclic Binding access until the producer is applied.
 
@@ -236,7 +236,7 @@ Call `ParentBlock.makeMapBinding(ChildBlock, config)` for Record/HashMap fields.
 The factory derives the key contract from the parent Model Schema and defaults
 placement to the storage field.
 
-A split feature can destructure and export `makeMapBinding` from its `definition.ts`,
+A split feature can destructure and export `makeMapBinding` from its `block.ts`,
 then import that factory from the owning module. It retains the parent Block's
 contracts when destructured.
 
@@ -405,7 +405,7 @@ it.effect('updates the theme', () =>
 
 `Story.story` and `Scene.scene` return Effects. They acquire the selected root, run ordinary synchronous steps, and close its construction scope on success, assertion failure, interruption or constructor failure. Use `Story.init(...args)` / `Scene.init(...args)` to retain init's Model and Commands, or `given(model)` for a deliberately prebuilt Model. Additional dispatch arguments use `{ block, layer, updateContext: [...] }`. Required default-view inputs use `{ block, layer, viewInputs }`; routing uses the config's `routing` field. Use ordinary test Layers to satisfy construction requirements. Handler Layers are not built automatically, and ordinary HTTP/socket Services are unnecessary for a pure test unless graph construction itself requests them.
 
-Use `it.effect` from a compatible `@effect/vitest` release for Effect-returning tests and return the runner Effect directly. Ordinary synchronous tests stay synchronous. The integration manages execution, scoped cleanup, and test services; use `it.live` for an execution test that deliberately needs the live environment. A plain Vitest test must return or await `Effect.runPromise`; `Effect.runFork` alone does not make Vitest wait. Keep necessary Promise bridges inside typed Vitest fixtures. Normal tests pass the Block and construction Layer together; acquisition wrappers are for direct operations, modified initialized Models, private registrations, and custom multi-view renderers.
+Use `it.effect` from a compatible `@effect/vitest` release for Effect-returning tests and return the runner Effect directly. Pure domain and selector tests stay synchronous. The integration manages execution, scoped cleanup, and test services; use `it.live` for an execution test that deliberately needs the live environment. A plain Vitest test must return or await `Effect.runPromise`; `Effect.runFork` alone does not make Vitest wait. Keep necessary Promise bridges inside typed Vitest fixtures. Normal tests pass the Block and construction Layer together; acquisition wrappers are for fixture initialization, graph identity, private registrations, and custom multi-view renderers. Deliver subsequent application interactions through Story or Scene steps.
 
 A direct child fact in a Block-aware Story uses `Story.messageFrom(binding, rawChildMessage)`, with the decoded occurrence key before the Message for a keyed Binding. The runner resolves the relationship against its acquired graph, including grouped `Story.steps`. Never fabricate generated envelopes. Production parents still use Binding operations.
 
@@ -413,7 +413,7 @@ A direct child fact in a Block-aware Story uses `Story.messageFrom(binding, rawC
 
 Use `Story.inMessage(InMessage.RequestedSubmit())` or the Scene equivalent for a parent input. The runner applies `inMessageUpdate` inside the same acquired graph. Command resolution still dispatches the raw local result through update. Reusable `Story.steps` and `Scene.inside` retain the separate input type and do not bypass Scene's pending-Command boundary.
 
-Use `Story.withBlock({ block: FeatureBlock, layer }, acquired => ...)` only when a test needs acquired pure functions or a feature-local fixture. Return a synchronous result or an Effect from the callback; an async callback is not accepted. The acquired test facade includes the default renderer and actual selected implementation registrations. Scene Subscription steps use the exact registered entry and a declared raw Message; they do not start live Streams or prove stale-generation admission. A passive public contract does not expose private Subscription registries. Test implementation-owned behavior through its Block/Layer pair or retain a concrete local registry in a lower-level fixture. Keep test files in TypeScript's normal include coverage.
+Use `Story.withBlock({ block: FeatureBlock, layer }, acquired => ...)` only when a fixture needs acquired initialization, graph identity or custom view context. Return a synchronous result or an Effect from the callback; an async callback is not accepted. The acquired test facade includes the default renderer and actual selected implementation registrations. Scene Subscription steps use the exact registered entry and a declared raw Message; they do not start live Streams or prove stale-generation admission. A passive public contract does not expose private Subscription registries. Test implementation-owned behavior through its Block/Layer pair or retain a concrete local registry in a lower-level fixture. Keep test files in TypeScript's normal include coverage.
 
 ## Initialize children
 
@@ -570,7 +570,7 @@ lifecycle. Reintroducing a key in a later update creates a new generation;
 removing and readding it within one update does not. Keep existing initialization
 helpers for Option fields, Record/HashMap storage, custom wrapper metadata, or
 arrays whose child Model owns its ID. Do not change those representations solely
-to adopt `create`. See `examples/counters/src/application.ts` for a complete app.
+to adopt `create`. See `examples/counters/src/block.ts` for a complete app.
 
 ## Organize child Blocks
 
@@ -599,7 +599,7 @@ construction Layer.
 
 Return only local handler recipes as `EffectsLayer` from the Block constructor. Acquired child connections carry their own checked recipes and descendants. Supply each child's construction `layer`; do not merge the child's handler `EffectsLayer` again in the parent.
 
-Keep a small local `EffectsLayer` beside its definitions. Extract `layer.ts` when the bundle is substantial or reused. Preserve `Layer` for Effect's module; reserve `ApplicationLayer` for root ordinary Service providers. An attached Subscription registry exposes `subscriptions.layer`, and a fully attached ManagedResource registry exposes `managedResources.layer`; these are handler recipes, distinct from a feature's construction `layer`.
+Keep a compact local `EffectsLayer` beside its definitions. A split feature composes the separate bundle in `effectsLayer.ts`. Preserve `Layer` for Effect's module; reserve `ApplicationLayer` for root ordinary Service providers. An attached Subscription registry exposes `subscriptions.layer`, and a fully attached ManagedResource registry exposes `managedResources.layer`; these are handler recipes, distinct from a feature's construction `layer`.
 
 `config.handler` is passive configuration. Its generator runs when the Runtime builds that handler Layer, returns the invocation function or resource `{ acquire, release }`, and can capture stable Services. Request args, current time, Subscription dependencies, DOM elements and active resource handles belong to the invocation or occurrence lifetime. Keep workflow state in the Model. A Block construction Layer does not eagerly build these handler recipes.
 
@@ -635,9 +635,9 @@ The construction Layer and Program remain passive until an execution owner acqui
 
 ## Organize the graph once
 
-Keep compact Blocks cohesive. In a split feature, `definition.ts` owns contracts and a stable unique key and exports `FooBlock = Block.make(...)`. `composition.ts` imports only child contracts, owns Bindings, OutMessage policies, registration and its ViewBuilder alias. It does not import init, update, the primary view or child implementations. Portable builders may be inline, local values or imported complete expressions without changing their application types.
+Keep compact Blocks cohesive. In a split feature, `block.ts` owns contracts and a stable unique key and exports `FooBlock = Block.make(...)`. `composition.ts` imports only child contracts, owns Bindings, OutMessage policies, registration and its ViewBuilder alias. It does not import init, update, the primary view or child implementations. Portable builders may be inline, local values or imported complete expressions without changing their application types.
 
-`block.ts` imports those builders and the child implementation Layers, completes the constructor and exports `layer`. The root's `block.ts` may instead export the `ApplicationBlock` and its construction `layer` used by Program or Server. A feature's explicit `index.ts` exports its public contract and `layer`. Shared Steps live in `steps.ts` or a responsibility folder; keep reciprocal sibling policies together and defer cyclic Binding reads through callbacks.
+`layer.ts` imports those builders and the child implementation Layers, completes the constructor and exports `layer`. The root's `layer.ts` may instead export the `ApplicationBlock` and its construction `layer` used by Program or Server. A feature's explicit `index.ts` exports its public contract and `layer`. Shared Steps live in `steps.ts` or a responsibility folder; keep reciprocal sibling policies together and defer cyclic Binding reads through callbacks.
 
 Do not create a Block declaration or its key in an update, callback or loop. Generic library factories need a genuine provider family for runtime specialization; use the existing component implementations as precedents rather than adding per-instance IDs or application-owned caches.
 
@@ -653,3 +653,17 @@ Do not create a Block declaration or its key in an update, callback or loop. Gen
 - Child construction Layers are provided at the construction boundary. Handler recipes remain local and ordinary external Services stay explicit.
 - Block declaration, Composition, Layer and Program creation are passive. Test/Runtime/Server acquisition owns construction cleanup; Model and DOM lifecycles retain their separate owners.
 - Real source and relocated emitted consumers preserve exact public payloads, operation channels, provider requirements and declaration reachability.
+
+## Contract bounds and extraction
+
+Declare the unique key immediately before its Block and give `Symbol('Feature')` the same description as the Block's readable name. Keep the key private unless verified declaration emission needs its original declaration exported. Split implementation modules commonly need that export because their inferred contracts name the owner key. A public barrel may re-export the original declaration with `export type` when only its identity is needed in types. Verify source and relocated declarations before removing an export.
+
+Declare parent requests and notifications in the child's `InMessage` union and handle them with `Composition.makeInMessageUpdate`. `RequestedX` generates `Binding.requestX`, and `InformedOfX` generates `Binding.informX`. The remaining suffix is preserved exactly; other prefixes and empty suffixes are rejected. Methods take the constructor payload when present, with a keyed occurrence first and InMessage context last. They return connected parent Steps, so pass them directly to handler records or compose them. Do not add a manual request wrapper or an `operations` entry that only repeats an InMessage constructor. Keep explicit operations for real argument adaptation, generic interfaces or intentional local-Message mappings.
+
+Inline handlers receive their exact Model and Message from the Composition. When extracting a Message-dependent callback without that context, annotate its precise Message variant, as in `makeStep((model, { url }: ChangedUrl) => ...)` or `makeStep.fromMessage(({ url }: ChangedUrl) => ...)`. The helper still infers result channels. The proposed single-Message type-argument forms are not supported; defaulting the remaining type parameters loses output inference. Do not replace the useful parameter annotation with broad return types, casts or repeated generic arguments.
+
+Application behavior belongs in Story or Scene. Use their DSL to deliver Messages and InMessages, resolve Commands, and assert Models, OutMessages and views. Do not manually chain acquired `update` calls or invoke application Steps as a substitute for the DSL. Pure fixture construction and intentional `given(model)` remain valid; use scoped acquisition only when a fixture genuinely needs initialized state, graph identity or custom view context. Keep pure domain/selector tests separate from application behavior, and reserve low-level transition tests for framework infrastructure.
+
+The public `effects` contract bounds runtime capabilities: `services` lists ordinary handler Services, `managedResources` lists resource accessors, and `Error` bounds handler-constructor failures. Explicit operation declarations and `inMessageOutputs` use the same `managedResources` spelling for their extra resource requirements. These contracts describe capabilities; local `EffectsLayer` selects their handlers. Construction dependencies still flow through ordinary Layer provision, and ordinary request Services stay inside handler constructors.
+
+Treat `codec` as an advanced bound for the complete generated Message envelope. Local Message decoding and encoding Services are already inferred. A parent with opaque children may additionally declare `codec.decoding` and `codec.encoding` because its local Message Schema cannot reveal those child delivery requirements. Prefer self-contained serializable Messages in ordinary apps. DevTools dispatch requires the complete decoder's Services; a quiet Program does not. Encoding Services are needed when explicitly encoding, not by every Program.

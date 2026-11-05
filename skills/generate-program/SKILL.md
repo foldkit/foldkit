@@ -86,10 +86,10 @@ Then read the tier-specific example files that match the app's complexity. **Alw
 ### Complexity tiers
 
 **Tier 1: Single page, no async, minimal state:**
-Read `${CLAUDE_SKILL_DIR}/../../examples/counter/src/application.ts`
+Read `${CLAUDE_SKILL_DIR}/../../examples/counter/src/block.ts`
 
 **Tier 2: Timers, subscriptions, simple stateful apps:**
-Read `${CLAUDE_SKILL_DIR}/../../examples/stopwatch/src/application.ts` (timer via subscription, `Duration` field pattern) and `${CLAUDE_SKILL_DIR}/../../examples/todo/src/update.ts` and `flags.ts` (CRUD with localStorage via Flags)
+Read `${CLAUDE_SKILL_DIR}/../../examples/stopwatch/src/block.ts` (timer via subscription, `Duration` field pattern) and `${CLAUDE_SKILL_DIR}/../../examples/todo/src/update.ts` and `flags.ts` (CRUD with localStorage via Flags)
 
 **Tier 3: Async operations, loading/error states, API calls, form validation:**
 Read `${CLAUDE_SKILL_DIR}/../../examples/weather/src/command.ts` (HTTP with `HttpClient`) and its `update.ts` (request state transitions) and `${CLAUDE_SKILL_DIR}/../../examples/form/src/update.ts` (uses `foldkit/fieldValidation`; see the Form Validation section in Phase 4)
@@ -184,8 +184,8 @@ If the app uses UI components, **always read the ui-showcase example first** to 
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/message.ts`: how locally authored component Messages are structured
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/model.ts`: how component Models are composed
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/update.ts`: how component updates are delegated
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/definition.ts`: passive `UiBlock` contract
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/block.ts`: Layer-owned constructor and local handler recipes
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/block.ts`: passive `UiBlock` contract
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/layer.ts`: Layer-owned constructor and local handler recipes
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/composition/composition.ts`: parent-owned component Binding policies and automatic lifecycle composition
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/blocks/ui/toast.ts`: read when using `Toast`. `Toast.makeBlock(PayloadSchema)` publishes its exact payload contract and occurrence-aware test helper; `Toast.layer` supplies implementation construction
 
@@ -212,7 +212,7 @@ A common mistake (because kanban colocates `SavedBoard` in `model.ts`): putting 
 **Small application** (Tier 1-2):
 
 ```
-src/application.ts  ← All root Model, Message, init, update, view, Composition, and ApplicationBlock
+src/block.ts  ← All root Model, Message, init, update, view, Composition, and ApplicationBlock
 src/entry.ts        ← Program host inputs and Runtime.run
 src/services.ts     ← ApplicationLayer providers, when ordinary Services are required
 ```
@@ -220,36 +220,37 @@ src/services.ts     ← ApplicationLayer providers, when ordinary Services are r
 **Split application** (Tier 3-5):
 
 ```
-src/definition.ts   ← Application contract when Definition authoring methods need it
+src/block.ts        ← ApplicationBlock, its key and used authoring helpers
 src/composition.ts  ← ApplicationComposition and complete root graph
-src/block.ts        ← ApplicationBlock assembly
+src/layer.ts        ← ApplicationBlock implementation construction
 src/entry.ts        ← Program host inputs and Runtime.run
 src/services.ts     ← ApplicationLayer providers, when ordinary Services are required
 src/model.ts
 src/message.ts
 src/init.ts
-src/command.ts      ← Command definitions and a small root EffectsLayer
+src/command.ts      ← Command definitions
+src/effectsLayer.ts ← Separate local handler bundle, when needed
 src/update.ts
 src/view.ts
 src/route.ts        ← When routing is used
 src/domain/         ← Shared domain Schemas and pure operations
 ```
 
-If a Command needs to import result constructors, extract `message.ts` before separating that Command from update. `definition.ts`, `command.ts`, and `update.ts` import the Message union directly without importing the completed root graph. A genuinely compact root defines Model, Message, init, update, view, `ApplicationBlock`, `ApplicationComposition`, and `layer` together in `application.ts`. Once any root responsibility is extracted, split the whole root: keep the independent keyed contract in `definition.ts`; named files own Model, Message, init, update, view, and optional Flags; `composition.ts` owns Bindings, OutMessage folds, the complete graph, `ApplicationComposition`, and an optional `ApplicationViewBuilder`; and `block.ts` completes the implementation `layer`. Even a graphless split root has `composition.ts`. Remove the emptied `application.ts` instead of using it as a re-export or implementation bundle. Keep a simple root `EffectsLayer` with its Command definitions in `command.ts`; use `layer.ts` only when Layer composition is substantial or reused. `entry.ts` imports the Block and construction Layer and supplies their pair plus host options to `Program.make` or `Program.makeElement`.
+If a Command needs to import result constructors, extract `message.ts` before separating that Command from update. `block.ts`, `command.ts`, and `update.ts` import the Message union directly without importing the completed root graph. A genuinely compact root defines Model, Message, init, update, view, `ApplicationBlock`, `ApplicationComposition`, and `layer` together in `block.ts`. Once any root responsibility is extracted, split the whole root: keep the independent keyed contract in `block.ts`; named files own Model, Message, init, update, view, and optional Flags; `composition.ts` owns Bindings, OutMessage folds, the complete graph, `ApplicationComposition`, and an optional `ApplicationViewBuilder`; and `layer.ts` completes the implementation `layer`. Even a graphless split root has `composition.ts`. Keep the declaration in `block.ts` when splitting. Keep a split feature's separate local handler bundle in `effectsLayer.ts`. `entry.ts` imports the Block and construction Layer and supplies their pair plus host options to `Program.make` or `Program.makeElement`.
 
 **Feature folders** (Tier 6-7):
 
 ```
-src/page/
+src/blocks/
   index.ts          ← Exports `* as Search` and `* as Settings`
   search/
     index.ts        ← Explicit public barrel
-    definition.ts   ← Passive Block contract and typed authoring helpers
-    search.ts       ← Substantial cohesive behavior, if not in focused files
-    block.ts        ← Layer-owned implementation and local EffectsLayer
+    block.ts        ← Passive Block contract and typed authoring helpers
+    steps.ts        ← Reusable transitions shared by init/update/composition
+    layer.ts        ← Checked implementation and child provision
     composition.ts  ← Bindings, registrations, Composition, SearchViewBuilder
     view.ts         ← Canonical view importing Composition
-    layer.ts        ← Optional; substantial or reused local EffectsLayer composition
+    effectsLayer.ts ← Separate local handler bundle, when needed
     model.ts        ← Optional focused contract module
     message.ts      ← Optional focused contract module
     update.ts       ← Optional focused behavior module
@@ -258,11 +259,11 @@ src/page/
     ...
 ```
 
-The tree shows available seams, not required files. Keep a compact Block in its matching feature file; once structural responsibilities are extracted, use the full split layout. `definition.ts` owns the independent contract and exports the passive `FooBlock`; `composition.ts` depends only on child contracts and owns relationship policy and typed builders. `block.ts` imports child implementation Layers, yields the registered Bindings and returns acquired `children` with imported init/update/view plans. The feature barrel exports its public contract and construction `layer`; a root exports the `ApplicationBlock` and its construction `layer`. Keep runtime startup in entry files.
+The tree shows available seams, not required files. Keep a compact Block in `block.ts`; once structural responsibilities are extracted, use the full split layout. `block.ts` owns the independent contract and exports the passive `FooBlock`; `composition.ts` depends only on child contracts and owns relationship policy and typed builders. `layer.ts` imports child implementation Layers, yields the registered Bindings and returns acquired `children` with imported init/update/view plans. The feature barrel exports its public contract and construction `layer`; a root exports the `ApplicationBlock` and its construction `layer`. Keep runtime startup in entry files.
 
-The independent public contract bounds Model, local Message, init/context, view and operation/effect types before implementation is inferred. Ordinary apps do not need a preparation producer or assembly header. Published libraries keep narrow named generic contracts where useful, export unique key values through public barrels when inferred declarations need them, and verify real source plus relocated emitted consumers. Do not replace missing graph or channel evidence with casts, broad annotations, `satisfies` or repeated factory calls.
+The independent public contract bounds Model, local Message, init/context, view and operation/effect types before implementation is inferred. Ordinary apps do not need a preparation producer or assembly header. Published libraries keep narrow named generic contracts where useful, expose original key declarations when inferred types need them, and verify real source plus relocated emitted consumers. A type-only barrel re-export is sufficient when callers only name the key in types. Do not replace missing graph or channel evidence with casts, broad annotations, `satisfies` or repeated factory calls.
 
-A split feature's `composition.ts` owns its Composition, straightforward Bindings, and the complete `makeComposition({ bindings, mounts })` call. This includes graphless split features. A retained `definition.ts` never owns a Composition or ViewBuilder; the independent contract stays in `definition.ts`, while implementation selection belongs in `block.ts`. Use it for Mount-only features too, with local Mount definitions in `mount.ts`. Extract a substantial one-way child policy to `composition/<child>.ts`; then `composition/composition.ts` stays the single assembly point, with an explicit `composition/index.ts` barrel. The assembly imports actual policy exports directly from sibling modules, and the barrel re-exports intended values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. Use a factory only when Binding construction needs caller-owned configuration. Keep reciprocal sibling policies together in the same parent assembly and defer sibling Binding calls through policy callbacks; a callback can close over a Binding declared later without a circular import. External consumers import from `composition.ts` or its explicit barrel, never from a policy or assembly implementation path. A split root uses the same assembly choice even when graphless, while a genuinely compact root keeps assembly in its all-in-one `application.ts`. Do not create arbitrary Binding categories or duplicate child binding lists. A split graphless feature exports its named empty Composition from `composition.ts`, so view and completion import that same graph assembly value. A compact graphless feature keeps that value beside its cohesive implementation. Composition must not import the primary view, update matcher or selected implementation; at the root it likewise never imports init, update, or view. Put a parent Step shared by policy and update or init in the owner's `steps.ts` or responsibility modules under `steps/`; defer cyclic Binding reads until the producer is applied. `makeBinding` only configures the relationship; registering it under `bindings` establishes the static inventory; yielding it in the constructor acquires the executable connection.
+A split feature's `composition.ts` owns its Composition, straightforward Bindings, and the complete `makeComposition({ bindings, mounts })` call. This includes graphless split features. A retained `block.ts` never owns a Composition or ViewBuilder; the independent contract stays in `block.ts`, while implementation selection belongs in `layer.ts`. Use it for Mount-only features too, with local Mount definitions in `mount.ts`. Extract a substantial one-way child policy to `composition/<child>.ts`; then `composition/composition.ts` stays the single assembly point, with an explicit `composition/index.ts` barrel. The assembly imports actual policy exports directly from sibling modules, and the barrel re-exports intended values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. Use a factory only when Binding construction needs caller-owned configuration. Keep reciprocal sibling policies together in the same parent assembly and defer sibling Binding calls through policy callbacks; a callback can close over a Binding declared later without a circular import. External consumers import from `composition.ts` or its explicit barrel, never from a policy or assembly implementation path. A split root uses the same assembly choice even when graphless, while a genuinely compact root keeps assembly in its all-in-one `block.ts`. Do not create arbitrary Binding categories or duplicate child binding lists. A split graphless feature exports its named empty Composition from `composition.ts`, so view and completion import that same graph assembly value. A compact graphless feature keeps that value beside its cohesive implementation. Composition must not import the primary view, update matcher or selected implementation; at the root it likewise never imports init, update, or view. Put a parent Step shared by policy and update or init in the owner's `steps.ts` or responsibility modules under `steps/`; defer cyclic Binding reads until the producer is applied. `makeBinding` only configures the relationship; registering it under `bindings` establishes the static inventory; yielding it in the constructor acquires the executable connection.
 
 Use standard local structural names: Model, Message, OutMessage, Flags, init, update, view, operations, subscriptions, managedResources, mounts, and EffectsLayer. The passive Block contract supplies context in parent code, such as `SearchBlock.Model` and the whole `SearchBlock` passed to `ParentBlock.makeOutMessageFold`. Domain Schemas and individual effects retain descriptive names.
 
@@ -286,7 +287,7 @@ Example for a Tier 4 link saver:
 ### Sketch
 
 Files:
-  src/definition.ts, composition.ts, entry.ts, model.ts, message.ts
+  src/block.ts, composition.ts, entry.ts, model.ts, message.ts
   src/init.ts, command.ts, update.ts, view.ts, route.ts
   src/domain/link.ts, index.ts
   src/story.test.ts, scene.test.ts
@@ -353,7 +354,7 @@ To re-pin the subtree after a Foldkit package upgrade, run the same command with
 
 ### Replace the scaffold
 
-Then replace the counter example. Keep `src/application.ts` only when the generated root remains genuinely compact. When the generated root is split, move every root responsibility to its named file and remove `src/application.ts`.
+Then replace the counter example. Keep the Block declaration in `src/block.ts` for both compact and split roots. When splitting, move implementation responsibilities to their named files and complete the construction Layer in `layer.ts`.
 
 ## Phase 3.7: Ground the Foldkit APIs
 
@@ -487,7 +488,7 @@ For parent requests and notifications, declare an optional `InMessage` Schema di
 
 - Name application-authored Step values and factories for their operation: `clearSearch`, `changeSearchQuery(query)`, and `applyDomainResult(result)`. Their definitions and types establish the Step role; omit the `make` prefix and `Step` suffix from these application names. Preserve framework helpers and types such as `makeStep`, `makeFieldsStep`, `makeCommandsStep`, `makeOutMessageStep`, `makeNoopStep`, `Update.Step`, and `Update.combineSteps`, along with other public framework helpers whose names include `Step`. Keep existing naming conventions for unrelated factories, Commands, Messages, Bindings, OutMessage folds and matchers, dedicated `handle<MessageTag>` handlers, public operation keys, and applied update-like results.
 
-- In a split feature, export the Step helpers used by the implementation from `definition.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Feature barrels keep authoring helpers private and export the passive Block contract and construction `layer`.
+- In a split feature, export the Step helpers used by the implementation from `block.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Feature barrels keep authoring helpers private and export the passive Block contract and construction `layer`.
 
 Put reusable parent Steps shared by update, inMessageUpdate, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Name shared transitions for their operation, without a `make` prefix or `Step` suffix, and defer cyclic Binding access until the producer is applied.
 
@@ -679,14 +680,14 @@ For file uploads (resumes, images, attachments):
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
 - Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `UrlRequest.Internal` / `UrlRequest.External` handling in update
 - Return local `EffectsLayer` from the Block constructor. Yield registered Bindings and provide child construction Layers; their checked handler graphs propagate automatically. The root ordinary Service `ApplicationLayer` enters through `program.provide(ApplicationLayer)`. Program host options do not repeat implementation or lifecycle declarations.
-- A genuinely compact root exports `ApplicationBlock` and `layer` from its all-in-one `application.ts`. A split root declares `ApplicationBlock` in `definition.ts`, exports `ApplicationComposition` from `composition.ts`, completes the implementation `layer` in `block.ts`, and has no root `application.ts`. `entry.ts` imports the Block and Layer, chooses the container and startup inputs, passes their pair to the Program, supplies `ApplicationLayer` through `program.provide(ApplicationLayer)`, and calls `Runtime.run`.
+- A genuinely compact root exports `ApplicationBlock` and `layer` from its all-in-one `block.ts`. A split root declares `ApplicationBlock` in `block.ts`, exports `ApplicationComposition` from `composition.ts`, completes the implementation `layer` in `layer.ts`, with the declaration remaining in `block.ts`. `entry.ts` imports the Block and Layer, chooses the container and startup inputs, passes their pair to the Program, supplies `ApplicationLayer` through `program.provide(ApplicationLayer)`, and calls `Runtime.run`.
 - `program.provide(layer)` returns a new passive Program. The supplied Layers build once when a Runtime starts it, including a restored-Model start, before a fresh Flags Effect, init, or the first render. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those app-scoped handlers and providers. `Runtime.hydrate` validates the server handoff before acquiring Layers. A Layer construction failure stops startup before the first render. The Runtime releases the Layer Scope when that start stops
 - Give definitions distinct local handler names within one named Block. Different named Blocks may reuse a local name because ownership keeps their contracts separate. `FeatureBlock.makeLayer` checks local handler selection and the declared effect channels, and parent composition carries those checked contracts to the root. When an explicit type annotation is needed, derive the complete contract with `Command.HandlerOf<typeof Definition>`, `Subscription.HandlerOf<typeof subscriptions.entry>`, `Mount.RequirementsOf<typeof Definition>`, or `ManagedResource.HandlerOf<typeof managedResources.entry>`; never write a name-only `Handler<Name>`. An alternate implementation uses the original definition's `toLayer`.
 - Keep four lifetimes distinct: application services such as RPC clients last for one Runtime start; one Command Effect lasts for one dispatch; Subscription Streams and ManagedResource handles follow Model conditions; Mount acquisition follows one DOM element. Keep the `ManagedResource` name for the Model-scoped handle primitive
 - A definition's handler generator captures application services. It must not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle. Service lookup retrieves the instance built for that application start; it does not construct the provider
 - Handlers and services may own mutable execution bookkeeping, such as worker availability or protocol request IDs. The Model and update own pending work shown to the user, selections, and submission rules. A `Ref` created in the constructor must not become the source of truth for workflow decisions or state read by view
 - A page-owning Program with Flags declares `Flags` in `Program.make` and passes the Flags Effect to `Runtime.run(program, { flags })`. A self-contained Element declares both `Flags` and `flags` in `Program.makeElement`. Requirements of either Flags Effect can be supplied through `program.provide`
-- Start a page-owning app with `Runtime.run(program.provide(ApplicationLayer), { flags })`, omitting the options argument when there are no Flags. When a host application controls the Program's lifecycle, call `Runtime.embed(program.provide(ApplicationLayer))` and hand the returned handle to the host; mirror `repos/foldkit/examples/embedding/src/host.ts` for the host side and its `application.ts` for the widget side.
+- Start a page-owning app with `Runtime.run(program.provide(ApplicationLayer), { flags })`, omitting the options argument when there are no Flags. When a host application controls the Program's lifecycle, call `Runtime.embed(program.provide(ApplicationLayer))` and hand the returned handle to the host; mirror `repos/foldkit/examples/embedding/src/host.ts` for the host side and its `block.ts` for the widget side.
 - Name the public root declaration `ApplicationBlock`, its Composition `ApplicationComposition`, its construction provider `layer`, and the selected host value `program`
 
 ### Routes (if multi-page)
@@ -766,7 +767,7 @@ Fix ALL output from all four before declaring Phase 5 done. "Typecheck clean and
 
 ### Type errors first
 
-Then generate tests through `foldkit/story` and `foldkit/scene`, with shared matcher primitives from `foldkit/test`. There are two test styles. Name each test file for its style, beside the code under test: `story.test.ts` for Story tests (the state machine, driving `update`) and `scene.test.ts` for Scene tests (the rendered view). The name describes how the test works, not a source file, so it holds whether `update` and `view` live in `application.ts` or their own files. Keep both patterns inside the TypeScript project's `include` coverage; the scaffold's `src/**/*` includes them. When a folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject: `login.story.test.ts`. Scene runs at any Block boundary: pass the selected Block descriptor and supply required default-view inputs through `{ block, layer, viewInputs }`. Lower-level native `{ update, view }` fixtures remain useful for testing a concrete renderer directly. A page-level Scene asserts the OutMessage a Block emits with `expectOutMessage` / `expectNoOutMessage`, and drives Messages from the non-view lifecycle causes with cause-named steps. To use `Subscription.emit`, select the implementation owning the registry and declare each emittable Message Schema in the entry's `messages`. A lower-level native Scene may supply its concrete Composition and registry explicitly. Pass the exact entry and its raw Message; Scene derives generated delivery from the registered source and occurrence. Registrations that need selection must use distinct entry objects for each path. Silent entries with `messages: []` accept no emissions. Use `Subscription.emit` for a Subscription-origin fact; use a DOM interaction when testing the same Message from a DOM-origin path. `ManagedResource.acquire` / `release` / `failAcquire` are gated on the entry's `modelToMaybeRequirements`, so drive the Model transition first. `CustomElement.emit` is typed by the spec's event Schemas. An interaction whose handler returns `Option.none()` lets the event fall through, and Scene requires that be stated: follow it with `expectIgnored()`, or Scene fails at the next interaction or the end of the scene. Use `expectHandled()` where the event should have been consumed, which is the assertion behind a key being consumed so the browser default is prevented. Put a `scene.test.ts` in the page folder for behavior that page owns, and keep a root-level `scene.test.ts` for flows that cross pages, which covers how the parent folds an OutMessage, a Command the parent lifts, a route change, and view inputs the parent computes.
+Then generate tests through `foldkit/story` and `foldkit/scene`, with shared matcher primitives from `foldkit/test`. There are two test styles. Name each test file for its style, beside the code under test: `story.test.ts` for Story tests (the state machine, driving `update`) and `scene.test.ts` for Scene tests (the rendered view). The name describes how the test works, not a source file, so it holds whether `update` and `view` live in `block.ts` or their own files. Keep both patterns inside the TypeScript project's `include` coverage; the scaffold's `src/**/*` includes them. When a folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject: `login.story.test.ts`. Scene runs at any Block boundary: pass the selected Block descriptor and supply required default-view inputs through `{ block, layer, viewInputs }`. Low-level native `{ update, view }` fixtures belong to framework renderer tests. An app fixture that needs a custom view may acquire the graph in scope and still drive its behavior through Scene steps. A page-level Scene asserts the OutMessage a Block emits with `expectOutMessage` / `expectNoOutMessage`, and drives Messages from the non-view lifecycle causes with cause-named steps. To use `Subscription.emit`, select the implementation owning the registry and declare each emittable Message Schema in the entry's `messages`. A lower-level native Scene may supply its concrete Composition and registry explicitly. Pass the exact entry and its raw Message; Scene derives generated delivery from the registered source and occurrence. Registrations that need selection must use distinct entry objects for each path. Silent entries with `messages: []` accept no emissions. Use `Subscription.emit` for a Subscription-origin fact; use a DOM interaction when testing the same Message from a DOM-origin path. `ManagedResource.acquire` / `release` / `failAcquire` are gated on the entry's `modelToMaybeRequirements`, so drive the Model transition first. `CustomElement.emit` is typed by the spec's event Schemas. An interaction whose handler returns `Option.none()` lets the event fall through, and Scene requires that be stated: follow it with `expectIgnored()`, or Scene fails at the next interaction or the end of the scene. Use `expectHandled()` where the event should have been consumed, which is the assertion behind a key being consumed so the browser default is prevented. Put a `scene.test.ts` in the page folder for behavior that page owns, and keep a root-level `scene.test.ts` for flows that cross pages, which covers how the parent folds an OutMessage, a Command the parent lifts, a route change, and view inputs the parent computes.
 
 When adding a whole-application execution test, keep the real handler Layers and replace their external service providers before building the application Layer. Choose the lowest boundary whose code the test needs to exercise: when `ApiLayer` owns decoding, retries, or business behavior, keep it and replace its HTTP or RPC transport. Replacing `ApiLayer` with `ApiTestLayer` narrows coverage to code above that service. This approach exercises real Command result mapping, Subscription Stream transformation, Mount element lifecycle, and ManagedResource acquire and release behavior. Replace an entire handler only when the test is intentionally orchestrating a result path; do not claim that path tests the replaced handler. Handler stubs are the narrower tool for orchestration. Use Effect Layer substitution directly; do not invent another testing DSL.
 
@@ -774,14 +775,14 @@ Import the steps as named imports from `foldkit/story` or `foldkit/scene`: `impo
 
 Block-aware testing uses `story({ block: FeatureBlock, layer }, init(...args), ...steps)` or `scene({ block: FeatureBlock, layer }, init(...args), ...steps)`. Each runner returns an Effect that owns acquisition and cleanup; supply the paired implementation Layer and provide genuine construction dependencies beneath it. `init` retains Model and Commands, `given(model)` deliberately starts from supplied state, and required view inputs/context/routing use the checked config. Pure tests do not build handler Layers. Use `withBlock` only for a scoped fixture that needs acquired pure functions; its callback returns an Effect or synchronous value. Use `messageFrom(Binding, rawMessage)` for a direct child fact, adding the decoded occurrence key before the Message for keyed storage.
 
-**Story tests** (`story.test.ts`) test the update function directly. You send Messages and assert on the Model and Commands. Study these exemplars:
+**Story tests** (`story.test.ts`) describe state transitions through the DSL. Send Messages and assert on the Model and Commands without calling acquired update functions directly. Study these exemplars:
 
 Story permits another Message while Commands are pending. Use `messageWith(model => Message.Variant(...))` for a value read from the current Model when the step runs. Use `messageFrom(ChildBinding, rawMessage)` in a Block-aware Story to validate a decoded Subscription Message and apply its registered parent mapping. These steps do not start Streams or test Runtime activity and stale-generation admission.
 
 Scene normally requires pending Commands to settle before later Messages. For a deliberate concurrent interaction, `Scene.Command.keepPending(Definition | instance)` selects one exact invocation for that boundary exemption. Assertions and every resolver still see it, and final completeness requires resolution. A bound instance selects a child occurrence and args. Prefer this explicit operation over custom simulation transforms.
 
 - `${CLAUDE_SKILL_DIR}/../../examples/weather/src/story.test.ts`: simple Command resolution (happy path + error path)
-- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/blocks/loggedOut/blocks/login.story.test.ts`: Block with OutMessage assertions, field validation
+- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/blocks/loggedOut/blocks/login/story.test.ts`: Block with OutMessage assertions, field validation
 - `${CLAUDE_SKILL_DIR}/../../packages/website/src/blocks/search/story.test.ts`: multi-step interactions (arrow key cycling, stale result handling)
 
 Write `story` pipelines covering:
@@ -803,7 +804,7 @@ Check the `@foldkit/ui` component namespace or contract's public `test` helpers 
 
 - `${CLAUDE_SKILL_DIR}/../../examples/weather/src/scene.test.ts`: basic Scene flow with form interaction and Command resolution
 - `${CLAUDE_SKILL_DIR}/../../examples/auth/src/scene.test.ts`: a multi-page app's root-level Scene driving the login flow through the root view
-- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/blocks/loggedOut/blocks/login.scene.test.ts`: a page-scoped Scene in that same app, driving the page's own `update`/`view` rather than the root pair
+- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/blocks/loggedOut/blocks/login/scene.test.ts`: a page-scoped Scene in that same app, driving the page's own `update`/`view` rather than the root pair
 - `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/scene.test.ts`: scoped queries with `within`, `toHaveValue`, explicit test data
 
 Write `scene` pipelines covering:
@@ -871,7 +872,7 @@ Not "works." Not "structurally valid." Typing-game quality.
 
 Read FIRST, in this order:
 1. The generated source files, project-relative: list every one
-   (src/application.ts, src/update.ts, ...).
+   (src/block.ts, src/update.ts, ...).
 2. ${CLAUDE_SKILL_DIR}/architecture.md
 3. ${CLAUDE_SKILL_DIR}/conventions.md
 4. ${CLAUDE_SKILL_DIR}/checklist.md
@@ -882,7 +883,7 @@ Read FIRST, in this order:
    - Tier 1-2: packages/foldkit/src/runtime/runtime.ts (quality calibration)
    - Tier 3-4: examples/weather/src/command.ts AND examples/weather/src/update.ts, OR examples/form/src/update.ts
    - Tier 5: examples/kanban/src/update.ts AND examples/kanban/src/domain/
-   - Tier 6: examples/job-application/src/update.ts AND examples/auth/src/page/
+   - Tier 6: examples/job-application/src/update.ts AND examples/auth/src/blocks/
    - Tier 7: packages/typing-game/client/src/blocks/room/
 
 Every path above is either project-relative or resolved through
@@ -961,3 +962,13 @@ After generating the program (and passing review), walk the user through what wa
 4. **How to run**: remind the user to start the dev server and what they should see
 5. **How to extend**: give concrete next steps: "to add bookmark editing, define `ClickedEditBookmark` and `UpdatedEditTitle` Messages, add an `Editing` variant to the Model, and handle both in update"
 6. **When to restructure**: mention signals that the program has outgrown its current file organization (e.g., "if update exceeds ~20 cases, consider extracting a Block")
+
+## Block file and authoring boundaries
+
+Declare the unique key immediately before its Block and give `Symbol('Feature')` the same description as the Block's readable name. Keep the key private unless verified declaration emission needs its original declaration exported. Split implementation modules commonly need that export because their inferred contracts name the owner key. A public barrel may re-export the original declaration with `export type` when only its identity is needed in types. Verify source and relocated declarations before removing an export.
+
+Inline handlers receive their exact Model and Message from the Composition. When extracting a Message-dependent callback without that context, annotate its precise Message variant, as in `makeStep((model, { url }: ChangedUrl) => ...)` or `makeStep.fromMessage(({ url }: ChangedUrl) => ...)`. The helper still infers result channels. The proposed single-Message type-argument forms are not supported; defaulting the remaining type parameters loses output inference. Do not replace the useful parameter annotation with broad return types, casts or repeated generic arguments.
+
+Application behavior belongs in Story or Scene. Use their DSL to deliver Messages and InMessages, resolve Commands, and assert Models, OutMessages and views. Do not manually chain acquired `update` calls or invoke application Steps as a substitute for the DSL. Pure fixture construction and intentional `given(model)` remain valid; use scoped acquisition only when a fixture genuinely needs initialized state, graph identity or custom view context. Keep pure domain/selector tests separate from application behavior, and reserve low-level transition tests for framework infrastructure.
+
+Declare parent requests and notifications in the child's `InMessage` union and handle them with `Composition.makeInMessageUpdate`. `RequestedX` generates `Binding.requestX`, and `InformedOfX` generates `Binding.informX`. The remaining suffix is preserved exactly; other prefixes and empty suffixes are rejected. Methods take the constructor payload when present, with a keyed occurrence first and InMessage context last. They return connected parent Steps, so pass them directly to handler records or compose them. Do not add a manual request wrapper or an `operations` entry that only repeats an InMessage constructor. Keep explicit operations for real argument adaptation, generic interfaces or intentional local-Message mappings.

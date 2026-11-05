@@ -24,7 +24,7 @@ export const SessionBlock = Block.make(SessionNamespace, {
   key: SessionKey,
   Model: Schema.Null,
   Message: ResourceMessage,
-  effects: { resources: [Session], services: [Store] },
+  effects: { managedResources: [Session], services: [Store] },
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
@@ -326,7 +326,7 @@ export const PageBlock = Block.make('UnionServicePage', {
   Model: Schema.Null,
   Message: ResourceMessage,
   Init: Schema.Tuple([]),
-  effects: { resources: [Session] },
+  effects: { managedResources: [Session] },
   view: { kind: 'Document' },
 })
 const PageComposition = PageBlock.makeComposition()
@@ -380,7 +380,7 @@ export const OtherBlock = Block.make('OtherServiceRoot', {
   Model: Schema.Null,
   Message: ResourceMessage,
   Init: Schema.Tuple([]),
-  effects: { resources: [Session] },
+  effects: { managedResources: [Session] },
   view: { kind: 'Element' },
 })
 const OtherComposition = OtherBlock.makeComposition()

@@ -1,7 +1,7 @@
 import { Stream } from 'effect'
 import { Port } from 'foldkit'
 
-import { widget } from './definition'
+import { widget } from './block'
 import { Message } from './message'
 import { ports } from './ports'
 

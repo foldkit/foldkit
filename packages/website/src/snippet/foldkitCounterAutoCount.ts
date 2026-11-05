@@ -18,7 +18,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const CounterKey = Symbol('Counter')
-
 const CounterBlock = Block.make('Counter', {
   key: CounterKey,
   Init: Schema.Tuple([]),
@@ -27,11 +26,11 @@ const CounterBlock = Block.make('Counter', {
   Message,
 })
 
-const { makeFieldsStep } = CounterBlock
+const { makeFieldsStep, makeComposition, makeSubscriptions } = CounterBlock
 
-const CounterComposition = CounterBlock.makeComposition()
+const CounterComposition = makeComposition()
 
-const subscriptions = CounterBlock.makeSubscriptions(entry => ({
+const subscriptions = makeSubscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },

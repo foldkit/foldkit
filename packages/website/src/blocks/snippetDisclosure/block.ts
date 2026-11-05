@@ -1,23 +1,18 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { SnippetDisclosureBlock } from './definition'
-import { init } from './init'
-import { MeasureSnippetHeight } from './mount'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
+import type { ViewInputs } from './viewInputs'
 
-export const EffectsLayer = MeasureSnippetHeight.layer
+export const SnippetDisclosureKey = Symbol('SnippetDisclosure')
+export const SnippetDisclosureBlock = Block.make('SnippetDisclosure', {
+  key: SnippetDisclosureKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  Model,
+  Message,
+})
 
-export const layer = SnippetDisclosureBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
-
-export { SnippetDisclosureBlock }
+export const { makeComposition, makeFieldsStep, makeMount } =
+  SnippetDisclosureBlock

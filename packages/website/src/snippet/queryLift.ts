@@ -16,7 +16,6 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -24,11 +23,13 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const PostsBinding = ApplicationBlock.makeBinding(postsQuery, {
+const { makeBinding, makeComposition } = ApplicationBlock
+
+const PostsBinding = makeBinding(postsQuery, {
   field: 'posts',
 })
 
-const ApplicationComposition = ApplicationBlock.makeComposition({
+const ApplicationComposition = makeComposition({
   bindings: [PostsBinding],
 })
 

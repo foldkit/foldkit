@@ -3,13 +3,13 @@ import { type Html, createKeyedLazy } from 'foldkit/html'
 
 import { view as buttonView } from '@foldkit/ui/button'
 
+import { Message } from './block'
 import { EducationEntryBlock } from './blocks/educationEntry'
 import {
   EducationComposition,
   type EducationViewBuilder,
   EntriesBinding,
 } from './composition'
-import { Message } from './definition'
 
 type EducationEntryModel = typeof EducationEntryBlock.Model.Type
 

@@ -1,25 +1,25 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { Url } from 'foldkit/url'
 
-import { Ui } from './blocks'
-import { EffectsLayer } from './command'
-import { UiModelBinding } from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { Flags } from './flags'
+import { Message } from './message'
+import { Model } from './model'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const ui = yield* UiModelBinding
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Flags, Url]),
+  view: { kind: 'Document' },
+  Model,
+  Message,
+  ChildInitContext: Flags,
+})
 
-    return {
-      children: [ui],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Ui.layer))
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+} = ApplicationBlock

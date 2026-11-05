@@ -1,13 +1,13 @@
-import { DateTime, Effect, Layer, Option, Schema } from 'effect'
+import { DateTime, Effect, Option, Schema } from 'effect'
 import { Calendar, Dom } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
+import { makeCommand } from './block'
 import { ExampleSlug } from './blocks/exampleDetail/meta'
 import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
-import { ApplicationBlock } from './definition'
 import { DOCS_SIDEBAR_NAV_ID, MOBILE_MENU_NAV_ID } from './docsNav'
 import { Message, type ResolvedTheme, ThemePreference } from './message'
 import { playgroundRouter } from './route'
@@ -17,65 +17,9 @@ import {
   SidebarStateJsonString,
 } from './sidebarStorage'
 import { LocalStorage, SessionStorage } from './storage'
-import { ApplyTheme, SaveThemePreference, THEME_STORAGE_KEY } from './theme'
+import { THEME_STORAGE_KEY } from './theme'
 
-// NOTE: Playground navigation loads a fresh document with COOP/COEP headers.
-// Firefox can boot this standalone WebContainer embed, but its iframe preview
-// stays blank and opening the URL needs a project connection route Foldkit lacks.
-const detectPlaygroundSupport = (): boolean =>
-  window.crossOriginIsolated === true &&
-  typeof SharedArrayBuffer !== 'undefined' &&
-  !navigator.userAgent.includes('Firefox/')
-
-const loadBrowserEnvironment = Effect.gen(function* () {
-  const themePreference: Option.Option<ThemePreference> = yield* Effect.gen(
-    function* () {
-      const store = yield* LocalStorage
-      const json = yield* Effect.fromOption(
-        Option.fromNullishOr(yield* store.get(THEME_STORAGE_KEY)),
-      )
-      const theme = yield* Schema.decodeEffect(
-        Schema.fromJsonString(ThemePreference),
-      )(json)
-      return Option.some(theme)
-    },
-  ).pipe(Effect.catch(() => Effect.succeed(Option.none<ThemePreference>())))
-
-  const maybeSidebarState: Option.Option<SidebarState> = yield* Effect.gen(
-    function* () {
-      const store = yield* SessionStorage
-      const json = yield* Effect.fromOption(
-        Option.fromNullishOr(yield* store.get(SIDEBAR_STORAGE_KEY)),
-      )
-      const state = yield* Schema.decodeEffect(SidebarStateJsonString)(json)
-
-      return Option.some(state)
-    },
-  ).pipe(Effect.catch(() => Effect.succeed(Option.none<SidebarState>())))
-
-  const systemTheme: ResolvedTheme = yield* Effect.sync(() =>
-    window.matchMedia(DARK_COLOR_SCHEME_QUERY).matches ? 'Dark' : 'Light',
-  )
-
-  const isPlaygroundSupported = yield* Effect.sync(detectPlaygroundSupport)
-
-  const currentYear = yield* DateTime.now.pipe(
-    Effect.map(DateTime.getPartUtc('year')),
-  )
-
-  const today = yield* Calendar.today.local
-
-  return Message.CompletedLoadBrowserEnvironment({
-    maybeThemePreference: themePreference,
-    maybeSidebarState,
-    systemTheme,
-    isPlaygroundSupported,
-    currentYear,
-    today,
-  })
-})
-
-export const InjectAnalytics = ApplicationBlock.makeCommand('InjectAnalytics', {
+export const InjectAnalytics = makeCommand('InjectAnalytics', {
   messages: [Message.CompletedInjectAnalytics],
   handler: function* () {
     return () =>
@@ -85,30 +29,81 @@ export const InjectAnalytics = ApplicationBlock.makeCommand('InjectAnalytics', {
   },
 })
 
-export const LoadBrowserEnvironment = ApplicationBlock.makeCommand(
-  'LoadBrowserEnvironment',
-  {
-    messages: [Message.CompletedLoadBrowserEnvironment],
-    handler: function* () {
-      return () => loadBrowserEnvironment
-    },
-  },
-)
+export const LoadBrowserEnvironment = makeCommand('LoadBrowserEnvironment', {
+  messages: [Message.CompletedLoadBrowserEnvironment],
+  handler: function* () {
+    return () =>
+      Effect.gen(function* () {
+        const themePreference: Option.Option<ThemePreference> =
+          yield* Effect.gen(function* () {
+            const store = yield* LocalStorage
+            const json = yield* Effect.fromOption(
+              Option.fromNullishOr(yield* store.get(THEME_STORAGE_KEY)),
+            )
+            const theme = yield* Schema.decodeEffect(
+              Schema.fromJsonString(ThemePreference),
+            )(json)
+            return Option.some(theme)
+          }).pipe(
+            Effect.catch(() => Effect.succeed(Option.none<ThemePreference>())),
+          )
 
-export const InjectSpeedInsights = ApplicationBlock.makeCommand(
-  'InjectSpeedInsights',
-  {
-    messages: [Message.CompletedInjectSpeedInsights],
-    handler: function* () {
-      return () =>
-        Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
-          Effect.as(Message.CompletedInjectSpeedInsights()),
+        const maybeSidebarState: Option.Option<SidebarState> =
+          yield* Effect.gen(function* () {
+            const store = yield* SessionStorage
+            const json = yield* Effect.fromOption(
+              Option.fromNullishOr(yield* store.get(SIDEBAR_STORAGE_KEY)),
+            )
+            const state = yield* Schema.decodeEffect(SidebarStateJsonString)(
+              json,
+            )
+
+            return Option.some(state)
+          }).pipe(
+            Effect.catch(() => Effect.succeed(Option.none<SidebarState>())),
+          )
+
+        const systemTheme: ResolvedTheme = yield* Effect.sync(() =>
+          window.matchMedia(DARK_COLOR_SCHEME_QUERY).matches ? 'Dark' : 'Light',
         )
-    },
-  },
-)
 
-export const CopyLink = ApplicationBlock.makeCommand('CopyLink', {
+        // NOTE: Playground navigation loads a fresh document with COOP/COEP headers.
+        // Firefox can boot this standalone WebContainer embed, but its iframe preview
+        // stays blank and opening the URL needs a project connection route Foldkit lacks.
+        const isPlaygroundSupported =
+          window.crossOriginIsolated &&
+          typeof SharedArrayBuffer !== 'undefined' &&
+          !navigator.userAgent.includes('Firefox/')
+
+        const currentYear = yield* DateTime.now.pipe(
+          Effect.map(DateTime.getPartUtc('year')),
+        )
+
+        const today = yield* Calendar.today.local
+
+        return Message.CompletedLoadBrowserEnvironment({
+          maybeThemePreference: themePreference,
+          maybeSidebarState,
+          systemTheme,
+          isPlaygroundSupported,
+          currentYear,
+          today,
+        })
+      })
+  },
+})
+
+export const InjectSpeedInsights = makeCommand('InjectSpeedInsights', {
+  messages: [Message.CompletedInjectSpeedInsights],
+  handler: function* () {
+    return () =>
+      Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
+        Effect.as(Message.CompletedInjectSpeedInsights()),
+      )
+  },
+})
+
+export const CopyLink = makeCommand('CopyLink', {
   args: { url: Schema.String },
   messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
   handler: function* () {
@@ -123,7 +118,7 @@ export const CopyLink = ApplicationBlock.makeCommand('CopyLink', {
   },
 })
 
-export const ScrollToTop = ApplicationBlock.makeCommand('ScrollToTop', {
+export const ScrollToTop = makeCommand('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     return () =>
@@ -134,7 +129,7 @@ export const ScrollToTop = ApplicationBlock.makeCommand('ScrollToTop', {
   },
 })
 
-export const ScrollToAnchor = ApplicationBlock.makeCommand('ScrollToAnchor', {
+export const ScrollToAnchor = makeCommand('ScrollToAnchor', {
   args: { hash: Schema.String },
   messages: [Message.CompletedScrollToAnchor],
   handler: function* () {
@@ -147,7 +142,7 @@ export const ScrollToAnchor = ApplicationBlock.makeCommand('ScrollToAnchor', {
   },
 })
 
-export const ScrollSidebarActiveLinkIntoView = ApplicationBlock.makeCommand(
+export const ScrollSidebarActiveLinkIntoView = makeCommand(
   'ScrollSidebarActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollSidebarActiveLinkIntoView],
@@ -165,7 +160,7 @@ export const ScrollSidebarActiveLinkIntoView = ApplicationBlock.makeCommand(
 
 const MOBILE_MENU_ACTIVE_LINK = `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`
 
-export const ScrollMobileMenuActiveLinkIntoView = ApplicationBlock.makeCommand(
+export const ScrollMobileMenuActiveLinkIntoView = makeCommand(
   'ScrollMobileMenuActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollMobileMenuActiveLinkIntoView],
@@ -181,41 +176,33 @@ export const ScrollMobileMenuActiveLinkIntoView = ApplicationBlock.makeCommand(
   },
 )
 
-export const SaveSidebarState = ApplicationBlock.makeCommand(
-  'SaveSidebarState',
-  {
-    args: { state: SidebarState },
-    messages: [Message.CompletedSaveSidebarState],
-    handler: function* () {
-      const store = yield* SessionStorage
+export const SaveSidebarState = makeCommand('SaveSidebarState', {
+  args: { state: SidebarState },
+  messages: [Message.CompletedSaveSidebarState],
+  handler: function* () {
+    const store = yield* SessionStorage
 
-      return ({ state }) =>
-        Effect.gen(function* () {
-          const json = yield* Schema.encodeEffect(SidebarStateJsonString)(state)
-          yield* store.set(SIDEBAR_STORAGE_KEY, json)
-          return Message.CompletedSaveSidebarState()
-        }).pipe(
-          Effect.catch(() =>
-            Effect.succeed(Message.CompletedSaveSidebarState()),
-          ),
-        )
-    },
+    return ({ state }) =>
+      Effect.gen(function* () {
+        const json = yield* Schema.encodeEffect(SidebarStateJsonString)(state)
+        yield* store.set(SIDEBAR_STORAGE_KEY, json)
+        return Message.CompletedSaveSidebarState()
+      }).pipe(
+        Effect.catch(() => Effect.succeed(Message.CompletedSaveSidebarState())),
+      )
   },
-)
+})
 
-export const NavigateInternal = ApplicationBlock.makeCommand(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
-    handler: function* () {
-      return ({ url }) =>
-        pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
-    },
+export const NavigateInternal = makeCommand('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
   },
-)
+})
 
-export const LoadPlayground = ApplicationBlock.makeCommand('LoadPlayground', {
+export const LoadPlayground = makeCommand('LoadPlayground', {
   args: { exampleSlug: ExampleSlug },
   messages: [Message.CompletedLoadPlayground],
   handler: function* () {
@@ -226,7 +213,7 @@ export const LoadPlayground = ApplicationBlock.makeCommand('LoadPlayground', {
   },
 })
 
-export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
+export const LoadExternal = makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -234,20 +221,3 @@ export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
       load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
 })
-
-export const EffectsLayer = Layer.mergeAll(
-  InjectAnalytics.layer,
-  LoadBrowserEnvironment.layer,
-  InjectSpeedInsights.layer,
-  ScrollToTop.layer,
-  ScrollToAnchor.layer,
-  ScrollSidebarActiveLinkIntoView.layer,
-  ScrollMobileMenuActiveLinkIntoView.layer,
-  NavigateInternal.layer,
-  LoadExternal.layer,
-  LoadPlayground.layer,
-  ApplyTheme.layer,
-  SaveThemePreference.layer,
-  SaveSidebarState.layer,
-  CopyLink.layer,
-)

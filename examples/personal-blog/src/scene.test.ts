@@ -3,8 +3,8 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { CounterBlock } from './blocks'
+import { ApplicationBlock, layer } from './index'
 import { Model } from './model'
 import { ApplicationRoute } from './route'
 

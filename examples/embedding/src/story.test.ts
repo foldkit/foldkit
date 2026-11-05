@@ -10,7 +10,7 @@ import {
   type Model,
   ReportCount,
   layer,
-} from './application'
+} from './block'
 
 const initialModel: Model = { count: 10, step: 1 }
 

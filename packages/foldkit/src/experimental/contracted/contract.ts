@@ -94,6 +94,7 @@ import type {
   ValidateInMessageSchema,
 } from './inMessageUpdate.js'
 import type { InputContract, InputOf } from './inputContract.js'
+import type { LegacyManagedResourceConfiguration } from './requirementNames.js'
 
 declare const NominalIdTypeId: unique symbol
 
@@ -121,7 +122,8 @@ type Resource = ManagedResource<any, any>
 export interface OperationDeclaration {
   readonly message: OperationSource
   readonly outMessage?: AnySchema
-  readonly resources?: ReadonlyArray<Resource>
+  /** Original ManagedResource contracts required by this result. */
+  readonly managedResources?: ReadonlyArray<Resource>
   readonly services?: ReadonlyArray<ServiceKey>
 }
 
@@ -148,10 +150,22 @@ export interface ContractConfiguration {
   readonly effects?:
     | EffectsContract<unknown, unknown>
     | Readonly<{
+        /** Ordinary Services required when the implementation builds its handler Layer. */
         services?: ReadonlyArray<ServiceKey>
-        resources?: ReadonlyArray<Resource>
+        /** Original ManagedResource contracts whose handles the implementation needs. */
+        managedResources?: ReadonlyArray<Resource>
+        /** Failures from building the handler Layer; Command invocation failures become Messages. */
         Error?: AnySchema
       }>
+  /**
+   * Additional Service bounds for the complete Message Codec, including opaque
+   * child delivery. The local Message Schema's Services are inferred already.
+   * Prefer self-contained Message Codecs for ordinary serialized facts.
+   *
+   * These bounds do not provide Services or run a decoder. Program adds Message
+   * decoding Services only when DevTools external dispatch is enabled; direct
+   * Schema decoding and encoding retain their usual Effect requirements.
+   */
   readonly codec?: Readonly<{
     decoding?: ReadonlyArray<ServiceKey>
     encoding?: ReadonlyArray<ServiceKey>
@@ -173,7 +187,9 @@ type Effects<Config> = Channel<Config, 'effects'>
 type Services<Config> =
   | EffectsRequirementsOf<Effects<Config>>
   | ServiceOfKeys<Channel<Effects<Config>, 'services'>>
-type Resources<Config> = ResourceServices<Channel<Effects<Config>, 'resources'>>
+type Resources<Config> = ResourceServices<
+  Channel<Effects<Config>, 'managedResources'>
+>
 type Decoding<Config> = ServiceOfKeys<
   Channel<Channel<Config, 'codec'>, 'decoding'>
 >
@@ -229,7 +245,7 @@ type InvalidInMessageOutput<Config> = {
   [Tag in keyof InMessageOutputs<Config>]: [
     Exclude<
       keyof InMessageOutput<Config, Tag>,
-      'outMessage' | 'services' | 'resources'
+      'outMessage' | 'services' | 'managedResources'
     >,
   ] extends [never]
     ? Fits<
@@ -241,8 +257,7 @@ type InvalidInMessageOutput<Config> = {
     : Tag
 }[keyof InMessageOutputs<Config>]
 
-/** @internal Checks input ownership and public result bounds before implementation exists. */
-export type InMessageConfigurationArguments<Config> =
+type InMessageConfigurationArguments<Config> =
   Config extends Readonly<{
     InMessage: infer In extends AnySchema
     Message: infer Local extends AnySchema
@@ -265,6 +280,13 @@ export type InMessageConfigurationArguments<Config> =
           | Readonly<{ InMessageContext: unknown }>
       ? readonly [missingInMessageSchema: never]
       : readonly []
+/** @internal Checks input ownership and public requirement names before implementation exists. */
+export type DefinitionConfigurationArguments<Config> = [
+  LegacyManagedResourceConfiguration<Config>,
+] extends [never]
+  ? InMessageConfigurationArguments<Config>
+  : readonly [renamedManagedResourcesRequirement: never]
+
 type OperationMessage<Value> = Value extends OperationSource
   ? Value
   : Value extends OperationDeclaration
@@ -278,7 +300,7 @@ type OperationOut<Value> =
     : never
 type OperationRequirements<Value> =
   | ServiceOfKeys<Channel<Value, 'services'>>
-  | ResourceServices<Channel<Value, 'resources'>>
+  | ResourceServices<Channel<Value, 'managedResources'>>
 
 /** @internal Operation mappings declared once and installed during completion. */
 type DeclaredOperationSources<Config> = {

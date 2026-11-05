@@ -13,7 +13,7 @@ import { describe } from 'vitest'
 
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { ApplicationBlock, layer } from './block'
+import { ApplicationBlock, layer } from './index'
 import { AppTabsBlock } from './model'
 import {
   FETCHED_AT,

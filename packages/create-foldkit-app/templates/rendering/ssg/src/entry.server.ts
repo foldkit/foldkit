@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 export const renderDocument = Server.renderDocument
 

@@ -11,7 +11,6 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 export const ApplicationKey = Symbol('Application')
-
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -20,23 +19,31 @@ export const ApplicationBlock = Block.make('Application', {
   Message: Schema.Never,
 })
 
-const PostDetailsBinding = ApplicationBlock.makeBinding(postQuery, {
+const {
+  makeBinding,
+  makeOutMessageFold,
+  makeFieldsStep,
+  makeNoopStep,
+  makeComposition,
+} = ApplicationBlock
+
+const PostDetailsBinding = makeBinding(postQuery, {
   field: 'postDetails',
 }).withOutMessagePolicy({
-  fold: ApplicationBlock.makeOutMessageFold(postQuery, {
+  fold: makeOutMessageFold(postQuery, {
     CompletedFetch: ({ args, result }) =>
       Result.isFailure(result)
-        ? ApplicationBlock.makeFieldsStep(() => ({
+        ? makeFieldsStep(() => ({
             maybeNotice: () =>
               Option.some(
                 `Could not load post ${args.postId}: ${result.failure}`,
               ),
           }))
-        : ApplicationBlock.makeNoopStep(),
+        : makeNoopStep(),
   }),
 })
 
-const ApplicationComposition = ApplicationBlock.makeComposition({
+const ApplicationComposition = makeComposition({
   bindings: [PostDetailsBinding],
 })
 const init = ApplicationComposition.makeInit(() => ({

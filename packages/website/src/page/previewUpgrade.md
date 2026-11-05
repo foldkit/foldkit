@@ -71,6 +71,8 @@ Keep canonical local handlers in the implementation's `EffectsLayer`. An attache
 
 The passive public child contract does not expose the implementation's private handler inventory. Apply handler selection to its ordinary construction Layer with the Block's `provideHandlers` helper. Query and other generic family APIs can also expose a checked host-handler selector. See [host implementations](/core/layers#host-implementations-for-reusable-features).
 
+Rename public ManagedResource requirement lists from `effects.resources` to `effects.managedResources`, `operations.<name>.resources` to `operations.<name>.managedResources`, and `inMessageOutputs.<tag>.resources` to `inMessageOutputs.<tag>.managedResources`. The entries retain their original contracts and identities. Unrelated resource APIs keep their names. See [effect contracts](/core/layers#public-bounds-and-construction-dependencies) for handler-Layer bounds and separately inferred graph-constructor requirements.
+
 ## Create standard child-array occurrences
 
 For a required child array that needs only occurrence keys and child state, the candidate adds `ChildBlock.Instance` and `Binding.create({ key, args })`. Declare `Schema.Array(ChildBlock.Instance)` and bind `{ field, key: 'key', childField: 'model' }`. Append creation requests through the owning `makeFieldsStep`; checked execution initializes them before subsequent Steps and retains every child init Command. The Model stores ready `{ key, model }` Instances.
@@ -266,7 +268,7 @@ Canonical routing Messages can be passed directly when their payloads are `{ req
 
 Remove the standalone `makeMapBinding` import from `foldkit/mapBinding`. Call the parent Block's `makeMapBinding` method with the child Block and existing config. The parent Block is no longer a positional argument. The standalone subpath is removed.
 
-For a split feature, destructure and export `makeMapBinding` from its `definition.ts`, then import that factory from the feature module. Its parent contracts remain attached when destructured. Keep the existing Binding registration, key Schema, storage, OutMessage policy, and initialization. See [map Bindings](/core/block#keyed-map-fields) for the current calls.
+For a split feature, destructure and export `makeMapBinding` from its `block.ts`, then import that factory from the feature module. Its parent contracts remain attached when destructured. Keep the existing Binding registration, key Schema, storage, OutMessage policy, and initialization. See [map Bindings](/core/block#keyed-map-fields) for the current calls.
 
 ## Rename Definition Authoring Factories
 

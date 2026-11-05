@@ -4,20 +4,19 @@ import type { Block } from 'foldkit'
 import { DatePickerBlock } from '@foldkit/ui/datePicker'
 
 import {
-  PersonalInfoBlock,
   PronounsListboxBlock,
+  makeBinding,
+  makeComposition,
   makeFieldsStep,
   makeNoopStep,
-} from './definition'
+  makeOutMessageFold,
+} from './block'
 
-export const PronounsBinding = PersonalInfoBlock.makeBinding(
-  PronounsListboxBlock,
-  {
-    field: 'pronouns',
-    init: { contextToArgs: () => [{ id: 'pronouns' }] },
-  },
-).withOutMessagePolicy({
-  fold: PersonalInfoBlock.makeOutMessageFold(PronounsListboxBlock, {
+export const PronounsBinding = makeBinding(PronounsListboxBlock, {
+  field: 'pronouns',
+  init: { contextToArgs: () => [{ id: 'pronouns' }] },
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(PronounsListboxBlock, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({
         maybeSelectedPronoun: () => Option.some(value),
@@ -25,16 +24,13 @@ export const PronounsBinding = PersonalInfoBlock.makeBinding(
   }),
 })
 
-export const AvailableDateBinding = PersonalInfoBlock.makeBinding(
-  DatePickerBlock,
-  {
-    field: 'availableDate',
-    init: {
-      contextToArgs: today => [{ id: 'available-date', today, minDate: today }],
-    },
+export const AvailableDateBinding = makeBinding(DatePickerBlock, {
+  field: 'availableDate',
+  init: {
+    contextToArgs: today => [{ id: 'available-date', today, minDate: today }],
   },
-).withOutMessagePolicy({
-  fold: PersonalInfoBlock.makeOutMessageFold(DatePickerBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(DatePickerBlock, {
     SelectedDate: ({ date }) =>
       makeFieldsStep(() => ({
         maybeAvailableDate: () => Option.some(date),
@@ -47,7 +43,7 @@ export const AvailableDateBinding = PersonalInfoBlock.makeBinding(
   }),
 })
 
-export const PersonalInfoComposition = PersonalInfoBlock.makeComposition({
+export const PersonalInfoComposition = makeComposition({
   bindings: [PronounsBinding, AvailableDateBinding],
 })
 export type PersonalInfoViewBuilder = Block.ViewBuilderFor<

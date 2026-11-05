@@ -2,12 +2,12 @@ import { Array, Option, pipe } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 import { makeInitIfMissingStep } from 'foldkit/bindingInit'
 
+import { makeNoopStep, makeStep } from '../block'
 import {
   IssueBoardsBinding,
   IssueDetailsBinding,
   ProjectSettingsBinding,
 } from '../composition'
-import { makeNoopStep, makeStep } from '../definition'
 import { ApplicationRoute, maybeIssueId } from '../route'
 
 export const initChildren = makeStep(model => {

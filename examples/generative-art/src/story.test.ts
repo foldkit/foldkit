@@ -6,7 +6,6 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { SliderBlock } from '@foldkit/ui/slider'
 
-import { ApplicationBlock, layer } from './block'
 import { GenerateAmbientParticle } from './command'
 import {
   DELTA_SECONDS_CAP,
@@ -20,6 +19,7 @@ import {
   NOISE_SCALE_STEP,
   SPAWN_PER_FRAME_MAX,
 } from './constant'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { type Model, type Particle } from './model'
 

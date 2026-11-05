@@ -15,7 +15,6 @@ export const Message = defineMessageUnion({})
 export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -25,4 +24,9 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-export const { makeFieldsStep } = ApplicationBlock
+export const {
+  makeFieldsStep,
+  makeBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = ApplicationBlock

@@ -1,5 +1,5 @@
 import { SettingsBinding } from './composition'
-import { SettingsComposition } from './definition'
+import { SettingsComposition } from './composition'
 import type { User } from './user'
 
 type ViewInputs = Readonly<{

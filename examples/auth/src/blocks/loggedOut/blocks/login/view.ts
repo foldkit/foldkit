@@ -8,8 +8,8 @@ import { view as buttonView } from '@foldkit/ui/button'
 import { view as inputView } from '@foldkit/ui/input'
 
 import { homeRouter } from '../../../../route'
+import { Message } from './block'
 import { LoginComposition, type LoginViewBuilder } from './composition'
-import { Message } from './definition'
 import { isFormValid } from './login'
 
 const fieldToBorderClass = (field: Field<string>) =>

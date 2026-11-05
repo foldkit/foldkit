@@ -3,7 +3,12 @@ import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
 
-import { UiBlock, makeFieldsStep, makeNoopStep } from '../definition'
+import {
+  makeBinding,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+} from '../block'
 import type { DemoColumn } from '../domain'
 
 const reorderColumns = (
@@ -45,11 +50,11 @@ const reorderColumns = (
   })
 }
 
-export const DragAndDropDemoBinding = UiBlock.makeBinding(DragAndDropBlock, {
+export const DragAndDropDemoBinding = makeBinding(DragAndDropBlock, {
   field: 'dragAndDropDemo',
   init: { contextToArgs: () => [{ id: 'drag-and-drop-demo' }] },
 }).withOutMessagePolicy({
-  fold: UiBlock.makeOutMessageFold(DragAndDropBlock, {
+  fold: makeOutMessageFold(DragAndDropBlock, {
     Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) =>
       makeFieldsStep(() => ({
         dragAndDropDemoColumns: dragAndDropDemoColumns =>

@@ -277,6 +277,8 @@ describe('real-oxlint rule fixtures', () => {
 
     expect(diagnostics.map(reportedCalleeLabel).sort()).toEqual(
       [
+        'AliasedChildBlock.Message.ClickedCanonicalSave',
+        'AliasedChildBlock.Message.ClickedCanonicalSave',
         'ApplicationComposition.Message.ClickedFromShadowedParameters',
         'Child.Message.ClickedAliasSave',
         'Child.Message.ClickedUnifiedExtracted',
@@ -323,6 +325,22 @@ describe('real-oxlint rule fixtures', () => {
         'picker.Message.SelectedValue',
       ].sort(),
     )
+  })
+
+  it('recognizes own block declarations without admitting child Messages through aliased barrels', () => {
+    const rule = 'no-child-message-construction-in-root'
+    const valid = diagnosticsFor(rule, 'valid').filter(diagnostic =>
+      diagnostic.filename.includes('/canonical/'),
+    )
+    const invalid = diagnosticsFor(rule, 'invalid').filter(diagnostic =>
+      diagnostic.filename.includes('/canonical/'),
+    )
+
+    expect(valid).toEqual([])
+    expect(invalid.map(reportedCalleeLabel)).toEqual([
+      'AliasedChildBlock.Message.ClickedCanonicalSave',
+      'AliasedChildBlock.Message.ClickedCanonicalSave',
+    ])
   })
 
   it('tracks Message ownership in Command-only Step callbacks without matching unrelated methods', () => {

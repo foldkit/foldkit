@@ -1,5 +1,29 @@
 # Next preview review
 
+## November 4 review follow-ups
+
+- [x] Preserve the user's helper imports, inlined browser-environment loader,
+      and comments while applying the agreed file roles across applications.
+- [x] Verify exact managed-resource requirements and opaque-child Message Codec
+      Services with Source, emitted, relocated and runtime controls.
+- [x] Complete the 167-file application test audit and migrate behavior to Story
+      or Scene; retain explicit initializer, domain, Service and benchmark cases.
+- [x] Keep the Message generic experiment isolated after its exact inference
+      checks fail. Do not replace precise producer typing with widened outputs.
+- [x] Preserve published posts and dedicated historical snippets while updating
+      active authoring guidance and generated InMessage documentation.
+- [x] Complete strict TypeScript 6 nameability for extracted field helpers.
+- [x] Pass all eight unchanged compiler ceilings in the normal mapped build;
+      restore and verify the workspace's single physical Effect runtime.
+- [ ] Finish the combined formatting, lint, declaration, compiler, application,
+      scaffold, packed-consumer and browser gates.
+- [ ] Review the exact final commit independently before push and integration.
+- [ ] Reconcile feedback received after the prior checkpoint; do not describe
+      new open contributions as implemented or approved deferred.
+
+The [follow-up report](blocks-review-followups-20261104.md) owns this checkpoint.
+The user retains release sign-off. Publication remains held.
+
 ## November 4 unified Block adoption
 
 - [x] Record the user's acceptance of the two measured Workspace instantiation

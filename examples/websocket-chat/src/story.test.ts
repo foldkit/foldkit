@@ -5,12 +5,12 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import {
   SendMessage,
   TimestampReceivedMessage,
   TimestampSentMessage,
 } from './command'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { ConnectionState, type Model } from './model'
 

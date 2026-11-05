@@ -28,19 +28,20 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeNoopStep } = ApplicationBlock
+const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
+  ApplicationBlock
 
-const SliderBinding = ApplicationBlock.makeBinding(SliderBlock, {
+const SliderBinding = makeBinding(SliderBlock, {
   field: 'slider',
   init: {
     contextToArgs: () => [{ id: 'volume', min: 0, max: 10, step: 1 }],
   },
 }).withOutMessagePolicy({
-  fold: ApplicationBlock.makeOutMessageFold(SliderBlock, {
+  fold: makeOutMessageFold(SliderBlock, {
     ChangedValue: makeNoopStep,
   }),
 })
-const ApplicationComposition = ApplicationBlock.makeComposition({
+const ApplicationComposition = makeComposition({
   bindings: [SliderBinding],
 })
 

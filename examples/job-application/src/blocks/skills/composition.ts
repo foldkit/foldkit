@@ -1,17 +1,22 @@
 import { Array } from 'effect'
 
+import {
+  makeBinding,
+  makeComposition,
+  makeFieldsStep,
+  makeOutMessageFold,
+} from './block'
 import { SkillsEntryBlock } from './blocks/skillsEntry'
-import { SkillsBlock, makeFieldsStep } from './definition'
 
 const foldEntryOutMessage = (entryId: string) =>
-  SkillsBlock.makeOutMessageFold(SkillsEntryBlock, {
+  makeOutMessageFold(SkillsEntryBlock, {
     Removed: () =>
       makeFieldsStep(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
       })),
   })
 
-export const EntriesBinding = SkillsBlock.makeBinding(SkillsEntryBlock, {
+export const EntriesBinding = makeBinding(SkillsEntryBlock, {
   field: 'entries',
   key: 'id',
   init: {
@@ -24,6 +29,6 @@ export const EntriesBinding = SkillsBlock.makeBinding(SkillsEntryBlock, {
   fold: (entryId, outMessage) => foldEntryOutMessage(entryId)(outMessage),
 })
 
-export const SkillsComposition = SkillsBlock.makeComposition({
+export const SkillsComposition = makeComposition({
   bindings: [EntriesBinding],
 })

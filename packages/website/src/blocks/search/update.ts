@@ -4,9 +4,9 @@ import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
 import { PagefindService } from '../../pagefind'
+import { makeCommand, makeFieldsStep, makeNoopStep } from './block'
 import { clearSearchQuery } from './clear'
 import { SearchComposition } from './composition'
-import { SearchBlock, makeFieldsStep, makeNoopStep } from './definition'
 import { SearchResult, SearchState, resultsFromState } from './domain'
 import { Message } from './message'
 
@@ -14,51 +14,48 @@ const MAX_RESULTS = 8
 
 const SEARCH_RESULT_SELECTOR = '[data-search-result-index='
 
-export const FetchSearchResults = SearchBlock.makeCommand(
-  'FetchSearchResults',
-  {
-    args: { query: Schema.String },
-    messages: [Message.CompletedFetchSearchResults],
-    handler: function* () {
-      const pagefind = yield* PagefindService
+export const FetchSearchResults = makeCommand('FetchSearchResults', {
+  args: { query: Schema.String },
+  messages: [Message.CompletedFetchSearchResults],
+  handler: function* () {
+    const pagefind = yield* PagefindService
 
-      return ({ query }) =>
-        Effect.gen(function* () {
-          const searchResponse = yield* Effect.tryPromise({
-            try: () => pagefind.search(query),
-            catch: () => new Error('Pagefind search failed'),
-          })
+    return ({ query }) =>
+      Effect.gen(function* () {
+        const searchResponse = yield* Effect.tryPromise({
+          try: () => pagefind.search(query),
+          catch: () => new Error('Pagefind search failed'),
+        })
 
-          const topResults = Array.take(searchResponse.results, MAX_RESULTS)
+        const topResults = Array.take(searchResponse.results, MAX_RESULTS)
 
-          const loadedResults = yield* Effect.tryPromise({
-            try: () => Promise.all(topResults.map(result => result.data())),
-            catch: () => new Error('Failed to load result data'),
-          })
+        const loadedResults = yield* Effect.tryPromise({
+          try: () => Promise.all(topResults.map(result => result.data())),
+          catch: () => new Error('Failed to load result data'),
+        })
 
-          const results = Array.map(loadedResults, data =>
-            SearchResult.make({
-              url: data.url,
-              title: data.meta?.title ?? 'Untitled',
-              excerpt: data.excerpt,
-              section: data.meta?.section ?? '',
-              kind: data.meta?.kind ?? '',
-            }),
-          )
-
-          return Message.CompletedFetchSearchResults({ results, query })
-        }).pipe(
-          Effect.catch(() =>
-            Effect.succeed(
-              Message.CompletedFetchSearchResults({ results: [], query }),
-            ),
-          ),
+        const results = Array.map(loadedResults, data =>
+          SearchResult.make({
+            url: data.url,
+            title: data.meta?.title ?? 'Untitled',
+            excerpt: data.excerpt,
+            section: data.meta?.section ?? '',
+            kind: data.meta?.kind ?? '',
+          }),
         )
-    },
-  },
-)
 
-export const ScrollToResult = SearchBlock.makeCommand('ScrollToResult', {
+        return Message.CompletedFetchSearchResults({ results, query })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(
+            Message.CompletedFetchSearchResults({ results: [], query }),
+          ),
+        ),
+      )
+  },
+})
+
+export const ScrollToResult = makeCommand('ScrollToResult', {
   args: { index: Schema.Number },
   messages: [Message.CompletedScrollToResult],
   handler: function* () {
@@ -70,7 +67,7 @@ export const ScrollToResult = SearchBlock.makeCommand('ScrollToResult', {
   },
 })
 
-export const NavigateToResult = SearchBlock.makeCommand('NavigateToResult', {
+export const NavigateToResult = makeCommand('NavigateToResult', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateToResult],
   handler: function* () {

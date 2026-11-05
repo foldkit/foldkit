@@ -1,6 +1,6 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 const program = Program.make({
   block: ApplicationBlock,

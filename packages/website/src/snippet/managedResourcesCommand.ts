@@ -1,10 +1,10 @@
 import { Array, Effect, Option } from 'effect'
 
-import { CameraBlock } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 import { CameraStream } from './resource'
 
-export const TakePhoto = CameraBlock.makeCommand('TakePhoto', {
+export const TakePhoto = makeCommand('TakePhoto', {
   messages: [Message.SucceededTakePhoto, Message.FailedTakePhoto],
   handler: function* () {
     return () =>

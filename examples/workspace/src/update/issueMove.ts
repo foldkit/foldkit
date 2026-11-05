@@ -1,8 +1,8 @@
 import { Array, Option, pipe } from 'effect'
 import { AsyncData } from 'foldkit'
 
+import { makeFieldsStep, makeStep } from '../block'
 import { IssueBoardsBinding } from '../composition'
-import { makeFieldsStep, makeStep } from '../definition'
 import {
   type MovedIssue,
   applyMovedIssue as applyMovedIssueToWorkspace,

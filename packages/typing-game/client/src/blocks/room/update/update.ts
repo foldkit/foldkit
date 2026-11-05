@@ -8,6 +8,12 @@ import * as Shared from '@typing-game/shared'
 import { optionWhen } from '../../../optionWhen'
 import { homeRouter } from '../../../route'
 import {
+  makeCommand,
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+} from '../block'
+import {
   ClearSession,
   CopyRoomId,
   FocusRoomPageUsernameInput,
@@ -19,19 +25,13 @@ import {
 } from '../command'
 import { RoomComposition } from '../composition'
 import type { Context } from '../context'
-import {
-  RoomBlock,
-  makeCommandsStep,
-  makeFieldsStep,
-  makeNoopStep,
-} from '../definition'
 import { Message } from '../message'
 import { Model, RoomAsyncData } from '../model'
 import { recordJoinedPlayer } from '../steps'
 import { validateUserTextInput } from '../userGameText'
 import { handleUpdatedRoom } from './handleUpdatedRoom'
 
-export const NavigateHome = RoomBlock.makeCommand('NavigateHome', {
+export const NavigateHome = makeCommand('NavigateHome', {
   messages: [Message.CompletedNavigateHome],
   handler: function* () {
     return () =>

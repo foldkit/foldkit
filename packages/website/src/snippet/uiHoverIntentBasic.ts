@@ -19,7 +19,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const HoverIntentExampleKey = Symbol('HoverIntentExample')
-
 export const HoverIntentExampleBlock = Block.make('HoverIntentExample', {
   key: HoverIntentExampleKey,
   Init: Schema.Tuple([]),
@@ -28,27 +27,22 @@ export const HoverIntentExampleBlock = Block.make('HoverIntentExample', {
   Message,
 })
 
-const { makeNoopStep } = HoverIntentExampleBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  HoverIntentExampleBlock
 
-const foldHoverIntentOutMessage = HoverIntentExampleBlock.makeOutMessageFold(
-  HoverIntentBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
+const foldHoverIntentOutMessage = makeOutMessageFold(HoverIntentBlock, {
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
+})
+
+const HoverIntentBinding = makeBinding(HoverIntentBlock, {
+  field: 'hoverIntent',
+  init: {
+    contextToArgs: () => [{ openDelay: 200, closeDelay: 300 }],
   },
-)
+}).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
-const HoverIntentBinding = HoverIntentExampleBlock.makeBinding(
-  HoverIntentBlock,
-  {
-    field: 'hoverIntent',
-    init: {
-      contextToArgs: () => [{ openDelay: 200, closeDelay: 300 }],
-    },
-  },
-).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
-
-const HoverIntentExampleComposition = HoverIntentExampleBlock.makeComposition({
+const HoverIntentExampleComposition = makeComposition({
   bindings: [HoverIntentBinding],
 })
 

@@ -1,13 +1,13 @@
 import { Match, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './block'
 import {
   SendMessage,
   TimestampReceivedMessage,
   TimestampSentMessage,
 } from './command'
 import { ApplicationComposition } from './composition'
-import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import { ChatMessage, ConnectionState } from './model'
 
 export const update = ApplicationComposition.makeUpdate({

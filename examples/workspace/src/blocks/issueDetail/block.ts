@@ -1,45 +1,34 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { Issue } from '../../domain'
+import { WorkspaceRepository } from '../../repository'
+import { ChildInitContext } from './childInitContext'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
+import { ViewInputs } from './viewInputs'
 
-import { CommentComposer } from './blocks'
-import { EffectsLayer } from './command'
-import {
-  AssigneeListboxBinding,
-  CommentComposerBinding,
-  PriorityListboxBinding,
-  ProjectListboxBinding,
-  StatusListboxBinding,
-} from './composition'
-import { IssueDetailBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+export const IssueDetailKey = Symbol('IssueDetail')
+export const IssueDetailBlock = Block.make('IssueDetail', {
+  key: IssueDetailKey,
+  Init: Schema.Tuple([Issue]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  effects: { services: [WorkspaceRepository] },
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+  ChildInitContext,
+})
 
-export const layer = IssueDetailBlock.makeLayer(
-  Effect.gen(function* () {
-    const commentComposer = yield* CommentComposerBinding
-    const statusListbox = yield* StatusListboxBinding
-    const priorityListbox = yield* PriorityListboxBinding
-    const projectListbox = yield* ProjectListboxBinding
-    const assigneeListbox = yield* AssigneeListboxBinding
-
-    return {
-      children: [
-        commentComposer,
-        statusListbox,
-        priorityListbox,
-        projectListbox,
-        assigneeListbox,
-      ],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(ListboxLayer, CommentComposer.layer)))
-
-export { IssueDetailBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeOutMessageStep,
+  makeStep,
+} = IssueDetailBlock

@@ -4,7 +4,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, type Model, layer } from './application'
+import { ApplicationBlock, type Model, layer } from './block'
 import { Snake } from './domain'
 
 const baseModel: Model = {

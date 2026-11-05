@@ -17,7 +17,6 @@ const DispatchContext = Schema.Struct({ requestId: Schema.String })
 type DispatchContext = typeof DispatchContext.Type
 
 export const ContextualRefreshKey = Symbol('ContextualRefresh')
-
 export const ContextualRefreshBlock = Block.make('ContextualRefresh', {
   key: ContextualRefreshKey,
   Init: Schema.Tuple([]),
@@ -27,9 +26,9 @@ export const ContextualRefreshBlock = Block.make('ContextualRefresh', {
   Message,
 })
 
-const { makeFieldsStep } = ContextualRefreshBlock
+const { makeFieldsStep, makeComposition } = ContextualRefreshBlock
 
-const ContextualRefreshComposition = ContextualRefreshBlock.makeComposition()
+const ContextualRefreshComposition = makeComposition()
 const update = ContextualRefreshComposition.makeUpdate.withContext(
   ({ requestId }: DispatchContext) => ({
     RequestedRefresh: makeFieldsStep(() => ({

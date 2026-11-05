@@ -1,7 +1,7 @@
 import { Array, Duration, Effect, Schema } from 'effect'
 import { Invalid, Valid } from 'foldkit/fieldValidation'
 
-import { Message, PersonalInfoBlock } from './definition'
+import { Message, makeCommand } from './block'
 
 const FAKE_API_DELAY_MS = 600
 
@@ -17,30 +17,25 @@ const isEmailTaken = (emailInput: string): Effect.Effect<boolean> =>
     return Array.contains(TAKEN_EMAILS, emailInput.toLowerCase())
   })
 
-export const ValidateEmailAsync = PersonalInfoBlock.makeCommand(
-  'ValidateEmailAsync',
-  {
-    args: { emailInput: Schema.String, validationId: Schema.Number },
-    messages: [Message.CompletedValidateEmailAsync],
-    handler: function* () {
-      return ({ emailInput, validationId }) =>
-        Effect.gen(function* () {
-          if (yield* isEmailTaken(emailInput)) {
-            return Message.CompletedValidateEmailAsync({
-              validationId,
-              field: Invalid({
-                value: emailInput,
-                errors: ['This email is already in use'],
-              }),
-            })
-          }
+export const ValidateEmailAsync = makeCommand('ValidateEmailAsync', {
+  args: { emailInput: Schema.String, validationId: Schema.Number },
+  messages: [Message.CompletedValidateEmailAsync],
+  handler: function* () {
+    return ({ emailInput, validationId }) =>
+      Effect.gen(function* () {
+        if (yield* isEmailTaken(emailInput)) {
           return Message.CompletedValidateEmailAsync({
             validationId,
-            field: Valid({ value: emailInput }),
+            field: Invalid({
+              value: emailInput,
+              errors: ['This email is already in use'],
+            }),
           })
+        }
+        return Message.CompletedValidateEmailAsync({
+          validationId,
+          field: Valid({ value: emailInput }),
         })
-    },
+      })
   },
-)
-
-export const EffectsLayer = ValidateEmailAsync.layer
+})

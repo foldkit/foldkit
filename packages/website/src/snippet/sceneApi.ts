@@ -36,7 +36,7 @@ import {
   within,
 } from 'foldkit/scene'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 // Accessible locators — find elements like a user would.
 role('button', { name: 'Submit' })

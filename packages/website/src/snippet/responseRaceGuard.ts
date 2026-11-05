@@ -28,16 +28,17 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
   Model,
   Message,
 })
-const ApplicationComposition = ApplicationBlock.makeComposition()
 
-const Search = ApplicationBlock.makeCommand('Search', {
+const { makeComposition, makeCommand } = ApplicationBlock
+const ApplicationComposition = makeComposition()
+
+const Search = makeCommand('Search', {
   args: { query: Schema.String },
   messages: [Message.SettledSearch],
   handler: function* () {

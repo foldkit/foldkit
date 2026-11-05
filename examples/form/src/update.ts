@@ -1,9 +1,9 @@
 import { Valid, Validating } from 'foldkit/fieldValidation'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep } from './block'
 import { SubmitForm, ValidateEmail } from './command'
 import { ApplicationComposition } from './composition'
-import { makeFieldsStep } from './definition'
 import { Submission } from './model'
 import { isFormValid, validateEmail, validateName } from './validation'
 

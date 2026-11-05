@@ -1,8 +1,8 @@
 import { Effect, Option, Schema, Stream } from 'effect'
 import { Dom } from 'foldkit'
 
+import { makeSubscriptions } from '../block'
 import { DARK_COLOR_SCHEME_QUERY } from '../colorScheme'
-import { ApplicationBlock } from '../definition'
 import { Message } from '../message'
 import { isSearchRoute } from '../route'
 import { NARROW_VIEWPORT_QUERY } from '../viewport'
@@ -11,7 +11,7 @@ import {
   activeSectionDependencies,
 } from './activeSection'
 
-export const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
+export const subscriptions = makeSubscriptions(entry => ({
   activeSectionChanges: entry(
     'ActiveSectionChanges',
     {

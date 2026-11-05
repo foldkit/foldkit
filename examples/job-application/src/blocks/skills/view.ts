@@ -1,7 +1,7 @@
 import { view as buttonView } from '@foldkit/ui/button'
 
+import { Message } from './block'
 import { EntriesBinding, SkillsComposition } from './composition'
-import { Message } from './definition'
 
 export const view = SkillsComposition.makeView((model, h) =>
   h.div(

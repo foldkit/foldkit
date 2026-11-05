@@ -22,7 +22,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const VolumeSliderKey = Symbol('VolumeSlider')
-
 export const VolumeSliderBlock = Block.make('VolumeSlider', {
   key: VolumeSliderKey,
   Init: Schema.Tuple([]),
@@ -31,14 +30,15 @@ export const VolumeSliderBlock = Block.make('VolumeSlider', {
   Message,
 })
 
-const { makeFieldsStep } = VolumeSliderBlock
+const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
+  VolumeSliderBlock
 
 // At module scope, fold the OutMessage into your own Model. `ChangedValue`
 // carries the new number. Lift it to domain state, validate, or persist on
 // each commit. The arm returns an Update.Step over the parent Model, which
 // already has the next Slider Model written back. The parent Block
 // checks the complete child union and infers the handler's Model:
-const foldSliderOutMessage = VolumeSliderBlock.makeOutMessageFold(SliderBlock, {
+const foldSliderOutMessage = makeOutMessageFold(SliderBlock, {
   // The child has emitted `ChangedValue`. Store the new value in the field
   // you own. This arm is also where the parent can validate, persist, or
   // trigger a downstream Command.
@@ -50,14 +50,14 @@ const foldSliderOutMessage = VolumeSliderBlock.makeOutMessageFold(SliderBlock, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const RatingDemoBinding = VolumeSliderBlock.makeBinding(SliderBlock, {
+const RatingDemoBinding = makeBinding(SliderBlock, {
   field: 'ratingDemo',
   init: {
     contextToArgs: () => [{ id: 'rating', min: 0, max: 10, step: 1 }],
   },
 }).withOutMessagePolicy({ fold: foldSliderOutMessage })
 
-const VolumeSliderComposition = VolumeSliderBlock.makeComposition({
+const VolumeSliderComposition = makeComposition({
   bindings: [RatingDemoBinding],
 })
 

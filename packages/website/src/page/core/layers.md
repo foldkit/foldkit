@@ -216,7 +216,7 @@ When separate Blocks need the same HTTP, storage, or domain operation, share an 
 
 ::Snippet{name="layersMultiple" label="Multiple shared services"}
 
-Keep a small feature bundle in `block.ts`, or beside root Command definitions in `command.ts`. Extract `layer.ts` when composition is substantial or reused. Root `services.ts` exports `ApplicationLayer`; `block.ts` exports the construction `layer`, and `entry.ts` supplies the Layer to the Program. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete compact and split layouts.
+Keep a compact feature bundle with its complete implementation. A split feature uses `effectsLayer.ts` for a separate handler bundle. Root `services.ts` exports `ApplicationLayer`; `layer.ts` exports the construction `layer`, and `entry.ts` supplies the Layer to the Program. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete compact and split layouts.
 
 Choose an implementation through its Layer and provide controlled ordinary Services beneath its real handlers. APIs that deliberately publish host-handler contracts, such as Query, expose their checked provider selector. See [handler providers](/core/block#select-a-local-handler-recipe).
 
@@ -256,3 +256,11 @@ View-only components need no Block. Stateful Foldkit UI components export public
 A Schema-refined Combobox contract retains the factory's inferred Model, Message, OutMessage, view inputs and Binding operations. Bind the returned declaration exactly like a non-generic component; callable init, update and view functions belong to the acquired executable.
 
 Including Mounts in a Composition gives its view builder the allowed Mount contracts and adds their handler requirements to the application. TypeScript rejects a Mount outside that capability set or an embedded child view whose Mount requirements are missing. `FeatureComposition.makeView` derives this evidence from the local `mounts` and child Bindings. Providing the handler Layer satisfies execution; Composition declares which definitions the view may render. Composition starts no element work until the Mount appears in the view. Its included handler Layer builds at application startup. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for attribute and child-view composition.
+
+## Public bounds and construction dependencies
+
+A Block's `effects.services`, `effects.managedResources` and `effects.Error` bound its handler-Layer Services, ManagedResource handles and construction failures. The Effect passed to `makeLayer` has its own inferred requirements and errors. Ordinary request Services remain in their handler constructors, and invocation failures become Messages.
+
+The implementation's `EffectsLayer` selects local handler recipes. A separate bundle lives in `effectsLayer.ts`; `layer.ts` constructs the Block and provides child implementation Layers. `Block.makeEffectsContract<E, R>()` supplies generic handler-Layer error and ordinary Service bounds without repeating a finite Schema list.
+
+The advanced [Message codec bounds](/core/block#advanced-message-codec-bounds) address an opaque child's complete dispatch Schema. Local Schema requirements are inferred already; codec declarations are not normal app boilerplate.

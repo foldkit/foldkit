@@ -1,7 +1,7 @@
 import { Clock, Effect, Option, Schema } from 'effect'
 
+import { makeCommand } from './block'
 import { ChartRegistry } from './chartRegistry'
-import { ApplicationBlock } from './definition'
 import { ChartMode, PackageId, Period, Telemetry } from './domain'
 import { makeChartOption } from './echarts'
 import { GitHubApi } from './githubApi'
@@ -9,7 +9,7 @@ import { Message } from './message'
 import { NpmApi } from './npmApi'
 import { fetchRawTelemetry, transformTelemetry } from './telemetry'
 
-export const FetchTelemetry = ApplicationBlock.makeCommand('FetchTelemetry', {
+export const FetchTelemetry = makeCommand('FetchTelemetry', {
   messages: [Message.SucceededFetchTelemetry, Message.FailedFetchTelemetry],
   handler: function* () {
     const github = yield* GitHubApi
@@ -34,7 +34,7 @@ export const FetchTelemetry = ApplicationBlock.makeCommand('FetchTelemetry', {
   },
 })
 
-export const SyncChart = ApplicationBlock.makeCommand('SyncChart', {
+export const SyncChart = makeCommand('SyncChart', {
   args: {
     hostId: Schema.String,
     telemetry: Telemetry,

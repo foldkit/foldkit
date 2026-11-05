@@ -1,23 +1,22 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { SaveProject } from './command'
-import { ProjectSettingsBlock } from './definition'
-import { init } from './init'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view'
+import { Project } from '../../domain'
+import { WorkspaceRepository } from '../../repository'
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
 
-export const layer = ProjectSettingsBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer: Layer.mergeAll(SaveProject.layer, subscriptions.layer),
-    }
-  }),
-)
+export const ProjectSettingsKey = Symbol('ProjectSettings')
+export const ProjectSettingsBlock = Block.make('ProjectSettings', {
+  key: ProjectSettingsKey,
+  Init: Schema.Tuple([Project]),
+  view: { kind: 'Element' },
+  effects: { services: [WorkspaceRepository] },
+  Model,
+  Message,
+  OutMessage,
+})
 
-export { ProjectSettingsBlock } from './definition'
+export const { makeCommand, makeComposition, makeStep, makeSubscriptions } =
+  ProjectSettingsBlock

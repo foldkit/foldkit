@@ -1,80 +1,36 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { Url } from 'foldkit/url'
 
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { Message } from './message'
+import { Model } from './model'
+import { WorkspaceRepository } from './repository'
 
-import {
-  CommandPalette,
-  CreateIssue,
-  IssueBoard,
-  IssueDetail,
-  IssueList,
-  MemberDirectory,
-  NotificationCenter,
-  ProjectSettings,
-} from './blocks'
-import {
-  ActiveMemberListboxBinding,
-  CommandPaletteBinding,
-  CreateIssueBinding,
-  IssueBoardsBinding,
-  IssueDetailsBinding,
-  IssueListBinding,
-  MemberDirectoryBinding,
-  NotificationCenterBinding,
-  ProjectSettingsBinding,
-} from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view'
+// no need for these to be exported right?
+// confused. this is a definition.ts file, but it contains the block? shouldnt
+// this just be block? and i also see block.ts actaully contains the layer? i
+// feel like we need a strict, standard appproach for file naming that every
+// single foldkit app in this repo and everyh foldkit app out in the wild SHOULD
+// follow if they are follinwg FOLDKIT.md/docs/audit-program guidance.
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Url]),
+  view: { kind: 'Document' },
+  effects: { services: [WorkspaceRepository] },
+  Model,
+  Message,
+})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const activeMember = yield* ActiveMemberListboxBinding
-    const projectSettings = yield* ProjectSettingsBinding
-    const issueList = yield* IssueListBinding
-    const createIssue = yield* CreateIssueBinding
-    const issueBoards = yield* IssueBoardsBinding
-    const commandPalette = yield* CommandPaletteBinding
-    const memberDirectory = yield* MemberDirectoryBinding
-    const notificationCenter = yield* NotificationCenterBinding
-    const issueDetails = yield* IssueDetailsBinding
-
-    return {
-      children: [
-        activeMember,
-        projectSettings,
-        issueList,
-        createIssue,
-        issueBoards,
-        commandPalette,
-        memberDirectory,
-        notificationCenter,
-        issueDetails,
-      ],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      ListboxLayer,
-      CommandPalette.layer,
-      CreateIssue.layer,
-      IssueList.layer,
-      IssueBoard.layer,
-      MemberDirectory.layer,
-      NotificationCenter.layer,
-      IssueDetail.layer,
-      ProjectSettings.layer,
-    ),
-  ),
-)
-
-export { ApplicationBlock }
+export const {
+  makeBinding,
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeMapBinding,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+  makeSubscriptions,
+} = ApplicationBlock

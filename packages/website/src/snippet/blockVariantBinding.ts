@@ -11,15 +11,16 @@ const Model = Schema.Union([EditorBlock.Model, Submitted])
 type Model = typeof Model.Type
 
 export const ProfileKey = Symbol('Profile')
-
 const ProfileBlock = Block.make('Profile', {
   key: ProfileKey,
   Init: Schema.Tuple([Schema.String]),
   Model,
   Message: Schema.Never,
 })
+
+const { makeComposition } = ProfileBlock
 export const EditorBinding = makeVariantBinding(ProfileBlock, EditorBlock)
-export const ProfileComposition = ProfileBlock.makeComposition({
+export const ProfileComposition = makeComposition({
   bindings: [EditorBinding],
 })
 export const init = ProfileComposition.makeInit(displayName =>

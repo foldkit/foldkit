@@ -1,6 +1,6 @@
 import { Duration, Effect } from 'effect'
 
-import { makeCommand } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 
 export const SubmitApplication = makeCommand('SubmitApplication', {
@@ -16,5 +16,3 @@ export const SubmitApplication = makeCommand('SubmitApplication', {
       })
   },
 })
-
-export const EffectsLayer = SubmitApplication.layer

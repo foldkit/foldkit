@@ -3,7 +3,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { BlockPageBlock, layer } from './block'
+import { BlockPageBlock, layer } from './index'
 import { Message } from './message'
 
 const blockPageSubject = { block: BlockPageBlock, layer }

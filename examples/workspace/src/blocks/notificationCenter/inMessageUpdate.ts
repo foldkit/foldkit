@@ -1,8 +1,8 @@
 import { Array } from 'effect'
 
 import { makeNotifications } from '../../domain'
+import { makeFieldsStep } from './block'
 import { NotificationCenterComposition } from './composition'
-import { makeFieldsStep } from './definition'
 import type { InformedOfActivity } from './inMessage'
 
 const handleInformedOfActivity = makeFieldsStep.fromMessage(

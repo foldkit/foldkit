@@ -169,7 +169,6 @@ export type OutMessage = typeof OutMessage.Type
 
 /** @internal Stable identity of the DragAndDrop contract. */
 export const DragAndDropKey = Symbol('DragAndDrop')
-
 export const DragAndDropBlock = Block.make('DragAndDrop', {
   key: DragAndDropKey,
   Model,

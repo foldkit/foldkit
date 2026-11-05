@@ -7,13 +7,13 @@ import { DatePickerBlock as UiDatePickerBlock } from '@foldkit/ui/datePicker'
 
 import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
+import { Message } from './block'
 import {
   AvailableDateBinding,
   PersonalInfoComposition,
   type PersonalInfoViewBuilder,
   PronounsBinding,
 } from './composition'
-import { Message } from './definition'
 
 type UiDatePickerModel = typeof UiDatePickerBlock.Model.Type
 

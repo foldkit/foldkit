@@ -1,21 +1,21 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { EffectsLayer } from './command'
-import { CommentComposerBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { WorkspaceRepository } from '../../../../repository'
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
+import { ViewInputs } from './viewInputs'
 
-export const layer = CommentComposerBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const CommentComposerKey = Symbol('CommentComposer')
+export const CommentComposerBlock = Block.make('CommentComposer', {
+  key: CommentComposerKey,
+  Init: Schema.Tuple([Schema.String, Schema.optional(Schema.String)]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  effects: { services: [WorkspaceRepository] },
+  Model,
+  Message,
+  OutMessage,
+})
 
-export { CommentComposerBlock } from './definition'
+export const { makeCommand, makeComposition } = CommentComposerBlock

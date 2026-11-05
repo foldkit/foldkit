@@ -1,4 +1,4 @@
-import { Command, given, message, model, story } from 'foldkit/story'
+import { Command, given, init, message, model, story } from 'foldkit/story'
 import { messageFrom } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
@@ -6,7 +6,6 @@ import { expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
 
-import { ApplicationBlock, layer } from './block'
 import { FetchTelemetry, SyncChart } from './command'
 import {
   ChartModeRadioGroupBinding,
@@ -18,6 +17,7 @@ import {
   chartModes,
   packageIds,
 } from './domain'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
 import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
@@ -156,5 +156,20 @@ it.effect('successful fetch stores data and syncs when mounted', () =>
     }),
     Command.expectHas(SyncChart),
     Command.resolve(SyncChart, Message.SucceededSyncChart()),
+  ),
+)
+
+it.effect('seeds loading state and queues a telemetry fetch', () =>
+  story(
+    { block: ApplicationBlock, layer },
+    init(),
+    model(model => {
+      expect(model.telemetry._tag).toBe('Loading')
+    }),
+    Command.expectHas(FetchTelemetry),
+    Command.resolve(
+      FetchTelemetry,
+      Message.SucceededFetchTelemetry({ telemetry: sampleTelemetry }),
+    ),
   ),
 )

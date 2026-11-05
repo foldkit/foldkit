@@ -1,17 +1,14 @@
 import { Array, Option } from 'effect'
 import {
   Command,
-  type TestBlock,
   expectNoOutMessage,
   expectOutMessage,
-  given,
   inMessage,
   init,
   message,
   messageFrom,
   model,
   story,
-  withBlock,
 } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
@@ -27,22 +24,18 @@ import {
 } from '../../domain'
 import { WorkspaceListboxBlock } from '../../listbox'
 import { RepositoryError } from '../../repository'
-import { layer } from './block'
+import { IssueDetailBlock } from './block'
 import { SaveIssue } from './command'
 import { AssigneeListboxBinding } from './composition'
-import { IssueDetailBlock } from './definition'
 import { InMessage } from './inMessage'
+import { layer } from './layer'
 import { Message } from './message'
-import { SaveState } from './model'
+import { type Model, SaveState } from './model'
 import { OutMessage } from './outMessage'
 
 const issueDetailSubject = { block: IssueDetailBlock, layer }
 
 const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
-const makeInitialModel = (executable: TestBlock<typeof issueDetailSubject>) => {
-  const init = executable.init
-  return init(issue).model
-}
 const editedTitle = 'Search every project from the command menu'
 const editedDraft = modifyFields(draftFromIssue(issue), {
   title: () => editedTitle,
@@ -70,25 +63,27 @@ describe('Issue Detail', () => {
   it.effect(
     'ignores a malformed assignee selection without clearing the current assignee',
     () => {
-      return withBlock(issueDetailSubject, executable => {
-        const initialModel = makeInitialModel(executable)
-        return story(
-          issueDetailSubject,
-          given(initialModel),
-          messageFrom(
-            AssigneeListboxBinding,
-            WorkspaceListboxBlock.Message.RequestedSelectItem({
-              item: 'not-an-assignee-selection',
-            }),
-          ),
-          model(model => {
-            expect(model.draft).toBe(initialModel.draft)
-            expect(model.draft.maybeAssigneeId).toEqual(issue.maybeAssigneeId)
+      let initialDraft: Model['draft'] | undefined
+
+      return story(
+        issueDetailSubject,
+        init(issue),
+        model(model => {
+          initialDraft = model.draft
+        }),
+        messageFrom(
+          AssigneeListboxBinding,
+          WorkspaceListboxBlock.Message.RequestedSelectItem({
+            item: 'not-an-assignee-selection',
           }),
-          expectNoOutMessage(),
-          Command.expectNone(),
-        )
-      })
+        ),
+        model(model => {
+          expect(model.draft).toBe(initialDraft)
+          expect(model.draft.maybeAssigneeId).toEqual(issue.maybeAssigneeId)
+        }),
+        expectNoOutMessage(),
+        Command.expectNone(),
+      )
     },
   )
 
@@ -435,29 +430,28 @@ describe('Issue Detail', () => {
   it.effect(
     'ignores unrelated issues, older revisions, and completions without an active save',
     () => {
-      return withBlock(issueDetailSubject, executable => {
-        const initialModel = makeInitialModel(executable)
-
-        const unrelatedIssue = modifyFields(newerIssue, {
-          id: () => 'another-issue',
-        })
-        return story(
-          issueDetailSubject,
-          given(initialModel),
-          inMessage(InMessage.InformedOfIssueChange({ issue: unrelatedIssue })),
-          inMessage(InMessage.InformedOfIssueChange({ issue })),
-          message(
-            Message.SucceededSaveIssue({
-              savedIssue: savedIssueFromIssue(savedIssueSnapshot),
-              expectedVersion: issue.version,
-            }),
-          ),
-          model(model => {
-            expect(model).toEqual(initialModel)
-          }),
-          expectNoOutMessage(),
-        )
+      const unrelatedIssue = modifyFields(newerIssue, {
+        id: () => 'another-issue',
       })
+      let initialModel: Model | undefined
+
+      return story(
+        issueDetailSubject,
+        init(issue),
+        model(model => {
+          initialModel = model
+        }),
+        inMessage(InMessage.InformedOfIssueChange({ issue: unrelatedIssue })),
+        inMessage(InMessage.InformedOfIssueChange({ issue })),
+        message(
+          Message.SucceededSaveIssue({
+            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+            expectedVersion: issue.version,
+          }),
+        ),
+        model(model => expect(model).toEqual(initialModel)),
+        expectNoOutMessage(),
+      )
     },
   )
 

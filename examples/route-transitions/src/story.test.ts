@@ -6,8 +6,8 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { LoadCatalog, LoadPainting, SaveDraft } from './command'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { Model, PaintingStatus } from './model'
 import { ApplicationRoute } from './route'

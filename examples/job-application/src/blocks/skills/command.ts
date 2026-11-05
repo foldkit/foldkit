@@ -1,25 +1,20 @@
 import { Effect } from 'effect'
 import { SecureRandom } from 'effect/crypto'
 
-import { Message, SkillsBlock } from './definition'
+import { Message, makeCommand } from './block'
 
-export const GenerateSkillsEntryId = SkillsBlock.makeCommand(
-  'GenerateSkillsEntryId',
-  {
-    messages: [Message.CompletedGenerateSkillsEntryId],
-    handler: function* () {
-      const secureRandom = yield* SecureRandom.SecureRandom
+export const GenerateSkillsEntryId = makeCommand('GenerateSkillsEntryId', {
+  messages: [Message.CompletedGenerateSkillsEntryId],
+  handler: function* () {
+    const secureRandom = yield* SecureRandom.SecureRandom
 
-      return () =>
-        secureRandom
-          .uuidV4()
-          .pipe(
-            Effect.map(entryId =>
-              Message.CompletedGenerateSkillsEntryId({ entryId }),
-            ),
-          )
-    },
+    return () =>
+      secureRandom
+        .uuidV4()
+        .pipe(
+          Effect.map(entryId =>
+            Message.CompletedGenerateSkillsEntryId({ entryId }),
+          ),
+        )
   },
-)
-
-export const EffectsLayer = GenerateSkillsEntryId.layer
+})

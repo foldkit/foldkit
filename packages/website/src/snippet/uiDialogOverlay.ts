@@ -42,7 +42,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const FilterDialogKey = Symbol('FilterDialog')
-
 export const FilterDialogBlock = Block.make('FilterDialog', {
   key: FilterDialogKey,
   Init: Schema.Tuple([]),
@@ -51,36 +50,39 @@ export const FilterDialogBlock = Block.make('FilterDialog', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = FilterDialogBlock
+const {
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeBinding,
+  makeComposition,
+} = FilterDialogBlock
 
-const foldDialogOutMessage = FilterDialogBlock.makeOutMessageFold(DialogBlock, {
+const foldDialogOutMessage = makeOutMessageFold(DialogBlock, {
   Opened: makeNoopStep,
   Closed: makeNoopStep,
   CompletedClose: makeNoopStep,
 })
 
-const foldComboboxOutMessage = FilterDialogBlock.makeOutMessageFold(
-  CityCombobox,
-  {
-    Selected: ({ value }) =>
-      makeFieldsStep(() => ({
-        maybeCity: () => Option.some(value),
-      })),
-    ClearedSelection: makeNoopStep,
-  },
-)
+const foldComboboxOutMessage = makeOutMessageFold(CityCombobox, {
+  Selected: ({ value }) =>
+    makeFieldsStep(() => ({
+      maybeCity: () => Option.some(value),
+    })),
+  ClearedSelection: makeNoopStep,
+})
 
-const DialogBinding = FilterDialogBlock.makeBinding(DialogBlock, {
+const DialogBinding = makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'edit-filters' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const ComboboxBinding = FilterDialogBlock.makeBinding(CityCombobox, {
+const ComboboxBinding = makeBinding(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => [{ id: 'city' }] },
 }).withOutMessagePolicy({ fold: foldComboboxOutMessage })
 
-const FilterDialogComposition = FilterDialogBlock.makeComposition({
+const FilterDialogComposition = makeComposition({
   bindings: [DialogBinding, ComboboxBinding],
 })
 

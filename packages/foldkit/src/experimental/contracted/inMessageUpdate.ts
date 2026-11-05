@@ -63,7 +63,13 @@ type InvalidConstructors<SchemaValue extends AnySchema> = {
         : Tag
 }[InputTag<SchemaValue>]
 
-/** @internal Derives parent request names from the two explicit input fact prefixes. */
+/**
+ * @internal Derives generated Binding method names from InMessage facts:
+ * `RequestedX` becomes `requestX`, and `InformedOfX` becomes `informX`.
+ * The remaining suffix is preserved exactly; empty operation names and other
+ * prefixes are rejected. These methods invoke
+ * the child's pure inMessageUpdate through a connected parent Step.
+ */
 export type InputOperationName<Tag extends PropertyKey> =
   Tag extends `Requested${infer Operation}`
     ? Operation extends ''
@@ -277,7 +283,12 @@ export type InMessageUpdateContext<InputUpdate extends AnyFunction> =
     ? Context
     : never
 
-/** @internal Model-first input functions compiled for native Binding lowering. */
+/**
+ * @internal Model-first input functions compiled for native Binding lowering.
+ * Binding methods are generated from the InMessage union, with constructor
+ * payload arguments and the declared InMessage context. Parent authors call
+ * those generated methods directly; no manual operation mapping is required.
+ */
 export type CompiledInputs<
   SchemaValue extends AnySchema,
   InputUpdate extends AnyFunction,
@@ -302,7 +313,19 @@ export type CompiledInputs<
   >
 }
 
-/** Portable InMessage authoring shares focused composition with local updates. */
+/**
+ * Authors a portable, exhaustive handler record for parent InMessages.
+ *
+ * Declare parent inputs once in the Block's InMessage union. A variant named
+ * `RequestedOpen` generates `Binding.requestOpen()`, while
+ * `InformedOfRouteChanged` generates `Binding.informRouteChanged(payload)`.
+ * Those calls return connected parent Steps and retain the child's declared
+ * output and requirement channels. Keep UI facts and Command results in the
+ * separate local Message update.
+ *
+ * The focused composition helpers and withContext follow the local update
+ * authoring API. InMessage context remains separate from local update context.
+ */
 export interface MakeInMessageUpdatePlan<
   Model,
   InMessage,
@@ -479,9 +502,13 @@ export const assertInMessageConfiguration = (
       }
 
       for (const key of Reflect.ownKeys(output)) {
-        if (key !== 'outMessage' && key !== 'services' && key !== 'resources') {
+        if (
+          key !== 'outMessage' &&
+          key !== 'services' &&
+          key !== 'managedResources'
+        ) {
           throw new Error(
-            '[foldkit] InMessage output contracts support only outMessage, services, and resources.',
+            '[foldkit] InMessage output contracts support only outMessage, services, and managedResources.',
           )
         }
       }

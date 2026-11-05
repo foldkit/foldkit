@@ -12,12 +12,12 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { PeopleBlock } from './blocks'
 import { FetchPeople } from './blocks/people/command'
 import { SearchResults, searchPeople } from './blocks/people/model'
 import { NavigateInternal } from './command'
 import { PeoplePageBinding } from './composition'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { Model } from './model'
 import {

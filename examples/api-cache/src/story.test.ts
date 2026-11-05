@@ -12,9 +12,9 @@ import { expect } from 'vitest'
 
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { ApplicationBlock, layer } from './block'
 import { FetchPostDetail, FetchPosts, FetchStats } from './command'
 import { TabsBinding } from './composition'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import {
   ApplicationTabsBlock,

@@ -16,7 +16,6 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 export const ApplicationKey = Symbol('Application')
-
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -24,14 +23,16 @@ const ApplicationBlock = Block.make('Application', {
   Message: Schema.Never,
 })
 
-export const EntriesByIdBinding = ApplicationBlock.makeMapBinding(EntryBlock, {
+const { makeMapBinding, makeComposition } = ApplicationBlock
+
+export const EntriesByIdBinding = makeMapBinding(EntryBlock, {
   field: 'entriesById',
 })
-export const RowsByIdBinding = ApplicationBlock.makeMapBinding(EntryBlock, {
+export const RowsByIdBinding = makeMapBinding(EntryBlock, {
   field: 'rowsById',
   childField: 'entry',
 })
-export const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicationComposition = makeComposition({
   bindings: [EntriesByIdBinding, RowsByIdBinding],
 })
 export const init = ApplicationComposition.makeInit(() => ({

@@ -5,8 +5,8 @@ import { view as inputView } from '@foldkit/ui/input'
 
 import { Cart } from '../../domain'
 import { cartRouter } from '../../route'
+import { Message } from './block'
 import { ProductsComposition } from './composition'
-import { Message } from './definition'
 
 export type ViewInputs = Readonly<{
   cart: Cart.Cart

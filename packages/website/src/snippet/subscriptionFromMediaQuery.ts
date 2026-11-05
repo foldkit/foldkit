@@ -13,7 +13,6 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 export const MotionPreferencesKey = Symbol('MotionPreferences')
-
 const MotionPreferencesBlock = Block.make('MotionPreferences', {
   key: MotionPreferencesKey,
   Init: Schema.Tuple([]),
@@ -21,7 +20,9 @@ const MotionPreferencesBlock = Block.make('MotionPreferences', {
   Message,
 })
 
-const subscriptions = MotionPreferencesBlock.makeSubscriptions(entry => ({
+const { makeSubscriptions } = MotionPreferencesBlock
+
+const subscriptions = makeSubscriptions(entry => ({
   reducedMotionChanges: entry('ReducedMotionChanges', {
     messages: [Message.ChangedReducedMotion],
     handler: function* () {

@@ -18,7 +18,6 @@ const ParentMessage = defineMessageUnion({})
 type ParentMessage = typeof ParentMessage.Type
 
 export const FruitSelectionKey = Symbol('FruitSelection')
-
 export const FruitSelectionBlock = Block.make('FruitSelection', {
   key: FruitSelectionKey,
   Model: ParentModel,
@@ -26,12 +25,13 @@ export const FruitSelectionBlock = Block.make('FruitSelection', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const { makeFieldsStep } = FruitSelectionBlock
+const { makeFieldsStep, makeBinding, makeOutMessageFold, makeComposition } =
+  FruitSelectionBlock
 
-const PickerBinding = FruitSelectionBlock.makeBinding(FruitPicker, {
+const PickerBinding = makeBinding(FruitPicker, {
   field: 'picker',
 }).withOutMessagePolicy({
-  fold: FruitSelectionBlock.makeOutMessageFold(FruitPicker, {
+  fold: makeOutMessageFold(FruitPicker, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({ selectionHistory: Array.append(value) })),
   }),
@@ -39,7 +39,7 @@ const PickerBinding = FruitSelectionBlock.makeBinding(FruitPicker, {
 
 export const selectApple = PickerBinding.requestSelectValue('Apple')
 
-const FruitSelectionComposition = FruitSelectionBlock.makeComposition({
+const FruitSelectionComposition = makeComposition({
   bindings: [PickerBinding],
 })
 const init = FruitSelectionComposition.makeInit(() => ({

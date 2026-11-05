@@ -20,7 +20,7 @@ import {
   Model,
   layer,
   subscriptions,
-} from './application'
+} from './block'
 
 const initialModel = Model.make({
   elapsedMs: 0,

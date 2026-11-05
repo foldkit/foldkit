@@ -1,6 +1,7 @@
 import { Array, Number, Option, Result } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeCommandsStep, makeFieldsStep } from './block'
 import { GenerateAmbientParticle, GenerateBurstParticle } from './command'
 import { ApplicationComposition } from './composition'
 import {
@@ -29,7 +30,6 @@ import {
   TRAIL_LENGTH,
   TWO_PI,
 } from './constant'
-import { makeCommandsStep, makeFieldsStep } from './definition'
 import type {
   CompletedGenerateAmbientParticle,
   CompletedGenerateBurstParticle,

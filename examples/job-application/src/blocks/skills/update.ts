@@ -1,9 +1,9 @@
 import { Array } from 'effect'
 import { initAndAppend } from 'foldkit/bindingInit'
 
+import { makeCommandsStep, makeFieldsStep } from './block'
 import { GenerateSkillsEntryId } from './command'
 import { EntriesBinding, SkillsComposition } from './composition'
-import { makeCommandsStep, makeFieldsStep } from './definition'
 
 export const update = SkillsComposition.makeUpdate({
   ClickedAddEntry: makeCommandsStep(() => [GenerateSkillsEntryId()]),

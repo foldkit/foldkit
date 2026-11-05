@@ -1,7 +1,7 @@
 import { Array, Number, pipe } from 'effect'
 
+import { makeFieldsStep } from './block'
 import { ApplicationComposition } from './composition'
-import { makeFieldsStep } from './definition'
 import { type SlowWarning } from './model'
 import { PATCH_ROW_COUNT, UPDATE_WORK_MS, burnCpu } from './workload'
 

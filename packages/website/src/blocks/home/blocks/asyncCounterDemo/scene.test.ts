@@ -15,8 +15,8 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 
 import { DelayAdvanceAsyncCounterPhase } from './asyncCounterDemo'
-import { AsyncCounterDemoBlock, layer } from './block'
-import { Message, Model } from './definition'
+import { Message, Model } from './block'
+import { AsyncCounterDemoBlock, layer } from './index'
 
 const asyncCounterDemoSubject = { block: AsyncCounterDemoBlock, layer }
 

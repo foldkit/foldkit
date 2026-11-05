@@ -17,7 +17,6 @@ const Model = Schema.Struct({})
 type Model = typeof Model.Type
 
 export const UploadsKey = Symbol('Uploads')
-
 const UploadsBlock = Block.make('Uploads', {
   key: UploadsKey,
   Init: Schema.Tuple([]),
@@ -25,7 +24,9 @@ const UploadsBlock = Block.make('Uploads', {
   Message,
 })
 
-export const UploadFile = UploadsBlock.makeCommand('UploadFile', {
+const { makeCommand } = UploadsBlock
+
+export const UploadFile = makeCommand('UploadFile', {
   args: {
     uploadId: Schema.Int,
     file: Schema.instanceOf(File),

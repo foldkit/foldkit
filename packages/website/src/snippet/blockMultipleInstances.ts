@@ -6,7 +6,6 @@ import { Message } from './message'
 import { Model } from './model'
 
 export const ApplicationKey = Symbol('Application')
-
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -15,16 +14,15 @@ const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-export const ApplicantsBinding = ApplicationBlock.makeBinding(
-  Applicant.ApplicantBlock,
-  {
-    field: 'applicants',
-    key: 'id',
-    childField: 'entry',
-  },
-)
+const { makeBinding, makeComposition } = ApplicationBlock
 
-const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicantsBinding = makeBinding(Applicant.ApplicantBlock, {
+  field: 'applicants',
+  key: 'id',
+  childField: 'entry',
+})
+
+const ApplicationComposition = makeComposition({
   bindings: [ApplicantsBinding],
 })
 

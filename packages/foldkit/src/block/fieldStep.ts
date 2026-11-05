@@ -162,7 +162,11 @@ export interface FocusedObjectStepFields<
   ) => MessageOnlyFieldHandler<Model, Message, ExactMessage, Evolve>
 }
 
-interface MessageFreeObjectStepFields<Model extends object, ParentOwner> {
+/** @internal Keeps exported field helpers nameable when their Block has no local Messages. */
+export interface MessageFreeObjectStepFields<
+  Model extends object,
+  ParentOwner,
+> {
   <
     const Evolve extends (
       model: Model,

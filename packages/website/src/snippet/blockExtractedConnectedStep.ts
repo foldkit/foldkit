@@ -21,7 +21,6 @@ export const OutMessage = defineMessageUnion({
 export type OutMessage = typeof OutMessage.Type
 
 export const ApplicationKey = Symbol('Application')
-
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -31,12 +30,13 @@ export const ApplicationBlock = Block.make('Application', {
   OutMessage,
 })
 
-const { makeOutMessageStep } = ApplicationBlock
+const { makeOutMessageStep, makeBinding, makeOutMessageFold, makeComposition } =
+  ApplicationBlock
 
-export const SettingsBinding = ApplicationBlock.makeBinding(SettingsBlock, {
+export const SettingsBinding = makeBinding(SettingsBlock, {
   field: 'settings',
 }).withOutMessagePolicy({
-  fold: ApplicationBlock.makeOutMessageFold(SettingsBlock, {
+  fold: makeOutMessageFold(SettingsBlock, {
     ChangedTheme: ({ theme }) =>
       makeOutMessageStep(model =>
         OutMessage.ChangedTheme({
@@ -56,7 +56,7 @@ const changeTheme = (theme: Theme) => {
     )
 }
 
-const ApplicationComposition = ApplicationBlock.makeComposition({
+const ApplicationComposition = makeComposition({
   bindings: [SettingsBinding],
 })
 

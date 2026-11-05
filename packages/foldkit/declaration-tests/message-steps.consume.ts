@@ -9,6 +9,8 @@ import {
   Save,
   contextualUpdate,
   incrementAndSave,
+  incrementWithoutMessages,
+  makeMessageFreeFieldsStep,
   modelAwareChildReport,
   modelAwareContextualChildReport,
   modelAwareContextualIncrement,
@@ -120,3 +122,18 @@ export type ExactContextualRegistration = Expect<
     Block.RequirementOfBinding<typeof ChildBinding>
   >
 >
+
+export const incrementedMessageFree = incrementWithoutMessages({ count: 0 })
+export const unchangedMessageFree = makeMessageFreeFieldsStep(() => ({}))({
+  count: 0,
+})
+export type ExactMessageFreeRequirements = Expect<
+  Equal<Update.RequirementsOf<typeof incrementWithoutMessages>, never>
+>
+export type ExactMessageFreeModel = Expect<
+  Equal<typeof incrementedMessageFree.model, Readonly<{ count: number }>>
+>
+// @ts-expect-error Message-free helper exports retain the owning field contract.
+makeMessageFreeFieldsStep(() => ({ count: () => 'wrong' }))
+// @ts-expect-error Message-free Steps still require the owning Model.
+incrementWithoutMessages({ count: 'wrong' })

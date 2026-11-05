@@ -14,7 +14,7 @@ import { describe } from 'vitest'
 
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { ApplicationBlock, layer } from './block'
+import { ApplicationBlock, layer } from './index'
 import { Submission } from './model'
 import { it } from './model.fixture'
 import { StepTabsBlock } from './navigationComponents'

@@ -12,7 +12,7 @@ import {
   Message,
   type Model,
   layer,
-} from './application'
+} from './block'
 
 const offModel: Model = {
   engine: EngineState.Off(),

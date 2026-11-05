@@ -27,7 +27,6 @@ const Message = defineMessageUnion({ ClickedJumpToLastInvoice: {} })
 type Message = typeof Message.Type
 
 export const InvoiceTableKey = Symbol('InvoiceTable')
-
 export const InvoiceTableBlock = Block.make('InvoiceTable', {
   key: InvoiceTableKey,
   Init: Schema.Tuple([Schema.Array(Invoice)]),
@@ -35,9 +34,10 @@ export const InvoiceTableBlock = Block.make('InvoiceTable', {
   Model,
   Message,
 })
-const { makeNoopStep } = InvoiceTableBlock
+const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
+  InvoiceTableBlock
 
-const InvoiceRowsBinding = InvoiceTableBlock.makeBinding(InvoiceRowsBlock, {
+const InvoiceRowsBinding = makeBinding(InvoiceRowsBlock, {
   field: 'invoiceRows',
   init: {
     contextToArgs: () => [
@@ -51,13 +51,13 @@ const InvoiceRowsBinding = InvoiceTableBlock.makeBinding(InvoiceRowsBlock, {
     ],
   },
 }).withOutMessagePolicy({
-  fold: InvoiceTableBlock.makeOutMessageFold(InvoiceRowsBlock, {
+  fold: makeOutMessageFold(InvoiceRowsBlock, {
     ObservedContainerScroll: makeNoopStep,
     ApproachedLoadedStart: makeNoopStep,
     EndedContainerScroll: makeNoopStep,
   }),
 })
-const InvoiceTableComposition = InvoiceTableBlock.makeComposition({
+const InvoiceTableComposition = makeComposition({
   bindings: [InvoiceRowsBinding],
 })
 const init = InvoiceTableComposition.makeInit(invoices => ({

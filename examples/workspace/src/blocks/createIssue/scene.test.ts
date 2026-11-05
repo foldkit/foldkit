@@ -1,21 +1,5 @@
-import { Array, Option } from 'effect'
-import {
-  Command,
-  Mount,
-  click,
-  expect,
-  expectNoOutMessage,
-  expectOutMessage,
-  given,
-  inMessage,
-  init,
-  label,
-  role,
-  scene,
-  type,
-} from 'foldkit/scene'
-import { type TestBlock, withBlock } from 'foldkit/story'
-import { toParentMessageFor } from 'foldkit/test'
+import { Effect, Option } from 'effect'
+import { Scene, Story } from 'foldkit'
 import { describe, expect as expectValue } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -32,17 +16,17 @@ import {
   StatusListboxBlock,
   WorkspaceListboxBlock,
 } from '../../listbox'
-import { layer } from './block'
+import { CreateIssueBlock } from './block'
 import { CreateIssue } from './command'
 import {
   PriorityListboxBinding,
   ProjectListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { CreateIssueBlock } from './definition'
 import { InMessage } from './inMessage'
+import { layer } from './layer'
 import { Message } from './message'
-import { CreateState } from './model'
+import { CreateState, type Model } from './model'
 import { OutMessage } from './outMessage'
 
 const createIssueSubject = { block: CreateIssueBlock, layer }
@@ -50,41 +34,34 @@ const createIssueSubject = { block: CreateIssueBlock, layer }
 const viewInputs = {
   projects: initialWorkspace.projects,
 }
-const createIssueRequestOpen = (
-  executable: TestBlock<typeof createIssueSubject>,
-) => {
-  return executable.operations.requestOpen(executable.init().model, {
-    projectId: 'experience',
-  })
-}
-const acquireDialog = Mount.resolve(
+const acquireDialog = Scene.Mount.resolve(
   DialogTest.AcquireResources,
   DialogBlock.Message.SucceededAcquireResources(),
 )
-const closeDialog = Command.resolve(
+const closeDialog = Scene.Command.resolve(
   DialogTest.CloseDialog,
   DialogBlock.Message.CompletedCloseDialog(),
 )
 const selectField = (fieldLabel: string, optionLabel: string) => [
-  click(label(fieldLabel)),
-  Command.resolve(
+  Scene.click(Scene.label(fieldLabel)),
+  Scene.Command.resolve(
     ListboxTest.FocusListboxItems,
     WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
   ),
-  Mount.resolve(
+  Scene.Mount.resolve(
     ListboxTest.AnchorListbox,
     WorkspaceListboxBlock.Message.CompletedAnchorListbox(),
   ),
-  Mount.resolve(
+  Scene.Mount.resolve(
     ListboxTest.PortalListboxBackdrop,
     WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
   ),
-  click(role('option', { name: optionLabel })),
-  Command.resolve(
+  Scene.click(Scene.role('option', { name: optionLabel })),
+  Scene.Command.resolve(
     ListboxTest.FocusListboxButton,
     WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
   ),
-  Mount.expectEnded(
+  Scene.Mount.expectEnded(
     ListboxTest.AnchorListbox,
     ListboxTest.PortalListboxBackdrop,
   ),
@@ -92,25 +69,29 @@ const selectField = (fieldLabel: string, optionLabel: string) => [
 
 describe('Create Issue view', () => {
   it.effect('validates a whitespace title without submitting the draft', () => {
-    return scene(
+    return Scene.scene(
       { ...createIssueSubject, viewInputs },
-      init(),
-      inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
-      Command.resolve(
+      Scene.init(),
+      Scene.inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
+      Scene.Command.resolve(
         DialogTest.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
-      type(label('Title'), '   '),
-      type(label('Description'), 'Keep this draft available.'),
-      click(role('button', { name: 'Create issue' })),
-      expect(role('alert')).toContainText(
+      Scene.type(Scene.label('Title'), '   '),
+      Scene.type(Scene.label('Description'), 'Keep this draft available.'),
+      Scene.click(Scene.role('button', { name: 'Create issue' })),
+      Scene.expect(Scene.role('alert')).toContainText(
         'Enter an issue title before creating it.',
       ),
-      expect(label('Title')).toHaveAttr('aria-invalid', 'true'),
-      expect(label('Description')).toHaveValue('Keep this draft available.'),
-      expect(role('button', { name: 'Create issue' })).toBeEnabled(),
-      expectNoOutMessage(),
-      Command.expectNone(),
+      Scene.expect(Scene.label('Title')).toHaveAttr('aria-invalid', 'true'),
+      Scene.expect(Scene.label('Description')).toHaveValue(
+        'Keep this draft available.',
+      ),
+      Scene.expect(
+        Scene.role('button', { name: 'Create issue' }),
+      ).toBeEnabled(),
+      Scene.expectNoOutMessage(),
+      Scene.Command.expectNone(),
     )
   })
 
@@ -134,59 +115,64 @@ describe('Create Issue view', () => {
         version: 1,
         comments: [],
       })
-      return scene(
+      return Scene.scene(
         { ...createIssueSubject, viewInputs },
-        init(),
-        inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
-        Command.resolve(
+        Scene.init(),
+        Scene.inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
+        Scene.Command.resolve(
           DialogTest.ShowDialog,
           DialogBlock.Message.SucceededShowDialog(),
         ),
-        type(label('Title'), `  ${draft.title}  `),
-        type(label('Description'), draft.description),
+        Scene.type(Scene.label('Title'), `  ${draft.title}  `),
+        Scene.type(Scene.label('Description'), draft.description),
         ...selectField('Project', 'Platform'),
         ...selectField('Status', 'Backlog'),
         ...selectField('Priority', 'High'),
-        click(role('button', { name: 'Create issue' })),
-        expect(role('status')).toContainText('Creating issue…'),
-        expect(label('Title')).toBeDisabled(),
-        expect(label('Description')).toBeDisabled(),
-        expect(label('Project')).toBeDisabled(),
-        expect(label('Status')).toBeDisabled(),
-        expect(label('Priority')).toBeDisabled(),
-        expect(role('button', { name: 'Creating…' })).toBeDisabled(),
-        expect(role('button', { name: 'Close' })).toBeEnabled(),
-        Command.expectExact(CreateIssue({ draft })),
-        Command.resolve(
+        Scene.click(Scene.role('button', { name: 'Create issue' })),
+        Scene.expect(Scene.role('status')).toContainText('Creating issue…'),
+        Scene.expect(Scene.label('Title')).toBeDisabled(),
+        Scene.expect(Scene.label('Description')).toBeDisabled(),
+        Scene.expect(Scene.label('Project')).toBeDisabled(),
+        Scene.expect(Scene.label('Status')).toBeDisabled(),
+        Scene.expect(Scene.label('Priority')).toBeDisabled(),
+        Scene.expect(
+          Scene.role('button', { name: 'Creating…' }),
+        ).toBeDisabled(),
+        Scene.expect(Scene.role('button', { name: 'Close' })).toBeEnabled(),
+        Scene.Command.expectExact(CreateIssue({ draft })),
+        Scene.Command.resolve(
           CreateIssue,
           Message.FailedCreateIssue({
             error: 'The workspace is temporarily unavailable.',
           }),
         ),
-        expect(role('alert')).toContainText(
+        Scene.expect(Scene.role('alert')).toContainText(
           'The workspace is temporarily unavailable.',
         ),
-        expect(label('Title')).toHaveValue(`  ${draft.title}  `),
-        expect(label('Description')).toHaveValue(draft.description),
-        expect(label('Project')).toHaveText('Platform'),
-        expect(label('Status')).toHaveText('Backlog'),
-        expect(label('Priority')).toHaveText('High'),
-        expect(role('button', { name: 'Create issue' })).toBeEnabled(),
-        expectNoOutMessage(),
-        click(role('button', { name: 'Create issue' })),
-        Command.expectExact(CreateIssue({ draft })),
-        Command.resolve(CreateIssue, Message.SucceededCreateIssue({ issue })),
-        expectOutMessage(OutMessage.Created({ issue })),
+        Scene.expect(Scene.label('Title')).toHaveValue(`  ${draft.title}  `),
+        Scene.expect(Scene.label('Description')).toHaveValue(draft.description),
+        Scene.expect(Scene.label('Project')).toHaveText('Platform'),
+        Scene.expect(Scene.label('Status')).toHaveText('Backlog'),
+        Scene.expect(Scene.label('Priority')).toHaveText('High'),
+        Scene.expect(
+          Scene.role('button', { name: 'Create issue' }),
+        ).toBeEnabled(),
+        Scene.expectNoOutMessage(),
+        Scene.click(Scene.role('button', { name: 'Create issue' })),
+        Scene.Command.expectExact(CreateIssue({ draft })),
+        Scene.Command.resolve(
+          CreateIssue,
+          Message.SucceededCreateIssue({ issue }),
+        ),
+        Scene.expectOutMessage(OutMessage.Created({ issue })),
         closeDialog,
-        expect(label('Title')).not.toExist(),
+        Scene.expect(Scene.label('Title')).not.toExist(),
       )
     },
   )
 
-  it.effect('reopens a dismissed pending form when creation fails', () => {
-    return withBlock(createIssueSubject, executable => {
-      const update = executable.update
-
+  it.effect('reopens a dismissed pending form when creation fails', () =>
+    Effect.gen(function* () {
       const draft = IssueDraft.make({
         title: 'Keep the failed draft',
         description: 'The form should return with every field intact.',
@@ -196,119 +182,103 @@ describe('Create Issue view', () => {
         maybeAssigneeId: Option.none(),
         labelIds: [],
       })
-
       const error = 'The workspace is temporarily unavailable.'
+      let maybeFailedModel = Option.none<Model>()
 
-      const titleUpdate = update(
-        createIssueRequestOpen(executable).model,
-        Message.UpdatedTitle({ value: draft.title }),
-      )
-
-      const descriptionUpdate = update(
-        titleUpdate.model,
-        Message.UpdatedDescription({ value: draft.description }),
-      )
-
-      const projectSelectionUpdate = update(
-        descriptionUpdate.model,
-        toParentMessageFor(executable)(
+      yield* Story.story(
+        createIssueSubject,
+        Story.init(),
+        Story.inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
+        Story.Command.resolve(
+          DialogTest.ShowDialog,
+          DialogBlock.Message.SucceededShowDialog(),
+        ),
+        Story.message(Message.UpdatedTitle({ value: draft.title })),
+        Story.message(Message.UpdatedDescription({ value: draft.description })),
+        Story.messageFrom(
           ProjectListboxBinding,
           WorkspaceListboxBlock.Message.RequestedSelectItem({
             item: draft.projectId,
           }),
         ),
-      )
-
-      const statusSelectionUpdate = update(
-        projectSelectionUpdate.model,
-        toParentMessageFor(executable)(
+        Story.messageFrom(
           StatusListboxBinding,
           StatusListboxBlock.Message.RequestedSelectItem({
             item: draft.status,
           }),
         ),
-      )
-
-      const prioritySelectionUpdate = update(
-        statusSelectionUpdate.model,
-        toParentMessageFor(executable)(
+        Story.messageFrom(
           PriorityListboxBinding,
           PriorityListboxBlock.Message.RequestedSelectItem({
             item: draft.priority,
           }),
         ),
+        Story.message(Message.SubmittedIssueForm()),
+        Story.Command.expectExact(CreateIssue({ draft })),
+        Story.inMessage(InMessage.RequestedClose()),
+        Story.model(model => expectValue(model.dialog.isOpen).toBe(false)),
+        Story.Command.resolve(
+          DialogTest.CloseDialog,
+          DialogBlock.Message.CompletedCloseDialog(),
+        ),
+        Story.Command.resolve(
+          CreateIssue,
+          Message.FailedCreateIssue({ error }),
+        ),
+        Story.model(model => {
+          maybeFailedModel = Option.some(model)
+          expectValue(model.dialog.isOpen).toBe(true)
+          expectValue(model.createState).toEqual(CreateState.Failed({ error }))
+        }),
+        Story.Command.expectExact(
+          DialogTest.ShowDialog({
+            id: 'workspace-create-issue-dialog',
+            focusSelector: dialogInitialFocusMarkerSelector,
+          }),
+        ),
+        Story.Command.resolve(
+          DialogTest.ShowDialog,
+          DialogBlock.Message.SucceededShowDialog(),
+        ),
       )
 
-      const issueSubmission = update(
-        prioritySelectionUpdate.model,
-        Message.SubmittedIssueForm(),
-      )
-
-      const issueClose = executable.inMessageUpdate(
-        issueSubmission.model,
-        InMessage.RequestedClose(),
-      )
-
-      const creationFailure = update(
-        issueClose.model,
-        Message.FailedCreateIssue({ error }),
-      )
-
-      const reopenDialog = Option.getOrThrow(
-        Array.head(creationFailure.commands ?? []),
-      )
-
-      expectValue(issueClose.model.dialog.isOpen).toBe(false)
-
-      expectValue(creationFailure.model.dialog.isOpen).toBe(true)
-
-      expectValue(creationFailure.model.createState).toEqual(
-        CreateState.Failed({ error }),
-      )
-
-      expectValue(creationFailure.commands).toHaveLength(1)
-
-      expectValue(reopenDialog.args).toEqual({
-        id: 'workspace-create-issue-dialog',
-        focusSelector: dialogInitialFocusMarkerSelector,
-      })
-      return scene(
+      yield* Scene.scene(
         { ...createIssueSubject, viewInputs },
-        given(creationFailure.model),
+        Scene.given(Option.getOrThrow(maybeFailedModel)),
         acquireDialog,
-        expect(role('alert')).toContainText(error),
-        expect(label('Title')).toHaveValue(draft.title),
-        expect(label('Description')).toHaveValue(draft.description),
-        expect(label('Project')).toHaveText('Platform'),
-        expect(label('Status')).toHaveText('Backlog'),
-        expect(label('Priority')).toHaveText('High'),
-        click(role('button', { name: 'Create issue' })),
-        Command.expectExact(CreateIssue({ draft })),
-        Command.resolve(
+        Scene.expect(Scene.role('alert')).toContainText(error),
+        Scene.expect(Scene.label('Title')).toHaveValue(draft.title),
+        Scene.expect(Scene.label('Description')).toHaveValue(draft.description),
+        Scene.expect(Scene.label('Project')).toHaveText('Platform'),
+        Scene.expect(Scene.label('Status')).toHaveText('Backlog'),
+        Scene.expect(Scene.label('Priority')).toHaveText('High'),
+        Scene.click(Scene.role('button', { name: 'Create issue' })),
+        Scene.Command.expectExact(CreateIssue({ draft })),
+        Scene.Command.resolve(
           CreateIssue,
           Message.FailedCreateIssue({ error: 'Retry also failed.' }),
         ),
-        expect(role('alert')).toContainText('Retry also failed.'),
-        Command.expectNone(),
+        Scene.expect(Scene.role('alert')).toContainText('Retry also failed.'),
+        Scene.Command.expectNone(),
       )
-    })
-  })
+    }),
+  )
 
   it.effect('cancels through its Dialog without creating an issue', () => {
-    return scene(
+    return Scene.scene(
       { ...createIssueSubject, viewInputs },
-      init(),
-      inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
-      Command.resolve(
+      Scene.init(),
+      Scene.inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
+      Scene.Command.resolve(
         DialogTest.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
-      type(label('Title'), 'An unsent issue'),
-      click(role('button', { name: 'Cancel' })),
+      Scene.type(Scene.label('Title'), 'An unsent issue'),
+      Scene.click(Scene.role('button', { name: 'Cancel' })),
       closeDialog,
-      expect(label('Title')).not.toExist(),
-      expectNoOutMessage(),
-      Command.expectNone(),
+      Scene.expect(Scene.label('Title')).not.toExist(),
+      Scene.expectNoOutMessage(),
+      Scene.Command.expectNone(),
     )
   })
 })

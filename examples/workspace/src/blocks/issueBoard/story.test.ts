@@ -16,11 +16,11 @@ import {
   test as DragAndDropTest,
 } from '@foldkit/ui/dragAndDrop'
 
-import { layer } from './block'
+import { IssueBoardBlock } from './block'
 import { DragAndDropBinding } from './composition'
-import { IssueBoardBlock } from './definition'
 import { containerId, draggableId } from './dragAndDrop'
 import { InMessage } from './inMessage'
+import { layer } from './layer'
 import { OutMessage } from './outMessage'
 
 describe('Issue Board update', () => {

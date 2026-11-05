@@ -1,4 +1,5 @@
-import { LoggedInComposition, makeOutMessageStep } from './composition'
+import { makeOutMessageStep } from './block'
+import { LoggedInComposition } from './composition'
 import { OutMessage } from './message'
 
 export const update = LoggedInComposition.makeUpdate({

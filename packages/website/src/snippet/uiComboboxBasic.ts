@@ -24,7 +24,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const CityPickerKey = Symbol('CityPicker')
-
 export const CityPickerBlock = Block.make('CityPicker', {
   key: CityPickerKey,
   Init: Schema.Tuple([]),
@@ -33,28 +32,31 @@ export const CityPickerBlock = Block.make('CityPicker', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = CityPickerBlock
+const {
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeBinding,
+  makeComposition,
+} = CityPickerBlock
 
 // The parent stores the committed selection reported by the child.
-const foldComboboxOutMessage = CityPickerBlock.makeOutMessageFold(
-  CityCombobox,
-  {
-    Selected: ({ value }) =>
-      makeFieldsStep(() => ({
-        maybeCity: () => Option.some(value),
-      })),
-    ClearedSelection: makeNoopStep,
-  },
-)
+const foldComboboxOutMessage = makeOutMessageFold(CityCombobox, {
+  Selected: ({ value }) =>
+    makeFieldsStep(() => ({
+      maybeCity: () => Option.some(value),
+    })),
+  ClearedSelection: makeNoopStep,
+})
 
-const ComboboxBinding = CityPickerBlock.makeBinding(CityCombobox, {
+const ComboboxBinding = makeBinding(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => [{ id: 'city' }] },
 }).withOutMessagePolicy({ fold: foldComboboxOutMessage })
 
 // Including the Binding collects its lifecycle and handler graph.
 
-const CityPickerComposition = CityPickerBlock.makeComposition({
+const CityPickerComposition = makeComposition({
   bindings: [ComboboxBinding],
 })
 

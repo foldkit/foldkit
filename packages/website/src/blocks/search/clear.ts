@@ -1,4 +1,4 @@
-import { makeFieldsStep } from './definition'
+import { makeFieldsStep } from './block'
 import { SearchState } from './domain'
 
 export const clearSearchQuery = makeFieldsStep(() => ({

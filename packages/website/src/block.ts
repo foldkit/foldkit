@@ -1,95 +1,34 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block, Url } from 'foldkit'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
-import { layer as MenuLayer } from '@foldkit/ui/menu'
+import { ChildInitContext } from './childInitContext'
+import { Flags } from './flags'
+import { Message } from './message'
+import { Model } from './model'
+import { PagefindService } from './pagefind'
+import { LocalStorage, SessionStorage } from './storage'
 
-import {
-  ApiReference,
-  BlockPage,
-  ComingFromReact,
-  ExampleDetail,
-  Home,
-  Playground,
-  Search,
-  SnippetCopy,
-  SnippetDisclosure,
-  Ui,
-} from './blocks'
-import {
-  ApiReferenceBinding,
-  ComingFromReactBinding,
-  CoreBlockPageBinding,
-  ExampleDetailBinding,
-  MaybeHomeBinding,
-  MobileMenuDialogBinding,
-  PlaygroundBinding,
-  SearchBinding,
-  SnippetCopyBinding,
-  SnippetDisclosureBinding,
-  ThemeMenuBinding,
-  UiPagesBinding,
-} from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view/view'
+// if a key always goes with a a block, should we not have any blank line betwen
+// them, like this?
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Flags, Url.Url]),
+  view: { kind: 'Document' },
+  effects: { services: [LocalStorage, SessionStorage, PagefindService] },
+  Model,
+  Message,
+  ChildInitContext,
+})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const apiReference = yield* ApiReferenceBinding
-    const comingFromReact = yield* ComingFromReactBinding
-    const coreBlockPage = yield* CoreBlockPageBinding
-    const exampleDetail = yield* ExampleDetailBinding
-    const home = yield* MaybeHomeBinding
-    const mobileMenuDialog = yield* MobileMenuDialogBinding
-    const playground = yield* PlaygroundBinding
-    const search = yield* SearchBinding
-    const snippetCopy = yield* SnippetCopyBinding
-    const snippetDisclosure = yield* SnippetDisclosureBinding
-    const themeMenu = yield* ThemeMenuBinding
-    const uiPages = yield* UiPagesBinding
-
-    return {
-      children: [
-        apiReference,
-        comingFromReact,
-        coreBlockPage,
-        exampleDetail,
-        home,
-        mobileMenuDialog,
-        playground,
-        search,
-        snippetCopy,
-        snippetDisclosure,
-        themeMenu,
-        uiPages,
-      ],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      ApiReference.layer,
-      ComingFromReact.layer,
-      BlockPage.layer,
-      ExampleDetail.layer,
-      Home.layer,
-      Playground.layer,
-      Ui.layer,
-      Search.layer,
-      SnippetCopy.layer,
-      SnippetDisclosure.layer,
-      DialogLayer,
-      MenuLayer,
-    ),
-  ),
-)
-
-export { ApplicationBlock }
+export const {
+  makeBinding,
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+  makeSubscriptions,
+} = ApplicationBlock

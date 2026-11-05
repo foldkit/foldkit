@@ -21,7 +21,7 @@ import {
   Model,
   layer,
   managedResources,
-} from './application'
+} from './block'
 
 const offModel = Model.make({
   engine: EngineState.Off(),
