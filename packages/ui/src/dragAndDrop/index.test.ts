@@ -613,7 +613,11 @@ it.layer(layer, { buildPerTest: true })(it => {
         { name: 'before source', coordinate: 25, index: 0 },
         { name: 'upper source half', coordinate: 125, index: 1 },
         { name: 'lower source half', coordinate: 175, index: 1 },
-        { name: 'after next item', coordinate: 275, index: 2 },
+        {
+          name: 'disabled sortable counts and decoration does not',
+          coordinate: 275,
+          index: 2,
+        },
         { name: 'exact end index', coordinate: 450, index: 3 },
         {
           name: 'horizontal midpoint',
@@ -621,14 +625,27 @@ it.layer(layer, { buildPerTest: true })(it => {
           index: 2,
           orientation: 'Horizontal',
         },
-        { name: 'empty destination', coordinate: 25, index: 0, items: [] },
+        {
+          name: 'empty destination',
+          coordinate: 25,
+          index: 0,
+          items: [],
+          sourceContainerId: 'source',
+        },
         {
           name: 'cross-container',
+          sourceContainerId: 'source',
           coordinate: 175,
           index: 2,
           items: ['x', 'y'],
         },
-        { name: 'single source', coordinate: 75, index: 0, items: ['b'] },
+        {
+          name: 'single source',
+          coordinate: 75,
+          index: 0,
+          items: ['b'],
+          sourceIndex: 0,
+        },
       ]
 
       for (const scenario of cases) {
@@ -689,8 +706,8 @@ it.layer(layer, { buildPerTest: true })(it => {
                 initial.model,
                 Message.PressedDraggable({
                   itemId: 'b',
-                  containerId: 'list',
-                  index: 1,
+                  containerId: scenario.sourceContainerId ?? 'list',
+                  index: scenario.sourceIndex ?? 1,
                   screenX: 0,
                   screenY: 0,
                 }),
@@ -750,8 +767,8 @@ it.layer(layer, { buildPerTest: true })(it => {
               expect(drop.outMessage).toEqual(
                 OutMessage.Reordered({
                   itemId: 'b',
-                  fromContainerId: 'list',
-                  fromIndex: 1,
+                  fromContainerId: scenario.sourceContainerId ?? 'list',
+                  fromIndex: scenario.sourceIndex ?? 1,
                   toContainerId: 'list',
                   toIndex: scenario.index,
                 }),
