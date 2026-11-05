@@ -40,7 +40,8 @@ const foldConfirmDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
-  Left: () => model => ({ model }),
+  CompletedClose: () => model => ({ model }),
+  FailedOpen: () => model => ({ model }),
 })
 
 const readConfirmDialog = (model: Model) => Option.some(model.confirmDialog)

@@ -65,7 +65,8 @@ const foldDialogOutMessage = OutMessage.match<
       dialogEvents: Array.append(DialogEvent.make('Closed')),
     }),
   }),
-  Left: () => model => ({ model }),
+  CompletedClose: () => model => ({ model }),
+  FailedOpen: () => model => ({ model }),
 })
 
 const parentInit: Runtime.ApplicationInit<ParentModel, ParentMessage> = () =>
@@ -411,7 +412,7 @@ describe('Dialog', () => {
           update,
           Story.given(boot({ id: 'test' }).model),
           Story.message(Message.FailedAcquireResources()),
-          Story.expectOutMessage(OutMessage.Left()),
+          Story.expectOutMessage(OutMessage.FailedOpen()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
@@ -670,12 +671,12 @@ describe('Dialog', () => {
     })
 
     describe('Unmounted', () => {
-      it('resets the model to closed, releases resources and emits Left', () => {
+      it('resets the model to closed and releases resources without emitting Closed', () => {
         Story.story(
           update,
           Story.given(boot({ id: 'test' }).model),
           Story.message(Message.Unmounted()),
-          Story.expectOutMessage(OutMessage.Left()),
+          Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
@@ -686,7 +687,7 @@ describe('Dialog', () => {
         )
       })
 
-      it('resets an in-flight leave animation to Idle and emits Left', () => {
+      it('resets an in-flight leave animation to Idle without emitting Closed', () => {
         const leavingModel = modifyFields(
           boot({ id: 'test', isAnimated: true }).model,
           {
@@ -705,7 +706,7 @@ describe('Dialog', () => {
           update,
           Story.given(leavingModel),
           Story.message(Message.Unmounted()),
-          Story.expectOutMessage(OutMessage.Left()),
+          Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')
@@ -746,12 +747,12 @@ describe('Dialog', () => {
     })
 
     describe('FailedShowDialog', () => {
-      it('closes the model and emits Left without releasing resources', () => {
+      it('closes the model and emits FailedOpen without releasing resources', () => {
         Story.story(
           update,
           Story.given(boot({ id: 'test' }).model),
           Story.message(Message.FailedShowDialog()),
-          Story.expectOutMessage(OutMessage.Left()),
+          Story.expectOutMessage(OutMessage.FailedOpen()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
@@ -777,7 +778,7 @@ describe('Dialog', () => {
           update,
           Story.given(enteringModel),
           Story.message(Message.FailedShowDialog()),
-          Story.expectOutMessage(OutMessage.Left()),
+          Story.expectOutMessage(OutMessage.FailedOpen()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')
@@ -805,7 +806,7 @@ describe('Dialog', () => {
           update,
           Story.given(leavingModel),
           Story.message(Message.FailedShowDialog()),
-          Story.expectOutMessage(OutMessage.Left()),
+          Story.expectOutMessage(OutMessage.FailedOpen()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')

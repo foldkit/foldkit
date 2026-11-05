@@ -39,7 +39,8 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
-  Left: () => model => ({ model }),
+  CompletedClose: () => model => ({ model }),
+  FailedOpen: () => model => ({ model }),
 })
 
 const readDialog = (model: Model) => Option.some(model.dialog)
