@@ -48,9 +48,13 @@ for (const [name, packageDirectory] of [
   assert.equal(realpathSync(fixturePackage), realpathSync(packageDirectory))
 }
 
+const activeComparisons = new Set([
+  'blockStepBranchesBefore.ts',
+  'updateConnectedStepBefore.ts',
+])
 const historical = name =>
   name.startsWith('release') ||
-  name.includes('Before') ||
+  (name.includes('Before') && !activeComparisons.has(name)) ||
   ['serverRenderingScaffoldSsr.ts', 'serverRenderingServerEntry.ts'].includes(
     name,
   )

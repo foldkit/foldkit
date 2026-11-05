@@ -2,16 +2,12 @@ import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  DialogBlock,
-  layer as DialogLayer,
-  type RenderInfo as DialogRenderInfo,
-} from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 // One Model field per dialog level:
 const Model = Schema.Struct({
-  settingsDialog: DialogBlock.Model,
-  confirmDialog: DialogBlock.Model,
+  settingsDialog: Dialog.DialogBlock.Model,
+  confirmDialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -35,18 +31,18 @@ export const ProjectDialogsBlock = Block.make('ProjectDialogs', {
 const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
   ProjectDialogsBlock
 
-const foldConfirmDialogOutMessage = makeOutMessageFold(DialogBlock, {
+const foldConfirmDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   Opened: makeNoopStep,
   Closed: makeNoopStep,
   CompletedClose: makeNoopStep,
 })
 
-const SettingsDialogBinding = makeBinding(DialogBlock, {
+const SettingsDialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'settingsDialog',
   init: { contextToArgs: () => [{ id: 'settings' }] },
 }).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
-const ConfirmDialogBinding = makeBinding(DialogBlock, {
+const ConfirmDialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'confirmDialog',
   init: { contextToArgs: () => [{ id: 'confirm-delete' }] },
 }).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
@@ -83,7 +79,7 @@ const view = ProjectDialogsComposition.makeView((model, h) => {
     title,
     closeButton,
     isVisible,
-  }: DialogRenderInfo) =>
+  }: Dialog.RenderInfo) =>
     h.dialog(
       [...dialog],
       isVisible
@@ -110,7 +106,7 @@ const view = ProjectDialogsComposition.makeView((model, h) => {
     panel,
     title,
     isVisible,
-  }: DialogRenderInfo) =>
+  }: Dialog.RenderInfo) =>
     h.dialog(
       [...dialog],
       isVisible
@@ -165,4 +161,4 @@ export const layer = ProjectDialogsBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(DialogLayer))
+).pipe(Layer.provide(Dialog.layer))

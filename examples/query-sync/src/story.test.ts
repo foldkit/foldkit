@@ -6,7 +6,7 @@ import { fromString } from 'foldkit/url'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as ListboxTest } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import { ReplaceFilters } from './command'
 import { DietListboxBinding } from './composition'
@@ -190,14 +190,14 @@ describe('update', () => {
             }),
           ),
           Command.resolve(
-            ListboxTest.FocusListboxItems,
+            Listbox.test.FocusListboxItems,
             DietListboxBlock.Message.CompletedFocusListboxItems(),
           ),
           dietMessage(
             DietListboxBlock.Message.SelectedItem({ item: 'Carnivore' }),
           ),
           Command.resolve(
-            ListboxTest.FocusListboxButton,
+            Listbox.test.FocusListboxButton,
             DietListboxBlock.Message.CompletedFocusListboxButton(),
           ),
           Command.expectHas(ReplaceFilters),

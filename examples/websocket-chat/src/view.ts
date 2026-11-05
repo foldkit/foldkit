@@ -1,8 +1,7 @@
 import { Array, DateTime, String } from 'effect'
 import { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Input } from '@foldkit/ui'
 
 import {
   ApplicationComposition,
@@ -167,7 +166,7 @@ const connectButtonView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('p-6 border-t border-gray-200 flex items-center justify-center')],
     [
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedConnect(),
           toView: attributes =>
@@ -205,7 +204,7 @@ const messageInputView = (
       h.div(
         [h.Class('flex gap-3')],
         [
-          inputView(
+          Input.view(
             {
               id: 'message',
               value: messageInput,
@@ -221,7 +220,7 @@ const messageInputView = (
             },
             h,
           ),
-          buttonView(
+          Button.view(
             {
               type: 'submit',
               isDisabled: String.isEmpty(messageInput.trim()),
@@ -257,7 +256,7 @@ const errorView = (error: string, h: ApplicationViewBuilder): Html =>
           h.p([h.Class('text-red-600 text-sm')], [error]),
         ],
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedConnect(),
           toView: attributes =>

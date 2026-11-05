@@ -3,8 +3,6 @@ import { Array, DateTime, Option, Record, Schema, String, pipe } from 'effect'
 import { PostFrontmatter } from './frontmatter'
 import { byDateThenSlugDescending } from './meta'
 
-// POSTS
-
 const documentByPath = import.meta.glob<unknown>('./post/*.md', {
   eager: true,
   import: 'default',

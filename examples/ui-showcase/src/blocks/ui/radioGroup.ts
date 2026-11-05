@@ -1,5 +1,5 @@
-import { makeBlock as makeRadioGroupBlock } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import type { Plan } from './domain'
 
-export const PlanRadioGroupBlock = makeRadioGroupBlock<Plan>()
+export const PlanRadioGroupBlock = RadioGroup.makeBlock<Plan>()

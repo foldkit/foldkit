@@ -10,7 +10,10 @@ import {
   update,
 } from './story-concurrency.accepted.js'
 
-runConcurrentStory()
+const finalModel = runConcurrentStory()
+const finalCount: number = finalModel.count
+
+void finalCount
 
 Story.story(
   update,

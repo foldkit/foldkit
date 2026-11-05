@@ -1,10 +1,10 @@
 import { Schema } from 'effect'
 
-import { DialogBlock } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 export const Model = Schema.Struct({
   query: Schema.String,
   activeResultIndex: Schema.Number,
-  dialog: DialogBlock.Model,
+  dialog: Dialog.DialogBlock.Model,
 })
 export type Model = typeof Model.Type

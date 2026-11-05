@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { HashMap, HashSet, Option, Predicate } from 'effect'
 import { twMerge } from 'tailwind-merge'
 
-import { view as disclosureView } from '@foldkit/ui/disclosure'
+import { Disclosure } from '@foldkit/ui'
 
 import { SnippetDisclosureComposition } from './composition'
 import { Message } from './message'
@@ -106,7 +106,7 @@ export const view =
         ])
       }
 
-      return disclosureView(
+      return Disclosure.view(
         {
           id,
           isOpen,

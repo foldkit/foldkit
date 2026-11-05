@@ -1,7 +1,7 @@
 import { Effect, Layer } from 'effect'
 import { Query } from 'foldkit/experimental'
 
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
 import {
@@ -32,4 +32,4 @@ export const layer = ApplicationBlock.makeLayer(
       EffectsLayer,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(Query.layer, TabsLayer)))
+).pipe(Layer.provide(Layer.mergeAll(Query.layer, Tabs.layer)))

@@ -3,7 +3,7 @@ import { type CalendarDate } from 'foldkit/calendar'
 import { Valid } from 'foldkit/fieldValidation'
 import { type Html, childAttributes } from 'foldkit/html'
 
-import { DatePickerBlock as UiDatePickerBlock } from '@foldkit/ui/datePicker'
+import { DatePicker as UiDatePicker } from '@foldkit/ui'
 
 import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
@@ -15,7 +15,7 @@ import {
   PronounsBinding,
 } from './composition'
 
-type UiDatePickerModel = typeof UiDatePickerBlock.Model.Type
+type UiDatePickerModel = typeof UiDatePicker.DatePickerBlock.Model.Type
 
 export const view = PersonalInfoComposition.makeView((model, h) => {
   const {

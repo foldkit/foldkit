@@ -494,6 +494,8 @@ export { default as fieldValidationSchemaRaw } from './fieldValidationSchema.ts?
 export { default as fieldValidationSchemaHighlighted } from './fieldValidationSchema.ts?highlighted'
 export { default as testingApiRaw } from './testingApi.ts?raw'
 export { default as testingApiHighlighted } from './testingApi.ts?highlighted'
+export { default as testingModelComparisonRaw } from './testingModelComparison.ts?raw'
+export { default as testingModelComparisonHighlighted } from './testingModelComparison.ts?highlighted'
 export { default as testingCommandArgsRaw } from './testingCommandArgs.ts?raw'
 export { default as testingCommandArgsHighlighted } from './testingCommandArgs.ts?highlighted'
 export { default as testingReusableStepsRaw } from './testingReusableSteps.ts?raw'

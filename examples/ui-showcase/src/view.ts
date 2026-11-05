@@ -2,11 +2,7 @@ import clsx from 'clsx'
 import { Array, Match, Option, pipe } from 'effect'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
-import {
-  type ItemInfo as NavItemInfo,
-  type RenderInfo as NavRenderInfo,
-  view as navView,
-} from '@foldkit/ui/nav'
+import { Nav } from '@foldkit/ui'
 
 import { Ui } from './blocks'
 import { ApplicationComposition, UiModelBinding } from './composition'
@@ -109,9 +105,9 @@ const navItemHref = (index: number): string =>
 
 const componentNav = (
   currentRoute: ApplicationRoute,
-  toView: (render: NavRenderInfo) => Html,
+  toView: (render: Nav.RenderInfo) => Html,
 ): Html =>
-  navView({
+  Nav.view({
     items: NAV_ROUTE_TAGS,
     ariaLabel: 'Components',
     toHref: (_routeTag, index) => navItemHref(index),
@@ -120,7 +116,7 @@ const componentNav = (
   })
 
 const navListView = <Message, AllowedMountRequirements>(
-  items: ReadonlyArray<NavItemInfo>,
+  items: ReadonlyArray<Nav.ItemInfo>,
   linkClassName: (isActive: boolean) => string,
   h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html =>
@@ -163,7 +159,7 @@ const sidebarView = (
   currentRoute: ApplicationRoute,
   h: ApplicationViewBuilder,
 ) => {
-  const sidebarNavView = ({ nav, items }: NavRenderInfo): Html =>
+  const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
     h.nav(
       [
         ...nav,
@@ -199,7 +195,7 @@ const mobileMenuContent =
     currentRoute: ApplicationRoute,
   ): Ui.View.MobileMenuViewInputs['renderContent'] =>
   (closeButton, h) => {
-    const mobileNavView = ({ nav, items }: NavRenderInfo): Html =>
+    const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
       h.nav(
         [
           ...nav,

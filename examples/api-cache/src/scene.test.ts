@@ -11,7 +11,7 @@ import {
 } from 'foldkit/scene'
 import { describe } from 'vitest'
 
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { FetchPostDetail, FetchStats } from './command'
 import { ApplicationBlock, layer } from './index'
@@ -20,7 +20,7 @@ import { ApplicationTabsBlock } from './model'
 import { FETCHED_AT, firstPostDetail, fixtureStats, it } from './model.fixture'
 
 const resolveFocusTab = Command.resolve(
-  TabsTest.FocusTab,
+  Tabs.test.FocusTab,
   ApplicationTabsBlock.Message.CompletedFocusTab(),
 )
 

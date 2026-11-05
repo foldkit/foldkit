@@ -3,13 +3,10 @@
 // attribute.
 import type { HtmlBuilder } from 'foldkit/html'
 
-import {
-  type FieldsetAttributes,
-  view as uiFieldsetView,
-} from '@foldkit/ui/fieldset'
+import { Fieldset } from '@foldkit/ui'
 
 const view = (h: HtmlBuilder<Message>) => {
-  const fieldsetView = (attributes: FieldsetAttributes<Message>) =>
+  const fieldsetView = (attributes: Fieldset.FieldsetAttributes<Message>) =>
     h.fieldset(
       [...attributes.fieldset, h.Class('rounded-lg border p-6')],
       [
@@ -25,7 +22,7 @@ const view = (h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return uiFieldsetView(
+  return Fieldset.view(
     {
       id: 'personal-info-disabled',
       isDisabled: true,

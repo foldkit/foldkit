@@ -2,8 +2,7 @@ import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Input } from '@foldkit/ui'
 
 import { Issue, Member } from '../../domain'
 import {
@@ -39,7 +38,7 @@ const memberCard = (
     member.id,
     [],
     [
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedMember({ memberId: member.id }),
           toView: attributes =>
@@ -229,7 +228,7 @@ export const view = MemberDirectoryComposition.makeView.withInputs(
         h.div(
           [h.Class('flex flex-wrap items-center justify-between gap-3')],
           [
-            inputView(
+            Input.view(
               {
                 id: 'workspace-member-search',
                 type: 'search',

@@ -8,7 +8,7 @@ A single-selection component with roving tabindex keyboard navigation. Arrow key
 
 `RadioGroup.makeBlock()` and Blocks returned by `RadioGroup.makeBlock` keep their own keyboard-focus state, but the parent owns the selection. Store the selected value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through the Binding’s selected `fold` policy. Both vertical and horizontal orientation are supported.
 
-What `RadioGroup.makeBlock<Value>()` returns is typed [`Completed<Value>` from `@foldkit/ui/radioGroup`](/ui/selection-blocks#completed-type), for cases where a created Block has to be named.
+What `RadioGroup.makeBlock<Value>()` returns is typed [`RadioGroup.Completed<Value>` from `@foldkit/ui`](/ui/selection-blocks#completed-type), for cases where a created Block has to be named.
 
 :::Info{label="See it in an app"}
 Check out how RadioGroup is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/radioGroup.ts).

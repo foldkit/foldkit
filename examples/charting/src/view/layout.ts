@@ -2,7 +2,7 @@ import { Array, Option } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import type { Telemetry } from '../domain'
@@ -43,7 +43,7 @@ export const headerView = (model: Model, h: ApplicationViewBuilder): Html => {
           ),
         ],
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedRefresh(),
           isDisabled: isRefreshing || isLoading,
@@ -135,7 +135,7 @@ export const failureView = (error: string, h: ApplicationViewBuilder): Html =>
             ['Could not fetch telemetry'],
           ),
           h.p([h.Class('mt-2 text-sm text-rose-800')], [error]),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedRetry(),
               toView: attributes =>

@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { Option } from 'effect'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { ProficiencyLevel } from '../../../../domain'
 import { Field } from '../../../../view'
@@ -77,7 +77,7 @@ export const view = SkillsEntryComposition.makeView((model, h) => {
       h.div(
         [h.Class('flex justify-end')],
         [
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedRemoveSelf(),
               toView: attributes =>

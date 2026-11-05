@@ -1,7 +1,4 @@
-import {
-  Multi as MultiListbox,
-  makeBlock as makeListboxBlock,
-} from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import type { ListboxItem } from './domain'
 
@@ -10,6 +7,6 @@ export type Character = Readonly<{
   lastName: string
 }>
 
-export const ItemListboxBlock = makeListboxBlock<ListboxItem>()
-export const ItemMultiListboxBlock = MultiListbox.makeBlock<ListboxItem>()
-export const CharacterListboxBlock = makeListboxBlock<Character>()
+export const ItemListboxBlock = Listbox.makeBlock<ListboxItem>()
+export const ItemMultiListboxBlock = Listbox.Multi.makeBlock<ListboxItem>()
+export const CharacterListboxBlock = Listbox.makeBlock<Character>()

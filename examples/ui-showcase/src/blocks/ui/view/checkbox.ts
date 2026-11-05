@@ -1,9 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import {
-  type CheckboxAttributes,
-  view as checkboxView,
-} from '@foldkit/ui/checkbox'
+import { Checkbox } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
 import type { UiMessage, UiViewBuilder } from '../composition'
@@ -27,7 +24,9 @@ const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = UiComposition.makeView((model, h) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
-  const basicCheckboxView = (attributes: CheckboxAttributes<UiMessage>): Html =>
+  const basicCheckboxView = (
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+  ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1')],
       [
@@ -60,7 +59,7 @@ export const view = UiComposition.makeView((model, h) => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Basic'],
       ),
-      checkboxView(
+      Checkbox.view(
         {
           id: CHECKBOX_BASIC_DEMO_ID,
           isChecked: model.isCheckboxBasicDemoChecked,
@@ -101,7 +100,9 @@ const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
     }
   }
 
-  const selectAllView = (attributes: CheckboxAttributes<UiMessage>): Html =>
+  const selectAllView = (
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+  ): Html =>
     h.div(
       [h.Class(topRowClassName)],
       [
@@ -117,7 +118,7 @@ const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
     )
 
   const emailNotificationsView = (
-    attributes: CheckboxAttributes<UiMessage>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
   ): Html =>
     notificationOptionView(
       attributes,
@@ -126,7 +127,7 @@ const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
     )
 
   const pushNotificationsView = (
-    attributes: CheckboxAttributes<UiMessage>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
   ): Html =>
     notificationOptionView(
       attributes,
@@ -135,7 +136,7 @@ const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
     )
 
   const notificationOptionView = (
-    attributes: CheckboxAttributes<UiMessage>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
     isChecked: boolean,
     label: string,
   ): Html =>
@@ -154,7 +155,7 @@ const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
     h.div(
       [h.Class('flex flex-col gap-3')],
       [
-        checkboxView(
+        Checkbox.view(
           {
             id: CHECKBOX_ALL_DEMO_ID,
             isChecked: isAllChecked,
@@ -168,7 +169,7 @@ const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
         h.div(
           [h.Class('ml-7 flex flex-col gap-3')],
           [
-            checkboxView(
+            Checkbox.view(
               {
                 id: CHECKBOX_OPTION_A_DEMO_ID,
                 isChecked: model.isCheckboxOptionADemoChecked,
@@ -178,7 +179,7 @@ const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
               },
               h,
             ),
-            checkboxView(
+            Checkbox.view(
               {
                 id: CHECKBOX_OPTION_B_DEMO_ID,
                 isChecked: model.isCheckboxOptionBDemoChecked,

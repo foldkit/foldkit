@@ -3,12 +3,12 @@ import { Block } from 'foldkit'
 import { Field } from 'foldkit/fieldValidation'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { makeBlock as makeRadioGroupBlock } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import { ProficiencyLevel } from '../../../../domain'
 
 export const ProficiencyRadioGroup =
-  makeRadioGroupBlock<ProficiencyLevel.ProficiencyLevel>()
+  RadioGroup.makeBlock<ProficiencyLevel.ProficiencyLevel>()
 
 export const Model = Schema.Struct({
   id: Schema.String,

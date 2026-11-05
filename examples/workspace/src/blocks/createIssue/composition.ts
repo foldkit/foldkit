@@ -2,7 +2,7 @@ import { Schema } from 'effect'
 import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { DialogBlock } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { IssuePriority, IssueStatus } from '../../domain'
 import {
@@ -18,13 +18,13 @@ import {
 } from './block'
 import { editDraft } from './draft'
 
-export const DialogBinding = makeBinding(DialogBlock, {
+export const DialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: {
     contextToArgs: () => [{ id: 'workspace-create-issue-dialog' }],
   },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(DialogBlock, {
+  fold: makeOutMessageFold(Dialog.DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: makeNoopStep,

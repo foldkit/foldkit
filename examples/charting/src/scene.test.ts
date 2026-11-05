@@ -13,7 +13,7 @@ import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import { SyncChart } from './command'
 import { ApplicationBlock, layer } from './index'
@@ -34,7 +34,7 @@ const acknowledgeChartSync = Command.resolve(
 )
 
 const resolveFocusOption = Command.resolve(
-  RadioGroupTest.FocusOption,
+  RadioGroup.test.FocusOption,
   ChartModeRadioGroupBlock.Message.CompletedFocusOption(),
 )
 

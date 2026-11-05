@@ -1,10 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import {
-  type AnchorConfig,
-  type RenderInfo,
-  triggerId,
-} from '@foldkit/ui/tooltip'
+import { Tooltip } from '@foldkit/ui'
 
 import {
   TooltipBasicDemoBinding,
@@ -20,14 +16,18 @@ const panelClassName =
 
 const wrapperClassName = 'relative inline-block'
 
-const TOOLTIP_ANCHOR: AnchorConfig = {
+const TOOLTIP_ANCHOR: Tooltip.AnchorConfig = {
   placement: 'top',
   gap: 6,
   padding: 8,
 }
 
 export const view = UiComposition.makeView((model, h) => {
-  const basicTooltipView = ({ trigger, panel, isVisible }: RenderInfo): Html =>
+  const basicTooltipView = ({
+    trigger,
+    panel,
+    isVisible,
+  }: Tooltip.RenderInfo): Html =>
     h.div(
       [h.Class(wrapperClassName)],
       [
@@ -50,7 +50,7 @@ export const view = UiComposition.makeView((model, h) => {
     trigger,
     panel,
     isVisible,
-  }: RenderInfo): Html =>
+  }: Tooltip.RenderInfo): Html =>
     h.div(
       [h.Class(wrapperClassName)],
       [
@@ -80,7 +80,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(triggerId(model.tooltipBasicDemo.id)),
+          h.For(Tooltip.triggerId(model.tooltipBasicDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Tooltip trigger'],
@@ -107,7 +107,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(triggerId(model.tooltipNoDelayDemo.id)),
+          h.For(Tooltip.triggerId(model.tooltipNoDelayDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Tooltip trigger'],

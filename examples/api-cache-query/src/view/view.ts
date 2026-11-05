@@ -1,6 +1,6 @@
 import { Array, Match, pipe } from 'effect'
 
-import type { RenderInfo } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import {
   ApplicationComposition,
@@ -61,7 +61,7 @@ export const tabsView = (
     renderInfo: { tablist, tabs },
   }: Readonly<{
     model: Model
-    renderInfo: RenderInfo<Tab>
+    renderInfo: Tabs.RenderInfo<Tab>
   }>,
   h: ApplicationViewBuilder,
 ) =>

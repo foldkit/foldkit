@@ -2,14 +2,11 @@ import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  layer as MenuLayer,
-  makeBlock as makeMenuBlock,
-} from '@foldkit/ui/menu'
+import { Menu } from '@foldkit/ui'
 
 type Action = 'Edit' | 'Duplicate' | 'Archive' | 'Delete'
 
-const ActionMenu = makeMenuBlock<Action>()
+const ActionMenu = Menu.makeBlock<Action>()
 
 // Add a field to your Model for the Menu Block:
 const Model = Schema.Struct({
@@ -113,4 +110,4 @@ export const layer = ActionMenuExampleBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(MenuLayer))
+).pipe(Layer.provide(Menu.layer))

@@ -8,8 +8,6 @@ import { Model } from './model'
 import { PagefindService } from './pagefind'
 import { LocalStorage, SessionStorage } from './storage'
 
-// if a key always goes with a a block, should we not have any blank line betwen
-// them, like this?
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,

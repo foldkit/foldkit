@@ -7,7 +7,6 @@ import type { Model } from '../model'
 import { ApplicationRoute, maybeIssueId, routeToPath } from '../route'
 import { appliedIssueFilters } from '../selection'
 
-// should this use makeStep or no? just curious
 export const handleClickedDeleteSavedView = (
   model: Model,
   { viewId }: ClickedDeleteSavedView,

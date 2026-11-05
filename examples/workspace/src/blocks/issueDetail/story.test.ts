@@ -8,7 +8,9 @@ import {
   message,
   messageFrom,
   model,
+  models,
   story,
+  steps,
 } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
@@ -30,7 +32,7 @@ import { AssigneeListboxBinding } from './composition'
 import { InMessage } from './inMessage'
 import { layer } from './layer'
 import { Message } from './message'
-import { type Model, SaveState } from './model'
+import { SaveState } from './model'
 import { OutMessage } from './outMessage'
 
 const issueDetailSubject = { block: IssueDetailBlock, layer }
@@ -63,22 +65,21 @@ describe('Issue Detail', () => {
   it.effect(
     'ignores a malformed assignee selection without clearing the current assignee',
     () => {
-      let initialDraft: Model['draft'] | undefined
-
       return story(
         issueDetailSubject,
         init(issue),
-        model(model => {
-          initialDraft = model.draft
-        }),
-        messageFrom(
-          AssigneeListboxBinding,
-          WorkspaceListboxBlock.Message.RequestedSelectItem({
-            item: 'not-an-assignee-selection',
-          }),
+        models(
+          steps(
+            messageFrom(
+              AssigneeListboxBinding,
+              WorkspaceListboxBlock.Message.RequestedSelectItem({
+                item: 'not-an-assignee-selection',
+              }),
+            ),
+          ),
+          (before, after) => expect(after.draft).toBe(before.draft),
         ),
         model(model => {
-          expect(model.draft).toBe(initialDraft)
           expect(model.draft.maybeAssigneeId).toEqual(issue.maybeAssigneeId)
         }),
         expectNoOutMessage(),
@@ -433,23 +434,25 @@ describe('Issue Detail', () => {
       const unrelatedIssue = modifyFields(newerIssue, {
         id: () => 'another-issue',
       })
-      let initialModel: Model | undefined
 
       return story(
         issueDetailSubject,
         init(issue),
-        model(model => {
-          initialModel = model
-        }),
-        inMessage(InMessage.InformedOfIssueChange({ issue: unrelatedIssue })),
-        inMessage(InMessage.InformedOfIssueChange({ issue })),
-        message(
-          Message.SucceededSaveIssue({
-            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
-            expectedVersion: issue.version,
-          }),
+        models(
+          steps(
+            inMessage(
+              InMessage.InformedOfIssueChange({ issue: unrelatedIssue }),
+            ),
+            inMessage(InMessage.InformedOfIssueChange({ issue })),
+            message(
+              Message.SucceededSaveIssue({
+                savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+                expectedVersion: issue.version,
+              }),
+            ),
+          ),
+          (before, after) => expect(after).toEqual(before),
         ),
-        model(model => expect(model).toEqual(initialModel)),
         expectNoOutMessage(),
       )
     },

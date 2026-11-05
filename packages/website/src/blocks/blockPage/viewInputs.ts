@@ -1,4 +1,4 @@
-import type * as CodeBlock from '../../component/codeBlock'
+import type * as CodeBlock from '../../markdown/codeBlock'
 import type { RenderHeadingLink } from '../../prose'
 
 export type ViewInputs = Readonly<{

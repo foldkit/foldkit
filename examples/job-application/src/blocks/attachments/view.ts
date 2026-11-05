@@ -3,7 +3,7 @@ import { Array, Match, Number, Option } from 'effect'
 import { File } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { Message } from './block'
 import {
@@ -59,7 +59,7 @@ const resumeView = (resume: File.File, h: AttachmentsViewBuilder): Html =>
           ),
         ],
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.RemovedResume(),
           toView: attributes =>
@@ -102,7 +102,7 @@ const additionalFileView = (
           ),
         ],
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.RemovedAdditionalFile({ fileIndex }),
           toView: attributes =>

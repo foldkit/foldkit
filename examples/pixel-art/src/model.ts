@@ -1,6 +1,6 @@
 import { Option, Schema } from 'effect'
 
-import { DialogBlock } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import {
   GridSizeRadioGroupBlock,
@@ -8,8 +8,6 @@ import {
   ThemeListboxBlock,
   ToolRadioGroupBlock,
 } from './components'
-
-// CONSTANT
 
 export const PaletteIndex = Schema.Literals([
   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
@@ -73,10 +71,10 @@ export const Model = Schema.Struct({
   mirrorMode: MirrorMode,
   isDrawing: Schema.Boolean,
   maybeHoveredCell: Schema.Option(Position),
-  errorDialog: DialogBlock.Model,
+  errorDialog: Dialog.DialogBlock.Model,
   maybeExportError: Schema.Option(Schema.String),
   paletteThemeIndex: Schema.Number,
-  gridSizeConfirmDialog: DialogBlock.Model,
+  gridSizeConfirmDialog: Dialog.DialogBlock.Model,
   maybePendingGridSize: Schema.Option(Schema.Number),
   themeListbox: ThemeListboxBlock.Model,
   toolRadioGroup: ToolRadioGroupBlock.Model,

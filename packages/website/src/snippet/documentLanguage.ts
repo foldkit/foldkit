@@ -2,8 +2,6 @@ import type { TextDirection } from 'foldkit/html'
 
 import { ApplicationComposition } from './composition'
 
-// TRANSLATION
-
 const translate = (locale: Locale, key: string): string => {
   // Your catalog lookup. Foldkit does not ship translation.
   return catalog[locale][key] ?? key

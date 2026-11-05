@@ -1,8 +1,7 @@
 import { clsx } from 'clsx'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as checkboxView } from '@foldkit/ui/checkbox'
+import { Button, Checkbox } from '@foldkit/ui'
 
 import * as Icon from '../icon'
 import { Message } from '../message'
@@ -40,7 +39,7 @@ export const paymentView = (
             [h.Class('text-sm font-bold text-stone-900')],
             ['Saved payment method'],
           ),
-          checkboxView(
+          Checkbox.view(
             {
               id: 'saved-card',
               isChecked: state.isPaymentMethodSelected,
@@ -132,7 +131,7 @@ export const paymentView = (
           ),
         ],
         [
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedBack(),
               toView: attributes =>
@@ -153,7 +152,7 @@ export const paymentView = (
             h,
           ),
           h.div([h.Class('sm:justify-self-center')], [cancelCheckoutButton(h)]),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedContinue(),
               isDisabled: !state.isPaymentMethodSelected,

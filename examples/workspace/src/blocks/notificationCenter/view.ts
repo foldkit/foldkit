@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { Notification, NotificationKind } from '../../domain'
 import {
@@ -121,7 +121,7 @@ const notificationView = (
       ),
     ],
     [
-      buttonView(
+      Button.view(
         {
           type: 'button',
           onClick: Message.ClickedNotification({
@@ -194,7 +194,7 @@ const notificationView = (
         },
         h,
       ),
-      buttonView(
+      Button.view(
         {
           type: 'button',
           onClick: Message.ClickedNotificationReadState({
@@ -311,7 +311,7 @@ export const view = NotificationCenterComposition.makeView.withInputs(
                               ),
                               ...(unreadCount > 0
                                 ? [
-                                    buttonView(
+                                    Button.view(
                                       {
                                         type: 'button',
                                         onClick: Message.ClickedMarkAllAsRead({

@@ -1,32 +1,17 @@
-import { Effect, Option } from 'effect'
-import { Scene, Story } from 'foldkit'
-import { describe, expect as expectValue } from 'vitest'
+import { Option } from 'effect'
+import { Scene } from 'foldkit'
+import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import {
-  DialogBlock,
-  test as DialogTest,
-  initialFocusMarkerSelector as dialogInitialFocusMarkerSelector,
-} from '@foldkit/ui/dialog'
-import { test as ListboxTest } from '@foldkit/ui/listbox'
+import { Dialog, Listbox } from '@foldkit/ui'
 
 import { Issue, IssueDraft, initialWorkspace } from '../../domain'
-import {
-  PriorityListboxBlock,
-  StatusListboxBlock,
-  WorkspaceListboxBlock,
-} from '../../listbox'
+import { WorkspaceListboxBlock } from '../../listbox'
 import { CreateIssueBlock } from './block'
 import { CreateIssue } from './command'
-import {
-  PriorityListboxBinding,
-  ProjectListboxBinding,
-  StatusListboxBinding,
-} from './composition'
 import { InMessage } from './inMessage'
 import { layer } from './layer'
 import { Message } from './message'
-import { CreateState, type Model } from './model'
 import { OutMessage } from './outMessage'
 
 const createIssueSubject = { block: CreateIssueBlock, layer }
@@ -34,36 +19,32 @@ const createIssueSubject = { block: CreateIssueBlock, layer }
 const viewInputs = {
   projects: initialWorkspace.projects,
 }
-const acquireDialog = Scene.Mount.resolve(
-  DialogTest.AcquireResources,
-  DialogBlock.Message.SucceededAcquireResources(),
-)
 const closeDialog = Scene.Command.resolve(
-  DialogTest.CloseDialog,
-  DialogBlock.Message.CompletedCloseDialog(),
+  Dialog.test.CloseDialog,
+  Dialog.DialogBlock.Message.CompletedCloseDialog(),
 )
 const selectField = (fieldLabel: string, optionLabel: string) => [
   Scene.click(Scene.label(fieldLabel)),
   Scene.Command.resolve(
-    ListboxTest.FocusListboxItems,
+    Listbox.test.FocusListboxItems,
     WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
   ),
   Scene.Mount.resolve(
-    ListboxTest.AnchorListbox,
+    Listbox.test.AnchorListbox,
     WorkspaceListboxBlock.Message.CompletedAnchorListbox(),
   ),
   Scene.Mount.resolve(
-    ListboxTest.PortalListboxBackdrop,
+    Listbox.test.PortalListboxBackdrop,
     WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
   ),
   Scene.click(Scene.role('option', { name: optionLabel })),
   Scene.Command.resolve(
-    ListboxTest.FocusListboxButton,
+    Listbox.test.FocusListboxButton,
     WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
   ),
   Scene.Mount.expectEnded(
-    ListboxTest.AnchorListbox,
-    ListboxTest.PortalListboxBackdrop,
+    Listbox.test.AnchorListbox,
+    Listbox.test.PortalListboxBackdrop,
   ),
 ]
 
@@ -74,8 +55,8 @@ describe('Create Issue view', () => {
       Scene.init(),
       Scene.inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
       Scene.Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       Scene.type(Scene.label('Title'), '   '),
       Scene.type(Scene.label('Description'), 'Keep this draft available.'),
@@ -120,8 +101,8 @@ describe('Create Issue view', () => {
         Scene.init(),
         Scene.inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
         Scene.Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         Scene.type(Scene.label('Title'), `  ${draft.title}  `),
         Scene.type(Scene.label('Description'), draft.description),
@@ -171,98 +152,63 @@ describe('Create Issue view', () => {
     },
   )
 
-  it.effect('reopens a dismissed pending form when creation fails', () =>
-    Effect.gen(function* () {
-      const draft = IssueDraft.make({
-        title: 'Keep the failed draft',
-        description: 'The form should return with every field intact.',
-        projectId: 'platform',
-        status: 'Backlog',
-        priority: 'High',
-        maybeAssigneeId: Option.none(),
-        labelIds: [],
-      })
-      const error = 'The workspace is temporarily unavailable.'
-      let maybeFailedModel = Option.none<Model>()
-
-      yield* Story.story(
-        createIssueSubject,
-        Story.init(),
-        Story.inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
-        Story.Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
-        ),
-        Story.message(Message.UpdatedTitle({ value: draft.title })),
-        Story.message(Message.UpdatedDescription({ value: draft.description })),
-        Story.messageFrom(
-          ProjectListboxBinding,
-          WorkspaceListboxBlock.Message.RequestedSelectItem({
-            item: draft.projectId,
-          }),
-        ),
-        Story.messageFrom(
-          StatusListboxBinding,
-          StatusListboxBlock.Message.RequestedSelectItem({
-            item: draft.status,
-          }),
-        ),
-        Story.messageFrom(
-          PriorityListboxBinding,
-          PriorityListboxBlock.Message.RequestedSelectItem({
-            item: draft.priority,
-          }),
-        ),
-        Story.message(Message.SubmittedIssueForm()),
-        Story.Command.expectExact(CreateIssue({ draft })),
-        Story.inMessage(InMessage.RequestedClose()),
-        Story.model(model => expectValue(model.dialog.isOpen).toBe(false)),
-        Story.Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
-        ),
-        Story.Command.resolve(
-          CreateIssue,
-          Message.FailedCreateIssue({ error }),
-        ),
-        Story.model(model => {
-          maybeFailedModel = Option.some(model)
-          expectValue(model.dialog.isOpen).toBe(true)
-          expectValue(model.createState).toEqual(CreateState.Failed({ error }))
+  it.effect('reopens a dismissed pending form when creation fails', () => {
+    const draft = IssueDraft.make({
+      title: 'Keep the failed draft',
+      description: 'The form should return with every field intact.',
+      projectId: 'platform',
+      status: 'Backlog',
+      priority: 'High',
+      maybeAssigneeId: Option.none(),
+      labelIds: [],
+    })
+    const error = 'The workspace is temporarily unavailable.'
+    return Scene.scene(
+      { ...createIssueSubject, viewInputs },
+      Scene.init(),
+      Scene.inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
+      Scene.Command.resolve(
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
+      ),
+      Scene.type(Scene.label('Title'), draft.title),
+      Scene.type(Scene.label('Description'), draft.description),
+      ...selectField('Project', 'Platform'),
+      ...selectField('Status', 'Backlog'),
+      ...selectField('Priority', 'High'),
+      Scene.click(Scene.role('button', { name: 'Create issue' })),
+      Scene.Command.expectExact(CreateIssue({ draft })),
+      Scene.Command.keepPending(CreateIssue({ draft })),
+      Scene.inMessage(InMessage.RequestedClose()),
+      closeDialog,
+      Scene.expect(Scene.label('Title')).not.toExist(),
+      Scene.Command.resolve(CreateIssue, Message.FailedCreateIssue({ error })),
+      Scene.Command.expectExact(
+        Dialog.test.ShowDialog({
+          id: 'workspace-create-issue-dialog',
+          focusSelector: Dialog.initialFocusMarkerSelector,
         }),
-        Story.Command.expectExact(
-          DialogTest.ShowDialog({
-            id: 'workspace-create-issue-dialog',
-            focusSelector: dialogInitialFocusMarkerSelector,
-          }),
-        ),
-        Story.Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
-        ),
-      )
-
-      yield* Scene.scene(
-        { ...createIssueSubject, viewInputs },
-        Scene.given(Option.getOrThrow(maybeFailedModel)),
-        acquireDialog,
-        Scene.expect(Scene.role('alert')).toContainText(error),
-        Scene.expect(Scene.label('Title')).toHaveValue(draft.title),
-        Scene.expect(Scene.label('Description')).toHaveValue(draft.description),
-        Scene.expect(Scene.label('Project')).toHaveText('Platform'),
-        Scene.expect(Scene.label('Status')).toHaveText('Backlog'),
-        Scene.expect(Scene.label('Priority')).toHaveText('High'),
-        Scene.click(Scene.role('button', { name: 'Create issue' })),
-        Scene.Command.expectExact(CreateIssue({ draft })),
-        Scene.Command.resolve(
-          CreateIssue,
-          Message.FailedCreateIssue({ error: 'Retry also failed.' }),
-        ),
-        Scene.expect(Scene.role('alert')).toContainText('Retry also failed.'),
-        Scene.Command.expectNone(),
-      )
-    }),
-  )
+      ),
+      Scene.Command.resolve(
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
+      ),
+      Scene.expect(Scene.role('alert')).toContainText(error),
+      Scene.expect(Scene.label('Title')).toHaveValue(draft.title),
+      Scene.expect(Scene.label('Description')).toHaveValue(draft.description),
+      Scene.expect(Scene.label('Project')).toHaveText('Platform'),
+      Scene.expect(Scene.label('Status')).toHaveText('Backlog'),
+      Scene.expect(Scene.label('Priority')).toHaveText('High'),
+      Scene.click(Scene.role('button', { name: 'Create issue' })),
+      Scene.Command.expectExact(CreateIssue({ draft })),
+      Scene.Command.resolve(
+        CreateIssue,
+        Message.FailedCreateIssue({ error: 'Retry also failed.' }),
+      ),
+      Scene.expect(Scene.role('alert')).toContainText('Retry also failed.'),
+      Scene.Command.expectNone(),
+    )
+  })
 
   it.effect('cancels through its Dialog without creating an issue', () => {
     return Scene.scene(
@@ -270,8 +216,8 @@ describe('Create Issue view', () => {
       Scene.init(),
       Scene.inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
       Scene.Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       Scene.type(Scene.label('Title'), 'An unsent issue'),
       Scene.click(Scene.role('button', { name: 'Cancel' })),

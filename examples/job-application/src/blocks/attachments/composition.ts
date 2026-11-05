@@ -1,7 +1,7 @@
 import { Array, Option } from 'effect'
 import type { Block } from 'foldkit'
 
-import { FileDropBlock } from '@foldkit/ui/fileDrop'
+import { FileDrop } from '@foldkit/ui'
 
 import {
   makeBinding,
@@ -11,11 +11,11 @@ import {
   makeOutMessageFold,
 } from './block'
 
-export const ResumeDropBinding = makeBinding(FileDropBlock, {
+export const ResumeDropBinding = makeBinding(FileDrop.FileDropBlock, {
   field: 'resumeDrop',
   init: { contextToArgs: () => [{ id: 'attachments-resume' }] },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(FileDropBlock, {
+  fold: makeOutMessageFold(FileDrop.FileDropBlock, {
     ReceivedFiles: ({ files }) =>
       makeFieldsStep(() => ({
         maybeResume: maybeResume =>
@@ -25,11 +25,11 @@ export const ResumeDropBinding = makeBinding(FileDropBlock, {
   }),
 })
 
-export const AdditionalFilesDropBinding = makeBinding(FileDropBlock, {
+export const AdditionalFilesDropBinding = makeBinding(FileDrop.FileDropBlock, {
   field: 'additionalFilesDrop',
   init: { contextToArgs: () => [{ id: 'attachments-additional' }] },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(FileDropBlock, {
+  fold: makeOutMessageFold(FileDrop.FileDropBlock, {
     ReceivedFiles: ({ files }) =>
       makeFieldsStep(() => ({
         additionalFiles: Array.appendAll(files),

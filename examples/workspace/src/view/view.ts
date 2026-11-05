@@ -3,8 +3,7 @@ import { Array, Option, Record } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { buttonId } from '@foldkit/ui/listbox'
+import { Button, Listbox } from '@foldkit/ui'
 
 import {
   ActiveMemberListboxBinding,
@@ -58,7 +57,7 @@ const memberControl = (
     [
       h.label(
         [
-          h.For(buttonId(model.activeMemberListbox.id)),
+          h.For(Listbox.buttonId(model.activeMemberListbox.id)),
           h.Class('sr-only sm:not-sr-only sm:shrink-0'),
         ],
         ['Active member'],
@@ -304,7 +303,7 @@ const issueMoveFeedback = (model: Model, h: ApplicationViewBuilder): Html => {
       ],
       [
         h.p([], [error]),
-        buttonView(
+        Button.view(
           {
             type: 'button',
             onClick: Message.ClickedRetryMove(),
@@ -595,7 +594,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                         [h.Class('mb-6 text-sm leading-6 text-slate-500')],
                         [error],
                       ),
-                      buttonView(
+                      Button.view(
                         {
                           onClick: Message.ClickedRetryLoad(),
                           toView: attributes =>

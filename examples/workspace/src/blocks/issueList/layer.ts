@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import { IssueListBlock } from './block'
 import {
@@ -27,4 +27,4 @@ export const layer = IssueListBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(ListboxLayer))
+).pipe(Layer.provide(Listbox.layer))

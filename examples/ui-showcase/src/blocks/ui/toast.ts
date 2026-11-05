@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 
-import { makeBlock as makeToastBlock } from '@foldkit/ui/toast'
+import { Toast } from '@foldkit/ui'
 
 /** Payload shape for the showcase's toast stack. Consumer decides what goes
  *  in each entry; the Toast component owns only lifecycle and a11y. */
@@ -10,4 +10,4 @@ export const ToastPayload = Schema.Struct({
 })
 export type ToastPayload = typeof ToastPayload.Type
 
-export const ToastBlock = makeToastBlock(ToastPayload)
+export const ToastBlock = Toast.makeBlock(ToastPayload)

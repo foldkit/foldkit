@@ -4,9 +4,9 @@ import { Html, inertHtml as ih } from 'foldkit/html'
 import { foldkitVersion } from 'virtual:landing-data'
 
 import { type ResolvedTheme } from '../../colorScheme'
-import { CodeBlock, Shared } from '../../component'
 import { Icon } from '../../icon'
 import { Link } from '../../link'
+import * as CodeBlock from '../../markdown/codeBlock'
 import { exampleAppCount } from '../../page/examples'
 import {
   aiOverviewRouter,
@@ -28,14 +28,13 @@ import {
   uiOverviewRouter,
 } from '../../route'
 import * as Snippet from '../../snippet'
+import * as GithubStarBadge from '../../view/githubStarBadge'
 import {
   type ExampleMeta,
   type ExampleSlug,
   examples as exampleMetas,
 } from '../exampleDetail/domain'
 import type { HomeViewBuilder } from './composition'
-
-// CONTENT CONSTANTS
 
 export const HERO_SECTION_ID = 'hero'
 
@@ -119,11 +118,9 @@ const viewOnGitHubButton = (
     [
       Icon.github('w-5 h-5'),
       ih.span([ih.Class('mr-2')], ['View on GitHub']),
-      Shared.githubStarBadge(maybeGitHubStarCount),
+      GithubStarBadge.view(maybeGitHubStarCount),
     ],
   )
-
-// HERO
 
 const INSTALL_COMMAND = 'npx create-foldkit-app@latest'
 
@@ -151,7 +148,7 @@ const heroProjectLinks = (maybeGitHubStarCount: Option.Option<number>): Html =>
     ],
     [
       heroProjectLink(Link.github, 'GitHub', Icon.github('w-4 h-4'), [
-        Shared.githubStarBadge(maybeGitHubStarCount),
+        GithubStarBadge.view(maybeGitHubStarCount),
       ]),
       heroProjectLink(Link.xSocial, 'X', Icon.xSocial('w-4 h-4')),
       heroProjectLink(Link.discord, 'Discord', Icon.discord('w-4 h-4')),
@@ -230,8 +227,6 @@ const heroSection = (
     ],
   )
 }
-
-// POWERED BY
 
 const poweredByItem = (text: string): Html =>
   ih.li(
@@ -312,8 +307,6 @@ const poweredBySection = (): Html =>
     ],
   )
 
-// THE PROMISE
-
 const pillarCard = (icon: Html, title: string, description: string): Html =>
   ih.div(
     [ih.Class('landing-card')],
@@ -387,8 +380,6 @@ const promiseSection = (): Html =>
       ),
     ],
   )
-
-// DEMOS
 
 const demoSection = (demoTabsView: Html): Html =>
   ih.section(
@@ -570,8 +561,6 @@ const includedSection = (): Html =>
     ],
   )
 
-// EXAMPLES
-
 const featuredExampleSlugs: ReadonlyArray<ExampleSlug> = [
   'generative-art',
   'state-machine',
@@ -709,8 +698,6 @@ const examplesSection: Html = ih.section(
   ],
 )
 
-// TESTING
-
 const testingSection = (renderSnippet: CodeBlock.RenderSnippet): Html =>
   ih.section(
     [ih.Id('testing'), ih.Class('landing-section')],
@@ -774,8 +761,6 @@ const testingSection = (renderSnippet: CodeBlock.RenderSnippet): Html =>
       ),
     ],
   )
-
-// DEVTOOLS
 
 const devToolsImage = (resolvedTheme: ResolvedTheme): Html => {
   const theme = resolvedTheme === 'Dark' ? 'dark' : 'light'
@@ -869,8 +854,6 @@ const devToolsSection = (
       ),
     ],
   )
-
-// FIT
 
 const fitSection = (): Html =>
   ih.section(
@@ -1072,8 +1055,6 @@ const audienceNotItem = (title: string, description: string): Html =>
     ],
   )
 
-// TRUST & MATURITY
-
 const trustSection = (): Html =>
   ih.section(
     [ih.Id('trust'), ih.Class('landing-section py-10 md:py-14')],
@@ -1172,8 +1153,6 @@ const trustItemWithLink = (
     ],
   )
 
-// AI
-
 const aiSection = (): Html =>
   ih.section(
     [ih.Id('ai'), ih.Class('landing-section py-10 md:py-14 relative')],
@@ -1207,8 +1186,6 @@ const aiSection = (): Html =>
       ),
     ],
   )
-
-// FINAL CTA
 
 const finalCtaSection = (
   emailSignupView: Html,

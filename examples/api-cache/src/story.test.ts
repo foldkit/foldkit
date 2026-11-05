@@ -10,7 +10,7 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { FetchPostDetail, FetchPosts, FetchStats } from './command'
 import { TabsBinding } from './composition'
@@ -48,7 +48,7 @@ const selectedStatsTab = messageFrom(
 )
 
 const resolveFocusTab = Command.resolve(
-  TabsTest.FocusTab,
+  Tabs.test.FocusTab,
   ApplicationTabsBlock.Message.CompletedFocusTab(),
 )
 

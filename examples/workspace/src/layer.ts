@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
 import {
@@ -64,7 +64,7 @@ export const layer = ApplicationBlock.makeLayer(
 ).pipe(
   Layer.provide(
     Layer.mergeAll(
-      ListboxLayer,
+      Listbox.layer,
       CommandPalette.layer,
       CreateIssue.layer,
       IssueList.layer,

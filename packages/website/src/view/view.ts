@@ -1,7 +1,6 @@
 import { Match, Option } from 'effect'
 
 import { HomeBlock } from '../blocks'
-import { PreviewBanner, Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
 import {
   ApplicationComposition,
@@ -20,6 +19,7 @@ import { routeTitle } from '../routeTitle'
 import * as SnippetCopyRenderer from '../snippetCopyRenderer'
 import * as SnippetDisclosureRenderer from '../snippetDisclosureRenderer'
 import * as Blog from './blog'
+import * as DeploymentBanner from './deploymentBanner'
 
 type HomeBlockModel = typeof HomeBlock.Model.Type
 
@@ -116,8 +116,10 @@ export const view = ApplicationComposition.makeView((model, h) => {
     canonical: routeToCanonicalUrl(model.route),
     body: Deployment.match(model.deployment, {
       Production: () => body,
-      Canary: ({ commit }) => h.div([], [body, Shared.canaryBanner(commit)]),
-      Preview: ({ release }) => h.div([], [body, PreviewBanner.view(release)]),
+      Canary: ({ commit }) =>
+        h.div([], [body, DeploymentBanner.canaryView(commit)]),
+      Preview: ({ release }) =>
+        h.div([], [body, DeploymentBanner.previewView(release)]),
     }),
   }
 })

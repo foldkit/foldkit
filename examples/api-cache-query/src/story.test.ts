@@ -10,7 +10,7 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { TabsBinding } from './composition'
 import { ApplicationBlock, layer } from './index'
@@ -43,7 +43,7 @@ const selectedStatsTab = messageFrom(
 )
 
 const resolveFocusTab = Command.resolve(
-  TabsTest.FocusTab,
+  Tabs.test.FocusTab,
   AppTabsBlock.Message.CompletedFocusTab(),
 )
 
@@ -154,23 +154,39 @@ it.effect(
 
 it.effect(
   'refresh clicks during an in-flight fetch are deduplicated',
-  ({ models: { loadingStatsModel } }) =>
+  ({ models: { loadedPostsModel } }) =>
     story(
       { block: ApplicationBlock, layer },
-      given(loadingStatsModel),
+      given(loadedPostsModel),
       message(Message.ClickedRefreshStats()),
-      Command.expectNone(),
+      message(Message.ClickedRefreshStats()),
+      Command.expectExact(statsQuery.Fetch),
+      Command.resolve(
+        statsQuery.Fetch,
+        statsQuery.Message.CompletedFetch({
+          generation: FIRST_REQUEST_GENERATION,
+          result: Result.fail('The server is down.'),
+        }),
+      ),
     ),
 )
 
 it.effect(
   'a revalidation tick during a refresh is deduplicated',
-  ({ models: { refreshingStatsModel } }) =>
+  ({ models: { loadedStatsModel } }) =>
     story(
       { block: ApplicationBlock, layer },
-      given(refreshingStatsModel),
+      given(loadedStatsModel),
       message(Message.TickedStatsRefreshInterval()),
-      Command.expectNone(),
+      message(Message.TickedStatsRefreshInterval()),
+      Command.expectExact(statsQuery.Fetch),
+      Command.resolve(
+        statsQuery.Fetch,
+        statsQuery.Message.CompletedFetch({
+          generation: SECOND_REQUEST_GENERATION,
+          result: Result.fail('The server is down.'),
+        }),
+      ),
     ),
 )
 

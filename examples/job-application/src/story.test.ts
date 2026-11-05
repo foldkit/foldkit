@@ -6,9 +6,7 @@ import { modifyFields } from 'foldkit/struct'
 import { toParentMessageFor } from 'foldkit/test'
 import { describe, expect } from 'vitest'
 
-import { FileDropBlock } from '@foldkit/ui/fileDrop'
-import { test as MenuTest } from '@foldkit/ui/menu'
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { FileDrop, Menu, Tabs } from '@foldkit/ui'
 
 import {
   CoverLetterBlock,
@@ -65,12 +63,12 @@ const stepTabsMessage = (message: StepTabsMessage) =>
   messageFrom(StepTabsBinding, message)
 
 const resolveFocusTab = Command.resolve(
-  TabsTest.FocusTab,
+  Tabs.test.FocusTab,
   StepTabsBlock.Message.CompletedFocusTab(),
 )
 
 const resolveFocusMenuButton = Command.resolve(
-  MenuTest.FocusMenuButton,
+  Menu.test.FocusMenuButton,
   StepMenuBlock.Message.CompletedFocusMenuButton(),
 )
 
@@ -157,7 +155,7 @@ describe('update', () => {
             }),
           ),
           Command.resolve(
-            MenuTest.FocusMenuItems,
+            Menu.test.FocusMenuItems,
             StepMenuBlock.Message.CompletedFocusMenuItems(),
           ),
           stepMenuMessage(
@@ -301,7 +299,9 @@ describe('update', () => {
                 AttachmentsBinding,
                 toAttachmentsMessage(
                   ResumeDropBinding,
-                  FileDropBlock.Message.DroppedFiles({ files: [resume] }),
+                  FileDrop.FileDropBlock.Message.DroppedFiles({
+                    files: [resume],
+                  }),
                 ),
               ),
             ),

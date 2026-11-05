@@ -1,7 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as MenuLayer } from '@foldkit/ui/menu'
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Menu, Tabs } from '@foldkit/ui'
 
 import { HomeBlock } from './block'
 import { AsyncCounterDemo, NotePlayerDemo } from './blocks'
@@ -36,8 +35,8 @@ export const layer = HomeBlock.makeLayer(
     Layer.mergeAll(
       AsyncCounterDemo.layer,
       NotePlayerDemo.layer,
-      TabsLayer,
-      MenuLayer,
+      Tabs.layer,
+      Menu.layer,
     ),
   ),
 )

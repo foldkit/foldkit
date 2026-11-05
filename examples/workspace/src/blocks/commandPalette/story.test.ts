@@ -12,7 +12,7 @@ import {
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { CommandPaletteBlock } from './block'
 import { ScrollActiveResult } from './command'
@@ -34,8 +34,8 @@ describe('CommandPaletteBlock', () => {
         }),
         inMessage(InMessage.RequestedOpen()),
         Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         message(Message.UpdatedQuery({ value: 'workspace' })),
         Command.resolve(
@@ -49,8 +49,8 @@ describe('CommandPaletteBlock', () => {
         ),
         inMessage(InMessage.RequestedClose()),
         Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
+          Dialog.test.CloseDialog,
+          Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
         model(model => {
           expect(model.dialog.isOpen).toBe(false)
@@ -71,19 +71,19 @@ describe('CommandPaletteBlock', () => {
         inMessage(InMessage.RequestedOpen()),
         model(model => expect(model.dialog.isOpen).toBe(true)),
         Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         inMessage(InMessage.RequestedClose()),
         model(model => expect(model.dialog.isOpen).toBe(false)),
         Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
+          Dialog.test.CloseDialog,
+          Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
         inMessage(InMessage.RequestedOpen()),
         Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         message(
           Message.ClickedResult({
@@ -92,8 +92,8 @@ describe('CommandPaletteBlock', () => {
         ),
         expectOutMessage(OutMessage.SelectedIssue({ issueId: 'issue-101' })),
         Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
+          Dialog.test.CloseDialog,
+          Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
         model(model => expect(model.dialog.isOpen).toBe(false)),
         Command.expectNone(),

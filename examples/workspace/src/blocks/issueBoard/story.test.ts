@@ -11,10 +11,7 @@ import {
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import {
-  DragAndDropBlock,
-  test as DragAndDropTest,
-} from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 import { IssueBoardBlock } from './block'
 import { DragAndDropBinding } from './composition'
@@ -31,7 +28,7 @@ describe('Issue Board update', () => {
       init(),
       messageFrom(
         DragAndDropBinding,
-        DragAndDropBlock.Message.ActivatedKeyboardDrag({
+        DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
           itemId,
           containerId: containerId('InProgress'),
           index: 0,
@@ -42,11 +39,11 @@ describe('Issue Board update', () => {
       }),
       messageFrom(
         DragAndDropBinding,
-        DragAndDropBlock.Message.PressedArrowKey({
+        DragAndDrop.DragAndDropBlock.Message.PressedArrowKey({
           direction: 'NextContainer',
         }),
       ),
-      DragAndDropTest.resolveKeyboardMove({
+      DragAndDrop.test.resolveKeyboardMove({
         binding: DragAndDropBinding,
         itemId,
         targetContainerId: containerId('Done'),
@@ -54,7 +51,7 @@ describe('Issue Board update', () => {
       }),
       messageFrom(
         DragAndDropBinding,
-        DragAndDropBlock.Message.ConfirmedKeyboardDrop(),
+        DragAndDrop.DragAndDropBlock.Message.ConfirmedKeyboardDrop(),
       ),
       expectOutMessage(
         OutMessage.RequestedMove({
@@ -63,7 +60,7 @@ describe('Issue Board update', () => {
           insertionIndex: 1,
         }),
       ),
-      DragAndDropTest.settleFocus({ binding: DragAndDropBinding, itemId }),
+      DragAndDrop.test.settleFocus({ binding: DragAndDropBinding, itemId }),
       model(model => {
         expect(model.dragAndDrop.dragState._tag).toBe('Idle')
         expect(model.announcement).toBe('Position 2 in Done.')
@@ -99,7 +96,7 @@ describe('Issue Board update', () => {
       init(),
       messageFrom(
         DragAndDropBinding,
-        DragAndDropBlock.Message.PressedDraggable({
+        DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
           itemId: draggableId('issue-101'),
           containerId: containerId('InProgress'),
           index: 0,
@@ -109,7 +106,7 @@ describe('Issue Board update', () => {
       ),
       messageFrom(
         DragAndDropBinding,
-        DragAndDropBlock.Message.MovedPointer({
+        DragAndDrop.DragAndDropBlock.Message.MovedPointer({
           screenX: 100,
           screenY: 100,
           clientX: 100,
@@ -122,7 +119,7 @@ describe('Issue Board update', () => {
       ),
       messageFrom(
         DragAndDropBinding,
-        DragAndDropBlock.Message.ReleasedPointer(),
+        DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
       ),
       expectOutMessage(
         OutMessage.RequestedMove({
@@ -143,7 +140,7 @@ describe('Issue Board update', () => {
         init(),
         messageFrom(
           DragAndDropBinding,
-          DragAndDropBlock.Message.ActivatedKeyboardDrag({
+          DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
             itemId,
             containerId: containerId('InProgress'),
             index: 0,
@@ -151,10 +148,10 @@ describe('Issue Board update', () => {
         ),
         messageFrom(
           DragAndDropBinding,
-          DragAndDropBlock.Message.CancelledDrag(),
+          DragAndDrop.DragAndDropBlock.Message.CancelledDrag(),
         ),
         expectNoOutMessage(),
-        DragAndDropTest.settleFocus({ binding: DragAndDropBinding, itemId }),
+        DragAndDrop.test.settleFocus({ binding: DragAndDropBinding, itemId }),
         model(model => {
           expect(model.dragAndDrop.dragState._tag).toBe('Idle')
           expect(model.announcement).toBe(
@@ -172,7 +169,7 @@ describe('Issue Board update', () => {
         init(),
         messageFrom(
           DragAndDropBinding,
-          DragAndDropBlock.Message.PressedDraggable({
+          DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
             itemId: draggableId('issue-101'),
             containerId: containerId('Todo'),
             index: 0,
@@ -182,7 +179,7 @@ describe('Issue Board update', () => {
         ),
         messageFrom(
           DragAndDropBinding,
-          DragAndDropBlock.Message.MovedPointer({
+          DragAndDrop.DragAndDropBlock.Message.MovedPointer({
             screenX: 100,
             screenY: 100,
             clientX: 100,
@@ -195,7 +192,7 @@ describe('Issue Board update', () => {
         ),
         messageFrom(
           DragAndDropBinding,
-          DragAndDropBlock.Message.ReleasedPointer(),
+          DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
         ),
         expectOutMessage(
           OutMessage.RequestedMove({
@@ -228,7 +225,7 @@ describe('Issue Board update', () => {
           init(),
           messageFrom(
             DragAndDropBinding,
-            DragAndDropBlock.Message.PressedDraggable({
+            DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
               itemId: draggableId('issue-101'),
               containerId: containerId('Todo'),
               index: 1,
@@ -238,7 +235,7 @@ describe('Issue Board update', () => {
           ),
           messageFrom(
             DragAndDropBinding,
-            DragAndDropBlock.Message.MovedPointer({
+            DragAndDrop.DragAndDropBlock.Message.MovedPointer({
               screenX: 100,
               screenY: 100,
               clientX: 100,
@@ -251,7 +248,7 @@ describe('Issue Board update', () => {
           ),
           messageFrom(
             DragAndDropBinding,
-            DragAndDropBlock.Message.ReleasedPointer(),
+            DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
           ),
           expectNoOutMessage(),
           model(model => {

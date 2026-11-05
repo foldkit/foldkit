@@ -17,7 +17,7 @@ import {
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { initialWorkspace } from '../../domain'
 import { ScrollActiveResult } from './command'
@@ -31,12 +31,12 @@ const openFromShortcut = Subscription.emit(
   Message.PressedOpenShortcut(),
 )
 const showDialog = Command.resolve(
-  DialogTest.ShowDialog,
-  DialogBlock.Message.SucceededShowDialog(),
+  Dialog.test.ShowDialog,
+  Dialog.DialogBlock.Message.SucceededShowDialog(),
 )
 const closeDialog = Command.resolve(
-  DialogTest.CloseDialog,
-  DialogBlock.Message.CompletedCloseDialog(),
+  Dialog.test.CloseDialog,
+  Dialog.DialogBlock.Message.CompletedCloseDialog(),
 )
 const scrollToResult = (index: number) =>
   Command.resolve(

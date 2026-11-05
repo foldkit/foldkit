@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import type { Block } from 'foldkit'
 
-import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 import { issueStatusLabel } from '../../domain'
 import {
@@ -18,7 +18,8 @@ import {
 } from './dragAndDrop'
 import { OutMessage } from './outMessage'
 
-type ReorderedDragAndDrop = typeof DragAndDropBlock.OutMessage.Reordered.Type
+type ReorderedDragAndDrop =
+  typeof DragAndDrop.DragAndDropBlock.OutMessage.Reordered.Type
 
 const maybeMoveFromDrop = (reordered: ReorderedDragAndDrop) => {
   if (
@@ -41,33 +42,36 @@ const maybeMoveFromDrop = (reordered: ReorderedDragAndDrop) => {
   })
 }
 
-const foldDragAndDropOutMessage = makeOutMessageFold(DragAndDropBlock, {
-  StartedKeyboardDrag: () =>
-    makeFieldsStep(() => ({
-      announcement: () =>
-        'Issue picked up. Use arrow keys to change position, Tab to change status, Space to drop, or Escape to cancel.',
-    })),
-  ChangedKeyboardTarget: ({ toContainerId, toIndex }) =>
-    makeFieldsStep(() => ({
-      announcement: announcement =>
-        Option.match(maybeStatusFromContainerId(toContainerId), {
-          onNone: () => announcement,
-          onSome: status =>
-            `Position ${toIndex + 1} in ${issueStatusLabel(status)}.`,
-        }),
-    })),
-  Reordered: reordered =>
-    Option.match(maybeMoveFromDrop(reordered), {
-      onNone: makeNoopStep,
-      onSome: outMessage => makeOutMessageStep(() => outMessage),
-    }),
-  Cancelled: () =>
-    makeFieldsStep(() => ({
-      announcement: () => 'Drag cancelled. Issue order is unchanged.',
-    })),
-})
+const foldDragAndDropOutMessage = makeOutMessageFold(
+  DragAndDrop.DragAndDropBlock,
+  {
+    StartedKeyboardDrag: () =>
+      makeFieldsStep(() => ({
+        announcement: () =>
+          'Issue picked up. Use arrow keys to change position, Tab to change status, Space to drop, or Escape to cancel.',
+      })),
+    ChangedKeyboardTarget: ({ toContainerId, toIndex }) =>
+      makeFieldsStep(() => ({
+        announcement: announcement =>
+          Option.match(maybeStatusFromContainerId(toContainerId), {
+            onNone: () => announcement,
+            onSome: status =>
+              `Position ${toIndex + 1} in ${issueStatusLabel(status)}.`,
+          }),
+      })),
+    Reordered: reordered =>
+      Option.match(maybeMoveFromDrop(reordered), {
+        onNone: makeNoopStep,
+        onSome: outMessage => makeOutMessageStep(() => outMessage),
+      }),
+    Cancelled: () =>
+      makeFieldsStep(() => ({
+        announcement: () => 'Drag cancelled. Issue order is unchanged.',
+      })),
+  },
+)
 
-export const DragAndDropBinding = makeBinding(DragAndDropBlock, {
+export const DragAndDropBinding = makeBinding(DragAndDrop.DragAndDropBlock, {
   field: 'dragAndDrop',
   init: { contextToArgs: () => [{ id: 'workspace-issue-board' }] },
 }).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })

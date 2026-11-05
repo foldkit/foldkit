@@ -96,7 +96,6 @@ export const update = ApplicationComposition.makeUpdate({
         'The next save will fail. Your draft will be kept so you can retry.',
       ),
   })),
-  // where does requestOpen get defined?
   ClickedOpenCommandPalette: CommandPaletteBinding.requestOpen(),
   ClickedDeleteSavedView: handleClickedDeleteSavedView,
   TickedActivityStream: simulateActivity,

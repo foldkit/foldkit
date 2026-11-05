@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { Url } from 'foldkit/url'
 
-import { DialogBlock } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import {
   ApiReferenceBlock,
@@ -31,7 +31,7 @@ export const Model = Schema.Struct({
   maybeGitHubStarCount: Schema.Option(Schema.Number),
   currentYear: Schema.Number,
   newsletterEmail: Schema.String,
-  mobileMenuDialog: DialogBlock.Model,
+  mobileMenuDialog: Dialog.DialogBlock.Model,
   isMobileTableOfContentsOpen: Schema.Boolean,
   activeSection: Schema.Option(Schema.String),
   isNarrowViewport: Schema.Boolean,

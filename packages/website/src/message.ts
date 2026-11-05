@@ -8,8 +8,6 @@ import { ResolvedTheme } from './colorScheme'
 import { GroupKey, SidebarState } from './sidebarStorage'
 import { ThemePreference } from './themePreference'
 
-// THEME
-
 export { ResolvedTheme } from './colorScheme'
 export { ThemePreference } from './themePreference'
 

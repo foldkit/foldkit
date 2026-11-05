@@ -1,13 +1,13 @@
 import { Schema } from 'effect'
 
-import { makeBlock as makeListboxBlock } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import { ApplicationRoute, Diet, Period } from './route'
 
 export const dietFilterItems: ReadonlyArray<string> = ['', ...Diet.literals]
 export const periodFilterItems: ReadonlyArray<string> = ['', ...Period.literals]
-export const DietListboxBlock = makeListboxBlock()
-export const PeriodListboxBlock = makeListboxBlock()
+export const DietListboxBlock = Listbox.makeBlock()
+export const PeriodListboxBlock = Listbox.makeBlock()
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,

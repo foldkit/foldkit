@@ -14,15 +14,19 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
-import { FocusSearchInput } from './command'
+import {
+  FetchSearchResults,
+  FocusSearchInput,
+  NavigateToResult,
+  ScrollToResult,
+} from './command'
 import { DialogBinding } from './composition'
 import { SearchState } from './domain'
 import { InMessage } from './inMessage'
 import { SearchBlock, layer } from './index'
 import { Message } from './message'
-import { FetchSearchResults, NavigateToResult, ScrollToResult } from './update'
 
 const searchSubject = { block: SearchBlock, layer }
 
@@ -58,8 +62,8 @@ describe('search', () => {
         inMessage(InMessage.RequestedOpen()),
         model(model => expect(model.dialog.isOpen).toBe(true)),
         Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         Command.resolve(FocusSearchInput, Message.CompletedFocusSearchInput()),
         message(Message.UpdatedSearchQuery({ query: 'routing' })),
@@ -77,8 +81,8 @@ describe('search', () => {
           expect(model.searchState._tag).toBe('Idle')
         }),
         Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
+          Dialog.test.CloseDialog,
+          Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
       ),
   )
@@ -267,8 +271,8 @@ describe('search', () => {
         init(),
         inMessage(InMessage.RequestedOpen()),
         Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         Command.resolve(FocusSearchInput, Message.CompletedFocusSearchInput()),
         message(Message.UpdatedSearchQuery({ query: 'routing' })),
@@ -279,7 +283,7 @@ describe('search', () => {
             query: 'routing',
           }),
         ),
-        messageFrom(DialogBinding, DialogBlock.Message.CanceledDialog()),
+        messageFrom(DialogBinding, Dialog.DialogBlock.Message.CanceledDialog()),
         model(model => expect(model.query).toBe('routing')),
         inMessage(InMessage.RequestedOpen()),
         model(model => {
@@ -287,13 +291,13 @@ describe('search', () => {
           expect(model.dialog.isOpen).toBe(true)
         }),
         Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         Command.resolve(FocusSearchInput, Message.CompletedFocusSearchInput()),
         Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
+          Dialog.test.CloseDialog,
+          Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
         model(model => {
           expect(model.query).toBe('')
@@ -312,8 +316,8 @@ describe('search', () => {
         init(),
         inMessage(InMessage.RequestedOpen()),
         Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         Command.resolve(FocusSearchInput, Message.CompletedFocusSearchInput()),
         message(Message.UpdatedSearchQuery({ query: 'routing' })),
@@ -342,10 +346,10 @@ describe('search', () => {
           expect(model.query).toBe('')
           expect(model.dialog.isOpen).toBe(false)
         }),
-        Command.expectExact(DialogTest.CloseDialog),
+        Command.expectExact(Dialog.test.CloseDialog),
         Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
+          Dialog.test.CloseDialog,
+          Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
       ),
   )

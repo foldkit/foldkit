@@ -1,12 +1,8 @@
 import { Effect, Record, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
 
-// CONSTANT
-
 const HTTP_OK_MIN = 200
 const HTTP_OK_MAX = 299
-
-// HTTP
 
 export const isSuccessfulStatus = (status: number): boolean =>
   status >= HTTP_OK_MIN && status <= HTTP_OK_MAX

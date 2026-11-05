@@ -7,6 +7,7 @@ import {
   messageFrom,
   messageWith,
   model,
+  models,
   steps,
   story,
   withBlock,
@@ -15,20 +16,12 @@ import { toParentMessageFor } from 'foldkit/test'
 import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
-import {
-  HistoryPage as VirtualListHistoryPage,
-  ObservedAnchor as VirtualListObservedAnchor,
-} from '@foldkit/ui/virtualList'
+import { RadioGroup, VirtualList } from '@foldkit/ui'
 
-import {
-  ChatVirtualListBlock,
-  HistoryModeRadioGroupBlock,
-} from './demo/components'
+import { ChatVirtualListBlock, HistoryModeRadioGroupBlock } from './controls'
 import { VirtualListChatHistorySource } from './domain/domain'
 import { UiBlock, layer } from './index'
 import { Message } from './message'
-import type { Model } from './model'
 import {
   FetchVirtualListChatHistory,
   VirtualListChatDemoBinding,
@@ -59,7 +52,7 @@ const selectHistoryMode = (value: 'Infinite' | 'Finite') =>
       }),
     ),
     Command.resolve(
-      RadioGroupTest.FocusOption,
+      RadioGroup.test.FocusOption,
       HistoryModeRadioGroupBlock.Message.CompletedFocusOption(),
     ),
   )
@@ -67,8 +60,6 @@ const selectHistoryMode = (value: 'Infinite' | 'Finite') =>
 it.effect(
   'waits for the loaded-start OutMessage and ignores repeated requests while loading',
   () => {
-    let requestedModel: Model | undefined
-
     return story(
       uiSubject,
       init(today),
@@ -78,7 +69,7 @@ it.effect(
           scrollTop: 40,
           scrollHeight: 2000,
           containerHeight: 400,
-          anchor: VirtualListObservedAnchor.Row({
+          anchor: VirtualList.ObservedAnchor.Row({
             key: '0',
             index: 0,
             viewportOffset: 6,
@@ -91,7 +82,6 @@ it.effect(
       }),
       approachedLoadedStart,
       model(model => {
-        requestedModel = model
         expect(model.virtualListChatHistoryLoad).toEqual({
           _tag: 'Loading',
           trigger: 'Scroll',
@@ -106,8 +96,9 @@ it.effect(
           source: VirtualListChatHistorySource.Unbounded(),
         }),
       ),
-      approachedLoadedStart,
-      model(model => expect(model).toEqual(requestedModel)),
+      models(steps(approachedLoadedStart), (before, after) =>
+        expect(after).toEqual(before),
+      ),
       Command.expectExact(FetchVirtualListChatHistory),
       Command.resolve(
         FetchVirtualListChatHistory,
@@ -115,7 +106,7 @@ it.effect(
           requestVersion: 1,
           messages: olderMessages(0, 64),
           source: VirtualListChatHistorySource.Unbounded(),
-          page: VirtualListHistoryPage.More(),
+          page: VirtualList.HistoryPage.More(),
         }),
       ),
     )
@@ -135,7 +126,7 @@ it.effect(
           requestVersion: 1,
           messages: olderMessages(0, 64),
           source: VirtualListChatHistorySource.Unbounded(),
-          page: VirtualListHistoryPage.More(),
+          page: VirtualList.HistoryPage.More(),
         }),
       ),
       model(model => {
@@ -160,8 +151,6 @@ it.effect(
 it.effect(
   'removes the finite history buffer with the final page and stops fetching',
   () => {
-    let completedModel: Model | undefined
-
     return story(
       uiSubject,
       init(today),
@@ -176,11 +165,10 @@ it.effect(
           requestVersion: 2,
           messages: olderMessages(0, 64),
           source: VirtualListChatHistorySource.Finite({ remainingCount: 0 }),
-          page: VirtualListHistoryPage.Complete(),
+          page: VirtualList.HistoryPage.Complete(),
         }),
       ),
       model(model => {
-        completedModel = model
         expect(model.virtualListChatDemo.startPaddingPx).toBe(0)
         expect(model.virtualListChatHistorySource).toEqual({
           _tag: 'Finite',
@@ -188,14 +176,18 @@ it.effect(
         })
         expect(model.virtualListChatAnnouncedOlderCount).toBe(64)
       }),
-      messageFrom(
-        VirtualListChatDemoBinding,
-        ChatVirtualListBlock.Message.ApproachedLoadedStart({
-          distanceToLoadedStartPx: 0,
-          containerHeight: 400,
-        }),
+      models(
+        steps(
+          messageFrom(
+            VirtualListChatDemoBinding,
+            ChatVirtualListBlock.Message.ApproachedLoadedStart({
+              distanceToLoadedStartPx: 0,
+              containerHeight: 400,
+            }),
+          ),
+        ),
+        (before, after) => expect(after).toEqual(before),
       ),
-      model(model => expect(model).toEqual(completedModel)),
       Command.expectNone(),
     )
   },
@@ -204,36 +196,34 @@ it.effect(
 it.effect(
   'ignores a delayed page after changing history mode and resetting the conversation',
   () => {
-    let requestVersion = 0
-    let resetModel: Model | undefined
-
     return story(
       uiSubject,
       init(today),
       selectHistoryMode('Finite'),
       message(Message.ClickedVirtualListChatPrepend()),
-      model(model => {
-        requestVersion = model.virtualListChatHistoryRequestVersion
-      }),
-      selectHistoryMode('Infinite'),
-      model(model => {
-        resetModel = model
-        expect(model.virtualListChatDemo.id).toBe('virtual-list-chat-demo')
-        expect(model.virtualListChatHistoryRequestVersion).toBeGreaterThan(
-          requestVersion,
+      models(steps(selectHistoryMode('Infinite')), (before, after) => {
+        expect(after.virtualListChatDemo.id).toBe('virtual-list-chat-demo')
+        expect(after.virtualListChatHistoryRequestVersion).toBeGreaterThan(
+          before.virtualListChatHistoryRequestVersion,
         )
       }),
-      Command.resolve(
-        FetchVirtualListChatHistory,
-        Message.CompletedFetchVirtualListChatHistory({
-          requestVersion: 2,
-          messages: olderMessages(0, 32),
-          source: VirtualListChatHistorySource.Finite({ remainingCount: 32 }),
-          page: VirtualListHistoryPage.More(),
-        }),
+      models(
+        steps(
+          Command.resolve(
+            FetchVirtualListChatHistory,
+            Message.CompletedFetchVirtualListChatHistory({
+              requestVersion: 2,
+              messages: olderMessages(0, 32),
+              source: VirtualListChatHistorySource.Finite({
+                remainingCount: 32,
+              }),
+              page: VirtualList.HistoryPage.More(),
+            }),
+          ),
+        ),
+        (before, after) => expect(after).toEqual(before),
       ),
       model(model => {
-        expect(model).toEqual(resetModel)
         expect(model.virtualListChatMessages).toHaveLength(24)
         expect(model.virtualListChatHistoryLoad._tag).toBe('Idle')
         expect(model.virtualListChatHistorySource._tag).toBe('Unbounded')
@@ -262,7 +252,7 @@ it.effect(
                 scrollTop: 20,
                 scrollHeight: 2000,
                 containerHeight: 400,
-                anchor: VirtualListObservedAnchor.Row({
+                anchor: VirtualList.ObservedAnchor.Row({
                   key: '0',
                   index: 0,
                   viewportOffset: 6,

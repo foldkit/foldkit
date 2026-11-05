@@ -175,7 +175,7 @@ Match the implementation style to the subsystem and the behavior being modeled. 
 
 Don't add inline or block comments to explain code. If code needs explanation, refactor for clarity or use better names. Exceptions:
 
-- Section headers in long files where a substantial group needs wayfinding: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`, `// COMMAND`, `// EFFECTS LAYER`, and short descriptive headers for sections outside that set (`// SHARED STYLES`, `// TABLE OF CONTENTS`). Do not add routine architecture headers to small application or example files.
+- Do not add decorative section-header comments such as `// MODEL`, `// OUT MESSAGE`, or `// VIEW`. Use file boundaries, names, and blank lines to show structure instead.
 - TSDoc (`/** ... */`) on all public exports of a published package (`packages/*`). An `export const` in `examples/` is module wiring so `entry.ts` and scene tests can import it, not public API, and takes a `// NOTE:` like any other explanatory comment.
 - `// NOTE:` comments, with a high bar. Only for behavior that would mislead a careful reader (timing dependency, upstream bug workaround, browser quirk). Not for normal patterns, state machine shapes, framework idioms, or what a function does.
 - Sparse teaching comments in a documentation snippet when the snippet has enough wiring that a reader could miss the lines that demonstrate the section's point. Point to the architectural handoff or data flow the reader should notice. Do not narrate every line or use comments to rescue an example whose names and structure are unclear.
@@ -201,7 +201,8 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 
 ## File Organization
 
-- Import UI values and types by name from the component's public subpath, such as `import { makeBlock as makeListboxBlock, view as listboxView } from '@foldkit/ui/listbox'`. Use component-specific aliases when several components export the same name. Keep the public `test` namespace for its grouped test matchers. Avoid root UI imports and component namespace imports in application code.
+- Import each file's Foldkit UI components through one named root import, such as `import { Button, Combobox, Listbox } from '@foldkit/ui'`. Qualify the entire public component surface through its owning namespace: `Button.view`, `Listbox.makeBlock`, `Combobox.Multi`, `Listbox.layer`, `Listbox.RenderInfo`, and `Listbox.test`. Do not import UI component subpaths or alias individual UI exports. If a component namespace collides with another required binding, alias that namespace once at import time, such as `Calendar as UiCalendar`.
+- When a feature's view needs subdivisions, keep its entry composer in `view/view.ts` and use an explicit `view/index.ts` barrel. Place route, page, and demo render fragments beneath `view/`; keep the Model, Message, contracts, init, update, and other non-rendering feature responsibilities outside that directory.
 - Keep a Step used by only one responsibility with that code. Put reusable Steps shared by update, composition, or init in the owning Block's `steps.ts`. For a larger module, use responsibility files such as `steps/search.ts` and `steps/quoteLoading.ts`, with an explicit `steps/index.ts` barrel. The owner is the Block whose Model the Step transforms. Keep shared Steps independent of the owning update and construction Layer.
 - `update.ts` maps incoming Messages to handlers and Steps. `composition.ts` registers relationships and maps child OutMessages to parent Steps. `steps.ts` owns the reusable transitions those entry points share. Keep Binding registration and OutMessage policy in composition. Name shared transitions for their operation, without a `make` prefix or `Step` suffix. A Step that closes over a Binding from composition must read it in a deferred producer when the modules depend on one another; module initialization must not invoke that Binding.
 
@@ -238,6 +239,8 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 ## Application behavior tests
 
 - Application behavior belongs in Story or Scene. Use their DSL to deliver Messages and InMessages, resolve Commands, and assert Models, OutMessages and views. Do not manually chain acquired `update` calls or invoke application Steps as a substitute for the DSL. Pure fixture construction and intentional `given(model)` remain valid; use scoped acquisition only when a fixture genuinely needs initialized state, graph identity or custom view context. Keep pure domain/selector tests separate from application behavior, and reserve low-level transition tests for framework infrastructure.
+- Keep Story and Scene specifications declarative: use immutable fixtures, `messageWith` for a value that must be read from the current Model, and later observable assertions. Do not use mutable outer captures or `mockImplementation` closures to carry values between steps. If an immutable fixture and observable behavior cannot express the case, establish that the Story/Scene DSL lacks the needed operation before introducing a mutable bridge.
+- Compare a Story sequence with `models(steps(...), (before, after) => ...)`. Keep `init` or `given` before the comparison group. `story` returns its final Model only after checking all Commands are resolved; bind that result immutably when preparing another Story or Scene. A new `given(model)` does not inherit pending work or the previous graph's resources.
 
 ## Test Imports
 

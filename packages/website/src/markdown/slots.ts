@@ -1,10 +1,8 @@
 import { Option, Record } from 'effect'
 import { Html, inertHtml as ih } from 'foldkit/html'
 
-import { type CodeBlock } from '../component'
 import type { RenderHeadingLink } from '../prose'
-
-// SLOTS
+import type * as CodeBlock from './codeBlock'
 
 /**
  * Live demos a page embeds, keyed by the names on its `::Demo{name}` islands.

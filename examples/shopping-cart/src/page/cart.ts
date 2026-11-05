@@ -1,7 +1,7 @@
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { Cart } from '../domain'
@@ -70,7 +70,7 @@ export const view = (cart: Cart.Cart, h: ApplicationViewBuilder): Html =>
                         h.div(
                           [h.Class('flex items-center gap-2')],
                           [
-                            buttonView(
+                            Button.view(
                               {
                                 onClick: Message.ClickedDecrementQuantity({
                                   itemId: cartItem.item.id,
@@ -92,7 +92,7 @@ export const view = (cart: Cart.Cart, h: ApplicationViewBuilder): Html =>
                               [h.Class('px-3 py-1 font-medium')],
                               [String(cartItem.quantity)],
                             ),
-                            buttonView(
+                            Button.view(
                               {
                                 onClick: Message.ClickedIncrementQuantity({
                                   itemId: cartItem.item.id,
@@ -110,7 +110,7 @@ export const view = (cart: Cart.Cart, h: ApplicationViewBuilder): Html =>
                               },
                               h,
                             ),
-                            buttonView(
+                            Button.view(
                               {
                                 onClick: Message.ClickedRemoveCartItem({
                                   itemId: cartItem.item.id,
@@ -166,7 +166,7 @@ export const view = (cart: Cart.Cart, h: ApplicationViewBuilder): Html =>
                       ],
                       ['Continue Shopping'],
                     ),
-                    buttonView(
+                    Button.view(
                       {
                         onClick: Message.ClickedClearCart(),
                         toView: attributes =>

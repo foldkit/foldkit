@@ -1,12 +1,7 @@
 import { Array, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import type { RenderInfo } from '@foldkit/ui/dialog'
-import { view as fieldsetView } from '@foldkit/ui/fieldset'
-import { view as inputView } from '@foldkit/ui/input'
-import { buttonId } from '@foldkit/ui/listbox'
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Button, Dialog, Fieldset, Input, Listbox, Textarea } from '@foldkit/ui'
 
 import {
   PriorityListboxOption,
@@ -50,17 +45,17 @@ const listboxField = (
   h.div(
     [h.Class(FIELD_CLASS)],
     [
-      h.label([h.For(buttonId(id)), h.Class(LABEL_CLASS)], [label]),
+      h.label([h.For(Listbox.buttonId(id)), h.Class(LABEL_CLASS)], [label]),
       h.div([], [control]),
     ],
   )
 
 const titleField = (
   model: Model,
-  initialFocus: RenderInfo['initialFocus'],
+  initialFocus: Dialog.RenderInfo['initialFocus'],
   h: CreateIssueViewBuilder,
 ): Html =>
-  inputView(
+  Input.view(
     {
       id: 'create-issue-title',
       value: model.title,
@@ -88,7 +83,7 @@ const titleField = (
   )
 
 const descriptionField = (model: Model, h: CreateIssueViewBuilder): Html =>
-  textareaView(
+  Textarea.view(
     {
       id: 'create-issue-description',
       value: model.description,
@@ -116,12 +111,12 @@ const descriptionField = (model: Model, h: CreateIssueViewBuilder): Html =>
 const fields = (
   model: Model,
   viewInputs: ViewInputs,
-  initialFocus: RenderInfo['initialFocus'],
+  initialFocus: Dialog.RenderInfo['initialFocus'],
   h: CreateIssueViewBuilder,
 ): Html => {
   const isCreating = !isDraftEditable(model)
 
-  return fieldsetView(
+  return Fieldset.view(
     {
       id: 'create-issue-fields',
       isDisabled: isCreating,
@@ -222,7 +217,7 @@ const feedback = (
 const submitButton = (model: Model, h: CreateIssueViewBuilder): Html => {
   const isCreating = CreateState.guards.Creating(model.createState)
 
-  return buttonView(
+  return Button.view(
     {
       type: 'submit',
       isDisabled: isCreating,

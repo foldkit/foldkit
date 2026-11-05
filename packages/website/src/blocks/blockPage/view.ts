@@ -1,10 +1,10 @@
 import { clsx } from 'clsx'
 import { type Html } from 'foldkit/html'
 
-import { view as disclosureView } from '@foldkit/ui/disclosure'
+import { Disclosure } from '@foldkit/ui'
 
-import { CodeBlock } from '../../component'
 import { Icon } from '../../icon'
+import * as CodeBlock from '../../markdown/codeBlock'
 import { inlineCode } from '../../prose'
 import * as Snippet from '../../snippet'
 import { BlockPageComposition, type BlockPageViewBuilder } from './composition'
@@ -20,7 +20,7 @@ const mapMessagesUnderHoodDemo = (
   renderSnippet: CodeBlock.RenderSnippet,
   h: BlockPageViewBuilder,
 ): Html =>
-  disclosureView(
+  Disclosure.view(
     {
       id: MAP_MESSAGES_DISCLOSURE_ID,
       isOpen: model.isMapMessagesUnderHoodOpen,

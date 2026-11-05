@@ -2,7 +2,7 @@ import { Array, Match, Number } from 'effect'
 import { File } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import type { FileDropAttributes } from '@foldkit/ui/fileDrop'
+import { FileDrop } from '@foldkit/ui'
 
 import { FileDropBasicDemoBinding, UiComposition } from '../composition'
 import { Message } from '../message'
@@ -41,7 +41,7 @@ const fileKey = (file: File.File): string =>
   `${File.name(file)}:${File.size(file)}:${file.lastModified}`
 
 export const view = UiComposition.makeView((model, h) => {
-  const fileDropView = (attributes: FileDropAttributes): Html =>
+  const fileDropView = (attributes: FileDrop.FileDropAttributes): Html =>
     h.label(
       [...attributes.root, h.Class(dropZoneClassName)],
       [

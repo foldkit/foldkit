@@ -100,17 +100,7 @@ const makeFixture = (block: Story.TestBlock<typeof TestCombobox>) => {
 
   const closedModel = () => init({ id: 'test' }).model
 
-  const openMultiModel = (): Model => {
-    let model!: Model
-    Story.story(
-      update,
-      givenOpenMulti,
-      Story.model(extractedModel => {
-        model = extractedModel
-      }),
-    )
-    return model
-  }
+  const openMultiModel = (): Model => Story.story(update, givenOpenMulti)
 
   const sceneView =
     (

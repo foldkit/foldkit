@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import type { SliderAttributes } from '@foldkit/ui/slider'
+import { Slider } from '@foldkit/ui'
 
 import {
   SliderRatingDemoBinding,
@@ -43,7 +43,7 @@ const ratingFormatted = (value: number): string => `${value} of 10`
 const volumeFormatted = (value: number): string => `${Math.round(value * 100)}%`
 
 export const view = UiComposition.makeView((model, h) => {
-  const horizontalSliderView = (attributes: SliderAttributes): Html =>
+  const horizontalSliderView = (attributes: Slider.SliderAttributes): Html =>
     h.div(
       [h.Class(horizontalRowClassName)],
       [
@@ -75,7 +75,7 @@ export const view = UiComposition.makeView((model, h) => {
       ],
     )
 
-  const verticalSliderView = (attributes: SliderAttributes): Html =>
+  const verticalSliderView = (attributes: Slider.SliderAttributes): Html =>
     h.div(
       [h.Class(verticalRowClassName)],
       [

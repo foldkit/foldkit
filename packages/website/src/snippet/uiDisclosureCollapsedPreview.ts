@@ -3,10 +3,7 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  type DisclosureAttributes,
-  view as disclosureView,
-} from '@foldkit/ui/disclosure'
+import { Disclosure } from '@foldkit/ui'
 
 // Store the open state as a plain boolean field in your Model:
 const Model = Schema.Struct({
@@ -57,7 +54,7 @@ const view = ArticlePreviewComposition.makeView((model, h) => {
     button,
     panel,
     animatePanel,
-  }: DisclosureAttributes<Message>) =>
+  }: Disclosure.DisclosureAttributes<Message>) =>
     h.article(
       [h.Class('relative overflow-hidden rounded-lg border bg-white')],
       [
@@ -109,7 +106,7 @@ const view = ArticlePreviewComposition.makeView((model, h) => {
       ],
     )
 
-  return disclosureView(
+  return Disclosure.view(
     {
       id: 'architecture-article',
       isOpen: model.isArticleOpen,

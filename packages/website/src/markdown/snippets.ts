@@ -1,8 +1,6 @@
 import { Array, Match, Option, Record, Result, String, pipe } from 'effect'
 import cssSnippets from 'virtual:css-snippets'
 
-// SNIPPETS
-
 /**
  * One compiled snippet: `raw` is the verbatim source for the copy button,
  * `highlighted` is the build-time Shiki HTML rendered through `h.InnerHTML`.

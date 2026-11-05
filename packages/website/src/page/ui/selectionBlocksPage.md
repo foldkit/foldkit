@@ -22,11 +22,11 @@ There is no inbound inform operation for the selection: the parent owns it outri
 
 ## Naming What a Factory Returns {#completed-type}
 
-Each component subpath exports a `Completed` type for the passive contract its factory returns. The name does not mean an acquired executable: `Completed<Plan>` from `@foldkit/ui/listbox` describes `Listbox.makeBlock<Plan>()`. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup subpaths expose their corresponding `Completed` types.
+The root `@foldkit/ui` namespace exposes a `Completed` type under each component namespace for the passive contract its factory returns. The name does not mean an acquired executable: `Listbox.Completed<Plan>` describes `Listbox.makeBlock<Plan>()`. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup namespaces expose their corresponding `Completed` types.
 
 ### When to Name the Returned Contract {#when-to-name-the-completed-block}
 
-Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for `Completed` when a returned contract needs a type name. For example, a config object may hold a `Completed<City>` imported from `@foldkit/ui/combobox`, or an authoring helper may accept `Completed<Plan>` from `@foldkit/ui/listbox` instead of calling the factory itself.
+Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for a namespaced `Completed` type when a returned contract needs a type name. For example, a config object may hold a `Combobox.Completed<City>` from `@foldkit/ui`, or an authoring helper may accept `Listbox.Completed<Plan>` instead of calling the factory itself.
 
 ### Declaration Output
 

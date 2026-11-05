@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { Message } from '../message'
@@ -58,7 +58,7 @@ export const workspaceSettings = (
           h.div(
             [h.Class('flex flex-wrap items-center gap-4')],
             [
-              buttonView(
+              Button.view(
                 {
                   type: 'button',
                   onClick: Message.ClickedSimulateActivity(),
@@ -91,7 +91,7 @@ export const workspaceSettings = (
               'Fail the next issue save to test recovery. The editor keeps your draft for retry.',
             ],
           ),
-          buttonView(
+          Button.view(
             {
               type: 'button',
               onClick: Message.ClickedSimulateSaveFailure(),

@@ -115,11 +115,10 @@ sequence.
 Foldkit ships accessible UI components that handle keyboard navigation, ARIA attributes, and focus management automatically. They live in a **separate package**, `@foldkit/ui`, and are imported by name:
 
 ```ts
-import { view as buttonView } from '@foldkit/ui/button'
-import { DialogBlock, layer as DialogLayer } from '@foldkit/ui/dialog'
+import { Button, Dialog } from '@foldkit/ui'
 ```
 
-Import the component's named exports from its public subpath. Use a component-qualified alias for a common export, such as `buttonView`, `DialogLayer`, or `makeListboxBlock`. Connect `DialogBlock` through the parent's Definition, register the Binding in Composition, and provide `DialogLayer` at construction. Generic factories publish a typed passive contract; construct it once at module scope, then provide the component's construction Layer.
+Use the owning component namespace consistently: `Button.view`, `Dialog.DialogBlock`, and `Dialog.layer`. Import all components needed by one file in that single named root import. Do not import component subpaths or alias individual exports; alias a whole namespace only for a genuine collision, such as `Calendar as UiCalendar`. Connect `Dialog.DialogBlock` through the parent's Definition, register the Binding in Composition, and provide `Dialog.layer` at construction. Generic factories publish a typed passive contract; construct it once at module scope, then provide the component's construction Layer.
 
 Before generating, check if any part of the app maps to a built-in component:
 
@@ -440,7 +439,7 @@ FeatureBlock.makeCommand(name, { args, messages, handler }): every input is a na
   update: [Fetch({ id })]     // NOT Fetch({ id })(effect)
 Document: NOT generic, and `body` is a single Html, not an array
 inputView({ id, value, onInput, isInvalid?, type?, placeholder?, toView: (attrs) => Html }, h)
-  // view as inputView from '@foldkit/ui/input'
+  // view as Input.view from '@foldkit/ui'
   // attrs: { label: ReadonlyArray<Attribute<M>>, input: ..., description: ... }
 Field (schema): NotValidated | Validating | Valid | Invalid(errors: NonEmpty<Rule Message>)
 ```
@@ -464,7 +463,8 @@ Record these in the crib and keep them visible while generating:
 - **`Field.Invalid` has `errors: NonEmptyArray<string>`, not `error: string`.** Use `Array.headNonEmpty(errors)` to get the first message; use `Rule.resolveMessage(message, value)` to resolve a rule message to its final string.
 - **Route variants stay on `ApplicationRoute` and drop the repeated `Route` suffix.** Write `ApplicationRoute.Home` and `ApplicationRoute.NewLink`, not sibling bindings named `HomeRoute` and `NewLinkRoute`.
 - **Routers are callable for printing**: `homeRouter()` returns `'/'`, `tagFilterRouter({ tag: 'foo' })` returns `'/tag/foo'`. Never hand-construct URLs.
-- **Import named UI exports from their public component subpaths.** Use `DialogBlock` and `layer as DialogLayer` from `@foldkit/ui/dialog`, and `view as inputView` from `@foldkit/ui/input`. Bind stateful Blocks and call stateless views with the parent's builder.
+- **Import UI component namespaces from the `@foldkit/ui` root once per file.** Use `Dialog.DialogBlock`, `Dialog.layer`, and `Input.view`; keep `Combobox.Multi`, `RenderInfo`, and `test` on their owning component namespace. Bind stateful Blocks and call stateless views with the parent's builder.
+- **Organize subdivided rendering under `view/`.** Keep `view/view.ts` as the feature's entry composer and use an explicit `view/index.ts` barrel. Route, page, and demo render fragments belong below `view/`; the Model, Message, contracts, init, update, and non-rendering responsibilities remain outside it.
 - **`HttpClient` and `HttpClientRequest` come from `effect/http`**, not `@effect/platform`. Leave `HttpClient.HttpClient` in the handler's requirements and provide `Http.layer`, imported from `foldkit`, at the application root. This keeps the real handler reusable with a deterministic HTTP Layer in an execution test. `@effect/platform-browser` is a different thing, used for `BrowserKeyValueStore` and `BrowserCrypto`.
 - **Register each selected child Binding once.** Binding construction is passive;
   registration in the parent's Composition enables routing and contributes the
@@ -669,7 +669,7 @@ For file uploads (resumes, images, attachments):
 - Delegate complex sections to extracted view functions
 - Wire events to Messages: `h.OnClick(Message.ClickedSubmit())` (a Message directly, not a callback), `h.OnInput(value => Message.UpdatedEmail({ value }))` (a callback that maps the value to a Message)
 - Use Foldkit UI components when the interaction matches (Dialog for modals, Tabs for tabbed content, etc.)
-- Keep comments sparse. Use a section header only for a substantial group in a long file, and a `// NOTE:` only for a timing dependency, browser quirk, or external constraint that clear names cannot express. Do not narrate ordinary update branches, handler bodies, or view construction
+- Keep comments sparse. Do not use decorative section headers such as `// MODEL`, `// OUT MESSAGE`, or `// VIEW`; use names, blank lines, and file boundaries instead. Use a `// NOTE:` only for a timing dependency, browser quirk, or external constraint that clear names cannot express. Do not narrate ordinary update branches, handler bodies, or view construction
 
 ### Runtime Wiring
 
@@ -778,6 +778,8 @@ Block-aware testing uses `story({ block: FeatureBlock, layer }, init(...args), .
 **Story tests** (`story.test.ts`) describe state transitions through the DSL. Send Messages and assert on the Model and Commands without calling acquired update functions directly. Study these exemplars:
 
 Story permits another Message while Commands are pending. Use `messageWith(model => Message.Variant(...))` for a value read from the current Model when the step runs. Use `messageFrom(ChildBinding, rawMessage)` in a Block-aware Story to validate a decoded Subscription Message and apply its registered parent mapping. These steps do not start Streams or test Runtime activity and stale-generation admission.
+
+Keep Story and Scene specifications declarative. Use immutable fixtures and later observable assertions rather than mutable outer captures or `mockImplementation` closures to pass values between steps. When `messageWith` and the available assertions cannot express the behavior, establish a genuine Story/Scene DSL gap before adding any mutable test-side bridge.
 
 Scene normally requires pending Commands to settle before later Messages. For a deliberate concurrent interaction, `Scene.Command.keepPending(Definition | instance)` selects one exact invocation for that boundary exemption. Assertions and every resolver still see it, and final completeness requires resolution. A bound instance selects a child occurrence and args. Prefer this explicit operation over custom simulation transforms.
 

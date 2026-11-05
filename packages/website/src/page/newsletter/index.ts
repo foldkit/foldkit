@@ -1,1 +1,1 @@
-export { content } from './newsletter'
+export { content, formView } from './newsletter'

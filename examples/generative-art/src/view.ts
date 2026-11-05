@@ -2,8 +2,7 @@ import { Array, Option, pipe } from 'effect'
 import { Canvas } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import type { ViewInputs as SliderViewInputs } from '@foldkit/ui/slider'
+import { Button, Slider } from '@foldkit/ui'
 
 import {
   ApplicationComposition,
@@ -295,7 +294,7 @@ const playPauseLabel = (isRunning: boolean): string =>
 const slider = (
   label: string,
   value: number,
-  render: (viewInputs: SliderViewInputs) => Html,
+  render: (viewInputs: Slider.ViewInputs) => Html,
   h: ApplicationViewBuilder,
 ): Html =>
   render({
@@ -339,7 +338,7 @@ const controlButton = (
   onClick: Message,
   h: ApplicationViewBuilder,
 ): Html =>
-  buttonView(
+  Button.view(
     {
       onClick,
       toView: attributes =>

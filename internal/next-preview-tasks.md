@@ -1,5 +1,53 @@
 # Next preview tasks
 
+## November 5 review cleanup
+
+Work continues from integrated preview `570ecedddaef`. Publication and private
+source transfer remain held while the review changes are being completed.
+
+- [x] Address the user's new inline review comments and remove each resolved
+      note. Preserve concurrent edits and unresolved comments.
+- [x] Organize Website shared rendering by responsibility, place UI page views
+      under `view/`, and split substantial Home demo Blocks consistently.
+- [x] Use one root `@foldkit/ui` namespace import per ordinary consumer file,
+      including active examples, snippets, templates and guidance. Preserve
+      historical content and deliberate public-contract fixtures.
+- [x] Remove decorative section-header comments from active application code
+      and guidance while preserving meaningful teaching and boundary comments.
+- [x] Eliminate mutable outer captures from Story/Scene specs and their fixture
+      helpers. Preserve meaningful behavior and identity assertions; establish
+      any concrete DSL gap before adding a testing operation.
+
+The [cleanup report](preview-review-cleanup-20261105.md) records the immutable
+Story API, consumer migrations, declaration boundary and completed checks.
+- [ ] Review the measured rendering gap and verify any proposed optimization
+      against the unchanged workloads before claiming improvement.
+- [ ] Narrow Block-managed serialization to synchronous, service-free codecs.
+      Remove `codec.decoding` and `codec.encoding` without aliases and preserve
+      exact Service requirements through generated child Message envelopes.
+      Keep construction passive, reject asynchronous execution at the actual
+      serialization boundary, and preserve synchronous transformations including
+      Option and Date. Inspect DevTools dispatch, hydration, restoration and
+      replay before deciding whether any boundary needs a distinct contract.
+- [ ] Verify serialization Source and emitted consumers, rejected Service and
+      asynchronous codecs, complete child propagation, existing lifecycles and
+      unchanged compiler ceilings. Update active docs, skills, migration notes
+      and changesets without rewriting published history.
+- [ ] Add canonical `defineInMessageUnion` after serialization. Reuse the
+      Message-union machinery, preserve exact payloads, constructors, guards,
+      matching and Schema requirements, and report invalid `RequestedX` /
+      `InformedOfX` names at the offending property. Preserve the generated
+      `requestX` / `informX` spelling without another prefix family or brand.
+- [ ] Migrate authored InMessages throughout consumers, examples, Website,
+      Typing Game, scaffolds and active docs/skills. Keep local Messages and
+      OutMessages on `defineMessageUnion`, preserve alternative-Schema Block
+      validation and erased-caller checks, and verify extracted records,
+      generated methods and Source/emitted consumers. Add migration guidance
+      and a changeset; preserve published history and concurrent edits.
+- [ ] Refresh relevant GitHub feedback, finish verification and independent
+      review, then freeze one final candidate for fresh Daybreak authorization.
+- [ ] Push the prepared changes to preview; await the user's publication approval.
+
 ## November 5 candidate review
 
 The [current review](preview-review-20261105.md) compares this work with published
@@ -18,7 +66,9 @@ preview `90746b32d2ca`. Earlier dated sections retain their checkpoint scope.
       [Contribution disposition](preview-feedback-integration-20261105.md).
 - [x] Finish Dialog's terminal failure cleanup through existing completion
       signals and verify independently emitted UI provider Layers.
-- [ ] Complete the combined gates and push to preview.
+- [x] Complete the combined gates and integrate preview through #1894 as
+      `570ecedddaef638bb07fbaaf9abda2f905125548`. Local, PR and merge-queue
+      checks pass, including all ten example-browser shards.
 - [x] Record a final quiet Lustre comparison against actual main, retaining all
       32 samples and the remaining rendering and bundle costs for release review.
 - [ ] Obtain authorization for a fresh Daybreak addendum for the final candidate.
@@ -46,10 +96,10 @@ repository-wide convention and test migration on top of merged preview
       method documentation and source-backed snippets.
 - [x] Finish the TypeScript 6 helper-export nameability repair and all eight
       unchanged mapped compiler ceilings; verify one physical Effect runtime.
-- [ ] Finish integrated checks and review the exact committed diff before push.
+- [x] Finish integrated checks and review the exact committed diff before push.
 - [x] Reconcile newly arrived feedback, including Scene Mount routing, empty
       Menus, pointer drop indexes, Query runtime tests, and Node response cleanup.
-- [ ] Integrate reviewed code into the preview branch through required checks.
+- [x] Integrate reviewed code into the preview branch through required checks.
 
 Publication remains held for the user's review and approval. No new private
 source review transfer is authorized by earlier commit-specific approvals.

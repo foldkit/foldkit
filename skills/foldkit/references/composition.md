@@ -405,11 +405,15 @@ it.effect('updates the theme', () =>
 
 `Story.story` and `Scene.scene` return Effects. They acquire the selected root, run ordinary synchronous steps, and close its construction scope on success, assertion failure, interruption or constructor failure. Use `Story.init(...args)` / `Scene.init(...args)` to retain init's Model and Commands, or `given(model)` for a deliberately prebuilt Model. Additional dispatch arguments use `{ block, layer, updateContext: [...] }`. Required default-view inputs use `{ block, layer, viewInputs }`; routing uses the config's `routing` field. Use ordinary test Layers to satisfy construction requirements. Handler Layers are not built automatically, and ordinary HTTP/socket Services are unnecessary for a pure test unless graph construction itself requests them.
 
+Keep a Story or Scene specification declarative. Use immutable fixtures, `messageWith` when a Message needs the current Model at step execution, and assertions of observable Model, OutMessage, pending work, or rendered behavior. Do not use mutable outer variables or `mockImplementation` closures to relay values between steps. If those forms seem necessary, first establish that the test is not expressible through immutable setup and observable behavior, then treat the missing operation as a Story/Scene DSL gap.
+
 Use `it.effect` from a compatible `@effect/vitest` release for Effect-returning tests and return the runner Effect directly. Pure domain and selector tests stay synchronous. The integration manages execution, scoped cleanup, and test services; use `it.live` for an execution test that deliberately needs the live environment. A plain Vitest test must return or await `Effect.runPromise`; `Effect.runFork` alone does not make Vitest wait. Keep necessary Promise bridges inside typed Vitest fixtures. Normal tests pass the Block and construction Layer together; acquisition wrappers are for fixture initialization, graph identity, private registrations, and custom multi-view renderers. Deliver subsequent application interactions through Story or Scene steps.
 
 A direct child fact in a Block-aware Story uses `Story.messageFrom(binding, rawChildMessage)`, with the decoded occurrence key before the Message for a keyed Binding. The runner resolves the relationship against its acquired graph, including grouped `Story.steps`. Never fabricate generated envelopes. Production parents still use Binding operations.
 
 `Story.message` may send another fact while Commands are pending. Pending work keeps its captured identity and must be resolved before the Story ends. This does not change Scene's pending-Command or Mount checks.
+
+Use `Story.models(Story.steps(...), (before, after) => ...)` for immutable before/after assertions, including selected child reference comparisons. Place the initial `init` or `given` before the group. `Story.story` returns the final Model after verifying that all Commands were resolved; the Block-aware form returns an Effect of that Model. Bind the result with `const` for a later fixture instead of assigning from a `Story.model` callback. A Scene remains Model-opaque and uses view interactions and rendered assertions.
 
 Use `Story.inMessage(InMessage.RequestedSubmit())` or the Scene equivalent for a parent input. The runner applies `inMessageUpdate` inside the same acquired graph. Command resolution still dispatches the raw local result through update. Reusable `Story.steps` and `Scene.inside` retain the separate input type and do not bypass Scene's pending-Command boundary.
 
@@ -581,10 +585,18 @@ and intentional accessors. Keep local Block declaration, init, update and view i
 direct inside their owner; tests may import original effect definitions from
 the owning structural files. Domain and ordinary helper folders stay separate.
 
-Import named Foldkit UI exports from public component subpaths. Give common
-exports descriptive aliases, such as `DialogLayer`, `makeListboxBlock`, and
-`buttonView`. The parent registers the passive child contract and provides its
-construction Layer.
+Import a file's Foldkit UI component namespaces together from `@foldkit/ui`.
+Use each owning namespace for its passive Block, factory, construction Layer,
+types, and tests: `Dialog.DialogBlock`, `Listbox.makeBlock`, `Dialog.layer`,
+`Listbox.RenderInfo`, and `Listbox.test`. Alias a namespace only for a genuine
+local collision; never import a component subpath or alias one of its members.
+The parent registers the passive child contract and provides its construction
+Layer.
+
+When a feature's rendering is subdivided, `view/view.ts` composes the feature's
+render fragments and `view/index.ts` explicitly exports the intended view
+surface. Keep route, page, and demo renderers below `view/`; keep Model,
+Message, contracts, init, update, and other non-rendering ownership above it.
 
 ## Compose handlers and Services
 

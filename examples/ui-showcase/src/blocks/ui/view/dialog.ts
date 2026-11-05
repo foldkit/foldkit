@@ -1,10 +1,7 @@
 import { Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import {
-  DialogBlock,
-  type RenderInfo as DialogRenderInfo,
-} from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { CityComboboxBlock } from '../combobox'
 import {
@@ -22,7 +19,7 @@ import { Message } from '../message'
 import { comboboxInputs } from './combobox'
 
 type CityComboboxModel = typeof CityComboboxBlock.Model.Type
-type DialogModel = typeof DialogBlock.Model.Type
+type DialogModel = typeof Dialog.DialogBlock.Model.Type
 
 const triggerClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -72,8 +69,6 @@ const OVERLAY_COMBOBOX_ANCHOR = {
   padding: 8,
 }
 
-// PANEL CONTENT
-
 const trigger = (label: string, message: Message, h: UiViewBuilder): Html =>
   h.div(
     [h.Class(triggerRowClassName)],
@@ -81,9 +76,9 @@ const trigger = (label: string, message: Message, h: UiViewBuilder): Html =>
   )
 
 const confirmContent = (
-  closeButton: DialogRenderInfo['closeButton'],
-  title: DialogRenderInfo['title'],
-  description: DialogRenderInfo['description'],
+  closeButton: Dialog.RenderInfo['closeButton'],
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
   h: UiViewBuilder,
 ): Html =>
   h.div(
@@ -113,8 +108,8 @@ const confirmContent = (
   )
 
 const editFiltersContent = (
-  title: DialogRenderInfo['title'],
-  description: DialogRenderInfo['description'],
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
   comboboxModel: CityComboboxModel,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
@@ -147,9 +142,9 @@ const editFiltersContent = (
 ]
 
 const projectSettingsContent = (
-  closeButton: DialogRenderInfo['closeButton'],
-  title: DialogRenderInfo['title'],
-  description: DialogRenderInfo['description'],
+  closeButton: Dialog.RenderInfo['closeButton'],
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.h2([...title, h.Class(titleClassName)], ['Project settings']),
@@ -175,9 +170,9 @@ const projectSettingsContent = (
 ]
 
 const deleteProjectContent = (
-  closeButton: DialogRenderInfo['closeButton'],
-  title: DialogRenderInfo['title'],
-  description: DialogRenderInfo['description'],
+  closeButton: Dialog.RenderInfo['closeButton'],
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.h2([...title, h.Class(titleClassName)], ['Delete project?']),
@@ -196,10 +191,8 @@ const deleteProjectContent = (
   ),
 ]
 
-// DEMOS
-
 const dialogWithPanel = (
-  { dialog, backdrop, panel, isVisible }: DialogRenderInfo,
+  { dialog, backdrop, panel, isVisible }: Dialog.RenderInfo,
   backdropClassName: string,
   panelClassNameValue: string,
   content: () => ReadonlyArray<Html>,
@@ -216,7 +209,7 @@ const dialogWithPanel = (
   )
 
 const basicDemo = (dialogModel: DialogModel, h: UiViewBuilder) => {
-  const basicDialogView = (render: DialogRenderInfo): Html =>
+  const basicDialogView = (render: Dialog.RenderInfo): Html =>
     dialogWithPanel(
       render,
       backdropClassName,
@@ -240,7 +233,7 @@ const basicDemo = (dialogModel: DialogModel, h: UiViewBuilder) => {
 }
 
 const animatedDemo = (dialogModel: DialogModel, h: UiViewBuilder) => {
-  const animatedDialogView = (render: DialogRenderInfo): Html =>
+  const animatedDialogView = (render: Dialog.RenderInfo): Html =>
     dialogWithPanel(
       render,
       animatedBackdropClassName,
@@ -269,7 +262,7 @@ const overlayDemo = (
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ): Html => {
-  const overlayDialogView = (render: DialogRenderInfo): Html =>
+  const overlayDialogView = (render: Dialog.RenderInfo): Html =>
     dialogWithPanel(
       render,
       backdropClassName,
@@ -308,7 +301,7 @@ const nestedDemo = (
   childDialogModel: DialogModel,
   h: UiViewBuilder,
 ): Html => {
-  const settingsDialogView = (render: DialogRenderInfo): Html =>
+  const settingsDialogView = (render: Dialog.RenderInfo): Html =>
     dialogWithPanel(
       render,
       backdropClassName,
@@ -323,7 +316,7 @@ const nestedDemo = (
       h,
     )
 
-  const deleteProjectDialogView = (render: DialogRenderInfo): Html =>
+  const deleteProjectDialogView = (render: Dialog.RenderInfo): Html =>
     dialogWithPanel(
       render,
       backdropClassName,

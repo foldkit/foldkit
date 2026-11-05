@@ -3,7 +3,7 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { COUNT_COOKIE } from './cookie'
 
@@ -105,7 +105,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
       h.div(
         [h.Class('flex flex-wrap justify-center gap-4')],
         [
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedDecrement(),
               toView: attributes =>
@@ -113,7 +113,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
             },
             h,
           ),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedIncrement(),
               toView: attributes =>

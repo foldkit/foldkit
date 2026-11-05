@@ -1,4 +1,4 @@
-import { makeBlock as makeVirtualListBlock } from '@foldkit/ui/virtualList'
+import { VirtualList } from '@foldkit/ui'
 
 export type Activity = Readonly<{
   id: number
@@ -11,6 +11,6 @@ export type Activity = Readonly<{
   hasSummary: boolean
 }>
 
-export const ActivityVirtualListBlock = makeVirtualListBlock<Activity>()
+export const ActivityVirtualListBlock = VirtualList.makeBlock<Activity>()
 
 export const ROW_COUNT = 10_000

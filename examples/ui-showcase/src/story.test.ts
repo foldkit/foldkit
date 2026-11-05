@@ -5,7 +5,7 @@ import { fromString } from 'foldkit/url'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
@@ -100,15 +100,15 @@ describe('update', () => {
         init({ today }, urlOrThrow('http://localhost/')),
         message(Message.ClickedOpenMobileMenu()),
         Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
         Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
+          Dialog.test.CloseDialog,
+          Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
         model(model => {
           expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)

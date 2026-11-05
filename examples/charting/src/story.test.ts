@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import { FetchTelemetry, SyncChart } from './command'
 import {
@@ -42,7 +42,7 @@ const selectedPackage = (packageId: PackageId) =>
   )
 
 const resolveChartModeFocus = Command.resolve(
-  RadioGroupTest.FocusOption,
+  RadioGroup.test.FocusOption,
   ChartModeRadioGroupBlock.Message.CompletedFocusOption(),
 )
 

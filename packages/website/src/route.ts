@@ -13,8 +13,6 @@ import {
 } from 'foldkit/route'
 import type { CallableTaggedStruct } from 'foldkit/schema'
 
-// ROUTE SCHEMAS
-
 export const ApplicationRoute = defineRouteUnion({
   Home: {},
   WhyFoldkit: {},
@@ -256,8 +254,6 @@ export const isSearchRoute = (route: ApplicationRoute): boolean =>
  */
 export const isDocsSectionRoute = (route: ApplicationRoute): boolean =>
   isDocsUnionRoute(route) && route._tag !== 'NotFound'
-
-// ROUTERS
 
 type StaticRouteConstructor<Tag extends string> = CallableTaggedStruct<Tag, {}>
 
@@ -582,8 +578,6 @@ export const aiOverviewRouter = ai('overview', ApplicationRoute.AiOverview)
 export const aiSkillsRouter = ai('skills', ApplicationRoute.AiSkills)
 export const aiMcpRouter = ai('mcp', ApplicationRoute.AiMcp)
 
-// PARSER
-
 const introductionParser = oneOf(
   whyFoldkitRouter,
   roadmapRouter,
@@ -779,8 +773,6 @@ export const urlToApplicationRoute = parseUrlWithFallback(
   routeParser,
   ApplicationRoute.NotFound,
 )
-
-// URLS
 
 export const SITE_URL = 'https://foldkit.dev'
 

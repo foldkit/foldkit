@@ -1,7 +1,7 @@
 import type { CalendarDate } from 'foldkit/calendar'
 import { type Html, createKeyedLazy } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { Message } from './block'
 import { EducationEntryBlock } from './blocks/educationEntry'
@@ -43,7 +43,7 @@ export const view = EducationComposition.makeView((model, h) =>
           lazyEntry(entry.id, entryView, [entry, model.today, h]),
         ),
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedAddEntry(),
           toView: attributes =>

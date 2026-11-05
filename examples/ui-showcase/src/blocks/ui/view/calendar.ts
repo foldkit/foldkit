@@ -1,13 +1,7 @@
 import { Match } from 'effect'
 import type { ChildAttribute, Html } from 'foldkit/html'
 
-import type {
-  CalendarAttributes,
-  DaysModeAttributes,
-  MonthsModeAttributes,
-  Week,
-  YearsModeAttributes,
-} from '@foldkit/ui/calendar'
+import { Calendar } from '@foldkit/ui'
 
 import * as Icon from '../../../icon'
 import { CalendarBasicDemoBinding, UiComposition } from '../composition'
@@ -44,8 +38,6 @@ const monthYearGridClassName =
 const monthYearButtonClassName =
   'flex h-full w-full items-center justify-center rounded-md text-sm text-gray-900 tabular-nums cursor-pointer hover:bg-gray-100 group-data-[today]:ring-1 group-data-[today]:ring-gray-400 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white! group-data-[selected]:hover:bg-accent-600 group-data-[focused]:outline-2 group-data-[focused]:outline-offset-2 group-data-[focused]:outline-accent-500 group-data-[disabled]:cursor-not-allowed group-data-[disabled]:opacity-40'
 
-// PIECES
-
 const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   icon: Html,
@@ -53,7 +45,7 @@ const navButton = (
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
 const headingButton = (
-  heading: DaysModeAttributes['heading'],
+  heading: Calendar.DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
   h: UiViewBuilder,
 ): Html =>
@@ -62,7 +54,7 @@ const headingButton = (
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = (week: Week, h: UiViewBuilder) =>
+const weekRow = (week: Calendar.Week, h: UiViewBuilder) =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -78,9 +70,7 @@ const weekRow = (week: Week, h: UiViewBuilder) =>
     ),
   )
 
-// MODES
-
-const daysView = (days: DaysModeAttributes, h: UiViewBuilder) =>
+const daysView = (days: Calendar.DaysModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...days.root, h.Class(containerClassName)],
     [
@@ -110,7 +100,7 @@ const daysView = (days: DaysModeAttributes, h: UiViewBuilder) =>
     ],
   )
 
-const monthsView = (months: MonthsModeAttributes, h: UiViewBuilder) =>
+const monthsView = (months: Calendar.MonthsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...months.root, h.Class(containerClassName)],
     [
@@ -135,7 +125,7 @@ const monthsView = (months: MonthsModeAttributes, h: UiViewBuilder) =>
     ],
   )
 
-const yearsView = (years: YearsModeAttributes, h: UiViewBuilder) =>
+const yearsView = (years: Calendar.YearsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...years.root, h.Class(containerClassName)],
     [
@@ -168,7 +158,7 @@ const yearsView = (years: YearsModeAttributes, h: UiViewBuilder) =>
   )
 
 export const view = UiComposition.makeView((model, h) => {
-  const calendarView = Match.type<CalendarAttributes>().pipe(
+  const calendarView = Match.type<Calendar.CalendarAttributes>().pipe(
     Match.tagsExhaustive({
       Days: days => daysView(days, h),
       Months: months => monthsView(months, h),

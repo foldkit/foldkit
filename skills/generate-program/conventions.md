@@ -675,7 +675,7 @@ Use `taggedStruct` when the variants cannot be declared together:
 ## Code Style
 
 - No inline or block comments. If code needs explanation, use better names
-- A short section header is allowed when a long file has a substantial group that benefits from wayfinding. Do not add routine architecture headers to small application or example files.
+- Do not use decorative section-header comments such as `// MODEL`, `// OUT MESSAGE`, or `// VIEW`. Use names, blank lines, and file boundaries for structure.
 - TSDoc (`/** ... */`) on public exports
 - Always use braces for control flow: `if (foo) { return true }` not `if (foo) return true`
 - Use direct `value === undefined` and `value !== undefined` comparisons for undefined checks.
@@ -753,12 +753,10 @@ import { defineRouteUnion } from 'foldkit/route'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { DialogBlock, layer as DialogLayer } from '@foldkit/ui/dialog'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Dialog, Input } from '@foldkit/ui'
 ```
 
-Use named imports from public component subpaths. Qualify common exports through aliases such as `buttonView`, `DialogLayer`, and `makeListboxBlock`. Domain exports retain their names, such as `CalendarBlock` from `@foldkit/ui/calendar`, so they do not collide with the `Calendar` date module.
+Use one named root import per file and qualify UI values and types through their owning component namespace: `Button.view`, `Input.view`, `Dialog.DialogBlock`, `Dialog.layer`, and `Listbox.makeBlock`. Keep `Multi`, `RenderInfo`, and `test` on that namespace too. Alias only a colliding namespace, such as `Calendar as UiCalendar`; never alias individual UI members or import component subpaths.
 
 For form validation, also:
 
@@ -783,7 +781,8 @@ Notes:
 - For time, randomness, or delays, use Effect's built-ins directly rather than reaching for a Foldkit module: `Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.sleep(Duration.millis(...))`. For UUIDs, import `SecureRandom` from `effect/crypto`, use its `SecureRandom` service's `uuidV4()` Effect, and provide `BrowserCrypto.layerSecureRandom` from `@effect/platform-browser` at the application root.
 - Import Effect modules by their PascalCase names. When an Effect module name collides with a JavaScript or TypeScript global, qualify the global through `globalThis`, such as `globalThis.String`, `globalThis.Array`, or `globalThis.Record`. When an existing local or public binding must retain the module name, give the Effect import an explicit `Effect` prefix, such as `Order as EffectOrder`.
 - `Message.match` is the exhaustive matcher on a union returned by `defineMessageUnion()`. A `defineTaggedUnion` or `defineRouteUnion` namespace owns exhaustive `match` and partial `matchOrElse`. `Match` is Effect's Match module for partial Message matching, handlers shared by several tags, and unions without their own matcher.
-- **Import named UI exports from component subpaths**, such as `DialogBlock` and `layer as DialogLayer` from `@foldkit/ui/dialog`. Use component-qualified aliases for common names, and provide construction Layers separately from local handler Layers.
+- **Import UI component namespaces from `@foldkit/ui` once per file**, then use `Dialog.DialogBlock`, `Dialog.layer`, and `Input.view`. Keep factories, variants, types, and test matchers on their owning namespace, and provide construction Layers separately from local handler Layers.
+- **Subdivide rendering under `view/` only when it clarifies the feature.** `view/view.ts` is the entry composer and `view/index.ts` is an explicit barrel; route, page, and demo render fragments belong below that folder. Keep Model, Message, contracts, init, update, and all other non-rendering concerns outside it.
 - **`empty` and `keyed` are properties on `h`**, the builder every view receives as its last parameter. They are not top-level exports of `foldkit/html`, so they never belong in that import list. Same for `h.block`.
 - `AsyncData` for remote data state, `Update` for the update return type and the `combineSteps` / `refresh` combinators, `Http` for the `layer` that provides `HttpClient` to a Command.
 - HTTP types come from `effect/http`, not `@effect/platform`. `@effect/platform-browser` is a separate package used for `BrowserKeyValueStore` and `BrowserCrypto`.

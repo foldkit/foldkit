@@ -4,12 +4,8 @@ import { HttpClient } from 'effect/http'
 import type { PackageSpec } from './domain'
 import { encodePackageName, fetchJson } from './http'
 
-// CONSTANT
-
 const NPM_DOWNLOADS_API = 'https://api.npmjs.org/downloads/range/last-year'
 const NPM_REGISTRY_API = 'https://registry.npmjs.org'
-
-// SCHEMA
 
 export const NpmDownloadDay = Schema.Struct({
   day: Schema.String,
@@ -41,8 +37,6 @@ export const NpmPackument = Schema.Struct({
   }),
 })
 export type NpmPackument = typeof NpmPackument.Type
-
-// SERVICE
 
 type NpmApiShape = Readonly<{
   fetchPackage: (spec: PackageSpec) => Effect.Effect<

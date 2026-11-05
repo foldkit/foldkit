@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
 import {
@@ -20,7 +20,7 @@ import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
 
-type DialogMessage = typeof DialogBlock.Message.Type
+type DialogMessage = typeof Dialog.DialogBlock.Message.Type
 
 const emptyModel: Model = {
   grid: createEmptyGrid(4),
@@ -32,7 +32,7 @@ const emptyModel: Model = {
   mirrorMode: 'None' as const,
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: DialogBlock.Model.make({
+  errorDialog: Dialog.DialogBlock.Model.make({
     id: 'export-error-dialog',
     isOpen: false,
     isAnimated: false,
@@ -46,7 +46,7 @@ const emptyModel: Model = {
   }),
   maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: DialogBlock.Model.make({
+  gridSizeConfirmDialog: Dialog.DialogBlock.Model.make({
     id: 'grid-size-confirm-dialog',
     isOpen: false,
     isAnimated: false,
@@ -367,8 +367,8 @@ describe('grid size', () => {
       given(paintedModel),
       message(Message.SelectedGridSize({ size: 8 })),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       model(model => {
         expect(model.maybePendingGridSize).toEqual(Option.some(8))
@@ -394,13 +394,13 @@ describe('grid size', () => {
       given(paintedModel),
       message(Message.SelectedGridSize({ size: 8 })),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       message(Message.ConfirmedGridSizeChange()),
       Command.resolve(
-        DialogTest.CloseDialog,
-        DialogBlock.Message.CompletedCloseDialog(),
+        Dialog.test.CloseDialog,
+        Dialog.DialogBlock.Message.CompletedCloseDialog(),
       ),
       Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
       model(model => {
@@ -523,8 +523,8 @@ describe('export failure', () => {
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       model(model => {
         expect(model.maybeExportError).toEqual(
@@ -543,13 +543,13 @@ describe('export failure', () => {
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
-      errorDialogMessage(DialogBlock.Message.ClickedCloseButton()),
+      errorDialogMessage(Dialog.DialogBlock.Message.ClickedCloseButton()),
       Command.resolve(
-        DialogTest.CloseDialog,
-        DialogBlock.Message.CompletedCloseDialog(),
+        Dialog.test.CloseDialog,
+        Dialog.DialogBlock.Message.CompletedCloseDialog(),
       ),
       model(model => {
         expect(model.maybeExportError).toEqual(Option.none())

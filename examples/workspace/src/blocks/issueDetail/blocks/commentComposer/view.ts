@@ -1,8 +1,7 @@
 import { Array, Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Button, Textarea } from '@foldkit/ui'
 
 import { Comment, Member } from '../../../../domain'
 import {
@@ -120,7 +119,7 @@ export const view = CommentComposerComposition.makeView.withInputs(
             ),
           ],
           [
-            textareaView(
+            Textarea.view(
               {
                 id: textareaId,
                 value: model.body,
@@ -160,7 +159,7 @@ export const view = CommentComposerComposition.makeView.withInputs(
               [
                 ...(isBodyNonEmpty
                   ? [
-                      buttonView(
+                      Button.view(
                         {
                           type: 'button',
                           isDisabled: isDraftLocked,
@@ -179,7 +178,7 @@ export const view = CommentComposerComposition.makeView.withInputs(
                       ),
                     ]
                   : []),
-                buttonView(
+                Button.view(
                   {
                     type: 'submit',
                     isDisabled: isDraftLocked,

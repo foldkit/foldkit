@@ -1,28 +1,24 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as AnimationLayer } from '@foldkit/ui/animation'
-import { layer as CalendarLayer } from '@foldkit/ui/calendar'
 import {
-  layer as ComboboxLayer,
-  Multi as MultiCombobox,
-} from '@foldkit/ui/combobox'
-import { layer as DatePickerLayer } from '@foldkit/ui/datePicker'
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
-import { layer as DragAndDropLayer } from '@foldkit/ui/dragAndDrop'
-import { layer as FileDropLayer } from '@foldkit/ui/fileDrop'
-import { layer as HoverIntentLayer } from '@foldkit/ui/hoverIntent'
-import {
-  layer as ListboxLayer,
-  Multi as MultiListbox,
-} from '@foldkit/ui/listbox'
-import { layer as MenuLayer } from '@foldkit/ui/menu'
-import { layer as PopoverLayer } from '@foldkit/ui/popover'
-import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
-import { layer as SliderLayer } from '@foldkit/ui/slider'
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
-import { layer as ToastLayer } from '@foldkit/ui/toast'
-import { layer as TooltipLayer } from '@foldkit/ui/tooltip'
-import { layer as VirtualListLayer } from '@foldkit/ui/virtualList'
+  Animation,
+  Calendar,
+  Combobox,
+  DatePicker,
+  Dialog,
+  DragAndDrop,
+  FileDrop,
+  HoverIntent,
+  Listbox,
+  Menu,
+  Popover,
+  RadioGroup,
+  Slider,
+  Tabs,
+  Toast,
+  Tooltip,
+  VirtualList,
+} from '@foldkit/ui'
 
 import { UiBlock } from './block'
 import {
@@ -168,25 +164,25 @@ export const layer = UiBlock.makeLayer(
 ).pipe(
   Layer.provide(
     Layer.mergeAll(
-      AnimationLayer,
-      CalendarLayer,
-      ComboboxLayer,
-      MultiCombobox.layer,
-      DatePickerLayer,
-      DialogLayer,
-      DragAndDropLayer,
-      FileDropLayer,
-      HoverIntentLayer,
-      ListboxLayer,
-      MultiListbox.layer,
-      MenuLayer,
-      PopoverLayer,
-      RadioGroupLayer,
-      SliderLayer,
-      TabsLayer,
-      ToastLayer,
-      TooltipLayer,
-      VirtualListLayer,
+      Animation.layer,
+      Calendar.layer,
+      Combobox.layer,
+      Combobox.Multi.layer,
+      DatePicker.layer,
+      Dialog.layer,
+      DragAndDrop.layer,
+      FileDrop.layer,
+      HoverIntent.layer,
+      Listbox.layer,
+      Listbox.Multi.layer,
+      Menu.layer,
+      Popover.layer,
+      RadioGroup.layer,
+      Slider.layer,
+      Tabs.layer,
+      Toast.layer,
+      Tooltip.layer,
+      VirtualList.layer,
     ),
   ),
 )

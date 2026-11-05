@@ -1,11 +1,11 @@
 import { Array, Effect, Option } from 'effect'
-import { Scene, Story } from 'foldkit'
+import { AsyncData, Scene, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import * as Url from 'foldkit/url'
 import { describe, expect as expectValue } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as ListboxTest } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import { IssueDetailBlock } from './blocks/issueDetail'
 import { SaveIssue } from './blocks/issueDetail/command'
@@ -26,10 +26,8 @@ import {
   savedIssueFromIssue,
 } from './domain'
 import { ApplicationBlock, layer } from './index'
-import { issueHref } from './issueLinks'
 import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
-import type { Model } from './model'
 import { loadedWorkspaceModel } from './model.fixture'
 import { RepositoryError } from './repository'
 import { issuesRouter, savedViewRouter } from './route'
@@ -127,25 +125,25 @@ describe('workspace application', () => {
         ),
         Scene.click(Scene.role('button', { name: 'Active member' })),
         Scene.Command.resolve(
-          ListboxTest.FocusListboxItems,
+          Listbox.test.FocusListboxItems,
           WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
         ),
         Scene.Mount.resolve(
-          ListboxTest.AnchorListbox,
+          Listbox.test.AnchorListbox,
           WorkspaceListboxBlock.Message.CompletedAnchorListbox(),
         ),
         Scene.Mount.resolve(
-          ListboxTest.PortalListboxBackdrop,
+          Listbox.test.PortalListboxBackdrop,
           WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
         ),
         Scene.click(Scene.role('option', { name: 'Jordan Lee' })),
         Scene.Command.resolve(
-          ListboxTest.FocusListboxButton,
+          Listbox.test.FocusListboxButton,
           WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
         ),
         Scene.Mount.expectEnded(
-          ListboxTest.AnchorListbox,
-          ListboxTest.PortalListboxBackdrop,
+          Listbox.test.AnchorListbox,
+          Listbox.test.PortalListboxBackdrop,
         ),
         Scene.expect(
           Scene.role('button', { name: 'Active member' }),
@@ -325,34 +323,29 @@ describe('workspace application', () => {
           name: 'Command work',
           filters,
         })
-        const modelWithPreset = modifyFields(yield* loadedWorkspaceModel(), {
-          savedViews: () => [savedView],
-        })
-        let maybeHref = Option.none<string>()
-
-        yield* Story.story(
-          application,
-          Story.given(modelWithPreset),
-          Story.message(
-            Message.ChangedUrl({ url: url(`/views/${savedView.id}`) }),
-          ),
-          Story.model(model => {
-            maybeHref = Option.some(issueHref(model, firstIssue.id))
-          }),
-        )
-
         const savedViewPath = savedViewRouter({ viewId: savedView.id, filters })
-        const href = Option.getOrThrow(maybeHref)
-
-        expectValue(href).toBe(
-          savedViewRouter({
-            viewId: savedView.id,
-            filters,
-            issueId: firstIssue.id,
-          }),
+        const savedViewIssuePath = savedViewRouter({
+          viewId: savedView.id,
+          filters,
+          issueId: firstIssue.id,
+        })
+        const modelWithPreset = modifyFields(
+          yield* loadedWorkspaceModel(savedViewPath),
+          { savedViews: () => [savedView] },
         )
 
-        const reloadedIssueModel = yield* loadedWorkspaceModel(href)
+        yield* Scene.scene(
+          application,
+          Scene.given(modelWithPreset),
+          Scene.expect(
+            Scene.role('link', {
+              name: `${firstIssue.identifier} ${firstIssue.title}`,
+            }),
+          ).toHaveAttr('href', savedViewIssuePath),
+        )
+
+        const reloadedIssueModel =
+          yield* loadedWorkspaceModel(savedViewIssuePath)
 
         expectValue(reloadedIssueModel.savedViews).toEqual([])
         expectValue(appliedIssueFilters(reloadedIssueModel)).toEqual(filters)
@@ -684,10 +677,7 @@ describe('workspace application', () => {
     'keeps the routed editor and its draft visible during a failed refresh',
     () => {
       return Effect.gen(function* () {
-        let maybeRefreshingModel = Option.none<Model>()
-        let maybeFailedModel = Option.none<Model>()
-
-        yield* Story.story(
+        const dirtyEditorModel = yield* Story.story(
           application,
           Story.init(url(issuePath)),
           Story.Command.resolve(
@@ -701,24 +691,26 @@ describe('workspace application', () => {
               value: 'Keep this draft while refreshing',
             }),
           ),
+        )
+        const refreshingModel = modifyFields(dirtyEditorModel, {
+          workspaceAsyncData: workspaceAsyncData =>
+            Option.getOrThrow(AsyncData.revalidateOrLoad(workspaceAsyncData)),
+        })
+        const failedRefreshModel = yield* Story.story(
+          application,
+          Story.given(dirtyEditorModel),
           Story.message(Message.ClickedRetryLoad()),
-          Story.model(model => {
-            maybeRefreshingModel = Option.some(model)
-          }),
           Story.Command.resolve(
             LoadWorkspace,
             Message.FailedLoadWorkspace({
               error: 'The workspace is temporarily unavailable.',
             }),
           ),
-          Story.model(model => {
-            maybeFailedModel = Option.some(model)
-          }),
         )
 
         yield* Scene.scene(
           application,
-          Scene.given(Option.getOrThrow(maybeRefreshingModel)),
+          Scene.given(refreshingModel),
           Scene.expect(Scene.label('Issue title')).toHaveValue(
             'Keep this draft while refreshing',
           ),
@@ -732,7 +724,7 @@ describe('workspace application', () => {
 
         yield* Scene.scene(
           application,
-          Scene.given(Option.getOrThrow(maybeFailedModel)),
+          Scene.given(failedRefreshModel),
           Scene.expect(Scene.label('Issue title')).toHaveValue(
             'Keep this draft while refreshing',
           ),
@@ -761,9 +753,7 @@ describe('workspace application', () => {
             issue.id === latestIssue.id ? latestIssue : issue,
           ),
         })
-        let maybeRefreshedModel = Option.none<Model>()
-
-        yield* Story.story(
+        const dirtyEditorModel = yield* Story.story(
           application,
           Story.init(url(issuePath)),
           Story.Command.resolve(
@@ -777,19 +767,20 @@ describe('workspace application', () => {
               value: 'Keep this unsaved title',
             }),
           ),
+        )
+        const refreshedModel = yield* Story.story(
+          application,
+          Story.given(dirtyEditorModel),
           Story.message(Message.ClickedRetryLoad()),
           Story.Command.resolve(
             LoadWorkspace,
             Message.SucceededLoadWorkspace({ workspace: latestWorkspace }),
           ),
-          Story.model(model => {
-            maybeRefreshedModel = Option.some(model)
-          }),
         )
 
         yield* Scene.scene(
           application,
-          Scene.given(Option.getOrThrow(maybeRefreshedModel)),
+          Scene.given(refreshedModel),
           Scene.expect(Scene.label('Issue title')).toHaveValue(
             'Keep this unsaved title',
           ),

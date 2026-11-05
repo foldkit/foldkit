@@ -1,8 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
-import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
 import {
@@ -45,5 +43,5 @@ export const layer = ApplicationBlock.makeLayer(
     }
   }),
 ).pipe(
-  Layer.provide(Layer.mergeAll(DialogLayer, ListboxLayer, RadioGroupLayer)),
+  Layer.provide(Layer.mergeAll(Dialog.layer, Listbox.layer, RadioGroup.layer)),
 )

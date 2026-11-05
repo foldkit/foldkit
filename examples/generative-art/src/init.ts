@@ -1,6 +1,6 @@
 import { Array, Option } from 'effect'
 
-import { snapAndClamp } from '@foldkit/ui/slider'
+import { Slider } from '@foldkit/ui'
 
 import { GenerateAmbientParticle } from './command'
 import { ApplicationComposition } from './composition'
@@ -23,13 +23,13 @@ export const init = ApplicationComposition.makeInit(() => ({
     elapsedSeconds: 0,
     maybeMousePosition: Option.none(),
     isRunning: true,
-    flowStrength: snapAndClamp(
+    flowStrength: Slider.snapAndClamp(
       INITIAL_FLOW_STRENGTH,
       FLOW_STRENGTH_MIN,
       FLOW_STRENGTH_MAX,
       FLOW_STRENGTH_STEP,
     ),
-    noiseScale: snapAndClamp(
+    noiseScale: Slider.snapAndClamp(
       INITIAL_NOISE_SCALE,
       NOISE_SCALE_MIN_DIVISOR,
       NOISE_SCALE_MAX_DIVISOR,

@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import type { Block } from 'foldkit'
 
-import { DatePickerBlock } from '@foldkit/ui/datePicker'
+import { DatePicker } from '@foldkit/ui'
 
 import {
   PronounsListboxBlock,
@@ -24,13 +24,13 @@ export const PronounsBinding = makeBinding(PronounsListboxBlock, {
   }),
 })
 
-export const AvailableDateBinding = makeBinding(DatePickerBlock, {
+export const AvailableDateBinding = makeBinding(DatePicker.DatePickerBlock, {
   field: 'availableDate',
   init: {
     contextToArgs: today => [{ id: 'available-date', today, minDate: today }],
   },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(DatePickerBlock, {
+  fold: makeOutMessageFold(DatePicker.DatePickerBlock, {
     SelectedDate: ({ date }) =>
       makeFieldsStep(() => ({
         maybeAvailableDate: () => Option.some(date),

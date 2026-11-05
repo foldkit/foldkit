@@ -2,15 +2,11 @@ import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  DialogBlock,
-  layer as DialogLayer,
-  type RenderInfo as DialogRenderInfo,
-} from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 // Add a field to your Model for the Dialog Block:
 const Model = Schema.Struct({
-  dialog: DialogBlock.Model,
+  dialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -32,13 +28,13 @@ export const AnimatedDialogExampleBlock = Block.make('AnimatedDialogExample', {
 const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
   AnimatedDialogExampleBlock
 
-const foldDialogOutMessage = makeOutMessageFold(DialogBlock, {
+const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   Opened: makeNoopStep,
   Closed: makeNoopStep,
   CompletedClose: makeNoopStep,
 })
 
-const DialogBinding = makeBinding(DialogBlock, {
+const DialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: {
     contextToArgs: () => [{ id: 'confirm', isAnimated: true }],
@@ -69,7 +65,7 @@ const view = AnimatedDialogExampleComposition.makeView((model, h) => {
     description,
     closeButton,
     isVisible,
-  }: DialogRenderInfo) =>
+  }: Dialog.RenderInfo) =>
     h.dialog(
       [
         ...dialog,
@@ -138,4 +134,4 @@ export const layer = AnimatedDialogExampleBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(DialogLayer))
+).pipe(Layer.provide(Dialog.layer))

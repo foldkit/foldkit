@@ -2,7 +2,7 @@ import { Option, pipe } from 'effect'
 import { type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { DialogBlock } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import {
   makeBinding,
@@ -80,11 +80,11 @@ export const CoreBlockPageBinding = makeBinding(BlockPageBlock, {
   field: 'coreBlockPage',
 })
 
-export const MobileMenuDialogBinding = makeBinding(DialogBlock, {
+export const MobileMenuDialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'mobileMenuDialog',
   init: { contextToArgs: () => [{ id: 'mobile-menu' }] },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(DialogBlock, {
+  fold: makeOutMessageFold(Dialog.DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: makeNoopStep,

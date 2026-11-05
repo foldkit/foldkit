@@ -762,17 +762,24 @@ describe('unified Block.make and makeLayer prototype', () => {
   })
 
   it('runs a Story against the explicit public Block and selected Layer pair', async () => {
-    const testLayer = Layer.provide(
-      selectedParentLayer,
-      Layer.succeed(ParentService, { value: 'story' }),
+    const selectedStory = Story.story(
+      { block: Parent, layer: selectedParentLayer },
+      Story.given({ child: { value: 7 } }),
     )
+    expectTypeOf<Effect.Success<typeof selectedStory>>().toEqualTypeOf<
+      typeof Parent.Model.Type
+    >()
+    expectTypeOf<Effect.Error<typeof selectedStory>>().toEqualTypeOf<never>()
+    expectTypeOf<
+      Effect.Services<typeof selectedStory>
+    >().toEqualTypeOf<ParentService>()
 
-    await Effect.runPromise(
-      Story.story(
-        { block: Parent, layer: testLayer },
-        Story.given({ child: { value: 7 } }),
+    const finalModel = await Effect.runPromise(
+      selectedStory.pipe(
+        Effect.provideService(ParentService, { value: 'story' }),
       ),
     )
+    expect(finalModel).toEqual({ child: { value: 7 } })
   })
 
   it('runs a Scene against the explicit public Block and selected Layer pair', async () => {

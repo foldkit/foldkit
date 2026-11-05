@@ -13,7 +13,7 @@ import {
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { SnippetDisclosureBlock } from '..'
 import { Deployment } from '../../deployment'
@@ -94,7 +94,7 @@ describe('example detail', () => {
         'true',
       ),
       Command.resolve(
-        TabsTest.FocusTab,
+        Tabs.test.FocusTab,
         SourceFileTabsBlock.Message.CompletedFocusTab(),
       ),
       expect(

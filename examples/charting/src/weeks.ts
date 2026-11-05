@@ -1,10 +1,6 @@
 import { Array, DateTime, Option, pipe } from 'effect'
 
-// CONSTANT
-
 export const LAST_YEAR_WEEKS = 52
-
-// WEEKS
 
 export type WeeklyCount = Readonly<{ weekStart: string; count: number }>
 

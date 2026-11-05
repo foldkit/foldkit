@@ -1,7 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as MenuLayer } from '@foldkit/ui/menu'
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Menu, Tabs } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
 import {
@@ -64,8 +63,8 @@ export const layer = ApplicationBlock.makeLayer(
       Skills.layer,
       CoverLetter.layer,
       Attachments.layer,
-      MenuLayer,
-      TabsLayer,
+      Menu.layer,
+      Tabs.layer,
     ),
   ),
 )

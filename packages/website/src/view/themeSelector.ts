@@ -1,7 +1,7 @@
 import { Match, Option } from 'effect'
 import { type Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 
-import type { AnchorConfig as MenuAnchorConfig } from '@foldkit/ui/menu'
+import { Menu } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { ThemeMenuBinding } from '../composition'
@@ -17,7 +17,7 @@ const THEME_PREFERENCES: ReadonlyArray<ThemePreference> = [
   'System',
 ]
 
-const THEME_MENU_ANCHOR: MenuAnchorConfig = {
+const THEME_MENU_ANCHOR: Menu.AnchorConfig = {
   placement: 'bottom-end',
   gap: 8,
   padding: 8,

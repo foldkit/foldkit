@@ -3,11 +3,11 @@ import { Block } from 'foldkit'
 import { Field } from 'foldkit/fieldValidation'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { makeBlock as makeListboxBlock } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import type { ViewInputs } from './view'
 
-export const GraduationYearListboxBlock = makeListboxBlock()
+export const GraduationYearListboxBlock = Listbox.makeBlock()
 
 export const Model = Schema.Struct({
   id: Schema.String,

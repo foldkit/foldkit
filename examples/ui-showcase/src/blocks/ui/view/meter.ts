@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { type MeterAttributes, view as meterView } from '@foldkit/ui/meter'
+import { Meter } from '@foldkit/ui'
 
 import type { UiMessage } from '../composition'
 import { UiComposition } from '../composition'
@@ -17,7 +17,7 @@ export const view = UiComposition.makeView((_model, h) => {
     meter,
     label,
     fill,
-  }: MeterAttributes<UiMessage>): Html =>
+  }: Meter.MeterAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(rowClassName)],
       [
@@ -39,7 +39,7 @@ export const view = UiComposition.makeView((_model, h) => {
     meter,
     label,
     fill,
-  }: MeterAttributes<UiMessage>): Html =>
+  }: Meter.MeterAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(rowClassName)],
       [
@@ -65,7 +65,7 @@ export const view = UiComposition.makeView((_model, h) => {
         [h.Class('text-lg font-semibold text-gray-900 mb-4')],
         ['Scalar value'],
       ),
-      meterView(
+      Meter.view(
         {
           id: 'health-meter',
           value: 75,
@@ -78,7 +78,7 @@ export const view = UiComposition.makeView((_model, h) => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Thresholds'],
       ),
-      meterView(
+      Meter.view(
         {
           id: 'storage-meter',
           value: 82,

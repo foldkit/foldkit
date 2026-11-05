@@ -9,6 +9,7 @@ import {
   message,
   messageFrom,
   model,
+  models,
   steps,
   story,
   withBlock,
@@ -18,7 +19,7 @@ import * as Url from 'foldkit/url'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import {
   HomeBlock,
@@ -34,7 +35,7 @@ import {
   LoadExampleSources,
 } from './blocks/exampleDetail/example'
 import { NotePlayerDemoBlock } from './blocks/home/blocks'
-import { managedResources as notePlayerResources } from './blocks/home/blocks/notePlayerDemo/notePlayerDemo'
+import { managedResources as notePlayerResources } from './blocks/home/blocks/notePlayerDemo/resource'
 import {
   NotePlayerDemoBinding,
   PlaygroundMenuBinding,
@@ -277,21 +278,22 @@ describe('application', () => {
   })
 
   it.effect('navigation opens an existing closed sidebar group', () => {
-    let initialGroups: Model['sidebarGroups'] | undefined
-
     return story(
       application,
       init(flags, homeUrl),
       completeStartup(homeUrl),
       model(model => {
-        initialGroups = model.sidebarGroups
         expect(model.sidebarGroups.apiReference).toBe(false)
       }),
-      message(Message.ChangedUrl({ url: commandApiUrl })),
-      model(model => {
-        expect(model.sidebarGroups.apiReference).toBe(true)
-        expect(model.sidebarGroups.examples).toBe(initialGroups?.examples)
-      }),
+      models(
+        steps(message(Message.ChangedUrl({ url: commandApiUrl }))),
+        (before, after) => {
+          expect(after.sidebarGroups.apiReference).toBe(true)
+          expect(after.sidebarGroups.examples).toBe(
+            before.sidebarGroups.examples,
+          )
+        },
+      ),
       ...resolvePathChangeCommands(),
     )
   })
@@ -299,18 +301,18 @@ describe('application', () => {
   it.effect(
     'navigation within an open sidebar group preserves its state',
     () => {
-      let initialGroups: Model['sidebarGroups'] | undefined
-
       return story(
         application,
         init(flags, commandApiUrl),
         completeStartup(commandApiUrl),
         model(model => {
-          initialGroups = model.sidebarGroups
           expect(model.sidebarGroups.apiReference).toBe(true)
         }),
-        message(Message.ChangedUrl({ url: updateApiUrl })),
-        model(model => expect(model.sidebarGroups).toBe(initialGroups)),
+        models(
+          steps(message(Message.ChangedUrl({ url: updateApiUrl }))),
+          (before, after) =>
+            expect(after.sidebarGroups).toBe(before.sidebarGroups),
+        ),
         ...resolvePathChangeCommands(),
       )
     },
@@ -363,22 +365,24 @@ describe('application', () => {
   )
 
   it.effect('remaining on a Playground slug preserves its Model', () => {
-    let initialPlayground: Option.Option.Value<Model['playground']> | undefined
-
     return story(
       application,
       init(flags, playgroundCounterUrl),
       completeStartup(playgroundCounterUrl),
-      model(model => {
-        initialPlayground = Option.getOrThrow(model.playground)
-      }),
-      message(
-        Message.ChangedUrl({
-          url: parseUrl('https://foldkit.dev/playground/counter#src/block.ts'),
-        }),
-      ),
-      model(model =>
-        expect(Option.getOrThrow(model.playground)).toBe(initialPlayground),
+      models(
+        steps(
+          message(
+            Message.ChangedUrl({
+              url: parseUrl(
+                'https://foldkit.dev/playground/counter#src/block.ts',
+              ),
+            }),
+          ),
+        ),
+        (before, after) =>
+          expect(Option.getOrThrow(after.playground)).toBe(
+            Option.getOrThrow(before.playground),
+          ),
       ),
       Command.expectExact(ScrollToAnchor),
       Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
@@ -386,21 +390,18 @@ describe('application', () => {
   })
 
   it.effect('changing Playground slugs initializes a fresh Model', () => {
-    let initialPlayground: Option.Option.Value<Model['playground']> | undefined
-
     return story(
       application,
       init(flags, playgroundCounterUrl),
       completeStartup(playgroundCounterUrl),
-      model(model => {
-        initialPlayground = Option.getOrThrow(model.playground)
-      }),
-      message(Message.ChangedUrl({ url: playgroundCountersUrl })),
-      model(model => {
-        const nextPlayground = Option.getOrThrow(model.playground)
-        expect(nextPlayground).not.toBe(initialPlayground)
-        expect(nextPlayground.slug).toBe('counters')
-      }),
+      models(
+        steps(message(Message.ChangedUrl({ url: playgroundCountersUrl }))),
+        (before, after) => {
+          const nextPlayground = Option.getOrThrow(after.playground)
+          expect(nextPlayground).not.toBe(Option.getOrThrow(before.playground))
+          expect(nextPlayground.slug).toBe('counters')
+        },
+      ),
       ...resolvePathChangeCommands(),
     )
   })
@@ -410,10 +411,6 @@ describe('application', () => {
     { isPlaygroundSupported: false },
   ])(
     'entering Playground reuses cached browser support ($isPlaygroundSupported)',
-    // we need to make sure all of our story tests look like story tests
-    // becuase reading this and the one below i see that these are not using
-    // the standard story test style? whats up with that? need full audit
-    // across codebase.
     ({ isPlaygroundSupported }) =>
       story(
         application,
@@ -483,8 +480,8 @@ describe('application', () => {
       completeStartup(newsletterUrl),
       message(Message.ClickedOpenSearch()),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       Command.resolve(
         FocusSearchInput,
@@ -493,13 +490,13 @@ describe('application', () => {
       message(Message.ChangedUrl({ url: homeUrlWithHash })),
       model(model => expect(model.search.dialog.isOpen).toBe(false)),
       Command.expectExact(
-        DialogTest.CloseDialog({ id: 'search-dialog' }),
+        Dialog.test.CloseDialog({ id: 'search-dialog' }),
         ScrollToAnchor,
         ScrollSidebarActiveLinkIntoView,
       ),
       (simulation: ApplicationSimulation) => {
         for (const [pending, definition] of Array.zip(simulation.commands, [
-          DialogTest.CloseDialog,
+          Dialog.test.CloseDialog,
           ScrollToAnchor,
           ScrollSidebarActiveLinkIntoView,
         ])) {
@@ -508,8 +505,8 @@ describe('application', () => {
         return simulation
       },
       Command.resolve(
-        DialogTest.CloseDialog({ id: 'search-dialog' }),
-        DialogBlock.Message.CompletedCloseDialog(),
+        Dialog.test.CloseDialog({ id: 'search-dialog' }),
+        Dialog.DialogBlock.Message.CompletedCloseDialog(),
       ),
       Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
       Command.resolve(
@@ -619,18 +616,16 @@ describe('application', () => {
   )
 
   it.effect('remaining on Home preserves the existing Home Model', () => {
-    let initialHome: HomeBlockModel | undefined
-
     return story(
       application,
       init(flags, homeUrl),
       completeStartup(homeUrl),
-      model(model => {
-        initialHome = Option.getOrThrow(model.maybeHome)
-      }),
-      message(Message.ChangedUrl({ url: homeUrl })),
-      model(model =>
-        expect(Option.getOrThrow(model.maybeHome)).toBe(initialHome),
+      models(
+        steps(message(Message.ChangedUrl({ url: homeUrl }))),
+        (before, after) =>
+          expect(Option.getOrThrow(after.maybeHome)).toBe(
+            Option.getOrThrow(before.maybeHome),
+          ),
       ),
       Command.expectNone(),
     )
@@ -724,8 +719,8 @@ describe('application', () => {
       message(Message.ClickedOpenSearch()),
       model(model => expect(model.search.dialog.isOpen).toBe(true)),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       Command.resolve(
         FocusSearchInput,

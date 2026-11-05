@@ -4,9 +4,7 @@ import { FieldValidation } from 'foldkit'
 import { Field } from 'foldkit/fieldValidation'
 import { type Attribute, Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Button, Input, Textarea } from '@foldkit/ui'
 
 import {
   ApplicationComposition,
@@ -79,7 +77,7 @@ const inputFieldView = (
   type: string,
   h: ApplicationViewBuilder,
 ): Html =>
-  inputView(
+  Input.view(
     {
       id,
       value: field.value,
@@ -116,7 +114,7 @@ const textareaFieldView = (
   onUpdate: (value: string) => Message,
   h: ApplicationViewBuilder,
 ): Html =>
-  textareaView(
+  Textarea.view(
     {
       id,
       value: field.value,
@@ -189,7 +187,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
                 h,
               ),
 
-              buttonView(
+              Button.view(
                 {
                   type: 'submit',
                   isDisabled: !canSubmit,

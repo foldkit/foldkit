@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { SliderBlock } from '@foldkit/ui/slider'
+import { Slider } from '@foldkit/ui'
 
 import { GenerateAmbientParticle } from './command'
 import {
@@ -30,24 +30,24 @@ const initialModel: Model = {
   maybeMousePosition: Option.none(),
   isRunning: true,
   flowStrength: INITIAL_FLOW_STRENGTH,
-  flowStrengthSlider: SliderBlock.Model.make({
+  flowStrengthSlider: Slider.SliderBlock.Model.make({
     ...{
       id: 'flow-strength-slider',
       min: FLOW_STRENGTH_MIN,
       max: FLOW_STRENGTH_MAX,
       step: FLOW_STRENGTH_STEP,
     },
-    dragState: SliderBlock.Model.fields.dragState.make({ _tag: 'Idle' }),
+    dragState: Slider.SliderBlock.Model.fields.dragState.make({ _tag: 'Idle' }),
   }),
   noiseScale: INITIAL_NOISE_SCALE,
-  noiseScaleSlider: SliderBlock.Model.make({
+  noiseScaleSlider: Slider.SliderBlock.Model.make({
     ...{
       id: 'noise-scale-slider',
       min: NOISE_SCALE_MIN_DIVISOR,
       max: NOISE_SCALE_MAX_DIVISOR,
       step: NOISE_SCALE_STEP,
     },
-    dragState: SliderBlock.Model.fields.dragState.make({ _tag: 'Idle' }),
+    dragState: Slider.SliderBlock.Model.fields.dragState.make({ _tag: 'Idle' }),
   }),
 }
 

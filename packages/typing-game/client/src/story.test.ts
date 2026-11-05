@@ -416,9 +416,7 @@ describe('Home and Room coordination', () => {
         >().toEqualTypeOf<RoomsClient | KeyValueStore.KeyValueStore>()
 
         const expectedSession = { roomId: ROOM_A, player: bob }
-        let informedModel: RoomModel | undefined
-
-        yield* story(
+        const informedModel = yield* story(
           {
             ...roomSubject,
             updateContext: [{ roomId: ROOM_A }],
@@ -427,7 +425,6 @@ describe('Home and Room coordination', () => {
           given(joinedRoom),
           inMessage(RoomInMessage.InformedOfJoin({ player: bob })),
           model(model => {
-            informedModel = model
             expect(model.maybeSession).toEqual(Option.some(expectedSession))
           }),
           Command.expectExact(SavePlayerSession({ session: expectedSession })),

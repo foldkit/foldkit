@@ -1,7 +1,5 @@
 import { Array, Option, Schema, String, pipe } from 'effect'
 
-// POST FRONTMATTER
-
 const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 
 const MONTH_LENGTHS: ReadonlyArray<number> = [
@@ -122,8 +120,6 @@ export const PostFrontmatter = Schema.Struct({
   ),
 )
 export type PostFrontmatter = typeof PostFrontmatter.Type
-
-// POST COVER
 
 /**
  * A post's cover image: the root-relative path it serves from, its alt text

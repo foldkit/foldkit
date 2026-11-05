@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
 
-import { DatePickerBlock } from '@foldkit/ui/datePicker'
+import { DatePicker } from '@foldkit/ui'
 
 import {
   makeBinding,
@@ -11,7 +11,7 @@ import {
   makeOutMessageFold,
 } from './block'
 
-export const StartDateBinding = makeBinding(DatePickerBlock, {
+export const StartDateBinding = makeBinding(DatePicker.DatePickerBlock, {
   field: 'startDate',
   init: {
     contextToArgs: ({ entryId, today }) => [{ id: `${entryId}-start`, today }],
@@ -20,7 +20,7 @@ export const StartDateBinding = makeBinding(DatePickerBlock, {
   fold: outMessage => foldStartDateOutMessage(outMessage),
 })
 
-export const EndDateBinding = makeBinding(DatePickerBlock, {
+export const EndDateBinding = makeBinding(DatePicker.DatePickerBlock, {
   field: 'endDate',
   init: {
     contextToArgs: ({ entryId, today }) => [{ id: `${entryId}-end`, today }],
@@ -29,7 +29,7 @@ export const EndDateBinding = makeBinding(DatePickerBlock, {
   fold: outMessage => foldEndDateOutMessage(outMessage),
 })
 
-const foldStartDateOutMessage = makeOutMessageFold(DatePickerBlock, {
+const foldStartDateOutMessage = makeOutMessageFold(DatePicker.DatePickerBlock, {
   ChangedViewMonth: makeNoopStep,
   SelectedDate: ({ date }) =>
     Update.combineSteps([
@@ -47,7 +47,7 @@ const foldStartDateOutMessage = makeOutMessageFold(DatePickerBlock, {
     ]),
 })
 
-const foldEndDateOutMessage = makeOutMessageFold(DatePickerBlock, {
+const foldEndDateOutMessage = makeOutMessageFold(DatePicker.DatePickerBlock, {
   ChangedViewMonth: makeNoopStep,
   SelectedDate: ({ date }) =>
     Update.combineSteps([

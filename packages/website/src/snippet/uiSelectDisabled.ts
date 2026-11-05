@@ -2,10 +2,10 @@
 // and ignore onChange events.
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { type SelectAttributes, view as selectView } from '@foldkit/ui/select'
+import { Select } from '@foldkit/ui'
 
 const view = (h: HtmlBuilder<Message>) => {
-  const countrySelectView = (attributes: SelectAttributes<Message>) =>
+  const countrySelectView = (attributes: Select.SelectAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-1.5')],
       [
@@ -32,7 +32,7 @@ const view = (h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return selectView(
+  return Select.view(
     {
       id: 'country-disabled',
       isDisabled: true,

@@ -1,9 +1,7 @@
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
-import { buttonId as listboxButtonId } from '@foldkit/ui/listbox'
+import { Button, Input, Listbox } from '@foldkit/ui'
 
 import { GroupBy, IssueFilters, IssueStatus } from '../../../domain'
 import {
@@ -52,7 +50,7 @@ const statusFilterView = (
     [h.Class(FIELD_CLASS)],
     [
       h.label(
-        [h.For(listboxButtonId(model.statusListbox.id)), h.Class(LABEL_CLASS)],
+        [h.For(Listbox.buttonId(model.statusListbox.id)), h.Class(LABEL_CLASS)],
         ['Status'],
       ),
       h.block(
@@ -79,7 +77,7 @@ const sortView = (
     [h.Class(FIELD_CLASS)],
     [
       h.label(
-        [h.For(listboxButtonId(model.sortListbox.id)), h.Class(LABEL_CLASS)],
+        [h.For(Listbox.buttonId(model.sortListbox.id)), h.Class(LABEL_CLASS)],
         ['Sort'],
       ),
       h.block(
@@ -106,7 +104,7 @@ const groupView = (
     [h.Class(FIELD_CLASS)],
     [
       h.label(
-        [h.For(listboxButtonId(model.groupListbox.id)), h.Class(LABEL_CLASS)],
+        [h.For(Listbox.buttonId(model.groupListbox.id)), h.Class(LABEL_CLASS)],
         ['Group'],
       ),
       h.block(
@@ -137,7 +135,7 @@ const savedViewForm = (
       ),
     ],
     [
-      inputView(
+      Input.view(
         {
           id: 'issue-list-saved-view-name',
           placeholder: 'View name',
@@ -155,7 +153,7 @@ const savedViewForm = (
         },
         h,
       ),
-      buttonView(
+      Button.view(
         {
           type: 'submit',
           toView: attributes =>
@@ -182,7 +180,7 @@ export const filterToolbarView = (
       ),
     ],
     [
-      inputView(
+      Input.view(
         {
           id: 'issue-list-input-1',
           type: 'search',
@@ -212,7 +210,7 @@ export const filterToolbarView = (
       statusFilterView(model, filters, h),
       sortView(model, filters, h),
       groupView(model, filters, h),
-      buttonView(
+      Button.view(
         {
           isDisabled: isCreationDisabled,
           onClick: Message.ClickedCreateIssue(),

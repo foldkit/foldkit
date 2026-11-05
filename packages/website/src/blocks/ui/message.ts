@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { HistoryPage as VirtualListHistoryPage } from '@foldkit/ui/virtualList'
+import { VirtualList } from '@foldkit/ui'
 
 import {
   VirtualListChatHistorySource,
@@ -43,7 +43,7 @@ export const Message = defineMessageUnion({
     requestVersion: Schema.Number,
     messages: Schema.Array(VirtualListChatMessage),
     source: VirtualListChatHistorySource,
-    page: VirtualListHistoryPage,
+    page: VirtualList.HistoryPage,
   },
   ClickedVirtualListChatScrollToMessage: {},
   ClickedVirtualListChatAppend: {},

@@ -4,6 +4,7 @@ import {
   click,
   expect,
   given,
+  init,
   inside,
   role,
   scene,
@@ -11,7 +12,7 @@ import {
 } from 'foldkit/scene'
 import { describe } from 'vitest'
 
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { ApplicationBlock, layer } from './index'
 import { AppTabsBlock } from './model'
@@ -22,27 +23,32 @@ import {
   fixtureStats,
   it,
 } from './model.fixture'
-import { postQuery, statsQuery } from './query'
+import { postQuery, postsQuery, statsQuery } from './query'
 
 const FIRST_REQUEST_GENERATION = 1
 
 const resolveFocusTab = Command.resolve(
-  TabsTest.FocusTab,
+  Tabs.test.FocusTab,
   AppTabsBlock.Message.CompletedFocusTab(),
 )
 
 describe('view', () => {
-  it.effect(
-    'the posts tab renders its loading state and navigation',
-    ({ models: { loadingPostsModel } }) =>
-      scene(
-        { block: ApplicationBlock, layer },
-        given(loadingPostsModel),
-        expect(text('Loading posts…')).toExist(),
-        expect(role('button', { name: 'Refresh' })).toExist(),
-        expect(role('tab', { name: 'Posts' })).toExist(),
-        expect(role('tab', { name: 'Stats' })).toExist(),
+  it.effect('the posts tab renders its loading state and navigation', () =>
+    scene(
+      { block: ApplicationBlock, layer },
+      init(),
+      expect(text('Loading posts…')).toExist(),
+      expect(role('button', { name: 'Refresh' })).toExist(),
+      expect(role('tab', { name: 'Posts' })).toExist(),
+      expect(role('tab', { name: 'Stats' })).toExist(),
+      Command.resolve(
+        postsQuery.Fetch,
+        postsQuery.Message.CompletedFetch({
+          generation: FIRST_REQUEST_GENERATION,
+          result: Result.fail('The server is down.'),
+        }),
       ),
+    ),
   )
 
   it.effect(

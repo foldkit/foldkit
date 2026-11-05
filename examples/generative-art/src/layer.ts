@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as SliderLayer } from '@foldkit/ui/slider'
+import { Slider } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
 import {
@@ -27,4 +27,4 @@ export const layer = ApplicationBlock.makeLayer(
       EffectsLayer,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(SliderLayer)))
+).pipe(Layer.provide(Layer.mergeAll(Slider.layer)))

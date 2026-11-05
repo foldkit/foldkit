@@ -18,10 +18,7 @@ import * as Url from 'foldkit/url'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import {
-  DragAndDropBlock,
-  test as DragAndDropTest,
-} from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 import { DragAndDropBinding } from './blocks/issueBoard/composition'
 import { containerId, draggableId } from './blocks/issueBoard/dragAndDrop'
@@ -99,7 +96,7 @@ type IssueDetailBlockMessage = Block.ExecutableOf<
 >['Message']['Type']
 
 type CommentComposerMessage = typeof CommentComposerBlock.Message.Type
-type DragAndDropMessage = typeof DragAndDropBlock.Message.Type
+type DragAndDropMessage = typeof DragAndDrop.DragAndDropBlock.Message.Type
 
 const issueA = Option.getOrThrow(Array.head(initialWorkspace.issues))
 const issueB = Option.getOrThrow(Array.get(initialWorkspace.issues, 1))
@@ -2459,7 +2456,7 @@ describe('Board moves', () => {
             given(initialModel),
             message(
               childMessage(
-                DragAndDropBlock.Message.ActivatedKeyboardDrag({
+                DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
                   itemId,
                   containerId: containerId(issue.status),
                   index: 0,
@@ -2468,21 +2465,23 @@ describe('Board moves', () => {
             ),
             message(
               childMessage(
-                DragAndDropBlock.Message.PressedArrowKey({
+                DragAndDrop.DragAndDropBlock.Message.PressedArrowKey({
                   direction: 'NextContainer',
                 }),
               ),
             ),
-            DragAndDropTest.resolveKeyboardMove({
+            DragAndDrop.test.resolveKeyboardMove({
               binding: DragAndDropBinding,
               itemId,
               targetContainerId: containerId('Done'),
               targetIndex: 0,
             }),
             message(
-              childMessage(DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
+              childMessage(
+                DragAndDrop.DragAndDropBlock.Message.ConfirmedKeyboardDrop(),
+              ),
             ),
-            DragAndDropTest.settleFocus({
+            DragAndDrop.test.settleFocus({
               binding: DragAndDropBinding,
               itemId,
             }),

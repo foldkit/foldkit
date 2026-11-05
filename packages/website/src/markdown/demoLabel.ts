@@ -4,8 +4,6 @@ import type { Island, MarkdownDocument } from '@foldkit/markdown'
 
 import type { HeadingIds } from './tableOfContents'
 
-// DEMO LABEL
-
 /** The id of the heading each `::Demo` island sits under, by the demo's name. */
 export type DemoLabels = ReadonlyMap<string, string>
 

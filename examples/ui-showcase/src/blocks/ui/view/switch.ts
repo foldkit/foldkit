@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import type { Html } from 'foldkit/html'
 
-import { type SwitchAttributes, view as uiSwitchView } from '@foldkit/ui/switch'
+import { Switch } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
 import type { UiMessage, UiViewBuilder } from '../composition'
@@ -31,7 +31,7 @@ const knob = (isChecked: boolean, h: UiViewBuilder) => {
 }
 
 export const view = UiComposition.makeView((model, h) => {
-  const switchView = (attributes: SwitchAttributes<UiMessage>): Html =>
+  const switchView = (attributes: Switch.SwitchAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(wrapperClassName)],
       [
@@ -62,7 +62,7 @@ export const view = UiComposition.makeView((model, h) => {
       h.div(
         [h.Class('mt-4')],
         [
-          uiSwitchView(
+          Switch.view(
             {
               id: SWITCH_DEMO_ID,
               isChecked: model.isSwitchDemoChecked,

@@ -1,7 +1,7 @@
 import { Match } from 'effect'
 import { type Html, childAttributes } from 'foldkit/html'
 
-import { type GroupHeading, buttonId } from '@foldkit/ui/menu'
+import { Menu } from '@foldkit/ui'
 
 import * as Icon from '../../../icon'
 import {
@@ -62,7 +62,7 @@ const itemGroupKey = (item: MenuItem): string =>
 const groupToHeading = (
   groupKey: string,
   h: UiViewBuilder,
-): GroupHeading | undefined => {
+): Menu.GroupHeading | undefined => {
   return Match.value(groupKey).pipe(
     Match.when('Danger', () => ({
       content: h.span([], ['Danger Zone']),
@@ -115,7 +115,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(buttonId(model.menuBasicDemo.id)),
+          h.For(Menu.buttonId(model.menuBasicDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Row actions'],
@@ -141,7 +141,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(buttonId(model.menuAnimatedDemo.id)),
+          h.For(Menu.buttonId(model.menuAnimatedDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Row actions'],

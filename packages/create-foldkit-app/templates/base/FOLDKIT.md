@@ -249,7 +249,9 @@ Handlers and services may own mutable execution bookkeeping, such as worker avai
 
 ### File organization
 
-Import UI values and types by name from each component's public subpath, such as `import { makeBlock as makeListboxBlock, view as listboxView } from '@foldkit/ui/listbox'`. Use component-specific aliases when names collide. Keep the public `test` namespace for grouped test matchers. Avoid root UI imports and component namespace imports in app code.
+Import each file's Foldkit UI components through one named root import, such as `import { Button, Combobox, Listbox } from '@foldkit/ui'`. Qualify the entire public component surface through its owning namespace: `Button.view`, `Listbox.makeBlock`, `Combobox.Multi`, `Listbox.layer`, `Listbox.RenderInfo`, and `Listbox.test`. Do not import UI component subpaths or alias individual UI exports. If a component namespace collides with another required binding, alias that namespace once at import time, such as `Calendar as UiCalendar`.
+
+When a feature's view needs subdivisions, keep its entry composer in `view/view.ts` and use an explicit `view/index.ts` barrel. Place route, page, and demo render fragments beneath `view/`; keep the Model, Message, contracts, init, update, and other non-rendering feature responsibilities outside that directory.
 
 Keep a Step used by only one responsibility with that code. Put reusable Steps shared by update, composition, or init in the owning Block's `steps.ts`. For a larger module, use responsibility files such as `steps/search.ts` and `steps/quoteLoading.ts`, with an explicit `steps/index.ts` barrel. The owner is the Block whose Model the Step transforms. Keep shared Steps independent of the owning update and selected implementation.
 
@@ -284,7 +286,7 @@ When a server entry creates a long-lived `ManagedRuntime` or another resource, r
 
 With `server.hmr: false`, server modules still reevaluate after edits, but `import.meta.hot` is unavailable and the callback cannot run. Stop and restart the dev-server process after editing server modules that own long-lived resources; an in-process Vite restart does not invoke that missing callback.
 
-Use section headers only when a long file needs wayfinding. Use `// NOTE:` for a surprising browser or timing constraint; ordinary behavior should be clear from names and structure.
+Do not use decorative section-header comments such as `// MODEL`, `// OUT MESSAGE`, or `// VIEW`. Use file boundaries, names, and blank lines to show structure. Use `// NOTE:` only for a surprising browser or timing constraint; ordinary behavior should be clear from names and structure.
 
 ### Testing
 
@@ -305,6 +307,10 @@ Name each test file for its test style, beside the code under test: `story.test.
 Scene uses a Block and its implementation Layer. Keep `story.test.ts` and `scene.test.ts` with the feature whose behavior they exercise. Root Scenes cover cross-feature flows, including the parent's OutMessage response, lifted Commands, Route changes, and parent-computed view inputs. If the `repos/foldkit` subtree is available, study the tests in `repos/foldkit/examples/`. Auth has a root `src/scene.test.ts` for its cross-page login flow and child `src/blocks/loggedOut/blocks/login/scene.test.ts` and `story.test.ts` for the Login Block.
 
 Story can deliver Messages while Commands are pending. Use `messageWith(model => Message.Variant(...))` when the Message needs the current Model at that step, and `messageFrom(ChildBinding, rawMessage)` in a Block-aware Story for a direct child fact. A keyed Binding takes its decoded key before that Message. Never fabricate a generated delivery envelope.
+
+Keep Story and Scene specifications declarative. Prefer immutable fixtures and later assertions of Model, OutMessage, pending work, or rendered behavior over carrying a value between steps. Do not use mutable outer captures or `mockImplementation` closures as a test-side data channel. If immutable setup, `messageWith`, and observable behavior cannot express the test, first establish that the Story or Scene DSL has a genuine missing operation.
+
+Compare a sequence with `models(steps(...), (before, after) => ...)`, placing `init` or `given` before the comparison group. `story` returns its final Model after checking every Command was resolved. Bind that result immutably when preparing another Story or Scene; `given(model)` in the new test starts with no pending work and acquires its own graph.
 
 When a Scene emits a Subscription Message, test the selected implementation that owns the registry and call `Subscription.emit(entry, message)` with the exact registered entry. A passive public contract does not expose private lifecycle registries. A lower-level synchronous Scene fixture may supply its concrete registry explicitly. Each entry's `messages` collection declares the raw Messages accepted by that step. Select a bound entry when one source appears at multiple child placements. Silent `messages: []` entries accept no emissions. These steps do not start Streams or simulate Runtime activity and stale-generation admission.
 

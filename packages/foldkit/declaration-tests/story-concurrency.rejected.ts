@@ -23,6 +23,19 @@ Story.story(
   Story.given(Model.make({ count: 'invalid' })),
 )
 
+Story.story(
+  // @ts-expect-error A compared group retains its exact Message type.
+  update,
+  Story.given(initialModel),
+  Story.models(
+    Story.steps(Story.message(OutMessage.Reported())),
+    (before, after) => {
+      void before
+      void after
+    },
+  ),
+)
+
 // @ts-expect-error A Story Message must belong to the tested update.
 const wrongMessageStep: Story.StoryStep<
   typeof Model.Type,

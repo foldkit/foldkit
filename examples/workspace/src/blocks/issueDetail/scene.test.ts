@@ -16,7 +16,7 @@ import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as ListboxTest } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import {
   draftFromIssue,
@@ -44,25 +44,25 @@ const viewInputs = {
 const selectField = (fieldLabel: string, optionLabel: string) => [
   click(label(fieldLabel)),
   Command.resolve(
-    ListboxTest.FocusListboxItems,
+    Listbox.test.FocusListboxItems,
     WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
   ),
   Mount.resolve(
-    ListboxTest.AnchorListbox,
+    Listbox.test.AnchorListbox,
     WorkspaceListboxBlock.Message.CompletedAnchorListbox(),
   ),
   Mount.resolve(
-    ListboxTest.PortalListboxBackdrop,
+    Listbox.test.PortalListboxBackdrop,
     WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
   ),
   click(role('option', { name: optionLabel })),
   Command.resolve(
-    ListboxTest.FocusListboxButton,
+    Listbox.test.FocusListboxButton,
     WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
   ),
   Mount.expectEnded(
-    ListboxTest.AnchorListbox,
-    ListboxTest.PortalListboxBackdrop,
+    Listbox.test.AnchorListbox,
+    Listbox.test.PortalListboxBackdrop,
   ),
 ]
 

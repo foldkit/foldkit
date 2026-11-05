@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { ExampleDetailBlock } from './block'
 import { SourceFileTabsBinding } from './composition'
@@ -31,4 +31,4 @@ export const layer = ExampleDetailBlock.makeLayer(
       EffectsLayer,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(TabsLayer)))
+).pipe(Layer.provide(Layer.mergeAll(Tabs.layer)))

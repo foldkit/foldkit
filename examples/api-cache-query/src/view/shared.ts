@@ -1,6 +1,6 @@
 import { DateTime } from 'effect'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { Message } from '../message'
@@ -47,7 +47,7 @@ export const errorPanel = (
     ],
     [
       h.p([], [error]),
-      buttonView(
+      Button.view(
         {
           onClick: retryMessage,
           toView: attributes =>

@@ -1,7 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as DatePickerLayer } from '@foldkit/ui/datePicker'
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { DatePicker, Listbox } from '@foldkit/ui'
 
 import { PersonalInfoBlock } from './block'
 import { ValidateEmailAsync } from './command'
@@ -25,4 +24,4 @@ export const layer = PersonalInfoBlock.makeLayer(
       EffectsLayer: ValidateEmailAsync.layer,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(ListboxLayer, DatePickerLayer)))
+).pipe(Layer.provide(Layer.mergeAll(Listbox.layer, DatePicker.layer)))

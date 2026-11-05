@@ -164,8 +164,6 @@ export const WaitBeforeHidingRoomIdCopiedIndicator = makeCommand(
   },
 )
 
-// SESSION COMMANDS
-
 export const SavePlayerSession = makeCommand('SavePlayerSession', {
   args: { session: RoomPlayerSession },
   messages: [Message.CompletedSavePlayerSession],

@@ -3,7 +3,7 @@ import { Block, Runtime } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 export const Model = Schema.Null
 export type Model = typeof Model.Type
@@ -51,7 +51,7 @@ export const view = ApplicationComposition.makeView((_model, h) => ({
   body: h.div(
     [h.Class('min-h-screen bg-white flex items-center justify-center')],
     [
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedCrash(),
           toView: attributes =>
@@ -70,8 +70,6 @@ export const view = ApplicationComposition.makeView((_model, h) => ({
     ],
   ),
 }))
-
-// CRASH
 
 export const crashView = (
   { error }: Runtime.CrashContext<Model, ApplicationMessage>,
@@ -93,7 +91,7 @@ export const crashView = (
             ['Something went wrong'],
           ),
           h.p([h.Class('text-gray-700 mb-6 leading-relaxed')], [error.message]),
-          buttonView(
+          Button.view(
             {
               toView: attributes =>
                 h.button(

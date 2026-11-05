@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { test as baseTest } from 'vitest'
 
 import { makeMethods } from '@effect/vitest'
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import type { Post, PostDetail, Stats } from './data'
 import {
@@ -45,7 +45,7 @@ export const fixtureStats: Stats = {
 }
 
 const models = withBlock(
-  { block: ApplicationTabsBlock, layer: TabsLayer },
+  { block: ApplicationTabsBlock, layer: Tabs.layer },
   tabs => {
     const loadingPostsModel: Model = {
       tabs: tabs.init({ id: TABS_ID }).model,

@@ -2,10 +2,7 @@ import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  layer as VirtualListLayer,
-  makeBlock as makeVirtualListBlock,
-} from '@foldkit/ui/virtualList'
+import { VirtualList } from '@foldkit/ui'
 
 const Activity = Schema.Struct({
   id: Schema.String,
@@ -15,7 +12,7 @@ const Activity = Schema.Struct({
 })
 type Activity = typeof Activity.Type
 
-const ActivityList = makeVirtualListBlock<Activity>()
+const ActivityList = VirtualList.makeBlock<Activity>()
 
 // Add a field to your Model for the VirtualList Block. The list items
 // stay in your domain Model (your own `activities`, `messages`, `rows`,
@@ -135,4 +132,4 @@ export const layer = ActivityListExampleBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(VirtualListLayer))
+).pipe(Layer.provide(VirtualList.layer))

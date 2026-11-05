@@ -1,4 +1,4 @@
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { Message } from './block'
 import { EntriesBinding, SkillsComposition } from './composition'
@@ -23,7 +23,7 @@ export const view = SkillsComposition.makeView((model, h) =>
           ),
         ),
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedAddEntry(),
           toView: attributes =>

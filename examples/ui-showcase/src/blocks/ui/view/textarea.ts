@@ -1,9 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import {
-  type TextareaAttributes,
-  view as textareaView,
-} from '@foldkit/ui/textarea'
+import { Textarea } from '@foldkit/ui'
 
 import type { UiMessage } from '../composition'
 import { UiComposition } from '../composition'
@@ -17,7 +14,9 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = UiComposition.makeView((model, h) => {
-  const basicTextareaView = (attributes: TextareaAttributes<UiMessage>): Html =>
+  const basicTextareaView = (
+    attributes: Textarea.TextareaAttributes<UiMessage>,
+  ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 w-full')],
       [
@@ -31,7 +30,7 @@ export const view = UiComposition.makeView((model, h) => {
     )
 
   const disabledTextareaView = (
-    attributes: TextareaAttributes<UiMessage>,
+    attributes: Textarea.TextareaAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 max-w-sm')],
@@ -57,7 +56,7 @@ export const view = UiComposition.makeView((model, h) => {
       h.div(
         [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
-          textareaView(
+          Textarea.view(
             {
               id: 'textarea-basic-demo',
               value: model.textareaDemoValue,
@@ -76,7 +75,7 @@ export const view = UiComposition.makeView((model, h) => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      textareaView(
+      Textarea.view(
         {
           id: 'textarea-disabled-demo',
           isDisabled: true,

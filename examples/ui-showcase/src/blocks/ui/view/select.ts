@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { type SelectAttributes, view as selectView } from '@foldkit/ui/select'
+import { Select } from '@foldkit/ui'
 
 import * as Icon from '../../../icon'
 import type { UiMessage } from '../composition'
@@ -27,7 +27,9 @@ export const view = UiComposition.makeView((model, h) => {
     h.option([h.Value('au')], ['Australia']),
   ]
 
-  const basicSelectView = (attributes: SelectAttributes<UiMessage>): Html =>
+  const basicSelectView = (
+    attributes: Select.SelectAttributes<UiMessage>,
+  ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 w-full')],
       [
@@ -49,7 +51,9 @@ export const view = UiComposition.makeView((model, h) => {
       ],
     )
 
-  const disabledSelectView = (attributes: SelectAttributes<UiMessage>): Html =>
+  const disabledSelectView = (
+    attributes: Select.SelectAttributes<UiMessage>,
+  ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 max-w-sm')],
       [
@@ -83,7 +87,7 @@ export const view = UiComposition.makeView((model, h) => {
       h.div(
         [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
-          selectView(
+          Select.view(
             {
               id: 'select-basic-demo',
               value: model.selectDemoValue,
@@ -100,7 +104,7 @@ export const view = UiComposition.makeView((model, h) => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      selectView(
+      Select.view(
         {
           id: 'select-disabled-demo',
           isDisabled: true,

@@ -12,14 +12,13 @@ import {
 import { describe, expect, expectTypeOf } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { SourceFileTabsBinding } from './composition'
 import { LoadExampleSources, Message } from './example'
 import { SourceFileTabsBlock } from './fileTabs'
 import { InMessage } from './inMessage'
 import { ExampleDetailBlock, layer } from './index'
-import type { Model } from './model'
 import type { ExampleSources } from './sources'
 
 const exampleDetailSubject = { block: ExampleDetailBlock, layer }
@@ -41,13 +40,10 @@ describe('example detail initial sources', () => {
     'initializes idle when there is no initial slug, ignoring supplied sources',
     () =>
       Effect.gen(function* () {
-        let initialModel: Model | undefined
-
-        yield* story(
+        const initialModel = yield* story(
           exampleDetailSubject,
           init(),
           model(model => {
-            initialModel = model
             expect(model.currentSources._tag).toBe('Idle')
             expect(model.maybeActiveSourceFilePath).toEqual(Option.none())
           }),
@@ -95,14 +91,11 @@ describe('example detail initial sources', () => {
     'creates independent Tabs Models for repeated initializations',
     () =>
       Effect.gen(function* () {
-        let firstTabs: typeof SourceFileTabsBlock.Model.Type | undefined
-
-        yield* story(
+        const firstModel = yield* story(
           exampleDetailSubject,
           init(Option.some('counter')),
           model(model => {
-            firstTabs = model.sourceFileTabs
-            expect(firstTabs).toEqual(
+            expect(model.sourceFileTabs).toEqual(
               SourceFileTabsBlock.Model.make({
                 id: 'source-file-tabs',
                 maybeFocusedIndex: Option.none(),
@@ -117,8 +110,8 @@ describe('example detail initial sources', () => {
           exampleDetailSubject,
           init(Option.some('counter')),
           model(model => {
-            expect(model.sourceFileTabs).toEqual(firstTabs)
-            expect(model.sourceFileTabs).not.toBe(firstTabs)
+            expect(model.sourceFileTabs).toEqual(firstModel.sourceFileTabs)
+            expect(model.sourceFileTabs).not.toBe(firstModel.sourceFileTabs)
           }),
           Command.resolve(LoadExampleSources, failedSources),
         )
@@ -168,14 +161,9 @@ describe('example detail initial sources', () => {
     'initializes unavailable examples as idle with or without supplied sources',
     () =>
       Effect.gen(function* () {
-        let baseline: Model | undefined
-
-        yield* story(
+        const baseline = yield* story(
           exampleDetailSubject,
           init(),
-          model(model => {
-            baseline = model
-          }),
           Command.expectNone(),
         )
 
@@ -204,7 +192,7 @@ describe('example detail initial sources', () => {
           SourceFileTabsBlock.Message.FocusedTab({ index: 2 }),
         ),
         Command.resolve(
-          TabsTest.FocusTab,
+          Tabs.test.FocusTab,
           SourceFileTabsBlock.Message.CompletedFocusTab(),
         ),
         message(Message.ChangedExampleUrl({ url: 'https://example.test' })),

@@ -2,11 +2,11 @@ import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { DialogBlock } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { confirmDialogInputs } from './viewSharedDialog'
 
-const Model = Schema.Struct({ dialog: DialogBlock.Model })
+const Model = Schema.Struct({ dialog: Dialog.DialogBlock.Model })
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({ ClickedConfirmDeletion: {} })
@@ -24,11 +24,11 @@ const DeleteIssueBlock = Block.make('DeleteIssue', {
 const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
   DeleteIssueBlock
 
-const DialogBinding = makeBinding(DialogBlock, {
+const DialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'delete-issue' }] },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(DialogBlock, {
+  fold: makeOutMessageFold(Dialog.DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: makeNoopStep,

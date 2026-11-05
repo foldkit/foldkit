@@ -2,7 +2,7 @@ import { Array, Option, pipe } from 'effect'
 import { File } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import {
   Education,
@@ -276,7 +276,7 @@ const submissionSection = (
           ...(shouldShowBlockedNotice
             ? [blockedNotice(attentionSteps, h)]
             : []),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedSubmit(),
               toView: attributes =>
@@ -293,7 +293,7 @@ const submissionSection = (
       h.div(
         [h.Class('pt-4')],
         [
-          buttonView(
+          Button.view(
             {
               toView: attributes =>
                 h.button(
@@ -345,7 +345,7 @@ const submissionSection = (
           ...(shouldShowBlockedNotice
             ? [blockedNotice(attentionSteps, h)]
             : []),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedSubmit(),
               toView: attributes =>

@@ -1,8 +1,7 @@
 import { Array, Match, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import type { RenderInfo } from '@foldkit/ui/dialog'
-import { view as inputView } from '@foldkit/ui/input'
+import { Dialog, Input } from '@foldkit/ui'
 
 import {
   CommandPaletteComposition,
@@ -22,12 +21,12 @@ const resultId = (result: SearchResult) => `workspace-command-${result.id}`
 const searchInput = (
   model: Model,
   results: ReadonlyArray<SearchResult>,
-  initialFocus: RenderInfo['initialFocus'],
+  initialFocus: Dialog.RenderInfo['initialFocus'],
   h: CommandPaletteViewBuilder,
 ): Html => {
   const maybeActiveResult = Array.get(results, model.activeResultIndex)
 
-  return inputView(
+  return Input.view(
     {
       id: INPUT_ID,
       value: model.query,

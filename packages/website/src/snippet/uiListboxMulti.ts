@@ -2,7 +2,7 @@ import { Array, Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Multi as MultiListbox } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 const Person = Schema.Literals([
   'Michael Bluth',
@@ -11,7 +11,7 @@ const Person = Schema.Literals([
 ])
 type Person = typeof Person.Type
 // Declare a typed multi-select Listbox once at module scope:
-const PeopleListbox = MultiListbox.makeBlock<Person>()
+const PeopleListbox = Listbox.Multi.makeBlock<Person>()
 
 // Add a field to your Model for the multi-select Listbox Block, plus a field
 // for the selected values your app actually cares about. Using the
@@ -131,4 +131,4 @@ export const layer = PeoplePickerBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(MultiListbox.layer))
+).pipe(Layer.provide(Listbox.Multi.layer))

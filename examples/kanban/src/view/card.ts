@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { type RenderInfo, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { Card } from '../domain'
@@ -28,11 +28,11 @@ export const cardView = (
   card: Card.Card,
   columnId: string,
   index: number,
-  draggable: RenderInfo['draggable'],
+  draggable: DragAndDrop.RenderInfo['draggable'],
   h: ApplicationViewBuilder,
 ): Html => {
   const isThisCardBeingDragged = Option.exists(
-    maybeDraggedItemId(model.dragAndDrop),
+    DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
     id => id === card.id,
   )
   const isPointerDragged =

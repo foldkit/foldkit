@@ -1,11 +1,7 @@
 import { Array, Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as fieldsetView } from '@foldkit/ui/fieldset'
-import { view as inputView } from '@foldkit/ui/input'
-import { buttonId } from '@foldkit/ui/listbox'
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Button, Fieldset, Input, Listbox, Textarea } from '@foldkit/ui'
 
 import {
   PriorityListboxOption,
@@ -44,7 +40,7 @@ const secondaryButton = (
   onClick: Message,
   h: IssueDetailViewBuilder,
 ): Html =>
-  buttonView(
+  Button.view(
     {
       onClick,
       toView: attributes =>
@@ -166,7 +162,7 @@ const properties = (
     [h.Class('grid grid-cols-2 gap-x-4 gap-y-5')],
     [
       propertyField(
-        buttonId(model.statusListbox.id),
+        Listbox.buttonId(model.statusListbox.id),
         'Status',
         h.block(
           StatusListboxBinding.embedView({
@@ -182,7 +178,7 @@ const properties = (
         h,
       ),
       propertyField(
-        buttonId(model.priorityListbox.id),
+        Listbox.buttonId(model.priorityListbox.id),
         'Priority',
         h.block(
           PriorityListboxBinding.embedView({
@@ -198,7 +194,7 @@ const properties = (
         h,
       ),
       propertyField(
-        buttonId(model.projectListbox.id),
+        Listbox.buttonId(model.projectListbox.id),
         'Project',
         h.block(
           ProjectListboxBinding.embedView({
@@ -214,7 +210,7 @@ const properties = (
         h,
       ),
       propertyField(
-        buttonId(model.assigneeListbox.id),
+        Listbox.buttonId(model.assigneeListbox.id),
         'Assignee',
         h.block(
           AssigneeListboxBinding.embedView({
@@ -234,7 +230,7 @@ const properties = (
 }
 
 const titleField = (model: Model, h: IssueDetailViewBuilder): Html =>
-  inputView(
+  Input.view(
     {
       id: `issue-${model.issueId}-title`,
       value: model.draft.title,
@@ -267,7 +263,7 @@ const titleField = (model: Model, h: IssueDetailViewBuilder): Html =>
   )
 
 const descriptionField = (model: Model, h: IssueDetailViewBuilder): Html =>
-  textareaView(
+  Textarea.view(
     {
       id: `issue-${model.issueId}-description`,
       value: model.draft.description,
@@ -302,7 +298,7 @@ const fields = (
   viewInputs: ViewInputs,
   h: IssueDetailViewBuilder,
 ): Html =>
-  fieldsetView(
+  Fieldset.view(
     {
       id: `issue-${model.issueId}-fields`,
       isDisabled: SaveState.guards.Saving(model.saveState),
@@ -328,7 +324,7 @@ const submitButton = (model: Model, h: IssueDetailViewBuilder): Html => {
     !isDirty(model) ||
     Option.isSome(model.maybeIncomingRevision)
 
-  return buttonView(
+  return Button.view(
     {
       type: 'submit',
       isDisabled,
@@ -387,7 +383,7 @@ export const view = IssueDetailComposition.makeView.withInputs(
                       [
                         ...(isDirty(model)
                           ? [
-                              buttonView(
+                              Button.view(
                                 {
                                   type: 'button',
                                   onClick: Message.ClickedDiscardChanges(),

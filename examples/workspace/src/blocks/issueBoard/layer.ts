@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as DragAndDropLayer } from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 import { IssueBoardBlock } from './block'
 import { DragAndDropBinding } from './composition'
@@ -21,4 +21,4 @@ export const layer = IssueBoardBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(DragAndDropLayer))
+).pipe(Layer.provide(DragAndDrop.layer))

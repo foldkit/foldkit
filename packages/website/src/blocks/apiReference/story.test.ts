@@ -6,6 +6,8 @@ import {
   init,
   message,
   model,
+  models,
+  steps,
   story,
 } from 'foldkit/story'
 import { describe, expect, expectTypeOf } from 'vitest'
@@ -24,7 +26,6 @@ import {
 import { InMessage } from './inMessage'
 import { ApiReferenceBlock, layer } from './index'
 import { Message } from './message'
-import type { Model } from './model'
 
 const apiReferenceSubject = { block: ApiReferenceBlock, layer }
 
@@ -84,21 +85,20 @@ describe('API Reference startup', () => {
   it.effect(
     'prerendered data stays visible while the full reference loads',
     () => {
-      let initialModel: Model | undefined
-
       return story(
         apiReferenceSubject,
         init(Option.some(seededData)),
         model(model => {
-          initialModel = model
           expect(model.apiData).toEqual(
             ApiDataAsyncData.Refreshing({ data: seededData }),
           )
           expect(model.disclosures).toEqual({ [signatureId]: false })
         }),
         Command.expectExact(LoadApiData),
-        inMessage(InMessage.InformedOfRouteChange()),
-        model(model => expect(model).toBe(initialModel)),
+        models(
+          steps(inMessage(InMessage.InformedOfRouteChange())),
+          (before, after) => expect(after).toBe(before),
+        ),
         Command.expectExact(LoadApiData),
         Command.resolve(
           LoadApiData,
@@ -134,8 +134,6 @@ describe('API Reference startup', () => {
   it.effect(
     'failed full loads retain the seeded slice and retry on entry',
     () => {
-      let retryModel: Model | undefined
-
       return story(
         apiReferenceSubject,
         init(Option.some(seededData)),
@@ -151,14 +149,15 @@ describe('API Reference startup', () => {
         }),
         inMessage(InMessage.InformedOfRouteChange()),
         model(model => {
-          retryModel = model
           expect(model.apiData).toEqual(
             ApiDataAsyncData.Refreshing({ data: seededData }),
           )
         }),
         Command.expectExact(LoadApiData),
-        inMessage(InMessage.InformedOfRouteChange()),
-        model(model => expect(model).toBe(retryModel)),
+        models(
+          steps(inMessage(InMessage.InformedOfRouteChange())),
+          (before, after) => expect(after).toBe(before),
+        ),
         Command.expectExact(LoadApiData),
         Command.resolve(
           LoadApiData,
@@ -171,8 +170,6 @@ describe('API Reference startup', () => {
   it.effect(
     'full success adds disclosures without resetting the seeded selection',
     () => {
-      let succeededModel: Model | undefined
-
       return story(
         apiReferenceSubject,
         init(Option.some(seededData)),
@@ -182,7 +179,6 @@ describe('API Reference startup', () => {
           Message.SucceededLoadApiData({ apiData: fullData }),
         ),
         model(model => {
-          succeededModel = model
           expect(model.apiData).toEqual(
             ApiDataAsyncData.Success({ data: fullData }),
           )
@@ -191,8 +187,10 @@ describe('API Reference startup', () => {
             [scopedId('function', 'Update', 'define')]: false,
           })
         }),
-        inMessage(InMessage.InformedOfRouteChange()),
-        model(model => expect(model).toBe(succeededModel)),
+        models(
+          steps(inMessage(InMessage.InformedOfRouteChange())),
+          (before, after) => expect(after).toBe(before),
+        ),
         Command.expectNone(),
       )
     },

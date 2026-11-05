@@ -47,8 +47,16 @@ describe('initialization', () => {
     Story.story(
       childUpdate,
       Story.__givenInit(formInit),
-      Story.expectOutMessage(
-        FormChildJsChildOutMessage.RequestedSave({ id: 'initial' }),
+      Story.models(
+        Story.steps(
+          Story.expectOutMessage(
+            FormChildJsChildOutMessage.RequestedSave({ id: 'initial' }),
+          ),
+        ),
+        (before, after) => {
+          expect(before.status).toBe('Submitted')
+          expect(after).toBe(before)
+        },
       ),
       Story.Command.expectExact(ResetForm),
       Story.Command.resolve(
@@ -162,6 +170,65 @@ describe('steps', () => {
         assertExtendedModel,
       ),
     ).toBeFunction()
+  })
+
+  test('compares Models around grouped steps while Commands stay pending', () => {
+    const initialModel: CounterModel = { count: 0, log: [] }
+    const finalModel = Story.story(
+      update,
+      Story.given(initialModel),
+      Story.models(
+        Story.steps(
+          Story.message(CounterMessage.ClickedFetch()),
+          Story.Command.expectExact(FetchCount),
+        ),
+        (before, after) => {
+          expectTypeOf(before).toEqualTypeOf<CounterModel>()
+          expectTypeOf(after).toEqualTypeOf<CounterModel>()
+          expect(before).toBe(initialModel)
+          expect(after).toBe(before)
+        },
+      ),
+      Story.Command.resolve(
+        FetchCount,
+        CounterMessage.SucceededFetchCount({ count: 42 }),
+      ),
+    )
+
+    expectTypeOf(finalModel).toEqualTypeOf<CounterModel>()
+    expect(finalModel.count).toBe(42)
+  })
+
+  test('preserves compared grouped Message types at the story boundary', () => {
+    const compareSubmittedForm = Story.models(
+      Story.steps(Story.message(FormChildJsChildMessage.SubmittedForm())),
+      (before: CounterModel, after: CounterModel) => {
+        expect(after).toBe(before)
+      },
+    )
+
+    expectTypeOf(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        // @ts-expect-error SubmittedForm is not a Counter Message
+        compareSubmittedForm,
+      ),
+    ).toBeFunction()
+  })
+
+  test('rejects a Model comparison before the Story is initialized', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.models(
+          Story.steps(Story.message(CounterMessage.ClickedIncrement())),
+          (before, after) => {
+            expect(after).not.toBe(before)
+          },
+        ),
+      ),
+    ).toThrow('Story.models requires an initial Model')
   })
 })
 
@@ -696,6 +763,70 @@ describe('instance-strict Command matching', () => {
 })
 
 describe('story', () => {
+  const copyPublicSimulation = (
+    simulation: Story.StorySimulation<CounterModel, CounterMessage>,
+  ) => ({
+    model: simulation.model,
+    commands: simulation.commands,
+    outMessage: simulation.outMessage,
+  })
+
+  test('returns the initialized Model after a fresh public simulation transform', () => {
+    const initialModel: CounterModel = { count: 1, log: [] }
+    const finalModel = Story.story(
+      update,
+      Story.given(initialModel),
+      copyPublicSimulation,
+    )
+
+    expect(finalModel).toBe(initialModel)
+  })
+
+  test('retains pending work and update context after a fresh public simulation transform', () => {
+    const finalModel = Story.story(
+      update,
+      Story.given({ count: 0, log: [] }),
+      Story.message(CounterMessage.ClickedFetch()),
+      Story.models(
+        Story.steps(
+          copyPublicSimulation,
+          Story.Command.expectExact(FetchCount),
+          Story.Command.resolve(
+            FetchCount,
+            CounterMessage.SucceededFetchCount({ count: 3 }),
+          ),
+        ),
+        (before, after) => {
+          expect(before.count).toBe(0)
+          expect(after.count).toBe(3)
+        },
+      ),
+      Story.message(CounterMessage.ClickedIncrement()),
+    )
+
+    expect(finalModel.count).toBe(4)
+  })
+
+  test('throws instead of returning the uninitialized seed as a Model', () => {
+    expect(() => Story.story(update, Story.Command.expectNone())).toThrow(
+      'Story requires an initial Model',
+    )
+  })
+
+  test('returns an initialized Model whose value is undefined', () => {
+    const updateUndefined = (_model: undefined, _message: never) => ({
+      model: undefined,
+    })
+    const finalModel = Story.story(
+      updateUndefined,
+      Story.given(undefined),
+      Story.Command.expectNone(),
+    )
+
+    expectTypeOf(finalModel).toEqualTypeOf<undefined>()
+    expect(finalModel).toBeUndefined()
+  })
+
   test('throws on unresolved Commands at the end', () => {
     expect(() =>
       Story.story(

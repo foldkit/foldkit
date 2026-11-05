@@ -8,12 +8,14 @@ import {
   message,
   messageFrom,
   model,
+  models,
   story,
+  steps,
 } from 'foldkit/story'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { Issue, IssueDraft } from '../../domain'
 import {
@@ -31,7 +33,7 @@ import {
 import { InMessage } from './inMessage'
 import { layer } from './layer'
 import { Message } from './message'
-import { CreateState, type Model } from './model'
+import { CreateState } from './model'
 import { OutMessage } from './outMessage'
 
 const createIssueSubject = { block: CreateIssueBlock, layer }
@@ -46,8 +48,8 @@ describe('CreateIssueBlock update', () => {
           init(),
           inMessage(InMessage.RequestedOpen({ projectId: 'launch' })),
           Command.resolve(
-            DialogTest.ShowDialog,
-            DialogBlock.Message.SucceededShowDialog(),
+            Dialog.test.ShowDialog,
+            Dialog.DialogBlock.Message.SucceededShowDialog(),
           ),
           model(model => {
             expect(model.dialog.isOpen).toBe(true)
@@ -69,8 +71,8 @@ describe('CreateIssueBlock update', () => {
             }),
           ),
           Command.resolve(
-            DialogTest.ShowDialog,
-            DialogBlock.Message.SucceededShowDialog(),
+            Dialog.test.ShowDialog,
+            Dialog.DialogBlock.Message.SucceededShowDialog(),
           ),
           model(model => {
             expect(model.projectId).toBe('experience')
@@ -127,8 +129,8 @@ describe('CreateIssueBlock update', () => {
       init(),
       inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       message(Message.UpdatedTitle({ value: '   ' })),
       message(Message.UpdatedDescription({ value: 'Keep this description.' })),
@@ -176,8 +178,8 @@ describe('CreateIssueBlock update', () => {
         }),
       ),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       message(Message.UpdatedTitle({ value: `  ${draft.title}  ` })),
       message(Message.UpdatedDescription({ value: draft.description })),
@@ -205,8 +207,8 @@ describe('CreateIssueBlock update', () => {
       Command.resolve(CreateIssue, Message.SucceededCreateIssue({ issue })),
       expectOutMessage(OutMessage.Created({ issue })),
       Command.resolve(
-        DialogTest.CloseDialog,
-        DialogBlock.Message.CompletedCloseDialog(),
+        Dialog.test.CloseDialog,
+        Dialog.DialogBlock.Message.CompletedCloseDialog(),
       ),
       model(model => {
         expect(model.dialog.isOpen).toBe(false)
@@ -224,23 +226,23 @@ describe('CreateIssueBlock update', () => {
         InMessage.RequestedOpen({ projectId: 'launch', status: 'Backlog' }),
       ),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       message(Message.UpdatedTitle({ value: 'A pending issue' })),
       message(Message.SubmittedIssueForm()),
       Command.expectExact(CreateIssue),
       inMessage(InMessage.RequestedClose()),
       Command.resolve(
-        DialogTest.CloseDialog,
-        DialogBlock.Message.CompletedCloseDialog(),
+        Dialog.test.CloseDialog,
+        Dialog.DialogBlock.Message.CompletedCloseDialog(),
       ),
       inMessage(
         InMessage.RequestedOpen({ projectId: 'platform', status: 'Done' }),
       ),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       model(model => {
         expect(model.dialog.isOpen).toBe(true)
@@ -259,15 +261,13 @@ describe('CreateIssueBlock update', () => {
   )
 
   it.effect('ignores every draft edit while creation is pending', () => {
-    let pendingModel: Model | undefined
-
     return story(
       createIssueSubject,
       init(),
       inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       message(Message.UpdatedTitle({ value: 'A pending issue' })),
       message(
@@ -276,11 +276,10 @@ describe('CreateIssueBlock update', () => {
         }),
       ),
       message(Message.SubmittedIssueForm()),
-      model(model => {
-        pendingModel = model
-      }),
-      message(Message.UpdatedTitle({ value: 'A different title' })),
-      model(model => expect(model).toBe(pendingModel)),
+      models(
+        steps(message(Message.UpdatedTitle({ value: 'A different title' }))),
+        (before, after) => expect(after).toBe(before),
+      ),
       message(Message.UpdatedDescription({ value: 'A different description' })),
       messageFrom(
         ProjectListboxBinding,

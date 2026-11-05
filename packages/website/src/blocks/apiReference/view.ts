@@ -3,7 +3,7 @@ import { Array, Option, Record, Result, pipe } from 'effect'
 import { AsyncData } from 'foldkit'
 import { Html, createKeyedLazy, inertHtml as ih } from 'foldkit/html'
 
-import { view as disclosureView } from '@foldkit/ui/disclosure'
+import { Disclosure } from '@foldkit/ui'
 
 import { Icon } from '../../icon'
 import * as NotFound from '../../page/notFound'
@@ -205,7 +205,7 @@ const signaturesView = (
   })
 
   if (isSignatureDisclosureOpen !== undefined) {
-    return disclosureView(
+    return Disclosure.view(
       {
         id: key,
         isOpen: isSignatureDisclosureOpen,

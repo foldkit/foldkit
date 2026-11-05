@@ -5,8 +5,7 @@ import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import 'vanilla-colorful/hex-color-picker.js'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Input } from '@foldkit/ui'
 import '@shoelace-style/shoelace/dist/components/qr-code/qr-code.js'
 
 export const Model = Schema.Struct({
@@ -62,8 +61,6 @@ export const update = ApplicationComposition.makeUpdate({
     backgroundColor: () => value,
   })),
 })
-
-// WEB COMPONENT
 
 export const hexColorPicker = CustomElement.define({
   tag: 'hex-color-picker',
@@ -186,7 +183,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
   )
 
 const contentFieldView = (model: Model, h: ApplicationViewBuilder): Html =>
-  inputView(
+  Input.view(
     {
       id: 'qr-content',
       value: model.content,
@@ -276,7 +273,7 @@ const swatchRow = (
   h.div(
     [h.Class('flex flex-wrap gap-1.5 max-w-[10rem]')],
     PRESET_COLORS.map(color =>
-      buttonView(
+      Button.view(
         {
           onClick: onChange(color),
           toView: attributes =>

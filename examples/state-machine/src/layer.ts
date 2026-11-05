@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
 import { PlaceOrder } from './command'
@@ -21,4 +21,4 @@ export const layer = ApplicationBlock.makeLayer(
       EffectsLayer: PlaceOrder.layer,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
+).pipe(Layer.provide(Layer.mergeAll(RadioGroup.layer)))

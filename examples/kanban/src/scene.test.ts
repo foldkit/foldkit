@@ -16,7 +16,7 @@ import {
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import type { Card } from './domain/card'
@@ -48,12 +48,14 @@ const testColumns: ReadonlyArray<Column> = [
 
 const testModel: Model = {
   columns: testColumns,
-  dragAndDrop: DragAndDropBlock.Model.make({
+  dragAndDrop: DragAndDrop.DragAndDropBlock.Model.make({
     id: 'kanban',
     orientation: 'Vertical',
     activationThreshold: 5,
     keyboardDragGeneration: 0,
-    dragState: DragAndDropBlock.Model.fields.dragState.make({ _tag: 'Idle' }),
+    dragState: DragAndDrop.DragAndDropBlock.Model.fields.dragState.make({
+      _tag: 'Idle',
+    }),
   }),
   maybeNewCardColumnId: Option.none(),
   newCardTitle: '',

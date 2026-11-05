@@ -5,20 +5,12 @@ import { Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  layer as ComboboxLayer,
-  makeBlock as makeComboboxBlock,
-} from '@foldkit/ui/combobox'
-import {
-  DialogBlock,
-  layer as DialogLayer,
-  type RenderInfo as DialogRenderInfo,
-} from '@foldkit/ui/dialog'
+import { Combobox, Dialog } from '@foldkit/ui'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
 type City = typeof City.Type
 
-const CityCombobox = makeComboboxBlock(City)
+const CityCombobox = Combobox.makeBlock(City)
 const cities: ReadonlyArray<City> = [
   'Johannesburg',
   'Kyiv',
@@ -30,7 +22,7 @@ const cities: ReadonlyArray<City> = [
 // the parent-owned selection (`City` and `CityCombobox` are the
 // `Schema.Literals` Schema and typed factory from the Combobox example):
 const Model = Schema.Struct({
-  dialog: DialogBlock.Model,
+  dialog: Dialog.DialogBlock.Model,
   combobox: CityCombobox.Model,
   maybeCity: Schema.Option(City),
   // ...your other fields
@@ -58,7 +50,7 @@ const {
   makeComposition,
 } = FilterDialogBlock
 
-const foldDialogOutMessage = makeOutMessageFold(DialogBlock, {
+const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   Opened: makeNoopStep,
   Closed: makeNoopStep,
   CompletedClose: makeNoopStep,
@@ -72,7 +64,7 @@ const foldComboboxOutMessage = makeOutMessageFold(CityCombobox, {
   ClearedSelection: makeNoopStep,
 })
 
-const DialogBinding = makeBinding(DialogBlock, {
+const DialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'edit-filters' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
@@ -107,7 +99,7 @@ const view = FilterDialogComposition.makeView((model, h) => {
     panel,
     title,
     isVisible,
-  }: DialogRenderInfo) =>
+  }: Dialog.RenderInfo) =>
     h.dialog(
       [...dialog],
       isVisible
@@ -168,4 +160,4 @@ export const layer = FilterDialogBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(DialogLayer, ComboboxLayer)))
+).pipe(Layer.provide(Layer.mergeAll(Dialog.layer, Combobox.layer)))

@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { SearchBlock } from './block'
 import { DialogBinding } from './composition'
@@ -23,4 +23,4 @@ export const layer = SearchBlock.makeLayer(
       EffectsLayer,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(DialogLayer)))
+).pipe(Layer.provide(Layer.mergeAll(Dialog.layer)))

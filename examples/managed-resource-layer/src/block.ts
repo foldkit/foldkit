@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 interface ComputeEngine {
   readonly engineId: string
@@ -148,8 +148,6 @@ export const init = ApplicationComposition.makeInit(() => ({
   },
 }))
 
-// MANAGED RESOURCE
-
 export const managedResources = makeManagedResources(entry => ({
   engine: entry('ManageEngine', Schema.Option(Schema.Null), {
     resource: Engine,
@@ -190,7 +188,7 @@ const primaryButton = (
   isDisabled: boolean,
   h: ApplicationViewBuilder,
 ): Html =>
-  buttonView(
+  Button.view(
     {
       onClick: message,
       isDisabled,

@@ -4,10 +4,9 @@ import { CalendarDate } from 'foldkit/calendar'
 import { Field } from 'foldkit/fieldValidation'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { DatePickerBlock } from '@foldkit/ui/datePicker'
-import { makeBlock as makeListboxBlock } from '@foldkit/ui/listbox'
+import { DatePicker, Listbox } from '@foldkit/ui'
 
-export const PronounsListboxBlock = makeListboxBlock()
+export const PronounsListboxBlock = Listbox.makeBlock()
 
 export const Model = Schema.Struct({
   firstName: Field(Schema.String),
@@ -19,7 +18,7 @@ export const Model = Schema.Struct({
   maybeSelectedPronoun: Schema.Option(Schema.String),
   customPronouns: Schema.String,
   portfolioUrl: Field(Schema.String),
-  availableDate: DatePickerBlock.Model,
+  availableDate: DatePicker.DatePickerBlock.Model,
   maybeAvailableDate: Schema.Option(CalendarDate),
 })
 export type Model = typeof Model.Type

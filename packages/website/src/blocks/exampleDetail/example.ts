@@ -3,11 +3,11 @@ import { AsyncData } from 'foldkit'
 import { Html, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 
-import { view as disclosureView } from '@foldkit/ui/disclosure'
+import { Disclosure } from '@foldkit/ui'
 
-import { CodeBlock } from '../../component'
 import { Icon } from '../../icon'
 import { exampleSourceHref } from '../../link'
+import * as CodeBlock from '../../markdown/codeBlock'
 import { pageTitle, para } from '../../prose'
 import {
   exampleDetailRouter,
@@ -329,7 +329,7 @@ const livePreviewDisclosureView = (
   maybeExampleUrl: Option.Option<string>,
   h: ExampleDetailViewBuilder,
 ): Html =>
-  disclosureView(
+  Disclosure.view(
     {
       id: 'live-preview',
       isOpen: isLivePreviewOpen,

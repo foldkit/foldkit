@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import type * as CodeBlock from '../../component/codeBlock'
+import type * as CodeBlock from '../../markdown/codeBlock'
 
 export type ViewInputs = Readonly<{
   id: string

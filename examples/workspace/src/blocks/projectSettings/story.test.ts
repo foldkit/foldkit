@@ -6,7 +6,9 @@ import {
   init,
   message,
   model,
+  models,
   story,
+  steps,
 } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
@@ -18,7 +20,7 @@ import { ProjectSettingsBlock } from './block'
 import { SaveProject } from './command'
 import { layer } from './layer'
 import { Message } from './message'
-import { Model, SaveState } from './model'
+import { SaveState } from './model'
 import { OutMessage } from './outMessage'
 
 const projectSettingsSubject = { block: ProjectSettingsBlock, layer }
@@ -28,32 +30,27 @@ describe('Project Settings', () => {
   it.effect(
     'does not save unchanged, normalized, or invalid project settings',
     () => {
-      let unsavableModel: Model | undefined
-
       return story(
         projectSettingsSubject,
         init(project),
-        model(model => {
-          unsavableModel = model
-        }),
-        message(Message.SubmittedProjectSettings()),
-        model(model => expect(model).toBe(unsavableModel)),
+        models(
+          steps(message(Message.SubmittedProjectSettings())),
+          (before, after) => expect(after).toBe(before),
+        ),
         Command.expectNone(),
         expectNoOutMessage(),
         message(Message.UpdatedProjectName({ value: ` ${project.name} ` })),
-        model(model => {
-          unsavableModel = model
-        }),
-        message(Message.SubmittedProjectSettings()),
-        model(model => expect(model).toBe(unsavableModel)),
+        models(
+          steps(message(Message.SubmittedProjectSettings())),
+          (before, after) => expect(after).toBe(before),
+        ),
         Command.expectNone(),
         expectNoOutMessage(),
         message(Message.UpdatedProjectName({ value: '   ' })),
-        model(model => {
-          unsavableModel = model
-        }),
-        message(Message.SubmittedProjectSettings()),
-        model(model => expect(model).toBe(unsavableModel)),
+        models(
+          steps(message(Message.SubmittedProjectSettings())),
+          (before, after) => expect(after).toBe(before),
+        ),
         Command.expectNone(),
         expectNoOutMessage(),
       )
@@ -107,25 +104,23 @@ describe('Project Settings', () => {
       const savedProject = modifyFields(project, {
         name: () => 'A new project name',
       })
-      let initialModel: Model | undefined
-      let savingModel: Model | undefined
 
       return story(
         projectSettingsSubject,
         init(project),
-        model(model => {
-          initialModel = model
-        }),
-        message(Message.SucceededSaveProject({ project })),
-        model(model => expect(model).toBe(initialModel)),
+        models(
+          steps(message(Message.SucceededSaveProject({ project }))),
+          (before, after) => expect(after).toBe(before),
+        ),
         expectNoOutMessage(),
         message(Message.UpdatedProjectName({ value: savedProject.name })),
         message(Message.SubmittedProjectSettings()),
-        model(model => {
-          savingModel = model
-        }),
-        message(Message.SucceededSaveProject({ project: otherProject })),
-        model(model => expect(model).toBe(savingModel)),
+        models(
+          steps(
+            message(Message.SucceededSaveProject({ project: otherProject })),
+          ),
+          (before, after) => expect(after).toBe(before),
+        ),
         expectNoOutMessage(),
         Command.expectExact(SaveProject({ project: savedProject })),
         Command.resolve(

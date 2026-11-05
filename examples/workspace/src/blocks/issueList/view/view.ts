@@ -1,6 +1,6 @@
 import { Array } from 'effect'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { IssueListComposition } from '../composition'
 import { filterAndSortIssues } from '../filter'
@@ -41,7 +41,7 @@ export const view = IssueListComposition.makeView.withInputs(
               [
                 h.h2([], ['No matching issues']),
                 h.p([], ['Try another search or status filter.']),
-                buttonView(
+                Button.view(
                   {
                     onClick: Message.ClickedClearFilters(),
                     toView: attributes =>

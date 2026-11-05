@@ -4,8 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
-import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
+import { Dialog, RadioGroup } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
 import {
@@ -20,7 +19,7 @@ import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
 
 const resolveFocusOption = Command.resolve(
-  RadioGroupTest.FocusOption,
+  RadioGroup.test.FocusOption,
   ToolRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
@@ -34,7 +33,7 @@ const createTestModel = (): Model => ({
   mirrorMode: 'None',
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: DialogBlock.Model.make({
+  errorDialog: Dialog.DialogBlock.Model.make({
     id: 'export-error-dialog',
     isOpen: false,
     isAnimated: false,
@@ -48,7 +47,7 @@ const createTestModel = (): Model => ({
   }),
   maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: DialogBlock.Model.make({
+  gridSizeConfirmDialog: Dialog.DialogBlock.Model.make({
     id: 'grid-size-confirm-dialog',
     isOpen: false,
     isAnimated: false,
@@ -126,8 +125,8 @@ describe('export workflow', () => {
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       expect(text('Export Failed')).toExist(),
       expect(text('Canvas 2D context not available')).toExist(),
@@ -145,14 +144,14 @@ describe('export workflow', () => {
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       expect(text('Export Failed')).toExist(),
       click(role('button', { name: 'Dismiss' })),
       Command.resolve(
-        DialogTest.CloseDialog,
-        DialogBlock.Message.CompletedCloseDialog(),
+        Dialog.test.CloseDialog,
+        Dialog.DialogBlock.Message.CompletedCloseDialog(),
       ),
       expect(text('Export Failed')).toBeAbsent(),
     ),
@@ -264,8 +263,8 @@ describe('grid size change', () => {
       click(role('radio', { name: '8' })),
       resolveFocusOption,
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       expect(text('Change to 8\u00d78?')).toExist(),
       expect(
@@ -289,14 +288,14 @@ describe('grid size change', () => {
         click(role('radio', { name: '8' })),
         resolveFocusOption,
         Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
+          Dialog.test.ShowDialog,
+          Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
         expect(text('Change to 8\u00d78?')).toExist(),
         click(role('button', { name: 'Clear and Resize' })),
         Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
+          Dialog.test.CloseDialog,
+          Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
         Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
         expect(text('Change to 8\u00d78?')).toBeAbsent(),
@@ -311,14 +310,14 @@ describe('grid size change', () => {
       click(role('radio', { name: '8' })),
       resolveFocusOption,
       Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Cancel' })),
       Command.resolve(
-        DialogTest.CloseDialog,
-        DialogBlock.Message.CompletedCloseDialog(),
+        Dialog.test.CloseDialog,
+        Dialog.DialogBlock.Message.CompletedCloseDialog(),
       ),
       expect(text('Change to 8\u00d78?')).toBeAbsent(),
     ),

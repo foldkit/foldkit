@@ -5,12 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  type RowHeightInputs,
-  ScrollContainer,
-  layer as VirtualListLayer,
-  makeBlock as makeVirtualListBlock,
-} from '@foldkit/ui/virtualList'
+import { VirtualList } from '@foldkit/ui'
 
 import {
   FixtureConfig,
@@ -27,7 +22,7 @@ const Item = Schema.Struct({
   content: RowContent,
 })
 type Item = typeof Item.Type
-const ItemVirtualListBlock = makeVirtualListBlock<Item>()
+const ItemVirtualListBlock = VirtualList.makeBlock<Item>()
 const Model = Schema.Struct({
   config: FixtureConfig,
   maybeList: Schema.Option(ItemVirtualListBlock.Model),
@@ -66,11 +61,11 @@ const { makeFieldsStep, makeNoopStep, makeStep } = ApplicationBlock
 
 const scrollContainerFor = (config: FixtureConfig) => {
   if (config.scrollMode === 'Self') {
-    return ScrollContainer.Self()
+    return VirtualList.ScrollContainer.Self()
   } else if (config.scrollMode === 'Ancestor') {
-    return ScrollContainer.Ancestor({ selector: '#main' })
+    return VirtualList.ScrollContainer.Ancestor({ selector: '#main' })
   } else {
-    return ScrollContainer.Window()
+    return VirtualList.ScrollContainer.Window()
   }
 }
 
@@ -215,7 +210,8 @@ const virtualListView = (model: Model, h: ApplicationViewBuilder) =>
   Option.match(model.maybeList, {
     onNone: () => h.p([h.Id('unmounted')], ['List unmounted']),
     onSome: list => {
-      const rowInputs: RowHeightInputs<Item> = model.config.isDynamic
+      const rowInputs: VirtualList.RowHeightInputs<Item> = model.config
+        .isDynamic
         ? {
             dynamicRowHeights: true,
             itemToEstimatedRowHeightPx: () => ROW_HEIGHT_PX,
@@ -415,4 +411,4 @@ export const layer = ApplicationBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(VirtualListLayer))
+).pipe(Layer.provide(VirtualList.layer))

@@ -129,8 +129,6 @@ const buttonClassName =
 const headerClassName =
   'flex items-end justify-between text-sm text-gray-600 max-w-2xl'
 
-// VARIABLE-HEIGHT DATA
-
 type Summary = Readonly<{
   title: string
   body: string

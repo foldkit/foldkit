@@ -1,8 +1,7 @@
 import { Array, String } from 'effect'
 import { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Input } from '@foldkit/ui'
 
 import { personRouter } from '../../route'
 import { PeopleComposition, type PeopleViewBuilder } from './composition'
@@ -76,7 +75,7 @@ export const view = PeopleComposition.makeView((model, h) =>
           h.form(
             [h.OnSubmit(Message.SubmittedSearch()), h.Class('flex gap-2')],
             [
-              inputView(
+              Input.view(
                 {
                   id: 'people-search',
                   type: 'search',
@@ -103,7 +102,7 @@ export const view = PeopleComposition.makeView((model, h) =>
                 },
                 h,
               ),
-              buttonView(
+              Button.view(
                 {
                   type: 'submit',
                   toView: ({ button }) =>

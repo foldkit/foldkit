@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { type InputAttributes, view as inputView } from '@foldkit/ui/input'
+import { Input } from '@foldkit/ui'
 
 import type { UiMessage } from '../composition'
 import { UiComposition } from '../composition'
@@ -14,7 +14,7 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = UiComposition.makeView((model, h) => {
-  const basicInputView = (attributes: InputAttributes<UiMessage>): Html =>
+  const basicInputView = (attributes: Input.InputAttributes<UiMessage>): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 w-full')],
       [
@@ -27,7 +27,9 @@ export const view = UiComposition.makeView((model, h) => {
       ],
     )
 
-  const disabledInputView = (attributes: InputAttributes<UiMessage>): Html =>
+  const disabledInputView = (
+    attributes: Input.InputAttributes<UiMessage>,
+  ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 max-w-sm')],
       [
@@ -52,7 +54,7 @@ export const view = UiComposition.makeView((model, h) => {
       h.div(
         [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
-          inputView(
+          Input.view(
             {
               id: 'input-basic-demo',
               value: model.inputDemoValue,
@@ -70,7 +72,7 @@ export const view = UiComposition.makeView((model, h) => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      inputView(
+      Input.view(
         {
           id: 'input-disabled-demo',
           isDisabled: true,

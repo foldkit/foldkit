@@ -4,8 +4,7 @@ import { FieldValidation } from 'foldkit'
 import { type Field } from 'foldkit/fieldValidation'
 import { type Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Input } from '@foldkit/ui'
 
 import { homeRouter } from '../../../../route'
 import { Message } from './block'
@@ -34,7 +33,7 @@ const fieldView = (
     fieldToBorderClass(field),
   )
 
-  return inputView(
+  return Input.view(
     {
       id,
       type,
@@ -131,7 +130,7 @@ export const view = LoginComposition.makeView((model, h) => {
                 'Enter your password',
                 h,
               ),
-              buttonView(
+              Button.view(
                 {
                   type: 'submit',
                   isDisabled: !canSubmit,

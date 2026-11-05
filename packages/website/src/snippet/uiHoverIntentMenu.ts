@@ -2,14 +2,10 @@ import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  HoverIntentBlock,
-  layer as HoverIntentLayer,
-  type RenderInfo as HoverIntentRenderInfo,
-} from '@foldkit/ui/hoverIntent'
+import { HoverIntent } from '@foldkit/ui'
 
 const Model = Schema.Struct({
-  hoverMenu: HoverIntentBlock.Model,
+  hoverMenu: HoverIntent.HoverIntentBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -31,12 +27,15 @@ export const HoverMenuBlock = Block.make('HoverMenu', {
 const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
   HoverMenuBlock
 
-const foldHoverMenuOutMessage = makeOutMessageFold(HoverIntentBlock, {
-  Opened: makeNoopStep,
-  Closed: makeNoopStep,
-})
+const foldHoverMenuOutMessage = makeOutMessageFold(
+  HoverIntent.HoverIntentBlock,
+  {
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+  },
+)
 
-const HoverMenuBinding = makeBinding(HoverIntentBlock, {
+const HoverMenuBinding = makeBinding(HoverIntent.HoverIntentBlock, {
   field: 'hoverMenu',
 }).withOutMessagePolicy({ fold: foldHoverMenuOutMessage })
 
@@ -65,7 +64,7 @@ const view = HoverMenuComposition.makeView((model, h) => {
     trigger,
     panel,
     isVisible,
-  }: HoverIntentRenderInfo) =>
+  }: HoverIntent.RenderInfo) =>
     h.div(
       [h.Class('relative')],
       [
@@ -135,4 +134,4 @@ export const layer = HoverMenuBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(HoverIntentLayer))
+).pipe(Layer.provide(HoverIntent.layer))

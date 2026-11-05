@@ -3,10 +3,7 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  type CheckboxAttributes,
-  view as checkboxView,
-} from '@foldkit/ui/checkbox'
+import { Checkbox } from '@foldkit/ui'
 
 // Store each child's checked state as a plain boolean field in your Model:
 const Model = Schema.Struct({
@@ -84,7 +81,7 @@ const view = NotificationPreferencesComposition.makeView((model, h) => {
     }
   }
 
-  const selectAllView = (attributes: CheckboxAttributes<Message>) =>
+  const selectAllView = (attributes: Checkbox.CheckboxAttributes<Message>) =>
     h.div(
       [h.Class('flex items-center gap-2')],
       [
@@ -99,7 +96,7 @@ const view = NotificationPreferencesComposition.makeView((model, h) => {
       ],
     )
 
-  return checkboxView(
+  return Checkbox.view(
     {
       id: 'select-all',
       isChecked: isAllChecked,

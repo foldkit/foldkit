@@ -1,9 +1,9 @@
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { type MeterAttributes, view as uiMeterView } from '@foldkit/ui/meter'
+import { Meter } from '@foldkit/ui'
 
 const view = (h: HtmlBuilder<Message>) => {
-  const meterView = (attributes: MeterAttributes<Message>) =>
+  const meterView = (attributes: Meter.MeterAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-2')],
       [
@@ -20,7 +20,7 @@ const view = (h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return uiMeterView(
+  return Meter.view(
     {
       id: 'health',
       value: 75,

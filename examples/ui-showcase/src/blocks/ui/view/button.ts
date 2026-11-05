@@ -1,4 +1,4 @@
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
 import { Message } from '../message'
@@ -19,7 +19,7 @@ export const view = UiComposition.makeView((model, h) => {
       h.div(
         [h.Class('flex flex-col items-start gap-2')],
         [
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedButtonDemo(),
               toView: attributes =>
@@ -43,7 +43,7 @@ export const view = UiComposition.makeView((model, h) => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      buttonView(
+      Button.view(
         {
           isDisabled: true,
           toView: attributes =>

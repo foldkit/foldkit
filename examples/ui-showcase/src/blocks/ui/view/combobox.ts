@@ -2,11 +2,7 @@ import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import { childAttributes } from 'foldkit/html'
 
-import {
-  type AnchorConfig,
-  type ViewInputs as ComboboxViewInputs,
-  inputId,
-} from '@foldkit/ui/combobox'
+import { Combobox } from '@foldkit/ui'
 
 import * as Icon from '../../../icon'
 import {
@@ -73,11 +69,11 @@ export const comboboxInputs = (
   }: Readonly<{
     inputValue: string
     restingInputValue: string
-    anchor?: AnchorConfig
+    anchor?: Combobox.AnchorConfig
     wrapperClass?: string
   }>,
   h: UiViewBuilder,
-): Omit<ComboboxViewInputs<City>, 'maybeSelectedValue'> => {
+): Omit<Combobox.ViewInputs<City>, 'maybeSelectedValue'> => {
   const filteredCities = filterCities(inputValue)
 
   return {
@@ -126,7 +122,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(inputId(model.comboboxDemo.id)),
+          h.For(Combobox.inputId(model.comboboxDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['City'],
@@ -168,7 +164,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(inputId(model.comboboxPlacementLockDemo.id)),
+          h.For(Combobox.inputId(model.comboboxPlacementLockDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['City'],
@@ -210,7 +206,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(inputId(model.comboboxNullableDemo.id)),
+          h.For(Combobox.inputId(model.comboboxNullableDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['City'],
@@ -246,7 +242,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(inputId(model.comboboxSelectOnFocusDemo.id)),
+          h.For(Combobox.inputId(model.comboboxSelectOnFocusDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['City'],
@@ -283,7 +279,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(inputId(model.comboboxMultiDemo.id)),
+          h.For(Combobox.inputId(model.comboboxMultiDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Cities'],

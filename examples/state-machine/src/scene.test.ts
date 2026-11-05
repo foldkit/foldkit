@@ -12,7 +12,7 @@ import { init as initialize } from 'foldkit/scene'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as RadioGroupTest } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import { PlaceOrder } from './command'
 import { ApplicationBlock, layer } from './index'
@@ -20,7 +20,7 @@ import { Message } from './message'
 import { EditionRadioGroupBlock } from './model'
 
 const resolveFocusOption = Command.resolve(
-  RadioGroupTest.FocusOption,
+  RadioGroup.test.FocusOption,
   EditionRadioGroupBlock.Message.CompletedFocusOption(),
 )
 

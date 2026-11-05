@@ -65,7 +65,7 @@ The trigger button uses `aria-expanded` and `aria-controls` to announce the popo
 
 ### Naming the Trigger
 
-Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `triggerId(id)` imported from `@foldkit/ui/datePicker` rather than hardcoding the `-popover-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the date picker. That is why it is the recommended pattern.
+Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `DatePicker.triggerId(id)` from `@foldkit/ui` rather than hardcoding the `-popover-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the date picker. That is why it is the recommended pattern.
 
 Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel` for an icon-only trigger with no visible label, or `ariaLabelledBy` when the element that names the trigger is not a `<label>` you can point `for` at.
 

@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Array, Equal, HashSet, Match, Option, pipe } from 'effect'
 import type { ChildAttribute, Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { Education, PersonalInfo, Skills, WorkHistory } from '../blocks'
 import {
@@ -131,7 +131,7 @@ const navigationButtons = (model: Model, h: ApplicationViewBuilder) =>
       ...(isFirstStep(model)
         ? [h.empty]
         : [
-            buttonView(
+            Button.view(
               {
                 onClick: Message.ClickedPrevious(),
                 toView: attributes =>
@@ -151,7 +151,7 @@ const navigationButtons = (model: Model, h: ApplicationViewBuilder) =>
       ...(isLastStep(model)
         ? []
         : [
-            buttonView(
+            Button.view(
               {
                 onClick: Message.ClickedNext(),
                 toView: attributes =>
@@ -298,7 +298,7 @@ const mobilePreviewToggle = (model: Model, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
-      buttonView(
+      Button.view(
         {
           onClick: Message.ToggledPreview(),
           toView: attributes =>

@@ -3,7 +3,7 @@ import { Block, FieldValidation } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import { makeBlock as makeRadioGroupBlock } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 export const Note = Schema.Literals(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
 export type Note = typeof Note.Type
@@ -11,7 +11,7 @@ export type Note = typeof Note.Type
 export const NoteDuration = Schema.Literals(['Short', 'Medium', 'Long'])
 export type NoteDuration = typeof NoteDuration.Type
 
-export const NoteDurationRadioGroupBlock = makeRadioGroupBlock<NoteDuration>()
+export const NoteDurationRadioGroupBlock = RadioGroup.makeBlock<NoteDuration>()
 
 export const PlaybackState = defineTaggedUnion({
   Idle: {},
@@ -68,6 +68,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 export type CompletedPlayNote = typeof Message.CompletedPlayNote.Type
+
 export const NotePlayerDemoKey = Symbol('NotePlayerDemo')
 export const NotePlayerDemoBlock = Block.make('NotePlayerDemo', {
   key: NotePlayerDemoKey,

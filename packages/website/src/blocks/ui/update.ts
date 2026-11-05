@@ -15,7 +15,7 @@ import {
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
-import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualListData'
+import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './domain/virtualList'
 import {
   VirtualListChatDemoBinding,
   handleCompletedFetchVirtualListChatHistory,

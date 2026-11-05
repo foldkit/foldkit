@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { CommandPaletteBlock } from './block'
 import { ScrollActiveResult } from './command'
@@ -28,4 +28,4 @@ export const layer = CommandPaletteBlock.makeLayer(
       ),
     }
   }),
-).pipe(Layer.provide(DialogLayer))
+).pipe(Layer.provide(Dialog.layer))

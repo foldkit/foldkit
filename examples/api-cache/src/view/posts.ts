@@ -1,7 +1,7 @@
 import { Array, HashMap, Option } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import type { Post, PostDetail } from '../data'
@@ -29,7 +29,7 @@ const postsListView = (model: Model, h: ApplicationViewBuilder) => {
         [h.Class('flex items-center justify-between')],
         [
           h.h2([h.Class('text-xl font-bold text-slate-800')], ['Posts']),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedInvalidatePosts(),
               isDisabled: isPending,
@@ -105,7 +105,7 @@ const postListItems = (
       post.id,
       [],
       [
-        buttonView(
+        Button.view(
           {
             onClick: Message.ClickedPost({ postId: post.id }),
             toView: attributes =>
@@ -173,7 +173,7 @@ const postDetailView = (
   return h.div(
     [h.Class('flex flex-col gap-4')],
     [
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedBackToPosts(),
           toView: attributes =>

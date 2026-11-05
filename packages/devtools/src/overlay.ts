@@ -44,10 +44,7 @@ import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import * as Listbox from '@foldkit/ui/listbox'
-import * as Slider from '@foldkit/ui/slider'
-import * as Switch from '@foldkit/ui/switch'
-import * as Tabs from '@foldkit/ui/tabs'
+import { Listbox, Slider, Switch, Tabs } from '@foldkit/ui'
 
 import * as OptionExt from './internal/optionExtensions.js'
 import { overlayStyles } from './overlay-styles.js'

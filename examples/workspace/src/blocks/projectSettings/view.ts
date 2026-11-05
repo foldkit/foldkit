@@ -1,10 +1,7 @@
 import { String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as fieldsetView } from '@foldkit/ui/fieldset'
-import { view as inputView } from '@foldkit/ui/input'
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Button, Fieldset, Input, Textarea } from '@foldkit/ui'
 
 import {
   ProjectSettingsComposition,
@@ -34,7 +31,7 @@ const saveFeedback = (model: Model, h: ProjectSettingsViewBuilder): Html =>
         ],
         [
           h.p([], [error]),
-          buttonView(
+          Button.view(
             {
               type: 'button',
               onClick: Message.ClickedRetrySave(),
@@ -51,7 +48,7 @@ const saveFeedback = (model: Model, h: ProjectSettingsViewBuilder): Html =>
   })
 
 const projectNameField = (model: Model, h: ProjectSettingsViewBuilder): Html =>
-  inputView(
+  Input.view(
     {
       id: 'workspace-project-name',
       value: model.draft.name,
@@ -85,7 +82,7 @@ const projectDescriptionField = (
   model: Model,
   h: ProjectSettingsViewBuilder,
 ): Html =>
-  textareaView(
+  Textarea.view(
     {
       id: 'workspace-project-description',
       value: model.draft.description,
@@ -127,7 +124,7 @@ const formActions = (model: Model, h: ProjectSettingsViewBuilder): Html => {
       ),
     ],
     [
-      buttonView(
+      Button.view(
         {
           type: 'button',
           isDisabled: isSaving || !isChanged,
@@ -140,7 +137,7 @@ const formActions = (model: Model, h: ProjectSettingsViewBuilder): Html => {
         },
         h,
       ),
-      buttonView(
+      Button.view(
         {
           type: 'submit',
           isDisabled: isSaving || !isValid || !isChanged,
@@ -171,7 +168,7 @@ export const view = ProjectSettingsComposition.makeView((model, h) =>
             ['Project details'],
           ),
           saveFeedback(model, h),
-          fieldsetView(
+          Fieldset.view(
             {
               id: 'workspace-project-fields',
               isDisabled: SaveState.guards.Saving(model.saveState),

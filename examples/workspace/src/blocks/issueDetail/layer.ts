@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import { IssueDetailBlock } from './block'
 import { CommentComposer } from './blocks'
@@ -40,4 +40,4 @@ export const layer = IssueDetailBlock.makeLayer(
       EffectsLayer: SaveIssue.layer,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(ListboxLayer, CommentComposer.layer)))
+).pipe(Layer.provide(Layer.mergeAll(Listbox.layer, CommentComposer.layer)))

@@ -90,14 +90,16 @@ export type OutMessageStep<OutMessage> = Readonly<{
   expected: OutMessage
 }>
 
+const AssertModels = Symbol('StoryAssertModels')
+
 /** A grouped sequence of Story steps produced by {@link steps}. */
-export type StoryStepsStep<
+export interface StoryStepsStep<
   GivenModel,
   ModelAssertion,
   Message,
   OutMessage,
   InMessage = never,
-> = Readonly<{
+> extends Readonly<{
   _tag: 'StoryStepsStep'
   /** @internal Carries the produced Model type through a reusable step group. */
   _phantomGivenModel?: GivenModel
@@ -109,8 +111,9 @@ export type StoryStepsStep<
   _phantomOutMessage?: OutMessage
   /** @internal Retains the separate input requirement of grouped steps. */
   _phantomInMessage?: InMessage
+  [AssertModels]?: (before: any, after: any) => void
   steps: ReadonlyArray<StoryStep<any, any, any, unknown>>
-}>
+}> {}
 
 /** A single step in a story. */
 export type StoryStep<
@@ -145,6 +148,7 @@ type InternalStorySimulation<
   OutMessage = undefined,
 > = StorySimulation<Model, Message, OutMessage> &
   Readonly<{
+    isInitialized: boolean
     message: Message | undefined
     updateFn: (
       model: Model,
@@ -168,11 +172,11 @@ export const given = <Model>(model: Model): GivenStep<Model> => {
   ): StorySimulation<M, Message, OutMessage> => {
     const internal = toInternal(simulation)
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return { ...internal, model } as unknown as StorySimulation<
-      M,
-      Message,
-      OutMessage
-    >
+    return {
+      ...internal,
+      isInitialized: true,
+      model,
+    } as unknown as StorySimulation<M, Message, OutMessage>
   }
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   return Object.assign(step, {
@@ -187,12 +191,17 @@ export const __givenInit = <Model, OutMessage = undefined>(
 ): GivenStep<Model> => {
   const step = <Message>(
     simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> => ({
-    ...toInternal(simulation),
-    model: init.model,
-    commands: init.commands ?? [],
-    outMessage: init.outMessage,
-  })
+  ): StorySimulation<Model, Message, OutMessage> => {
+    const next = {
+      ...toInternal(simulation),
+      isInitialized: true,
+      model: init.model,
+      commands: init.commands ?? [],
+      outMessage: init.outMessage,
+    }
+
+    return next
+  }
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   return Object.assign(step, {
@@ -474,6 +483,35 @@ export const steps = <
   steps: storySteps,
 })
 
+/** Runs grouped Story steps, then asserts against the Models immediately before
+ *  and after that group. */
+export const models = <
+  Model,
+  GivenModel,
+  ModelAssertion,
+  Message,
+  OutMessage,
+  InMessage,
+>(
+  groupedSteps: StoryStepsStep<
+    GivenModel,
+    ModelAssertion,
+    Message,
+    OutMessage,
+    InMessage
+  >,
+  assert: (before: Model, after: Model) => void,
+): StoryStepsStep<
+  GivenModel,
+  ModelAssertion | ((model: Model) => void),
+  Message,
+  OutMessage,
+  InMessage
+> => ({
+  ...groupedSteps,
+  [AssertModels]: assert,
+})
+
 /** Asserts that every matcher selects a pending Command. Definitions select
  *  their originating identity; instances also compare complete args and any
  *  explicitly scoped composition occurrence. */
@@ -617,17 +655,38 @@ const applyStoryStep = <Model, Message, OutMessage, InMessage>(
   }
 
   if (Predicate.isTagged(step, 'StoryStepsStep')) {
-    return Array.reduce(step.steps, current, applyStoryStep)
+    const internal = toInternal(current)
+    const assertModels = step[AssertModels]
+
+    if (assertModels !== undefined && !internal.isInitialized) {
+      throw new Error(
+        '[foldkit] Story.models requires an initial Model before its grouped steps.',
+      )
+    }
+
+    const next = Array.reduce(step.steps, current, applyStoryStep)
+
+    assertModels?.(internal.model, toInternal(next).model)
+
+    return next
   }
 
   if (Predicate.isFunction(step)) {
-    return step(current)
+    const next = step(current)
+    const nextInternal = toInternal(next)
+
+    if (nextInternal.isInitialized === undefined) {
+      return { ...toInternal(current), ...nextInternal }
+    } else {
+      return next
+    }
   }
 
   return current
 }
 
-/** Executes a test story. Throws if any Commands remain unresolved. */
+/** Executes a test story and returns its final Model. Throws if any Commands
+ *  remain unresolved. */
 export const story: {
   <Model, Message, OutMessage = never>(
     updateFn: (
@@ -641,7 +700,7 @@ export const story: {
     ...steps: ReadonlyArray<
       StoryStep<NoInfer<Model>, NoInfer<Message>, NoInfer<OutMessage>>
     >
-  ): void
+  ): Model
   <Model, Message>(
     updateFn: (
       model: Model,
@@ -654,16 +713,17 @@ export const story: {
     ...steps: ReadonlyArray<
       StoryStep<NoInfer<Model>, NoInfer<Message>, undefined>
     >
-  ): void
+  ): Model
 } = <Model, Message, OutMessage = undefined>(
   updateFn: (
     model: Model,
     message: Message,
   ) => SimulationUpdateReturn<Model, OutMessage>,
   ...steps: ReadonlyArray<StoryStep<Model, Message, OutMessage>>
-): void => {
+): Model => {
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   const seed = {
+    isInitialized: false,
     model: undefined as unknown,
     message: undefined,
     commands: Array.empty(),
@@ -677,4 +737,12 @@ export const story: {
 
   const internal = toInternal(result)
   assertAllCommandsResolved(internal.commands)
+
+  if (!internal.isInitialized) {
+    throw new Error(
+      '[foldkit] Story requires an initial Model before it can return a final Model.',
+    )
+  }
+
+  return internal.model
 }

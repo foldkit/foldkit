@@ -2,9 +2,9 @@ import { Html, inertHtml as ih } from 'foldkit/html'
 
 import * as Markdown from '@foldkit/markdown'
 
-import { type CodeBlock } from '../component'
 import { type RenderHeadingLink } from '../prose'
 import { type TableOfContentsEntry } from '../tableOfContentsEntry'
+import type * as CodeBlock from './codeBlock'
 import { type DemoLabels, collectDemoLabels } from './demoLabel'
 import { docIslands } from './islands'
 import { type Slots } from './slots'

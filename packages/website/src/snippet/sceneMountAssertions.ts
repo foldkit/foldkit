@@ -1,22 +1,18 @@
 import { Mount, click, role } from 'foldkit/scene'
 
-import {
-  test as ListboxTest,
-  makeBlock as makeListboxBlock,
-} from '@foldkit/ui/listbox'
-import { PopoverBlock, test as PopoverTest } from '@foldkit/ui/popover'
+import { Listbox, Popover } from '@foldkit/ui'
 
-const ListboxBlock = makeListboxBlock<string>()
-const ListboxAnchorListbox = ListboxTest.AnchorListbox
-const ListboxPortalListboxBackdrop = ListboxTest.PortalListboxBackdrop
-const PopoverAnchorPopover = PopoverTest.AnchorPopover
+const ListboxBlock = Listbox.makeBlock<string>()
+const ListboxAnchorListbox = Listbox.test.AnchorListbox
+const ListboxPortalListboxBackdrop = Listbox.test.PortalListboxBackdrop
+const PopoverAnchorPopover = Popover.test.AnchorPopover
 
 // Single Mount. Open a popover, acknowledge its anchor mount.
 click(role('button', { name: 'Open' }))
 Mount.expectExact(PopoverAnchorPopover)
 Mount.resolve(
   PopoverAnchorPopover,
-  PopoverBlock.Message.CompletedAnchorPopover(),
+  Popover.PopoverBlock.Message.CompletedAnchorPopover(),
 )
 
 // Multiple Mounts. Opening a modal Listbox renders both the items container
@@ -46,5 +42,5 @@ Mount.expectEnded(PopoverAnchorPopover)
 // Block boundary's own lift, so you pass the child's raw result Message.
 Mount.resolve(
   PopoverAnchorPopover,
-  PopoverBlock.Message.CompletedAnchorPopover(),
+  Popover.PopoverBlock.Message.CompletedAnchorPopover(),
 )

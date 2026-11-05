@@ -365,7 +365,7 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 - [ ] Two-or-more-step post-mutation handlers use `Update.combineSteps(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `modifyFields` chains and conditional Command arrays. One Step is not wrapped in `Update.combineSteps`, and an inline Step parameter is named `stepModel`
 - [ ] Child Bindings capture generated delivery and origin for child Commands; direct `Command.mapMessages` is reserved for lower-level operations outside composed Blocks
 - [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/http`. Handlers leave the client in their requirements, and the application root supplies `Http.layer` from `foldkit`. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)
-- [ ] UI components use named imports from public subpaths such as `@foldkit/ui/dialog` and `@foldkit/ui/input`, with component-qualified aliases for common names.
+- [ ] Each file imports its UI component namespaces once from `@foldkit/ui` and uses members through the owner (`Dialog.DialogBlock`, `Dialog.layer`, `Input.view`, `Combobox.Multi`, `Listbox.test`). No component subpaths or individual-member aliases remain; a whole namespace may be aliased only for a local collision.
 
 ## Effect-TS patterns
 
@@ -475,7 +475,7 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 - [ ] Reusable Steps shared by update, inMessageUpdate, composition, or init live in owner-local `steps.ts`, or responsibility files under `steps/` with an explicit barrel. Message routing, Binding registration and child OutMessage policy remain in their owning modules; initialization does not eagerly read a cyclic Binding.
 
 - [ ] Message layout follows four-group convention (values, union + type)
-- [ ] Single-file apps use names and blank lines for structure. Section headers appear only for substantial groups that need wayfinding.
+- [ ] Single-file apps use names and blank lines for structure. No decorative section-header comments such as `// MODEL`, `// OUT MESSAGE`, or `// VIEW`.
 - [ ] Complex update handlers extracted to separate functions
 - [ ] view decomposed when branches exceed ~30 lines
 
@@ -490,6 +490,8 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 - [ ] Story tests use `Command.resolve(Definition, resultMessage)` and never run Command Effects directly. Whole-application execution tests keep the real handler Layers and replace their dependency providers
 - [ ] Block-aware Stories/Scenes own graph acquisition and Scope cleanup, return Effects, and retain init Model/Commands through their `init` step. Required view inputs, update context and URL routing are supplied through the checked test config. Pure tests do not build handler Layers.
 - [ ] Model-derived Story Messages use `messageWith` when their inputs must be read at step execution. Direct child facts use Block-aware `messageFrom(binding, rawMessage)`; Subscription tests use their selected implementation's exact registered entry and declared raw Message; no live Stream or occurrence-admission claim is inferred.
+- [ ] Story and Scene specifications use immutable fixtures and observable assertions; they do not use mutable outer captures or `mockImplementation` closures to transfer values between steps. Treat a case that cannot use immutable setup, `messageWith`, or observable behavior as a candidate DSL gap.
+- [ ] Before/after Story assertions use `models(steps(...), (before, after) => ...)` after initialization. Fixture helpers return the finished Story Model immutably; every pending Command is resolved before that Model can seed another Story or Scene.
 - [ ] Command and Mount matchers use the original Definition's source identity instead of comparing displayed names or `Definition.name`. Child results are supplied as raw child Messages; tests do not fabricate generated `Got*` envelopes. UI matcher Definitions come from the component's public `test` namespace and result Messages from its passive Block contract
 - [ ] The TypeScript project includes `*.test.ts` and `*.test.tsx`, so Story and Scene API changes fail during the normal typecheck
 - [ ] All tests pass with the project's test script
@@ -569,7 +571,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] Field-backed Bindings mirror their Model fields in PascalCase with a `Binding` suffix, retaining optional prefixes, plurals, and roles. Wrapped storage keeps a nested role when necessary; custom and variant storage use meaningful relationship names. Only a necessary private pre-policy value takes the `Base` prefix.
 
 - [ ] Feature barrels expose only intended public contracts and domain helpers. Implementation modules export pieces needed by sibling modules or focused tests without widening the feature barrel; helpers with no external consumer remain private. Pure public queries such as `isComplete(model)` belong with the child responsibility and have stable public Model semantics regardless of implementation Layer selection. The parent does not duplicate those rules or store their derived results.
-- [ ] Section headers appear only where a long file has substantial groups that need wayfinding. Routine `// MODEL`, `// UPDATE`, and similar headings are absent from ordinary application and example files. Other comments are sparse: use `// NOTE:` only for a timing dependency, browser quirk, or external constraint that clear names cannot express.
+- [ ] Decorative section-header comments such as `// MODEL`, `// OUT MESSAGE`, and `// VIEW` are absent. Other comments are sparse: use `// NOTE:` only for a timing dependency, browser quirk, or external constraint that clear names cannot express.
 - [ ] `index.ts` is an explicit barrel. A child feature exposes its passive contract and construction `layer`; the root exposes its `ApplicationBlock` and its construction `layer`. Generic factories preserve their public `makeBlock` signature and shared provider. Keep reusable Schemas and pure utilities in a separate explicit domain barrel.
 - [ ] Published contracts and inferred exported Bindings/Composition/Blocks emit and recheck in a source-free consumer with exact payloads and provider requirements. Unique key types are reachable from the owning public subpath. Generic libraries preserve narrow named contracts without requiring app casts or reconstruction of implementation types.
 - [ ] Parent Schema construction uses the child independent contract's `.Model`. Parents do not import child implementations for typed authorship, repeat factory calls for a Schema or replace missing evidence with casts, broad annotations or `satisfies`.

@@ -2,15 +2,7 @@ import { clsx } from 'clsx'
 import { Array, Option, pipe } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import {
-  DragState,
-  type RenderInfo,
-  ghostStyle,
-  isDragging,
-  maybeDraggedItemId,
-  maybeDropTarget,
-} from '@foldkit/ui/dragAndDrop'
+import { Button, DragAndDrop } from '@foldkit/ui'
 
 import { Issue, IssueStatus, issueStatusLabel } from '../../domain'
 import {
@@ -79,7 +71,7 @@ const issueTitle = (
 
 const maybeDraggedIssue = (model: Model, viewInputs: ViewInputs) =>
   pipe(
-    maybeDraggedItemId(model.dragAndDrop),
+    DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
     Option.flatMap(maybeIssueIdFromDraggableId),
     Option.flatMap(issueId =>
       Array.findFirst(viewInputs.issues, issue => issue.id === issueId),
@@ -92,11 +84,11 @@ const issueCard = (
   status: IssueStatus,
   index: number,
   viewInputs: ViewInputs,
-  dragAndDropRenderInfo: RenderInfo,
+  dragAndDropRenderInfo: DragAndDrop.RenderInfo,
   h: IssueBoardViewBuilder,
 ): Html => {
   const isSaving = viewInputs.isSaving ?? false
-  const isDisabled = isSaving || isDragging(model.dragAndDrop)
+  const isDisabled = isSaving || DragAndDrop.isDragging(model.dragAndDrop)
 
   const maybeHref = Option.fromNullishOr(viewInputs.issueHrefs[issue.id])
 
@@ -105,8 +97,9 @@ const issueCard = (
   )
 
   const isKeyboardDragged =
-    DragState.guards.KeyboardDragging(model.dragAndDrop.dragState) &&
-    model.dragAndDrop.dragState.itemId === draggableId(issue.id)
+    DragAndDrop.DragState.guards.KeyboardDragging(
+      model.dragAndDrop.dragState,
+    ) && model.dragAndDrop.dragState.itemId === draggableId(issue.id)
 
   return h.keyed('li')(
     issue.id,
@@ -177,10 +170,10 @@ const columnCards = (
   status: IssueStatus,
   issues: ReadonlyArray<Issue>,
   viewInputs: ViewInputs,
-  dragAndDropRenderInfo: RenderInfo,
+  dragAndDropRenderInfo: DragAndDrop.RenderInfo,
   h: IssueBoardViewBuilder,
 ): ReadonlyArray<Html> => {
-  if (!isDragging(model.dragAndDrop)) {
+  if (!DragAndDrop.isDragging(model.dragAndDrop)) {
     return Array.map(issues, (issue, index) =>
       issueCard(
         model,
@@ -214,7 +207,7 @@ const columnCards = (
   )
 
   const maybeTarget = Option.filter(
-    maybeDropTarget(model.dragAndDrop),
+    DragAndDrop.maybeDropTarget(model.dragAndDrop),
     target => target.containerId === containerId(status),
   )
 
@@ -223,7 +216,7 @@ const columnCards = (
     onSome: target => {
       const insertionIndex = Math.max(0, Math.min(target.index, cards.length))
 
-      const preview = DragState.guards.KeyboardDragging(
+      const preview = DragAndDrop.DragState.guards.KeyboardDragging(
         model.dragAndDrop.dragState,
       )
         ? Option.match(maybeDragged, {
@@ -263,7 +256,7 @@ const column = (
   model: Model,
   status: IssueStatus,
   viewInputs: ViewInputs,
-  dragAndDropRenderInfo: RenderInfo,
+  dragAndDropRenderInfo: DragAndDrop.RenderInfo,
   h: IssueBoardViewBuilder,
 ): Html => {
   const issues = Array.filter(
@@ -272,10 +265,10 @@ const column = (
   )
 
   const isDisabled =
-    (viewInputs.isSaving ?? false) || isDragging(model.dragAndDrop)
+    (viewInputs.isSaving ?? false) || DragAndDrop.isDragging(model.dragAndDrop)
 
   const isTarget = Option.exists(
-    maybeDropTarget(model.dragAndDrop),
+    DragAndDrop.maybeDropTarget(model.dragAndDrop),
     target => target.containerId === containerId(status),
   )
 
@@ -311,7 +304,7 @@ const column = (
             ],
             [`${issues.length}`],
           ),
-          buttonView(
+          Button.view(
             {
               type: 'button',
               onClick: Message.ClickedCreateIssue({ status }),
@@ -380,7 +373,7 @@ const ghost = (
 ): Html =>
   Option.match(
     Option.all({
-      style: ghostStyle(model.dragAndDrop),
+      style: DragAndDrop.ghostStyle(model.dragAndDrop),
       issue: maybeDraggedIssue(model, viewInputs),
     }),
     {

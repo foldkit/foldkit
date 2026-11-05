@@ -1,7 +1,7 @@
 import { Array, Record } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as navView } from '@foldkit/ui/nav'
+import { Nav } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import type { Project, Workspace } from '../domain'
@@ -22,7 +22,7 @@ export const projectTabs = (
     }),
   }
 
-  return navView({
+  return Nav.view({
     items: Record.keys(projectPageRoutes),
     ariaLabel: 'Project navigation',
     toHref: label => routeToPath(projectPageRoutes[label]),

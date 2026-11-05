@@ -12,7 +12,7 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { ApplicationBlock, layer } from './index'
 import { Submission } from './model'
@@ -20,7 +20,7 @@ import { it } from './model.fixture'
 import { StepTabsBlock } from './navigationComponents'
 
 const resolveFocusTab = Command.resolve(
-  TabsTest.FocusTab,
+  Tabs.test.FocusTab,
   StepTabsBlock.Message.CompletedFocusTab(),
 )
 

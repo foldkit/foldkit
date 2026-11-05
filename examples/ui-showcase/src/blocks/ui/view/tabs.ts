@@ -1,7 +1,7 @@
 import { Array, Match } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import type { RenderInfo } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import {
   HorizontalTabsDemoBinding,
@@ -101,7 +101,7 @@ export const view = UiComposition.makeView((model, h) => {
     tablist,
     tabs,
     activeIndex,
-  }: RenderInfo<DemoTab>): Html =>
+  }: Tabs.RenderInfo<DemoTab>): Html =>
     h.div(
       [],
       [
@@ -129,7 +129,7 @@ export const view = UiComposition.makeView((model, h) => {
     tablist,
     tabs,
     activeIndex,
-  }: RenderInfo<DemoTab>): Html =>
+  }: Tabs.RenderInfo<DemoTab>): Html =>
     h.div(
       [h.Class('flex')],
       [

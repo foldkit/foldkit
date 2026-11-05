@@ -1,6 +1,6 @@
 import type { Url } from 'foldkit/url'
 
-import type * as CodeBlock from '../../component/codeBlock'
+import type * as CodeBlock from '../../markdown/codeBlock'
 import type { RenderHeadingLink } from '../../prose'
 import type { Page } from './domain/domain'
 
