@@ -58,6 +58,7 @@ const foldErrorDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({
     model: modifyFields(model, { maybeExportError: () => Option.none() }),
   }),
+  Left: () => model => ({ model }),
 })
 
 const foldErrorDialog = Update.foldChild({
@@ -113,6 +114,7 @@ const foldGridSizeConfirmDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({
     model: modifyFields(model, { maybePendingGridSize: () => Option.none() }),
   }),
+  Left: () => model => ({ model }),
 })
 
 const foldGridSizeConfirmDialog = Update.foldChild({

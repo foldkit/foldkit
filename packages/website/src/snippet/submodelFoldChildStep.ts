@@ -7,6 +7,7 @@ const toParentDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => undefined,
   Closed: () => OutMessage.ClosedDialog(),
+  Left: () => undefined,
 })
 
 const foldDialogClose = Update.foldChildStep({

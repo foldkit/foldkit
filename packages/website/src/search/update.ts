@@ -89,6 +89,7 @@ const foldSearchDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
+  Left: () => model => ({ model }),
 })
 
 const foldSearchDialog = Update.foldChild({
