@@ -202,6 +202,8 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
+  CompletedClose: () => model => ({ model }),
+  FailedOpen: () => model => ({ model }),
 })
 
 const foldMenuOutMessage = Menu.OutMessage.match<
