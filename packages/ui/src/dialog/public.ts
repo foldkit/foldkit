@@ -12,6 +12,7 @@ export {
   OutMessage,
   type Opened,
   type Closed,
+  type Left,
   type RequestedOpen,
   type RequestedClose,
   type SucceededShowDialog,

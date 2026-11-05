@@ -61,14 +61,16 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Union of out-messages the dialog component can produce. */
+/** Union of out-messages the dialog component can produce. `Opened` and `Closed` report the request that changed `isOpen`. `Left` reports that the dialog element has closed: after `CloseDialog` completes, which for an animated dialog is after the leave animation, and when the component resets itself to closed because showing it or acquiring its resources failed or it unmounted while open. */
 export const OutMessage = defineMessageUnion({
   Opened: {},
   Closed: {},
+  Left: {},
 })
 
 export type Opened = typeof OutMessage.Opened.Type
 export type Closed = typeof OutMessage.Closed.Type
+export type Left = typeof OutMessage.Left.Type
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -426,6 +428,7 @@ export const update = (model: Model, message: Message) =>
         return {
           model: resetToClosed(model),
           commands: [ReleaseDialogResources({ id: model.id })],
+          outMessage: OutMessage.Left(),
         }
       } else {
         return { model }
@@ -442,7 +445,7 @@ export const update = (model: Model, message: Message) =>
 
     FailedShowDialog: () => {
       if (isOpenOrAnimating(model)) {
-        return { model: resetToClosed(model) }
+        return { model: resetToClosed(model), outMessage: OutMessage.Left() }
       } else {
         return { model }
       }
@@ -458,13 +461,13 @@ export const update = (model: Model, message: Message) =>
 
     FailedAcquireResources: () => {
       if (isOpenOrAnimating(model)) {
-        return { model: resetToClosed(model) }
+        return { model: resetToClosed(model), outMessage: OutMessage.Left() }
       } else {
         return { model }
       }
     },
 
-    CompletedCloseDialog: () => ({ model }),
+    CompletedCloseDialog: () => ({ model, outMessage: OutMessage.Left() }),
     CompletedReleaseDialogResources: () => ({ model }),
   })
 

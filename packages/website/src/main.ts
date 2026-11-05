@@ -384,6 +384,7 @@ const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
+  Left: () => model => ({ model }),
 })
 
 const readMobileMenuDialog = (model: Model): Option.Option<Dialog.Model> =>

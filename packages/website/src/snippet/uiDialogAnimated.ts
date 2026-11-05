@@ -37,6 +37,7 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
+  Left: () => model => ({ model }),
 })
 
 const foldDialog = Update.foldChild({
