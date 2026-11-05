@@ -945,7 +945,6 @@ const menuViewImpl = (
     id,
     isOpen,
     animation: { transitionState },
-    maybeActiveItemIndex,
     searchQuery,
   } = model
 
@@ -976,6 +975,11 @@ const menuViewImpl = (
     ariaLabel,
     ariaLabelledBy,
   } = viewInputs
+
+  const maybeActiveItemIndex = pipe(
+    model.maybeActiveItemIndex,
+    Option.filter(index => index >= 0 && index < items.length),
+  )
 
   const dispatchSelectedItem = (item: string, index: number) =>
     Message.SelectedItem({ index, item })

@@ -261,14 +261,16 @@ Root-relative paths, query references such as `?q=foldkit`, and fragments such a
 
 ## Mounts
 
-Scene follows the renderer's element identity. A Mount starts when Snabbdom inserts its element. While Snabbdom patches that element in place, it keeps the Mount it was inserted with, even if `OnMount` changes or disappears; adding `OnMount` to an already-rendered element does not start a Mount. A Mount ends when its element is removed or replaced, and the test acknowledges that with `Mount.expectEnded`.
+Scene follows the renderer's element identity and, for a Block-aware subject, the acquiring Block occurrence. A Mount initially starts when Snabbdom inserts its element. Omitting `OnMount` on a retained element keeps the existing acquisition. A marker for a different occurrence ends the previous acquisition and starts a new pending Mount; removing and recreating a child under the same key creates a different occurrence. Adding the first `OnMount` to an already-rendered element does not start a Mount.
+
+While the acquiring occurrence remains active, retained Mount results follow the currently rendered Block boundary. A Mount ends when its element is removed or replaced, or its acquiring occurrence retires. Acknowledge every such end with `Mount.expectEnded`.
 
 This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, dialogs, and other components expose their original Mount Definitions under their public `test` namespaces so a consumer test can name and resolve them.
 
 ### Mount Lifecycle Rules
 
-- A patched element keeps its pending or resolved Mount across re-renders. A new element starts a new Mount, even when it has the same Mount Definition.
-- Every mount that fires and unmounts during a scene must be acknowledged with `Mount.expectEnded`, even if it was already resolved. `resolve` handles a mount’s result Message; `expectEnded` handles its unmount. Unacknowledged unmounts throw at the end of the scene.
+- A patched element keeps its pending or resolved Mount while the acquiring occurrence remains active and no different marked owner replaces it. A new element starts a new Mount, even when it has the same Mount Definition.
+- Every acquired Mount that ends during a Scene must be acknowledged with `Mount.expectEnded`, even if it was already resolved. `resolve` handles a Mount's result Message; `expectEnded` acknowledges element removal, replacement or occurrence retirement. Unacknowledged ends throw at the end of the Scene.
 - Same-named Mounts are disambiguated by their current tree order. `Mount.resolve` resolves the first pending Mount; a second call resolves the next. Keyed moves keep each element's Mount with it.
 - Interactions throw if there are unresolved mounts or unacknowledged unmounts when they try to dispatch a Message. Same contract as Commands.
 - `scene` throws at the end if any mount remains unresolved.
@@ -285,7 +287,7 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 | `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent, by source identity).                                                                                                                                                      |
 | `Mount.expectHas(A)`                          | A is among the pending mounts by source identity.                                                                                                                                                                                    |
 | `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                         |
-| `Mount.expectEnded(A)`                        | A's element was removed or replaced. Required for every Mount that fired before its element was removed or replaced, regardless of whether it was resolved first; otherwise the scene throws at the end.                             |
+| `Mount.expectEnded(A)`                        | A's element was removed or replaced, its marked owner changed, or its acquiring Block occurrence retired. Required for every ended acquisition, even if it was already resolved; otherwise the Scene throws at the end.              |
 
 UI components expose their Mount Definitions as `Popover.test.AnchorPopover`, `Listbox.test.AnchorListbox`, and so on. These are the original declarations, so source-identity matching survives placement-qualified runtime names. The [testing migration cookbook](/testing#migrate-an-existing-test-suite) shows the public Block contract and test namespace together.
 
@@ -297,7 +299,7 @@ This example assumes `CanvasBlock` renders `ObserveCanvas`, a stream Mount that 
 
 ::Snippet{name="sceneMountStream" label="Later measurements from a mounted stream"}
 
-`Mount.emit` accepts the stream's declared raw Message and validates its payload. Child Block boundary lifts are replayed automatically. The selected element must still be mounted, and its first result must already be resolved. Resolve pending Commands and Mounts and acknowledge ended Mounts before emitting again. `Mount.expectNone` checks pending Mounts; an active, resolved stream does not count as pending.
+`Mount.emit` accepts the stream's declared raw Message and validates its payload. A Block-aware Scene routes it through the currently rendered boundary while the acquiring occurrence remains active. Low-level Scenes without a Block graph replay their captured boundary lifts. The selected element must still be mounted, and its first result must already be resolved. Resolve pending Commands and Mounts and acknowledge ended Mounts before emitting again. `Mount.expectNone` checks pending Mounts; an active, resolved stream does not count as pending.
 
 When several active Mounts share the same source, pass the bound instance and its complete args to select one occurrence. An ambiguous match throws. Stream emissions do not execute handler Layers, so the same steps work for attached and host-owned implementations.
 

@@ -217,6 +217,8 @@ for (const form of ['nested', 'published'] satisfies ReadonlyArray<
           Scene.Mount.resolve(firstMount, measured(100)),
           giveWithoutRender(removed, Application.initialModel),
           Scene.Mount.expectEnded(firstMount),
+          Scene.Mount.expectExact(firstMount),
+          Scene.Mount.resolve(firstMount, measured(100)),
           Scene.Mount.expectNone(),
         ),
       )
@@ -375,6 +377,8 @@ test('a retired occurrence invalidates a lazy boundary even with identical view 
       Scene.given(Application.initialModel),
       giveWithoutRender(removed, Application.initialModel),
       Scene.Mount.expectEnded(firstMount),
+      Scene.Mount.expectExact(firstMount),
+      Scene.Mount.resolve(firstMount, measured(0)),
       Scene.Mount.expectNone(),
       click('surface'),
       text('first:222:first,second:600:second'),

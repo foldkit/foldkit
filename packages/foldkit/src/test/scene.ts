@@ -610,11 +610,11 @@ const reconcileMountSlots = (
   previousTree: VNode | undefined,
   rendered: VNode,
 ): ReadonlyArray<MountSlotState> => {
-  const liveByVNode = new Map<VNode, MountSlotState>()
+  const previousByVNode = new Map<VNode, MountSlotState>()
 
   for (const state of previous) {
-    if (state.status._tag !== 'Ended') {
-      liveByVNode.set(state.vnode, state)
+    if (!previousByVNode.has(state.vnode) || state.status._tag !== 'Ended') {
+      previousByVNode.set(state.vnode, state)
     }
   }
 
@@ -648,25 +648,26 @@ const reconcileMountSlots = (
   }
 
   const visitPatched = (previousNode: VNode, node: VNode): void => {
-    const liveState = liveByVNode.get(previousNode)
+    const liveState = previousByVNode.get(previousNode)
     const marker = mountMarkerOf(node)
 
     if (
       liveState !== undefined &&
       (marker === undefined ||
-        Array.makeEquivalence(Equal.equals)(
-          liveState.occurrencePath,
-          mountOccurrencePath(marker),
-        ))
+        (liveState.acquisition?.owner === mountCaptureOf(marker)?.owner &&
+          Array.makeEquivalence(Equal.equals)(
+            liveState.occurrencePath,
+            mountOccurrencePath(marker),
+          )))
     ) {
       carried.add(liveState)
       renderedSlots.push({
         acquisition: liveState.acquisition,
+        occurrencePath: liveState.occurrencePath,
         slot: {
           ...liveState.slot,
           occurrence: nextOccurrence(liveState.slot.name),
         },
-        occurrencePath: liveState.occurrencePath,
         status: liveState.status,
         vnode: node,
       })
@@ -674,6 +675,7 @@ const reconcileMountSlots = (
       renderedSlots.push({
         slot: slotOfMarker(marker, nextOccurrence(marker.name)),
         occurrencePath: mountOccurrencePath(marker),
+        acquisition: acquireMount(marker),
         status: PENDING,
         vnode: node,
       })
@@ -710,8 +712,8 @@ const reconcileMountSlots = (
     previous,
     Array.filter(
       state =>
-        (state.status._tag !== 'Ended' && !carried.has(state)) ||
-        (state.status._tag === 'Ended' && !state.status.acknowledged),
+        !carried.has(state) &&
+        (state.status._tag !== 'Ended' || !state.status.acknowledged),
     ),
     Array.map(endStatus),
   )
@@ -1827,12 +1829,10 @@ const expectNoMountsStep =
     return simulation
   }
 
-/** Acknowledges that the given Mounts ended because their elements were
- *  removed or replaced. Required for every Mount that fires and then unmounts
- *  during a scene, whether or not it was resolved first. Without this, the
- *  scene throws at the end of the test for any unacknowledged unmount. Mount
- *  matchers may be Definitions or instances; instances acknowledge a specific
- *  args shape. */
+/** Acknowledges Mounts ended by element removal/replacement or by retirement
+ *  of their acquiring Block occurrence. Required whether or not the Mount
+ *  resolved first. A scene rejects any unacknowledged end. Mount matchers may
+ *  be Definitions or instances; instances acknowledge a specific args shape. */
 const expectEndedMountsStep =
   (...matchers: ReadonlyArray<MountMatcher>) =>
   <Model, Message, OutMessage = undefined>(
@@ -1860,13 +1860,13 @@ const expectEndedMountsStep =
     }
     if (Array.isReadonlyArrayNonEmpty(remaining)) {
       throw new Error(
-        `I tried to acknowledge ended Mounts but some haven't unmounted:\n\n` +
+        `I tried to acknowledge ended Mounts but some are still active:\n\n` +
           pipe(
             remaining,
             Array.map(matcher => `    ${formatMountMatcher(matcher)}`),
             Array.join('\n'),
           ) +
-          "\n\nUse Scene.Mount.expectEnded only after the Mount's element has been removed or replaced.",
+          '\n\nUse Scene.Mount.expectEnded after the element is removed or replaced, or its acquiring Block occurrence retires.',
       )
     }
     return {
@@ -2222,8 +2222,8 @@ export const Mount = {
   expectExact: expectExactMountsStep,
   /** Asserts that there are no pending Mounts. */
   expectNone: expectNoMountsStep,
-  /** Acknowledges Mounts whose element was removed or replaced. Required for
-   *  every Mount that fires and then unmounts during a scene. */
+  /** Acknowledges Mounts ended by element removal/replacement or retirement
+   *  of their acquiring Block occurrence. Required for every ended Mount. */
   expectEnded: expectEndedMountsStep,
 } as const
 

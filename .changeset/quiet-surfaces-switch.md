@@ -2,4 +2,4 @@
 'foldkit': patch
 ---
 
-Reacquire a Scene Mount when a retained element switches to another persistent keyed child that renders OnMount. Keep the original acquisition and result routing when the same owner rerenders, including when that owner omits the Mount attribute and later restores it.
+Reacquire a Scene Mount when a retained element switches to another persistent keyed child that renders OnMount. Preserve acquisition arguments across the same owner's rerenders, including marker omission and restoration. Block-aware Scenes deliver results through the currently rendered boundary while the acquiring occurrence remains active.

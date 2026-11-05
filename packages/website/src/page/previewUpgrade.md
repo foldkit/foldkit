@@ -125,7 +125,7 @@ Contextual update records now accept compatible Steps and Binding operations dir
 
 Extracting registration evidence from returned Commands now avoids TS2589 in the reported large Root composition, while retaining registration checks. This does not establish a general limit on the number of Blocks or remove all compiler costs in large graphs.
 
-Scene follows renderer element identity when tracking Mount lifetimes. A replaced element ends its old Mount; a patched element keeps its original Mount even if its `OnMount` attribute changes. Review Scene tests that resolved a Mount which never starts in the browser. Runtime teardown also releases the original Mount when its element is removed after dropping `OnMount`.
+Scene follows renderer element identity and, for Block-aware subjects, the acquiring occurrence. A retained element keeps its Mount when `OnMount` is omitted; a marker for a different occurrence starts a replacement acquisition. Removing and recreating a child under the same key creates a different occurrence. Retained results follow the currently rendered boundary while the acquiring occurrence remains active. Acknowledge element removal, replacement and occurrence retirement with `Mount.expectEnded`. Review tests that resolved a Mount which never starts in the browser. Runtime teardown also releases the original Mount when its element is removed after dropping `OnMount`.
 
 `Scene.unhover(target)` now exercises hover exit through the element's `OnMouseLeave` handler, falling back to `OnMouseOut`. See [Scene interactions](/testing/scene#interactions).
 

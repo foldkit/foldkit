@@ -1,5 +1,5 @@
 ---
-'@foldkit/ui': patch
+'@foldkit/ui': minor
 ---
 
 Correct pointer drop indexes to match the source-excluded destination slot already used by keyboard dragging. The preview and `Reordered.toIndex` now use the destination index after removing the source item. Cross-container indexes and no-op `Reordered` emission are preserved.

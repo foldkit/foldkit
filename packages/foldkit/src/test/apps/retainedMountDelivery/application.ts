@@ -262,6 +262,23 @@ export const layer = ApplicationBlock.makeLayer(
                     .join(','),
                 ],
               ),
+              h.div(
+                [h.OnClick(Message.ClickedRestore())],
+                [
+                  h.div(
+                    [h.OnClick(Message.ClickedRecreate())],
+                    [
+                      h.button(
+                        [
+                          h.Id('replace-marked-in-one-click'),
+                          h.OnClick(Message.ClickedRemove()),
+                        ],
+                        ['replace marked'],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
               selectedView,
               ...(mode === 'Duplicate' && selected !== undefined
                 ? [renderSurface(selected, form, h)]
