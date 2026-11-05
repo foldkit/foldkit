@@ -30,3 +30,6 @@ export type { OutMessage, OutMessageSchema } from './menu.js'
 
 /** @internal Preserves exact fixed-family reader names in emitted declarations. */
 export type { MenuReader } from './menu.js'
+
+/** @internal Keeps inferred provider exports nameable through this entry point. */
+export type { AnimationKey } from '../animation/index.js'

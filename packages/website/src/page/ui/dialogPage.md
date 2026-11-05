@@ -135,4 +135,4 @@ Treat `Closed` as the parent's single close policy. If closing should navigate, 
 
 ::Snippet{name="uiDialogClosePolicy" label="One parent-owned Dialog close policy"}
 
-Use `CompletedClose` only for work that must wait for the native close Command's cleanup. A failed show or lifecycle acquisition emits `Closed` without running that Command. `Closed` reports the Model transition; it does not promise cleanup has finished.
+Use `CompletedClose` for work that must wait for the native close Command's cleanup. Retain a conditionally stored Dialog Model until this event when its leave animation and cleanup must finish before the parent advances. A failed show or lifecycle acquisition resets the active Dialog and follows the same cleanup path, so it also produces `CompletedClose`. `Closed` reports the Model transition before that cleanup finishes.

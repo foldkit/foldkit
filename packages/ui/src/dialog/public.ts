@@ -15,3 +15,6 @@ export {
 export * as test from './test.js'
 
 export type { DialogKey } from './block.js'
+
+/** @internal Keeps inferred provider exports nameable through this entry point. */
+export type { AnimationKey } from '../animation/index.js'

@@ -14,12 +14,13 @@ import * as Dom from 'foldkit/dom'
 import type { ChildAttribute } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/block.js'
 import { makeInitialModel as makeAnimationModel } from '../animation/schema.js'
+import * as TerminalDialogParent from '../test/apps/dialogTerminal.js'
 import {
   AcquireResources,
   CloseDialog,
@@ -42,6 +43,11 @@ import {
 type TestHtmlBuilder = Parameters<
   Story.TestBlock<typeof DialogBlock>['view']
 >[2]
+
+const acknowledgeCloseDialog = Story.Command.resolve(
+  CloseDialog,
+  Message.CompletedCloseDialog(),
+)
 
 const acknowledgeAcquireResources = Scene.Mount.resolve(
   AcquireResources,
@@ -562,6 +568,8 @@ it.layer(layer, { buildPerTest: true })(it => {
                 Story.model(model => {
                   expect(model.isOpen).toBe(false)
                 }),
+                acknowledgeCloseDialog,
+                Story.expectOutMessage(OutMessage.CompletedClose()),
                 Story.Command.expectNone(),
               )
             }),
@@ -598,6 +606,8 @@ it.layer(layer, { buildPerTest: true })(it => {
                   expect(model.animation.transitionState).toBe('Idle')
                   expect(model.animation.transitionGeneration).toBe(1)
                 }),
+                acknowledgeCloseDialog,
+                Story.expectOutMessage(OutMessage.CompletedClose()),
                 Story.Command.expectNone(),
               )
             }),
@@ -998,7 +1008,7 @@ it.layer(layer, { buildPerTest: true })(it => {
 
       describe('FailedShowDialog', () => {
         it.effect(
-          'reports Closed without releasing resources when showing fails',
+          'reports Closed and completes native cleanup when showing fails',
           () =>
             Story.story(
               DialogBlock,
@@ -1009,6 +1019,8 @@ it.layer(layer, { buildPerTest: true })(it => {
               Story.model(model => {
                 expect(model.isOpen).toBe(false)
               }),
+              acknowledgeCloseDialog,
+              Story.expectOutMessage(OutMessage.CompletedClose()),
               Story.Command.expectNone(),
             ),
         )
@@ -1041,42 +1053,56 @@ it.layer(layer, { buildPerTest: true })(it => {
                 expect(model.animation.transitionState).toBe('Idle')
                 expect(model.animation.transitionGeneration).toBe(1)
               }),
+              acknowledgeCloseDialog,
+              Story.expectOutMessage(OutMessage.CompletedClose()),
               Story.Command.expectNone(),
             )
           }),
         )
 
-        it.effect('resets a running leave animation to Idle', () =>
-          Story.withBlock(DialogBlock, block => {
-            const { openDialog } = makeFixture(block)
+        for (const failure of [
+          Message.FailedShowDialog(),
+          Message.FailedAcquireResources(),
+        ]) {
+          it.effect(
+            `resets a running leave animation after ${failure._tag}`,
+            () =>
+              Story.withBlock(DialogBlock, block => {
+                const { openDialog } = makeFixture(block)
 
-            const leavingModel = modifyFields(
-              openDialog({ id: 'test', isAnimated: true }).model,
-              {
-                isOpen: () => false,
-                animation: () =>
-                  modifyFields(
-                    makeAnimationModel({ id: 'test-panel', isShowing: false }),
-                    {
-                      transitionState: () => 'LeaveAnimating',
-                    },
-                  ),
-              },
-            )
-            return Story.story(
-              DialogBlock,
-              Story.given(leavingModel),
-              Story.message(Message.FailedShowDialog()),
-              Story.expectNoOutMessage(),
-              Story.model(model => {
-                expect(model.isOpen).toBe(false)
-                expect(model.animation.isShowing).toBe(false)
-                expect(model.animation.transitionState).toBe('Idle')
+                const leavingModel = modifyFields(
+                  openDialog({ id: 'test', isAnimated: true }).model,
+                  {
+                    isOpen: () => false,
+                    animation: () =>
+                      modifyFields(
+                        makeAnimationModel({
+                          id: 'test-panel',
+                          isShowing: false,
+                        }),
+                        {
+                          transitionState: () => 'LeaveAnimating',
+                        },
+                      ),
+                  },
+                )
+                return Story.story(
+                  DialogBlock,
+                  Story.given(leavingModel),
+                  Story.message(failure),
+                  Story.expectNoOutMessage(),
+                  Story.model(model => {
+                    expect(model.isOpen).toBe(false)
+                    expect(model.animation.isShowing).toBe(false)
+                    expect(model.animation.transitionState).toBe('Idle')
+                  }),
+                  acknowledgeCloseDialog,
+                  Story.expectOutMessage(OutMessage.CompletedClose()),
+                  Story.Command.expectNone(),
+                )
               }),
-              Story.Command.expectNone(),
-            )
-          }),
-        )
+          )
+        }
 
         it.effect('does nothing when the dialog is already closed', () =>
           Story.withBlock(DialogBlock, block => {
@@ -1087,6 +1113,11 @@ it.layer(layer, { buildPerTest: true })(it => {
               DialogBlock,
               Story.given(closedModel),
               Story.message(Message.FailedShowDialog()),
+              Story.expectNoOutMessage(),
+              Story.model(model => {
+                expect(model).toBe(closedModel)
+              }),
+              Story.message(Message.FailedAcquireResources()),
               Story.expectNoOutMessage(),
               Story.model(model => {
                 expect(model).toBe(closedModel)
@@ -1105,6 +1136,8 @@ it.layer(layer, { buildPerTest: true })(it => {
               Story.inMessage(InMessage.RequestedOpen()),
               Story.Command.resolve(ShowDialog, Message.FailedShowDialog()),
               Story.expectOutMessage(OutMessage.Closed()),
+              acknowledgeCloseDialog,
+              Story.expectOutMessage(OutMessage.CompletedClose()),
               Story.inMessage(InMessage.RequestedClose()),
               Story.expectNoOutMessage(),
               Story.Command.expectNone(),
@@ -1113,6 +1146,154 @@ it.layer(layer, { buildPerTest: true })(it => {
       })
 
       describe('parent close policy', () => {
+        for (const isAnimated of [false, true]) {
+          for (const failure of ['show', 'acquisition']) {
+            it.effect(
+              `retains the ${isAnimated ? 'animated' : 'plain'} child until ${failure} failure cleanup completes`,
+              () =>
+                Story.story(
+                  {
+                    block: TerminalDialogParent.TerminalDialogParentBlock,
+                    layer: TerminalDialogParent.layer,
+                  },
+                  Story.init(),
+                  Story.inMessage(
+                    TerminalDialogParent.TerminalDialogParentBlock.InMessage.RequestedOpen(
+                      {
+                        key: 'first',
+                        isAnimated,
+                      },
+                    ),
+                  ),
+                  Story.Command.resolve(
+                    ShowDialog,
+                    failure === 'show'
+                      ? Message.FailedShowDialog()
+                      : Message.SucceededShowDialog(),
+                  ),
+                  ...(failure === 'acquisition'
+                    ? [
+                        Story.messageFrom(
+                          TerminalDialogParent.MaybeDialogInstanceBinding,
+                          'first',
+                          Message.FailedAcquireResources(),
+                        ),
+                      ]
+                    : []),
+                  Story.model(model => {
+                    expect(Option.isSome(model.maybeDialogInstance)).toBe(true)
+                    expect(model.closedKeys).toEqual(['first'])
+                    expect(model.completedKeys).toEqual([])
+                  }),
+                  Story.Command.expectHas(CloseDialog({ id: 'first' })),
+                  ...(isAnimated
+                    ? [
+                        Story.Command.resolve(
+                          Animation.WaitForPaint,
+                          Animation.Message.CompletedWaitForPaint({
+                            generation: 1,
+                          }),
+                        ),
+                      ]
+                    : []),
+                  Story.Command.resolve(
+                    CloseDialog,
+                    Message.CompletedCloseDialog(),
+                  ),
+                  Story.model(model => {
+                    expect(model.maybeDialogInstance).toEqual(Option.none())
+                    expect(model.closedKeys).toEqual(['first'])
+                    expect(model.completedKeys).toEqual(['first'])
+                  }),
+                  Story.Command.expectNone(),
+                ),
+            )
+          }
+        }
+
+        it.effect(
+          'ignores the cleanup result after the parent removes the occurrence',
+          () =>
+            Story.story(
+              {
+                block: TerminalDialogParent.TerminalDialogParentBlock,
+                layer: TerminalDialogParent.layer,
+              },
+              Story.init(),
+              Story.inMessage(
+                TerminalDialogParent.TerminalDialogParentBlock.InMessage.RequestedOpen(
+                  {
+                    key: 'first',
+                    isAnimated: false,
+                  },
+                ),
+              ),
+              Story.Command.resolve(ShowDialog, Message.FailedShowDialog()),
+              Story.inMessage(
+                TerminalDialogParent.TerminalDialogParentBlock.InMessage.RequestedCancel(),
+              ),
+              Story.Command.resolve(
+                CloseDialog,
+                Message.CompletedCloseDialog(),
+              ),
+              Story.model(model => {
+                expect(model.maybeDialogInstance).toEqual(Option.none())
+                expect(model.completedKeys).toEqual([])
+              }),
+              Story.Command.expectNone(),
+            ),
+        )
+
+        it.effect(
+          'does not route the old cleanup result into a replacement occurrence',
+          () =>
+            Story.story(
+              {
+                block: TerminalDialogParent.TerminalDialogParentBlock,
+                layer: TerminalDialogParent.layer,
+              },
+              Story.init(),
+              Story.inMessage(
+                TerminalDialogParent.TerminalDialogParentBlock.InMessage.RequestedOpen(
+                  {
+                    key: 'first',
+                    isAnimated: false,
+                  },
+                ),
+              ),
+              Story.Command.resolve(ShowDialog, Message.FailedShowDialog()),
+              Story.inMessage(
+                TerminalDialogParent.TerminalDialogParentBlock.InMessage.RequestedOpen(
+                  {
+                    key: 'second',
+                    isAnimated: false,
+                  },
+                ),
+              ),
+              Story.Command.resolve(ShowDialog, Message.SucceededShowDialog()),
+              Story.Command.resolve(
+                CloseDialog({ id: 'first' }),
+                Message.CompletedCloseDialog(),
+              ),
+              Story.model(model => {
+                expect(
+                  Option.map(
+                    model.maybeDialogInstance,
+                    instance => instance.key,
+                  ),
+                ).toEqual(Option.some('second'))
+                expect(
+                  Option.map(
+                    model.maybeDialogInstance,
+                    instance => instance.model.isOpen,
+                  ),
+                ).toEqual(Option.some(true))
+                expect(model.completedKeys).toEqual([])
+              }),
+              Story.Command.expectNone(),
+            ),
+        )
+
         it.effect('runs when the native dialog fails to show', () =>
           Story.story(
             ParentBlock,
@@ -1122,6 +1303,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               ParentMessage.CompletedLoadParentData(),
             ),
             Story.Command.resolve(ShowDialog, Message.FailedShowDialog()),
+            acknowledgeCloseDialog,
             Story.model(model => {
               expect(model.dialog.isOpen).toBe(false)
               expect(model.dialogEvents).toStrictEqual(['Opened', 'Closed'])
@@ -1138,6 +1320,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               [ShowDialog, Message.SucceededShowDialog()],
             ),
             Story.messageFrom(DialogBinding, Message.FailedAcquireResources()),
+            acknowledgeCloseDialog,
             Story.model(model => {
               expect(model.dialog.isOpen).toBe(false)
               expect(model.dialogEvents).toStrictEqual(['Opened', 'Closed'])
@@ -1498,6 +1681,85 @@ it.layer(layer, { buildPerTest: true })(it => {
               Dom.releaseDialogResources('command-owned-dialog').pipe(
                 Effect.andThen(
                   Effect.sync(() => {
+                    background.remove()
+                    dialog.remove()
+                  }),
+                ),
+              ),
+            ),
+          )
+        },
+      )
+
+      it.effect(
+        'completes failure closure after native close, isolation and focus cleanup',
+        () => {
+          const background = document.createElement('main')
+          const trigger = document.createElement('button')
+          background.appendChild(trigger)
+          const dialog = document.createElement('dialog')
+          dialog.id = 'terminal-cleanup'
+          const dialogButton = document.createElement('button')
+          dialog.appendChild(dialogButton)
+          document.body.append(background, dialog)
+          trigger.focus()
+          const close = vi.spyOn(dialog, 'close')
+          const isolationAtFocus: Array<boolean> = []
+
+          return Story.withBlock(DialogBlock, executable =>
+            Effect.gen(function* () {
+              const dialogOpen = executable.inMessageUpdate(
+                executable.init({ id: dialog.id }).model,
+                InMessage.RequestedOpen(),
+              )
+              yield* ShowDialog({
+                id: dialog.id,
+                focusSelector: initialFocusMarkerSelector,
+              }).effect.pipe(provideEffects)
+              trigger.addEventListener('focus', () =>
+                isolationAtFocus.push(background.inert),
+              )
+
+              const dialogFailure = executable.update(
+                dialogOpen.model,
+                Message.FailedAcquireResources(),
+              )
+              expect(dialogFailure.outMessage).toEqual(OutMessage.Closed())
+              expect(
+                dialogFailure.commands?.map(command => ({
+                  name: command.name,
+                  args: command.args,
+                })),
+              ).toEqual([{ name: CloseDialog.name, args: { id: dialog.id } }])
+              expect(close).not.toHaveBeenCalled()
+              expect(background.inert).toBe(true)
+              expect(document.documentElement.style.overflow).toBe('hidden')
+              expect(document.activeElement).toBe(dialogButton)
+
+              const closeMessage = yield* CloseDialog({
+                id: dialog.id,
+              }).effect.pipe(provideEffects)
+              expect(close).toHaveBeenCalledTimes(1)
+              expect(dialog.open).toBe(false)
+              expect(background.inert).toBe(false)
+              expect(document.documentElement.style.overflow).not.toBe('hidden')
+              expect(document.activeElement).toBe(trigger)
+              expect(isolationAtFocus).toEqual([false])
+
+              const dialogClose = executable.update(
+                dialogFailure.model,
+                closeMessage,
+              )
+              expect(dialogClose.outMessage).toEqual(
+                OutMessage.CompletedClose(),
+              )
+            }),
+          ).pipe(
+            Effect.ensuring(
+              Dom.releaseDialogResources(dialog.id).pipe(
+                Effect.andThen(
+                  Effect.sync(() => {
+                    close.mockRestore()
                     background.remove()
                     dialog.remove()
                   }),
