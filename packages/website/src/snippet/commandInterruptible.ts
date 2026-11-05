@@ -17,7 +17,6 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -25,11 +24,17 @@ const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeFieldsStep, makeCommandsStep, makeNoopStep } = ApplicationBlock
+const {
+  makeFieldsStep,
+  makeCommandsStep,
+  makeNoopStep,
+  makeComposition,
+  makeCommand,
+} = ApplicationBlock
 
-const ApplicationComposition = ApplicationBlock.makeComposition()
+const ApplicationComposition = makeComposition()
 
-export const WaitBeforeReset = ApplicationBlock.makeCommand('WaitBeforeReset', {
+export const WaitBeforeReset = makeCommand('WaitBeforeReset', {
   messages: [Message.CompletedWaitBeforeReset],
   interrupt: true,
   handler: function* () {

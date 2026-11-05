@@ -2,8 +2,13 @@ import { Match, Option } from 'effect'
 import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import {
+  makeBinding,
+  makeComposition,
+  makeOutMessageFold,
+  makeStep,
+} from './block'
 import { FetchPosts, FetchStats } from './command'
-import { ApplicationBlock, makeStep } from './definition'
 import {
   ApplicationTabsBlock,
   type Model,
@@ -57,16 +62,16 @@ const activateTab = (tab: Tab) => (model: Model) => {
   )
 }
 
-export const TabsBinding = ApplicationBlock.makeBinding(ApplicationTabsBlock, {
+export const TabsBinding = makeBinding(ApplicationTabsBlock, {
   field: 'tabs',
   init: { contextToArgs: () => [{ id: TABS_ID }] },
 }).withOutMessagePolicy({
-  fold: ApplicationBlock.makeOutMessageFold(ApplicationTabsBlock, {
+  fold: makeOutMessageFold(ApplicationTabsBlock, {
     Selected: ({ value }) => makeStep(activateTab(value)),
   }),
 })
 
-export const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicationComposition = makeComposition({
   bindings: [TabsBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

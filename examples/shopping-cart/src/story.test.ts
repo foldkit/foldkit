@@ -6,10 +6,10 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { ProductsBlock } from './blocks'
 import { ProductsPageBinding } from './composition'
 import { products } from './data/products'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import type { Model } from './model'
 import { ApplicationRoute } from './route'

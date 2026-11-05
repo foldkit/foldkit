@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationBlock, Flags, layer } from './application'
+import { ApplicationBlock, Flags, layer } from './block'
 import { readCountCookie } from './cookie'
 
 export const renderDocument = Server.renderDocument

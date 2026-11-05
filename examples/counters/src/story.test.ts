@@ -10,7 +10,7 @@ import {
   Message,
   Model as ModelSchema,
   layer,
-} from './application'
+} from './block'
 import { CounterBlock } from './blocks/counter'
 
 type CounterMessage = typeof CounterBlock.Message.Type

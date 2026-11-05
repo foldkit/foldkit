@@ -1,4 +1,4 @@
-// blocks/settings/definition.ts
+// blocks/settings/block.ts
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
 
@@ -8,7 +8,6 @@ import { Model } from './model'
 import { SettingsStore } from './service'
 
 export const SettingsKey = Symbol('Settings')
-
 export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   Model,
@@ -25,13 +24,13 @@ export const SettingsBlock = Block.make('Settings', {
   effects: { services: [SettingsStore] },
 })
 
-// blocks/settings/block.ts
+// blocks/settings/layer.ts
 import { Effect } from 'effect'
 
-import { SettingsBlock } from './definition'
+import { SettingsBlock } from './block'
+import { EffectsLayer } from './effectsLayer'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
-import { EffectsLayer } from './layer'
 import { update } from './update'
 import { view } from './view'
 
@@ -49,8 +48,8 @@ export const layer = SettingsBlock.makeLayer(
 )
 
 // blocks/settings/index.ts
-export { SettingsBlock, SettingsKey } from './definition'
-export { layer } from './block'
+export { SettingsBlock, SettingsKey } from './block'
+export { layer } from './layer'
 export { isDirty } from './validation'
 
 // blocks/index.ts

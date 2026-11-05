@@ -5,11 +5,11 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { SkillsBlock, layer } from './block'
+import { Message } from './block'
 import { SkillsEntryBlock } from './blocks/skillsEntry'
 import { GenerateSkillsEntryId } from './command'
 import { EntriesBinding } from './composition'
-import { Message } from './definition'
+import { SkillsBlock, layer } from './index'
 
 type SkillsEntryMessage = typeof SkillsEntryBlock.Message.Type
 

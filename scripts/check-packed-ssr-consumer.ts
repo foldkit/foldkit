@@ -191,7 +191,7 @@ type ConsumerFixture = Readonly<{
 
 const CONSUMER_FIXTURES: ReadonlyArray<ConsumerFixture> = [
   {
-    path: 'src/application.ts',
+    path: 'src/block.ts',
     values: { SERVER_ONLY_PIN, PACKED_MARKDOWN_TEXT },
   },
   { path: 'vite.config.ts' },
@@ -548,9 +548,7 @@ const assertNoSourceOracle = (buildDir: string): void => {
   const digestsOfSource = new Set(
     [8, 10, 12, 16].map(length =>
       createHash('sha256')
-        .update(
-          readFileSync(join(buildDir, '..', 'src/application.ts'), 'utf8'),
-        )
+        .update(readFileSync(join(buildDir, '..', 'src/block.ts'), 'utf8'))
         .digest('hex')
         .slice(0, length),
     ),

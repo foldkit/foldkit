@@ -1,0 +1,23 @@
+import { Effect, Layer } from 'effect'
+
+import { ApplicationBlock } from './block'
+import { Ui } from './blocks'
+import { UiModelBinding } from './composition'
+import { EffectsLayer } from './effectsLayer'
+import { init } from './init'
+import { update } from './update'
+import { view } from './view'
+
+export const layer = ApplicationBlock.makeLayer(
+  Effect.gen(function* () {
+    const ui = yield* UiModelBinding
+
+    return {
+      children: [ui],
+      init,
+      update,
+      view,
+      EffectsLayer,
+    }
+  }),
+).pipe(Layer.provide(Ui.layer))

@@ -2,10 +2,10 @@ import { Effect, Schema } from 'effect'
 
 import { IssueDraft } from '../../domain'
 import { WorkspaceRepository } from '../../repository'
-import { IssueDetailBlock } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 
-export const SaveIssue = IssueDetailBlock.makeCommand('SaveIssue', {
+export const SaveIssue = makeCommand('SaveIssue', {
   args: {
     issueId: Schema.String,
     draft: IssueDraft,
@@ -35,5 +35,3 @@ export const SaveIssue = IssueDetailBlock.makeCommand('SaveIssue', {
       )
   },
 })
-
-export const EffectsLayer = SaveIssue.layer

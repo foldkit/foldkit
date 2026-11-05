@@ -1,10 +1,10 @@
 import { Schema } from 'effect'
 
 import { protectUnsavedChanges } from '../../draftProtection'
-import { ProjectSettingsBlock } from './definition'
+import { makeSubscriptions } from './block'
 import { isDirty } from './draft'
 
-export const subscriptions = ProjectSettingsBlock.makeSubscriptions(entry => ({
+export const subscriptions = makeSubscriptions(entry => ({
   draftExitGuard: entry(
     'ProjectDraftExitGuard',
     { isProtecting: Schema.Boolean },

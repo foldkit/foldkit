@@ -16,7 +16,6 @@ const Message = defineMessageUnion({ ClickedOpenConfirm: {} })
 type Message = typeof Message.Type
 
 export const ConfirmKey = Symbol('Confirm')
-
 export const ConfirmBlock = Block.make('Confirm', {
   key: ConfirmKey,
   Model,
@@ -25,19 +24,20 @@ export const ConfirmBlock = Block.make('Confirm', {
   view: { kind: 'Element' },
 })
 
-const { makeNoopStep } = ConfirmBlock
+const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
+  ConfirmBlock
 
-const DialogBinding = ConfirmBlock.makeBinding(DialogBlock, {
+const DialogBinding = makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({
-  fold: ConfirmBlock.makeOutMessageFold(DialogBlock, {
+  fold: makeOutMessageFold(DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: makeNoopStep,
   }),
 })
-const ConfirmComposition = ConfirmBlock.makeComposition({
+const ConfirmComposition = makeComposition({
   bindings: [DialogBinding],
 })
 

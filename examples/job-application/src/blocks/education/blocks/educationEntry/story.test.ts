@@ -4,8 +4,8 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { EducationEntryBlock, layer } from './block'
-import { Message, OutMessage } from './definition'
+import { Message, OutMessage } from './block'
+import { EducationEntryBlock, layer } from './index'
 
 describe('education entry', () => {
   it.effect('UpdatedSchool stores a valid school', () =>

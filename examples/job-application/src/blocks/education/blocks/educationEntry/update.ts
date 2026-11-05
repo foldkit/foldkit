@@ -1,7 +1,7 @@
 import { validate } from 'foldkit/fieldValidation'
 
+import { OutMessage, makeFieldsStep, makeOutMessageStep } from './block'
 import { EducationEntryComposition } from './composition'
-import { OutMessage, makeFieldsStep, makeOutMessageStep } from './definition'
 import { degreeRules, fieldOfStudyRules, schoolRules } from './validation'
 
 const validateSchool = validate(schoolRules)

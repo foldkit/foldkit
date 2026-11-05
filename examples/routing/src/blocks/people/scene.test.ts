@@ -4,7 +4,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { PeopleBlock, layer } from './block'
+import { PeopleBlock, layer } from './index'
 import { Model, SearchResults, searchPeople } from './model'
 
 const loaded = (searchInput: string) =>

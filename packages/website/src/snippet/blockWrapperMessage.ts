@@ -3,7 +3,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { withBlock } from 'foldkit/story'
 
 import { layer } from './block'
-import { ApplicationBlock } from './definition'
+import { ApplicationBlock, makeComposition } from './block'
 import { SettingsBinding } from './settingsBinding'
 
 // message.ts declares only facts owned by this application.
@@ -12,7 +12,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 // composition.ts derives the complete dispatch Codec from registered Bindings.
-export const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicationComposition = makeComposition({
   bindings: [SettingsBinding],
 })
 

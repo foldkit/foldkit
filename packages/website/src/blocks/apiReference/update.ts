@@ -1,8 +1,8 @@
 import { Record, Result } from 'effect'
 import { AsyncData } from 'foldkit'
 
+import { makeFieldsStep } from './block'
 import { ApiReferenceComposition } from './composition'
-import { makeFieldsStep } from './definition'
 import { ApiDataAsyncData } from './domain'
 import { disclosuresForApiData } from './model'
 

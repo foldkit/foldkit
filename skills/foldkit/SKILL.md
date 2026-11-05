@@ -95,3 +95,9 @@ Opt into `notifyOnCompletion` and fold accepted results through the Binding when
 coordinating further requests. Keep URL policy, debounce, paging, sorting, and
 provider cooldowns in the application. Read the matching Query guide and source
 before relying on cancellation ordering or retention limits.
+
+## Block file and authoring boundaries
+
+In split features, read the contract and typed helpers from `block.ts`, static relationships from `composition.ts`, and construction from `layer.ts`. A separate local handler bundle belongs in `effectsLayer.ts`. A split feature's `block.ts` exports the authoring helpers used by its implementation. Named-import those helpers in init, update, command, composition and other implementation modules instead of repeating `FeatureBlock.make*`. A compact feature destructures helpers beside its Block declaration. Retain qualification only when multiple owners would otherwise be unclear. Keep helper aliases out of the feature barrel.
+
+Application behavior uses the Story/Scene DSL; acquired update functions are not a substitute runner. See [the composition reference](references/composition.md) for generated InMessage methods, exact runtime capability bounds and the advanced codec contract.

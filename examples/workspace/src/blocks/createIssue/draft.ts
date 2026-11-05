@@ -1,4 +1,4 @@
-import { makeStep } from './definition'
+import { makeStep } from './block'
 import { CreateState, type Model } from './model'
 
 export const isDraftEditable = (model: Model) =>

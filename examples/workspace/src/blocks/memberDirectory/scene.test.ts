@@ -15,8 +15,8 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 
 import { initialWorkspace } from '../../domain'
-import { layer } from './block'
-import { MemberDirectoryBlock } from './definition'
+import { MemberDirectoryBlock } from './block'
+import { layer } from './layer'
 
 const viewInputs = {
   members: initialWorkspace.members,

@@ -15,7 +15,6 @@ const ThemePickerMessage = defineMessageUnion({
 type ThemePickerMessage = typeof ThemePickerMessage.Type
 
 export const ThemePickerKey = Symbol('ThemePicker')
-
 export const ThemePickerBlock = Block.make('ThemePicker', {
   key: ThemePickerKey,
   Init: Schema.Tuple([Theme]),
@@ -65,7 +64,6 @@ const ProfileChildInitContext = Schema.Struct({
 type ProfileChildInitContext = typeof ProfileChildInitContext.Type
 
 export const ProfileKey = Symbol('Profile')
-
 const ProfileBlock = Block.make('Profile', {
   key: ProfileKey,
   Init: Schema.Tuple([ProfileChildInitContext]),

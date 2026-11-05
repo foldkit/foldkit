@@ -10,7 +10,7 @@ import {
   Message,
   type Model,
   layer,
-} from './application'
+} from './block'
 import { Snake } from './domain'
 
 const initialSnake = Snake.create({ x: 10, y: 10 })

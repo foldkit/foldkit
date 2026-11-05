@@ -53,8 +53,9 @@ export interface ParentMessageMapper<ParentBlock extends Parent> {
 
 /**
  * Binds decoded child delivery to an original parent acquired by `withBlock`.
- * Use this for direct pure transition sequences in tests. Ordinary Stories
- * should use `Story.messageFrom`.
+ * Ordinary Stories use `Story.messageFrom`. Use this mapper when an advanced
+ * scoped fixture needs the selected graph's exact delivery identity, then
+ * drive the behavior through Story or Scene steps.
  *
  * The Binding must belong to this parent, and its key and Message retain their
  * exact decoded contracts. Membership is checked against the acquired private
@@ -64,14 +65,25 @@ export interface ParentMessageMapper<ParentBlock extends Parent> {
  *
  * @example
  * ```ts
- * Story.withBlock(ApplicationBlock, application => {
+ * Story.withBlock({ block: ApplicationBlock, layer }, application => {
  *   const toParentMessage = Test.toParentMessageFor(application)
- *   const searchUpdate = application.update(
- *     application.init().model,
- *     toParentMessage(SearchBinding, SearchBlock.Message.UpdatedQuery({ value: 'elm' })),
+ *
+ *   return Story.story(
+ *     application.update,
+ *     Story.given(counterReadyModel),
+ *     Story.message(
+ *       toParentMessage(CounterBinding, CounterBlock.Message.ClickedIncrement()),
+ *     ),
+ *     Story.model(model => {
+ *       expect(model.counter.count).toBe(1)
+ *     }),
+ *     Story.Command.expectNone(),
  *   )
  * })
  * ```
+ * Here `counterReadyModel` is a fixture whose Counter starts at zero. Keep
+ * startup scenarios in the Block-aware runner with `Story.init` so initial
+ * Commands remain part of the test.
  */
 export function toParentMessageFor<const ParentBlock extends Parent>(
   parent: ParentBlock,

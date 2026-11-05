@@ -26,7 +26,6 @@ const Message = defineMessageUnion({ ClickedJumpToLatestActivity: {} })
 type Message = typeof Message.Type
 
 export const ActivityFeedKey = Symbol('ActivityFeed')
-
 export const ActivityFeedBlock = Block.make('ActivityFeed', {
   key: ActivityFeedKey,
   Init: Schema.Tuple([Schema.Array(Activity)]),
@@ -34,9 +33,10 @@ export const ActivityFeedBlock = Block.make('ActivityFeed', {
   Model,
   Message,
 })
-const { makeNoopStep } = ActivityFeedBlock
+const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
+  ActivityFeedBlock
 
-const ActivityListBinding = ActivityFeedBlock.makeBinding(ActivityListBlock, {
+const ActivityListBinding = makeBinding(ActivityListBlock, {
   field: 'activityList',
   init: {
     contextToArgs: () => [
@@ -48,13 +48,13 @@ const ActivityListBinding = ActivityFeedBlock.makeBinding(ActivityListBlock, {
     ],
   },
 }).withOutMessagePolicy({
-  fold: ActivityFeedBlock.makeOutMessageFold(ActivityListBlock, {
+  fold: makeOutMessageFold(ActivityListBlock, {
     ObservedContainerScroll: makeNoopStep,
     ApproachedLoadedStart: makeNoopStep,
     EndedContainerScroll: makeNoopStep,
   }),
 })
-const ActivityFeedComposition = ActivityFeedBlock.makeComposition({
+const ActivityFeedComposition = makeComposition({
   bindings: [ActivityListBinding],
 })
 const init = ActivityFeedComposition.makeInit(activities => ({

@@ -92,7 +92,6 @@ export type InitConfig = typeof InitConfig.Type
 
 /** @internal Stable identity of the DatePicker contract. */
 export const DatePickerKey = Symbol('DatePicker')
-
 export const DatePickerBlock = Block.make('DatePicker', {
   key: DatePickerKey,
   Init: Schema.Tuple([InitConfig]),

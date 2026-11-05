@@ -6,7 +6,6 @@ const PreviewModel = Schema.Struct({ content: Schema.String })
 type PreviewModel = typeof PreviewModel.Type
 
 export const PreviewKey = Symbol('Preview')
-
 export const PreviewBlock = Block.make('Preview', {
   key: PreviewKey,
   Init: Schema.Tuple([]),
@@ -38,7 +37,6 @@ const PageMessage = defineMessageUnion({ ClickedPublish: {} })
 type PageMessage = typeof PageMessage.Type
 
 export const PageKey = Symbol('Page')
-
 const PageBlock = Block.make('Page', {
   key: PageKey,
   Init: Schema.Tuple([]),

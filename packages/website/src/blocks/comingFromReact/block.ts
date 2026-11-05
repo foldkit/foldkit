@@ -1,19 +1,16 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { ComingFromReactBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
+import type { ViewInputs } from './viewInputs'
+export const ComingFromReactKey = Symbol('ComingFromReact')
+export const ComingFromReactBlock = Block.make('ComingFromReact', {
+  key: ComingFromReactKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  Model,
+  Message,
+})
 
-export const layer = ComingFromReactBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
-
-export { ComingFromReactBlock }
+export const { makeComposition } = ComingFromReactBlock

@@ -5,7 +5,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
+import { ApplicationBlock, layer } from './index'
 import { DietListboxBlock, type Model, PeriodListboxBlock } from './model'
 import { ApplicationRoute, Sorting } from './route'
 

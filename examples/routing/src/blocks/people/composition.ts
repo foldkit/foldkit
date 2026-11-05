@@ -1,6 +1,6 @@
 import type { Block } from 'foldkit'
 
-import { PeopleBlock } from './definition'
+import { makeComposition } from './block'
 
-export const PeopleComposition = PeopleBlock.makeComposition()
+export const PeopleComposition = makeComposition()
 export type PeopleViewBuilder = Block.ViewBuilderFor<typeof PeopleComposition>

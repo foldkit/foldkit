@@ -1,5 +1,5 @@
+import { makeFieldsStep, makeNoopStep } from './block'
 import { SearchComposition } from './composition'
-import { makeFieldsStep, makeNoopStep } from './definition'
 
 export const update = SearchComposition.makeUpdate({
   UpdatedQuery: makeFieldsStep.fromMessage(({ value }) => ({

@@ -22,7 +22,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const TermsFormKey = Symbol('TermsForm')
-
 export const TermsFormBlock = Block.make('TermsForm', {
   key: TermsFormKey,
   Init: Schema.Tuple([]),
@@ -31,7 +30,9 @@ export const TermsFormBlock = Block.make('TermsForm', {
   Message,
 })
 
-const TermsFormComposition = TermsFormBlock.makeComposition()
+const { makeComposition } = TermsFormBlock
+
+const TermsFormComposition = makeComposition()
 
 // In your init function, start it unchecked:
 const init = TermsFormComposition.makeInit(() => ({

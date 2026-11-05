@@ -11,13 +11,13 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { HomeBlock, layer } from '../block'
 import {
   CreateRoom,
   FocusRoomIdInput,
   FocusUsernameInput,
   JoinRoomFromHome,
 } from '../command'
+import { HomeBlock, layer } from '../index'
 import { Message, OutMessage } from '../message'
 import { HomeStep } from '../model'
 

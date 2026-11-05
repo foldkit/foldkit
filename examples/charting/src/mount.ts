@@ -1,8 +1,8 @@
 import * as echarts from 'echarts/core'
 import { Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
 
+import { makeMountStream } from './block'
 import { ChartRegistry } from './chartRegistry'
-import { ApplicationBlock } from './definition'
 import { Message } from './message'
 import type {
   ClickedChartDatum,
@@ -121,7 +121,7 @@ const mountChart = (
     ),
   )
 
-export const MountChart = ApplicationBlock.makeMountStream('MountChart', {
+export const MountChart = makeMountStream('MountChart', {
   args: { hostId: Schema.String },
   messages: [
     Message.SucceededMountChart,

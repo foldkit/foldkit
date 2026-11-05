@@ -21,7 +21,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const AccountMenuKey = Symbol('AccountMenu')
-
 export const AccountMenuBlock = Block.make('AccountMenu', {
   key: AccountMenuKey,
   Init: Schema.Tuple([]),
@@ -30,34 +29,29 @@ export const AccountMenuBlock = Block.make('AccountMenu', {
   Message,
 })
 
-const { makeNoopStep } = AccountMenuBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  AccountMenuBlock
 
-const foldPopoverOutMessage = AccountMenuBlock.makeOutMessageFold(
-  PopoverBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-  },
-)
+const foldPopoverOutMessage = makeOutMessageFold(PopoverBlock, {
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
+})
 
-const AccountPopoverBinding = AccountMenuBlock.makeBinding(PopoverBlock, {
+const AccountPopoverBinding = makeBinding(PopoverBlock, {
   field: 'accountPopover',
   init: {
     contextToArgs: () => [{ id: 'account-popover', contentFocus: true }],
   },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const AccountDetailsPopoverBinding = AccountMenuBlock.makeBinding(
-  PopoverBlock,
-  {
-    field: 'accountDetailsPopover',
-    init: {
-      contextToArgs: () => [{ id: 'account-details-popover' }],
-    },
+const AccountDetailsPopoverBinding = makeBinding(PopoverBlock, {
+  field: 'accountDetailsPopover',
+  init: {
+    contextToArgs: () => [{ id: 'account-details-popover' }],
   },
-).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const AccountMenuComposition = AccountMenuBlock.makeComposition({
+const AccountMenuComposition = makeComposition({
   bindings: [AccountPopoverBinding, AccountDetailsPopoverBinding],
 })
 

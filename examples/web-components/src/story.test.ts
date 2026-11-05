@@ -3,7 +3,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Message, type Model, layer } from './application'
+import { ApplicationBlock, Message, type Model, layer } from './block'
 
 const initialModel: Model = {
   content: 'https://foldkit.dev',

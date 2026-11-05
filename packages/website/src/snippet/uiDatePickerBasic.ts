@@ -43,7 +43,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const DatePickerExampleKey = Symbol('DatePickerExample')
-
 export const DatePickerExampleBlock = Block.make('DatePickerExample', {
   key: DatePickerExampleKey,
   Init: Schema.Tuple([Flags]),
@@ -53,7 +52,13 @@ export const DatePickerExampleBlock = Block.make('DatePickerExample', {
   ChildInitContext: Flags,
 })
 
-const { makeFieldsStep, makeNoopStep } = DatePickerExampleBlock
+const {
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeBinding,
+  makeComposition,
+} = DatePickerExampleBlock
 
 // At module scope, fold the OutMessage into your own Model. `SelectedDate`
 // carries the committed date. The popover has already closed by the time it
@@ -63,49 +68,43 @@ const { makeFieldsStep, makeNoopStep } = DatePickerExampleBlock
 // without selecting a date. Each arm returns an Update.Step over the parent
 // Model, which already has the next DatePicker Model written back. Pass the
 // completed child Block so the parent Block infers both contracts:
-const foldDatePickerOutMessage = DatePickerExampleBlock.makeOutMessageFold(
-  DatePickerBlock,
-  {
-    // The child has emitted `SelectedDate`. This is where the parent lifts
-    // the committed date into its own field, which is then passed back to
-    // the picker as `maybeSelectedDate`, so the parent stays the single
-    // source of truth for the selection.
-    SelectedDate: ({ date }) =>
-      makeFieldsStep(() => ({
-        maybeSelectedDate: () => Option.some(date),
-      })),
-    // The user cleared the selection. Reset the parent's field.
-    ClearedDate: () =>
-      makeFieldsStep(() => ({
-        maybeSelectedDate: () => Option.none(),
-      })),
-    // The child has emitted `ChangedViewMonth`. In this arm the parent can
-    // update its own state or dispatch its own Commands, for example
-    // prefetch month data, fire analytics, or trigger a downstream Command.
-    ChangedViewMonth: makeNoopStep,
-  },
-)
+const foldDatePickerOutMessage = makeOutMessageFold(DatePickerBlock, {
+  // The child has emitted `SelectedDate`. This is where the parent lifts
+  // the committed date into its own field, which is then passed back to
+  // the picker as `maybeSelectedDate`, so the parent stays the single
+  // source of truth for the selection.
+  SelectedDate: ({ date }) =>
+    makeFieldsStep(() => ({
+      maybeSelectedDate: () => Option.some(date),
+    })),
+  // The user cleared the selection. Reset the parent's field.
+  ClearedDate: () =>
+    makeFieldsStep(() => ({
+      maybeSelectedDate: () => Option.none(),
+    })),
+  // The child has emitted `ChangedViewMonth`. In this arm the parent can
+  // update its own state or dispatch its own Commands, for example
+  // prefetch month data, fire analytics, or trigger a downstream Command.
+  ChangedViewMonth: makeNoopStep,
+})
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const DatePickerDemoBinding = DatePickerExampleBlock.makeBinding(
-  DatePickerBlock,
-  {
-    field: 'datePickerDemo',
-    init: {
-      contextToArgs: flags => [
-        {
-          id: 'date-picker-demo',
-          today: flags.today,
-          minDate: flags.today,
-          maxDate: Calendar.addMonths(flags.today, 3),
-        },
-      ],
-    },
+const DatePickerDemoBinding = makeBinding(DatePickerBlock, {
+  field: 'datePickerDemo',
+  init: {
+    contextToArgs: flags => [
+      {
+        id: 'date-picker-demo',
+        today: flags.today,
+        minDate: flags.today,
+        maxDate: Calendar.addMonths(flags.today, 3),
+      },
+    ],
   },
-).withOutMessagePolicy({ fold: foldDatePickerOutMessage })
+}).withOutMessagePolicy({ fold: foldDatePickerOutMessage })
 
-const DatePickerExampleComposition = DatePickerExampleBlock.makeComposition({
+const DatePickerExampleComposition = makeComposition({
   bindings: [DatePickerDemoBinding],
 })
 type DatePickerExampleViewBuilder = Block.ViewBuilderFor<

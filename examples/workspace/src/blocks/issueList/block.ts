@@ -1,32 +1,31 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
+import { ViewInputs } from './viewInputs'
 
-import {
-  GroupListboxBinding,
-  SortListboxBinding,
-  StatusListboxBinding,
-} from './composition'
-import { IssueListBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+export const IssueListKey = Symbol('IssueList')
+export const IssueListBlock = Block.make('IssueList', {
+  key: IssueListKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  Model,
+  Message,
+  InMessage,
+  inMessageOutputs: {
+    RequestedClearFilters: { outMessage: OutMessage.RequestedClearFilters },
+  },
+  OutMessage,
+})
 
-export const layer = IssueListBlock.makeLayer(
-  Effect.gen(function* () {
-    const statusListbox = yield* StatusListboxBinding
-    const sortListbox = yield* SortListboxBinding
-    const groupListbox = yield* GroupListboxBinding
-
-    return {
-      children: [statusListbox, sortListbox, groupListbox],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-    }
-  }),
-).pipe(Layer.provide(ListboxLayer))
-
-export { IssueListBlock } from './definition'
+export const {
+  makeBinding,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeOutMessageStep,
+} = IssueListBlock

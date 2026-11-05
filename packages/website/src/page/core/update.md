@@ -10,7 +10,7 @@ Update is pure. Given the same Model and Message, it returns the same result. It
 
 Pass an exhaustive handler record to `FeatureComposition.makeUpdate`. Each handler receives the current Model first and its exact Message payload second. TypeScript reports missing and extra cases. The Composition supplies the argument types and checks the returned Model, Commands, OutMessages, and child registrations.
 
-This excerpt remains in the compact Counter's `application.ts` after its Composition declaration:
+This excerpt remains in the compact Counter's `block.ts` after its Composition declaration:
 
 ::Snippet{name="counterUpdate" label="Using update"}
 
@@ -42,7 +42,7 @@ Return Commands beside the next Model from the Message branch that requests the 
 
 Write an ordinary Message handler as `(model, message) => result`. The Counter handlers above return results directly; each needs no `makeStep` wrapper. Use Step helpers for reusable transitions, sequencing with `Update.combineSteps`, OutMessage policies, or useful specialized shorthand.
 
-In a split feature, export the Step helpers its implementation needs from `definition.ts`. For this Search feature, assume the Model has a `query` field and the Message contract declares `UpdatedQuery` with a `value` payload and `CompletedSave` with no payload:
+In a split feature, export the Step helpers its implementation needs from `block.ts`. For this Search feature, assume the Model has a `query` field and the Message contract declares `UpdatedQuery` with a `value` payload and `CompletedSave` with no payload:
 
 ::Snippet{name="updateStepHelperDefinition" label="Exporting owned Step helpers"}
 
@@ -189,9 +189,9 @@ For custom startup, a registered Binding's `init` returns a passive recipe that 
 
 #### Operation-Named Results
 
-For another ordinary update-like result that already contains a Model and optional Commands or OutMessage, keep it attached to the operation that produced it. Name the value after the operation and use dot access. The same rule applies when a test consumes an update result:
+For another ordinary update-like result that already contains a Model and optional Commands or OutMessage, keep it attached to the operation that produced it. Name the value after the operation and use dot access. Application behavior tests observe results through Story or Scene rather than calling update directly. This example assumes Form owns `SubmitForm` and its completion Message:
 
-::Snippet{name="updateResultTest" label="Testing an update result"}
+::Snippet{name="updateResultTest" label="Testing form submission through Story"}
 
 When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage`. Dot access does not make an OutMessage impossible to ignore. It keeps the operation and its returned values visibly connected.
 

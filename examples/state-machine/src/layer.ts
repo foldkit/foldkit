@@ -1,0 +1,24 @@
+import { Effect, Layer } from 'effect'
+
+import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+
+import { ApplicationBlock } from './block'
+import { PlaceOrder } from './command'
+import { EditionRadioGroupBinding } from './composition'
+import { init } from './init'
+import { update } from './update'
+import { view } from './view'
+
+export const layer = ApplicationBlock.makeLayer(
+  Effect.gen(function* () {
+    const editionRadioGroup = yield* EditionRadioGroupBinding
+
+    return {
+      children: [editionRadioGroup],
+      init,
+      update,
+      view,
+      EffectsLayer: PlaceOrder.layer,
+    }
+  }),
+).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))

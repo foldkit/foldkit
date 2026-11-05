@@ -1,14 +1,14 @@
 import type { Block } from 'foldkit'
 
+import { makeBinding, makeComposition } from './block'
 import { PeopleBlock } from './blocks'
-import { ApplicationBlock } from './definition'
 
-export const PeoplePageBinding = ApplicationBlock.makeBinding(PeopleBlock, {
+export const PeoplePageBinding = makeBinding(PeopleBlock, {
   field: 'peoplePage',
   init: { contextToArgs: route => [route] },
 })
 
-export const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicationComposition = makeComposition({
   bindings: [PeoplePageBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

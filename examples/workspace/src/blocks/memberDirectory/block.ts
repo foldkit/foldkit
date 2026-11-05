@@ -1,19 +1,17 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { MemberDirectoryBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
+import { ViewInputs } from './viewInputs'
 
-export const layer = MemberDirectoryBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const MemberDirectoryKey = Symbol('MemberDirectory')
+export const MemberDirectoryBlock = Block.make('MemberDirectory', {
+  key: MemberDirectoryKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  Model,
+  Message,
+})
 
-export { MemberDirectoryBlock } from './definition'
+export const { makeComposition, makeFieldsStep } = MemberDirectoryBlock

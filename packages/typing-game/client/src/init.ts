@@ -1,8 +1,8 @@
 import { Option } from 'effect'
 import { Url } from 'foldkit'
 
+import { makeStep } from './block'
 import { ApplicationComposition } from './composition'
-import { makeStep } from './definition'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
 import { initRoom } from './steps'
 

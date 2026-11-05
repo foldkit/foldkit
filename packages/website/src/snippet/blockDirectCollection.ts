@@ -6,7 +6,6 @@ import { Model } from './model'
 import { Row } from './row'
 
 export const TableKey = Symbol('Table')
-
 const TableBlock = Block.make('Table', {
   key: TableKey,
   Init: Schema.Tuple([]),
@@ -14,7 +13,9 @@ const TableBlock = Block.make('Table', {
   Message,
 })
 
-export const RowsBinding = TableBlock.makeBinding(Row.RowBlock, {
+const { makeBinding } = TableBlock
+
+export const RowsBinding = makeBinding(Row.RowBlock, {
   field: 'rows',
   key: 'id',
 })

@@ -17,12 +17,12 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import {
   SendMessage,
   TimestampReceivedMessage,
   TimestampSentMessage,
 } from './command'
+import { ApplicationBlock, layer } from './index'
 import { managedResources } from './managedResource'
 import { Message } from './message'
 import { ConnectionState, Model } from './model'

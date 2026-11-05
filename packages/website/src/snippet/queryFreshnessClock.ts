@@ -15,7 +15,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -23,15 +22,18 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const PostsBinding = ApplicationBlock.makeBinding(postsQuery, {
+const { makeBinding, makeComposition, makeCommand, makeCommandsStep } =
+  ApplicationBlock
+
+const PostsBinding = makeBinding(postsQuery, {
   field: 'posts',
 })
 
-const ApplicationComposition = ApplicationBlock.makeComposition({
+const ApplicationComposition = makeComposition({
   bindings: [PostsBinding],
 })
 
-const ReadCurrentTime = ApplicationBlock.makeCommand('ReadCurrentTime', {
+const ReadCurrentTime = makeCommand('ReadCurrentTime', {
   messages: [Message.CompletedReadCurrentTime],
   handler: function* () {
     return () =>
@@ -42,9 +44,7 @@ const ReadCurrentTime = ApplicationBlock.makeCommand('ReadCurrentTime', {
 })
 
 const update = ApplicationComposition.makeUpdate({
-  EnteredPostsRoute: ApplicationBlock.makeCommandsStep(() => [
-    ReadCurrentTime(),
-  ]),
+  EnteredPostsRoute: makeCommandsStep(() => [ReadCurrentTime()]),
   CompletedReadCurrentTime: (model, { nowMillis }) =>
     PostsBinding.requestLoadIfStale(nowMillis)(model),
 })

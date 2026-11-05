@@ -1,36 +1,31 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { ExampleSources } from './domain'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
+import type { ViewInputs } from './viewInputs'
 
-import { SourceFileTabsBinding } from './composition'
-import { ExampleDetailBlock } from './definition'
-import { EffectsLayer, inMessageUpdate, init, update, view } from './example'
-
-export {
-  CurrentSourcesAsyncData,
-  EffectsLayer,
-  init,
-  LoadExampleSources,
-  Message,
+export const ExampleDetailKey = Symbol('ExampleDetail')
+export const ExampleDetailBlock = Block.make('ExampleDetail', {
+  key: ExampleDetailKey,
+  Init: Schema.Tuple([
+    Schema.optional(Schema.Option(Schema.String)),
+    Schema.optional(Schema.Option(ExampleSources)),
+  ]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
-  tableOfContents,
-  update,
-  view,
-} from './example'
+  Message,
+  InMessage,
+})
 
-export const layer = ExampleDetailBlock.makeLayer(
-  Effect.gen(function* () {
-    const sourceFileTabs = yield* SourceFileTabsBinding
-
-    return {
-      children: [sourceFileTabs],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(TabsLayer)))
-
-export { ExampleDetailBlock }
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeMountStream,
+  makeOutMessageFold,
+  makeStep,
+} = ExampleDetailBlock

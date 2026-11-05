@@ -24,7 +24,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -32,11 +31,11 @@ const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeFieldsStep } = ApplicationBlock
+const { makeFieldsStep, makeComposition, makeCommand } = ApplicationBlock
 
-const ApplicationComposition = ApplicationBlock.makeComposition()
+const ApplicationComposition = makeComposition()
 
-const FetchPosts = ApplicationBlock.makeCommand('FetchPosts', {
+const FetchPosts = makeCommand('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
     return () =>

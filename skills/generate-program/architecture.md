@@ -218,7 +218,7 @@ For a child reset, prefer a Message-backed `requestReset` or domain operation an
 
 Use `FeatureBlock.makeFieldsStep(producer)` for owning field transformations, `FeatureBlock.makeCommandsStep(producer)` for Commands with an unchanged Model, and `FeatureBlock.makeOutMessageStep(producer)` for one declared OutMessage with an unchanged Model.
 
-In a split feature, export the Step helpers used by the implementation from `definition.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Do not re-export authoring helpers from the feature barrel; export the passive Block contract and construction `layer` there.
+In a split feature, export the Step helpers used by the implementation from `block.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Do not re-export authoring helpers from the feature barrel; export the passive Block contract and construction `layer` there.
 
 Put reusable parent Steps shared by update, inMessageUpdate, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Name shared transitions for their operation, without a `make` prefix or `Step` suffix, and defer cyclic Binding access until the producer is applied.
 
@@ -488,8 +488,8 @@ const subscriptions = FeatureBlock.makeSubscriptions(entry => ({
 
 Canonical live examples:
 
-- **Always-active keyboard input**: `repos/foldkit/examples/snake/src/application.ts`
-- **Animation-frame-driven game tick**: `repos/foldkit/examples/canvas-art/src/application.ts`
+- **Always-active keyboard input**: `repos/foldkit/examples/snake/src/block.ts`
+- **Animation-frame-driven game tick**: `repos/foldkit/examples/canvas-art/src/block.ts`
 - **Conditional WebSocket connection** (active only when a session exists): `repos/foldkit/examples/websocket-chat/src/managedResource.ts`
 - **Production multi-stream pattern**: `repos/foldkit/packages/typing-game/client/src/blocks/room/subscription.ts`
 
@@ -593,7 +593,7 @@ Use these Effect APIs for non-DOM concerns. Import `SecureRandom` from `effect/c
 | UUID                  | `yield* secureRandom.uuidV4()` after `const secureRandom = yield* SecureRandom.SecureRandom`; provide `BrowserCrypto.layerSecureRandom` at the application root |
 | Delay                 | `yield* Effect.sleep(Duration.millis(500))`                                                                                                                     |
 
-Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's attached handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` requires `SecureRandom.SecureRandom`), `repos/foldkit/examples/kanban/src/services.ts` (the root composes `BrowserCrypto.layerSecureRandom`), and `repos/foldkit/examples/kanban/src/entry.ts` (the entry supplies `ApplicationLayer`). `repos/foldkit/examples/stopwatch/src/application.ts` shows `Clock.currentTimeMillis` inside an `Effect.gen`.
+Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's attached handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` requires `SecureRandom.SecureRandom`), `repos/foldkit/examples/kanban/src/services.ts` (the root composes `BrowserCrypto.layerSecureRandom`), and `repos/foldkit/examples/kanban/src/entry.ts` (the entry supplies `ApplicationLayer`). `repos/foldkit/examples/stopwatch/src/block.ts` shows `Clock.currentTimeMillis` inside an `Effect.gen`.
 
 ## With and Without URL Routing
 
@@ -732,3 +732,13 @@ For the canonical update-handler shapes (the exact `UrlRequest` tag names, how t
 - The host application also needs to drive it (lifecycle, data in, values out) → a `Program.makeElement` result started with `Runtime.embed`, communicating through Flags and Ports
 - App owns the page and mentions "pages", "navigation", "routes", URLs → `Program.make` with routing config
 - App owns the page with no navigation → `Program.make` without routing
+
+## Block file and authoring boundaries
+
+Declare parent requests and notifications in the child's `InMessage` union and handle them with `Composition.makeInMessageUpdate`. `RequestedX` generates `Binding.requestX`, and `InformedOfX` generates `Binding.informX`. The remaining suffix is preserved exactly; other prefixes and empty suffixes are rejected. Methods take the constructor payload when present, with a keyed occurrence first and InMessage context last. They return connected parent Steps, so pass them directly to handler records or compose them. Do not add a manual request wrapper or an `operations` entry that only repeats an InMessage constructor. Keep explicit operations for real argument adaptation, generic interfaces or intentional local-Message mappings.
+
+The public `effects` contract bounds runtime capabilities: `services` lists ordinary handler Services, `managedResources` lists resource accessors, and `Error` bounds handler-constructor failures. Explicit operation declarations and `inMessageOutputs` use the same `managedResources` spelling for their extra resource requirements. These contracts describe capabilities; local `EffectsLayer` selects their handlers. Construction dependencies still flow through ordinary Layer provision, and ordinary request Services stay inside handler constructors.
+
+Treat `codec` as an advanced bound for the complete generated Message envelope. Local Message decoding and encoding Services are already inferred. A parent with opaque children may additionally declare `codec.decoding` and `codec.encoding` because its local Message Schema cannot reveal those child delivery requirements. Prefer self-contained serializable Messages in ordinary apps. DevTools dispatch requires the complete decoder's Services; a quiet Program does not. Encoding Services are needed when explicitly encoding, not by every Program.
+
+Application behavior belongs in Story or Scene. Use their DSL to deliver Messages and InMessages, resolve Commands, and assert Models, OutMessages and views. Do not manually chain acquired `update` calls or invoke application Steps as a substitute for the DSL. Pure fixture construction and intentional `given(model)` remain valid; use scoped acquisition only when a fixture genuinely needs initialized state, graph identity or custom view context. Keep pure domain/selector tests separate from application behavior, and reserve low-level transition tests for framework infrastructure.

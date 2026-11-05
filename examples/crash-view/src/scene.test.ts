@@ -3,7 +3,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 describe('view', () => {
   it.effect('initial view shows the Crash button', () =>

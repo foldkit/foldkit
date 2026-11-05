@@ -4,9 +4,9 @@ import { UrlRequest } from 'foldkit/navigation'
 import { Transition } from 'foldkit/route'
 import { toString as urlToString } from 'foldkit/url'
 
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './block'
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition, PeoplePageBinding } from './composition'
-import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import { type NavigationShortcut } from './message'
 import {
   ApplicationRoute,

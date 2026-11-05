@@ -1,9 +1,9 @@
 import { Array } from 'effect'
 import { initAndAppend } from 'foldkit/bindingInit'
 
+import { makeCommandsStep, makeFieldsStep } from './block'
 import { GenerateWorkHistoryEntryId } from './command'
 import { EntriesBinding, WorkHistoryComposition } from './composition'
-import { makeCommandsStep, makeFieldsStep } from './definition'
 
 export const update = WorkHistoryComposition.makeUpdate({
   ClickedAddEntry: makeCommandsStep(() => [GenerateWorkHistoryEntryId()]),

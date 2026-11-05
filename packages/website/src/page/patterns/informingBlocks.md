@@ -24,7 +24,7 @@ This page builds on the [Blocks](/core/block) pattern. Read that first for the l
 
 ### Separate Inputs From Local Messages
 
-People declares its Model, Message, InMessage, and early `PeopleBlock` in cycle-safe files. `InMessage.InformedOfRouteChange` carries only the `PeopleRoute` alias derived from `ApplicationRoute.People`, the part of the application Route that the feature understands. Command results remain local Messages. Commands import the Block declaration and the Message constructors they produce; `block.ts` imports the implementation pieces and completes the construction Layer.
+People declares its Model, Message, InMessage, and early `PeopleBlock` in cycle-safe files. `InMessage.InformedOfRouteChange` carries only the `PeopleRoute` alias derived from `ApplicationRoute.People`, the part of the application Route that the feature understands. Command results remain local Messages. Commands import the Block declaration and the Message constructors they produce; `layer.ts` imports the implementation pieces and completes the construction Layer.
 
 ::Snippet{name="informingBlocksMessage" label="People Message and InMessage contracts"}
 

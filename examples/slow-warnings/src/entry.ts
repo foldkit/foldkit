@@ -1,6 +1,6 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock, layer } from './block'
+import { ApplicationBlock, layer } from './index'
 import { handleSlow } from './subscription'
 
 const program = Program.make({

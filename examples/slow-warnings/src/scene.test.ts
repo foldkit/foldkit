@@ -4,7 +4,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
+import { ApplicationBlock, layer } from './index'
 import type { Model } from './model'
 
 const initialModel: Model = {

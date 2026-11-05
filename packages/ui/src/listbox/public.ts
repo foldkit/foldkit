@@ -44,3 +44,6 @@ export type {
 /** @internal Preserves exact fixed-family reader names in emitted declarations. */
 export type { ListboxReader } from './single.js'
 export type { ListboxReader as MultiListboxReader } from './multi.js'
+
+/** @internal Keeps inferred provider exports nameable through this entry point. */
+export type { AnimationKey } from '../animation/index.js'

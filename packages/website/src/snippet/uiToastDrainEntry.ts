@@ -20,7 +20,6 @@ const Message = defineMessageUnion({ RequestedShowToast: {} })
 type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -28,18 +27,19 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeNoopStep } = ApplicationBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  ApplicationBlock
 
-const foldToastOutMessage = ApplicationBlock.makeOutMessageFold(ToastBlock, {
+const foldToastOutMessage = makeOutMessageFold(ToastBlock, {
   DismissedToast: makeNoopStep,
 })
-const ToastBinding = ApplicationBlock.makeBinding(ToastBlock, {
+const ToastBinding = makeBinding(ToastBlock, {
   field: 'toast',
   init: {
     contextToArgs: () => [{ id: 'notifications' }],
   },
 }).withOutMessagePolicy({ fold: foldToastOutMessage })
-const ApplicationComposition = ApplicationBlock.makeComposition({
+const ApplicationComposition = makeComposition({
   bindings: [ToastBinding],
 })
 

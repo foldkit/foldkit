@@ -1,9 +1,9 @@
 import { Array, Option, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep, makeNoopStep } from './block'
 import { GenerateTodo, SaveTodos } from './command'
 import { ApplicationComposition } from './composition'
-import { makeFieldsStep, makeNoopStep } from './definition'
 import { EditingState, type Todo } from './model'
 
 const { makeUpdate } = ApplicationComposition

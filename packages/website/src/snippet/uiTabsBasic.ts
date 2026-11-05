@@ -27,7 +27,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const TabsExampleKey = Symbol('TabsExample')
-
 export const TabsExampleBlock = Block.make('TabsExample', {
   key: TabsExampleKey,
   Init: Schema.Tuple([]),
@@ -36,7 +35,8 @@ export const TabsExampleBlock = Block.make('TabsExample', {
   Message,
 })
 
-const { makeFieldsStep } = TabsExampleBlock
+const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
+  TabsExampleBlock
 
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
@@ -52,7 +52,7 @@ const descriptions: Record<Framework, string> = {
 // returns an Update.Step over the parent Model, which already has the next
 // Tabs Model written back. Passing the whole child lets the parent Block
 // infer the refined `Framework` OutMessage and parent Step:
-const foldTabsOutMessage = TabsExampleBlock.makeOutMessageFold(FrameworkTabs, {
+const foldTabsOutMessage = makeOutMessageFold(FrameworkTabs, {
   // The child has emitted `Selected`. Store the selected value as the new
   // active tab. In this arm the parent can also update its own state or
   // dispatch Commands, for example route to a new URL, persist the
@@ -65,12 +65,12 @@ const foldTabsOutMessage = TabsExampleBlock.makeOutMessageFold(FrameworkTabs, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const TabsBinding = TabsExampleBlock.makeBinding(FrameworkTabs, {
+const TabsBinding = makeBinding(FrameworkTabs, {
   field: 'tabs',
   init: { contextToArgs: () => [{ id: 'framework-tabs' }] },
 }).withOutMessagePolicy({ fold: foldTabsOutMessage })
 
-const TabsExampleComposition = TabsExampleBlock.makeComposition({
+const TabsExampleComposition = makeComposition({
   bindings: [TabsBinding],
 })
 

@@ -3,13 +3,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import {
-  ApplicationBlock,
-  Message,
-  Model,
-  PersistCount,
-  layer,
-} from './application'
+import { ApplicationBlock, Message, Model, PersistCount, layer } from './block'
 
 const initialModel = Model.make({
   count: 3,

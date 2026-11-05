@@ -2,8 +2,13 @@ import { Array, Option, pipe } from 'effect'
 import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import {
+  makeBinding,
+  makeComposition,
+  makeOutMessageFold,
+  makeStep,
+} from './block'
 import { FetchTelemetry, SyncChart } from './command'
-import { ApplicationBlock, makeStep } from './definition'
 import { Model } from './model'
 import { MountChart } from './mount'
 import {
@@ -68,46 +73,40 @@ const selectControl = (updateModel: (model: Model) => Model) =>
     }
   })
 
-export const ChartModeRadioGroupBinding = ApplicationBlock.makeBinding(
+export const ChartModeRadioGroupBinding = makeBinding(
   ChartModeRadioGroupBlock,
   {
     field: 'chartModeRadioGroup',
     init: { contextToArgs: () => [{ id: CHART_MODE_RADIO_GROUP_ID }] },
   },
 ).withOutMessagePolicy({
-  fold: ApplicationBlock.makeOutMessageFold(ChartModeRadioGroupBlock, {
+  fold: makeOutMessageFold(ChartModeRadioGroupBlock, {
     Selected: ({ value }) =>
       selectControl(modifyFields({ chartMode: () => value })),
   }),
 })
 
-export const PeriodRadioGroupBinding = ApplicationBlock.makeBinding(
-  PeriodRadioGroupBlock,
-  {
-    field: 'periodRadioGroup',
-    init: { contextToArgs: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
-  },
-).withOutMessagePolicy({
-  fold: ApplicationBlock.makeOutMessageFold(PeriodRadioGroupBlock, {
+export const PeriodRadioGroupBinding = makeBinding(PeriodRadioGroupBlock, {
+  field: 'periodRadioGroup',
+  init: { contextToArgs: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(PeriodRadioGroupBlock, {
     Selected: ({ value }) =>
       selectControl(modifyFields({ period: () => value })),
   }),
 })
 
-export const PackageRadioGroupBinding = ApplicationBlock.makeBinding(
-  PackageRadioGroupBlock,
-  {
-    field: 'packageRadioGroup',
-    init: { contextToArgs: () => [{ id: PACKAGE_RADIO_GROUP_ID }] },
-  },
-).withOutMessagePolicy({
-  fold: ApplicationBlock.makeOutMessageFold(PackageRadioGroupBlock, {
+export const PackageRadioGroupBinding = makeBinding(PackageRadioGroupBlock, {
+  field: 'packageRadioGroup',
+  init: { contextToArgs: () => [{ id: PACKAGE_RADIO_GROUP_ID }] },
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(PackageRadioGroupBlock, {
     Selected: ({ value }) =>
       selectControl(modifyFields({ selectedPackageId: () => value })),
   }),
 })
 
-export const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicationComposition = makeComposition({
   mounts: [MountChart],
   bindings: [
     ChartModeRadioGroupBinding,

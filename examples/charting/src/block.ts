@@ -1,32 +1,28 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+import { ChartRegistry } from './chartRegistry'
+import { GitHubApi } from './githubApi'
+import { Message } from './message'
+import { Model } from './model'
+import { NpmApi } from './npmApi'
 
-import {
-  ChartModeRadioGroupBinding,
-  PackageRadioGroupBinding,
-  PeriodRadioGroupBinding,
-} from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { update } from './update'
-import { view } from './view'
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+  effects: { services: [ChartRegistry, GitHubApi, NpmApi] },
+  Model,
+  Message,
+})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const chartModeRadioGroup = yield* ChartModeRadioGroupBinding
-    const periodRadioGroup = yield* PeriodRadioGroupBinding
-    const packageRadioGroup = yield* PackageRadioGroupBinding
-
-    return {
-      children: [chartModeRadioGroup, periodRadioGroup, packageRadioGroup],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeMountStream,
+  makeOutMessageFold,
+  makeStep,
+} = ApplicationBlock

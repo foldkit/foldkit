@@ -16,8 +16,8 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { FlyTo, Geolocate, LockBodyScroll, UnlockBodyScroll } from './command'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { GeolocateState } from './model'
 import { initialModel, mountedModel } from './model.fixture'

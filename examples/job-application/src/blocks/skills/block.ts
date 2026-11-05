@@ -1,27 +1,44 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 
 import { SkillsEntry as Entry } from './blocks'
-import { EffectsLayer } from './command'
-import { EntriesBinding } from './composition'
-import { SkillsBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
 
-export const layer = SkillsBlock.makeLayer(
-  Effect.gen(function* () {
-    const entries = yield* EntriesBinding
+export const Model = Schema.Struct({
+  entries: Schema.Array(Entry.SkillsEntryBlock.Model),
+})
+export type Model = typeof Model.Type
 
-    return {
-      children: [entries],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(Entry.layer)))
+export const Message = defineMessageUnion({
+  ClickedAddEntry: {},
+  CompletedGenerateSkillsEntryId: { entryId: Schema.String },
+  RemovedEntry: { entryId: Schema.String },
+})
+export type Message = typeof Message.Type
 
-export { SkillsBlock } from './definition'
+export const InMessage = defineMessageUnion({
+  RequestedRevealErrors: {},
+})
+export type InMessage = typeof InMessage.Type
+
+export const SkillsKey = Symbol('Skills')
+export const SkillsBlock = Block.make('Skills', {
+  key: SkillsKey,
+  Init: Schema.Tuple([Schema.String]),
+  view: { kind: 'Element' },
+  effects: { services: [SecureRandom.SecureRandom] },
+  Model,
+  Message,
+  InMessage,
+  ChildInitContext: Schema.String,
+})
+
+export const {
+  makeBinding,
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeOutMessageFold,
+} = SkillsBlock

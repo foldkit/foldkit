@@ -32,10 +32,10 @@ import type {
   ContractConfiguration,
   ContractGraph,
   DeclaredFacts,
+  DefinitionConfigurationArguments,
   FamilyValidation,
   HostContractValidation,
   HostDefinitions,
-  InMessageConfigurationArguments,
   InMessageUpdateBodyValidation,
   NativeBody,
   NominalId,
@@ -377,7 +377,7 @@ export function makeFamilyDeclaration<
     (symbol extends Key ? never : true extends IsUnion<Key> ? never : unknown),
   ..._validation: readonly [
     ...MessageFreeValidation<NoInfer<Config & Readonly<{ key: Key }>>>,
-    ...InMessageConfigurationArguments<
+    ...DefinitionConfigurationArguments<
       NoInfer<Config & Readonly<{ key: Key }>>
     >,
   ]

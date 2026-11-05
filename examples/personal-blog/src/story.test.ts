@@ -6,9 +6,9 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { CounterBlock } from './blocks'
 import { CounterBinding } from './composition'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { Model } from './model'
 import { ApplicationRoute } from './route'

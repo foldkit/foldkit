@@ -1,30 +1,64 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { CalendarDate } from 'foldkit/calendar'
+import { Field } from 'foldkit/fieldValidation'
+import { defineMessageUnion } from 'foldkit/message'
 
-import { layer as DatePickerLayer } from '@foldkit/ui/datePicker'
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { DatePickerBlock } from '@foldkit/ui/datePicker'
+import { makeBlock as makeListboxBlock } from '@foldkit/ui/listbox'
 
-import { EffectsLayer } from './command'
-import { AvailableDateBinding, PronounsBinding } from './composition'
-import { PersonalInfoBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+export const PronounsListboxBlock = makeListboxBlock()
 
-export const layer = PersonalInfoBlock.makeLayer(
-  Effect.gen(function* () {
-    const pronounsListbox = yield* PronounsBinding
-    const availableDatePicker = yield* AvailableDateBinding
+export const Model = Schema.Struct({
+  firstName: Field(Schema.String),
+  lastName: Field(Schema.String),
+  email: Field(Schema.String),
+  emailValidationId: Schema.Number,
+  phone: Field(Schema.String),
+  pronouns: PronounsListboxBlock.Model,
+  maybeSelectedPronoun: Schema.Option(Schema.String),
+  customPronouns: Schema.String,
+  portfolioUrl: Field(Schema.String),
+  availableDate: DatePickerBlock.Model,
+  maybeAvailableDate: Schema.Option(CalendarDate),
+})
+export type Model = typeof Model.Type
 
-    return {
-      children: [pronounsListbox, availableDatePicker],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(ListboxLayer, DatePickerLayer)))
+export const Message = defineMessageUnion({
+  UpdatedFirstName: { value: Schema.String },
+  UpdatedLastName: { value: Schema.String },
+  UpdatedEmail: { value: Schema.String },
+  CompletedValidateEmailAsync: {
+    validationId: Schema.Number,
+    field: Field(Schema.String),
+  },
+  UpdatedPhone: { value: Schema.String },
+  UpdatedCustomPronouns: { value: Schema.String },
+  UpdatedPortfolioUrl: { value: Schema.String },
+})
+export type Message = typeof Message.Type
 
-export { PersonalInfoBlock } from './definition'
+export const InMessage = defineMessageUnion({
+  RequestedRevealErrors: {},
+})
+export type InMessage = typeof InMessage.Type
+
+export const PersonalInfoKey = Symbol('PersonalInfo')
+export const PersonalInfoBlock = Block.make('PersonalInfo', {
+  key: PersonalInfoKey,
+  Init: Schema.Tuple([CalendarDate]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+  InMessage,
+  ChildInitContext: CalendarDate,
+})
+
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+} = PersonalInfoBlock

@@ -14,7 +14,7 @@ import {
   makeNoopStep,
   makeOutMessageFold,
   makeOutMessageStep,
-} from './definition'
+} from './block'
 import { OutMessage } from './outMessage'
 
 const changeStatusFilter = (value: StatusFilterValue) => {

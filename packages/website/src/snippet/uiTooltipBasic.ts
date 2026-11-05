@@ -19,7 +19,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const TooltipExampleKey = Symbol('TooltipExample')
-
 export const TooltipExampleBlock = Block.make('TooltipExample', {
   key: TooltipExampleKey,
   Init: Schema.Tuple([]),
@@ -28,35 +27,33 @@ export const TooltipExampleBlock = Block.make('TooltipExample', {
   Message,
 })
 
-const { makeNoopStep } = TooltipExampleBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  TooltipExampleBlock
 
 // At module scope, fold the OutMessage into your own Model. `Shown` and
 // `Hidden` mark the visibility transitions. Fire analytics or coordinate with
 // the rest of your UI from the parent. Each arm returns an Update.Step over
 // the parent Model, which already has the next Tooltip Model written back.
 // The parent Block checks every named child variant:
-const foldTooltipOutMessage = TooltipExampleBlock.makeOutMessageFold(
-  TooltipBlock,
-  {
-    // The child has emitted `Shown`. In this arm the parent can update its
-    // own state or dispatch its own Commands, for example log analytics,
-    // prefetch content, or trigger a downstream Command.
-    Shown: makeNoopStep,
-    // The child has emitted `Hidden`. In this arm the parent can update its
-    // own state or dispatch its own Commands, for example clear ephemeral
-    // state, fire analytics, or trigger a downstream Command.
-    Hidden: makeNoopStep,
-  },
-)
+const foldTooltipOutMessage = makeOutMessageFold(TooltipBlock, {
+  // The child has emitted `Shown`. In this arm the parent can update its
+  // own state or dispatch its own Commands, for example log analytics,
+  // prefetch content, or trigger a downstream Command.
+  Shown: makeNoopStep,
+  // The child has emitted `Hidden`. In this arm the parent can update its
+  // own state or dispatch its own Commands, for example clear ephemeral
+  // state, fire analytics, or trigger a downstream Command.
+  Hidden: makeNoopStep,
+})
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const TooltipBinding = TooltipExampleBlock.makeBinding(TooltipBlock, {
+const TooltipBinding = makeBinding(TooltipBlock, {
   field: 'tooltip',
   init: { contextToArgs: () => [{ id: 'save-button' }] },
 }).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
-const TooltipExampleComposition = TooltipExampleBlock.makeComposition({
+const TooltipExampleComposition = makeComposition({
   bindings: [TooltipBinding],
 })
 

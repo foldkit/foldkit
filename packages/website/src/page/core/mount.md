@@ -4,7 +4,7 @@
 
 Most Foldkit code is declarative. The [view](/core/view) is a pure function from Model to Html. It does not reach into the DOM, hold element references, or run side effects.
 
-Mount is the escape hatch for work whose cause is a particular element existing in the DOM. `OnMount` supplies the live `Element`, starts the work when that element enters the DOM, and tears it down when the element leaves.
+Mount is the escape hatch for work whose cause is a particular element existing in the DOM. `OnMount` supplies the live `Element`, starts the work when that element enters the DOM, and tears it down when the element leaves or its acquiring Block occurrence retires.
 
 ### Mount Definitions
 
@@ -21,7 +21,7 @@ The view describes what should be on screen. `OnMount` handles imperative work a
 :::
 
 :::Info{label="Mounts surface in tests"}
-Scene records every `OnMount` in the rendered view as a pending Mount. A test must acknowledge or resolve each one with a declared result Message. See [Scene](/testing/scene) for the full contract.
+Scene records each Mount acquisition as pending. Resolve its declared result Message and acknowledge when the acquisition ends. See [Scene](/testing/scene#mounts) for element identity, occurrence ownership and the full contract.
 :::
 
 ## When to Reach for Mount
@@ -50,7 +50,9 @@ Work that happens when an element appears is not necessarily caused by that elem
 
 ### DOM Node Lifetime
 
-A Mount follows the lifetime of a DOM node, not a VNode. Foldkit reconstructs VNodes on every render, but the differ reuses an existing DOM node when its tag and identity still match. A reused node keeps its Mount running. A replaced node closes the old Mount's scope, runs its finalizers, and starts a fresh Mount on the new node.
+A Mount follows a DOM node within its acquiring Block occurrence. Foldkit reconstructs VNodes on every render, but the differ reuses an existing DOM node when its tag and identity still match. A reused node keeps its Mount while the acquiring occurrence remains active. A replaced node closes the old Mount's scope, runs its finalizers, and starts a fresh Mount on the new node.
+
+Retiring the acquiring occurrence also closes its Mount scope, even when the element is retained. A marker from a different occurrence starts a replacement acquisition on that retained element. Omitting a marker preserves an existing acquisition; it does not transfer ownership. While the acquiring occurrence remains active, results follow the currently rendered boundary. [Scene](/testing/scene#mounts) models the same lifecycle.
 
 ### Stable Identity
 
@@ -64,7 +66,7 @@ Portal-to-body is a small example. When an overlay enters the DOM, its Mount mov
 
 ### Handler Layers
 
-A Mount starts when its element enters the DOM and stops when that element leaves. In a split feature, `mount.ts` owns the definition and handler, and `composition.ts` registers it. Author the view through that Composition and return the local handler recipe from `FeatureBlock.makeLayer`. A conditional Mount need not appear in every render.
+In a split feature, `mount.ts` owns the definition and handler, and `composition.ts` registers it. Author the view through that Composition and return the local handler recipe from `FeatureBlock.makeLayer`. A conditional Mount need not appear in every render.
 
 ::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
 
@@ -113,7 +115,7 @@ DevTools shows the args beside the Mount name. Scene tests can target one instan
 ### Capture Time and Reactivity
 
 :::Warning{label="Args are captured at mount"}
-The handler receives the args from the render that inserts the element. Later renders create new MountActions, but a reused DOM node does not run the handler again. Name values for that lifecycle, such as `initialScroll` or `seedValue`, rather than implying that they stay current.
+The handler receives the args from the acquiring render. Later renders create new MountActions, but a reused DOM node does not run the handler again while the same acquiring occurrence remains active. A different marked owner starts a new acquisition as described in [DOM node lifetime](#dom-node-lifetime). Name values for that lifecycle, such as `initialScroll` or `seedValue`, rather than implying that they stay current.
 :::
 
 When a later Message changes the Model and should trigger new DOM work, return a Command from that Message's update handler. A Subscription is appropriate when a Model dependency controls the lifetime of an external stream or a paired DOM state, or when a browser event must be handled synchronously, such as calling `preventDefault` inside its listener. Mount args are not reactive properties for either case.

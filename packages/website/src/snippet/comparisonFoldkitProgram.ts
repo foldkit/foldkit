@@ -41,7 +41,7 @@ export const layer = ApplicationBlock.makeLayer(
 
 // src/entry.ts
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock } from './block'
 import { Flags, flags } from './flags'
 
 const program = Program.make({
@@ -53,4 +53,4 @@ const program = Program.make({
 
 Runtime.run(program, { flags })
 
-export { ApplicationBlock } from './application'
+export { ApplicationBlock } from './block'

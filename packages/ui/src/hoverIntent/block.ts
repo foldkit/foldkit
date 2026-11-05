@@ -26,7 +26,6 @@ export type Model = typeof Model.Type
 
 /** @internal Stable identity of the HoverIntent contract. */
 export const HoverIntentKey = Symbol('HoverIntent')
-
 export const HoverIntentBlock = Block.make('HoverIntent', {
   key: HoverIntentKey,
   Model,

@@ -1,7 +1,7 @@
 import { Effect, Option, Schema } from 'effect'
 import * as Dom from 'foldkit/dom'
 
-import { ApplicationBlock } from './definition'
+import { makeCommand } from './block'
 import { MapRegistry } from './mapRegistry'
 import { Message } from './message'
 import type { FailedFlyTo, SucceededFlyTo } from './message'
@@ -36,7 +36,7 @@ const flyToMap = (
     })
   })
 
-export const FlyTo = ApplicationBlock.makeCommand('FlyTo', {
+export const FlyTo = makeCommand('FlyTo', {
   args: {
     maybeHostId: Schema.Option(Schema.String),
     lng: Schema.Number,
@@ -60,7 +60,7 @@ export const FlyTo = ApplicationBlock.makeCommand('FlyTo', {
   },
 })
 
-export const Geolocate = ApplicationBlock.makeCommand('Geolocate', {
+export const Geolocate = makeCommand('Geolocate', {
   messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
   handler: function* () {
     return () =>
@@ -103,21 +103,18 @@ export const Geolocate = ApplicationBlock.makeCommand('Geolocate', {
   },
 })
 
-export const FocusSearchInput = ApplicationBlock.makeCommand(
-  'FocusSearchInput',
-  {
-    messages: [Message.CompletedFocusSearchInput],
-    handler: function* () {
-      return () =>
-        Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusSearchInput()),
-        )
-    },
+export const FocusSearchInput = makeCommand('FocusSearchInput', {
+  messages: [Message.CompletedFocusSearchInput],
+  handler: function* () {
+    return () =>
+      Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusSearchInput()),
+      )
   },
-)
+})
 
-export const LockBodyScroll = ApplicationBlock.makeCommand('LockBodyScroll', {
+export const LockBodyScroll = makeCommand('LockBodyScroll', {
   messages: [Message.CompletedLockBodyScroll],
   handler: function* () {
     return () =>
@@ -128,16 +125,13 @@ export const LockBodyScroll = ApplicationBlock.makeCommand('LockBodyScroll', {
   },
 })
 
-export const UnlockBodyScroll = ApplicationBlock.makeCommand(
-  'UnlockBodyScroll',
-  {
-    messages: [Message.CompletedUnlockBodyScroll],
-    handler: function* () {
-      return () =>
-        Effect.sync(() => {
-          document.body.classList.remove('overflow-hidden')
-          return Message.CompletedUnlockBodyScroll()
-        })
-    },
+export const UnlockBodyScroll = makeCommand('UnlockBodyScroll', {
+  messages: [Message.CompletedUnlockBodyScroll],
+  handler: function* () {
+    return () =>
+      Effect.sync(() => {
+        document.body.classList.remove('overflow-hidden')
+        return Message.CompletedUnlockBodyScroll()
+      })
   },
-)
+})

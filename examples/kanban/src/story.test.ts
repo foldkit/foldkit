@@ -10,11 +10,11 @@ import {
   test as DragAndDropTest,
 } from '@foldkit/ui/dragAndDrop'
 
-import { ApplicationBlock, layer } from './block'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { DragAndDropBinding } from './composition'
 import { Column } from './domain'
 import type { Card } from './domain/card'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import type { Model } from './model'
 

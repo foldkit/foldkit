@@ -1,29 +1,28 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as PopoverLayer } from '@foldkit/ui/popover'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
+import { ViewInputs } from './viewInputs'
 
-import { PopoverBinding } from './composition'
-import { NotificationCenterBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view'
+export const NotificationCenterKey = Symbol('NotificationCenter')
+export const NotificationCenterBlock = Block.make('NotificationCenter', {
+  key: NotificationCenterKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+})
 
-export const layer = NotificationCenterBlock.makeLayer(
-  Effect.gen(function* () {
-    const popover = yield* PopoverBinding
-
-    return {
-      children: [popover],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      subscriptions,
-      EffectsLayer: subscriptions.layer,
-    }
-  }),
-).pipe(Layer.provide(PopoverLayer))
-
-export { NotificationCenterBlock } from './definition'
+export const {
+  makeBinding,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeSubscriptions,
+} = NotificationCenterBlock

@@ -1,37 +1,31 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { WorkspaceRepository } from '../../repository'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
+import { ViewInputs } from './viewInputs'
 
-import { CreateIssue } from './command'
-import {
-  DialogBinding,
-  PriorityListboxBinding,
-  ProjectListboxBinding,
-  StatusListboxBinding,
-} from './composition'
-import { CreateIssueBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+export const CreateIssueKey = Symbol('CreateIssue')
+export const CreateIssueBlock = Block.make('CreateIssue', {
+  key: CreateIssueKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  effects: { services: [WorkspaceRepository] },
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+})
 
-export const layer = CreateIssueBlock.makeLayer(
-  Effect.gen(function* () {
-    const dialog = yield* DialogBinding
-    const projectListbox = yield* ProjectListboxBinding
-    const statusListbox = yield* StatusListboxBinding
-    const priorityListbox = yield* PriorityListboxBinding
-
-    return {
-      children: [dialog, projectListbox, statusListbox, priorityListbox],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer: CreateIssue.layer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(DialogLayer, ListboxLayer)))
-
-export { CreateIssueBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+} = CreateIssueBlock

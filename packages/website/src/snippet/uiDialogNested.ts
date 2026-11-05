@@ -24,7 +24,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const ProjectDialogsKey = Symbol('ProjectDialogs')
-
 export const ProjectDialogsBlock = Block.make('ProjectDialogs', {
   key: ProjectDialogsKey,
   Init: Schema.Tuple([]),
@@ -33,28 +32,26 @@ export const ProjectDialogsBlock = Block.make('ProjectDialogs', {
   Message,
 })
 
-const { makeNoopStep } = ProjectDialogsBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  ProjectDialogsBlock
 
-const foldConfirmDialogOutMessage = ProjectDialogsBlock.makeOutMessageFold(
-  DialogBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-    CompletedClose: makeNoopStep,
-  },
-)
+const foldConfirmDialogOutMessage = makeOutMessageFold(DialogBlock, {
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
+  CompletedClose: makeNoopStep,
+})
 
-const SettingsDialogBinding = ProjectDialogsBlock.makeBinding(DialogBlock, {
+const SettingsDialogBinding = makeBinding(DialogBlock, {
   field: 'settingsDialog',
   init: { contextToArgs: () => [{ id: 'settings' }] },
 }).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
-const ConfirmDialogBinding = ProjectDialogsBlock.makeBinding(DialogBlock, {
+const ConfirmDialogBinding = makeBinding(DialogBlock, {
   field: 'confirmDialog',
   init: { contextToArgs: () => [{ id: 'confirm-delete' }] },
 }).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
-const ProjectDialogsComposition = ProjectDialogsBlock.makeComposition({
+const ProjectDialogsComposition = makeComposition({
   bindings: [SettingsDialogBinding, ConfirmDialogBinding],
 })
 

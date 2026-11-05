@@ -1,7 +1,7 @@
 import { Update } from 'foldkit'
 
+import { makeFieldsStep } from './block'
 import { CreateIssueComposition, DialogBinding } from './composition'
-import { makeFieldsStep } from './definition'
 import { CreateState } from './model'
 
 export const inMessageUpdate = CreateIssueComposition.makeInMessageUpdate({

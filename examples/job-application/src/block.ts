@@ -1,73 +1,28 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
+import { Block } from 'foldkit'
 
-import { layer as MenuLayer } from '@foldkit/ui/menu'
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Flags } from './flags'
+import { Message } from './message'
+import { Model } from './model'
 
-import {
-  Attachments,
-  CoverLetter,
-  Education,
-  PersonalInfo,
-  Skills,
-  WorkHistory,
-} from './blocks'
-import { EffectsLayer } from './command'
-import {
-  AttachmentsBinding,
-  CoverLetterBinding,
-  EducationBinding,
-  PersonalInfoBinding,
-  SkillsBinding,
-  StepMenuBinding,
-  StepTabsBinding,
-  WorkHistoryBinding,
-} from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view/view'
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Flags]),
+  view: { kind: 'Document' },
+  effects: { services: [SecureRandom.SecureRandom] },
+  Model,
+  Message,
+  ChildInitContext: Flags,
+})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const personalInfo = yield* PersonalInfoBinding
-    const workHistory = yield* WorkHistoryBinding
-    const education = yield* EducationBinding
-    const skills = yield* SkillsBinding
-    const coverLetter = yield* CoverLetterBinding
-    const attachments = yield* AttachmentsBinding
-    const stepMenu = yield* StepMenuBinding
-    const stepTabs = yield* StepTabsBinding
-
-    return {
-      children: [
-        personalInfo,
-        workHistory,
-        education,
-        skills,
-        coverLetter,
-        attachments,
-        stepMenu,
-        stepTabs,
-      ],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      PersonalInfo.layer,
-      WorkHistory.layer,
-      Education.layer,
-      Skills.layer,
-      CoverLetter.layer,
-      Attachments.layer,
-      MenuLayer,
-      TabsLayer,
-    ),
-  ),
-)
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+} = ApplicationBlock

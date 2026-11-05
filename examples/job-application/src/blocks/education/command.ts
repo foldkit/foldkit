@@ -1,9 +1,9 @@
 import { Effect } from 'effect'
 import { SecureRandom } from 'effect/crypto'
 
-import { EducationBlock, Message } from './definition'
+import { Message, makeCommand } from './block'
 
-export const GenerateEducationEntryId = EducationBlock.makeCommand(
+export const GenerateEducationEntryId = makeCommand(
   'GenerateEducationEntryId',
   {
     messages: [Message.CompletedGenerateEducationEntryId],
@@ -21,5 +21,3 @@ export const GenerateEducationEntryId = EducationBlock.makeCommand(
     },
   },
 )
-
-export const EffectsLayer = GenerateEducationEntryId.layer

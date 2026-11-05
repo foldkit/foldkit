@@ -2,9 +2,9 @@ import { Array, Option } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeStep } from '../block'
 import { MoveIssue } from '../command'
 import { IssueBoardsBinding } from '../composition'
-import { makeStep } from '../definition'
 import { type Issue, type IssueStatus } from '../domain'
 import { IssueMoveState } from '../optimistic'
 

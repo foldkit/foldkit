@@ -300,6 +300,7 @@ export type ExactContextualOutMessage = Expect<
     typeof OutMessage.Type
   >
 >
+
 export type ExactContextualSilentRequirements = Expect<
   Equal<
     Update.RequirementsOf<
@@ -315,4 +316,23 @@ export type ExactContextualRegistration = Expect<
     >,
     Block.RequirementOfBinding<typeof ChildBinding>
   >
+>
+
+export const MessageFreeModel = Schema.Struct({ count: Schema.Number })
+export type MessageFreeModel = typeof MessageFreeModel.Type
+const MessageFreeMessage = defineMessageUnion({})
+export const MessageFreeFieldsKey = Symbol('MessageFreeFields')
+export const MessageFreeFieldsBlock = Block.make('MessageFreeFields', {
+  key: MessageFreeFieldsKey,
+  Model: MessageFreeModel,
+  Message: MessageFreeMessage,
+  Init: Schema.Tuple([]),
+})
+export const { makeFieldsStep: makeMessageFreeFieldsStep } =
+  MessageFreeFieldsBlock
+export const incrementWithoutMessages = makeMessageFreeFieldsStep(() => ({
+  count: Number.increment,
+}))
+export type ExactMessageFreeRequirements = Expect<
+  Equal<Update.RequirementsOf<typeof incrementWithoutMessages>, never>
 >

@@ -7,7 +7,7 @@ const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({ Ticked: {} })
 type Message = typeof Message.Type
-export const ElementKey = Symbol('InferredElement')
+export const ElementKey = Symbol('Application')
 const ElementBlock = Block.make('Application', {
   key: ElementKey,
   Model,
@@ -27,7 +27,7 @@ const elementView = ElementComposition.makeView((model, h) =>
   h.div([], [String(model.count)]),
 )
 
-export const ApplicationKey = Symbol('InferredPage')
+export const ApplicationKey = Symbol('Application')
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,

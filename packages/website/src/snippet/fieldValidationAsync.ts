@@ -2,42 +2,41 @@ import { Effect, Match, Number, Schema } from 'effect'
 import { Invalid, Valid, Validating, validate } from 'foldkit/fieldValidation'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeCommand } from './block'
+
 const validateEmail = validate(emailRules)
 
-const CheckEmailAvailable = ApplicationBlock.makeCommand(
-  'CheckEmailAvailable',
-  {
-    args: { email: Schema.String, validationId: Schema.Number },
-    messages: [CompletedCheckEmailAvailable],
-    handler: function* () {
-      return ({ email, validationId }) =>
-        Effect.gen(function* () {
-          const isAvailable = yield* apiCheckEmail(email)
-          return CompletedCheckEmailAvailable({
-            validationId,
-            field: isAvailable
-              ? Valid({ value: email })
-              : Invalid({
-                  value: email,
-                  errors: ['This email is already taken'],
-                }),
-          })
-        }).pipe(
-          Effect.catch(() =>
-            Effect.succeed(
-              CompletedCheckEmailAvailable({
-                validationId,
-                field: Invalid({
-                  value: email,
-                  errors: ['Could not check this email. Try again.'],
-                }),
+const CheckEmailAvailable = makeCommand('CheckEmailAvailable', {
+  args: { email: Schema.String, validationId: Schema.Number },
+  messages: [CompletedCheckEmailAvailable],
+  handler: function* () {
+    return ({ email, validationId }) =>
+      Effect.gen(function* () {
+        const isAvailable = yield* apiCheckEmail(email)
+        return CompletedCheckEmailAvailable({
+          validationId,
+          field: isAvailable
+            ? Valid({ value: email })
+            : Invalid({
+                value: email,
+                errors: ['This email is already taken'],
               }),
-            ),
+        })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(
+            CompletedCheckEmailAvailable({
+              validationId,
+              field: Invalid({
+                value: email,
+                errors: ['Could not check this email. Try again.'],
+              }),
+            }),
           ),
-        )
-    },
+        ),
+      )
   },
-)
+})
 
 const update = ApplicationComposition.makeUpdate({
   ChangedEmail: (model, { value }) => {

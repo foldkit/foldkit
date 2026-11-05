@@ -14,7 +14,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 describe('resume upload flow', () => {
   const resume = new File(['%PDF-'], 'resume.pdf', {

@@ -2,6 +2,7 @@ import { Array, Option, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep, makeStep } from './block'
 import { Education, PersonalInfo, Skills, WorkHistory } from './blocks'
 import { SubmitApplication } from './command'
 import {
@@ -11,7 +12,6 @@ import {
   SkillsBinding,
   WorkHistoryBinding,
 } from './composition'
-import { makeFieldsStep, makeStep } from './definition'
 import { Step } from './domain'
 import { type Model, Submission } from './model'
 

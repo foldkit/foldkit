@@ -1,19 +1,45 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { Field } from 'foldkit/fieldValidation'
+import { defineMessageUnion } from 'foldkit/message'
 
-import { LoginBlock } from './definition'
-import { EffectsLayer, init, update } from './login'
-import { view } from './view'
+import { Session } from '../../../../domain/session'
 
-export const layer = LoginBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const Model = Schema.Struct({
+  email: Field(Schema.String),
+  password: Field(Schema.String),
+  isSubmitting: Schema.Boolean,
+})
+export type Model = typeof Model.Type
 
-export { LoginBlock } from './definition'
+export const Message = defineMessageUnion({
+  ChangedEmail: { value: Schema.String },
+  ChangedPassword: { value: Schema.String },
+  SubmittedForm: {},
+  SucceededSimulateAuthRequest: { session: Session },
+  FailedSimulateAuthRequest: { error: Schema.String },
+})
+export type Message = typeof Message.Type
+
+export const OutMessage = defineMessageUnion({
+  SucceededLogin: { session: Session },
+})
+export type OutMessage = typeof OutMessage.Type
+
+export const LoginKey = Symbol('Login')
+export const LoginBlock = Block.make('Login', {
+  key: LoginKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+
+  Model,
+  Message,
+  OutMessage,
+})
+
+export const {
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeOutMessageStep,
+} = LoginBlock

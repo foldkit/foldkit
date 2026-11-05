@@ -1,24 +1,25 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { FetchPeople, PushSearchUrl } from './command'
-import { PeopleBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init, update } from './update'
-import { view } from './view'
+import { ApplicationRoute } from '../../route'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
 
-const EffectsLayer = Layer.mergeAll(PushSearchUrl.layer, FetchPeople.layer)
+export const PeopleKey = Symbol('People')
+export const PeopleBlock = Block.make('People', {
+  key: PeopleKey,
+  Init: Schema.Tuple([ApplicationRoute.People]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+  InMessage,
+})
 
-export const layer = PeopleBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
-
-export { PeopleBlock } from './definition'
+export const {
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+} = PeopleBlock

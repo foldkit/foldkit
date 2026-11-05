@@ -2,19 +2,21 @@ import type { Block } from 'foldkit'
 
 import {
   NoteDurationRadioGroupBlock,
-  NotePlayerDemoBlock,
+  makeBinding,
+  makeComposition,
   makeFieldsStep,
-} from './definition'
+  makeOutMessageFold,
+} from './block'
 import { prependToLog } from './messageLog'
 
-export const NoteDurationRadioGroupBinding = NotePlayerDemoBlock.makeBinding(
+export const NoteDurationRadioGroupBinding = makeBinding(
   NoteDurationRadioGroupBlock,
   {
     field: 'noteDurationRadioGroup',
     init: { contextToArgs: () => [{ id: 'note-duration' }] },
   },
 ).withOutMessagePolicy({
-  fold: NotePlayerDemoBlock.makeOutMessageFold(NoteDurationRadioGroupBlock, {
+  fold: makeOutMessageFold(NoteDurationRadioGroupBlock, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({
         noteDuration: () => value,
@@ -23,7 +25,7 @@ export const NoteDurationRadioGroupBinding = NotePlayerDemoBlock.makeBinding(
   }),
 })
 
-export const NotePlayerDemoComposition = NotePlayerDemoBlock.makeComposition({
+export const NotePlayerDemoComposition = makeComposition({
   bindings: [NoteDurationRadioGroupBinding],
 })
 export type NotePlayerDemoViewBuilder = Block.ViewBuilderFor<

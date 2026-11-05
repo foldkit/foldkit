@@ -9,7 +9,7 @@ import {
   scene,
 } from 'foldkit/scene'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 import { TreeRowBlock, layer as TreeRowLayer } from './treeRow'
 
 await Effect.runPromise(

@@ -23,11 +23,6 @@ import { view as inputView } from '@foldkit/ui/input'
 import { Icon } from '../../../../icon'
 import * as DemoView from '../../../../page/demoView'
 import {
-  NoteDurationRadioGroupBinding,
-  NotePlayerDemoComposition,
-  type NotePlayerDemoViewBuilder,
-} from './composition'
-import {
   AudioState,
   type CompletedPlayNote,
   Message,
@@ -35,11 +30,18 @@ import {
   Note,
   NoteDuration,
   NoteHighlightPhase,
-  NotePlayerDemoBlock,
   PlaybackState,
+  makeCommand,
   makeFieldsStep,
+  makeManagedResources,
   makeNoopStep,
-} from './definition'
+  makeResource,
+} from './block'
+import {
+  NoteDurationRadioGroupBinding,
+  NotePlayerDemoComposition,
+  type NotePlayerDemoViewBuilder,
+} from './composition'
 import { prependToLog } from './messageLog'
 
 // CONSTANTS
@@ -112,21 +114,16 @@ export const init = NotePlayerDemoComposition.makeInit(() => ({
   },
 }))
 
-const DelayAdvanceNotePlayerPhase = NotePlayerDemoBlock.makeCommand(
-  'DelayAdvanceNotePlayerPhase',
-  {
-    args: { generation: Schema.Number },
-    messages: [Message.CompletedDelayAdvanceNotePlayerPhase],
-    handler: function* () {
-      return ({ generation }) =>
-        Effect.sleep(PHASE_DURATION).pipe(
-          Effect.as(
-            Message.CompletedDelayAdvanceNotePlayerPhase({ generation }),
-          ),
-        )
-    },
+const DelayAdvanceNotePlayerPhase = makeCommand('DelayAdvanceNotePlayerPhase', {
+  args: { generation: Schema.Number },
+  messages: [Message.CompletedDelayAdvanceNotePlayerPhase],
+  handler: function* () {
+    return ({ generation }) =>
+      Effect.sleep(PHASE_DURATION).pipe(
+        Effect.as(Message.CompletedDelayAdvanceNotePlayerPhase({ generation })),
+      )
   },
-)
+})
 
 const enterNoteCommandPhase = (
   model: Model,
@@ -353,34 +350,31 @@ export const update = NotePlayerDemoComposition.makeUpdate({
 
 // MANAGED RESOURCE
 
-const AudioContextResource =
-  NotePlayerDemoBlock.makeResource<AudioContext>()('AudioContext')
+const AudioContextResource = makeResource<AudioContext>()('AudioContext')
 
-export const managedResources = NotePlayerDemoBlock.makeManagedResources(
-  entry => ({
-    audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
-      resource: AudioContextResource,
-      modelToMaybeRequirements: () => Option.some(null),
-      onAcquired: () => Message.SucceededAcquireAudioContext(),
-      onReleased: () => Message.ReleasedAudioContext(),
-      onAcquireError: () => Message.FailedAcquireAudioContext(),
-      handler: function* () {
-        return {
-          acquire: () =>
-            Effect.try({
-              try: () => new AudioContext(),
-              catch: () =>
-                new Error('The Web Audio API is unavailable in this browser.'),
-            }),
-          release: audioContext =>
-            Effect.promise(() => audioContext.close().catch(() => undefined)),
-        }
-      },
-    }),
+export const managedResources = makeManagedResources(entry => ({
+  audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
+    resource: AudioContextResource,
+    modelToMaybeRequirements: () => Option.some(null),
+    onAcquired: () => Message.SucceededAcquireAudioContext(),
+    onReleased: () => Message.ReleasedAudioContext(),
+    onAcquireError: () => Message.FailedAcquireAudioContext(),
+    handler: function* () {
+      return {
+        acquire: () =>
+          Effect.try({
+            try: () => new AudioContext(),
+            catch: () =>
+              new Error('The Web Audio API is unavailable in this browser.'),
+          }),
+        release: audioContext =>
+          Effect.promise(() => audioContext.close().catch(() => undefined)),
+      }
+    },
   }),
-)
+}))
 
-const PlayNote = NotePlayerDemoBlock.makeCommand('PlayNote', {
+const PlayNote = makeCommand('PlayNote', {
   args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
   messages: [Message.CompletedPlayNote],
   handler: function* () {

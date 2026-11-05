@@ -1,27 +1,27 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { Url } from 'foldkit/url'
 
-import { People } from './blocks'
-import { PeoplePageBinding } from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
+import { ApplicationRoute } from './route'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const people = yield* PeoplePageBinding
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Url]),
+  view: { kind: 'Document' },
+  Model,
+  Message,
+  ChildInitContext: ApplicationRoute.People,
+})
 
-    return {
-      children: [people],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(People.layer))
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeSubscriptions,
+} = ApplicationBlock

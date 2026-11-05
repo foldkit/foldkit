@@ -2,9 +2,9 @@ import { Option } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeStep } from './block'
 import { LoadApiData } from './command'
 import { ApiReferenceComposition } from './composition'
-import { makeStep } from './definition'
 
 const refreshApiData = makeStep(model =>
   Option.match(

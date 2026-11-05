@@ -46,7 +46,7 @@ import {
 import type {
   ContractConfiguration,
   Definition,
-  InMessageConfigurationArguments,
+  DefinitionConfigurationArguments,
 } from './contract.js'
 import {
   assertInMessageConfiguration,
@@ -295,7 +295,13 @@ const snapshotChannelRecord = (
 ): Record<string, any> => {
   const record = snapshotRecord(value, name)
 
-  for (const key of ['services', 'resources']) {
+  if (Object.hasOwn(record, 'resources')) {
+    throw new Error(
+      `[foldkit] ${name}.resources has been renamed to ${name}.managedResources.`,
+    )
+  }
+
+  for (const key of ['services', 'managedResources']) {
     if (Object.hasOwn(record, key)) {
       Object.defineProperty(record, key, {
         configurable: false,
@@ -398,7 +404,18 @@ export function snapshotDefinitionConfiguration(config: Declaration): object {
     if (Object.hasOwn(snapshot, key) && snapshot[key] !== undefined) {
       const declaration = snapshotRecord(snapshot[key], key)
 
-      for (const member of ['services', 'resources', 'decoding', 'encoding']) {
+      if (key === 'effects' && Object.hasOwn(declaration, 'resources')) {
+        throw new Error(
+          '[foldkit] effects.resources has been renamed to effects.managedResources.',
+        )
+      }
+
+      for (const member of [
+        'services',
+        'managedResources',
+        'decoding',
+        'encoding',
+      ]) {
         if (Object.hasOwn(declaration, member)) {
           Object.defineProperty(declaration, member, {
             configurable: false,
@@ -478,7 +495,7 @@ export const makeDefinition = <
     (symbol extends Key ? never : true extends IsUnion<Key> ? never : unknown),
   ..._validation: readonly [
     ...MessageFreeValidation<NoInfer<Config & Readonly<{ key: Key }>>>,
-    ...InMessageConfigurationArguments<
+    ...DefinitionConfigurationArguments<
       NoInfer<Config & Readonly<{ key: Key }>>
     >,
   ]
@@ -504,7 +521,7 @@ export interface ContractNamespaceMakeDefinition<Id extends string> {
       ([Id] extends [LiteralContractId<Id>] ? unknown : never),
     ...validation: readonly [
       ...MessageFreeValidation<NoInfer<Config & Readonly<{ key: Key }>>>,
-      ...InMessageConfigurationArguments<
+      ...DefinitionConfigurationArguments<
         NoInfer<Config & Readonly<{ key: Key }>>
       >,
     ]

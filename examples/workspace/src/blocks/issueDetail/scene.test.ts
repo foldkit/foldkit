@@ -25,11 +25,11 @@ import {
 } from '../../domain'
 import { WorkspaceListboxBlock } from '../../listbox'
 import { RepositoryError } from '../../repository'
-import { layer } from './block'
+import { IssueDetailBlock } from './block'
 import { CommentComposerBlock } from './blocks/commentComposer'
 import { AddComment } from './blocks/commentComposer/command'
 import { SaveIssue } from './command'
-import { IssueDetailBlock } from './definition'
+import { layer } from './layer'
 import { Message } from './message'
 import { OutMessage } from './outMessage'
 

@@ -1,3 +1,3 @@
-export { CounterBlock, layer } from './counter'
+export { CounterBlock, layer } from './block'
 
-export type { CounterKey } from './counter'
+export type { CounterKey } from './block'

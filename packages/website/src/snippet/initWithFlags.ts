@@ -19,7 +19,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Flags]),
@@ -27,7 +26,9 @@ const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const ApplicationComposition = ApplicationBlock.makeComposition()
+const { makeComposition } = ApplicationBlock
+
+const ApplicationComposition = makeComposition()
 
 const init = ApplicationComposition.makeInit(flags => ({
   model: {

@@ -1,13 +1,13 @@
 import { AnimationBlock } from '@foldkit/ui/animation'
 
-import { UiBlock, makeNoopStep } from '../definition'
+import { makeBinding, makeNoopStep, makeOutMessageFold } from '../block'
 
-const BaseAnimationDemoBinding = UiBlock.makeBinding(AnimationBlock, {
+const BaseAnimationDemoBinding = makeBinding(AnimationBlock, {
   field: 'animationDemo',
   init: { contextToArgs: () => [{ id: 'animation-demo' }] },
 })
 
-const foldAnimationDemoOutMessage = UiBlock.makeOutMessageFold(AnimationBlock, {
+const foldAnimationDemoOutMessage = makeOutMessageFold(AnimationBlock, {
   StartedLeaveAnimating: () =>
     BaseAnimationDemoBinding.requestWaitForLeaveSettlement(),
   TransitionedOut: makeNoopStep,

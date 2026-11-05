@@ -71,6 +71,8 @@ Keep canonical local handlers in the implementation's `EffectsLayer`. An attache
 
 The passive public child contract does not expose the implementation's private handler inventory. Apply handler selection to its ordinary construction Layer with the Block's `provideHandlers` helper. Query and other generic family APIs can also expose a checked host-handler selector. See [host implementations](/core/layers#host-implementations-for-reusable-features).
 
+Rename public ManagedResource requirement lists from `effects.resources` to `effects.managedResources`, `operations.<name>.resources` to `operations.<name>.managedResources`, and `inMessageOutputs.<tag>.resources` to `inMessageOutputs.<tag>.managedResources`. The entries retain their original contracts and identities. Unrelated resource APIs keep their names. See [effect contracts](/core/layers#public-bounds-and-construction-dependencies) for handler-Layer bounds and separately inferred graph-constructor requirements.
+
 ## Create standard child-array occurrences
 
 For a required child array that needs only occurrence keys and child state, the candidate adds `ChildBlock.Instance` and `Binding.create({ key, args })`. Declare `Schema.Array(ChildBlock.Instance)` and bind `{ field, key: 'key', childField: 'model' }`. Append creation requests through the owning `makeFieldsStep`; checked execution initializes them before subsequent Steps and retains every child init Command. The Model stores ready `{ key, model }` Instances.
@@ -123,7 +125,7 @@ Contextual update records now accept compatible Steps and Binding operations dir
 
 Extracting registration evidence from returned Commands now avoids TS2589 in the reported large Root composition, while retaining registration checks. This does not establish a general limit on the number of Blocks or remove all compiler costs in large graphs.
 
-Scene follows renderer element identity when tracking Mount lifetimes. A replaced element ends its old Mount; a patched element keeps its original Mount even if its `OnMount` attribute changes. Review Scene tests that resolved a Mount which never starts in the browser. Runtime teardown also releases the original Mount when its element is removed after dropping `OnMount`.
+Scene follows renderer element identity and, for Block-aware subjects, the acquiring occurrence. A retained element keeps its Mount when `OnMount` is omitted; a marker for a different occurrence starts a replacement acquisition. Removing and recreating a child under the same key creates a different occurrence. Retained results follow the currently rendered boundary while the acquiring occurrence remains active. Acknowledge element removal, replacement and occurrence retirement with `Mount.expectEnded`. Review tests that resolved a Mount which never starts in the browser. Runtime teardown also releases the original Mount when its element is removed after dropping `OnMount`.
 
 `Scene.unhover(target)` now exercises hover exit through the element's `OnMouseLeave` handler, falling back to `OnMouseOut`. See [Scene interactions](/testing/scene#interactions).
 
@@ -266,7 +268,7 @@ Canonical routing Messages can be passed directly when their payloads are `{ req
 
 Remove the standalone `makeMapBinding` import from `foldkit/mapBinding`. Call the parent Block's `makeMapBinding` method with the child Block and existing config. The parent Block is no longer a positional argument. The standalone subpath is removed.
 
-For a split feature, destructure and export `makeMapBinding` from its `definition.ts`, then import that factory from the feature module. Its parent contracts remain attached when destructured. Keep the existing Binding registration, key Schema, storage, OutMessage policy, and initialization. See [map Bindings](/core/block#keyed-map-fields) for the current calls.
+For a split feature, destructure and export `makeMapBinding` from its `block.ts`, then import that factory from the feature module. Its parent contracts remain attached when destructured. Keep the existing Binding registration, key Schema, storage, OutMessage policy, and initialization. See [map Bindings](/core/block#keyed-map-fields) for the current calls.
 
 ## Rename Definition Authoring Factories
 

@@ -21,7 +21,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -29,12 +28,12 @@ const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeFieldsStep } = ApplicationBlock
+const { makeFieldsStep, makeComposition, makeCommand } = ApplicationBlock
 
-const ApplicationComposition = ApplicationBlock.makeComposition()
+const ApplicationComposition = makeComposition()
 
 // Api is an Effect service; ApiLayer provides it.
-const FetchUser = ApplicationBlock.makeCommand('FetchUser', {
+const FetchUser = makeCommand('FetchUser', {
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {
     const api = yield* Api

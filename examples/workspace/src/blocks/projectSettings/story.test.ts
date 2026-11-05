@@ -1,15 +1,12 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Option } from 'effect'
 import {
   Command,
-  type TestBlock,
   expectNoOutMessage,
   expectOutMessage,
-  given,
   init,
   message,
   model,
   story,
-  withBlock,
 } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
@@ -17,9 +14,9 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 
 import { initialWorkspace } from '../../domain'
-import { layer } from './block'
+import { ProjectSettingsBlock } from './block'
 import { SaveProject } from './command'
-import { ProjectSettingsBlock } from './definition'
+import { layer } from './layer'
 import { Message } from './message'
 import { Model, SaveState } from './model'
 import { OutMessage } from './outMessage'
@@ -27,45 +24,38 @@ import { OutMessage } from './outMessage'
 const projectSettingsSubject = { block: ProjectSettingsBlock, layer }
 
 const project = Option.getOrThrow(Array.head(initialWorkspace.projects))
-const makeInitialModel = (
-  executable: TestBlock<typeof projectSettingsSubject>,
-) => {
-  const init = executable.init
-  return Model.make(init(project).model)
-}
-
 describe('Project Settings', () => {
   it.effect(
     'does not save unchanged, normalized, or invalid project settings',
     () => {
-      return withBlock(projectSettingsSubject, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
+      let unsavableModel: Model | undefined
 
-          const paddedNameModel = modifyFields(initialModel, {
-            draft: draft => modifyFields(draft, { name: name => ` ${name} ` }),
-          })
-          const blankNameModel = modifyFields(initialModel, {
-            draft: draft => modifyFields(draft, { name: () => '   ' }),
-          })
-
-          for (const unsavableModel of [
-            initialModel,
-            paddedNameModel,
-            blankNameModel,
-          ]) {
-            yield* story(
-              projectSettingsSubject,
-              given(unsavableModel),
-              message(Message.SubmittedProjectSettings()),
-              model(model => {
-                expect(model).toBe(unsavableModel)
-              }),
-              Command.expectNone(),
-              expectNoOutMessage(),
-            )
-          }
+      return story(
+        projectSettingsSubject,
+        init(project),
+        model(model => {
+          unsavableModel = model
         }),
+        message(Message.SubmittedProjectSettings()),
+        model(model => expect(model).toBe(unsavableModel)),
+        Command.expectNone(),
+        expectNoOutMessage(),
+        message(Message.UpdatedProjectName({ value: ` ${project.name} ` })),
+        model(model => {
+          unsavableModel = model
+        }),
+        message(Message.SubmittedProjectSettings()),
+        model(model => expect(model).toBe(unsavableModel)),
+        Command.expectNone(),
+        expectNoOutMessage(),
+        message(Message.UpdatedProjectName({ value: '   ' })),
+        model(model => {
+          unsavableModel = model
+        }),
+        message(Message.SubmittedProjectSettings()),
+        model(model => expect(model).toBe(unsavableModel)),
+        Command.expectNone(),
+        expectNoOutMessage(),
       )
     },
   )
@@ -108,41 +98,40 @@ describe('Project Settings', () => {
   it.effect(
     'does not publish an unsolicited or mismatched project save',
     () => {
-      return withBlock(projectSettingsSubject, executable =>
-        Effect.gen(function* () {
-          const initialModel = makeInitialModel(executable)
+      const otherProject = Option.getOrThrow(
+        Array.findFirst(
+          initialWorkspace.projects,
+          candidate => candidate.id !== project.id,
+        ),
+      )
+      const savedProject = modifyFields(project, {
+        name: () => 'A new project name',
+      })
+      let initialModel: Model | undefined
+      let savingModel: Model | undefined
 
-          const otherProject = Option.getOrThrow(
-            Array.findFirst(
-              initialWorkspace.projects,
-              candidate => candidate.id !== project.id,
-            ),
-          )
-
-          yield* story(
-            projectSettingsSubject,
-            given(initialModel),
-            message(Message.SucceededSaveProject({ project })),
-            model(model => {
-              expect(model).toBe(initialModel)
-            }),
-            expectNoOutMessage(),
-          )
-
-          const savingModel = modifyFields(initialModel, {
-            saveState: () => SaveState.Saving(),
-          })
-
-          yield* story(
-            projectSettingsSubject,
-            given(savingModel),
-            message(Message.SucceededSaveProject({ project: otherProject })),
-            model(model => {
-              expect(model).toBe(savingModel)
-            }),
-            expectNoOutMessage(),
-          )
+      return story(
+        projectSettingsSubject,
+        init(project),
+        model(model => {
+          initialModel = model
         }),
+        message(Message.SucceededSaveProject({ project })),
+        model(model => expect(model).toBe(initialModel)),
+        expectNoOutMessage(),
+        message(Message.UpdatedProjectName({ value: savedProject.name })),
+        message(Message.SubmittedProjectSettings()),
+        model(model => {
+          savingModel = model
+        }),
+        message(Message.SucceededSaveProject({ project: otherProject })),
+        model(model => expect(model).toBe(savingModel)),
+        expectNoOutMessage(),
+        Command.expectExact(SaveProject({ project: savedProject })),
+        Command.resolve(
+          SaveProject,
+          Message.SucceededSaveProject({ project: savedProject }),
+        ),
       )
     },
   )

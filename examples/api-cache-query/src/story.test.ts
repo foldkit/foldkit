@@ -12,8 +12,8 @@ import { expect } from 'vitest'
 
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { ApplicationBlock, layer } from './block'
 import { TabsBinding } from './composition'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { AppTabsBlock, type Model } from './model'
 import {

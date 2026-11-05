@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 await Effect.runPromise(
   scene(
     {

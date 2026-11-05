@@ -1,6 +1,6 @@
 // blocks/products/index.ts
-export { ProductsBlock } from './definition'
-export { layer } from './block'
+export { ProductsBlock } from './block'
+export { layer } from './layer'
 
 // blocks/index.ts
 export { HomeBlock } from './home'

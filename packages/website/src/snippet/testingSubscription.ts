@@ -1,12 +1,7 @@
 import { Effect } from 'effect'
 import { Scene } from 'foldkit'
 
-import {
-  ApplicationBlock,
-  Message,
-  layer,
-  rootSubscriptions,
-} from './application'
+import { ApplicationBlock, Message, layer, rootSubscriptions } from './block'
 import {
   ChatBlock,
   layer as ChatLayer,

@@ -7,7 +7,7 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
-import { ApplicationBlock, layer } from './block'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 
 const application = { block: ApplicationBlock, layer }

@@ -5,8 +5,8 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { SubmitForm, ValidateEmail } from './command'
+import { ApplicationBlock, layer } from './index'
 import { initialModel } from './init'
 import { Message } from './message'
 import type { Model } from './model'

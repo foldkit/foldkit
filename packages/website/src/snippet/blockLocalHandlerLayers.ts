@@ -1,7 +1,7 @@
 import { Effect, Layer } from 'effect'
 
+import { WorkOrdersBlock } from './block'
 import { LoadWorkOrders, SaveWorkOrder } from './command'
-import { WorkOrdersBlock } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'

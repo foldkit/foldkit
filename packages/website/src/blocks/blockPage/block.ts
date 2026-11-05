@@ -1,19 +1,17 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { BlockPageBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
+import type { ViewInputs } from './viewInputs'
 
-export const layer = BlockPageBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const BlockPageKey = Symbol('BlockPage')
+export const BlockPageBlock = Block.make('BlockPage', {
+  key: BlockPageKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  Model,
+  Message,
+})
 
-export { BlockPageBlock }
+export const { makeComposition, makeFieldsStep } = BlockPageBlock

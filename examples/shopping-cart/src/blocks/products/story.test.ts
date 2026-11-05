@@ -11,8 +11,8 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 
 import { products } from '../../data/products'
-import { ProductsBlock, layer } from './block'
-import { Message, OutMessage } from './definition'
+import { Message, OutMessage } from './block'
+import { ProductsBlock, layer } from './index'
 import { ReplaceSearchUrl } from './products'
 
 const apple = { id: '1', name: 'Apple', price: 1.5 }

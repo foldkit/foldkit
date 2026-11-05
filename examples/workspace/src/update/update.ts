@@ -5,6 +5,12 @@ import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import {
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeStep,
+} from '../block'
+import {
   LoadExternal,
   LoadWorkspace,
   NavigateInternal,
@@ -15,12 +21,6 @@ import {
   CommandPaletteBinding,
   NotificationCenterBinding,
 } from '../composition'
-import {
-  makeCommandsStep,
-  makeFieldsStep,
-  makeNoopStep,
-  makeStep,
-} from '../definition'
 import { simulateActivity } from '../demoActivity'
 import { NotificationActivity, type Workspace, mergeIssues } from '../domain'
 import { WorkspaceAsyncData } from '../model'
@@ -96,6 +96,7 @@ export const update = ApplicationComposition.makeUpdate({
         'The next save will fail. Your draft will be kept so you can retry.',
       ),
   })),
+  // where does requestOpen get defined?
   ClickedOpenCommandPalette: CommandPaletteBinding.requestOpen(),
   ClickedDeleteSavedView: handleClickedDeleteSavedView,
   TickedActivityStream: simulateActivity,

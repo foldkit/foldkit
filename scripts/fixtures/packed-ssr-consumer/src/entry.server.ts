@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationBlock, Flags, layer } from './application'
+import { ApplicationBlock, Flags, layer } from './block'
 import { PACKED_CONSUMER_HEAD, PACKED_CONSUMER_PROBE } from './document'
 
 export const renderDocument: Server.DocumentRenderer = (application, assets) =>

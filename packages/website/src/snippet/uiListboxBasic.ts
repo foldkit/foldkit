@@ -27,7 +27,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const PlanPickerKey = Symbol('PlanPicker')
-
 export const PlanPickerBlock = Block.make('PlanPicker', {
   key: PlanPickerKey,
   Init: Schema.Tuple([]),
@@ -36,14 +35,15 @@ export const PlanPickerBlock = Block.make('PlanPicker', {
   Message,
 })
 
-const { makeFieldsStep } = PlanPickerBlock
+const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
+  PlanPickerBlock
 
 // At module scope, fold the OutMessage into your own Model. When the user
 // commits a selection it carries `Selected({ value })` where `value: Plan`.
 // The arm returns an Update.Step over the parent Model, which already has the
 // next Listbox Model written back. Passing the completed child Block preserves
 // the factory's refined `Plan` payload without a repeated type argument:
-const foldListboxOutMessage = PlanPickerBlock.makeOutMessageFold(PlanListbox, {
+const foldListboxOutMessage = makeOutMessageFold(PlanListbox, {
   Selected: ({ value }) =>
     makeFieldsStep(() => ({
       maybePlan: () => Option.some(value),
@@ -52,12 +52,12 @@ const foldListboxOutMessage = PlanPickerBlock.makeOutMessageFold(PlanListbox, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const ListboxBinding = PlanPickerBlock.makeBinding(PlanListbox, {
+const ListboxBinding = makeBinding(PlanListbox, {
   field: 'listbox',
   init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
-const PlanPickerComposition = PlanPickerBlock.makeComposition({
+const PlanPickerComposition = makeComposition({
   bindings: [ListboxBinding],
 })
 

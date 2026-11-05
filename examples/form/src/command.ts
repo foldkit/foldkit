@@ -1,7 +1,7 @@
-import { Array, Duration, Effect, Layer, Random, Schema } from 'effect'
+import { Array, Duration, Effect, Random, Schema } from 'effect'
 import { Invalid, Valid } from 'foldkit/fieldValidation'
 
-import { ApplicationBlock } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 
 const FAKE_API_DELAY_MS = 500
@@ -18,7 +18,7 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
     return Array.contains(EMAILS_ON_WAITLIST, email.toLowerCase())
   })
 
-export const ValidateEmail = ApplicationBlock.makeCommand('ValidateEmail', {
+export const ValidateEmail = makeCommand('ValidateEmail', {
   args: { email: Schema.String },
   messages: [Message.CompletedValidateEmail],
   handler: function* () {
@@ -40,7 +40,7 @@ export const ValidateEmail = ApplicationBlock.makeCommand('ValidateEmail', {
   },
 })
 
-export const SubmitForm = ApplicationBlock.makeCommand('SubmitForm', {
+export const SubmitForm = makeCommand('SubmitForm', {
   args: {
     name: Schema.String,
     email: Schema.String,
@@ -61,8 +61,3 @@ export const SubmitForm = ApplicationBlock.makeCommand('SubmitForm', {
       })
   },
 })
-
-export const EffectsLayer = Layer.mergeAll(
-  ValidateEmail.layer,
-  SubmitForm.layer,
-)

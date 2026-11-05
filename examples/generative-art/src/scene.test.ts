@@ -6,7 +6,6 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 import { SliderBlock } from '@foldkit/ui/slider'
 
-import { ApplicationBlock, layer } from './block'
 import {
   FLOW_STRENGTH_MAX,
   FLOW_STRENGTH_MIN,
@@ -17,6 +16,7 @@ import {
   NOISE_SCALE_MIN_DIVISOR,
   NOISE_SCALE_STEP,
 } from './constant'
+import { ApplicationBlock, layer } from './index'
 import { type Model, type Particle } from './model'
 
 const initialModel: Model = {

@@ -13,7 +13,6 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { LoginBlock } from './blocks/loggedOut/blocks/login'
 import {
   SimulateAuthRequest,
@@ -22,6 +21,7 @@ import {
 import { Model as LoggedOutModel } from './blocks/loggedOut/model'
 import { RedirectToDashboard, SaveSession } from './command'
 import { Session } from './domain/session'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { ApplicationRoute } from './route'
 

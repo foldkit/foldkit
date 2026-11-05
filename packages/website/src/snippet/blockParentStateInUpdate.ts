@@ -21,7 +21,6 @@ const AccountSettingsMessage = defineMessageUnion({
 type AccountSettingsMessage = typeof AccountSettingsMessage.Type
 
 export const AccountSettingsKey = Symbol('AccountSettings')
-
 export const AccountSettingsBlock = Block.make('AccountSettings', {
   key: AccountSettingsKey,
   Init: Schema.Tuple([]),
@@ -74,7 +73,6 @@ const ProfileMessage = defineMessageUnion({})
 type ProfileMessage = typeof ProfileMessage.Type
 
 export const ProfileKey = Symbol('Profile')
-
 const ProfileBlock = Block.make('Profile', {
   key: ProfileKey,
   Init: Schema.Tuple([]),

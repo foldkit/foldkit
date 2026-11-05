@@ -1,33 +1,30 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
+import { ViewInputs } from './viewInputs'
 
-import { ScrollActiveResult } from './command'
-import { DialogBinding } from './composition'
-import { CommandPaletteBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view'
+export const CommandPaletteKey = Symbol('CommandPalette')
+export const CommandPaletteBlock = Block.make('CommandPalette', {
+  key: CommandPaletteKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+})
 
-export const layer = CommandPaletteBlock.makeLayer(
-  Effect.gen(function* () {
-    const dialog = yield* DialogBinding
-
-    return {
-      children: [dialog],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      subscriptions,
-      EffectsLayer: Layer.mergeAll(
-        subscriptions.layer,
-        ScrollActiveResult.layer,
-      ),
-    }
-  }),
-).pipe(Layer.provide(DialogLayer))
-
-export { CommandPaletteBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+  makeSubscriptions,
+} = CommandPaletteBlock

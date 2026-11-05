@@ -1,27 +1,23 @@
-import { Layer } from 'effect'
 import { Duration, Effect, Schema } from 'effect'
 import { load, pushUrl } from 'foldkit/navigation'
 
-import { ApplicationBlock } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 
 const CATALOG_LATENCY = Duration.millis(600)
 const PAINTING_LATENCY = Duration.millis(400)
 const SAVE_LATENCY = Duration.millis(300)
 
-export const NavigateInternal = ApplicationBlock.makeCommand(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
-    handler: function* () {
-      return ({ url }) =>
-        pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
-    },
+export const NavigateInternal = makeCommand('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
   },
-)
+})
 
-export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
+export const LoadExternal = makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -30,7 +26,7 @@ export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
   },
 })
 
-export const LoadCatalog = ApplicationBlock.makeCommand('LoadCatalog', {
+export const LoadCatalog = makeCommand('LoadCatalog', {
   messages: [Message.CompletedLoadCatalog],
   handler: function* () {
     return () =>
@@ -40,7 +36,7 @@ export const LoadCatalog = ApplicationBlock.makeCommand('LoadCatalog', {
   },
 })
 
-export const LoadPainting = ApplicationBlock.makeCommand('LoadPainting', {
+export const LoadPainting = makeCommand('LoadPainting', {
   args: { paintingId: Schema.Number },
   messages: [Message.CompletedLoadPainting],
   handler: function* () {
@@ -51,7 +47,7 @@ export const LoadPainting = ApplicationBlock.makeCommand('LoadPainting', {
   },
 })
 
-export const SaveDraft = ApplicationBlock.makeCommand('SaveDraft', {
+export const SaveDraft = makeCommand('SaveDraft', {
   args: { draft: Schema.String },
   messages: [Message.CompletedSaveDraft],
   handler: function* () {
@@ -61,11 +57,3 @@ export const SaveDraft = ApplicationBlock.makeCommand('SaveDraft', {
       )
   },
 })
-
-export const EffectsLayer = Layer.mergeAll(
-  NavigateInternal.layer,
-  LoadExternal.layer,
-  LoadCatalog.layer,
-  LoadPainting.layer,
-  SaveDraft.layer,
-)

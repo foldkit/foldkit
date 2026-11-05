@@ -15,44 +15,44 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const AnimationExampleKey = Symbol('AnimationExample')
-
 export const AnimationExampleBlock = Block.make('AnimationExample', {
   key: AnimationExampleKey,
   Model,
   Message,
   Init: Schema.Tuple([]),
 })
-const { makeCommandsStep, makeNoopStep } = AnimationExampleBlock
+const {
+  makeCommandsStep,
+  makeNoopStep,
+  makeCommand,
+  makeOutMessageFold,
+  makeBinding,
+  makeComposition,
+} = AnimationExampleBlock
 
-const WaitForPanelSettled = AnimationExampleBlock.makeCommand(
-  'WaitForPanelSettled',
-  {
-    args: { generation: Schema.Number },
-    messages: [Message.CompletedWaitForPanelSettled],
-    handler: function* () {
-      return ({ generation }) =>
-        Dom.waitForAnimationSettled('#drawer-panel').pipe(
-          Effect.as(Message.CompletedWaitForPanelSettled({ generation })),
-        )
-    },
+const WaitForPanelSettled = makeCommand('WaitForPanelSettled', {
+  args: { generation: Schema.Number },
+  messages: [Message.CompletedWaitForPanelSettled],
+  handler: function* () {
+    return ({ generation }) =>
+      Dom.waitForAnimationSettled('#drawer-panel').pipe(
+        Effect.as(Message.CompletedWaitForPanelSettled({ generation })),
+      )
   },
-)
+})
 
-const foldAnimationOutMessage = AnimationExampleBlock.makeOutMessageFold(
-  AnimationBlock,
-  {
-    StartedLeaveAnimating: ({ generation }) =>
-      makeCommandsStep(() => [WaitForPanelSettled({ generation })]),
-    TransitionedOut: makeNoopStep,
-  },
-)
-const AnimationBinding = AnimationExampleBlock.makeBinding(AnimationBlock, {
+const foldAnimationOutMessage = makeOutMessageFold(AnimationBlock, {
+  StartedLeaveAnimating: ({ generation }) =>
+    makeCommandsStep(() => [WaitForPanelSettled({ generation })]),
+  TransitionedOut: makeNoopStep,
+})
+const AnimationBinding = makeBinding(AnimationBlock, {
   field: 'animation',
   init: { contextToArgs: () => [{ id: 'drawer' }] },
 }).withOutMessagePolicy({
   fold: foldAnimationOutMessage,
 })
-const AnimationExampleComposition = AnimationExampleBlock.makeComposition({
+const AnimationExampleComposition = makeComposition({
   bindings: [AnimationBinding],
 })
 const init = AnimationExampleComposition.makeInit(() => ({ model: {} }))

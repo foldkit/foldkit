@@ -1,5 +1,6 @@
 src/
-+-- definition.ts          Early Application contract
++-- block.ts               Application contract, key and authoring helpers
++-- layer.ts               Checked construction and child implementation provision
 +-- composition/
 |   +-- composition.ts     Complete root graph and ApplicationComposition
 |   +-- index.ts            Explicit root Composition barrel
@@ -9,9 +10,9 @@ src/
 +-- message.ts             Root Message
 +-- flags.ts               Startup Flags, when used
 +-- init.ts                Root initialization
-+-- command.ts             Root Commands and a small EffectsLayer
++-- command.ts             Root Command definitions
 +-- resource.ts            Shared local resource accessors, when used
-+-- layer.ts               Substantial mixed or reused EffectsLayer
++-- effectsLayer.ts        Separate local handler bundle, when needed
 +-- route.ts               Route union, URL parsing, and selectors
 +-- steps/
 |   +-- index.ts            Explicit shared Steps barrel
@@ -32,26 +33,26 @@ src/
 |   +-- index.ts            Child contracts and namespaces
 |   +-- counter/
 |   |   +-- index.ts        Explicit public barrel
-|   |   +-- block.ts        Small graphless contract and implementation
+|   |   +-- block.ts        Compact contract and complete implementation
 |   +-- dashboard/
 |   |   +-- index.ts
-|   |   +-- definition.ts   Independent contract and Definition
+|   |   +-- block.ts        Public contract, key and internal helper exports
 |   |   +-- composition.ts  Bindings and complete registrations
 |   |   +-- init.ts
 |   |   +-- steps.ts        Transitions shared by update, composition, or init
 |   |   +-- update.ts
 |   |   +-- view.ts
-|   |   +-- block.ts        Layer-owned completion and small EffectsLayer
+|   |   +-- layer.ts        Checked implementation and child provision
 |   +-- panel/
-|   |   +-- definition.ts
+|   |   +-- block.ts
 |   |   +-- mount.ts        Local Mount definitions and handlers
 |   |   +-- composition.ts  Mount-only registration
 |   |   +-- view.ts
-|   |   +-- block.ts
+|   |   +-- layer.ts
 |   |   +-- index.ts
 |   +-- editor/
 |       +-- index.ts
-|       +-- definition.ts
+|       +-- block.ts
 |       +-- composition/
 |       |   +-- index.ts       Explicit barrel
 |       |   +-- composition.ts Bindings and complete registrations
@@ -62,8 +63,8 @@ src/
 |       +-- init.ts
 |       +-- update.ts
 |       +-- view.ts
-|       +-- layer.ts         Substantial or reused local handler bundle
-|       +-- block.ts
+|       +-- effectsLayer.ts   Separate local handler bundle
+|       +-- layer.ts
 |
 +-- domain/
     +-- index.ts             Domain namespaces

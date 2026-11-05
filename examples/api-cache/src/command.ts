@@ -1,11 +1,11 @@
 import { Clock, Effect, Schema, pipe } from 'effect'
 
+import { makeCommand } from './block'
 import { fetchPostDetail, fetchPosts, fetchStats } from './data'
-import { ApplicationBlock } from './definition'
 import { Message } from './message'
 import { FetchedPostDetail, FetchedPosts, FetchedStats } from './model'
 
-export const FetchPosts = ApplicationBlock.makeCommand('FetchPosts', {
+export const FetchPosts = makeCommand('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
     const clock = yield* Clock.Clock
@@ -24,7 +24,7 @@ export const FetchPosts = ApplicationBlock.makeCommand('FetchPosts', {
   },
 })
 
-export const FetchPostDetail = ApplicationBlock.makeCommand('FetchPostDetail', {
+export const FetchPostDetail = makeCommand('FetchPostDetail', {
   args: { postId: Schema.String },
   messages: [Message.CompletedFetchPostDetail],
   handler: function* () {
@@ -46,7 +46,7 @@ export const FetchPostDetail = ApplicationBlock.makeCommand('FetchPostDetail', {
   },
 })
 
-export const FetchStats = ApplicationBlock.makeCommand('FetchStats', {
+export const FetchStats = makeCommand('FetchStats', {
   messages: [Message.CompletedFetchStats],
   handler: function* () {
     const clock = yield* Clock.Clock

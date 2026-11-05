@@ -1,45 +1,25 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as MenuLayer } from '@foldkit/ui/menu'
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Message, OutMessage } from './message'
+import { Model } from './model'
+import type { ViewInputs } from './viewInputs'
 
-import { AsyncCounterDemo, NotePlayerDemo } from './blocks'
-import {
-  AsyncCounterDemoBinding,
-  DemoTabsBinding,
-  NotePlayerDemoBinding,
-  PlaygroundMenuBinding,
-} from './composition'
-import { HomeBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+export const HomeKey = Symbol('Home')
+export const HomeBlock = Block.make('Home', {
+  key: HomeKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  Model,
+  Message,
+  OutMessage,
+})
 
-export { view } from './view'
-
-export const layer = HomeBlock.makeLayer(
-  Effect.gen(function* () {
-    const asyncCounterDemo = yield* AsyncCounterDemoBinding
-    const demoTabs = yield* DemoTabsBinding
-    const notePlayerDemo = yield* NotePlayerDemoBinding
-    const playgroundMenu = yield* PlaygroundMenuBinding
-
-    return {
-      children: [asyncCounterDemo, demoTabs, notePlayerDemo, playgroundMenu],
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      AsyncCounterDemo.layer,
-      NotePlayerDemo.layer,
-      TabsLayer,
-      MenuLayer,
-    ),
-  ),
-)
-
-export { HomeBlock }
+export const {
+  makeBinding,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeOutMessageStep,
+} = HomeBlock

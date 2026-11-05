@@ -19,8 +19,8 @@ import { test as ListboxTest } from '@foldkit/ui/listbox'
 
 import { IssueFilters, initialWorkspace } from '../../domain'
 import { WorkspaceListboxBlock } from '../../listbox'
-import { layer } from './block'
-import { IssueListBlock } from './definition'
+import { IssueListBlock } from './block'
+import { layer } from './layer'
 import { OutMessage } from './outMessage'
 
 const initialFilters = IssueFilters.make({

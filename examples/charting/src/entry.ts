@@ -1,7 +1,7 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock, layer } from './block'
 import { registerEcharts } from './echarts'
+import { ApplicationBlock, layer } from './index'
 import { ApplicationLayer } from './services'
 
 registerEcharts()

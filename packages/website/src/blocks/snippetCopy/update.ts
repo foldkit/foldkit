@@ -1,13 +1,13 @@
 import { Effect, HashSet, Layer, Schema } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { SnippetCopyComposition } from './composition'
 import {
-  SnippetCopyBlock,
+  makeCommand,
   makeCommandsStep,
   makeFieldsStep,
   makeNoopStep,
-} from './definition'
+} from './block'
+import { SnippetCopyComposition } from './composition'
 import { Message } from './message'
 
 export const update = SnippetCopyComposition.makeUpdate({
@@ -34,7 +34,7 @@ export const update = SnippetCopyComposition.makeUpdate({
   ),
 })
 
-export const CopySnippet = SnippetCopyBlock.makeCommand('CopySnippet', {
+export const CopySnippet = makeCommand('CopySnippet', {
   args: { snippetId: Schema.String, text: Schema.String },
   messages: [Message.SucceededCopySnippet, Message.FailedCopySnippet],
   handler: function* () {
@@ -51,7 +51,7 @@ export const CopySnippet = SnippetCopyBlock.makeCommand('CopySnippet', {
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-export const WaitBeforeHidingCopiedIndicator = SnippetCopyBlock.makeCommand(
+export const WaitBeforeHidingCopiedIndicator = makeCommand(
   'WaitBeforeHidingCopiedIndicator',
   {
     args: { snippetId: Schema.String },

@@ -1,10 +1,49 @@
-import { Layer } from 'effect'
+import { Effect, Layer } from 'effect'
 
-import { ExportPng, SaveCanvas } from './command'
+import { layer as DialogLayer } from '@foldkit/ui/dialog'
+import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+
+import { ApplicationBlock } from './block'
+import {
+  ErrorDialogBinding,
+  GridSizeConfirmDialogBinding,
+  GridSizeRadioGroupBinding,
+  PaletteRadioGroupBinding,
+  ThemeListboxBinding,
+  ToolRadioGroupBinding,
+} from './composition'
+import { EffectsLayer } from './effectsLayer'
+import { init } from './init'
 import { subscriptions } from './subscription'
+import { update } from './update'
+import { view } from './view'
 
-export const EffectsLayer = Layer.mergeAll(
-  SaveCanvas.layer,
-  ExportPng.layer,
-  subscriptions.layer,
+export const layer = ApplicationBlock.makeLayer(
+  Effect.gen(function* () {
+    const errorDialog = yield* ErrorDialogBinding
+    const themeListbox = yield* ThemeListboxBinding
+    const gridSizeConfirmDialog = yield* GridSizeConfirmDialogBinding
+    const toolRadioGroup = yield* ToolRadioGroupBinding
+    const gridSizeRadioGroup = yield* GridSizeRadioGroupBinding
+    const paletteRadioGroup = yield* PaletteRadioGroupBinding
+
+    return {
+      children: [
+        errorDialog,
+        themeListbox,
+        gridSizeConfirmDialog,
+        toolRadioGroup,
+        gridSizeRadioGroup,
+        paletteRadioGroup,
+      ],
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
+  }),
+).pipe(
+  Layer.provide(Layer.mergeAll(DialogLayer, ListboxLayer, RadioGroupLayer)),
 )

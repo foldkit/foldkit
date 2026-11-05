@@ -1,14 +1,14 @@
-import { Console, Effect, Layer, Schema } from 'effect'
+import { Console, Effect, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
+import { makeCommand } from './block'
 import { SESSION_STORAGE_KEY } from './constant'
-import { ApplicationBlock } from './definition'
 import { Session, SessionJsonString } from './domain/session'
 import { Message } from './message'
 import { dashboardRouter, homeRouter, loginRouter } from './route'
 
-export const SaveSession = ApplicationBlock.makeCommand('SaveSession', {
+export const SaveSession = makeCommand('SaveSession', {
   args: { session: Session },
   messages: [Message.SucceededSaveSession, Message.FailedSaveSession],
   handler: function* () {
@@ -28,7 +28,7 @@ export const SaveSession = ApplicationBlock.makeCommand('SaveSession', {
   },
 })
 
-export const ClearSession = ApplicationBlock.makeCommand('ClearSession', {
+export const ClearSession = makeCommand('ClearSession', {
   messages: [Message.SucceededClearSession, Message.FailedClearSession],
   handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
@@ -43,7 +43,7 @@ export const ClearSession = ApplicationBlock.makeCommand('ClearSession', {
   },
 })
 
-export const LogError = ApplicationBlock.makeCommand('LogError', {
+export const LogError = makeCommand('LogError', {
   args: { entries: Schema.Array(Schema.Unknown) },
   messages: [Message.CompletedLogError],
   handler: function* () {
@@ -52,19 +52,16 @@ export const LogError = ApplicationBlock.makeCommand('LogError', {
   },
 })
 
-export const NavigateInternal = ApplicationBlock.makeCommand(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
-    handler: function* () {
-      return ({ url }) =>
-        pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
-    },
+export const NavigateInternal = makeCommand('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
   },
-)
+})
 
-export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
+export const LoadExternal = makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -73,7 +70,7 @@ export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
   },
 })
 
-export const RedirectToLogin = ApplicationBlock.makeCommand('RedirectToLogin', {
+export const RedirectToLogin = makeCommand('RedirectToLogin', {
   messages: [Message.CompletedRedirectToLogin],
   handler: function* () {
     return () =>
@@ -83,20 +80,17 @@ export const RedirectToLogin = ApplicationBlock.makeCommand('RedirectToLogin', {
   },
 })
 
-export const RedirectToDashboard = ApplicationBlock.makeCommand(
-  'RedirectToDashboard',
-  {
-    messages: [Message.CompletedRedirectToDashboard],
-    handler: function* () {
-      return () =>
-        replaceUrl(dashboardRouter()).pipe(
-          Effect.as(Message.CompletedRedirectToDashboard()),
-        )
-    },
+export const RedirectToDashboard = makeCommand('RedirectToDashboard', {
+  messages: [Message.CompletedRedirectToDashboard],
+  handler: function* () {
+    return () =>
+      replaceUrl(dashboardRouter()).pipe(
+        Effect.as(Message.CompletedRedirectToDashboard()),
+      )
   },
-)
+})
 
-export const RedirectToHome = ApplicationBlock.makeCommand('RedirectToHome', {
+export const RedirectToHome = makeCommand('RedirectToHome', {
   messages: [Message.CompletedRedirectToHome],
   handler: function* () {
     return () =>
@@ -105,14 +99,3 @@ export const RedirectToHome = ApplicationBlock.makeCommand('RedirectToHome', {
       )
   },
 })
-
-export const EffectsLayer = Layer.mergeAll(
-  SaveSession.layer,
-  ClearSession.layer,
-  LogError.layer,
-  NavigateInternal.layer,
-  LoadExternal.layer,
-  RedirectToLogin.layer,
-  RedirectToDashboard.layer,
-  RedirectToHome.layer,
-)

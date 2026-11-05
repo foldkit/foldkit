@@ -15,8 +15,8 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 
 import { initialWorkspace } from '../../domain'
-import { layer } from './block'
-import { IssueBoardBlock } from './definition'
+import { IssueBoardBlock } from './block'
+import { layer } from './layer'
 import { OutMessage } from './outMessage'
 
 const viewInputs = {

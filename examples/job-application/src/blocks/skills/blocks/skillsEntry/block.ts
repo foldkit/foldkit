@@ -1,26 +1,55 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { Field } from 'foldkit/fieldValidation'
+import { defineMessageUnion } from 'foldkit/message'
 
-import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+import { makeBlock as makeRadioGroupBlock } from '@foldkit/ui/radioGroup'
 
-import { ProficiencyRadioGroupBinding } from './composition'
-import { SkillsEntryBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { ProficiencyLevel } from '../../../../domain'
 
-export const layer = SkillsEntryBlock.makeLayer(
-  Effect.gen(function* () {
-    const proficiencyRadioGroup = yield* ProficiencyRadioGroupBinding
+export const ProficiencyRadioGroup =
+  makeRadioGroupBlock<ProficiencyLevel.ProficiencyLevel>()
 
-    return {
-      children: [proficiencyRadioGroup],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
+export const Model = Schema.Struct({
+  id: Schema.String,
+  name: Field(Schema.String),
+  proficiency: ProficiencyLevel.ProficiencyLevel,
+  proficiencyRadioGroup: ProficiencyRadioGroup.Model,
+})
+export type Model = typeof Model.Type
 
-export { SkillsEntryBlock } from './definition'
+export const Message = defineMessageUnion({
+  UpdatedName: { value: Schema.String },
+  ClickedRemoveSelf: {},
+})
+export type Message = typeof Message.Type
+
+export const InMessage = defineMessageUnion({
+  RequestedRevealErrors: {},
+})
+export type InMessage = typeof InMessage.Type
+
+export const OutMessage = defineMessageUnion({
+  Removed: {},
+})
+export type OutMessage = typeof OutMessage.Type
+
+export const SkillsEntryKey = Symbol('SkillsEntry')
+export const SkillsEntryBlock = Block.make('SkillsEntry', {
+  key: SkillsEntryKey,
+  Init: Schema.Tuple([Schema.String]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+  ChildInitContext: Schema.String,
+})
+
+export const {
+  makeBinding,
+  makeComposition,
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeOutMessageStep,
+} = SkillsEntryBlock

@@ -3,7 +3,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Model, layer } from './application'
+import { ApplicationBlock, Model, layer } from './block'
 import { ApplicationRoute } from './route'
 
 const initialModel = Model.make({

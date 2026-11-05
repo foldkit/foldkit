@@ -18,7 +18,6 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 export const ApplicationKey = Symbol('Application')
-
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -26,15 +25,16 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-export const { makeFieldsStep, makeStep } = ApplicationBlock
+export const { makeFieldsStep, makeStep, makeBinding, makeComposition } =
+  ApplicationBlock
 
-export const CountersBinding = ApplicationBlock.makeBinding(CounterBlock, {
+export const CountersBinding = makeBinding(CounterBlock, {
   field: 'counters',
   key: 'key',
   childField: 'model',
 })
 
-export const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicationComposition = makeComposition({
   bindings: [CountersBinding],
 })
 

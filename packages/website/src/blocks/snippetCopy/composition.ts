@@ -1,3 +1,3 @@
-import { SnippetCopyBlock } from './definition'
+import { makeComposition } from './block'
 
-export const SnippetCopyComposition = SnippetCopyBlock.makeComposition()
+export const SnippetCopyComposition = makeComposition()

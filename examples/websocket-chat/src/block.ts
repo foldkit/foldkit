@@ -1,25 +1,27 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Socket } from 'effect/socket'
+import { Block } from 'foldkit'
 
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { managedResources } from './managedResource'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      subscriptions,
-      managedResources,
-      EffectsLayer,
-    }
-  }),
-)
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+  effects: { services: [Socket.WebSocketConstructor] },
+  Model,
+  Message,
+})
 
-export { ApplicationBlock } from './definition'
+export const {
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeManagedResources,
+  makeNoopStep,
+  makeResource,
+  makeSubscriptions,
+} = ApplicationBlock

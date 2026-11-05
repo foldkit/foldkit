@@ -1,14 +1,15 @@
-import { Effect, Option, pipe } from 'effect'
+import { Option, pipe } from 'effect'
 import { Calendar } from 'foldkit'
-import { expect, given, role, scene } from 'foldkit/scene'
-import { type TestBlock, withBlock } from 'foldkit/story'
-import { toParentMessageFor } from 'foldkit/test'
+import { Command, expect, init, role, scene } from 'foldkit/scene'
 import * as Url from 'foldkit/url'
-import { describe, test } from 'vitest'
+import { describe } from 'vitest'
 
-import { ApplicationBlock, layer } from '../../block'
-import { ApiReferenceBinding } from '../../composition'
+import { it } from '@effect/vitest'
+
 import { Deployment } from '../../deployment'
+import { ApplicationBlock, layer } from '../../index'
+import { resolveBrowserStartup } from '../../scene.fixture'
+import { LoadApiData } from './command'
 import { ApiData, ApiModule, ApiType } from './domain'
 import { Message as ApiReferenceMessage } from './message'
 
@@ -39,48 +40,29 @@ const url = pipe(
   Option.getOrThrow,
 )
 
-const makeFixture = (block: TestBlock<typeof application>) => {
-  const init = block.init
-  const update = block.update
-  const view = block.view
-
-  return { block, init, update, view }
-}
-
 describe('prerendered API Reference', () => {
-  test('displays the seeded module during refresh and after full-load failure', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { block, init, update, view } = makeFixture(executable)
+  it.effect(
+    'displays the seeded module during refresh and after full-load failure',
+    () => {
+      const flags = {
+        currentYear: 2026,
+        today: Calendar.make(2026, 8, 30),
+        deployment: Deployment.Canary({ commit: 'test' }),
+        maybeApiData: Option.some(seededData),
+        maybeExampleSources: Option.none(),
+      }
 
-        const initialization = init(
-          {
-            currentYear: 2026,
-            today: Calendar.make(2026, 8, 30),
-            deployment: Deployment.Canary({ commit: 'test' }),
-            maybeApiData: Option.some(seededData),
-            maybeExampleSources: Option.none(),
-          },
-          url,
-        )
-        scene(
-          { update, view },
-          given(initialization.model),
-          expect(role('heading', { name: 'SeededCommand' })).toExist(),
-        )
-        const failedLoad = update(
-          initialization.model,
-          toParentMessageFor(block)(
-            ApiReferenceBinding,
-            ApiReferenceMessage.FailedLoadApiData({ error: 'Offline' }),
-          ),
-        )
-        scene(
-          { update, view },
-          given(failedLoad.model),
-          expect(role('heading', { name: 'SeededCommand' })).toExist(),
-        )
-      }),
-    )
-  })
+      return scene(
+        application,
+        init(flags, url),
+        resolveBrowserStartup(flags),
+        expect(role('heading', { name: 'SeededCommand' })).toExist(),
+        Command.resolve(
+          LoadApiData,
+          ApiReferenceMessage.FailedLoadApiData({ error: 'Offline' }),
+        ),
+        expect(role('heading', { name: 'SeededCommand' })).toExist(),
+      )
+    },
+  )
 })

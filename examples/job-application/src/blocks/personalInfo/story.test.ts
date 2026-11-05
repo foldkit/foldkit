@@ -8,9 +8,9 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { PersonalInfoBlock, layer } from './block'
+import { InMessage, Message } from './block'
 import { ValidateEmailAsync } from './command'
-import { InMessage, Message } from './definition'
+import { PersonalInfoBlock, layer } from './index'
 
 const today = Calendar.make(2026, 4, 16)
 const givenInitial = init(today)

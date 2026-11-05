@@ -4,8 +4,8 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { PeopleBlock, layer } from './block'
 import { PushSearchUrl } from './command'
+import { PeopleBlock, layer } from './index'
 import { Message } from './message'
 import { Model, SearchResults, searchPeople } from './model'
 

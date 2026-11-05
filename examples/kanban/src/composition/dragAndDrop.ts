@@ -3,8 +3,13 @@ import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDropBlock, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
+import {
+  makeBinding,
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeStep,
+} from '../block'
 import { SaveBoard } from '../command'
-import { ApplicationBlock, makeFieldsStep, makeStep } from '../definition'
 import { Column } from '../domain'
 
 const findCardTitle = (
@@ -34,58 +39,52 @@ const findColumnName = (
     }),
   )
 
-const foldDragAndDropOutMessage = ApplicationBlock.makeOutMessageFold(
-  DragAndDropBlock,
-  {
-    StartedKeyboardDrag: ({ itemId }) =>
-      makeFieldsStep(model => ({
-        announcement: () =>
-          `Picked up ${findCardTitle(model.columns, itemId)}. Use arrow keys to move within column, Tab to move between columns, Space to drop, Escape to cancel.`,
-      })),
-    ChangedKeyboardTarget: ({ fromContainerId, toContainerId, toIndex }) =>
-      makeFieldsStep(model => ({
-        announcement: () => {
-          const columnName = findColumnName(model.columns, toContainerId)
-          return fromContainerId !== toContainerId
-            ? `Moved to ${columnName}, position ${toIndex + 1}.`
-            : `Position ${toIndex + 1} in ${columnName}.`
-        },
-      })),
-    Reordered: (outMessage, { modelBeforeUpdate }) =>
-      makeStep(model => {
-        const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
-        const nextColumns = Column.reorder(
-          model.columns,
-          itemId,
-          fromContainerId,
-          toContainerId,
-          toIndex,
-        )
-        return {
-          model: modifyFields(model, {
-            columns: () => nextColumns,
-            announcement: () =>
-              `Dropped ${findCardTitle(modelBeforeUpdate.columns, itemId)} in position ${toIndex + 1} of ${findColumnName(modelBeforeUpdate.columns, toContainerId)}.`,
-          }),
-          commands: [SaveBoard({ columns: nextColumns })],
-        }
-      }),
-    Cancelled: (_outMessage, { modelBeforeUpdate }) =>
-      makeFieldsStep(() => ({
-        announcement: () =>
-          Option.match(maybeDraggedItemId(modelBeforeUpdate.dragAndDrop), {
-            onNone: () => 'Drag cancelled.',
-            onSome: id =>
-              `Drag cancelled, ${findCardTitle(modelBeforeUpdate.columns, id)} returned to original position.`,
-          }),
-      })),
-  },
-)
+const foldDragAndDropOutMessage = makeOutMessageFold(DragAndDropBlock, {
+  StartedKeyboardDrag: ({ itemId }) =>
+    makeFieldsStep(model => ({
+      announcement: () =>
+        `Picked up ${findCardTitle(model.columns, itemId)}. Use arrow keys to move within column, Tab to move between columns, Space to drop, Escape to cancel.`,
+    })),
+  ChangedKeyboardTarget: ({ fromContainerId, toContainerId, toIndex }) =>
+    makeFieldsStep(model => ({
+      announcement: () => {
+        const columnName = findColumnName(model.columns, toContainerId)
+        return fromContainerId !== toContainerId
+          ? `Moved to ${columnName}, position ${toIndex + 1}.`
+          : `Position ${toIndex + 1} in ${columnName}.`
+      },
+    })),
+  Reordered: (outMessage, { modelBeforeUpdate }) =>
+    makeStep(model => {
+      const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
+      const nextColumns = Column.reorder(
+        model.columns,
+        itemId,
+        fromContainerId,
+        toContainerId,
+        toIndex,
+      )
+      return {
+        model: modifyFields(model, {
+          columns: () => nextColumns,
+          announcement: () =>
+            `Dropped ${findCardTitle(modelBeforeUpdate.columns, itemId)} in position ${toIndex + 1} of ${findColumnName(modelBeforeUpdate.columns, toContainerId)}.`,
+        }),
+        commands: [SaveBoard({ columns: nextColumns })],
+      }
+    }),
+  Cancelled: (_outMessage, { modelBeforeUpdate }) =>
+    makeFieldsStep(() => ({
+      announcement: () =>
+        Option.match(maybeDraggedItemId(modelBeforeUpdate.dragAndDrop), {
+          onNone: () => 'Drag cancelled.',
+          onSome: id =>
+            `Drag cancelled, ${findCardTitle(modelBeforeUpdate.columns, id)} returned to original position.`,
+        }),
+    })),
+})
 
-export const DragAndDropBinding = ApplicationBlock.makeBinding(
-  DragAndDropBlock,
-  {
-    field: 'dragAndDrop',
-    init: { contextToArgs: () => [{ id: 'kanban' }] },
-  },
-).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+export const DragAndDropBinding = makeBinding(DragAndDropBlock, {
+  field: 'dragAndDrop',
+  init: { contextToArgs: () => [{ id: 'kanban' }] },
+}).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })

@@ -3,6 +3,16 @@ import { AsyncData, type Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
+  makeBinding,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeMapBinding,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+} from './block'
+import {
   CommandPaletteBlock,
   CreateIssueBlock,
   IssueBoardBlock,
@@ -13,16 +23,6 @@ import {
   ProjectSettingsBlock,
 } from './blocks'
 import { NavigateInternal, ReplaceInternalUrl } from './command'
-import {
-  makeBinding,
-  makeCommandsStep,
-  makeComposition,
-  makeFieldsStep,
-  makeMapBinding,
-  makeNoopStep,
-  makeOutMessageFold,
-  makeStep,
-} from './definition'
 import { type IssueFilters, SavedView } from './domain'
 import { issueFiltersHref, issueHref } from './issueLinks'
 import { WorkspaceListboxBlock } from './listbox'

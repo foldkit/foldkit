@@ -33,7 +33,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const ActivityListExampleKey = Symbol('ActivityListExample')
-
 export const ActivityListExampleBlock = Block.make('ActivityListExample', {
   key: ActivityListExampleKey,
   Init: Schema.Tuple([]),
@@ -42,29 +41,25 @@ export const ActivityListExampleBlock = Block.make('ActivityListExample', {
   Message,
 })
 
-const { makeNoopStep } = ActivityListExampleBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  ActivityListExampleBlock
 
-const foldActivityListOutMessage = ActivityListExampleBlock.makeOutMessageFold(
-  ActivityList,
-  {
-    ObservedContainerScroll: makeNoopStep,
-    ApproachedLoadedStart: makeNoopStep,
-    EndedContainerScroll: makeNoopStep,
-  },
-)
+const foldActivityListOutMessage = makeOutMessageFold(ActivityList, {
+  ObservedContainerScroll: makeNoopStep,
+  ApproachedLoadedStart: makeNoopStep,
+  EndedContainerScroll: makeNoopStep,
+})
 
-const ActivityListBinding = ActivityListExampleBlock.makeBinding(ActivityList, {
+const ActivityListBinding = makeBinding(ActivityList, {
   field: 'activityList',
   init: {
     contextToArgs: () => [{ id: 'activity-list', rowHeightPx: 56 }],
   },
 }).withOutMessagePolicy({ fold: foldActivityListOutMessage })
 
-const ActivityListExampleComposition = ActivityListExampleBlock.makeComposition(
-  {
-    bindings: [ActivityListBinding],
-  },
-)
+const ActivityListExampleComposition = makeComposition({
+  bindings: [ActivityListBinding],
+})
 
 // In your init function, give the list a unique id and a row height in
 // pixels. All rows share this height:

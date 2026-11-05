@@ -18,10 +18,10 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
 
-import { ApplicationBlock, layer } from './block'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import type { Card } from './domain/card'
 import type { Column } from './domain/column'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import type { Model } from './model'
 

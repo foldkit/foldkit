@@ -21,18 +21,20 @@ import { Icon } from '../../icon'
 import { exampleDetailRouter, examplesRouter } from '../../route'
 import { type ExampleMeta, findBySlug } from '../exampleDetail/meta'
 import {
+  Message,
+  Model,
+  PlaygroundState,
+  makeCommand,
+  makeFieldsStep,
+  makeManagedResources,
+  makeNoopStep,
+  makeResource,
+} from './block'
+import {
   FileTabsBinding,
   PlaygroundComposition,
   type PlaygroundViewBuilder,
 } from './composition'
-import {
-  Message,
-  Model,
-  PlaygroundBlock,
-  PlaygroundState,
-  makeFieldsStep,
-  makeNoopStep,
-} from './definition'
 import { MountPlaygroundEditor } from './mount'
 import * as PlaygroundPreview from './playgroundPreview'
 import {
@@ -42,7 +44,7 @@ import {
 } from './playgroundWebContainer'
 import type { ViewInputs } from './viewInputs'
 
-const PREFERRED_INITIAL_FILES: ReadonlyArray<string> = ['src/application.ts']
+const PREFERRED_INITIAL_FILES: ReadonlyArray<string> = ['src/block.ts']
 
 const maybeFilesForSlug = (
   slug: string,
@@ -91,10 +93,9 @@ export const init = PlaygroundComposition.makeInit(
 
 // MANAGED RESOURCE
 
-const WebContainerPlayground =
-  PlaygroundBlock.makeResource<PlaygroundWebContainer>()(
-    'WebContainerPlayground',
-  )
+const WebContainerPlayground = makeResource<PlaygroundWebContainer>()(
+  'WebContainerPlayground',
+)
 
 export type WebContainerPlaygroundService = ManagedResource.ServiceOf<
   typeof WebContainerPlayground
@@ -102,7 +103,7 @@ export type WebContainerPlaygroundService = ManagedResource.ServiceOf<
 
 const PlaygroundParams = Schema.Struct({ slug: Schema.String })
 type PlaygroundParams = typeof PlaygroundParams.Type
-// NOTE: Vite's HMR for a content file (`src/application.ts`) doesn't reliably
+// NOTE: Vite's HMR for a content file (`src/block.ts`) doesn't reliably
 // invalidate Tailwind's CSS module in the WebContainer. After writing the
 // content file, we write `src/styles.css` back to itself so Vite emits a
 // CSS HMR update; that re-runs the Tailwind plugin against the latest
@@ -111,7 +112,7 @@ const STYLES_CSS_PATH = 'src/styles.css'
 
 const WRITE_DEBOUNCE_MILLIS = 250
 
-export const WaitForPlaygroundServerFailure = PlaygroundBlock.makeCommand(
+export const WaitForPlaygroundServerFailure = makeCommand(
   'WaitForPlaygroundServerFailure',
   {
     messages: [Message.CompletedWaitForPlaygroundServerFailure],
@@ -134,7 +135,7 @@ export const WaitForPlaygroundServerFailure = PlaygroundBlock.makeCommand(
   },
 )
 
-export const SchedulePlaygroundFileWrite = PlaygroundBlock.makeCommand(
+export const SchedulePlaygroundFileWrite = makeCommand(
   'SchedulePlaygroundFileWrite',
   {
     args: { path: Schema.String, content: Schema.String },
@@ -186,7 +187,7 @@ export const SchedulePlaygroundFileWrite = PlaygroundBlock.makeCommand(
   },
 )
 
-export const managedResources = PlaygroundBlock.makeManagedResources(entry => ({
+export const managedResources = makeManagedResources(entry => ({
   webContainerPlayground: entry(
     'ManageWebContainerPlayground',
     Schema.Option(PlaygroundParams),

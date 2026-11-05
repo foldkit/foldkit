@@ -1,8 +1,8 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationBlock, layer } from './block'
 import { Flags } from './flags'
+import { ApplicationBlock, layer } from './index'
 import { loadFlagsForRequest } from './server/flags'
 
 export const renderPage = async (

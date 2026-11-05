@@ -1,27 +1,27 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { KeyValueStore } from 'effect/persistence'
+import { Block } from 'foldkit'
+import { Url } from 'foldkit/url'
 
-import { LoggedIn, LoggedOut } from './blocks'
-import { EffectsLayer } from './command'
-import { LoggedInBinding } from './composition/loggedIn'
-import { LoggedOutBinding } from './composition/loggedOut'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { Flags } from './flags'
+import { Message } from './message'
+import { Model } from './model'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const loggedOut = yield* LoggedOutBinding
-    const loggedIn = yield* LoggedInBinding
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Flags, Url]),
+  view: { kind: 'Document' },
+  effects: { services: [KeyValueStore.KeyValueStore] },
+  Model,
+  Message,
+})
 
-    return {
-      children: [loggedOut, loggedIn],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(LoggedIn.layer, LoggedOut.layer)))
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+} = ApplicationBlock

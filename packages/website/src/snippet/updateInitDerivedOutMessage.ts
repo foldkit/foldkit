@@ -31,7 +31,6 @@ const OutMessage = defineMessageUnion({
 type OutMessage = typeof OutMessage.Type
 
 export const DateRangeKey = Symbol('DateRange')
-
 export const DateRangeBlock = Block.make('DateRange', {
   key: DateRangeKey,
   Model,
@@ -40,46 +39,51 @@ export const DateRangeBlock = Block.make('DateRange', {
   Init: Schema.Tuple([Calendar.CalendarDate]),
   ChildInitContext: Calendar.CalendarDate,
 })
-const { makeStep, makeFieldsStep, makeNoopStep } = DateRangeBlock
+const {
+  makeStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeBinding,
+  makeOutMessageForward,
+  makeComposition,
+} = DateRangeBlock
 
-const foldEndDateOutMessage = DateRangeBlock.makeOutMessageFold(
-  DatePickerBlock,
-  {
-    SelectedDate: ({ date }) =>
-      makeStep(model => {
-        const nextModel = modifyFields(model, {
-          maybeEndDate: () => Option.some(date),
-        })
+const foldEndDateOutMessage = makeOutMessageFold(DatePickerBlock, {
+  SelectedDate: ({ date }) =>
+    makeStep(model => {
+      const nextModel = modifyFields(model, {
+        maybeEndDate: () => Option.some(date),
+      })
 
-        return Option.match(model.maybeStartDate, {
-          onNone: () => ({ model: nextModel }),
-          onSome: startDate => ({
-            model: nextModel,
-            outMessage: OutMessage.CompletedRange({ startDate, endDate: date }),
-          }),
-        })
-      }),
-    ClearedDate: () =>
-      makeFieldsStep(() => ({ maybeEndDate: () => Option.none() })),
-    ChangedViewMonth: makeNoopStep,
-  },
-)
+      return Option.match(model.maybeStartDate, {
+        onNone: () => ({ model: nextModel }),
+        onSome: startDate => ({
+          model: nextModel,
+          outMessage: OutMessage.CompletedRange({ startDate, endDate: date }),
+        }),
+      })
+    }),
+  ClearedDate: () =>
+    makeFieldsStep(() => ({ maybeEndDate: () => Option.none() })),
+  ChangedViewMonth: makeNoopStep,
+})
 
-const EndDatePickerBinding = DateRangeBlock.makeBinding(DatePickerBlock, {
+const EndDatePickerBinding = makeBinding(DatePickerBlock, {
   field: 'endDatePicker',
   init: {
     contextToArgs: today => [{ id: 'end-date', today }],
   },
 }).withOutMessagePolicy({
   fold: foldEndDateOutMessage,
-  forward: DateRangeBlock.makeOutMessageForward(DatePickerBlock, {
+  forward: makeOutMessageForward(DatePickerBlock, {
     SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
     ClearedDate: () => undefined,
     ChangedViewMonth: () => undefined,
   }),
 })
 
-const DateRangeComposition = DateRangeBlock.makeComposition({
+const DateRangeComposition = makeComposition({
   bindings: [EndDatePickerBinding],
 })
 const init = DateRangeComposition.makeInit(today => ({

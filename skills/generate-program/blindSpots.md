@@ -110,7 +110,7 @@ annotations, generic argument lists, or a raw matcher as a recursion workaround.
 
 Use `FeatureBlock.makeFieldsStep(producer)` for owning field transformations, `FeatureBlock.makeCommandsStep(producer)` for Commands with an unchanged Model, and `FeatureBlock.makeOutMessageStep(producer)` for one declared OutMessage with an unchanged Model.
 
-In a split feature, export the Step helpers used by the implementation from `definition.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Feature barrels keep authoring helpers private and export the passive Block contract and construction `layer`.
+In a split feature, export the Step helpers used by the implementation from `block.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Feature barrels keep authoring helpers private and export the passive Block contract and construction `layer`.
 
 Put reusable parent Steps shared by update, inMessageUpdate, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Name shared transitions for their operation, without a `make` prefix or `Step` suffix, and defer cyclic Binding access until the producer is applied.
 
@@ -231,3 +231,7 @@ Present but with no `expect(...)` and no interactive resolution in a block is th
 ## Construction and test ownership
 
 Do not run init while constructing an implementation graph or evaluate `contextToArgs` before parent startup. The constructor yields static Bindings and returns acquired `children`; the Model still owns child presence and keyed membership. Keep request Services in their attached handler constructors. A pure Story or Scene acquires the graph without running handlers, so it should not need an HTTP/socket mock unless construction itself requests that Service. Use the scoped Block-aware runner or `withBlock` for an advanced fixture; never retain a globally acquired executable across tests. A passive contract's local Message constructors are not the acquired graph's complete serialization Codec.
+
+## Block file and authoring boundaries
+
+Do not confuse the passive Block declaration in `block.ts`, implementation construction in `layer.ts`, and the local handler bundle in `effectsLayer.ts`. Named-import needed authoring helpers from `block.ts`. A generated InMessage method already returns a connected Step; do not recreate it with an operation alias or wrapper. Extracted Step callbacks can need a precise Message-parameter annotation; a single explicit Message type argument is not a supported inference shortcut. Application behavior still belongs in Story/Scene DSL steps, including when an acquired fixture is needed.

@@ -2,10 +2,10 @@ import { Effect } from 'effect'
 
 import { Project } from '../../domain'
 import { WorkspaceRepository } from '../../repository'
-import { ProjectSettingsBlock } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 
-export const SaveProject = ProjectSettingsBlock.makeCommand('SaveProject', {
+export const SaveProject = makeCommand('SaveProject', {
   args: { project: Project },
   messages: [Message.SucceededSaveProject, Message.FailedSaveProject],
   handler: function* () {

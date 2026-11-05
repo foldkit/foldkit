@@ -1,6 +1,8 @@
+import { makeFieldsStep } from './block'
+
 return Update.combineSteps(model, [
   openDialog,
-  ApplicationBlock.makeFieldsStep(() => ({
+  makeFieldsStep(() => ({
     isSubmitting: () => false,
   })),
 ])

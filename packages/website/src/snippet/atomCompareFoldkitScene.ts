@@ -11,7 +11,7 @@ import {
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 it.effect('click load, resolve the fetch, see the profile', () =>
   scene(

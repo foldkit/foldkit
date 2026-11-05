@@ -13,7 +13,7 @@ import {
   workspaceBlockCompletionTarget,
 } from '../packages/foldkit/scripts/profile-block-language-service.ts'
 
-test('workspace completion requires the public operation and completed Block members', () => {
+test('workspace completion requires the public operation and Block authoring members', () => {
   const source = {
     uri: 'file:///workspace.ts',
     originalText: '\nIssueDetailsBinding.init\n',
@@ -41,7 +41,7 @@ test('workspace completion requires the public operation and completed Block mem
   })
   assert.throws(
     () => validateResult('workspace.blockCompletion', blockTarget, result),
-    /did not return the expected Model, Message, makeView, replaceEffectsLayer completions/,
+    /did not return the expected Model, Message, makeComposition, makeLayer completions/,
   )
 })
 

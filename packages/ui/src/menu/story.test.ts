@@ -1,6 +1,7 @@
-import { Effect, Option } from 'effect'
-import { Scene, Story } from 'foldkit'
+import { Effect, Layer, Option, Schema } from 'effect'
+import { Block, Scene, Story } from 'foldkit'
 import { inertHtml as ih } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import { it as baseIt, expect } from 'vitest'
 
@@ -205,6 +206,11 @@ const makeFixture = (menu: Story.TestBlock<typeof block>) => {
     operations,
     sceneUpdate,
     sceneView,
+    emptyItemsView: (model: Model, h: Parameters<typeof menu.view>[2]) => {
+      expect(model.maybeActiveItemIndex).toEqual(Option.none())
+
+      return menu.view(model, { ...sceneViewInputs(), items: [] }, h)
+    },
     openModel,
     givenClosed,
     givenOpen,
@@ -2289,6 +2295,257 @@ describe('Menu', () => {
       ])
     })
   })
+
+  describe('empty items', () => {
+    const ActionsMenuBlock = makeBlock()
+    const DynamicMenuKey = Symbol('DynamicMenu')
+    const DynamicMenuBlock = Block.make('DynamicMenu', {
+      key: DynamicMenuKey,
+      Model: Schema.Struct({
+        menu: ActionsMenuBlock.Model,
+        items: Schema.Array(Schema.String),
+      }),
+      Message: Schema.Never,
+      InMessage: defineMessageUnion({
+        InformedOfItems: { items: Schema.Array(Schema.String) },
+      }),
+      Init: Schema.Tuple([]),
+      view: { kind: 'Element' },
+    })
+    const MenuBinding = DynamicMenuBlock.makeBinding(ActionsMenuBlock, {
+      field: 'menu',
+      init: { contextToArgs: () => [{ id: 'test' }] },
+    }).withOutMessagePolicy({
+      fold: DynamicMenuBlock.makeOutMessageFold(ActionsMenuBlock, {
+        Closed: () => DynamicMenuBlock.makeNoopStep(),
+        Selected: () => DynamicMenuBlock.makeNoopStep(),
+      }),
+    })
+    const DynamicMenuComposition = DynamicMenuBlock.makeComposition({
+      bindings: [MenuBinding],
+    })
+    const DynamicMenuLayer = DynamicMenuBlock.makeLayer(
+      Effect.gen(function* () {
+        const menu = yield* MenuBinding
+
+        return {
+          children: [menu],
+          init: DynamicMenuComposition.makeInit(() => ({
+            model: { items: ['Edit', 'Duplicate', 'Delete'] },
+          })),
+          update: DynamicMenuComposition.makeUpdate({}),
+          inMessageUpdate: DynamicMenuComposition.makeInMessageUpdate({
+            InformedOfItems: (model, { items }) => ({
+              model: modifyFields(model, { items: () => items }),
+            }),
+          }),
+          view: DynamicMenuComposition.makeView((model, h) =>
+            h.block(
+              MenuBinding.embedView({
+                slotId: 'Menu',
+                model: model.menu,
+                viewInputs: { ...sceneViewInputs(), items: model.items },
+              }),
+            ),
+          ),
+        }
+      }),
+    ).pipe(Layer.provide(layer))
+    const menu = Scene.role('menu')
+    const hasNoActiveItem = [
+      Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
+      Scene.expect(menu).not.toHaveAttr('aria-activedescendant'),
+      Scene.expectAll(Scene.all.role('menuitem')).toBeEmpty(),
+      Scene.Command.expectNone(),
+    ]
+    const settleOpen = [
+      Scene.Command.resolve(FocusMenuItems, Message.CompletedFocusMenuItems()),
+      Scene.Mount.resolve(
+        PortalMenuBackdrop,
+        Message.CompletedPortalMenuBackdrop(),
+      ),
+      Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+    ]
+
+    it.effect(
+      'ignores the retained active item while the parent clears its items',
+      () =>
+        Scene.scene(
+          { block: DynamicMenuBlock, layer: DynamicMenuLayer },
+          Scene.init(),
+          Scene.keydown(button, 'ArrowDown'),
+          ...settleOpen,
+          Scene.expect(menu).toHaveAttr('aria-activedescendant', 'test-item-0'),
+          Scene.inMessage(
+            DynamicMenuBlock.InMessage.InformedOfItems({ items: [] }),
+          ),
+          ...hasNoActiveItem,
+          ...[button, menu].flatMap(target =>
+            [
+              'ArrowDown',
+              'ArrowUp',
+              'Home',
+              'End',
+              'PageUp',
+              'PageDown',
+              'Enter',
+              ' ',
+            ].flatMap(key => [
+              Scene.keydown(target, key),
+              Scene.expectIgnored(),
+              ...hasNoActiveItem,
+            ]),
+          ),
+          Scene.inMessage(
+            DynamicMenuBlock.InMessage.InformedOfItems({
+              items: ['Edit', 'Duplicate', 'Delete'],
+            }),
+          ),
+          Scene.expect(menu).toHaveAttr('aria-activedescendant', 'test-item-0'),
+          Scene.expect(Scene.role('menuitem', { name: 'Edit' })).toHaveAttr(
+            'data-active',
+            '',
+          ),
+          Scene.Command.expectNone(),
+        ),
+    )
+
+    it.effect(
+      'starts navigation from the available items after the parent shortens them',
+      () =>
+        Scene.scene(
+          { block: DynamicMenuBlock, layer: DynamicMenuLayer },
+          Scene.init(),
+          Scene.keydown(button, 'ArrowUp'),
+          ...settleOpen,
+          Scene.expect(menu).toHaveAttr('aria-activedescendant', 'test-item-2'),
+          Scene.inMessage(
+            DynamicMenuBlock.InMessage.InformedOfItems({ items: ['Edit'] }),
+          ),
+          Scene.expect(menu).not.toHaveAttr('aria-activedescendant'),
+          Scene.expect(Scene.role('menuitem', { name: 'Edit' })).not.toHaveAttr(
+            'data-active',
+          ),
+          Scene.keydown(menu, 'Enter'),
+          Scene.expectIgnored(),
+          Scene.Command.expectNone(),
+          Scene.keydown(menu, 'ArrowDown'),
+          Scene.Command.resolve(
+            ScrollMenuItemIntoView,
+            Message.CompletedScrollMenuItemIntoView(),
+          ),
+          Scene.expect(menu).toHaveAttr('aria-activedescendant', 'test-item-0'),
+          Scene.expect(Scene.role('menuitem', { name: 'Edit' })).toHaveAttr(
+            'data-active',
+            '',
+          ),
+          Scene.Command.expectNone(),
+        ),
+    )
+
+    for (const key of ['Enter', ' ', 'ArrowDown', 'ArrowUp']) {
+      it(`opens empty items with ${JSON.stringify(key)} without an active item`, ({
+        menu: { init, sceneUpdate, emptyItemsView },
+      }) =>
+        Scene.scene(
+          { update: sceneUpdate, view: emptyItemsView },
+          Scene.given(init({ id: 'test' }).model),
+          Scene.keydown(button, key),
+          ...settleOpen,
+          ...hasNoActiveItem,
+          Scene.keydown(menu, 'Enter'),
+          Scene.expectIgnored(),
+          ...hasNoActiveItem,
+          Scene.keydown(menu, ' '),
+          Scene.expectIgnored(),
+          ...hasNoActiveItem,
+          Scene.keydown(menu, 'Escape'),
+          Scene.Command.resolve(
+            FocusMenuButton,
+            Message.CompletedFocusMenuButton(),
+          ),
+          Scene.expect(button).toHaveAttr('aria-expanded', 'false'),
+          Scene.expect(menu).not.toExist(),
+          Scene.Mount.expectEnded(PortalMenuBackdrop),
+          Scene.Mount.expectEnded(AnchorMenu),
+          Scene.Command.expectNone(),
+        ))
+    }
+
+    for (const target of [button, menu]) {
+      for (const key of [
+        'ArrowDown',
+        'ArrowUp',
+        'Home',
+        'End',
+        'PageUp',
+        'PageDown',
+      ]) {
+        it(`ignores ${key} on ${target === button ? 'the trigger' : 'the menu'} with empty items`, ({
+          menu: { init, sceneUpdate, emptyItemsView },
+        }) =>
+          Scene.scene(
+            { update: sceneUpdate, view: emptyItemsView },
+            Scene.given(init({ id: 'test' }).model),
+            Scene.click(button),
+            ...settleOpen,
+            ...hasNoActiveItem,
+            Scene.keydown(target, key),
+            Scene.expectIgnored(),
+            ...hasNoActiveItem,
+            Scene.keydown(target, key),
+            Scene.expectIgnored(),
+            ...hasNoActiveItem,
+            Scene.keydown(target, 'Enter'),
+            Scene.expectIgnored(),
+            ...hasNoActiveItem,
+            Scene.keydown(target, ' '),
+            Scene.expectIgnored(),
+            ...hasNoActiveItem,
+          ))
+      }
+    }
+  })
+
+  it('uses index zero for all-disabled keyboard opening and navigation', ({
+    menu: { init, sceneUpdate, sceneView },
+  }) =>
+    Scene.scene(
+      { update: sceneUpdate, view: sceneView({ isItemDisabled: () => true }) },
+      Scene.given(init({ id: 'test' }).model),
+      Scene.keydown(button, 'ArrowUp'),
+      Scene.Command.resolve(FocusMenuItems, Message.CompletedFocusMenuItems()),
+      Scene.Mount.resolve(
+        PortalMenuBackdrop,
+        Message.CompletedPortalMenuBackdrop(),
+      ),
+      Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+      Scene.expect(Scene.role('menu')).toHaveAttr(
+        'aria-activedescendant',
+        'test-item-0',
+      ),
+      ...['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageUp', 'PageDown'].flatMap(
+        key => [
+          Scene.keydown(Scene.role('menu'), key),
+          Scene.Command.resolve(
+            ScrollMenuItemIntoView,
+            Message.CompletedScrollMenuItemIntoView(),
+          ),
+          Scene.expect(Scene.role('menu')).toHaveAttr(
+            'aria-activedescendant',
+            'test-item-0',
+          ),
+          Scene.expect(Scene.role('menuitem', { name: 'Edit' })).toHaveAttr(
+            'aria-disabled',
+            'true',
+          ),
+          Scene.expect(Scene.role('menuitem', { name: 'Edit' })).toHaveAttr(
+            'data-active',
+            '',
+          ),
+        ],
+      ),
+    ))
 
   describe('button labeling', () => {
     it.effect('no aria-label or aria-labelledby on the button by default', () =>

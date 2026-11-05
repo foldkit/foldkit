@@ -5,13 +5,13 @@ import type { Html } from 'foldkit/html'
 
 import { view as buttonView } from '@foldkit/ui/button'
 
+import { Message } from './block'
 import {
   AdditionalFilesDropBinding,
   AttachmentsComposition,
   type AttachmentsViewBuilder,
   ResumeDropBinding,
 } from './composition'
-import { Message } from './definition'
 
 const BYTES_PER_KB = 1024
 const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB
