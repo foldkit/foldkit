@@ -87,6 +87,7 @@ import {
   processDragEnter,
   processDragLeave,
 } from './dragZoneTracking.js'
+import { captureMount } from './mountCapture.js'
 import {
   type DispatchSync,
   type MountDispatchResolver,
@@ -594,10 +595,9 @@ export const FOLDKIT_MOUNT_KEY = 'foldkitMount' as const
  *  `OnMount` attribute. Carries the Mount Definition's name (and args) so test
  *  introspection can identify pending mounts. When the mount lives inside a
  *  Block boundary, it also carries that boundary's `toParentMessage` chain
- *  (innermost first), snapshotted at render time, so `Scene.Mount.resolve` can
- *  replay the lift the result travels through in production. Production keeps
- *  the Mount bound to the dispatcher owned by its acquiring render, then
- *  resolves that owner's latest chain when the Mount emits. */
+ *  (innermost first), as a fallback for VNodes built without a runtime frame.
+ *  Frame-built markers privately retain the acquiring occurrence and resolver.
+ *  Scene and Runtime use that resolver's current boundary chain for delivery. */
 export type FoldkitMountMarker = Readonly<{
   /** @internal Preserves the originating Mount independently of its path. */
   [InvocationIdentityTypeId]?: DefinitionIdentity | undefined
@@ -2599,8 +2599,14 @@ const attributeHandlers: AttributeHandlers = {
     const startBarrier = instance?.startBarrier
     const maybeTracker = Context.getOption(capturedContext, MountTracker)
     const maybeMountRuntime = Context.getOption(capturedContext, MountRuntime)
+    const capturedMountDispatch =
+      ctx.resolveMountDispatch ?? currentMountDispatchResolverOrUndefined()
     const resolveMountDispatch =
-      ctx.resolveMountDispatch ?? currentMountDispatchResolverOrFallback()
+      capturedMountDispatch ??
+      ({
+        owner: 'Live',
+        resolve: () => fallbackDispatch,
+      } satisfies MountDispatchResolver)
     const notifyStarted = Option.isSome(maybeTracker)
       ? () => maybeTracker.value.started(action.name, action.args)
       : Function.constVoid
@@ -2623,6 +2629,9 @@ const attributeHandlers: AttributeHandlers = {
       : { ...markerWithArgs, messageMappers: boundaryLift }
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     ;(ctx.data as Record<string, unknown>)[FOLDKIT_MOUNT_KEY] = marker
+    if (capturedMountDispatch !== undefined) {
+      captureMount(marker, { owner: instance, resolver: capturedMountDispatch })
+    }
     const existingDestroy = ctx.data.hook?.destroy
     ctx.data.hook = {
       ...ctx.data.hook,
@@ -2812,11 +2821,13 @@ const currentUnmountResolverOrFallback = (): UnmountResolver => {
   }
 }
 
-const currentMountDispatchResolverOrFallback = (): MountDispatchResolver => {
+const currentMountDispatchResolverOrUndefined = ():
+  | MountDispatchResolver
+  | undefined => {
   try {
     return requireMountDispatchResolver()
   } catch {
-    return { owner: 'Live', resolve: () => fallbackDispatch }
+    return undefined
   }
 }
 
