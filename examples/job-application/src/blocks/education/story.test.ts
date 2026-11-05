@@ -6,11 +6,11 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { EducationBlock, layer } from './block'
+import { Message } from './block'
 import { EducationEntryBlock } from './blocks/educationEntry'
 import { GenerateEducationEntryId } from './command'
 import { EntriesBinding } from './composition'
-import { Message } from './definition'
+import { EducationBlock, layer } from './index'
 
 type EducationEntryMessage = typeof EducationEntryBlock.Message.Type
 

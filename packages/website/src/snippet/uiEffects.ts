@@ -7,19 +7,19 @@ import {
   makeBlock as makeMenuBlock,
 } from '@foldkit/ui/menu'
 
-import { ApplicationBlock } from './definition'
+import { ApplicationBlock, makeBinding, makeComposition } from './block'
 
-export const DialogBinding = ApplicationBlock.makeBinding(DialogBlock, {
+export const DialogBinding = makeBinding(DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 export const ApplicationMenu = makeMenuBlock<string>()
 
-export const MenuBinding = ApplicationBlock.makeBinding(ApplicationMenu, {
+export const MenuBinding = makeBinding(ApplicationMenu, {
   field: 'menu',
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
-export const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicationComposition = makeComposition({
   bindings: [DialogBinding, MenuBinding],
 })
 
@@ -57,7 +57,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-// block.ts
+// layer.ts
 import { Block, Program, Runtime } from 'foldkit'
 
 import { init } from './init'
@@ -92,4 +92,4 @@ const program = Program.make({
 
 Runtime.run(program)
 
-export { ApplicationBlock } from './definition'
+export { ApplicationBlock } from './block'

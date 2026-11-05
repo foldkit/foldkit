@@ -1,6 +1,6 @@
 import { issueStatusLabel } from '../../domain'
+import { makeFieldsStep } from './block'
 import { IssueBoardComposition } from './composition'
-import { makeFieldsStep } from './definition'
 
 export const inMessageUpdate = IssueBoardComposition.makeInMessageUpdate({
   InformedOfIssueMove: makeFieldsStep.fromMessage(

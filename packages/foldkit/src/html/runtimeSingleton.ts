@@ -224,8 +224,8 @@ export const requireUnmountResolver = (): UnmountResolver => {
 
 /** Returns the current frame's Block wrapping chain (innermost first), or an
  *  empty array at the root boundary. `OnMount` records this build-time snapshot
- *  for the Scene test harness, which replays the chain when the Mount is
- *  resolved. Production Mount dispatch uses the ownership-aware resolver below.
+ *  for low-level Scenes without a Block graph, which replay the chain when
+ *  the Mount resolves. Block-aware Scenes and production use the resolver below.
  *  Returns `[]` when there is no active frame, mirroring the lazy tolerance of
  *  handler-free Html built outside a render. */
 export const requireBoundaryMappers = (): ReadonlyArray<

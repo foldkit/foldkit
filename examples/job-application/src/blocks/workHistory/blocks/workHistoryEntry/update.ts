@@ -1,7 +1,7 @@
 import { validate } from 'foldkit/fieldValidation'
 
+import { OutMessage, makeFieldsStep, makeOutMessageStep } from './block'
 import { WorkHistoryEntryComposition } from './composition'
-import { OutMessage, makeFieldsStep, makeOutMessageStep } from './definition'
 import { companyRules, titleRules } from './validation'
 
 const validateCompany = validate(companyRules)

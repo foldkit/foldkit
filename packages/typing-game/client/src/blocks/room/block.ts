@@ -1,25 +1,31 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { KeyValueStore } from 'effect/persistence'
+import { Block } from 'foldkit'
 
-import { RoomBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view'
+import { RoomsClient } from '../../rpc'
+import { Context } from './context'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
 
-export const layer = RoomBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-)
+export const RoomKey = Symbol('Room')
+export const RoomBlock = Block.make('Room', {
+  key: RoomKey,
+  Init: Schema.Tuple([Schema.Option(Schema.String)]),
+  Context: Schema.Tuple([Context]),
+  InMessageContext: Schema.Tuple([Context]),
+  view: { kind: 'Element', Inputs: Schema.Struct({ roomId: Schema.String }) },
+  effects: { services: [RoomsClient, KeyValueStore.KeyValueStore] },
+  Model,
+  Message,
+  InMessage,
+})
 
-export { RoomBlock }
+export const {
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeSubscriptions,
+} = RoomBlock

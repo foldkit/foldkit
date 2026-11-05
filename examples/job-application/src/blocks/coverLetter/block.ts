@@ -24,9 +24,9 @@ export const CoverLetterBlock = Block.make('CoverLetter', {
   Message,
 })
 
-const { makeFieldsStep } = CoverLetterBlock
+const { makeComposition, makeFieldsStep } = CoverLetterBlock
 
-const CoverLetterComposition = CoverLetterBlock.makeComposition()
+const CoverLetterComposition = makeComposition()
 
 const init = CoverLetterComposition.makeInit(() => ({
   model: { content: '' },

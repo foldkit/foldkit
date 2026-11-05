@@ -9,7 +9,7 @@ import {
   story,
 } from 'foldkit/story'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 // Set the initial Model.
 given(model)

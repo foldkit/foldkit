@@ -15,7 +15,6 @@ const InMessage = defineMessageUnion({ InformedOfRouteChange: {} })
 type InMessage = typeof InMessage.Type
 
 export const RouteAwareKey = Symbol('RouteAware')
-
 export const RouteAwareBlock = Block.make('RouteAware', {
   key: RouteAwareKey,
   Init: Schema.Tuple([]),
@@ -25,7 +24,9 @@ export const RouteAwareBlock = Block.make('RouteAware', {
   InMessage,
 })
 
-const RouteAwareComposition = RouteAwareBlock.makeComposition()
+const { makeComposition } = RouteAwareBlock
+
+const RouteAwareComposition = makeComposition()
 
 const init = RouteAwareComposition.makeInit(() => ({
   model: Model.make({ routeChangeCount: 0 }),

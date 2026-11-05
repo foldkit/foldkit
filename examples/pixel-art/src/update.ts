@@ -2,13 +2,13 @@ import { Array, Match, Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './block'
 import { ExportPng, saveCanvas } from './command'
 import {
   ApplicationComposition,
   ErrorDialogBinding,
   GridSizeConfirmDialogBinding,
 } from './composition'
-import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import {
   createEmptyGrid,
   erasePixels,

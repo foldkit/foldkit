@@ -5,6 +5,13 @@ import { modifyFields } from 'foldkit/struct'
 import { DialogBlock } from '@foldkit/ui/dialog'
 
 import {
+  makeBinding,
+  makeComposition,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+} from '../block'
+import {
   ApiReferenceBlock,
   BlockPageBlock,
   ComingFromReactBlock,
@@ -15,45 +22,35 @@ import {
   SnippetDisclosureBlock,
   UiBlock,
 } from '../blocks'
-import { ApplicationBlock, makeNoopStep, makeStep } from '../definition'
 import { ApplicationRoute, maybeExampleSlugForRoute } from '../route'
 import { ApplyTheme, SaveThemePreference, resolveTheme } from '../theme'
 import { type ThemePreference } from '../themePreference'
 import * as ThemeMenu from '../view/themeMenu'
 import { MaybeHomeBinding } from './home'
 
-export const SearchBinding = ApplicationBlock.makeBinding(SearchBlock, {
+export const SearchBinding = makeBinding(SearchBlock, {
   field: 'search',
 })
 
-export const SnippetCopyBinding = ApplicationBlock.makeBinding(
-  SnippetCopyBlock,
-  {
-    field: 'snippetCopy',
-  },
-)
+export const SnippetCopyBinding = makeBinding(SnippetCopyBlock, {
+  field: 'snippetCopy',
+})
 
-export const SnippetDisclosureBinding = ApplicationBlock.makeBinding(
-  SnippetDisclosureBlock,
-  {
-    field: 'snippetDisclosure',
-  },
-)
+export const SnippetDisclosureBinding = makeBinding(SnippetDisclosureBlock, {
+  field: 'snippetDisclosure',
+})
 
-export const ExampleDetailBinding = ApplicationBlock.makeBinding(
-  ExampleDetailBlock,
-  {
-    field: 'exampleDetail',
-    init: {
-      contextToArgs: ({ route, maybeExampleSources }) => [
-        maybeExampleSlugForRoute(route),
-        maybeExampleSources,
-      ],
-    },
+export const ExampleDetailBinding = makeBinding(ExampleDetailBlock, {
+  field: 'exampleDetail',
+  init: {
+    contextToArgs: ({ route, maybeExampleSources }) => [
+      maybeExampleSlugForRoute(route),
+      maybeExampleSources,
+    ],
   },
-)
+})
 
-export const PlaygroundBinding = ApplicationBlock.makeBinding(PlaygroundBlock, {
+export const PlaygroundBinding = makeBinding(PlaygroundBlock, {
   field: 'playground',
   init: {
     contextToArgs: ({ route }) =>
@@ -65,41 +62,29 @@ export const PlaygroundBinding = ApplicationBlock.makeBinding(PlaygroundBlock, {
   },
 })
 
-export const UiPagesBinding = ApplicationBlock.makeBinding(UiBlock, {
+export const UiPagesBinding = makeBinding(UiBlock, {
   field: 'uiPages',
   init: { contextToArgs: ({ today }) => [today] },
 })
 
-export const ApiReferenceBinding = ApplicationBlock.makeBinding(
-  ApiReferenceBlock,
-  {
-    field: 'apiReference',
-    init: { contextToArgs: ({ maybeApiData }) => [maybeApiData] },
-  },
-)
+export const ApiReferenceBinding = makeBinding(ApiReferenceBlock, {
+  field: 'apiReference',
+  init: { contextToArgs: ({ maybeApiData }) => [maybeApiData] },
+})
 
-export const ComingFromReactBinding = ApplicationBlock.makeBinding(
-  ComingFromReactBlock,
-  {
-    field: 'comingFromReact',
-  },
-)
+export const ComingFromReactBinding = makeBinding(ComingFromReactBlock, {
+  field: 'comingFromReact',
+})
 
-export const CoreBlockPageBinding = ApplicationBlock.makeBinding(
-  BlockPageBlock,
-  {
-    field: 'coreBlockPage',
-  },
-)
+export const CoreBlockPageBinding = makeBinding(BlockPageBlock, {
+  field: 'coreBlockPage',
+})
 
-export const MobileMenuDialogBinding = ApplicationBlock.makeBinding(
-  DialogBlock,
-  {
-    field: 'mobileMenuDialog',
-    init: { contextToArgs: () => [{ id: 'mobile-menu' }] },
-  },
-).withOutMessagePolicy({
-  fold: ApplicationBlock.makeOutMessageFold(DialogBlock, {
+export const MobileMenuDialogBinding = makeBinding(DialogBlock, {
+  field: 'mobileMenuDialog',
+  init: { contextToArgs: () => [{ id: 'mobile-menu' }] },
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: makeNoopStep,
@@ -122,20 +107,17 @@ const applyThemePreference = (preference: ThemePreference) =>
     }
   })
 
-export const ThemeMenuBinding = ApplicationBlock.makeBinding(
-  ThemeMenu.ThemeMenuBlock,
-  {
-    field: 'themeMenu',
-    init: { contextToArgs: () => [{ id: 'theme-menu' }] },
-  },
-).withOutMessagePolicy({
-  fold: ApplicationBlock.makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
+export const ThemeMenuBinding = makeBinding(ThemeMenu.ThemeMenuBlock, {
+  field: 'themeMenu',
+  init: { contextToArgs: () => [{ id: 'theme-menu' }] },
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
     Selected: ({ value }) => applyThemePreference(value),
     Closed: makeNoopStep,
   }),
 })
 
-export const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicationComposition = makeComposition({
   bindings: [
     ApiReferenceBinding,
     ComingFromReactBinding,

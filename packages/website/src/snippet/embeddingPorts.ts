@@ -1,7 +1,7 @@
 import { Effect, Schema } from 'effect'
 import { Port, Program } from 'foldkit'
 
-import { ApplicationBlock, Flags, layer } from './application'
+import { ApplicationBlock, Flags, layer } from './block'
 import { ApplicationLayer } from './services'
 
 // Each Port carries a Schema. The host works with the Schema's Encoded

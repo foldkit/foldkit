@@ -1,7 +1,7 @@
-import { ApplicationBlock } from './definition'
+import { makeBinding } from './block'
 import * as Room from './room'
 
-const RoomBinding = ApplicationBlock.makeBinding(Room.RoomBlock, {
+const RoomBinding = makeBinding(Room.RoomBlock, {
   field: 'room',
   subscriptions: {
     when: { roomKeyPresses: model => model.route._tag === 'Room' },

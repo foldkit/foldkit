@@ -2,9 +2,9 @@ import { Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep, makeStep } from './block'
 import { saveCanvas } from './command'
 import { GridSizeConfirmDialogBinding } from './composition'
-import { makeFieldsStep, makeStep } from './definition'
 import { createEmptyGrid, isGridEmpty } from './grid'
 import { type PaletteIndex, type Tool } from './model'
 

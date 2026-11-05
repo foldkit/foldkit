@@ -1,0 +1,1 @@
+export { ChildBlock } from './block'

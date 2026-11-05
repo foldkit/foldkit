@@ -15,8 +15,8 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { FetchWeather } from './command'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { WeatherAsyncData } from './model'
 import { weatherData, weatherModel } from './model.fixture'

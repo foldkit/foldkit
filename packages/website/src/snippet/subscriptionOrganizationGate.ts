@@ -1,12 +1,9 @@
-import { ApplicationBlock } from './definition'
+import { makeBinding } from './block'
 import * as Settings from './settings'
 
-export const SettingsBinding = ApplicationBlock.makeBinding(
-  Settings.SettingsBlock,
-  {
-    field: 'settings',
-    subscriptions: {
-      when: ({ route }) => route._tag === 'Settings',
-    },
+export const SettingsBinding = makeBinding(Settings.SettingsBlock, {
+  field: 'settings',
+  subscriptions: {
+    when: ({ route }) => route._tag === 'Settings',
   },
-)
+})

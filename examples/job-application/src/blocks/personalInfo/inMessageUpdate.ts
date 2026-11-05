@@ -1,6 +1,6 @@
 import { revealFieldErrors } from '../../step/validation'
+import { makeFieldsStep } from './block'
 import { PersonalInfoComposition } from './composition'
-import { makeFieldsStep } from './definition'
 import {
   emailRules,
   firstNameRules,

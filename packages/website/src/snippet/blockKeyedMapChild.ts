@@ -12,7 +12,6 @@ const InMessage = defineMessageUnion({
 type InMessage = typeof InMessage.Type
 
 export const EntryKey = Symbol('Entry')
-
 export const EntryBlock = Block.make('Entry', {
   key: EntryKey,
   Init: Schema.Tuple([Schema.String]),
@@ -23,7 +22,9 @@ export const EntryBlock = Block.make('Entry', {
   Message: Schema.Never,
 })
 
-const EntryComposition = EntryBlock.makeComposition()
+const { makeComposition } = EntryBlock
+
+const EntryComposition = makeComposition()
 
 export const layer = EntryBlock.makeLayer(
   Effect.gen(function* () {

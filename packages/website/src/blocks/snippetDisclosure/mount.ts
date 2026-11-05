@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 
-import { SnippetDisclosureBlock } from './definition'
+import { makeMount } from './block'
 import { Message } from './message'
 import { SnippetSize } from './model'
 
@@ -10,22 +10,19 @@ export const MINIMUM_EXPANSION_HEIGHT_PX = 48
 const COLLAPSIBLE_HEIGHT_PX =
   COLLAPSED_PREVIEW_HEIGHT_PX + MINIMUM_EXPANSION_HEIGHT_PX
 
-export const MeasureSnippetHeight = SnippetDisclosureBlock.makeMount(
-  'MeasureSnippetHeight',
-  {
-    args: { snippetId: Schema.String },
-    messages: [Message.CompletedMeasureSnippetHeight],
-    handler: function* () {
-      return ({ element, snippetId }) =>
-        Effect.sync(() =>
-          Message.CompletedMeasureSnippetHeight({
-            snippetId,
-            snippetSize:
-              element.scrollHeight > COLLAPSIBLE_HEIGHT_PX
-                ? SnippetSize.Overflows()
-                : SnippetSize.Fits(),
-          }),
-        )
-    },
+export const MeasureSnippetHeight = makeMount('MeasureSnippetHeight', {
+  args: { snippetId: Schema.String },
+  messages: [Message.CompletedMeasureSnippetHeight],
+  handler: function* () {
+    return ({ element, snippetId }) =>
+      Effect.sync(() =>
+        Message.CompletedMeasureSnippetHeight({
+          snippetId,
+          snippetSize:
+            element.scrollHeight > COLLAPSIBLE_HEIGHT_PX
+              ? SnippetSize.Overflows()
+              : SnippetSize.Fits(),
+        }),
+      )
   },
-)
+})

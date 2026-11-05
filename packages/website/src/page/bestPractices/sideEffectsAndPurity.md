@@ -80,4 +80,4 @@ The pure version returns `GenerateApplePosition`. Its Effect generates the coord
 
 `RequestedApple` now returns the same Model and Command every time. Only the result handler writes the generated position into the Model.
 
-See the [Snake example](https://github.com/foldkit/foldkit/blob/main/examples/snake/src/application.ts#L220-L245) for a complete implementation of this pattern.
+See the [Snake example](https://github.com/foldkit/foldkit/blob/main/examples/snake/src/block.ts#L220-L245) for a complete implementation of this pattern.

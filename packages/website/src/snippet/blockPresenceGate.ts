@@ -1,8 +1,8 @@
-import { ApplicationBlock } from './definition'
+import { makeBinding } from './block'
 import * as Room from './room'
 import { ApplicationRoute } from './route'
 
-const RoomBinding = ApplicationBlock.makeBinding(Room.RoomBlock, {
+const RoomBinding = makeBinding(Room.RoomBlock, {
   field: 'room',
   presentWhen: model =>
     ApplicationRoute.match(model.route, {

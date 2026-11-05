@@ -1,10 +1,10 @@
 import * as Counter from '../counter'
-import { DashboardBlock } from './definition'
+import { makeBinding, makeComposition } from './block'
 
-export const CounterBinding = DashboardBlock.makeBinding(Counter.CounterBlock, {
+export const CounterBinding = makeBinding(Counter.CounterBlock, {
   field: 'counter',
 })
 
-export const DashboardComposition = DashboardBlock.makeComposition({
+export const DashboardComposition = makeComposition({
   bindings: [CounterBinding],
 })

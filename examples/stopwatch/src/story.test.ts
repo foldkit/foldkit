@@ -11,7 +11,7 @@ import {
   Message,
   type Model,
   layer,
-} from './application'
+} from './block'
 
 const idleModel: Model = {
   elapsedMs: 0,

@@ -1,27 +1,24 @@
-import { Effect, Layer } from 'effect'
+import { Block } from 'foldkit'
+import type { Url } from 'foldkit/url'
 
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { Message } from './message'
+import { Model } from './model'
 
-import { EffectsLayer } from './command'
-import { DietListboxBinding, PeriodListboxBinding } from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Block.makeInputContract<readonly [url: Url]>(),
+  view: { kind: 'Document' },
+  Model,
+  Message,
+})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const dietListbox = yield* DietListboxBinding
-    const periodListbox = yield* PeriodListboxBinding
-
-    return {
-      children: [dietListbox, periodListbox],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(ListboxLayer)))
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+} = ApplicationBlock

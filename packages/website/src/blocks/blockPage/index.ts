@@ -1,1 +1,2 @@
-export { BlockPageBlock, layer } from './block'
+export { BlockPageBlock } from './block'
+export { layer } from './layer'

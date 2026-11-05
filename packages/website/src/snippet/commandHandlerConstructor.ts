@@ -5,7 +5,6 @@ import { Block } from 'foldkit'
 import { Message, Model, fetchCount } from './counterHttpCommand'
 
 export const ApplicationKey = Symbol('Application')
-
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([]),
@@ -13,7 +12,9 @@ const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-export const FetchCount = ApplicationBlock.makeCommand('FetchCount', {
+const { makeCommand } = ApplicationBlock
+
+export const FetchCount = makeCommand('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
   handler: function* () {
     const client = yield* HttpClient.HttpClient

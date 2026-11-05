@@ -7,7 +7,7 @@ import {
   makeComposition,
   makeNoopStep,
   makeOutMessageFold,
-} from './definition'
+} from './block'
 
 const foldPopoverOutMessage = makeOutMessageFold(PopoverBlock, {
   Opened: makeNoopStep,

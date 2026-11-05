@@ -5,13 +5,19 @@ import { pushUrl } from 'foldkit/navigation'
 
 import * as Shared from '@typing-game/shared'
 
+import {
+  makeBinding,
+  makeCommand,
+  makeCommandsStep,
+  makeOutMessageFold,
+  makeStep,
+} from '../block'
 import { HomeBlock } from '../blocks'
-import { ApplicationBlock, makeCommandsStep, makeStep } from '../definition'
 import { Message } from '../message'
 import { ApplicationRoute, roomRouter } from '../route'
 import { MaybeRoomInstanceBinding } from './room'
 
-export const NavigateToRoom = ApplicationBlock.makeCommand('NavigateToRoom', {
+export const NavigateToRoom = makeCommand('NavigateToRoom', {
   args: { roomId: Schema.String },
   messages: [Message.CompletedNavigateToRoom],
   handler: function* () {
@@ -40,12 +46,12 @@ const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
     navigateToRoom(roomId),
   ])
 
-const foldHomeOutMessage = ApplicationBlock.makeOutMessageFold(HomeBlock, {
+const foldHomeOutMessage = makeOutMessageFold(HomeBlock, {
   CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
   JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
 })
 
-export const HomeBinding = ApplicationBlock.makeBinding(HomeBlock, {
+export const HomeBinding = makeBinding(HomeBlock, {
   field: 'home',
   presentWhen: model => ApplicationRoute.guards.Home(model.route),
 }).withOutMessagePolicy({ fold: foldHomeOutMessage })

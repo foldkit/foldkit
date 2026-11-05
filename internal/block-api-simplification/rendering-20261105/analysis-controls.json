@@ -1,0 +1,26 @@
+{
+  "status": "complete",
+  "evidenceKind": "measured",
+  "work": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-rendering-analysis-controls-GIf55r",
+  "artifactReceiptSha256": "3332f74b52ed978dd986c4e434cb714a52b63a781d2b98ab5221cd20f2fb311b",
+  "executionReceiptSha256": "c185d75a5a88b2ba21ae609085bb21afbe11419cb920fe7ccaacb9a1b2796f99",
+  "originalLogSha256": "81212d332b26365c548af104475ca71733236acc6763e077eb9b1b9f15b8695e",
+  "refreshedMutationLogHashes": true,
+  "results": [
+    {
+      "name": "unchanged",
+      "exitCode": 0,
+      "expectedFailure": null
+    },
+    {
+      "name": "wrong-counter",
+      "exitCode": 1,
+      "expectedFailure": "Invalid representative workload counters"
+    },
+    {
+      "name": "omitted-sample",
+      "exitCode": 1,
+      "expectedFailure": "Expected 32 timing samples"
+    }
+  ]
+}

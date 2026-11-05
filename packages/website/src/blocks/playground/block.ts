@@ -1,32 +1,84 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
 
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { PlaygroundFileTabsBlock } from './fileTabs'
+import * as PlaygroundPreview from './playgroundPreview'
+import type { ViewInputs } from './viewInputs'
 
-import { FileTabsBinding } from './composition'
-import { PlaygroundBlock } from './definition'
-import {
-  EffectsLayer,
-  inMessageUpdate,
-  init,
-  managedResources,
-  update,
-  view,
-} from './playground'
+export const PlaygroundState = defineTaggedUnion({
+  Idle: {},
+  Booting: {},
+  Booted: { preview: PlaygroundPreview.State },
+  Failed: { reason: Schema.String },
+})
+export type PlaygroundState = typeof PlaygroundState.Type
 
-export const layer = PlaygroundBlock.makeLayer(
-  Effect.gen(function* () {
-    const fileTabs = yield* FileTabsBinding
+export const Model = Schema.Struct({
+  slug: Schema.String,
+  state: PlaygroundState,
+  files: Schema.Record(Schema.String, Schema.String),
+  fileTabs: PlaygroundFileTabsBlock.Model,
+  activeFilePath: Schema.String,
+  // NOTE: Paths edited before the WebContainer finished booting. Writes
+  // dispatched at that time fail with `ResourceNotAvailable`, so we
+  // accumulate the paths here and flush them once `BootedPlayground`
+  // fires.
+  dirtyPaths: Schema.Array(Schema.String),
+  // NOTE: Surfaced as a banner when set. Cleared on `BootedPlayground`
+  // and on each successful write schedule, so transient errors don't
+  // linger after recovery.
+  lastWriteError: Schema.Option(Schema.String),
+  maybeIsSupported: Schema.Option(Schema.Boolean),
+})
+export type Model = typeof Model.Type
 
-    return {
-      children: [fileTabs],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      managedResources,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(TabsLayer)))
+export const Message = defineMessageUnion({
+  BootedPlayground: { previewUrl: Schema.String },
+  FailedBootPlayground: { reason: Schema.String },
+  ReleasedPlayground: {},
+  LoadedPlaygroundPreview: { previewUrl: Schema.String },
+  EditedPlaygroundFile: { path: Schema.String, content: Schema.String },
+  SucceededMountPlaygroundEditor: {},
+  FailedMountPlaygroundEditor: { reason: Schema.String },
+  SucceededSchedulePlaygroundFileWrite: {},
+  FailedSchedulePlaygroundFileWrite: { reason: Schema.String },
+  CompletedWaitForPlaygroundServerFailure: { reason: Schema.String },
+})
+export type Message = typeof Message.Type
+export type EditedPlaygroundFile = typeof Message.EditedPlaygroundFile.Type
+export type SucceededMountPlaygroundEditor =
+  typeof Message.SucceededMountPlaygroundEditor.Type
+export type FailedMountPlaygroundEditor =
+  typeof Message.FailedMountPlaygroundEditor.Type
 
-export { PlaygroundBlock }
+export const InMessage = defineMessageUnion({
+  InformedOfSupport: { isSupported: Schema.Boolean },
+})
+export type InMessage = typeof InMessage.Type
+
+export const PlaygroundKey = Symbol('Playground')
+export const PlaygroundBlock = Block.make('Playground', {
+  key: PlaygroundKey,
+  Init: Schema.Tuple([
+    Schema.String,
+    Schema.optional(Schema.Option(Schema.Boolean)),
+  ]),
+  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  Model,
+  Message,
+  InMessage,
+})
+
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeManagedResources,
+  makeMountStream,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeResource,
+} = PlaygroundBlock

@@ -8,7 +8,14 @@ import {
   ScrollTarget as VirtualListScrollTarget,
 } from '@foldkit/ui/virtualList'
 
-import { UiBlock, makeFieldsStep, makeNoopStep, makeStep } from './definition'
+import {
+  makeBinding,
+  makeCommand,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+} from './block'
 import {
   ChatVirtualListBlock,
   HistoryModeRadioGroupBlock,
@@ -72,7 +79,7 @@ const virtualListChatInitConfig = (
   followEnd: { thresholdPx: 8 },
 })
 
-export const FetchVirtualListChatHistory = UiBlock.makeCommand(
+export const FetchVirtualListChatHistory = makeCommand(
   'FetchVirtualListChatHistory',
   {
     args: {
@@ -125,17 +132,14 @@ export const FetchVirtualListChatHistory = UiBlock.makeCommand(
   },
 )
 
-const BaseVirtualListChatDemoBinding = UiBlock.makeBinding(
-  ChatVirtualListBlock,
-  {
-    field: 'virtualListChatDemo',
-    init: {
-      contextToArgs: () => [
-        virtualListChatInitConfig(VirtualListChatHistorySource.Unbounded()),
-      ],
-    },
+const BaseVirtualListChatDemoBinding = makeBinding(ChatVirtualListBlock, {
+  field: 'virtualListChatDemo',
+  init: {
+    contextToArgs: () => [
+      virtualListChatInitConfig(VirtualListChatHistorySource.Unbounded()),
+    ],
   },
-)
+})
 
 export const requestVirtualListChatHistory = (
   requestedCount: number,
@@ -202,32 +206,29 @@ const markVirtualListChatHistoryAnnounced = makeStep(model => {
   }
 })
 
-const foldVirtualListChatOutMessage = UiBlock.makeOutMessageFold(
-  ChatVirtualListBlock,
-  {
-    ObservedContainerScroll: makeNoopStep,
-    ApproachedLoadedStart: ({ distanceToLoadedStartPx, containerHeight }) =>
-      makeStep(model => {
-        const neededHeight =
-          containerHeight * CHAT_HISTORY_PREFETCH_VIEWPORTS -
-          distanceToLoadedStartPx
-        const minimumCount = VirtualListChatHistorySource.match(
-          model.virtualListChatHistorySource,
-          {
-            Unbounded: () => VIRTUAL_LIST_CHAT_UNBOUNDED_HISTORY_BATCH_SIZE,
-            Finite: () => VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
-          },
-        )
-        const requestedCount = Math.max(
-          minimumCount,
-          Math.ceil(neededHeight / COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX),
-        )
+const foldVirtualListChatOutMessage = makeOutMessageFold(ChatVirtualListBlock, {
+  ObservedContainerScroll: makeNoopStep,
+  ApproachedLoadedStart: ({ distanceToLoadedStartPx, containerHeight }) =>
+    makeStep(model => {
+      const neededHeight =
+        containerHeight * CHAT_HISTORY_PREFETCH_VIEWPORTS -
+        distanceToLoadedStartPx
+      const minimumCount = VirtualListChatHistorySource.match(
+        model.virtualListChatHistorySource,
+        {
+          Unbounded: () => VIRTUAL_LIST_CHAT_UNBOUNDED_HISTORY_BATCH_SIZE,
+          Finite: () => VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
+        },
+      )
+      const requestedCount = Math.max(
+        minimumCount,
+        Math.ceil(neededHeight / COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX),
+      )
 
-        return requestVirtualListChatHistory(requestedCount, 'Scroll')
-      }),
-    EndedContainerScroll: () => markVirtualListChatHistoryAnnounced,
-  },
-)
+      return requestVirtualListChatHistory(requestedCount, 'Scroll')
+    }),
+  EndedContainerScroll: () => markVirtualListChatHistoryAnnounced,
+})
 
 export const VirtualListChatDemoBinding =
   BaseVirtualListChatDemoBinding.withOutMessagePolicy({
@@ -267,7 +268,7 @@ const selectVirtualListChatHistoryMode = (mode: VirtualListChatHistoryMode) =>
     })
   })
 
-export const VirtualListChatHistoryModeGroupBinding = UiBlock.makeBinding(
+export const VirtualListChatHistoryModeGroupBinding = makeBinding(
   HistoryModeRadioGroupBlock,
   {
     field: 'virtualListChatHistoryModeGroup',
@@ -276,7 +277,7 @@ export const VirtualListChatHistoryModeGroupBinding = UiBlock.makeBinding(
     },
   },
 ).withOutMessagePolicy({
-  fold: UiBlock.makeOutMessageFold(HistoryModeRadioGroupBlock, {
+  fold: makeOutMessageFold(HistoryModeRadioGroupBlock, {
     Selected: ({ value }) => selectVirtualListChatHistoryMode(value),
   }),
 })

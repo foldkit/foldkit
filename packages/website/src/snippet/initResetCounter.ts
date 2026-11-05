@@ -13,7 +13,6 @@ const InMessage = defineMessageUnion({ RequestedReset: {} })
 type InMessage = typeof InMessage.Type
 
 export const CounterKey = Symbol('Counter')
-
 export const CounterBlock = Block.make('Counter', {
   key: CounterKey,
   Init: Schema.Tuple([Schema.Number]),
@@ -24,7 +23,9 @@ export const CounterBlock = Block.make('Counter', {
   Message,
 })
 
-const CounterComposition = CounterBlock.makeComposition()
+const { makeComposition } = CounterBlock
+
+const CounterComposition = makeComposition()
 
 const init = CounterComposition.makeInit(initialCount => ({
   model: { count: initialCount },

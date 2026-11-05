@@ -5,8 +5,8 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { PlaceOrder } from './command'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { CheckoutState, type Model, Promo } from './model'
 import { TRANSITION_LOG_LIMIT } from './transition'

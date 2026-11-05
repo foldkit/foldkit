@@ -2,8 +2,8 @@ import { Array, Option } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep, makeNoopStep, makeStep } from '../block'
 import { NotificationCenterBinding } from '../composition'
-import { makeFieldsStep, makeNoopStep, makeStep } from '../definition'
 import {
   type Comment,
   type Issue,

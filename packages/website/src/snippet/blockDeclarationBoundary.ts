@@ -10,7 +10,6 @@ const Message = defineMessageUnion({ ClickedIncrement: {} })
 type Message = typeof Message.Type
 
 export const CounterKey = Symbol('Counter')
-
 export const CounterBlock = Block.make('Counter', {
   key: CounterKey,
   Init: Schema.Tuple([]),
@@ -19,7 +18,9 @@ export const CounterBlock = Block.make('Counter', {
   Message,
 })
 
-const CounterComposition = CounterBlock.makeComposition()
+const { makeComposition } = CounterBlock
+
+const CounterComposition = makeComposition()
 const init = CounterComposition.makeInit(() => ({ model: { count: 0 } }))
 const update = CounterComposition.makeUpdate({
   ClickedIncrement: model => ({

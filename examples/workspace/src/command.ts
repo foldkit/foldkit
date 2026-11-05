@@ -1,12 +1,12 @@
-import { Clock, DateTime, Effect, Layer, Schema } from 'effect'
+import { Clock, DateTime, Effect, Schema } from 'effect'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
-import { ApplicationBlock } from './definition'
+import { makeCommand } from './block'
 import { IssueDraft, IssueStatus } from './domain'
 import { Message } from './message'
 import { WorkspaceRepository } from './repository'
 
-export const LoadWorkspace = ApplicationBlock.makeCommand('LoadWorkspace', {
+export const LoadWorkspace = makeCommand('LoadWorkspace', {
   messages: [Message.SucceededLoadWorkspace, Message.FailedLoadWorkspace],
   handler: function* () {
     const repository = yield* WorkspaceRepository
@@ -21,19 +21,16 @@ export const LoadWorkspace = ApplicationBlock.makeCommand('LoadWorkspace', {
   },
 })
 
-export const NavigateInternal = ApplicationBlock.makeCommand(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
-    handler: function* () {
-      return ({ url }) =>
-        pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
-    },
+export const NavigateInternal = makeCommand('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
   },
-)
+})
 
-export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
+export const LoadExternal = makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -42,34 +39,28 @@ export const LoadExternal = ApplicationBlock.makeCommand('LoadExternal', {
   },
 })
 
-export const ReplaceInternalUrl = ApplicationBlock.makeCommand(
-  'ReplaceInternalUrl',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedReplaceInternalUrl],
-    handler: function* () {
-      return ({ url }) =>
-        replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceInternalUrl()))
-    },
+export const ReplaceInternalUrl = makeCommand('ReplaceInternalUrl', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedReplaceInternalUrl],
+  handler: function* () {
+    return ({ url }) =>
+      replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceInternalUrl()))
   },
-)
+})
 
-export const SimulateSaveFailure = ApplicationBlock.makeCommand(
-  'SimulateSaveFailure',
-  {
-    messages: [Message.CompletedSimulateSaveFailure],
-    handler: function* () {
-      const repository = yield* WorkspaceRepository
+export const SimulateSaveFailure = makeCommand('SimulateSaveFailure', {
+  messages: [Message.CompletedSimulateSaveFailure],
+  handler: function* () {
+    const repository = yield* WorkspaceRepository
 
-      return () =>
-        repository
-          .failNext('Save')
-          .pipe(Effect.as(Message.CompletedSimulateSaveFailure()))
-    },
+    return () =>
+      repository
+        .failNext('Save')
+        .pipe(Effect.as(Message.CompletedSimulateSaveFailure()))
   },
-)
+})
 
-export const MoveIssue = ApplicationBlock.makeCommand('MoveIssue', {
+export const MoveIssue = makeCommand('MoveIssue', {
   args: {
     issueId: Schema.String,
     status: IssueStatus,
@@ -97,7 +88,7 @@ export const MoveIssue = ApplicationBlock.makeCommand('MoveIssue', {
   },
 })
 
-export const AppendActivity = ApplicationBlock.makeCommand('AppendActivity', {
+export const AppendActivity = makeCommand('AppendActivity', {
   args: {
     issueId: Schema.String,
     authorId: Schema.String,
@@ -121,7 +112,7 @@ export const AppendActivity = ApplicationBlock.makeCommand('AppendActivity', {
   },
 })
 
-export const AssignIssue = ApplicationBlock.makeCommand('AssignIssue', {
+export const AssignIssue = makeCommand('AssignIssue', {
   args: {
     issueId: Schema.String,
     draft: IssueDraft,
@@ -153,14 +144,3 @@ export const AssignIssue = ApplicationBlock.makeCommand('AssignIssue', {
       )
   },
 })
-
-export const EffectsLayer = Layer.mergeAll(
-  LoadWorkspace.layer,
-  NavigateInternal.layer,
-  LoadExternal.layer,
-  ReplaceInternalUrl.layer,
-  SimulateSaveFailure.layer,
-  MoveIssue.layer,
-  AppendActivity.layer,
-  AssignIssue.layer,
-)

@@ -757,15 +757,19 @@ export const formatMountList = (mounts: ReadonlyArray<PendingMount>): string =>
   })
 
 /** Resolves the first pending Mount that matches the given matcher and feeds
- *  its result through update, folding the matched Mount's Block-boundary
- *  chain over `resultMessage` first. Returns `undefined` when no pending Mount
- *  matches. Definition matchers select the source; Instance matchers also
- *  select their bound path and args. */
+ *  its result through update using the acquisition's delivery function when
+ *  supplied, or its captured Block-boundary chain otherwise. Returns `undefined`
+ *  when no pending Mount matches. Definition matchers select the source;
+ *  Instance matchers also select their bound path and args. */
 export const resolveMountByMatcher = <Model, Message>(
   internal: BaseInternal<Model, Message, unknown>,
   pendingMounts: ReadonlyArray<PendingMount>,
   matcher: MountMatcher,
   resultMessage: unknown,
+  deliver?: (
+    mount: PendingMount,
+    message: unknown,
+  ) => ReadonlyArray<unknown> | undefined,
 ):
   | Readonly<{
       internal: BaseInternal<Model, Message, unknown>
@@ -782,7 +786,12 @@ export const resolveMountByMatcher = <Model, Message>(
         Option.map(matchedMount => {
           const remaining = Array.remove(pendingMounts, index)
           return {
-            internal: applyMountMessage(internal, matchedMount, resultMessage),
+            internal: applyMountMessage(
+              internal,
+              matchedMount,
+              resultMessage,
+              deliver,
+            ),
             pendingMounts: remaining,
           }
         }),
@@ -791,17 +800,29 @@ export const resolveMountByMatcher = <Model, Message>(
     Option.getOrUndefined,
   )
 
-/** Applies a selected Mount's raw result through its captured boundary chain. */
+/** Applies one root Message from a Mount's delivery function or mapper fallback. */
 export const applyMountMessage = <Model, Message, OutMessage>(
   internal: BaseInternal<Model, Message, OutMessage>,
   mount: PendingMount,
   resultMessage: unknown,
+  deliver?: (
+    mount: PendingMount,
+    message: unknown,
+  ) => ReadonlyArray<unknown> | undefined,
 ): BaseInternal<Model, Message, OutMessage> => {
+  const messages = deliver?.(mount, resultMessage) ?? [
+    foldMessageMappers(mount.messageMappers, resultMessage),
+  ]
+  if (messages.length === 0) {
+    return internal
+  }
+  if (messages.length !== 1) {
+    throw new Error(
+      '[foldkit] A Mount result must dispatch exactly one root Message.',
+    )
+  }
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  const message = foldMessageMappers(
-    mount.messageMappers,
-    resultMessage,
-  ) as Message
+  const message = messages[0] as Message
   const messageUpdate = internal.updateFn(internal.model, message)
 
   return {

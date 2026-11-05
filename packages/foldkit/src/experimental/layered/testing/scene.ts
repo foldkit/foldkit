@@ -1,4 +1,4 @@
-import { type Effect, type Layer, Predicate } from 'effect'
+import { Effect, type Layer, Predicate, Scope } from 'effect'
 
 import type {
   DeclaredRootBlock,
@@ -6,6 +6,8 @@ import type {
   SelectedLayeredRoot,
 } from '../../../runtime/rootBlock.js'
 import * as CoreScene from '../../../test/scene.js'
+import { SceneHostTypeId, makeSceneHost } from '../../../test/sceneHost.js'
+import { sceneGraphOf } from '../../../test/testGraph.js'
 import type { Url } from '../../../url/index.js'
 import type { FactsOf, ViewContract } from '../../constructed/contract.js'
 import { resolveInMessageSteps } from './inMessage.js'
@@ -186,34 +188,43 @@ export function scene(
   initial: unknown,
   ...steps: ReadonlyArray<unknown>
 ): Effect.Effect<unknown, unknown, unknown> {
-  const run = (block: object) => {
-    const view = Reflect.get(block, 'view')
+  const run = (block: object) =>
+    Effect.gen(function* () {
+      const graph = sceneGraphOf(block)
+      if (graph === undefined) {
+        throw new Error('[foldkit] A Scene requires an acquired Block graph.')
+      }
+      const host = makeSceneHost(graph, yield* Effect.context<Scope.Scope>())
+      const view = Reflect.get(block, 'view')
 
-    if (!Predicate.isFunction(view)) {
-      throw new Error('[foldkit] A Scene requires a Block with a default view.')
-    }
+      if (!Predicate.isFunction(view)) {
+        throw new Error(
+          '[foldkit] A Scene requires a Block with a default view.',
+        )
+      }
 
-    const inputs: unknown =
-      'block' in subject ? Reflect.get(subject, 'viewInputs') : undefined
-    const isViewInputsSupplied = 'block' in subject && 'viewInputs' in subject
-    const render = isViewInputsSupplied
-      ? (model: unknown, html: unknown): unknown =>
-          Reflect.apply(view, undefined, [model, inputs, html])
-      : view
+      const inputs: unknown =
+        'block' in subject ? Reflect.get(subject, 'viewInputs') : undefined
+      const isViewInputsSupplied = 'block' in subject && 'viewInputs' in subject
+      const render = isViewInputsSupplied
+        ? (model: unknown, html: unknown): unknown =>
+            Reflect.apply(view, undefined, [model, inputs, html])
+        : view
 
-    Reflect.apply(CoreScene.scene, undefined, [
-      {
-        update: subjectUpdate(subject, block),
-        view: render,
-        subscriptions: Reflect.get(block, 'subscriptions'),
-        ...('block' in subject
-          ? { routing: Reflect.get(subject, 'routing') }
-          : {}),
-      },
-      initialStep(block, initial, CoreScene.__givenInit),
-      ...resolveInMessageSteps(steps, subjectInMessageUpdate(subject, block)),
-    ])
-  }
+      Reflect.apply(CoreScene.scene, undefined, [
+        {
+          [SceneHostTypeId]: host,
+          update: subjectUpdate(subject, block),
+          view: render,
+          subscriptions: Reflect.get(block, 'subscriptions'),
+          ...('block' in subject
+            ? { routing: Reflect.get(subject, 'routing') }
+            : {}),
+        },
+        initialStep(block, initial, CoreScene.__givenInit),
+        ...resolveInMessageSteps(steps, subjectInMessageUpdate(subject, block)),
+      ])
+    })
 
   if ('layer' in subject) {
     return withBlock(subject, run)

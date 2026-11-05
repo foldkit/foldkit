@@ -1,3 +1,3 @@
-export { CommentComposerBlock } from './definition'
-export { layer } from './block'
+export { CommentComposerBlock } from './block'
+export { layer } from './layer'
 export { isDraftNonEmpty } from './draft'

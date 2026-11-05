@@ -2,9 +2,9 @@ import { Match, Number } from 'effect'
 import { Validating, validate } from 'foldkit/fieldValidation'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep } from './block'
 import { ValidateEmailAsync } from './command'
 import { PersonalInfoComposition } from './composition'
-import { makeFieldsStep } from './definition'
 import {
   emailRules,
   firstNameRules,

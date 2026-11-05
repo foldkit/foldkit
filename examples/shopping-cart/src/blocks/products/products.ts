@@ -4,15 +4,15 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Item } from '../../domain'
 import { productsRouter } from '../../route'
-import { ProductsComposition } from './composition'
 import {
   Message,
   Model,
   OutMessage,
-  ProductsBlock,
+  makeCommand,
   makeNoopStep,
   makeOutMessageStep,
-} from './definition'
+} from './block'
+import { ProductsComposition } from './composition'
 
 export const init = ProductsComposition.makeInit(
   (products: ReadonlyArray<Item.Item>) => ({
@@ -20,7 +20,7 @@ export const init = ProductsComposition.makeInit(
   }),
 )
 
-export const ReplaceSearchUrl = ProductsBlock.makeCommand('ReplaceSearchUrl', {
+export const ReplaceSearchUrl = makeCommand('ReplaceSearchUrl', {
   args: { url: Schema.String },
   messages: [Message.CompletedReplaceSearchUrl],
   handler: function* () {

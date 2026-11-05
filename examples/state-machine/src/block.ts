@@ -1,26 +1,22 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+import { Message } from './message'
+import { Model } from './model'
 
-import { EffectsLayer } from './command'
-import { EditionRadioGroupBinding } from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+  Model,
+  Message,
+})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const editionRadioGroup = yield* EditionRadioGroupBinding
-
-    return {
-      children: [editionRadioGroup],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeOutMessageFold,
+  makeStep,
+} = ApplicationBlock

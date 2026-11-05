@@ -1,9 +1,9 @@
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep } from './block'
 import { FetchWeather } from './command'
 import { ApplicationComposition } from './composition'
-import { makeFieldsStep } from './definition'
 import { WeatherAsyncData } from './model'
 
 export const update = ApplicationComposition.makeUpdate({

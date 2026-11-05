@@ -265,8 +265,20 @@ const fetchResponse = (
     const webRequest = yield* HttpServerRequest.toWeb(request, { signal })
     // NOTE: A rejected Fetch handler promise is an unhandled application
     // defect. Expected application failures should be returned as Responses.
-    const response = yield* Effect.promise(() =>
-      app.fetch(new Request(requestUrl, webRequest)),
+    const { response, cancelBody } = yield* Effect.promise(() =>
+      app.fetch(new Request(requestUrl, webRequest)).then(response => {
+        const cancelBody = () => {
+          void response.body?.cancel().catch(() => undefined)
+        }
+
+        if (signal.aborted) {
+          cancelBody()
+        } else if (response.body !== null) {
+          signal.addEventListener('abort', cancelBody, { once: true })
+        }
+
+        return { response, cancelBody }
+      }),
     )
     const headers = new Headers(response.headers)
     const setCookieHeaders = headers.getSetCookie()
@@ -303,6 +315,7 @@ const fetchResponse = (
     const destroyBody = () => nodeBody.destroy()
     nodeResponse.once('close', destroyBody)
     nodeBody.once('close', () => nodeResponse.off('close', destroyBody))
+    signal.removeEventListener('abort', cancelBody)
     if (signal.aborted) {
       nodeBody.destroy()
     }

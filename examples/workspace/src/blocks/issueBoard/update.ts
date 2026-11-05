@@ -1,5 +1,5 @@
+import { makeOutMessageStep } from './block'
 import { IssueBoardComposition } from './composition'
-import { makeOutMessageStep } from './definition'
 import { OutMessage } from './outMessage'
 
 export const update = IssueBoardComposition.makeUpdate({

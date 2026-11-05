@@ -4,7 +4,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { AttachmentsBlock, layer } from './block'
+import { AttachmentsBlock, layer } from './index'
 
 describe('attachments', () => {
   it.effect('renders the resume and additional-files drop zones', () =>

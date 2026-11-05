@@ -1,2 +1,3 @@
-export { PersonalInfoBlock, layer } from './block'
+export { PersonalInfoBlock } from './block'
+export { layer } from './layer'
 export { hasErrors, isComplete } from './validation'

@@ -1,6 +1,12 @@
-# Unified Block and direct Layer proof
+# Initial unified Block and direct Layer proof
 
-## Decision
+This report preserves the initial failed prototype and its controls. Later work
+fixed provider validation, the user accepted the measured Workspace compiler
+adjustment, and the repository adopted the unified API. See the
+[adoption report](adoption-20261104.md) and the
+[current preview review](../preview-review-20261105.md) for that subsequent work.
+
+## Decision at this checkpoint
 
 Do not migrate the repository from this prototype. The requested authoring shape
 works in focused consumers, but it fails the required compiler ceilings and one

@@ -1,3 +1,3 @@
-export { UiBlock } from './definition'
-export { layer } from './block'
+export { UiBlock } from './block'
+export { layer } from './layer'
 export * as View from './view'

@@ -1,8 +1,8 @@
 import { Option } from 'effect'
 import { initAndSet } from 'foldkit/bindingInit'
 
+import { makeStep } from './block'
 import { RoomBinding } from './composition'
-import { makeStep } from './definition'
 
 const initRoom = (roomId: string) =>
   makeStep(model =>

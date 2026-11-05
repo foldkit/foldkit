@@ -5,6 +5,7 @@ import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 import { type Url } from 'foldkit/url'
 
+import { makeCommandsStep, makeFieldsStep, makeStep } from '../block'
 import * as Command from '../command'
 import {
   ApiReferenceBinding,
@@ -15,7 +16,6 @@ import {
   SearchBinding,
   ThemeMenuBinding,
 } from '../composition'
-import { makeCommandsStep, makeFieldsStep, makeStep } from '../definition'
 import { findActiveSectionKeyForRoute } from '../docsNav'
 import type { Message } from '../message'
 import { type Model } from '../model'

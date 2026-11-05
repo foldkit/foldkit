@@ -1,6 +1,6 @@
 import { Effect, Match } from 'effect'
 
-import { ApplicationBlock } from './definition'
+import { makeCommand } from './block'
 import { Message, ResolvedTheme } from './message'
 import { LocalStorage } from './storage'
 import { ThemePreference } from './themePreference'
@@ -31,7 +31,10 @@ const setThemeColorMeta = (color: string): void => {
   }
 }
 
-export const ApplyTheme = ApplicationBlock.makeCommand('ApplyTheme', {
+// i think unless there is a good reason not to we should always be importing
+// makeCommand, makeOutMessageFold, etc. directly from the block file instead of
+// exporting ApplicationBlock, and we should be consistent
+export const ApplyTheme = makeCommand('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],
   handler: function* () {
@@ -53,21 +56,18 @@ export const ApplyTheme = ApplicationBlock.makeCommand('ApplyTheme', {
   },
 })
 
-export const SaveThemePreference = ApplicationBlock.makeCommand(
-  'SaveThemePreference',
-  {
-    args: { preference: ThemePreference },
-    messages: [Message.CompletedSaveThemePreference],
-    handler: function* () {
-      const store = yield* LocalStorage
+export const SaveThemePreference = makeCommand('SaveThemePreference', {
+  args: { preference: ThemePreference },
+  messages: [Message.CompletedSaveThemePreference],
+  handler: function* () {
+    const store = yield* LocalStorage
 
-      return ({ preference }) =>
-        store.set(THEME_STORAGE_KEY, JSON.stringify(preference)).pipe(
-          Effect.as(Message.CompletedSaveThemePreference()),
-          Effect.catch(() =>
-            Effect.succeed(Message.CompletedSaveThemePreference()),
-          ),
-        )
-    },
+    return ({ preference }) =>
+      store.set(THEME_STORAGE_KEY, JSON.stringify(preference)).pipe(
+        Effect.as(Message.CompletedSaveThemePreference()),
+        Effect.catch(() =>
+          Effect.succeed(Message.CompletedSaveThemePreference()),
+        ),
+      )
   },
-)
+})

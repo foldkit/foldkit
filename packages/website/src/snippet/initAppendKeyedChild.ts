@@ -1,8 +1,8 @@
 import { Array } from 'effect'
 import { initAndAppend } from 'foldkit/bindingInit'
 
+import { makeStep } from './block'
 import { ProjectSettingsBinding } from './composition'
-import { makeStep } from './definition'
 import { Project } from './domain'
 
 const initProjectSettingsIfMissing = (project: Project) =>

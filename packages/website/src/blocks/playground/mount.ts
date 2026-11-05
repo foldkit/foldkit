@@ -14,9 +14,9 @@ import {
   type EditedPlaygroundFile,
   type FailedMountPlaygroundEditor,
   Message,
-  PlaygroundBlock,
   type SucceededMountPlaygroundEditor,
-} from './definition'
+  makeMountStream,
+} from './block'
 import { reasonFromError } from './playgroundWebContainer'
 
 const monacoLanguageForPath = (path: string): string =>
@@ -145,7 +145,7 @@ const registerPlaygroundModels = (
   files: Readonly<Record<string, string>>,
 ): void => {
   // NOTE: Pre-create Monaco models for every example file so relative imports
-  // between them resolve. Without this, opening `src/application.ts` and
+  // between them resolve. Without this, opening `src/block.ts` and
   // `import './icon'` would fail since Monaco's TS service only sees the files
   // it has models for.
   //
@@ -274,28 +274,25 @@ const streamPlaygroundEditorMessages = (
     ),
   )
 
-export const MountPlaygroundEditor = PlaygroundBlock.makeMountStream(
-  'MountPlaygroundEditor',
-  {
-    args: {
-      path: Schema.String,
-      initialContent: Schema.String,
-      files: Schema.Record(Schema.String, Schema.String),
-    },
-    messages: [
-      Message.SucceededMountPlaygroundEditor,
-      Message.FailedMountPlaygroundEditor,
-      Message.EditedPlaygroundFile,
-    ],
-    handler: function* () {
-      return ({ element, path, initialContent, files, viewStateChanges }) =>
-        streamPlaygroundEditorMessages(
-          element,
-          path,
-          initialContent,
-          files,
-          viewStateChanges,
-        )
-    },
+export const MountPlaygroundEditor = makeMountStream('MountPlaygroundEditor', {
+  args: {
+    path: Schema.String,
+    initialContent: Schema.String,
+    files: Schema.Record(Schema.String, Schema.String),
   },
-)
+  messages: [
+    Message.SucceededMountPlaygroundEditor,
+    Message.FailedMountPlaygroundEditor,
+    Message.EditedPlaygroundFile,
+  ],
+  handler: function* () {
+    return ({ element, path, initialContent, files, viewStateChanges }) =>
+      streamPlaygroundEditorMessages(
+        element,
+        path,
+        initialContent,
+        files,
+        viewStateChanges,
+      )
+  },
+})

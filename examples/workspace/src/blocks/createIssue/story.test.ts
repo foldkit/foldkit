@@ -1,19 +1,15 @@
 import { Effect, Option } from 'effect'
 import {
   Command,
-  type TestBlock,
   expectNoOutMessage,
   expectOutMessage,
-  given,
   inMessage,
   init,
   message,
   messageFrom,
   model,
   story,
-  withBlock,
 } from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -25,25 +21,20 @@ import {
   StatusListboxBlock,
   WorkspaceListboxBlock,
 } from '../../listbox'
-import { layer } from './block'
+import { CreateIssueBlock } from './block'
 import { CreateIssue } from './command'
 import {
   PriorityListboxBinding,
   ProjectListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { CreateIssueBlock } from './definition'
-import { editDraft } from './draft'
 import { InMessage } from './inMessage'
+import { layer } from './layer'
 import { Message } from './message'
-import { CreateState } from './model'
+import { CreateState, type Model } from './model'
 import { OutMessage } from './outMessage'
 
 const createIssueSubject = { block: CreateIssueBlock, layer }
-
-const initModel = (executable: TestBlock<typeof createIssueSubject>) => {
-  return executable.init().model
-}
 
 describe('CreateIssueBlock update', () => {
   it.effect(
@@ -225,95 +216,100 @@ describe('CreateIssueBlock update', () => {
     )
   })
 
-  it.effect('preserves a pending form across close and reopen requests', () => {
-    return withBlock(createIssueSubject, executable => {
-      const initialModel = modifyFields(
-        executable.operations.requestOpen(initModel(executable), {
-          projectId: 'launch',
-          status: 'Backlog',
-        }).model,
-        {
-          title: () => 'A pending issue',
-          createState: () => CreateState.Creating(),
-        },
-      )
-      return story(
-        createIssueSubject,
-        given(initialModel),
-        inMessage(InMessage.RequestedClose()),
-        Command.resolve(
-          DialogTest.CloseDialog,
-          DialogBlock.Message.CompletedCloseDialog(),
-        ),
-        inMessage(
-          InMessage.RequestedOpen({
-            projectId: 'platform',
-            status: 'Done',
-          }),
-        ),
-        Command.resolve(
-          DialogTest.ShowDialog,
-          DialogBlock.Message.SucceededShowDialog(),
-        ),
-        model(model => {
-          expect(model.dialog.isOpen).toBe(true)
-          expect(model.title).toBe('A pending issue')
-          expect(model.projectId).toBe('launch')
-          expect(model.status).toBe('Backlog')
-        }),
-        message(Message.SubmittedIssueForm()),
-        Command.expectNone(),
-      )
-    })
-  })
+  it.effect('preserves a pending form across close and reopen requests', () =>
+    story(
+      createIssueSubject,
+      init(),
+      inMessage(
+        InMessage.RequestedOpen({ projectId: 'launch', status: 'Backlog' }),
+      ),
+      Command.resolve(
+        DialogTest.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
+      message(Message.UpdatedTitle({ value: 'A pending issue' })),
+      message(Message.SubmittedIssueForm()),
+      Command.expectExact(CreateIssue),
+      inMessage(InMessage.RequestedClose()),
+      Command.resolve(
+        DialogTest.CloseDialog,
+        DialogBlock.Message.CompletedCloseDialog(),
+      ),
+      inMessage(
+        InMessage.RequestedOpen({ projectId: 'platform', status: 'Done' }),
+      ),
+      Command.resolve(
+        DialogTest.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
+      model(model => {
+        expect(model.dialog.isOpen).toBe(true)
+        expect(model.title).toBe('A pending issue')
+        expect(model.projectId).toBe('launch')
+        expect(model.status).toBe('Backlog')
+      }),
+      message(Message.SubmittedIssueForm()),
+      Command.expectExact(CreateIssue),
+      Command.resolve(
+        CreateIssue,
+        Message.FailedCreateIssue({ error: 'Offline' }),
+      ),
+      expectNoOutMessage(),
+    ),
+  )
 
   it.effect('ignores every draft edit while creation is pending', () => {
-    return withBlock(createIssueSubject, executable => {
-      const initialModel = modifyFields(initModel(executable), {
-        title: () => 'A pending issue',
-        description: () => 'Keep the submitted description.',
-        createState: () => CreateState.Creating(),
-      })
+    let pendingModel: Model | undefined
 
-      expect(
-        editDraft(model =>
-          modifyFields(model, { title: () => 'A rejected title' }),
-        )(initialModel).model,
-      ).toBe(initialModel)
-      return story(
-        createIssueSubject,
-        given(initialModel),
-        message(Message.UpdatedTitle({ value: 'A different title' })),
-        message(
-          Message.UpdatedDescription({ value: 'A different description' }),
-        ),
-        messageFrom(
-          ProjectListboxBinding,
-          WorkspaceListboxBlock.Message.RequestedSelectItem({
-            item: 'launch',
-          }),
-        ),
-        messageFrom(
-          StatusListboxBinding,
-          StatusListboxBlock.Message.RequestedSelectItem({ item: 'Done' }),
-        ),
-        messageFrom(
-          PriorityListboxBinding,
-          PriorityListboxBlock.Message.RequestedSelectItem({ item: 'High' }),
-        ),
-        model(model => {
-          expect(model).toMatchObject({
-            title: initialModel.title,
-            description: initialModel.description,
-            projectId: initialModel.projectId,
-            status: initialModel.status,
-            priority: initialModel.priority,
-            createState: CreateState.Creating(),
-          })
+    return story(
+      createIssueSubject,
+      init(),
+      inMessage(InMessage.RequestedOpen({ projectId: 'experience' })),
+      Command.resolve(
+        DialogTest.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
+      message(Message.UpdatedTitle({ value: 'A pending issue' })),
+      message(
+        Message.UpdatedDescription({
+          value: 'Keep the submitted description.',
         }),
-        expectNoOutMessage(),
-        Command.expectNone(),
-      )
-    })
+      ),
+      message(Message.SubmittedIssueForm()),
+      model(model => {
+        pendingModel = model
+      }),
+      message(Message.UpdatedTitle({ value: 'A different title' })),
+      model(model => expect(model).toBe(pendingModel)),
+      message(Message.UpdatedDescription({ value: 'A different description' })),
+      messageFrom(
+        ProjectListboxBinding,
+        WorkspaceListboxBlock.Message.RequestedSelectItem({ item: 'launch' }),
+      ),
+      messageFrom(
+        StatusListboxBinding,
+        StatusListboxBlock.Message.RequestedSelectItem({ item: 'Done' }),
+      ),
+      messageFrom(
+        PriorityListboxBinding,
+        PriorityListboxBlock.Message.RequestedSelectItem({ item: 'High' }),
+      ),
+      model(model => {
+        expect(model).toMatchObject({
+          title: 'A pending issue',
+          description: 'Keep the submitted description.',
+          projectId: 'experience',
+          status: 'Todo',
+          priority: 'Medium',
+          createState: CreateState.Creating(),
+        })
+      }),
+      expectNoOutMessage(),
+      Command.expectExact(CreateIssue),
+      Command.resolve(
+        CreateIssue,
+        Message.FailedCreateIssue({ error: 'Offline' }),
+      ),
+    )
   })
 })

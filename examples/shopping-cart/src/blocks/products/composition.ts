@@ -1,3 +1,3 @@
-import { ProductsBlock } from './definition'
+import { makeComposition } from './block'
 
-export const ProductsComposition = ProductsBlock.makeComposition()
+export const ProductsComposition = makeComposition()

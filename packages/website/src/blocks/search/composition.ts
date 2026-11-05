@@ -2,21 +2,26 @@ import type { Block } from 'foldkit'
 
 import { DialogBlock } from '@foldkit/ui/dialog'
 
+import {
+  makeBinding,
+  makeComposition,
+  makeNoopStep,
+  makeOutMessageFold,
+} from './block'
 import { clearSearchQuery } from './clear'
-import { SearchBlock, makeNoopStep } from './definition'
 
-export const DialogBinding = SearchBlock.makeBinding(DialogBlock, {
+export const DialogBinding = makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'search-dialog' }] },
 }).withOutMessagePolicy({
-  fold: SearchBlock.makeOutMessageFold(DialogBlock, {
+  fold: makeOutMessageFold(DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: () => clearSearchQuery,
   }),
 })
 
-export const SearchComposition = SearchBlock.makeComposition({
+export const SearchComposition = makeComposition({
   bindings: [DialogBinding],
 })
 export type SearchViewBuilder = Block.ViewBuilderFor<typeof SearchComposition>

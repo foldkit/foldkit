@@ -1,25 +1,22 @@
-import { Effect, Layer } from 'effect'
+import { Block } from 'foldkit'
+import type { Url } from 'foldkit/url'
 
-import { Counter } from './blocks'
-import { EffectsLayer } from './command'
-import { CounterBinding } from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const counter = yield* CounterBinding
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Block.makeInputContract<readonly [url: Url]>(),
+  view: { kind: 'Document' },
+  Model,
+  Message,
+})
 
-    return {
-      children: [counter],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(Counter.layer)))
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+} = ApplicationBlock

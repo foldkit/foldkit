@@ -1,11 +1,13 @@
-import { Effect, Option, pipe } from 'effect'
+import { Option, pipe } from 'effect'
 import { Calendar, Url } from 'foldkit'
-import { expect, given, role, scene, selector, type } from 'foldkit/scene'
-import { type TestBlock, withBlock } from 'foldkit/story'
-import { describe, test } from 'vitest'
+import { expect, init, role, scene, selector, type } from 'foldkit/scene'
+import { describe } from 'vitest'
 
-import { ApplicationBlock, layer } from '../../block'
+import { it } from '@effect/vitest'
+
 import { Deployment } from '../../deployment'
+import { ApplicationBlock, layer } from '../../index'
+import { resolveApiData, resolveBrowserStartup } from '../../scene.fixture'
 
 const application = { block: ApplicationBlock, layer }
 
@@ -22,36 +24,27 @@ const flags = {
   maybeExampleSources: Option.none(),
 }
 
-const makeFixture = (block: TestBlock<typeof application>) => {
-  const init = block.init
-  const update = block.update
-  const view = block.view
-
-  return { block, init, update, view }
-}
-
 describe('newsletter', () => {
-  test('the email field reflects input while the form uses native submission', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { init, update, view } = makeFixture(executable)
+  it.effect(
+    'the email field reflects input while the form uses native submission',
+    () => {
+      const emailField = role('textbox', { name: 'Email address' })
 
-        const emailField = role('textbox', { name: 'Email address' })
-
-        scene(
-          { update, view },
-          given(init(flags, url).model),
-          expect(selector('form')).toHaveAttr(
-            'action',
-            'https://buttondown.com/api/emails/embed-subscribe/foldkit',
-          ),
-          expect(selector('form')).toHaveAttr('method', 'post'),
-          expect(selector('form')).toHaveAttr('target', 'popupwindow'),
-          expect(emailField).toHaveValue(''),
-          type(emailField, 'alice@example.com'),
-          expect(emailField).toHaveValue('alice@example.com'),
-        )
-      }),
-    )
-  })
+      return scene(
+        application,
+        init(flags, url),
+        resolveBrowserStartup(flags),
+        resolveApiData,
+        expect(selector('form')).toHaveAttr(
+          'action',
+          'https://buttondown.com/api/emails/embed-subscribe/foldkit',
+        ),
+        expect(selector('form')).toHaveAttr('method', 'post'),
+        expect(selector('form')).toHaveAttr('target', 'popupwindow'),
+        expect(emailField).toHaveValue(''),
+        type(emailField, 'alice@example.com'),
+        expect(emailField).toHaveValue('alice@example.com'),
+      )
+    },
+  )
 })

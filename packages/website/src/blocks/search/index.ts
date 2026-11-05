@@ -1,1 +1,2 @@
-export { SearchBlock, layer } from './block'
+export { SearchBlock } from './block'
+export { layer } from './layer'

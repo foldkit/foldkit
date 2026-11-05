@@ -1,6 +1,6 @@
 import { revealFieldErrors } from '../../../../step/validation'
+import { makeFieldsStep } from './block'
 import { EducationEntryComposition } from './composition'
-import { makeFieldsStep } from './definition'
 import { degreeRules, fieldOfStudyRules, schoolRules } from './validation'
 
 export const inMessageUpdate = EducationEntryComposition.makeInMessageUpdate({

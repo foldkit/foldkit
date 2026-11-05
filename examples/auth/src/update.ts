@@ -3,6 +3,7 @@ import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
+import { makeCommandsStep, makeNoopStep } from './block'
 import {
   LoadExternal,
   LogError,
@@ -11,7 +12,6 @@ import {
   RedirectToLogin,
 } from './command'
 import { ApplicationComposition } from './composition'
-import { makeCommandsStep, makeNoopStep } from './definition'
 import { urlToApplicationRoute } from './route'
 
 export const update = ApplicationComposition.makeUpdate({

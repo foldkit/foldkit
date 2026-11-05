@@ -5,11 +5,11 @@ import { view as buttonView } from '@foldkit/ui/button'
 
 import { ProficiencyLevel } from '../../../../domain'
 import { Field } from '../../../../view'
+import { Message } from './block'
 import {
   ProficiencyRadioGroupBinding,
   SkillsEntryComposition,
 } from './composition'
-import { Message } from './definition'
 
 export const view = SkillsEntryComposition.makeView((model, h) => {
   const nameView = Field.input(

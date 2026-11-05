@@ -1,51 +1,29 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { KeyValueStore } from 'effect/persistence'
+import { Block } from 'foldkit'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
-import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+import { Flags } from './flags'
+import { Message } from './message'
+import { Model } from './model'
 
-import {
-  ErrorDialogBinding,
-  GridSizeConfirmDialogBinding,
-  GridSizeRadioGroupBinding,
-  PaletteRadioGroupBinding,
-  ThemeListboxBinding,
-  ToolRadioGroupBinding,
-} from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view'
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([Flags]),
+  view: { kind: 'Document' },
+  effects: { services: [KeyValueStore.KeyValueStore] },
+  Model,
+  Message,
+})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const errorDialog = yield* ErrorDialogBinding
-    const themeListbox = yield* ThemeListboxBinding
-    const gridSizeConfirmDialog = yield* GridSizeConfirmDialogBinding
-    const toolRadioGroup = yield* ToolRadioGroupBinding
-    const gridSizeRadioGroup = yield* GridSizeRadioGroupBinding
-    const paletteRadioGroup = yield* PaletteRadioGroupBinding
-
-    return {
-      children: [
-        errorDialog,
-        themeListbox,
-        gridSizeConfirmDialog,
-        toolRadioGroup,
-        gridSizeRadioGroup,
-        paletteRadioGroup,
-      ],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-).pipe(
-  Layer.provide(Layer.mergeAll(DialogLayer, ListboxLayer, RadioGroupLayer)),
-)
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+  makeSubscriptions,
+} = ApplicationBlock

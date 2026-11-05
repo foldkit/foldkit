@@ -1,10 +1,10 @@
 import { Effect, Schema, Stream } from 'effect'
 import { Dom } from 'foldkit'
 
-import { ApplicationBlock } from './definition'
+import { makeSubscriptions } from './block'
 import { Message } from './message'
 
-export const subscriptions = ApplicationBlock.makeSubscriptions(entry => ({
+export const subscriptions = makeSubscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },

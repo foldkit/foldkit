@@ -8,14 +8,14 @@ import {
   StatusListboxBlock,
   WorkspaceListboxBlock,
 } from '../../listbox'
-import { CommentComposerBlock } from './blocks'
 import {
   makeBinding,
   makeComposition,
   makeNoopStep,
   makeOutMessageFold,
   makeOutMessageStep,
-} from './definition'
+} from './block'
+import { CommentComposerBlock } from './blocks'
 import { decodeAssigneeSelection } from './field'
 import { OutMessage } from './outMessage'
 import { editDraft } from './steps'

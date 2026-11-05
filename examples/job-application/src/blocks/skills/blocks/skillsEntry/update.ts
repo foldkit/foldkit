@@ -1,7 +1,7 @@
 import { validate } from 'foldkit/fieldValidation'
 
+import { OutMessage, makeFieldsStep, makeOutMessageStep } from './block'
 import { SkillsEntryComposition } from './composition'
-import { OutMessage, makeFieldsStep, makeOutMessageStep } from './definition'
 import { nameRules } from './validation'
 
 const validateName = validate(nameRules)

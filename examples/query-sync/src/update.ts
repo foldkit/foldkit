@@ -2,9 +2,9 @@ import { Option, String } from 'effect'
 import { UrlRequest } from 'foldkit/navigation'
 import { toString as urlToString } from 'foldkit/url'
 
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './block'
 import { LoadExternal, NavigateInternal, ReplaceFilters } from './command'
 import { ApplicationComposition } from './composition'
-import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import {
   nextSorting,
   routeToBrowseFields,

@@ -4,7 +4,7 @@ import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 it.effect(
   'loading a user: the Command fires, resolves, the Model lands on Success',

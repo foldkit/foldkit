@@ -1,7 +1,7 @@
-import { ApplicationBlock } from '../definition'
+import { makeComposition } from '../block'
 import { LoggedInBinding } from './loggedIn'
 import { LoggedOutBinding } from './loggedOut'
 
-export const ApplicationComposition = ApplicationBlock.makeComposition({
+export const ApplicationComposition = makeComposition({
   bindings: [LoggedOutBinding, LoggedInBinding],
 })

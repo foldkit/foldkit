@@ -41,7 +41,7 @@ The exact files depend on the rendering mode and starter example. The small brow
 
 The Counter starter begins with these files:
 
-- `src/application.ts`: the typed Application and its implementation pieces
+- `src/block.ts`: the typed Application and its implementation pieces
 - `src/entry.ts`: runtime bootstrap referenced by `index.html`
 - `src/styles.css`: Tailwind CSS entry point
 - `index.html`: HTML entry point
@@ -53,7 +53,7 @@ The Counter starter begins with these files:
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
-In a small starter, `src/application.ts` declares `ApplicationBlock` with a stable unique key, Model, Message, initialization inputs, and view contract. It creates `ApplicationComposition`, authors init, update, and view through that Composition, and completes its construction `layer` with `ApplicationBlock.makeLayer`. Local Commands and lifecycle declarations stay with their implementation. Larger examples split those responsibilities into named files.
+In a small starter, `src/block.ts` declares `ApplicationBlock` with a stable unique key, Model, Message, initialization inputs, and view contract. It creates `ApplicationComposition`, authors init, update, and view through that Composition, and completes its construction `layer` with `ApplicationBlock.makeLayer`. Local Commands and lifecycle declarations stay with their implementation. Larger examples split those responsibilities into named files.
 
 ### Runtime Entry
 

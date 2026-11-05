@@ -2,9 +2,9 @@ import { Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url, toString as urlToString } from 'foldkit/url'
 
+import { makeFieldsStep, makeNoopStep } from './block'
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition, UiModelBinding } from './composition'
-import { makeFieldsStep, makeNoopStep } from './definition'
 import { urlToApplicationRoute } from './route'
 
 const setRoute = (url: Url) =>

@@ -15,8 +15,8 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { GenerateTodo, SaveTodos } from './command'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { EditingState, type Model } from './model'
 

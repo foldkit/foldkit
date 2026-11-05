@@ -4,13 +4,13 @@ import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from '../block'
 import * as Command from '../command'
 import {
   ApplicationComposition,
   MobileMenuDialogBinding,
   SearchBinding,
 } from '../composition'
-import { makeCommandsStep, makeFieldsStep, makeNoopStep } from '../definition'
 import { isPlaygroundRoute, urlToApplicationRoute } from '../route'
 import { ApplyTheme, resolveTheme } from '../theme'
 import { handleChangedUrl } from './handleChangedUrl'

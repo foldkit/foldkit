@@ -3,13 +3,19 @@ import type { Block } from 'foldkit'
 
 import { FileDropBlock } from '@foldkit/ui/fileDrop'
 
-import { AttachmentsBlock, makeFieldsStep, makeNoopStep } from './definition'
+import {
+  makeBinding,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+} from './block'
 
-export const ResumeDropBinding = AttachmentsBlock.makeBinding(FileDropBlock, {
+export const ResumeDropBinding = makeBinding(FileDropBlock, {
   field: 'resumeDrop',
   init: { contextToArgs: () => [{ id: 'attachments-resume' }] },
 }).withOutMessagePolicy({
-  fold: AttachmentsBlock.makeOutMessageFold(FileDropBlock, {
+  fold: makeOutMessageFold(FileDropBlock, {
     ReceivedFiles: ({ files }) =>
       makeFieldsStep(() => ({
         maybeResume: maybeResume =>
@@ -19,14 +25,11 @@ export const ResumeDropBinding = AttachmentsBlock.makeBinding(FileDropBlock, {
   }),
 })
 
-export const AdditionalFilesDropBinding = AttachmentsBlock.makeBinding(
-  FileDropBlock,
-  {
-    field: 'additionalFilesDrop',
-    init: { contextToArgs: () => [{ id: 'attachments-additional' }] },
-  },
-).withOutMessagePolicy({
-  fold: AttachmentsBlock.makeOutMessageFold(FileDropBlock, {
+export const AdditionalFilesDropBinding = makeBinding(FileDropBlock, {
+  field: 'additionalFilesDrop',
+  init: { contextToArgs: () => [{ id: 'attachments-additional' }] },
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(FileDropBlock, {
     ReceivedFiles: ({ files }) =>
       makeFieldsStep(() => ({
         additionalFiles: Array.appendAll(files),
@@ -35,7 +38,7 @@ export const AdditionalFilesDropBinding = AttachmentsBlock.makeBinding(
   }),
 })
 
-export const AttachmentsComposition = AttachmentsBlock.makeComposition({
+export const AttachmentsComposition = makeComposition({
   bindings: [ResumeDropBinding, AdditionalFilesDropBinding],
 })
 export type AttachmentsViewBuilder = Block.ViewBuilderFor<

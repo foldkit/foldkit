@@ -1,9 +1,9 @@
 import { Dom } from 'foldkit'
 
-import { CommandPaletteBlock } from './definition'
+import { makeSubscriptions } from './block'
 import { Message } from './message'
 
-export const subscriptions = CommandPaletteBlock.makeSubscriptions(entry => ({
+export const subscriptions = makeSubscriptions(entry => ({
   openShortcut: entry('OpenShortcut', {
     messages: [Message.PressedOpenShortcut],
     handler: function* () {

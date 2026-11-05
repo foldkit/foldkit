@@ -1,26 +1,28 @@
-import { Effect, Layer } from 'effect'
+import { KeyValueStore } from 'effect/persistence'
+import { Block } from 'foldkit'
+import type { Url } from 'foldkit/url'
 
-import { Home, Room } from './blocks'
-import { HomeBinding, MaybeRoomInstanceBinding } from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
+import { RoomsClient } from './rpc'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const home = yield* HomeBinding
-    const room = yield* MaybeRoomInstanceBinding
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Block.makeInputContract<readonly [url: Url]>(),
+  view: { kind: 'Document' },
+  effects: { services: [RoomsClient, KeyValueStore.KeyValueStore] },
+  Model,
+  Message,
+})
 
-    return {
-      children: [home, room],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(Home.layer, Room.layer)))
-
-export { ApplicationBlock }
+export const {
+  makeBinding,
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+} = ApplicationBlock

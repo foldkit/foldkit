@@ -6,7 +6,7 @@ import {
   makeRules,
 } from 'foldkit/fieldValidation'
 
-import type { Model } from './definition'
+import type { Model } from './block'
 
 export const firstNameRules = makeRules({
   required: 'First name is required',

@@ -3,13 +3,13 @@ import { Update } from 'foldkit'
 import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 
-import { LoadCatalog, LoadPainting, SaveDraft } from './command'
 import {
   makeCommandsStep,
   makeFieldsStep,
   makeNoopStep,
   makeStep,
-} from './definition'
+} from './block'
+import { LoadCatalog, LoadPainting, SaveDraft } from './command'
 import { type LoggedTransition, PaintingStatus } from './model'
 import { type ApplicationRoute } from './route'
 

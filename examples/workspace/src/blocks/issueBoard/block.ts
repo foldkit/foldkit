@@ -1,26 +1,28 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as DragAndDropLayer } from '@foldkit/ui/dragAndDrop'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
+import { ViewInputs } from './viewInputs'
 
-import { DragAndDropBinding } from './composition'
-import { IssueBoardBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+export const IssueBoardKey = Symbol('IssueBoard')
+export const IssueBoardBlock = Block.make('IssueBoard', {
+  key: IssueBoardKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element', Inputs: ViewInputs },
+  Model,
+  Message,
+  InMessage,
+  OutMessage,
+})
 
-export const layer = IssueBoardBlock.makeLayer(
-  Effect.gen(function* () {
-    const dragAndDrop = yield* DragAndDropBinding
-
-    return {
-      children: [dragAndDrop],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-    }
-  }),
-).pipe(Layer.provide(DragAndDropLayer))
-
-export { IssueBoardBlock } from './definition'
+export const {
+  makeBinding,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeOutMessageStep,
+} = IssueBoardBlock

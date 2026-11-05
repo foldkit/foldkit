@@ -10,7 +10,6 @@ import { FileDropBlock } from '@foldkit/ui/fileDrop'
 import { test as MenuTest } from '@foldkit/ui/menu'
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { ApplicationBlock, layer } from './block'
 import {
   CoverLetterBlock,
   EducationBlock,
@@ -30,6 +29,7 @@ import {
   StepTabsBinding,
   WorkHistoryBinding,
 } from './composition'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { Submission } from './model'
 import { it } from './model.fixture'

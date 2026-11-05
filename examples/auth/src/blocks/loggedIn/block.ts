@@ -1,19 +1,19 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { LoggedInBlock } from './composition'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { Session } from '../../domain/session'
+import { LoggedInRoute } from '../../route'
+import { Message, OutMessage } from './message'
+import { Model } from './model'
 
-export const layer = LoggedInBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const LoggedInKey = Symbol('LoggedIn')
+export const LoggedInBlock = Block.make('LoggedIn', {
+  key: LoggedInKey,
+  Init: Schema.Tuple([LoggedInRoute, Session]),
+  view: { kind: 'Element' },
+  Model,
+  Message,
+  OutMessage,
+})
 
-export { LoggedInBlock } from './composition'
+export const { makeComposition, makeOutMessageStep } = LoggedInBlock

@@ -1,9 +1,9 @@
 import { Array, Option, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep, makeNoopStep } from './block'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { ApplicationComposition } from './composition'
-import { makeFieldsStep, makeNoopStep } from './definition'
 import { Column } from './domain'
 
 export const update = ApplicationComposition.makeUpdate({

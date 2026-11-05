@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "measured-artifact-summary",
+  "candidateCommit": "75a3990d55302c163a6d56282d43e33fc34a6a0b",
+  "sourceHead": "75a3990d55302c163a6d56282d43e33fc34a6a0b",
+  "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "frozenAt": "2026-11-05T06:03:52.812Z",
+  "fullArtifactReceipt": {
+    "file": "/private/tmp/foldkit-final-preview-rendering-20261105/final-artifact-receipt.json",
+    "sha256": "3332f74b52ed978dd986c4e434cb714a52b63a781d2b98ab5221cd20f2fb311b",
+    "bytes": 692057
+  },
+  "sourceSnapshot": {
+    "root": "/private/tmp/foldkit-final-preview-rendering-20261105/candidate",
+    "inputCount": 1837,
+    "sha256": "f32c11c9fb3baa18359ef9b8a3bbdc001d498c57c514a6fe60197f15cda76600",
+    "committedSourceGitBlobChecksPassed": true
+  },
+  "distributionChecks": [
+    {
+      "component": "foldkit",
+      "canonicalRoot": "/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit",
+      "frozenRoot": "/private/tmp/foldkit-final-preview-rendering-20261105/candidate/packages/foldkit",
+      "fileCount": 1132,
+      "sha256": "22f002ab19cf6360679c28ff4a4c0c88f58f487e990f1aff89b6d563fd9599c2"
+    },
+    {
+      "component": "vite-plugin-foldkit",
+      "canonicalRoot": "/private/tmp/foldkit-unified-recovery-20261103/packages/vite-plugin-foldkit",
+      "frozenRoot": "/private/tmp/foldkit-final-preview-rendering-20261105/candidate/packages/vite-plugin-foldkit",
+      "fileCount": 37,
+      "sha256": "407a802702eb6b25627e610d99016b7e88ad1c83d58912fb3f3acbaafb8b4a70"
+    }
+  ],
+  "mainSource": {
+    "commit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+    "sha256": "c61a90fcff22ad4b0fada3f48c99e119462451862a40bbb27aa1f8aeeea0d658",
+    "gitBlobChecksPassed": true,
+    "fileCount": 349
+  },
+  "harness": {
+    "root": "/private/tmp/foldkit-final-preview-rendering-20261105/harness",
+    "revision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+    "archiveSha256": "adfd6db46d989745a5c4b6a7bfe80deaa3943d4bf2185c8e2fd78c11657f0541",
+    "trackedFileCount": 162,
+    "trackedFilesSha256": "a9e4e465f6ea603414633417baf964bafc5e37de63aeef2e7457f00a949d160a",
+    "userHarnessUnmodified": true
+  },
+  "driver": {
+    "root": "/private/tmp/foldkit-final-preview-rendering-20261105/driver",
+    "files": {
+      "run.mjs": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0",
+      "runner.html": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1",
+      "verify.mjs": "8b85d2c9a8695bfcc6d3cb2de4a89cee332550bb08f63381d62d1276528d4cd9",
+      "package.json": "6dc1b06d6b093e9cccb20bee06a93836eee0420ae26803ca2ce4065d82f070d1",
+      "install.mjs": "909827f1f1f4570c90f7e97df9b17515a62be144a08c89752a7bf54f237c4215",
+      "server.mjs": "fb76bfaf628dd7ecd9932c008604b566a0cafaa20fc9f88f8f35bfa3ac980398"
+    }
+  },
+  "slots": {
+    "foldkit-main": {
+      "role": "main-naive",
+      "files": [
+        {
+          "file": "assets/index-DN9U5aN7.js",
+          "sha256": "d3e37e9f695531f98727dadc3ead8bddd4b0bdb93f52b64029880c3d7a78adb4",
+          "bytes": 304187,
+          "gzipBytes": 99031
+        },
+        {
+          "file": "index.html",
+          "sha256": "88423c577762fde0c3243d17a5a6874a938ae913d260b29aa279ad3f7b1d223b",
+          "bytes": 678,
+          "gzipBytes": 381
+        }
+      ]
+    },
+    "foldkit-preview-final": {
+      "role": "candidate-naive",
+      "files": [
+        {
+          "file": "assets/index-Dxo-PsiJ.js",
+          "sha256": "5092f0dbdba1e0dd8abce852d10a34408c94f03e8bbe61b2d73d3e02d95ba7e0",
+          "bytes": 462770,
+          "gzipBytes": 143124
+        },
+        {
+          "file": "index.html",
+          "sha256": "2b2dc84be05991e7ceba2c46f0899d9b65f7e6e07637d81d6ecfa6b48e475bcc",
+          "bytes": 678,
+          "gzipBytes": 380
+        }
+      ]
+    },
+    "foldkit-main-optimised": {
+      "role": "main-optimized",
+      "files": [
+        {
+          "file": "assets/index.optimised-UkWhNSKN.js",
+          "sha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+          "bytes": 306590,
+          "gzipBytes": 99741
+        },
+        {
+          "file": "index.html",
+          "sha256": "14df3403d117b54927b7a9af43be15d67f365dceb3d1ab1c335e7611b9fb5027",
+          "bytes": 700,
+          "gzipBytes": 394
+        }
+      ]
+    },
+    "foldkit-preview-final-optimised": {
+      "role": "candidate-optimized",
+      "files": [
+        {
+          "file": "assets/index.optimised-DoU6Z_oF.js",
+          "sha256": "df62dcee69b0c37bb8152a28ca2ef0df3bacfc91c052497d87aa8f0e2a3ec2fc",
+          "bytes": 469373,
+          "gzipBytes": 144454
+        },
+        {
+          "file": "index.html",
+          "sha256": "f66d735bcdfba49fc10d307efd8ac798238c6d6b7da2ed776b64489ea609b197",
+          "bytes": 700,
+          "gzipBytes": 394
+        }
+      ]
+    }
+  },
+  "adapter": "The identical Todo workload and optimized view use each branch\u2019s existing completion API. Main uses Runtime.makeApplication; the candidate uses Block.make/makeLayer and a Program pair. Each optimized slot renames only its HTML entry to index.html for the unchanged driver.",
+  "toolchain": {
+    "node": "v22.22.3",
+    "typescript": "7.1.0-beta",
+    "vite": "8.3.5",
+    "effect": "4.1.0",
+    "playwright": "1.63.0"
+  },
+  "baselineReuse": {
+    "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+    "sourceGitBlobChecksPassed": true,
+    "reusedBuildRoot": "/private/tmp/foldkit-unified-rendering-20261104/main",
+    "sourceCopyRoot": "/private/tmp/foldkit-final-preview-rendering-20261105/main",
+    "priorArtifactReceipt": "/private/tmp/foldkit-unified-rendering-20261104/final-artifact-receipt.json",
+    "priorArtifactReceiptSha256": "64a62dc2fe1c1857e24834ca06fc6b815f599be43dcddd21e637c7c2d3c409e2",
+    "limitations": [
+      "Reuses the previously built and independently reviewed actual-main artifacts; no independent fresh install or baseline rebuild."
+    ]
+  },
+  "workloadSource": [
+    {
+      "file": "internal/lustre-benchmark/src/application.optimised.ts",
+      "sha256": "82aca2351e2d2d6327402b551f6633aa522b1e4f36121185bd840d730951f131"
+    },
+    {
+      "file": "internal/lustre-benchmark/src/application.ts",
+      "sha256": "ed8dbbd8795a171b51a58f1cc89349e1daedd4086380bf7f1882f6d3b4d01ce7"
+    },
+    {
+      "file": "internal/lustre-benchmark/src/entry.optimised.ts",
+      "sha256": "376291928ad907b5d88b3209d36a2109dcd156b04776a4c94f317978ab8794b5"
+    },
+    {
+      "file": "internal/lustre-benchmark/src/entry.ts",
+      "sha256": "b349243da4f4d7434f928669492292428336ee2c64992ad3cb20cf3318e364eb"
+    },
+    {
+      "file": "internal/lustre-benchmark/src/todo.ts",
+      "sha256": "6991f372ffe2dac2c3bf6dcc5300b468c7a00da33cd4d034cb780a70f6f6cfc2"
+    },
+    {
+      "file": "internal/lustre-benchmark/src/view.optimised.ts",
+      "sha256": "b2d3560001b4a516c9b3fde3775939d3ef9fdbc6fd6cc9e1e1b83f0992ae5fa4"
+    }
+  ],
+  "helperHashes": [
+    {
+      "file": "prepare.py",
+      "sha256": "d0508d6a94e95ba8e40acf2e1e244f9d5a0f68a3d37069fc748401e7912b27e3"
+    },
+    {
+      "file": "freeze-candidate.py",
+      "sha256": "e80104f59382a92b4e91997296d3e8e477dc8d7836ec121cffb22d3ee3e52699"
+    },
+    {
+      "file": "build-candidate.mjs",
+      "sha256": "793b4edf352fdcdce0c4290dab1478b9ff9c3bd606960f9deeff366617a33734"
+    },
+    {
+      "file": "record-artifacts.mjs",
+      "sha256": "5a042bef51d5135765b05c3cb79b15dd9343cf985cb1e573a4d403c10fdd83c4"
+    },
+    {
+      "file": "run-final.mjs",
+      "sha256": "fd4bba74e665b5e95470ea1c9c676e6615b507463b1ef3c372dec8063df47c7b"
+    },
+    {
+      "file": "analysis/analyse-timing.mjs",
+      "sha256": "2a0490a88a43f79aef465f208a76d44519a1494ee3d01ac423e12b97fbe85c85"
+    },
+    {
+      "file": "analysis/verify-controls.mjs",
+      "sha256": "827c80485181637ffcb5a88f2bda5ec3d751875f8cd4a5203b02f7a82ce9e883"
+    }
+  ],
+  "limitations": [
+    "Matched cached dependencies, not independent fresh installs from branch lockfiles",
+    "The copied harness has no Git metadata; its archive and tracked files are pinned independently",
+    "The actual-main build was copied byte-for-byte from the independently reviewed November 4 batch, with Git-blob Source checks and fresh functional preflights"
+  ],
+  "summaryScope": "Full Source/distribution inventories remain in the original private artifact receipt. This digest summary is not a substitute input for the analyser."
+}

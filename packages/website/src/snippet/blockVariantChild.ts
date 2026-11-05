@@ -11,7 +11,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const EditorKey = Symbol('Editor')
-
 export const EditorBlock = Block.make('Editor', {
   key: EditorKey,
   Init: Schema.Tuple([Schema.String]),
@@ -19,9 +18,9 @@ export const EditorBlock = Block.make('Editor', {
   Message,
 })
 
-const { makeFieldsStep } = EditorBlock
+const { makeFieldsStep, makeComposition } = EditorBlock
 
-const EditorComposition = EditorBlock.makeComposition()
+const EditorComposition = makeComposition()
 
 export const layer = EditorBlock.makeLayer(
   Effect.gen(function* () {

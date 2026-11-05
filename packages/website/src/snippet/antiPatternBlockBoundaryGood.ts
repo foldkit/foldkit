@@ -7,7 +7,6 @@ import { Message, OutMessage } from './settings/message'
 import { Model } from './settings/model'
 
 export const SettingsKey = Symbol('Settings')
-
 export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   Model,

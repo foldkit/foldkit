@@ -2,7 +2,7 @@ import { Array, Effect, Layer } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { PagefindService } from '../../pagefind'
-import { EffectsLayer } from './layer'
+import { EffectsLayer } from './effectsLayer'
 import { Message } from './message'
 import { FetchSearchResults } from './update'
 

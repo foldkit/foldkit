@@ -142,7 +142,9 @@ type CompletedResolveKeyboardMove =
 /** Parent-facing drag facts. `StartedKeyboardDrag` announces keyboard pickup;
  *  `ChangedKeyboardTarget` carries the previous and next proposed positions and
  *  emits only for a changed target. The parent owns announcements and commits
- *  item data after `Reordered`; Binding writers only store the child Model. */
+ *  item data after `Reordered`; Binding writers only store the child Model.
+ *  `Reordered.toIndex` is the destination index after removing the source item,
+ *  for both pointer and keyboard drops. A no-op drop still emits `Reordered`. */
 export const OutMessage = defineMessageUnion({
   StartedKeyboardDrag: {
     itemId: Schema.String,
@@ -169,7 +171,6 @@ export type OutMessage = typeof OutMessage.Type
 
 /** @internal Stable identity of the DragAndDrop contract. */
 export const DragAndDropKey = Symbol('DragAndDrop')
-
 export const DragAndDropBlock = Block.make('DragAndDrop', {
   key: DragAndDropKey,
   Model,
@@ -223,6 +224,17 @@ export const FocusItem = DragAndDropBlock.makeCommand('FocusItem', {
       )
   },
 })
+
+const sortableElements = (
+  container: ParentNode,
+  itemId: string,
+): ReadonlyArray<HTMLElement> =>
+  pipe(
+    container.querySelectorAll<HTMLElement>('[data-sortable-id]'),
+    Array.fromIterable,
+    Array.filter(({ dataset }) => dataset['sortableId'] !== itemId),
+  )
+
 const resolveWithinContainer = (
   config: Readonly<{
     itemId: string
@@ -243,12 +255,7 @@ const resolveWithinContainer = (
     })
   }
 
-  const itemCount = pipe(
-    container.querySelectorAll<HTMLElement>('[data-sortable-id]'),
-    Array.fromIterable,
-    Array.filter(({ dataset }) => dataset['sortableId'] !== config.itemId),
-    Array.length,
-  )
+  const itemCount = sortableElements(container, config.itemId).length
 
   const nextIndex = config.isForward
     ? Math.min(config.currentIndex + 1, itemCount)
@@ -571,7 +578,10 @@ export const update = DragAndDropComposition.makeUpdate({
 
 const DragActivity = Schema.Literals(['Idle', 'Active'])
 type DragActivity = typeof DragActivity.Type
-const PointerDragActivity = Schema.Literals(['Idle', 'Active'])
+const PointerDragActivity = defineTaggedUnion({
+  Idle: {},
+  Active: { itemId: Schema.String },
+})
 type PointerDragActivity = typeof PointerDragActivity.Type
 const KeyboardDragActivity = Schema.Literals(['Idle', 'Active'])
 type KeyboardDragActivity = typeof KeyboardDragActivity.Type
@@ -580,6 +590,7 @@ const resolveDropTarget = (
   clientX: number,
   clientY: number,
   orientation: Orientation,
+  itemId: string,
 ): Option.Option<DropTarget> => {
   const maybeContainer = pipe(
     document.elementsFromPoint(clientX, clientY),
@@ -593,9 +604,7 @@ const resolveDropTarget = (
       return Option.none()
     }
 
-    const sortableItems = Array.fromIterable(
-      container.querySelectorAll<HTMLElement>('[data-sortable-id]'),
-    )
+    const sortableItems = sortableElements(container, itemId)
 
     const insertionIndex = pipe(
       sortableItems,
@@ -638,8 +647,10 @@ const autoScroll = (clientY: number): void => {
 const pointerDragActivityFromModel = (model: Model): PointerDragActivity =>
   Match.value(model.dragState).pipe(
     Match.withReturnType<PointerDragActivity>(),
-    Match.tag('Pending', 'Dragging', () => 'Active'),
-    Match.orElse(() => 'Idle'),
+    Match.tag('Pending', 'Dragging', ({ itemId }) =>
+      PointerDragActivity.Active({ itemId }),
+    ),
+    Match.orElse(() => PointerDragActivity.Idle()),
   )
 
 const dragActivityFromModel = (model: Model): DragActivity =>
@@ -704,35 +715,41 @@ export const subscriptions = DragAndDropBlock.makeSubscriptions(entry => ({
       }),
       handler: function* () {
         return ({ dragActivity, orientation }) => {
-          const pointerEvents = Stream.merge(
-            Stream.fromEventListener<PointerEvent>(
-              document,
-              'pointermove',
-            ).pipe(
-              Stream.mapEffect(event =>
-                Effect.sync(() =>
-                  Message.MovedPointer({
-                    screenX: event.screenX,
-                    screenY: event.screenY,
-                    clientX: event.clientX,
-                    clientY: event.clientY,
-                    maybeDropTarget: resolveDropTarget(
-                      event.clientX,
-                      event.clientY,
-                      orientation,
+          const pointerEvents = PointerDragActivity.match(dragActivity, {
+            Idle: () => Stream.empty,
+            Active: ({ itemId }) =>
+              Stream.merge(
+                Stream.fromEventListener<PointerEvent>(
+                  document,
+                  'pointermove',
+                ).pipe(
+                  Stream.mapEffect(event =>
+                    Effect.sync(() =>
+                      Message.MovedPointer({
+                        screenX: event.screenX,
+                        screenY: event.screenY,
+                        clientX: event.clientX,
+                        clientY: event.clientY,
+                        maybeDropTarget: resolveDropTarget(
+                          event.clientX,
+                          event.clientY,
+                          orientation,
+                          itemId,
+                        ),
+                      }),
                     ),
-                  }),
+                  ),
                 ),
+                Stream.fromEventListener<PointerEvent>(
+                  document,
+                  'pointerup',
+                ).pipe(Stream.map(() => Message.ReleasedPointer())),
               ),
-            ),
-            Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
-              Stream.map(() => Message.ReleasedPointer()),
-            ),
-          )
+          })
 
           return Stream.when(
             Stream.merge(pointerEvents, documentDragStyles),
-            Effect.sync(() => dragActivity === 'Active'),
+            Effect.sync(() => dragActivity._tag === 'Active'),
           )
         }
       },
@@ -979,7 +996,8 @@ export const maybeDraggedItemId = (model: Model): Option.Option<string> =>
     Match.option,
   )
 
-/** Returns the current drop target, if any. Populated during pointer drag (from collision detection) and keyboard drag (from resolved position). */
+/** Returns the current drop target, if any. Its index is the destination slot
+ *  after removing the source item, for both pointer and keyboard drag. */
 export const maybeDropTarget = (model: Model): Option.Option<DropTarget> =>
   Match.value(model.dragState).pipe(
     Match.tag('Dragging', dragging => dragging.maybeDropTarget),

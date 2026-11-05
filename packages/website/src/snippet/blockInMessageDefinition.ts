@@ -24,7 +24,6 @@ export const OutMessage = defineMessageUnion({
 export type OutMessage = typeof OutMessage.Type
 
 export const MessageComposerKey = Symbol('MessageComposer')
-
 export const MessageComposerBlock = Block.make('MessageComposer', {
   key: MessageComposerKey,
   Model,
@@ -38,5 +37,6 @@ export const MessageComposerBlock = Block.make('MessageComposer', {
   },
 })
 
-export const { makeFieldsStep, makeStep } = MessageComposerBlock
-export const MessageComposerComposition = MessageComposerBlock.makeComposition()
+export const { makeFieldsStep, makeStep, makeComposition } =
+  MessageComposerBlock
+export const MessageComposerComposition = makeComposition()

@@ -21,7 +21,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const ArticlePreviewKey = Symbol('ArticlePreview')
-
 export const ArticlePreviewBlock = Block.make('ArticlePreview', {
   key: ArticlePreviewKey,
   Init: Schema.Tuple([]),
@@ -30,7 +29,9 @@ export const ArticlePreviewBlock = Block.make('ArticlePreview', {
   Message,
 })
 
-const ArticlePreviewComposition = ArticlePreviewBlock.makeComposition()
+const { makeComposition } = ArticlePreviewBlock
+
+const ArticlePreviewComposition = makeComposition()
 
 // In your init function, start it closed:
 const init = ArticlePreviewComposition.makeInit(() => ({

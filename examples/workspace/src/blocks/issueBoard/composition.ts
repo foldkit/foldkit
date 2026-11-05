@@ -11,7 +11,7 @@ import {
   makeNoopStep,
   makeOutMessageFold,
   makeOutMessageStep,
-} from './definition'
+} from './block'
 import {
   maybeIssueIdFromDraggableId,
   maybeStatusFromContainerId,

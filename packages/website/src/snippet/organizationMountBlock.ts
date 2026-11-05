@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 
-import { PanelBlock } from './definition'
+import { PanelBlock } from './block'
 import { init } from './init'
 import { MeasurePanel } from './mount'
 import { update } from './update'

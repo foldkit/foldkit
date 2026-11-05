@@ -1,8 +1,9 @@
 // ❌ Bad: the parent imports and constructs an internal Settings Message.
 
+import { makeBinding } from './block'
 import { Message as SettingsMessage } from './settings/message'
 
-const SettingsBinding = ParentBlock.makeBinding(Settings.SettingsBlock, {
+const SettingsBinding = makeBinding(Settings.SettingsBlock, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
 })

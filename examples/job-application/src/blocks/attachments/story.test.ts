@@ -5,8 +5,8 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { FileDropBlock } from '@foldkit/ui/fileDrop'
 
-import { AttachmentsBlock, layer } from './block'
 import { AdditionalFilesDropBinding, ResumeDropBinding } from './composition'
+import { AttachmentsBlock, layer } from './index'
 
 type FileDropMessage = typeof FileDropBlock.Message.Type
 

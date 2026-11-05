@@ -14,7 +14,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Model as ModelSchema, layer } from './application'
+import { ApplicationBlock, Model as ModelSchema, layer } from './block'
 import { CounterBlock } from './blocks/counter'
 
 const initialModel: ModelSchema = {

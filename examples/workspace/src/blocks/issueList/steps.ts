@@ -1,4 +1,4 @@
-import { makeOutMessageStep } from './definition'
+import { makeOutMessageStep } from './block'
 import { OutMessage } from './outMessage'
 
 export const clearFilters = makeOutMessageStep(() =>

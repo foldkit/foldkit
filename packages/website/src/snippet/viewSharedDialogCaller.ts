@@ -13,7 +13,6 @@ const Message = defineMessageUnion({ ClickedConfirmDeletion: {} })
 type Message = typeof Message.Type
 
 export const DeleteIssueKey = Symbol('DeleteIssue')
-
 const DeleteIssueBlock = Block.make('DeleteIssue', {
   key: DeleteIssueKey,
   Init: Schema.Tuple([]),
@@ -22,19 +21,20 @@ const DeleteIssueBlock = Block.make('DeleteIssue', {
   Message,
 })
 
-const { makeNoopStep } = DeleteIssueBlock
+const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
+  DeleteIssueBlock
 
-const DialogBinding = DeleteIssueBlock.makeBinding(DialogBlock, {
+const DialogBinding = makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'delete-issue' }] },
 }).withOutMessagePolicy({
-  fold: DeleteIssueBlock.makeOutMessageFold(DialogBlock, {
+  fold: makeOutMessageFold(DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: makeNoopStep,
   }),
 })
-const DeleteIssueComposition = DeleteIssueBlock.makeComposition({
+const DeleteIssueComposition = makeComposition({
   bindings: [DialogBinding],
 })
 

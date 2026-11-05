@@ -14,7 +14,6 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 export const StopwatchKey = Symbol('Stopwatch')
-
 const StopwatchBlock = Block.make('Stopwatch', {
   key: StopwatchKey,
   Init: Schema.Tuple([]),
@@ -22,7 +21,9 @@ const StopwatchBlock = Block.make('Stopwatch', {
   Message,
 })
 
-const subscriptions = StopwatchBlock.makeSubscriptions(entry => ({
+const { makeSubscriptions } = StopwatchBlock
+
+const subscriptions = makeSubscriptions(entry => ({
   stopwatchTicks: entry(
     'StopwatchTicks',
     { isRunning: Schema.Boolean },

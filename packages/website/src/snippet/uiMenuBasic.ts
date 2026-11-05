@@ -22,7 +22,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const ActionMenuExampleKey = Symbol('ActionMenuExample')
-
 export const ActionMenuExampleBlock = Block.make('ActionMenuExample', {
   key: ActionMenuExampleKey,
   Init: Schema.Tuple([]),
@@ -31,7 +30,8 @@ export const ActionMenuExampleBlock = Block.make('ActionMenuExample', {
   Message,
 })
 
-const { makeNoopStep } = ActionMenuExampleBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  ActionMenuExampleBlock
 
 const actions: ReadonlyArray<Action> = [
   'Edit',
@@ -45,25 +45,22 @@ const actions: ReadonlyArray<Action> = [
 // without selection. Each arm returns an Update.Step over the parent Model,
 // which already has the next Menu Model written back. The parent Block
 // infers the factory-refined child contract from the completed Block:
-const foldMenuOutMessage = ActionMenuExampleBlock.makeOutMessageFold(
-  ActionMenu,
-  {
-    // The child has emitted `Selected`. In this arm the parent can update
-    // its own state or dispatch its own Commands, for example transition a
-    // page, mutate domain state, or trigger a downstream Command.
-    Selected: makeNoopStep,
-    Closed: makeNoopStep,
-  },
-)
+const foldMenuOutMessage = makeOutMessageFold(ActionMenu, {
+  // The child has emitted `Selected`. In this arm the parent can update
+  // its own state or dispatch its own Commands, for example transition a
+  // page, mutate domain state, or trigger a downstream Command.
+  Selected: makeNoopStep,
+  Closed: makeNoopStep,
+})
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const MenuBinding = ActionMenuExampleBlock.makeBinding(ActionMenu, {
+const MenuBinding = makeBinding(ActionMenu, {
   field: 'menu',
   init: { contextToArgs: () => [{ id: 'actions' }] },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
-const ActionMenuExampleComposition = ActionMenuExampleBlock.makeComposition({
+const ActionMenuExampleComposition = makeComposition({
   bindings: [MenuBinding],
 })
 

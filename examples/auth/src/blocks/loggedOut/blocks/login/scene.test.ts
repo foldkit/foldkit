@@ -16,8 +16,8 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { LoginBlock, layer } from './block'
-import { Message } from './definition'
+import { Message } from './block'
+import { LoginBlock, layer } from './index'
 import { SimulateAuthRequest, initModel } from './login'
 
 const validModel = modifyFields(initModel(), {

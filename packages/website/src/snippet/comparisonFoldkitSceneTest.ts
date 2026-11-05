@@ -1,7 +1,7 @@
 import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 it.effect('failed export shows error dialog that can be dismissed', () =>
   scene(

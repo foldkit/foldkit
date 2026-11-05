@@ -37,7 +37,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const NotificationsKey = Symbol('Notifications')
-
 export const NotificationsBlock = Block.make('Notifications', {
   key: NotificationsKey,
   Init: Schema.Tuple([]),
@@ -46,13 +45,14 @@ export const NotificationsBlock = Block.make('Notifications', {
   Message,
 })
 
-const { makeFieldsStep } = NotificationsBlock
+const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
+  NotificationsBlock
 
 // At module scope, fold the OutMessage into your own Model, lifting the
 // DismissedToast event into domain state. The arm returns an Update.Step over
 // the parent Model, which already has the next Toast Model written back. The
 // parent Block infers the factory-refined payload from the whole Block:
-const foldToastOutMessage = NotificationsBlock.makeOutMessageFold(Toast, {
+const foldToastOutMessage = makeOutMessageFold(Toast, {
   DismissedToast: ({ payload }) =>
     makeFieldsStep(() => ({
       maybeLastDismissedBody: () => Option.some(payload.bodyText),
@@ -60,14 +60,14 @@ const foldToastOutMessage = NotificationsBlock.makeOutMessageFold(Toast, {
 })
 
 // The Binding retains the child contract; construction supplies its implementation.
-const ToastBinding = NotificationsBlock.makeBinding(Toast, {
+const ToastBinding = makeBinding(Toast, {
   field: 'toast',
   init: {
     contextToArgs: () => [{ id: 'app-toast', swipeToDismiss: {} }],
   },
 }).withOutMessagePolicy({ fold: foldToastOutMessage })
 
-const NotificationsComposition = NotificationsBlock.makeComposition({
+const NotificationsComposition = makeComposition({
   bindings: [ToastBinding],
 })
 

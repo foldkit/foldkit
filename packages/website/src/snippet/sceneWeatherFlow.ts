@@ -13,7 +13,7 @@ import {
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 it.effect('type a zip code, click get weather, see the forecast', () =>
   scene(

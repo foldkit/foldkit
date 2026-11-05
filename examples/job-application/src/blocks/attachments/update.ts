@@ -1,7 +1,7 @@
 import { Array, Option } from 'effect'
 
+import { makeFieldsStep } from './block'
 import { AttachmentsComposition } from './composition'
-import { makeFieldsStep } from './definition'
 
 export const update = AttachmentsComposition.makeUpdate({
   RemovedResume: makeFieldsStep(() => ({

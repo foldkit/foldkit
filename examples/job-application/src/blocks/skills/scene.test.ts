@@ -4,7 +4,7 @@ import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { SkillsBlock, layer } from './block'
+import { SkillsBlock, layer } from './index'
 
 describe('skills', () => {
   it.effect('renders the first skill field and the add control', () =>

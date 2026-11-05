@@ -1,5 +1,5 @@
 // blocks/settings/view.ts
-import { SettingsComposition } from './definition'
+import { SettingsComposition } from './composition'
 import { Message } from './message'
 
 export const view = SettingsComposition.makeView((model, h) =>

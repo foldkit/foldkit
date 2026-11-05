@@ -4,8 +4,8 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { SkillsEntryBlock, layer } from './block'
-import { Message, OutMessage } from './definition'
+import { Message, OutMessage } from './block'
+import { SkillsEntryBlock, layer } from './index'
 
 describe('skills entry', () => {
   it.effect('UpdatedName stores a valid skill name', () =>

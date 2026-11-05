@@ -10,7 +10,7 @@ import {
   WaitBeforeReset,
   layer,
   update,
-} from './application'
+} from './block'
 
 it.effect('resets the count after waiting', () =>
   story(

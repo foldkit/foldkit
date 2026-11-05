@@ -1,20 +1,14 @@
+import { makeBinding, makeComposition } from './block'
 import * as Composer from './composer'
-import { ChatBlock } from './definition'
 
-export const PrimaryComposerBinding = ChatBlock.makeBinding(
-  Composer.ComposerBlock,
-  {
-    field: 'primaryComposer',
-  },
-)
+export const PrimaryComposerBinding = makeBinding(Composer.ComposerBlock, {
+  field: 'primaryComposer',
+})
 
-export const SecondaryComposerBinding = ChatBlock.makeBinding(
-  Composer.ComposerBlock,
-  {
-    field: 'secondaryComposer',
-  },
-)
+export const SecondaryComposerBinding = makeBinding(Composer.ComposerBlock, {
+  field: 'secondaryComposer',
+})
 
-export const ChatComposition = ChatBlock.makeComposition({
+export const ChatComposition = makeComposition({
   bindings: [PrimaryComposerBinding, SecondaryComposerBinding],
 })

@@ -1,4 +1,4 @@
-// definition.ts
+// block.ts
 import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
@@ -25,7 +25,6 @@ export const Model = Schema.Struct({ theme: Theme })
 export type Model = typeof Model.Type
 
 export const SettingsKey = Symbol('Settings')
-
 export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   Init: Schema.Tuple([]),
@@ -39,13 +38,15 @@ export const SettingsBlock = Block.make('Settings', {
   OutMessage,
 })
 
+const { makeComposition } = SettingsBlock
+
 // settings.ts
 
 import { modifyFields } from 'foldkit/struct'
 
 import { EffectsLayer, RefreshAvailableThemes } from './command'
 
-const SettingsComposition = SettingsBlock.makeComposition()
+const SettingsComposition = makeComposition()
 
 export const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'Light' }),

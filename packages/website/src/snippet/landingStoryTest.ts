@@ -3,7 +3,7 @@ import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './application'
+import { ApplicationBlock, layer } from './block'
 
 // Story: test the state machine
 it.effect('fetch weather updates the model', () =>

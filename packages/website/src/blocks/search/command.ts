@@ -2,10 +2,10 @@ import { Effect } from 'effect'
 import * as Dom from 'foldkit/dom'
 
 import { SEARCH_INPUT_ID } from '../../searchDom'
-import { SearchBlock } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 
-export const FocusSearchInput = SearchBlock.makeCommand('FocusSearchInput', {
+export const FocusSearchInput = makeCommand('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
   handler: function* () {
     return () =>

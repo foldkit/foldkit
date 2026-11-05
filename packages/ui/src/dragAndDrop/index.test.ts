@@ -1,6 +1,7 @@
-import { Array, Effect, Fiber, Option, Stream } from 'effect'
+import { Array, Effect, Fiber, Option, Queue, Schema, Stream } from 'effect'
 import * as Story from 'foldkit/story'
-import { expect } from 'vitest'
+import { modifyFields } from 'foldkit/struct'
+import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -604,6 +605,358 @@ it.layer(layer, { buildPerTest: true })(it => {
             )
           }),
         ),
+      )
+    })
+
+    describe('production pointer resolution with mocked geometry', () => {
+      const cases = [
+        { name: 'before source', coordinate: 25, index: 0 },
+        { name: 'upper source half', coordinate: 125, index: 1 },
+        { name: 'lower source half', coordinate: 175, index: 1 },
+        {
+          name: 'disabled sortable counts and decoration does not',
+          coordinate: 275,
+          index: 2,
+        },
+        { name: 'exact end index', coordinate: 450, index: 3 },
+        {
+          name: 'horizontal midpoint',
+          coordinate: 275,
+          index: 2,
+          orientation: 'Horizontal',
+        },
+        {
+          name: 'empty destination',
+          coordinate: 25,
+          index: 0,
+          items: [],
+          sourceContainerId: 'source',
+        },
+        {
+          name: 'cross-container',
+          sourceContainerId: 'source',
+          coordinate: 175,
+          index: 2,
+          items: ['x', 'y'],
+        },
+        {
+          name: 'single source',
+          coordinate: 75,
+          index: 0,
+          items: ['b'],
+          sourceIndex: 0,
+        },
+      ]
+
+      for (const scenario of cases) {
+        it.effect(scenario.name, () =>
+          Story.withBlock(block, block =>
+            Effect.gen(function* () {
+              const container = document.createElement('div')
+              container.dataset['droppableId'] = 'list'
+              container.appendChild(document.createElement('h2'))
+              for (const [index, itemId] of (
+                scenario.items ?? ['a', 'b', 'c', 'd']
+              ).entries()) {
+                const item = document.createElement('button')
+                item.dataset['sortableId'] = itemId
+                item.disabled = itemId === 'c'
+                vi.spyOn(item, 'getBoundingClientRect').mockReturnValue(
+                  DOMRect.fromRect({
+                    x: index * 100,
+                    y: index * 100,
+                    width: 100,
+                    height: 100,
+                  }),
+                )
+                container.appendChild(item)
+              }
+              document.body.appendChild(container)
+              const elementsFromPointDescriptor =
+                Object.getOwnPropertyDescriptor(document, 'elementsFromPoint')
+              Object.defineProperty(document, 'elementsFromPoint', {
+                configurable: true,
+                value: () => [container],
+              })
+              const addListener = vi.spyOn(document, 'addEventListener')
+              yield* Effect.addFinalizer(() =>
+                Effect.sync(() => {
+                  container.remove()
+                  if (elementsFromPointDescriptor) {
+                    Object.defineProperty(
+                      document,
+                      'elementsFromPoint',
+                      elementsFromPointDescriptor,
+                    )
+                  } else {
+                    Reflect.deleteProperty(document, 'elementsFromPoint')
+                  }
+                  vi.restoreAllMocks()
+                }),
+              )
+
+              const initial = block.init({
+                id: 'geometry',
+                orientation:
+                  scenario.orientation === 'Horizontal'
+                    ? 'Horizontal'
+                    : 'Vertical',
+              })
+              const pending = block.update(
+                initial.model,
+                Message.PressedDraggable({
+                  itemId: 'b',
+                  containerId: scenario.sourceContainerId ?? 'list',
+                  index: scenario.sourceIndex ?? 1,
+                  screenX: 0,
+                  screenY: 0,
+                }),
+              )
+              const received = yield* Queue.unbounded<Message>()
+              const fiber = yield* Effect.forkChild(
+                subscriptions.documentPointer
+                  .dependenciesToStream(
+                    subscriptions.documentPointer.modelToDependencies(
+                      pending.model,
+                    ),
+                  )
+                  .pipe(
+                    Stream.runForEach(message =>
+                      Queue.offer(received, message),
+                    ),
+                    Effect.provide(EffectsLayer),
+                  ),
+              )
+              yield* Effect.promise(() =>
+                vi.waitFor(() => {
+                  expect(
+                    addListener.mock.calls.some(
+                      ([type]) => type === 'pointermove',
+                    ),
+                  ).toBe(true)
+                  expect(
+                    addListener.mock.calls.some(
+                      ([type]) => type === 'pointerup',
+                    ),
+                  ).toBe(true)
+                }),
+              )
+              document.dispatchEvent(
+                new PointerEvent('pointermove', {
+                  screenX: 100,
+                  screenY: 100,
+                  clientX:
+                    scenario.orientation === 'Horizontal'
+                      ? scenario.coordinate
+                      : 5,
+                  clientY:
+                    scenario.orientation === 'Horizontal'
+                      ? 5
+                      : scenario.coordinate,
+                }),
+              )
+              const message = yield* Queue.take(received)
+              expect(message._tag).toBe('MovedPointer')
+              const move = block.update(pending.model, message)
+              expect(maybeDropTarget(move.model)).toEqual(
+                Option.some({ containerId: 'list', index: scenario.index }),
+              )
+              document.dispatchEvent(new PointerEvent('pointerup'))
+              const released = yield* Queue.take(received)
+              const drop = block.update(move.model, released)
+              expect(drop.outMessage).toEqual(
+                OutMessage.Reordered({
+                  itemId: 'b',
+                  fromContainerId: scenario.sourceContainerId ?? 'list',
+                  fromIndex: scenario.sourceIndex ?? 1,
+                  toContainerId: 'list',
+                  toIndex: scenario.index,
+                }),
+              )
+              yield* Fiber.interrupt(fiber)
+            }),
+          ),
+        )
+      }
+
+      it.effect('keyboard clamps at the same source-excluded end', () =>
+        Effect.gen(function* () {
+          const container = document.createElement('div')
+          container.dataset['droppableId'] = 'list'
+          for (const itemId of ['a', 'b', 'c', 'd']) {
+            const item = document.createElement('div')
+            item.dataset['sortableId'] = itemId
+            container.appendChild(item)
+          }
+          document.body.appendChild(container)
+          yield* Effect.addFinalizer(() =>
+            Effect.sync(() => container.remove()),
+          )
+          const message = yield* ResolveKeyboardMove({
+            itemId: 'b',
+            currentContainerId: 'list',
+            currentIndex: 3,
+            direction: 'Down',
+            keyboardDragGeneration: 1,
+          }).effect.pipe(Effect.provide(ResolveKeyboardMove.layer))
+          expect(message).toEqual(
+            Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
+              targetContainerId: 'list',
+              targetIndex: 3,
+            }),
+          )
+        }),
+      )
+
+      it.effect(
+        'projects gesture identity and keeps document resources until Idle or interruption',
+        () =>
+          Story.withBlock(block, block =>
+            Effect.gen(function* () {
+              const initial = block.init({ id: 'lifecycle' })
+              const pending = block.update(initial.model, pressedDraggable)
+              const dragging = block.update(
+                pending.model,
+                movedPointerAboveThreshold,
+              )
+              const moved = block.update(
+                dragging.model,
+                movedPointer({ clientY: 350 }),
+              )
+              const other = block.update(
+                initial.model,
+                Message.PressedDraggable({
+                  itemId: 'item-2',
+                  containerId: 'list-1',
+                  index: 1,
+                  screenX: 100,
+                  screenY: 200,
+                }),
+              )
+              const keyboard = block.update(
+                initial.model,
+                activatedKeyboardDrag,
+              )
+              const entry = subscriptions.documentPointer
+              const idle = entry.modelToDependencies(initial.model)
+              const active = entry.modelToDependencies(pending.model)
+              const equivalent = Schema.toEquivalence(entry.dependenciesSchema)
+              expect(
+                equivalent(active, entry.modelToDependencies(dragging.model)),
+              ).toBe(true)
+              expect(
+                equivalent(active, entry.modelToDependencies(moved.model)),
+              ).toBe(true)
+              expect(
+                equivalent(active, entry.modelToDependencies(other.model)),
+              ).toBe(false)
+              const horizontal = entry.modelToDependencies(
+                modifyFields(pending.model, {
+                  orientation: () => 'Horizontal',
+                }),
+              )
+              expect(equivalent(active, horizontal)).toBe(false)
+              expect(equivalent(active, idle)).toBe(false)
+              expect(
+                equivalent(idle, entry.modelToDependencies(keyboard.model)),
+              ).toBe(true)
+              const changes = yield* Stream.fromIterable([
+                idle,
+                active,
+                entry.modelToDependencies(dragging.model),
+                entry.modelToDependencies(moved.model),
+                entry.modelToDependencies(other.model),
+                horizontal,
+                idle,
+              ]).pipe(Stream.changesWith(equivalent), Stream.runCollect)
+              expect(changes).toEqual([
+                idle,
+                active,
+                entry.modelToDependencies(other.model),
+                horizontal,
+                idle,
+              ])
+
+              const addListener = vi.spyOn(document, 'addEventListener')
+              const removeListener = vi.spyOn(document, 'removeEventListener')
+              yield* Effect.addFinalizer(() =>
+                Effect.sync(() => vi.restoreAllMocks()),
+              )
+              const dependencies = yield* Queue.unbounded<typeof active>()
+              const received = yield* Queue.unbounded<Message>()
+              const fiber = yield* Effect.forkChild(
+                Stream.fromQueue(dependencies).pipe(
+                  Stream.changesWith(equivalent),
+                  Stream.switchMap(value => entry.dependenciesToStream(value)),
+                  Stream.runForEach(message => Queue.offer(received, message)),
+                  Effect.provide(EffectsLayer),
+                ),
+              )
+              const styles = () =>
+                Array.fromIterable(
+                  document.head.querySelectorAll('style'),
+                ).filter(style =>
+                  style.textContent?.includes('cursor: grabbing !important'),
+                )
+              yield* Queue.offer(dependencies, active)
+              yield* Effect.promise(() =>
+                vi.waitFor(() => {
+                  expect(styles()).toHaveLength(1)
+                  expect(
+                    addListener.mock.calls.filter(
+                      ([type]) => type === 'pointerup',
+                    ),
+                  ).toHaveLength(1)
+                }),
+              )
+              const style = styles().at(0)
+              yield* Queue.offer(
+                dependencies,
+                entry.modelToDependencies(dragging.model),
+              )
+              document.dispatchEvent(new PointerEvent('pointerup'))
+              expect(yield* Queue.take(received)).toEqual(
+                Message.ReleasedPointer(),
+              )
+              expect(styles()).toEqual([style])
+              expect(
+                addListener.mock.calls.filter(([type]) => type === 'pointerup'),
+              ).toHaveLength(1)
+              yield* Queue.offer(dependencies, idle)
+              yield* Effect.promise(() =>
+                vi.waitFor(() => {
+                  expect(styles()).toHaveLength(0)
+                  expect(
+                    removeListener.mock.calls.filter(
+                      ([type]) => type === 'pointerup',
+                    ),
+                  ).toHaveLength(1)
+                  expect(
+                    removeListener.mock.calls.filter(
+                      ([type]) => type === 'pointermove',
+                    ),
+                  ).toHaveLength(1)
+                }),
+              )
+              yield* Queue.offer(dependencies, active)
+              yield* Effect.promise(() =>
+                vi.waitFor(() => expect(styles()).toHaveLength(1)),
+              )
+              yield* Fiber.interrupt(fiber)
+              expect(styles()).toHaveLength(0)
+              expect(
+                removeListener.mock.calls.filter(
+                  ([type]) => type === 'pointerup',
+                ),
+              ).toHaveLength(2)
+              expect(
+                removeListener.mock.calls.filter(
+                  ([type]) => type === 'pointermove',
+                ),
+              ).toHaveLength(2)
+            }),
+          ),
       )
     })
 

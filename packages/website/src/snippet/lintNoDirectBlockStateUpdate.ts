@@ -1,10 +1,10 @@
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationBlock, makeStep } from './definition'
+import { makeStep, makeBinding } from './block'
 import { Model } from './model'
 import * as Settings from './settings'
 
-const SettingsBinding = ApplicationBlock.makeBinding(Settings.SettingsBlock, {
+const SettingsBinding = makeBinding(Settings.SettingsBlock, {
   field: 'settings',
 })
 

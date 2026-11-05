@@ -1,6 +1,6 @@
 import { allValid, anyInvalid, makeRules } from 'foldkit/fieldValidation'
 
-import type { Model } from './definition'
+import type { Model } from './block'
 
 export const nameRules = makeRules({
   required: 'Skill name is required',

@@ -4,9 +4,9 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { HomeBlock, layer } from './block'
 import { DemoTabsBinding } from './composition'
 import { DemoTabsBlock } from './demoTab'
+import { HomeBlock, layer } from './index'
 
 const homeSubject = { block: HomeBlock, layer }
 

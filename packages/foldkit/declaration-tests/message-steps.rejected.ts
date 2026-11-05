@@ -4,6 +4,8 @@ import { defineMessageUnion } from 'foldkit/message'
 import {
   CounterComposition,
   incrementAndSave,
+  incrementWithoutMessages,
+  makeMessageFreeFieldsStep,
   reportChild,
 } from './message-steps.accepted.js'
 import {
@@ -197,3 +199,8 @@ ParentComposition.makeUpdate({
   RequestedSave: ParentDefinition.makeNoopStep(),
   CompletedSave: ParentDefinition.makeNoopStep(),
 })
+
+// @ts-expect-error A Message-free helper cannot replace a Number field with a String.
+makeMessageFreeFieldsStep(() => ({ count: () => 'wrong' }))
+// @ts-expect-error An exported Message-free Step retains its exact Model.
+incrementWithoutMessages({ count: 'wrong' })

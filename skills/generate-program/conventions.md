@@ -433,7 +433,7 @@ When the operation name collides with the function, use a trailing underscore su
 
 Name each concrete typed authoring value for its stage: `ChildBlock = Block.make('Child', ...)`, `ApplicationBlock = Block.make('Application', ...)`, `ChildComposition`, and `ApplicationComposition`. The runtime Block ID stays `Child` or `Application`. Export passive child contracts as `ChildBlock` with an implementation `layer`, and root contracts as `ApplicationBlock` with their construction `layer`; a generic UI factory uses `makeBlock` and returns an exact passive contract that its caller names locally. Declare it once at module scope and bind the returned value into the parent.
 
-Declare one named Block even for a leaf. That same value exposes the public contract, typed helpers, and `makeLayer` for checked implementation construction. A split feature keeps contracts and authoring helpers in `definition.ts`, relationships in `composition.ts`, and construction in `block.ts`. A small colocated feature may keep those named values in one file. Create the owner identity once at module evaluation.
+Declare one named Block even for a leaf. That same value exposes the public contract, typed helpers, and `makeLayer` for checked implementation construction. A split feature keeps contracts and authoring helpers in `block.ts`, relationships in `composition.ts`, and construction in `layer.ts`. A small colocated feature may keep those named values in one file. Create the owner identity once at module evaluation.
 
 Author one canonical `init` through the Composition and pass it to assembly by shorthand. Do not retain a raw Model-returning `init` and wrap it at the assembly call. A pure Model constructor with its own domain purpose may remain separate.
 
@@ -484,7 +484,7 @@ variant. Register the full policy-selected Binding.
 
 Use `FeatureBlock.makeFieldsStep(producer)` for owning field transformations, `FeatureBlock.makeCommandsStep(producer)` for Commands with an unchanged Model, and `FeatureBlock.makeOutMessageStep(producer)` for one declared OutMessage with an unchanged Model.
 
-In a split feature, export the Step helpers used by the implementation from `definition.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Feature barrels keep authoring helpers private and export the passive Block contract and construction `layer`.
+In a split feature, export the Step helpers used by the implementation from `block.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Block declaration in the scope that uses them. Keep Block-qualified calls when several Blocks in one module need visible ownership. Feature barrels keep authoring helpers private and export the passive Block contract and construction `layer`.
 
 Put reusable parent Steps shared by update, inMessageUpdate, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Name shared transitions for their operation, without a `make` prefix or `Step` suffix, and defer cyclic Binding access until the producer is applied.
 
@@ -506,7 +506,7 @@ custom unkeyed accessor may reuse its existing `init.toParentFields` projection.
 Use `initAndAppend` for keyed arrays already declaring `init.instances` and
 `init.toItem`, or `initAndInsert` for direct-value Record/HashMap storage from
 `ParentBlock.makeMapBinding`. Destructure and export the factory from a split
-feature's `definition.ts`, then import it from that owning module. Append and insert
+feature's `block.ts`, then import it from that owning module. Append and insert
 reject duplicate keys. Keep explicit `Binding.init`
 for additional wrapper metadata, sibling changes, parent Commands, array/map
 replacement or whole tagged variants. Do not add an unnecessary startup policy
@@ -787,3 +787,13 @@ Notes:
 - **`empty` and `keyed` are properties on `h`**, the builder every view receives as its last parameter. They are not top-level exports of `foldkit/html`, so they never belong in that import list. Same for `h.block`.
 - `AsyncData` for remote data state, `Update` for the update return type and the `combineSteps` / `refresh` combinators, `Http` for the `layer` that provides `HttpClient` to a Command.
 - HTTP types come from `effect/http`, not `@effect/platform`. `@effect/platform-browser` is a separate package used for `BrowserKeyValueStore` and `BrowserCrypto`.
+
+## Block file and authoring boundaries
+
+Declare the unique key immediately before its Block and give `Symbol('Feature')` the same description as the Block's readable name. Keep the key private unless verified declaration emission needs its original declaration exported. Split implementation modules commonly need that export because their inferred contracts name the owner key. A public barrel may re-export the original declaration with `export type` when only its identity is needed in types. Verify source and relocated declarations before removing an export.
+
+A split feature's `block.ts` exports the authoring helpers used by its implementation. Named-import those helpers in init, update, command, composition and other implementation modules instead of repeating `FeatureBlock.make*`. A compact feature destructures helpers beside its Block declaration. Retain qualification only when multiple owners would otherwise be unclear. Keep helper aliases out of the feature barrel.
+
+Inline handlers receive their exact Model and Message from the Composition. When extracting a Message-dependent callback without that context, annotate its precise Message variant, as in `makeStep((model, { url }: ChangedUrl) => ...)` or `makeStep.fromMessage(({ url }: ChangedUrl) => ...)`. The helper still infers result channels. The proposed single-Message type-argument forms are not supported; defaulting the remaining type parameters loses output inference. Do not replace the useful parameter annotation with broad return types, casts or repeated generic arguments.
+
+For split files, use `block.ts` for the declaration, `composition.ts` for relationships, `layer.ts` for checked construction, and `effectsLayer.ts` for a separate local handler bundle. See the architecture reference for capability ownership and generated parent inputs.

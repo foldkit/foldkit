@@ -20,7 +20,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const FileDropExampleKey = Symbol('FileDropExample')
-
 export const FileDropExampleBlock = Block.make('FileDropExample', {
   key: FileDropExampleKey,
   Init: Schema.Tuple([]),
@@ -29,34 +28,37 @@ export const FileDropExampleBlock = Block.make('FileDropExample', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep } = FileDropExampleBlock
+const {
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeBinding,
+  makeComposition,
+} = FileDropExampleBlock
 
 // At module scope, fold the OutMessage FileDrop emits when files arrive (via
 // drop or input change) into your own Model. Each arm returns an Update.Step
 // over the parent Model, which already has the next FileDrop Model written
 // back. The parent Block checks every named child variant and infers the
 // parent Step from each handler:
-const foldFileDropOutMessage = FileDropExampleBlock.makeOutMessageFold(
-  FileDropBlock,
-  {
-    ReceivedFiles: ({ files }) =>
-      makeFieldsStep(() => ({
-        uploadedFiles: Array.appendAll(files),
-      })),
-    // Fires when something is dropped but no files came through (e.g.
-    // a drag of text or a URL). Ignore, or show a hint to the user.
-    RejectedNonFiles: makeNoopStep,
-  },
-)
+const foldFileDropOutMessage = makeOutMessageFold(FileDropBlock, {
+  ReceivedFiles: ({ files }) =>
+    makeFieldsStep(() => ({
+      uploadedFiles: Array.appendAll(files),
+    })),
+  // Fires when something is dropped but no files came through (e.g.
+  // a drag of text or a URL). Ignore, or show a hint to the user.
+  RejectedNonFiles: makeNoopStep,
+})
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const UploaderBinding = FileDropExampleBlock.makeBinding(FileDropBlock, {
+const UploaderBinding = makeBinding(FileDropBlock, {
   field: 'uploader',
   init: { contextToArgs: () => [{ id: 'uploader' }] },
 }).withOutMessagePolicy({ fold: foldFileDropOutMessage })
 
-const FileDropExampleComposition = FileDropExampleBlock.makeComposition({
+const FileDropExampleComposition = makeComposition({
   bindings: [UploaderBinding],
 })
 

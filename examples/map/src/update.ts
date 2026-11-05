@@ -1,6 +1,7 @@
 import { Array, Equal, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep, makeNoopStep } from './block'
 import {
   FlyTo,
   Geolocate,
@@ -10,7 +11,6 @@ import {
   UnlockBodyScroll,
 } from './command'
 import { ApplicationComposition } from './composition'
-import { makeFieldsStep, makeNoopStep } from './definition'
 import type { Location } from './locations'
 import { GeolocateState, type Model } from './model'
 

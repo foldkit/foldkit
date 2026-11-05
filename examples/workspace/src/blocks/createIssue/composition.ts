@@ -15,7 +15,7 @@ import {
   makeComposition,
   makeNoopStep,
   makeOutMessageFold,
-} from './definition'
+} from './block'
 import { editDraft } from './draft'
 
 export const DialogBinding = makeBinding(DialogBlock, {

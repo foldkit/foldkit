@@ -28,6 +28,7 @@ import {
   runInMessageStep,
 } from '../experimental/layered/testing/inMessage.js'
 import type { File } from '../file/index.js'
+import { type BoundaryRegistry, beginRender } from '../html/boundary.js'
 import type { FoldkitMountMarker } from '../html/index.js'
 import {
   FOLDKIT_MOUNT_KEY,
@@ -35,6 +36,7 @@ import {
   __clearRuntime as clearHtmlRuntime,
   __createBoundaryRegistry as createHtmlBoundaryRegistry,
   __htmlBuilder as htmlBuilderFor,
+  mountOccurrencePath,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
 import type {
@@ -43,6 +45,7 @@ import type {
   HtmlBuilder,
   KeyboardModifiers,
 } from '../html/index.js'
+import { type MountCapture, mountCaptureOf } from '../html/mountCapture.js'
 import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountRegistrationTypeId, MountTracker } from '../mount/index.js'
 import type {
@@ -144,6 +147,7 @@ import {
   allText,
   allTitle,
 } from './query.js'
+import { type SceneHost, SceneHostTypeId } from './sceneHost.js'
 
 export { type InitStep, init } from './internal.js'
 
@@ -492,6 +496,13 @@ type MountStatus =
 
 type MountSlotState = Readonly<{
   slot: PendingMount
+  occurrencePath: ReadonlyArray<string>
+  acquisition:
+    | Readonly<{
+        owner: MountCapture['owner']
+        dispatch: (message: unknown) => void
+      }>
+    | undefined
   status: MountStatus
   vnode: VNode
 }>
@@ -515,6 +526,8 @@ type InternalSceneSimulation<
     ) => SimulationUpdateReturn<Model, OutMessage>
     resolvers: ReadonlyArray<ResolverEntry>
     viewFn: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
+    host: SceneHost | undefined
+    boundaryRegistry: BoundaryRegistry | undefined
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
     mountSlots: ReadonlyArray<MountSlotState>
@@ -535,6 +548,34 @@ type InternalSceneSimulation<
 const mountMarkerOf = (node: VNode): FoldkitMountMarker | undefined =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   node.data?.[FOLDKIT_MOUNT_KEY] as FoldkitMountMarker | undefined
+
+const acquireMount = (
+  marker: FoldkitMountMarker,
+): MountSlotState['acquisition'] => {
+  const capture = mountCaptureOf(marker)
+  return capture === undefined
+    ? undefined
+    : { owner: capture.owner, dispatch: capture.resolver.resolve() }
+}
+
+const mountDelivery =
+  <Model, Message, OutMessage>(
+    internal: InternalSceneSimulation<Model, Message, OutMessage>,
+  ) =>
+  (
+    mount: PendingMount,
+    message: unknown,
+  ): ReadonlyArray<unknown> | undefined => {
+    const acquisition = internal.mountSlots.find(
+      state => state.slot === mount,
+    )?.acquisition
+    if (acquisition === undefined) {
+      return undefined
+    }
+    internal.capturingDispatch.reset()
+    acquisition.dispatch(message)
+    return internal.capturingDispatch.getCapturedMessages()
+  }
 
 const slotOfMarker = (
   marker: FoldkitMountMarker,
@@ -569,11 +610,11 @@ const reconcileMountSlots = (
   previousTree: VNode | undefined,
   rendered: VNode,
 ): ReadonlyArray<MountSlotState> => {
-  const liveByVNode = new Map<VNode, MountSlotState>()
+  const previousByVNode = new Map<VNode, MountSlotState>()
 
   for (const state of previous) {
-    if (state.status._tag !== 'Ended') {
-      liveByVNode.set(state.vnode, state)
+    if (!previousByVNode.has(state.vnode) || state.status._tag !== 'Ended') {
+      previousByVNode.set(state.vnode, state)
     }
   }
 
@@ -594,6 +635,8 @@ const reconcileMountSlots = (
     if (marker !== undefined) {
       renderedSlots.push({
         slot: slotOfMarker(marker, nextOccurrence(marker.name)),
+        occurrencePath: mountOccurrencePath(marker),
+        acquisition: acquireMount(marker),
         status: PENDING,
         vnode: node,
       })
@@ -605,16 +648,35 @@ const reconcileMountSlots = (
   }
 
   const visitPatched = (previousNode: VNode, node: VNode): void => {
-    const liveState = liveByVNode.get(previousNode)
+    const liveState = previousByVNode.get(previousNode)
+    const marker = mountMarkerOf(node)
 
-    if (liveState !== undefined) {
+    if (
+      liveState !== undefined &&
+      (marker === undefined ||
+        (liveState.acquisition?.owner === mountCaptureOf(marker)?.owner &&
+          Array.makeEquivalence(Equal.equals)(
+            liveState.occurrencePath,
+            mountOccurrencePath(marker),
+          )))
+    ) {
       carried.add(liveState)
       renderedSlots.push({
+        acquisition: liveState.acquisition,
+        occurrencePath: liveState.occurrencePath,
         slot: {
           ...liveState.slot,
           occurrence: nextOccurrence(liveState.slot.name),
         },
         status: liveState.status,
+        vnode: node,
+      })
+    } else if (liveState !== undefined && marker !== undefined) {
+      renderedSlots.push({
+        slot: slotOfMarker(marker, nextOccurrence(marker.name)),
+        occurrencePath: mountOccurrencePath(marker),
+        acquisition: acquireMount(marker),
+        status: PENDING,
         vnode: node,
       })
     }
@@ -650,8 +712,8 @@ const reconcileMountSlots = (
     previous,
     Array.filter(
       state =>
-        (state.status._tag !== 'Ended' && !carried.has(state)) ||
-        (state.status._tag === 'Ended' && !state.status.acknowledged),
+        !carried.has(state) &&
+        (state.status._tag !== 'Ended' || !state.status.acknowledged),
     ),
     Array.map(endStatus),
   )
@@ -690,9 +752,27 @@ const UNINITIALIZED = Symbol('uninitialized')
 
 const toInternal = <Model, Message, OutMessage>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
-): InternalSceneSimulation<Model, Message, OutMessage> =>
+): InternalSceneSimulation<Model, Message, OutMessage> => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  simulation as InternalSceneSimulation<Model, Message, OutMessage>
+  const internal = simulation as InternalSceneSimulation<
+    Model,
+    Message,
+    OutMessage
+  >
+  if (
+    !internal.mountSlots.some(
+      state =>
+        state.status._tag !== 'Ended' &&
+        state.acquisition?.owner?.isActive === false,
+    )
+  ) {
+    return internal
+  }
+  const mountSlots = internal.mountSlots.map(state =>
+    state.acquisition?.owner?.isActive === false ? endStatus(state) : state,
+  )
+  return { ...internal, mountSlots, mounts: pendingMountsOf(mountSlots) }
+}
 
 type OutMessageCapture<Model, Message, OutMessage> = Readonly<{
   updateFn: (
@@ -813,15 +893,19 @@ const renderView = <Model, Message>(
   model: Model,
   dispatch: DispatchService,
   previousTree: VNode | undefined,
+  host: SceneHost | undefined,
+  registry: BoundaryRegistry | undefined,
 ): VNode => {
-  const sceneContext = Context.make(Dispatch, dispatch).pipe(
+  const sceneContext = (host?.context ?? Context.empty()).pipe(
+    Context.add(Dispatch, dispatch),
     Context.add(MountTracker, {
       started: () => {},
       ended: () => {},
     }),
   )
 
-  const boundaryRegistry = createHtmlBoundaryRegistry()
+  const boundaryRegistry = registry ?? createHtmlBoundaryRegistry()
+  beginRender(boundaryRegistry)
 
   if (previousTree !== undefined) {
     markPreviousRenderVNodes(previousTree, boundaryRegistry.dedupeSeen)
@@ -831,7 +915,7 @@ const renderView = <Model, Message>(
     dispatch.dispatchSync,
     sceneContext,
     boundaryRegistry,
-    'Replay',
+    host === undefined ? 'Replay' : 'Live',
   )
   let result: Html | Document
   try {
@@ -1045,6 +1129,7 @@ const applyInMessage = <Model, Message, OutMessage>(
   )
   const internal = toInternal(simulation)
   const received = runInMessageStep<Model, OutMessage>(step, internal.model)
+  internal.host?.synchronize(received.model)
 
   const next = {
     ...internal,
@@ -1415,6 +1500,7 @@ export const given = <Model>(model: Model): GivenStep<Model> => {
     simulation: SceneSimulation<M, Message, OutMessage>,
   ): SceneSimulation<M, Message, OutMessage> => {
     const internal = toInternal(simulation)
+    internal.host?.synchronize(model)
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return { ...internal, model } as unknown as SceneSimulation<
       M,
@@ -1436,8 +1522,10 @@ export const __givenInit = <Model, OutMessage = undefined>(
   const step = <Message>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    internal.host?.synchronize(init.model)
     const seeded = {
-      ...toInternal(simulation),
+      ...internal,
       model: init.model,
       commands: init.commands ?? [],
     }
@@ -1577,8 +1665,8 @@ const expectNoCommandsStep =
  *  complete args and any explicitly scoped composition occurrence. The
  *  first pending mount that matches is resolved. Mirrors `resolve` for
  *  Commands: when the mount lives inside a Block, the boundary's own
- *  `toParentMessage` lift (snapshotted at render time) is applied to
- *  `resultMessage`, so pass the child's raw lifecycle result Message. */
+ *  current delivery chain is applied to `resultMessage`, so pass the child's
+ *  raw lifecycle result Message. */
 const resolveMount: {
   <Name extends string, ResultMessage>(
     matcher: MountDefinition<Name, ResultMessage> | AnyMount,
@@ -1601,6 +1689,7 @@ const resolveMount: {
       internal.mounts,
       matcher,
       resultMessage,
+      mountDelivery(internal),
     )
 
     if (Predicate.isUndefined(next)) {
@@ -1683,7 +1772,12 @@ const emitMountMessage =
 
     return {
       ...internal,
-      ...applyMountMessage(internal, selected.slot, message),
+      ...applyMountMessage(
+        internal,
+        selected.slot,
+        message,
+        mountDelivery(internal),
+      ),
     }
   }
 
@@ -1735,12 +1829,10 @@ const expectNoMountsStep =
     return simulation
   }
 
-/** Acknowledges that the given Mounts ended because their elements were
- *  removed or replaced. Required for every Mount that fires and then unmounts
- *  during a scene, whether or not it was resolved first. Without this, the
- *  scene throws at the end of the test for any unacknowledged unmount. Mount
- *  matchers may be Definitions or instances; instances acknowledge a specific
- *  args shape. */
+/** Acknowledges Mounts ended by element removal/replacement or by retirement
+ *  of their acquiring Block occurrence. Required whether or not the Mount
+ *  resolved first. A scene rejects any unacknowledged end. Mount matchers may
+ *  be Definitions or instances; instances acknowledge a specific args shape. */
 const expectEndedMountsStep =
   (...matchers: ReadonlyArray<MountMatcher>) =>
   <Model, Message, OutMessage = undefined>(
@@ -1768,13 +1860,13 @@ const expectEndedMountsStep =
     }
     if (Array.isReadonlyArrayNonEmpty(remaining)) {
       throw new Error(
-        `I tried to acknowledge ended Mounts but some haven't unmounted:\n\n` +
+        `I tried to acknowledge ended Mounts but some are still active:\n\n` +
           pipe(
             remaining,
             Array.map(matcher => `    ${formatMountMatcher(matcher)}`),
             Array.join('\n'),
           ) +
-          "\n\nUse Scene.Mount.expectEnded only after the Mount's element has been removed or replaced.",
+          '\n\nUse Scene.Mount.expectEnded after the element is removed or replaced, or its acquiring Block occurrence retires.',
       )
     }
     return {
@@ -2130,8 +2222,8 @@ export const Mount = {
   expectExact: expectExactMountsStep,
   /** Asserts that there are no pending Mounts. */
   expectNone: expectNoMountsStep,
-  /** Acknowledges Mounts whose element was removed or replaced. Required for
-   *  every Mount that fires and then unmounts during a scene. */
+  /** Acknowledges Mounts ended by element removal/replacement or retirement
+   *  of their acquiring Block occurrence. Required for every ended Mount. */
   expectEnded: expectEndedMountsStep,
 } as const
 
@@ -2478,11 +2570,14 @@ const runSteps = <
     const internal = toInternal(next)
 
     if ((internal.model as unknown) !== (UNINITIALIZED as unknown)) {
+      internal.host?.synchronize(internal.model)
       const html = renderView(
         internal.viewFn,
         internal.model,
         internal.capturingDispatch.dispatch,
         internal.html,
+        internal.host,
+        internal.boundaryRegistry,
       )
       const mountSlots = reconcileMountSlots(
         internal.mountSlots,
@@ -3974,6 +4069,7 @@ export const scene: {
   Routing extends SceneRouting<Message> | undefined = undefined,
 >(
   config: Readonly<{
+    [SceneHostTypeId]?: SceneHost
     update: (
       model: Model,
       message: Message,
@@ -3998,7 +4094,16 @@ export const scene: {
     outMessage: undefined,
     outMessages: [],
     outMessageRevision: 0,
-    updateFn: config.update,
+    host: config[SceneHostTypeId],
+    boundaryRegistry:
+      config[SceneHostTypeId] === undefined
+        ? undefined
+        : createHtmlBoundaryRegistry(),
+    updateFn: (model: Model, message: Message) => {
+      const messageUpdate = config.update(model, message)
+      config[SceneHostTypeId]?.synchronize(messageUpdate.model)
+      return messageUpdate
+    },
     resolvers: [],
     html: undefined as unknown,
     viewFn: config.view,

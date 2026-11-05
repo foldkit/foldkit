@@ -8,7 +8,7 @@ import {
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
-} from './definition'
+} from './block'
 
 export const DialogBinding = makeBinding(DialogBlock, {
   field: 'dialog',

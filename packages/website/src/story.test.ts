@@ -1,30 +1,38 @@
-import { Effect, HashSet, Option, pipe } from 'effect'
+import { Array, HashSet, Option, pipe } from 'effect'
 import { Calendar } from 'foldkit'
 import {
   Command,
+  type StorySimulation,
   type TestBlock,
   given,
+  init,
   message,
+  messageFrom,
   model,
+  steps,
   story,
   withBlock,
 } from 'foldkit/story'
 import { toParentMessageFor } from 'foldkit/test'
 import * as Url from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
+import { describe, expect } from 'vitest'
 
+import { it } from '@effect/vitest'
 import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
 
-import { ApplicationBlock, layer } from './block'
 import {
-  ApiReferenceBlock,
-  ExampleDetailBlock,
   HomeBlock,
   SearchBlock,
   SnippetCopyBlock,
   SnippetDisclosureBlock,
 } from './blocks'
+import { LoadApiData } from './blocks/apiReference/command'
 import * as ApiReference from './blocks/apiReference/domain'
+import { Message as ApiReferenceMessage } from './blocks/apiReference/message'
+import {
+  Message as ExampleDetailMessage,
+  LoadExampleSources,
+} from './blocks/exampleDetail/example'
 import { NotePlayerDemoBlock } from './blocks/home/blocks'
 import { managedResources as notePlayerResources } from './blocks/home/blocks/notePlayerDemo/notePlayerDemo'
 import {
@@ -37,24 +45,32 @@ import {
   WaitBeforeHidingCopiedIndicator,
 } from './blocks/snippetCopy/update'
 import {
+  InjectAnalytics,
+  InjectSpeedInsights,
+  LoadBrowserEnvironment,
   LoadPlayground,
   ScrollSidebarActiveLinkIntoView,
   ScrollToAnchor,
   ScrollToTop,
 } from './command'
 import {
-  ApiReferenceBinding,
-  ExampleDetailBinding,
   MaybeHomeBinding,
   SnippetCopyBinding,
   SnippetDisclosureBinding,
 } from './composition'
-import { Deployment } from './deployment'
+import { Deployment, isTelemetryEnabled } from './deployment'
+import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
-import { type Model } from './model'
+import type { Model } from './model'
+import { ApplyTheme } from './theme'
 import { ThemeMenuBlock } from './view/themeMenu'
 
 const application = { block: ApplicationBlock, layer }
+
+type ApplicationSimulation = StorySimulation<
+  Model,
+  TestBlock<typeof application>['Message']['Type']
+>
 
 type HomeBlockModel = typeof HomeBlock.Model.Type
 const parseUrl = (value: string): Url.Url =>
@@ -124,245 +140,319 @@ const resolvePathChangeCommands = () => [
 
 const updateApiUrl = parseUrl('https://foldkit.dev/api-reference/update')
 
+const browserEnvironment = (isPlaygroundSupported = true) =>
+  Message.CompletedLoadBrowserEnvironment({
+    maybeThemePreference: Option.none(),
+    maybeSidebarState: Option.none(),
+    systemTheme: 'Light',
+    isPlaygroundSupported,
+    currentYear: flags.currentYear,
+    today: flags.today,
+  })
+const apiData = ApiReference.ApiData.make({
+  parsedApi: { modules: [] },
+  highlights: {},
+})
+const resolveBrowserStartup = (
+  url: Url.Url,
+  deployment: Deployment = flags.deployment,
+  isPlaygroundSupported = true,
+) =>
+  steps(
+    Command.resolve(
+      LoadBrowserEnvironment,
+      browserEnvironment(isPlaygroundSupported),
+    ),
+    Command.resolve(ApplyTheme, Message.CompletedApplyTheme()),
+    ...(isTelemetryEnabled(deployment)
+      ? [
+          Command.resolve(InjectAnalytics, Message.CompletedInjectAnalytics()),
+          Command.resolve(
+            InjectSpeedInsights,
+            Message.CompletedInjectSpeedInsights(),
+          ),
+        ]
+      : []),
+    Command.resolve(
+      ScrollSidebarActiveLinkIntoView,
+      Message.CompletedScrollSidebarActiveLinkIntoView(),
+    ),
+    ...Option.match(url.hash, {
+      onNone: () => [],
+      onSome: hash => [
+        Command.resolve(
+          ScrollToAnchor({ hash }),
+          Message.CompletedScrollToAnchor(),
+        ),
+      ],
+    }),
+  )
+const resolveInitialData = () =>
+  Command.resolveAll(
+    [LoadApiData, ApiReferenceMessage.SucceededLoadApiData({ apiData })],
+    [
+      LoadExampleSources,
+      ExampleDetailMessage.SucceededLoadExampleSources({
+        sources: { files: [] },
+      }),
+    ],
+  )
+const completeStartup = (url: Url.Url) =>
+  steps(resolveBrowserStartup(url), resolveInitialData())
+
 const makeFixture = (block: TestBlock<typeof application>) => {
-  const init = block.init
   const update = block.update
   const toParentMessage = toParentMessageFor(block)
   const toHomeMessage = toParentMessageFor(block, MaybeHomeBinding)
-  const initAt = (url: Url.Url): Model => init(flags, url).model
-  return { block, init, update, toParentMessage, toHomeMessage, initAt }
+
+  return { update, toParentMessage, toHomeMessage }
 }
 
 describe('application', () => {
-  test('cold startup collects root Commands before initialized child Commands', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { init } = makeFixture(executable)
+  it.effect(
+    'cold startup collects root Commands before initialized child Commands',
+    () => {
+      const deployment = Deployment.Production()
+      const startupCommands = [
+        LoadBrowserEnvironment,
+        InjectAnalytics,
+        InjectSpeedInsights,
+        ScrollSidebarActiveLinkIntoView,
+        LoadApiData,
+        LoadExampleSources,
+      ]
 
-        const initialization = init(
-          { ...flags, deployment: Deployment.Production() },
-          counterExampleUrl,
-        )
-        expect(initialization.commands?.map(command => command.name)).toEqual([
-          'Application/LoadBrowserEnvironment',
-          'Application/InjectAnalytics',
-          'Application/InjectSpeedInsights',
-          'Application/ScrollSidebarActiveLinkIntoView',
-          'apiReference/LoadApiData',
-          'exampleDetail/LoadExampleSources',
-        ])
-      }),
+      return story(
+        application,
+        init({ ...flags, deployment }, counterExampleUrl),
+        Command.expectExact(...startupCommands),
+        (simulation: ApplicationSimulation) => {
+          for (const [pending, definition] of Array.zip(
+            simulation.commands,
+            startupCommands,
+          )) {
+            expect(Option.isSome(Command.argsOf(definition)(pending))).toBe(
+              true,
+            )
+          }
+          return simulation
+        },
+        resolveBrowserStartup(counterExampleUrl, deployment),
+        resolveInitialData(),
+      )
+    },
+  )
+
+  it.effect('startup includes the initial anchor in its root Commands', () => {
+    const startupCommands = [
+      LoadBrowserEnvironment,
+      ScrollSidebarActiveLinkIntoView,
+      ScrollToAnchor,
+      LoadApiData,
+      LoadExampleSources,
+    ]
+
+    return story(
+      application,
+      init(flags, counterExampleUrlWithHash),
+      Command.expectExact(
+        LoadBrowserEnvironment,
+        ScrollSidebarActiveLinkIntoView,
+        ScrollToAnchor({ hash: 'application' }),
+        LoadApiData,
+        LoadExampleSources,
+      ),
+      (simulation: ApplicationSimulation) => {
+        for (const [pending, definition] of Array.zip(
+          simulation.commands,
+          startupCommands,
+        )) {
+          expect(Option.isSome(Command.argsOf(definition)(pending))).toBe(true)
+        }
+        return simulation
+      },
+      resolveBrowserStartup(counterExampleUrlWithHash),
+      resolveInitialData(),
     )
   })
-  test('startup includes the initial anchor in its root Commands', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { init } = makeFixture(executable)
 
-        const initialization = init(flags, counterExampleUrlWithHash)
+  it.effect('navigation opens an existing closed sidebar group', () => {
+    let initialGroups: Model['sidebarGroups'] | undefined
 
-        expect(initialization.commands?.map(command => command.name)).toEqual([
-          'Application/LoadBrowserEnvironment',
-          ScrollSidebarActiveLinkIntoView.name,
-          ScrollToAnchor.name,
-          'apiReference/LoadApiData',
-          'exampleDetail/LoadExampleSources',
-        ])
-        expect(initialization.commands).toContainEqual(
-          expect.objectContaining({
-            name: ScrollToAnchor.name,
-            args: { hash: 'application' },
-          }),
-        )
+    return story(
+      application,
+      init(flags, homeUrl),
+      completeStartup(homeUrl),
+      model(model => {
+        initialGroups = model.sidebarGroups
+        expect(model.sidebarGroups.apiReference).toBe(false)
       }),
+      message(Message.ChangedUrl({ url: commandApiUrl })),
+      model(model => {
+        expect(model.sidebarGroups.apiReference).toBe(true)
+        expect(model.sidebarGroups.examples).toBe(initialGroups?.examples)
+      }),
+      ...resolvePathChangeCommands(),
     )
   })
-  test('navigation opens an existing closed sidebar group', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
 
-        const initialModel = initAt(homeUrl)
-        expect(initialModel.sidebarGroups.apiReference).toBe(false)
-        const routeChange = update(
-          initialModel,
-          Message.ChangedUrl({ url: commandApiUrl }),
-        )
-        expect(routeChange.model.sidebarGroups.apiReference).toBe(true)
-        expect(routeChange.model.sidebarGroups.examples).toBe(
-          initialModel.sidebarGroups.examples,
-        )
-      }),
-    )
-  })
-  test('navigation within an open sidebar group preserves its state', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
+  it.effect(
+    'navigation within an open sidebar group preserves its state',
+    () => {
+      let initialGroups: Model['sidebarGroups'] | undefined
 
-        const initialModel = initAt(commandApiUrl)
-        expect(initialModel.sidebarGroups.apiReference).toBe(true)
-        const routeChange = update(
-          initialModel,
-          Message.ChangedUrl({ url: updateApiUrl }),
-        )
-        expect(routeChange.model.sidebarGroups).toBe(initialModel.sidebarGroups)
-      }),
-    )
-  })
-  test('prerendered API startup retains its slice through failure and route retry', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { init, update, toParentMessage } = makeFixture(executable)
+      return story(
+        application,
+        init(flags, commandApiUrl),
+        completeStartup(commandApiUrl),
+        model(model => {
+          initialGroups = model.sidebarGroups
+          expect(model.sidebarGroups.apiReference).toBe(true)
+        }),
+        message(Message.ChangedUrl({ url: updateApiUrl })),
+        model(model => expect(model.sidebarGroups).toBe(initialGroups)),
+        ...resolvePathChangeCommands(),
+      )
+    },
+  )
 
-        const seededData = ApiReference.ApiData.make({
-          parsedApi: { modules: [] },
-          highlights: {},
-        })
-        const initialization = init(
+  it.effect(
+    'prerendered API startup retains its slice through failure and route retry',
+    () => {
+      const seededData = apiData
+
+      return story(
+        application,
+        init(
           { ...flags, maybeApiData: Option.some(seededData) },
           commandApiUrl,
-        )
-        expect(initialization.model.apiReference.apiData).toEqual(
-          ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
-        )
-        expect(initialization.commands?.map(command => command.name)).toContain(
-          'apiReference/LoadApiData',
-        )
-        const failedLoad = update(
-          initialization.model,
-          toParentMessage(
-            ApiReferenceBinding,
-            ApiReferenceBlock.Message.FailedLoadApiData({ error: 'Offline' }),
+        ),
+        resolveBrowserStartup(commandApiUrl),
+        model(model =>
+          expect(model.apiReference.apiData).toEqual(
+            ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
           ),
-        )
-        const routeChange = update(
-          failedLoad.model,
-          Message.ChangedUrl({ url: updateApiUrl }),
-        )
-        expect(failedLoad.model.apiReference.apiData).toEqual(
-          ApiReference.ApiDataAsyncData.Stale({
-            data: seededData,
-            error: 'Offline',
-          }),
-        )
-        expect(routeChange.model.apiReference.apiData).toEqual(
-          ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
-        )
-        expect(routeChange.commands?.map(command => command.name)).toContain(
-          'apiReference/LoadApiData',
-        )
+        ),
+        Command.expectExact(LoadApiData),
+        Command.resolve(
+          LoadApiData,
+          ApiReferenceMessage.FailedLoadApiData({ error: 'Offline' }),
+        ),
+        model(model =>
+          expect(model.apiReference.apiData).toEqual(
+            ApiReference.ApiDataAsyncData.Stale({
+              data: seededData,
+              error: 'Offline',
+            }),
+          ),
+        ),
+        message(Message.ChangedUrl({ url: updateApiUrl })),
+        model(model =>
+          expect(model.apiReference.apiData).toEqual(
+            ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
+          ),
+        ),
+        Command.expectHas(LoadApiData),
+        ...resolvePathChangeCommands(),
+        Command.resolve(
+          LoadApiData,
+          ApiReferenceMessage.SucceededLoadApiData({ apiData }),
+        ),
+      )
+    },
+  )
+
+  it.effect('remaining on a Playground slug preserves its Model', () => {
+    let initialPlayground: Option.Option.Value<Model['playground']> | undefined
+
+    return story(
+      application,
+      init(flags, playgroundCounterUrl),
+      completeStartup(playgroundCounterUrl),
+      model(model => {
+        initialPlayground = Option.getOrThrow(model.playground)
       }),
+      message(
+        Message.ChangedUrl({
+          url: parseUrl('https://foldkit.dev/playground/counter#src/block.ts'),
+        }),
+      ),
+      model(model =>
+        expect(Option.getOrThrow(model.playground)).toBe(initialPlayground),
+      ),
+      Command.expectExact(ScrollToAnchor),
+      Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
     )
   })
-  test('remaining on a Playground slug preserves its Model', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
 
-        const initialModel = initAt(playgroundCounterUrl)
-        const initialPlayground = Option.getOrThrow(initialModel.playground)
-        const urlWithHash = parseUrl(
-          'https://foldkit.dev/playground/counter#src/application.ts',
-        )
-        const routeChange = update(
-          initialModel,
-          Message.ChangedUrl({
-            url: urlWithHash,
-          }),
-        )
-        expect(Option.getOrThrow(routeChange.model.playground)).toBe(
-          initialPlayground,
-        )
-        expect(routeChange.commands?.map(command => command.name)).toEqual([
-          'Application/ScrollToAnchor',
-        ])
+  it.effect('changing Playground slugs initializes a fresh Model', () => {
+    let initialPlayground: Option.Option.Value<Model['playground']> | undefined
+
+    return story(
+      application,
+      init(flags, playgroundCounterUrl),
+      completeStartup(playgroundCounterUrl),
+      model(model => {
+        initialPlayground = Option.getOrThrow(model.playground)
       }),
-    )
-  })
-  test('changing Playground slugs initializes a fresh Model', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
-
-        const initialModel = initAt(playgroundCounterUrl)
-        const initialPlayground = Option.getOrThrow(initialModel.playground)
-        const routeChange = update(
-          initialModel,
-          Message.ChangedUrl({ url: playgroundCountersUrl }),
-        )
-        const nextPlayground = Option.getOrThrow(routeChange.model.playground)
+      message(Message.ChangedUrl({ url: playgroundCountersUrl })),
+      model(model => {
+        const nextPlayground = Option.getOrThrow(model.playground)
         expect(nextPlayground).not.toBe(initialPlayground)
         expect(nextPlayground.slug).toBe('counters')
       }),
+      ...resolvePathChangeCommands(),
     )
   })
-  test.each([
+
+  it.effect.each([
     { isPlaygroundSupported: true },
     { isPlaygroundSupported: false },
   ])(
     'entering Playground reuses cached browser support ($isPlaygroundSupported)',
-    async ({ isPlaygroundSupported }) => {
-      await Effect.runPromise(
-        withBlock(application, executable => {
-          const { update, initAt } = makeFixture(executable)
-
-          const loadedBrowserEnvironment = update(
-            initAt(newsletterUrl),
-            Message.CompletedLoadBrowserEnvironment({
-              maybeThemePreference: Option.none(),
-              maybeSidebarState: Option.none(),
-              systemTheme: 'Light',
-              isPlaygroundSupported,
-              currentYear: flags.currentYear,
-              today: flags.today,
-            }),
-          )
-          const enteredPlayground = update(
-            loadedBrowserEnvironment.model,
-            Message.ChangedUrl({ url: playgroundCounterUrl }),
-          )
-          expect(
-            Option.getOrThrow(enteredPlayground.model.playground)
-              .maybeIsSupported,
-          ).toEqual(Option.some(isPlaygroundSupported))
-        }),
-      )
-    },
+    // we need to make sure all of our story tests look like story tests
+    // becuase reading this and the one below i see that these are not using
+    // the standard story test style? whats up with that? need full audit
+    // across codebase.
+    ({ isPlaygroundSupported }) =>
+      story(
+        application,
+        init(flags, newsletterUrl),
+        resolveBrowserStartup(
+          newsletterUrl,
+          flags.deployment,
+          isPlaygroundSupported,
+        ),
+        resolveInitialData(),
+        message(Message.ChangedUrl({ url: playgroundCounterUrl })),
+        model(model =>
+          expect(Option.getOrThrow(model.playground).maybeIsSupported).toEqual(
+            Option.some(isPlaygroundSupported),
+          ),
+        ),
+        ...resolvePathChangeCommands(),
+      ),
   )
-  test('entering and exiting Playground adds and removes its Model', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
 
-        const enteredPlayground = update(
-          initAt(newsletterUrl),
-          Message.ChangedUrl({ url: playgroundCounterUrl }),
-        )
-        expect(Option.getOrThrow(enteredPlayground.model.playground).slug).toBe(
-          'counter',
-        )
-        expect(
-          enteredPlayground.commands?.map(command => command.name),
-        ).toEqual([
-          'Application/ScrollToTop',
-          'Application/ScrollSidebarActiveLinkIntoView',
-        ])
-        const exitedPlayground = update(
-          enteredPlayground.model,
-          Message.ChangedUrl({ url: newsletterUrl }),
-        )
-        expect(Option.isNone(exitedPlayground.model.playground)).toBe(true)
-        expect(exitedPlayground.commands?.map(command => command.name)).toEqual(
-          [
-            'Application/ScrollToTop',
-            'Application/ScrollSidebarActiveLinkIntoView',
-          ],
-        )
-      }),
-    )
-  })
-  test.each([
+  it.effect('entering and exiting Playground adds and removes its Model', () =>
+    story(
+      application,
+      init(flags, newsletterUrl),
+      completeStartup(newsletterUrl),
+      message(Message.ChangedUrl({ url: playgroundCounterUrl })),
+      model(model =>
+        expect(Option.getOrThrow(model.playground).slug).toBe('counter'),
+      ),
+      Command.expectExact(ScrollToTop, ScrollSidebarActiveLinkIntoView),
+      ...resolvePathChangeCommands(),
+      message(Message.ChangedUrl({ url: newsletterUrl })),
+      model(model => expect(Option.isNone(model.playground)).toBe(true)),
+      Command.expectExact(ScrollToTop, ScrollSidebarActiveLinkIntoView),
+      ...resolvePathChangeCommands(),
+    ),
+  )
+
+  it.effect.each([
     {
       routeName: 'API module',
       initialUrl: commandApiUrl,
@@ -375,360 +465,326 @@ describe('application', () => {
     },
   ])(
     'remaining on the same $routeName slug does not reload route data',
-    async ({ initialUrl, urlWithHash }) => {
-      await Effect.runPromise(
-        withBlock(application, executable => {
-          const { update, initAt } = makeFixture(executable)
-
-          const routeChange = update(
-            initAt(initialUrl),
-            Message.ChangedUrl({ url: urlWithHash }),
-          )
-          expect(routeChange.commands?.map(command => command.name)).toEqual([
-            'Application/ScrollToAnchor',
-          ])
-        }),
-      )
-    },
+    ({ initialUrl, urlWithHash }) =>
+      story(
+        application,
+        init(flags, initialUrl),
+        completeStartup(initialUrl),
+        message(Message.ChangedUrl({ url: urlWithHash })),
+        Command.expectExact(ScrollToAnchor),
+        Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
+      ),
   )
-  test('route cleanup precedes scrolling to an anchor on a new path', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
 
-        const openedSearch = update(
-          initAt(newsletterUrl),
-          Message.ClickedOpenSearch(),
-        )
-        const routeChange = update(
-          openedSearch.model,
-          Message.ChangedUrl({ url: homeUrlWithHash }),
-        )
-        expect(routeChange.model.search.dialog.isOpen).toBe(false)
-        expect(routeChange.commands?.map(command => command.name)).toEqual([
-          'search/dialog/CloseDialog',
-          'Application/ScrollToAnchor',
-          'Application/ScrollSidebarActiveLinkIntoView',
-        ])
+  it.effect('route cleanup precedes scrolling to an anchor on a new path', () =>
+    story(
+      application,
+      init(flags, newsletterUrl),
+      completeStartup(newsletterUrl),
+      message(Message.ClickedOpenSearch()),
+      Command.resolve(
+        DialogTest.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
+      Command.resolve(
+        FocusSearchInput,
+        SearchBlock.Message.CompletedFocusSearchInput(),
+      ),
+      message(Message.ChangedUrl({ url: homeUrlWithHash })),
+      model(model => expect(model.search.dialog.isOpen).toBe(false)),
+      Command.expectExact(
+        DialogTest.CloseDialog({ id: 'search-dialog' }),
+        ScrollToAnchor,
+        ScrollSidebarActiveLinkIntoView,
+      ),
+      (simulation: ApplicationSimulation) => {
+        for (const [pending, definition] of Array.zip(simulation.commands, [
+          DialogTest.CloseDialog,
+          ScrollToAnchor,
+          ScrollSidebarActiveLinkIntoView,
+        ])) {
+          expect(Option.isSome(Command.argsOf(definition)(pending))).toBe(true)
+        }
+        return simulation
+      },
+      Command.resolve(
+        DialogTest.CloseDialog({ id: 'search-dialog' }),
+        DialogBlock.Message.CompletedCloseDialog(),
+      ),
+      Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
+      Command.resolve(
+        ScrollSidebarActiveLinkIntoView,
+        Message.CompletedScrollSidebarActiveLinkIntoView(),
+      ),
+    ),
+  )
+
+  it.effect('changing API module slugs retries missing API data', () =>
+    story(
+      application,
+      init(flags, commandApiUrl),
+      resolveBrowserStartup(commandApiUrl),
+      Command.resolve(
+        LoadApiData,
+        ApiReferenceMessage.FailedLoadApiData({ error: 'failed' }),
+      ),
+      message(Message.ChangedUrl({ url: updateApiUrl })),
+      model(model => expect(model.apiReference.apiData._tag).toBe('Loading')),
+      Command.expectHas(LoadApiData),
+      ...resolvePathChangeCommands(),
+      Command.resolve(
+        LoadApiData,
+        ApiReferenceMessage.SucceededLoadApiData({ apiData }),
+      ),
+    ),
+  )
+
+  it.effect('changing example slugs requests the next example sources', () =>
+    story(
+      application,
+      init(flags, counterExampleUrl),
+      resolveBrowserStartup(counterExampleUrl),
+      Command.resolve(
+        LoadApiData,
+        ApiReferenceMessage.SucceededLoadApiData({ apiData }),
+      ),
+      Command.resolve(
+        LoadExampleSources,
+        ExampleDetailMessage.FailedLoadExampleSources({ error: 'failed' }),
+      ),
+      message(Message.ChangedUrl({ url: countersExampleUrl })),
+      model(model =>
+        expect(model.exampleDetail.currentSources._tag).toBe('Loading'),
+      ),
+      Command.expectHas(LoadExampleSources({ slug: 'counters' })),
+      ...resolvePathChangeCommands(),
+      Command.resolve(
+        LoadExampleSources,
+        ExampleDetailMessage.SucceededLoadExampleSources({
+          sources: { files: [] },
+        }),
+      ),
+    ),
+  )
+  it.effect(
+    'newsletter email follows navigation between Home and Newsletter',
+    () =>
+      story(
+        application,
+        init(flags, homeUrl),
+        completeStartup(homeUrl),
+        messageFrom(
+          MaybeHomeBinding,
+          HomeBlock.Message.UpdatedNewsletterEmail({
+            value: 'alice@example.com',
+          }),
+        ),
+        model(model => expect(model.newsletterEmail).toBe('alice@example.com')),
+        message(Message.ChangedUrl({ url: newsletterUrl })),
+        ...resolvePathChangeCommands(),
+        model(model => expect(model.newsletterEmail).toBe('alice@example.com')),
+        message(Message.UpdatedNewsletterEmail({ value: 'bob@example.com' })),
+        model(model => expect(model.newsletterEmail).toBe('bob@example.com')),
+        message(Message.ChangedUrl({ url: homeUrl })),
+        ...resolvePathChangeCommands(),
+        model(model => expect(model.newsletterEmail).toBe('bob@example.com')),
+      ),
+  )
+
+  it.effect('entering Home initializes fresh state', () =>
+    story(
+      application,
+      init(flags, newsletterUrl),
+      completeStartup(newsletterUrl),
+      model(expectHomeAbsent),
+      message(Message.ChangedUrl({ url: homeUrl })),
+      model(model => {
+        expectHomePresent(model)
+        expectDefaultHome(Option.getOrThrow(model.maybeHome))
       }),
+      ...resolvePathChangeCommands(),
+    ),
+  )
+
+  it.effect('leaving Home removes the Home Block', () =>
+    story(
+      application,
+      init(flags, homeUrl),
+      completeStartup(homeUrl),
+      model(expectHomePresent),
+      message(Message.ChangedUrl({ url: newsletterUrl })),
+      model(expectHomeAbsent),
+      ...resolvePathChangeCommands(),
+    ),
+  )
+
+  it.effect('remaining on Home preserves the existing Home Model', () => {
+    let initialHome: HomeBlockModel | undefined
+
+    return story(
+      application,
+      init(flags, homeUrl),
+      completeStartup(homeUrl),
+      model(model => {
+        initialHome = Option.getOrThrow(model.maybeHome)
+      }),
+      message(Message.ChangedUrl({ url: homeUrl })),
+      model(model =>
+        expect(Option.getOrThrow(model.maybeHome)).toBe(initialHome),
+      ),
+      Command.expectNone(),
     )
   })
-  test('changing API module slugs retries missing API data', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, toParentMessage, initAt } = makeFixture(executable)
+  it.effect('returning to Home initializes fresh default state', () =>
+    withBlock(application, executable => {
+      const { update, toParentMessage, toHomeMessage } = makeFixture(executable)
+      const initAt = (url: Url.Url) => executable.init(flags, url).model
 
-        const failedLoad = update(
-          initAt(commandApiUrl),
+      story(
+        update,
+        given(initAt(homeUrl)),
+        message(
           toParentMessage(
-            ApiReferenceBinding,
-            ApiReferenceBlock.Message.FailedLoadApiData({ error: 'failed' }),
+            MaybeHomeBinding,
+            toHomeMessage(
+              NotePlayerDemoBinding,
+              NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
+            ),
           ),
-        )
-        const routeChange = update(
-          failedLoad.model,
-          Message.ChangedUrl({ url: updateApiUrl }),
-        )
-        expect(routeChange.model.apiReference.apiData._tag).toBe('Loading')
-        expect(routeChange.commands?.map(command => command.name)).toContain(
-          'apiReference/LoadApiData',
-        )
-      }),
-    )
-  })
-  test('changing example slugs requests the next example sources', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, toParentMessage, initAt } = makeFixture(executable)
+        ),
+        model((model: Model) => {
+          expect(
+            Option.getOrThrow(model.maybeHome).notePlayerDemo.noteInput.value,
+          ).toBe('ABC')
+        }),
+        message(Message.ChangedUrl({ url: newsletterUrl })),
+        ...resolvePathChangeCommands(),
+        message(Message.ChangedUrl({ url: homeUrl })),
+        model(model => {
+          expectHomePresent(model)
+          expectDefaultHome(Option.getOrThrow(model.maybeHome))
+        }),
+        ...resolvePathChangeCommands(),
+      )
+    }),
+  )
+  it.effect('late Home Messages are ignored while Home is absent', () =>
+    withBlock(application, executable => {
+      const { update, toParentMessage, toHomeMessage } = makeFixture(executable)
+      const initAt = (url: Url.Url) => executable.init(flags, url).model
 
-        const failedLoad = update(
-          initAt(counterExampleUrl),
+      story(
+        update,
+        given(initAt(newsletterUrl)),
+        message(
           toParentMessage(
-            ExampleDetailBinding,
-            ExampleDetailBlock.Message.FailedLoadExampleSources({
-              error: 'failed',
-            }),
+            MaybeHomeBinding,
+            toHomeMessage(
+              NotePlayerDemoBinding,
+              NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
+            ),
           ),
-        )
-        const routeChange = update(
-          failedLoad.model,
-          Message.ChangedUrl({ url: countersExampleUrl }),
-        )
-        expect(routeChange.model.exampleDetail.currentSources._tag).toBe(
-          'Loading',
-        )
-        expect(routeChange.commands?.map(command => command.name)).toContain(
-          'exampleDetail/LoadExampleSources',
-        )
-      }),
-    )
-  })
-  test('newsletter email follows navigation between Home and Newsletter', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, toParentMessage, initAt } = makeFixture(executable)
+        ),
+        model(model => {
+          expectHomeAbsent(model)
+        }),
+        Command.expectNone(),
+      )
+    }),
+  )
+  it.effect('Home playground selections load a fresh document', () =>
+    withBlock(application, executable => {
+      const { update, toParentMessage, toHomeMessage } = makeFixture(executable)
+      const initAt = (url: Url.Url) => executable.init(flags, url).model
 
-        story(
-          update,
-          given(initAt(homeUrl)),
-          message(
-            toParentMessage(
-              MaybeHomeBinding,
-              HomeBlock.Message.UpdatedNewsletterEmail({
-                value: 'alice@example.com',
+      story(
+        update,
+        given(initAt(homeUrl)),
+        message(
+          toParentMessage(
+            MaybeHomeBinding,
+            toHomeMessage(
+              PlaygroundMenuBinding,
+              ThemeMenuBlock.Message.SelectedItem({
+                index: 0,
+                item: 'counter',
               }),
             ),
           ),
-          model(model => {
-            expect(model.newsletterEmail).toBe('alice@example.com')
-          }),
-          message(Message.ChangedUrl({ url: newsletterUrl })),
-          ...resolvePathChangeCommands(),
-          model(model => {
-            expect(model.newsletterEmail).toBe('alice@example.com')
-          }),
-          message(Message.UpdatedNewsletterEmail({ value: 'bob@example.com' })),
-          model(model => {
-            expect(model.newsletterEmail).toBe('bob@example.com')
-          }),
-          message(Message.ChangedUrl({ url: homeUrl })),
-          ...resolvePathChangeCommands(),
-          model(model => {
-            expect(model.newsletterEmail).toBe('bob@example.com')
-          }),
-        )
-      }),
+        ),
+        Command.resolve(LoadPlayground, Message.CompletedLoadPlayground()),
+      )
+    }),
+  )
+  it.effect('the parent opens Search through its child update capability', () =>
+    story(
+      application,
+      init(flags, homeUrl),
+      completeStartup(homeUrl),
+      message(Message.ClickedOpenSearch()),
+      model(model => expect(model.search.dialog.isOpen).toBe(true)),
+      Command.resolve(
+        DialogTest.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
+      Command.resolve(
+        FocusSearchInput,
+        SearchBlock.Message.CompletedFocusSearchInput(),
+      ),
+    ),
+  )
+
+  it.effect('the parent delegates snippet copying to the child Block', () => {
+    const snippetId = 'root-story-snippet'
+
+    return story(
+      application,
+      init(flags, homeUrl),
+      completeStartup(homeUrl),
+      messageFrom(
+        SnippetCopyBinding,
+        SnippetCopyBlock.Message.ClickedCopySnippet({
+          snippetId,
+          text: 'const count = 0',
+        }),
+      ),
+      Command.resolve(
+        CopySnippet,
+        SnippetCopyBlock.Message.SucceededCopySnippet({ snippetId }),
+      ),
+      model(model =>
+        expect(HashSet.has(model.snippetCopy.copiedSnippetIds, snippetId)).toBe(
+          true,
+        ),
+      ),
+      Command.resolve(
+        WaitBeforeHidingCopiedIndicator,
+        SnippetCopyBlock.Message.CompletedWaitBeforeHidingCopiedIndicator({
+          snippetId,
+        }),
+      ),
     )
   })
-  test('entering Home initializes fresh state', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
 
-        story(
-          update,
-          given(initAt(newsletterUrl)),
-          model(expectHomeAbsent),
-          message(Message.ChangedUrl({ url: homeUrl })),
-          model(model => {
-            expectHomePresent(model)
-            expectDefaultHome(Option.getOrThrow(model.maybeHome))
-          }),
-          ...resolvePathChangeCommands(),
-        )
-      }),
-    )
-  })
-  test('leaving Home removes the Home Block', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
+  it.effect('the parent owns each snippet disclosure state', () => {
+    const disclosureId = 'root-story-snippet'
 
-        story(
-          update,
-          given(initAt(homeUrl)),
-          model(expectHomePresent),
-          message(Message.ChangedUrl({ url: newsletterUrl })),
-          model(expectHomeAbsent),
-          ...resolvePathChangeCommands(),
-        )
-      }),
-    )
-  })
-  test('remaining on Home preserves the existing Home Model', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
-
-        const initialModel = initAt(homeUrl)
-        const initialHome = Option.getOrThrow(initialModel.maybeHome)
-        story(
-          update,
-          given(initialModel),
-          message(Message.ChangedUrl({ url: homeUrl })),
-          model(model => {
-            expect(Option.getOrThrow(model.maybeHome)).toBe(initialHome)
-          }),
-        )
-      }),
-    )
-  })
-  test('returning to Home initializes fresh default state', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, toParentMessage, toHomeMessage, initAt } =
-          makeFixture(executable)
-
-        story(
-          update,
-          given(initAt(homeUrl)),
-          message(
-            toParentMessage(
-              MaybeHomeBinding,
-              toHomeMessage(
-                NotePlayerDemoBinding,
-                NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
-              ),
-            ),
-          ),
-          model((model: Model) => {
-            expect(
-              Option.getOrThrow(model.maybeHome).notePlayerDemo.noteInput.value,
-            ).toBe('ABC')
-          }),
-          message(Message.ChangedUrl({ url: newsletterUrl })),
-          ...resolvePathChangeCommands(),
-          message(Message.ChangedUrl({ url: homeUrl })),
-          model(model => {
-            expectHomePresent(model)
-            expectDefaultHome(Option.getOrThrow(model.maybeHome))
-          }),
-          ...resolvePathChangeCommands(),
-        )
-      }),
-    )
-  })
-  test('late Home Messages are ignored while Home is absent', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, toParentMessage, toHomeMessage, initAt } =
-          makeFixture(executable)
-
-        story(
-          update,
-          given(initAt(newsletterUrl)),
-          message(
-            toParentMessage(
-              MaybeHomeBinding,
-              toHomeMessage(
-                NotePlayerDemoBinding,
-                NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
-              ),
-            ),
-          ),
-          model(model => {
-            expectHomeAbsent(model)
-          }),
-          Command.expectNone(),
-        )
-      }),
-    )
-  })
-  test('Home playground selections load a fresh document', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, toParentMessage, toHomeMessage, initAt } =
-          makeFixture(executable)
-
-        story(
-          update,
-          given(initAt(homeUrl)),
-          message(
-            toParentMessage(
-              MaybeHomeBinding,
-              toHomeMessage(
-                PlaygroundMenuBinding,
-                ThemeMenuBlock.Message.SelectedItem({
-                  index: 0,
-                  item: 'counter',
-                }),
-              ),
-            ),
-          ),
-          Command.resolve(LoadPlayground, Message.CompletedLoadPlayground()),
-        )
-      }),
-    )
-  })
-  test('the parent opens Search through its child update capability', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, initAt } = makeFixture(executable)
-
-        story(
-          update,
-          given(initAt(homeUrl)),
-          message(Message.ClickedOpenSearch()),
-          model(model => {
-            expect(model.search.dialog.isOpen).toBe(true)
-          }),
-          Command.resolve(
-            DialogTest.ShowDialog,
-            DialogBlock.Message.SucceededShowDialog(),
-          ),
-          Command.resolve(
-            FocusSearchInput,
-            SearchBlock.Message.CompletedFocusSearchInput(),
-          ),
-        )
-      }),
-    )
-  })
-  test('the parent delegates snippet copying to the child Block', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, toParentMessage, initAt } = makeFixture(executable)
-
-        const snippetId = 'root-story-snippet'
-        story(
-          update,
-          given(initAt(homeUrl)),
-          message(
-            toParentMessage(
-              SnippetCopyBinding,
-              SnippetCopyBlock.Message.ClickedCopySnippet({
-                snippetId,
-                text: 'const count = 0',
-              }),
-            ),
-          ),
-          Command.resolve(
-            CopySnippet,
-            SnippetCopyBlock.Message.SucceededCopySnippet({ snippetId }),
-          ),
-          model(model => {
-            expect(
-              HashSet.has(model.snippetCopy.copiedSnippetIds, snippetId),
-            ).toBe(true)
-          }),
-          Command.resolve(
-            WaitBeforeHidingCopiedIndicator,
-            SnippetCopyBlock.Message.CompletedWaitBeforeHidingCopiedIndicator({
-              snippetId,
-            }),
-          ),
-        )
-      }),
-    )
-  })
-  test('the parent owns each snippet disclosure state', async () => {
-    await Effect.runPromise(
-      withBlock(application, executable => {
-        const { update, toParentMessage, initAt } = makeFixture(executable)
-
-        const disclosureId = 'root-story-snippet'
-        story(
-          update,
-          given(initAt(homeUrl)),
-          message(
-            toParentMessage(
-              SnippetDisclosureBinding,
-              SnippetDisclosureBlock.Message.ToggledCodeDisclosure({
-                disclosureId,
-                isOpen: true,
-              }),
-            ),
-          ),
-          model(model => {
-            expect(
-              HashSet.has(
-                model.snippetDisclosure.openDisclosureIds,
-                disclosureId,
-              ),
-            ).toBe(true)
-          }),
-        )
-      }),
+    return story(
+      application,
+      init(flags, homeUrl),
+      completeStartup(homeUrl),
+      messageFrom(
+        SnippetDisclosureBinding,
+        SnippetDisclosureBlock.Message.ToggledCodeDisclosure({
+          disclosureId,
+          isOpen: true,
+        }),
+      ),
+      model(model =>
+        expect(
+          HashSet.has(model.snippetDisclosure.openDisclosureIds, disclosureId),
+        ).toBe(true),
+      ),
     )
   })
 })

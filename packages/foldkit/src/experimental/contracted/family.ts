@@ -24,8 +24,8 @@ import type {
   Contract,
   ContractConfiguration,
   Definition,
+  DefinitionConfigurationArguments,
   Fits,
-  InMessageConfigurationArguments,
   MakeFamilyBlock,
   ValidateFamilyHandlers,
 } from './contract.js'
@@ -331,7 +331,7 @@ export function makeFamilyDefinition<
     (symbol extends Key ? never : true extends IsUnion<Key> ? never : unknown),
   ..._validation: readonly [
     ...MessageFreeValidation<NoInfer<Config & Readonly<{ key: Key }>>>,
-    ...InMessageConfigurationArguments<
+    ...DefinitionConfigurationArguments<
       NoInfer<Config & Readonly<{ key: Key }>>
     >,
   ]

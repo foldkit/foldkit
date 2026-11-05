@@ -1,22 +1,23 @@
-import { Layer } from 'effect'
+import { Effect } from 'effect'
 
-import * as Command from './command'
+import { RoomBlock } from './block'
+import { EffectsLayer } from './effectsLayer'
+import { inMessageUpdate } from './inMessageUpdate'
+import { init } from './init'
 import { subscriptions } from './subscription'
-import { NavigateHome } from './update'
+import { update } from './update'
+import { view } from './view'
 
-export const EffectsLayer = Layer.mergeAll(
-  Command.FetchRoom.layer,
-  Command.LoadSession.layer,
-  Command.JoinRoom.layer,
-  Command.StartGame.layer,
-  Command.UpdatePlayerProgress.layer,
-  Command.CopyRoomId.layer,
-  Command.WaitForExitCountdownInterval.layer,
-  Command.WaitBeforeHidingRoomIdCopiedIndicator.layer,
-  Command.SavePlayerSession.layer,
-  Command.ClearSession.layer,
-  Command.FocusRoomPageUsernameInput.layer,
-  Command.FocusUserGameTextInput.layer,
-  subscriptions.layer,
-  NavigateHome.layer,
+export const layer = RoomBlock.makeLayer(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      inMessageUpdate,
+      view,
+      subscriptions,
+      EffectsLayer,
+    }
+  }),
 )

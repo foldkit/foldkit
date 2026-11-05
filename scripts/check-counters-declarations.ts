@@ -35,7 +35,7 @@ const result = spawnSync(
 if (
   result.error !== undefined ||
   result.status !== 0 ||
-  !existsSync(join(output, 'examples/counters/src/application.d.ts'))
+  !existsSync(join(output, 'examples/counters/src/block.d.ts'))
 ) {
   process.stderr.write(`Counters declaration artifacts retained at ${output}\n`)
   throw new Error(

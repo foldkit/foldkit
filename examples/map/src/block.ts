@@ -1,21 +1,24 @@
-import { Effect } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { update } from './update'
-import { view } from './view'
+import { MapRegistry } from './mapRegistry'
+import { Message } from './message'
+import { Model } from './model'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+  effects: { services: [MapRegistry] },
+  Model,
+  Message,
+})
 
-export { ApplicationBlock } from './definition'
+export const {
+  makeCommand,
+  makeComposition,
+  makeFieldsStep,
+  makeMountStream,
+  makeNoopStep,
+} = ApplicationBlock

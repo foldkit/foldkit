@@ -16,7 +16,7 @@ Create the handle accessor from the named feature with `FeatureBlock.makeResourc
 
 Give each entry a stable local handler name and attach a generator constructor returning both `acquire` and `release`. Include `managedResources.layer` in the local `EffectsLayer` when every entry has a handler. Return the registry under `managedResources` from `FeatureBlock.makeLayer`. Construction connects the graph; the Runtime acquires and releases each handle according to the Model.
 
-Keep `CameraBlock` in `definition.ts` and its Composition in `composition.ts`. Put the `CameraStream` accessor in `resource.ts`, importing the Block. Both the lifecycle registry and Commands import that same accessor from `resource.ts`, which imports neither consumer. This gives them one identity without a cycle through Block assembly.
+Keep `CameraBlock` in `block.ts` and its Composition in `composition.ts`. Put the `CameraStream` accessor in `resource.ts`, importing the Block. Both the lifecycle registry and Commands import that same accessor from `resource.ts`, which imports neither consumer. This gives them one identity without a cycle through Block assembly.
 
 ::Snippet{name="managedResourcesDefinition" label="Defining a shared resource accessor"}
 

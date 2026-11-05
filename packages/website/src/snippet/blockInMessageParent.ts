@@ -22,27 +22,32 @@ const ConversationBlock = Block.make('Conversation', {
   Init: Schema.Tuple([]),
 })
 
-export const ComposerBinding = ConversationBlock.makeBinding(
-  MessageComposerBlock,
-  {
-    field: 'composer',
-    init: { contextToArgs: () => ['message'] },
-  },
-).withOutMessagePolicy({
-  fold: ConversationBlock.makeOutMessageFold(MessageComposerBlock, {
+const {
+  makeBinding,
+  makeOutMessageFold,
+  makeFieldsStep,
+  makeComposition,
+  makeStep,
+} = ConversationBlock
+
+export const ComposerBinding = makeBinding(MessageComposerBlock, {
+  field: 'composer',
+  init: { contextToArgs: () => ['message'] },
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(MessageComposerBlock, {
     Submitted: ({ text }) =>
-      ConversationBlock.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeSubmittedText: () => Option.some(text),
       })),
   }),
 })
-const ConversationComposition = ConversationBlock.makeComposition({
+const ConversationComposition = makeComposition({
   bindings: [ComposerBinding],
 })
 
 export const update = ConversationComposition.makeUpdate({
   ClickedSend: ComposerBinding.requestSubmit(),
-  ChangedDraft: ConversationBlock.makeStep.fromMessage(({ text }) =>
+  ChangedDraft: makeStep.fromMessage(({ text }) =>
     ComposerBinding.informDraftChanged({ text }),
   ),
 })

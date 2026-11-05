@@ -1,11 +1,11 @@
 import { Effect, Schema, Stream } from 'effect'
 
 import { capturedKeyDownStream } from '../../keyboard'
-import { HomeBlock } from './definition'
+import { makeSubscriptions } from './block'
 import { Message } from './message'
 import { capturesKeyboard } from './model'
 
-export const subscriptions = HomeBlock.makeSubscriptions(entry => ({
+export const subscriptions = makeSubscriptions(entry => ({
   homeKeyPresses: entry(
     'HomeKeyPresses',
     { shouldCaptureKeyboard: Schema.Boolean },

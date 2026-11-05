@@ -1,6 +1,6 @@
 import { revealFieldErrors } from '../../../../step/validation'
+import { makeFieldsStep } from './block'
 import { WorkHistoryEntryComposition } from './composition'
-import { makeFieldsStep } from './definition'
 import { companyRules, titleRules } from './validation'
 
 export const inMessageUpdate = WorkHistoryEntryComposition.makeInMessageUpdate({

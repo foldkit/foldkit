@@ -3,10 +3,10 @@ import { Dom } from 'foldkit'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
 import { RoomsClient } from '../../rpc'
-import { HomeBlock } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 
-export const CreateRoom = HomeBlock.makeCommand('CreateRoom', {
+export const CreateRoom = makeCommand('CreateRoom', {
   args: { username: Schema.String },
   messages: [Message.SucceededCreateRoom, Message.FailedCreateRoom],
   handler: function* () {
@@ -24,7 +24,7 @@ export const CreateRoom = HomeBlock.makeCommand('CreateRoom', {
   },
 })
 
-export const JoinRoomFromHome = HomeBlock.makeCommand('JoinRoomFromHome', {
+export const JoinRoomFromHome = makeCommand('JoinRoomFromHome', {
   args: { username: Schema.String, roomId: Schema.String },
   messages: [Message.SucceededJoinRoomFromHome, Message.FailedJoinRoomFromHome],
   handler: function* () {
@@ -44,7 +44,7 @@ export const JoinRoomFromHome = HomeBlock.makeCommand('JoinRoomFromHome', {
   },
 })
 
-export const FocusUsernameInput = HomeBlock.makeCommand('FocusUsernameInput', {
+export const FocusUsernameInput = makeCommand('FocusUsernameInput', {
   messages: [Message.CompletedFocusUsernameInput],
   handler: function* () {
     return () =>
@@ -55,7 +55,7 @@ export const FocusUsernameInput = HomeBlock.makeCommand('FocusUsernameInput', {
   },
 })
 
-export const FocusRoomIdInput = HomeBlock.makeCommand('FocusRoomIdInput', {
+export const FocusRoomIdInput = makeCommand('FocusRoomIdInput', {
   messages: [Message.CompletedFocusRoomIdInput],
   handler: function* () {
     return () =>

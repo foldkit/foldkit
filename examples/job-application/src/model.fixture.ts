@@ -7,11 +7,11 @@ import { test as baseTest } from 'vitest'
 
 import { makeMethods } from '@effect/vitest'
 
-import { ApplicationBlock, layer } from './block'
 import { EducationEntry } from './blocks/education/blocks'
 import { SkillsEntry } from './blocks/skills/blocks'
 import { WorkHistoryEntry } from './blocks/workHistory/blocks'
 import { Flags } from './flags'
+import { ApplicationBlock, layer } from './index'
 import { type Model } from './model'
 
 export const today = Calendar.make(2026, 4, 16)

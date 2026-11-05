@@ -12,7 +12,7 @@ Event attributes complete the loop. They produce Messages for the runtime to dis
 
 In the [restaurant analogy](/core/architecture#the-restaurant-analogy), view is the meal on the table. The Model records the current facts; view presents them.
 
-The Counter's named `ApplicationComposition` supplies the primary view builder, so the view's Model, Message, child, and Mount capabilities come from the same Composition used by the Block’s implementation Layer. This excerpt remains in the compact Counter's `application.ts` after the Application and Composition declarations.
+The Counter's named `ApplicationComposition` supplies the primary view builder, so the view's Model, Message, child, and Mount capabilities come from the same Composition used by the Block’s implementation Layer. This excerpt remains in the compact Counter's `block.ts` after the Application and Composition declarations.
 
 ::Snippet{name="counterView" label="Using view"}
 

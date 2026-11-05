@@ -27,7 +27,6 @@ const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 export const PeoplePickerKey = Symbol('PeoplePicker')
-
 export const PeoplePickerBlock = Block.make('PeoplePicker', {
   key: PeoplePickerKey,
   Init: Schema.Tuple([]),
@@ -36,7 +35,8 @@ export const PeoplePickerBlock = Block.make('PeoplePicker', {
   Message,
 })
 
-const { makeFieldsStep } = PeoplePickerBlock
+const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
+  PeoplePickerBlock
 
 // At module scope, fold the OutMessage into your own Model. `Selected` carries
 // the activated value. The parent owns the selection and decides what it
@@ -44,27 +44,24 @@ const { makeFieldsStep } = PeoplePickerBlock
 // returns an Update.Step over the parent Model, which already has the next
 // Listbox Model written back. The parent Block infers the refined child
 // payload and checks every named variant:
-const foldListboxMultiOutMessage = PeoplePickerBlock.makeOutMessageFold(
-  PeopleListbox,
-  {
-    Selected: ({ value }) =>
-      makeFieldsStep(() => ({
-        selectedPeople: selectedPeople =>
-          Array.contains(selectedPeople, value)
-            ? Array.filter(selectedPeople, person => person !== value)
-            : Array.append(selectedPeople, value),
-      })),
-  },
-)
+const foldListboxMultiOutMessage = makeOutMessageFold(PeopleListbox, {
+  Selected: ({ value }) =>
+    makeFieldsStep(() => ({
+      selectedPeople: selectedPeople =>
+        Array.contains(selectedPeople, value)
+          ? Array.filter(selectedPeople, person => person !== value)
+          : Array.append(selectedPeople, value),
+    })),
+})
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const ListboxMultiBinding = PeoplePickerBlock.makeBinding(PeopleListbox, {
+const ListboxMultiBinding = makeBinding(PeopleListbox, {
   field: 'listboxMulti',
   init: { contextToArgs: () => [{ id: 'people' }] },
 }).withOutMessagePolicy({ fold: foldListboxMultiOutMessage })
 
-const PeoplePickerComposition = PeoplePickerBlock.makeComposition({
+const PeoplePickerComposition = makeComposition({
   bindings: [ListboxMultiBinding],
 })
 

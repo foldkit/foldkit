@@ -3,17 +3,17 @@ import { modifyFields } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
 import {
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageStep,
+} from '../block'
+import {
   FocusRoomIdInput,
   FocusUsernameInput,
   JoinRoomFromHome,
 } from '../command'
 import { HomeComposition } from '../composition'
-import {
-  makeCommandsStep,
-  makeFieldsStep,
-  makeNoopStep,
-  makeOutMessageStep,
-} from '../definition'
 import { OutMessage } from '../message'
 import { HomeStep } from '../model'
 import { handlePressedKey } from './handlePressedKey'

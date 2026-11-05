@@ -11,7 +11,6 @@ const Model = Schema.Struct({})
 type Model = typeof Model.Type
 
 export const PanelKey = Symbol('Panel')
-
 const PanelBlock = Block.make('Panel', {
   key: PanelKey,
   Init: Schema.Tuple([]),
@@ -20,7 +19,9 @@ const PanelBlock = Block.make('Panel', {
   Message,
 })
 
-const TrackPointer = PanelBlock.makeMountStream('TrackPointer', {
+const { makeMountStream, makeComposition } = PanelBlock
+
+const TrackPointer = makeMountStream('TrackPointer', {
   messages: [Message.MovedPointer],
   handler: function* () {
     return ({ element }) =>
@@ -36,7 +37,7 @@ const TrackPointer = PanelBlock.makeMountStream('TrackPointer', {
   },
 })
 
-const PanelComposition = PanelBlock.makeComposition({
+const PanelComposition = makeComposition({
   mounts: [TrackPointer],
 })
 

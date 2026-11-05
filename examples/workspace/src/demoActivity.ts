@@ -2,8 +2,8 @@ import { Array, Option } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeStep } from './block'
 import { AppendActivity, AssignIssue } from './command'
-import { makeStep } from './definition'
 import { IssueDraft } from './domain'
 import { maybeActiveIssueDetail } from './selection'
 

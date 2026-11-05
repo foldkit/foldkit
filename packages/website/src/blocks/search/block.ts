@@ -1,28 +1,29 @@
-import { Effect, Layer } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
+import { PagefindService } from '../../pagefind'
+import { InMessage } from './inMessage'
+import { Message } from './message'
+import { Model } from './model'
 
-import { DialogBinding } from './composition'
-import { SearchBlock } from './definition'
-import { inMessageUpdate } from './inMessageUpdate'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { update } from './update'
-import { view } from './view'
+export const SearchKey = Symbol('Search')
+export const SearchBlock = Block.make('Search', {
+  key: SearchKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+  effects: { services: [PagefindService] },
+  Model,
+  Message,
+  InMessage,
+})
 
-export const layer = SearchBlock.makeLayer(
-  Effect.gen(function* () {
-    const dialog = yield* DialogBinding
-
-    return {
-      children: [dialog],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(DialogLayer)))
-
-export { SearchBlock }
+export const {
+  makeBinding,
+  makeCommand,
+  makeCommandsStep,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+  makeStep,
+} = SearchBlock

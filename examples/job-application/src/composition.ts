@@ -1,6 +1,13 @@
 import type { Block } from 'foldkit'
 
 import {
+  makeBinding,
+  makeComposition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageFold,
+} from './block'
+import {
   AttachmentsBlock,
   CoverLetterBlock,
   EducationBlock,
@@ -8,13 +15,6 @@ import {
   SkillsBlock,
   WorkHistoryBlock,
 } from './blocks'
-import {
-  makeBinding,
-  makeComposition,
-  makeFieldsStep,
-  makeNoopStep,
-  makeOutMessageFold,
-} from './definition'
 import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
 
 export const PersonalInfoBinding = makeBinding(PersonalInfoBlock, {

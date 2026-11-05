@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
-// block.ts
+// layer.ts
 
-import { ApplicationBlock } from './definition'
+import { ApplicationBlock } from './block'
 import { init } from './init'
 import { subscriptions } from './subscription'
 import { update } from './update'
@@ -32,4 +32,4 @@ export const program = Program.make({
   devTools: { dispatch: true },
 })
 
-export { ApplicationBlock } from './definition'
+export { ApplicationBlock } from './block'

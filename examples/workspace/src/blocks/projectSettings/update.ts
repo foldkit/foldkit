@@ -1,9 +1,9 @@
 import { String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeStep } from './block'
 import { SaveProject } from './command'
 import { ProjectSettingsComposition } from './composition'
-import { makeStep } from './definition'
 import { isDirty } from './draft'
 import { type Model, type ProjectDraft, SaveState } from './model'
 import { OutMessage } from './outMessage'

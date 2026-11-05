@@ -2,12 +2,12 @@ import { Option, Result } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep } from './block'
 import {
   ApplicationComposition,
   refetchTelemetry,
   syncChart,
 } from './composition'
-import { makeFieldsStep } from './definition'
 import { TelemetryAsyncData } from './model'
 
 export const update = ApplicationComposition.makeUpdate({

@@ -1,4 +1,6 @@
-const enterNotebooksRoute = ApplicationBlock.makeStep(model =>
+import { makeStep } from './block'
+
+const enterNotebooksRoute = makeStep(model =>
   Option.match(AsyncData.revalidateOrLoad(model.notebooks), {
     onNone: () => ({ model }),
     onSome: nextNotebooks => ({

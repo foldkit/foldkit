@@ -401,8 +401,7 @@ class ShadowRootService extends Context.Service<
   ShadowRoot
 >()('foldkit/DevToolsShadowRoot') {}
 
-const ApplicationKey = Symbol('DevToolsApplication')
-
+const ApplicationKey = Symbol('Application')
 const ApplicationDefinition = Block.makeDefinition('Application', {
   key: ApplicationKey,
   Init: Schema.Tuple([Flags]),

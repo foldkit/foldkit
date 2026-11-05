@@ -12,7 +12,7 @@ import {
   Model,
   layer,
   viewTransition,
-} from './application'
+} from './block'
 
 const gallery = Model.make({
   route: ApplicationRoute.Gallery(),

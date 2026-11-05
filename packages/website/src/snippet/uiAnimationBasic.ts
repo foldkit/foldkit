@@ -18,7 +18,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const AnimationExampleKey = Symbol('AnimationExample')
-
 export const AnimationExampleBlock = Block.make('AnimationExample', {
   key: AnimationExampleKey,
   Init: Schema.Tuple([]),
@@ -27,38 +26,36 @@ export const AnimationExampleBlock = Block.make('AnimationExample', {
   Message,
 })
 
-const { makeNoopStep } = AnimationExampleBlock
+const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
+  AnimationExampleBlock
 
 // Bind before defining the policy so its standard leave operation is available
 // inside the StartedLeaveAnimating branch.
-const BaseAnimationBinding = AnimationExampleBlock.makeBinding(AnimationBlock, {
+const BaseAnimationBinding = makeBinding(AnimationBlock, {
   field: 'animation',
   init: { contextToArgs: () => [{ id: 'content' }] },
 })
 
-const foldAnimationOutMessage = AnimationExampleBlock.makeOutMessageFold(
-  AnimationBlock,
-  {
-    // The operation asks Animation to wait for its wrapper's CSS to settle.
-    // A custom policy can race another signal against that settlement instead.
-    StartedLeaveAnimating: () =>
-      BaseAnimationBinding.requestWaitForLeaveSettlement(),
-    // TransitionedOut is Animation's signal that the leave has fully
-    // settled (your leave Command's EndedAnimation message has been
-    // processed). Return Commands for any post-animation work, for
-    // example: close a native dialog, remove an entry from a list,
-    // release a resource. No Commands here because animateSize keeps the
-    // element mounted (collapsed to zero height) so there's nothing to
-    // tear down.
-    TransitionedOut: makeNoopStep,
-  },
-)
+const foldAnimationOutMessage = makeOutMessageFold(AnimationBlock, {
+  // The operation asks Animation to wait for its wrapper's CSS to settle.
+  // A custom policy can race another signal against that settlement instead.
+  StartedLeaveAnimating: () =>
+    BaseAnimationBinding.requestWaitForLeaveSettlement(),
+  // TransitionedOut is Animation's signal that the leave has fully
+  // settled (your leave Command's EndedAnimation message has been
+  // processed). Return Commands for any post-animation work, for
+  // example: close a native dialog, remove an entry from a list,
+  // release a resource. No Commands here because animateSize keeps the
+  // element mounted (collapsed to zero height) so there's nothing to
+  // tear down.
+  TransitionedOut: makeNoopStep,
+})
 
 const AnimationBinding = BaseAnimationBinding.withOutMessagePolicy({
   fold: foldAnimationOutMessage,
 })
 
-const AnimationExampleComposition = AnimationExampleBlock.makeComposition({
+const AnimationExampleComposition = makeComposition({
   bindings: [AnimationBinding],
 })
 

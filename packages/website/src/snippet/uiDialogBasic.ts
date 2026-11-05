@@ -22,7 +22,6 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const DialogExampleKey = Symbol('DialogExample')
-
 export const DialogExampleBlock = Block.make('DialogExample', {
   key: DialogExampleKey,
   Init: Schema.Tuple([]),
@@ -31,25 +30,23 @@ export const DialogExampleBlock = Block.make('DialogExample', {
   Message,
 })
 
-const { makeNoopStep } = DialogExampleBlock
+const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
+  DialogExampleBlock
 
 // One boundary handles Dialog Messages, Commands, and OutMessages. Replace
 // either no-op arm with the parent transition that should follow that event.
-const foldDialogOutMessage = DialogExampleBlock.makeOutMessageFold(
-  DialogBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-    CompletedClose: makeNoopStep,
-  },
-)
+const foldDialogOutMessage = makeOutMessageFold(DialogBlock, {
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
+  CompletedClose: makeNoopStep,
+})
 
-const DialogBinding = DialogExampleBlock.makeBinding(DialogBlock, {
+const DialogBinding = makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const DialogExampleComposition = DialogExampleBlock.makeComposition({
+const DialogExampleComposition = makeComposition({
   bindings: [DialogBinding],
 })
 

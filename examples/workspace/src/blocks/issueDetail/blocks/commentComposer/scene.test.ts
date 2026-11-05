@@ -15,9 +15,9 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 
 import { initialWorkspace } from '../../../../domain'
-import { layer } from './block'
+import { CommentComposerBlock } from './block'
 import { AddComment } from './command'
-import { CommentComposerBlock } from './definition'
+import { layer } from './layer'
 import { Message } from './message'
 
 const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))

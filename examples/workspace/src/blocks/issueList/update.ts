@@ -1,8 +1,8 @@
 import { Option, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep, makeOutMessageStep } from './block'
 import { IssueListComposition } from './composition'
-import { makeFieldsStep, makeOutMessageStep } from './definition'
 import { OutMessage } from './outMessage'
 import { clearFilters } from './steps'
 

@@ -1,37 +1,23 @@
-import { Effect, Layer } from 'effect'
-import { Query } from 'foldkit/experimental'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Message } from './message'
+import { Model } from './model'
 
-import {
-  PostDetailsBinding,
-  PostsBinding,
-  StatsBinding,
-  TabsBinding,
-} from './composition'
-import { ApplicationBlock } from './definition'
-import { init } from './init'
-import { EffectsLayer } from './layer'
-import { subscriptions } from './subscription'
-import { update } from './update'
-import { view } from './view'
+export const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+  Model,
+  Message,
+})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const tabs = yield* TabsBinding
-    const posts = yield* PostsBinding
-    const stats = yield* StatsBinding
-    const postDetails = yield* PostDetailsBinding
-
-    return {
-      children: [tabs, posts, stats, postDetails],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(Query.layer, TabsLayer)))
-
-export { ApplicationBlock } from './definition'
+export const {
+  makeBinding,
+  makeComposition,
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeStep,
+  makeSubscriptions,
+} = ApplicationBlock

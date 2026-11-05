@@ -2,8 +2,8 @@ import { Option, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { IssueDraft } from '../../domain'
+import { makeStep } from './block'
 import { SaveIssue } from './command'
-import { makeStep } from './definition'
 import { isDirty } from './draft'
 import { SaveState } from './model'
 

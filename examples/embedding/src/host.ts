@@ -1,7 +1,7 @@
 import { Effect, Function, Option } from 'effect'
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock, Flags, layer, ports } from './application'
+import { ApplicationBlock, Flags, layer, ports } from './block'
 
 const INITIAL_COUNT = 10
 

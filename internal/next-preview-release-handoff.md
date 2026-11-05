@@ -1,6 +1,15 @@
 # Next preview release handoff
 
-## November 4 candidate
+## November 5 candidate
+
+Use the [current review](preview-review-20261105.md) for changes since published
+preview `90746b32d2ca`, verification, remaining review items and publication holds.
+It includes the repository-wide convention and Story/Scene migration, preserved
+user edits, incoming Node/Scene/Menu/DragAndDrop/Query contributions, and Dialog
+terminal-cleanup and public provider-declaration repairs. Earlier sections below
+retain their dated checkpoint scope.
+
+## November 4 checkpoint
 
 The last verified publication remains `90746b32d2ca`; this candidate is not
 published. The [unified adoption report](block-api-simplification/adoption-20261104.md)

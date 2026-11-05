@@ -1,2 +1,3 @@
-export { SkillsBlock, layer } from './block'
+export { SkillsBlock } from './block'
+export { layer } from './layer'
 export { hasErrors, isComplete } from './validation'

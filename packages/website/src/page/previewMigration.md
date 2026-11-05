@@ -297,25 +297,26 @@ Preserve the host mode:
 
 ## 5. Preserve a Clear File Direction
 
-A compact feature can keep contracts, Composition, implementation, and completion in one module. A compact application can keep those values in `application.ts` and put only host startup in `entry.ts`.
+A compact feature can keep contracts, Composition, implementation, and completion in one module. A compact application can keep those values in `block.ts` and put only host startup in `entry.ts`.
 
 Split a growing feature by ownership:
 
 | File                                                              | Owns                                                                                          |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `definition.ts`                                                   | The single Block declaration and its public contracts                                         |
+| `block.ts`                                                        | The single Block declaration and its public contracts                                         |
 | `command.ts`, `subscription.ts`, `mount.ts`, `managedResource.ts` | Local effect and lifecycle declarations                                                       |
 | `composition.ts` or `composition/`                                | Bindings, OutMessage policy, Mount registration, Composition, and optional view builder alias |
 | `init.ts`, `update.ts`, `view.ts`                                 | Behavior authored through that Composition                                                    |
-| `block.ts`                                                        | Effectful completion, child implementation provision, and the local `EffectsLayer`            |
+| `layer.ts`                                                        | Effectful completion and child implementation provision                                       |
+| `effectsLayer.ts`                                                 | A separately extracted local handler bundle, when needed                                      |
 | `services.ts`                                                     | Root `ApplicationLayer` and test providers for ordinary Services                              |
 | `entry.ts`                                                        | Program host configuration and Runtime startup                                                |
 
-Keep imports moving in that direction. Composition may import child contracts and local policy declarations. It must not import its own init, update, view, construction Layer, or feature barrel. Implementation modules may import the Block declaration, Composition and Bindings. `block.ts` may import every implementation field to complete the feature.
+Keep imports moving in that direction. Composition may import child contracts and local policy declarations. It must not import its own init, update, view, construction Layer, or feature barrel. Implementation modules may import the Block declaration, Composition and Bindings. `layer.ts` may import every implementation field to complete the feature.
 
 Use `index.ts` only as an explicit barrel. Export the public `SettingsBlock` contract and its implementation `layer`. Keep private effect registries and policy helpers in their owning modules. Internal modules import real owning files instead of importing their own barrel.
 
-If TypeScript reports a recursive initializer or a value is undefined during module evaluation, inspect the Binding stages and import graph. Keep any base Bindings internal to the owning parent, author self-referential or reciprocal folds through deferred callbacks, and export and register the policy-complete `<Child>Binding`. Common import causes are `composition.ts` importing `block.ts`, a child importing its parent's barrel, or an extracted policy importing the parent construction Layer. Keep reciprocal sibling policies in the same parent composition module, and move a shared pure Step into a leaf module when both sides need it. Do not add annotations, casts, generic argument lists, or raw child matchers to break the cycle.
+If TypeScript reports a recursive initializer or a value is undefined during module evaluation, inspect the Binding stages and import graph. Keep any base Bindings internal to the owning parent, author self-referential or reciprocal folds through deferred callbacks, and export and register the policy-complete `<Child>Binding`. Common import causes are `composition.ts` importing `layer.ts`, a child importing its parent's barrel, or an extracted policy importing the parent construction Layer. Keep reciprocal sibling policies in the same parent composition module, and move a shared pure Step into a leaf module when both sides need it. Do not add annotations, casts, generic argument lists, or raw child matchers to break the cycle.
 
 The [Project Organization guide](/patterns/project-organization) shows compact, split, graphless, Mount-only, and policy-heavy layouts.
 
@@ -367,7 +368,7 @@ Finish the required column before broadening the migration.
 | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Pin one exact manifest snapshot.                                            | Split a compact feature that remains easy to navigate.                                |
 | Move effect implementations into Block-owned handler Layers.                | Rename unrelated domain helpers for consistency.                                      |
-| Complete every consumed feature as a named Block.                           | Extract a local `EffectsLayer` from `block.ts` when it becomes substantial or reused. |
+| Complete every consumed feature as a named Block.                           | Extract a local `EffectsLayer` from `layer.ts` when it becomes substantial or reused. |
 | Register parent-owned Bindings and remove authored child delivery wrappers. | Extract a substantial one-way Binding policy into `composition/`.                     |
 | Replace parent rewrites of a child Model with Message-backed operations.    | Add more focused Story or Scene coverage beyond the migration baseline.               |
 | Move child startup into Binding and Composition init policy.                | Reorganize domain modules that do not participate in Block assembly.                  |

@@ -2,8 +2,8 @@ import { Array, Option, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { makeFieldsStep, makeNoopStep } from './block'
 import { NotificationCenterComposition, PopoverBinding } from './composition'
-import { makeFieldsStep, makeNoopStep } from './definition'
 import type {
   ClickedMarkAllAsRead,
   ClickedNotificationReadState,

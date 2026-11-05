@@ -6,11 +6,11 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { WorkHistoryBlock, layer } from './block'
+import { Message } from './block'
 import { WorkHistoryEntryBlock } from './blocks/workHistoryEntry'
 import { GenerateWorkHistoryEntryId } from './command'
 import { EntriesBinding } from './composition'
-import { Message } from './definition'
+import { WorkHistoryBlock, layer } from './index'
 
 type WorkHistoryEntryMessage = typeof WorkHistoryEntryBlock.Message.Type
 

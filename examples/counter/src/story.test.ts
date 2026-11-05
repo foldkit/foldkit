@@ -3,7 +3,7 @@ import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { ApplicationBlock, Message, Model, layer } from './application'
+import { ApplicationBlock, Message, Model, layer } from './block'
 
 const initialModel = Model.make({ count: 0 })
 

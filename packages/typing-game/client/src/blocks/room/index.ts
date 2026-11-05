@@ -1,1 +1,2 @@
-export { RoomBlock, layer } from './block'
+export { RoomBlock } from './block'
+export { layer } from './layer'

@@ -15,13 +15,13 @@ import {
   playgroundRouter,
 } from '../../route'
 import type { TableOfContentsEntry } from '../../tableOfContentsEntry'
+import { makeCommand, makeFieldsStep, makeStep } from './block'
 import {
   ExampleDetailComposition,
   type ExampleDetailViewBuilder,
   SOURCE_FILE_TABS_ID,
   SourceFileTabsBinding,
 } from './composition'
-import { ExampleDetailBlock, makeFieldsStep, makeStep } from './definition'
 import { SourceFileTabsBlock } from './fileTabs'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
@@ -42,31 +42,26 @@ export { CurrentSourcesAsyncData, Model } from './model'
 /** Loads the source files for the example identified by `slug`, producing the
  *  loaded sources on success or a failure Message when the fetch does not
  *  complete. */
-export const LoadExampleSources = ExampleDetailBlock.makeCommand(
-  'LoadExampleSources',
-  {
-    args: { slug: Schema.String },
-    messages: [
-      Message.SucceededLoadExampleSources,
-      Message.FailedLoadExampleSources,
-    ],
-    handler: function* () {
-      return ({ slug }) =>
-        Effect.tryPromise({
-          try: () => loadSourcesForSlug(slug),
-          catch: error =>
-            error instanceof Error ? error.message : `Unknown example: ${slug}`,
-        }).pipe(
-          Effect.map(sources =>
-            Message.SucceededLoadExampleSources({ sources }),
-          ),
-          Effect.catch(error =>
-            Effect.succeed(Message.FailedLoadExampleSources({ error })),
-          ),
-        )
-    },
+export const LoadExampleSources = makeCommand('LoadExampleSources', {
+  args: { slug: Schema.String },
+  messages: [
+    Message.SucceededLoadExampleSources,
+    Message.FailedLoadExampleSources,
+  ],
+  handler: function* () {
+    return ({ slug }) =>
+      Effect.tryPromise({
+        try: () => loadSourcesForSlug(slug),
+        catch: error =>
+          error instanceof Error ? error.message : `Unknown example: ${slug}`,
+      }).pipe(
+        Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedLoadExampleSources({ error })),
+        ),
+      )
   },
-)
+})
 
 export const EffectsLayer = Layer.mergeAll(
   LoadExampleSources.layer,

@@ -1,6 +1,6 @@
 import { Duration, Effect, Schema } from 'effect'
 
-import { ApplicationBlock } from './definition'
+import { makeCommand } from './block'
 import { Message } from './message'
 
 const MILLISECONDS_PER_MEGABYTE = 100
@@ -8,7 +8,7 @@ const MILLISECONDS_PER_MEGABYTE = 100
 export const UploadKey = Schema.Struct({ uploadId: Schema.Number })
 export type UploadKey = typeof UploadKey.Type
 
-export const UploadFile = ApplicationBlock.makeCommand('UploadFile', {
+export const UploadFile = makeCommand('UploadFile', {
   args: { ...UploadKey.fields, sizeMegabytes: Schema.Number },
   messages: [Message.CompletedUploadFile],
   interrupt: {
@@ -30,5 +30,3 @@ export const CancelUploadFile = ({ uploadId }: UploadKey) =>
   UploadFile.Interrupt({ uploadId }, outcome =>
     Message.CompletedCancelUploadFile({ uploadId, outcome }),
   )
-
-export const EffectsLayer = UploadFile.layer
