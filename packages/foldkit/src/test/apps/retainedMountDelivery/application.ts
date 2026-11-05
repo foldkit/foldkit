@@ -1,6 +1,7 @@
 import { Array, Effect, Layer, Schema } from 'effect'
 
 import * as Block from '../../../block/public.js'
+import { type Html, createLazy } from '../../../html/public.js'
 import { defineMessageUnion } from '../../../message/public.js'
 import * as Surface from './surface.js'
 
@@ -13,6 +14,8 @@ const Message = defineMessageUnion({
   CompletedWaitForSelection: {},
   CompletedRemoveOwner: {},
   CompletedRecreateOwner: {},
+  CompletedRemoveMountedOwner: {},
+  CompletedRecreateMountedOwner: {},
   ClickedFirst: {},
   ClickedSecond: {},
   ClickedOmit: {},
@@ -22,14 +25,17 @@ const Message = defineMessageUnion({
   ClickedRecreate: {},
   ClickedBatch: {},
 })
+type Message = typeof Message.Type
 const InMessage = defineMessageUnion({
   RequestedRemove: {},
   RequestedRecreate: {},
 })
+type InMessage = typeof InMessage.Type
 export const OutMessage = defineMessageUnion({
   MeasuredSurface: { width: Schema.Number },
 })
-const ApplicationKey = Symbol('Application')
+export type OutMessage = typeof OutMessage.Type
+export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('RetainedMountDelivery', {
   key: ApplicationKey,
   Model,
@@ -39,7 +45,12 @@ export const ApplicationBlock = Block.make('RetainedMountDelivery', {
   Init: Schema.Tuple([Schema.Boolean]),
   view: {
     kind: 'Element',
-    Inputs: Schema.Struct({ form: Schema.Literals(['nested', 'published']) }),
+    Inputs: Schema.Struct({
+      form: Schema.Literals(['nested', 'published']),
+      mode: Schema.optional(
+        Schema.Literals(['Lazy', 'Cached', 'Duplicate', 'RetireDuringMounts']),
+      ),
+    }),
   },
 })
 export const WaitForSelection = ApplicationBlock.makeCommand(
@@ -64,6 +75,24 @@ export const RecreateOwner = ApplicationBlock.makeCommand('RecreateOwner', {
     return () => Effect.succeed(Message.CompletedRecreateOwner())
   },
 })
+export const RemoveMountedOwner = ApplicationBlock.makeMount(
+  'RemoveMountedOwner',
+  {
+    messages: [Message.CompletedRemoveMountedOwner],
+    handler: function* () {
+      return () => Effect.succeed(Message.CompletedRemoveMountedOwner())
+    },
+  },
+)
+export const RecreateMountedOwner = ApplicationBlock.makeMount(
+  'RecreateMountedOwner',
+  {
+    messages: [Message.CompletedRecreateMountedOwner],
+    handler: function* () {
+      return () => Effect.succeed(Message.CompletedRecreateMountedOwner())
+    },
+  },
+)
 export const SurfacesBinding = ApplicationBlock.makeBinding(
   Surface.SurfaceBlock,
   {
@@ -80,7 +109,29 @@ export const SurfacesBinding = ApplicationBlock.makeBinding(
 })
 const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [SurfacesBinding],
+  mounts: [RemoveMountedOwner, RecreateMountedOwner],
 })
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
+type SurfaceInstance = typeof Surface.SurfaceBlock.Instance.Type
+const renderSurface = (
+  selected: SurfaceInstance,
+  form: 'nested' | 'published',
+  h: ApplicationViewBuilder,
+): Html =>
+  h.block(
+    SurfacesBinding.embedView({
+      key: selected.key,
+      slotId: 'selected-surface',
+      model: selected.model,
+      viewInputs: {
+        form,
+        toView: attributes => h.div([h.Id('surface'), ...attributes]),
+      },
+    }),
+  )
+const lazySurface = createLazy()
 const surface = (key: string, width: number, label: string) =>
   Surface.SurfaceBlock.Instance.make({ key, model: { width, label } })
 export const initialModel = Model.make({
@@ -98,6 +149,9 @@ const recreateOwner = ApplicationBlock.makeFieldsStep(() => ({
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
     const surfaces = yield* SurfacesBinding
+    let cachedSurface:
+      | Readonly<{ selected: SurfaceInstance; html: Html }>
+      | undefined
 
     return {
       children: [surfaces],
@@ -110,6 +164,8 @@ export const layer = ApplicationBlock.makeLayer(
           selectedKey: () => 'second',
         })),
         CompletedRemoveOwner: removeOwner,
+        CompletedRemoveMountedOwner: removeOwner,
+        CompletedRecreateMountedOwner: recreateOwner,
         CompletedRecreateOwner: recreateOwner,
         ClickedFirst: ApplicationBlock.makeFieldsStep(() => ({
           selectedKey: () => 'first',
@@ -139,77 +195,105 @@ export const layer = ApplicationBlock.makeLayer(
         RequestedRemove: removeOwner,
         RequestedRecreate: recreateOwner,
       }),
-      view: ApplicationComposition.makeView.withInputs((model, { form }, h) => {
-        const selected = model.surfaces.find(
-          item => item.key === model.selectedKey,
-        )
-        return h.div(
-          [],
-          [
-            h.button(
-              [h.Id('second'), h.OnClick(Message.ClickedSecond())],
-              ['second'],
-            ),
-            h.button(
-              [h.Id('first'), h.OnClick(Message.ClickedFirst())],
-              ['first'],
-            ),
-            h.button(
-              [h.Id('omit'), h.OnClick(Message.ClickedOmit())],
-              ['omit'],
-            ),
-            h.button(
-              [h.Id('restore'), h.OnClick(Message.ClickedRestore())],
-              ['restore'],
-            ),
-            h.button(
-              [h.Id('rename'), h.OnClick(Message.ClickedRename())],
-              ['rename'],
-            ),
-            h.button(
-              [h.Id('remove'), h.OnClick(Message.ClickedRemove())],
-              ['remove'],
-            ),
-            h.button(
-              [h.Id('recreate'), h.OnClick(Message.ClickedRecreate())],
-              ['recreate'],
-            ),
-            h.button(
-              [h.Id('batch'), h.OnClick(Message.ClickedBatch())],
-              ['batch'],
-            ),
-            h.span(
-              [h.Id('summary')],
-              [
-                model.surfaces
-                  .map(
-                    item =>
-                      `${item.key}:${item.model.width}:${item.model.label}`,
-                  )
-                  .join(','),
-              ],
-            ),
-            selected === undefined
-              ? h.span([], ['absent'])
-              : h.block(
-                  SurfacesBinding.embedView({
-                    key: selected.key,
-                    slotId: 'selected-surface',
-                    model: selected.model,
-                    viewInputs: {
-                      form,
-                      toView: attributes =>
-                        h.div([h.Id('surface'), ...attributes]),
-                    },
-                  }),
-                ),
-          ],
-        )
-      }),
+      view: ApplicationComposition.makeView.withInputs(
+        (model, { form, mode }, h) => {
+          const selected = model.surfaces.find(
+            item => item.key === model.selectedKey,
+          )
+          let selectedView: Html
+          if (selected === undefined) {
+            selectedView = h.span([], ['absent'])
+          } else if (mode === 'Lazy') {
+            selectedView = lazySurface(renderSurface, [selected, form, h])
+          } else if (mode === 'Cached') {
+            if (cachedSurface?.selected !== selected) {
+              cachedSurface = {
+                selected,
+                html: renderSurface(selected, form, h),
+              }
+            }
+            selectedView = cachedSurface.html
+          } else {
+            selectedView = renderSurface(selected, form, h)
+          }
+          return h.div(
+            [],
+            [
+              h.button(
+                [h.Id('second'), h.OnClick(Message.ClickedSecond())],
+                ['second'],
+              ),
+              h.button(
+                [h.Id('first'), h.OnClick(Message.ClickedFirst())],
+                ['first'],
+              ),
+              h.button(
+                [h.Id('omit'), h.OnClick(Message.ClickedOmit())],
+                ['omit'],
+              ),
+              h.button(
+                [h.Id('restore'), h.OnClick(Message.ClickedRestore())],
+                ['restore'],
+              ),
+              h.button(
+                [h.Id('rename'), h.OnClick(Message.ClickedRename())],
+                ['rename'],
+              ),
+              h.button(
+                [h.Id('remove'), h.OnClick(Message.ClickedRemove())],
+                ['remove'],
+              ),
+              h.button(
+                [h.Id('recreate'), h.OnClick(Message.ClickedRecreate())],
+                ['recreate'],
+              ),
+              h.button(
+                [h.Id('batch'), h.OnClick(Message.ClickedBatch())],
+                ['batch'],
+              ),
+              h.span(
+                [h.Id('summary')],
+                [
+                  model.surfaces
+                    .map(
+                      item =>
+                        `${item.key}:${item.model.width}:${item.model.label}`,
+                    )
+                    .join(','),
+                ],
+              ),
+              selectedView,
+              ...(mode === 'Duplicate' && selected !== undefined
+                ? [renderSurface(selected, form, h)]
+                : []),
+              ...(mode === 'RetireDuringMounts'
+                ? [
+                    h.div([h.OnMount(RemoveMountedOwner())]),
+                    h.div([h.OnMount(RecreateMountedOwner())]),
+                  ]
+                : []),
+              h.div(
+                [h.OnClick(Message.ClickedRecreate())],
+                [
+                  h.button(
+                    [
+                      h.Id('replace-in-one-click'),
+                      h.OnClick(Message.ClickedRemove()),
+                    ],
+                    ['replace'],
+                  ),
+                ],
+              ),
+            ],
+          )
+        },
+      ),
       EffectsLayer: Layer.mergeAll(
         WaitForSelection.layer,
         RemoveOwner.layer,
         RecreateOwner.layer,
+        RemoveMountedOwner.layer,
+        RecreateMountedOwner.layer,
       ),
     }
   }),

@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, Stream } from 'effect'
+import { Effect, Layer, Option, Schema, Stream } from 'effect'
 
 import * as Block from '../../../block/public.js'
 import {
@@ -14,16 +14,20 @@ const Model = Schema.Struct({ width: Schema.Number, label: Schema.String })
 type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   MeasuredSurface: { width: Schema.Number },
+  MeasuredRenamedSurface: { width: Schema.Number },
   CompletedReportMeasurement: {},
   ReceivedPulse: {},
 })
+export type Message = typeof Message.Type
 const InMessage = defineMessageUnion({
   RequestedResize: { width: Schema.Number },
   RequestedRename: { label: Schema.String },
 })
+type InMessage = typeof InMessage.Type
 const OutMessage = defineMessageUnion({
   MeasuredSpecialWidth: { width: Schema.Number },
 })
+type OutMessage = typeof OutMessage.Type
 const SurfaceNamespace = Block.makeNamespace('RetainedSurface')
 export const ObserveSurface = SurfaceNamespace.makeMountStream(
   'ObserveSurface',
@@ -41,7 +45,18 @@ export const ObserveSurface = SurfaceNamespace.makeMountStream(
     },
   },
 )
-const SurfaceKey = Symbol('Surface')
+export const ObserveRenamedSurface = SurfaceNamespace.makeMountStream(
+  'ObserveRenamedSurface',
+  {
+    args: { label: Schema.String },
+    messages: [Message.MeasuredRenamedSurface],
+    handler: function* () {
+      handlerLog.push('built renamed Mount')
+      return () => Stream.never
+    },
+  },
+)
+export const SurfaceKey = Symbol('Surface')
 export const SurfaceBlock = Block.make(SurfaceNamespace, {
   key: SurfaceKey,
   Model,
@@ -51,13 +66,17 @@ export const SurfaceBlock = Block.make(SurfaceNamespace, {
   Init: Schema.Tuple([]),
   view: {
     kind: 'Element',
-    mounts: [ObserveSurface],
+    mounts: [ObserveSurface, ObserveRenamedSurface],
     Inputs: Block.makeInputContract<
       Readonly<{
         form: 'nested' | 'published'
         toView: (
           attributes: ReadonlyArray<
-            ChildAttribute<Mount.RequirementsOf<typeof ObserveSurface>>
+            ChildAttribute<
+              Mount.RequirementsOf<
+                typeof ObserveSurface | typeof ObserveRenamedSurface
+              >
+            >
           >,
         ) => Html
       }>
@@ -96,8 +115,34 @@ const subscriptions = SurfaceBlock.makeSubscriptions(entry => ({
     },
   ),
 }))
+const MeasurementResource = SurfaceBlock.makeResource<string>()(
+  'MeasurementResource',
+)
+const managedResources = SurfaceBlock.makeManagedResources(entry => ({
+  observer: entry('ManageMeasurement', Schema.Option(Schema.String), {
+    resource: MeasurementResource,
+    modelToMaybeRequirements: model => Option.some(model.label),
+    onAcquired: () => Message.ReceivedPulse(),
+    onReleased: () => Message.ReceivedPulse(),
+    onAcquireError: () => Message.ReceivedPulse(),
+    handler: function* () {
+      handlerLog.push('built ManagedResource')
+      return {
+        acquire: label =>
+          Effect.sync(() => {
+            handlerLog.push('acquired ManagedResource')
+            return label
+          }),
+        release: () =>
+          Effect.sync(() => {
+            handlerLog.push('released ManagedResource')
+          }),
+      }
+    },
+  }),
+}))
 const SurfaceComposition = SurfaceBlock.makeComposition({
-  mounts: [ObserveSurface],
+  mounts: [ObserveSurface, ObserveRenamedSurface],
 })
 export const layer = SurfaceBlock.makeLayer(
   Effect.succeed({
@@ -118,6 +163,9 @@ export const layer = SurfaceBlock.makeLayer(
           return { model: nextModel }
         }
       }),
+      MeasuredRenamedSurface: SurfaceBlock.makeFieldsStep.fromMessage(
+        ({ width }) => ({ width: () => width }),
+      ),
       CompletedReportMeasurement: SurfaceBlock.makeNoopStep(),
       ReceivedPulse: SurfaceBlock.makeNoopStep(),
     }),
@@ -133,20 +181,36 @@ export const layer = SurfaceBlock.makeLayer(
       (model, { form, toView }, h) => {
         const attributes =
           model.width < 500
-            ? [h.OnMount(ObserveSurface({ label: model.label }))]
+            ? [
+                h.OnMount(
+                  model.label === 'renamed'
+                    ? ObserveRenamedSurface({ label: model.label })
+                    : ObserveSurface({ label: model.label }),
+                ),
+              ]
             : []
         if (form === 'nested') {
-          return h.div([h.Id('surface'), ...attributes], [String(model.width)])
+          return h.div(
+            [
+              h.Id('surface'),
+              h.OnClick(Message.MeasuredSurface({ width: 222 })),
+              ...attributes,
+            ],
+            [String(model.width)],
+          )
         } else {
           return toView(childAttributes(attributes))
         }
       },
     ),
     subscriptions,
+    managedResources,
     EffectsLayer: Layer.mergeAll(
       ObserveSurface.layer,
+      ObserveRenamedSurface.layer,
       ReportMeasurement.layer,
       subscriptions.layer,
+      managedResources.layer,
     ),
   }),
 )

@@ -28,6 +28,7 @@ import {
   runInMessageStep,
 } from '../experimental/layered/testing/inMessage.js'
 import type { File } from '../file/index.js'
+import { type BoundaryRegistry, beginRender } from '../html/boundary.js'
 import type { FoldkitMountMarker } from '../html/index.js'
 import {
   FOLDKIT_MOUNT_KEY,
@@ -44,6 +45,7 @@ import type {
   HtmlBuilder,
   KeyboardModifiers,
 } from '../html/index.js'
+import { type MountCapture, mountCaptureOf } from '../html/mountCapture.js'
 import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountRegistrationTypeId, MountTracker } from '../mount/index.js'
 import type {
@@ -145,6 +147,7 @@ import {
   allText,
   allTitle,
 } from './query.js'
+import { type SceneHost, SceneHostTypeId } from './sceneHost.js'
 
 export { type InitStep, init } from './internal.js'
 
@@ -494,6 +497,12 @@ type MountStatus =
 type MountSlotState = Readonly<{
   slot: PendingMount
   occurrencePath: ReadonlyArray<string>
+  acquisition:
+    | Readonly<{
+        owner: MountCapture['owner']
+        dispatch: (message: unknown) => void
+      }>
+    | undefined
   status: MountStatus
   vnode: VNode
 }>
@@ -517,6 +526,8 @@ type InternalSceneSimulation<
     ) => SimulationUpdateReturn<Model, OutMessage>
     resolvers: ReadonlyArray<ResolverEntry>
     viewFn: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
+    host: SceneHost | undefined
+    boundaryRegistry: BoundaryRegistry | undefined
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
     mountSlots: ReadonlyArray<MountSlotState>
@@ -537,6 +548,34 @@ type InternalSceneSimulation<
 const mountMarkerOf = (node: VNode): FoldkitMountMarker | undefined =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   node.data?.[FOLDKIT_MOUNT_KEY] as FoldkitMountMarker | undefined
+
+const acquireMount = (
+  marker: FoldkitMountMarker,
+): MountSlotState['acquisition'] => {
+  const capture = mountCaptureOf(marker)
+  return capture === undefined
+    ? undefined
+    : { owner: capture.owner, dispatch: capture.resolver.resolve() }
+}
+
+const mountDelivery =
+  <Model, Message, OutMessage>(
+    internal: InternalSceneSimulation<Model, Message, OutMessage>,
+  ) =>
+  (
+    mount: PendingMount,
+    message: unknown,
+  ): ReadonlyArray<unknown> | undefined => {
+    const acquisition = internal.mountSlots.find(
+      state => state.slot === mount,
+    )?.acquisition
+    if (acquisition === undefined) {
+      return undefined
+    }
+    internal.capturingDispatch.reset()
+    acquisition.dispatch(message)
+    return internal.capturingDispatch.getCapturedMessages()
+  }
 
 const slotOfMarker = (
   marker: FoldkitMountMarker,
@@ -597,6 +636,7 @@ const reconcileMountSlots = (
       renderedSlots.push({
         slot: slotOfMarker(marker, nextOccurrence(marker.name)),
         occurrencePath: mountOccurrencePath(marker),
+        acquisition: acquireMount(marker),
         status: PENDING,
         vnode: node,
       })
@@ -621,6 +661,7 @@ const reconcileMountSlots = (
     ) {
       carried.add(liveState)
       renderedSlots.push({
+        acquisition: liveState.acquisition,
         slot: {
           ...liveState.slot,
           occurrence: nextOccurrence(liveState.slot.name),
@@ -709,9 +750,27 @@ const UNINITIALIZED = Symbol('uninitialized')
 
 const toInternal = <Model, Message, OutMessage>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
-): InternalSceneSimulation<Model, Message, OutMessage> =>
+): InternalSceneSimulation<Model, Message, OutMessage> => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  simulation as InternalSceneSimulation<Model, Message, OutMessage>
+  const internal = simulation as InternalSceneSimulation<
+    Model,
+    Message,
+    OutMessage
+  >
+  if (
+    !internal.mountSlots.some(
+      state =>
+        state.status._tag !== 'Ended' &&
+        state.acquisition?.owner?.isActive === false,
+    )
+  ) {
+    return internal
+  }
+  const mountSlots = internal.mountSlots.map(state =>
+    state.acquisition?.owner?.isActive === false ? endStatus(state) : state,
+  )
+  return { ...internal, mountSlots, mounts: pendingMountsOf(mountSlots) }
+}
 
 type OutMessageCapture<Model, Message, OutMessage> = Readonly<{
   updateFn: (
@@ -832,15 +891,19 @@ const renderView = <Model, Message>(
   model: Model,
   dispatch: DispatchService,
   previousTree: VNode | undefined,
+  host: SceneHost | undefined,
+  registry: BoundaryRegistry | undefined,
 ): VNode => {
-  const sceneContext = Context.make(Dispatch, dispatch).pipe(
+  const sceneContext = (host?.context ?? Context.empty()).pipe(
+    Context.add(Dispatch, dispatch),
     Context.add(MountTracker, {
       started: () => {},
       ended: () => {},
     }),
   )
 
-  const boundaryRegistry = createHtmlBoundaryRegistry()
+  const boundaryRegistry = registry ?? createHtmlBoundaryRegistry()
+  beginRender(boundaryRegistry)
 
   if (previousTree !== undefined) {
     markPreviousRenderVNodes(previousTree, boundaryRegistry.dedupeSeen)
@@ -850,7 +913,7 @@ const renderView = <Model, Message>(
     dispatch.dispatchSync,
     sceneContext,
     boundaryRegistry,
-    'Replay',
+    host === undefined ? 'Replay' : 'Live',
   )
   let result: Html | Document
   try {
@@ -1064,6 +1127,7 @@ const applyInMessage = <Model, Message, OutMessage>(
   )
   const internal = toInternal(simulation)
   const received = runInMessageStep<Model, OutMessage>(step, internal.model)
+  internal.host?.synchronize(received.model)
 
   const next = {
     ...internal,
@@ -1434,6 +1498,7 @@ export const given = <Model>(model: Model): GivenStep<Model> => {
     simulation: SceneSimulation<M, Message, OutMessage>,
   ): SceneSimulation<M, Message, OutMessage> => {
     const internal = toInternal(simulation)
+    internal.host?.synchronize(model)
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return { ...internal, model } as unknown as SceneSimulation<
       M,
@@ -1455,8 +1520,10 @@ export const __givenInit = <Model, OutMessage = undefined>(
   const step = <Message>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    internal.host?.synchronize(init.model)
     const seeded = {
-      ...toInternal(simulation),
+      ...internal,
       model: init.model,
       commands: init.commands ?? [],
     }
@@ -1596,8 +1663,8 @@ const expectNoCommandsStep =
  *  complete args and any explicitly scoped composition occurrence. The
  *  first pending mount that matches is resolved. Mirrors `resolve` for
  *  Commands: when the mount lives inside a Block, the boundary's own
- *  `toParentMessage` lift (snapshotted at render time) is applied to
- *  `resultMessage`, so pass the child's raw lifecycle result Message. */
+ *  current delivery chain is applied to `resultMessage`, so pass the child's
+ *  raw lifecycle result Message. */
 const resolveMount: {
   <Name extends string, ResultMessage>(
     matcher: MountDefinition<Name, ResultMessage> | AnyMount,
@@ -1620,6 +1687,7 @@ const resolveMount: {
       internal.mounts,
       matcher,
       resultMessage,
+      mountDelivery(internal),
     )
 
     if (Predicate.isUndefined(next)) {
@@ -1702,7 +1770,12 @@ const emitMountMessage =
 
     return {
       ...internal,
-      ...applyMountMessage(internal, selected.slot, message),
+      ...applyMountMessage(
+        internal,
+        selected.slot,
+        message,
+        mountDelivery(internal),
+      ),
     }
   }
 
@@ -2497,11 +2570,14 @@ const runSteps = <
     const internal = toInternal(next)
 
     if ((internal.model as unknown) !== (UNINITIALIZED as unknown)) {
+      internal.host?.synchronize(internal.model)
       const html = renderView(
         internal.viewFn,
         internal.model,
         internal.capturingDispatch.dispatch,
         internal.html,
+        internal.host,
+        internal.boundaryRegistry,
       )
       const mountSlots = reconcileMountSlots(
         internal.mountSlots,
@@ -3993,6 +4069,7 @@ export const scene: {
   Routing extends SceneRouting<Message> | undefined = undefined,
 >(
   config: Readonly<{
+    [SceneHostTypeId]?: SceneHost
     update: (
       model: Model,
       message: Message,
@@ -4017,7 +4094,16 @@ export const scene: {
     outMessage: undefined,
     outMessages: [],
     outMessageRevision: 0,
-    updateFn: config.update,
+    host: config[SceneHostTypeId],
+    boundaryRegistry:
+      config[SceneHostTypeId] === undefined
+        ? undefined
+        : createHtmlBoundaryRegistry(),
+    updateFn: (model: Model, message: Message) => {
+      const messageUpdate = config.update(model, message)
+      config[SceneHostTypeId]?.synchronize(messageUpdate.model)
+      return messageUpdate
+    },
     resolvers: [],
     html: undefined as unknown,
     viewFn: config.view,
