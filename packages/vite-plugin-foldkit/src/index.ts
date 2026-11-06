@@ -166,6 +166,7 @@ const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
   'effect/Array',
   'effect/Boolean',
   'effect/Cause',
+  'effect/Chunk',
   'effect/Clock',
   'effect/Context',
   'effect/Data',
