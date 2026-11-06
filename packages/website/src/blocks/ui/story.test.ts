@@ -1,17 +1,5 @@
 import { Array, Option } from 'effect'
-import {
-  Command,
-  given,
-  init,
-  message,
-  messageFrom,
-  messageWith,
-  model,
-  models,
-  steps,
-  story,
-  withBlock,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { toParentMessageFor } from 'foldkit/test'
 import { expect } from 'vitest'
 
@@ -35,7 +23,7 @@ const olderMessages = (beforeId: number, count: number) =>
     const id = beforeId - count + index
     return { id, body: `Older message ${id}`, isExpanded: false }
   })
-const approachedLoadedStart = messageFrom(
+const approachedLoadedStart = Story.messageIn(
   VirtualListChatDemoBinding,
   ChatVirtualListBlock.Message.ApproachedLoadedStart({
     distanceToLoadedStartPx: 200,
@@ -43,15 +31,15 @@ const approachedLoadedStart = messageFrom(
   }),
 )
 const selectHistoryMode = (value: 'Infinite' | 'Finite') =>
-  steps(
-    messageFrom(
+  Story.steps(
+    Story.messageIn(
       VirtualListChatHistoryModeGroupBinding,
       HistoryModeRadioGroupBlock.Message.SelectedOption({
         index: value === 'Infinite' ? 0 : 1,
         value,
       }),
     ),
-    Command.resolve(
+    Story.Command.resolve(
       RadioGroup.test.FocusOption,
       HistoryModeRadioGroupBlock.Message.CompletedFocusOption(),
     ),
@@ -60,10 +48,10 @@ const selectHistoryMode = (value: 'Infinite' | 'Finite') =>
 it.effect(
   'waits for the loaded-start OutMessage and ignores repeated requests while loading',
   () => {
-    return story(
+    return Story.story(
       uiSubject,
-      init(today),
-      messageFrom(
+      Story.init(today),
+      Story.messageIn(
         VirtualListChatDemoBinding,
         ChatVirtualListBlock.Message.ObservedContainerScroll({
           scrollTop: 40,
@@ -76,19 +64,19 @@ it.effect(
           }),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.virtualListChatHistoryLoad._tag).toBe('Idle')
         expect(model.virtualListChatMessages).toHaveLength(24)
       }),
       approachedLoadedStart,
-      model(model => {
+      Story.model(model => {
         expect(model.virtualListChatHistoryLoad).toEqual({
           _tag: 'Loading',
           trigger: 'Scroll',
         })
         expect(model.virtualListChatMessages).toHaveLength(24)
       }),
-      Command.expectExact(
+      Story.Command.expectExact(
         FetchVirtualListChatHistory({
           requestedCount: 64,
           beforeId: 0,
@@ -96,11 +84,11 @@ it.effect(
           source: VirtualListChatHistorySource.Unbounded(),
         }),
       ),
-      models(steps(approachedLoadedStart), (before, after) =>
+      Story.models(Story.steps(approachedLoadedStart), (before, after) =>
         expect(after).toEqual(before),
       ),
-      Command.expectExact(FetchVirtualListChatHistory),
-      Command.resolve(
+      Story.Command.expectExact(FetchVirtualListChatHistory),
+      Story.Command.resolve(
         FetchVirtualListChatHistory,
         Message.CompletedFetchVirtualListChatHistory({
           requestVersion: 1,
@@ -116,11 +104,11 @@ it.effect(
 it.effect(
   'prepends a loaded page without a scroll Command and announces it when scrolling ends',
   () =>
-    story(
+    Story.story(
       uiSubject,
-      init(today),
+      Story.init(today),
       approachedLoadedStart,
-      Command.resolve(
+      Story.Command.resolve(
         FetchVirtualListChatHistory,
         Message.CompletedFetchVirtualListChatHistory({
           requestVersion: 1,
@@ -129,7 +117,7 @@ it.effect(
           page: VirtualList.HistoryPage.More(),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.virtualListChatMessages).toHaveLength(88)
         expect(
           Option.getOrThrow(Array.head(model.virtualListChatMessages)).id,
@@ -139,27 +127,29 @@ it.effect(
         expect(model.virtualListChatLoadedOlderCount).toBe(64)
         expect(model.virtualListChatAnnouncedOlderCount).toBe(0)
       }),
-      Command.expectNone(),
-      messageFrom(
+      Story.Command.expectNone(),
+      Story.messageIn(
         VirtualListChatDemoBinding,
         ChatVirtualListBlock.Message.EndedContainerScroll(),
       ),
-      model(model => expect(model.virtualListChatAnnouncedOlderCount).toBe(64)),
+      Story.model(model =>
+        expect(model.virtualListChatAnnouncedOlderCount).toBe(64),
+      ),
     ),
 )
 
 it.effect(
   'removes the finite history buffer with the final page and stops fetching',
   () => {
-    return story(
+    return Story.story(
       uiSubject,
-      init(today),
+      Story.init(today),
       selectHistoryMode('Finite'),
-      model(model =>
+      Story.model(model =>
         expect(model.virtualListChatDemo.startPaddingPx).toBe(1200),
       ),
-      message(Message.ClickedVirtualListChatPrepend()),
-      Command.resolve(
+      Story.message(Message.ClickedVirtualListChatPrepend()),
+      Story.Command.resolve(
         FetchVirtualListChatHistory,
         Message.CompletedFetchVirtualListChatHistory({
           requestVersion: 2,
@@ -168,7 +158,7 @@ it.effect(
           page: VirtualList.HistoryPage.Complete(),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.virtualListChatDemo.startPaddingPx).toBe(0)
         expect(model.virtualListChatHistorySource).toEqual({
           _tag: 'Finite',
@@ -176,9 +166,9 @@ it.effect(
         })
         expect(model.virtualListChatAnnouncedOlderCount).toBe(64)
       }),
-      models(
-        steps(
-          messageFrom(
+      Story.models(
+        Story.steps(
+          Story.messageIn(
             VirtualListChatDemoBinding,
             ChatVirtualListBlock.Message.ApproachedLoadedStart({
               distanceToLoadedStartPx: 0,
@@ -188,7 +178,7 @@ it.effect(
         ),
         (before, after) => expect(after).toEqual(before),
       ),
-      Command.expectNone(),
+      Story.Command.expectNone(),
     )
   },
 )
@@ -196,20 +186,23 @@ it.effect(
 it.effect(
   'ignores a delayed page after changing history mode and resetting the conversation',
   () => {
-    return story(
+    return Story.story(
       uiSubject,
-      init(today),
+      Story.init(today),
       selectHistoryMode('Finite'),
-      message(Message.ClickedVirtualListChatPrepend()),
-      models(steps(selectHistoryMode('Infinite')), (before, after) => {
-        expect(after.virtualListChatDemo.id).toBe('virtual-list-chat-demo')
-        expect(after.virtualListChatHistoryRequestVersion).toBeGreaterThan(
-          before.virtualListChatHistoryRequestVersion,
-        )
-      }),
-      models(
-        steps(
-          Command.resolve(
+      Story.message(Message.ClickedVirtualListChatPrepend()),
+      Story.models(
+        Story.steps(selectHistoryMode('Infinite')),
+        (before, after) => {
+          expect(after.virtualListChatDemo.id).toBe('virtual-list-chat-demo')
+          expect(after.virtualListChatHistoryRequestVersion).toBeGreaterThan(
+            before.virtualListChatHistoryRequestVersion,
+          )
+        },
+      ),
+      Story.models(
+        Story.steps(
+          Story.Command.resolve(
             FetchVirtualListChatHistory,
             Message.CompletedFetchVirtualListChatHistory({
               requestVersion: 2,
@@ -223,12 +216,12 @@ it.effect(
         ),
         (before, after) => expect(after).toEqual(before),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.virtualListChatMessages).toHaveLength(24)
         expect(model.virtualListChatHistoryLoad._tag).toBe('Idle')
         expect(model.virtualListChatHistorySource._tag).toBe('Unbounded')
       }),
-      Command.expectNone(),
+      Story.Command.expectNone(),
     )
   },
 )
@@ -236,13 +229,13 @@ it.effect(
 it.effect(
   'ignores programmatic initial scroll completion when deciding to load history',
   () =>
-    withBlock(uiSubject, executable => {
+    Story.withBlock(uiSubject, executable => {
       const toParentMessage = toParentMessageFor(executable)
 
-      story(
+      Story.story(
         executable.update,
-        given(executable.init(today).model),
-        messageWith(model =>
+        Story.given(executable.init(today).model),
+        Story.messageWith(model =>
           toParentMessage(
             VirtualListChatDemoBinding,
             ChatVirtualListBlock.Message.CompletedApplyScroll({
@@ -261,7 +254,7 @@ it.effect(
             }),
           ),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.virtualListChatDemo.scrollTop).toBe(20)
           expect(model.virtualListChatHistoryLoad._tag).toBe('Idle')
           expect(model.virtualListChatMessages).toHaveLength(24)

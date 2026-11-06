@@ -10,12 +10,12 @@ test('a parent without local Messages routes child dispatch and applies its OutM
     Story.story(
       ProvidedRoutedOnlyBlock,
       Story.init(),
-      Story.messageFrom(
+      Story.messageIn(
         RoutedChildBinding,
         Message.UpdatedText({ text: 'Routed' }),
       ),
       Story.model(model => expect(model.child.text).toBe('Routed')),
-      Story.messageFrom(RoutedChildBinding, Message.SubmittedText()),
+      Story.messageIn(RoutedChildBinding, Message.SubmittedText()),
       Story.expectNoOutMessage(),
     ),
   ))

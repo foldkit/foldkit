@@ -1,5 +1,4 @@
-import * as Scene from 'foldkit/scene'
-import * as Story from 'foldkit/story'
+import { Scene, Story } from 'foldkit'
 
 import {
   InMessage,

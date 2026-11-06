@@ -164,7 +164,7 @@ Foldkit’s `Http.layer` uses Effect’s Fetch-backed client with trace-header p
 
 ## Services in Flags
 
-Flags remain startup Effects rather than handler definitions. The Flags Effect can require services too. `Runtime.run` resolves Flags before calling init, so an application Layer that supplies a Flags dependency must build during startup.
+Flags remain startup Effects rather than handler definitions. The Flags Effect can require Services while obtaining an already decoded value. `Runtime.run` resolves Flags before calling init, so an application Layer that supplies a Flags dependency must build during startup. A hydratable server handoff is different: its Flags Schema must encode and decode synchronously without Effect Services.
 
 The root `services.ts` defines the session client and combines its provider with `Http.layer`:
 
@@ -263,4 +263,4 @@ A Block's `effects.services`, `effects.managedResources` and `effects.Error` bou
 
 The implementation's `EffectsLayer` selects local handler recipes. A separate bundle lives in `effectsLayer.ts`; `layer.ts` constructs the Block and provides child implementation Layers. `Block.makeEffectsContract<E, R>()` supplies generic handler-Layer error and ordinary Service bounds without repeating a finite Schema list.
 
-The advanced [Message codec bounds](/core/block#advanced-message-codec-bounds) address an opaque child's complete dispatch Schema. Local Schema requirements are inferred already; codec declarations are not normal app boilerplate.
+[Serializable Model and Message Codecs](/core/block#serializable-model-and-message-codecs) must complete synchronously without Effect Services. The check includes generated child delivery envelopes, so a Service-dependent child Message rejects the complete parent graph too. Keep ordinary Services in handlers and other effectful boundaries instead of moving them into a Block Codec.

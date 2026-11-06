@@ -1,20 +1,13 @@
+import { Scene } from 'foldkit'
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import {
-  type SceneSimulation,
-  expect,
-  given,
-  scene,
-  selector,
-  text,
-} from 'foldkit/scene'
 import { describe, expect as expectValue, test } from 'vitest'
 
 import * as PlaygroundPreview from './playgroundPreview'
 
 const PREVIEW_URL = 'https://preview.example.test'
 const STALE_PREVIEW_URL = 'https://stale.example.test'
-const preview = selector('iframe')
+const preview = Scene.selector('iframe')
 const Message = defineMessageUnion({ LoadedPreview: {} })
 type Message = typeof Message.Type
 
@@ -33,7 +26,7 @@ const previewApp = {
 
 const expectPreviewKey =
   (expectedKey: string) =>
-  (simulation: SceneSimulation<PlaygroundPreview.State, Message>) => {
+  (simulation: Scene.SceneSimulation<PlaygroundPreview.State, Message>) => {
     const frame = simulation.html.children?.find(
       child => typeof child !== 'string' && child.sel === 'iframe',
     )
@@ -59,37 +52,39 @@ describe('playground preview', () => {
   })
 
   test('keeps a loading frame out of reach', () => {
-    scene(
+    Scene.scene(
       previewApp,
-      given(PlaygroundPreview.start(PREVIEW_URL)),
-      expect(preview).toHaveHandler('load'),
-      expect(preview).toHaveAttr('inert', 'true'),
-      expect(preview).toHaveAttr('aria-hidden', 'true'),
-      expect(preview).toHaveAttr('tabIndex', '-1'),
-      expect(preview).toHaveClass('invisible'),
-      expect(preview).toHaveClass('pointer-events-none'),
-      expect(text('Preparing preview…')).toExist(),
+      Scene.given(PlaygroundPreview.start(PREVIEW_URL)),
+      Scene.expect(preview).toHaveHandler('load'),
+      Scene.expect(preview).toHaveAttr('inert', 'true'),
+      Scene.expect(preview).toHaveAttr('aria-hidden', 'true'),
+      Scene.expect(preview).toHaveAttr('tabIndex', '-1'),
+      Scene.expect(preview).toHaveClass('invisible'),
+      Scene.expect(preview).toHaveClass('pointer-events-none'),
+      Scene.expect(Scene.text('Preparing preview…')).toExist(),
       expectPreviewKey(PREVIEW_URL),
     )
   })
 
   test('reveals a loaded frame', () => {
-    scene(
+    Scene.scene(
       previewApp,
-      given(PlaygroundPreview.State.Loaded({ previewUrl: PREVIEW_URL })),
-      expect(preview).toHaveAttr('inert', 'false'),
-      expect(preview).toHaveAttr('aria-hidden', 'false'),
-      expect(preview).toHaveAttr('tabIndex', '0'),
-      expect(preview).toHaveClass('opacity-100'),
-      expect(selector('.hidden')).toContainText('Preparing preview…'),
+      Scene.given(PlaygroundPreview.State.Loaded({ previewUrl: PREVIEW_URL })),
+      Scene.expect(preview).toHaveAttr('inert', 'false'),
+      Scene.expect(preview).toHaveAttr('aria-hidden', 'false'),
+      Scene.expect(preview).toHaveAttr('tabIndex', '0'),
+      Scene.expect(preview).toHaveClass('opacity-100'),
+      Scene.expect(Scene.selector('.hidden')).toContainText(
+        'Preparing preview…',
+      ),
       expectPreviewKey(PREVIEW_URL),
     )
   })
 
   test('keys a different preview URL as a different frame', () => {
-    scene(
+    Scene.scene(
       previewApp,
-      given(PlaygroundPreview.start(STALE_PREVIEW_URL)),
+      Scene.given(PlaygroundPreview.start(STALE_PREVIEW_URL)),
       expectPreviewKey(STALE_PREVIEW_URL),
     )
   })

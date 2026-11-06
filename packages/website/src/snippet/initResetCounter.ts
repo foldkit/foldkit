@@ -1,6 +1,6 @@
 import { Effect, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({ count: Schema.Number })
@@ -9,7 +9,7 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedIncrement: {} })
 type Message = typeof Message.Type
 
-const InMessage = defineMessageUnion({ RequestedReset: {} })
+const InMessage = defineInMessageUnion({ RequestedReset: {} })
 type InMessage = typeof InMessage.Type
 
 export const CounterKey = Symbol('Counter')

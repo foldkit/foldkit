@@ -11,6 +11,7 @@ import {
   inspectMergedRoot,
   inspectSameBlockLayerUnion,
   inspectSetup,
+  readFirstChild,
   renderSamePageLayerUnion,
   renderSetup,
   sceneSameBlockLayerUnion,
@@ -21,6 +22,8 @@ import {
   suppliedCallbackService,
   withSetupService,
 } from './unified-root-selection.accepted.js'
+
+export const relocatedKeyedChildDelivery = readFirstChild
 import {
   SessionBlock,
   type SessionService,

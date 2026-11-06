@@ -569,7 +569,7 @@ describe('Toast', () => {
           return Story.story(
             ToastBlock,
             Story.given(model),
-            Story.messageFrom(
+            Story.messageIn(
               ToastFixture.EntryAnimationBinding,
               firstEntryId,
               Animation.Message.EndedAnimation({

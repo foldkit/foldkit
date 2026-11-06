@@ -1,18 +1,14 @@
-import { Array, Result } from 'effect'
+import { Option, Result } from 'effect'
 
 import { type Project, Workspace } from '../domain'
 import { RepositoryError } from './schema'
-import {
-  type RepositoryState,
-  type RepositoryTransition,
-  hasProject,
-} from './state'
+import { type RepositoryState, type RepositoryTransition } from './state'
 
 export const saveProjectInState = (
   state: RepositoryState,
-  project: Project,
-): RepositoryTransition<Project> => {
-  if (!hasProject(state, project.id)) {
+  project: Project.Project,
+): RepositoryTransition<Project.Project> => {
+  if (Option.isNone(Workspace.findProject(state.workspace, project.id))) {
     return [
       Result.fail(
         RepositoryError.InvalidProject({
@@ -24,12 +20,7 @@ export const saveProjectInState = (
     ]
   }
 
-  const nextWorkspace = Workspace.make({
-    ...state.workspace,
-    projects: Array.map(state.workspace.projects, currentProject =>
-      currentProject.id === project.id ? project : currentProject,
-    ),
-  })
+  const nextWorkspace = Workspace.replaceProject(state.workspace, project)
 
   return [Result.succeed(project), { ...state, workspace: nextWorkspace }]
 }

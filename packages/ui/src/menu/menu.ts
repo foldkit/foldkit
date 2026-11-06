@@ -17,7 +17,11 @@ import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import * as BlockFamily from 'foldkit/internal/block'
-import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
+import {
+  type MessageUnion,
+  defineInMessageUnion,
+  defineMessageUnion,
+} from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
@@ -119,7 +123,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 /** Parent opening and closing requests, separate from local interactions. */
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedOpen: {},
   RequestedClose: {},
 })

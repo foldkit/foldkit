@@ -3,7 +3,6 @@ import { File, Calendar as FoldkitCalendar } from 'foldkit'
 
 import {
   Animation,
-  Calendar as UiCalendar,
   DatePicker,
   Dialog,
   DragAndDrop,
@@ -12,6 +11,7 @@ import {
   Popover,
   Slider,
   Tooltip,
+  Calendar as UiCalendar,
 } from '@foldkit/ui'
 
 import { CityComboboxBlock, CityMultiComboboxBlock } from './combobox'

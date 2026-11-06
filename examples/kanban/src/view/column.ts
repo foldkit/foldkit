@@ -12,13 +12,14 @@ import type { Model } from '../model'
 import { cardView } from './card'
 
 const addCardForm = (
-  model: Model,
+  maybeNewCardColumnId: Model['maybeNewCardColumnId'],
+  newCardTitle: string,
   columnId: string,
   toParentMessage: (message: Message) => Message,
   h: ApplicationViewBuilder,
 ): Html => {
   const isAddingToThisColumn = Option.exists(
-    model.maybeNewCardColumnId,
+    maybeNewCardColumnId,
     id => id === columnId,
   )
 
@@ -56,7 +57,7 @@ const addCardForm = (
           id: ADD_CARD_INPUT_ID,
           onInput: value =>
             toParentMessage(Message.ChangedNewCardTitle({ value })),
-          value: model.newCardTitle,
+          value: newCardTitle,
           placeholder: 'Card title...',
           toView: attributes =>
             h.input([
@@ -124,45 +125,46 @@ const dropPlaceholder = (h: ApplicationViewBuilder): Html =>
   ])
 
 const findDraggedCard = (
-  model: Model,
+  columns: Model['columns'],
   draggedId: string,
 ): Option.Option<Card.Card> =>
   pipe(
-    model.columns,
+    columns,
     Array.flatMap(({ cards }) => cards),
     Array.findFirst(({ id }) => id === draggedId),
   )
 
 const defaultCardElements = (
-  model: Model,
+  dragAndDrop: Model['dragAndDrop'],
   column: Column.Column,
   draggable: DragAndDrop.RenderInfo['draggable'],
   h: ApplicationViewBuilder,
 ): ReadonlyArray<Html> =>
   Array.map(column.cards, (card, index) =>
-    cardView(model, card, column.id, index, draggable, h),
+    cardView(dragAndDrop, card, column.id, index, draggable, h),
   )
 
 const previewCardElements = (
-  model: Model,
+  dragAndDrop: Model['dragAndDrop'],
+  columns: Model['columns'],
   column: Column.Column,
   draggable: DragAndDrop.RenderInfo['draggable'],
   h: ApplicationViewBuilder,
 ): ReadonlyArray<Html> => {
-  if (!DragAndDrop.isDragging(model.dragAndDrop)) {
-    return defaultCardElements(model, column, draggable, h)
+  if (!DragAndDrop.isDragging(dragAndDrop)) {
+    return defaultCardElements(dragAndDrop, column, draggable, h)
   }
 
-  return Option.match(DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
-    onNone: () => defaultCardElements(model, column, draggable, h),
+  return Option.match(DragAndDrop.maybeDraggedItemId(dragAndDrop), {
+    onNone: () => defaultCardElements(dragAndDrop, column, draggable, h),
     onSome: draggedId => {
-      const maybeTarget = DragAndDrop.maybeDropTarget(model.dragAndDrop)
+      const maybeTarget = DragAndDrop.maybeDropTarget(dragAndDrop)
       const visibleCards = Array.filter(
         column.cards,
         ({ id }) => id !== draggedId,
       )
       const cardElements = Array.map(visibleCards, (card, index) =>
-        cardView(model, card, column.id, index, draggable, h),
+        cardView(dragAndDrop, card, column.id, index, draggable, h),
       )
 
       const isTargetColumn = Option.exists(
@@ -179,13 +181,13 @@ const previewCardElements = (
         onSome: target => Math.min(target.index, visibleCards.length),
       })
 
-      const isPointerDrag = model.dragAndDrop.dragState._tag === 'Dragging'
+      const isPointerDrag = dragAndDrop.dragState._tag === 'Dragging'
       const insertElement = isPointerDrag
         ? dropPlaceholder(h)
-        : Option.match(findDraggedCard(model, draggedId), {
+        : Option.match(findDraggedCard(columns, draggedId), {
             onNone: () => dropPlaceholder(h),
             onSome: card =>
-              cardView(model, card, column.id, targetIndex, draggable, h),
+              cardView(dragAndDrop, card, column.id, targetIndex, draggable, h),
           })
 
       return pipe(
@@ -198,15 +200,18 @@ const previewCardElements = (
 }
 
 export const columnView = (
-  model: Model,
+  dragAndDrop: Model['dragAndDrop'],
+  columns: Model['columns'],
+  maybeNewCardColumnId: Model['maybeNewCardColumnId'],
+  newCardTitle: string,
   column: Column.Column,
   render: DragAndDrop.RenderInfo,
   toParentMessage: (message: Message) => Message,
   h: ApplicationViewBuilder,
 ): Html => {
-  const maybeCurrentDropTarget = DragAndDrop.maybeDropTarget(model.dragAndDrop)
+  const maybeCurrentDropTarget = DragAndDrop.maybeDropTarget(dragAndDrop)
   const isDropTarget =
-    DragAndDrop.isDragging(model.dragAndDrop) &&
+    DragAndDrop.isDragging(dragAndDrop) &&
     Option.exists(
       maybeCurrentDropTarget,
       target => target.containerId === column.id,
@@ -251,11 +256,19 @@ export const columnView = (
           h.Class('flex flex-col gap-2 flex-1 overflow-y-auto min-h-0'),
           ...render.droppable(column.id, column.name),
         ],
-        previewCardElements(model, column, render.draggable, h),
+        previewCardElements(dragAndDrop, columns, column, render.draggable, h),
       ),
       h.div(
         [h.Class('mt-3 pt-2 border-t border-gray-200')],
-        [addCardForm(model, column.id, toParentMessage, h)],
+        [
+          addCardForm(
+            maybeNewCardColumnId,
+            newCardTitle,
+            column.id,
+            toParentMessage,
+            h,
+          ),
+        ],
       ),
     ],
   )

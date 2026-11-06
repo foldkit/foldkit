@@ -1,4 +1,4 @@
-import { Option, Schema, String, pipe } from 'effect'
+import { Option } from 'effect'
 import type { Block } from 'foldkit'
 
 import {
@@ -9,20 +9,7 @@ import {
 } from './block'
 import { ReplaceFilters } from './command'
 import { DietListboxBlock, PeriodListboxBlock } from './model'
-import { Diet, Period, routeToBrowseFields } from './route'
-
-const selectionToParam = <A extends string>(
-  maybeSelectedItem: Option.Option<string>,
-  schema: Schema.Codec<A, A>,
-): Option.Option<A> => {
-  const decode = Schema.decodeUnknownOption(schema)
-
-  return pipe(
-    maybeSelectedItem,
-    Option.filter(String.isNonEmpty),
-    Option.flatMap(value => decode(value)),
-  )
-}
+import { routeToBrowseFields } from './route'
 
 const foldDietListboxOutMessage = makeOutMessageFold(DietListboxBlock, {
   Selected: ({ value }) =>
@@ -31,7 +18,7 @@ const foldDietListboxOutMessage = makeOutMessageFold(DietListboxBlock, {
       return [
         ReplaceFilters({
           ...fields,
-          diet: selectionToParam(Option.some(value), Diet),
+          diet: value === 'All' ? Option.none() : Option.some(value),
         }),
       ]
     }),
@@ -49,7 +36,7 @@ const foldPeriodListboxOutMessage = makeOutMessageFold(PeriodListboxBlock, {
       return [
         ReplaceFilters({
           ...fields,
-          period: selectionToParam(Option.some(value), Period),
+          period: value === 'All' ? Option.none() : Option.some(value),
         }),
       ]
     }),

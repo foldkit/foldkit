@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { given, message, messageFrom, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect } from 'vitest'
@@ -28,7 +28,7 @@ const baseModel: Model = {
 }
 
 const productsMessage = (message: ProductsMessage) =>
-  messageFrom(ProductsPageBinding, message)
+  Story.messageIn(ProductsPageBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -39,52 +39,54 @@ const urlOrThrow = (raw: string) =>
 describe('update', () => {
   describe('routing', () => {
     it.effect('root URL maps to Products with no search', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(baseModel),
-        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
-        model(model => {
+        Story.given(baseModel),
+        Story.message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/') }),
+        ),
+        Story.model(model => {
           expect(model.route._tag).toBe('Products')
         }),
       ),
     )
 
     it.effect('/cart maps to Cart', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(baseModel),
-        message(
+        Story.given(baseModel),
+        Story.message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/cart') }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.route._tag).toBe('Cart')
         }),
       ),
     )
 
     it.effect('/checkout maps to Checkout', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(baseModel),
-        message(
+        Story.given(baseModel),
+        Story.message(
           Message.ChangedUrl({
             url: urlOrThrow('http://localhost/checkout'),
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.route._tag).toBe('Checkout')
         }),
       ),
     )
 
     it.effect('an unmatched path falls back to NotFound', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(baseModel),
-        message(
+        Story.given(baseModel),
+        Story.message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/wat') }),
         ),
-        model(model => {
+        Story.model(model => {
           if (model.route._tag === 'NotFound') {
             expect(model.route.path).toBe('/wat')
           } else {
@@ -99,13 +101,13 @@ describe('update', () => {
     it.effect(
       'Products.AddedToCart OutMessage adds the item with quantity one',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(baseModel),
+          Story.given(baseModel),
           productsMessage(
             ProductsBlock.Message.ClickedAddToCart({ item: apple }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.cart).toHaveLength(1)
             expect(model.cart[0]?.item.id).toBe('1')
             expect(model.cart[0]?.quantity).toBe(1)
@@ -114,16 +116,16 @@ describe('update', () => {
     )
 
     it.effect('adding the same item twice increments its quantity', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(baseModel),
+        Story.given(baseModel),
         productsMessage(
           ProductsBlock.Message.ClickedAddToCart({ item: apple }),
         ),
         productsMessage(
           ProductsBlock.Message.ClickedAddToCart({ item: apple }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.cart).toHaveLength(1)
           expect(model.cart[0]?.quantity).toBe(2)
         }),
@@ -131,30 +133,30 @@ describe('update', () => {
     )
 
     it.effect('ClickedIncrementQuantity raises the quantity for an item', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(
+        Story.given(
           modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 1 }],
           }),
         ),
-        message(Message.ClickedIncrementQuantity({ itemId: '1' })),
-        model(model => {
+        Story.message(Message.ClickedIncrementQuantity({ itemId: '1' })),
+        Story.model(model => {
           expect(model.cart[0]?.quantity).toBe(2)
         }),
       ),
     )
 
     it.effect('ClickedDecrementQuantity lowers the quantity for an item', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(
+        Story.given(
           modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 2 }],
           }),
         ),
-        message(Message.ClickedDecrementQuantity({ itemId: '1' })),
-        model(model => {
+        Story.message(Message.ClickedDecrementQuantity({ itemId: '1' })),
+        Story.model(model => {
           expect(model.cart[0]?.quantity).toBe(1)
         }),
       ),
@@ -163,24 +165,24 @@ describe('update', () => {
     it.effect(
       'ClickedDecrementQuantity removes the item when it reaches zero',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(
+          Story.given(
             modifyFields(baseModel, {
               cart: () => [{ item: apple, quantity: 1 }],
             }),
           ),
-          message(Message.ClickedDecrementQuantity({ itemId: '1' })),
-          model(model => {
+          Story.message(Message.ClickedDecrementQuantity({ itemId: '1' })),
+          Story.model(model => {
             expect(model.cart).toHaveLength(0)
           }),
         ),
     )
 
     it.effect('ClickedRemoveCartItem drops the matching cart entry', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(
+        Story.given(
           modifyFields(baseModel, {
             cart: () => [
               { item: apple, quantity: 2 },
@@ -188,8 +190,8 @@ describe('update', () => {
             ],
           }),
         ),
-        message(Message.ClickedRemoveCartItem({ itemId: '1' })),
-        model(model => {
+        Story.message(Message.ClickedRemoveCartItem({ itemId: '1' })),
+        Story.model(model => {
           expect(model.cart).toHaveLength(1)
           expect(model.cart[0]?.item.id).toBe('2')
         }),
@@ -197,15 +199,15 @@ describe('update', () => {
     )
 
     it.effect('ClickedClearCart empties the cart', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(
+        Story.given(
           modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 2 }],
           }),
         ),
-        message(Message.ClickedClearCart()),
-        model(model => {
+        Story.message(Message.ClickedClearCart()),
+        Story.model(model => {
           expect(model.cart).toHaveLength(0)
         }),
       ),
@@ -214,15 +216,15 @@ describe('update', () => {
 
   describe('checkout', () => {
     it.effect('UpdatedDeliveryInstructions stores the value', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(baseModel),
-        message(
+        Story.given(baseModel),
+        Story.message(
           Message.UpdatedDeliveryInstructions({
             value: 'Leave at the door',
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.deliveryInstructions).toBe('Leave at the door')
         }),
       ),
@@ -231,16 +233,16 @@ describe('update', () => {
     it.effect(
       'ClickedPlaceOrder sets orderPlaced, clears the cart, and resets instructions',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(
+          Story.given(
             modifyFields(baseModel, {
               cart: () => [{ item: apple, quantity: 2 }],
               deliveryInstructions: () => 'Knock loudly',
             }),
           ),
-          message(Message.ClickedPlaceOrder()),
-          model(model => {
+          Story.message(Message.ClickedPlaceOrder()),
+          Story.model(model => {
             expect(model.orderPlaced).toBe(true)
             expect(model.cart).toHaveLength(0)
             expect(model.deliveryInstructions).toBe('')

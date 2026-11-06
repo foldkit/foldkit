@@ -81,9 +81,13 @@ The dev server runs several systems that production builds strip entirely:
 
 ### Model Preservation
 
-Preservation uses a JSON codec derived from the Model Schema. Declare rich values with their matching Schemas when they need to survive reloads; an opaque `Schema.Unknown` snapshot cannot describe how to encode a Date or HashMap.
+Preservation uses a JSON Codec derived from the Model Schema. Its encoding and decoding must complete synchronously without Effect Services. Pure transformations, including `Effect.succeed` transformations and the standard `Option` and `Date` JSON Codecs, remain supported. A requirement of `never` does not make a Promise-backed transformation synchronous.
+
+Declare rich values with their matching Schemas when they need to survive reloads; an opaque `Schema.Unknown` snapshot cannot describe how to encode a Date or HashMap.
 
 If encoding fails, the Runtime warns once for that failure episode and clears its cached Model. The live Model and normal interactions continue unchanged; the next development reload initializes that Runtime afresh. This also lets DevTools recover from an unsupported inspected snapshot. A later encodable Model can be preserved again. Keep Foldkit and `@foldkit/vite-plugin` on the same preview snapshot so both sides support cache invalidation.
+
+On a development reload, an incompatible or invalid cached Model produces a warning and Foldkit runs init instead. The cached value never reaches update or view.
 
 Encoding is deferred until a quiet window, with a synchronous flush before Vite reloads. It is not part of every Message's synchronous dispatch work.
 

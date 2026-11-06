@@ -16,7 +16,7 @@ import { proseView } from './prose'
 import * as Route from './route'
 
 const islandViews = (
-  model: Model,
+  counter: Model['counter'],
   h: ApplicationViewBuilder,
 ): Markdown.Islands =>
   Markdown.islandsFor(islandAttributes, {
@@ -32,7 +32,7 @@ const islandViews = (
           h.block(
             CounterBinding.embedView({
               slotId: `counter-${occurrenceIndex}`,
-              model: model.counter,
+              model: counter,
             }),
           ),
         ],
@@ -123,8 +123,8 @@ const headerView = (
     ],
   )
 
-const homeView = (model: Model, h: ApplicationViewBuilder): Html =>
-  proseView(about, islandViews(model, h))
+const homeView = (counter: Model['counter'], h: ApplicationViewBuilder): Html =>
+  proseView(about, islandViews(counter, h))
 
 const postCardView = (post: Post, h: ApplicationViewBuilder): Html =>
   h.keyed('li')(
@@ -175,7 +175,7 @@ const missingPostView = (slug: string, h: ApplicationViewBuilder): Html =>
 
 const postView = (
   slug: string,
-  model: Model,
+  counter: Model['counter'],
   h: ApplicationViewBuilder,
 ): Html => {
   const maybePost = findPost(slug)
@@ -196,7 +196,7 @@ const postView = (
             [h.Class('mt-2 mb-8 text-sm text-stone-500')],
             [post.publishedOn],
           ),
-          proseView(post.document, islandViews(model, h)),
+          proseView(post.document, islandViews(counter, h)),
         ],
       ),
   })
@@ -253,9 +253,9 @@ const routeTitle = (route: Route.ApplicationRoute): string =>
 
 export const view = ApplicationComposition.makeView((model, h) => {
   const routeContent = Route.ApplicationRoute.match(model.route, {
-    Home: () => homeView(model, h),
+    Home: () => homeView(model.counter, h),
     Posts: () => postsView(h),
-    Post: ({ slug }) => postView(slug, model, h),
+    Post: ({ slug }) => postView(slug, model.counter, h),
     NotFound: ({ path }) => notFoundView(path, h),
   })
 

@@ -17,6 +17,9 @@ export interface Handler<Name extends string, Dependencies, Message> {
 
 export { RegistryEntriesTypeId, aggregate, lift, make } from './subscription.js'
 
+/** @internal Names keyed inspection templates and selected occurrences in downstream declarations. */
+export type { KeyedTemplate, KeyedSelection } from './subscription.js'
+
 export type {
   EntryGates,
   EntryWithoutKeepAlive,

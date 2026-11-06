@@ -1,7 +1,6 @@
 import { Array, Effect } from 'effect'
-import { Calendar } from 'foldkit'
+import { Calendar, Story } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
-import { withBlock } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { test as baseTest } from 'vitest'
 
@@ -22,72 +21,74 @@ export const initialFlags = Flags.make({
   initialSkillsEntryId: 'skills-entry-1',
 })
 
-const models = withBlock({ block: ApplicationBlock, layer }, application =>
-  Effect.gen(function* () {
-    const secondWorkHistoryEntry = yield* withBlock(
-      {
-        block: WorkHistoryEntry.WorkHistoryEntryBlock,
-        layer: WorkHistoryEntry.layer,
-      },
-      entry => entry.init('work-history-entry-2', today).model,
-    )
-    const secondEducationEntry = yield* withBlock(
-      {
-        block: EducationEntry.EducationEntryBlock,
-        layer: EducationEntry.layer,
-      },
-      entry => entry.init('education-entry-2').model,
-    )
-    const secondSkillsEntry = yield* withBlock(
-      { block: SkillsEntry.SkillsEntryBlock, layer: SkillsEntry.layer },
-      entry => entry.init('skills-entry-2').model,
-    )
-    const initialModel = application.init(initialFlags).model
+const models = Story.withBlock(
+  { block: ApplicationBlock, layer },
+  application =>
+    Effect.gen(function* () {
+      const secondWorkHistoryEntry = yield* Story.withBlock(
+        {
+          block: WorkHistoryEntry.WorkHistoryEntryBlock,
+          layer: WorkHistoryEntry.layer,
+        },
+        entry => entry.init('work-history-entry-2', today).model,
+      )
+      const secondEducationEntry = yield* Story.withBlock(
+        {
+          block: EducationEntry.EducationEntryBlock,
+          layer: EducationEntry.layer,
+        },
+        entry => entry.init('education-entry-2').model,
+      )
+      const secondSkillsEntry = yield* Story.withBlock(
+        { block: SkillsEntry.SkillsEntryBlock, layer: SkillsEntry.layer },
+        entry => entry.init('skills-entry-2').model,
+      )
+      const initialModel = application.init(initialFlags).model
 
-    const completeModel: Model = modifyFields(initialModel, {
-      personalInfo: personalInfo =>
-        modifyFields(personalInfo, {
-          firstName: () => Valid({ value: 'Jane' }),
-          lastName: () => Valid({ value: 'Doe' }),
-          email: () => Valid({ value: 'jane@example.com' }),
-        }),
-      workHistory: workHistory =>
-        modifyFields(workHistory, {
-          entries: Array.map(entry =>
-            modifyFields(entry, {
-              company: () => Valid({ value: 'Foldkit' }),
-              title: () => Valid({ value: 'Engineer' }),
-            }),
-          ),
-        }),
-      education: education =>
-        modifyFields(education, {
-          entries: Array.map(entry =>
-            modifyFields(entry, {
-              school: () => Valid({ value: 'MIT' }),
-              degree: () => Valid({ value: 'BS' }),
-              fieldOfStudy: () => Valid({ value: 'CS' }),
-            }),
-          ),
-        }),
-      skills: skills =>
-        modifyFields(skills, {
-          entries: Array.map(entry =>
-            modifyFields(entry, {
-              name: () => Valid({ value: 'TypeScript' }),
-            }),
-          ),
-        }),
-    })
+      const completeModel: Model = modifyFields(initialModel, {
+        personalInfo: personalInfo =>
+          modifyFields(personalInfo, {
+            firstName: () => Valid({ value: 'Jane' }),
+            lastName: () => Valid({ value: 'Doe' }),
+            email: () => Valid({ value: 'jane@example.com' }),
+          }),
+        workHistory: workHistory =>
+          modifyFields(workHistory, {
+            entries: Array.map(entry =>
+              modifyFields(entry, {
+                company: () => Valid({ value: 'Foldkit' }),
+                title: () => Valid({ value: 'Engineer' }),
+              }),
+            ),
+          }),
+        education: education =>
+          modifyFields(education, {
+            entries: Array.map(entry =>
+              modifyFields(entry, {
+                school: () => Valid({ value: 'MIT' }),
+                degree: () => Valid({ value: 'BS' }),
+                fieldOfStudy: () => Valid({ value: 'CS' }),
+              }),
+            ),
+          }),
+        skills: skills =>
+          modifyFields(skills, {
+            entries: Array.map(entry =>
+              modifyFields(entry, {
+                name: () => Valid({ value: 'TypeScript' }),
+              }),
+            ),
+          }),
+      })
 
-    return {
-      initialModel,
-      completeModel,
-      secondWorkHistoryEntry,
-      secondEducationEntry,
-      secondSkillsEntry,
-    }
-  }),
+      return {
+        initialModel,
+        completeModel,
+        secondWorkHistoryEntry,
+        secondEducationEntry,
+        secondSkillsEntry,
+      }
+    }),
 )
 
 export const it = makeMethods(

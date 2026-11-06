@@ -52,7 +52,7 @@ Bind the Query contract through the parent Block, register that Binding in the C
 
 Omit `handler` when an external host supplies the fetch implementation. Complete that Query with `query.provideHandlers(query.toLayer(constructor))` before binding it into a runnable application. `toLayer` accepts an Effect constructor and can also provide an alternative to an attached handler. For direct `query.run` outside application composition, provide `query.EffectsLayer` to the Effect. Ordinary execution tests retain the handler and replace its underlying services.
 
-The `data` and `error` values must be Schema Codecs that require no encoding or decoding services. Query uses them to build its Model and completion Message Schemas.
+The `data` and `error` values must be Schema Codecs that require no encoding or decoding Services and complete synchronously when Foldkit serializes them. Query uses them to build its Model and completion Message Schemas.
 
 #### Returned Contract {#returned-definition}
 
@@ -200,7 +200,7 @@ The bound operations also have data-last forms for direct use as Steps in update
 
 By default, KeyedQuery encodes the complete args value as the key. Object field order does not change the key; array order does. Two argument records with different values retain different entries.
 
-Each `args` field has the same restriction as `data` and `error`: its Schema Codec must require no encoding or decoding services. KeyedQuery encodes args when it derives the default key.
+Each `args` field has the same restriction as `data` and `error`: its Schema Codec must require no encoding or decoding Services and must complete synchronously. KeyedQuery encodes args when it derives the default key.
 
 ### Request Identity
 

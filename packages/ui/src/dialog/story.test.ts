@@ -1138,7 +1138,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                   ),
                   ...(failure === 'acquisition'
                     ? [
-                        Story.messageFrom(
+                        Story.messageIn(
                           TerminalDialogParent.MaybeDialogInstanceBinding,
                           'first',
                           Message.FailedAcquireResources(),
@@ -1284,7 +1284,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               [LoadParentData, ParentMessage.CompletedLoadParentData()],
               [ShowDialog, Message.SucceededShowDialog()],
             ),
-            Story.messageFrom(DialogBinding, Message.FailedAcquireResources()),
+            Story.messageIn(DialogBinding, Message.FailedAcquireResources()),
             acknowledgeCloseDialog,
             Story.model(model => {
               expect(model.dialog.isOpen).toBe(false)
@@ -1301,7 +1301,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               [LoadParentData, ParentMessage.CompletedLoadParentData()],
               [ShowDialog, Message.SucceededShowDialog()],
             ),
-            Story.messageFrom(DialogBinding, Message.Unmounted()),
+            Story.messageIn(DialogBinding, Message.Unmounted()),
             Story.model(model => {
               expect(model.dialog.isOpen).toBe(false)
               expect(model.dialogEvents).toStrictEqual(['Opened', 'Closed'])

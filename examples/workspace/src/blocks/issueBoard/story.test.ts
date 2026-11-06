@@ -1,13 +1,5 @@
 import { Option } from 'effect'
-import {
-  expectNoOutMessage,
-  expectOutMessage,
-  inMessage,
-  init,
-  messageFrom,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -23,10 +15,10 @@ import { OutMessage } from './outMessage'
 describe('Issue Board update', () => {
   it.effect('folds a keyboard drop into a move request', () => {
     const itemId = draggableId('issue-101')
-    return story(
+    return Story.story(
       { block: IssueBoardBlock, layer },
-      init(),
-      messageFrom(
+      Story.init(),
+      Story.messageIn(
         DragAndDropBinding,
         DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
           itemId,
@@ -34,10 +26,10 @@ describe('Issue Board update', () => {
           index: 0,
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.announcement).toContain('Issue picked up.')
       }),
-      messageFrom(
+      Story.messageIn(
         DragAndDropBinding,
         DragAndDrop.DragAndDropBlock.Message.PressedArrowKey({
           direction: 'NextContainer',
@@ -49,11 +41,11 @@ describe('Issue Board update', () => {
         targetContainerId: containerId('Done'),
         targetIndex: 1,
       }),
-      messageFrom(
+      Story.messageIn(
         DragAndDropBinding,
         DragAndDrop.DragAndDropBlock.Message.ConfirmedKeyboardDrop(),
       ),
-      expectOutMessage(
+      Story.expectOutMessage(
         OutMessage.RequestedMove({
           issueId: 'issue-101',
           status: 'Done',
@@ -61,40 +53,18 @@ describe('Issue Board update', () => {
         }),
       ),
       DragAndDrop.test.settleFocus({ binding: DragAndDropBinding, itemId }),
-      model(model => {
+      Story.model(model => {
         expect(model.dragAndDrop.dragState._tag).toBe('Idle')
-        expect(model.announcement).toBe('Position 2 in Done.')
-      }),
-    )
-  })
-
-  it.effect('announces an applied move and a persistence rollback', () => {
-    return story(
-      { block: IssueBoardBlock, layer },
-      init(),
-      inMessage(
-        InMessage.InformedOfIssueMove({
-          status: 'Done',
-          insertionIndex: 1,
-        }),
-      ),
-      model(model => {
         expect(model.announcement).toBe('Moved to Done, position 2.')
       }),
-      inMessage(InMessage.InformedOfIssueMoveFailure()),
-      model(model => {
-        expect(model.announcement).toBe(
-          'Could not save the move. Issue position restored.',
-        )
-      }),
     )
   })
 
-  it.effect('folds a pointer drop into a move request', () => {
-    return story(
+  it.effect('announces a pointer drop and a persistence rollback', () => {
+    return Story.story(
       { block: IssueBoardBlock, layer },
-      init(),
-      messageFrom(
+      Story.init(),
+      Story.messageIn(
         DragAndDropBinding,
         DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
           itemId: draggableId('issue-101'),
@@ -104,7 +74,7 @@ describe('Issue Board update', () => {
           screenY: 0,
         }),
       ),
-      messageFrom(
+      Story.messageIn(
         DragAndDropBinding,
         DragAndDrop.DragAndDropBlock.Message.MovedPointer({
           screenX: 100,
@@ -117,17 +87,26 @@ describe('Issue Board update', () => {
           }),
         }),
       ),
-      messageFrom(
+      Story.messageIn(
         DragAndDropBinding,
         DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
       ),
-      expectOutMessage(
+      Story.expectOutMessage(
         OutMessage.RequestedMove({
           issueId: 'issue-101',
           status: 'Todo',
           insertionIndex: 2,
         }),
       ),
+      Story.model(model => {
+        expect(model.announcement).toBe('Moved to Todo, position 3.')
+      }),
+      Story.inMessage(InMessage.InformedOfIssueMoveFailure()),
+      Story.model(model => {
+        expect(model.announcement).toBe(
+          'Could not save the move. Issue position restored.',
+        )
+      }),
     )
   })
 
@@ -135,10 +114,10 @@ describe('Issue Board update', () => {
     'announces cancellation without requesting a repository move',
     () => {
       const itemId = draggableId('issue-101')
-      return story(
+      return Story.story(
         { block: IssueBoardBlock, layer },
-        init(),
-        messageFrom(
+        Story.init(),
+        Story.messageIn(
           DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
             itemId,
@@ -146,13 +125,13 @@ describe('Issue Board update', () => {
             index: 0,
           }),
         ),
-        messageFrom(
+        Story.messageIn(
           DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.CancelledDrag(),
         ),
-        expectNoOutMessage(),
+        Story.expectNoOutMessage(),
         DragAndDrop.test.settleFocus({ binding: DragAndDropBinding, itemId }),
-        model(model => {
+        Story.model(model => {
           expect(model.dragAndDrop.dragState._tag).toBe('Idle')
           expect(model.announcement).toBe(
             'Drag cancelled. Issue order is unchanged.',
@@ -164,10 +143,10 @@ describe('Issue Board update', () => {
 
   describe('when a pointer drop stays in the same column', () => {
     it.effect('preserves the insertion index reported by DragAndDrop', () => {
-      return story(
+      return Story.story(
         { block: IssueBoardBlock, layer },
-        init(),
-        messageFrom(
+        Story.init(),
+        Story.messageIn(
           DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
             itemId: draggableId('issue-101'),
@@ -177,7 +156,7 @@ describe('Issue Board update', () => {
             screenY: 0,
           }),
         ),
-        messageFrom(
+        Story.messageIn(
           DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.MovedPointer({
             screenX: 100,
@@ -190,11 +169,11 @@ describe('Issue Board update', () => {
             }),
           }),
         ),
-        messageFrom(
+        Story.messageIn(
           DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
         ),
-        expectOutMessage(
+        Story.expectOutMessage(
           OutMessage.RequestedMove({
             issueId: 'issue-101',
             status: 'Todo',
@@ -220,10 +199,10 @@ describe('Issue Board update', () => {
     ])(
       'ignores the drop when $reason',
       ({ containerId: targetContainerId, index }) => {
-        return story(
+        return Story.story(
           { block: IssueBoardBlock, layer },
-          init(),
-          messageFrom(
+          Story.init(),
+          Story.messageIn(
             DragAndDropBinding,
             DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
               itemId: draggableId('issue-101'),
@@ -233,7 +212,7 @@ describe('Issue Board update', () => {
               screenY: 0,
             }),
           ),
-          messageFrom(
+          Story.messageIn(
             DragAndDropBinding,
             DragAndDrop.DragAndDropBlock.Message.MovedPointer({
               screenX: 100,
@@ -246,12 +225,12 @@ describe('Issue Board update', () => {
               }),
             }),
           ),
-          messageFrom(
+          Story.messageIn(
             DragAndDropBinding,
             DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
           ),
-          expectNoOutMessage(),
-          model(model => {
+          Story.expectNoOutMessage(),
+          Story.model(model => {
             expect(model.dragAndDrop.dragState._tag).toBe('Idle')
           }),
         )

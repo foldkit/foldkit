@@ -1,13 +1,5 @@
+import { Scene } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
-import {
-  Command,
-  expect,
-  given,
-  role,
-  scene,
-  submit,
-  text,
-} from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
@@ -43,23 +35,23 @@ describe('login flow', () => {
   it.effect(
     'successful login saves the session and lands on the dashboard',
     () =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(validModel),
-        submit(role('form')),
-        Command.expectExact(SimulateAuthRequest),
-        Command.resolve(
+        Scene.given(validModel),
+        Scene.submit(Scene.role('form')),
+        Scene.Command.expectExact(SimulateAuthRequest),
+        Scene.Command.resolve(
           SimulateAuthRequest,
           LoginBlock.Message.SucceededSimulateAuthRequest({
             session: aliceSession,
           }),
         ),
-        Command.expectExact(SaveSession, RedirectToDashboard),
-        Command.resolveAll(
+        Scene.Command.expectExact(SaveSession, RedirectToDashboard),
+        Scene.Command.resolveAll(
           [SaveSession, Message.SucceededSaveSession()],
           [RedirectToDashboard, Message.CompletedRedirectToDashboard()],
         ),
-        expect(text('Welcome back, alice!')).toExist(),
+        Scene.expect(Scene.text('Welcome back, alice!')).toExist(),
       ),
   )
 })

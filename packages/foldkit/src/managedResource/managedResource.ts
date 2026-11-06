@@ -206,6 +206,158 @@ export type Entry<
   readonly onAcquireError: (error: unknown) => Message
 } & EntryBrand<Model, Message>
 
+/** @internal Identifies a passive keyed Binding inspection template. */
+export const KeyedTemplateTypeId = Symbol(
+  'foldkit/ManagedResource/KeyedTemplate',
+)
+
+/** @internal Identifies an exact keyed occurrence selected for Scene. */
+export const KeyedSelectionTypeId = Symbol(
+  'foldkit/ManagedResource/KeyedSelection',
+)
+
+type SelectedKeyedEntry = Readonly<{
+  entry: Entry<any, any, any, any, any, any, any, any>
+  isPresent: (model: any) => boolean
+}>
+
+type RuntimeKeyedTemplate = Readonly<{
+  binding: object
+  source: Entry<any, any, any, any, any, any, any, any>
+  select: (key: string | number) => SelectedKeyedEntry
+}>
+
+/** A passive static registry entry contributed by a keyed child Binding. */
+export type KeyedTemplate<
+  Model,
+  Message,
+  Key extends string | number,
+  Placement extends string,
+  Source,
+  Requirements,
+  Value,
+  Service,
+  OnAcquired extends (...args: ReadonlyArray<any>) => Message,
+  LifecycleServices,
+  Params,
+> = Entry<
+  Model,
+  Message,
+  Requirements,
+  Value,
+  Service,
+  OnAcquired,
+  LifecycleServices,
+  Params
+> &
+  Readonly<{
+    '#ManagedResource.KeyedTemplate': Readonly<{
+      key: Key
+      placement: Placement
+      source: Source
+    }>
+  }>
+
+/** An exact keyed child ManagedResource occurrence selected for Scene. */
+export type KeyedSelection<
+  Key extends string | number,
+  Placement extends string,
+  Source,
+> = Readonly<{
+  '#ManagedResource.KeyedSelection': Readonly<{
+    key: Key
+    placement: Placement
+    source: Source
+  }>
+}>
+
+/** @internal Constructs one passive keyed inspection template. */
+export const __makeKeyedTemplate = (
+  source: Entry<any, any, any, any, any, any, any, any>,
+  binding: object,
+  select: RuntimeKeyedTemplate['select'],
+): Entry<any, any, any, any, any, any, any, any> => {
+  const unavailable = () => {
+    throw new Error(
+      '[foldkit] A keyed child ManagedResource registry entry is a passive template. Select an occurrence with Scene.ManagedResource.at(Binding, key, entry).',
+    )
+  }
+  const template = {
+    ...source,
+    modelToMaybeRequirements: unavailable,
+    acquire: unavailable,
+    release: unavailable,
+    [KeyedTemplateTypeId]: { binding, source, select },
+  }
+  copyIdentity(source, template)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return template as Entry<any, any, any, any, any, any, any, any>
+}
+
+/** @internal Reads a keyed inspection template. */
+export const __keyedTemplate = (
+  entry: unknown,
+): RuntimeKeyedTemplate | undefined => {
+  if (!Predicate.isObject(entry)) {
+    return undefined
+  }
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return Reflect.get(entry, KeyedTemplateTypeId) as
+    | RuntimeKeyedTemplate
+    | undefined
+}
+
+/** @internal Constructs an exact passive keyed Scene selector. */
+export const __selectKeyed = (
+  binding: object,
+  key: string | number,
+  source: object,
+): object => ({
+  ...source,
+  [KeyedSelectionTypeId]: { binding, key, source },
+})
+
+/** @internal Reads an exact passive keyed Scene selector. */
+export const __keyedSelection = (
+  value: unknown,
+):
+  | Readonly<{ binding: object; key: string | number; source: object }>
+  | undefined => {
+  if (!Predicate.isObject(value)) {
+    return undefined
+  }
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return Reflect.get(value, KeyedSelectionTypeId) as
+    | Readonly<{ binding: object; key: string | number; source: object }>
+    | undefined
+}
+
+/** @internal Materializes a key-specific entry from a registered template. */
+export const __selectFromTemplate = (
+  template: object,
+  key: string | number,
+): SelectedKeyedEntry | undefined => {
+  const selected = __keyedTemplate(template)?.select(key)
+  if (selected !== undefined) {
+    Reflect.set(selected.entry, KeyedSelectionTypeId, {
+      isPresent: selected.isPresent,
+    })
+  }
+  return selected
+}
+
+/** @internal Whether a selected keyed occurrence exists in the current Model. */
+export const __selectedKeyIsPresent = (
+  entry: object,
+  model: unknown,
+): boolean | undefined => {
+  const selected = Reflect.get(entry, KeyedSelectionTypeId)
+  return Predicate.isObject(selected) &&
+    Predicate.isFunction(selected['isPresent'])
+    ? selected['isPresent'](model)
+    : undefined
+}
+
 /** A ManagedResource entry whose lifecycle implementation is supplied by a Layer. */
 export type LayeredEntry<
   Name extends string,
@@ -599,6 +751,50 @@ const resourceEntryKeys = (resources: AnyResourceEntries): Array<string> => {
   })
 }
 
+type RuntimeLiftConfig = Readonly<{
+  read: (parentModel: any) => Option.Option<any>
+  toParentMessage: (message: any) => any
+}>
+
+const toLiftedEntry = (
+  resource: Entry<any, any, any, any, any, any, any, any>,
+  config: RuntimeLiftConfig,
+): Entry<any, any, any, any, any, any, any, any> => {
+  const lifted = {
+    ...resource,
+    schema: resource.schema,
+    resource: resource.resource,
+    modelToMaybeRequirements: (parentModel: unknown) =>
+      Option.flatMap(
+        config.read(parentModel),
+        resource.modelToMaybeRequirements,
+      ),
+    acquire: resource.acquire,
+    release: resource.release,
+    onAcquired: (value: unknown) =>
+      config.toParentMessage(resource.onAcquired(value)),
+    onReleased: () => config.toParentMessage(resource.onReleased()),
+    onAcquireError: (error: unknown) =>
+      config.toParentMessage(resource.onAcquireError(error)),
+  }
+  copyIdentity(resource, lifted)
+  const keyedTemplate = __keyedTemplate(resource)
+  if (keyedTemplate !== undefined) {
+    Reflect.set(lifted, KeyedTemplateTypeId, {
+      ...keyedTemplate,
+      select: (key: string | number) => {
+        const selected = keyedTemplate.select(key)
+        const entry = toLiftedEntry(selected.entry, config)
+        const isPresent = (model: unknown) =>
+          Option.exists(config.read(model), selected.isPresent)
+        Reflect.set(entry, KeyedSelectionTypeId, { isPresent })
+        return { entry, isPresent }
+      },
+    })
+  }
+  return lifted
+}
+
 /**
  * Low-level transformation of a ManagedResource record into another Model and
  * Message context. It applies a Model accessor and Message wrapper to every
@@ -684,24 +880,7 @@ export const lift =
 
       for (const key of resourceEntryKeys(entries)) {
         const resource = Reflect.get(entries, key)
-        const lifted = {
-          ...resource,
-          schema: resource.schema,
-          resource: resource.resource,
-          modelToMaybeRequirements: (parentModel: ParentModel) =>
-            Option.flatMap(
-              config.read(parentModel),
-              resource.modelToMaybeRequirements,
-            ),
-          acquire: resource.acquire,
-          release: resource.release,
-          onAcquired: (value: unknown) =>
-            config.toParentMessage(resource.onAcquired(value)),
-          onReleased: () => config.toParentMessage(resource.onReleased()),
-          onAcquireError: (error: unknown) =>
-            config.toParentMessage(resource.onAcquireError(error)),
-        }
-        copyIdentity(resource, lifted)
+        const lifted = toLiftedEntry(resource, config)
         Object.defineProperty(liftedResources, key, {
           configurable: true,
           enumerable: true,

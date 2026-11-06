@@ -2,23 +2,24 @@ import { clsx } from 'clsx'
 import { Array, Match, Option, Record } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { type Issue, type IssueFilters, IssueStatus } from '../../../domain'
+import { Issue, Member, type Project } from '../../../domain'
 import type { IssueListViewBuilder } from '../composition'
 import type { ViewInputs } from '../viewInputs'
-import { statusLabel } from './controls'
 
 const ROW_CLASS =
   'grid w-full grid-cols-[4.5rem_minmax(0,1fr)_1.75rem] items-center gap-x-3 gap-y-2 px-4 py-4 text-left text-sm font-medium @lg:grid-cols-[4.5rem_6.5rem_minmax(0,1fr)_1.75rem] @lg:px-5 @3xl:grid-cols-[4.5rem_6.5rem_minmax(0,1fr)_4rem_1.75rem]'
 
 const issueRow = (
-  issue: Issue,
-  viewInputs: ViewInputs,
+  issue: Issue.Issue,
+  members: ViewInputs['members'],
+  maybeActiveIssueId: ViewInputs['maybeActiveIssueId'],
+  issueHrefsById: ViewInputs['issueHrefsById'],
   h: IssueListViewBuilder,
 ): Html => {
   const maybeAssignee = Option.flatMap(issue.maybeAssigneeId, memberId =>
-    Array.findFirst(viewInputs.members, member => member.id === memberId),
+    Member.findById(members, memberId),
   )
-  const isActive = Option.contains(viewInputs.maybeActiveIssueId, issue.id)
+  const isActive = Option.contains(maybeActiveIssueId, issue.id)
 
   const content = [
     h.span(
@@ -36,7 +37,7 @@ const issueRow = (
         ),
         h.DataAttribute('status', issue.status),
       ],
-      [statusLabel(issue.status)],
+      [Issue.statusLabel(issue.status)],
     ),
     h.span(
       [
@@ -72,7 +73,7 @@ const issueRow = (
 
   const accessibleName = `${issue.identifier} ${issue.title}`
 
-  const row = Option.match(Record.get(viewInputs.issueHrefs, issue.id), {
+  const row = Option.match(Record.get(issueHrefsById, issue.id), {
     onNone: () =>
       h.div(
         [
@@ -119,8 +120,10 @@ const issueRow = (
 const issueGroupView = (
   id: string,
   title: string,
-  issues: ReadonlyArray<Issue>,
-  viewInputs: ViewInputs,
+  issues: ReadonlyArray<Issue.Issue>,
+  members: ViewInputs['members'],
+  maybeActiveIssueId: ViewInputs['maybeActiveIssueId'],
+  issueHrefsById: ViewInputs['issueHrefsById'],
   h: IssueListViewBuilder,
 ): Html =>
   Array.isReadonlyArrayEmpty(issues)
@@ -138,33 +141,42 @@ const issueGroupView = (
           ),
           h.ul(
             [h.Class('m-0 list-none p-0')],
-            Array.map(issues, issue => issueRow(issue, viewInputs, h)),
+            Array.map(issues, issue =>
+              issueRow(issue, members, maybeActiveIssueId, issueHrefsById, h),
+            ),
           ),
         ],
       )
 
 export const issueGroupsView = (
-  issues: ReadonlyArray<Issue>,
-  filters: IssueFilters,
-  viewInputs: ViewInputs,
+  issues: ReadonlyArray<Issue.Issue>,
+  filters: Issue.Filters,
+  members: ViewInputs['members'],
+  projects: ReadonlyArray<Project.Project>,
+  maybeActiveIssueId: ViewInputs['maybeActiveIssueId'],
+  issueHrefsById: ViewInputs['issueHrefsById'],
   h: IssueListViewBuilder,
 ): Html =>
   Match.value(filters.groupBy).pipe(
     Match.when('None', () =>
       h.ul(
         [h.Class('m-0 list-none p-0')],
-        Array.map(issues, issue => issueRow(issue, viewInputs, h)),
+        Array.map(issues, issue =>
+          issueRow(issue, members, maybeActiveIssueId, issueHrefsById, h),
+        ),
       ),
     ),
     Match.when('Status', () =>
       h.div(
         [],
-        Array.map(IssueStatus.literals, status =>
+        Array.map(Issue.Status.literals, status =>
           issueGroupView(
             status,
-            statusLabel(status),
-            Array.filter(issues, issue => issue.status === status),
-            viewInputs,
+            Issue.statusLabel(status),
+            Issue.forStatus(issues, status),
+            members,
+            maybeActiveIssueId,
+            issueHrefsById,
             h,
           ),
         ),
@@ -173,12 +185,14 @@ export const issueGroupsView = (
     Match.when('Project', () =>
       h.div(
         [],
-        Array.map(viewInputs.projects, project =>
+        Array.map(projects, project =>
           issueGroupView(
             project.id,
             project.name,
-            Array.filter(issues, issue => issue.projectId === project.id),
-            viewInputs,
+            Issue.forProject(issues, project.id),
+            members,
+            maybeActiveIssueId,
+            issueHrefsById,
             h,
           ),
         ),

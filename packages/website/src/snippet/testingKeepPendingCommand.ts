@@ -1,15 +1,15 @@
-import { Command, Subscription, click, role } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 
-click(role('button', { name: 'Save' }))
-Command.keepPending(SaveDocument({ documentId }))
+Scene.click(Scene.role('button', { name: 'Save' }))
+Scene.Command.keepPending(SaveDocument({ documentId }))
 
-click(role('textbox', { name: 'Title' }))
-Subscription.emit(
+Scene.click(Scene.role('textbox', { name: 'Title' }))
+Scene.Subscription.emit(
   ApplicationBlock.subscriptions.documentFeed,
   Message.ReceivedDocumentUpdate({ documentId, revision }),
 )
 
-Command.resolve(
+Scene.Command.resolve(
   SaveDocument({ documentId }),
   Message.SucceededSaveDocument({ documentId, revision }),
 )

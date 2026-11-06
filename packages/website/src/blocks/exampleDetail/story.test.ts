@@ -1,14 +1,5 @@
 import { Effect, type Layer, Option } from 'effect'
-import {
-  Command,
-  type TestBlock,
-  inMessage,
-  init,
-  message,
-  messageFrom,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect, expectTypeOf } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -40,21 +31,21 @@ describe('example detail initial sources', () => {
     'initializes idle when there is no initial slug, ignoring supplied sources',
     () =>
       Effect.gen(function* () {
-        const initialModel = yield* story(
+        const initialModel = yield* Story.story(
           exampleDetailSubject,
-          init(),
-          model(model => {
+          Story.init(),
+          Story.model(model => {
             expect(model.currentSources._tag).toBe('Idle')
             expect(model.maybeActiveSourceFilePath).toEqual(Option.none())
           }),
-          Command.expectNone(),
+          Story.Command.expectNone(),
         )
 
-        yield* story(
+        yield* Story.story(
           exampleDetailSubject,
-          init(Option.none(), Option.some(sources)),
-          model(model => expect(model).toEqual(initialModel)),
-          Command.expectNone(),
+          Story.init(Option.none(), Option.some(sources)),
+          Story.model(model => expect(model).toEqual(initialModel)),
+          Story.Command.expectNone(),
         )
       }),
   )
@@ -63,13 +54,15 @@ describe('example detail initial sources', () => {
     'initializes an available unseeded example in Loading with its Command',
     () => {
       expectTypeOf<
-        Layer.Services<TestBlock<typeof exampleDetailSubject>['EffectsLayer']>
+        Layer.Services<
+          Story.TestBlock<typeof exampleDetailSubject>['EffectsLayer']
+        >
       >().toEqualTypeOf<never>()
 
-      return story(
+      return Story.story(
         exampleDetailSubject,
-        init(Option.some('counter')),
-        model(model => {
+        Story.init(Option.some('counter')),
+        Story.model(model => {
           expect(model.currentSources._tag).toBe('Loading')
           expect(model.maybeActiveSourceFilePath).toEqual(Option.none())
           expect(model.maybeExampleUrl).toEqual(Option.none())
@@ -81,8 +74,8 @@ describe('example detail initial sources', () => {
             }),
           )
         }),
-        Command.expectExact(LoadExampleSources({ slug: 'counter' })),
-        Command.resolve(LoadExampleSources, failedSources),
+        Story.Command.expectExact(LoadExampleSources({ slug: 'counter' })),
+        Story.Command.resolve(LoadExampleSources, failedSources),
       )
     },
   )
@@ -91,10 +84,10 @@ describe('example detail initial sources', () => {
     'creates independent Tabs Models for repeated initializations',
     () =>
       Effect.gen(function* () {
-        const firstModel = yield* story(
+        const firstModel = yield* Story.story(
           exampleDetailSubject,
-          init(Option.some('counter')),
-          model(model => {
+          Story.init(Option.some('counter')),
+          Story.model(model => {
             expect(model.sourceFileTabs).toEqual(
               SourceFileTabsBlock.Model.make({
                 id: 'source-file-tabs',
@@ -103,17 +96,17 @@ describe('example detail initial sources', () => {
               }),
             )
           }),
-          Command.resolve(LoadExampleSources, failedSources),
+          Story.Command.resolve(LoadExampleSources, failedSources),
         )
 
-        yield* story(
+        yield* Story.story(
           exampleDetailSubject,
-          init(Option.some('counter')),
-          model(model => {
+          Story.init(Option.some('counter')),
+          Story.model(model => {
             expect(model.sourceFileTabs).toEqual(firstModel.sourceFileTabs)
             expect(model.sourceFileTabs).not.toBe(firstModel.sourceFileTabs)
           }),
-          Command.resolve(LoadExampleSources, failedSources),
+          Story.Command.resolve(LoadExampleSources, failedSources),
         )
       }),
   )
@@ -121,10 +114,10 @@ describe('example detail initial sources', () => {
   it.effect(
     'initializes supplied sources as Success without fetching them',
     () =>
-      story(
+      Story.story(
         exampleDetailSubject,
-        init(Option.some('counter'), Option.some(sources)),
-        model(model => {
+        Story.init(Option.some('counter'), Option.some(sources)),
+        Story.model(model => {
           expect(model.currentSources).toEqual({
             _tag: 'Success',
             data: sources,
@@ -133,7 +126,7 @@ describe('example detail initial sources', () => {
             Option.some('src/application.ts'),
           )
         }),
-        Command.expectNone(),
+        Story.Command.expectNone(),
       ),
   )
 
@@ -142,17 +135,17 @@ describe('example detail initial sources', () => {
     () => {
       const emptySources: ExampleSources = { files: [] }
 
-      return story(
+      return Story.story(
         exampleDetailSubject,
-        init(Option.some('counter'), Option.some(emptySources)),
-        model(model => {
+        Story.init(Option.some('counter'), Option.some(emptySources)),
+        Story.model(model => {
           expect(model.currentSources).toEqual({
             _tag: 'Success',
             data: emptySources,
           })
           expect(model.maybeActiveSourceFilePath).toEqual(Option.none())
         }),
-        Command.expectNone(),
+        Story.Command.expectNone(),
       )
     },
   )
@@ -161,21 +154,21 @@ describe('example detail initial sources', () => {
     'initializes unavailable examples as idle with or without supplied sources',
     () =>
       Effect.gen(function* () {
-        const baseline = yield* story(
+        const baseline = yield* Story.story(
           exampleDetailSubject,
-          init(),
-          Command.expectNone(),
+          Story.init(),
+          Story.Command.expectNone(),
         )
 
         for (const maybeSources of [
           Option.none<ExampleSources>(),
           Option.some(sources),
         ]) {
-          yield* story(
+          yield* Story.story(
             exampleDetailSubject,
-            init(Option.some('livestore'), maybeSources),
-            model(model => expect(model).toEqual(baseline)),
-            Command.expectNone(),
+            Story.init(Option.some('livestore'), maybeSources),
+            Story.model(model => expect(model).toEqual(baseline)),
+            Story.Command.expectNone(),
           )
         }
       }),
@@ -184,20 +177,22 @@ describe('example detail initial sources', () => {
   it.effect(
     'route changes reset existing source and child state before loading',
     () =>
-      story(
+      Story.story(
         exampleDetailSubject,
-        init(Option.some('counter'), Option.some(sources)),
-        messageFrom(
+        Story.init(Option.some('counter'), Option.some(sources)),
+        Story.messageIn(
           SourceFileTabsBinding,
           SourceFileTabsBlock.Message.FocusedTab({ index: 2 }),
         ),
-        Command.resolve(
+        Story.Command.resolve(
           Tabs.test.FocusTab,
           SourceFileTabsBlock.Message.CompletedFocusTab(),
         ),
-        message(Message.ChangedExampleUrl({ url: 'https://example.test' })),
-        inMessage(InMessage.InformedOfRouteChange({ slug: 'counters' })),
-        model(model => {
+        Story.message(
+          Message.ChangedExampleUrl({ url: 'https://example.test' }),
+        ),
+        Story.inMessage(InMessage.InformedOfRouteChange({ slug: 'counters' })),
+        Story.model(model => {
           expect(model.currentSources._tag).toBe('Loading')
           expect(model.maybeActiveSourceFilePath).toEqual(Option.none())
           expect(model.maybeExampleUrl).toEqual(Option.none())
@@ -209,20 +204,22 @@ describe('example detail initial sources', () => {
             }),
           )
         }),
-        Command.expectExact(LoadExampleSources({ slug: 'counters' })),
-        Command.resolve(LoadExampleSources, failedSources),
+        Story.Command.expectExact(LoadExampleSources({ slug: 'counters' })),
+        Story.Command.resolve(LoadExampleSources, failedSources),
       ),
   )
 
   it.effect(
     'clears existing sources when routing to an unavailable example',
     () =>
-      story(
+      Story.story(
         exampleDetailSubject,
-        init(Option.some('counter'), Option.some(sources)),
-        message(Message.ChangedExampleUrl({ url: 'https://example.test' })),
-        inMessage(InMessage.InformedOfRouteChange({ slug: 'livestore' })),
-        model(model => {
+        Story.init(Option.some('counter'), Option.some(sources)),
+        Story.message(
+          Message.ChangedExampleUrl({ url: 'https://example.test' }),
+        ),
+        Story.inMessage(InMessage.InformedOfRouteChange({ slug: 'livestore' })),
+        Story.model(model => {
           expect(model.currentSources._tag).toBe('Idle')
           expect(model.maybeActiveSourceFilePath).toEqual(Option.none())
           expect(model.maybeExampleUrl).toEqual(Option.none())
@@ -234,7 +231,7 @@ describe('example detail initial sources', () => {
             }),
           )
         }),
-        Command.expectNone(),
+        Story.Command.expectNone(),
       ),
   )
 })

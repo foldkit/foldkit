@@ -4,7 +4,7 @@
  * Run: pnpm --filter pixel-art-example exec vitest run src/comparison.bench.ts
  */
 import { Option } from 'effect'
-import * as Story from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { it } from '@effect/vitest'

@@ -66,7 +66,7 @@ To let an agent discover and dispatch Messages, set `devTools.dispatch` to `true
 
 Foldkit derives the dispatch Schema from the acquired root executable. That Schema contains the root's local Message variants and the generated envelopes for registered child Blocks. Inspection and replay tools work without this opt-in. Dispatch tools reject every request until it is enabled, and `foldkit_get_message_schema` returns `None`.
 
-When the root Message Codec needs Services for decoding, `dispatch: true` carries those requirements into the Program. Supply any remaining decoding Services through `program.provide(...)`. The bridge decodes with the resulting Runtime Context; enabling dispatch does not provide the Services itself. Leaving dispatch disabled adds no Message decoding requirements.
+The bridge decodes dispatched Messages synchronously without Effect Services, so `dispatch: true` adds no decoder Service requirements to the Program. Synchronous Effect transformations and standard JSON Codecs for values such as `Option` and `Date` remain available. A transformation that suspends is rejected before the Message is prepared or admitted to the runtime queue.
 
 #### Connect the Agent and Browser
 
@@ -123,6 +123,8 @@ More than one browser tab can connect at once. `foldkit_list_runtimes` returns e
 ### Message Decoding
 
 Messages stay as Effect Schema values across the connection. Before dispatching, an agent can call `foldkit_get_message_schema` for the top-level variants and then inspect the payload shape of the variant it needs. The Runtime decodes the constructed value against the acquired root executable's Message Codec before it reaches update. A batch is fully decoded before its first Message is dispatched.
+
+Replay is separate from that transport boundary. It folds Models and Messages already retained in browser memory and does not run their Codecs again.
 
 The bridge derives JSON Schema for the transport boundary. A Message payload must have a supported JSON representation to be dispatched from MCP. Browser-memory values such as `File` cannot be constructed through this connection.
 

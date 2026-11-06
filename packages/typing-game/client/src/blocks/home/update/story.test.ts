@@ -1,12 +1,5 @@
 import { Option } from 'effect'
-import {
-  Command,
-  expectOutMessage,
-  given,
-  message,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -26,13 +19,13 @@ const homeSubject = { block: HomeBlock, layer }
 const alice = { id: 'p1', username: 'alice' }
 
 const givenEnterUsernameStep = () =>
-  given({
+  Story.given({
     homeStep: HomeStep.EnterUsername({ username: '' }),
     formError: Option.none(),
   })
 
 const givenSelectActionStep = () =>
-  given({
+  Story.given({
     homeStep: HomeStep.SelectAction({
       username: 'alice',
       selectedAction: 'CreateRoom',
@@ -41,18 +34,18 @@ const givenSelectActionStep = () =>
   })
 
 const givenEnterRoomIdStep = () =>
-  given({
+  Story.given({
     homeStep: HomeStep.EnterRoomId({ username: 'alice', roomId: '' }),
     formError: Option.none(),
   })
 
 describe('entering a username', () => {
   it.effect('typing updates the username', () =>
-    story(
+    Story.story(
       homeSubject,
       givenEnterUsernameStep(),
-      message(Message.ChangedUsername({ value: 'alice' })),
-      model(model => {
+      Story.message(Message.ChangedUsername({ value: 'alice' })),
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'EnterUsername',
           username: 'alice',
@@ -62,12 +55,12 @@ describe('entering a username', () => {
   )
 
   it.effect('submitting advances to action selection', () =>
-    story(
+    Story.story(
       homeSubject,
       givenEnterUsernameStep(),
-      message(Message.ChangedUsername({ value: 'alice' })),
-      message(Message.SubmittedUsernameForm()),
-      model(model => {
+      Story.message(Message.ChangedUsername({ value: 'alice' })),
+      Story.message(Message.SubmittedUsernameForm()),
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           username: 'alice',
@@ -78,11 +71,11 @@ describe('entering a username', () => {
   )
 
   it.effect('submitting with an empty username does nothing', () =>
-    story(
+    Story.story(
       homeSubject,
       givenEnterUsernameStep(),
-      message(Message.SubmittedUsernameForm()),
-      model(model => {
+      Story.message(Message.SubmittedUsernameForm()),
+      Story.model(model => {
         expect(model.homeStep._tag).toBe('EnterUsername')
       }),
     ),
@@ -91,25 +84,25 @@ describe('entering a username', () => {
 
 describe('selecting an action', () => {
   it.effect('ArrowDown cycles through actions with wraparound', () =>
-    story(
+    Story.story(
       homeSubject,
       givenSelectActionStep(),
-      message(Message.PressedKey({ key: 'ArrowDown' })),
-      model(model => {
+      Story.message(Message.PressedKey({ key: 'ArrowDown' })),
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'JoinRoom',
         })
       }),
-      message(Message.PressedKey({ key: 'ArrowDown' })),
-      model(model => {
+      Story.message(Message.PressedKey({ key: 'ArrowDown' })),
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'ChangeUsername',
         })
       }),
-      message(Message.PressedKey({ key: 'ArrowDown' })),
-      model(model => {
+      Story.message(Message.PressedKey({ key: 'ArrowDown' })),
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'CreateRoom',
@@ -119,11 +112,11 @@ describe('selecting an action', () => {
   )
 
   it.effect('ArrowUp wraps from first to last', () =>
-    story(
+    Story.story(
       homeSubject,
       givenSelectActionStep(),
-      message(Message.PressedKey({ key: 'ArrowUp' })),
-      model(model => {
+      Story.message(Message.PressedKey({ key: 'ArrowUp' })),
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'ChangeUsername',
@@ -133,13 +126,16 @@ describe('selecting an action', () => {
   )
 
   it.effect('selecting JoinRoom transitions to room ID input', () =>
-    story(
+    Story.story(
       homeSubject,
       givenSelectActionStep(),
-      message(Message.PressedKey({ key: 'ArrowDown' })),
-      message(Message.PressedKey({ key: 'Enter' })),
-      Command.resolve(FocusRoomIdInput, Message.CompletedFocusRoomIdInput()),
-      model(model => {
+      Story.message(Message.PressedKey({ key: 'ArrowDown' })),
+      Story.message(Message.PressedKey({ key: 'Enter' })),
+      Story.Command.resolve(
+        FocusRoomIdInput,
+        Message.CompletedFocusRoomIdInput(),
+      ),
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'EnterRoomId',
           username: 'alice',
@@ -150,17 +146,17 @@ describe('selecting an action', () => {
   )
 
   it.effect('selecting ChangeUsername goes back to username input', () =>
-    story(
+    Story.story(
       homeSubject,
       givenSelectActionStep(),
-      message(Message.PressedKey({ key: 'ArrowDown' })),
-      message(Message.PressedKey({ key: 'ArrowDown' })),
-      message(Message.PressedKey({ key: 'Enter' })),
-      Command.resolve(
+      Story.message(Message.PressedKey({ key: 'ArrowDown' })),
+      Story.message(Message.PressedKey({ key: 'ArrowDown' })),
+      Story.message(Message.PressedKey({ key: 'Enter' })),
+      Story.Command.resolve(
         FocusUsernameInput,
         Message.CompletedFocusUsernameInput(),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.homeStep._tag).toBe('EnterUsername')
       }),
     ),
@@ -169,15 +165,15 @@ describe('selecting an action', () => {
   it.effect(
     'selecting CreateRoom creates the room and signals the parent',
     () =>
-      story(
+      Story.story(
         homeSubject,
         givenSelectActionStep(),
-        message(Message.PressedKey({ key: 'Enter' })),
-        Command.resolve(
+        Story.message(Message.PressedKey({ key: 'Enter' })),
+        Story.Command.resolve(
           CreateRoom,
           Message.SucceededCreateRoom({ roomId: 'r1', player: alice }),
         ),
-        expectOutMessage(
+        Story.expectOutMessage(
           OutMessage.CreatedRoom({ roomId: 'r1', player: alice }),
         ),
       ),
@@ -186,11 +182,11 @@ describe('selecting an action', () => {
 
 describe('joining a room', () => {
   it.effect('typing a room ID updates the model', () =>
-    story(
+    Story.story(
       homeSubject,
       givenEnterRoomIdStep(),
-      message(Message.ChangedRoomId({ value: 'abc' })),
-      model(model => {
+      Story.message(Message.ChangedRoomId({ value: 'abc' })),
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'EnterRoomId',
           roomId: 'abc',
@@ -200,39 +196,43 @@ describe('joining a room', () => {
   )
 
   it.effect('typing clears a previous error', () =>
-    story(
+    Story.story(
       homeSubject,
-      given({
+      Story.given({
         homeStep: HomeStep.EnterRoomId({ username: 'alice', roomId: '' }),
         formError: Option.some('Room not found'),
       }),
-      message(Message.ChangedRoomId({ value: 'abc' })),
-      model(model => {
+      Story.message(Message.ChangedRoomId({ value: 'abc' })),
+      Story.model(model => {
         expect(Option.isNone(model.formError)).toBe(true)
       }),
     ),
   )
 
   it.effect('submitting joins the room and signals the parent', () =>
-    story(
+    Story.story(
       homeSubject,
       givenEnterRoomIdStep(),
-      message(Message.ChangedRoomId({ value: 'r1' })),
-      message(Message.SubmittedJoinRoomForm()),
-      Command.resolve(
+      Story.message(Message.ChangedRoomId({ value: 'r1' })),
+      Story.message(Message.SubmittedJoinRoomForm()),
+      Story.Command.resolve(
         JoinRoomFromHome,
         Message.SucceededJoinRoomFromHome({ roomId: 'r1', player: alice }),
       ),
-      expectOutMessage(OutMessage.JoinedRoom({ roomId: 'r1', player: alice })),
+      Story.expectOutMessage(
+        OutMessage.JoinedRoom({ roomId: 'r1', player: alice }),
+      ),
     ),
   )
 
   it.effect('a failed join sets the error', () =>
-    story(
+    Story.story(
       homeSubject,
       givenEnterRoomIdStep(),
-      message(Message.FailedJoinRoomFromHome({ error: 'Room not found' })),
-      model(model => {
+      Story.message(
+        Message.FailedJoinRoomFromHome({ error: 'Room not found' }),
+      ),
+      Story.model(model => {
         expect(model.formError).toMatchObject({
           _tag: 'Some',
           value: 'Room not found',
@@ -242,12 +242,12 @@ describe('joining a room', () => {
   )
 
   it.effect('typing "exit" goes back to action selection', () =>
-    story(
+    Story.story(
       homeSubject,
       givenEnterRoomIdStep(),
-      message(Message.ChangedRoomId({ value: 'exit' })),
-      message(Message.SubmittedJoinRoomForm()),
-      model(model => {
+      Story.message(Message.ChangedRoomId({ value: 'exit' })),
+      Story.message(Message.SubmittedJoinRoomForm()),
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'JoinRoom',

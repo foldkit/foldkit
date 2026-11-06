@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { SecureRandom } from 'effect/crypto'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
 import { SkillsEntry as Entry } from './blocks'
 
@@ -17,7 +17,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedRevealErrors: {},
 })
 export type InMessage = typeof InMessage.Type

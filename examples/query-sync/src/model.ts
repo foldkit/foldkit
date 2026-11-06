@@ -4,10 +4,16 @@ import { Listbox } from '@foldkit/ui'
 
 import { ApplicationRoute, Diet, Period } from './route'
 
-export const dietFilterItems: ReadonlyArray<string> = ['', ...Diet.literals]
-export const periodFilterItems: ReadonlyArray<string> = ['', ...Period.literals]
-export const DietListboxBlock = Listbox.makeBlock()
-export const PeriodListboxBlock = Listbox.makeBlock()
+export const DietFilter = Schema.Literals(['All', ...Diet.literals])
+export type DietFilter = typeof DietFilter.Type
+export const PeriodFilter = Schema.Literals(['All', ...Period.literals])
+export type PeriodFilter = typeof PeriodFilter.Type
+
+export const dietFilterItems: ReadonlyArray<DietFilter> = DietFilter.literals
+export const periodFilterItems: ReadonlyArray<PeriodFilter> =
+  PeriodFilter.literals
+export const DietListboxBlock = Listbox.makeBlock(DietFilter)
+export const PeriodListboxBlock = Listbox.makeBlock(PeriodFilter)
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,

@@ -207,6 +207,8 @@ The root also has `data-foldkit-build`. Its value identifies the deployment that
 
 An application with Flags emits a `<script type="application/json" data-foldkit-flags="...">`. It carries the Schema-encoded Flags that produced the server Model. The attribute value matches the root's `runtimeId`.
 
+The handoff transfers Flags, not the server's Model or Messages. The server encodes Flags and the hydrating browser decodes them through the same JSON Codec. Both directions must complete synchronously without Effect Services. A synchronous transformation backed by `Effect.succeed` is supported; an Effect requirement of `never` does not make a Promise-backed transformation synchronous.
+
 #### Key and view identity markers
 
 Keyed elements carry `data-foldkit-key`. Elements with build-assigned view identity carry `data-foldkit-identity`. Both values are deterministic, non-cryptographic fingerprints. Neither marker contains the original key, which may hold an account id or email address, or the build's source path. Hydration compares each fingerprint and removes the marker as it adopts the element. A render with `isHydratable: false` emits neither marker.
@@ -248,6 +250,8 @@ Calling `hydrate` declares that a complete server handoff exists. If the handoff
 #### Static markup without hydration
 
 `isHydratable` defaults to `true` for SSR and SSG. Set `isHydratable: false` only for static markup that no client will hydrate. The output then carries no application stamp, build id, Flags payload, key marker, or identity marker. `Runtime.hydrate` refuses it.
+
+A non-hydratable render uses Flags to run server init but does not encode a browser handoff or decode one later. A Flags Codec used only by that static render therefore never crosses the serialization boundary.
 
 ### Flags and what only the browser knows
 

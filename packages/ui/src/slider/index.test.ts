@@ -657,10 +657,10 @@ describe('Slider', () => {
     })
   })
 
-  describe('informRangeChange', () => {
+  describe('informOfRangeChange', () => {
     it('updates min and max', ({ slider: { defaultInit, operations } }) => {
       const before = defaultInit()
-      const after = operations.informRangeChange(before, {
+      const after = operations.informOfRangeChange(before, {
         min: 100,
         max: 200,
       })
@@ -690,7 +690,7 @@ describe('Slider', () => {
       )
       expect(dragStart.model.dragState._tag).toBe('Dragging')
 
-      const after = operations.informRangeChange(dragStart.model, {
+      const after = operations.informOfRangeChange(dragStart.model, {
         min: 7,
         max: 10,
       })

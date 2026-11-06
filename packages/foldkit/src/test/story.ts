@@ -1,4 +1,12 @@
-import { Array, Equal, type Option, Predicate, Schema, pipe } from 'effect'
+import {
+  Array,
+  Equal,
+  type Option,
+  Predicate,
+  Schema,
+  type Stream,
+  pipe,
+} from 'effect'
 
 import {
   type InMessageStep,
@@ -8,7 +16,6 @@ import {
   type MessageDeclaration,
   type Registrations,
   type RegistryEntries,
-  type Subscription as RuntimeSubscription,
   __messageDeclarations as subscriptionMessageDeclarations,
 } from '../subscription/subscription.js'
 import { commandArgs } from './bindingMatcher.js'
@@ -263,14 +270,17 @@ export const messageWith = <Model, Message>(
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false
 
+interface SubscriptionStream<Message> {
+  readonly dependenciesToStream: (
+    ...args: ReadonlyArray<any>
+  ) => Stream.Stream<Message, never, any>
+}
+
 type MessageOfSubscriptions<Subscriptions> =
   IsAny<Subscriptions> extends true
     ? any
-    : RegistryEntries<Subscriptions>[keyof RegistryEntries<Subscriptions>] extends RuntimeSubscription<
-          any,
-          infer Message,
-          any,
-          any
+    : RegistryEntries<Subscriptions>[keyof RegistryEntries<Subscriptions>] extends SubscriptionStream<
+          infer Message
         >
       ? Message
       : never
@@ -278,27 +288,27 @@ type MessageOfSubscriptions<Subscriptions> =
 type EmissionSourceOf<Subscriptions> =
   IsAny<Subscriptions> extends true
     ? any
-    : {
-        readonly [
-          Key in keyof RegistryEntries<Subscriptions>
-        ]: SubscriptionEmissionSource<RegistryEntries<Subscriptions>[Key]>
-      }[keyof RegistryEntries<Subscriptions>]
+    : SubscriptionEmissionSource<
+        RegistryEntries<Subscriptions>[keyof RegistryEntries<Subscriptions>]
+      >
+
+interface SubscriptionMessages<Messages extends ReadonlyArray<Schema.Top>> {
+  readonly messages: Messages
+}
 
 /** Emission steps for one registered Subscription record. Explicit annotations
  *  retain the accepted entry source as the second type argument. */
-export type SubscriptionEmitter<Message, EmissionSource> = Readonly<{
+export interface SubscriptionEmitter<Message, EmissionSource> {
   /** Feeds a decoded Message declared by `entry` through update. For a child
    *  entry, Story applies the generated delivery in the registered record. */
-  emit: <
-    Entry extends Readonly<{
-      messages: ReadonlyArray<Schema.Top>
-    }> &
+  readonly emit: <
+    Entry extends SubscriptionMessages<ReadonlyArray<Schema.Top>> &
       EmissionSource,
   >(
     entry: Entry,
-    message: NoInfer<Schema.Schema.Type<Entry['messages'][number]>>,
+    message: NoInfer<Entry['messages'][number]['Type']>,
   ) => SubscriptionMessageStep<Message>
-}>
+}
 
 const fromSubscriptions = <
   const Subscriptions extends Registrations<any, any, any>,

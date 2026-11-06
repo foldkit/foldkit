@@ -3,86 +3,82 @@ import { inertHtml as ih } from 'foldkit/html'
 
 import { Listbox } from '@foldkit/ui'
 
-import { GroupBy, IssueFilters, IssuePriority, IssueStatus } from './domain'
+import { Issue } from './domain'
 
 const makeListboxOption = <Value extends string>(value: Schema.Schema<Value>) =>
   Schema.Struct({ value, label: Schema.String })
 
-export const ListboxOption = makeListboxOption(Schema.String)
-export const StatusListboxOption = makeListboxOption(IssueStatus)
+export const StringListboxOption = makeListboxOption(Schema.String)
+export type StringListboxOption = typeof StringListboxOption.Type
+
+export const StringListboxBlock = Listbox.makeBlock(
+  StringListboxOption,
+  Schema.String,
+)
+
+export const StatusListboxOption = makeListboxOption(Issue.Status)
 export type StatusListboxOption = typeof StatusListboxOption.Type
-export const PriorityListboxOption = makeListboxOption(IssuePriority)
+
+export const StatusListboxBlock = Listbox.makeBlock(
+  StatusListboxOption,
+  Issue.Status,
+)
+
+export const PriorityListboxOption = makeListboxOption(Issue.Priority)
 export type PriorityListboxOption = typeof PriorityListboxOption.Type
-export const SortListboxOption = makeListboxOption(IssueFilters.fields.sort)
+
+export const PriorityListboxBlock = Listbox.makeBlock(
+  PriorityListboxOption,
+  Issue.Priority,
+)
+
+export const SortListboxOption = makeListboxOption(Issue.SortBy)
 export type SortListboxOption = typeof SortListboxOption.Type
-export const GroupListboxOption = makeListboxOption(GroupBy)
+
+export const SortListboxBlock = Listbox.makeBlock(
+  SortListboxOption,
+  Issue.SortBy,
+)
+
+export const GroupListboxOption = makeListboxOption(Issue.GroupBy)
 export type GroupListboxOption = typeof GroupListboxOption.Type
+
+export const GroupListboxBlock = Listbox.makeBlock(
+  GroupListboxOption,
+  Issue.GroupBy,
+)
+
 export const StatusFilterValue = Schema.Literals([
   'All',
-  ...IssueStatus.literals,
+  ...Issue.Status.literals,
 ])
 export type StatusFilterValue = typeof StatusFilterValue.Type
 
 export const StatusFilterListboxOption = makeListboxOption(StatusFilterValue)
 export type StatusFilterListboxOption = typeof StatusFilterListboxOption.Type
 
-export const WorkspaceListboxBlock =
-  Listbox.makeBlock<typeof ListboxOption.Type>()
-
-export const StatusListboxBlock = Listbox.makeBlock<
-  StatusListboxOption,
-  IssueStatus
->()
-
-export const PriorityListboxBlock = Listbox.makeBlock<
-  PriorityListboxOption,
-  IssuePriority
->()
-
-export const SortListboxBlock = Listbox.makeBlock<
-  SortListboxOption,
-  typeof IssueFilters.fields.sort.Type
->()
-
-export const GroupListboxBlock = Listbox.makeBlock<
-  GroupListboxOption,
-  GroupBy
->()
-
-export const StatusFilterListboxBlock = Listbox.makeBlock<
+export const StatusFilterListboxBlock = Listbox.makeBlock(
   StatusFilterListboxOption,
-  StatusFilterValue
->()
+  StatusFilterValue,
+)
 
-const ListboxConfig = Schema.Struct({
-  value: Schema.String,
-  options: Schema.Array(ListboxOption),
+const ListboxViewSettings = Schema.Struct({
   isDisabled: Schema.optionalKey(Schema.Boolean),
   isCompact: Schema.optionalKey(Schema.Boolean),
   ariaLabel: Schema.optionalKey(Schema.String),
 })
-type ListboxConfig = typeof ListboxConfig.Type
+type ListboxViewSettings = typeof ListboxViewSettings.Type
 
-type ListboxOption<Value extends string> = Omit<
-  typeof ListboxOption.Type,
-  'value'
-> &
+type ListboxOption<Value extends string> = StringListboxOption &
   Readonly<{ value: Value }>
 
-type ListboxViewConfig<Value extends string> = Omit<
-  ListboxConfig,
-  'value' | 'options'
-> &
+type ListboxViewConfig<Value extends string> = ListboxViewSettings &
   Readonly<{
     value: Value
     options: ReadonlyArray<ListboxOption<Value>>
   }>
 
-const itemToValue = <Value extends string>(
-  option: ListboxOption<Value>,
-): Value => option.value
-
-export const listboxViewInputs = <const Value extends string>({
+export const toListboxViewInputs = <const Value extends string>({
   value,
   options,
   isDisabled = false,
@@ -93,8 +89,8 @@ export const listboxViewInputs = <const Value extends string>({
   Value
 > => ({
   items: options,
-  itemToValue,
-  itemToSearchText: (option: ListboxOption<Value>) => option.label,
+  itemToValue: option => option.value,
+  itemToSearchText: option => option.label,
   maybeSelectedValue: Option.some(value),
   isDisabled,
   ...(ariaLabel === undefined ? {} : { ariaLabel }),
@@ -139,7 +135,7 @@ export const listboxViewInputs = <const Value extends string>({
       ),
     ],
   ),
-  itemToConfig: (option: ListboxOption<Value>) => ({
+  itemToConfig: option => ({
     className: 'group listbox-option',
     content: ih.div(
       [ih.Class('flex w-full min-w-0 items-center justify-between gap-3')],

@@ -251,7 +251,10 @@ const mobileMenuContent =
     )
   }
 
-const mobileHeaderView = (model: Model, h: ApplicationViewBuilder) =>
+const mobileHeaderView = (
+  isMobileMenuOpen: boolean,
+  h: ApplicationViewBuilder,
+) =>
   h.header(
     [
       h.Class(
@@ -282,7 +285,7 @@ const mobileHeaderView = (model: Model, h: ApplicationViewBuilder) =>
           h.Class(
             'p-2 rounded-md hover:bg-gray-200 transition text-gray-700 cursor-pointer',
           ),
-          h.AriaExpanded(model.uiModel.mobileMenuDialog.isOpen),
+          h.AriaExpanded(isMobileMenuOpen),
           h.AriaLabel('Toggle menu'),
           h.OnClick(Message.ClickedOpenMobileMenu()),
         ],
@@ -291,13 +294,17 @@ const mobileHeaderView = (model: Model, h: ApplicationViewBuilder) =>
     ],
   )
 
-const mobileMenuView = (model: Model, h: ApplicationViewBuilder) =>
+const mobileMenuView = (
+  uiModel: Model['uiModel'],
+  route: Model['route'],
+  h: ApplicationViewBuilder,
+) =>
   h.block(
     UiModelBinding.embedView({
       slotId: 'mobile-menu',
-      model: model.uiModel,
+      model: uiModel,
       view: Ui.View.mobileMenu,
-      viewInputs: { renderContent: mobileMenuContent(model.route) },
+      viewInputs: { renderContent: mobileMenuContent(route) },
     }),
   )
 
@@ -343,17 +350,21 @@ const notFoundView = (path: string, h: ApplicationViewBuilder) =>
     ],
   )
 
-const contentView = (model: Model, h: ApplicationViewBuilder) => {
+const contentView = (
+  uiModel: Model['uiModel'],
+  route: Model['route'],
+  h: ApplicationViewBuilder,
+) => {
   const embedUi = (id: string, view: typeof Ui.View.button): Html =>
     h.block(
       UiModelBinding.embedView({
         slotId: id,
-        model: model.uiModel,
+        model: uiModel,
         view,
       }),
     )
 
-  return ApplicationRoute.match(model.route, {
+  return ApplicationRoute.match(route, {
     Home: () => homeView(h),
     Button: () => embedUi('ui-button', Ui.View.button),
     Calendar: () => embedUi('ui-calendar', Ui.View.calendar),
@@ -397,12 +408,12 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.div(
     [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
     [
-      mobileHeaderView(model, h),
-      mobileMenuView(model, h),
+      mobileHeaderView(model.uiModel.mobileMenuDialog.isOpen, h),
+      mobileMenuView(model.uiModel, model.route, h),
       sidebarView(model.route, h),
       h.main(
         [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
-        [contentView(model, h)],
+        [contentView(model.uiModel, model.route, h)],
       ),
     ],
   ),

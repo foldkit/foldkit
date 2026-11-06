@@ -12,7 +12,7 @@ import {
 import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
@@ -74,7 +74,7 @@ export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 
 /** Requests accepted from a parent independently of local Popover events. */
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedOpen: {},
   RequestedClose: {},
 })

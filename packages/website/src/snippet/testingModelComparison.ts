@@ -1,4 +1,4 @@
-import { Command, given, message, models, steps, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -12,13 +12,16 @@ import {
 } from './counterCommands'
 
 it.effect('resets the previous count after the delay completes', () =>
-  story(
+  Story.story(
     { block: ApplicationBlock, layer },
-    given(Model.make({ count: 5 })),
-    models(
-      steps(
-        message(Message.ClickedResetAfterDelay()),
-        Command.resolve(WaitBeforeReset, Message.CompletedWaitBeforeReset()),
+    Story.given(Model.make({ count: 5 })),
+    Story.models(
+      Story.steps(
+        Story.message(Message.ClickedResetAfterDelay()),
+        Story.Command.resolve(
+          WaitBeforeReset,
+          Message.CompletedWaitBeforeReset(),
+        ),
       ),
       (before, after) => {
         expect(before.count).toBe(5)

@@ -95,7 +95,7 @@ const appPanel = (model: Model, h: AsyncCounterDemoViewBuilder): Html =>
               String(model.resetDuration),
             ),
           ]),
-          phaseIndicatorView(model),
+          phaseIndicatorView(model.phase, model.resetDuration),
           DemoView.eventLog(model.messageLog),
         ],
       ),
@@ -118,24 +118,28 @@ const stepperButtonClass = (isDisabled: boolean): string =>
 
 const RESET_DELAY_LABEL_ID = 'demo-reset-delay-label'
 
-const resetButtonLabel = (model: Model): string => {
-  if (model.isResetting) {
+const resetButtonLabel = (
+  isResetting: boolean,
+  resetDuration: number,
+): string => {
+  if (isResetting) {
     return 'Resetting...'
   } else {
-    const unit = model.resetDuration === 1 ? 'second' : 'seconds'
-    return `Reset after ${model.resetDuration} ${unit}`
+    const unit = resetDuration === 1 ? 'second' : 'seconds'
+    return `Reset after ${resetDuration} ${unit}`
   }
 }
 
 const stepperButton = (
-  model: Model,
+  resetDuration: number,
+  isResetting: boolean,
   label: string,
   symbol: string,
   delta: number,
   h: AsyncCounterDemoViewBuilder,
 ): Html => {
-  const nextSeconds = clampResetSeconds(model.resetDuration + delta)
-  const isDisabled = model.isResetting || nextSeconds === model.resetDuration
+  const nextSeconds = clampResetSeconds(resetDuration + delta)
+  const isDisabled = isResetting || nextSeconds === resetDuration
 
   return Button.view(
     {
@@ -216,7 +220,14 @@ const viewAndControlsView = (
               h.AriaLabelledBy(RESET_DELAY_LABEL_ID),
             ],
             [
-              stepperButton(model, 'Decrease reset delay', '\u2212', -1, h),
+              stepperButton(
+                model.resetDuration,
+                model.isResetting,
+                'Decrease reset delay',
+                '\u2212',
+                -1,
+                h,
+              ),
               h.p(
                 [
                   h.AriaLive('polite'),
@@ -232,7 +243,14 @@ const viewAndControlsView = (
                 ],
                 [String(model.resetDuration)],
               ),
-              stepperButton(model, 'Increase reset delay', '+', 1, h),
+              stepperButton(
+                model.resetDuration,
+                model.isResetting,
+                'Increase reset delay',
+                '+',
+                1,
+                h,
+              ),
             ],
           ),
         ],
@@ -247,7 +265,7 @@ const viewAndControlsView = (
                 ...attributes.button,
                 h.Class(actionButtonClass(model.isResetting)),
               ],
-              [resetButtonLabel(model)],
+              [resetButtonLabel(model.isResetting, model.resetDuration)],
             ),
         },
         h,
@@ -255,17 +273,18 @@ const viewAndControlsView = (
     ],
   )
 
-const phaseIndicatorView = (model: Model): Html => {
-  const isCommand = model.phase === 'ResetCommand'
+const phaseIndicatorView = (
+  phase: AnimationPhase,
+  resetDuration: number,
+): Html => {
+  const isCommand = phase === 'ResetCommand'
 
-  return DemoView.phaseIndicator(
-    phaseLabel(model.phase),
-    phaseColorClass(model.phase),
-    [progressBarView(model, isCommand)],
-  )
+  return DemoView.phaseIndicator(phaseLabel(phase), phaseColorClass(phase), [
+    progressBarView(resetDuration, isCommand),
+  ])
 }
 
-const progressBarView = (model: Model, isCommand: boolean): Html =>
+const progressBarView = (resetDuration: number, isCommand: boolean): Html =>
   ih.div(
     [
       ih.AriaHidden(true),
@@ -290,7 +309,7 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
           ),
         ),
         ih.Style({
-          '--reset-duration': String(clampResetSeconds(model.resetDuration)),
+          '--reset-duration': String(clampResetSeconds(resetDuration)),
         }),
       ]),
     ],

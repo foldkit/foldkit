@@ -831,7 +831,7 @@ const liftManagedResources = <
 /**
  * @internal Projects explicit operations and generated InMessage methods as
  * connected parent Steps. `RequestedOpen` generates `requestOpen`, and
- * `InformedOfRouteChanged` generates `informRouteChanged`. Methods accept the
+ * `InformedOfRouteChanged` generates `informOfRouteChanged`. Methods accept the
  * variant payload, when present, followed by its InMessage context; keyed
  * Bindings also require the occurrence key first.
  *

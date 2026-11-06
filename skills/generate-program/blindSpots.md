@@ -150,6 +150,10 @@ A Message named `Incremented` describes the resulting state change, not the user
 
 Name the feature's primary implementation `view`, rather than repeating its feature name as `counter`, `home`, or `room`. Pass that implementation from the Block constructor. Parents render through a Binding declared from the passive child contract with `ChildBinding.embedView`; do not export a parallel loose view solely for parent embedding.
 
+### `whole-model-render-helper`
+
+An extracted renderer accepts the whole Model but reads one field or calls a selector only to obtain one derived value. Pass the field, derived value, or child Model that the helper renders. Keep the whole Model at the primary Block view or a cohesive composer that coordinates most of the same state. Do not replace the broad parameter with a ViewModel that merely bundles the same slices.
+
 ### `schema-type-aliases`
 
 Declare a Schema's same-named decoded type immediately below it, with no blank line: `export const Model = Schema.Struct({...})` followed by `export type Model = typeof Model.Type`. Prefer the alias in explicit value annotations. These aliases are the normal authoring convention; do not flag them for being routine. Use `typeof Model` when an API needs the Schema type, and let owned callbacks infer their parameters.
@@ -230,8 +234,8 @@ Present but with no `expect(...)` and no interactive resolution in a block is th
 
 ## Construction and test ownership
 
-Do not run init while constructing an implementation graph or evaluate `contextToArgs` before parent startup. The constructor yields static Bindings and returns acquired `children`; the Model still owns child presence and keyed membership. Keep request Services in their attached handler constructors. A pure Story or Scene acquires the graph without running handlers, so it should not need an HTTP/socket mock unless construction itself requests that Service. Use the scoped Block-aware runner or `withBlock` for an advanced fixture; never retain a globally acquired executable across tests. A passive contract's local Message constructors are not the acquired graph's complete serialization Codec.
+Do not run init while constructing an implementation graph or evaluate `contextToArgs` before parent startup. The constructor yields static Bindings and returns acquired `children`; the Model still owns child presence and keyed membership. Keep request Services in their attached handler constructors. A pure Story or Scene acquires the graph without running handlers, so it should not need an HTTP/socket mock unless construction itself requests that Service. Use the scoped Block-aware runner or `withBlock` for an advanced fixture; never retain a globally acquired executable across tests. A passive contract's local Message constructors are not the acquired graph's complete serialization Codec. Codec checks inspect the graph statically and run transformations only when a real serialization boundary receives a real value.
 
 ## Block file and authoring boundaries
 
-Do not confuse the passive Block declaration in `block.ts`, implementation construction in `layer.ts`, and the local handler bundle in `effectsLayer.ts`. Named-import needed authoring helpers from `block.ts`. A generated InMessage method already returns a connected Step; do not recreate it with an operation alias or wrapper. Extracted Step callbacks can need a precise Message-parameter annotation; a single explicit Message type argument is not a supported inference shortcut. Application behavior still belongs in Story/Scene DSL steps, including when an acquired fixture is needed.
+Do not confuse the passive Block declaration in `block.ts`, implementation construction in `layer.ts`, and the local handler bundle in `effectsLayer.ts`. Named-import needed authoring helpers from `block.ts`. Declare ordinary InMessage unions with `defineInMessageUnion`; keep local Messages and OutMessages on `defineMessageUnion`. A generated InMessage method already returns a connected Step; do not recreate it with an operation alias or wrapper. Extracted Step callbacks can need a precise Message-parameter annotation; a single explicit Message type argument is not a supported inference shortcut. Application behavior still belongs in Story/Scene DSL steps, including when an acquired fixture is needed.

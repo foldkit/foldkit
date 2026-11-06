@@ -1,11 +1,13 @@
 import { Schema } from 'effect'
 import type { ChildAttribute, Html } from 'foldkit/html'
-import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
+import {
+  type MessageUnion,
+  defineInMessageUnion,
+  defineMessageUnion,
+} from 'foldkit/message'
 
 import type { AnchorConfig } from '../anchor/index.js'
 import { AnimationBlock } from '../animation/definition.js'
-
-// MODEL
 
 /** Schema for the activation trigger: whether the user interacted via mouse or keyboard. */
 export const ActivationTrigger = Schema.Literals(['Pointer', 'Keyboard'])
@@ -44,55 +46,80 @@ export const InitConfig = Schema.Struct({
 export type InitConfig = typeof InitConfig.Type
 export type BaseInitConfig = InitConfig
 
-// MESSAGE
+/** Self-contained selected-value Codec; serialization must execute synchronously. */
+export type ValueSchema<
+  Value extends string,
+  ValueEncoded = Value,
+> = Schema.Codec<Value, ValueEncoded, never, never> &
+  Readonly<{ '~type.make': Value }>
 
-/** Union of all messages the listbox component can produce. */
-export const Message = defineMessageUnion({
-  RequestedSelectItem: { item: Schema.String },
-  Opened: { maybeActiveItemIndex: Schema.Option(Schema.Number) },
-  Closed: {},
-  BlurredItems: {},
-  ActivatedItem: {
-    index: Schema.Number,
-    activationTrigger: ActivationTrigger,
-  },
-  DeactivatedItem: {},
-  SelectedItem: { item: Schema.String },
-  MovedPointerOverItem: {
-    index: Schema.Number,
-    screenX: Schema.Number,
-    screenY: Schema.Number,
-  },
-  RequestedItemClick: { index: Schema.Number },
-  Searched: {
-    key: Schema.String,
-    maybeTargetIndex: Schema.Option(Schema.Number),
-  },
-  CompletedDelayClearListboxSearch: { version: Schema.Number },
-  CompletedLockListboxScroll: {},
-  CompletedUnlockListboxScroll: {},
-  CompletedInertListboxOthers: {},
-  CompletedRestoreListboxInert: {},
-  CompletedFocusListboxButton: {},
-  CompletedFocusListboxItems: {},
-  CompletedScrollListboxItemIntoView: {},
-  CompletedClickListboxItem: {},
-  ClickedButton: {},
-  IgnoredMouseClick: {},
-  SuppressedSpaceScroll: {},
-  SuppressedItemCommit: {},
-  CompletedAnchorListbox: {},
-  CompletedPortalListboxBackdrop: {},
-  CompletedDetectListboxMovementOrAnimationEnd: { generation: Schema.Number },
-  PressedPointerOnButton: {
-    pointerType: Schema.String,
-    button: Schema.Number,
-  },
-})
-export type Message = typeof Message.Type
+/** Builds Listbox Messages with the selected value's runtime contract. */
+export const makeMessage = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) =>
+  defineMessageUnion({
+    RequestedSelectItem: { item: Value },
+    Opened: { maybeActiveItemIndex: Schema.Option(Schema.Number) },
+    Closed: {},
+    BlurredItems: {},
+    ActivatedItem: {
+      index: Schema.Number,
+      activationTrigger: ActivationTrigger,
+    },
+    DeactivatedItem: {},
+    SelectedItem: { item: Value },
+    MovedPointerOverItem: {
+      index: Schema.Number,
+      screenX: Schema.Number,
+      screenY: Schema.Number,
+    },
+    RequestedItemClick: { index: Schema.Number },
+    Searched: {
+      key: Schema.String,
+      maybeTargetIndex: Schema.Option(Schema.Number),
+    },
+    CompletedDelayClearListboxSearch: { version: Schema.Number },
+    CompletedLockListboxScroll: {},
+    CompletedUnlockListboxScroll: {},
+    CompletedInertListboxOthers: {},
+    CompletedRestoreListboxInert: {},
+    CompletedFocusListboxButton: {},
+    CompletedFocusListboxItems: {},
+    CompletedScrollListboxItemIntoView: {},
+    CompletedClickListboxItem: {},
+    ClickedButton: {},
+    IgnoredMouseClick: {},
+    SuppressedSpaceScroll: {},
+    SuppressedItemCommit: {},
+    CompletedAnchorListbox: {},
+    CompletedPortalListboxBackdrop: {},
+    CompletedDetectListboxMovementOrAnimationEnd: { generation: Schema.Number },
+    PressedPointerOnButton: {
+      pointerType: Schema.String,
+      button: Schema.Number,
+    },
+  })
+/** Messages for a Listbox with unrestricted string values. */
+export const Message = makeMessage(Schema.String)
+export type Message<Value extends string = string> =
+  MessageSchema<Value>['Type']
+
+/** Exact selection payload Codecs and constructors on a Listbox contract. */
+export type MessageSchema<Value extends string = string, ValueEncoded = Value> =
+  typeof Message extends MessageUnion<infer Cases>
+    ? MessageUnion<
+        Omit<Cases, 'RequestedSelectItem' | 'SelectedItem'> &
+          Readonly<{
+            RequestedSelectItem: Readonly<{
+              item: ValueSchema<Value, ValueEncoded>
+            }>
+            SelectedItem: Readonly<{ item: ValueSchema<Value, ValueEncoded> }>
+          }>
+      >
+    : never
 
 /** Parent open and close requests. Selection adapters retain scalar values. */
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedOpen: {},
   RequestedClose: {},
 })
@@ -119,39 +146,34 @@ export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type SuppressedItemCommit = typeof Message.SuppressedItemCommit.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 
-// OUT MESSAGE
-
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
   readonly value: Value
 }>
 
-/** Union of out-messages the listbox component can produce. The parent folds `Selected` into the selection it owns: single-select stores the value, multi-select toggles the value's membership. */
-export const OutMessage = defineMessageUnion({
-  Selected: { value: Schema.String },
-})
+/** Builds the selection OutMessage with the selected value's runtime contract. */
+export const makeOutMessage = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) => defineMessageUnion({ Selected: { value: Value } })
 
-/** The OutMessage union interface on a completed Listbox, refined to its
- * selected Value type. */
-export type OutMessageSchema<Value extends string = string> =
+/** Selection OutMessages for a Listbox with unrestricted string values. */
+export const OutMessage = makeOutMessage(Schema.String)
+export type OutMessage<Value extends string = string> = Selected<Value>
+
+/** Exact selected-value Codec and constructor on a Listbox contract. */
+export type OutMessageSchema<
+  Value extends string = string,
+  ValueEncoded = Value,
+> =
   typeof OutMessage extends MessageUnion<infer Cases>
     ? MessageUnion<
         Omit<Cases, 'Selected'> &
           Readonly<{
             Selected: Omit<Cases['Selected'], 'value'> &
-              Readonly<{
-                value: Schema.Codec<Value, Value> &
-                  Readonly<{ '~type.make': Value }>
-              }>
+              Readonly<{ value: ValueSchema<Value, ValueEncoded> }>
           }>
       >
     : never
-
-/** Generic over `Value extends string` so consumers who create the listbox
- *  via `Listbox.makeBlock<MyUnion>()` receive `value: MyUnion` in the
- *  `Selected` OutMessage from the factory's `update`, instead of
- *  `value: string`. Defaults to `string`. */
-export type OutMessage<Value extends string = string> = Selected<Value>
 
 /** Configuration for an individual listbox item's appearance. */
 export type ItemConfig = Readonly<{
@@ -223,16 +245,11 @@ export type BaseViewInputsCommon<Item> = Readonly<{
   ariaLabelledBy?: string
 }>
 
-/** The `itemToValue` extractor piece of a Listbox's view inputs. The
- *  extractor is optional when `Item` is itself a string (the default
- *  returns the item unchanged) and required when items are objects, so the
- *  OutMessage payload type can't drift from what the consumer actually
- *  emits. */
-export type ItemToValueInput<Item, Value extends string = string> = [
-  Item,
-] extends [string]
-  ? Readonly<{ itemToValue?: (item: Item) => Value }>
-  : Readonly<{ itemToValue: (item: Item) => Value }>
+/** Maps rendering items into selected Values. The identity form needs no
+ * extractor when every supplied item already satisfies the Value type. */
+export type ItemToValueInput<Item, Value extends string = string> =
+  | Readonly<{ itemToValue: (item: Item) => Value }>
+  | Readonly<{ items: ReadonlyArray<Item & Value>; itemToValue?: never }>
 
 /** Per-render view inputs for the shared array-based Listbox view. The
  *  multi-select variant exposes this shape directly; the single-select

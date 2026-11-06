@@ -167,7 +167,7 @@ const update = ApplicationComposition.makeUpdate({
 
     return Update.combineSteps([
       makeFieldsStep(() => ({ items: () => nextItems })),
-      MaybeListBinding.informItemsChanged(
+      MaybeListBinding.informOfItemsChanged(
         Array.map(nextItems, item => item.id),
       ),
     ])
@@ -177,7 +177,7 @@ const update = ApplicationComposition.makeUpdate({
 
     return Update.combineSteps([
       makeFieldsStep(() => ({ items: () => nextItems })),
-      MaybeListBinding.informItemsChanged(
+      MaybeListBinding.informOfItemsChanged(
         Array.map(nextItems, item => item.id),
       ),
     ])

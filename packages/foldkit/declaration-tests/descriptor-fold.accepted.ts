@@ -588,6 +588,7 @@ type RestoredBinding<Binding> = Block.BindingsFromSpecs<
 export type PolicySpecParity = readonly [
   Expect<
     SpecPolicyOf<typeof plainBinding> extends Block.FoldOnlyPolicySpec<
+      infer _Message,
       infer _Out,
       infer _Context,
       infer _Data

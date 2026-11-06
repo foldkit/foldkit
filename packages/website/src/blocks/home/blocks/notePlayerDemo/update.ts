@@ -4,9 +4,9 @@ import { modifyFields } from 'foldkit/struct'
 
 import {
   AudioState,
+  type Model,
   type Note,
   PlaybackState,
-  type Model,
   makeFieldsStep,
   makeNoopStep,
 } from './block'

@@ -220,9 +220,9 @@ Call these operations through the registered Calendar Binding. Each Binding call
 
 The notification operations update constraints already stored in the Calendar Model. Their `InformedOf*Change` branches return `{ model }`, emit no OutMessage, and do not reconcile the parent-owned selection. If a new constraint invalidates that value, update the selection explicitly in the same parent handler.
 
-| Binding call                                                        | Arguments                                    | Behavior                                                                                             |
-| ------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `CalendarDemoBinding.informMinDateChanged(maybeMinDate)`            | `maybeMinDate: Option<CalendarDate>`         | Dispatches `InformedOfMinDateChange`. Pass `Option.none()` to remove the minimum.                    |
-| `CalendarDemoBinding.informMaxDateChanged(maybeMaxDate)`            | `maybeMaxDate: Option<CalendarDate>`         | Dispatches `InformedOfMaxDateChange`. Pass `Option.none()` to remove the maximum.                    |
-| `CalendarDemoBinding.informDisabledDatesChanged(disabledDates)`     | `disabledDates: ReadonlyArray<CalendarDate>` | Dispatches `InformedOfDisabledDatesChange`. Pass an empty array to clear the disabled dates.         |
-| `CalendarDemoBinding.informDisabledDaysOfWeekChanged(disabledDays)` | `disabledDays: ReadonlyArray<DayOfWeek>`     | Dispatches `InformedOfDisabledDaysOfWeekChange`. Pass an empty array to clear the disabled weekdays. |
+| Binding call                                                          | Arguments                                    | Behavior                                                                                             |
+| --------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `CalendarDemoBinding.informOfMinDateChanged(maybeMinDate)`            | `maybeMinDate: Option<CalendarDate>`         | Dispatches `InformedOfMinDateChange`. Pass `Option.none()` to remove the minimum.                    |
+| `CalendarDemoBinding.informOfMaxDateChanged(maybeMaxDate)`            | `maybeMaxDate: Option<CalendarDate>`         | Dispatches `InformedOfMaxDateChange`. Pass `Option.none()` to remove the maximum.                    |
+| `CalendarDemoBinding.informOfDisabledDatesChanged(disabledDates)`     | `disabledDates: ReadonlyArray<CalendarDate>` | Dispatches `InformedOfDisabledDatesChange`. Pass an empty array to clear the disabled dates.         |
+| `CalendarDemoBinding.informOfDisabledDaysOfWeekChanged(disabledDays)` | `disabledDays: ReadonlyArray<DayOfWeek>`     | Dispatches `InformedOfDisabledDaysOfWeekChange`. Pass an empty array to clear the disabled weekdays. |

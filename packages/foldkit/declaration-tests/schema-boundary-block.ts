@@ -25,7 +25,7 @@ export const init = ChildComposition.makeInit(() => ({
 }))
 export const update = ChildComposition.makeUpdate({
   RequestedLoad: (model, { key }) => ({ model, commands: [Load({ key })] }),
-  CompletedLoad: (model, { count }) => ({ model: Model.make({ count }) }),
+  CompletedLoad: (_model, { count }) => ({ model: Model.make({ count }) }),
 })
 const prepare = () =>
   ChildComposition.prepareBlock({

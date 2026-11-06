@@ -5,8 +5,8 @@ import { describe } from 'vitest'
 import { it } from '@effect/vitest'
 import { Dialog, Listbox } from '@foldkit/ui'
 
-import { Issue, IssueDraft, initialWorkspace } from '../../domain'
-import { WorkspaceListboxBlock } from '../../listbox'
+import { Issue, initialWorkspace } from '../../domain'
+import { StringListboxBlock } from '../../listbox'
 import { CreateIssueBlock } from './block'
 import { CreateIssue } from './command'
 import { InMessage } from './inMessage'
@@ -27,20 +27,20 @@ const selectField = (fieldLabel: string, optionLabel: string) => [
   Scene.click(Scene.label(fieldLabel)),
   Scene.Command.resolve(
     Listbox.test.FocusListboxItems,
-    WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
+    StringListboxBlock.Message.CompletedFocusListboxItems(),
   ),
   Scene.Mount.resolve(
     Listbox.test.AnchorListbox,
-    WorkspaceListboxBlock.Message.CompletedAnchorListbox(),
+    StringListboxBlock.Message.CompletedAnchorListbox(),
   ),
   Scene.Mount.resolve(
     Listbox.test.PortalListboxBackdrop,
-    WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
+    StringListboxBlock.Message.CompletedPortalListboxBackdrop(),
   ),
   Scene.click(Scene.role('option', { name: optionLabel })),
   Scene.Command.resolve(
     Listbox.test.FocusListboxButton,
-    WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
+    StringListboxBlock.Message.CompletedFocusListboxButton(),
   ),
   Scene.Mount.expectEnded(
     Listbox.test.AnchorListbox,
@@ -79,7 +79,7 @@ describe('Create Issue view', () => {
   it.effect(
     'disables the pending form, retains a failed draft, and emits its successful retry',
     () => {
-      const draft = IssueDraft.make({
+      const draft = Issue.Draft.make({
         title: 'Prepare the welcome tour',
         description: 'Help new teams find their first project.',
         projectId: 'platform',
@@ -89,7 +89,7 @@ describe('Create Issue view', () => {
         labelIds: [],
       })
 
-      const issue = Issue.make({
+      const issue = Issue.Issue.make({
         ...draft,
         id: 'issue-17',
         identifier: 'WSP-117',
@@ -153,7 +153,7 @@ describe('Create Issue view', () => {
   )
 
   it.effect('reopens a dismissed pending form when creation fails', () => {
-    const draft = IssueDraft.make({
+    const draft = Issue.Draft.make({
       title: 'Keep the failed draft',
       description: 'The form should return with every field intact.',
       projectId: 'platform',

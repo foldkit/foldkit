@@ -5,7 +5,6 @@ import { modifyFields } from 'foldkit/struct'
 
 import {
   Animation,
-  Calendar as UiCalendar,
   DatePicker,
   Dialog,
   DragAndDrop,
@@ -14,6 +13,7 @@ import {
   Popover,
   Slider,
   Tooltip,
+  Calendar as UiCalendar,
 } from '@foldkit/ui'
 
 import {

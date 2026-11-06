@@ -1,4 +1,4 @@
-import { Command, given, message, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -6,34 +6,37 @@ import { it } from '@effect/vitest'
 import { ApplicationBlock, layer } from './block'
 
 it.effect('weather search: success then failure', () =>
-  story(
+  Story.story(
     { block: ApplicationBlock, layer },
-    given(model),
+    Story.given(Story.model),
 
-    message(UpdatedZipCodeInput({ value: '90210' })),
-    model(model => {
+    Story.message(UpdatedZipCodeInput({ value: '90210' })),
+    Story.model(model => {
       expect(model.zipCode).toBe('90210')
     }),
-    message(SubmittedWeatherForm()),
+    Story.message(SubmittedWeatherForm()),
     // Instance form: locks in the zipCode the runtime captured.
-    Command.expectHas(FetchWeather({ zipCode: '90210' })),
-    Command.resolve(
+    Story.Command.expectHas(FetchWeather({ zipCode: '90210' })),
+    Story.Command.resolve(
       FetchWeather,
       SucceededFetchWeather({ weather: beverlyHillsWeather }),
     ),
-    model(model => {
+    Story.model(model => {
       expect(model.weather._tag).toBe('WeatherSuccess')
       expect(model.weather.data.temperature).toBe(72)
     }),
 
-    message(UpdatedZipCodeInput({ value: '00000' })),
-    model(model => {
+    Story.message(UpdatedZipCodeInput({ value: '00000' })),
+    Story.model(model => {
       expect(model.zipCode).toBe('00000')
     }),
-    message(SubmittedWeatherForm()),
-    Command.expectHas(FetchWeather({ zipCode: '00000' })),
-    Command.resolve(FetchWeather, FailedFetchWeather({ error: 'Not found' })),
-    model(model => {
+    Story.message(SubmittedWeatherForm()),
+    Story.Command.expectHas(FetchWeather({ zipCode: '00000' })),
+    Story.Command.resolve(
+      FetchWeather,
+      FailedFetchWeather({ error: 'Not found' }),
+    ),
+    Story.model(model => {
       expect(model.weather._tag).toBe('WeatherFailure')
     }),
   ),

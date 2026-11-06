@@ -1,4 +1,12 @@
-import { Array, Duration, Effect, HashMap, Option, Schema } from 'effect'
+import {
+  Array,
+  Duration,
+  Effect,
+  HashMap,
+  Option,
+  Schema,
+  SchemaTransformation,
+} from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Block from '../block/public.js'
@@ -31,6 +39,147 @@ afterEach(() => {
 })
 
 describe('Runtime Model preservation', () => {
+  it('invalidates preservation when Model encoding suspends without changing the live Model', async () => {
+    const encode = vi.fn((count: number) =>
+      Effect.promise(() => Promise.resolve(count)),
+    )
+    const Count = Schema.Number.pipe(
+      Schema.decodeTo(
+        Schema.Number,
+        SchemaTransformation.transformEffect({
+          decode: Effect.succeed,
+          encode,
+        }),
+      ),
+    )
+    type Count = typeof Count.Type
+    const Model = Schema.Struct({ count: Count })
+    type Model = typeof Model.Type
+    const Composition = Block.makeDefinition('AsyncPreservation', {
+      Model,
+      Message: Schema.Never,
+    }).makeComposition()
+    const renderedModels: Array<Model> = []
+    const prepare = () =>
+      Composition.prepareBlock({
+        init: Composition.makeInit(() => ({ model: { count: 1 } })),
+        update: Composition.makeUpdate({}),
+        view: Composition.makeView((model, h) => {
+          renderedModels.push(model)
+          return h.p([], [globalThis.String(model.count)])
+        }),
+      })
+    const ApplicationBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof prepare
+    > = Block.assemble(prepare)
+    const container = document.createElement('div')
+    container.id = 'async-preservation'
+    document.body.append(container)
+    const send = vi
+      .spyOn(ModelPreservationBridge, 'preserveModel')
+      .mockImplementation(() => {})
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    expect(encode).not.toHaveBeenCalled()
+
+    const handle = embed(
+      Program.makeElement({
+        block: ApplicationBlock,
+        container,
+        devTools: false,
+        slow: false,
+      }),
+    )
+
+    try {
+      await vi.waitFor(() => expect(renderedModels).toHaveLength(1))
+      const model = Option.getOrThrow(Array.last(renderedModels))
+      const preservation = Option.getOrThrow(Array.head(callbacks))
+
+      expect(encode).not.toHaveBeenCalled()
+      Effect.runSync(preservation.onFlush(model))
+      expect(send).toHaveBeenLastCalledWith(container.id, undefined, true)
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('live Model is unchanged'),
+        expect.objectContaining({
+          _tag: 'SerializationError',
+          message: expect.stringContaining('must complete synchronously'),
+        }),
+      )
+      expect(Option.getOrThrow(Array.last(renderedModels))).toBe(model)
+    } finally {
+      handle.dispose()
+    }
+  })
+
+  it('falls back to init with a diagnostic when Model restoration suspends', async () => {
+    const decode = vi.fn((count: number) =>
+      Effect.promise(() => Promise.resolve(count)),
+    )
+    const Count = Schema.Number.pipe(
+      Schema.decodeTo(
+        Schema.Number,
+        SchemaTransformation.transformEffect({
+          decode,
+          encode: Effect.succeed,
+        }),
+      ),
+    )
+    type Count = typeof Count.Type
+    const Model = Schema.Struct({ count: Count })
+    type Model = typeof Model.Type
+    const Composition = Block.makeDefinition('AsyncRestoration', {
+      Model,
+      Message: Schema.Never,
+    }).makeComposition()
+    const init = vi.fn(() => ({ model: { count: 1 } }))
+    const prepare = () =>
+      Composition.prepareBlock({
+        init: Composition.makeInit(() => init()),
+        update: Composition.makeUpdate({}),
+        view: Composition.makeView((model, h) =>
+          h.p([], [globalThis.String(model.count)]),
+        ),
+      })
+    const ApplicationBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof prepare
+    > = Block.assemble(prepare)
+    const container = document.createElement('div')
+    container.id = 'async-restoration'
+    document.body.append(container)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.mocked(ModelPreservationBridge.resolvePreservedModel).mockReturnValue(
+      Effect.succeed({ count: 99 }),
+    )
+
+    expect(decode).not.toHaveBeenCalled()
+
+    const handle = embed(
+      Program.makeElement({
+        block: ApplicationBlock,
+        container,
+        devTools: false,
+        slow: false,
+      }),
+    )
+
+    try {
+      await vi.waitFor(() => expect(document.body.textContent).toBe('1'))
+      expect(init).toHaveBeenCalledTimes(1)
+      expect(decode).toHaveBeenCalledTimes(1)
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('must complete synchronously'),
+        expect.anything(),
+      )
+      await Promise.resolve()
+      expect(document.body.textContent).toBe('1')
+    } finally {
+      handle.dispose()
+    }
+  })
+
   it('restores declared Date and HashMap values through the actual Runtime without repeating init', async () => {
     const Model = Schema.Struct({
       date: Schema.Date,

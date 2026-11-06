@@ -1,4 +1,4 @@
-import { Array, Match, Option, Predicate, String, pipe } from 'effect'
+import { Array, Function, Match, Option, Predicate, String, pipe } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import type * as Mount from 'foldkit/mount'
 
@@ -12,24 +12,39 @@ import {
 import { resolveTypeaheadMatch } from '../typeahead.js'
 import { AnchorListbox, PortalListboxBackdrop, mounts } from './command.js'
 import { itemId } from './selectors.js'
-import { type BaseModel, type BaseViewInputs, Message } from './types.js'
+import type {
+  BaseModel,
+  BaseViewInputs,
+  BaseViewInputsCommon,
+  Message,
+  MessageSchema,
+} from './types.js'
 
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
-
-// VIEW FACTORY
 
 type ViewBehavior = Readonly<{
   ariaMultiSelectable: boolean
 }>
 
-type InternalInputs = BaseViewInputs<unknown, string>
-
 /** @internal Renders the shared Listbox interaction view. */
-export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
-  const impl = (
+export const makeView = <
+  Model extends BaseModel,
+  Item,
+  Value extends string,
+  ParentMessage = never,
+  ValueEncoded = Value,
+>(
+  behavior: ViewBehavior,
+  Message: MessageSchema<Value, ValueEncoded>,
+) => {
+  const render = <RenderingItem>(
     model: Model,
-    viewInputs: InternalInputs,
-    h: HtmlBuilder<Message, MountRequirements>,
+    viewInputs: BaseViewInputsCommon<RenderingItem> &
+      Readonly<{
+        selectedValues: ReadonlyArray<Value>
+        itemToValue: (item: RenderingItem) => Value
+      }>,
+    h: HtmlBuilder<Message<Value> | ParentMessage, MountRequirements>,
   ): Html => {
     const {
       id,
@@ -73,12 +88,12 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       selectedValues,
     } = viewInputs
 
-    const itemToValue =
-      viewInputs.itemToValue ?? (item => globalThis.String(item))
-    const isValueSelected = (itemValue: string): boolean =>
+    const { itemToValue } = viewInputs
+    const isValueSelected = (itemValue: Value): boolean =>
       Array.contains(selectedValues, itemValue)
     const itemToSearchText =
-      viewInputs.itemToSearchText ?? ((item: unknown) => itemToValue(item))
+      viewInputs.itemToSearchText ??
+      ((item: RenderingItem) => itemToValue(item))
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -155,7 +170,9 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       ),
     )
 
-    const handleButtonKeyDown = (key: string): Option.Option<Message> => {
+    const handleButtonKeyDown = (
+      key: string,
+    ): Option.Option<Message<Value>> => {
       if (isOpen) {
         return handleItemsKeyDown(key)
       }
@@ -186,10 +203,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
     const handleButtonPointerDown = (
       pointerType: string,
       button: number,
-    ): Option.Option<Message> =>
+    ): Option.Option<Message<Value>> =>
       Option.some(Message.PressedPointerOnButton({ pointerType, button }))
 
-    const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
+    const handleSpaceKeyUp = (key: string): Option.Option<Message<Value>> =>
       OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
     const resolveActiveIndex = (key: string): number =>
@@ -214,7 +231,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
           )(key),
       })
 
-    const searchForKey = (key: string): Option.Option<Message> => {
+    const searchForKey = (key: string): Option.Option<Message<Value>> => {
       const nextQuery = searchQuery + key
       const maybeTargetIndex = resolveTypeaheadMatch(
         items,
@@ -227,7 +244,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       return Option.some(Message.Searched({ key, maybeTargetIndex }))
     }
 
-    const resolveCommitMessage = (): Option.Option<Message> => {
+    const resolveCommitMessage = (): Option.Option<Message<Value>> => {
       if (isReadOnly) {
         return Option.as(maybeActiveItemIndex, Message.SuppressedItemCommit())
       } else {
@@ -237,7 +254,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       }
     }
 
-    const handleItemsKeyDown = (key: string): Option.Option<Message> =>
+    const handleItemsKeyDown = (key: string): Option.Option<Message<Value>> =>
       Match.value(key).pipe(
         Match.when('Escape', () => Option.some(Message.Closed())),
         Match.when('Enter', resolveCommitMessage),
@@ -533,11 +550,22 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
     ])
   }
 
-  return <Item, Value extends string = string, ParentMessage = never>() =>
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    impl as unknown as (
-      model: Model,
-      viewInputs: BaseViewInputs<Item, Value>,
-      h: HtmlBuilder<Message | ParentMessage, MountRequirements>,
-    ) => Html
+  return (
+    model: Model,
+    viewInputs: BaseViewInputs<Item, Value>,
+    h: HtmlBuilder<Message<Value> | ParentMessage, MountRequirements>,
+  ): Html => {
+    if (viewInputs.itemToValue === undefined) {
+      return render<Item & Value>(
+        model,
+        {
+          ...viewInputs,
+          itemToValue: Function.identity,
+        },
+        h,
+      )
+    } else {
+      return render<Item>(model, viewInputs, h)
+    }
+  }
 }

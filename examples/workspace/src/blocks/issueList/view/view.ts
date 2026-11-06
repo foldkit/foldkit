@@ -22,12 +22,19 @@ export const view = IssueListComposition.makeView.withInputs(
           [h.Class('space-y-3 border-b border-slate-200 px-4 py-4 @lg:px-5')],
           [
             filterToolbarView(
-              model,
+              model.statusListbox,
+              model.sortListbox,
+              model.groupListbox,
               viewInputs.filters,
               Array.isReadonlyArrayEmpty(viewInputs.projects),
               h,
             ),
-            listSummaryView(model, viewInputs.filters, issues.length, h),
+            listSummaryView(
+              model.savedViewName,
+              viewInputs.filters,
+              issues.length,
+              h,
+            ),
           ],
         ),
         Array.match(issues, {
@@ -55,7 +62,15 @@ export const view = IssueListComposition.makeView.withInputs(
               ],
             ),
           onNonEmpty: issues =>
-            issueGroupsView(issues, viewInputs.filters, viewInputs, h),
+            issueGroupsView(
+              issues,
+              viewInputs.filters,
+              viewInputs.members,
+              viewInputs.projects,
+              viewInputs.maybeActiveIssueId,
+              viewInputs.issueHrefsById,
+              h,
+            ),
         }),
       ],
     )

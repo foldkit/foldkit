@@ -1,4 +1,4 @@
-import { Layer, Option, Schema, Tuple } from 'effect'
+import { Effect, Layer, Option, Schema, Stream, Tuple } from 'effect'
 import { Block, Message } from 'foldkit'
 
 export const RoomId = Schema.String.pipe(
@@ -7,6 +7,10 @@ export const RoomId = Schema.String.pipe(
 export const RoomModel = Schema.Struct({ count: Schema.Number })
 export const RoomMessage = Message.defineMessageUnion({
   RequestedSetCount: { count: Schema.Number },
+  ObservedTick: { label: Schema.String },
+  AcquiredSession: { value: Schema.String },
+  ReleasedSession: {},
+  FailedAcquireSession: {},
 })
 export const RoomContext = Schema.Struct({ roomId: RoomId })
 const DeclarationOptionalWrappedKeyedRoomDefinition = Block.makeDefinition(
@@ -18,6 +22,35 @@ const DeclarationOptionalWrappedKeyedRoomDefinition = Block.makeDefinition(
 )
 const DeclarationOptionalWrappedKeyedRoomComposition =
   DeclarationOptionalWrappedKeyedRoomDefinition.makeComposition()
+export const RoomSession =
+  DeclarationOptionalWrappedKeyedRoomDefinition.makeResource<string>()(
+    'RoomSession',
+  )
+export const roomSubscriptions =
+  DeclarationOptionalWrappedKeyedRoomDefinition.makeSubscriptions(entry => ({
+    ticks: entry('RoomTicks', {
+      messages: [RoomMessage.ObservedTick],
+      handler: function* () {
+        return () => Stream.succeed(RoomMessage.ObservedTick({ label: 'tick' }))
+      },
+    }),
+  }))
+export const roomManagedResources =
+  DeclarationOptionalWrappedKeyedRoomDefinition.makeManagedResources(entry => ({
+    session: entry('RoomSession', Schema.Option(Schema.Null), {
+      resource: RoomSession,
+      modelToMaybeRequirements: () => Option.some(null),
+      onAcquired: value => RoomMessage.AcquiredSession({ value }),
+      onReleased: RoomMessage.ReleasedSession,
+      onAcquireError: () => RoomMessage.FailedAcquireSession(),
+      handler: function* () {
+        return {
+          acquire: () => Effect.succeed('session'),
+          release: () => Effect.void,
+        }
+      },
+    }),
+  }))
 const prepareRoomBlock = () =>
   DeclarationOptionalWrappedKeyedRoomComposition.prepareBlock({
     init: DeclarationOptionalWrappedKeyedRoomComposition.makeInit(
@@ -31,13 +64,22 @@ const prepareRoomBlock = () =>
           RequestedSetCount: (model, { count }) => ({
             model: RoomModel.make({ count: count + context.roomId.length }),
           }),
+          ObservedTick: model => ({ model }),
+          AcquiredSession: model => ({ model }),
+          ReleasedSession: model => ({ model }),
+          FailedAcquireSession: model => ({ model }),
         }),
       ),
     operations: {
       setCount: (count: number, context: typeof RoomContext.Type) =>
         Tuple.make(RoomMessage.RequestedSetCount({ count }), context),
     },
-    EffectsLayer: Layer.empty,
+    subscriptions: roomSubscriptions,
+    managedResources: roomManagedResources,
+    EffectsLayer: Layer.mergeAll(
+      roomSubscriptions.ticks.layer,
+      roomManagedResources.session.layer,
+    ),
   })
 export const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RoomModel,
@@ -167,3 +209,113 @@ export const makePayloadParent = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 export const payloadParent = makePayloadParent(
   Schema.Struct({ label: Schema.String }),
 )
+
+export const CanonicalChildModel = Schema.Struct({ count: Schema.Number })
+export const CanonicalChildMessage = Message.defineMessageUnion({
+  ObservedTick: {},
+  AcquiredSession: { value: Schema.String },
+  ReleasedSession: {},
+  FailedAcquireSession: {},
+})
+export const CanonicalChildKey = Symbol(
+  'DeclarationOptionalWrappedKeyedCanonicalChild',
+)
+export const CanonicalChildBlock = Block.make(
+  'DeclarationOptionalWrappedKeyedCanonicalChild',
+  {
+    key: CanonicalChildKey,
+    Model: CanonicalChildModel,
+    Message: CanonicalChildMessage,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
+  },
+)
+export const CanonicalSession =
+  CanonicalChildBlock.makeResource<string>()('CanonicalSession')
+export const canonicalSubscriptions = CanonicalChildBlock.makeSubscriptions(
+  entry => ({
+    ticks: entry('CanonicalTicks', {
+      messages: [CanonicalChildMessage.ObservedTick],
+      handler: function* () {
+        return () => Stream.never
+      },
+    }),
+  }),
+)
+export const canonicalManagedResources =
+  CanonicalChildBlock.makeManagedResources(entry => ({
+    session: entry('CanonicalSession', Schema.Option(Schema.Null), {
+      resource: CanonicalSession,
+      modelToMaybeRequirements: () => Option.some(null),
+      onAcquired: value => CanonicalChildMessage.AcquiredSession({ value }),
+      onReleased: CanonicalChildMessage.ReleasedSession,
+      onAcquireError: () => CanonicalChildMessage.FailedAcquireSession(),
+      handler: function* () {
+        return {
+          acquire: () => Effect.succeed('session'),
+          release: () => Effect.void,
+        }
+      },
+    }),
+  }))
+export const CanonicalParentModel = Schema.Struct({
+  children: Schema.Record(Schema.String, CanonicalChildModel),
+})
+export const CanonicalParentKey = Symbol(
+  'DeclarationOptionalWrappedKeyedCanonicalParent',
+)
+export const CanonicalParentBlock = Block.make(
+  'DeclarationOptionalWrappedKeyedCanonicalParent',
+  {
+    key: CanonicalParentKey,
+    Model: CanonicalParentModel,
+    Message: Schema.Never,
+    Init: Schema.Tuple([]),
+    view: { kind: 'Element' },
+  },
+)
+export const CanonicalChildrenBinding = CanonicalParentBlock.makeMapBinding(
+  CanonicalChildBlock,
+  { field: 'children' },
+)
+const CanonicalChildComposition = CanonicalChildBlock.makeComposition()
+export const canonicalChildLayer = CanonicalChildBlock.makeLayer(
+  Effect.succeed({
+    children: [],
+    init: CanonicalChildComposition.makeInit(() => ({
+      model: CanonicalChildModel.make({ count: 0 }),
+    })),
+    update: CanonicalChildComposition.makeUpdate({
+      ObservedTick: model => ({ model }),
+      AcquiredSession: model => ({ model }),
+      ReleasedSession: model => ({ model }),
+      FailedAcquireSession: model => ({ model }),
+    }),
+    view: CanonicalChildComposition.makeView((_model, h) => h.div([])),
+    subscriptions: canonicalSubscriptions,
+    managedResources: canonicalManagedResources,
+    EffectsLayer: Layer.merge(
+      canonicalSubscriptions.ticks.layer,
+      canonicalManagedResources.layer,
+    ),
+  }),
+)
+const CanonicalParentComposition = CanonicalParentBlock.makeComposition({
+  bindings: [CanonicalChildrenBinding],
+})
+export const canonicalParentLayer = CanonicalParentBlock.makeLayer(
+  Effect.gen(function* () {
+    const children = yield* CanonicalChildrenBinding
+
+    return {
+      children: [children],
+      init: CanonicalParentComposition.makeInit(() => ({
+        model: CanonicalParentModel.make({
+          children: { first: CanonicalChildModel.make({ count: 0 }) },
+        }),
+      })),
+      update: CanonicalParentComposition.makeUpdate({}),
+      view: CanonicalParentComposition.makeView((_model, h) => h.div([])),
+    }
+  }),
+).pipe(Layer.provide(canonicalChildLayer))

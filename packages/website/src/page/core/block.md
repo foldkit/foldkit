@@ -95,7 +95,7 @@ Composition automatically routes the Messages of every registered child. The Bin
 
 ### Receive parent requests and notifications {#inmessages}
 
-Declare an optional `InMessage` Schema for transitions a parent can initiate. Keep local facts such as `SubmittedForm` and Command results in `Message`. The two Schemas have distinct tags; InMessages do not join the local update record or generated child Message delivery.
+Declare an ordinary optional `InMessage` Schema with `defineInMessageUnion` for transitions a parent can initiate. Keep local facts such as `SubmittedForm`, Command results, and OutMessages on `defineMessageUnion`. The two Schemas have distinct tags; InMessages do not join the local update record or generated child Message delivery.
 
 This MessageComposer can receive a submit request, a clear request, or a changed draft:
 
@@ -109,13 +109,15 @@ Return `inMessageUpdate` from the constructor with init, update, and view:
 
 ::Snippet{name="blockInMessageImplementation" label="Completing a Block with parent input handling"}
 
-The Block generates Binding methods directly from its InMessage tags. `RequestedX` becomes `requestX`; `InformedOfX` becomes `informX`. The remaining suffix is preserved exactly. Other prefixes and empty suffixes are rejected:
+`defineInMessageUnion` returns the same Schema, constructors, and exhaustive matcher as `defineMessageUnion`; it adds no brand. It rejects invalid names at the offending literal property, keeps that validation for an extracted literal case record, and repeats the check at runtime when JavaScript or type erasure hides the keys. Other Schema forms remain valid InMessage contracts subject to the Block's existing constructor and tag validation.
 
-| InMessage tag            | Binding method                 |
-| ------------------------ | ------------------------------ |
-| `RequestedSubmit`        | `requestSubmit()`              |
-| `RequestedClear`         | `requestClear()`               |
-| `InformedOfDraftChanged` | `informDraftChanged({ text })` |
+The Block generates Binding methods directly from its InMessage tags. `RequestedX` becomes `requestX`; `InformedOfX` becomes `informOfX`. The remaining suffix is preserved exactly. Other prefixes and empty suffixes are rejected:
+
+| InMessage tag            | Binding method                   |
+| ------------------------ | -------------------------------- |
+| `RequestedSubmit`        | `requestSubmit()`                |
+| `RequestedClear`         | `requestClear()`                 |
+| `InformedOfDraftChanged` | `informOfDraftChanged({ text })` |
 
 Each method takes the variant's constructor payload when it has fields. Keyed Bindings take the occurrence key first. The method invokes the matching `makeInMessageUpdate` handler through a connected parent Step; authors do not write a separate wrapper or `operations` mapping for that request. Pass the Step directly to a handler record or compose it in a parent transition:
 
@@ -203,7 +205,7 @@ Let `makeView` infer the primary view's builder. For an extracted helper on the 
 
 A shared helper that forwards Mount-bearing child Attributes accepts a typed caller-owned render callback. The callback uses the caller's inferred builder, preserving its registered Binding capability. See [Builder ownership](/core/view#builder-ownership) for the shared Dialog pattern.
 
-The local `Message` alias describes the facts handled by authored update logic. A boundary such as `Runtime.CrashContext` also accepts private child delivery. Derive its dispatch type from `Block.ExecutableOf<typeof FeatureBlock>`; use the acquired implementation's `Message` Codec when decoding or replaying complete history.
+The local `Message` alias describes the facts handled by authored update logic. A boundary such as `Runtime.CrashContext` also accepts private child delivery. Derive its dispatch type from `Block.ExecutableOf<typeof FeatureBlock>`; use the acquired implementation's `Message` Codec when decoding serialized complete history. DevTools replay uses values already retained in memory and does not run that Codec.
 
 ::Snippet{name="blockCompositionTypes" label="Composition-specific builder and dispatch types"}
 
@@ -224,6 +226,21 @@ Build a parent-owned OutMessage fold with the parent Block and the child's
 public contract:
 
 ::Snippet{name="blockOutMessagePolicy" label="Handling a child OutMessage"}
+
+Keyed Bindings accept the same authored fold directly when the handlers do not
+need the occurrence key. When they need it, return the fold from a callback:
+`fold: key => makeOutMessageFold(ChildBlock, handlers)`. The Binding supplies the
+OutMessage and its FoldContext; handlers close over the exact key type.
+
+::Snippet{name="blockKeyedOutMessageFolds" label="Handling keyed child facts with and without the key"}
+
+Both forms preserve exhaustive payload inference, Command requirements and
+sibling Binding checks. Construction stays passive. A key-dependent callback
+runs only when an existing occurrence emits an OutMessage, and its parent Step
+receives the Model after the child write. Take FoldContext inside the variant
+handler when using `modelBeforeUpdate` or its lifters. The explicit
+`(key, outMessage, context) => step` form is also supported for adaptations that
+need those inputs together.
 
 Inline a one-way policy as
 `ParentBlock.makeBinding(ChildBlock, config).withOutMessagePolicy({ fold: ParentBlock.makeOutMessageFold(ChildBlock, handlers) })`.
@@ -393,7 +410,7 @@ Use general accessors for nested or wrapped variants, custom writers, or opaque 
 
 A policy may return a parent Step that calls a registered sibling Binding operation. This supports parent-owned coordination in either direction: one child's OutMessage can initialize, update, or remove another child while preserving both boundaries. Keep reciprocal policies together in the same parent `composition.ts` or `composition/composition.ts`. Export and register the policy-complete `HomeBinding` and `RoomBinding`. Keep base Bindings internal when deferred reciprocal callbacks need them to break a dependency cycle. `makeComposition` validates the policy's captured output and confirms that every sibling Binding used by the policy is registered in `bindings`. Keep the chain synchronous and finite; one policy may invoke another Binding policy before the original update returns.
 
-This parent opens the selected Room when Home reports `SelectedRoom`. When Room later reports `SavedRoom`, the parent marks that Room as saved in Home. The omitted child contracts provide both operations: `RoomBinding.requestOpen` returns a pure connected Step, while `HomeBinding.informRoomSaved` returns a connected Step with a persistence Command. Neither operation emits another sibling OutMessage:
+This parent opens the selected Room when Home reports `SelectedRoom`. When Room later reports `SavedRoom`, the parent marks that Room as saved in Home. The omitted child contracts provide both operations: `RoomBinding.requestOpen` returns a pure connected Step, while `HomeBinding.informOfRoomSaved` returns a connected Step with a persistence Command. Neither operation emits another sibling OutMessage:
 
 ::Snippet{name="blockSiblingCoordination" label="Coordinating sibling Blocks in both directions"}
 
@@ -457,10 +474,10 @@ The child Model contains state the child owns. Choose how parent-owned data cros
 | --------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Read current parent data while rendering                                          | View inputs                                            |
 | Read current parent data while handling a Message                                 | Update context, supplied by `delivery.toUpdateContext` |
-| React to an external event by changing state or producing Commands or OutMessages | An `inform*` operation                                 |
+| React to an external event by changing state or producing Commands or OutMessages | An `informOf*` operation                               |
 | Keep an independent value or historical editing baseline                          | The child Model                                        |
 
-View inputs and update context supply values when the view or update runs. Changing those values does not itself dispatch a child Message. Send an inform when an external change requires a child transition; avoid copying parent data into the child merely to make it available.
+View inputs and update context supply values when the view or update runs. Changing those values does not itself dispatch a child Message. Call an `informOf*` operation when an external change requires a child transition; avoid copying parent data into the child merely to make it available.
 
 The basic Settings Block needs only its Model and Message. When a different child truly needs parent state for each transition, declare that context in the child's update signature and supply it through the Binding's Message route. This separate AccountSettings Block records which current user changed the theme:
 
@@ -470,11 +487,11 @@ Pass render-only values through `viewInputs`:
 
 ::Snippet{name="blockParentStateInView" label="Parent state through view inputs" class="mb-4"}
 
-An editor may retain the original editable fields and revision for an unsaved draft while receiving current comments as view inputs. A changed field revision may require an inform to refresh a clean form or flag an editing conflict. A new comment can appear through view inputs without changing that baseline.
+An editor may retain the original editable fields and revision for an unsaved draft while receiving current comments as view inputs. A changed field revision may require an `informOf*` operation to refresh a clean form or flag an editing conflict. A new comment can appear through view inputs without changing that baseline.
 
 ## Inform a Child about External State {#informing-external-state}
 
-When an external fact requires a child transition, expose an `inform*` operation that produces an `InformedOf*` Message and call it through the registered Binding. For example, a URL change may reset a child-owned selection or invalidate work. Values needed only for a current read belong in view inputs or update context.
+When an external fact requires a child transition, expose an `informOf*` operation that produces an `InformedOf*` Message and call it through the registered Binding. For example, a URL change may reset a child-owned selection or invalidate work. Values needed only for a current read belong in view inputs or update context.
 
 ::Snippet{name="blockInformExternalState" label="Informing a child about URL state"}
 
@@ -614,21 +631,25 @@ The public `effects` contract describes runtime handler capabilities. The implem
 
 Graph-constructor requirements and errors are inferred separately from the Effect passed to `makeLayer`. A Command invocation's ordinary failures still become Messages. Use `Block.makeEffectsContract<E, R>()` as the type-based alternative for generic handler-Layer errors and ordinary Service bounds. Extra ManagedResource requirements on an explicit operation or `inMessageOutputs` use the same `managedResources` spelling.
 
-## Advanced Message codec bounds
+## Serializable Model and Message Codecs
 
-Ordinary serializable Messages should be self-contained. Local Message Schema decoding and encoding Services are already inferred; most apps need no `codec` configuration.
+Foldkit serializes a Block's Model and Messages at synchronous host boundaries. The Model Codec, local Message Codec, and complete Message Codec must encode and decode without Effect Services. Delete the `codec` config when migrating; `codec.decoding` and `codec.encoding` have no replacement aliases.
 
-The complete dispatch Schema also contains opaque child delivery envelopes. A parent declaration exists before its implementation graph and cannot derive those hidden child requirements from its own local Message Schema. `codec.decoding` and `codec.encoding` publish the additional bounds when a child deliberately uses Service-dependent transformations.
+The complete Message Codec contains generated child delivery envelopes. A child Message transformation therefore propagates through every parent that registers that child. Foldkit checks the complete graph instead of trusting the parent's local Message alone.
 
-Here, a library-owned LegacyEditor delegates compatibility policy to the host's `MessageMigration` Service. The host chooses how older serialized labels become current values and how values are encoded. The child's declared Message carries that decoding and encoding requirement:
+A synchronous transformation may still use `SchemaTransformation.transformEffect` with `Effect.succeed`. Standard JSON Codecs for values such as `Option` and `Date` are supported too. An Effect requirement of `never` proves that no Service is needed; it does not prove the Effect completes synchronously. A transformation that suspends on a Promise is rejected when Foldkit actually serializes or deserializes a value. Block declaration, Composition, and Layer construction remain passive and do not run the Codec against fabricated values.
 
-::Snippet{name="blockCodecChild" label="Child Messages with a migration Service"}
+Generic factories carry the encoded type and bind both Service channels to `never` with `Schema.Codec<Value, Encoded, never, never>`. A decoded-only `Schema.Schema<Value>` leaves those Service requirements unknown.
 
-The parent's local `ClickedReload` Message needs no Service. Its complete dispatch Schema still needs `MessageMigration` when decoding a child delivery. The parent declares that additional bound. Enabling DevTools dispatch requires its decoder provider, while the quiet Program has no decoding requirement:
+This child trims a submitted label through a synchronous transformation:
 
-::Snippet{name="blockCodecParent" label="Complete Message requirements at the DevTools boundary"}
+::Snippet{name="blockCodecChild" label="Child Messages with a synchronous transformation"}
 
-Encoding requires the declared encoder Services when a caller explicitly encodes the complete Message Schema. It does not add an encoder requirement to every Program. These bounds preserve the child Schema's requirements; they do not move transformation state into the Block constructor.
+The parent registers the child without repeating or widening its Codec. Its acquired executable receives the complete Message Codec, including the generated child envelope:
+
+::Snippet{name="blockCodecParent" label="Complete Message Codec from the registered graph"}
+
+The restriction applies to Foldkit-managed Model and Message serialization. A Command or another effectful API can retain an effectful boundary Codec and supply its requirements through the Effect that runs it. Any Message emitted back into update must still belong to the owning Block's service-free local Message Codec.
 
 ## ParentBlock.makeBinding
 
@@ -654,7 +675,7 @@ The parent can store exact child Models in a Record and wrapped child Models in 
 
 Record keys must decode to strings. Lookup uses own properties, and enumeration follows JavaScript's own enumerable string-key order. HashMap keys decode to strings or numbers; actual numeric occurrence keys must be finite even when the declared Schema is broader. HashMap iteration does not establish display order. Keep a separate ordered list of IDs when the application needs one.
 
-Ordinary child folds and operations replace only an existing matching entry. Wrapped writes preserve parent metadata, and absent entries leave the same parent Model unchanged. Parents own membership. Removing a stored key ends that child occurrence's lifecycle. For direct child values, `initAndInsert` from `foldkit/bindingInit` creates an absent entry and rejects occupied keys. `makeInitIfMissingStep(Binding, { key, args })` creates a connected Step that retains an existing child and initializes an absent one. Wrapped maps keep explicit `Binding.init({ key, args, toParentModel })` so the parent supplies their metadata. These helpers retain the initialized child's Commands. Use general keyed accessors for custom writers, custom enumeration, or composite domain keys with a separate stable primitive occurrence identity. A fresh plain object is not a structural HashMap key merely because a Struct Schema describes it.
+Ordinary child folds and operations replace only an existing matching entry. Wrapped writes preserve parent metadata, and absent entries leave the same parent Model unchanged. Parents own membership. Removing a stored key ends that child occurrence's lifecycle. For direct child values, `initAndInsert` from `foldkit/bindingInit` creates an absent entry and rejects occupied keys. `makeInitIfMissingStep(Binding, { key, args })` snapshots a static selection, while `makeInitIfMissingStep(Binding, producer)` evaluates a pure producer once with the current Step Model when the registered graph interprets it. The producer returns `Option.some({ key, args })` or `Option.none()`, and the Binding contextually supplies the exact Model, key, and init arguments. `None` and an existing key both preserve Model identity, emit no Commands, and do not run child init; a missing selected key initializes the child and retains its init Commands. Every branch requires the original Binding registration. Both forms support only direct-value Record and HashMap storage. Wrapped maps, custom metadata, and parent Commands keep explicit `Binding.init({ key, args, toParentModel })` so the parent owns their construction. Use general keyed accessors for custom writers, custom enumeration, or composite domain keys with a separate stable primitive occurrence identity. A fresh plain object is not a structural HashMap key merely because a Struct Schema describes it.
 
 ### Focused Step Producers
 
@@ -756,7 +777,7 @@ For reset behavior, prefer a child-owned InMessage request handled through `inMe
 
 ### Scoped child delivery
 
-Use `Story.messageFrom(binding, message)` to deliver a direct child fact in a Block-aware Story. For an advanced direct transition fixture, `withBlock` supplies an acquired test Block and `Test.toParentMessageFor(block)` maps exact child Messages into its dispatch contract. A selected child Binding as the second argument resolves nested delivery against that same graph.
+Use `Story.messageIn(binding, message)` to deliver a direct child fact in a Block-aware Story. For an advanced direct transition fixture, `withBlock` supplies an acquired test Block and `Test.toParentMessageFor(block)` maps exact child Messages into its dispatch contract. A selected child Binding as the second argument resolves nested delivery against that same graph.
 
 Private lifecycle inventories and inferred child envelopes do not form part of the public Block contract. Test behavior through the owning implementation and its registered definitions.
 

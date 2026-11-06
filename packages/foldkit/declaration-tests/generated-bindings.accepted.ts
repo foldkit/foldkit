@@ -1,4 +1,4 @@
-import { Array, Option, Schema } from 'effect'
+import { Array, Effect, Option, Schema, SchemaTransformation } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -123,12 +123,15 @@ export const KeyedFieldBinding = GeneratedBindingParentDefinition.makeBinding(
   },
 )
 
-export declare const RoomId: Schema.Codec<
-  string,
-  number,
-  'RoomIdDecode',
-  'RoomIdEncode'
->
+export const RoomId = Schema.Number.pipe(
+  Schema.decodeTo(
+    Schema.String,
+    SchemaTransformation.transformEffect({
+      decode: value => Effect.succeed(globalThis.String(value)),
+      encode: value => Effect.succeed(globalThis.Number(value)),
+    }),
+  ),
+)
 export const readRooms = (
   model: typeof ParentModel.Type,
 ): ReadonlyArray<typeof Room.Type> => model.rooms

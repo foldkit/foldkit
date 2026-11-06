@@ -19,6 +19,7 @@ import {
   resolveImportedPath,
   staticMemberPath,
 } from '../guards.ts'
+import { isFoldkitMessageUnionHelperName } from '../message.ts'
 
 const PASCAL_CASE_PATTERN = /^[A-Z]/
 
@@ -134,7 +135,8 @@ const isMessageConstructorReference = (
             const [namespace, helperName, extraMember] = apiPath
             return (
               namespace === 'Message' &&
-              helperName === 'defineMessageUnion' &&
+              helperName !== undefined &&
+              isFoldkitMessageUnionHelperName(helperName) &&
               extraMember === undefined
             )
           },

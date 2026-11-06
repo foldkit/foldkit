@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": [
+    "optional-wrapped-keyed.accepted.ts",
+    "optional-wrapped-keyed.consume.ts",
+    "canonical-keyed-scene.rejected.ts"
+  ]
+}

@@ -1,4 +1,4 @@
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion } from 'foldkit/message'
 
-export const InMessage = defineMessageUnion({ InformedOfRouteChange: {} })
+export const InMessage = defineInMessageUnion({ InformedOfRouteChange: {} })
 export type InMessage = typeof InMessage.Type

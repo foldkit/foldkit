@@ -8,7 +8,6 @@ import {
   Predicate,
   Schema,
   String,
-  pipe,
 } from 'effect'
 import type { DefaultTreeAdapterMap } from 'parse5'
 import {
@@ -67,6 +66,7 @@ import {
   type ValidateSelectedLayer,
   resolveRootBlock,
 } from '../../runtime/rootBlock.js'
+import * as Serialization from '../../serialization.js'
 import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'
 import type { Return as UpdateReturn } from '../../update/index.js'
@@ -1370,11 +1370,12 @@ const encodeFlagsHandoff = <Flags>(
 > =>
   Effect.gen(function* () {
     const FlagsJsonCodec = Schema.toCodecJson(FlagsCodec)
-    const encodedFlags = yield* pipe(
-      flags,
-      Schema.encodeEffect(FlagsJsonCodec),
-      Effect.mapError(cause => new FlagsEncodeError({ cause })),
-    )
+    const encodedFlags = yield* Effect.fromResult(
+      Serialization.run(
+        Schema.encodeEffect(FlagsJsonCodec)(flags),
+        `Flags handoff encoding for runtime "${runtimeId}"`,
+      ),
+    ).pipe(Effect.mapError(cause => new FlagsEncodeError({ cause })))
     const json = yield* Effect.try({
       try: () => JSON.stringify(encodedFlags),
       catch: cause => new FlagsEncodeError({ cause }),
@@ -1388,19 +1389,19 @@ const encodeFlagsHandoff = <Flags>(
         }),
       )
     }
-    // NOTE: the hydrating client reconstructs Flags by parsing the payload
-    // JSON and decoding it synchronously, so the server render must call init
-    // with that same value. Decoding the in-memory encoded value instead would
-    // diverge wherever JSON is not the identity (a -0 serializes to 0, a
-    // non-finite number to null), and decoding through an Effect would accept an
-    // asynchronous codec the synchronous client cannot, deferring the failure to
-    // a client crash. Parsing json and decoding it the same synchronous way the
-    // client does avoids both: the served DOM matches the client's first render,
-    // and an incompatible codec fails here as a typed error.
-    const hydrationFlags = yield* Effect.try({
-      try: () => Schema.decodeUnknownSync(FlagsJsonCodec)(JSON.parse(json)),
+    // NOTE: JSON changes values such as -0 and non-finite numbers. Render from
+    // the parsed payload so server init and client hydration receive the same
+    // decoded Flags.
+    const parsedPayload: unknown = yield* Effect.try({
+      try: (): unknown => JSON.parse(json),
       catch: cause => new FlagsEncodeError({ cause }),
     })
+    const hydrationFlags = yield* Effect.fromResult(
+      Serialization.run(
+        Schema.decodeUnknownEffect(FlagsJsonCodec)(parsedPayload),
+        `Flags handoff decoding for runtime "${runtimeId}"`,
+      ),
+    ).pipe(Effect.mapError(cause => new FlagsEncodeError({ cause })))
     return {
       payloadScript: flagsPayloadScript(runtimeId, json),
       hydrationFlags,

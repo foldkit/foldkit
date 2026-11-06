@@ -2,11 +2,12 @@ import { Array, Option, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { Notification } from '../../domain'
 import { makeFieldsStep, makeNoopStep } from './block'
 import { NotificationCenterComposition, PopoverBinding } from './composition'
 import type {
   ClickedMarkAllAsRead,
-  ClickedNotificationReadState,
+  ClickedNotificationReadToggle,
 } from './message'
 import { OutMessage } from './outMessage'
 
@@ -20,8 +21,8 @@ const handleClickedMarkAllAsRead = makeFieldsStep.fromMessage(
   }),
 )
 
-const handleClickedNotificationReadState = makeFieldsStep.fromMessage(
-  ({ notificationId }: ClickedNotificationReadState) => ({
+const handleClickedNotificationReadToggle = makeFieldsStep.fromMessage(
+  ({ notificationId }: ClickedNotificationReadToggle) => ({
     notifications: Array.map(notification =>
       notification.id === notificationId
         ? modifyFields(notification, {
@@ -42,32 +43,26 @@ const markAsRead = (notificationId: string) =>
   }))
 
 export const update = NotificationCenterComposition.makeUpdate({
-  TickedClock: makeFieldsStep.fromMessage(({ timestamp }) => ({
-    now: () => timestamp,
+  TickedClock: makeFieldsStep.fromMessage(({ currentTimeMillis }) => ({
+    currentTimeMillis: () => currentTimeMillis,
   })),
   ClickedMarkAllAsRead: handleClickedMarkAllAsRead,
-  ClickedNotificationReadState: handleClickedNotificationReadState,
+  ClickedNotificationReadToggle: handleClickedNotificationReadToggle,
   ClickedNotification: (model, { notificationId }) =>
-    Option.match(
-      Array.findFirst(
-        model.notifications,
-        notification => notification.id === notificationId,
-      ),
-      {
-        onNone: () => makeNoopStep()(model),
-        onSome: notification => {
-          const notificationSelection = Update.combineSteps(model, [
-            markAsRead(notificationId),
-            PopoverBinding.requestClose(),
-          ])
+    Option.match(Notification.findById(model.notifications, notificationId), {
+      onNone: () => makeNoopStep()(model),
+      onSome: notification => {
+        const notificationSelection = Update.combineSteps(model, [
+          markAsRead(notificationId),
+          PopoverBinding.requestClose(),
+        ])
 
-          return pipe(
-            notificationSelection,
-            Update.withOutMessage(
-              OutMessage.SelectedIssue({ issueId: notification.issueId }),
-            ),
-          )
-        },
+        return pipe(
+          notificationSelection,
+          Update.withOutMessage(
+            OutMessage.SelectedIssue({ issueId: notification.issueId }),
+          ),
+        )
       },
-    ),
+    }),
 })

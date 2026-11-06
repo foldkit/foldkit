@@ -14,6 +14,7 @@ import {
   FOLDKIT_APP_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
 } from '../hydrationMarker.js'
+import * as Serialization from '../serialization.js'
 
 /** Whether a boot adopts a server-rendered root (`Hydrate`) or builds the DOM
  *  fresh in the container (`Fresh`). */
@@ -425,7 +426,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
   bootFlags: Effect.Effect<Flags, never, Resources> | undefined
   configuredFlags: Option.Option<Effect.Effect<Flags, never, Resources>>
   isFlagsRequired: boolean
-  FlagsCodec: Schema.Codec<Flags, any, unknown, unknown>
+  FlagsCodec: Schema.Codec<Flags, any, never, never>
   preservedModel: unknown
   container: HTMLElement
   buildId: string | undefined
@@ -474,23 +475,27 @@ export const resolveHydrationHandoff = <Flags, Resources>({
       root: Element,
     ): Effect.Effect<Flags> =>
       Effect.try({
-        try: () => {
-          const parsedPayload: unknown = JSON.parse(payload)
-          return pipe(
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            Schema.toCodecJson(FlagsCodec as Schema.Codec<Flags>),
-            Schema.decodeUnknownSync,
-            decode => decode(parsedPayload),
-          )
-        },
+        try: (): unknown => JSON.parse(payload),
         catch: cause => new FlagsPayloadDecodeFailed({ cause }),
       }).pipe(
+        Effect.flatMap(parsedPayload =>
+          Effect.fromResult(
+            Serialization.run(
+              Schema.decodeUnknownEffect(Schema.toCodecJson(FlagsCodec))(
+                parsedPayload,
+              ),
+              `Flags hydration for runtime "${runtimeId}"`,
+            ),
+          ).pipe(
+            Effect.mapError(cause => new FlagsPayloadDecodeFailed({ cause })),
+          ),
+        ),
         Effect.catch(cause =>
           refuseHydration<Flags>(
             root,
             '[foldkit] Runtime.hydrate could not decode the server ' +
               `Flags payload for application "${runtimeId}". The HTML ` +
-              'and client bundle must use the same Flags Schema.',
+              'and client bundle must use the same synchronous, service-free Flags Schema.',
             cause,
           ),
         ),

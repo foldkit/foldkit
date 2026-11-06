@@ -2,7 +2,10 @@ import { Array, Context, Effect, Layer, Option, Schema } from 'effect'
 import { describe, expect, it, vi } from 'vitest'
 
 import * as Block from '../../block/public.js'
-import { defineMessageUnion } from '../../message/index.js'
+import {
+  defineInMessageUnion,
+  defineMessageUnion,
+} from '../../message/index.js'
 import * as ModelPreservationBridge from '../../runtime/modelPreservationBridge.js'
 import * as Program from '../../runtime/programPublic.js'
 import { embed } from '../../runtime/start.js'
@@ -20,7 +23,7 @@ const Message = defineMessageUnion({
   CompletedRelease: {},
   FailedAcquire: {},
 })
-const InMessage = defineMessageUnion({ RequestedRefresh: {} })
+const InMessage = defineInMessageUnion({ RequestedRefresh: {} })
 const config = { Model, Message, InMessage, Init: Schema.Tuple([]) }
 
 class Store extends Context.Service<Store, Readonly<{ label: string }>>()(

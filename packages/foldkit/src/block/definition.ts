@@ -38,6 +38,7 @@ import type * as PublicUpdate from '../update/public.js'
 import type { VNode } from '../vdom.js'
 import {
   type AssemblyDraft,
+  type CompletionContractProof,
   type CompletionProof,
   assertCompletedBlock,
   completeDerivedBlock,
@@ -60,8 +61,10 @@ import {
   selectedBindingOutMessagePolicyOf,
 } from './bindingOutMessagePolicy.js'
 import {
+  type CompleteMessageSelfContainedCodec,
   type DispatchSchemaFor,
-  generatedEnvelopeSchemas,
+  type ValidateCompleteMessageSelfContainedCodec,
+  makeCompleteDispatchSchema,
   makeDispatchSchema,
 } from './childEnvelope.js'
 import { type MakeCommandsStep, makeCommandsStep } from './commandsStep.js'
@@ -164,6 +167,7 @@ import { selectLayer } from './scope.js'
 import { registerViewInputs, withViewIdentity } from './viewScope.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 
 const compositions = new WeakSet<object>()
@@ -1447,8 +1451,8 @@ export type Implementation<
 >
 
 type DefinitionImplementation<
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema,
 > = ImplementationChannels<
   ModelSchema['Type'],
@@ -1908,8 +1912,8 @@ export type DefinitionAuthoredView<
  * registered composition graph. */
 export type DefinitionView<
   OwnerValue,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
 > = DefinitionAuthoredView<
@@ -1995,8 +1999,8 @@ type ValidateViewForDefinition<
     Children
   >,
   OwnerValue,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
 > = ValidateDefinitionView<View>
@@ -2111,8 +2115,8 @@ type SelectedEffectsImplementation<ImplementationValue, SelectedEffectsLayer> =
 
 interface ReplaceEffectsLayer<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2163,8 +2167,8 @@ interface ReplaceEffectsLayer<
 
 interface BlockOperations<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2226,8 +2230,8 @@ interface BlockOperations<
  */
 interface BlockContractFields<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue extends Readonly<{
@@ -2297,8 +2301,8 @@ interface BlockContractFields<
 
 interface BlockContract<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2310,6 +2314,7 @@ interface BlockContract<
 >
   extends
     CompletionProof,
+    CompletionContractProof<ModelSchema, MessageSchema>,
     BlockContractFields<
       OwnerValue,
       ModelSchema,
@@ -2335,8 +2340,8 @@ interface BlockContract<
  */
 export interface CompletedBlockWithViewAndOutMessage<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends Schema.Codec<any, any, any, any>,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2366,8 +2371,8 @@ export interface CompletedBlockWithViewAndOutMessage<
  */
 export interface CompletedBlockWithView<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue extends Readonly<{
@@ -2398,8 +2403,8 @@ export interface CompletedBlockWithView<
  */
 export interface CompletedBlockWithOutMessage<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends Schema.Codec<any, any, any, any>,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2430,8 +2435,8 @@ export interface CompletedBlockWithOutMessage<
  */
 export interface CompletedBlockWithoutViewOrOutMessage<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue extends Readonly<{
@@ -2456,8 +2461,8 @@ export interface CompletedBlockWithoutViewOrOutMessage<
 type CompletedWithViewArguments<DefinitionValue, ImplementationValue> =
   DefinitionValue extends Readonly<{
     owner: infer OwnerValue extends Owner<string>
-    Model: infer ModelSchema extends AnySchema
-    Message: infer MessageSchema extends AnySchema
+    Model: infer ModelSchema extends AnySelfContainedSchema
+    Message: infer MessageSchema extends AnySelfContainedSchema
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
     bindings: infer Children extends ReadonlyArray<AnyBinding>
@@ -2565,8 +2570,8 @@ export interface CompletedWithView<
  */
 export type Block<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2599,8 +2604,8 @@ export type Block<
  */
 export type CompletedBlock<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2656,8 +2661,8 @@ export type CompletedBlock<
 export type Completed<DefinitionValue, ImplementationValue> =
   DefinitionValue extends Readonly<{
     owner: infer OwnerValue extends Owner<string>
-    Model: infer ModelSchema extends AnySchema
-    Message: infer MessageSchema extends AnySchema
+    Model: infer ModelSchema extends AnySelfContainedSchema
+    Message: infer MessageSchema extends AnySelfContainedSchema
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
     bindings: infer Children extends ReadonlyArray<AnyBinding>
@@ -2692,8 +2697,8 @@ export type Completed<DefinitionValue, ImplementationValue> =
 export type CompletedForValidation<DefinitionValue, ImplementationValue> =
   DefinitionValue extends Readonly<{
     owner: infer OwnerValue extends Owner<string>
-    Model: infer ModelSchema extends AnySchema
-    Message: infer MessageSchema extends AnySchema
+    Model: infer ModelSchema extends AnySelfContainedSchema
+    Message: infer MessageSchema extends AnySelfContainedSchema
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
     bindings: infer Children extends ReadonlyArray<AnyBinding>
@@ -2726,8 +2731,8 @@ export type CompletedForValidation<DefinitionValue, ImplementationValue> =
 export type AnyBlock = CompletionProof &
   Readonly<{
     owner: Owner<any>
-    Model: AnySchema
-    Message: AnySchema
+    Model: Schema.Codec<any, any, never, never>
+    Message: Schema.Codec<any, any, never, never>
     mounts: ReadonlyArray<Mount.LayeredMountDefinition>
     [LocalMountsTypeId]: ReadonlyArray<Mount.LayeredMountDefinition>
     bindings: ReadonlyArray<AnyBinding>
@@ -2769,8 +2774,8 @@ type PrepareBlockDefinition<OwnerValue extends Owner<string>> = Readonly<{
 
 type PrepareBlockComposition<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2797,8 +2802,8 @@ type PrepareBlockCompositionForValidation<
 
 type ValidatePrepareBlockComposition<
   OwnerValue extends Owner<string>,
-  _ModelSchema extends AnySchema,
-  _MessageSchema extends AnySchema,
+  _ModelSchema extends AnySelfContainedSchema,
+  _MessageSchema extends AnySelfContainedSchema,
   _OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2822,8 +2827,8 @@ type ValidatePrepareBlockComposition<
     : unknown)
 
 type PublicPrepareBlockImplementation<
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   ImplementationValue,
 > = PublicImplementationValue<
   ModelSchema['Type'],
@@ -2832,8 +2837,8 @@ type PublicPrepareBlockImplementation<
 >
 
 type ImplementationInput<
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema,
 > = Omit<
   DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>,
@@ -2852,8 +2857,8 @@ type ValidateImplementationLayerPresence<ImplementationValue> =
 
 type ValidateImplementationView<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue extends object,
@@ -2878,8 +2883,8 @@ type ValidateImplementationView<
 
 type ImplementationRecipeValidation<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2919,8 +2924,8 @@ type ImplementationRecipeArguments<ImplementationValue, Validation> =
 
 type ValidateHeadlessAssembly<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2939,8 +2944,8 @@ type ValidateHeadlessAssembly<
 
 type ValidateDefaultEffectsAssembly<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2967,8 +2972,8 @@ type ValidateDefaultEffectsAssembly<
 
 type ValidateInferredAssembly<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -2996,8 +3001,8 @@ type ValidateInferredAssembly<
 type ValidateShapedAssembly<
   Init,
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -3037,8 +3042,8 @@ type ValidateShapedAssembly<
  * requirements remain for the application root to provide. */
 export interface PrepareBlock<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -3873,8 +3878,8 @@ export type ViewBuilderFor<CompositionValue> =
  * Mount capabilities before completing the Block. */
 export type Definition<
   OwnerValue extends Owner<string>,
-  ModelSchema extends Schema.Codec<any, any, any, any>,
-  MessageSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -4023,8 +4028,8 @@ export type Definition<
  * Layers or start child lifecycle work. */
 export type Composition<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
@@ -4045,7 +4050,7 @@ export type Composition<
   | 'bindings'
 > & {
   /** Complete dispatch Codec, including this Composition's generated child Messages. */
-  readonly Message: DispatchSchemaFor<MessageSchema, Children>
+  readonly Message: CompleteMessageSelfContainedCodec<MessageSchema, Children>
   /** Authors initialization for this registered graph. The callback supplies
    * parent-owned fields and may prepare one shared ChildInitContext for its
    * child Binding init policies. Child initialization and listed Steps produce the
@@ -4089,7 +4094,7 @@ export type Composition<
   readonly prepareBlock: PrepareBlock<
     OwnerValue,
     ModelSchema,
-    DispatchSchemaFor<MessageSchema, Children>,
+    CompleteMessageSelfContainedCodec<MessageSchema, Children>,
     OutMessageSchema,
     Mounts,
     Children
@@ -4102,8 +4107,8 @@ export type Composition<
  * Binding used by a policy must be registered here. */
 export interface MakeComposition<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined = undefined,
 > {
@@ -4144,7 +4149,8 @@ export interface MakeComposition<
         ModelSchema['Type'],
         MessageSchema['Type'],
         OutMessageSchema extends AnySchema ? OutMessageSchema['Type'] : never
-      >,
+      > &
+      ValidateCompleteMessageSelfContainedCodec<MessageSchema, Children>,
   ): Composition<
     OwnerValue,
     ModelSchema,
@@ -4159,8 +4165,8 @@ export interface MakeComposition<
  * Definition proceeds through `makeComposition`, including an empty graph. */
 export type Base<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined = undefined,
 > = Definition<
@@ -4177,8 +4183,8 @@ export type Base<
  * authoring. */
 export interface DefineBlock<OwnerValue extends Owner<string>> {
   <
-    const ModelSchema extends AnySchema,
-    const MessageSchema extends AnySchema,
+    const ModelSchema extends AnySelfContainedSchema,
+    const MessageSchema extends AnySelfContainedSchema,
     const OutMessageSchema extends AnySchema,
     const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(
@@ -4202,8 +4208,8 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
     ChildInitContextSchema
   >
   <
-    const ModelSchema extends AnySchema,
-    const MessageSchema extends AnySchema,
+    const ModelSchema extends AnySelfContainedSchema,
+    const MessageSchema extends AnySelfContainedSchema,
     const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(
     config: Readonly<{
@@ -4622,15 +4628,20 @@ const assertDistinctManagedResourceOwners = (
 /**
  * @internal Runtime constructor behind {@link DefineBlock}.
  */
-export const makeDefinition = (
+export const makeDefinition = <
+  const ModelSchema extends AnySelfContainedSchema,
+  const MessageSchema extends AnySelfContainedSchema,
+  const Bindings extends ReadonlyArray<AnyBinding> = readonly [],
+>(
   owner: Owner<any>,
   config: Readonly<{
-    Model: AnySchema
-    Message: AnySchema
+    Model: ModelSchema
+    Message: MessageSchema
     OutMessage?: AnySchema
     ChildInitContext?: AnySchema
     mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-    bindings?: ReadonlyArray<AnyBinding>
+    bindings?: Bindings &
+      ValidateCompleteMessageSelfContainedCodec<MessageSchema, Bindings>
     [ExecutionEnvironmentTypeId]?: OperationEnvironment
   }>,
   authoring?: Readonly<{
@@ -4662,10 +4673,14 @@ export const makeDefinition = (
 
   const childChannels = aggregateChildren(bindings)
   const mounts = mergeMounts(localMounts, childChannels.mounts)
-  const dispatchMessage = makeDispatchSchema(
-    config.Message,
-    generatedEnvelopeSchemas(bindings),
-  )
+  const dispatchMessage =
+    config.bindings === undefined
+      ? makeDispatchSchema(config.Message, [])
+      : makeCompleteDispatchSchema<MessageSchema, Bindings>(
+          config.Message,
+          config.bindings,
+          bindings,
+        )
 
   const assertOperationMessage = makeOperationMessageValidator(config.Message)
   const defineView = makeDefineView(owner, localMounts, bindings)
@@ -5010,20 +5025,39 @@ const normalizeCompositionGraph = (graph: RuntimeCompositionGraph) => {
 }
 
 /** @internal Creates a typed definition before its composition graph. */
-export const makeBaseDefinition = (
+export const makeBaseDefinition = <
+  const ModelSchema extends AnySelfContainedSchema,
+  const MessageSchema extends AnySelfContainedSchema,
+>(
   owner: Owner<any>,
   config: Readonly<{
-    Model: AnySchema
-    Message: AnySchema
+    Model: ModelSchema
+    Message: MessageSchema
     OutMessage?: AnySchema
     ChildInitContext?: AnySchema
   }>,
 ): any => {
-  const base = makeDefinition(owner, config)
+  const base = makeDefinition<ModelSchema, MessageSchema>(owner, config)
 
-  const makeComposition = (graph: RuntimeCompositionGraph = {}) => {
-    assertCompositionGraph(graph)
-    const composition = makeDefinition(owner, { ...config, ...graph }, base)
+  const makeComposition = <
+    const Bindings extends ReadonlyArray<AnyBinding> = readonly [],
+  >(
+    graph?: Readonly<{
+      mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
+      bindings?: Bindings &
+        ValidateCompleteMessageSelfContainedCodec<MessageSchema, Bindings>
+    }>,
+  ) => {
+    const resolvedGraph = graph === undefined ? {} : graph
+    assertCompositionGraph(resolvedGraph)
+    const composition =
+      graph === undefined
+        ? makeDefinition<ModelSchema, MessageSchema>(owner, config, base)
+        : makeDefinition<ModelSchema, MessageSchema, Bindings>(
+            owner,
+            { ...config, ...graph },
+            base,
+          )
     const publicComposition = {
       owner: composition.owner,
       Model: composition.Model,

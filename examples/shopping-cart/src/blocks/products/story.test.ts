@@ -1,11 +1,4 @@
-import {
-  Command,
-  expectOutMessage,
-  init,
-  message,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -21,42 +14,45 @@ describe('products', () => {
   it.effect(
     'ChangedSearchInput stores the query and replaces the search URL',
     () =>
-      story(
+      Story.story(
         { block: ProductsBlock, layer },
-        init(products),
-        message(Message.ChangedSearchInput({ value: 'app' })),
-        model(model => {
+        Story.init(products),
+        Story.message(Message.ChangedSearchInput({ value: 'app' })),
+        Story.model(model => {
           expect(model.searchText).toBe('app')
         }),
-        Command.expectHas(ReplaceSearchUrl),
-        Command.resolve(ReplaceSearchUrl, Message.CompletedReplaceSearchUrl()),
+        Story.Command.expectHas(ReplaceSearchUrl),
+        Story.Command.resolve(
+          ReplaceSearchUrl,
+          Message.CompletedReplaceSearchUrl(),
+        ),
       ),
   )
 
   it.effect('ClickedAddToCart emits AddedToCart', () =>
-    story(
+    Story.story(
       { block: ProductsBlock, layer },
-      init(products),
-      message(Message.ClickedAddToCart({ item: apple })),
-      expectOutMessage(OutMessage.AddedToCart({ item: apple })),
+      Story.init(products),
+      Story.message(Message.ClickedAddToCart({ item: apple })),
+      Story.expectOutMessage(OutMessage.AddedToCart({ item: apple })),
     ),
   )
 
   it.effect('ClickedIncrementQuantity emits IncrementedQuantity', () =>
-    story(
+    Story.story(
       { block: ProductsBlock, layer },
-      init(products),
-      message(Message.ClickedIncrementQuantity({ itemId: '1' })),
-      expectOutMessage(OutMessage.IncrementedQuantity({ itemId: '1' })),
+      Story.init(products),
+      Story.message(Message.ClickedIncrementQuantity({ itemId: '1' })),
+      Story.expectOutMessage(OutMessage.IncrementedQuantity({ itemId: '1' })),
     ),
   )
 
   it.effect('ClickedDecrementQuantity emits DecrementedQuantity', () =>
-    story(
+    Story.story(
       { block: ProductsBlock, layer },
-      init(products),
-      message(Message.ClickedDecrementQuantity({ itemId: '1' })),
-      expectOutMessage(OutMessage.DecrementedQuantity({ itemId: '1' })),
+      Story.init(products),
+      Story.message(Message.ClickedDecrementQuantity({ itemId: '1' })),
+      Story.expectOutMessage(OutMessage.DecrementedQuantity({ itemId: '1' })),
     ),
   )
 })

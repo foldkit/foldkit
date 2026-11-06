@@ -1,4 +1,4 @@
-import { Command, given, message, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
@@ -32,33 +32,33 @@ const notStartedModel: Model = modifyFields(playingModel, {
 describe('update', () => {
   describe('movement controls', () => {
     it.effect('arrow key updates nextDirection while playing', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(playingModel),
-        message(Message.PressedKey({ key: 'ArrowUp' })),
-        model(model => {
+        Story.given(playingModel),
+        Story.message(Message.PressedKey({ key: 'ArrowUp' })),
+        Story.model(model => {
           expect(model.nextDirection).toBe('Up')
         }),
       ),
     )
 
     it.effect('WASD key updates nextDirection while playing', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(playingModel),
-        message(Message.PressedKey({ key: 'a' })),
-        model(model => {
+        Story.given(playingModel),
+        Story.message(Message.PressedKey({ key: 'a' })),
+        Story.model(model => {
           expect(model.nextDirection).toBe('Left')
         }),
       ),
     )
 
     it.effect('arrow keys are ignored while the game is paused', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(modifyFields(playingModel, { gameState: () => 'Paused' })),
-        message(Message.PressedKey({ key: 'ArrowDown' })),
-        model(model => {
+        Story.given(modifyFields(playingModel, { gameState: () => 'Paused' })),
+        Story.message(Message.PressedKey({ key: 'ArrowDown' })),
+        Story.model(model => {
           expect(model.nextDirection).toBe('Right')
         }),
       ),
@@ -67,33 +67,35 @@ describe('update', () => {
 
   describe('space key', () => {
     it.effect('SPACE starts the game from NotStarted', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(notStartedModel),
-        message(Message.PressedKey({ key: ' ' })),
-        model(model => {
+        Story.given(notStartedModel),
+        Story.message(Message.PressedKey({ key: ' ' })),
+        Story.model(model => {
           expect(model.gameState).toBe('Playing')
         }),
       ),
     )
 
     it.effect('SPACE pauses the game when Playing', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(playingModel),
-        message(Message.PressedKey({ key: ' ' })),
-        model(model => {
+        Story.given(playingModel),
+        Story.message(Message.PressedKey({ key: ' ' })),
+        Story.model(model => {
           expect(model.gameState).toBe('Paused')
         }),
       ),
     )
 
     it.effect('SPACE on GameOver does nothing', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(modifyFields(playingModel, { gameState: () => 'GameOver' })),
-        message(Message.PressedKey({ key: ' ' })),
-        model(model => {
+        Story.given(
+          modifyFields(playingModel, { gameState: () => 'GameOver' }),
+        ),
+        Story.message(Message.PressedKey({ key: ' ' })),
+        Story.model(model => {
           expect(model.gameState).toBe('GameOver')
         }),
       ),
@@ -102,23 +104,23 @@ describe('update', () => {
 
   describe('restart', () => {
     it.effect('R fires GenerateApplePosition and resets the snake', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(modifyFields(playingModel, { points: () => 100 })),
-        message(Message.PressedKey({ key: 'r' })),
-        model(model => {
+        Story.given(modifyFields(playingModel, { points: () => 100 })),
+        Story.message(Message.PressedKey({ key: 'r' })),
+        Story.model(model => {
           expect(model.gameState).toBe('NotStarted')
           expect(model.points).toBe(0)
           expect(model.direction).toBe('Right')
         }),
-        Command.expectHas(GenerateApplePosition),
-        Command.resolve(
+        Story.Command.expectHas(GenerateApplePosition),
+        Story.Command.resolve(
           GenerateApplePosition,
           Message.CompletedGenerateApplePosition({
             position: { x: 5, y: 5 },
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.apple).toEqual({ x: 5, y: 5 })
         }),
       ),
@@ -127,22 +129,22 @@ describe('update', () => {
 
   describe('TickedClock', () => {
     it.effect('moves the snake one cell while Playing', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(playingModel),
-        message(Message.TickedClock()),
-        model(model => {
+        Story.given(playingModel),
+        Story.message(Message.TickedClock()),
+        Story.model(model => {
           expect(model.snake[0]).toEqual({ x: 11, y: 10 })
         }),
       ),
     )
 
     it.effect('does nothing when not Playing', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(notStartedModel),
-        message(Message.TickedClock()),
-        model(model => {
+        Story.given(notStartedModel),
+        Story.message(Message.TickedClock()),
+        Story.model(model => {
           expect(model.snake).toEqual(initialSnake)
         }),
       ),
@@ -156,18 +158,18 @@ describe('update', () => {
         })
         const lengthBefore = aboutToEatModel.snake.length
 
-        return story(
+        return Story.story(
           { block: ApplicationBlock, layer },
-          given(aboutToEatModel),
-          message(Message.TickedClock()),
-          Command.expectHas(GenerateApplePosition),
-          Command.resolve(
+          Story.given(aboutToEatModel),
+          Story.message(Message.TickedClock()),
+          Story.Command.expectHas(GenerateApplePosition),
+          Story.Command.resolve(
             GenerateApplePosition,
             Message.CompletedGenerateApplePosition({
               position: { x: 5, y: 5 },
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.snake.length).toBe(lengthBefore + 1)
             expect(model.points).toBe(10)
             expect(model.apple).toEqual({ x: 5, y: 5 })

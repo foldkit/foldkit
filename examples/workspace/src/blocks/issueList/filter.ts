@@ -1,8 +1,8 @@
 import { Array, Match, Option, Order } from 'effect'
 
-import type { Issue, IssueFilters } from '../../domain'
+import { type Issue } from '../../domain'
 
-const priorityOrder = Order.mapInput(Order.Number, (issue: Issue) =>
+const priorityOrder = Order.mapInput(Order.Number, (issue: Issue.Issue) =>
   Match.value(issue.priority).pipe(
     Match.when('High', () => 0),
     Match.when('Medium', () => 1),
@@ -12,8 +12,8 @@ const priorityOrder = Order.mapInput(Order.Number, (issue: Issue) =>
 )
 
 export const filterAndSortIssues = (
-  filters: IssueFilters,
-  issues: ReadonlyArray<Issue>,
+  filters: Issue.Filters,
+  issues: ReadonlyArray<Issue.Issue>,
 ) => {
   const query = filters.query.toLowerCase().trim()
 

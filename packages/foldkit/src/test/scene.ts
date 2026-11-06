@@ -16,10 +16,17 @@ import { dual } from 'effect/Function'
 import {
   type AggregatedChildren,
   type AnyBinding,
+  type BindingEvidence,
   type BindingRequirement,
+  type BlockOfBinding,
+  type InspectionOfBinding,
+  type ParentContractOfBinding,
   aggregateChildren,
 } from '../block/binding.js'
+import type { BindingParent } from '../block/bindingConnection.js'
+import { canonicalBindingOf } from '../block/composition.js'
 import { LocalMountsTypeId, isComposition } from '../block/definition.js'
+import { identityOf } from '../block/identity.js'
 import { kebabToPascal } from '../customElement/index.js'
 import type { CustomElementSpec, EventSchema } from '../customElement/index.js'
 import { serializedStylePropertyName } from '../domReflection.js'
@@ -47,6 +54,7 @@ import type {
 } from '../html/index.js'
 import { type MountCapture, mountCaptureOf } from '../html/mountCapture.js'
 import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
+import * as RuntimeManagedResource from '../managedResource/managedResource.js'
 import { MountRegistrationTypeId, MountTracker } from '../mount/index.js'
 import type {
   AnyMountHandler,
@@ -66,12 +74,16 @@ import {
 } from '../snabbdom/init.js'
 import { vnode as makeVNode } from '../snabbdom/vnode.js'
 import {
+  type KeyedSelection as KeyedSubscriptionSelection,
   type Registrations as RuntimeRegistrations,
   type RegistryEntries as RuntimeRegistryEntries,
   type Subscription as RuntimeSubscription,
   type MessageDeclaration as SubscriptionMessageDeclaration,
   aggregate as aggregateSubscriptions,
+  __keyedSelection as keyedSubscriptionSelection,
   __maybeActiveDependencies as maybeActiveDependencies,
+  __selectKeyed as selectKeyedSubscription,
+  __selectedKeyIsPresent as selectedSubscriptionKeyIsPresent,
   __messageDeclarations as subscriptionMessageDeclarations,
 } from '../subscription/subscription.js'
 import { tagNameFromSelector } from '../tagName.js'
@@ -148,6 +160,7 @@ import {
   allTitle,
 } from './query.js'
 import { type SceneHost, SceneHostTypeId } from './sceneHost.js'
+import type { KeyOfBinding } from './toParentMessage.js'
 
 export { type InitStep, init } from './internal.js'
 
@@ -381,6 +394,19 @@ type TestMountRequirements =
 
 type TestHtmlBuilder<Message> = HtmlBuilder<Message, TestMountRequirements>
 
+type SceneSubscriptionEmissionSource<Entry> =
+  Entry extends Readonly<{
+    '#Subscription.KeyedTemplate': infer Metadata
+  }>
+    ? Metadata extends Readonly<{
+        key: infer Key extends string | number
+        placement: infer Placement extends string
+        source: infer Source
+      }>
+      ? KeyedSubscriptionSelection<Key, Placement, Source>
+      : never
+    : SubscriptionEmissionSource<Entry>
+
 /** A single step in a scene: a `given` step, typed Message or OutMessage step,
  *  or scene simulation transform. */
 export type SceneStep<
@@ -409,7 +435,7 @@ export type SceneStep<
           }>
             ? SubscriptionMessageStep<
                 Schema.Schema.Type<Messages[number]>,
-                SubscriptionEmissionSource<
+                SceneSubscriptionEmissionSource<
                   RuntimeRegistryEntries<NoInfer<Subscriptions>>[Key]
                 >
               >
@@ -423,7 +449,7 @@ export type SceneStep<
           readonly [
             Key in keyof RuntimeRegistryEntries<NoInfer<Subscriptions>>
           ]: SubscriptionActivityStep<
-            SubscriptionEmissionSource<
+            SceneSubscriptionEmissionSource<
               RuntimeRegistryEntries<NoInfer<Subscriptions>>[Key]
             >
           >
@@ -536,6 +562,7 @@ type InternalSceneSimulation<
     lastInteractionOutcome: InteractionOutcome
     maybeUnacknowledgedIgnored: Option.Option<IgnoredInteraction>
     subscriptionDeclarations: ReadonlyArray<SubscriptionMessageDeclaration>
+    managedResourceEntries: ReadonlyArray<object>
     keptPendingCommands: ReadonlyArray<AnyCommand>
     routing:
       | Readonly<{
@@ -1091,20 +1118,51 @@ const applyExternalMessages = <Model, Message, OutMessage>(
   return Array.reduce(messages, simulation, applyMessageWithoutBoundaryChecks)
 }
 
+const resolveSelectedSubscriptionEntry = (
+  entry: unknown,
+  host: SceneHost | undefined,
+): unknown => {
+  const selection = keyedSubscriptionSelection(entry)
+  if (selection === undefined) {
+    return entry
+  }
+
+  const binding = host?.resolveBinding(selection.binding) ?? selection.binding
+  return selectKeyedSubscription(binding, selection.key, selection.source)
+}
+
 const applySubscriptionMessage = <Model, Message, OutMessage>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
   step: SubscriptionMessageStep<unknown, unknown>,
 ): SceneSimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
   const context = 'when a Subscription emitted a new Message'
+  const entry = resolveSelectedSubscriptionEntry(step.entry, internal.host)
 
   assertExternalMessageBoundary(simulation, context)
+
+  if (keyedSubscriptionSelection(entry) !== undefined) {
+    const declaration = resolveSubscriptionDeclaration(
+      'Scene.Subscription.emit',
+      internal.subscriptionDeclarations,
+      entry,
+    )
+    const isSelectedKeyPresent = selectedSubscriptionKeyIsPresent(
+      declaration.entry,
+      internal.model,
+    )
+    if (isSelectedKeyPresent === false) {
+      throw new Error(
+        '[foldkit] Scene.Subscription.emit selected a keyed child occurrence that is absent from the current Model.',
+      )
+    }
+  }
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const message = resolveSubscriptionMessage(
     'Scene.Subscription.emit',
     internal.subscriptionDeclarations,
-    step.entry,
+    entry,
     step.message,
   ) as Message
   const messageUpdate = internal.updateFn(internal.model, message)
@@ -1149,10 +1207,11 @@ const applySubscriptionActivity = <Model, Message, OutMessage>(
   step: SubscriptionActivityStep<unknown>,
 ): SceneSimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
+  const entry = resolveSelectedSubscriptionEntry(step.entry, internal.host)
   const declaration = resolveSubscriptionDeclaration(
     `Scene.Subscription.expect${step.expected}`,
     internal.subscriptionDeclarations,
-    step.entry,
+    entry,
   )
   const isActive = Option.isSome(
     maybeActiveDependencies(declaration.entry, internal.model),
@@ -1905,6 +1964,202 @@ const emitSubscriptionMessage = <
   message,
 })
 
+type KeyedSubscriptionFactsOf<Template> =
+  Template extends Readonly<{
+    '#Subscription.KeyedTemplate': infer Metadata extends Readonly<{
+      key: string | number
+      placement: string
+      source: unknown
+    }>
+  }>
+    ? Metadata
+    : never
+
+type KeyedSubscriptionFacts<BindingValue> =
+  InspectionOfBinding<BindingValue> extends Readonly<{
+    subscriptions: infer Subscriptions
+  }>
+    ? KeyedSubscriptionFactsOf<
+        Subscriptions[keyof Subscriptions]
+      > extends infer Facts
+      ? [Facts] extends [never]
+        ? DescriptorKeyedSubscriptionFacts<BindingValue>
+        : Facts
+      : never
+    : DescriptorKeyedSubscriptionFacts<BindingValue>
+
+type DescriptorKeyedSubscriptionFacts<BindingValue> =
+  BlockOfBinding<BindingValue> extends Readonly<{
+    Model: Readonly<{ Type: infer ChildModel }>
+    Message: Readonly<{ Type: infer ChildMessage }>
+  }>
+    ? BindingValue extends Readonly<{
+        placement: infer Placement extends string
+      }>
+      ? [DescriptorBindingKey<BindingValue>] extends [never]
+        ? never
+        : Readonly<{
+            key: DescriptorBindingKey<BindingValue>
+            placement: Placement
+            source: RuntimeSubscription<ChildModel, ChildMessage, any, any>
+          }>
+      : never
+    : never
+
+type DescriptorBindingKey<BindingValue> = Extract<
+  KeyOfBinding<BindingValue>,
+  string | number
+>
+
+type ParentBindingEvidence<BindingValue> =
+  BindingValue extends BindingParent<infer ParentOwner>
+    ? BindingParent<ParentOwner>
+    : never
+
+const selectKeyedSubscriptionOccurrence = <
+  const BindingValue extends AnyBinding & BindingEvidence<any, any, any, true>,
+  const Source extends KeyedSubscriptionFacts<BindingValue>['source'],
+>(
+  binding: BindingValue,
+  key: KeyedSubscriptionFacts<BindingValue>['key'],
+  source: Source,
+): KeyedSubscriptionSelection<
+  KeyedSubscriptionFacts<BindingValue>['key'],
+  KeyedSubscriptionFacts<BindingValue>['placement'],
+  Source,
+  ParentBindingEvidence<BindingValue>
+> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  selectKeyedSubscription(
+    canonicalBindingOf(binding),
+    key,
+    source,
+  ) as KeyedSubscriptionSelection<
+    KeyedSubscriptionFacts<BindingValue>['key'],
+    KeyedSubscriptionFacts<BindingValue>['placement'],
+    Source,
+    ParentBindingEvidence<BindingValue>
+  >
+
+type KeyedManagedResourceFactsOf<Template> =
+  Template extends ManagedResourceEntry<
+    infer ParentModel,
+    infer ParentMessage,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  > &
+    Readonly<{
+      '#ManagedResource.KeyedTemplate': infer Metadata extends Readonly<{
+        key: string | number
+        placement: string
+        source: unknown
+      }>
+    }>
+    ? Readonly<{
+        model: ParentModel
+        message: ParentMessage
+        key: Metadata['key']
+        placement: Metadata['placement']
+        source: Metadata['source']
+      }>
+    : never
+
+type KeyedManagedResourceFacts<BindingValue> =
+  InspectionOfBinding<BindingValue> extends Readonly<{
+    managedResources: infer ManagedResources
+  }>
+    ? KeyedManagedResourceFactsOf<
+        ManagedResources[keyof ManagedResources]
+      > extends infer Facts
+      ? [Facts] extends [never]
+        ? DescriptorKeyedManagedResourceFacts<BindingValue>
+        : Facts
+      : never
+    : DescriptorKeyedManagedResourceFacts<BindingValue>
+
+type DescriptorKeyedManagedResourceFacts<BindingValue> =
+  BlockOfBinding<BindingValue> extends Readonly<{
+    Model: Readonly<{ Type: infer ChildModel }>
+    Message: Readonly<{ Type: infer ChildMessage }>
+  }>
+    ? ParentContractOfBinding<BindingValue> extends Readonly<{
+        model: infer ParentModel
+        message: infer ParentMessage
+      }>
+      ? BindingValue extends Readonly<{
+          placement: infer Placement extends string
+        }>
+        ? [DescriptorBindingKey<BindingValue>] extends [never]
+          ? never
+          : Readonly<{
+              model: ParentModel
+              message: ParentMessage
+              key: DescriptorBindingKey<BindingValue>
+              placement: Placement
+              source: ManagedResourceEntry<
+                ChildModel,
+                ChildMessage,
+                any,
+                any,
+                any,
+                any,
+                any,
+                any
+              >
+            }>
+        : never
+      : never
+    : never
+
+type SelectedManagedResourceEntry<BindingValue, Source> =
+  Source extends ManagedResourceEntry<
+    any,
+    any,
+    infer Requirements,
+    infer Value,
+    infer Service,
+    infer OnAcquired extends (...args: ReadonlyArray<any>) => any,
+    infer LifecycleServices,
+    infer Params
+  >
+    ? ManagedResourceEntry<
+        KeyedManagedResourceFacts<BindingValue>['model'],
+        KeyedManagedResourceFacts<BindingValue>['message'],
+        Requirements,
+        Value,
+        Service,
+        (
+          ...args: Parameters<OnAcquired>
+        ) => KeyedManagedResourceFacts<BindingValue>['message'],
+        LifecycleServices,
+        Params
+      > &
+        RuntimeManagedResource.KeyedSelection<
+          KeyedManagedResourceFacts<BindingValue>['key'],
+          KeyedManagedResourceFacts<BindingValue>['placement'],
+          Source
+        >
+    : never
+
+const selectKeyedManagedResourceOccurrence = <
+  const BindingValue extends AnyBinding & BindingEvidence<any, any, any, true>,
+  const Source extends KeyedManagedResourceFacts<BindingValue>['source'],
+>(
+  binding: BindingValue,
+  key: KeyedManagedResourceFacts<BindingValue>['key'],
+  source: Source,
+): SelectedManagedResourceEntry<BindingValue, Source> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  RuntimeManagedResource.__selectKeyed(
+    canonicalBindingOf(binding),
+    key,
+    source,
+  ) as SelectedManagedResourceEntry<BindingValue, Source>
+
 const expectSubscriptionActivity =
   (expected: SubscriptionActivityStep<unknown>['expected']) =>
   <Entry>(entry: Entry): SubscriptionActivityStep<Entry> => ({
@@ -1915,6 +2170,95 @@ const expectSubscriptionActivity =
 
 const MANAGED_RESOURCE_CONTEXT =
   'when a ManagedResource dispatched a new Message'
+
+const resolveSelectedManagedResourceEntry = <Entry extends object>(
+  entry: Entry,
+  internal: InternalSceneSimulation<any, any, any>,
+): Entry => {
+  const selection = RuntimeManagedResource.__keyedSelection(entry)
+  if (selection === undefined) {
+    return entry
+  }
+
+  const binding =
+    internal.host?.resolveBinding(selection.binding) ?? selection.binding
+  const canonicalBinding = canonicalBindingOf(binding)
+  const sourceIdentity = identityOf(selection.source)
+  const maybeTemplate = Array.findFirst(
+    internal.managedResourceEntries,
+    candidate => {
+      const template = RuntimeManagedResource.__keyedTemplate(candidate)
+      return (
+        template !== undefined &&
+        canonicalBindingOf(template.binding) === canonicalBinding &&
+        (template.source === selection.source ||
+          (sourceIdentity !== undefined &&
+            identityOf(template.source) === sourceIdentity))
+      )
+    },
+  )
+  if (Option.isNone(maybeTemplate)) {
+    throw new Error(
+      '[foldkit] Scene.ManagedResource.at selected a ManagedResource that is not registered for this keyed Binding in the acquired Block implementation.',
+    )
+  }
+
+  const selected = RuntimeManagedResource.__selectFromTemplate(
+    maybeTemplate.value,
+    selection.key,
+  )
+  if (selected === undefined) {
+    throw new Error(
+      '[foldkit] Scene.ManagedResource.at expected a keyed Binding inspection template.',
+    )
+  }
+  Reflect.set(selected.entry, RuntimeManagedResource.KeyedSelectionTypeId, {
+    ...selection,
+    binding,
+    isPresent: selected.isPresent,
+  })
+
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return selected.entry as Entry
+}
+
+const assertSelectedManagedResourceKeyPresent = (
+  entry: object,
+  model: unknown,
+): void => {
+  if (RuntimeManagedResource.__selectedKeyIsPresent(entry, model) === false) {
+    throw new Error(
+      '[foldkit] Scene.ManagedResource selected a keyed child occurrence that is absent from the current Model.',
+    )
+  }
+}
+
+const assertManagedResourceSelection = (
+  entry: object,
+  internal: InternalSceneSimulation<any, any, any>,
+): void => {
+  if (RuntimeManagedResource.__keyedSelection(entry) !== undefined) {
+    return
+  }
+  const sourceIdentity = identityOf(entry)
+  const isAmbiguousKeyedSource = Array.some(
+    internal.managedResourceEntries,
+    candidate => {
+      const template = RuntimeManagedResource.__keyedTemplate(candidate)
+      return (
+        template !== undefined &&
+        (template.source === entry ||
+          (sourceIdentity !== undefined &&
+            identityOf(template.source) === sourceIdentity))
+      )
+    },
+  )
+  if (isAmbiguousKeyedSource) {
+    throw new Error(
+      '[foldkit] A raw child ManagedResource is ambiguous for a keyed Binding. Select an occurrence with Scene.ManagedResource.at(Binding, key, entry).',
+    )
+  }
+}
 
 /** A ManagedResource entry a scene can drive: the Option-shaped requirements
  *  are what the runtime watches, so the steps can check the current Model
@@ -1958,18 +2302,23 @@ const acquireManagedResource =
     simulation: SceneSimulation<EntryModel, Message, OutMessage>,
   ): SceneSimulation<EntryModel, Message, OutMessage> => {
     const internal = toInternal(simulation)
-    const maybeRequirements = entry.modelToMaybeRequirements(internal.model)
+    const selectedEntry = resolveSelectedManagedResourceEntry(entry, internal)
+    assertManagedResourceSelection(selectedEntry, internal)
+    assertSelectedManagedResourceKeyPresent(selectedEntry, internal.model)
+    const maybeRequirements = selectedEntry.modelToMaybeRequirements(
+      internal.model,
+    )
 
     if (Option.isNone(maybeRequirements)) {
       throw new Error(
-        `I tried to acquire the ManagedResource "${entry.resource.key}" but the current Model does not request it.\n\n` +
+        `I tried to acquire the ManagedResource "${selectedEntry.resource.key}" but the current Model does not request it.\n\n` +
           'modelToMaybeRequirements returned None. The runtime only acquires while the Model requests the resource, so drive that transition through real steps first.',
       )
     }
 
     return applyExternalMessage(
       simulation,
-      entry.onAcquired(...args),
+      selectedEntry.onAcquired(...args),
       MANAGED_RESOURCE_CONTEXT,
     )
   }
@@ -1988,18 +2337,23 @@ const failAcquireManagedResource =
     simulation: SceneSimulation<EntryModel, Message, OutMessage>,
   ): SceneSimulation<EntryModel, Message, OutMessage> => {
     const internal = toInternal(simulation)
-    const maybeRequirements = entry.modelToMaybeRequirements(internal.model)
+    const selectedEntry = resolveSelectedManagedResourceEntry(entry, internal)
+    assertManagedResourceSelection(selectedEntry, internal)
+    assertSelectedManagedResourceKeyPresent(selectedEntry, internal.model)
+    const maybeRequirements = selectedEntry.modelToMaybeRequirements(
+      internal.model,
+    )
 
     if (Option.isNone(maybeRequirements)) {
       throw new Error(
-        `I tried to fail acquiring the ManagedResource "${entry.resource.key}" but the current Model does not request it.\n\n` +
+        `I tried to fail acquiring the ManagedResource "${selectedEntry.resource.key}" but the current Model does not request it.\n\n` +
           'modelToMaybeRequirements returned None. The runtime only attempts acquisition while the Model requests the resource, so drive that transition through real steps first.',
       )
     }
 
     return applyExternalMessage(
       simulation,
-      entry.onAcquireError(error),
+      selectedEntry.onAcquireError(error),
       MANAGED_RESOURCE_CONTEXT,
     )
   }
@@ -2020,18 +2374,23 @@ const releaseManagedResource =
     simulation: SceneSimulation<EntryModel, Message, OutMessage>,
   ): SceneSimulation<EntryModel, Message, OutMessage> => {
     const internal = toInternal(simulation)
-    const maybeRequirements = entry.modelToMaybeRequirements(internal.model)
+    const selectedEntry = resolveSelectedManagedResourceEntry(entry, internal)
+    assertManagedResourceSelection(selectedEntry, internal)
+    assertSelectedManagedResourceKeyPresent(selectedEntry, internal.model)
+    const maybeRequirements = selectedEntry.modelToMaybeRequirements(
+      internal.model,
+    )
 
     if (Option.isSome(maybeRequirements)) {
       throw new Error(
-        `I tried to release the ManagedResource "${entry.resource.key}" but the current Model still requests it.\n\n` +
+        `I tried to release the ManagedResource "${selectedEntry.resource.key}" but the current Model still requests it.\n\n` +
           'modelToMaybeRequirements returned Some. This step models the Some to None transition, so drive the Model out of the requesting state through real steps first.',
       )
     }
 
     return applyExternalMessage(
       simulation,
-      entry.onReleased(),
+      selectedEntry.onReleased(),
       MANAGED_RESOURCE_CONTEXT,
     )
   }
@@ -2230,6 +2589,8 @@ export const Mount = {
 /** Steps that model Messages arriving from a Subscription.
  *  Destructure as `const { Subscription } = Scene` for concise call sites. */
 export const Subscription = {
+  /** Selects one exact occurrence of a keyed child Subscription. */
+  at: selectKeyedSubscriptionOccurrence,
   /**
    * Feeds a Message declared by the Scene's registered Subscriptions through
    *  update, then re-renders. Pass the raw child Message for a lifted
@@ -2272,6 +2633,8 @@ export const Navigation = {
  *  transition has no step yet. Destructure as
  *  `const { ManagedResource } = Scene` for concise call sites. */
 export const ManagedResource = {
+  /** Selects one keyed child ManagedResource occurrence for lifecycle steps. */
+  at: selectKeyedManagedResourceOccurrence,
   /** Declares a successful acquire, feeding the entry's `onAcquired` Message
    *  through update. Takes exactly the arguments `onAcquired` declares. The
    *  current Model must request the resource. */
@@ -3899,6 +4262,7 @@ export type SceneConfig<
   }>
   view: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
   subscriptions?: Subscriptions
+  managedResources?: Readonly<Record<string, unknown>>
   routing?: Routing
 }>
 
@@ -4076,6 +4440,7 @@ export const scene: {
     ) => SimulationUpdateReturn<Model, OutMessage>
     view: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
     subscriptions?: Subscriptions
+    managedResources?: Readonly<Record<string, unknown>>
     routing?: Routing
   }>,
   ...steps: ReadonlyArray<
@@ -4113,6 +4478,10 @@ export const scene: {
     maybeUnacknowledgedIgnored: Option.none(),
     subscriptionDeclarations: subscriptionMessageDeclarations(
       config.subscriptions ?? {},
+    ),
+    managedResourceEntries: Array.filter(
+      Object.values(config.managedResources ?? {}),
+      Predicate.isObject,
     ),
     keptPendingCommands: [],
     routing: normalizeSceneRouting(config.routing),

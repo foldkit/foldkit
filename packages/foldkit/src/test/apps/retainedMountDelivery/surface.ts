@@ -6,7 +6,10 @@ import {
   type Html,
   childAttributes,
 } from '../../../html/public.js'
-import { defineMessageUnion } from '../../../message/public.js'
+import {
+  defineInMessageUnion,
+  defineMessageUnion,
+} from '../../../message/public.js'
 import type * as Mount from '../../../mount/public.js'
 
 export const handlerLog: Array<string> = []
@@ -19,7 +22,7 @@ export const Message = defineMessageUnion({
   ReceivedPulse: {},
 })
 export type Message = typeof Message.Type
-const InMessage = defineMessageUnion({
+const InMessage = defineInMessageUnion({
   RequestedResize: { width: Schema.Number },
   RequestedRename: { label: Schema.String },
 })

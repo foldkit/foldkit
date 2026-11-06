@@ -3,7 +3,7 @@ import * as Block from 'foldkit/block'
 import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
 import type { ChildAttribute, Html } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import * as Update from 'foldkit/update'
 
 import type { AnchorConfig } from '../anchor/index.js'
@@ -50,7 +50,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 /** Parent requests handled independently of local UI facts. */
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedOpen: {},
   RequestedClose: {},
   RequestedClear: {},
@@ -112,13 +112,14 @@ export const DatePickerBlock = Block.make('DatePicker', {
     },
     requestFocusDate: (date: CalendarDate) =>
       Tuple.make(Message.RequestedFocusDate({ date })),
-    informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
+    informOfMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
       Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
-    informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
+    informOfMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
       Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
-    informDisabledDatesChanged: (disabledDates: ReadonlyArray<CalendarDate>) =>
-      Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
-    informDisabledDaysOfWeekChanged: (
+    informOfDisabledDatesChanged: (
+      disabledDates: ReadonlyArray<CalendarDate>,
+    ) => Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
+    informOfDisabledDaysOfWeekChanged: (
       disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
     ) =>
       Tuple.make(
@@ -255,16 +256,16 @@ export const update = DatePickerComposition.makeUpdate({
     BaseCalendarBinding.requestFocusDate(date)(model),
 
   InformedOfMinDateChange: (model, { maybeMinDate }) =>
-    BaseCalendarBinding.informMinDateChanged(maybeMinDate)(model),
+    BaseCalendarBinding.informOfMinDateChanged(maybeMinDate)(model),
 
   InformedOfMaxDateChange: (model, { maybeMaxDate }) =>
-    BaseCalendarBinding.informMaxDateChanged(maybeMaxDate)(model),
+    BaseCalendarBinding.informOfMaxDateChanged(maybeMaxDate)(model),
 
   InformedOfDisabledDatesChange: (model, { disabledDates }) =>
-    BaseCalendarBinding.informDisabledDatesChanged(disabledDates)(model),
+    BaseCalendarBinding.informOfDisabledDatesChanged(disabledDates)(model),
 
   InformedOfDisabledDaysOfWeekChange: (model, { disabledDaysOfWeek }) =>
-    BaseCalendarBinding.informDisabledDaysOfWeekChanged(disabledDaysOfWeek)(
+    BaseCalendarBinding.informOfDisabledDaysOfWeekChanged(disabledDaysOfWeek)(
       model,
     ),
 })

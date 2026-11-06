@@ -16,13 +16,13 @@ Start with `init(...args)` when initialization is part of the scenario. It runs 
 
 ### Import Story Steps
 
-Import the steps you need from `foldkit/story`.
+Import the `Story` namespace from `foldkit`.
 
-- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `init`, `steps`, `given`, `message`, `messageFrom`, `messageWith`, `model`, `models`, `expectOutMessage`, and `expectNoOutMessage`.
+- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `init`, `steps`, `given`, `message`, `messageIn`, `messageWith`, `model`, `models`, `expectOutMessage`, and `expectNoOutMessage`.
 - The `Command` namespace handles pending Commands: `argsOf`, `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, and `expectNone`.
 - `Subscription.from(block.subscriptions)` creates emission steps inside an acquired test fixture. For private registries, test the checked implementation that owns them.
 
-Use named imports when the file contains only Story tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
+Qualify every testing step through the namespace so call sites such as `Story.given`, `Story.message`, and `Story.model` identify the DSL directly.
 
 ::Snippet{name="testingApi" label="API reference"}
 

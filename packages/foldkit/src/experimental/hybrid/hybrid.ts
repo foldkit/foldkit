@@ -51,12 +51,13 @@ import {
 import type { ConnectableBindChild, ConnectableMapBinding } from './binding.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 
 type StaticComposition = Readonly<{
   owner: Owner<string>
-  Model: AnySchema
-  Message: AnySchema
+  Model: AnySelfContainedSchema
+  Message: AnySelfContainedSchema
   OutMessage?: AnySchema | undefined
   bindings: ReadonlyArray<AnyBinding>
   [LocalMountsTypeId]: ReadonlyArray<Mount.LayeredMountDefinition>
@@ -276,8 +277,8 @@ export type HybridComposition<Static extends StaticComposition> =
 /** Contextual graph registration before executable children are acquired. */
 export interface MakeComposition<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
 > {
@@ -332,8 +333,8 @@ export interface MakeComposition<
 /** Familiar Definition authorship with construction owned by its static Composition. */
 export type Definition<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
 > = Omit<
@@ -541,8 +542,8 @@ const runtimeMake =
 /** Establishes Schema contracts once for typed Block builders. */
 export const makeDefinition = <
   const Id extends string,
-  const ModelSchema extends AnySchema,
-  const MessageSchema extends AnySchema,
+  const ModelSchema extends AnySelfContainedSchema,
+  const MessageSchema extends AnySelfContainedSchema,
   const OutMessageSchema extends AnySchema | undefined = undefined,
   const ChildInitContextSchema extends AnySchema | undefined = undefined,
 >(

@@ -1,23 +1,13 @@
-import {
-  altText,
-  displayValue,
-  label,
-  placeholder,
-  role,
-  selector,
-  testId,
-  text,
-  title,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 
-role('button', { name: 'Submit' })
-label('Email')
-text('Welcome back')
-text('Welcome', { exact: false })
-text(/^save \d+ items$/i)
-placeholder('Search...')
-altText('Company logo')
-title('Close dialog')
-testId('cart-summary')
-displayValue('alice@example.com')
-selector('.fallback-class')
+Scene.role('button', { name: 'Submit' })
+Scene.label('Email')
+Scene.text('Welcome back')
+Scene.text('Welcome', { exact: false })
+Scene.text(/^save \d+ items$/i)
+Scene.placeholder('Search...')
+Scene.altText('Company logo')
+Scene.title('Close dialog')
+Scene.testId('cart-summary')
+Scene.displayValue('alice@example.com')
+Scene.selector('.fallback-class')

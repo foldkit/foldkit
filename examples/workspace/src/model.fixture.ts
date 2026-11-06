@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { Command, init, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import * as Url from 'foldkit/url'
 
 import { LoadWorkspace } from './command'
@@ -8,10 +8,12 @@ import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 
 export const loadedWorkspaceModel = (path = '/') =>
-  story(
+  Story.story(
     { block: ApplicationBlock, layer },
-    init(Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))),
-    Command.resolve(
+    Story.init(
+      Option.getOrThrow(Url.fromString(`https://workspace.test${path}`)),
+    ),
+    Story.Command.resolve(
       LoadWorkspace,
       Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
     ),

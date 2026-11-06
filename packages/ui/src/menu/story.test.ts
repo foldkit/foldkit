@@ -1,7 +1,7 @@
 import { Effect, Layer, Option, Schema } from 'effect'
 import { Block, Scene, Story } from 'foldkit'
 import { inertHtml as ih } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import { it as baseIt, expect } from 'vitest'
 
@@ -1718,7 +1718,7 @@ describe('Menu', () => {
               Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
             ),
             acknowledgeFocusItems,
-            Story.messageFrom(
+            Story.messageIn(
               AnimationBinding,
               Animation.Message.CompletedWaitForPaint({
                 generation: 0,
@@ -2306,7 +2306,7 @@ describe('Menu', () => {
         items: Schema.Array(Schema.String),
       }),
       Message: Schema.Never,
-      InMessage: defineMessageUnion({
+      InMessage: defineInMessageUnion({
         InformedOfItems: { items: Schema.Array(Schema.String) },
       }),
       Init: Schema.Tuple([]),

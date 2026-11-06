@@ -23,13 +23,9 @@ import * as DeploymentBanner from './deploymentBanner'
 
 type HomeBlockModel = typeof HomeBlock.Model.Type
 
-type HomeViewInput = Readonly<{
-  model: Model
-  homeModel: HomeBlockModel
-}>
-
 const homeView = (
-  { model, homeModel }: HomeViewInput,
+  model: Model,
+  homeModel: HomeBlockModel,
   h: ApplicationViewBuilder,
 ) => {
   const renderCopyButton = SnippetCopyRenderer.renderer(
@@ -88,7 +84,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
     Match.tag('Home', () =>
       Option.match(model.maybeHome, {
         onNone: () => h.empty,
-        onSome: homeModel => homeView({ model, homeModel }, h),
+        onSome: homeModel => homeView(model, homeModel, h),
       }),
     ),
     Match.tag('Newsletter', () => newsletterView(model, h)),

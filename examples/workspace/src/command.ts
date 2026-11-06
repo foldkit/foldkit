@@ -2,7 +2,7 @@ import { Clock, DateTime, Effect, Schema } from 'effect'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
 import { makeCommand } from './block'
-import { IssueDraft, IssueStatus } from './domain'
+import { Issue } from './domain'
 import { Message } from './message'
 import { WorkspaceRepository } from './repository'
 
@@ -48,22 +48,22 @@ export const ReplaceInternalUrl = makeCommand('ReplaceInternalUrl', {
   },
 })
 
-export const SimulateSaveFailure = makeCommand('SimulateSaveFailure', {
-  messages: [Message.CompletedSimulateSaveFailure],
+export const FailNextIssueSave = makeCommand('FailNextIssueSave', {
+  messages: [Message.CompletedFailNextIssueSave],
   handler: function* () {
     const repository = yield* WorkspaceRepository
 
     return () =>
       repository
-        .failNext('Save')
-        .pipe(Effect.as(Message.CompletedSimulateSaveFailure()))
+        .failNext('SaveIssue')
+        .pipe(Effect.as(Message.CompletedFailNextIssueSave()))
   },
 })
 
 export const MoveIssue = makeCommand('MoveIssue', {
   args: {
     issueId: Schema.String,
-    status: IssueStatus,
+    status: Issue.Status,
     insertionIndex: Schema.Number,
     expectedVersion: Schema.Number,
   },
@@ -73,7 +73,7 @@ export const MoveIssue = makeCommand('MoveIssue', {
 
     return args =>
       repository.moveIssue(args).pipe(
-        Effect.map(movedIssue => Message.SucceededMoveIssue({ movedIssue })),
+        Effect.map(moveResult => Message.SucceededMoveIssue({ moveResult })),
         Effect.catch(error =>
           Effect.succeed(
             Message.FailedMoveIssue({
@@ -88,24 +88,24 @@ export const MoveIssue = makeCommand('MoveIssue', {
   },
 })
 
-export const AppendActivity = makeCommand('AppendActivity', {
+export const AddIssueComment = makeCommand('AddIssueComment', {
   args: {
     issueId: Schema.String,
     authorId: Schema.String,
     body: Schema.String,
   },
-  messages: [Message.SucceededAppendActivity, Message.FailedAppendActivity],
+  messages: [Message.SucceededAddIssueComment, Message.FailedAddIssueComment],
   handler: function* () {
     const repository = yield* WorkspaceRepository
 
     return args =>
-      repository.addComment(args).pipe(
+      repository.addIssueComment(args).pipe(
         Effect.map(comment =>
-          Message.SucceededAppendActivity({ issueId: args.issueId, comment }),
+          Message.SucceededAddIssueComment({ issueId: args.issueId, comment }),
         ),
         Effect.catch(error =>
           Effect.succeed(
-            Message.FailedAppendActivity({ error: error.message }),
+            Message.FailedAddIssueComment({ error: error.message }),
           ),
         ),
       )
@@ -115,7 +115,7 @@ export const AppendActivity = makeCommand('AppendActivity', {
 export const AssignIssue = makeCommand('AssignIssue', {
   args: {
     issueId: Schema.String,
-    draft: IssueDraft,
+    draft: Issue.Draft,
     expectedVersion: Schema.Number,
     actorId: Schema.String,
   },
@@ -126,14 +126,14 @@ export const AssignIssue = makeCommand('AssignIssue', {
 
     return args =>
       Effect.gen(function* () {
-        const savedIssue = yield* repository.saveIssue(args)
+        const saveResult = yield* repository.saveIssue(args)
 
         const createdAt = DateTime.formatIso(
           DateTime.makeUnsafe(yield* clock.currentTimeMillis),
         )
 
         return Message.SucceededAssignIssue({
-          savedIssue,
+          saveResult,
           actorId: args.actorId,
           createdAt,
         })

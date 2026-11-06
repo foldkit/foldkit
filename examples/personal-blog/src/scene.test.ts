@@ -1,4 +1,4 @@
-import { expect, given, role, scene, text } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -31,90 +31,106 @@ describe('view', () => {
   it.effect(
     'the header renders the site title and navigation on every route',
     () =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(home),
-        expect(role('link', { name: 'Devin Jameson' })).toExist(),
-        expect(role('link', { name: 'About' })).toExist(),
-        expect(role('link', { name: 'Posts' })).toExist(),
+        Scene.given(home),
+        Scene.expect(Scene.role('link', { name: 'Devin Jameson' })).toExist(),
+        Scene.expect(Scene.role('link', { name: 'About' })).toExist(),
+        Scene.expect(Scene.role('link', { name: 'Posts' })).toExist(),
       ),
   )
 
   it.effect('the Home route renders the about prose from markdown', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(home),
-      expect(text('human man living in Boston', { exact: false })).toExist(),
-      expect(role('link', { name: 'Foldkit' })).toExist(),
-      expect(role('link', { name: 'August Health' })).toExist(),
+      Scene.given(home),
+      Scene.expect(
+        Scene.text('human man living in Boston', { exact: false }),
+      ).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Foldkit' })).toExist(),
+      Scene.expect(Scene.role('link', { name: 'August Health' })).toExist(),
     ),
   )
 
   it.effect('the Posts route lists every post with its summary', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(postsIndex),
-      expect(role('heading', { name: 'Making This Blog' })).toExist(),
-      expect(role('heading', { name: 'Shooting Film' })).toExist(),
-      expect(text('why film is pleasing', { exact: false })).toExist(),
+      Scene.given(postsIndex),
+      Scene.expect(
+        Scene.role('heading', { name: 'Making This Blog' }),
+      ).toExist(),
+      Scene.expect(Scene.role('heading', { name: 'Shooting Film' })).toExist(),
+      Scene.expect(
+        Scene.text('why film is pleasing', { exact: false }),
+      ).toExist(),
     ),
   )
 
   it.effect('a post renders markdown headings, code, and blockquotes', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(post('making-this-blog')),
-      expect(role('heading', { name: 'Making This Blog' })).toExist(),
-      expect(role('heading', { name: 'Why bother' })).toExist(),
-      expect(role('heading', { name: 'The fold' })).toExist(),
-      expect(text('proseView', { exact: false })).toExist(),
-      expect(text('an app wearing prose', { exact: false })).toExist(),
+      Scene.given(post('making-this-blog')),
+      Scene.expect(
+        Scene.role('heading', { name: 'Making This Blog' }),
+      ).toExist(),
+      Scene.expect(Scene.role('heading', { name: 'Why bother' })).toExist(),
+      Scene.expect(Scene.role('heading', { name: 'The fold' })).toExist(),
+      Scene.expect(Scene.text('proseView', { exact: false })).toExist(),
+      Scene.expect(
+        Scene.text('an app wearing prose', { exact: false }),
+      ).toExist(),
     ),
   )
 
   it.effect('the Counter island renders live inside the post prose', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(post('making-this-blog')),
-      expect(text('Clicks while reading this post')).toExist(),
-      expect(role('button', { name: '+' })).toExist(),
-      expect(role('button', { name: '-' })).toExist(),
+      Scene.given(post('making-this-blog')),
+      Scene.expect(Scene.text('Clicks while reading this post')).toExist(),
+      Scene.expect(Scene.role('button', { name: '+' })).toExist(),
+      Scene.expect(Scene.role('button', { name: '-' })).toExist(),
     ),
   )
 
   it.effect('the Note island wraps nested markdown content', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(post('making-this-blog')),
-      expect(text('Islands can wrap markdown too', { exact: false })).toExist(),
+      Scene.given(post('making-this-blog')),
+      Scene.expect(
+        Scene.text('Islands can wrap markdown too', { exact: false }),
+      ).toExist(),
     ),
   )
 
   it.effect('a post renders markdown tables and ordered lists', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(post('shooting-film')),
-      expect(role('table')).toExist(),
-      expect(text('Low light, pushed')).toExist(),
-      expect(text('Ektar 100 for daylight and saturated color')).toExist(),
+      Scene.given(post('shooting-film')),
+      Scene.expect(Scene.role('table')).toExist(),
+      Scene.expect(Scene.text('Low light, pushed')).toExist(),
+      Scene.expect(
+        Scene.text('Ektar 100 for daylight and saturated color'),
+      ).toExist(),
     ),
   )
 
   it.effect('an unknown post slug renders the missing panel', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(post('missing-post')),
-      expect(role('heading', { name: 'Post Not Found' })).toExist(),
-      expect(text('There is no post named "missing-post".')).toExist(),
+      Scene.given(post('missing-post')),
+      Scene.expect(Scene.role('heading', { name: 'Post Not Found' })).toExist(),
+      Scene.expect(
+        Scene.text('There is no post named "missing-post".'),
+      ).toExist(),
     ),
   )
 
   it.effect('an unmatched URL renders the NotFound view', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(notFound('/missing')),
-      expect(role('heading', { name: '404' })).toExist(),
-      expect(role('link', { name: '← Go home' })).toExist(),
+      Scene.given(notFound('/missing')),
+      Scene.expect(Scene.role('heading', { name: '404' })).toExist(),
+      Scene.expect(Scene.role('link', { name: '← Go home' })).toExist(),
     ),
   )
 })

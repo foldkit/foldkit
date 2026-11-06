@@ -25,6 +25,7 @@ import type { Owner } from './owner.js'
 import type { ValidateConcreteComposition } from './requirements.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false
 
@@ -100,8 +101,9 @@ type IsExactVariant<Parent, Child> =
             : false
 
 type VariantDefinition = Readonly<{
-  Model: AnySchema & Readonly<{ members: ReadonlyArray<Schema.Top> }>
-  Message: AnySchema
+  Model: AnySelfContainedSchema &
+    Readonly<{ members: ReadonlyArray<Schema.Top> }>
+  Message: AnySelfContainedSchema
   OutMessage?: AnySchema | undefined
   ChildInitContext?: AnySchema
 }>

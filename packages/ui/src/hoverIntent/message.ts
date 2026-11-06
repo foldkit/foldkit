@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
 // MESSAGE
 
@@ -34,7 +34,7 @@ export type CompletedWaitBeforeClosing =
   typeof Message.CompletedWaitBeforeClosing.Type
 
 /** Requests accepted from a parent independently of local HoverIntent events. */
-export const InMessage = defineMessageUnion({ RequestedClose: {} })
+export const InMessage = defineInMessageUnion({ RequestedClose: {} })
 export type InMessage = typeof InMessage.Type
 
 export type RequestedClose = typeof InMessage.RequestedClose.Type

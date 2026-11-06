@@ -24,7 +24,7 @@ const cardContent = (
 ]
 
 export const cardView = (
-  model: Model,
+  dragAndDrop: Model['dragAndDrop'],
   card: Card.Card,
   columnId: string,
   index: number,
@@ -32,14 +32,13 @@ export const cardView = (
   h: ApplicationViewBuilder,
 ): Html => {
   const isThisCardBeingDragged = Option.exists(
-    DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
+    DragAndDrop.maybeDraggedItemId(dragAndDrop),
     id => id === card.id,
   )
   const isPointerDragged =
-    model.dragAndDrop.dragState._tag === 'Dragging' && isThisCardBeingDragged
+    dragAndDrop.dragState._tag === 'Dragging' && isThisCardBeingDragged
   const isKeyboardDragged =
-    model.dragAndDrop.dragState._tag === 'KeyboardDragging' &&
-    isThisCardBeingDragged
+    dragAndDrop.dragState._tag === 'KeyboardDragging' && isThisCardBeingDragged
 
   return h.keyed('li')(
     card.id,

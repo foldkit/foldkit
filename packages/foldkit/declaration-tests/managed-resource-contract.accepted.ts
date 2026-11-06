@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Layer, Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { taggedStruct } from 'foldkit/schema'
 import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
@@ -31,7 +31,7 @@ export const Message = defineMessageUnion({
   FailedAcquire: {},
 })
 export type Message = typeof Message.Type
-export const InMessage = defineMessageUnion({ RequestedRefresh: {} })
+export const InMessage = defineInMessageUnion({ RequestedRefresh: {} })
 export type InMessage = typeof InMessage.Type
 export const ManagedResourceContractKey = Symbol('ManagedResourceContract')
 export const SessionBlock = Block.make(Namespace, {

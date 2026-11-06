@@ -10,6 +10,13 @@ import {
 } from './guards.ts'
 
 const foldkitMessageModule = 'foldkit/message'
+const foldkitMessageUnionHelpers: ReadonlySet<string> = new Set([
+  'defineMessageUnion',
+  'defineInMessageUnion',
+])
+
+export const isFoldkitMessageUnionHelperName = (name: string): boolean =>
+  foldkitMessageUnionHelpers.has(name)
 
 export type MessageCase = Readonly<{
   name: string
@@ -38,9 +45,10 @@ export const recordFoldkitMessageUnionBindings = (
       if (
         specifier.type === 'ImportSpecifier' &&
         specifier.importKind !== 'type' &&
-        (isIdentifier(specifier.imported, 'defineMessageUnion') ||
+        ((specifier.imported.type === 'Identifier' &&
+          isFoldkitMessageUnionHelperName(specifier.imported.name)) ||
           (isStringLiteral(specifier.imported) &&
-            specifier.imported.value === 'defineMessageUnion'))
+            isFoldkitMessageUnionHelperName(specifier.imported.value)))
       ) {
         bindings.add(specifier.local.name)
       }
@@ -62,7 +70,8 @@ export const isFoldkitMessageUnionCall = (
 
     return (
       namespace === 'Message' &&
-      helperName === 'defineMessageUnion' &&
+      helperName !== undefined &&
+      isFoldkitMessageUnionHelperName(helperName) &&
       extraMember === undefined
     )
   })

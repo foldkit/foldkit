@@ -3,9 +3,20 @@ import { Predicate } from 'effect'
 /** @internal Identifies the checked completion contract without a runtime field. */
 declare const CompletionTypeId: unique symbol
 
-/** @internal Records completion through the checked Model and producer boundary. */
+/** @internal Ties checked completion to one exact Model and Message contract. */
+declare const CompletionContractTypeId: unique symbol
+
+/** @internal Records completion through the checked producer boundary. */
 export interface CompletionProof {
   readonly [CompletionTypeId]: true
+}
+
+/** @internal Invariant proof of the exact completed Model and Message contracts. */
+export interface CompletionContractProof<ModelSchema, MessageSchema> {
+  readonly [CompletionContractTypeId]: Readonly<{
+    Model: (schema: ModelSchema) => ModelSchema
+    Message: (schema: MessageSchema) => MessageSchema
+  }>
 }
 
 /** @internal Retains the completed contract behind an opaque assembly token. */
@@ -77,5 +88,8 @@ export const completeAssemblyDraft = (
     )
   }
 
-  return completeDerivedBlock(block)
+  completedBlocks.add(block)
+  assertCompletedBlock(block)
+
+  return block
 }

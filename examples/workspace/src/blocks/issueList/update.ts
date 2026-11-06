@@ -4,10 +4,11 @@ import { modifyFields } from 'foldkit/struct'
 import { makeFieldsStep, makeOutMessageStep } from './block'
 import { IssueListComposition } from './composition'
 import { OutMessage } from './outMessage'
-import { clearFilters } from './steps'
 
 export const update = IssueListComposition.makeUpdate({
-  ClickedClearFilters: clearFilters,
+  ClickedClearFilters: makeOutMessageStep(() =>
+    OutMessage.RequestedClearFilters(),
+  ),
   UpdatedGrouping: makeOutMessageStep.fromMessage(({ value }) =>
     OutMessage.ChangedGrouping({ groupBy: value }),
   ),
@@ -23,7 +24,7 @@ export const update = IssueListComposition.makeUpdate({
 
     return {
       model: modifyFields(model, { savedViewName: () => '' }),
-      outMessage: OutMessage.SavedFilter({
+      outMessage: OutMessage.SubmittedSavedView({
         name,
         filters,
       }),

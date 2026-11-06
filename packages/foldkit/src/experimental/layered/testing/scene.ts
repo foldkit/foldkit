@@ -1,10 +1,15 @@
 import { Effect, type Layer, Predicate, Scope } from 'effect'
 
+import type { BindingParent } from '../../../block/bindingConnection.js'
 import type {
   DeclaredRootBlock,
   SelectedBlockLayerFacts,
   SelectedLayeredRoot,
 } from '../../../runtime/rootBlock.js'
+import type {
+  KeyedSelection as KeyedSubscriptionSelection,
+  Subscription,
+} from '../../../subscription/subscription.js'
 import * as CoreScene from '../../../test/scene.js'
 import { SceneHostTypeId, makeSceneHost } from '../../../test/sceneHost.js'
 import { sceneGraphOf } from '../../../test/testGraph.js'
@@ -74,14 +79,32 @@ type InitialState<Block extends BlockSubject> =
   | TestInit<Block>
   | ReturnType<typeof CoreScene.given<TestModel<Block>>>
 
-type Step<Block extends BlockSubject, Routing> = CoreScene.SceneStep<
-  TestModel<Block>,
-  TestMessage<Block>,
-  TestOutMessage<Block>,
-  TestBlock<Block>['subscriptions'],
-  Routing,
-  TestInMessage<Block>
->
+type SelectedKeyedSubscription<Block extends BlockSubject> =
+  KeyedSubscriptionSelection<
+    string | number,
+    string,
+    Subscription<any, any, any, any>,
+    BindingParent<TestContract<Block>['owner']>
+  >
+
+type SelectedKeyedSubscriptionStep<Block extends BlockSubject> =
+  | CoreScene.SubscriptionMessageStep<unknown, SelectedKeyedSubscription<Block>>
+  | Readonly<{
+      _tag: 'SubscriptionActivityStep'
+      entry: SelectedKeyedSubscription<Block>
+      expected: 'Active' | 'Inactive'
+    }>
+
+type Step<Block extends BlockSubject, Routing> =
+  | CoreScene.SceneStep<
+      TestModel<Block>,
+      TestMessage<Block>,
+      TestOutMessage<Block>,
+      TestBlock<Block>['subscriptions'],
+      Routing,
+      TestInMessage<Block>
+    >
+  | SelectedKeyedSubscriptionStep<Block>
 
 /**
  * Acquires a Block graph and drives its default view with ordinary Scene
@@ -217,6 +240,7 @@ export function scene(
           update: subjectUpdate(subject, block),
           view: render,
           subscriptions: Reflect.get(block, 'subscriptions'),
+          managedResources: Reflect.get(block, 'managedResources'),
           ...('block' in subject
             ? { routing: Reflect.get(subject, 'routing') }
             : {}),

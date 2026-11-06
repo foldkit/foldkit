@@ -26,7 +26,7 @@ const prepare = () =>
   init,
   update,
   operations: {
-    informThemeChanged: Message.InformedOfThemeChange,
+    informOfThemeChanged: Message.InformedOfThemeChange,
   },
   EffectsLayer: Layer.empty,
 })

@@ -6,7 +6,7 @@ import type {
 } from '../../../runtime/rootBlock.js'
 import * as CoreStory from '../../../test/story.js'
 import { resolveInMessageSteps } from './inMessage.js'
-import { resolveStorySteps } from './messageFrom.js'
+import { resolveStorySteps } from './messageIn.js'
 import type {
   DirectSubject,
   SelectedTestConfig,
@@ -27,7 +27,7 @@ import { type BlockSubject, type TestEffect, withBlock } from './withBlock.js'
 
 export * from '../../../test/story.js'
 export { type InitStep, init } from './initialState.js'
-export { messageFrom } from './messageFrom.js'
+export { messageIn } from './messageIn.js'
 export { type InMessageStep, inMessage } from './inMessage.js'
 
 type InitialState<Block extends BlockSubject> =

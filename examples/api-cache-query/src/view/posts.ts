@@ -20,20 +20,32 @@ const isPostCached = (
   postId: string,
 ): boolean => AsyncData.hasData(postQuery.read(postDetails, { postId }))
 
-export const postsTabView = (model: Model, h: ApplicationViewBuilder) =>
-  Option.match(model.maybeSelectedPostId, {
+export const postsTabView = (
+  maybeSelectedPostId: Model['maybeSelectedPostId'],
+  posts: Model['posts'],
+  postDetails: Model['postDetails'],
+  h: ApplicationViewBuilder,
+) =>
+  Option.match(maybeSelectedPostId, {
     onNone: () =>
-      h.section([h.Class('flex flex-col gap-4')], [postsListView(model, h)]),
+      h.section(
+        [h.Class('flex flex-col gap-4')],
+        [postsListView(posts, postDetails, h)],
+      ),
     onSome: postId =>
       h.keyed('section')(
         postId,
         [h.Class('flex flex-col gap-4')],
-        [postDetailView({ model, postId }, h)],
+        [postDetailView(postDetails, postId, h)],
       ),
   })
 
-export const postsListView = (model: Model, h: ApplicationViewBuilder) => {
-  const postsAsyncData = postsQuery.read(model.posts)
+export const postsListView = (
+  posts: Model['posts'],
+  postDetails: Model['postDetails'],
+  h: ApplicationViewBuilder,
+) => {
+  const postsAsyncData = postsQuery.read(posts)
   const isPending = AsyncData.isPending(postsAsyncData)
 
   return h.div(
@@ -86,7 +98,7 @@ export const postsListView = (model: Model, h: ApplicationViewBuilder) => {
               }),
               h.ul(
                 [h.Class('flex flex-col gap-2')],
-                postListItems({ posts, postDetails: model.postDetails }, h),
+                postListItems({ posts, postDetails }, h),
               ),
             ],
           ),
@@ -155,10 +167,11 @@ export const postListItems = (
   )
 
 export const postDetailView = (
-  { model, postId }: Readonly<{ model: Model; postId: string }>,
+  postDetails: Model['postDetails'],
+  postId: string,
   h: ApplicationViewBuilder,
 ) => {
-  const postAsyncData = postQuery.read(model.postDetails, { postId })
+  const postAsyncData = postQuery.read(postDetails, { postId })
 
   return h.div(
     [h.Class('flex flex-col gap-4')],

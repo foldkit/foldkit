@@ -1,13 +1,13 @@
 import { Option, Schema } from 'effect'
 
-import { IssueStatus } from '../../domain'
+import { Issue } from '../../domain'
 
 const DRAGGABLE_PREFIX = 'workspace-issue:'
 const CONTAINER_PREFIX = 'workspace-status:'
 
 export const draggableId = (issueId: string) => `${DRAGGABLE_PREFIX}${issueId}`
 
-export const containerId = (status: IssueStatus) =>
+export const containerId = (status: Issue.Status) =>
   `${CONTAINER_PREFIX}${status}`
 
 export const maybeIssueIdFromDraggableId = (itemId: string) => {
@@ -23,7 +23,7 @@ export const maybeIssueIdFromDraggableId = (itemId: string) => {
 
 export const maybeStatusFromContainerId = (containerId: string) => {
   if (containerId.startsWith(CONTAINER_PREFIX)) {
-    return Schema.decodeUnknownOption(IssueStatus)(
+    return Schema.decodeUnknownOption(Issue.Status)(
       containerId.slice(CONTAINER_PREFIX.length),
     )
   } else {

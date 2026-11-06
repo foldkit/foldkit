@@ -1,6 +1,5 @@
 import { Effect, Option } from 'effect'
-import { Calendar } from 'foldkit'
-import { click, expect, init, role, scene, text } from 'foldkit/scene'
+import { Calendar, Scene } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe } from 'vitest'
 
@@ -12,31 +11,36 @@ const application = { block: ApplicationBlock, layer }
 
 const today = Calendar.make(2026, 4, 16)
 const initialRoute = (path: string) =>
-  init({ today }, Option.getOrThrow(fromString(`http://localhost${path}`)))
+  Scene.init(
+    { today },
+    Option.getOrThrow(fromString(`http://localhost${path}`)),
+  )
 
 describe('view', () => {
   it.effect('the sidebar nav lists a sample of every component link', () =>
-    scene(
+    Scene.scene(
       application,
       initialRoute('/'),
-      expect(role('link', { name: 'Button' })).toExist(),
-      expect(role('link', { name: 'Calendar' })).toExist(),
-      expect(role('link', { name: 'Dialog' })).toExist(),
-      expect(role('link', { name: 'Hover Intent' })).toExist(),
-      expect(role('link', { name: 'Meter' })).toExist(),
-      expect(role('link', { name: 'Progress' })).toExist(),
-      expect(role('link', { name: 'Toast' })).toExist(),
-      expect(role('link', { name: 'Virtual List' })).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Button' })).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Calendar' })).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Dialog' })).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Hover Intent' })).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Meter' })).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Progress' })).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Toast' })).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Virtual List' })).toExist(),
     ),
   )
 
   it.effect('the Home route shows the showcase heading and description', () =>
-    scene(
+    Scene.scene(
       application,
       initialRoute('/'),
-      expect(role('heading', { name: 'Foldkit UI Showcase' })).toExist(),
-      expect(
-        text('This is a showcase of every Foldkit UI component.', {
+      Scene.expect(
+        Scene.role('heading', { name: 'Foldkit UI Showcase' }),
+      ).toExist(),
+      Scene.expect(
+        Scene.text('This is a showcase of every Foldkit UI component.', {
           exact: false,
         }),
       ).toExist(),
@@ -62,32 +66,36 @@ describe('view', () => {
       ]
 
       for (const route of routes) {
-        yield* scene(
+        yield* Scene.scene(
           application,
           initialRoute(route),
-          expect(role('link', { name: 'Button' })).toExist(),
+          Scene.expect(Scene.role('link', { name: 'Button' })).toExist(),
         )
       }
     }),
   )
 
   it.effect('the Hover Intent route renders its interactive trigger', () =>
-    scene(
+    Scene.scene(
       application,
       initialRoute('/hover-intent'),
-      expect(role('heading', { name: 'Hover Intent' })).toExist(),
-      expect(role('button', { name: 'More information' })).toExist(),
+      Scene.expect(Scene.role('heading', { name: 'Hover Intent' })).toExist(),
+      Scene.expect(
+        Scene.role('button', { name: 'More information' }),
+      ).toExist(),
     ),
   )
 
   it.effect(
     'the Disclosure panel stays mounted while collapsed so it can animate',
     () =>
-      scene(
+      Scene.scene(
         application,
         initialRoute('/disclosure'),
-        expect(
-          text('Foldkit is an Elm-inspired UI framework', { exact: false }),
+        Scene.expect(
+          Scene.text('Foldkit is an Elm-inspired UI framework', {
+            exact: false,
+          }),
         ).toExist(),
       ),
   )
@@ -95,24 +103,28 @@ describe('view', () => {
   it.effect(
     'the Disclosure collapsed preview expands from its own control',
     () =>
-      scene(
+      Scene.scene(
         application,
         initialRoute('/disclosure'),
-        expect(role('heading', { name: 'Basic' })).toExist(),
-        expect(role('heading', { name: 'Animated' })).toExist(),
-        expect(role('heading', { name: 'Collapsed preview' })).toExist(),
-        click(role('button', { name: 'Read more' })),
-        expect(role('button', { name: 'Show less' })).toExist(),
+        Scene.expect(Scene.role('heading', { name: 'Basic' })).toExist(),
+        Scene.expect(Scene.role('heading', { name: 'Animated' })).toExist(),
+        Scene.expect(
+          Scene.role('heading', { name: 'Collapsed preview' }),
+        ).toExist(),
+        Scene.click(Scene.role('button', { name: 'Read more' })),
+        Scene.expect(Scene.role('button', { name: 'Show less' })).toExist(),
       ),
   )
 
   it.effect('the NotFound route renders the 404 panel and a Go Home link', () =>
-    scene(
+    Scene.scene(
       application,
       initialRoute('/oops'),
-      expect(role('heading', { name: '404 — Page Not Found' })).toExist(),
-      expect(text('The path "/oops" was not found.')).toExist(),
-      expect(role('link', { name: 'Go Home' })).toExist(),
+      Scene.expect(
+        Scene.role('heading', { name: '404 — Page Not Found' }),
+      ).toExist(),
+      Scene.expect(Scene.text('The path "/oops" was not found.')).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Go Home' })).toExist(),
     ),
   )
 })

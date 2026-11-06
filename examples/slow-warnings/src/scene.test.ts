@@ -1,4 +1,4 @@
-import { click, expect, given, role, scene, text } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
@@ -17,30 +17,32 @@ const initialModel: Model = {
 
 describe('view', () => {
   it.effect('renders all workload controls', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      expect(text('Slow Warnings Lab')).toExist(),
-      expect(role('button', { name: 'Run update work' })).toExist(),
-      expect(role('button', { name: 'Run view work' })).toExist(),
-      expect(role('button', { name: 'Run patch work' })).toExist(),
-      expect(role('button', { name: 'Run dependency extraction' })).toExist(),
+      Scene.given(initialModel),
+      Scene.expect(Scene.text('Slow Warnings Lab')).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Run update work' })).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Run view work' })).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Run patch work' })).toExist(),
+      Scene.expect(
+        Scene.role('button', { name: 'Run dependency extraction' }),
+      ).toExist(),
     ),
   )
 
   it.effect('clicking patch work renders patch rows', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      click(role('button', { name: 'Run patch work' })),
-      expect(text('Patch row 1')).toExist(),
+      Scene.given(initialModel),
+      Scene.click(Scene.role('button', { name: 'Run patch work' })),
+      Scene.expect(Scene.text('Patch row 1')).toExist(),
     ),
   )
 
   it.effect('clear removes recorded warnings', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(
+      Scene.given(
         modifyFields(initialModel, {
           warnings: () => [
             {
@@ -54,9 +56,9 @@ describe('view', () => {
           ],
         }),
       ),
-      expect(text('Update exceeded 4ms')).toExist(),
-      click(role('button', { name: 'Clear' })),
-      expect(text('Run a workload to record a warning.')).toExist(),
+      Scene.expect(Scene.text('Update exceeded 4ms')).toExist(),
+      Scene.click(Scene.role('button', { name: 'Clear' })),
+      Scene.expect(Scene.text('Run a workload to record a warning.')).toExist(),
     ),
   )
 })

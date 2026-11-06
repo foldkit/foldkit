@@ -1,71 +1,66 @@
 import { Option, Schema, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { Issue, IssueDraft, revisionFromIssue } from '../../domain'
+import { Issue } from '../../domain'
 import { CommentComposer } from './blocks'
 import { type Model, SaveState } from './model'
 
 export const CONFLICT_MESSAGE =
   'This issue changed while you were editing. Your draft is preserved. Reload the issue to use the latest version.'
 
-const equivalentDraft = Schema.toEquivalence(IssueDraft)
+const areDraftsEqual = Schema.toEquivalence(Issue.Draft)
 
-type ReconciliationState = Pick<
-  Model,
-  'issueId' | 'baseline' | 'draft' | 'maybeIncomingRevision' | 'saveState'
->
+const hasChangesFromBaseline = (model: Model) =>
+  !areDraftsEqual(model.draft, model.baselineRevision.fields)
 
-export const isDirty = (model: ReconciliationState) =>
-  !equivalentDraft(model.draft, model.baseline.fields)
+export const draftForDisplay = (model: Model, issue: Issue.Issue) =>
+  hasChangesFromBaseline(model) ? model.draft : Issue.toDraft(issue)
 
-export const latestRevision = (model: ReconciliationState) =>
-  Option.getOrElse(model.maybeIncomingRevision, () => model.baseline)
+export const hasUnsavedIssueChanges = (model: Model, issue: Issue.Issue) =>
+  hasChangesFromBaseline(model) &&
+  !areDraftsEqual(model.draft, Issue.toDraft(issue))
 
-export const reconcileIssue = (model: Model, issue: Issue) => {
+export const hasConflict = (model: Model, issue: Issue.Issue) =>
+  hasUnsavedIssueChanges(model, issue) &&
+  issue.version > model.baselineRevision.version &&
+  !areDraftsEqual(Issue.toDraft(issue), model.baselineRevision.fields)
+
+export const refreshCleanDraftFromIssue = (
+  model: Model,
+  issue: Issue.Issue,
+) => {
   if (
-    issue.id !== model.issueId ||
-    issue.version <= latestRevision(model).version
+    SaveState.guards.Saving(model.saveState) ||
+    hasUnsavedIssueChanges(model, issue) ||
+    issue.version <= model.baselineRevision.version
   ) {
     return model
   }
 
-  const incomingRevision = revisionFromIssue(issue)
-
-  const isDraftDirty = isDirty(model)
-  const isDraftMatch = equivalentDraft(incomingRevision.fields, model.draft)
-  const isCompatible =
-    equivalentDraft(incomingRevision.fields, model.baseline.fields) ||
-    isDraftMatch
-
-  if (isDraftDirty && !isCompatible) {
-    return modifyFields(model, {
-      maybeIncomingRevision: () => Option.some(incomingRevision),
-    })
-  }
+  const nextBaselineRevision = Issue.toRevision(issue)
 
   return modifyFields(model, {
-    baseline: () => incomingRevision,
-    draft: draft => (isDraftDirty ? draft : incomingRevision.fields),
-    maybeIncomingRevision: () => Option.none(),
-    saveState: saveState =>
-      SaveState.guards.Saving(saveState) || (isDraftDirty && !isDraftMatch)
-        ? saveState
-        : SaveState.Idle(),
+    baselineRevision: () => nextBaselineRevision,
+    draft: () => nextBaselineRevision.fields,
+    saveState: () => SaveState.Idle(),
   })
 }
 
-export const maybeDraftSummary = (model: Model) => {
+export const maybeUnsavedChangesSummary = (
+  model: Model,
+  issue: Issue.Issue,
+) => {
   if (
-    !isDirty(model) &&
-    !CommentComposer.isDraftNonEmpty(model.commentComposer)
+    !hasUnsavedIssueChanges(model, issue) &&
+    !CommentComposer.hasCommentDraft(model.commentComposer)
   ) {
     return Option.none()
   }
 
-  const title = String.trim(model.draft.title)
+  const title = String.trim(draftForDisplay(model, issue).title)
 
   return Option.some({
     issueId: model.issueId,
-    title: String.isEmpty(title) ? model.baseline.fields.title : title,
+    title: String.isEmpty(title) ? issue.title : title,
   })
 }

@@ -181,8 +181,10 @@ export const invalidOperationInputs = Story.withBlock(
   slider =>
     Story.withBlock(RootSlider, rootSlider =>
       Story.withBlock(Tooltip.TooltipBlock, tooltip => {
-        // @ts-expect-error Input method names are generated from the declared input tag.
-        slider.operations.informRangeChanged
+        // @ts-expect-error InformedOf input methods retain the Of preposition.
+        slider.operations.informRangeChange
+        // @ts-expect-error Input method names preserve the declared tag suffix exactly.
+        slider.operations.informOfRangeChanged
 
         const sliderModel = slider.init({
           id: 'input-range',
@@ -198,12 +200,12 @@ export const invalidOperationInputs = Story.withBlock(
         // @ts-expect-error Parent inputs do not enter the local dispatch protocol.
         slider.update(sliderModel, rangeChange)
 
-        slider.operations.informRangeChange(
+        slider.operations.informOfRangeChange(
           slider.init({ id: 'invalid-range', min: 0, max: 100, step: 1 }).model,
           // @ts-expect-error The Slider range requires both numeric bounds.
           { min: 10 },
         )
-        rootSlider.operations.informRangeChange(
+        rootSlider.operations.informOfRangeChange(
           slider.init({
             id: 'invalid-root-range',
             min: 0,
@@ -216,11 +218,13 @@ export const invalidOperationInputs = Story.withBlock(
             max: 100,
           },
         )
-        tooltip.operations.informShowDelayChanged(
+        tooltip.operations.informOfShowDelayChanged(
           tooltip.init({ id: 'invalid-delay' }).model,
           // @ts-expect-error Tooltip delay accepts Effect Duration inputs only.
           false,
         )
+        // @ts-expect-error Notification operation names retain the Of preposition.
+        tooltip.operations.informShowDelayChanged
       }),
     ),
 )

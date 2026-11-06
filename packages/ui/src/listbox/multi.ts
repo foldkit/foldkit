@@ -1,6 +1,6 @@
-import { Context, Effect, Layer, Option, Schema, Tuple } from 'effect'
+import { Context, Effect, Layer, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
-import type { HtmlBuilder } from 'foldkit/html'
+import type { MessageOf } from 'foldkit/html'
 import * as BlockFamily from 'foldkit/internal/block'
 
 import { layer as AnimationLayer } from '../animation/block.js'
@@ -14,9 +14,11 @@ import {
   type BaseViewInputs,
   InMessage,
   InitConfig as InitConfigSchema,
-  Message,
-  OutMessage,
+  type MessageSchema,
   type OutMessageSchema,
+  type ValueSchema,
+  makeMessage,
+  makeOutMessage,
 } from './types.js'
 import { makeView } from './view.js'
 
@@ -31,243 +33,197 @@ export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
   Value
 >
 
-/** @internal Nominal identity of the multi-selection contract. */
+/** @internal Stable identity of the multi-selection Listbox family. */
 export const ListboxKey = Symbol('Listbox.Multi')
-const ListboxBlock = Block.make(ListboxNamespace, {
-  key: ListboxKey,
-  Model,
-  Message,
-  InMessage,
-  OutMessage,
-  Init: Schema.Tuple([InitConfigSchema]),
-  ChildInitContext: InitConfigSchema,
-  view: {
-    kind: 'Element',
-    Inputs: Block.makeInputContract<ViewInputs<unknown>>(),
-  },
-  operations: {
-    requestSelectItem: {
-      message: (item: string) =>
-        Tuple.make(Message.RequestedSelectItem({ item })),
-      outMessage: OutMessage.Selected,
+
+const makeAuthoring = <Item, Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) => {
+  const ValueMessage: MessageSchema<Value, ValueEncoded> = makeMessage(Value)
+  const ValueOutMessage: OutMessageSchema<Value, ValueEncoded> =
+    makeOutMessage(Value)
+  const Definition = BlockFamily.makeFamilyDeclaration(ListboxNamespace, {
+    key: ListboxKey,
+    Model,
+    Message: ValueMessage,
+    InMessage,
+    OutMessage: ValueOutMessage,
+    Init: Schema.Tuple([InitConfigSchema]),
+    ChildInitContext: InitConfigSchema,
+    view: {
+      kind: 'Element',
+      Inputs: Block.makeInputContract<ViewInputs<Item, Value>>(),
     },
-  },
-})
-const itemUpdate = makeUpdateHandlers(
-  ListboxBlock.makeBinding,
-  ListboxBlock.makeOutMessageFold,
-  ListboxBlock.makeStep,
-  ListboxBlock.makeFieldsStep,
-  ListboxBlock.makeNoopStep,
-  ListboxBlock.makeCommandsStep,
-  'KeepOpen',
-  (model, item) => ({
-    model,
-    outMessage: OutMessage.Selected({ value: item }),
-  }),
-)
-const ListboxComposition = ListboxBlock.makeComposition({
-  mounts,
-  bindings: [itemUpdate.AnimationBinding],
-})
-type ListboxViewBuilder = Block.ViewBuilderFor<typeof ListboxComposition>
-type ListboxViewMessage =
-  ListboxViewBuilder extends HtmlBuilder<infer FullMessage, infer _Mounts>
-    ? FullMessage
-    : never
-const init = ListboxComposition.makeInit(config => ({
-  model: baseInit(config),
-  childInitContext: config,
-}))
-const update = ListboxComposition.makeUpdate(itemUpdate.handlers)
-const inMessageUpdate = ListboxComposition.makeInMessageUpdate(
-  itemUpdate.inMessageUpdateHandlers,
-)
-const render = makeView<Model>({ ariaMultiSelectable: true })<
-  unknown,
-  string,
-  ListboxViewMessage
->()
-const view = ListboxComposition.makeView.withInputs((model, viewInputs, h) =>
-  render(model, viewInputs, h),
-)
-
-/** @internal Shared Animation relationship used by internal transition tests. */
-export const AnimationBinding = itemUpdate.AnimationBinding
-/** @internal Selected implementation used as a scoped internal testing root. */
-const canonicalLayer = ListboxBlock.makeLayer(
-  Effect.gen(function* () {
-    const animation = yield* itemUpdate.AnimationBinding
-
-    return {
-      children: [animation],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(AnimationLayer))
-type CanonicalContract = typeof ListboxBlock
-type CanonicalFacts = Block.FactsOf<CanonicalContract>
-type CanonicalIdentity = Block.SelectedPublicIdentity<CanonicalContract>
-const ListboxRefinementRule = Symbol('Listbox.Multi.Refinement')
-/** @internal Nominal identity of the closed Item/Value refinement rule. */
-export interface ListboxRefinementKey {
-  readonly [ListboxRefinementRule]: true
-}
-type CanonicalImplementation = Extract<
-  Layer.Success<typeof canonicalLayer>,
-  Block.SelectedImplementationFacts<
-    CanonicalIdentity,
-    unknown,
-    unknown,
-    unknown
-  >
->
-/** @internal The shared provider's private reader capability. */
-export interface SharedListboxProof extends Block.ClosedFamilyCapability<ListboxRefinementKey> {}
-/** @internal The shared provider's exact canonical implementation association. */
-export interface SharedListboxFacts extends Block.FixedRefinementProvider<
-  ListboxRefinementKey,
-  CanonicalIdentity,
-  CanonicalImplementation
-> {}
-const SharedListboxProof = Context.Service<
-  SharedListboxProof,
-  Readonly<{ executable: object }>
->('foldkit/ui/private/Listbox.Multi.SharedImplementation')
-const SharedListboxFacts = Context.Service<
-  SharedListboxFacts,
-  Readonly<Record<never, never>>
->('foldkit/ui/private/Listbox.Multi.SharedFacts')
-const captures = new WeakSet<object>()
-const captureExecutable = (executable: object) => {
-  const capture = Object.freeze({ executable })
-
-  captures.add(capture)
-
-  return capture
-}
-const capturedExecutable = Effect.map(
-  Effect.serviceOption(SharedListboxProof),
-  maybeCapture =>
-    Option.map(maybeCapture, capture => {
-      if (!captures.has(capture)) {
-        throw new Error(
-          '[foldkit] A fixed family requires its original captured provider.',
-        )
-      }
-
-      return capture.executable
+    operations: {
+      requestSelectItem: {
+        message: (item: Value) =>
+          Tuple.make(ValueMessage.RequestedSelectItem({ item })),
+        outMessage: ValueOutMessage.Selected,
+      },
+    },
+  })
+  const itemUpdate = makeUpdateHandlers(
+    Definition.makeBinding,
+    Definition.makeOutMessageFold,
+    Definition.makeStep,
+    Definition.makeFieldsStep,
+    Definition.makeNoopStep,
+    Definition.makeCommandsStep,
+    'KeepOpen',
+    (model, item) => ({
+      model,
+      outMessage: ValueOutMessage.Selected({ value: item }),
     }),
-)
-BlockFamily.registerFixedProviderGuard(ListboxBlock, capturedExecutable)
-const readSharedCapture = Effect.map(
-  BlockFamily.readDeclaredExecutable(ListboxBlock),
-  captureExecutable,
-)
-const sharedProofLayer = Layer.effect(SharedListboxProof, readSharedCapture)
-const providedSharedProofLayer = Layer.provide(sharedProofLayer, canonicalLayer)
-const sharedFactsLayer = Layer.succeed(SharedListboxFacts, {})
-/** Constructs the shared Listbox implementation and its private Animation dependency. */
-export const layer = Layer.mergeAll(
-  canonicalLayer,
-  providedSharedProofLayer,
-  sharedFactsLayer,
-)
+  )
+  const ListboxComposition = Definition.makeComposition({
+    mounts,
+    bindings: [itemUpdate.AnimationBinding],
+  })
+  type ListboxViewBuilder = Block.ViewBuilderFor<typeof ListboxComposition>
+  type ListboxViewMessage = MessageOf<ListboxViewBuilder>
+  const init = ListboxComposition.makeInit((config: InitConfig) => ({
+    model: baseInit(config),
+    childInitContext: config,
+  }))
+  const update = ListboxComposition.makeUpdate(itemUpdate.handlers)
+  const inMessageUpdate = ListboxComposition.makeInMessageUpdate(
+    itemUpdate.inMessageUpdateHandlers,
+  )
+  const render = makeView<Model, Item, Value, ListboxViewMessage, ValueEncoded>(
+    { ariaMultiSelectable: true },
+    ValueMessage,
+  )
+  const view = ListboxComposition.makeView.withInputs((model, viewInputs, h) =>
+    render(model, viewInputs, h),
+  )
 
-Reflect.deleteProperty(ListboxBlock, 'makeLayer')
-Reflect.deleteProperty(ListboxBlock, 'provideHandlers')
-Object.freeze(ListboxBlock)
+  return {
+    Definition,
+    AnimationBinding: itemUpdate.AnimationBinding,
+    init,
+    update,
+    inMessageUpdate,
+    view,
+  }
+}
 
-/** @internal Selected implementation used as a scoped internal testing root. */
-export const block = { block: ListboxBlock, layer }
-
-type RefinedFacts<Item, Value extends string> = Omit<
-  CanonicalFacts,
-  'view' | 'update' | 'operations'
-> &
-  Readonly<{
-    view: Block.ViewContract<ViewInputs<Item, Value>, 'Element'>
-    update: Block.ResultContract<
-      OutMessage<Value>,
-      CanonicalFacts['update']['requirements']
-    >
-    operations: Omit<CanonicalFacts['operations'], 'requestSelectItem'> &
-      Readonly<{
-        requestSelectItem: Block.OperationContract<
-          readonly [item: Value],
-          OutMessage<Value>,
-          CanonicalFacts['operations']['requestSelectItem']['requirements']
-        >
-      }>
-  }>
-type RefinedContract<Item, Value extends string> = Block.Contract<
-  CanonicalContract['owner'],
-  CanonicalContract['Model'],
-  CanonicalContract['Message'],
-  OutMessageSchema<Value>,
-  RefinedFacts<Item, Value>
+type Authoring<Item, Value extends string, ValueEncoded> = ReturnType<
+  typeof makeAuthoring<Item, Value, ValueEncoded>
 >
-type RefinedConfiguration<Item, Value extends string> = Readonly<{
-  key: typeof ListboxKey
-  InMessage: typeof InMessage
-  Init: Schema.Tuple<readonly [typeof InitConfigSchema]>
-  ChildInitContext: typeof InitConfigSchema
-  view: Readonly<{
-    kind: 'Element'
-    Inputs: Block.InputContract<ViewInputs<Item, Value>>
-  }>
-  operations: Readonly<{
-    requestSelectItem: Readonly<{
-      message: (
-        item: Value,
-      ) => readonly [typeof Message.RequestedSelectItem.Type]
-      outMessage: OutMessageSchema<Value>['Selected']
-    }>
-  }>
-}>
-/** @internal Names the exact private reader of this fixed-family specialization. */
-export interface ListboxReader<
-  Item,
-  Value extends string,
-> extends Block.ReadableProvider<
-  ListboxRefinementKey,
-  Block.SelectedPublicIdentity<RefinedContract<Item, Value>>
-> {}
+const construct = <Item, Value extends string, ValueEncoded>(
+  authoring: Authoring<Item, Value, ValueEncoded>,
+) =>
+  authoring.Definition.makeLayer(
+    Effect.gen(function* () {
+      const animation = yield* authoring.AnimationBinding
 
-type RefinedBlock<Item, Value extends string> = Omit<
-  Block.UnifiedBlock<
-    'Listbox',
-    typeof Model,
-    typeof Message,
-    OutMessageSchema<Value>,
-    typeof InitConfigSchema,
-    RefinedConfiguration<Item, Value>,
-    CanonicalIdentity,
-    ListboxReader<Item, Value>
-  >,
-  'makeLayer' | 'provideHandlers' | keyof RefinedContract<Item, Value>
-> &
-  Omit<RefinedContract<Item, Value>, 'get'>
-/** Passive Listbox contract with exact Item, Value and operation result channels. */
+      return {
+        children: [animation],
+        init: authoring.init,
+        update: authoring.update,
+        inMessageUpdate: authoring.inMessageUpdate,
+        view: authoring.view,
+        EffectsLayer,
+      }
+    }),
+  ).pipe(Layer.provide(AnimationLayer))
+
+interface ListboxImplementation extends Block.FamilyLifetime {
+  readonly construct: typeof construct
+}
+
+/** @internal Scoped provider identity for all multi-selection specializations. */
+export class ListboxFamily extends Context.Service<
+  ListboxFamily,
+  ListboxImplementation
+>()('foldkit/ui/Listbox.multi') {}
+
+/** Constructs multi-selection Listbox specializations and their private Animation children. */
+export const layer = Layer.effect(
+  ListboxFamily,
+  Effect.gen(function* () {
+    const lifetime = yield* Block.familyLifetime
+
+    return { ...lifetime, construct }
+  }),
+)
+
+const declareBlock = <Item, Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) => {
+  const authoring = makeAuthoring<Item, Value, ValueEncoded>(Value)
+
+  return BlockFamily.resolveFamily(
+    authoring.Definition,
+    ListboxFamily,
+    implementation => implementation.construct(authoring),
+  )
+}
+
+type Contract<Item, Value extends string, ValueEncoded> = ReturnType<
+  typeof declareBlock<Item, Value, ValueEncoded>
+>
+/** Passive Listbox contract with exact rendering Item, selected Value and encoded channels. */
 export interface Completed<
   Item = string,
   Value extends string = Item extends string ? Item : string,
->
-  extends
-    RefinedBlock<Item, Value>,
-    Block.FixedRefinement<
-      ListboxRefinementKey,
-      CanonicalIdentity,
-      Block.SelectedPublicIdentity<RefinedContract<Item, Value>>
-    > {}
-/** Creates the typed contract; supply this module's layer when constructing the parent. */
-export const makeBlock = <
-  Item = string,
-  Value extends string = Item extends string ? Item : string,
->(): Completed<Item, Value> =>
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  ListboxBlock as unknown as Completed<Item, Value>
+  ValueEncoded = Value,
+> extends Contract<Item, Value, ValueEncoded> {}
+
+/** Declares a Listbox contract. Supply Listbox.Multi.layer when constructing the parent.
+ *
+ * Omit arguments for unrestricted string items. Pass one Value Schema for string
+ * items, or an Item Schema and Value Schema for objects. Item supplies view typing
+ * only; Value supplies the runtime selection Codecs. Map object items and other non-Value items
+ * through itemToValue; items that are Values need no extractor.
+ *
+ * @example
+ * ```ts
+ * const Status = Schema.Literals(['Todo', 'Done'])
+ * const StatusListboxBlock = Listbox.Multi.makeBlock(Status)
+ * const StatusOption = Schema.Struct({ label: Schema.String, value: Status })
+ * const StatusOptionListboxBlock = Listbox.Multi.makeBlock(StatusOption, Status)
+ * ```
+ */
+export function makeBlock(): Completed<string, string>
+export function makeBlock<Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+): Completed<Value, Value, ValueEncoded>
+export function makeBlock<
+  Item extends Schema.Top,
+  Value extends string,
+  ValueEncoded,
+>(
+  Item: Item,
+  Value: ValueSchema<Value, ValueEncoded>,
+): Completed<Item['Type'], Value, ValueEncoded>
+export function makeBlock(
+  ...args:
+    | readonly []
+    | readonly [Value: ValueSchema<string, unknown>]
+    | readonly [Item: Schema.Top, Value: ValueSchema<string, unknown>]
+): object {
+  if (args.length === 2) {
+    const [, Value] = args
+
+    return declareBlock(Value)
+  }
+
+  const [Value = Schema.String] = args
+
+  return declareBlock(Value)
+}
+
+const defaultAuthoring = makeAuthoring<string, string, string>(Schema.String)
+
+/** @internal Original Animation relationship used by interaction tests. */
+export const AnimationBinding = defaultAuthoring.AnimationBinding
+/** @internal Default string contract and provider used by interaction tests. */
+export const block = {
+  block: BlockFamily.resolveFamily(
+    defaultAuthoring.Definition,
+    ListboxFamily,
+    implementation => implementation.construct(defaultAuthoring),
+  ),
+  layer,
+}

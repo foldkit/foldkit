@@ -1,6 +1,4 @@
-import { Calendar } from 'foldkit'
-import { inMessage, init } from 'foldkit/scene'
-import { expect, label, scene, text, type } from 'foldkit/scene'
+import { Calendar, Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -12,41 +10,43 @@ const today = Calendar.make(2026, 4, 16)
 
 describe('personalInfo', () => {
   it.effect('a parent request displays validation errors in the form', () =>
-    scene(
+    Scene.scene(
       { block: PersonalInfoBlock, layer },
-      init(today),
-      inMessage(InMessage.RequestedRevealErrors()),
-      expect(text('First name is required')).toExist(),
-      expect(text('Last name is required')).toExist(),
-      expect(text('Email is required')).toExist(),
+      Scene.init(today),
+      Scene.inMessage(InMessage.RequestedRevealErrors()),
+      Scene.expect(Scene.text('First name is required')).toExist(),
+      Scene.expect(Scene.text('Last name is required')).toExist(),
+      Scene.expect(Scene.text('Email is required')).toExist(),
     ),
   )
 
   it.effect('renders the name and email fields', () =>
-    scene(
+    Scene.scene(
       { block: PersonalInfoBlock, layer },
-      init(today),
-      expect(label('First Name')).toExist(),
-      expect(label('Last Name')).toExist(),
-      expect(label('Email')).toExist(),
+      Scene.init(today),
+      Scene.expect(Scene.label('First Name')).toExist(),
+      Scene.expect(Scene.label('Last Name')).toExist(),
+      Scene.expect(Scene.label('Email')).toExist(),
     ),
   )
 
   it.effect('a valid first name shows a checkmark', () =>
-    scene(
+    Scene.scene(
       { block: PersonalInfoBlock, layer },
-      init(today),
-      type(label('First Name'), 'Jane'),
-      expect(text('✓')).toExist(),
+      Scene.init(today),
+      Scene.type(Scene.label('First Name'), 'Jane'),
+      Scene.expect(Scene.text('✓')).toExist(),
     ),
   )
 
   it.effect('a short first name shows the length error', () =>
-    scene(
+    Scene.scene(
       { block: PersonalInfoBlock, layer },
-      init(today),
-      type(label('First Name'), 'J'),
-      expect(text('First name must be at least 2 characters')).toExist(),
+      Scene.init(today),
+      Scene.type(Scene.label('First Name'), 'J'),
+      Scene.expect(
+        Scene.text('First name must be at least 2 characters'),
+      ).toExist(),
     ),
   )
 })

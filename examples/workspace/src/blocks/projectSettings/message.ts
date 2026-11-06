@@ -9,7 +9,7 @@ export const Message = defineMessageUnion({
   SubmittedProjectSettings: {},
   ClickedRetrySave: {},
   ClickedDiscardChanges: {},
-  SucceededSaveProject: { project: Project },
+  SucceededSaveProject: { project: Project.Project },
   FailedSaveProject: { error: Schema.String },
 })
 export type Message = typeof Message.Type

@@ -205,7 +205,12 @@ export function makeOutMessageForward(): AnyFunction {
       return handle(outMessage)
     }
 
-    registerOutMessageHandler(handler, cases, 'makeOutMessageForward')
+    registerOutMessageHandler(
+      handler,
+      isContextual ? undefined : childOrCases,
+      cases,
+      'makeOutMessageForward',
+    )
 
     return handler
   }

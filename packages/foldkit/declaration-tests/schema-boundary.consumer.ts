@@ -4,7 +4,7 @@ import { Update } from 'foldkit'
 import { Load, Store, update } from './schema-boundary-block.js'
 import type { Assert, Channels, Equal } from './schema-boundary-equality.js'
 import { Message } from './schema-boundary-message.js'
-import { Count, DecodeCount, EncodeCount } from './schema-boundary-model.js'
+import { Count } from './schema-boundary-model.js'
 import {
   ChildBinding,
   ParentBlock,
@@ -20,21 +20,13 @@ export type ExactChannels = Assert<
 export type Encoded = Assert<
   Equal<typeof Child.Model.Encoded, Readonly<{ count: string }>>
 >
-export type Decoder = Assert<
-  Equal<typeof Child.Model.DecodingServices, DecodeCount>
->
-export type Encoder = Assert<
-  Equal<typeof Child.Model.EncodingServices, EncodeCount>
->
+export type Decoder = Assert<Equal<typeof Child.Model.DecodingServices, never>>
+export type Encoder = Assert<Equal<typeof Child.Model.EncodingServices, never>>
 export type RefinedCount = Assert<
   Equal<typeof Child.Model.Type.count, typeof Count.Type>
 >
-export type ParentDecoder = Assert<
-  Equal<typeof Model.DecodingServices, DecodeCount>
->
-export type ParentEncoder = Assert<
-  Equal<typeof Model.EncodingServices, EncodeCount>
->
+export type ParentDecoder = Assert<Equal<typeof Model.DecodingServices, never>>
+export type ParentEncoder = Assert<Equal<typeof Model.EncodingServices, never>>
 export type ServiceRequirements = Assert<
   Equal<Layer.Services<typeof Child.ChildBlock.EffectsLayer>, Store>
 >
@@ -70,7 +62,7 @@ export const acceptCodec = (
 ): Schema.Codec<
   typeof Child.Model.Type,
   Readonly<{ count: string }>,
-  DecodeCount,
-  EncodeCount
+  never,
+  never
 > => schema
 export { Model as ModelOnlyParent } from './schema-boundary-model-only.js'

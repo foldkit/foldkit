@@ -92,7 +92,7 @@ The two flags are independent. Setting both emits both sets of attributes, and e
 
 ## Informing Slider about a Range Change
 
-When parent-owned configuration changes the minimum or maximum, call `RatingDemoBinding.informRangeChange({ min, max })`. The operation delivers `InformedOfRangeChange` through Slider's `inMessageUpdate`, which keeps every child Model change inside the child. Its notification branch returns `{ model }` and emits no OutMessage.
+When parent-owned configuration changes the minimum or maximum, call `RatingDemoBinding.informOfRangeChange({ min, max })`. The operation delivers `InformedOfRangeChange` through Slider's `inMessageUpdate`, which keeps every child Model change inside the child. Its notification branch returns `{ model }` and emits no OutMessage.
 
 ## API Reference
 

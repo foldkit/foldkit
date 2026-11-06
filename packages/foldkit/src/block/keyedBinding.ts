@@ -1,4 +1,12 @@
-import { Array, Layer, Option, Predicate, Record, Schema } from 'effect'
+import {
+  Array,
+  Context,
+  Layer,
+  Option,
+  Predicate,
+  Record,
+  Schema,
+} from 'effect'
 
 import { type Command, mapMessages } from '../command/index.js'
 import type {
@@ -7,6 +15,8 @@ import type {
   BoundBlockFields,
   BoundBlockView,
 } from '../html/block.js'
+import * as ManagedResource from '../managedResource/managedResource.js'
+import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
 import {
   type OperationEnvironment,
@@ -53,6 +63,7 @@ import {
 import {
   LocalMountsTypeId,
   ViewScopeTypeId,
+  copyIdentity,
   hostIdentitiesOf,
 } from './identity.js'
 import { makeBindingInitRecipe } from './initRecipe.js'
@@ -64,11 +75,24 @@ import {
   withOperationGraph,
 } from './operationGraph.js'
 import type { ValidateConcreteComposition } from './requirements.js'
-import { assertSegment, qualifyCommand, qualifyLayer } from './scope.js'
+import {
+  type Qualify,
+  assertSegment,
+  qualifyCommand,
+  qualifyEffect,
+  qualifyEntry,
+  qualifyKey,
+  qualifyLayer,
+  qualifyStream,
+} from './scope.js'
 import { resolveEmbeddedView } from './viewScope.js'
 
-/** Defines how a parent handles every OutMessage from one occurrence in a
- * keyed child collection. */
+/**
+ * The native callback contract for handling OutMessages from a keyed child.
+ * Parent-owned Bindings use `withOutMessagePolicy`, which also accepts an
+ * authored `makeOutMessageFold` directly or returned by a key-dependent
+ * callback.
+ */
 export type KeyedOutMessagePolicy<
   ParentModel,
   ChildMessage,
@@ -366,6 +390,103 @@ type KeyedBoundExposedOperations<
     : never
 }>
 
+type KeyedSubscriptionTemplates<
+  BlockValue extends BindableBlock,
+  ParentModel,
+  ParentMessage,
+  Key extends InstanceKey,
+  Placement extends string,
+> = {
+  readonly [
+    Name in keyof BlockValue['subscriptions']
+  ]: BlockValue['subscriptions'][Name] extends Subscription.Subscription<
+    any,
+    any,
+    infer Dependencies,
+    infer Services
+  >
+    ? Subscription.KeyedTemplate<
+        ParentModel,
+        ParentMessage,
+        Key,
+        Placement,
+        BlockValue['subscriptions'][Name],
+        Subscription.GatedDependencies<Dependencies>,
+        Qualify<Placement, Services>
+      > &
+        (BlockValue['subscriptions'][Name] extends Readonly<{
+          messages: infer Messages
+        }>
+          ? Readonly<{ messages: Messages }>
+          : unknown) &
+        (BlockValue['subscriptions'][Name] extends Readonly<{
+          name: infer EntryName
+          toLayer: infer ToLayer
+        }>
+          ? Readonly<{ name: EntryName; toLayer: ToLayer }>
+          : unknown) &
+        (BlockValue['subscriptions'][Name] extends Readonly<{
+          layer: infer EntryLayer
+        }>
+          ? Readonly<{ layer: EntryLayer }>
+          : unknown)
+    : never
+}
+
+type KeyedManagedResourceTemplates<
+  BlockValue extends BindableBlock,
+  ParentModel,
+  ParentMessage,
+  Key extends InstanceKey,
+  Placement extends string,
+> = {
+  readonly [
+    Name in keyof ManagedResource.RegistryEntries<
+      BlockValue['managedResources']
+    >
+  ]: ManagedResource.RegistryEntries<
+    BlockValue['managedResources']
+  >[Name] extends ManagedResource.Entry<
+    any,
+    any,
+    infer Requirements,
+    infer Value,
+    infer Service,
+    infer OnAcquired extends (...args: ReadonlyArray<any>) => any,
+    infer LifecycleServices,
+    infer Params
+  >
+    ? ManagedResource.KeyedTemplate<
+        ParentModel,
+        ParentMessage,
+        Key,
+        Placement,
+        ManagedResource.RegistryEntries<BlockValue['managedResources']>[Name],
+        Requirements,
+        Value,
+        Qualify<Placement, Service>,
+        (...args: Parameters<OnAcquired>) => ParentMessage,
+        Qualify<Placement, LifecycleServices>,
+        Params
+      > &
+        (ManagedResource.RegistryEntries<
+          BlockValue['managedResources']
+        >[Name] extends Readonly<{
+          name: infer EntryName
+          toLayer: infer ToLayer
+        }>
+          ? Readonly<{ name: EntryName; toLayer: ToLayer }>
+          : unknown) &
+        (ManagedResource.RegistryEntries<
+          BlockValue['managedResources']
+        >[Name] extends Readonly<{
+          layer: infer EntryLayer
+        }>
+          ? Readonly<{ layer: EntryLayer }>
+          : unknown)
+    : never
+}
+
 /** A registered child collection whose active keys receive independent
  * lifecycle scopes. The Binding is passive until a Runtime starts the composed
  * application. */
@@ -400,8 +521,20 @@ export type KeyedBinding<
       Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>
     >,
     BindingInspection<
-      Readonly<Record<never, never>>,
-      Readonly<Record<never, never>>,
+      KeyedSubscriptionTemplates<
+        BlockValue,
+        ParentModel,
+        ParentMessage,
+        Key,
+        Placement
+      >,
+      KeyedManagedResourceTemplates<
+        BlockValue,
+        ParentModel,
+        ParentMessage,
+        Key,
+        Placement
+      >,
       BlockValue['mounts'],
       Layer.Layer<
         import('./scope.js').Qualify<
@@ -992,6 +1125,78 @@ export const bindEach = <const BlockValue extends BindableBlock>(
     },
     ...exposedOperations,
   }
+  const subscriptions = Record.map(block.subscriptions, (entry, name) =>
+    Subscription.__makeKeyedTemplate(entry, binding, key => {
+      const lifted = Subscription.lift({ entry })<any, any>({
+        read: model => readAt(model, key),
+        toParentMessage: message => config.toParentMessage(key, message),
+        when: model => {
+          const when = config.subscriptions?.when
+          if (typeof when === 'function') {
+            return when(model, key)
+          }
+          return when?.[name]?.(model, key) ?? true
+        },
+      }).entry
+      copyIdentity(entry, lifted)
+      const scoped =
+        lifted.keepAliveEquivalence === undefined
+          ? {
+              ...qualifyEntry(placement, lifted),
+              dependenciesToStream: (dependencies: any) =>
+                qualifyStream(
+                  placement,
+                  lifted.dependenciesToStream(dependencies),
+                ),
+            }
+          : {
+              ...qualifyEntry(placement, lifted),
+              dependenciesToStream: (
+                dependencies: any,
+                getSnapshot: () => any,
+              ) =>
+                qualifyStream(
+                  placement,
+                  lifted.dependenciesToStream(dependencies, getSnapshot),
+                ),
+            }
+      copyIdentity(lifted, scoped)
+      return {
+        entry: scoped,
+        isPresent: model => Option.isSome(readAt(model, key)),
+      }
+    }),
+  )
+  const managedResources = Record.map(block.managedResources, entry =>
+    ManagedResource.__makeKeyedTemplate(entry, binding, key => {
+      const lifted = ManagedResource.lift({ entry })<any, any>({
+        read: model => readAt(model, key),
+        toParentMessage: message => config.toParentMessage(key, message),
+      }).entry
+      copyIdentity(entry, lifted)
+      const scoped = {
+        ...qualifyEntry(placement, lifted),
+        resource: {
+          ...lifted.resource,
+          key: `${placement}/${lifted.resource.key}`,
+          _tag: Context.Service(
+            qualifyKey(placement, lifted.resource._tag.key),
+          ),
+        },
+        acquire: (params: any) =>
+          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+          qualifyEffect(placement, lifted.acquire(params)),
+        release: (value: any) =>
+          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+          qualifyEffect(placement, lifted.release(value)),
+      }
+      copyIdentity(lifted, scoped)
+      return {
+        entry: scoped,
+        isPresent: model => Option.isSome(readAt(model, key)),
+      }
+    }),
+  )
   registerBinding(binding, {
     block,
     init: (key, args) => initChild(requireKey(key), ...args),
@@ -1011,8 +1216,8 @@ export const bindEach = <const BlockValue extends BindableBlock>(
       return when?.[name]?.(model, instanceKey) ?? true
     },
     inspection: {
-      subscriptions: {},
-      managedResources: {},
+      subscriptions,
+      managedResources,
       mounts: block.mounts,
       EffectsLayer,
     },

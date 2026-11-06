@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 
-import { IssueDraft } from '../../domain'
+import { Issue } from '../../domain'
 import { WorkspaceRepository } from '../../repository'
 import { makeCommand } from './block'
 import { Message } from './message'
@@ -8,7 +8,7 @@ import { Message } from './message'
 export const SaveIssue = makeCommand('SaveIssue', {
   args: {
     issueId: Schema.String,
-    draft: IssueDraft,
+    draft: Issue.Draft,
     expectedVersion: Schema.Number,
   },
   messages: [Message.SucceededSaveIssue, Message.FailedSaveIssue],
@@ -17,9 +17,9 @@ export const SaveIssue = makeCommand('SaveIssue', {
 
     return args =>
       repository.saveIssue(args).pipe(
-        Effect.map(savedIssue =>
+        Effect.map(saveResult =>
           Message.SucceededSaveIssue({
-            savedIssue,
+            saveResult,
             expectedVersion: args.expectedVersion,
           }),
         ),

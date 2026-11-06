@@ -1,6 +1,6 @@
 import { Item } from '../domain'
 
-export const products: Item.Item[] = [
+export const products: ReadonlyArray<Item.Item> = [
   { id: '1', name: 'Apple', price: 1.5 },
   { id: '2', name: 'Banana', price: 0.75 },
   { id: '3', name: 'Orange', price: 2.0 },

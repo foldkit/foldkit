@@ -456,6 +456,22 @@ describe('keyed Block occurrences', () => {
       typeof RootModel,
       typeof prepare
     > = Block.assemble(prepare)
+    expect(Object.keys(completedBlock.subscriptions)).toEqual([
+      'CollectionItem/activePulse',
+    ])
+    expect(Object.keys(completedBlock.managedResources)).toEqual([
+      'CollectionItem/value',
+    ])
+    expect(() =>
+      completedBlock.subscriptions[
+        'CollectionItem/activePulse'
+      ].modelToDependencies(rootInit().model),
+    ).toThrow('passive template')
+    expect(() =>
+      completedBlock.managedResources[
+        'CollectionItem/value'
+      ].modelToMaybeRequirements(rootInit().model),
+    ).toThrow('passive template')
     const application = Program.makeElement({
       block: completedBlock,
       container,

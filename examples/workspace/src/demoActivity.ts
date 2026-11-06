@@ -3,18 +3,18 @@ import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { makeStep } from './block'
-import { AppendActivity, AssignIssue } from './command'
-import { IssueDraft } from './domain'
-import { maybeActiveIssueDetail } from './selection'
+import { AddIssueComment, AssignIssue } from './command'
+import { Issue } from './domain'
+import { maybeIssueId } from './route'
 
-const ACTIVITY_EVENTS_PER_ASSIGNMENT = 3
+const ACTIVITY_REQUESTS_PER_ASSIGNMENT = 3
 const ACTIVITY_COMMENT_BODIES = [
   'I checked the latest changes. This is ready for another look.',
   'The next iteration is ready. Let me know what you think.',
   'Thanks for the update. I will pick this up next.',
 ]
 
-export const simulateActivity = makeStep(model => {
+export const simulateTeammateActivity = makeStep(model => {
   const maybeWorkspace = AsyncData.getData(model.workspaceAsyncData)
 
   if (Option.isNone(maybeWorkspace)) {
@@ -23,48 +23,41 @@ export const simulateActivity = makeStep(model => {
 
   const { issues, members } = maybeWorkspace.value
 
-  const memberRelatedIssues = Array.filter(
+  const issuesInvolvingActiveMember = Issue.involvingMember(
     issues,
-    activityIssue =>
-      Option.contains(activityIssue.maybeAssigneeId, model.activeMemberId) ||
-      Array.some(
-        activityIssue.comments,
-        comment => comment.authorId === model.activeMemberId,
-      ),
+    model.activeMemberId,
   )
 
-  const activityIssueCandidates = Array.isReadonlyArrayNonEmpty(
-    memberRelatedIssues,
+  const commentCandidates = Array.isReadonlyArrayNonEmpty(
+    issuesInvolvingActiveMember,
   )
-    ? memberRelatedIssues
+    ? issuesInvolvingActiveMember
     : issues
 
-  const maybeActivityIssue = Option.orElse(
-    Option.flatMap(maybeActiveIssueDetail(model), detail =>
-      Array.findFirst(
-        activityIssueCandidates,
-        activityIssue => activityIssue.id === detail.issueId,
-      ),
+  const maybeIssueToCommentOn = Option.orElse(
+    Option.flatMap(maybeIssueId(model.route), issueId =>
+      Issue.findById(commentCandidates, issueId),
     ),
     () =>
-      Array.get(
-        activityIssueCandidates,
-        model.activityTick % Math.max(1, activityIssueCandidates.length),
-      ),
+      Array.match(commentCandidates, {
+        onEmpty: Option.none,
+        onNonEmpty: candidates =>
+          Array.get(candidates, model.activityRequestCount % candidates.length),
+      }),
   )
 
-  const maybeActivityActor = Array.findFirst(
+  const maybeTeammate = Array.findFirst(
     members,
     member => member.id !== model.activeMemberId,
   )
 
-  if (Option.isNone(maybeActivityIssue) || Option.isNone(maybeActivityActor)) {
+  if (Option.isNone(maybeIssueToCommentOn) || Option.isNone(maybeTeammate)) {
     return { model }
   }
 
-  const activityIssue = maybeActivityIssue.value
-  const actorId = maybeActivityActor.value.id
-  const nextActivityTick = model.activityTick + 1
+  const issueToCommentOn = maybeIssueToCommentOn.value
+  const actorId = maybeTeammate.value.id
+  const nextActivityRequestCount = model.activityRequestCount + 1
 
   const maybeIssueToAssign = Array.findFirst(
     issues,
@@ -73,24 +66,20 @@ export const simulateActivity = makeStep(model => {
   )
 
   if (
-    nextActivityTick % ACTIVITY_EVENTS_PER_ASSIGNMENT === 0 &&
+    nextActivityRequestCount % ACTIVITY_REQUESTS_PER_ASSIGNMENT === 0 &&
     Option.isSome(maybeIssueToAssign)
   ) {
     const issueToAssign = maybeIssueToAssign.value
 
     return {
-      model: modifyFields(model, { activityTick: () => nextActivityTick }),
+      model: modifyFields(model, {
+        activityRequestCount: () => nextActivityRequestCount,
+      }),
       commands: [
         AssignIssue({
           issueId: issueToAssign.id,
-          draft: IssueDraft.make({
-            title: issueToAssign.title,
-            description: issueToAssign.description,
-            status: issueToAssign.status,
-            priority: issueToAssign.priority,
-            projectId: issueToAssign.projectId,
-            maybeAssigneeId: Option.some(model.activeMemberId),
-            labelIds: issueToAssign.labelIds,
+          draft: modifyFields(Issue.toDraft(issueToAssign), {
+            maybeAssigneeId: () => Option.some(model.activeMemberId),
           }),
           expectedVersion: issueToAssign.version,
           actorId,
@@ -100,14 +89,16 @@ export const simulateActivity = makeStep(model => {
   }
 
   return {
-    model: modifyFields(model, { activityTick: () => nextActivityTick }),
+    model: modifyFields(model, {
+      activityRequestCount: () => nextActivityRequestCount,
+    }),
     commands: [
-      AppendActivity({
-        issueId: activityIssue.id,
+      AddIssueComment({
+        issueId: issueToCommentOn.id,
         authorId: actorId,
         body: Array.getUnsafe(
           ACTIVITY_COMMENT_BODIES,
-          model.activityTick % ACTIVITY_COMMENT_BODIES.length,
+          model.activityRequestCount % ACTIVITY_COMMENT_BODIES.length,
         ),
       }),
     ],

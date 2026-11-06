@@ -7,7 +7,7 @@ import { Listbox } from '@foldkit/ui'
 const Plan = Schema.Literals(['Free', 'Pro', 'Enterprise'])
 type Plan = typeof Plan.Type
 // One passive contract retains Plan in its view inputs and OutMessages.
-const PlanListbox = Listbox.makeBlock<Plan>()
+const PlanListbox = Listbox.makeBlock(Plan)
 
 // Add a field to your Model for the Listbox Block, plus a field for
 // the selected value your app actually cares about. Using the `Plan`

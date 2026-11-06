@@ -1,7 +1,6 @@
 import { Effect, Layer, Schema } from 'effect'
-import { Block } from 'foldkit'
+import { Block, Story } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import * as Story from 'foldkit/story'
 
 import { Toast } from '@foldkit/ui'
 

@@ -11,14 +11,15 @@ import {
 } from './composition'
 import { type SearchResult, SearchState, resultsFromState } from './domain'
 import { Message } from './message'
-import type { Model } from './model'
 
 const RESULTS_LIST_ID = 'search-results'
 const resultItemId = (index: number): string => `search-result-${index}`
 
 const handleSearchInputKeyDown = (
   key: string,
-  model: Model,
+  query: string,
+  activeResultIndex: number,
+  searchState: SearchState,
 ): Option.Option<Message> =>
   Match.value(key).pipe(
     Match.when('ArrowDown', () =>
@@ -28,16 +29,16 @@ const handleSearchInputKeyDown = (
       Option.some(Message.PressedArrowKey({ direction: 'Up' })),
     ),
     Match.when('Escape', () =>
-      String.isNonEmpty(model.query)
+      String.isNonEmpty(query)
         ? Option.some(Message.ClearedSearchQuery())
         : Option.none(),
     ),
     Match.when('Enter', () =>
-      model.activeResultIndex >= 0
+      activeResultIndex >= 0
         ? pipe(
-            model.searchState,
+            searchState,
             resultsFromState,
-            Array.get(model.activeResultIndex),
+            Array.get(activeResultIndex),
             Option.map(result =>
               Message.SelectedSearchResult({ url: result.url }),
             ),
@@ -47,9 +48,14 @@ const handleSearchInputKeyDown = (
     Match.orElse(() => Option.none()),
   )
 
-const searchInputView = (model: Model, h: SearchViewBuilder): Html => {
+const searchInputView = (
+  query: string,
+  activeResultIndex: number,
+  searchState: SearchState,
+  h: SearchViewBuilder,
+): Html => {
   const isListboxVisible =
-    model.searchState._tag === 'Ok' || model.searchState._tag === 'Loading'
+    searchState._tag === 'Ok' || searchState._tag === 'Loading'
 
   return h.div(
     [
@@ -68,16 +74,18 @@ const searchInputView = (model: Model, h: SearchViewBuilder): Html => {
         h.AriaHasPopup('listbox'),
         h.Autocomplete('off'),
         h.AriaLabel('Search documentation'),
-        ...(model.activeResultIndex >= 0
-          ? [h.AriaActiveDescendant(resultItemId(model.activeResultIndex))]
+        ...(activeResultIndex >= 0
+          ? [h.AriaActiveDescendant(resultItemId(activeResultIndex))]
           : []),
         h.Placeholder('Search documentation...'),
-        h.Value(model.query),
+        h.Value(query),
         h.Class(
           'flex-1 bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none text-base',
         ),
         h.OnInput(value => Message.UpdatedSearchQuery({ query: value })),
-        h.OnKeyDownPreventDefault(key => handleSearchInputKeyDown(key, model)),
+        h.OnKeyDownPreventDefault(key =>
+          handleSearchInputKeyDown(key, query, activeResultIndex, searchState),
+        ),
       ]),
     ],
   )
@@ -195,23 +203,28 @@ const resultListView = (
       ),
   })
 
-const resultsListView = (model: Model, h: SearchViewBuilder): Html =>
-  SearchState.match<Html>(model.searchState, {
+const resultsListView = (
+  searchState: SearchState,
+  query: string,
+  activeResultIndex: number,
+  h: SearchViewBuilder,
+): Html =>
+  SearchState.match<Html>(searchState, {
     Idle: () => emptyPrompt,
     Loading: ({ results }) =>
       Array.match(results, {
         onEmpty: () => searchingIndicator,
-        onNonEmpty: () => resultListView(results, model.activeResultIndex, h),
+        onNonEmpty: () => resultListView(results, activeResultIndex, h),
       }),
     Ok: ({ results }) =>
       Array.match(results, {
-        onEmpty: () => noResultsView(model.query),
-        onNonEmpty: () => resultListView(results, model.activeResultIndex, h),
+        onEmpty: () => noResultsView(query),
+        onNonEmpty: () => resultListView(results, activeResultIndex, h),
       }),
   })
 
-const resultCountAnnouncement = (model: Model): Html => {
-  const results = resultsFromState(model.searchState)
+const resultCountAnnouncement = (searchState: SearchState): Html => {
+  const results = resultsFromState(searchState)
   const count = results.length
 
   return ih.span(
@@ -277,9 +290,19 @@ export const view = SearchComposition.makeView((model, h) =>
                                 [...title, h.Class('sr-only')],
                                 ['Search documentation'],
                               ),
-                              searchInputView(model, h),
-                              resultsListView(model, h),
-                              resultCountAnnouncement(model),
+                              searchInputView(
+                                model.query,
+                                model.activeResultIndex,
+                                model.searchState,
+                                h,
+                              ),
+                              resultsListView(
+                                model.searchState,
+                                model.query,
+                                model.activeResultIndex,
+                                h,
+                              ),
+                              resultCountAnnouncement(model.searchState),
                             ],
                           ),
                         ],

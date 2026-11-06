@@ -116,7 +116,7 @@ describe('toParentMessageFor', () => {
           Story.init(),
           Story.models(
             Story.steps(
-              Story.messageFrom(
+              Story.messageIn(
                 LeftBinding,
                 ChildMessage.UpdatedCount({ count: 3 }),
               ),

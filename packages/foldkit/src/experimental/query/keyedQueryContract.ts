@@ -19,7 +19,10 @@ import * as AsyncData from '../../asyncData/public.js'
 import type { ValidateConstructionRequirements } from '../../block/scope.js'
 import type * as Command from '../../command/index.js'
 import type * as Interruptible from '../../command/interruptible/index.js'
-import { defineMessageUnion } from '../../message/index.js'
+import {
+  defineInMessageUnion,
+  defineMessageUnion,
+} from '../../message/index.js'
 import type { CompletedFetchOf, KeyedArgs } from './internal.js'
 import { isFresh, resolveStaleTime } from './policy.js'
 import type { QueryMessage } from './queryContract.js'
@@ -274,7 +277,7 @@ export const makeKeyedQueryLocalMessage = <
 
 /** @internal Builds the parent-owned KeyedQuery reset request. */
 export const makeKeyedQueryInMessage = () =>
-  defineMessageUnion(keyedQueryInputCases)
+  defineInMessageUnion(keyedQueryInputCases)
 
 /** Schema-backed parent requests accepted by a KeyedQuery. */
 export type KeyedQueryInMessage = ReturnType<typeof makeKeyedQueryInMessage>
@@ -402,7 +405,9 @@ export interface KeyedQueryModel<
           args: Schema.Struct<Fields>
           data: Schema.Codec<
             AsyncData.AsyncData<A, E>,
-            AsyncData.AsyncDataEncoded<AI, EI>
+            AsyncData.AsyncDataEncoded<AI, EI>,
+            never,
+            never
           >
           generation: typeof Schema.Number
           maybeCompletedAtMillis: Schema.withConstructorDefault<

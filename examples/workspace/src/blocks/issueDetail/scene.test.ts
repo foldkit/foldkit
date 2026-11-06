@@ -1,29 +1,13 @@
 import { Array, Option } from 'effect'
-import {
-  Command,
-  Mount,
-  click,
-  expect,
-  expectOutMessage,
-  init,
-  label,
-  role,
-  scene,
-  text,
-  type,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 import { Listbox } from '@foldkit/ui'
 
-import {
-  draftFromIssue,
-  initialWorkspace,
-  savedIssueFromIssue,
-} from '../../domain'
-import { WorkspaceListboxBlock } from '../../listbox'
+import { Issue, initialWorkspace } from '../../domain'
+import { StringListboxBlock } from '../../listbox'
 import { RepositoryError } from '../../repository'
 import { IssueDetailBlock } from './block'
 import { CommentComposerBlock } from './blocks/commentComposer'
@@ -38,29 +22,34 @@ const viewInputs = {
   issue,
   members: initialWorkspace.members,
   projects: initialWorkspace.projects,
-  authorId: 'maya',
+  commentAuthorId: 'maya',
+}
+const issueDetailSubject = {
+  block: IssueDetailBlock,
+  layer,
+  viewInputs,
 }
 
 const selectField = (fieldLabel: string, optionLabel: string) => [
-  click(label(fieldLabel)),
-  Command.resolve(
+  Scene.click(Scene.label(fieldLabel)),
+  Scene.Command.resolve(
     Listbox.test.FocusListboxItems,
-    WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
+    StringListboxBlock.Message.CompletedFocusListboxItems(),
   ),
-  Mount.resolve(
+  Scene.Mount.resolve(
     Listbox.test.AnchorListbox,
-    WorkspaceListboxBlock.Message.CompletedAnchorListbox(),
+    StringListboxBlock.Message.CompletedAnchorListbox(),
   ),
-  Mount.resolve(
+  Scene.Mount.resolve(
     Listbox.test.PortalListboxBackdrop,
-    WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
+    StringListboxBlock.Message.CompletedPortalListboxBackdrop(),
   ),
-  click(role('option', { name: optionLabel })),
-  Command.resolve(
+  Scene.click(Scene.role('option', { name: optionLabel })),
+  Scene.Command.resolve(
     Listbox.test.FocusListboxButton,
-    WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
+    StringListboxBlock.Message.CompletedFocusListboxButton(),
   ),
-  Mount.expectEnded(
+  Scene.Mount.expectEnded(
     Listbox.test.AnchorListbox,
     Listbox.test.PortalListboxBackdrop,
   ),
@@ -70,36 +59,40 @@ describe('Issue Detail view', () => {
   it.effect(
     'retains an explicitly unassigned draft after a failed save',
     () => {
-      const unassignedDraft = modifyFields(draftFromIssue(issue), {
+      const unassignedDraft = modifyFields(Issue.toDraft(issue), {
         maybeAssigneeId: () => Option.none(),
       })
-      return scene(
-        { block: IssueDetailBlock, layer, viewInputs },
-        init(issue),
-        expect(label('Assignee')).toHaveText('Maya Chen'),
+      return Scene.scene(
+        {
+          ...issueDetailSubject,
+          updateContext: [issue],
+          inMessageContext: [issue],
+        },
+        Scene.init(issue),
+        Scene.expect(Scene.label('Assignee')).toHaveText('Maya Chen'),
         ...selectField('Assignee', 'Unassigned'),
-        expect(label('Assignee')).toHaveText('Unassigned'),
-        click(role('button', { name: 'Save changes' })),
-        Command.expectExact(
+        Scene.expect(Scene.label('Assignee')).toHaveText('Unassigned'),
+        Scene.click(Scene.role('button', { name: 'Save changes' })),
+        Scene.Command.expectExact(
           SaveIssue({
             issueId: issue.id,
             expectedVersion: issue.version,
             draft: unassignedDraft,
           }),
         ),
-        Command.resolve(
+        Scene.Command.resolve(
           SaveIssue,
           Message.FailedSaveIssue({
             issueId: issue.id,
             expectedVersion: issue.version,
             error: RepositoryError.Unavailable({
               message: 'The workspace is temporarily unavailable.',
-              operation: 'Save',
+              operation: 'SaveIssue',
             }),
           }),
         ),
-        expect(label('Assignee')).toHaveText('Unassigned'),
-        expect(role('button', { name: 'Retry save' })).toExist(),
+        Scene.expect(Scene.label('Assignee')).toHaveText('Unassigned'),
+        Scene.expect(Scene.role('button', { name: 'Retry save' })).toExist(),
       )
     },
   )
@@ -115,22 +108,26 @@ describe('Issue Detail view', () => {
         body: 'Ready for review.',
         createdAt: '2026-10-22T14:30:00.000Z',
       }
-      return scene(
-        { block: IssueDetailBlock, layer, viewInputs },
-        init(issue),
-        type(label('Issue title'), draftTitle),
-        type(label('Write a comment'), comment.body),
-        click(role('button', { name: 'Post comment' })),
-        Command.resolve(
+      return Scene.scene(
+        {
+          ...issueDetailSubject,
+          updateContext: [issue],
+          inMessageContext: [issue],
+        },
+        Scene.init(issue),
+        Scene.type(Scene.label('Issue title'), draftTitle),
+        Scene.type(Scene.label('Write a comment'), comment.body),
+        Scene.click(Scene.role('button', { name: 'Post comment' })),
+        Scene.Command.resolve(
           AddComment,
           CommentComposerBlock.Message.SucceededAddComment({
             comment,
           }),
         ),
-        expect(label('Issue title')).toHaveValue(draftTitle),
-        expect(label('Write a comment')).toHaveValue(''),
-        expect(text(comment.body)).not.toExist(),
-        expectOutMessage(
+        Scene.expect(Scene.label('Issue title')).toHaveValue(draftTitle),
+        Scene.expect(Scene.label('Write a comment')).toHaveValue(''),
+        Scene.expect(Scene.text(comment.body)).not.toExist(),
+        Scene.expectOutMessage(
           OutMessage.AddedComment({ issueId: issue.id, comment }),
         ),
       )
@@ -142,7 +139,7 @@ describe('Issue Detail view', () => {
     () => {
       const title = 'Search every project from the command menu'
 
-      const savedIssueSnapshot = modifyFields(issue, {
+      const savedIssue = modifyFields(issue, {
         title: () => title,
         description: () => 'Find the right project without leaving your flow.',
         status: () => 'Done',
@@ -151,73 +148,81 @@ describe('Issue Detail view', () => {
         maybeAssigneeId: () => Option.some('alex'),
         version: version => version + 1,
       })
-      return scene(
-        { block: IssueDetailBlock, layer, viewInputs },
-        init(issue),
-        type(label('Issue title'), title),
-        type(label('Description'), savedIssueSnapshot.description),
+      return Scene.scene(
+        {
+          ...issueDetailSubject,
+          updateContext: [issue],
+          inMessageContext: [issue],
+        },
+        Scene.init(issue),
+        Scene.type(Scene.label('Issue title'), title),
+        Scene.type(Scene.label('Description'), savedIssue.description),
         ...selectField('Status', 'Done'),
         ...selectField('Priority', 'Medium'),
         ...selectField('Project', 'Platform'),
         ...selectField('Assignee', 'Alex Rivera'),
-        click(role('button', { name: 'Save changes' })),
-        Command.expectExact(
+        Scene.click(Scene.role('button', { name: 'Save changes' })),
+        Scene.Command.expectExact(
           SaveIssue({
             issueId: issue.id,
             expectedVersion: issue.version,
             draft: {
-              title: savedIssueSnapshot.title,
-              description: savedIssueSnapshot.description,
-              status: savedIssueSnapshot.status,
-              priority: savedIssueSnapshot.priority,
-              projectId: savedIssueSnapshot.projectId,
-              maybeAssigneeId: savedIssueSnapshot.maybeAssigneeId,
-              labelIds: savedIssueSnapshot.labelIds,
+              title: savedIssue.title,
+              description: savedIssue.description,
+              status: savedIssue.status,
+              priority: savedIssue.priority,
+              projectId: savedIssue.projectId,
+              maybeAssigneeId: savedIssue.maybeAssigneeId,
+              labelIds: savedIssue.labelIds,
             },
           }),
         ),
-        expect(role('button', { name: 'Save changes' })).toBeDisabled(),
-        expect(label('Status')).toBeDisabled(),
-        expect(label('Priority')).toBeDisabled(),
-        expect(label('Project')).toBeDisabled(),
-        expect(label('Assignee')).toBeDisabled(),
-        Command.resolve(
+        Scene.expect(
+          Scene.role('button', { name: 'Save changes' }),
+        ).toBeDisabled(),
+        Scene.expect(Scene.label('Status')).toBeDisabled(),
+        Scene.expect(Scene.label('Priority')).toBeDisabled(),
+        Scene.expect(Scene.label('Project')).toBeDisabled(),
+        Scene.expect(Scene.label('Assignee')).toBeDisabled(),
+        Scene.Command.resolve(
           SaveIssue,
           Message.FailedSaveIssue({
             issueId: issue.id,
             expectedVersion: issue.version,
             error: RepositoryError.Unavailable({
               message: 'The workspace is temporarily unavailable.',
-              operation: 'Save',
+              operation: 'SaveIssue',
             }),
           }),
         ),
-        expect(role('alert')).toContainText(
+        Scene.expect(Scene.role('alert')).toContainText(
           'The workspace is temporarily unavailable.',
         ),
-        expect(label('Issue title')).toHaveValue(title),
-        expect(label('Description')).toHaveValue(
-          savedIssueSnapshot.description,
+        Scene.expect(Scene.label('Issue title')).toHaveValue(title),
+        Scene.expect(Scene.label('Description')).toHaveValue(
+          savedIssue.description,
         ),
-        expect(label('Status')).toHaveText('Done'),
-        expect(label('Priority')).toHaveText('Medium'),
-        expect(label('Project')).toHaveText('Platform'),
-        expect(label('Assignee')).toHaveText('Alex Rivera'),
-        click(role('button', { name: 'Retry save' })),
-        Command.resolve(
+        Scene.expect(Scene.label('Status')).toHaveText('Done'),
+        Scene.expect(Scene.label('Priority')).toHaveText('Medium'),
+        Scene.expect(Scene.label('Project')).toHaveText('Platform'),
+        Scene.expect(Scene.label('Assignee')).toHaveText('Alex Rivera'),
+        Scene.click(Scene.role('button', { name: 'Retry save' })),
+        Scene.Command.resolve(
           SaveIssue,
           Message.SucceededSaveIssue({
-            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+            saveResult: Issue.toSaveResult(savedIssue),
             expectedVersion: issue.version,
           }),
         ),
-        expectOutMessage(
+        Scene.expectOutMessage(
           OutMessage.Saved({
-            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+            saveResult: Issue.toSaveResult(savedIssue),
           }),
         ),
-        expect(role('status')).toContainText('All changes saved'),
-        expect(role('button', { name: 'Save changes' })).toBeDisabled(),
+        Scene.expect(Scene.role('status')).toContainText('All changes saved'),
+        Scene.expect(
+          Scene.role('button', { name: 'Save changes' }),
+        ).toBeDisabled(),
       )
     },
   )

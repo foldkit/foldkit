@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion } from 'foldkit/message'
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   InformedOfRouteChange: { slug: Schema.String },
 })
 export type InMessage = typeof InMessage.Type

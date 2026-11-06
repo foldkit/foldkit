@@ -1,6 +1,5 @@
 import { Option } from 'effect'
-import { Calendar } from 'foldkit'
-import { Command, init, message, model, story } from 'foldkit/story'
+import { Calendar, Story } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe, expect } from 'vitest'
 
@@ -22,67 +21,69 @@ const urlOrThrow = (raw: string) =>
 describe('update', () => {
   describe('routing', () => {
     it.effect('the root URL resolves to Home', () =>
-      story(
+      Story.story(
         application,
-        init({ today }, urlOrThrow('http://localhost/')),
-        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
-        model(model => {
+        Story.init({ today }, urlOrThrow('http://localhost/')),
+        Story.message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/') }),
+        ),
+        Story.model(model => {
           expect(model.route._tag).toBe('Home')
         }),
       ),
     )
 
     it.effect('/button resolves to Button', () =>
-      story(
+      Story.story(
         application,
-        init({ today }, urlOrThrow('http://localhost/')),
-        message(
+        Story.init({ today }, urlOrThrow('http://localhost/')),
+        Story.message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.route._tag).toBe('Button')
         }),
       ),
     )
 
     it.effect('/calendar resolves to Calendar', () =>
-      story(
+      Story.story(
         application,
-        init({ today }, urlOrThrow('http://localhost/')),
-        message(
+        Story.init({ today }, urlOrThrow('http://localhost/')),
+        Story.message(
           Message.ChangedUrl({
             url: urlOrThrow('http://localhost/calendar'),
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.route._tag).toBe('Calendar')
         }),
       ),
     )
 
     it.effect('/date-picker resolves to DatePicker', () =>
-      story(
+      Story.story(
         application,
-        init({ today }, urlOrThrow('http://localhost/')),
-        message(
+        Story.init({ today }, urlOrThrow('http://localhost/')),
+        Story.message(
           Message.ChangedUrl({
             url: urlOrThrow('http://localhost/date-picker'),
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.route._tag).toBe('DatePicker')
         }),
       ),
     )
 
     it.effect('an unknown path resolves to NotFound', () =>
-      story(
+      Story.story(
         application,
-        init({ today }, urlOrThrow('http://localhost/')),
-        message(
+        Story.init({ today }, urlOrThrow('http://localhost/')),
+        Story.message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/unknown') }),
         ),
-        model(model => {
+        Story.model(model => {
           if (model.route._tag === 'NotFound') {
             expect(model.route.path).toBe('/unknown')
           } else {
@@ -95,22 +96,22 @@ describe('update', () => {
 
   describe('mobile menu', () => {
     it.effect('navigating to a new URL closes the mobile menu dialog', () =>
-      story(
+      Story.story(
         application,
-        init({ today }, urlOrThrow('http://localhost/')),
-        message(Message.ClickedOpenMobileMenu()),
-        Command.resolve(
+        Story.init({ today }, urlOrThrow('http://localhost/')),
+        Story.message(Message.ClickedOpenMobileMenu()),
+        Story.Command.resolve(
           Dialog.test.ShowDialog,
           Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
-        message(
+        Story.message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
-        Command.resolve(
+        Story.Command.resolve(
           Dialog.test.CloseDialog,
           Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)
         }),
       ),

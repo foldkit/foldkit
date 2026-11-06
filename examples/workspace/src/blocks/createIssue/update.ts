@@ -2,13 +2,12 @@ import { Option, String, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { IssueDraft } from '../../domain'
+import { Issue } from '../../domain'
 import { makeFieldsStep, makeStep } from './block'
 import { CreateIssue } from './command'
 import { CreateIssueComposition, DialogBinding } from './composition'
-import { editDraft } from './draft'
-import type { UpdatedDescription } from './message'
-import { CreateState, type Model } from './model'
+import { editIssueForm } from './draft'
+import { CreateState } from './model'
 import { OutMessage } from './outMessage'
 
 const createIssue = makeStep(model => {
@@ -29,7 +28,7 @@ const createIssue = makeStep(model => {
     }
   }
 
-  const draft = IssueDraft.make({
+  const draft = Issue.Draft.make({
     title,
     description: model.description,
     projectId: model.projectId,
@@ -47,18 +46,13 @@ const createIssue = makeStep(model => {
   }
 })
 
-const handleUpdatedDescription = (
-  model: Model,
-  { value }: UpdatedDescription,
-) =>
-  editDraft(draft => modifyFields(draft, { description: () => value }))(model)
-
 export const update = CreateIssueComposition.makeUpdate({
   UpdatedTitle: (model, { value }) =>
-    editDraft(draftModel => modifyFields(draftModel, { title: () => value }))(
+    editIssueForm(form => modifyFields(form, { title: () => value }))(model),
+  UpdatedDescription: (model, { value }) =>
+    editIssueForm(form => modifyFields(form, { description: () => value }))(
       model,
     ),
-  UpdatedDescription: handleUpdatedDescription,
   SubmittedIssueForm: createIssue,
   SucceededCreateIssue: (model, { issue }) => {
     return pipe(

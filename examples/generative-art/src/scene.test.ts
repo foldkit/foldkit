@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { click, expect, given, label, role, scene, text } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
@@ -73,41 +73,41 @@ describe('view', () => {
   it.effect(
     'initial view shows Pause and Reset buttons and a zero particle counter',
     () =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        expect(role('button', { name: 'Pause' })).toExist(),
-        expect(role('button', { name: 'Reset' })).toExist(),
-        expect(text('0 particles')).toExist(),
+        Scene.given(initialModel),
+        Scene.expect(Scene.role('button', { name: 'Pause' })).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Reset' })).toExist(),
+        Scene.expect(Scene.text('0 particles')).toExist(),
       ),
   )
 
   it.effect('clicking Pause swaps the toggle to Play', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      click(role('button', { name: 'Pause' })),
-      expect(role('button', { name: 'Play' })).toExist(),
-      expect(role('button', { name: 'Pause' })).not.toExist(),
+      Scene.given(initialModel),
+      Scene.click(Scene.role('button', { name: 'Pause' })),
+      Scene.expect(Scene.role('button', { name: 'Play' })).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Pause' })).not.toExist(),
     ),
   )
 
   it.effect('clicking Reset empties the particles list', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(modelWithParticles(8)),
-      expect(text('8 particles')).toExist(),
-      click(role('button', { name: 'Reset' })),
-      expect(text('0 particles')).toExist(),
+      Scene.given(modelWithParticles(8)),
+      Scene.expect(Scene.text('8 particles')).toExist(),
+      Scene.click(Scene.role('button', { name: 'Reset' })),
+      Scene.expect(Scene.text('0 particles')).toExist(),
     ),
   )
 
   it.effect('Turbulence and Noise scale sliders are present and labeled', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      expect(label('Turbulence')).toExist(),
-      expect(label('Noise scale')).toExist(),
+      Scene.given(initialModel),
+      Scene.expect(Scene.label('Turbulence')).toExist(),
+      Scene.expect(Scene.label('Noise scale')).toExist(),
     ),
   )
 })

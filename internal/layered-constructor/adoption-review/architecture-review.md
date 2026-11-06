@@ -34,7 +34,7 @@ No additional concrete correctness blocker was found in the reviewed constructio
 - Default implementation Layers are scoped to the test. Explicitly supplied implementation Layers retain their surrounding Effect Scope and sharing. A callback assertion failure closes the scopes owned by that test; it does not redefine the lifetime of an externally supplied shared provider.
 - Synchronous callbacks and returned Effects are supported. Promise callbacks reject because their work could escape the owning Scope.
 - Story and Scene resolve deferred init inside the acquired lifetime and seed the complete init result through the core helper, preserving initial Commands and OutMessages. They do not build handler Layers or execute Subscription Streams.
-- `testGraph.ts`, `messageFrom`, and `toParentMessageFor` resolve child delivery against the acquired private graph. These pure tests intentionally do not simulate live Runtime generation admission; the public documentation states that boundary.
+- `testGraph.ts`, `messageIn`, and `toParentMessageFor` resolve child delivery against the acquired private graph. These pure tests intentionally do not simulate live Runtime generation admission; the public documentation states that boundary.
 - Required, optional, and rest dispatch Context remain explicit in the scoped test configuration. Direct transitions use the acquired native update and operation environment, without an ambient current graph.
 
 ## Evidence boundaries

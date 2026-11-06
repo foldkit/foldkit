@@ -6,7 +6,7 @@ A custom select dropdown with keyboard navigation, typeahead search, and anchor 
 
 ### Create a Typed Listbox
 
-Declare a typed Listbox at module scope with the [`Listbox.makeBlock<Item, Value>()` factory](/ui/selection-blocks). Its type arguments describe the view inputs, `requestSelectItem` input and typed `Selected` OutMessage.
+Declare a typed Listbox at module scope with the [`Listbox.makeBlock` factory](/ui/selection-blocks). Pass no Schema for plain strings, one Value Schema when items are values directly, or an Item Schema and Value Schema when the view renders richer items. The Value Schema defines the `requestSelectItem` input, typed `Selected` OutMessage, and runtime selection validation.
 
 What the factory returns is typed [`Listbox.Completed<Item, Value>` from `@foldkit/ui`](/ui/selection-blocks#completed-type). The multi-select namespace exports its own `Listbox.Multi.Completed<Item, Value>` type, for the cases where a created Block has to be named rather than called directly.
 
@@ -30,7 +30,7 @@ Pass an `itemToConfig` callback that maps each item to its content. The context 
 
 ### Multi-select
 
-Use `Listbox.Multi.makeBlock()` and `Listbox.Multi.makeBlock` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
+Use the same zero-, one-, or two-Schema forms through `Listbox.Multi.makeBlock` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
 
 ::Demo{name="multi-select"}
 

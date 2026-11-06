@@ -3,10 +3,11 @@ import type { Html } from 'foldkit/html'
 
 import { Button, Dialog, Fieldset, Input, Listbox, Textarea } from '@foldkit/ui'
 
+import { Issue } from '../../domain'
 import {
   PriorityListboxOption,
   StatusListboxOption,
-  listboxViewInputs,
+  toListboxViewInputs,
 } from '../../listbox'
 import {
   CreateIssueComposition,
@@ -24,12 +25,10 @@ import type { ViewInputs } from './viewInputs'
 const FIELD_CLASS = 'grid gap-2'
 const LABEL_CLASS = 'text-[13px] font-medium text-slate-600'
 
-const STATUS_OPTIONS: ReadonlyArray<StatusListboxOption> = [
-  { value: 'Backlog', label: 'Backlog' },
-  { value: 'Todo', label: 'Todo' },
-  { value: 'InProgress', label: 'In progress' },
-  { value: 'Done', label: 'Done' },
-]
+const STATUS_OPTIONS: ReadonlyArray<StatusListboxOption> = Array.map(
+  Issue.Status.literals,
+  status => ({ value: status, label: Issue.statusLabel(status) }),
+)
 const PRIORITY_OPTIONS: ReadonlyArray<PriorityListboxOption> = [
   { value: 'Low', label: 'Low' },
   { value: 'Medium', label: 'Medium' },
@@ -51,18 +50,19 @@ const listboxField = (
   )
 
 const titleField = (
-  model: Model,
+  title: string,
+  createState: CreateState,
   initialFocus: Dialog.RenderInfo['initialFocus'],
   h: CreateIssueViewBuilder,
 ): Html =>
   Input.view(
     {
       id: 'create-issue-title',
-      value: model.title,
-      isDisabled: !isDraftEditable(model),
+      value: title,
+      isDisabled: CreateState.guards.Creating(createState),
       isInvalid:
-        CreateState.guards.Failed(model.createState) &&
-        String.isEmpty(String.trim(model.title)),
+        CreateState.guards.Failed(createState) &&
+        String.isEmpty(String.trim(title)),
       onInput: value => Message.UpdatedTitle({ value }),
       toView: attributes =>
         h.div(
@@ -82,13 +82,17 @@ const titleField = (
     h,
   )
 
-const descriptionField = (model: Model, h: CreateIssueViewBuilder): Html =>
+const descriptionField = (
+  description: string,
+  isCreating: boolean,
+  h: CreateIssueViewBuilder,
+): Html =>
   Textarea.view(
     {
       id: 'create-issue-description',
-      value: model.description,
+      value: description,
       rows: 4,
-      isDisabled: !isDraftEditable(model),
+      isDisabled: isCreating,
       onInput: value => Message.UpdatedDescription({ value }),
       toView: attributes =>
         h.div(
@@ -127,8 +131,8 @@ const fields = (
             h.Class('m-0 grid min-w-0 gap-5 border-0 p-0'),
           ],
           [
-            titleField(model, initialFocus, h),
-            descriptionField(model, h),
+            titleField(model.title, model.createState, initialFocus, h),
+            descriptionField(model.description, isCreating, h),
             listboxField(
               model.projectListbox.id,
               'Project',
@@ -136,7 +140,7 @@ const fields = (
                 ProjectListboxBinding.embedView({
                   slotId: model.projectListbox.id,
                   model: model.projectListbox,
-                  viewInputs: listboxViewInputs({
+                  viewInputs: toListboxViewInputs({
                     value: model.projectId,
                     options: Array.map(viewInputs.projects, project => ({
                       value: project.id,
@@ -158,7 +162,7 @@ const fields = (
                     StatusListboxBinding.embedView({
                       slotId: model.statusListbox.id,
                       model: model.statusListbox,
-                      viewInputs: listboxViewInputs({
+                      viewInputs: toListboxViewInputs({
                         value: model.status,
                         options: STATUS_OPTIONS,
                         isDisabled: isCreating,
@@ -174,7 +178,7 @@ const fields = (
                     PriorityListboxBinding.embedView({
                       slotId: model.priorityListbox.id,
                       model: model.priorityListbox,
-                      viewInputs: listboxViewInputs({
+                      viewInputs: toListboxViewInputs({
                         value: model.priority,
                         options: PRIORITY_OPTIONS,
                         isDisabled: isCreating,
@@ -193,10 +197,10 @@ const fields = (
 }
 
 const feedback = (
-  model: Model,
+  createState: CreateState,
   h: CreateIssueViewBuilder,
 ): ReadonlyArray<Html> =>
-  CreateState.match(model.createState, {
+  CreateState.match(createState, {
     Idle: () => [],
     Creating: () => [
       h.p([h.Role('status'), h.Class('sr-only')], ['Creating issue…']),
@@ -214,8 +218,11 @@ const feedback = (
     ],
   })
 
-const submitButton = (model: Model, h: CreateIssueViewBuilder): Html => {
-  const isCreating = CreateState.guards.Creating(model.createState)
+const submitButton = (
+  createState: CreateState,
+  h: CreateIssueViewBuilder,
+): Html => {
+  const isCreating = CreateState.guards.Creating(createState)
 
   return Button.view(
     {
@@ -285,7 +292,7 @@ export const view = CreateIssueComposition.makeView.withInputs(
                           [h.OnSubmit(Message.SubmittedIssueForm())],
                           [
                             fields(model, viewInputs, initialFocus, h),
-                            ...feedback(model, h),
+                            ...feedback(model.createState, h),
                             h.div(
                               [
                                 h.Class(
@@ -303,7 +310,7 @@ export const view = CreateIssueComposition.makeView.withInputs(
                                       : 'Cancel',
                                   ],
                                 ),
-                                submitButton(model, h),
+                                submitButton(model.createState, h),
                               ],
                             ),
                           ],

@@ -31,7 +31,7 @@ const dragStory = () =>
   Story.story(
     ApplicationBlock,
     Story.init(),
-    Story.messageFrom(
+    Story.messageIn(
       DragAndDropBinding,
       DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
         itemId: 'card',
@@ -39,7 +39,7 @@ const dragStory = () =>
         index: 0,
       }),
     ),
-    Story.messageFrom(
+    Story.messageIn(
       DragAndDropBinding,
       DragAndDrop.DragAndDropBlock.Message.PressedArrowKey({
         direction: 'Right',

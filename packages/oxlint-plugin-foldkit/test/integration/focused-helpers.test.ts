@@ -1467,3 +1467,102 @@ const run = ChildComposition => ${author(`ChildComposition.${method}`, form, han
     }
   }
 })
+
+describe('canonical InMessage union recognition through real oxlint', () => {
+  const importedUnion = (body: string) => `
+import { defineInMessageUnion as defineInputs } from 'foldkit/message'
+const InMessage = defineInputs(${body})
+`
+  const namespacedUnion = (body: string) => `
+import * as Message from 'foldkit/message'
+const InMessage = Message.defineInMessageUnion(${body})
+`
+  const shadowedUnion = (body: string) => `
+const Message = { defineInMessageUnion: cases => cases }
+const InMessage = Message.defineInMessageUnion(${body})
+`
+
+  it('checks imported and namespaced InMessage cases without trusting shadows', () => {
+    const body = '{ NoOp: {} }'
+
+    expect(
+      diagnosticsFor(
+        'inmessage-noop-import',
+        'no-noop-message',
+        importedUnion(body),
+      ),
+    ).toHaveLength(1)
+    expect(
+      diagnosticsFor(
+        'inmessage-noop-namespace',
+        'no-noop-message',
+        namespacedUnion(body),
+      ),
+    ).toHaveLength(1)
+    expect(
+      diagnosticsFor(
+        'inmessage-noop-shadow',
+        'no-noop-message',
+        shadowedUnion(body),
+      ),
+    ).toEqual([])
+  })
+
+  it('checks imported and namespaced empty constructor calls without trusting shadows', () => {
+    const body = '{ RequestedRefresh: {} }'
+    const call = 'InMessage.RequestedRefresh({})'
+
+    expect(
+      diagnosticsFor(
+        'inmessage-empty-constructor-import',
+        'no-empty-object-tagged-call',
+        importedUnion(body) + call,
+      ),
+    ).toHaveLength(1)
+    expect(
+      diagnosticsFor(
+        'inmessage-empty-constructor-namespace',
+        'no-empty-object-tagged-call',
+        namespacedUnion(body) + call,
+      ),
+    ).toHaveLength(1)
+    expect(
+      diagnosticsFor(
+        'inmessage-empty-constructor-shadow',
+        'no-empty-object-tagged-call',
+        shadowedUnion(body) + call,
+      ),
+    ).toEqual([])
+  })
+
+  it('detects imported and namespaced constructors in mapEffect without trusting shadows', () => {
+    const body = '{ ReceivedChild: { message: {} } }'
+    const mapEffect = `
+import { Effect } from 'effect'
+import * as Command from 'foldkit/command'
+Command.mapEffect(command, Effect.map(InMessage.ReceivedChild))
+`
+
+    expect(
+      diagnosticsFor(
+        'inmessage-mapmessage-import',
+        'prefer-command-mapmessage',
+        importedUnion(body) + mapEffect,
+      ),
+    ).toHaveLength(1)
+    expect(
+      diagnosticsFor(
+        'inmessage-mapmessage-namespace',
+        'prefer-command-mapmessage',
+        namespacedUnion(body) + mapEffect,
+      ),
+    ).toHaveLength(1)
+    expect(
+      diagnosticsFor(
+        'inmessage-mapmessage-shadow',
+        'prefer-command-mapmessage',
+        shadowedUnion(body) + mapEffect,
+      ),
+    ).toEqual([])
+  })
+})

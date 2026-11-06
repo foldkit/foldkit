@@ -25,13 +25,13 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 
 export const recordUpdate = ApplicationComposition.makeUpdate({
-  ClickedChangeTheme: SettingsBinding.informThemeChanged({ theme: 'Light' }),
+  ClickedChangeTheme: SettingsBinding.informOfThemeChanged({ theme: 'Light' }),
 })
 
 export const contextualRecordUpdate =
   ApplicationComposition.makeUpdate.withContext((theme: string) => ({
     ClickedChangeTheme: model =>
-      SettingsBinding.informThemeChanged({ theme })(model),
+      SettingsBinding.informOfThemeChanged({ theme })(model),
   }))
 
 const OtherMessage = defineMessageUnion({ ChangedTheme: {} })

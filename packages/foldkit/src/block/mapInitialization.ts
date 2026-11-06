@@ -1,4 +1,4 @@
-import { HashMap, Predicate, Record } from 'effect'
+import { HashMap, Option, Predicate, Record } from 'effect'
 
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
@@ -82,6 +82,10 @@ type MapInitConfig<BindingValue extends AnyBinding> = Readonly<{
   toParentModel?: never
 }>
 
+type MapInitProducer<BindingValue extends AnyBinding> = (
+  model: ParentModelOf<BindingValue>,
+) => Option.Option<MapInitConfig<BindingValue>>
+
 type MapStorage = Extract<RuntimeBindingStorage, { kind: 'Map' }>
 
 const snapshotConfig = (config: unknown): unknown => {
@@ -99,6 +103,18 @@ const snapshotConfig = (config: unknown): unknown => {
   })
 }
 
+const mapStorageOf = (binding: object, operation: string): MapStorage => {
+  const { storage } = runtimeBindingOf(binding)
+
+  if (storage?.kind !== 'Map' || storage.childField !== undefined) {
+    throw new Error(
+      `[foldkit] ${operation} requires an exact Record or HashMap child Binding.`,
+    )
+  }
+
+  return storage
+}
+
 const mapInitConfig = (
   binding: AnyBinding,
   config: unknown,
@@ -108,13 +124,7 @@ const mapInitConfig = (
   key: string | number
   args: ReadonlyArray<unknown>
 }> => {
-  const { storage } = runtimeBindingOf(binding)
-
-  if (storage?.kind !== 'Map' || storage.childField !== undefined) {
-    throw new Error(
-      `[foldkit] ${operation} requires an exact Record or HashMap child Binding.`,
-    )
-  }
+  const storage = mapStorageOf(binding, operation)
 
   if (!Predicate.isObject(config)) {
     throw new Error(`[foldkit] ${operation} requires a key and args object.`)
@@ -285,11 +295,15 @@ export function initAndInsert(
  * key is absent from the Binding's declared Record or Effect HashMap field.
  *
  * Pass one concrete `makeMapBinding` Binding whose values are child Models,
- * plus its exact key and child init argument tuple. No field selector or
+ * plus its exact key and child init argument tuple, or a Model-first producer
+ * returning an Option of that configuration. No field selector or
  * separate presence check is needed. Wrapped values and custom accessors keep
  * explicit initialization because the parent owns their storage policy.
  *
- * Construction captures the key and arguments without initializing a child.
+ * A concrete configuration captures the key and arguments at construction.
+ * A producer runs once when the Step is applied, using that Step's current
+ * parent Model. None preserves the exact Model without initializing a child.
+ * Construction does not run the producer or initialize a child.
  * The registered Composition checks the current Model when applying the Step.
  * An existing key preserves the exact parent Model and emits no Commands; an
  * absent key retains every lifted child init Command. Both paths require the
@@ -297,7 +311,9 @@ export function initAndInsert(
  */
 export function makeInitIfMissingStep<const BindingValue extends AnyBinding>(
   binding: BindingValue,
-  config: MapInitConfig<NoInfer<BindingValue>>,
+  config:
+    | MapInitConfig<NoInfer<BindingValue>>
+    | MapInitProducer<NoInfer<BindingValue>>,
   ...validation: NoInfer<
     ValidateInsertBinding<BindingValue, 'makeInitIfMissingStep'>
   >
@@ -321,13 +337,46 @@ export function makeInitIfMissingStep(
   const resolveBinding = bindingResolverOf(binding)
 
   if (resolveBinding !== undefined) {
-    const capturedConfig = snapshotConfig(config)
+    const capturedConfig = Predicate.isFunction(config)
+      ? config
+      : snapshotConfig(config)
 
     return (model: unknown) =>
       makeResultRecipe((_model, environment) => {
         const step = Reflect.apply(makeInitIfMissingStep, undefined, [
           resolveBinding(environment),
           capturedConfig,
+        ])
+
+        return resolveOperationOutput(step(model), model, environment)
+      })
+  }
+
+  if (Predicate.isFunction(config)) {
+    mapStorageOf(binding, 'makeInitIfMissingStep')
+
+    const originalBinding = canonicalBindingOf(binding)
+
+    return (model: unknown) =>
+      makeResultRecipe((_model, environment) => {
+        assertRegisteredBinding(originalBinding, binding.placement)
+        assertParentModel(binding, model, 'makeInitIfMissingStep')
+
+        const maybeConfig: unknown = config(model)
+
+        if (!Option.isOption(maybeConfig)) {
+          throw new Error(
+            '[foldkit] makeInitIfMissingStep producer must return an Option of key and args.',
+          )
+        }
+
+        if (Option.isNone(maybeConfig)) {
+          return { model }
+        }
+
+        const step = Reflect.apply(makeInitIfMissingStep, undefined, [
+          binding,
+          maybeConfig.value,
         ])
 
         return resolveOperationOutput(step(model), model, environment)

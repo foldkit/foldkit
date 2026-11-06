@@ -15,7 +15,7 @@ const foldHomeOutMessage = makeOutMessageFold(Home.HomeBlock, {
 })
 
 const foldRoomOutMessage = makeOutMessageFold(Room.RoomBlock, {
-  SavedRoom: ({ roomId }) => BaseHomeBinding.informRoomSaved(roomId),
+  SavedRoom: ({ roomId }) => BaseHomeBinding.informOfRoomSaved(roomId),
 })
 
 export const HomeBinding = BaseHomeBinding.withOutMessagePolicy({

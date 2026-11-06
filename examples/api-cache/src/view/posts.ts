@@ -12,15 +12,27 @@ import { errorPanel, loadingPanel, toolbarButtonClassName } from './shared'
 const formatFetchedAt = (fetchedAt: number): string =>
   new Date(fetchedAt).toLocaleTimeString()
 
-export const postsTabView = (model: Model, h: ApplicationViewBuilder) =>
-  Option.match(model.maybeSelectedPostId, {
+export const postsTabView = (
+  maybeSelectedPostId: Model['maybeSelectedPostId'],
+  postsData: Model['posts'],
+  postDetailById: Model['postDetailById'],
+  h: ApplicationViewBuilder,
+) =>
+  Option.match(maybeSelectedPostId, {
     onNone: () =>
-      h.section([h.Class('flex flex-col gap-4')], [postsListView(model, h)]),
-    onSome: postId => postDetailSection({ model, postId }, h),
+      h.section(
+        [h.Class('flex flex-col gap-4')],
+        [postsListView(postsData, postDetailById, h)],
+      ),
+    onSome: postId => postDetailSection(postDetailById, postId, h),
   })
 
-const postsListView = (model: Model, h: ApplicationViewBuilder) => {
-  const isPending = AsyncData.isPending(model.posts)
+const postsListView = (
+  postsData: Model['posts'],
+  postDetailById: Model['postDetailById'],
+  h: ApplicationViewBuilder,
+) => {
+  const isPending = AsyncData.isPending(postsData)
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -37,7 +49,7 @@ const postsListView = (model: Model, h: ApplicationViewBuilder) => {
                 h.button(
                   [...attributes.button, h.Class(toolbarButtonClassName)],
                   [
-                    AsyncData.isRefreshing(model.posts)
+                    AsyncData.isRefreshing(postsData)
                       ? 'Refreshing...'
                       : 'Invalidate',
                   ],
@@ -53,7 +65,7 @@ const postsListView = (model: Model, h: ApplicationViewBuilder) => {
           'Open a post, go back, and open it again. The second visit renders instantly from the Model. Invalidate marks the list stale and refetches it while the current list stays on screen.',
         ],
       ),
-      AsyncData.matchDataSplitEmpty(model.posts, {
+      AsyncData.matchDataSplitEmpty(postsData, {
         onIdle: () => loadingPanel('Loading posts...', h),
         onLoading: () => loadingPanel('Loading posts...', h),
         onFailure: error =>
@@ -62,7 +74,7 @@ const postsListView = (model: Model, h: ApplicationViewBuilder) => {
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(AsyncData.getError(model.posts), {
+              ...Option.match(AsyncData.getError(postsData), {
                 onNone: () => [],
                 onSome: error => [
                   errorPanel(
@@ -73,10 +85,7 @@ const postsListView = (model: Model, h: ApplicationViewBuilder) => {
               }),
               h.ul(
                 [h.Class('flex flex-col gap-2')],
-                postListItems(
-                  { posts, postDetailById: model.postDetailById },
-                  h,
-                ),
+                postListItems({ posts, postDetailById }, h),
               ),
             ],
           ),
@@ -149,24 +158,24 @@ const postListItems = (
     ),
   )
 
-type PostDetailInput = Readonly<{ model: Model; postId: string }>
-
 const postDetailSection = (
-  { model, postId }: PostDetailInput,
+  postDetailById: Model['postDetailById'],
+  postId: string,
   h: ApplicationViewBuilder,
 ) =>
   h.keyed('section')(
     postId,
     [h.Class('flex flex-col gap-4')],
-    [postDetailView({ model, postId }, h)],
+    [postDetailView(postDetailById, postId, h)],
   )
 
 const postDetailView = (
-  { model, postId }: PostDetailInput,
+  postDetailById: Model['postDetailById'],
+  postId: string,
   h: ApplicationViewBuilder,
 ) => {
   const postDetailData = Option.getOrElse(
-    HashMap.get(model.postDetailById, postId),
+    HashMap.get(postDetailById, postId),
     () => PostDetailData.Idle(),
   )
 

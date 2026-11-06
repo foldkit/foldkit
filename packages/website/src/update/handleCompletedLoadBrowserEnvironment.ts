@@ -52,7 +52,7 @@ export const handleCompletedLoadBrowserEnvironment = makeStep.fromMessage(
 
     return Update.combineSteps([
       applyBrowserEnvironment,
-      PlaygroundBinding.informSupport({ isSupported: isPlaygroundSupported }),
+      PlaygroundBinding.informOfSupport({ isSupported: isPlaygroundSupported }),
       initUiPages,
     ])
   },

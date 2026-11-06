@@ -14,7 +14,10 @@ import * as AsyncData from '../../asyncData/public.js'
 import type { ValidateConstructionRequirements } from '../../block/scope.js'
 import type * as Command from '../../command/index.js'
 import type * as Interruptible from '../../command/interruptible/public.js'
-import { defineMessageUnion } from '../../message/index.js'
+import {
+  defineInMessageUnion,
+  defineMessageUnion,
+} from '../../message/index.js'
 import type { CompletedFetchOf } from './internal.js'
 import { isFresh, resolveStaleTime } from './policy.js'
 
@@ -141,7 +144,7 @@ export const makeQueryLocalMessage = <A, AI, E, EI>(
 ) => defineMessageUnion(queryLocalCases(data, error))
 
 /** @internal Builds the parent-owned Query request contract. */
-export const makeQueryInMessage = () => defineMessageUnion(queryInputCases)
+export const makeQueryInMessage = () => defineInMessageUnion(queryInputCases)
 
 /** Schema-backed local Query completions and the explicit Clock adapter. */
 export type QueryLocalMessage<A, AI, E, EI> = ReturnType<

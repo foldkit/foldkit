@@ -27,7 +27,7 @@ export const EntriesBinding = makeBinding(EducationEntryBlock, {
     toItem: (_occurrence, entry) => entry,
   },
 }).withOutMessagePolicy({
-  fold: (entryId, outMessage) => foldEntryOutMessage(entryId)(outMessage),
+  fold: foldEntryOutMessage,
 })
 
 export const EducationComposition = makeComposition({

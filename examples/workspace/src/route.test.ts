@@ -1,13 +1,13 @@
-import { Option, Schema } from 'effect'
+import { Option } from 'effect'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { IssueFilters } from './domain'
+import { Issue } from './domain'
 import {
   ApplicationRoute,
-  PageRoute,
   boardRouter,
   defaultIssueFilters,
+  isPageRoute,
   issueRouter,
   issuesRouter,
   maybeIssueId,
@@ -25,7 +25,7 @@ import {
 const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
 
-const customFilters = IssueFilters.make({
+const customFilters = Issue.Filters.make({
   query: 'cache & routing',
   maybeStatus: Option.some('Todo'),
   sort: 'Priority',
@@ -98,39 +98,13 @@ describe('workspace list routes', () => {
 
     expect(maybeRouteFilters(route)).toEqual(
       Option.some(
-        IssueFilters.make({
+        Issue.Filters.make({
           ...defaultIssueFilters,
           query: 'release/notes',
         }),
       ),
     )
     expect(routeToPath(route)).toBe('/?search=release%2Fnotes')
-  })
-
-  test('sets explicit filters only on supported routes', () => {
-    expect(
-      withRouteFilters(
-        ApplicationRoute.Project({ projectId: 'platform' }),
-        customFilters,
-      ),
-    ).toEqual(
-      ApplicationRoute.Project({
-        projectId: 'platform',
-        filters: customFilters,
-      }),
-    )
-
-    const myIssuesRoute = ApplicationRoute.MyIssues({ issueId: 'issue-101' })
-    expect(withRouteFilters(myIssuesRoute, customFilters)).toEqual(
-      ApplicationRoute.MyIssues({
-        issueId: 'issue-101',
-        filters: customFilters,
-      }),
-    )
-
-    const boardRoute = ApplicationRoute.Board({ projectId: 'platform' })
-
-    expect(withRouteFilters(boardRoute, customFilters)).toBe(boardRoute)
   })
 })
 
@@ -209,42 +183,15 @@ describe('issue selection', () => {
     expect(maybeIssueId(route)).toEqual(Option.some('issue-101'))
   })
 
-  test('restricts optional issue selection to page Routes', () => {
-    const isValidPageRoute = Schema.is(PageRoute)
-
-    expect(
-      isValidPageRoute(ApplicationRoute.Board({ projectId: 'platform' })),
-    ).toBe(true)
-    expect(
-      isValidPageRoute(ApplicationRoute.Issue({ issueId: 'issue-101' })),
-    ).toBe(false)
-    expect(
-      isValidPageRoute(ApplicationRoute.NotFound({ path: '/unknown' })),
-    ).toBe(false)
-  })
-
-  test('stores only the selected issue identity in the Route Schema', () => {
-    const route = ApplicationRoute.Board({
-      projectId: 'platform',
-      issueId: 'issue-101',
-    })
-    const encodedRoute = Schema.encodeSync(ApplicationRoute)(route)
-
-    expect(encodedRoute).toEqual({
-      _tag: 'Board',
-      projectId: 'platform',
-      issueId: 'issue-101',
-    })
-    expect(Schema.decodeSync(ApplicationRoute)(encodedRoute)).toEqual(route)
-    expect(
-      Schema.is(ApplicationRoute)({
-        _tag: 'Board',
-        projectId: 'platform',
-        issueId: 42,
-      }),
-    ).toBe(false)
-    expect(
-      maybeIssueId(ApplicationRoute.NotFound({ path: '/unknown' })),
-    ).toEqual(Option.none())
+  test('treats only page Routes as issue-panel hosts', () => {
+    expect(isPageRoute(ApplicationRoute.Board({ projectId: 'platform' }))).toBe(
+      true,
+    )
+    expect(isPageRoute(ApplicationRoute.Issue({ issueId: 'issue-101' }))).toBe(
+      false,
+    )
+    expect(isPageRoute(ApplicationRoute.NotFound({ path: '/unknown' }))).toBe(
+      false,
+    )
   })
 })

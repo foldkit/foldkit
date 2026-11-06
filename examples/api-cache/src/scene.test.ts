@@ -1,14 +1,5 @@
 import { Result } from 'effect'
-import {
-  Command,
-  click,
-  expect,
-  given,
-  inside,
-  role,
-  scene,
-  text,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
@@ -19,7 +10,7 @@ import { Message } from './message'
 import { ApplicationTabsBlock } from './model'
 import { FETCHED_AT, firstPostDetail, fixtureStats, it } from './model.fixture'
 
-const resolveFocusTab = Command.resolve(
+const resolveFocusTab = Scene.Command.resolve(
   Tabs.test.FocusTab,
   ApplicationTabsBlock.Message.CompletedFocusTab(),
 )
@@ -28,26 +19,26 @@ describe('view', () => {
   it.effect(
     'posts load into clickable rows with an Invalidate button',
     ({ models: { loadingPostsModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(loadingPostsModel),
-        expect(text('Loading posts...')).toExist(),
-        expect(role('button', { name: 'Invalidate' })).toExist(),
-        expect(role('tab', { name: 'Posts' })).toExist(),
-        expect(role('tab', { name: 'Stats' })).toExist(),
+        Scene.given(loadingPostsModel),
+        Scene.expect(Scene.text('Loading posts...')).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Invalidate' })).toExist(),
+        Scene.expect(Scene.role('tab', { name: 'Posts' })).toExist(),
+        Scene.expect(Scene.role('tab', { name: 'Stats' })).toExist(),
       ),
   )
 
   it.effect(
     'clicking a post fetches its detail and renders it',
     ({ models: { loadedPostsModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(loadedPostsModel),
-        click(role('button', { name: /First Post/ })),
-        expect(text('Loading post...')).toExist(),
-        Command.expectExact(FetchPostDetail({ postId: 'first-post' })),
-        Command.resolve(
+        Scene.given(loadedPostsModel),
+        Scene.click(Scene.role('button', { name: /First Post/ })),
+        Scene.expect(Scene.text('Loading post...')).toExist(),
+        Scene.Command.expectExact(FetchPostDetail({ postId: 'first-post' })),
+        Scene.Command.resolve(
           FetchPostDetail,
           Message.CompletedFetchPostDetail({
             postId: 'first-post',
@@ -57,58 +48,60 @@ describe('view', () => {
             }),
           }),
         ),
-        inside(
-          role('article'),
-          expect(text('By Grace Hopper')).toExist(),
-          expect(text('The whole body of the first fixture post.')).toExist(),
+        Scene.inside(
+          Scene.role('article'),
+          Scene.expect(Scene.text('By Grace Hopper')).toExist(),
+          Scene.expect(
+            Scene.text('The whole body of the first fixture post.'),
+          ).toExist(),
         ),
-        expect(role('button', { name: 'Back to posts' })).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Back to posts' })).toExist(),
       ),
   )
 
   it.effect(
     'a cached post shows the Cached badge and revisits skip the fetch',
     ({ models: { cachedFirstPostModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(cachedFirstPostModel),
-        expect(text('Cached')).toExist(),
-        click(role('button', { name: /First Post/ })),
-        Command.expectNone(),
-        expect(text('By Grace Hopper')).toExist(),
+        Scene.given(cachedFirstPostModel),
+        Scene.expect(Scene.text('Cached')).toExist(),
+        Scene.click(Scene.role('button', { name: /First Post/ })),
+        Scene.Command.expectNone(),
+        Scene.expect(Scene.text('By Grace Hopper')).toExist(),
       ),
   )
 
   it.effect(
     'a failed detail fetch shows the error with a Retry button',
     ({ models: { loadedPostsModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(loadedPostsModel),
-        click(role('button', { name: /First Post/ })),
-        Command.resolve(
+        Scene.given(loadedPostsModel),
+        Scene.click(Scene.role('button', { name: /First Post/ })),
+        Scene.Command.resolve(
           FetchPostDetail,
           Message.CompletedFetchPostDetail({
             postId: 'first-post',
             result: Result.fail('The connection dropped.'),
           }),
         ),
-        expect(text('The connection dropped.')).toExist(),
-        expect(role('button', { name: 'Retry' })).toExist(),
+        Scene.expect(Scene.text('The connection dropped.')).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Retry' })).toExist(),
       ),
   )
 
   it.effect(
     'switching to the Stats tab fetches and renders stats',
     ({ models: { loadedPostsModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(loadedPostsModel),
-        click(role('tab', { name: 'Stats' })),
-        expect(text('Loading stats...')).toExist(),
+        Scene.given(loadedPostsModel),
+        Scene.click(Scene.role('tab', { name: 'Stats' })),
+        Scene.expect(Scene.text('Loading stats...')).toExist(),
         resolveFocusTab,
-        Command.expectExact(FetchStats()),
-        Command.resolve(
+        Scene.Command.expectExact(FetchStats()),
+        Scene.Command.resolve(
           FetchStats,
           Message.CompletedFetchStats({
             result: Result.succeed({
@@ -117,9 +110,9 @@ describe('view', () => {
             }),
           }),
         ),
-        expect(text('Active users')).toExist(),
-        expect(text('97%')).toExist(),
-        expect(text('Updated at', { exact: false })).toExist(),
+        Scene.expect(Scene.text('Active users')).toExist(),
+        Scene.expect(Scene.text('97%')).toExist(),
+        Scene.expect(Scene.text('Updated at', { exact: false })).toExist(),
       ),
   )
 })

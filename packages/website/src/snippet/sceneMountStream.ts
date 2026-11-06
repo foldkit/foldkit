@@ -1,4 +1,4 @@
-import * as Scene from 'foldkit/scene'
+import { Scene } from 'foldkit'
 
 import { CanvasBlock, Message, ObserveCanvas, layer } from './canvas'
 

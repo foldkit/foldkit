@@ -1,15 +1,4 @@
-import {
-  Command,
-  type TestBlock,
-  given,
-  inMessage,
-  init,
-  message,
-  messageFrom,
-  model,
-  story,
-  withBlock,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
@@ -47,7 +36,7 @@ const searchResults = [
   },
 ]
 
-const makeFixture = (block: TestBlock<typeof searchSubject>) => ({
+const makeFixture = (block: Story.TestBlock<typeof searchSubject>) => ({
   update: block.update,
   init_: block.init(),
 })
@@ -56,31 +45,34 @@ describe('search', () => {
   it.effect(
     'received open and route notifications retain focus and close cleanup',
     () =>
-      story(
+      Story.story(
         searchSubject,
-        init(),
-        inMessage(InMessage.RequestedOpen()),
-        model(model => expect(model.dialog.isOpen).toBe(true)),
-        Command.resolve(
+        Story.init(),
+        Story.inMessage(InMessage.RequestedOpen()),
+        Story.model(model => expect(model.dialog.isOpen).toBe(true)),
+        Story.Command.resolve(
           Dialog.test.ShowDialog,
           Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
-        Command.resolve(FocusSearchInput, Message.CompletedFocusSearchInput()),
-        message(Message.UpdatedSearchQuery({ query: 'routing' })),
-        Command.resolve(
+        Story.Command.resolve(
+          FocusSearchInput,
+          Message.CompletedFocusSearchInput(),
+        ),
+        Story.message(Message.UpdatedSearchQuery({ query: 'routing' })),
+        Story.Command.resolve(
           FetchSearchResults,
           Message.CompletedFetchSearchResults({
             results: searchResults,
             query: 'routing',
           }),
         ),
-        inMessage(InMessage.InformedOfRouteChange()),
-        model(model => {
+        Story.inMessage(InMessage.InformedOfRouteChange()),
+        Story.model(model => {
           expect(model.dialog.isOpen).toBe(false)
           expect(model.query).toBe('')
           expect(model.searchState._tag).toBe('Idle')
         }),
-        Command.resolve(
+        Story.Command.resolve(
           Dialog.test.CloseDialog,
           Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
@@ -88,23 +80,23 @@ describe('search', () => {
   )
 
   it.effect('typing a query starts a search', () =>
-    story(
+    Story.story(
       searchSubject,
-      init(),
-      message(Message.UpdatedSearchQuery({ query: 'routing' })),
-      model(model => {
+      Story.init(),
+      Story.message(Message.UpdatedSearchQuery({ query: 'routing' })),
+      Story.model(model => {
         expect(model.query).toBe('routing')
         expect(model.searchState._tag).toBe('Loading')
       }),
-      Command.expectHas(FetchSearchResults),
-      Command.resolve(
+      Story.Command.expectHas(FetchSearchResults),
+      Story.Command.resolve(
         FetchSearchResults,
         Message.CompletedFetchSearchResults({
           results: searchResults,
           query: 'routing',
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.searchState).toMatchObject({
           _tag: 'Ok',
           results: searchResults,
@@ -114,51 +106,51 @@ describe('search', () => {
     ),
   )
   it.effect('clearing the query resets to Idle', () =>
-    withBlock(searchSubject, executable => {
+    Story.withBlock(searchSubject, executable => {
       const { update, init_ } = makeFixture(executable)
 
-      story(
+      Story.story(
         update,
-        given(modifyFields(init_.model, { query: () => 'routing' })),
-        message(Message.UpdatedSearchQuery({ query: '' })),
-        model(model => {
+        Story.given(modifyFields(init_.model, { query: () => 'routing' })),
+        Story.message(Message.UpdatedSearchQuery({ query: '' })),
+        Story.model(model => {
           expect(model.query).toBe('')
           expect(model.searchState._tag).toBe('Idle')
           expect(model.activeResultIndex).toBe(-1)
         }),
-        Command.expectNone(),
+        Story.Command.expectNone(),
       )
     }),
   )
   it.effect('same query is ignored', () =>
-    withBlock(searchSubject, executable => {
+    Story.withBlock(searchSubject, executable => {
       const { update, init_ } = makeFixture(executable)
 
-      story(
+      Story.story(
         update,
-        given(modifyFields(init_.model, { query: () => 'routing' })),
-        message(Message.UpdatedSearchQuery({ query: 'routing' })),
-        model(model => {
+        Story.given(modifyFields(init_.model, { query: () => 'routing' })),
+        Story.message(Message.UpdatedSearchQuery({ query: 'routing' })),
+        Story.model(model => {
           expect(model.searchState._tag).toBe('Idle')
         }),
-        Command.expectNone(),
+        Story.Command.expectNone(),
       )
     }),
   )
   it.effect('new query preserves previous results in Loading state', () =>
-    withBlock(searchSubject, executable => {
+    Story.withBlock(searchSubject, executable => {
       const { update, init_ } = makeFixture(executable)
 
-      story(
+      Story.story(
         update,
-        given(
+        Story.given(
           modifyFields(init_.model, {
             query: () => 'routing',
             searchState: () => SearchState.Ok({ results: searchResults }),
           }),
         ),
-        message(Message.UpdatedSearchQuery({ query: 'testing' })),
-        model(model => {
+        Story.message(Message.UpdatedSearchQuery({ query: 'testing' })),
+        Story.model(model => {
           expect(model.query).toBe('testing')
           expect(model.searchState._tag).toBe('Loading')
           expect(model.searchState).toMatchObject({
@@ -166,7 +158,7 @@ describe('search', () => {
             results: searchResults,
           })
         }),
-        Command.resolve(
+        Story.Command.resolve(
           FetchSearchResults,
           Message.CompletedFetchSearchResults({
             results: [],
@@ -177,85 +169,97 @@ describe('search', () => {
     }),
   )
   it.effect('stale results are ignored', () =>
-    withBlock(searchSubject, executable => {
+    Story.withBlock(searchSubject, executable => {
       const { update, init_ } = makeFixture(executable)
 
-      story(
+      Story.story(
         update,
-        given(modifyFields(init_.model, { query: () => 'testing' })),
-        message(
+        Story.given(modifyFields(init_.model, { query: () => 'testing' })),
+        Story.message(
           Message.CompletedFetchSearchResults({
             results: searchResults,
             query: 'routing',
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.searchState._tag).toBe('Idle')
         }),
       )
     }),
   )
   it.effect('selecting a result navigates and resets', () =>
-    story(
+    Story.story(
       searchSubject,
-      init(),
-      message(Message.SelectedSearchResult({ url: '/docs/commands' })),
-      model(model => {
+      Story.init(),
+      Story.message(Message.SelectedSearchResult({ url: '/docs/commands' })),
+      Story.model(model => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
       }),
-      Command.expectHas(NavigateToResult),
-      Command.resolve(NavigateToResult, Message.CompletedNavigateToResult()),
-      model(model => {
+      Story.Command.expectHas(NavigateToResult),
+      Story.Command.resolve(
+        NavigateToResult,
+        Message.CompletedNavigateToResult(),
+      ),
+      Story.model(model => {
         expect(model.query).toBe('')
       }),
     ),
   )
   it.effect('arrow keys cycle through results', () =>
-    withBlock(searchSubject, executable => {
+    Story.withBlock(searchSubject, executable => {
       const { update, init_ } = makeFixture(executable)
 
       const modelWithResults = modifyFields(init_.model, {
         searchState: () => SearchState.Ok({ results: searchResults }),
         activeResultIndex: () => 0,
       })
-      story(
+      Story.story(
         update,
-        given(modelWithResults),
-        message(Message.PressedArrowKey({ direction: 'Down' })),
-        model(model => {
+        Story.given(modelWithResults),
+        Story.message(Message.PressedArrowKey({ direction: 'Down' })),
+        Story.model(model => {
           expect(model.activeResultIndex).toBe(1)
         }),
-        Command.expectHas(ScrollToResult),
-        Command.resolve(ScrollToResult, Message.CompletedScrollToResult()),
-        message(Message.PressedArrowKey({ direction: 'Down' })),
-        model(model => {
+        Story.Command.expectHas(ScrollToResult),
+        Story.Command.resolve(
+          ScrollToResult,
+          Message.CompletedScrollToResult(),
+        ),
+        Story.message(Message.PressedArrowKey({ direction: 'Down' })),
+        Story.model(model => {
           expect(model.activeResultIndex).toBe(0)
         }),
-        Command.resolve(ScrollToResult, Message.CompletedScrollToResult()),
-        message(Message.PressedArrowKey({ direction: 'Up' })),
-        model(model => {
+        Story.Command.resolve(
+          ScrollToResult,
+          Message.CompletedScrollToResult(),
+        ),
+        Story.message(Message.PressedArrowKey({ direction: 'Up' })),
+        Story.model(model => {
           expect(model.activeResultIndex).toBe(1)
         }),
-        Command.resolve(ScrollToResult, Message.CompletedScrollToResult()),
+        Story.Command.resolve(
+          ScrollToResult,
+          Message.CompletedScrollToResult(),
+        ),
       )
     }),
   )
   it.effect('clearing the query explicitly resets state', () =>
-    withBlock(searchSubject, executable => {
+    Story.withBlock(searchSubject, executable => {
       const { update, init_ } = makeFixture(executable)
 
-      story(
+      Story.story(
         update,
-        given(
+        Story.given(
           modifyFields(init_.model, {
             query: () => 'routing',
             searchState: () => SearchState.Ok({ results: searchResults }),
             activeResultIndex: () => 1,
           }),
         ),
-        message(Message.ClearedSearchQuery()),
-        model(model => {
+        Story.message(Message.ClearedSearchQuery()),
+        Story.model(model => {
           expect(model.query).toBe('')
           expect(model.searchState._tag).toBe('Idle')
           expect(model.activeResultIndex).toBe(-1)
@@ -266,88 +270,100 @@ describe('search', () => {
   it.effect(
     'close completion clears Search after cleanup, including after a reopen',
     () =>
-      story(
+      Story.story(
         searchSubject,
-        init(),
-        inMessage(InMessage.RequestedOpen()),
-        Command.resolve(
+        Story.init(),
+        Story.inMessage(InMessage.RequestedOpen()),
+        Story.Command.resolve(
           Dialog.test.ShowDialog,
           Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
-        Command.resolve(FocusSearchInput, Message.CompletedFocusSearchInput()),
-        message(Message.UpdatedSearchQuery({ query: 'routing' })),
-        Command.resolve(
+        Story.Command.resolve(
+          FocusSearchInput,
+          Message.CompletedFocusSearchInput(),
+        ),
+        Story.message(Message.UpdatedSearchQuery({ query: 'routing' })),
+        Story.Command.resolve(
           FetchSearchResults,
           Message.CompletedFetchSearchResults({
             results: searchResults,
             query: 'routing',
           }),
         ),
-        messageFrom(DialogBinding, Dialog.DialogBlock.Message.CanceledDialog()),
-        model(model => expect(model.query).toBe('routing')),
-        inMessage(InMessage.RequestedOpen()),
-        model(model => {
+        Story.messageIn(
+          DialogBinding,
+          Dialog.DialogBlock.Message.CanceledDialog(),
+        ),
+        Story.model(model => expect(model.query).toBe('routing')),
+        Story.inMessage(InMessage.RequestedOpen()),
+        Story.model(model => {
           expect(model.query).toBe('routing')
           expect(model.dialog.isOpen).toBe(true)
         }),
-        Command.resolve(
+        Story.Command.resolve(
           Dialog.test.ShowDialog,
           Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
-        Command.resolve(FocusSearchInput, Message.CompletedFocusSearchInput()),
-        Command.resolve(
+        Story.Command.resolve(
+          FocusSearchInput,
+          Message.CompletedFocusSearchInput(),
+        ),
+        Story.Command.resolve(
           Dialog.test.CloseDialog,
           Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.query).toBe('')
           expect(model.searchState._tag).toBe('Idle')
           expect(model.activeResultIndex).toBe(-1)
         }),
-        Command.expectNone(),
+        Story.Command.expectNone(),
       ),
   )
 
   it.effect(
     'route changes clear and close Search while keyboard clearing leaves it open',
     () =>
-      story(
+      Story.story(
         searchSubject,
-        init(),
-        inMessage(InMessage.RequestedOpen()),
-        Command.resolve(
+        Story.init(),
+        Story.inMessage(InMessage.RequestedOpen()),
+        Story.Command.resolve(
           Dialog.test.ShowDialog,
           Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
-        Command.resolve(FocusSearchInput, Message.CompletedFocusSearchInput()),
-        message(Message.UpdatedSearchQuery({ query: 'routing' })),
-        message(Message.ClearedSearchQuery()),
-        model(model => {
+        Story.Command.resolve(
+          FocusSearchInput,
+          Message.CompletedFocusSearchInput(),
+        ),
+        Story.message(Message.UpdatedSearchQuery({ query: 'routing' })),
+        Story.message(Message.ClearedSearchQuery()),
+        Story.model(model => {
           expect(model.query).toBe('')
           expect(model.dialog.isOpen).toBe(true)
         }),
-        Command.resolve(
+        Story.Command.resolve(
           FetchSearchResults,
           Message.CompletedFetchSearchResults({
             results: searchResults,
             query: 'routing',
           }),
         ),
-        message(Message.UpdatedSearchQuery({ query: 'composition' })),
-        Command.resolve(
+        Story.message(Message.UpdatedSearchQuery({ query: 'composition' })),
+        Story.Command.resolve(
           FetchSearchResults,
           Message.CompletedFetchSearchResults({
             results: searchResults,
             query: 'composition',
           }),
         ),
-        inMessage(InMessage.InformedOfRouteChange()),
-        model(model => {
+        Story.inMessage(InMessage.InformedOfRouteChange()),
+        Story.model(model => {
           expect(model.query).toBe('')
           expect(model.dialog.isOpen).toBe(false)
         }),
-        Command.expectExact(Dialog.test.CloseDialog),
-        Command.resolve(
+        Story.Command.expectExact(Dialog.test.CloseDialog),
+        Story.Command.resolve(
           Dialog.test.CloseDialog,
           Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),

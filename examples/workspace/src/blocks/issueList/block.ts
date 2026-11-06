@@ -1,7 +1,6 @@
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
 
-import { InMessage } from './inMessage'
 import { Message } from './message'
 import { Model } from './model'
 import { OutMessage } from './outMessage'
@@ -14,10 +13,6 @@ export const IssueListBlock = Block.make('IssueList', {
   view: { kind: 'Element', Inputs: ViewInputs },
   Model,
   Message,
-  InMessage,
-  inMessageOutputs: {
-    RequestedClearFilters: { outMessage: OutMessage.RequestedClearFilters },
-  },
   OutMessage,
 })
 

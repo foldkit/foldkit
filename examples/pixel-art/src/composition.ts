@@ -25,7 +25,7 @@ import {
 import { DEFAULT_COLOR_INDEX } from './constant'
 import { paletteIndexFromValue } from './model'
 import { PALETTE_THEMES } from './palette'
-import { requestGridSizeChange, selectColor, selectTool } from './steps'
+import { changeGridSize, selectColor, selectTool } from './steps'
 
 export const ErrorDialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'errorDialog',
@@ -69,7 +69,7 @@ export const GridSizeRadioGroupBinding = makeBinding(GridSizeRadioGroupBlock, {
   init: { contextToArgs: () => [{ id: GRID_SIZE_RADIO_GROUP_ID }] },
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(GridSizeRadioGroupBlock, {
-    Selected: ({ value }) => requestGridSizeChange(Number(value)),
+    Selected: ({ value }) => changeGridSize(Number(value)),
   }),
 })
 

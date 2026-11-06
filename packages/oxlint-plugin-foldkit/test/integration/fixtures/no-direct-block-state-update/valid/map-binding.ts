@@ -42,7 +42,7 @@ export const initial: Model = Model.make({
 })
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedApplyTheme: EntriesBinding.informThemeChanged('initial', {
+  ClickedApplyTheme: EntriesBinding.informOfThemeChanged('initial', {
     theme: 'Light',
   }),
 })

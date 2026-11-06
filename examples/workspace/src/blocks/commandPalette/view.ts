@@ -9,7 +9,6 @@ import {
   DialogBinding,
 } from './composition'
 import { Message } from './message'
-import type { Model } from './model'
 import { SearchResult, searchResults } from './search'
 
 const INPUT_ID = 'workspace-command-search'
@@ -19,17 +18,18 @@ const resultId = (result: SearchResult) => `workspace-command-${result.id}`
 
 // NOTE: Combobox anchors an overlay; palette results stay in the Dialog's layout.
 const searchInput = (
-  model: Model,
+  query: string,
+  activeResultIndex: number,
   results: ReadonlyArray<SearchResult>,
   initialFocus: Dialog.RenderInfo['initialFocus'],
   h: CommandPaletteViewBuilder,
 ): Html => {
-  const maybeActiveResult = Array.get(results, model.activeResultIndex)
+  const maybeActiveResult = Array.get(results, activeResultIndex)
 
   return Input.view(
     {
       id: INPUT_ID,
-      value: model.query,
+      value: query,
       placeholder: 'Search issues and projects…',
       onInput: value => Message.UpdatedQuery({ value }),
       toView: attributes =>
@@ -91,7 +91,7 @@ const searchInput = (
 }
 
 const resultList = (
-  model: Model,
+  activeResultIndex: number,
   results: ReadonlyArray<SearchResult>,
   h: CommandPaletteViewBuilder,
 ): Html =>
@@ -110,14 +110,14 @@ const resultList = (
         [
           h.Id(resultId(result)),
           h.Role('option'),
-          h.AriaLabel(`${result.description} ${result.title}`),
-          h.AriaSelected(index === model.activeResultIndex),
+          h.AriaLabel(`${result.contextLabel} ${result.title}`),
+          h.AriaSelected(index === activeResultIndex),
           h.DataAttribute(
             'command-palette-result-index',
             globalThis.String(index),
           ),
           h.Class('command-option'),
-          ...(index === model.activeResultIndex
+          ...(index === activeResultIndex
             ? [h.DataAttribute('active', '')]
             : []),
           h.OnClick(Message.ClickedResult({ target: result.target })),
@@ -125,7 +125,7 @@ const resultList = (
         [
           h.span(
             [h.Class('w-16 shrink-0 text-xs font-medium text-slate-500')],
-            [result.description],
+            [result.contextLabel],
           ),
           h.span([h.Class('min-w-0 leading-6')], [result.title]),
         ],
@@ -198,8 +198,14 @@ export const view = CommandPaletteComposition.makeView.withInputs(
                             ),
                           ],
                         ),
-                        searchInput(model, results, initialFocus, h),
-                        resultList(model, results, h),
+                        searchInput(
+                          model.query,
+                          model.activeResultIndex,
+                          results,
+                          initialFocus,
+                          h,
+                        ),
+                        resultList(model.activeResultIndex, results, h),
                         ...Array.match(results, {
                           onEmpty: () => [
                             h.p(

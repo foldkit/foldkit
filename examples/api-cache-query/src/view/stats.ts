@@ -16,8 +16,11 @@ import {
   toolbarButtonClassName,
 } from './shared'
 
-export const statsTabView = (model: Model, h: ApplicationViewBuilder) => {
-  const statsAsyncData = statsQuery.read(model.stats)
+export const statsTabView = (
+  stats: Model['stats'],
+  h: ApplicationViewBuilder,
+) => {
+  const statsAsyncData = statsQuery.read(stats)
   const isPending = AsyncData.isPending(statsAsyncData)
 
   return h.div(

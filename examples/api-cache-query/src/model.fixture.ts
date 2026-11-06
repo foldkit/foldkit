@@ -1,5 +1,5 @@
 import { Effect, Result } from 'effect'
-import { Command, given, init, message, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { test as baseTest } from 'vitest'
 
@@ -44,10 +44,10 @@ export const fixtureStats: Stats = {
 const models = Effect.gen(function* () {
   const application = { block: ApplicationBlock, layer }
 
-  const loadedPostsModel = yield* story(
+  const loadedPostsModel = yield* Story.story(
     application,
-    init(),
-    Command.resolve(
+    Story.init(),
+    Story.Command.resolve(
       postsQuery.Fetch,
       postsQuery.Message.CompletedFetch({
         generation: 1,
@@ -56,10 +56,10 @@ const models = Effect.gen(function* () {
     ),
   )
 
-  const failedPostsModel = yield* story(
+  const failedPostsModel = yield* Story.story(
     application,
-    init(),
-    Command.resolve(
+    Story.init(),
+    Story.Command.resolve(
       postsQuery.Fetch,
       postsQuery.Message.CompletedFetch({
         generation: 1,
@@ -70,11 +70,11 @@ const models = Effect.gen(function* () {
 
   const firstPostArgs = { postId: 'first-post' }
 
-  const cachedFirstPostModel = yield* story(
+  const cachedFirstPostModel = yield* Story.story(
     application,
-    given(loadedPostsModel),
-    message(Message.ClickedPost(firstPostArgs)),
-    Command.resolve(
+    Story.given(loadedPostsModel),
+    Story.message(Message.ClickedPost(firstPostArgs)),
+    Story.Command.resolve(
       postQuery.Fetch,
       postQuery.Message.CompletedFetch({
         args: firstPostArgs,
@@ -86,14 +86,14 @@ const models = Effect.gen(function* () {
         }),
       }),
     ),
-    message(Message.ClickedBackToPosts()),
+    Story.message(Message.ClickedBackToPosts()),
   )
 
-  const failedFirstPostModel = yield* story(
+  const failedFirstPostModel = yield* Story.story(
     application,
-    given(loadedPostsModel),
-    message(Message.ClickedPost(firstPostArgs)),
-    Command.resolve(
+    Story.given(loadedPostsModel),
+    Story.message(Message.ClickedPost(firstPostArgs)),
+    Story.Command.resolve(
       postQuery.Fetch,
       postQuery.Message.CompletedFetch({
         args: firstPostArgs,
@@ -102,14 +102,14 @@ const models = Effect.gen(function* () {
         result: Result.fail('The connection dropped.'),
       }),
     ),
-    message(Message.ClickedBackToPosts()),
+    Story.message(Message.ClickedBackToPosts()),
   )
 
-  const loadedStatsModel = yield* story(
+  const loadedStatsModel = yield* Story.story(
     application,
-    given(modifyFields(loadedPostsModel, { activeTab: () => 'Stats' })),
-    message(Message.ClickedRefreshStats()),
-    Command.resolve(
+    Story.given(modifyFields(loadedPostsModel, { activeTab: () => 'Stats' })),
+    Story.message(Message.ClickedRefreshStats()),
+    Story.Command.resolve(
       statsQuery.Fetch,
       statsQuery.Message.CompletedFetch({
         generation: 1,

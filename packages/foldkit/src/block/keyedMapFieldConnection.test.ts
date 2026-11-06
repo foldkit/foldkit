@@ -257,7 +257,7 @@ it('keeps a whole Record child Model in an ordinary direct Binding', () => {
           model: Record.set(model, name, isEnabled),
         }),
       }),
-      operations: { informFlagChanged: FlagsMessage.InformedOfFlagChange },
+      operations: { informOfFlagChanged: FlagsMessage.InformedOfFlagChange },
     })
   const FlagsBlock: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof FlagsModel,
@@ -277,7 +277,7 @@ it('keeps a whole Record child Model in an ordinary direct Binding', () => {
   })
   const initial = Composition.makeInit(() => ({ model: {} }))()
   const update = Composition.makeUpdate({
-    UpdatedFlags: FlagsBinding.informFlagChanged({
+    UpdatedFlags: FlagsBinding.informOfFlagChanged({
       name: 'ready',
       isEnabled: true,
     }),
@@ -318,7 +318,7 @@ it('keeps a whole HashMap child Model in an ordinary direct Binding', () => {
           model: HashMap.set(model, name, isEnabled),
         }),
       }),
-      operations: { informFlagChanged: FlagsMessage.InformedOfFlagChange },
+      operations: { informOfFlagChanged: FlagsMessage.InformedOfFlagChange },
     })
   const FlagsBlock: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof FlagsModel,
@@ -338,7 +338,7 @@ it('keeps a whole HashMap child Model in an ordinary direct Binding', () => {
   })
   const initial = Composition.makeInit(() => ({ model: {} }))()
   const update = Composition.makeUpdate({
-    UpdatedFlags: FlagsBinding.informFlagChanged({
+    UpdatedFlags: FlagsBinding.informOfFlagChanged({
       name: 'ready',
       isEnabled: true,
     }),

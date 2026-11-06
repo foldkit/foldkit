@@ -77,11 +77,11 @@ export type DevToolsConfig =
     }>
 
 /** @internal DevTools configuration after Program derives its dispatch Schema. */
-export type RuntimeDevToolsConfig<DispatchServices = never> =
+export type RuntimeDevToolsConfig =
   | false
   | (Exclude<DevToolsConfig, false> &
       Readonly<{
-        dispatchSchema?: Schema.Codec<any, any, DispatchServices, unknown>
+        dispatchSchema?: Schema.Codec<any, any, never, never>
       }>)
 
 let registeredDevToolsOverlay: DevToolsOverlay | undefined

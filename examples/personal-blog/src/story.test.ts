@@ -1,6 +1,5 @@
 import { Option } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { messageFrom } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe, expect } from 'vitest'
 
@@ -21,7 +20,7 @@ const home = Model.make({
 })
 
 const counterMessage = (message: CounterMessage) =>
-  messageFrom(CounterBinding, message)
+  Story.messageIn(CounterBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -32,39 +31,41 @@ const urlOrThrow = (raw: string) =>
 describe('update', () => {
   describe('ChangedUrl', () => {
     it.effect('navigating to / parses to the Home route', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(home),
-        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
-        model(model => {
+        Story.given(home),
+        Story.message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/') }),
+        ),
+        Story.model(model => {
           expect(model.route._tag).toBe('Home')
         }),
       ),
     )
 
     it.effect('navigating to /posts parses to the Posts route', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(home),
-        message(
+        Story.given(home),
+        Story.message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.route._tag).toBe('Posts')
         }),
       ),
     )
 
     it.effect('navigating to /posts/making-this-blog captures the slug', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(home),
-        message(
+        Story.given(home),
+        Story.message(
           Message.ChangedUrl({
             url: urlOrThrow('http://localhost/posts/making-this-blog'),
           }),
         ),
-        model(model => {
+        Story.model(model => {
           if (model.route._tag === 'Post') {
             expect(model.route.slug).toBe('making-this-blog')
           } else {
@@ -77,13 +78,13 @@ describe('update', () => {
     it.effect(
       'an unknown path falls through to NotFound with the path captured',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(home),
-          message(
+          Story.given(home),
+          Story.message(
             Message.ChangedUrl({ url: urlOrThrow('http://localhost/missing') }),
           ),
-          model(model => {
+          Story.model(model => {
             if (model.route._tag === 'NotFound') {
               expect(model.route.path).toBe('/missing')
             } else {
@@ -98,32 +99,32 @@ describe('update', () => {
     it.effect(
       'increments route through the Counter Block without commands',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(home),
+          Story.given(home),
           counterMessage(CounterBlock.Message.ClickedIncrement()),
           counterMessage(CounterBlock.Message.ClickedIncrement()),
-          Command.expectNone(),
-          model(model => {
+          Story.Command.expectNone(),
+          Story.model(model => {
             expect(model.counter.count).toBe(2)
           }),
         ),
     )
 
     it.effect('the count survives navigating between routes', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(home),
+        Story.given(home),
         counterMessage(CounterBlock.Message.ClickedIncrement()),
-        message(
+        Story.message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
         ),
-        message(
+        Story.message(
           Message.ChangedUrl({
             url: urlOrThrow('http://localhost/posts/making-this-blog'),
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.counter.count).toBe(1)
         }),
       ),

@@ -1,6 +1,5 @@
 import { Option } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { messageFrom } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { generateKeyBetween } from 'fractional-indexing'
 import { describe, expect } from 'vitest'
 
@@ -72,22 +71,22 @@ const emptyModel: Model = {
 }
 
 const dragAndDropMessage = (message: DragAndDropMessage) =>
-  messageFrom(DragAndDropBinding, message)
+  Story.messageIn(DragAndDropBinding, message)
 
 describe('update', () => {
   describe('add card', () => {
-    const acknowledgeFocusInput = Command.resolve(
+    const acknowledgeFocusInput = Story.Command.resolve(
       FocusAddCardInput,
       Message.CompletedFocusAddCardInput(),
     )
 
     it.effect('ClickedAddCard opens the add card form for the column', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
-        message(Message.ClickedAddCard({ columnId: 'todo' })),
+        Story.given(emptyModel),
+        Story.message(Message.ClickedAddCard({ columnId: 'todo' })),
         acknowledgeFocusInput,
-        model(model => {
+        Story.model(model => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.some('todo'))
           expect(model.newCardTitle).toBe('')
         }),
@@ -95,27 +94,27 @@ describe('update', () => {
     )
 
     it.effect('ChangedNewCardTitle updates the title', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
-        message(Message.ClickedAddCard({ columnId: 'todo' })),
+        Story.given(emptyModel),
+        Story.message(Message.ClickedAddCard({ columnId: 'todo' })),
         acknowledgeFocusInput,
-        message(Message.ChangedNewCardTitle({ value: 'New task' })),
-        model(model => {
+        Story.message(Message.ChangedNewCardTitle({ value: 'New task' })),
+        Story.model(model => {
           expect(model.newCardTitle).toBe('New task')
         }),
       ),
     )
 
     it.effect('SubmittedNewCard adds card to the column and saves', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
-        message(Message.ClickedAddCard({ columnId: 'done' })),
+        Story.given(emptyModel),
+        Story.message(Message.ClickedAddCard({ columnId: 'done' })),
         acknowledgeFocusInput,
-        message(Message.ChangedNewCardTitle({ value: 'Ship it' })),
-        message(Message.SubmittedNewCard()),
-        Command.resolve(
+        Story.message(Message.ChangedNewCardTitle({ value: 'Ship it' })),
+        Story.message(Message.SubmittedNewCard()),
+        Story.Command.resolve(
           GenerateCardId,
           Message.CompletedGenerateCardId({
             cardId: 'test-uuid',
@@ -123,8 +122,8 @@ describe('update', () => {
             title: 'Ship it',
           }),
         ),
-        Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
-        model(model => {
+        Story.Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
+        Story.model(model => {
           const doneColumn = model.columns.find(column => column.id === 'done')
           const lastCard = doneColumn?.cards[doneColumn.cards.length - 1]
           expect(lastCard?.title).toBe('Ship it')
@@ -135,27 +134,27 @@ describe('update', () => {
     )
 
     it.effect('SubmittedNewCard ignores empty title', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
-        message(Message.ClickedAddCard({ columnId: 'todo' })),
+        Story.given(emptyModel),
+        Story.message(Message.ClickedAddCard({ columnId: 'todo' })),
         acknowledgeFocusInput,
-        message(Message.SubmittedNewCard()),
-        model(model => {
+        Story.message(Message.SubmittedNewCard()),
+        Story.model(model => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.some('todo'))
         }),
       ),
     )
 
     it.effect('CancelledNewCard closes the form', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
-        message(Message.ClickedAddCard({ columnId: 'todo' })),
+        Story.given(emptyModel),
+        Story.message(Message.ClickedAddCard({ columnId: 'todo' })),
         acknowledgeFocusInput,
-        message(Message.ChangedNewCardTitle({ value: 'Draft' })),
-        message(Message.CancelledNewCard()),
-        model(model => {
+        Story.message(Message.ChangedNewCardTitle({ value: 'Draft' })),
+        Story.message(Message.CancelledNewCard()),
+        Story.model(model => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.none())
           expect(model.newCardTitle).toBe('')
         }),
@@ -166,9 +165,9 @@ describe('update', () => {
   describe('drag and drop reorder', () => {
     it.effect('reorders a card within the same column', () => {
       const firstCardId = emptyModel.columns[0]!.cards[0]!.id
-      return story(
+      return Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
+        Story.given(emptyModel),
         dragAndDropMessage(
           DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
             itemId: firstCardId,
@@ -190,8 +189,8 @@ describe('update', () => {
         dragAndDropMessage(
           DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
         ),
-        Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
-        model(model => {
+        Story.Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
+        Story.model(model => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
           const cardIds = todoColumn?.cards.map(card => card.id)
           expect(cardIds?.indexOf(firstCardId)).toBeGreaterThan(0)
@@ -201,9 +200,9 @@ describe('update', () => {
 
     it.effect('moves a card to a different column', () => {
       const cardId = emptyModel.columns[0]!.cards[0]!.id
-      return story(
+      return Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
+        Story.given(emptyModel),
         dragAndDropMessage(
           DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
             itemId: cardId,
@@ -228,8 +227,8 @@ describe('update', () => {
         dragAndDropMessage(
           DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
         ),
-        Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
-        model(model => {
+        Story.Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
+        Story.model(model => {
           const todoCards = model.columns
             .find(column => column.id === 'todo')
             ?.cards.map(card => card.id)
@@ -244,9 +243,9 @@ describe('update', () => {
 
     it.effect('keyboard drag reorders within the same column', () => {
       const firstCardId = emptyModel.columns[0]!.cards[0]!.id
-      return story(
+      return Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
+        Story.given(emptyModel),
         dragAndDropMessage(
           DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
             itemId: firstCardId,
@@ -272,8 +271,8 @@ describe('update', () => {
           binding: DragAndDropBinding,
           itemId: firstCardId,
         }),
-        Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
-        model(model => {
+        Story.Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
+        Story.model(model => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
           const cardIds = todoColumn?.cards.map(card => card.id)
           expect(cardIds?.indexOf(firstCardId)).toBe(2)
@@ -283,9 +282,9 @@ describe('update', () => {
 
     it.effect('keyboard drag moves a card to a different column', () => {
       const cardId = emptyModel.columns[0]!.cards[0]!.id
-      return story(
+      return Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
+        Story.given(emptyModel),
         dragAndDropMessage(
           DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
             itemId: cardId,
@@ -311,8 +310,8 @@ describe('update', () => {
           binding: DragAndDropBinding,
           itemId: cardId,
         }),
-        Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
-        model(model => {
+        Story.Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
+        Story.model(model => {
           const todoCards = model.columns
             .find(column => column.id === 'todo')
             ?.cards.map(card => card.id)
@@ -328,9 +327,9 @@ describe('update', () => {
     it.effect('cancelled keyboard drag does not change columns', () => {
       const cardId = 'card-1'
 
-      return story(
+      return Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
+        Story.given(emptyModel),
         dragAndDropMessage(
           DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
             itemId: cardId,
@@ -345,16 +344,16 @@ describe('update', () => {
           binding: DragAndDropBinding,
           itemId: cardId,
         }),
-        model(model => {
+        Story.model(model => {
           expect(model.columns).toStrictEqual(emptyModel.columns)
         }),
       )
     })
 
     it.effect('cancelled drag does not change columns', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
+        Story.given(emptyModel),
         dragAndDropMessage(
           DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
             itemId: emptyModel.columns[0]!.cards[0]!.id,
@@ -376,7 +375,7 @@ describe('update', () => {
         dragAndDropMessage(
           DragAndDrop.DragAndDropBlock.Message.CancelledDrag(),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.columns).toStrictEqual(emptyModel.columns)
         }),
       ),

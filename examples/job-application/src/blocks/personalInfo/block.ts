@@ -2,11 +2,15 @@ import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { CalendarDate } from 'foldkit/calendar'
 import { Field } from 'foldkit/fieldValidation'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
 import { DatePicker, Listbox } from '@foldkit/ui'
 
-export const PronounsListboxBlock = Listbox.makeBlock()
+import { PronounOption } from '../../domain'
+
+export const PronounsListboxBlock = Listbox.makeBlock(
+  PronounOption.PronounOption,
+)
 
 export const Model = Schema.Struct({
   firstName: Field(Schema.String),
@@ -15,7 +19,7 @@ export const Model = Schema.Struct({
   emailValidationId: Schema.Number,
   phone: Field(Schema.String),
   pronouns: PronounsListboxBlock.Model,
-  maybeSelectedPronoun: Schema.Option(Schema.String),
+  maybeSelectedPronoun: Schema.Option(PronounOption.PronounOption),
   customPronouns: Schema.String,
   portfolioUrl: Field(Schema.String),
   availableDate: DatePicker.DatePickerBlock.Model,
@@ -37,7 +41,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedRevealErrors: {},
 })
 export type InMessage = typeof InMessage.Type

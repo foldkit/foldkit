@@ -98,7 +98,7 @@ Shared `each`, `on`, and `except` pieces cannot emit OutMessages. Handler record
 
 ## Parent inputs
 
-Declare an optional `InMessage` Schema for requests and notifications a parent can initiate. Its tags are disjoint from local `Message`: `RequestedSubmit` generates `Binding.requestSubmit()`, and `InformedOfIssueChanged` generates `Binding.informIssueChanged(payload)`. Fields use the variant constructor's exact payload contract. A keyed Binding takes its occurrence key first. Do not inflect or alias the generated names.
+Declare an ordinary optional `InMessage` Schema with `defineInMessageUnion` for requests and notifications a parent can initiate. Keep local Message and OutMessage unions on `defineMessageUnion`. The InMessage helper returns the same MessageUnion constructors, Schema, and exhaustive matcher, without adding a brand. It rejects invalid literal names at the offending property, retains validation for extracted literal case records, and repeats the check at runtime when JavaScript or type erasure hides the keys. Other Schema forms remain valid InMessage contracts subject to Block's existing constructor and tag validation. Its tags are disjoint from local `Message`: `RequestedSubmit` generates `Binding.requestSubmit()`, and `InformedOfIssueChanged` generates `Binding.informOfIssueChanged(payload)`. Fields use the variant constructor's exact payload contract. A keyed Binding takes its occurrence key first. Do not inflect or alias the generated names.
 
 Author an exhaustive `Composition.makeInMessageUpdate` record and return `inMessageUpdate` with init, update and view from `FeatureBlock.makeLayer`. Local UI facts and Command results remain in `makeUpdate`. Share a reusable Step in `steps.ts` when local `SubmittedForm` and received `RequestedSubmit` need the same transition. Sparse `inMessageOutputs` entries declare emitting OutMessage bounds and additional `services` or `managedResources`; an omitted entry is silent and adds no public requirements. Commands returned from inMessageUpdate produce local Messages, never InMessages.
 
@@ -139,9 +139,9 @@ An empty record returned by `makeFieldsStep` preserves the exact incoming Model 
 
 Choose the helper when authoring a Step. Inside a local `makeStep` callback, return results directly, including `{ model }` for an unchanged Model. Do not construct and immediately apply another local Step merely to express a branch. Keep existing reusable operations, sequential composition, and Block-owned local Steps needed when mixing local branches with connected recipes; those preserve result channels and registration evidence.
 
-For explicit adapters, name actions `request*` and notifications `inform*`. Their local Message mapping enters update; generated InMessage methods enter inMessageUpdate. Keep actual UI facts separate from parent requests. Avoid `reflect*` helpers that bypass the owning transition to change child state.
+For explicit adapters, name actions `request*` and notifications `informOf*`. Their local Message mapping enters update; generated InMessage methods enter inMessageUpdate. Keep actual UI facts separate from parent requests. Avoid `reflect*` helpers that bypass the owning transition to change child state.
 
-Choose parent inputs by ownership. Use view inputs for current render data and update context (`delivery.toUpdateContext`) for current data read while handling a Message. Use an `inform*` operation when an external event requires a child transition, Command, or OutMessage. View inputs and context do not dispatch Messages when their values change. Keep an independent editing baseline in the child Model when needed, while passing current comments or other display data through view inputs. Do not mirror parent data merely to read it, or notify a child back about a change it already applied unless another transition is required.
+Choose parent inputs by ownership. Use view inputs for current render data and update context (`delivery.toUpdateContext`) for current data read while handling a Message. Use an `informOf*` operation when an external event requires a child transition, Command, or OutMessage. View inputs and context do not dispatch Messages when their values change. Keep an independent editing baseline in the child Model when needed, while passing current comments or other display data through view inputs. Do not mirror parent data merely to read it, or notify a child back about a change it already applied unless another transition is required.
 
 Create one `FeatureBlock.makeSubscriptions(...)` registry for all Subscriptions
 owned by a Block. Extract a substantial Stream implementation into a focused
@@ -323,7 +323,16 @@ arguments.
 A handler takes the inferred `FoldContext` as its second parameter only when it
 uses `liftCommand` or `modelBeforeUpdate`. The resulting fold stays unary when
 every handler omits that parameter. Keep a purposeful factory or adapter when a
-keyed fold uses the collection key or other call-site context. Let
+keyed fold uses other call-site context. A keyed Binding accepts the authored
+fold directly when its handlers do not use the key. Otherwise author
+`fold: key => ParentBlock.makeOutMessageFold(ChildBlock, handlers)` and close
+over the inferred occurrence key. Pass a compatible extracted factory directly;
+retain a callback when it defers a declaration read or adapts inputs. The
+Binding supplies the actual OutMessage and FoldContext during delivery; the
+parent Step receives the Model after the child write. The factory runs only
+when that occurrence emits an OutMessage. Use an authored helper for this form; an ordinary matcher
+does not carry its checked contract. Explicit
+`(key, outMessage, context) => step` adapters remain available. Let
 Command-producing and parent-OutMessage-producing handlers keep the channels
 inferred by the owning Block.
 
@@ -409,7 +418,7 @@ Keep a Story or Scene specification declarative. Use immutable fixtures, `messag
 
 Use `it.effect` from a compatible `@effect/vitest` release for Effect-returning tests and return the runner Effect directly. Pure domain and selector tests stay synchronous. The integration manages execution, scoped cleanup, and test services; use `it.live` for an execution test that deliberately needs the live environment. A plain Vitest test must return or await `Effect.runPromise`; `Effect.runFork` alone does not make Vitest wait. Keep necessary Promise bridges inside typed Vitest fixtures. Normal tests pass the Block and construction Layer together; acquisition wrappers are for fixture initialization, graph identity, private registrations, and custom multi-view renderers. Deliver subsequent application interactions through Story or Scene steps.
 
-A direct child fact in a Block-aware Story uses `Story.messageFrom(binding, rawChildMessage)`, with the decoded occurrence key before the Message for a keyed Binding. The runner resolves the relationship against its acquired graph, including grouped `Story.steps`. Never fabricate generated envelopes. Production parents still use Binding operations.
+A direct child fact in a Block-aware Story uses `Story.messageIn(binding, rawChildMessage)`, with the decoded occurrence key before the Message for a keyed Binding. The runner resolves the relationship against its acquired graph, including grouped `Story.steps`. Never fabricate generated envelopes. Production parents still use Binding operations.
 
 `Story.message` may send another fact while Commands are pending. Pending work keeps its captured identity and must be resolved before the Story ends. This does not change Scene's pending-Command or Mount checks.
 
@@ -480,13 +489,19 @@ array/map replacement and whole tagged variants retain explicit `Binding.init`.
 Do not add a startup policy solely to enable a helper.
 
 For direct-value Record/HashMap children that should be retained, use
-`makeInitIfMissingStep(Binding, { key, args })` from `foldkit/bindingInit`.
-The Binding supplies storage; the connected Step checks the current Model when
-applied. An existing key preserves the parent Model and emits no Commands; an
-absent key retains the initialized child's Commands. Both paths require the
-registered Binding. Pass it directly to `Update.combineSteps` or a compatible
-handler; use the owning `makeStep` when selecting or composing Steps. Entity
-lookup and handling of unknown URL IDs belong in the application.
+`makeInitIfMissingStep` from `foldkit/bindingInit`. The `{ key, args }` form
+snapshots a static selection at construction. A pure producer may instead return
+`Option.some({ key, args })` or `Option.none()` from the current Step Model; the
+Binding contextually supplies the exact Model, key and init argument types.
+Construction remains passive. The registered graph evaluates the producer
+exactly once during interpretation, after preceding Steps have produced their
+Model. `None` and an existing key preserve that exact Model, emit no Commands and
+do not run child init; a missing selected key retains the initialized child's
+Commands. Every branch requires the original Binding registration. Pass the
+Step directly to `Update.combineSteps` or a compatible handler; use the owning
+`makeStep` when selecting or composing Steps. Entity lookup and handling of
+unknown URL IDs belong in the application. Wrappers, custom metadata and parent
+Commands keep explicit `Binding.init`.
 
 Prefer a child Message-backed `requestReset` or domain operation for reset
 behavior, composed with the parent's `makeFieldsStep` for parent-owned fields.
@@ -593,6 +608,17 @@ local collision; never import a component subpath or alias one of its members.
 The parent registers the passive child contract and provides its construction
 Layer.
 
+Listbox and Combobox are the Schema-backed selection families. Pass Combobox
+its Item Schema. Use `Listbox.makeBlock()` for plain strings,
+`Listbox.makeBlock(ValueSchema)` when items are values directly, or
+`Listbox.makeBlock(ItemSchema, ValueSchema)` for richer view items;
+`Listbox.Multi` has the same forms. The Value Schema validates selected
+Messages and OutMessages at runtime. The Item Schema only witnesses view
+inputs and adds no serialization or Service requirements. Omit `itemToValue`
+only when the actual items satisfy Value; otherwise extract Value explicitly.
+There is no type-argument-only Listbox form. Menu, RadioGroup, Tabs, and other
+generic factories retain their own type-parameter APIs.
+
 When a feature's rendering is subdivided, `view/view.ts` composes the feature's
 render fragments and `view/index.ts` explicitly exports the intended view
 surface. Keep route, page, and demo renderers below `view/`; keep Model,
@@ -670,7 +696,7 @@ Do not create a Block declaration or its key in an update, callback or loop. Gen
 
 Declare the unique key immediately before its Block and give `Symbol('Feature')` the same description as the Block's readable name. Keep the key private unless verified declaration emission needs its original declaration exported. Split implementation modules commonly need that export because their inferred contracts name the owner key. A public barrel may re-export the original declaration with `export type` when only its identity is needed in types. Verify source and relocated declarations before removing an export.
 
-Declare parent requests and notifications in the child's `InMessage` union and handle them with `Composition.makeInMessageUpdate`. `RequestedX` generates `Binding.requestX`, and `InformedOfX` generates `Binding.informX`. The remaining suffix is preserved exactly; other prefixes and empty suffixes are rejected. Methods take the constructor payload when present, with a keyed occurrence first and InMessage context last. They return connected parent Steps, so pass them directly to handler records or compose them. Do not add a manual request wrapper or an `operations` entry that only repeats an InMessage constructor. Keep explicit operations for real argument adaptation, generic interfaces or intentional local-Message mappings.
+Declare ordinary parent requests and notifications in the child's `defineInMessageUnion` union and handle them with `Composition.makeInMessageUpdate`. Keep local Messages and OutMessages on `defineMessageUnion`. `RequestedX` generates `Binding.requestX`, and `InformedOfX` generates `Binding.informOfX`. The remaining suffix is preserved exactly; other prefixes and empty suffixes are rejected. Methods take the constructor payload when present, with a keyed occurrence first and InMessage context last. They return connected parent Steps, so pass them directly to handler records or compose them. Do not add a manual request wrapper or an `operations` entry that only repeats an InMessage constructor. Keep explicit operations for real argument adaptation, generic interfaces or intentional local-Message mappings.
 
 Inline handlers receive their exact Model and Message from the Composition. When extracting a Message-dependent callback without that context, annotate its precise Message variant, as in `makeStep((model, { url }: ChangedUrl) => ...)` or `makeStep.fromMessage(({ url }: ChangedUrl) => ...)`. The helper still infers result channels. The proposed single-Message type-argument forms are not supported; defaulting the remaining type parameters loses output inference. Do not replace the useful parameter annotation with broad return types, casts or repeated generic arguments.
 
@@ -678,4 +704,4 @@ Application behavior belongs in Story or Scene. Use their DSL to deliver Message
 
 The public `effects` contract bounds runtime capabilities: `services` lists ordinary handler Services, `managedResources` lists resource accessors, and `Error` bounds handler-constructor failures. Explicit operation declarations and `inMessageOutputs` use the same `managedResources` spelling for their extra resource requirements. These contracts describe capabilities; local `EffectsLayer` selects their handlers. Construction dependencies still flow through ordinary Layer provision, and ordinary request Services stay inside handler constructors.
 
-Treat `codec` as an advanced bound for the complete generated Message envelope. Local Message decoding and encoding Services are already inferred. A parent with opaque children may additionally declare `codec.decoding` and `codec.encoding` because its local Message Schema cannot reveal those child delivery requirements. Prefer self-contained serializable Messages in ordinary apps. DevTools dispatch requires the complete decoder's Services; a quiet Program does not. Encoding Services are needed when explicitly encoding, not by every Program.
+Do not declare `codec` on a Block. Foldkit requires the Model, local Message, and complete generated Message Codecs to encode and decode synchronously without Effect Services. Generated child envelopes propagate their requirements through the registered graph, so a Service-dependent child Message also rejects its parents. Synchronous transformations backed by `Effect.succeed` and standard `Option` and `Date` JSON Codecs remain valid. An Effect requirement of `never` proves only that no Service is needed; a Promise-backed transformation is rejected when Foldkit actually serializes or deserializes a value. Block declaration, Composition, Layer construction, and Program construction remain passive. This restriction does not narrow private Codecs used inside Commands or other effectful APIs; supply those requirements in the Effect that runs them.

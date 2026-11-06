@@ -4,7 +4,10 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 
 import * as Block from '../../block/public.js'
-import { defineMessageUnion } from '../../message/index.js'
+import {
+  defineInMessageUnion,
+  defineMessageUnion,
+} from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
 import { withBlock } from '../layered/testing/withBlock.js'
@@ -12,7 +15,7 @@ import { withBlock } from '../layered/testing/withBlock.js'
 const Model = Schema.Struct({ value: Schema.Number })
 type Model = typeof Model.Type
 const defaults = { runs: 0 }
-const InMessage = defineMessageUnion({
+const InMessage = defineInMessageUnion({
   RequestedSet: {
     value: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).pipe(
       Schema.withConstructorDefault(
@@ -23,7 +26,7 @@ const InMessage = defineMessageUnion({
       ),
     ),
   },
-  RequestedClear: {},
+  InformedOfClear: {},
 })
 const InputOnlyKey = Symbol('InputOnlyRuntime')
 const Definition = Block.makeDefinition('InputOnlyRuntime', {
@@ -41,7 +44,7 @@ const inMessageUpdate = Composition.makeInMessageUpdate({
   RequestedSet: Definition.makeFieldsStep.fromMessage(({ value }) => ({
     value: () => value,
   })),
-  RequestedClear: Definition.makeFieldsStep(() => ({ value: () => 0 })),
+  InformedOfClear: Definition.makeFieldsStep(() => ({ value: () => 0 })),
 })
 const InputBlock = Definition.makeBlock(
   Effect.succeed({ children: [], init, update, inMessageUpdate }),
@@ -74,7 +77,7 @@ describe('separate InMessage execution', () => {
           const initialModel = block.init().model
           expect(defaults.runs).toBe(0)
           expect(block.InMessage).toBe(InMessage)
-          expect(Schema.is(block.Message)(InMessage.RequestedClear())).toBe(
+          expect(Schema.is(block.Message)(InMessage.InformedOfClear())).toBe(
             false,
           )
 
@@ -90,9 +93,10 @@ describe('separate InMessage execution', () => {
           expect(
             block.inMessageUpdate(requested)(initialModel).model.value,
           ).toBe(5)
-          expect(block.operations.requestClear(applied.model).model.value).toBe(
-            0,
-          )
+          expect(
+            block.operations.informOfClear(applied.model).model.value,
+          ).toBe(0)
+          expect(block.operations).not.toHaveProperty('informClear')
         })
       }),
   )
@@ -106,7 +110,7 @@ describe('separate InMessage execution', () => {
         for (const input of [
           { _tag: 'RequestedSet', value: -1 },
           { _tag: 'RequestedSet', value: '1' },
-          { _tag: 'RequestedClearOther' },
+          { _tag: 'InformedOfClearOther' },
         ]) {
           expect(() =>
             Reflect.apply(block.inMessageUpdate, undefined, [
@@ -122,13 +126,13 @@ describe('separate InMessage execution', () => {
   it('rejects erased missing, extra, and callback inMessageUpdate cases', async () => {
     const invalidCases = [
       {
-        cases: { RequestedClear: (model: Model) => ({ model }) },
+        cases: { InformedOfClear: (model: Model) => ({ model }) },
         expected: 'InMessage update has no handler',
       },
       {
         cases: {
           RequestedSet: (model: Model) => ({ model }),
-          RequestedClear: (model: Model) => ({ model }),
+          InformedOfClear: (model: Model) => ({ model }),
           RequestedOther: (model: Model) => ({ model }),
         },
         expected: 'invalid tag "RequestedOther"',
@@ -169,7 +173,7 @@ describe('separate InMessage execution', () => {
     const otherComposition = Definition.makeComposition()
     const foreignInMessageUpdate = otherComposition.makeInMessageUpdate({
       RequestedSet: model => ({ model }),
-      RequestedClear: model => ({ model }),
+      InformedOfClear: model => ({ model }),
     })
     const foreign = Reflect.apply(Definition.makeBlock, undefined, [
       Effect.succeed({
@@ -241,7 +245,7 @@ describe('separate InMessage execution', () => {
         const Reported = defineMessageUnion({
           Reported: { value: Schema.Number },
         })
-        const ReportInput = defineMessageUnion({
+        const ReportInput = defineInMessageUnion({
           RequestedReport: { value: Schema.Number },
         })
         const ReporterKey = Symbol('InputReporterRuntime')
@@ -343,7 +347,7 @@ describe('separate InMessage execution', () => {
 
 describe('erased InMessage declarations', () => {
   it('rejects tag overlap, invalid input names, generated method collisions, and output typos', () => {
-    const overlap = defineMessageUnion({ RequestedClear: {} })
+    const overlap = defineMessageUnion({ InformedOfClear: {} })
 
     expect(() =>
       declareErased({ Message: overlap, InMessage: overlap }),
@@ -354,7 +358,7 @@ describe('erased InMessage declarations', () => {
     expect(() =>
       declareErased({
         InMessage,
-        operations: { requestClear: overlap.RequestedClear },
+        operations: { informOfClear: overlap.InformedOfClear },
       }),
     ).toThrow('conflicts')
     expect(() =>
@@ -366,16 +370,18 @@ describe('erased InMessage declarations', () => {
     expect(() =>
       declareErased({
         InMessage,
-        inMessageOutputs: { RequestedSet: { message: overlap.RequestedClear } },
+        inMessageOutputs: {
+          RequestedSet: { message: overlap.InformedOfClear },
+        },
       }),
     ).toThrow('support only')
   })
 
   it('rejects borrowed constructors even when their decoded payload has the same shape', () => {
-    const foreign = defineMessageUnion({ RequestedClear: {} })
+    const foreign = defineMessageUnion({ InformedOfClear: {} })
 
     const borrowed = Object.create(InMessage, {
-      RequestedClear: { value: foreign.RequestedClear },
+      InformedOfClear: { value: foreign.InformedOfClear },
     })
 
     expect(() => declareErased({ InMessage: borrowed })).toThrow(

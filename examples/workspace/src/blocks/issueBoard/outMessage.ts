@@ -1,13 +1,13 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { IssueStatus } from '../../domain'
+import { Issue } from '../../domain'
 
 export const OutMessage = defineMessageUnion({
-  RequestedCreation: { status: IssueStatus },
+  RequestedCreation: { status: Issue.Status },
   RequestedMove: {
     issueId: Schema.String,
-    status: IssueStatus,
+    status: Issue.Status,
     insertionIndex: Schema.Number,
   },
 })

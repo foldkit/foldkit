@@ -194,7 +194,7 @@ export const suppliedState = Story.story(
 export const parentStory = Story.story(
   ParentBlock,
   Story.init(),
-  Story.messageFrom(CounterBinding, CounterMessage.UpdatedCount({ value: 7 })),
+  Story.messageIn(CounterBinding, CounterMessage.UpdatedCount({ value: 7 })),
   Story.model(model => model.lastCount.toFixed()),
 )
 export const scopedScene = Scene.scene(
@@ -239,7 +239,7 @@ if (false) {
     Story.message({ _tag: 'UpdatedCount', value: 'wrong' }),
   )
   // @ts-expect-error Child delivery validates its exact child Message payload.
-  Story.messageFrom(CounterBinding, { _tag: 'UpdatedCount', value: 'wrong' })
+  Story.messageIn(CounterBinding, { _tag: 'UpdatedCount', value: 'wrong' })
   // @ts-expect-error A required dispatch Context cannot be omitted.
   Story.story(ContextBlock, Story.init())
   // @ts-expect-error Context arguments retain their exact type.

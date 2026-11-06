@@ -1,14 +1,5 @@
 import {} from 'effect'
-import {
-  Command,
-  expectNoOutMessage,
-  expectOutMessage,
-  inMessage,
-  init,
-  message,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -26,38 +17,38 @@ describe('CommandPaletteBlock', () => {
   it.effect(
     'initializes closed and resets its search when the user closes it',
     () => {
-      return story(
+      return Story.story(
         { block: CommandPaletteBlock, layer },
-        init(),
-        model(model => {
+        Story.init(),
+        Story.model(model => {
           expect(model.dialog.isOpen).toBe(false)
         }),
-        inMessage(InMessage.RequestedOpen()),
-        Command.resolve(
+        Story.inMessage(InMessage.RequestedOpen()),
+        Story.Command.resolve(
           Dialog.test.ShowDialog,
           Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
-        message(Message.UpdatedQuery({ value: 'workspace' })),
-        Command.resolve(
+        Story.message(Message.UpdatedQuery({ value: 'workspace' })),
+        Story.Command.resolve(
           ScrollActiveResult({ index: 0 }),
           Message.CompletedScrollActiveResult(),
         ),
-        message(Message.PressedNextResult({ resultCount: 3 })),
-        Command.resolve(
+        Story.message(Message.PressedNextResult({ resultCount: 3 })),
+        Story.Command.resolve(
           ScrollActiveResult({ index: 1 }),
           Message.CompletedScrollActiveResult(),
         ),
-        inMessage(InMessage.RequestedClose()),
-        Command.resolve(
+        Story.inMessage(InMessage.RequestedClose()),
+        Story.Command.resolve(
           Dialog.test.CloseDialog,
           Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.dialog.isOpen).toBe(false)
           expect(model.query).toBe('')
           expect(model.activeResultIndex).toBe(0)
         }),
-        expectNoOutMessage(),
+        Story.expectNoOutMessage(),
       )
     },
   )
@@ -65,38 +56,40 @@ describe('CommandPaletteBlock', () => {
   it.effect(
     'declares public open and close operations and selects an issue',
     () => {
-      return story(
+      return Story.story(
         { block: CommandPaletteBlock, layer },
-        init(),
-        inMessage(InMessage.RequestedOpen()),
-        model(model => expect(model.dialog.isOpen).toBe(true)),
-        Command.resolve(
+        Story.init(),
+        Story.inMessage(InMessage.RequestedOpen()),
+        Story.model(model => expect(model.dialog.isOpen).toBe(true)),
+        Story.Command.resolve(
           Dialog.test.ShowDialog,
           Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
-        inMessage(InMessage.RequestedClose()),
-        model(model => expect(model.dialog.isOpen).toBe(false)),
-        Command.resolve(
+        Story.inMessage(InMessage.RequestedClose()),
+        Story.model(model => expect(model.dialog.isOpen).toBe(false)),
+        Story.Command.resolve(
           Dialog.test.CloseDialog,
           Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
-        inMessage(InMessage.RequestedOpen()),
-        Command.resolve(
+        Story.inMessage(InMessage.RequestedOpen()),
+        Story.Command.resolve(
           Dialog.test.ShowDialog,
           Dialog.DialogBlock.Message.SucceededShowDialog(),
         ),
-        message(
+        Story.message(
           Message.ClickedResult({
             target: ResultTarget.Issue({ issueId: 'issue-101' }),
           }),
         ),
-        expectOutMessage(OutMessage.SelectedIssue({ issueId: 'issue-101' })),
-        Command.resolve(
+        Story.expectOutMessage(
+          OutMessage.SelectedIssue({ issueId: 'issue-101' }),
+        ),
+        Story.Command.resolve(
           Dialog.test.CloseDialog,
           Dialog.DialogBlock.Message.CompletedCloseDialog(),
         ),
-        model(model => expect(model.dialog.isOpen).toBe(false)),
-        Command.expectNone(),
+        Story.model(model => expect(model.dialog.isOpen).toBe(false)),
+        Story.Command.expectNone(),
       )
     },
   )

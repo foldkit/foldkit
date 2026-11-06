@@ -1,8 +1,6 @@
 import { Effect } from 'effect'
-import { Calendar } from 'foldkit'
+import { Calendar, Story } from 'foldkit'
 import { Valid, Validating } from 'foldkit/fieldValidation'
-import { inMessage, init, withBlock } from 'foldkit/story'
-import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
@@ -13,18 +11,18 @@ import { ValidateEmailAsync } from './command'
 import { PersonalInfoBlock, layer } from './index'
 
 const today = Calendar.make(2026, 4, 16)
-const givenInitial = init(today)
+const givenInitial = Story.init(today)
 
 describe('personalInfo', () => {
   it.effect(
     'a parent request reveals validation errors without starting email validation',
     () =>
-      story(
+      Story.story(
         { block: PersonalInfoBlock, layer },
         givenInitial,
-        inMessage(InMessage.RequestedRevealErrors()),
-        Command.expectNone(),
-        model(model => {
+        Story.inMessage(InMessage.RequestedRevealErrors()),
+        Story.Command.expectNone(),
+        Story.model(model => {
           expect(model.firstName._tag).toBe('Invalid')
           expect(model.lastName._tag).toBe('Invalid')
           expect(model.email._tag).toBe('Invalid')
@@ -35,11 +33,11 @@ describe('personalInfo', () => {
   )
 
   it.effect('a valid first name is stored as Valid', () =>
-    story(
+    Story.story(
       { block: PersonalInfoBlock, layer },
       givenInitial,
-      message(Message.UpdatedFirstName({ value: 'Jane' })),
-      model(model => {
+      Story.message(Message.UpdatedFirstName({ value: 'Jane' })),
+      Story.model(model => {
         expect(model.firstName.value).toBe('Jane')
         expect(model.firstName._tag).toBe('Valid')
       }),
@@ -47,30 +45,30 @@ describe('personalInfo', () => {
   )
 
   it.effect('a short first name is Invalid', () =>
-    story(
+    Story.story(
       { block: PersonalInfoBlock, layer },
       givenInitial,
-      message(Message.UpdatedFirstName({ value: 'J' })),
-      model(model => {
+      Story.message(Message.UpdatedFirstName({ value: 'J' })),
+      Story.model(model => {
         expect(model.firstName._tag).toBe('Invalid')
       }),
     ),
   )
 
   it.effect('a well-formed email starts async uniqueness validation', () =>
-    story(
+    Story.story(
       { block: PersonalInfoBlock, layer },
       givenInitial,
-      message(Message.UpdatedEmail({ value: 'jane@example.com' })),
-      Command.expectHas(ValidateEmailAsync),
-      Command.resolve(
+      Story.message(Message.UpdatedEmail({ value: 'jane@example.com' })),
+      Story.Command.expectHas(ValidateEmailAsync),
+      Story.Command.resolve(
         ValidateEmailAsync,
         Message.CompletedValidateEmailAsync({
           validationId: 1,
           field: Valid({ value: 'jane@example.com' }),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.email._tag).toBe('Valid')
       }),
     ),
@@ -79,12 +77,12 @@ describe('personalInfo', () => {
   it.effect(
     'a malformed email fails sync validation without an async command',
     () =>
-      story(
+      Story.story(
         { block: PersonalInfoBlock, layer },
         givenInitial,
-        message(Message.UpdatedEmail({ value: 'not-email' })),
-        Command.expectNone(),
-        model(model => {
+        Story.message(Message.UpdatedEmail({ value: 'not-email' })),
+        Story.Command.expectNone(),
+        Story.model(model => {
           expect(model.email._tag).toBe('Invalid')
         }),
       ),
@@ -92,26 +90,26 @@ describe('personalInfo', () => {
 
   it.effect('a stale email async result is discarded', () =>
     Effect.gen(function* () {
-      const initialModel = yield* withBlock(
+      const initialModel = yield* Story.withBlock(
         { block: PersonalInfoBlock, layer },
         personalInfo => personalInfo.init(today).model,
       )
 
-      yield* story(
+      yield* Story.story(
         { block: PersonalInfoBlock, layer },
-        given(
+        Story.given(
           modifyFields(initialModel, {
             email: () => Validating({ value: 'jane@example.com' }),
             emailValidationId: () => 5,
           }),
         ),
-        message(
+        Story.message(
           Message.CompletedValidateEmailAsync({
             validationId: 3,
             field: Valid({ value: 'old@example.com' }),
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.email._tag).toBe('Validating')
           expect(model.email.value).toBe('jane@example.com')
           expect(model.emailValidationId).toBe(5)

@@ -1,14 +1,5 @@
+import { Scene } from 'foldkit'
 import { Validating } from 'foldkit/fieldValidation'
-import {
-  Command,
-  click,
-  expect,
-  given,
-  inside,
-  role,
-  scene,
-  text,
-} from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
@@ -19,7 +10,7 @@ import { Submission } from './model'
 import { it } from './model.fixture'
 import { StepTabsBlock } from './navigationComponents'
 
-const resolveFocusTab = Command.resolve(
+const resolveFocusTab = Scene.Command.resolve(
   Tabs.test.FocusTab,
   StepTabsBlock.Message.CompletedFocusTab(),
 )
@@ -28,28 +19,32 @@ describe('view', () => {
   it.effect(
     'initial view shows the page heading and the PersonalInfo step',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        expect(role('heading', { name: 'Apply to Work on Foldkit' })).toExist(),
-        expect(role('heading', { name: 'Personal Info' })).toExist(),
-        expect(role('button', { name: 'Next →' })).toExist(),
+        Scene.given(initialModel),
+        Scene.expect(
+          Scene.role('heading', { name: 'Apply to Work on Foldkit' }),
+        ).toExist(),
+        Scene.expect(
+          Scene.role('heading', { name: 'Personal Info' }),
+        ).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Next →' })).toExist(),
       ),
   )
 
   it.effect('the step nav lists every step', ({ models: { initialModel } }) =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      inside(
-        role('tablist', { name: 'Application steps' }),
-        expect(text('Personal Info')).toExist(),
-        expect(text('Work History')).toExist(),
-        expect(text('Education')).toExist(),
-        expect(text('Skills')).toExist(),
-        expect(text('Cover Letter')).toExist(),
-        expect(text('Attachments')).toExist(),
-        expect(text('Review')).toExist(),
+      Scene.given(initialModel),
+      Scene.inside(
+        Scene.role('tablist', { name: 'Application steps' }),
+        Scene.expect(Scene.text('Personal Info')).toExist(),
+        Scene.expect(Scene.text('Work History')).toExist(),
+        Scene.expect(Scene.text('Education')).toExist(),
+        Scene.expect(Scene.text('Skills')).toExist(),
+        Scene.expect(Scene.text('Cover Letter')).toExist(),
+        Scene.expect(Scene.text('Attachments')).toExist(),
+        Scene.expect(Scene.text('Review')).toExist(),
       ),
     ),
   )
@@ -57,78 +52,88 @@ describe('view', () => {
   it.effect(
     'tabs can jump directly to any step',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        inside(
-          role('tablist', { name: 'Application steps' }),
-          click(role('tab', { name: /Review$/ })),
+        Scene.given(initialModel),
+        Scene.inside(
+          Scene.role('tablist', { name: 'Application steps' }),
+          Scene.click(Scene.role('tab', { name: /Review$/ })),
         ),
         resolveFocusTab,
-        expect(role('heading', { name: 'Review' })).toExist(),
+        Scene.expect(Scene.role('heading', { name: 'Review' })).toExist(),
       ),
   )
 
   it.effect(
     'clicking Next advances to the Work History step',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        click(role('button', { name: 'Next →' })),
-        expect(role('heading', { name: 'Work History' })).toExist(),
-        expect(role('button', { name: '← Previous' })).toExist(),
+        Scene.given(initialModel),
+        Scene.click(Scene.role('button', { name: 'Next →' })),
+        Scene.expect(Scene.role('heading', { name: 'Work History' })).toExist(),
+        Scene.expect(Scene.role('button', { name: '← Previous' })).toExist(),
       ),
   )
 
   it.effect(
     'Previous on a later step returns to the prior step',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(modifyFields(initialModel, { currentStep: () => 'Education' })),
-        expect(role('heading', { name: 'Education' })).toExist(),
-        click(role('button', { name: '← Previous' })),
-        expect(role('heading', { name: 'Work History' })).toExist(),
+        Scene.given(
+          modifyFields(initialModel, { currentStep: () => 'Education' }),
+        ),
+        Scene.expect(Scene.role('heading', { name: 'Education' })).toExist(),
+        Scene.click(Scene.role('button', { name: '← Previous' })),
+        Scene.expect(Scene.role('heading', { name: 'Work History' })).toExist(),
       ),
   )
 
   it.effect(
     'the first step does not render a Previous button',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        expect(role('button', { name: '← Previous' })).toBeAbsent(),
+        Scene.given(initialModel),
+        Scene.expect(Scene.role('button', { name: '← Previous' })).toBeAbsent(),
       ),
   )
 
   it.effect(
     'the Review step exposes a Submit button and hides Next',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(modifyFields(initialModel, { currentStep: () => 'Review' })),
-        expect(role('button', { name: 'Submit Application' })).toExist(),
-        expect(role('button', { name: 'Next →' })).toBeAbsent(),
+        Scene.given(
+          modifyFields(initialModel, { currentStep: () => 'Review' }),
+        ),
+        Scene.expect(
+          Scene.role('button', { name: 'Submit Application' }),
+        ).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Next →' })).toBeAbsent(),
       ),
   )
 
   it.effect(
     'clicking Submit on an incomplete application shows a blocking notice',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(modifyFields(initialModel, { currentStep: () => 'Review' })),
-        expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
-        expect(
-          text(
+        Scene.given(
+          modifyFields(initialModel, { currentStep: () => 'Review' }),
+        ),
+        Scene.expect(
+          Scene.role('button', { name: 'Submit Application' }),
+        ).toBeEnabled(),
+        Scene.expect(
+          Scene.text(
             'Review Personal Info, Work History, Education, Skills before submitting.',
           ),
         ).not.toExist(),
-        click(role('button', { name: 'Submit Application' })),
-        expect(
-          text(
+        Scene.click(Scene.role('button', { name: 'Submit Application' })),
+        Scene.expect(
+          Scene.text(
             'Review Personal Info, Work History, Education, Skills before submitting.',
           ),
         ).toExist(),
@@ -138,9 +143,9 @@ describe('view', () => {
   it.effect(
     'a pending validation notice names the incomplete step',
     ({ models: { completeModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(
+        Scene.given(
           modifyFields(completeModel, {
             currentStep: () => 'Review',
             personalInfo: modifyFields({
@@ -148,18 +153,22 @@ describe('view', () => {
             }),
           }),
         ),
-        expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
-        click(role('button', { name: 'Submit Application' })),
-        expect(text('Review Personal Info before submitting.')).toExist(),
+        Scene.expect(
+          Scene.role('button', { name: 'Submit Application' }),
+        ).toBeEnabled(),
+        Scene.click(Scene.role('button', { name: 'Submit Application' })),
+        Scene.expect(
+          Scene.text('Review Personal Info before submitting.'),
+        ).toExist(),
       ),
   )
 
   it.effect(
     'submit blocking notices include multiple incomplete required steps',
     ({ models: { completeModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(
+        Scene.given(
           modifyFields(completeModel, {
             currentStep: () => 'Review',
             workHistory: modifyFields({
@@ -173,10 +182,14 @@ describe('view', () => {
             }),
           }),
         ),
-        expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
-        click(role('button', { name: 'Submit Application' })),
-        expect(
-          text('Review Work History, Education, Skills before submitting.'),
+        Scene.expect(
+          Scene.role('button', { name: 'Submit Application' }),
+        ).toBeEnabled(),
+        Scene.click(Scene.role('button', { name: 'Submit Application' })),
+        Scene.expect(
+          Scene.text(
+            'Review Work History, Education, Skills before submitting.',
+          ),
         ).toExist(),
       ),
   )
@@ -184,46 +197,48 @@ describe('view', () => {
   it.effect(
     'a submitting application shows a Submitting button',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(
+        Scene.given(
           modifyFields(initialModel, {
             currentStep: () => 'Review',
             submission: () => Submission.Submitting(),
           }),
         ),
-        expect(role('button', { name: 'Submitting...' })).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Submitting...' })).toExist(),
       ),
   )
 
   it.effect(
     'a successful submission swaps the form for a success panel',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(
+        Scene.given(
           modifyFields(initialModel, {
             currentStep: () => 'Review',
             submission: () => Submission.SubmitSuccess(),
           }),
         ),
-        expect(text('Application Submitted', { exact: false })).toExist(),
+        Scene.expect(
+          Scene.text('Application Submitted', { exact: false }),
+        ).toExist(),
       ),
   )
 
   it.effect(
     'a failed submission shows the error and a Try Again control',
     ({ models: { initialModel } }) =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(
+        Scene.given(
           modifyFields(initialModel, {
             currentStep: () => 'Review',
             submission: () => Submission.SubmitError({ error: 'Network down' }),
           }),
         ),
-        expect(text('Network down')).toExist(),
-        expect(role('button', { name: 'Try Again' })).toExist(),
+        Scene.expect(Scene.text('Network down')).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Try Again' })).toExist(),
       ),
   )
 })

@@ -1,12 +1,12 @@
 import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const RoomModel = Schema.Struct({ title: Schema.String })
 type RoomModel = typeof RoomModel.Type
 
-const RoomInMessage = defineMessageUnion({
+const RoomInMessage = defineInMessageUnion({
   RequestedRename: { title: Schema.String },
 })
 type RoomInMessage = typeof RoomInMessage.Type

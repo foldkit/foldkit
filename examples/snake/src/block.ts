@@ -280,17 +280,19 @@ export const EffectsLayer = Layer.mergeAll(
   subscriptions.layer,
 )
 
-const cellClass = (x: number, y: number, model: Model): string => {
-  const isSnakeHead = Position.equivalence(
-    { x, y },
-    Array.headNonEmpty(model.snake),
-  )
+const cellClass = (
+  x: number,
+  y: number,
+  snake: Model['snake'],
+  apple: Model['apple'],
+): string => {
+  const isSnakeHead = Position.equivalence({ x, y }, Array.headNonEmpty(snake))
   const isSnakeTail = pipe(
-    model.snake,
+    snake,
     Array.tailNonEmpty,
     Array.some(segment => Position.equivalence({ x, y }, segment)),
   )
-  const isApple = Position.equivalence({ x, y }, model.apple)
+  const isApple = Position.equivalence({ x, y }, apple)
 
   return Match.value({ isSnakeHead, isSnakeTail, isApple }).pipe(
     Match.when({ isSnakeHead: true }, () => 'bg-green-700'),
@@ -300,14 +302,18 @@ const cellClass = (x: number, y: number, model: Model): string => {
   )
 }
 
-const gridView = (model: Model, h: ApplicationViewBuilder): Html =>
+const gridView = (
+  snake: Model['snake'],
+  apple: Model['apple'],
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [h.Class('inline-block border-2 border-gray-600')],
     Array.makeBy(GAME.GRID_SIZE, y =>
       h.div(
         [h.Class('flex')],
         Array.makeBy(GAME.GRID_SIZE, x =>
-          h.div([h.Class(`w-6 h-6 ${cellClass(x, y, model)}`)]),
+          h.div([h.Class(`w-6 h-6 ${cellClass(x, y, snake, apple)}`)]),
         ),
       ),
     ),
@@ -350,7 +356,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
         ],
       ),
       h.p([h.Class('text-lg mb-4')], [gameStateView(model.gameState)]),
-      gridView(model, h),
+      gridView(model.snake, model.apple, h),
       instructionsView(h),
     ],
   ),

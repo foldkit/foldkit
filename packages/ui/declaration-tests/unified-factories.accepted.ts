@@ -40,7 +40,41 @@ export const EncodedItem = Schema.Number.pipe(
   ),
 )
 export const EncodedPicker = Combobox.makeBlock(EncodedItem)
-export const FruitListbox = Listbox.makeBlock<Fruit>()
+export const FruitListbox = Listbox.makeBlock(Fruit)
+export const MemberId = Schema.String.pipe(Schema.brand('MemberId'))
+export type MemberId = typeof MemberId.Type
+export const MemberListbox = Listbox.makeBlock(MemberId)
+export const selectedMember = MemberListbox.Message.SelectedItem({
+  item: MemberId.make('member-1'),
+})
+export const FruitMultiListbox = Listbox.Multi.makeBlock(Fruit)
+export const EncodedListbox = Listbox.makeBlock(EncodedItem)
+export const EncodedMultiListbox = Listbox.Multi.makeBlock(EncodedItem)
+export const FruitOption = Schema.Struct({ label: Schema.String, value: Fruit })
+export type FruitOption = typeof FruitOption.Type
+export const FruitOptionListbox = Listbox.makeBlock(FruitOption, Fruit)
+export const StringToFruitListbox = Listbox.makeBlock(Schema.String, Fruit)
+export const directFruitInputs: Listbox.ViewInputs<string, Fruit> = {
+  items: ['Apple', 'Pear'],
+  maybeSelectedValue: Option.none(),
+  itemToConfig: () => ({ content: null }),
+  buttonContent: null,
+}
+export const mappedFruitInputs: Listbox.ViewInputs<string, Fruit> = {
+  items: ['APPLE'],
+  itemToValue: () => 'Apple',
+  maybeSelectedValue: Option.none(),
+  itemToConfig: () => ({ content: null }),
+  buttonContent: null,
+}
+export const pairedFruitListbox = Story.withBlock(
+  { block: FruitListbox, layer: Listbox.layer },
+  executable =>
+    executable.operations.requestSelectItem(
+      executable.init({ id: 'fruit' }).model,
+      'Apple',
+    ),
+)
 export const FruitMenu = Menu.makeBlock<Fruit>()
 export const FruitRadioGroup = RadioGroup.makeBlock<Fruit>()
 export const FruitTabs = Tabs.makeBlock<Fruit>()
@@ -90,6 +124,23 @@ export class Construction extends Context.Service<
   Construction,
   Readonly<{ isUnavailable: boolean }>
 >()('UnifiedFactory/Construction') {}
+const ServicefulLabel = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.String,
+    SchemaTransformation.transformEffect({
+      decode: value => Effect.as(Construction, value),
+      encode: value => Effect.as(Construction, value),
+    }),
+  ),
+)
+export const ServicefulOptionListbox = Listbox.makeBlock(
+  Schema.Struct({ label: ServicefulLabel, value: Fruit }),
+  Fruit,
+)
+export const pairedServicefulOptionListbox = Story.withBlock(
+  { block: ServicefulOptionListbox, layer: Listbox.layer },
+  executable => executable.init({ id: 'serviceful-option' }),
+)
 export const ConstructionError = Schema.Struct({ reason: Schema.String })
 export type ConstructionError = typeof ConstructionError.Type
 const QuoteComposition = Quotes.makeComposition()
@@ -239,6 +290,76 @@ export const PickerBinding = UnifiedFactoryParentBlock.makeBinding(Picker, {
 export const childConstruction = Effect.gen(function* () {
   return yield* PickerBinding
 }).pipe(Effect.provide(Combobox.layer))
+
+export const ListboxParentKey = Symbol('ListboxParent')
+export const ListboxParentBlock = Block.make('ListboxParent', {
+  key: ListboxParentKey,
+  Model: Schema.Struct({
+    fruitListbox: FruitOptionListbox.Model,
+    maybeFruit: Schema.Option(Fruit),
+  }),
+  Message: Schema.Never,
+  Init: Schema.Tuple([]),
+  view: { kind: 'Element' },
+})
+export const FruitListboxBinding = ListboxParentBlock.makeBinding(
+  FruitOptionListbox,
+  {
+    field: 'fruitListbox',
+    init: { contextToArgs: () => [{ id: 'fruit-option' }] },
+  },
+).withOutMessagePolicy({
+  fold: ListboxParentBlock.makeOutMessageFold(FruitOptionListbox, {
+    Selected: ({ value }) =>
+      ListboxParentBlock.makeFieldsStep(() => ({
+        maybeFruit: () => Option.some(value),
+      })),
+  }),
+})
+const ListboxParentComposition = ListboxParentBlock.makeComposition({
+  bindings: [FruitListboxBinding],
+})
+const listboxParentInit = ListboxParentComposition.makeInit(() => ({
+  model: { maybeFruit: Option.none() },
+}))
+const listboxParentUpdate = ListboxParentComposition.makeUpdate({})
+export const listboxParentView = ListboxParentComposition.makeView((model, h) =>
+  h.div(
+    [],
+    [
+      h.block(
+        FruitListboxBinding.embedView({
+          slotId: 'fruit',
+          model: model.fruitListbox,
+          viewInputs: {
+            items: [FruitOption.make({ label: 'Apple', value: 'Apple' })],
+            maybeSelectedValue: model.maybeFruit,
+            itemToValue: item => item.value,
+            itemToConfig: (item, { isSelected }) => ({
+              content: h.span(
+                [],
+                [isSelected ? `${item.label} selected` : item.label],
+              ),
+            }),
+            buttonContent: h.span([], ['Fruit']),
+          },
+        }),
+      ),
+    ],
+  ),
+)
+export const ListboxParentLayer = ListboxParentBlock.makeLayer(
+  Effect.gen(function* () {
+    const fruitListbox = yield* FruitListboxBinding
+
+    return {
+      children: [fruitListbox],
+      init: listboxParentInit,
+      update: listboxParentUpdate,
+      view: listboxParentView,
+    }
+  }),
+).pipe(Layer.provide(Listbox.layer))
 export type Checks = readonly [
   Assert<Equal<'get' extends keyof typeof Picker ? true : false, false>>,
   Assert<
@@ -248,6 +369,34 @@ export type Checks = readonly [
   Assert<Equal<Effect.Services<typeof selectedPicker>, Construction>>,
   Assert<Equal<Effect.Services<typeof ordinaryPicker>, never>>,
   Assert<Equal<Effect.Services<typeof ordinaryMultiPicker>, never>>,
+  Assert<Equal<Effect.Services<typeof pairedFruitListbox>, never>>,
+  Assert<
+    Equal<(typeof MemberListbox.Message.SelectedItem.Type)['item'], MemberId>
+  >,
+  Assert<Equal<Effect.Services<typeof pairedServicefulOptionListbox>, never>>,
+  Assert<Equal<(typeof FruitListbox.Message.SelectedItem.Type)['item'], Fruit>>,
+  Assert<
+    Equal<
+      (typeof FruitMultiListbox.Message.RequestedSelectItem.Type)['item'],
+      Fruit
+    >
+  >,
+  Assert<Equal<(typeof FruitListbox.OutMessage.Selected.Type)['value'], Fruit>>,
+  Assert<
+    Equal<(typeof EncodedListbox.Message.SelectedItem.Encoded)['item'], number>
+  >,
+  Assert<
+    Equal<
+      (typeof EncodedMultiListbox.Message.RequestedSelectItem.Encoded)['item'],
+      number
+    >
+  >,
+  Assert<
+    Equal<
+      (typeof EncodedMultiListbox.OutMessage.Selected.Encoded)['value'],
+      number
+    >
+  >,
   Assert<Equal<Effect.Services<typeof childConstruction>, never>>,
   Assert<Equal<Effect.Services<typeof pairedQuotes>, never>>,
   Assert<Equal<Effect.Services<typeof pairedWindows>, never>>,

@@ -7,12 +7,15 @@ import {
   ProjectSettingsComposition,
   type ProjectSettingsViewBuilder,
 } from './composition'
-import { isDirty } from './draft'
+import { hasUnsavedChanges } from './draft'
 import { Message } from './message'
-import { type Model, SaveState } from './model'
+import { SaveState } from './model'
 
-const saveFeedback = (model: Model, h: ProjectSettingsViewBuilder): Html =>
-  SaveState.match(model.saveState, {
+const saveFeedback = (
+  saveState: SaveState,
+  h: ProjectSettingsViewBuilder,
+): Html =>
+  SaveState.match(saveState, {
     Idle: () => h.empty,
     Saving: () =>
       h.p([h.Role('status'), h.Class('sr-only')], ['Saving project…']),
@@ -47,12 +50,16 @@ const saveFeedback = (model: Model, h: ProjectSettingsViewBuilder): Html =>
       ),
   })
 
-const projectNameField = (model: Model, h: ProjectSettingsViewBuilder): Html =>
+const projectNameField = (
+  name: string,
+  isSaving: boolean,
+  h: ProjectSettingsViewBuilder,
+): Html =>
   Input.view(
     {
       id: 'workspace-project-name',
-      value: model.draft.name,
-      isDisabled: SaveState.guards.Saving(model.saveState),
+      value: name,
+      isDisabled: isSaving,
       onInput: value => Message.UpdatedProjectName({ value }),
       toView: attributes =>
         h.div(
@@ -79,14 +86,15 @@ const projectNameField = (model: Model, h: ProjectSettingsViewBuilder): Html =>
   )
 
 const projectDescriptionField = (
-  model: Model,
+  description: string,
+  isSaving: boolean,
   h: ProjectSettingsViewBuilder,
 ): Html =>
   Textarea.view(
     {
       id: 'workspace-project-description',
-      value: model.draft.description,
-      isDisabled: SaveState.guards.Saving(model.saveState),
+      value: description,
+      isDisabled: isSaving,
       rows: 4,
       onInput: value => Message.UpdatedProjectDescription({ value }),
       toView: attributes =>
@@ -112,11 +120,12 @@ const projectDescriptionField = (
     h,
   )
 
-const formActions = (model: Model, h: ProjectSettingsViewBuilder): Html => {
-  const isSaving = SaveState.guards.Saving(model.saveState)
-  const isChanged = isDirty(model)
-  const isValid = String.isNonEmpty(String.trim(model.draft.name))
-
+const formActions = (
+  isSaving: boolean,
+  isChanged: boolean,
+  isValid: boolean,
+  h: ProjectSettingsViewBuilder,
+): Html => {
   return h.div(
     [
       h.Class(
@@ -153,8 +162,12 @@ const formActions = (model: Model, h: ProjectSettingsViewBuilder): Html => {
   )
 }
 
-export const view = ProjectSettingsComposition.makeView((model, h) =>
-  h.section(
+export const view = ProjectSettingsComposition.makeView((model, h) => {
+  const isSaving = SaveState.guards.Saving(model.saveState)
+  const isChanged = hasUnsavedChanges(model)
+  const isValid = String.isNonEmpty(String.trim(model.draft.name))
+
+  return h.section(
     [h.Class('max-w-2xl p-5 lg:p-8')],
     [
       h.form(
@@ -167,11 +180,11 @@ export const view = ProjectSettingsComposition.makeView((model, h) =>
             [h.Class('mb-5 text-base font-semibold text-slate-800')],
             ['Project details'],
           ),
-          saveFeedback(model, h),
+          saveFeedback(model.saveState, h),
           Fieldset.view(
             {
               id: 'workspace-project-fields',
-              isDisabled: SaveState.guards.Saving(model.saveState),
+              isDisabled: isSaving,
               toView: attributes =>
                 h.fieldset(
                   [...attributes.fieldset, h.Class('space-y-5')],
@@ -180,9 +193,13 @@ export const view = ProjectSettingsComposition.makeView((model, h) =>
                       [...attributes.legend, h.Class('sr-only')],
                       ['Project settings'],
                     ),
-                    projectNameField(model, h),
-                    projectDescriptionField(model, h),
-                    formActions(model, h),
+                    projectNameField(model.draft.name, isSaving, h),
+                    projectDescriptionField(
+                      model.draft.description,
+                      isSaving,
+                      h,
+                    ),
+                    formActions(isSaving, isChanged, isValid, h),
                   ],
                 ),
             },
@@ -191,5 +208,5 @@ export const view = ProjectSettingsComposition.makeView((model, h) =>
         ],
       ),
     ],
-  ),
-)
+  )
+})

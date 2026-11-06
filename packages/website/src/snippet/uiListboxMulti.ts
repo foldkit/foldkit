@@ -11,7 +11,7 @@ const Person = Schema.Literals([
 ])
 type Person = typeof Person.Type
 // Declare a typed multi-select Listbox once at module scope:
-const PeopleListbox = Listbox.Multi.makeBlock<Person>()
+const PeopleListbox = Listbox.Multi.makeBlock(Person)
 
 // Add a field to your Model for the multi-select Listbox Block, plus a field
 // for the selected values your app actually cares about. Using the

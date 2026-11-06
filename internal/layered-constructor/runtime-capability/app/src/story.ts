@@ -10,7 +10,7 @@ export const pureStory = Story.story(
   ChatRoomWithComposerBlock,
   Story.init({ title: 'General', inputId: 'general' }),
   Story.message(Message.ConnectedChatSocket()),
-  Story.messageFrom(
+  Story.messageIn(
     MessageComposerBinding,
     ComposerMessage.UpdatedText({ value: 'Pure draft' }),
   ),

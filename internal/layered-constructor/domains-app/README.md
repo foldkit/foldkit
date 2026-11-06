@@ -28,7 +28,7 @@ Do not run `pnpm install` against this spike. Its unpublished package dependenci
 - [composition.ts](src/client/composition.ts) retains static Bindings, policies, deferred child initialization, and graph-aware builders.
 - [children.ts](src/client/children.ts) adapts the existing Query and UI Blocks once with `fromBlock`; their implementations are retained.
 - [block.ts](src/client/block.ts) yields eight typed Bindings and returns the independently authored init, update, view, children, and handler Layer through `ApplicationDefinition.makeBlock`.
-- Original root Story and Scene calls use the Block-aware testing entry points, with awaited Effects and deferred `Story.messageFrom` for raw child delivery. Shared ordinary test Steps stay reusable.
+- Original root Story and Scene calls use the Block-aware testing entry points, with awaited Effects and deferred `Story.messageIn` for raw child delivery. Shared ordinary test Steps stay reusable.
 
 The search algorithms, domain Schemas, Query policies, RPC implementation, reusable parent Steps, and view implementation remain unchanged. The graph constructor needs no `DomainsClient`; the actual handler Layer and Program still require it. [checks/consumer.ts](checks/consumer.ts) verifies those exact channels and rejected combinations without application casts or a handwritten public contract.
 

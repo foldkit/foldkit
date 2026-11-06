@@ -118,17 +118,17 @@ const stepContent = (
     Match.exhaustive,
   )
 
-const isFirstStep = (model: Model): boolean =>
-  pipe(Step.all, Array.head, Option.exists(Equal.equals(model.currentStep)))
+const isFirstStep = (currentStep: Step.Step): boolean =>
+  pipe(Step.all, Array.head, Option.exists(Equal.equals(currentStep)))
 
-const isLastStep = (model: Model): boolean =>
-  pipe(Step.all, Array.last, Option.exists(Equal.equals(model.currentStep)))
+const isLastStep = (currentStep: Step.Step): boolean =>
+  pipe(Step.all, Array.last, Option.exists(Equal.equals(currentStep)))
 
-const navigationButtons = (model: Model, h: ApplicationViewBuilder) =>
+const navigationButtons = (currentStep: Step.Step, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
     [
-      ...(isFirstStep(model)
+      ...(isFirstStep(currentStep)
         ? [h.empty]
         : [
             Button.view(
@@ -148,7 +148,7 @@ const navigationButtons = (model: Model, h: ApplicationViewBuilder) =>
               h,
             ),
           ]),
-      ...(isLastStep(model)
+      ...(isLastStep(currentStep)
         ? []
         : [
             Button.view(
@@ -203,7 +203,9 @@ const stepContentPanel = (
         [h.Class('min-h-[400px]')],
         [stepContent(model, attentionSteps, h)],
       ),
-      ...(model.currentStep !== 'Review' ? [navigationButtons(model, h)] : []),
+      ...(model.currentStep !== 'Review'
+        ? [navigationButtons(model.currentStep, h)]
+        : []),
     ],
   )
 
@@ -255,7 +257,7 @@ const stepTabsLayout = (
                 ),
               ),
               desktopPreviewSidebar(model, h),
-              mobilePreviewToggle(model, h),
+              mobilePreviewToggle(model.isPreviewVisible, h),
               ...(model.isPreviewVisible
                 ? [mobilePreviewOverlay(model, h)]
                 : []),
@@ -294,7 +296,10 @@ const desktopPreviewSidebar = (model: Model, h: ApplicationViewBuilder) =>
     ],
   )
 
-const mobilePreviewToggle = (model: Model, h: ApplicationViewBuilder) =>
+const mobilePreviewToggle = (
+  isPreviewVisible: boolean,
+  h: ApplicationViewBuilder,
+) =>
   h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
@@ -308,13 +313,13 @@ const mobilePreviewToggle = (model: Model, h: ApplicationViewBuilder) =>
                 h.Class(
                   clsx(
                     'rounded-full px-4 py-2 text-sm font-medium shadow-lg transition cursor-pointer',
-                    model.isPreviewVisible
+                    isPreviewVisible
                       ? 'bg-gray-800 text-white'
                       : 'bg-indigo-600 text-white',
                   ),
                 ),
               ],
-              [model.isPreviewVisible ? 'Hide Preview' : 'Preview'],
+              [isPreviewVisible ? 'Hide Preview' : 'Preview'],
             ),
         },
         h,

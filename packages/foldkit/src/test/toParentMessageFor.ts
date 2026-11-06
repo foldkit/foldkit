@@ -53,7 +53,7 @@ export interface ParentMessageMapper<ParentBlock extends Parent> {
 
 /**
  * Binds decoded child delivery to an original parent acquired by `withBlock`.
- * Ordinary Stories use `Story.messageFrom`. Use this mapper when an advanced
+ * Ordinary Stories use `Story.messageIn`. Use this mapper when an advanced
  * scoped fixture needs the selected graph's exact delivery identity, then
  * drive the behavior through Story or Scene steps.
  *

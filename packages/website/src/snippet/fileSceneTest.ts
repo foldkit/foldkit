@@ -1,15 +1,4 @@
-import {
-  Command,
-  changeFiles,
-  click,
-  dropFiles,
-  expect,
-  given,
-  label,
-  role,
-  scene,
-  text,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -22,25 +11,25 @@ describe('resume upload flow', () => {
   })
 
   it.effect('inline file input: changeFiles simulates selection', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      changeFiles(label('resume'), [resume]),
-      expect(text('resume.pdf')).toExist(),
+      Scene.given(initialModel),
+      Scene.changeFiles(Scene.label('resume'), [resume]),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
     ),
   )
 
   it.effect('button-triggered picker: resolve the SelectResume Command', () => {
     const previewDataUrl = 'data:application/pdf;base64,JVBERi0='
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      click(role('button', { name: 'Choose resume' })),
-      Command.resolveAll(
+      Scene.given(initialModel),
+      Scene.click(Scene.role('button', { name: 'Choose resume' })),
+      Scene.Command.resolveAll(
         [SelectResume, CompletedSelectResume({ file: resume })],
         [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
       ),
-      expect(role('img', { name: 'Resume preview' })).toExist(),
+      Scene.expect(Scene.role('img', { name: 'Resume preview' })).toExist(),
     )
   })
 
@@ -51,11 +40,11 @@ describe('resume upload flow', () => {
     const portfolio = new File(['<svg/>'], 'portfolio.svg', {
       type: 'image/svg+xml',
     })
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      dropFiles(label('attachments'), [coverLetter, portfolio]),
-      expect(text('2 attachments selected')).toExist(),
+      Scene.given(initialModel),
+      Scene.dropFiles(Scene.label('attachments'), [coverLetter, portfolio]),
+      Scene.expect(Scene.text('2 attachments selected')).toExist(),
     )
   })
 })

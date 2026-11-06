@@ -1,6 +1,9 @@
-import { Context, Effect, Option, Scope } from 'effect'
+import { Array, Context, Effect, Option, Predicate, Scope } from 'effect'
 
 import type { BindableBlock } from '../block/binding.js'
+import { bindingResolverOf } from '../block/bindingConnection.js'
+import { canonicalBindingOf, runtimeBindingsOf } from '../block/composition.js'
+import { executionBindingsOf } from '../experimental/constructed/symbolic.js'
 import {
   type CompositionRuntime,
   makeCompositionRuntime,
@@ -13,19 +16,43 @@ export const SceneHostTypeId = Symbol('foldkit/SceneHost')
 export type SceneHost = Pick<
   CompositionRuntime<unknown>,
   'context' | 'synchronize'
->
+> &
+  Readonly<{ resolveBinding: (declaration: object) => object }>
 
 /** @internal Reuses the test's acquisition scope without building handler Layers. */
 export const makeSceneHost = (
   block: BindableBlock,
   context: Context.Context<Scope.Scope>,
 ): SceneHost => {
-  let runtime: SceneHost | undefined
+  let runtime:
+    | Pick<CompositionRuntime<any>, 'context' | 'synchronize'>
+    | undefined
   let observedModel: unknown
 
   return {
     get context() {
       return runtime?.context ?? context
+    },
+    resolveBinding: declaration => {
+      const resolveBinding = bindingResolverOf(declaration)
+      const binding = canonicalBindingOf(
+        resolveBinding === undefined
+          ? declaration
+          : resolveBinding(executionBindingsOf(block)),
+      )
+
+      if (
+        !Predicate.isObject(binding) ||
+        !Array.some(runtimeBindingsOf(block), candidate =>
+          Object.is(candidate, binding),
+        )
+      ) {
+        throw new Error(
+          '[foldkit] Scene selected a child Binding that is not registered in the acquired Block graph.',
+        )
+      }
+
+      return binding
     },
     synchronize: model => {
       if (runtime === undefined) {

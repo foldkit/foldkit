@@ -2,9 +2,29 @@ import type { Effect } from 'effect'
 
 import type * as Update from '../update/index.js'
 import type {
+  BlockOfBinding,
   GeneratedMessageOfRequirement,
+  IsKeyedBinding,
   RequirementsOfBindings,
 } from './binding.js'
+import type { PrivateDelivery } from './privateDelivery.js'
+
+declare const OutMessageHelperEvidenceTypeId: unique symbol
+
+/** @internal Retains the exact child Message and OutMessage contracts of an authored helper. */
+export interface OutMessageHelperEvidence<
+  ChildOutMessage,
+  Role extends 'fold' | 'forward',
+  ChildMessage = never,
+> {
+  readonly [OutMessageHelperEvidenceTypeId]: Readonly<{
+    input: (outMessage: ChildOutMessage) => void
+    output: ChildOutMessage
+    messageInput: (message: ChildMessage) => void
+    messageOutput: ChildMessage
+    role: Role
+  }>
+}
 
 declare const BindingPolicyTypeId: unique symbol
 
@@ -34,6 +54,21 @@ type IsUnknown<Value> =
   IsAny<Value> extends true ? false : unknown extends Value ? true : false
 type ReturnOf<Value> = Value extends AnyFunction ? ReturnType<Value> : never
 
+/** @internal Reads the parent Step from an ordinary or helper-producing fold. */
+export type OutMessagePolicyStep<Policy> =
+  ReturnOf<FieldOf<Policy, 'fold'>> extends infer Step
+    ? keyof OutMessageHelperEvidence<never, 'fold'> extends keyof Step
+      ? Step extends OutMessageHelperEvidence<any, 'fold', any>
+        ? ReturnOf<Step>
+        : Step
+      : Step
+    : never
+
+/** @internal Preserves the exact result of an authored parent OutMessage Step. */
+export type OutMessagePolicyReturn<Policy> = ReturnOf<
+  OutMessagePolicyStep<Policy>
+>
+
 type PolicyStepReturn<Model, Message, OutMessage> = Readonly<{
   model: Model
   commands?: Update.Commands<Message, any> | undefined
@@ -58,7 +93,7 @@ type KeysOf<Value> = Value extends unknown ? keyof Value : never
 
 type RegistrationKey = keyof Update.RegistrationEvidence<unknown>
 
-type PolicyStep<Policy> = ReturnOf<FieldOf<Policy, 'fold'>>
+type PolicyStep<Policy> = OutMessagePolicyStep<Policy>
 
 type PolicyOutput<Policy> = Update.ResolvedOperationOutput<
   ReturnOf<PolicyStep<Policy>>
@@ -172,7 +207,7 @@ type ValidFold<Fold, Model, Message, OutMessage, Policy> =
     ? false
     : Fold extends AnyFunction
       ? false extends ValidStep<
-          ReturnType<Fold>,
+          PolicyStep<Policy>,
           Model,
           Message,
           OutMessage,
@@ -232,9 +267,54 @@ type InvalidPolicies<
   OutMessage,
 > = Children[number] extends infer Binding
   ? Binding extends BindingPolicyEvidence<infer Policy>
-    ? InvalidPolicy<Policy, Model, Message, OutMessage>
+    ?
+        | InvalidPolicy<Policy, Model, Message, OutMessage>
+        | InvalidProducedFold<Binding, Policy>
     : 'Policy evidence is unavailable'
   : never
+
+type InvalidProducedFold<Binding, Policy> =
+  ReturnOf<FieldOf<Policy, 'fold'>> extends infer Produced
+    ? keyof OutMessageHelperEvidence<never, 'fold'> extends keyof Produced
+      ? Produced extends OutMessageHelperEvidence<
+          infer ChildOutMessage,
+          infer Role,
+          infer ChildMessage
+        >
+        ? IsKeyedBinding<Binding> extends true
+          ? Role extends 'fold'
+            ? BlockOfBinding<Binding> extends Readonly<{
+                OutMessage: Readonly<{ Type: infer Expected }>
+              }>
+              ? BlockOfBinding<Binding> extends Readonly<{
+                  Message: Readonly<{ Type: infer ExpectedMessage }>
+                }>
+                ? Equal<Expected, ChildOutMessage> extends true
+                  ? Equal<
+                      Exclude<ExpectedMessage, PrivateDelivery<any>>,
+                      ChildMessage
+                    > extends true
+                    ? never
+                    : 'Produced OutMessage folds must use the exact child Message contract'
+                  : 'Produced OutMessage folds must use the exact child OutMessage contract'
+                : 'Produced OutMessage folds require a child Message contract'
+              : 'Produced OutMessage folds require a child OutMessage contract'
+            : 'Produced OutMessage handlers must be folds'
+          : 'Only keyed Bindings accept helper-producing folds'
+        : never
+      : never
+    : never
+
+type Equal<Left, Right> =
+  (<Value>() => Value extends Left ? 1 : 2) extends <
+    Value,
+  >() => Value extends Right ? 1 : 2
+    ? (<Value>() => Value extends Right ? 1 : 2) extends <
+        Value,
+      >() => Value extends Left ? 1 : 2
+      ? true
+      : false
+    : false
 
 type RegistrationsOfPolicies<Children extends ReadonlyArray<unknown>> =
   Children[number] extends infer Binding

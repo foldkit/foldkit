@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import * as Block from 'foldkit/block'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
 
 import {
@@ -61,7 +61,7 @@ Block.make('LegacyOperationUnion', {
   operations: operationAlternatives,
 })
 
-const UnionInMessage = defineMessageUnion({
+const UnionInMessage = defineInMessageUnion({
   RequestedRefresh: {},
   RequestedClear: {},
 })

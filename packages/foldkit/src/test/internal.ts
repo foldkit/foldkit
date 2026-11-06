@@ -33,6 +33,9 @@ import {
 import {
   type Subscription,
   type MessageDeclaration as SubscriptionMessageDeclaration,
+  __keyedSelection,
+  __keyedTemplate,
+  __selectFromTemplate,
   __messageMappers as subscriptionMessageMappers,
 } from '../subscription/subscription.js'
 import {
@@ -979,23 +982,25 @@ export const assertAllUnmountsAcknowledged = (
 type UnscopedSubscriptionRequirements<Requirements> =
   Requirements extends Scoped<any, infer Contract> ? Contract : Requirements
 
+interface SubscriptionStream<Requirements> {
+  readonly dependenciesToStream: (
+    ...args: ReadonlyArray<any>
+  ) => Stream.Stream<any, never, Requirements>
+}
+
+type SubscriptionRequirements<Entry> =
+  Entry extends SubscriptionStream<infer Requirements> ? Requirements : never
+
 /** The entry values a test may pass to emit a registered Subscription entry:
  *  the entry itself, or the child entry it was lifted from. */
 export type SubscriptionEmissionSource<Entry> =
-  Entry extends Readonly<{
-    dependenciesToStream: (
-      ...args: ReadonlyArray<any>
-    ) => Stream.Stream<any, never, infer Requirements>
-  }>
-    ?
-        | Subscription<any, any, any, Requirements>
-        | Subscription<
-            any,
-            any,
-            any,
-            UnscopedSubscriptionRequirements<Requirements>
-          >
-    : never
+  | Entry
+  | Subscription<
+      any,
+      any,
+      any,
+      UnscopedSubscriptionRequirements<SubscriptionRequirements<Entry>>
+    >
 
 const applySubscriptionMappers = (
   declaration: SubscriptionMessageDeclaration,
@@ -1012,6 +1017,16 @@ export const sourceSubscriptionDeclarationsOf = (
   declarations: ReadonlyArray<SubscriptionMessageDeclaration>,
   entry: unknown,
 ): ReadonlyArray<SubscriptionMessageDeclaration> => {
+  const keyedSelection = __keyedSelection(entry)
+  if (keyedSelection !== undefined) {
+    return sourceSubscriptionDeclarationsOf(
+      declarations,
+      keyedSelection.source,
+    ).filter(declaration => {
+      const template = __keyedTemplate(declaration.entry)
+      return template?.binding === keyedSelection.binding
+    })
+  }
   const exactDeclarations = Array.filter(
     declarations,
     declaration => declaration.entry === entry,
@@ -1054,6 +1069,34 @@ export const sourceSubscriptionDeclarationsOf = (
   return sourceDeclarations
 }
 
+const selectSubscriptionDeclaration = (
+  declaration: SubscriptionMessageDeclaration,
+  source: unknown,
+): SubscriptionMessageDeclaration => {
+  const selection = __keyedSelection(source)
+  if (selection === undefined) {
+    if (__keyedTemplate(declaration.entry) !== undefined) {
+      throw new Error(
+        '[foldkit] A keyed child Subscription requires an occurrence selected with Scene.Subscription.at(Binding, key, entry).',
+      )
+    }
+    return declaration
+  }
+
+  const selected = __selectFromTemplate(declaration.entry, selection.key)
+  if (selected === undefined) {
+    throw new Error(
+      '[foldkit] Scene.Subscription.at selected a Subscription that is not registered for this keyed Binding.',
+    )
+  }
+
+  return {
+    ...declaration,
+    entry: selected.entry,
+    messageMappers: subscriptionMessageMappers(selected.entry),
+  }
+}
+
 /** Resolves one selected registration for a Subscription source. */
 export const resolveSubscriptionDeclaration = (
   stepName: string,
@@ -1086,7 +1129,7 @@ export const resolveSubscriptionDeclaration = (
         )
       }
 
-      return declaration
+      return selectSubscriptionDeclaration(declaration, entry)
     },
   })
 }
@@ -1129,7 +1172,10 @@ export const resolveSubscriptionMessage = (
         )
       }
 
-      return applySubscriptionMappers(declaration, message)
+      return applySubscriptionMappers(
+        selectSubscriptionDeclaration(declaration, entry),
+        message,
+      )
     },
   })
 }

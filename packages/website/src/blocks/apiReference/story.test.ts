@@ -1,15 +1,5 @@
 import { type Layer, Option } from 'effect'
-import {
-  Command,
-  type TestBlock,
-  inMessage,
-  init,
-  message,
-  model,
-  models,
-  steps,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect, expectTypeOf } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -64,18 +54,20 @@ const signatureId = scopedId('function', 'Command', 'define')
 describe('API Reference startup', () => {
   it.effect('cold startup schedules the full reference load', () => {
     expectTypeOf<
-      Layer.Services<TestBlock<typeof apiReferenceSubject>['EffectsLayer']>
+      Layer.Services<
+        Story.TestBlock<typeof apiReferenceSubject>['EffectsLayer']
+      >
     >().toEqualTypeOf<never>()
 
-    return story(
+    return Story.story(
       apiReferenceSubject,
-      init(),
-      model(model => {
+      Story.init(),
+      Story.model(model => {
         expect(model.apiData).toEqual(ApiDataAsyncData.Loading())
         expect(model.disclosures).toEqual({})
       }),
-      Command.expectExact(LoadApiData),
-      Command.resolve(
+      Story.Command.expectExact(LoadApiData),
+      Story.Command.resolve(
         LoadApiData,
         Message.SucceededLoadApiData({ apiData: fullData }),
       ),
@@ -85,22 +77,22 @@ describe('API Reference startup', () => {
   it.effect(
     'prerendered data stays visible while the full reference loads',
     () => {
-      return story(
+      return Story.story(
         apiReferenceSubject,
-        init(Option.some(seededData)),
-        model(model => {
+        Story.init(Option.some(seededData)),
+        Story.model(model => {
           expect(model.apiData).toEqual(
             ApiDataAsyncData.Refreshing({ data: seededData }),
           )
           expect(model.disclosures).toEqual({ [signatureId]: false })
         }),
-        Command.expectExact(LoadApiData),
-        models(
-          steps(inMessage(InMessage.InformedOfRouteChange())),
+        Story.Command.expectExact(LoadApiData),
+        Story.models(
+          Story.steps(Story.inMessage(InMessage.InformedOfRouteChange())),
           (before, after) => expect(after).toBe(before),
         ),
-        Command.expectExact(LoadApiData),
-        Command.resolve(
+        Story.Command.expectExact(LoadApiData),
+        Story.Command.resolve(
           LoadApiData,
           Message.SucceededLoadApiData({ apiData: fullData }),
         ),
@@ -109,22 +101,24 @@ describe('API Reference startup', () => {
   )
 
   it.effect('failed cold loads can be requested again', () =>
-    story(
+    Story.story(
       apiReferenceSubject,
-      init(),
-      Command.resolve(
+      Story.init(),
+      Story.Command.resolve(
         LoadApiData,
         Message.FailedLoadApiData({ error: 'Offline' }),
       ),
-      model(model =>
+      Story.model(model =>
         expect(model.apiData).toEqual(
           ApiDataAsyncData.Failure({ error: 'Offline' }),
         ),
       ),
-      inMessage(InMessage.InformedOfRouteChange()),
-      model(model => expect(model.apiData).toEqual(ApiDataAsyncData.Loading())),
-      Command.expectExact(LoadApiData),
-      Command.resolve(
+      Story.inMessage(InMessage.InformedOfRouteChange()),
+      Story.model(model =>
+        expect(model.apiData).toEqual(ApiDataAsyncData.Loading()),
+      ),
+      Story.Command.expectExact(LoadApiData),
+      Story.Command.resolve(
         LoadApiData,
         Message.SucceededLoadApiData({ apiData: fullData }),
       ),
@@ -134,32 +128,32 @@ describe('API Reference startup', () => {
   it.effect(
     'failed full loads retain the seeded slice and retry on entry',
     () => {
-      return story(
+      return Story.story(
         apiReferenceSubject,
-        init(Option.some(seededData)),
-        Command.resolve(
+        Story.init(Option.some(seededData)),
+        Story.Command.resolve(
           LoadApiData,
           Message.FailedLoadApiData({ error: 'Offline' }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.apiData).toEqual(
             ApiDataAsyncData.Stale({ data: seededData, error: 'Offline' }),
           )
           expect(model.disclosures).toEqual({ [signatureId]: false })
         }),
-        inMessage(InMessage.InformedOfRouteChange()),
-        model(model => {
+        Story.inMessage(InMessage.InformedOfRouteChange()),
+        Story.model(model => {
           expect(model.apiData).toEqual(
             ApiDataAsyncData.Refreshing({ data: seededData }),
           )
         }),
-        Command.expectExact(LoadApiData),
-        models(
-          steps(inMessage(InMessage.InformedOfRouteChange())),
+        Story.Command.expectExact(LoadApiData),
+        Story.models(
+          Story.steps(Story.inMessage(InMessage.InformedOfRouteChange())),
           (before, after) => expect(after).toBe(before),
         ),
-        Command.expectExact(LoadApiData),
-        Command.resolve(
+        Story.Command.expectExact(LoadApiData),
+        Story.Command.resolve(
           LoadApiData,
           Message.SucceededLoadApiData({ apiData: fullData }),
         ),
@@ -170,15 +164,17 @@ describe('API Reference startup', () => {
   it.effect(
     'full success adds disclosures without resetting the seeded selection',
     () => {
-      return story(
+      return Story.story(
         apiReferenceSubject,
-        init(Option.some(seededData)),
-        message(Message.ToggledSignature({ id: signatureId, isOpen: true })),
-        Command.resolve(
+        Story.init(Option.some(seededData)),
+        Story.message(
+          Message.ToggledSignature({ id: signatureId, isOpen: true }),
+        ),
+        Story.Command.resolve(
           LoadApiData,
           Message.SucceededLoadApiData({ apiData: fullData }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.apiData).toEqual(
             ApiDataAsyncData.Success({ data: fullData }),
           )
@@ -187,11 +183,11 @@ describe('API Reference startup', () => {
             [scopedId('function', 'Update', 'define')]: false,
           })
         }),
-        models(
-          steps(inMessage(InMessage.InformedOfRouteChange())),
+        Story.models(
+          Story.steps(Story.inMessage(InMessage.InformedOfRouteChange())),
           (before, after) => expect(after).toBe(before),
         ),
-        Command.expectNone(),
+        Story.Command.expectNone(),
       )
     },
   )

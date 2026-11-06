@@ -16,23 +16,15 @@ import type { ViewInputs } from './viewInputs'
 const MEMBER_CARD_CLASS =
   'flex w-full cursor-pointer flex-col items-start gap-3 rounded-xl border p-5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500'
 
-const issuesAssignedToMember = (
-  memberId: string,
-  issues: ReadonlyArray<Issue>,
-) =>
-  Array.filter(issues, issue =>
-    Option.contains(issue.maybeAssigneeId, memberId),
-  )
-
 const memberCard = (
-  member: Member,
-  model: Model,
-  issues: ReadonlyArray<Issue>,
+  member: Member.Member,
+  maybeSelectedMemberId: Model['maybeSelectedMemberId'],
+  issues: ReadonlyArray<Issue.Issue>,
   h: MemberDirectoryViewBuilder,
 ): Html => {
-  const assignedIssues = issuesAssignedToMember(member.id, issues)
+  const assignedIssues = Issue.assignedTo(issues, member.id)
 
-  const isSelected = Option.contains(model.maybeSelectedMemberId, member.id)
+  const isSelected = Option.contains(maybeSelectedMemberId, member.id)
 
   return h.keyed('li')(
     member.id,
@@ -85,7 +77,7 @@ const memberCard = (
 }
 
 const assignedIssueContent = (
-  issue: Issue,
+  issue: Issue.Issue,
   h: MemberDirectoryViewBuilder,
 ): ReadonlyArray<Html> => [
   h.span(
@@ -95,16 +87,16 @@ const assignedIssueContent = (
   h.span([], [issue.title]),
   h.span(
     [h.Class('text-xs font-medium leading-6 text-slate-500')],
-    [issue.status === 'InProgress' ? 'In progress' : issue.status],
+    [Issue.statusLabel(issue.status)],
   ),
 ]
 
 const assignedIssueView = (
-  issue: Issue,
-  issueHrefs: ViewInputs['issueHrefs'],
+  issue: Issue.Issue,
+  issueHrefsById: ViewInputs['issueHrefsById'],
   h: MemberDirectoryViewBuilder,
 ): Html =>
-  Option.match(Option.fromNullishOr(issueHrefs[issue.id]), {
+  Option.match(Option.fromNullishOr(issueHrefsById[issue.id]), {
     onNone: () =>
       h.div(
         [
@@ -128,12 +120,12 @@ const assignedIssueView = (
   })
 
 const memberProfile = (
-  member: Member,
-  issues: ReadonlyArray<Issue>,
-  issueHrefs: ViewInputs['issueHrefs'],
+  member: Member.Member,
+  issues: ReadonlyArray<Issue.Issue>,
+  issueHrefsById: ViewInputs['issueHrefsById'],
   h: MemberDirectoryViewBuilder,
 ): Html => {
-  const assignedIssues = issuesAssignedToMember(member.id, issues)
+  const assignedIssues = Issue.assignedTo(issues, member.id)
   const activeIssues = Array.filter(
     assignedIssues,
     issue => issue.status !== 'Done',
@@ -199,7 +191,7 @@ const memberProfile = (
               h.keyed('li')(
                 issue.id,
                 [],
-                [assignedIssueView(issue, issueHrefs, h)],
+                [assignedIssueView(issue, issueHrefsById, h)],
               ),
             ),
           ),
@@ -218,8 +210,7 @@ export const view = MemberDirectoryComposition.makeView.withInputs(
 
     const maybeSelectedMember = Option.flatMap(
       model.maybeSelectedMemberId,
-      memberId =>
-        Array.findFirst(viewInputs.members, member => member.id === memberId),
+      memberId => Member.findById(viewInputs.members, memberId),
     )
 
     return h.section(
@@ -277,7 +268,12 @@ export const view = MemberDirectoryComposition.makeView.withInputs(
                 h.ul(
                   [h.Class('grid gap-3 sm:grid-cols-2 2xl:grid-cols-3')],
                   Array.map(members, member =>
-                    memberCard(member, model, viewInputs.issues, h),
+                    memberCard(
+                      member,
+                      model.maybeSelectedMemberId,
+                      viewInputs.issues,
+                      h,
+                    ),
                   ),
                 ),
             }),
@@ -295,7 +291,7 @@ export const view = MemberDirectoryComposition.makeView.withInputs(
                 memberProfile(
                   member,
                   viewInputs.issues,
-                  viewInputs.issueHrefs,
+                  viewInputs.issueHrefsById,
                   h,
                 ),
             }),

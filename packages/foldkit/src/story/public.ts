@@ -4,7 +4,7 @@ export {
   type InMessageStep,
   inMessage,
 } from '../experimental/layered/testing/inMessage.js'
-export { messageFrom } from '../experimental/layered/testing/messageFrom.js'
+export { messageIn } from '../experimental/layered/testing/messageIn.js'
 export {
   type TestBlock,
   type TestEffect,

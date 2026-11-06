@@ -22,7 +22,7 @@ export const PairedMessage = Message.defineMessageUnion({
   ClickedKeepCounters: {},
 })
 export type PairedMessage = typeof PairedMessage.Type
-export const PairedInMessage = Message.defineMessageUnion({
+export const PairedInMessage = Message.defineInMessageUnion({
   RequestedAddPair: { key: Schema.String, count: Schema.Number },
 })
 export type PairedInMessage = typeof PairedInMessage.Type

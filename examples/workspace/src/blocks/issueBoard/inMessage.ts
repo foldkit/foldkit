@@ -1,10 +1,6 @@
-import { Schema } from 'effect'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion } from 'foldkit/message'
 
-import { IssueStatus } from '../../domain'
-
-export const InMessage = defineMessageUnion({
-  InformedOfIssueMove: { status: IssueStatus, insertionIndex: Schema.Number },
+export const InMessage = defineInMessageUnion({
   InformedOfIssueMoveFailure: {},
 })
 export type InMessage = typeof InMessage.Type

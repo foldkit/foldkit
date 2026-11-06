@@ -9,6 +9,8 @@ import {
   ProvidedRawCommandElement,
   PurePageProgram,
   type RawCommandSource,
+  RunnableSynchronouslyDecodedElement,
+  RunnableSynchronouslyDecodedPage,
   SafeUnionPageProgram,
   SafeUnionRoutedProgram,
 } from './program.accepted.js'
@@ -18,6 +20,10 @@ const callbackPage: Program.Program<undefined, typeof Flags.Type> =
   CallbackPageProgram
 const element: Program.Element = ElementProgram
 const purePage: Program.Program = PurePageProgram
+const synchronouslyDecodedElement: Program.Element =
+  RunnableSynchronouslyDecodedElement
+const synchronouslyDecodedPage: Program.Program =
+  RunnableSynchronouslyDecodedPage
 const safeUnionPage: Program.Program = SafeUnionPageProgram
 const safeUnionRouted: Program.Program<undefined, typeof Flags.Type> =
   SafeUnionRoutedProgram
@@ -41,6 +47,8 @@ void [
   callbackPage,
   element,
   purePage,
+  synchronouslyDecodedElement,
+  synchronouslyDecodedPage,
   safeUnionPage,
   safeUnionRouted,
   pendingRawCommand,

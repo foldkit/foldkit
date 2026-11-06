@@ -81,11 +81,11 @@ Payload delivered to the `toView` callback each render.
 
 ### Programmatic Helpers
 
-Call `TooltipBinding.informShowDelayChanged(showDelay)` when parent-owned configuration changes the Tooltip's delay. The Binding call returns a connected parent Step. Its producer accepts every `Duration.Input` form, normalizes the value, and constructs `InformedOfShowDelayChange`; Tooltip update stores the normalized Duration.
+Call `TooltipBinding.informOfShowDelayChanged(showDelay)` when parent-owned configuration changes the Tooltip's delay. The Binding call returns a connected parent Step. Its producer accepts every `Duration.Input` form, normalizes the value, and constructs `InformedOfShowDelayChange`; Tooltip update stores the normalized Duration.
 
-| Binding call                                       | Arguments                   | Description                                                                                                                                                                                            |
-| -------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `TooltipBinding.informShowDelayChanged(showDelay)` | `showDelay: Duration.Input` | Dispatches `InformedOfShowDelayChange` through Tooltip update. A bare number is milliseconds. The update branch returns `{ model }`, emits no OutMessage, and applies the new delay on the next hover. |
+| Binding call                                         | Arguments                   | Description                                                                                                                                                                                            |
+| ---------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `TooltipBinding.informOfShowDelayChanged(showDelay)` | `showDelay: Duration.Input` | Dispatches `InformedOfShowDelayChange` through Tooltip update. A bare number is milliseconds. The update branch returns `{ model }`, emits no OutMessage, and applies the new delay on the next hover. |
 
 ### OutMessage {#out-message}
 

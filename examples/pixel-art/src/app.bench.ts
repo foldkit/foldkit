@@ -1,5 +1,5 @@
 import { Effect, Option } from 'effect'
-import * as Story from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { test as baseTest, describe } from 'vitest'
 

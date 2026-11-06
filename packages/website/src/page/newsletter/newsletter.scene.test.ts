@@ -1,6 +1,5 @@
 import { Option, pipe } from 'effect'
-import { Calendar, Url } from 'foldkit'
-import { expect, init, role, scene, selector, type } from 'foldkit/scene'
+import { Calendar, Scene, Url } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -28,22 +27,25 @@ describe('newsletter', () => {
   it.effect(
     'the email field reflects input while the form uses native submission',
     () => {
-      const emailField = role('textbox', { name: 'Email address' })
+      const emailField = Scene.role('textbox', { name: 'Email address' })
 
-      return scene(
+      return Scene.scene(
         application,
-        init(flags, url),
+        Scene.init(flags, url),
         resolveBrowserStartup(flags),
         resolveApiData,
-        expect(selector('form')).toHaveAttr(
+        Scene.expect(Scene.selector('form')).toHaveAttr(
           'action',
           'https://buttondown.com/api/emails/embed-subscribe/foldkit',
         ),
-        expect(selector('form')).toHaveAttr('method', 'post'),
-        expect(selector('form')).toHaveAttr('target', 'popupwindow'),
-        expect(emailField).toHaveValue(''),
-        type(emailField, 'alice@example.com'),
-        expect(emailField).toHaveValue('alice@example.com'),
+        Scene.expect(Scene.selector('form')).toHaveAttr('method', 'post'),
+        Scene.expect(Scene.selector('form')).toHaveAttr(
+          'target',
+          'popupwindow',
+        ),
+        Scene.expect(emailField).toHaveValue(''),
+        Scene.type(emailField, 'alice@example.com'),
+        Scene.expect(emailField).toHaveValue('alice@example.com'),
       )
     },
   )

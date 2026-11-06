@@ -1,14 +1,14 @@
 import { Layer } from 'effect'
 
 import {
-  AppendActivity,
+  AddIssueComment,
   AssignIssue,
+  FailNextIssueSave,
   LoadExternal,
   LoadWorkspace,
   MoveIssue,
   NavigateInternal,
   ReplaceInternalUrl,
-  SimulateSaveFailure,
 } from './command'
 import { subscriptions } from './subscription'
 
@@ -17,9 +17,9 @@ export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
   ReplaceInternalUrl.layer,
-  SimulateSaveFailure.layer,
+  FailNextIssueSave.layer,
   MoveIssue.layer,
-  AppendActivity.layer,
+  AddIssueComment.layer,
   AssignIssue.layer,
   subscriptions.layer,
 )

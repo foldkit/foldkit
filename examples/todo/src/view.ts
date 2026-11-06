@@ -9,13 +9,7 @@ import {
   type ApplicationViewBuilder,
 } from './composition'
 import { Message } from './message'
-import {
-  EditingState,
-  type Filter,
-  type Model,
-  type Todo,
-  type Todos,
-} from './model'
+import { EditingState, type Filter, type Todo, type Todos } from './model'
 
 const editingTextFor = (
   editing: EditingState,
@@ -161,7 +155,7 @@ const nonEditingTodoView = (todo: Todo, h: ApplicationViewBuilder): Html =>
   )
 
 const filterButtonView =
-  (model: Model) =>
+  (selectedFilter: Filter) =>
   (filter: Filter, label: string, h: ApplicationViewBuilder): Html =>
     Button.view(
       {
@@ -172,7 +166,7 @@ const filterButtonView =
               ...attributes.button,
               h.Class(
                 `px-3 py-1 rounded ${
-                  model.filter === filter
+                  selectedFilter === filter
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`,
@@ -185,12 +179,13 @@ const filterButtonView =
     )
 
 const footerView = (
-  model: Model,
+  todos: Todos,
+  selectedFilter: Filter,
   activeCount: number,
   completedCount: number,
   h: ApplicationViewBuilder,
 ): Html =>
-  Array.match(model.todos, {
+  Array.match(todos, {
     onEmpty: () => h.empty,
     onNonEmpty: () =>
       h.div(
@@ -204,16 +199,16 @@ const footerView = (
           h.div(
             [h.Class('flex justify-center gap-2')],
             [
-              filterButtonView(model)('All', 'All', h),
-              filterButtonView(model)('Active', 'Active', h),
-              filterButtonView(model)('Completed', 'Completed', h),
+              filterButtonView(selectedFilter)('All', 'All', h),
+              filterButtonView(selectedFilter)('Active', 'Active', h),
+              filterButtonView(selectedFilter)('Completed', 'Completed', h),
             ],
           ),
 
           h.div(
             [h.Class('flex justify-center gap-2')],
             [
-              Array.match(model.todos, {
+              Array.match(todos, {
                 onEmpty: () => h.empty,
                 onNonEmpty: todos =>
                   Button.view(
@@ -354,7 +349,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
               ),
           }),
 
-          footerView(model, activeCount, completedCount, h),
+          footerView(model.todos, model.filter, activeCount, completedCount, h),
         ],
       ),
     ],

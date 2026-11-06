@@ -1,6 +1,9 @@
 import type { Command } from '../command/index.js'
 import type * as Update from '../update/index.js'
-import type { PolicyOfBinding } from './policyEvidence.js'
+import type {
+  OutMessagePolicyReturn,
+  PolicyOfBinding,
+} from './policyEvidence.js'
 import type { QualifyOwned } from './scope.js'
 
 declare const DeferredBindingPolicyTypeId: unique symbol
@@ -32,7 +35,7 @@ type BindingAt<
   Placement extends string,
 > = Extract<Children[number], Readonly<{ placement: Placement }>>
 
-type PolicyFoldReturn<Policy> = ReturnOf<ReturnOf<FieldOf<Policy, 'fold'>>>
+type PolicyFoldReturn<Policy> = OutMessagePolicyReturn<Policy>
 
 type ForwardedOutMessage<Policy> = Exclude<
   ReturnOf<FieldOf<Policy, 'forward'>>,

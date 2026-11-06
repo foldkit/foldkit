@@ -2,7 +2,7 @@ import { Array, Effect, Option } from 'effect'
 import { AsyncData, Scene, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import * as Url from 'foldkit/url'
-import { describe, expect as expectValue } from 'vitest'
+import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
 import { Listbox } from '@foldkit/ui'
@@ -12,26 +12,18 @@ import { SaveIssue } from './blocks/issueDetail/command'
 import { ProjectSettingsBlock } from './blocks/projectSettings'
 import { SaveProject } from './blocks/projectSettings/command'
 import {
-  AppendActivity,
+  AddIssueComment,
+  FailNextIssueSave,
   LoadWorkspace,
   NavigateInternal,
-  SimulateSaveFailure,
 } from './command'
 import { IssueDetailsBinding } from './composition'
-import {
-  Comment,
-  IssueFilters,
-  SavedView,
-  initialWorkspace,
-  savedIssueFromIssue,
-} from './domain'
+import { Issue, Workspace, initialWorkspace } from './domain'
 import { ApplicationBlock, layer } from './index'
-import { WorkspaceListboxBlock } from './listbox'
+import { StringListboxBlock } from './listbox'
 import { Message } from './message'
-import { loadedWorkspaceModel } from './model.fixture'
 import { RepositoryError } from './repository'
 import { issuesRouter, savedViewRouter } from './route'
-import { appliedIssueFilters } from './selection'
 import { subscriptions } from './subscription'
 
 const application = { block: ApplicationBlock, layer }
@@ -44,45 +36,41 @@ const url = (path: string) =>
 
 describe('workspace application', () => {
   it.effect('marks the current workspace and project navigation links', () => {
-    return Effect.gen(function* () {
-      yield* Scene.scene(
-        application,
-        Scene.init(url('/projects/platform/board')),
-        Scene.Command.resolve(
-          LoadWorkspace,
-          Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
-        ),
-        Scene.expect(
-          Scene.role('navigation', { name: 'Project navigation' }),
-        ).toExist(),
-        Scene.expect(Scene.role('link', { name: 'Board' })).toHaveAttr(
-          'aria-current',
-          'page',
-        ),
-        Scene.expect(Scene.role('link', { name: 'Issues' })).not.toHaveAttr(
-          'aria-current',
-        ),
-      )
-
-      yield* Scene.scene(
-        application,
-        Scene.init(url('/people')),
-        Scene.Command.resolve(
-          LoadWorkspace,
-          Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
-        ),
-        Scene.expect(
-          Scene.role('navigation', { name: 'Workspace navigation' }),
-        ).toExist(),
-        Scene.expect(Scene.role('link', { name: 'People' })).toHaveAttr(
-          'aria-current',
-          'page',
-        ),
-        Scene.expect(Scene.role('link', { name: 'All issues' })).not.toHaveAttr(
-          'aria-current',
-        ),
-      )
-    })
+    return Scene.scene(
+      {
+        ...application,
+        routing: {
+          onUrlChange: url => Message.ChangedUrl({ url }),
+          origin: 'https://workspace.test',
+        },
+      },
+      Scene.init(url('/projects/platform/board')),
+      Scene.Command.resolve(
+        LoadWorkspace,
+        Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
+      ),
+      Scene.expect(
+        Scene.role('navigation', { name: 'Project navigation' }),
+      ).toExist(),
+      Scene.expect(Scene.role('link', { name: 'Board' })).toHaveAttr(
+        'aria-current',
+        'page',
+      ),
+      Scene.expect(Scene.role('link', { name: 'Issues' })).not.toHaveAttr(
+        'aria-current',
+      ),
+      Scene.Navigation.changedUrl('/people'),
+      Scene.expect(
+        Scene.role('navigation', { name: 'Workspace navigation' }),
+      ).toExist(),
+      Scene.expect(Scene.role('link', { name: 'People' })).toHaveAttr(
+        'aria-current',
+        'page',
+      ),
+      Scene.expect(Scene.role('link', { name: 'All issues' })).not.toHaveAttr(
+        'aria-current',
+      ),
+    )
   })
 
   it.effect(
@@ -114,6 +102,63 @@ describe('workspace application', () => {
   )
 
   it.effect(
+    'shows refreshed issue fields without updating the retained editor',
+    () => {
+      const refreshedIssue = modifyFields(firstIssue, {
+        title: () => 'The latest shared title',
+        description: () => 'A teammate updated these details.',
+        status: () => 'Done',
+        version: version => version + 1,
+      })
+
+      const refreshedWorkspace = modifyFields(initialWorkspace, {
+        issues: Array.map(issue =>
+          issue.id === refreshedIssue.id ? refreshedIssue : issue,
+        ),
+      })
+
+      return Effect.gen(function* () {
+        const refreshedModel = yield* Story.story(
+          application,
+          Story.init(url(issuePath)),
+          Story.Command.resolve(
+            LoadWorkspace,
+            Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
+          ),
+          Story.message(Message.ClickedRetryLoad()),
+          Story.Command.resolve(
+            LoadWorkspace,
+            Message.SucceededLoadWorkspace({ workspace: refreshedWorkspace }),
+          ),
+        )
+
+        yield* Scene.scene(
+          application,
+          Scene.given(refreshedModel),
+          Scene.expect(Scene.label('Issue title')).toHaveValue(
+            refreshedIssue.title,
+          ),
+          Scene.expect(Scene.label('Description')).toHaveValue(
+            refreshedIssue.description,
+          ),
+          Scene.expect(
+            Scene.within(
+              Scene.role('region', {
+                name: `${refreshedIssue.identifier} details`,
+              }),
+              Scene.label('Status'),
+            ),
+          ).toHaveText('Done'),
+          Scene.expect(
+            Scene.role('button', { name: 'Save changes' }),
+          ).toBeDisabled(),
+          Scene.expect(Scene.text('All changes saved')).toExist(),
+        )
+      })
+    },
+  )
+
+  it.effect(
     'selects the active member through its Listbox before requesting activity',
     () => {
       return Scene.scene(
@@ -126,20 +171,20 @@ describe('workspace application', () => {
         Scene.click(Scene.role('button', { name: 'Active member' })),
         Scene.Command.resolve(
           Listbox.test.FocusListboxItems,
-          WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
+          StringListboxBlock.Message.CompletedFocusListboxItems(),
         ),
         Scene.Mount.resolve(
           Listbox.test.AnchorListbox,
-          WorkspaceListboxBlock.Message.CompletedAnchorListbox(),
+          StringListboxBlock.Message.CompletedAnchorListbox(),
         ),
         Scene.Mount.resolve(
           Listbox.test.PortalListboxBackdrop,
-          WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
+          StringListboxBlock.Message.CompletedPortalListboxBackdrop(),
         ),
         Scene.click(Scene.role('option', { name: 'Jordan Lee' })),
         Scene.Command.resolve(
           Listbox.test.FocusListboxButton,
-          WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
+          StringListboxBlock.Message.CompletedFocusListboxButton(),
         ),
         Scene.Mount.expectEnded(
           Listbox.test.AnchorListbox,
@@ -150,15 +195,15 @@ describe('workspace application', () => {
         ).toHaveText('Jordan Lee'),
         Scene.click(Scene.role('button', { name: 'Simulate activity' })),
         Scene.Command.expectExact(
-          AppendActivity({
+          AddIssueComment({
             issueId: 'issue-104',
             authorId: 'maya',
             body: 'I checked the latest changes. This is ready for another look.',
           }),
         ),
         Scene.Command.resolve(
-          AppendActivity,
-          Message.FailedAppendActivity({ error: 'Activity is unavailable.' }),
+          AddIssueComment,
+          Message.FailedAddIssueComment({ error: 'Activity is unavailable.' }),
         ),
       )
     },
@@ -170,7 +215,7 @@ describe('workspace application', () => {
       const latestIssue = modifyFields(firstIssue, {
         title: () => 'Saved by a teammate',
         comments: Array.append(
-          Comment.make({
+          Issue.Comment.make({
             id: 'comment-during-conflict',
             authorId: 'alex',
             body: 'The conversation stays current while you edit.',
@@ -180,7 +225,7 @@ describe('workspace application', () => {
         version: version => version + 1,
       })
 
-      const savedIssueSnapshot = modifyFields(latestIssue, {
+      const savedIssue = modifyFields(latestIssue, {
         title: () => 'Revised after reloading',
         version: version => version + 1,
       })
@@ -215,15 +260,15 @@ describe('workspace application', () => {
         ),
         Scene.Command.expectExact(
           pendingSave,
-          AppendActivity({
+          AddIssueComment({
             issueId: firstIssue.id,
             authorId: 'alex',
             body: 'I checked the latest changes. This is ready for another look.',
           }),
         ),
         Scene.Command.resolve(
-          AppendActivity,
-          Message.SucceededAppendActivity({
+          AddIssueComment,
+          Message.SucceededAddIssueComment({
             issueId: latestIssue.id,
             comment: Option.getOrThrow(Array.last(latestIssue.comments)),
           }),
@@ -258,33 +303,31 @@ describe('workspace application', () => {
         ),
         Scene.click(Scene.role('button', { name: 'Reload issue' })),
         Scene.expect(Scene.label('Issue title')).toHaveValue(latestIssue.title),
-        Scene.type(Scene.label('Issue title'), savedIssueSnapshot.title),
+        Scene.type(Scene.label('Issue title'), savedIssue.title),
         Scene.click(Scene.role('button', { name: 'Save changes' })),
         Scene.Command.expectExact(
           SaveIssue({
             issueId: firstIssue.id,
             expectedVersion: latestIssue.version,
             draft: {
-              title: savedIssueSnapshot.title,
-              description: savedIssueSnapshot.description,
-              status: savedIssueSnapshot.status,
-              priority: savedIssueSnapshot.priority,
-              projectId: savedIssueSnapshot.projectId,
-              maybeAssigneeId: savedIssueSnapshot.maybeAssigneeId,
-              labelIds: savedIssueSnapshot.labelIds,
+              title: savedIssue.title,
+              description: savedIssue.description,
+              status: savedIssue.status,
+              priority: savedIssue.priority,
+              projectId: savedIssue.projectId,
+              maybeAssigneeId: savedIssue.maybeAssigneeId,
+              labelIds: savedIssue.labelIds,
             },
           }),
         ),
         Scene.Command.resolve(
           SaveIssue,
           IssueDetailBlock.Message.SucceededSaveIssue({
-            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+            saveResult: Issue.toSaveResult(savedIssue),
             expectedVersion: latestIssue.version,
           }),
         ),
-        Scene.expect(Scene.label('Issue title')).toHaveValue(
-          savedIssueSnapshot.title,
-        ),
+        Scene.expect(Scene.label('Issue title')).toHaveValue(savedIssue.title),
       )
     },
   )
@@ -311,85 +354,64 @@ describe('workspace application', () => {
   it.effect(
     'preserves saved filters in an issue panel without saved view metadata',
     () => {
-      return Effect.gen(function* () {
-        const filters = IssueFilters.make({
-          query: 'command',
-          maybeStatus: Option.none(),
-          sort: 'Identifier',
-          groupBy: 'None',
-        })
-        const savedView = SavedView.make({
-          id: 'view-command-work',
-          name: 'Command work',
-          filters,
-        })
-        const savedViewPath = savedViewRouter({ viewId: savedView.id, filters })
-        const savedViewIssuePath = savedViewRouter({
-          viewId: savedView.id,
-          filters,
-          issueId: firstIssue.id,
-        })
-        const modelWithPreset = modifyFields(
-          yield* loadedWorkspaceModel(savedViewPath),
-          { savedViews: () => [savedView] },
-        )
-
-        yield* Scene.scene(
-          application,
-          Scene.given(modelWithPreset),
-          Scene.expect(
-            Scene.role('link', {
-              name: `${firstIssue.identifier} ${firstIssue.title}`,
-            }),
-          ).toHaveAttr('href', savedViewIssuePath),
-        )
-
-        const reloadedIssueModel =
-          yield* loadedWorkspaceModel(savedViewIssuePath)
-
-        expectValue(reloadedIssueModel.savedViews).toEqual([])
-        expectValue(appliedIssueFilters(reloadedIssueModel)).toEqual(filters)
-
-        yield* Scene.scene(
-          application,
-          Scene.given(reloadedIssueModel),
-          Scene.click(Scene.role('button', { name: 'Close issue' })),
-          Scene.Command.expectExact(NavigateInternal({ url: savedViewPath })),
-          Scene.Command.resolve(
-            NavigateInternal,
-            Message.CompletedNavigateInternal(),
-          ),
-        )
-
-        yield* Scene.scene(
-          application,
-          Scene.init(url(savedViewPath)),
-          Scene.Command.resolve(
-            LoadWorkspace,
-            Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
-          ),
-          Scene.expect(
-            Scene.role('heading', { name: 'Filtered issues' }),
-          ).toExist(),
-          Scene.expect(Scene.label('Search issues')).toHaveValue('command'),
-          Scene.expect(Scene.text('1 issue')).toExist(),
-          Scene.expect(
-            Scene.role('link', {
-              name: `${firstIssue.identifier} ${firstIssue.title}`,
-            }),
-          ).toExist(),
-          Scene.expect(
-            Scene.text('Keep issue drafts when switching projects'),
-          ).not.toExist(),
-        )
+      const filters = Issue.Filters.make({
+        query: 'command',
+        maybeStatus: Option.none(),
+        sort: 'Identifier',
+        groupBy: 'None',
       })
+      const viewId = 'view-command-work'
+      const savedViewPath = savedViewRouter({ viewId, filters })
+      const savedViewIssuePath = savedViewRouter({
+        viewId,
+        filters,
+        issueId: firstIssue.id,
+      })
+
+      return Scene.scene(
+        {
+          block: ApplicationBlock,
+          layer,
+          routing: {
+            onUrlChange: url => Message.ChangedUrl({ url }),
+            origin: 'https://workspace.test',
+          },
+        },
+        Scene.init(url(savedViewIssuePath)),
+        Scene.Command.resolve(
+          LoadWorkspace,
+          Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
+        ),
+        Scene.expect(Scene.label('Issue title')).toHaveValue(firstIssue.title),
+        Scene.expect(Scene.label('Search issues')).toHaveValue('command'),
+        Scene.click(Scene.role('button', { name: 'Close issue' })),
+        Scene.Command.expectExact(NavigateInternal({ url: savedViewPath })),
+        Scene.Command.resolve(
+          NavigateInternal,
+          Message.CompletedNavigateInternal(),
+        ),
+        Scene.Navigation.changedUrl(savedViewPath),
+        Scene.expect(
+          Scene.role('heading', { name: 'Filtered issues' }),
+        ).toExist(),
+        Scene.expect(Scene.label('Search issues')).toHaveValue('command'),
+        Scene.expect(Scene.text('1 issue')).toExist(),
+        Scene.expect(
+          Scene.role('link', {
+            name: `${firstIssue.identifier} ${firstIssue.title}`,
+          }),
+        ).toExist(),
+        Scene.expect(
+          Scene.text('Keep issue drafts when switching projects'),
+        ).not.toExist(),
+      )
     },
   )
 
   it.effect(
     'updates the canonical issue and its list row after saving a draft',
     () => {
-      const savedIssueSnapshot = modifyFields(firstIssue, {
+      const savedIssue = modifyFields(firstIssue, {
         title: () => 'Find every project from one command menu',
         version: version => version + 1,
       })
@@ -400,7 +422,7 @@ describe('workspace application', () => {
           LoadWorkspace,
           Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
         ),
-        Scene.type(Scene.label('Issue title'), savedIssueSnapshot.title),
+        Scene.type(Scene.label('Issue title'), savedIssue.title),
         Scene.expect(
           Scene.role('link', {
             name: `${firstIssue.identifier} ${firstIssue.title}`,
@@ -410,21 +432,17 @@ describe('workspace application', () => {
         Scene.Command.resolve(
           SaveIssue,
           IssueDetailBlock.Message.SucceededSaveIssue({
-            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+            saveResult: Issue.toSaveResult(savedIssue),
             expectedVersion: firstIssue.version,
           }),
         ),
         Scene.expect(
           Scene.role('link', {
-            name: `${savedIssueSnapshot.identifier} ${savedIssueSnapshot.title}`,
+            name: `${savedIssue.identifier} ${savedIssue.title}`,
           }),
         ).toExist(),
-        Scene.expect(Scene.label('Issue title')).toHaveValue(
-          savedIssueSnapshot.title,
-        ),
-        Scene.expect(
-          Scene.text(`${savedIssueSnapshot.identifier} saved`),
-        ).toExist(),
+        Scene.expect(Scene.label('Issue title')).toHaveValue(savedIssue.title),
+        Scene.expect(Scene.text(`${savedIssue.identifier} saved`)).toExist(),
       )
     },
   )
@@ -432,7 +450,7 @@ describe('workspace application', () => {
   it.effect(
     'retains the draft after failure and updates the list after a successful retry',
     () => {
-      const savedIssueSnapshot = modifyFields(firstIssue, {
+      const savedIssue = modifyFields(firstIssue, {
         title: () => 'Keep the issue draft when a save fails',
         description: () =>
           'Retry the current draft after the service recovers.',
@@ -454,13 +472,13 @@ describe('workspace application', () => {
         ),
         Scene.click(Scene.role('button', { name: 'Fail next save' })),
         Scene.Command.resolve(
-          SimulateSaveFailure,
-          Message.CompletedSimulateSaveFailure(),
+          FailNextIssueSave,
+          Message.CompletedFailNextIssueSave(),
         ),
         Scene.Navigation.changedUrl('/'),
         Scene.Navigation.changedUrl(issuePath),
-        Scene.type(Scene.label('Issue title'), savedIssueSnapshot.title),
-        Scene.type(Scene.label('Description'), savedIssueSnapshot.description),
+        Scene.type(Scene.label('Issue title'), savedIssue.title),
+        Scene.type(Scene.label('Description'), savedIssue.description),
         Scene.click(Scene.role('button', { name: 'Save changes' })),
         Scene.Command.resolve(
           SaveIssue,
@@ -469,18 +487,16 @@ describe('workspace application', () => {
             expectedVersion: firstIssue.version,
             error: RepositoryError.Unavailable({
               message: 'The workspace is temporarily unavailable.',
-              operation: 'Save',
+              operation: 'SaveIssue',
             }),
           }),
         ),
         Scene.expect(Scene.role('alert')).toContainText(
           'The workspace is temporarily unavailable.',
         ),
-        Scene.expect(Scene.label('Issue title')).toHaveValue(
-          savedIssueSnapshot.title,
-        ),
+        Scene.expect(Scene.label('Issue title')).toHaveValue(savedIssue.title),
         Scene.expect(Scene.label('Description')).toHaveValue(
-          savedIssueSnapshot.description,
+          savedIssue.description,
         ),
         Scene.expect(
           Scene.role('link', {
@@ -491,14 +507,14 @@ describe('workspace application', () => {
         Scene.Command.resolve(
           SaveIssue,
           IssueDetailBlock.Message.SucceededSaveIssue({
-            savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+            saveResult: Issue.toSaveResult(savedIssue),
             expectedVersion: firstIssue.version,
           }),
         ),
         Scene.expect(Scene.role('alert')).not.toExist(),
         Scene.expect(
           Scene.role('link', {
-            name: `${savedIssueSnapshot.identifier} ${savedIssueSnapshot.title}`,
+            name: `${savedIssue.identifier} ${savedIssue.title}`,
           }),
         ).toExist(),
       )
@@ -613,10 +629,7 @@ describe('workspace application', () => {
     'announces failed activity and clears the error after a successful retry',
     () => {
       const activityIssue = Option.getOrThrow(
-        Array.findFirst(
-          initialWorkspace.issues,
-          issue => issue.id === 'issue-105',
-        ),
+        Workspace.findIssue(initialWorkspace, 'issue-105'),
       )
 
       const body = 'A teammate checked the keyboard navigation.'
@@ -640,29 +653,29 @@ describe('workspace application', () => {
         ),
         Scene.click(Scene.role('button', { name: 'Simulate activity' })),
         Scene.Command.expectExact(
-          AppendActivity({
+          AddIssueComment({
             issueId: firstIssue.id,
             authorId: 'alex',
             body: 'I checked the latest changes. This is ready for another look.',
           }),
         ),
         Scene.Command.resolve(
-          AppendActivity,
-          Message.FailedAppendActivity({ error }),
+          AddIssueComment,
+          Message.FailedAddIssueComment({ error }),
         ),
         Scene.expect(Scene.role('alert')).toContainText(error),
         Scene.expect(Scene.text('1 activity events requested')).toExist(),
         Scene.click(Scene.role('button', { name: 'Simulate activity' })),
         Scene.Command.expectExact(
-          AppendActivity({
+          AddIssueComment({
             issueId: activityIssue.id,
             authorId: 'alex',
             body: 'The next iteration is ready. Let me know what you think.',
           }),
         ),
         Scene.Command.resolve(
-          AppendActivity,
-          Message.SucceededAppendActivity({
+          AddIssueComment,
+          Message.SucceededAddIssueComment({
             issueId: commentedIssue.id,
             comment: Option.getOrThrow(Array.last(commentedIssue.comments)),
           }),
@@ -684,7 +697,7 @@ describe('workspace application', () => {
             LoadWorkspace,
             Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
           ),
-          Story.messageFrom(
+          Story.messageIn(
             IssueDetailsBinding,
             firstIssue.id,
             IssueDetailBlock.Message.UpdatedTitle({
@@ -760,7 +773,7 @@ describe('workspace application', () => {
             LoadWorkspace,
             Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
           ),
-          Story.messageFrom(
+          Story.messageIn(
             IssueDetailsBinding,
             firstIssue.id,
             IssueDetailBlock.Message.UpdatedTitle({

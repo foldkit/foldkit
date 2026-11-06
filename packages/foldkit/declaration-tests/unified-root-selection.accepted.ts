@@ -221,11 +221,19 @@ export const ParentBlock = Block.make('KeyedProbeParent', {
   effects: { services: [Store] },
   view: { kind: 'Element' },
 })
-const ChildrenBinding = ParentBlock.makeBinding(DeclaredStoreChildBlock, {
-  field: 'children',
-  key: 'id',
-  childField: 'model',
-})
+export const ChildrenBinding = ParentBlock.makeBinding(
+  DeclaredStoreChildBlock,
+  {
+    field: 'children',
+    key: 'id',
+    childField: 'model',
+  },
+)
+export const readFirstChild = Story.messageIn(
+  ChildrenBinding,
+  'first',
+  DeclaredStoreChildBlock.Message.CompletedRead(),
+)
 const ParentComposition = ParentBlock.makeComposition({
   bindings: [ChildrenBinding],
 })

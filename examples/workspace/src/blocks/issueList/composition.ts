@@ -1,7 +1,7 @@
-import { Option, Schema } from 'effect'
+import { Option } from 'effect'
 import type { Block } from 'foldkit'
 
-import { GroupBy, IssueFilters, IssueStatus } from '../../domain'
+import { Issue } from '../../domain'
 import {
   GroupListboxBlock,
   SortListboxBlock,
@@ -11,7 +11,6 @@ import {
 import {
   makeBinding,
   makeComposition,
-  makeNoopStep,
   makeOutMessageFold,
   makeOutMessageStep,
 } from './block'
@@ -26,26 +25,18 @@ const changeStatusFilter = (value: StatusFilterValue) => {
     )
   }
 
-  if (Schema.is(IssueStatus)(value)) {
-    return makeOutMessageStep(() =>
-      OutMessage.ChangedStatusFilter({
-        maybeStatus: Option.some(value),
-      }),
-    )
-  }
-
-  return makeNoopStep()
+  return makeOutMessageStep(() =>
+    OutMessage.ChangedStatusFilter({
+      maybeStatus: Option.some(value),
+    }),
+  )
 }
 
-const changeSort = (value: typeof IssueFilters.fields.sort.Type) =>
-  Schema.is(IssueFilters.fields.sort)(value)
-    ? makeOutMessageStep(() => OutMessage.ChangedSort({ sort: value }))
-    : makeNoopStep()
+const changeSort = (value: Issue.SortBy) =>
+  makeOutMessageStep(() => OutMessage.ChangedSort({ sort: value }))
 
-const changeGrouping = (value: GroupBy) =>
-  Schema.is(GroupBy)(value)
-    ? makeOutMessageStep(() => OutMessage.ChangedGrouping({ groupBy: value }))
-    : makeNoopStep()
+const changeGrouping = (value: Issue.GroupBy) =>
+  makeOutMessageStep(() => OutMessage.ChangedGrouping({ groupBy: value }))
 
 export const StatusListboxBinding = makeBinding(StatusFilterListboxBlock, {
   field: 'statusListbox',

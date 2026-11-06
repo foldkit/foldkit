@@ -350,7 +350,9 @@ export type ContextualStatusReturn = Expect<
   >
 >
 
-export const makeGenericCounter = <Value>(Value: Schema.Schema<Value>) => {
+export const makeGenericCounter = <Value, Encoded>(
+  Value: Schema.Codec<Value, Encoded, never, never>,
+) => {
   const GenericModel = Schema.Struct({ value: Value })
   const GenericMessage = Message.defineMessageUnion({
     RequestedQuiet: {},

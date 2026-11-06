@@ -757,7 +757,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 PopoverBlock,
                 Story.init({ id: 'test' }),
                 Story.inMessage(InMessage.RequestedOpen()),
-                Story.messageFrom(
+                Story.messageIn(
                   AnimationBinding,
                   Animation.Message.CompletedWaitForPaint({ generation: 0 }),
                 ),

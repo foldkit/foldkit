@@ -77,7 +77,7 @@ export const TooltipBlock = Block.make(TooltipNamespace, {
   operations: {
     /** Supplies a new hover delay without changing visibility or restarting a
      * pending timer. Accepts any Effect Duration input. */
-    informShowDelayChanged: {
+    informOfShowDelayChanged: {
       message: (showDelay: Duration.Input) =>
         Tuple.make(
           Message.InformedOfShowDelayChange({

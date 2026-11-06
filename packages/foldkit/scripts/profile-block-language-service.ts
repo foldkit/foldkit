@@ -140,7 +140,7 @@ const workspaceInvalidTitle = 'value.length'
 const serverMemorySamplingIntervalMs = 250
 const serverMemorySampleTimeoutMs = 1_000
 const runProcess = promisify(execFile)
-const bindingCall = 'SearchBinding.informRouteChange()'
+const bindingCall = 'SearchBinding.informOfRouteChange()'
 export const searchBindingHover = {
   name: 'SearchBinding',
   owner: 'Search',
@@ -1119,7 +1119,7 @@ const completionScenario = (timeoutMs: number): Promise<ScenarioResult> =>
 
 const bindingCompletionTarget = (source: SourceDocument): RequestTarget => ({
   method: 'textDocument/completion',
-  expectedLabels: ['informRouteChange', 'embedView'],
+  expectedLabels: ['informOfRouteChange', 'embedView'],
   source,
   position: positionAt(
     source.text,
@@ -1914,8 +1914,8 @@ const main = async (): Promise<void> => {
               readFileSync(join(workspaceRoot, compositionPath), 'utf8'),
             )}`,
             completion: `${changedUrlPath}#previousRoute.`,
-            bindingCompletion: `${changedUrlPath}#SearchBinding.|informRouteChange()`,
-            changedUrlHover: `${changedUrlPath}#SearchBinding at informRouteChange()`,
+            bindingCompletion: `${changedUrlPath}#SearchBinding.|informOfRouteChange()`,
+            changedUrlHover: `${changedUrlPath}#SearchBinding at informOfRouteChange()`,
             bindingHoverValidation: searchBindingHover,
             changedUrlDiagnostics: {
               source: changedUrlPath,

@@ -108,7 +108,7 @@ for (const name of cases.length === 0
   if (name === 'old-scoped-surface') {
     for (const file of [
       'experimental/layered/testing/withBlock.d.ts',
-      'experimental/layered/testing/messageFrom.d.ts',
+      'experimental/layered/testing/messageIn.d.ts',
       'test/public.d.ts',
     ])
       restoreOld(file)
@@ -129,7 +129,7 @@ for (const name of cases.length === 0
   if (name === 'old-all-other-than-view') {
     for (const file of [
       'experimental/layered/testing/withBlock.d.ts',
-      'experimental/layered/testing/messageFrom.d.ts',
+      'experimental/layered/testing/messageIn.d.ts',
       'test/public.d.ts',
       'experimental/query/queryImplementation.d.ts',
       'experimental/query/keyedQueryImplementation.d.ts',

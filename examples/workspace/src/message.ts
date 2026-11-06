@@ -3,13 +3,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
-import {
-  Comment,
-  IssueStatus,
-  MovedIssue,
-  SavedIssue,
-  Workspace,
-} from './domain'
+import { Issue, Workspace } from './domain'
 import { RepositoryError } from './repository'
 
 export const Message = defineMessageUnion({
@@ -18,27 +12,27 @@ export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},
   CompletedReplaceInternalUrl: {},
-  SucceededLoadWorkspace: { workspace: Workspace },
+  SucceededLoadWorkspace: { workspace: Workspace.Workspace },
   FailedLoadWorkspace: { error: Schema.String },
   ClickedRetryLoad: {},
   ClickedSimulateSaveFailure: {},
-  CompletedSimulateSaveFailure: {},
+  CompletedFailNextIssueSave: {},
   ClickedOpenCommandPalette: {},
   ClickedDeleteSavedView: { viewId: Schema.String },
   TickedActivityStream: {},
   ClickedSimulateActivity: {},
-  SucceededAppendActivity: { issueId: Schema.String, comment: Comment },
-  FailedAppendActivity: { error: Schema.String },
+  SucceededAddIssueComment: { issueId: Schema.String, comment: Issue.Comment },
+  FailedAddIssueComment: { error: Schema.String },
   SucceededAssignIssue: {
-    savedIssue: SavedIssue,
+    saveResult: Issue.SaveResult,
     actorId: Schema.String,
     createdAt: Schema.String,
   },
   FailedAssignIssue: { error: Schema.String },
-  SucceededMoveIssue: { movedIssue: MovedIssue },
+  SucceededMoveIssue: { moveResult: Issue.MoveResult },
   FailedMoveIssue: {
     issueId: Schema.String,
-    status: IssueStatus,
+    status: Issue.Status,
     insertionIndex: Schema.Number,
     error: RepositoryError,
   },
@@ -47,3 +41,6 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 export type ChangedUrl = typeof Message.ChangedUrl.Type
 export type ClickedDeleteSavedView = typeof Message.ClickedDeleteSavedView.Type
+export type SucceededAssignIssue = typeof Message.SucceededAssignIssue.Type
+export type SucceededMoveIssue = typeof Message.SucceededMoveIssue.Type
+export type FailedMoveIssue = typeof Message.FailedMoveIssue.Type

@@ -249,17 +249,21 @@ const mouseIndicator = (
     ],
   })
 
-const sceneShapes = (model: Model): ReadonlyArray<Canvas.Shape> => [
+const sceneShapes = (
+  particles: ReadonlyArray<Particle>,
+  elapsedSeconds: number,
+  maybeMousePosition: Option.Option<Point>,
+): ReadonlyArray<Canvas.Shape> => [
   backgroundShape,
-  ...nebulaShapes(model.elapsedSeconds),
-  ...Array.flatMap(model.particles, particle =>
-    particleShapes(particle, model.elapsedSeconds),
+  ...nebulaShapes(elapsedSeconds),
+  ...Array.flatMap(particles, particle =>
+    particleShapes(particle, elapsedSeconds),
   ),
-  ...Array.flatMap(model.particles, particle =>
-    Option.toArray(particleHeadShape(particle, model.elapsedSeconds)),
+  ...Array.flatMap(particles, particle =>
+    Option.toArray(particleHeadShape(particle, elapsedSeconds)),
   ),
   ...vignetteStrips,
-  ...mouseIndicator(model.maybeMousePosition),
+  ...mouseIndicator(maybeMousePosition),
 ]
 
 const buttonClass =
@@ -347,7 +351,15 @@ const controlButton = (
     h,
   )
 
-const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
+const controlsView = (
+  isRunning: boolean,
+  particleCount: number,
+  flowStrength: number,
+  flowStrengthSlider: Model['flowStrengthSlider'],
+  noiseScale: number,
+  noiseScaleSlider: Model['noiseScaleSlider'],
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [
       h.Class(
@@ -360,7 +372,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
         [h.Class('flex items-center gap-3')],
         [
           controlButton(
-            playPauseLabel(model.isRunning),
+            playPauseLabel(isRunning),
             Message.ClickedTogglePlay(),
             h,
           ),
@@ -374,7 +386,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
                     'inline-block tabular-nums text-right min-w-8 tracking-normal',
                   ),
                 ],
-                [`${model.particles.length}`],
+                [`${particleCount}`],
               ),
               ' particles',
             ],
@@ -383,12 +395,12 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
       ),
       slider(
         'Turbulence',
-        model.flowStrength,
+        flowStrength,
         viewInputs =>
           h.block(
             FlowStrengthSliderBinding.embedView({
-              slotId: model.flowStrengthSlider.id,
-              model: model.flowStrengthSlider,
+              slotId: flowStrengthSlider.id,
+              model: flowStrengthSlider,
               viewInputs,
             }),
           ),
@@ -396,12 +408,12 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
       ),
       slider(
         'Noise scale',
-        model.noiseScale,
+        noiseScale,
         viewInputs =>
           h.block(
             NoiseScaleSliderBinding.embedView({
-              slotId: model.noiseScaleSlider.id,
-              model: model.noiseScaleSlider,
+              slotId: noiseScaleSlider.id,
+              model: noiseScaleSlider,
               viewInputs,
             }),
           ),
@@ -447,7 +459,11 @@ export const view = ApplicationComposition.makeView((model, h) => ({
         {
           width: CANVAS_WIDTH,
           height: CANVAS_HEIGHT,
-          shapes: sceneShapes(model),
+          shapes: sceneShapes(
+            model.particles,
+            model.elapsedSeconds,
+            model.maybeMousePosition,
+          ),
           className:
             'rounded-2xl shadow-[0_0_120px_rgba(80,30,140,0.35)] ' +
             'border border-white/10 cursor-crosshair',
@@ -456,7 +472,15 @@ export const view = ApplicationComposition.makeView((model, h) => ({
         },
         h,
       ),
-      controlsView(model, h),
+      controlsView(
+        model.isRunning,
+        model.particles.length,
+        model.flowStrength,
+        model.flowStrengthSlider,
+        model.noiseScale,
+        model.noiseScaleSlider,
+        h,
+      ),
     ],
   ),
 }))

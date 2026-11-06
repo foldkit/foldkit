@@ -42,7 +42,7 @@ type BaseApplicationConfig<
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = Readonly<{
-  Model: Schema.Codec<Model, any, unknown, unknown>
+  Model: Schema.Codec<Model, any, never, never>
   update: (
     model: Model,
     message: Message,
@@ -229,7 +229,7 @@ type InferredRoutingApplicationConfigWithFlags<
 >
 
 type RoutingApplicationConfigWithFlagsInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   FlagsSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
@@ -245,7 +245,7 @@ type RoutingApplicationConfigWithFlagsInput<
   Readonly<{ Model: ModelSchema; Flags: FlagsSchema; update: Update }>
 
 type RoutingApplicationConfigInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
 > = Omit<
@@ -259,7 +259,7 @@ type RoutingApplicationConfigInput<
   Readonly<{ Model: ModelSchema; update: Update }>
 
 type ApplicationConfigWithFlagsInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   FlagsSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
@@ -275,7 +275,7 @@ type ApplicationConfigWithFlagsInput<
   Readonly<{ Model: ModelSchema; Flags: FlagsSchema; update: Update }>
 
 type ApplicationConfigInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
 > = Omit<
@@ -416,7 +416,7 @@ type ValidUpdate<Model, Update> = Update extends (
  * without changing the document head.
  */
 export function makeApplication<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
@@ -460,7 +460,7 @@ export function makeApplication<
 >
 
 export function makeApplication<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
   const Config extends RoutingApplicationConfigInput<
@@ -490,7 +490,7 @@ export function makeApplication<
 ): MakeRuntimeReturn<ConfigPorts<Config>, void, never, 'Application'>
 
 export function makeApplication<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
@@ -529,7 +529,7 @@ export function makeApplication<
 >
 
 export function makeApplication<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
   const Config extends ApplicationConfigInput<ModelSchema, Update, Mounts> =

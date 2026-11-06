@@ -11,7 +11,7 @@ import { SearchBlock } from './search'
 const foldSearchOutMessage = makeOutMessageFold(SearchBlock, {
   SelectedResult: ({ resultId }, { modelBeforeUpdate }) =>
     Option.isSome(modelBeforeUpdate.maybeDetails)
-      ? MaybeDetailsBinding.informResultChanged({ resultId })
+      ? MaybeDetailsBinding.informOfResultChanged({ resultId })
       : MaybeDetailsBinding.requestOpen({ resultId }),
 })
 

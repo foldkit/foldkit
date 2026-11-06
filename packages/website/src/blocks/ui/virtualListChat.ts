@@ -289,7 +289,7 @@ export const updateVirtualListChatMessages = (
 
     return Update.combineSteps([
       updateMessages,
-      VirtualListChatDemoBinding.informItemsChanged(
+      VirtualListChatDemoBinding.informOfItemsChanged(
         Array.map(nextMessages, chatMessageKey),
       ),
     ])
@@ -330,7 +330,7 @@ export const handleCompletedFetchVirtualListChatHistory = makeStep(
 
     return Update.combineSteps([
       updateMessages,
-      VirtualListChatDemoBinding.informHistoryPrepended({
+      VirtualListChatDemoBinding.informOfHistoryPrepended({
         items: nextMessages,
         prependedItems: messages,
         itemToKey: chatMessageKey,

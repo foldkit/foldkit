@@ -17,7 +17,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
           ),
         ],
         [
-          analysisView(model, h),
+          analysisView(model.checkout, model.transitionLog, h),
           progressView(model.checkout, h),
           h.div(
             [h.Class('mt-6 grid gap-6 sm:mt-8 lg:grid-cols-3 lg:items-start')],

@@ -3,12 +3,15 @@ import { DateTime, Duration, Option } from 'effect'
 const MONTH = Duration.days(30)
 const YEAR = Duration.days(365)
 
-export const relativeTime = (createdAt: string, now: number): string =>
+export const relativeTime = (
+  createdAt: string,
+  currentTimeMillis: number,
+): string =>
   Option.match(DateTime.make(createdAt), {
     onNone: () => 'Recently',
     onSome: createdAt => {
       const elapsed = Duration.millis(
-        Math.max(0, now - DateTime.toEpochMillis(createdAt)),
+        Math.max(0, currentTimeMillis - DateTime.toEpochMillis(createdAt)),
       )
 
       if (Duration.isLessThan(elapsed, Duration.minutes(1))) {

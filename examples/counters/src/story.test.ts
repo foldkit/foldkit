@@ -1,5 +1,5 @@
 import { Array, Option } from 'effect'
-import { given, init, message, messageFrom, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -24,14 +24,14 @@ const initialModel: ModelSchema = {
 }
 
 const counterMessage = (id: string, message: CounterMessage) =>
-  messageFrom(CountersBinding, id, message)
+  Story.messageIn(CountersBinding, id, message)
 
 describe('init', () => {
   it.effect('creates distinct parent-owned instances with Counter state', () =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      init(),
-      model(applicationModel => {
+      Story.init(),
+      Story.model(applicationModel => {
         expect(applicationModel.counters).toEqual([
           { key: 'counter-0', model: { count: 0 } },
           { key: 'counter-1', model: { count: 0 } },
@@ -47,11 +47,11 @@ describe('update', () => {
   it.effect(
     'ClickedAddCounter appends a fresh Counter instance with the next id',
     () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ClickedAddCounter()),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.ClickedAddCounter()),
+        Story.model(model => {
           expect(model.counters).toHaveLength(3)
           expect(Option.getOrThrow(Array.get(model.counters, 2)).key).toBe(
             'counter-2',
@@ -65,11 +65,11 @@ describe('update', () => {
   )
 
   it.effect('ClickedRemoveCounter drops only the targeted instance', () =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
-      model(model => {
+      Story.given(initialModel),
+      Story.message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
+      Story.model(model => {
         expect(model.counters).toHaveLength(1)
         expect(Option.getOrThrow(Array.get(model.counters, 0)).key).toBe(
           'counter-1',
@@ -81,15 +81,15 @@ describe('update', () => {
   it.effect(
     'adding after deletions never duplicates or reuses a retired id',
     () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
-        message(Message.ClickedAddCounter()),
-        message(Message.ClickedRemoveCounter({ id: 'counter-2' })),
-        message(Message.ClickedAddCounter()),
+        Story.given(initialModel),
+        Story.message(Message.ClickedRemoveCounter({ id: 'counter-0' })),
+        Story.message(Message.ClickedAddCounter()),
+        Story.message(Message.ClickedRemoveCounter({ id: 'counter-2' })),
+        Story.message(Message.ClickedAddCounter()),
         counterMessage('counter-2', CounterBlock.Message.ClickedIncrement()),
-        model(model => {
+        Story.model(model => {
           expect(model.counters).toEqual([
             { key: 'counter-1', model: { count: 0 } },
             { key: 'counter-3', model: { count: 0 } },
@@ -102,11 +102,11 @@ describe('update', () => {
   it.effect(
     'generated Counter Message routes ClickedIncrement to the matching instance only',
     () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
+        Story.given(initialModel),
         counterMessage('counter-1', CounterBlock.Message.ClickedIncrement()),
-        model(model => {
+        Story.model(model => {
           expect(
             Option.getOrThrow(Array.get(model.counters, 0)).model.count,
           ).toBe(0)
@@ -120,9 +120,9 @@ describe('update', () => {
   it.effect(
     'generated Counter Message routes ClickedDecrement to the matching instance only',
     () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given({
+        Story.given({
           counters: [
             CounterBlock.Instance.make({
               key: 'counter-0',
@@ -136,7 +136,7 @@ describe('update', () => {
           nextCounterId: 2,
         }),
         counterMessage('counter-0', CounterBlock.Message.ClickedDecrement()),
-        model(model => {
+        Story.model(model => {
           expect(
             Option.getOrThrow(Array.get(model.counters, 0)).model.count,
           ).toBe(4)
@@ -150,11 +150,11 @@ describe('update', () => {
   it.effect(
     'generated Counter Message for a missing id leaves the model unchanged',
     () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
+        Story.given(initialModel),
         counterMessage('counter-99', CounterBlock.Message.ClickedIncrement()),
-        model(model => {
+        Story.model(model => {
           expect(
             Option.getOrThrow(Array.get(model.counters, 0)).model.count,
           ).toBe(0)
@@ -166,13 +166,13 @@ describe('update', () => {
   )
 
   it.effect('successive Messages accumulate per instance independently', () =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(initialModel),
+      Story.given(initialModel),
       counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
       counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
       counterMessage('counter-1', CounterBlock.Message.ClickedDecrement()),
-      model(model => {
+      Story.model(model => {
         expect(
           Option.getOrThrow(Array.get(model.counters, 0)).model.count,
         ).toBe(2)

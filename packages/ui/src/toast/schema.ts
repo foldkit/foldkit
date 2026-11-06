@@ -1,6 +1,6 @@
 import { Duration, Schema } from 'effect'
 import type { ChildAttribute, Html } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
 import { AnimationBlock } from '../animation/definition.js'
@@ -142,7 +142,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 /** Parent requests that use the Toast container without adapting arguments. */
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedDismissAll: {},
 })
 export type InMessage = typeof InMessage.Type

@@ -8,7 +8,7 @@ For example: a Listbox of plans, a Combobox of cities, Tabs for view modes, a Me
 
 ### Typed Block Contracts {#typed-completed-blocks}
 
-Each factory declares a passive Block contract with view inputs and a `Selected` OutMessage typed for the values your application uses. Listbox and Menu also type their `requestSelectItem` Binding operations. Most factories take a type parameter. Combobox takes the Item Schema itself so its public contract also carries exact Message and OutMessage Schemas.
+Each factory declares a passive Block contract with view inputs and a `Selected` OutMessage typed for the values your application uses. Listbox and Menu also type their `requestSelectItem` Binding operations. Listbox and Combobox take Schemas so their public contracts also carry exact Message and OutMessage Schemas. The other selection factories take type parameters.
 
 A Listbox over a literal-union `Plan` type:
 
@@ -16,13 +16,13 @@ A Listbox over a literal-union `Plan` type:
 
 ## Make a typed Block {#make-block-factory}
 
-A call to `Listbox.makeBlock<Plan>()` returns a passive Block contract bound to `Plan`. Its view inputs accept `items: ReadonlyArray<Plan>`, its `requestSelectItem` Binding operation takes a `Plan`, and its typed `Selected` OutMessage carries a `Plan`. Declare the factory once at module scope, bind that value in the parent, and provide `Listbox.layer` to the parent's construction Layer. Building that Layer acquires the child implementation; the parent's init later creates each occurrence's Model and Commands. The public declaration has no callable `init`, `update`, or `view`.
+A call to `Listbox.makeBlock(Plan)` returns a passive Block contract bound to the `Plan` Schema. Its view inputs accept `items: ReadonlyArray<Plan>`, its `requestSelectItem` Binding operation takes a `Plan`, and its typed `Selected` OutMessage carries a `Plan`. Declare the factory once at module scope, bind that value in the parent, and provide `Listbox.layer` to the parent's construction Layer. Building that Layer acquires the child implementation; the parent's init later creates each occurrence's Model and Commands. The public declaration has no callable `init`, `update`, or `view`.
 
-There is no inbound inform operation for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is no child Model field to update. When an external value changes the selection, the parent writes its own field. Components that store parent-provided configuration provide child operations instead: Calendar and DatePicker provide `informMinDateChanged`, `informMaxDateChanged`, `informDisabledDatesChanged`, and `informDisabledDaysOfWeekChanged`; Slider provides `informRangeChange`. See [Informing a child about external state](/core/block#informing-external-state).
+There is no inbound inform operation for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is no child Model field to update. When an external value changes the selection, the parent writes its own field. Components that store parent-provided configuration provide child operations instead: Calendar and DatePicker provide `informOfMinDateChanged`, `informOfMaxDateChanged`, `informOfDisabledDatesChanged`, and `informOfDisabledDaysOfWeekChanged`; Slider provides `informOfRangeChange`. See [Informing a child about external state](/core/block#informing-external-state).
 
 ## Naming What a Factory Returns {#completed-type}
 
-The root `@foldkit/ui` namespace exposes a `Completed` type under each component namespace for the passive contract its factory returns. The name does not mean an acquired executable: `Listbox.Completed<Plan>` describes `Listbox.makeBlock<Plan>()`. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup namespaces expose their corresponding `Completed` types.
+The root `@foldkit/ui` namespace exposes a `Completed` type under each component namespace for the passive contract its factory returns. The name does not mean an acquired executable: `Listbox.Completed<Plan>` describes `Listbox.makeBlock(Plan)`. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup namespaces expose their corresponding `Completed` types.
 
 ### When to Name the Returned Contract {#when-to-name-the-completed-block}
 
@@ -44,25 +44,35 @@ It isn’t. The Listbox’s Model is UI state: open vs. closed, which option the
 
 ## Types and runtime validation {#soundness}
 
-### Type arguments
+### Runtime Schemas
 
-Listbox, Menu, Tabs and RadioGroup use type arguments to type their view inputs and OutMessages. TypeScript also checks the value passed to the Listbox and Menu `requestSelectItem` operations against that type.
+Listbox uses its Value Schema to type and validate selection Messages, OutMessages, and `requestSelectItem` operations. There is no generic-only compatibility form: pass the Schema value itself rather than writing `Listbox.makeBlock<Plan>()`.
 
-Their local selection Message constructors accept any string. The `Selected` OutMessage constructors have the chosen Item or Value type. The runtime Message and OutMessage Schemas accept string selection payloads; a type argument supplies no runtime validator for the selected value. Use the Listbox and Menu Binding operations for programmatic selection.
+The two-Schema form separates view data from the serialized selection boundary. Its Item Schema witnesses the items and callbacks accepted by the view; Foldkit does not add that Schema to serialization or Service requirements. Its Value Schema validates every selected value at runtime. When `Item extends Value`, items are already valid values and `itemToValue` may be omitted. Otherwise, supply `itemToValue` to extract a Value. A broad Item type may omit the extractor only when the actual `items` array contains values that satisfy both Item and Value.
 
 ### The Schema Boundary
 
-Combobox builds its Message and OutMessage Schemas from the supplied Item Schema. Decoding with those Schemas validates item payloads at runtime. Its view inputs, selection operations and OutMessage constructors also retain the Item type.
+Listbox and Combobox build their Message and OutMessage Schemas from the supplied Value or Item Schema. Decoding with those Schemas validates selection payloads at runtime. Their view inputs, selection operations and OutMessage constructors retain the corresponding types.
+
+### Type-parameter factories
+
+Menu, Tabs and RadioGroup type their view inputs and OutMessages through type parameters. Their runtime selection Codecs accept strings; a type argument supplies no runtime validator for a narrower domain. Validate external selection payloads with the application's value Schema at the boundary. Menu's `requestSelectItem` operation checks its Item type in TypeScript.
 
 ## The Factories {#factories}
 
-Each generic selection Block has a root factory export. Its inputs differ by what the Block accepts as items.
+Each configurable selection Block has a root factory export. Its inputs differ by what the Block accepts as items.
 
 ### Listbox
 
-`Listbox.makeBlock<Item, Value>()` takes two type parameters, or `Listbox.makeBlock<Item>()` when relying on the default. `Item` is the shape of the items the consumer supplies. `Value` is the shape of the value the OutMessage carries; it defaults to `Item` when `Item extends string`, else `string`. The two-parameter shape supports object-typed items via an `itemToValue` callback that extracts the stringy identifier from each `Item`.
+Listbox has three factory forms:
 
-`Listbox.Multi.makeBlock<Item, Value>()` (or `Listbox.Multi.makeBlock<Item>()`) is the multi-select variant. Same type-parameter shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
+- `Listbox.makeBlock()` uses `Schema.String` for both Item and Value.
+- `Listbox.makeBlock(ValueSchema)` uses the supplied string Schema for both Item and Value.
+- `Listbox.makeBlock(ItemSchema, ValueSchema)` accepts richer view items and uses the Value Schema for selected Messages and OutMessages.
+
+:::Snippet{name="uiListboxFactoryForms" label="Listbox factory forms"}
+
+`Listbox.Multi.makeBlock` has the same three forms. Its `Selected` OutMessage carries only the activated Value, and the parent toggles that value in and out of the selection it owns.
 
 ### Combobox
 

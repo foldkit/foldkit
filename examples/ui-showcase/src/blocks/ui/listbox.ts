@@ -1,12 +1,15 @@
+import { Schema } from 'effect'
+
 import { Listbox } from '@foldkit/ui'
 
-import type { ListboxItem } from './domain'
+import { ListboxItem } from './domain'
 
-export type Character = Readonly<{
-  firstName: string
-  lastName: string
-}>
+export const Character = Schema.Struct({
+  firstName: Schema.String,
+  lastName: Schema.String,
+})
+export type Character = typeof Character.Type
 
-export const ItemListboxBlock = Listbox.makeBlock<ListboxItem>()
-export const ItemMultiListboxBlock = Listbox.Multi.makeBlock<ListboxItem>()
-export const CharacterListboxBlock = Listbox.makeBlock<Character>()
+export const ItemListboxBlock = Listbox.makeBlock(ListboxItem)
+export const ItemMultiListboxBlock = Listbox.Multi.makeBlock(ListboxItem)
+export const CharacterListboxBlock = Listbox.makeBlock(Character, Schema.String)

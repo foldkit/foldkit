@@ -1,5 +1,6 @@
 import { Effect } from 'effect'
 import type * as Block from 'foldkit/block'
+import * as Story from 'foldkit/story'
 
 import { SaveDraft } from './command.js'
 import {
@@ -8,8 +9,22 @@ import {
   makeUpdate,
 } from './composition.js'
 import { ApplicationBlock } from './definition.js'
+import * as Editor from './editor.js'
 import type { ChannelsOf, PlanOutput } from './types.js'
 import { editDocument, update } from './update.js'
+
+// @ts-expect-error Story.messageIn is the canonical child-delivery step.
+Story.messageFrom
+
+Story.messageIn(
+  // @ts-expect-error The direct child delivery does not accept an occurrence key.
+  EditorBinding,
+  'editor',
+  Editor.Message.UpdatedText({ text: 'Edited' }),
+)
+
+// @ts-expect-error The delivered Message must belong to the bound child.
+Story.messageIn(EditorBinding, ApplicationBlock.Message.CompletedSaveDraft())
 
 type UpdateSource =
   typeof update extends Block.Plan<unknown, 'Update', infer Source>

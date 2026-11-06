@@ -1,5 +1,4 @@
-import { init, messageFrom } from 'foldkit/story'
-import { model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -11,10 +10,10 @@ import { AttachmentsBlock, layer } from './index'
 type FileDropMessage = typeof FileDrop.FileDropBlock.Message.Type
 
 const resumeDropMessage = (message: FileDropMessage) =>
-  messageFrom(ResumeDropBinding, message)
+  Story.messageIn(ResumeDropBinding, message)
 
 const additionalFilesDropMessage = (message: FileDropMessage) =>
-  messageFrom(AdditionalFilesDropBinding, message)
+  Story.messageIn(AdditionalFilesDropBinding, message)
 
 describe('attachments', () => {
   it.effect('a dropped resume is stored as maybeResume', () => {
@@ -22,13 +21,13 @@ describe('attachments', () => {
       type: 'application/pdf',
     })
 
-    return story(
+    return Story.story(
       { block: AttachmentsBlock, layer },
-      init(),
+      Story.init(),
       resumeDropMessage(
         FileDrop.FileDropBlock.Message.DroppedFiles({ files: [resume] }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.maybeResume._tag).toBe('Some')
       }),
     )
@@ -39,13 +38,13 @@ describe('attachments', () => {
       type: 'application/pdf',
     })
 
-    return story(
+    return Story.story(
       { block: AttachmentsBlock, layer },
-      init(),
+      Story.init(),
       additionalFilesDropMessage(
         FileDrop.FileDropBlock.Message.DroppedFiles({ files: [file] }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(model.additionalFiles).toHaveLength(1)
       }),
     )

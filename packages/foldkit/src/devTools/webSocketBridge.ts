@@ -15,6 +15,7 @@ import {
 } from 'effect'
 
 import { OptionExt } from '../effectExtensions/index.js'
+import * as Serialization from '../serialization.js'
 import {
   collectMatchingEntries,
   countEntriesByTag,
@@ -133,17 +134,14 @@ const tryDeriveJsonSchemaDocument = (
  * Production-safe: callers must check `import.meta.hot` is defined before
  * invoking this. The function assumes a live HMR connection.
  */
-export const startWebSocketBridge = <DispatchServices>(
+export const startWebSocketBridge = (
   store: DevToolsStore,
   hot: Hot,
-  maybeMessageSchema: Option.Option<
-    Schema.Codec<any, any, DispatchServices, any>
-  >,
+  maybeMessageSchema: Option.Option<Schema.Codec<any, any, never, never>>,
   prepareDispatch: PrepareDispatch,
-): Effect.Effect<void, never, Scope.Scope | DispatchServices> =>
+): Effect.Effect<void, never, Scope.Scope> =>
   Effect.gen(function* () {
     const connectionId = generateConnectionId()
-    const capturedContext = yield* Effect.context<DispatchServices>()
 
     const maybeDispatchSchema = Option.map(
       maybeMessageSchema,
@@ -211,7 +209,7 @@ export const startWebSocketBridge = <DispatchServices>(
           if (!isForUs) {
             return
           }
-          Effect.runForkWith(capturedContext)(handleRequest(id, request))
+          Effect.runFork(handleRequest(id, request))
         },
       })
     }
@@ -403,16 +401,14 @@ const formatInvalidMessageReason = (error: unknown, message: unknown): string =>
  * wires this to the HMR request channel; exported so tests can drive request
  * handling without a live HMR connection.
  */
-export const dispatchRequest = <DispatchServices>(
+export const dispatchRequest = (
   store: DevToolsStore,
-  maybeDispatchSchema: Option.Option<
-    Schema.Codec<any, any, DispatchServices, any>
-  >,
+  maybeDispatchSchema: Option.Option<Schema.Codec<any, any, never, never>>,
   maybeJsonSchemaDocument: Option.Option<unknown>,
   request: Request,
   prepareDispatch: PrepareDispatch,
-): Effect.Effect<Response, never, DispatchServices> =>
-  Request.match<Effect.Effect<Response, never, DispatchServices>>(request, {
+): Effect.Effect<Response> =>
+  Request.match<Effect.Effect<Response>>(request, {
     RequestGetModel: ({ maybePath, expand }) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(store.stateRef)
@@ -637,7 +633,14 @@ export const dispatchRequest = <DispatchServices>(
       Option.match(maybeDispatchSchema, {
         onNone: () => Effect.succeed(missingMessageSchemaResponse),
         onSome: dispatchSchema =>
-          Schema.decodeUnknownEffect(dispatchSchema)(message).pipe(
+          Effect.suspend(() =>
+            Effect.fromResult(
+              Serialization.run(
+                Schema.decodeUnknownEffect(dispatchSchema)(message),
+                'DevTools Message decoding',
+              ),
+            ),
+          ).pipe(
             Effect.matchEffect({
               onFailure: error =>
                 Effect.succeed(
@@ -691,7 +694,12 @@ export const dispatchRequest = <DispatchServices>(
               messages,
               (message, position) =>
                 Effect.mapError(
-                  decodeMessage(message),
+                  Effect.fromResult(
+                    Serialization.run(
+                      decodeMessage(message),
+                      'DevTools Message decoding',
+                    ),
+                  ),
                   error =>
                     new Error(
                       `Invalid Message at zero-based batch position ${position}: ${formatInvalidMessageReason(error, message)}\n\nNo Messages from the batch were dispatched.`,

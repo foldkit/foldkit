@@ -6,7 +6,10 @@ import { it } from '@effect/vitest'
 import * as Block from '../../../block/public.js'
 import * as Command from '../../../command/index.js'
 import type { HtmlBuilder } from '../../../html/index.js'
-import { defineMessageUnion } from '../../../message/index.js'
+import {
+  defineInMessageUnion,
+  defineMessageUnion,
+} from '../../../message/index.js'
 import { modifyFields } from '../../../struct/index.js'
 import * as CoreScene from '../../../test/scene.js'
 import * as CoreStory from '../../../test/story.js'
@@ -23,7 +26,7 @@ const Message = defineMessageUnion({
   CompletedRecordValue: { value: Schema.Number },
 })
 type Message = typeof Message.Type
-const InMessage = defineMessageUnion({
+const InMessage = defineInMessageUnion({
   RequestedRecordValue: { value: Schema.Number },
   InformedOfValue: { value: Schema.Number },
   InformedOfClear: {},

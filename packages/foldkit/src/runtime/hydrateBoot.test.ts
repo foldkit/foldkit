@@ -1,4 +1,12 @@
-import { Context, Effect, Fiber, Layer, Option, Schema } from 'effect'
+import {
+  Context,
+  Effect,
+  Fiber,
+  Layer,
+  Option,
+  Schema,
+  SchemaTransformation,
+} from 'effect'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { __renderFromConfig as renderToString } from '../experimental/server/server.js'
@@ -303,6 +311,47 @@ describe('hydrating boot', () => {
       ),
     ).rejects.toThrow('could not decode the server Flags payload')
     expect(document.getElementById('count')?.textContent).toBe('5')
+  })
+
+  it('refuses asynchronous Flags decoding before init or DOM adoption', async () => {
+    await renderServerPage({ start: 5 })
+    const decode = vi.fn((start: number) =>
+      Effect.promise(() => Promise.resolve(start)),
+    )
+    const Start = Schema.Number.pipe(
+      Schema.decodeTo(
+        Schema.Number,
+        SchemaTransformation.transformEffect({
+          decode,
+          encode: Effect.succeed,
+        }),
+      ),
+    )
+    type Start = typeof Start.Type
+    const AsyncFlags = Schema.Struct({ start: Start })
+    type AsyncFlags = typeof AsyncFlags.Type
+    const initialize = vi.fn(init)
+    const application = makeApplication({
+      Model,
+      Flags: AsyncFlags,
+      init: initialize,
+      update,
+      view,
+      container: nullContainer(),
+    })
+    const serverCount = document.getElementById('count')
+
+    expect(decode).not.toHaveBeenCalled()
+
+    await expect(
+      Effect.runPromise(
+        __startProgram(application, undefined, 'Hydrate', undefined, BUILD_ID),
+      ),
+    ).rejects.toThrow('synchronous, service-free Flags Schema')
+    expect(decode).toHaveBeenCalledTimes(1)
+    expect(initialize).not.toHaveBeenCalled()
+    expect(document.getElementById('count')).toBe(serverCount)
+    expect(serverCount?.textContent).toBe('5')
   })
 
   it('validates the flags payload before applying a Model restored after a development reload', async () => {

@@ -1,5 +1,5 @@
 ChangedUrl: ({ route }) =>
-  PriceSliderBinding.informRangeChange({
+  PriceSliderBinding.informOfRangeChange({
     min: route.minPrice,
     max: route.maxPrice,
   })(model)

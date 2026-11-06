@@ -1,14 +1,4 @@
-import {
-  Command,
-  Mount,
-  click,
-  expect,
-  given,
-  label,
-  role,
-  scene,
-  text,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
@@ -23,53 +13,53 @@ import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
 import { CHART_HOST_ID, MountChart } from './mount'
 import { ChartModeRadioGroupBlock } from './radioGroups'
 
-const acknowledgeChartMount = Mount.resolve(
+const acknowledgeChartMount = Scene.Mount.resolve(
   MountChart,
   Message.SucceededMountChart({ hostId: CHART_HOST_ID }),
 )
 
-const acknowledgeChartSync = Command.resolve(
+const acknowledgeChartSync = Scene.Command.resolve(
   SyncChart,
   Message.SucceededSyncChart(),
 )
 
-const resolveFocusOption = Command.resolve(
+const resolveFocusOption = Scene.Command.resolve(
   RadioGroup.test.FocusOption,
   ChartModeRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
 describe('view', () => {
   it.effect('loading view shows a telemetry progress state', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(loadingModel),
-      expect(label('Loading telemetry')).toExist(),
+      Scene.given(loadingModel),
+      Scene.expect(Scene.label('Loading telemetry')).toExist(),
     ),
   )
 
   it.effect('ready view shows summaries and chart controls', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(readyModel),
+      Scene.given(readyModel),
       acknowledgeChartMount,
       acknowledgeChartSync,
-      expect(text('Foldkit Adoption Observatory')).toExist(),
-      expect(text('Downloads')).toExist(),
-      expect(role('radio', { name: 'Velocity' })).toExist(),
-      expect(role('radio', { name: /@foldkit\/ui/ })).toExist(),
+      Scene.expect(Scene.text('Foldkit Adoption Observatory')).toExist(),
+      Scene.expect(Scene.text('Downloads')).toExist(),
+      Scene.expect(Scene.role('radio', { name: 'Velocity' })).toExist(),
+      Scene.expect(Scene.role('radio', { name: /@foldkit\/ui/ })).toExist(),
     ),
   )
 
   it.effect('clicking a chart mode updates the visible selected control', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(readyModel),
+      Scene.given(readyModel),
       acknowledgeChartMount,
       acknowledgeChartSync,
-      click(role('radio', { name: 'Velocity' })),
+      Scene.click(Scene.role('radio', { name: 'Velocity' })),
       resolveFocusOption,
-      Command.resolve(SyncChart, Message.SucceededSyncChart()),
-      expect(role('radio', { name: 'Velocity' })).toHaveAttr(
+      Scene.Command.resolve(SyncChart, Message.SucceededSyncChart()),
+      Scene.expect(Scene.role('radio', { name: 'Velocity' })).toHaveAttr(
         'aria-checked',
         'true',
       ),
@@ -77,9 +67,9 @@ describe('view', () => {
   )
 
   it.effect('refreshing state keeps the dashboard visible', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(
+      Scene.given(
         modifyFields(readyModel, {
           telemetry: () =>
             TelemetryAsyncData.Refreshing({ data: sampleTelemetry }),
@@ -87,21 +77,21 @@ describe('view', () => {
       ),
       acknowledgeChartMount,
       acknowledgeChartSync,
-      expect(text('Refreshing public data')).toExist(),
-      expect(text('Contributors')).toExist(),
+      Scene.expect(Scene.text('Refreshing public data')).toExist(),
+      Scene.expect(Scene.text('Contributors')).toExist(),
     ),
   )
 
   it.effect('failure without stale data shows retry', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(
+      Scene.given(
         modifyFields(loadingModel, {
           telemetry: () => TelemetryAsyncData.Failure({ error: 'offline' }),
         }),
       ),
-      expect(label('Telemetry failed')).toExist(),
-      expect(role('button', { name: 'Retry' })).toExist(),
+      Scene.expect(Scene.label('Telemetry failed')).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Retry' })).toExist(),
     ),
   )
 })

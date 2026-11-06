@@ -4,12 +4,12 @@ import type { Html } from 'foldkit/html'
 import { Nav } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
-import type { Project, Workspace } from '../domain'
+import { Issue, type Project, Workspace } from '../domain'
 import { ApplicationRoute, boardRouter, routeToPath } from '../route'
 import { navigationLink } from './navigationLink'
 
 export const projectTabs = (
-  project: Project,
+  project: Project.Project,
   route: ApplicationRoute,
   h: ApplicationViewBuilder,
 ): Html => {
@@ -39,22 +39,13 @@ export const projectTabs = (
 }
 
 export const projectOverview = (
-  project: Project,
-  workspace: Workspace,
+  project: Project.Project,
+  workspace: Workspace.Workspace,
   h: ApplicationViewBuilder,
 ): Html => {
-  const projectIssues = Array.filter(
-    workspace.issues,
-    issue => issue.projectId === project.id,
-  )
-  const completedIssues = Array.filter(
-    projectIssues,
-    issue => issue.status === 'Done',
-  )
-  const inProgressIssues = Array.filter(
-    projectIssues,
-    issue => issue.status === 'InProgress',
-  )
+  const projectIssues = Workspace.issuesForProject(workspace, project.id)
+  const completedIssues = Issue.forStatus(projectIssues, 'Done')
+  const inProgressIssues = Issue.forStatus(projectIssues, 'InProgress')
 
   return h.section(
     [h.Class('space-y-6 p-5 lg:p-8'), h.AriaLabel('Project overview')],

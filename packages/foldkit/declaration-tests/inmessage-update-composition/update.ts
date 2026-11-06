@@ -50,7 +50,7 @@ export const inMessageUpdate = makeInMessageUpdate.compose(
   makeInMessageUpdate.compose(
     base,
     makeInMessageUpdate.cases({
-      RequestedSet: EditorBinding.informTextChange({ text: 'connected' }),
+      RequestedSet: EditorBinding.informOfTextChange({ text: 'connected' }),
     }),
   ),
   makeInMessageUpdate.each((model, _input, { before }) => ({

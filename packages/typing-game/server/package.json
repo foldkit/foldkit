@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "node --watch src/main.ts",
+    "start": "node dist/main.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit"
   },

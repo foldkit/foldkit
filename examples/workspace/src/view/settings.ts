@@ -5,10 +5,11 @@ import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { Message } from '../message'
-import type { Model } from '../model'
 
 export const workspaceSettings = (
-  model: Model,
+  maybeNotice: Option.Option<string>,
+  maybeActivityError: Option.Option<string>,
+  activityRequestCount: number,
   h: ApplicationViewBuilder,
 ): Html =>
   h.section(
@@ -27,7 +28,7 @@ export const workspaceSettings = (
               'Changes last for this session. Reloading restores the sample workspace.',
             ],
           ),
-          Option.match(model.maybeNotice, {
+          Option.match(maybeNotice, {
             onNone: () => h.empty,
             onSome: notice =>
               h.p([h.Class('text-sm leading-6 text-slate-600')], [notice]),
@@ -47,7 +48,7 @@ export const workspaceSettings = (
               'Teammate activity arrives every 20 seconds. Comments and assignments appear in Notifications.',
             ],
           ),
-          Option.match(model.maybeActivityError, {
+          Option.match(maybeActivityError, {
             onNone: () => h.empty,
             onSome: error =>
               h.p(
@@ -72,7 +73,7 @@ export const workspaceSettings = (
               ),
               h.p(
                 [h.Class('text-[13px] text-slate-600')],
-                [`${model.activityTick} activity events requested`],
+                [`${activityRequestCount} activity events requested`],
               ),
             ],
           ),

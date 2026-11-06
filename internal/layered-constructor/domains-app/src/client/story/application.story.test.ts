@@ -242,7 +242,7 @@ test.each([
         Story.Command.expectExact(
           ReplaceSearchUrl({ q: Option.some('other') }),
         ),
-        Story.messageFrom(
+        Story.messageIn(
           DomainsQueryBinding,
           DomainsQuery.Message.CompletedFetch({
             args: previousArgs,
@@ -516,7 +516,7 @@ test('clearing a scrolled search discards its virtual viewport before another se
     Story.story(
       ApplicationBlock,
       Story.given(readyModel('acme')),
-      Story.messageFrom(
+      Story.messageIn(
         ResultsListBinding,
         ResultsListBlock.Message.ObservedContainerScroll({
           scrollTop: 1300,

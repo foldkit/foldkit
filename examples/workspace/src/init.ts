@@ -3,8 +3,8 @@ import type { Url } from 'foldkit/url'
 
 import { LoadWorkspace } from './command'
 import { ApplicationComposition } from './composition'
+import { Issue } from './domain'
 import { WorkspaceAsyncData } from './model'
-import { IssueMoveState } from './optimistic'
 import { urlToApplicationRoute } from './route'
 
 export const init = ApplicationComposition.makeInit((url: Url) => {
@@ -20,10 +20,10 @@ export const init = ApplicationComposition.makeInit((url: Url) => {
       maybeNotice: Option.none(),
       maybeActivityError: Option.none(),
       activeMemberId: 'maya',
-      activityTick: 0,
+      activityRequestCount: 0,
       savedViews: [],
-      nextSavedViewId: 1,
-      issueMoveState: IssueMoveState.Idle(),
+      nextSavedViewNumber: 1,
+      issueMoveState: Issue.MoveState.Idle(),
     },
     commands: [LoadWorkspace()],
   }

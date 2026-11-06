@@ -1,4 +1,4 @@
-import { Command, init, messageFrom, models, steps, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -12,19 +12,19 @@ const homeSubject = { block: HomeBlock, layer }
 
 describe('home', () => {
   it.effect('selecting a demo tab preserves both demo Models', () =>
-    story(
+    Story.story(
       homeSubject,
-      init(),
-      models(
-        steps(
-          messageFrom(
+      Story.init(),
+      Story.models(
+        Story.steps(
+          Story.messageIn(
             DemoTabsBinding,
             DemoTabsBlock.Message.SelectedTab({
               index: 1,
               value: 'Note Player',
             }),
           ),
-          Command.resolve(
+          Story.Command.resolve(
             Tabs.test.FocusTab,
             DemoTabsBlock.Message.CompletedFocusTab(),
           ),
@@ -35,16 +35,16 @@ describe('home', () => {
           expect(after.notePlayerDemo).toBe(before.notePlayerDemo)
         },
       ),
-      models(
-        steps(
-          messageFrom(
+      Story.models(
+        Story.steps(
+          Story.messageIn(
             DemoTabsBinding,
             DemoTabsBlock.Message.SelectedTab({
               index: 0,
               value: 'AsyncCounter',
             }),
           ),
-          Command.resolve(
+          Story.Command.resolve(
             Tabs.test.FocusTab,
             DemoTabsBlock.Message.CompletedFocusTab(),
           ),

@@ -106,24 +106,19 @@ const toCommandRecord = ({ id, command }: RecordableCommand): CommandRecord =>
  * Builds the DevTools integration for one runtime from the `devTools`
  * config. `update` and `maybeFreezeModel` drive time-travel replay.
  * `prepareDispatch` admits decoded WebSocket input and captures the queue
- * guard that belongs to that exact admission. `provideDispatchServices`
- * supplies application Services used by Message decoding while installation
- * retains its active Scope for bridge finalizers.
+ * guard that belongs to that exact admission. Installation retains its active
+ * Scope for bridge finalizers.
  */
-export const makeDevToolsIntegration = <Model, Message, DispatchServices>({
+export const makeDevToolsIntegration = <Model, Message>({
   devTools,
   update,
   maybeFreezeModel,
   prepareDispatch,
-  provideDispatchServices,
 }: Readonly<{
-  devTools: RuntimeDevToolsConfig<DispatchServices> | undefined
+  devTools: RuntimeDevToolsConfig | undefined
   update: (model: Model, message: Message) => Readonly<{ model: Model }>
   maybeFreezeModel: (model: Model) => Model
   prepareDispatch: PrepareDispatch
-  provideDispatchServices: <A>(
-    effect: Effect.Effect<A, never, DispatchServices>,
-  ) => Effect.Effect<A>
 }>): Effect.Effect<DevToolsIntegration<Model, Message>> =>
   Effect.gen(function* () {
     const resolvedDevTools = resolveDevToolsConfig(devTools)
@@ -279,18 +274,14 @@ export const makeDevToolsIntegration = <Model, Message, DispatchServices>({
               const maybeMessageSchema =
                 devTools !== undefined && devTools !== false
                   ? Option.fromNullishOr(devTools.dispatchSchema)
-                  : Option.none<
-                      Schema.Codec<any, any, DispatchServices, unknown>
-                    >()
+                  : Option.none<Schema.Codec<any, any, never, never>>()
               const runtimeScope = yield* Effect.scope
-              yield* provideDispatchServices(
-                startWebSocketBridge(
-                  store,
-                  import.meta.hot,
-                  maybeMessageSchema,
-                  prepareExternalDispatch,
-                ).pipe(Effect.provideService(Scope.Scope, runtimeScope)),
-              )
+              yield* startWebSocketBridge(
+                store,
+                import.meta.hot,
+                maybeMessageSchema,
+                prepareExternalDispatch,
+              ).pipe(Effect.provideService(Scope.Scope, runtimeScope))
             }
           }),
       })

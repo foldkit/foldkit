@@ -25,6 +25,9 @@ export { tag, ResourceNotAvailable, make } from './managedResource.js'
 
 export { lift, aggregate } from './managedResource.js'
 
+/** @internal Names keyed inspection templates and selected occurrences in downstream declarations. */
+export type { KeyedTemplate, KeyedSelection } from './managedResource.js'
+
 export type {
   ManagedResource,
   Value,

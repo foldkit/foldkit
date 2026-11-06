@@ -21,7 +21,7 @@ const prepare = () =>
     }),
     operations: {
       requestNotify: () => Tuple.make(Message.RequestedNotify()),
-      informIncrement: () => Tuple.make(Message.InformedOfIncrement()),
+      informOfIncrement: () => Tuple.make(Message.InformedOfIncrement()),
     },
   })
 export const ChildBlock: Block.FromAssemblyWithOutMessage<

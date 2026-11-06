@@ -28,22 +28,10 @@ export type {
   ViewInputs as MultiViewInputs,
 } from './multi.js'
 
-export type {
-  ListboxRefinementKey,
-  SharedListboxProof,
-  SharedListboxFacts,
-} from './single.js'
-
-/** @internal Names the Multi selection witness at the package boundary. */
-export type {
-  ListboxRefinementKey as MultiListboxRefinementKey,
-  SharedListboxProof as MultiSharedListboxProof,
-  SharedListboxFacts as MultiSharedListboxFacts,
-} from './multi.js'
-
-/** @internal Preserves exact fixed-family reader names in emitted declarations. */
-export type { ListboxReader } from './single.js'
-export type { ListboxReader as MultiListboxReader } from './multi.js'
+/** @internal Preserves family provider identities in emitted consumer declarations. */
+export type { ListboxFamily } from './single.js'
+export type { ListboxFamily as MultiListboxFamily } from './multi.js'
+export type { ValueSchema, MessageSchema } from './shared.js'
 
 /** @internal Keeps inferred provider exports nameable through this entry point. */
 export type { AnimationKey } from '../animation/index.js'

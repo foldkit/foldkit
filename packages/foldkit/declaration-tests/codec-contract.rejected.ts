@@ -1,49 +1,102 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Schema } from 'effect'
 import * as Block from 'foldkit/block'
 
 import {
-  EditorBlock,
+  ChildBlock,
   Message,
   Model,
-  decoding,
-  dispatchProgram,
-  editorLayer,
-  encoding,
+  ParentModel,
+  ServiceText,
 } from './codec-contract.accepted.js'
 
-const UndeclaredCodecKey = Symbol('UndeclaredCodec')
-const UndeclaredCodecBlock = Block.make('UndeclaredCodec', {
-  key: UndeclaredCodecKey,
-  Model,
+const ServiceModel = Schema.Struct({ value: ServiceText })
+const ServiceMessage = Schema.Struct({
+  _tag: Schema.Literal('ChangedServiceValue'),
+  value: ServiceText,
+})
+
+const BadUnifiedModelKey = Symbol('BadUnifiedModel')
+Block.make('BadUnifiedModel', {
+  key: BadUnifiedModelKey,
+  // @ts-expect-error A Block Model Codec must not require decoding or encoding Services.
+  Model: ServiceModel,
   Message,
   Init: Schema.Tuple([]),
 })
-const EditorBinding = UndeclaredCodecBlock.makeBinding(EditorBlock, {
-  field: 'editor',
-})
-const composition = UndeclaredCodecBlock.makeComposition({
-  bindings: [EditorBinding],
-})
-const constructor = Effect.gen(function* () {
-  const editor = yield* EditorBinding
 
-  return {
-    children: [editor],
-    init: composition.makeInit(() => ({ model: {} })),
-    update: composition.makeUpdate({
-      ClickedReload: UndeclaredCodecBlock.makeNoopStep(),
+const BadUnifiedMessageKey = Symbol('BadUnifiedMessage')
+Block.make('BadUnifiedMessage', {
+  key: BadUnifiedMessageKey,
+  Model,
+  // @ts-expect-error A local Block Message Codec must not require decoding or encoding Services.
+  Message: ServiceMessage,
+  Init: Schema.Tuple([]),
+})
+
+Block.makeDefinition('BadNativeModel', {
+  // @ts-expect-error Native Definition Models must be self-contained Codecs.
+  Model: ServiceModel,
+  Message,
+})
+
+Block.makeDefinition('BadNativeMessage', {
+  Model,
+  // @ts-expect-error Native Definition Messages must be self-contained Codecs.
+  Message: ServiceMessage,
+})
+
+const RetiredCodecKey = Symbol('RetiredCodec')
+// @ts-expect-error Explicit codec Service declarations have been removed.
+Block.make('RetiredCodec', {
+  key: RetiredCodecKey,
+  Model,
+  Message,
+  Init: Schema.Tuple([]),
+  codec: { decoding: [], encoding: [] },
+})
+
+const ServiceChildKey = Symbol('ServiceChild')
+const ServiceChild = Block.make('ServiceChild', {
+  key: ServiceChildKey,
+  Model,
+  // @ts-expect-error A child local Message Codec must not require Services.
+  Message: ServiceMessage,
+  Init: Schema.Tuple([]),
+})
+
+const ServiceChildParentKey = Symbol('ServiceChildParent')
+const ServiceChildParent = Block.make('ServiceChildParent', {
+  key: ServiceChildParentKey,
+  Model: ParentModel,
+  Message,
+  Init: Schema.Tuple([]),
+})
+const ServiceChildBinding = ServiceChildParent.makeBinding(ServiceChild, {
+  // @ts-expect-error A Service-dependent child cannot enter a generated dispatch graph.
+  field: 'child',
+})
+void ServiceChildBinding
+
+const ServiceKeyParentKey = Symbol('ServiceKeyParent')
+const ServiceKeyParent = Block.make('ServiceKeyParent', {
+  key: ServiceKeyParentKey,
+  Model: ParentModel,
+  Message,
+  Init: Schema.Tuple([]),
+})
+const ServiceKeyBinding = ServiceKeyParent.makeBinding(ChildBlock, {
+  placement: 'serviceKeyChildren',
+  readAll: model => model.children,
+  key: child => child.id,
+  keySchema: ServiceText,
+  read: child => child,
+  writeAt: (model, childId, nextChild) =>
+    ParentModel.make({
+      ...model,
+      children: model.children.map(child =>
+        child.id === childId ? nextChild : child,
+      ),
     }),
-  }
 })
-
-// @ts-expect-error Opaque child dispatch codecs must fit the parent's public codec bounds.
-UndeclaredCodecBlock.makeLayer(constructor).pipe(Layer.provide(editorLayer))
-
-// @ts-expect-error Complete Message decoding retains its inferred Service requirement.
-Effect.runPromise(decoding)
-
-// @ts-expect-error Complete Message encoding retains its inferred Service requirement.
-Effect.runPromise(encoding)
-
-// @ts-expect-error External DevTools dispatch cannot start until its decoder is supplied.
-dispatchProgram.start()
+// @ts-expect-error Generated keyed dispatch must retain and reject key Schema Services.
+ServiceKeyParent.makeComposition({ bindings: [ServiceKeyBinding] })

@@ -10,12 +10,12 @@ import { Icon } from '../../../../../icon'
 import * as DemoView from '../../../view/demo'
 import {
   AudioState,
+  Message,
+  type Model,
   type Note,
   NoteDuration,
   type NoteHighlightPhase,
   PlaybackState,
-  type Model,
-  Message,
 } from '../block'
 import {
   NoteDurationRadioGroupBinding,
@@ -72,21 +72,29 @@ const appPanel = (model: Model, h: NotePlayerDemoViewBuilder): Html => {
           h.div(
             [h.Class('flex flex-col gap-3')],
             [
-              noteSequenceView(model),
-              noteInputView(model, isInputLocked, h),
-              durationSelectorView(model, isInputLocked, h),
-              playbackControlView(model, canPlay, h),
+              noteSequenceView(model.noteInput, model.playbackState),
+              noteInputView(model.noteInput, isInputLocked, h),
+              durationSelectorView(
+                model.noteDurationRadioGroup,
+                model.noteDuration,
+                isInputLocked,
+                h,
+              ),
+              playbackControlView(model.playbackState, model.audio, canPlay, h),
             ],
           ),
           DemoView.modelState([
             DemoView.modelStateField(
               'playbackState',
-              playbackStateLabel(model),
+              playbackStateLabel(model.playbackState),
             ),
             DemoView.modelStateField('noteDuration', model.noteDuration),
-            DemoView.modelStateField('noteInput', noteInputLabel(model)),
+            DemoView.modelStateField(
+              'noteInput',
+              noteInputLabel(model.noteInput),
+            ),
           ]),
-          phaseIndicatorView(model),
+          phaseIndicatorView(model.highlightPhase),
           DemoView.eventLog(model.messageLog),
         ],
       ),
@@ -95,17 +103,17 @@ const appPanel = (model: Model, h: NotePlayerDemoViewBuilder): Html => {
 }
 
 const noteInputView = (
-  model: Model,
+  noteInput: Model['noteInput'],
   isInputLocked: boolean,
   h: NotePlayerDemoViewBuilder,
 ): Html =>
   UiInput.view(
     {
       id: 'note-input',
-      value: model.noteInput.value,
+      value: noteInput.value,
       onInput: value => Message.ChangedNoteInput({ value }),
       isDisabled: isInputLocked,
-      isInvalid: model.noteInput._tag === 'Invalid',
+      isInvalid: noteInput._tag === 'Invalid',
       placeholder: 'CDEFGAB',
       toView: attributes =>
         h.div(
@@ -130,13 +138,13 @@ const noteInputView = (
               h.Class(
                 clsx(
                   'w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border text-sm text-gray-800 dark:text-gray-200 font-mono tracking-widest uppercase transition',
-                  inputBorderClass(model.noteInput),
+                  inputBorderClass(noteInput),
                 ),
               ),
               h.Maxlength(MAX_NOTES),
               h.Autocomplete('off'),
             ]),
-            FieldValidation.match(model.noteInput, {
+            FieldValidation.match(noteInput, {
               onNotValidated: () =>
                 h.p(
                   [h.Class('text-xs text-gray-500 dark:text-gray-500')],
@@ -167,7 +175,8 @@ const noteInputView = (
 const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 
 const durationSelectorView = (
-  model: Model,
+  noteDurationRadioGroup: Model['noteDurationRadioGroup'],
+  noteDuration: NoteDuration,
   isInputLocked: boolean,
   h: NotePlayerDemoViewBuilder,
 ): Html =>
@@ -180,10 +189,10 @@ const durationSelectorView = (
       ),
       h.block(
         NoteDurationRadioGroupBinding.embedView({
-          slotId: model.noteDurationRadioGroup.id,
-          model: model.noteDurationRadioGroup,
+          slotId: noteDurationRadioGroup.id,
+          model: noteDurationRadioGroup,
           viewInputs: {
-            selectedValue: Option.some(model.noteDuration),
+            selectedValue: Option.some(noteDuration),
             options: noteDurations,
             ariaLabel: 'Note length',
             orientation: 'Horizontal',
@@ -218,12 +227,13 @@ const durationSelectorView = (
   )
 
 const playbackControlView = (
-  model: Model,
+  playbackState: PlaybackState,
+  audio: AudioState,
   canPlay: boolean,
   h: NotePlayerDemoViewBuilder,
 ): Html => {
-  const isPlaying = model.playbackState._tag === 'Playing'
-  const isActive = isPlaying || model.playbackState._tag === 'Paused'
+  const isPlaying = playbackState._tag === 'Playing'
+  const isActive = isPlaying || playbackState._tag === 'Paused'
 
   return h.div(
     [h.Class('flex flex-col gap-2')],
@@ -302,7 +312,7 @@ const playbackControlView = (
           ),
         ],
       ),
-      ...audioUnavailableNoticeView(model.audio),
+      ...audioUnavailableNoticeView(audio),
     ],
   )
 }
@@ -335,8 +345,11 @@ const placeholderVisualizerView = (): Html =>
     ),
   )
 
-const noteSequenceView = (model: Model): Html => {
-  const notes = parseNotes(model.noteInput.value)
+const noteSequenceView = (
+  noteInput: Model['noteInput'],
+  playbackState: PlaybackState,
+): Html => {
+  const notes = parseNotes(noteInput.value)
 
   return ih.div(
     [
@@ -347,14 +360,17 @@ const noteSequenceView = (model: Model): Html => {
     [
       Array.match(notes, {
         onEmpty: () => placeholderVisualizerView(),
-        onNonEmpty: validNotes => noteVisualizerView(model, validNotes),
+        onNonEmpty: validNotes => noteVisualizerView(playbackState, validNotes),
       }),
     ],
   )
 }
 
-const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
-  const maybeCurrentIndex = Match.value(model.playbackState).pipe(
+const noteVisualizerView = (
+  playbackState: PlaybackState,
+  notes: ReadonlyArray<Note>,
+): Html => {
+  const maybeCurrentIndex = Match.value(playbackState).pipe(
     Match.tag('Playing', 'Paused', ({ currentNoteIndex }) =>
       Option.some(currentNoteIndex),
     ),
@@ -392,16 +408,16 @@ const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
   )
 }
 
-const noteInputLabel = (model: Model): string =>
-  FieldValidation.match(model.noteInput, {
+const noteInputLabel = (noteInput: Model['noteInput']): string =>
+  FieldValidation.match(noteInput, {
     onNotValidated: value => `NotValidated("${value}")`,
     onValidating: value => `Validating("${value}")`,
     onValid: value => `Valid("${value}")`,
     onInvalid: ({ errors }) => `Invalid("${Array.headNonEmpty(errors)}")`,
   })
 
-const playbackStateLabel = (model: Model): string =>
-  PlaybackState.match(model.playbackState, {
+const playbackStateLabel = (playbackState: PlaybackState): string =>
+  PlaybackState.match(playbackState, {
     Idle: () => 'Idle',
     Playing: ({ currentNoteIndex, noteSequence }) =>
       `PlaybackState.Playing(${currentNoteIndex + 1}/${noteSequence.length})`,
@@ -442,9 +458,9 @@ const phaseColorClass = (phase: NoteHighlightPhase): string =>
     Match.exhaustive,
   )
 
-const phaseIndicatorView = (model: Model): Html =>
+const phaseIndicatorView = (highlightPhase: NoteHighlightPhase): Html =>
   DemoView.phaseIndicator(
-    phaseLabel(model.highlightPhase),
-    phaseColorClass(model.highlightPhase),
+    phaseLabel(highlightPhase),
+    phaseColorClass(highlightPhase),
     [],
   )

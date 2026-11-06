@@ -38,7 +38,7 @@ describe('composed document update', () => {
           Message.ReceivedDraft({ title: 'Existing', text: 'Loaded' }),
         ),
         Story.Command.expectNone(),
-        Story.messageFrom(
+        Story.messageIn(
           EditorBinding,
           Editor.Message.UpdatedText({ text: 'Edited' }),
         ),

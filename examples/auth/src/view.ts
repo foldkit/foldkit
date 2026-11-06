@@ -7,14 +7,14 @@ import {
 } from './composition'
 import { Model } from './model'
 
-const title = (model: Model): string =>
-  Match.value(model.route).pipe(
+const title = (route: Model['route']): string =>
+  Match.value(route).pipe(
     Match.tag('Home', () => 'Auth'),
     Match.orElse(({ _tag }) => `${_tag} | Auth`),
   )
 
 export const view = ApplicationComposition.makeView((model, h) => ({
-  title: title(model),
+  title: title(model.route),
   body: h.div(
     [h.Class('min-h-screen bg-gray-100')],
     [

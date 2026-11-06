@@ -1,19 +1,10 @@
 import { Array, Option } from 'effect'
-import {
-  Command,
-  expectNoOutMessage,
-  expectOutMessage,
-  given,
-  init,
-  message,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { Comment, initialWorkspace } from '../../../../domain'
+import { Issue, initialWorkspace } from '../../../../domain'
 import { CommentComposerBlock } from './block'
 import { AddComment } from './command'
 import { layer } from './layer'
@@ -27,19 +18,19 @@ const existingComment = Option.getOrThrow(Array.head(issue.comments))
 describe('CommentComposerBlock update', () => {
   it.effect('keeps edits local and discards an idle draft', () => {
     const body = 'This draft changed.'
-    return story(
+    return Story.story(
       { block: CommentComposerBlock, layer },
-      init(issue.id),
-      message(Message.UpdatedBody({ value: body })),
-      expectNoOutMessage(),
-      model(model => expect(model.body).toBe(body)),
-      message(Message.ClickedDiscardComment()),
-      expectNoOutMessage(),
-      model(model => {
+      Story.init(issue.id),
+      Story.message(Message.UpdatedBody({ value: body })),
+      Story.expectNoOutMessage(),
+      Story.model(model => expect(model.body).toBe(body)),
+      Story.message(Message.ClickedDiscardComment()),
+      Story.expectNoOutMessage(),
+      Story.model(model => {
         expect(model.body).toBe('')
         expect(model.postState).toEqual(PostState.Idle())
       }),
-      Command.expectNone(),
+      Story.Command.expectNone(),
     )
   })
 
@@ -51,19 +42,19 @@ describe('CommentComposerBlock update', () => {
       body,
       postState: PostState.Posting(),
     })
-    return story(
+    return Story.story(
       { block: CommentComposerBlock, layer },
-      given(postingModel),
-      message(Message.UpdatedBody({ value: 'An edit during posting.' })),
-      expectNoOutMessage(),
-      model(model => expect(model).toBe(postingModel)),
-      message(Message.ClickedDiscardComment()),
-      expectNoOutMessage(),
-      model(model => expect(model).toBe(postingModel)),
-      message(Message.SubmittedCommentForm({ authorId: 'alex' })),
-      expectNoOutMessage(),
-      model(model => expect(model).toBe(postingModel)),
-      Command.expectNone(),
+      Story.given(postingModel),
+      Story.message(Message.UpdatedBody({ value: 'An edit during posting.' })),
+      Story.expectNoOutMessage(),
+      Story.model(model => expect(model).toBe(postingModel)),
+      Story.message(Message.ClickedDiscardComment()),
+      Story.expectNoOutMessage(),
+      Story.model(model => expect(model).toBe(postingModel)),
+      Story.message(Message.SubmittedCommentForm({ authorId: 'alex' })),
+      Story.expectNoOutMessage(),
+      Story.model(model => expect(model).toBe(postingModel)),
+      Story.Command.expectNone(),
     )
   })
 
@@ -75,16 +66,18 @@ describe('CommentComposerBlock update', () => {
         body: 'Keep this draft.',
         postState,
       })
-      return story(
+      return Story.story(
         { block: CommentComposerBlock, layer },
-        given(currentModel),
-        message(Message.SucceededAddComment({ comment: existingComment })),
-        expectNoOutMessage(),
-        model(model => expect(model).toBe(currentModel)),
-        message(Message.FailedAddComment({ error: 'A late failure.' })),
-        expectNoOutMessage(),
-        model(model => expect(model).toBe(currentModel)),
-        Command.expectNone(),
+        Story.given(currentModel),
+        Story.message(
+          Message.SucceededAddComment({ comment: existingComment }),
+        ),
+        Story.expectNoOutMessage(),
+        Story.model(model => expect(model).toBe(currentModel)),
+        Story.message(Message.FailedAddComment({ error: 'A late failure.' })),
+        Story.expectNoOutMessage(),
+        Story.model(model => expect(model).toBe(currentModel)),
+        Story.Command.expectNone(),
       )
     },
   )
@@ -92,7 +85,7 @@ describe('CommentComposerBlock update', () => {
   it.effect('retains a failed post and emits the comment after retry', () => {
     const body = 'Ready for review.'
 
-    const comment = Comment.make({
+    const comment = Issue.Comment.make({
       id: 'comment-retry',
       authorId: 'maya',
       body,
@@ -100,30 +93,33 @@ describe('CommentComposerBlock update', () => {
     })
 
     const error = 'The workspace is temporarily unavailable.'
-    return story(
+    return Story.story(
       { block: CommentComposerBlock, layer },
-      init(issue.id, `  ${body}  `),
-      message(Message.SubmittedCommentForm({ authorId: 'maya' })),
-      Command.expectExact(
+      Story.init(issue.id, `  ${body}  `),
+      Story.message(Message.SubmittedCommentForm({ authorId: 'maya' })),
+      Story.Command.expectExact(
         AddComment({ issueId: issue.id, body, authorId: 'maya' }),
       ),
-      Command.resolve(AddComment, Message.FailedAddComment({ error })),
-      expectNoOutMessage(),
-      model(model => {
+      Story.Command.resolve(AddComment, Message.FailedAddComment({ error })),
+      Story.expectNoOutMessage(),
+      Story.model(model => {
         expect(model.body).toBe(`  ${body}  `)
         expect(model.postState).toEqual(PostState.Failed({ error }))
       }),
-      message(Message.SubmittedCommentForm({ authorId: 'maya' })),
-      Command.expectExact(
+      Story.message(Message.SubmittedCommentForm({ authorId: 'maya' })),
+      Story.Command.expectExact(
         AddComment({ issueId: issue.id, body, authorId: 'maya' }),
       ),
-      Command.resolve(AddComment, Message.SucceededAddComment({ comment })),
-      expectOutMessage(OutMessage.AddedComment({ comment })),
-      model(model => {
+      Story.Command.resolve(
+        AddComment,
+        Message.SucceededAddComment({ comment }),
+      ),
+      Story.expectOutMessage(OutMessage.AddedComment({ comment })),
+      Story.model(model => {
         expect(model.body).toBe('')
         expect(model.postState).toEqual(PostState.Idle())
       }),
-      Command.expectNone(),
+      Story.Command.expectNone(),
     )
   })
 })

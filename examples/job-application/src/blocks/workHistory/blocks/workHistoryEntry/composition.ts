@@ -36,14 +36,14 @@ const foldStartDateOutMessage = makeOutMessageFold(DatePicker.DatePickerBlock, {
       makeFieldsStep(() => ({
         maybeStartDate: () => Option.some(date),
       })),
-      EndDateBinding.informMinDateChanged(Option.some(date)),
+      EndDateBinding.informOfMinDateChanged(Option.some(date)),
     ]),
   ClearedDate: () =>
     Update.combineSteps([
       makeFieldsStep(() => ({
         maybeStartDate: () => Option.none(),
       })),
-      EndDateBinding.informMinDateChanged(Option.none()),
+      EndDateBinding.informOfMinDateChanged(Option.none()),
     ]),
 })
 
@@ -54,14 +54,14 @@ const foldEndDateOutMessage = makeOutMessageFold(DatePicker.DatePickerBlock, {
       makeFieldsStep(() => ({
         maybeEndDate: () => Option.some(date),
       })),
-      StartDateBinding.informMaxDateChanged(Option.some(date)),
+      StartDateBinding.informOfMaxDateChanged(Option.some(date)),
     ]),
   ClearedDate: () =>
     Update.combineSteps([
       makeFieldsStep(() => ({
         maybeEndDate: () => Option.none(),
       })),
-      StartDateBinding.informMaxDateChanged(Option.none()),
+      StartDateBinding.informOfMaxDateChanged(Option.none()),
     ]),
 })
 

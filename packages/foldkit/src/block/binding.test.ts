@@ -1535,7 +1535,9 @@ describe('generic block refinement', () => {
     messages: [CompletedChoiceWork],
   })
 
-  const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
+  const makeChoice = <Value extends string>(
+    Value: Schema.Codec<Value, any, never, never>,
+  ) => {
     const Model = Schema.Struct({ value: Value })
     const RequestedFinish = Schema.TaggedStruct('RequestedFinish', {})
     const Message = Schema.Union([

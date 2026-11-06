@@ -6,7 +6,7 @@ import { makeCommand } from './block'
 import { Message } from './message'
 
 export const SaveProject = makeCommand('SaveProject', {
-  args: { project: Project },
+  args: { project: Project.Project },
   messages: [Message.SucceededSaveProject, Message.FailedSaveProject],
   handler: function* () {
     const repository = yield* WorkspaceRepository

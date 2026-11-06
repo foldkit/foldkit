@@ -13,7 +13,7 @@ import {
   Scope,
   SubscriptionRef,
 } from 'effect'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
@@ -71,6 +71,45 @@ const ServiceMessage = defineMessageUnion({
   SubmittedValue: { value: ServiceDecodedString },
 })
 type ServiceMessage = typeof ServiceMessage.Type
+
+const ErasedServiceMessage = Schema.make<
+  Schema.Codec<
+    typeof ServiceMessage.Type,
+    typeof ServiceMessage.Encoded,
+    never,
+    never
+  >
+>(ServiceMessage.ast)
+
+const SynchronousDecodedString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.String,
+    SchemaTransformation.transformEffect({
+      decode: value => Effect.succeed(`decoded:${value}`),
+      encode: Effect.succeed,
+    }),
+  ),
+)
+const SynchronousMessage = defineMessageUnion({
+  SubmittedValue: { value: SynchronousDecodedString },
+})
+
+const AsynchronousDecodedString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.String,
+    SchemaTransformation.transformEffect({
+      decode: value => Effect.promise(() => Promise.resolve(value)),
+      encode: Effect.succeed,
+    }),
+  ),
+)
+const AsynchronousMessage = defineMessageUnion({
+  SubmittedValue: { value: AsynchronousDecodedString },
+})
+const MixedSynchronousMessage = defineMessageUnion({
+  SubmittedSynchronousValue: { value: SynchronousDecodedString },
+  SubmittedAsynchronousValue: { value: AsynchronousDecodedString },
+})
 
 const update = (model: CounterModel, message: CounterMessage): CounterModel =>
   CounterMessage.match<CounterModel>(message, {
@@ -162,36 +201,94 @@ const makeHarness = (
 }
 
 describe('dispatchRequest', () => {
-  it('decodes with Services from the bridge execution Context', () => {
-    const store = run(createDevToolsStore(makeBridge()))
-    const prepared: Array<unknown> = []
-    const callBridge = (message: unknown) =>
-      Effect.runSync(
-        dispatchRequest(
-          store,
-          Option.some(Schema.toCodecJson(ServiceMessage)),
-          Option.none(),
-          Request.RequestDispatchMessage({ message }),
-          decoded => {
-            prepared.push(decoded)
-            return Result.succeed(
-              Effect.succeed(Result.succeed(Option.some(0))),
-            )
-          },
-        ).pipe(Effect.provideService(DispatchPrefix, { value: 'decoded:' })),
-      )
+  it('requires a service-free Message Codec statically', () => {
+    expectTypeOf(Option.some(ServiceMessage)).not.toMatchTypeOf<
+      Parameters<typeof dispatchRequest>[1]
+    >()
+  })
 
-    expect(
-      callBridge({ _tag: 'SubmittedValue', value: 'ready' }),
-    ).toMatchObject({ _tag: 'ResponseDispatched' })
-    expect(prepared).toEqual([
-      ServiceMessage.SubmittedValue({ value: 'decoded:ready' }),
-    ])
+  it('rejects erased decoding Services at the actual boundary', () => {
+    const prepared = vi.fn()
+    const { dispatched, callBridge } = makeHarness(
+      Option.some(ErasedServiceMessage),
+      {},
+      message => {
+        prepared(message)
+        return Result.succeed(Effect.succeed(Result.succeed(Option.some(0))))
+      },
+    )
 
-    expect(callBridge({ _tag: 'SubmittedValue', value: 1 })).toMatchObject({
+    const response = callBridge(
+      Request.RequestDispatchMessage({
+        message: { _tag: 'SubmittedValue', value: 'ready' },
+      }),
+    )
+
+    expect(response).toMatchObject({
       _tag: 'ResponseError',
+      reason: expect.stringContaining(
+        'The Codec must complete synchronously without Services',
+      ),
     })
-    expect(prepared).toHaveLength(1)
+    expect(response).toMatchObject({
+      reason: expect.stringContaining(
+        'Service not found: WebSocketBridgeTest/DispatchPrefix',
+      ),
+    })
+    expect(prepared).not.toHaveBeenCalled()
+    expect(dispatched).toEqual([])
+  })
+
+  it('accepts a synchronous effect transformation with its exact payload', () => {
+    const prepared = vi.fn()
+    const { callBridge } = makeHarness(
+      Option.some(SynchronousMessage),
+      {},
+      message => {
+        prepared(message)
+        return Result.succeed(Effect.succeed(Result.succeed(Option.some(2))))
+      },
+    )
+
+    const response = callBridge(
+      Request.RequestDispatchMessage({
+        message: { _tag: 'SubmittedValue', value: 'ready' },
+      }),
+    )
+
+    expect(response).toEqual(
+      Response.ResponseDispatched({ acceptedAtIndex: 2 }),
+    )
+    expect(prepared).toHaveBeenCalledExactlyOnceWith(
+      SynchronousMessage.SubmittedValue({ value: 'decoded:ready' }),
+    )
+  })
+
+  it('rejects an asynchronous Message before preparation or admission', () => {
+    const prepared = vi.fn()
+    const { dispatched, callBridge } = makeHarness(
+      Option.some(AsynchronousMessage),
+      {},
+      message => {
+        prepared(message)
+        return Result.succeed(Effect.succeed(Result.succeed(Option.some(2))))
+      },
+    )
+
+    const response = callBridge(
+      Request.RequestDispatchMessage({
+        message: { _tag: 'SubmittedValue', value: 'ready' },
+      }),
+    )
+
+    expect(response).toMatchObject({
+      _tag: 'ResponseError',
+      reason: expect.stringContaining(
+        'The Codec must complete synchronously without Services',
+      ),
+    })
+    expect(prepared).not.toHaveBeenCalled()
+    expect(dispatched).toEqual([])
   })
 
   describe('RequestDispatchMessage', () => {
@@ -398,6 +495,44 @@ describe('dispatchRequest', () => {
       )
       expect(dispatched).toEqual([])
       expect(recordedTags()).toEqual(['ClickedIncrement', 'ClickedIncrement'])
+    })
+
+    it('validates the complete batch before preparing an asynchronous Message', () => {
+      const prepared = vi.fn()
+      const { dispatched, callBridge } = makeHarness(
+        Option.some(MixedSynchronousMessage),
+        {},
+        message => {
+          prepared(message)
+          return Result.succeed(Effect.succeed(Result.succeed(Option.some(2))))
+        },
+      )
+
+      const response = callBridge(
+        Request.RequestDispatchMessages({
+          messages: [
+            { _tag: 'SubmittedSynchronousValue', value: 'ready' },
+            { _tag: 'SubmittedAsynchronousValue', value: 'later' },
+          ],
+        }),
+      )
+
+      expect(response).toMatchObject({
+        _tag: 'ResponseError',
+        reason: expect.stringContaining('zero-based batch position 1'),
+      })
+      expect(response).toMatchObject({
+        reason: expect.stringContaining(
+          'The Codec must complete synchronously without Services',
+        ),
+      })
+      expect(response).toMatchObject({
+        reason: expect.stringContaining(
+          'No Messages from the batch were dispatched',
+        ),
+      })
+      expect(prepared).not.toHaveBeenCalled()
+      expect(dispatched).toEqual([])
     })
 
     it('prepares every Message before executing any batch dispatch', () => {
@@ -902,16 +1037,44 @@ const startBridgeInScope = (hot: NonNullable<ImportMeta['hot']>) => {
 // closing. `beforeunload` fires for events the document survives, so a bridge
 // that announced a disconnect there reported a live app as gone.
 describe('startWebSocketBridge', () => {
-  it('uses the captured bridge Context to decode later dispatch requests', async () => {
+  it('rejects an asynchronous targeted socket request without eager decoding', async () => {
     const scope = run(Scope.make())
     const store = run(createDevToolsStore(makeBridge()))
-    const prepared: Array<unknown> = []
+    const decode = vi.fn((value: string) =>
+      Effect.promise(() => Promise.resolve(value)),
+    )
+    const SocketDecodedString = Schema.String.pipe(
+      Schema.decodeTo(
+        Schema.String,
+        SchemaTransformation.transformEffect({
+          decode,
+          encode: Effect.succeed,
+        }),
+      ),
+    )
+    const SocketMessage = defineMessageUnion({
+      SubmittedValue: { value: SocketDecodedString },
+    })
+    const prepared = vi.fn(() =>
+      Result.succeed(Effect.succeed(Result.succeed(Option.some(0)))),
+    )
     const responses: Array<ResponseFrame> = []
+    const sentEventTags: Array<string> = []
     const decodeEventFrame = Schema.decodeUnknownSync(EventFrame)
     const decodeResponseFrame = Schema.decodeUnknownSync(ResponseFrame)
     const encodeRequestFrame = Schema.encodeUnknownSync(RequestFrame)
     let connectionId: string | undefined
     let handleRequestFrame: ((frame: any) => void) | undefined
+    const off = vi.fn(
+      (channel: string, callback: (frame: unknown) => void): void => {
+        if (
+          channel === 'foldkit:devTools:request' &&
+          callback === handleRequestFrame
+        ) {
+          handleRequestFrame = undefined
+        }
+      },
+    )
 
     const hot: NonNullable<ImportMeta['hot']> = {
       data: {},
@@ -925,10 +1088,11 @@ describe('startWebSocketBridge', () => {
           handleRequestFrame = callback
         }
       },
-      off: Function.constVoid,
+      off,
       send: (channel, payload) => {
         if (channel === EVENT_CHANNEL) {
           const event = decodeEventFrame(payload).event
+          sentEventTags.push(event._tag)
           if (event._tag === 'EventConnected') {
             connectionId = event.runtime.connectionId
           }
@@ -941,20 +1105,11 @@ describe('startWebSocketBridge', () => {
     try {
       run(
         Effect.provideService(
-          Effect.provideService(
-            startWebSocketBridge(
-              store,
-              hot,
-              Option.some(ServiceMessage),
-              decoded => {
-                prepared.push(decoded)
-                return Result.succeed(
-                  Effect.succeed(Result.succeed(Option.some(0))),
-                )
-              },
-            ),
-            DispatchPrefix,
-            { value: 'captured:' },
+          startWebSocketBridge(
+            store,
+            hot,
+            Option.some(SocketMessage),
+            prepared,
           ),
           Scope.Scope,
           scope,
@@ -964,10 +1119,24 @@ describe('startWebSocketBridge', () => {
       if (connectionId === undefined || handleRequestFrame === undefined) {
         throw new Error('Expected the bridge to connect and register a handler')
       }
+      expect(decode).not.toHaveBeenCalled()
+      expect(prepared).not.toHaveBeenCalled()
 
       handleRequestFrame(
         encodeRequestFrame({
-          id: 'service-dispatch',
+          id: 'wrong-runtime',
+          maybeConnectionId: Option.some('another-runtime'),
+          request: Request.RequestDispatchMessage({
+            message: { _tag: 'SubmittedValue', value: 'ready' },
+          }),
+        }),
+      )
+      expect(decode).not.toHaveBeenCalled()
+      expect(responses).toEqual([])
+
+      handleRequestFrame(
+        encodeRequestFrame({
+          id: 'asynchronous-dispatch',
           maybeConnectionId: Option.some(connectionId),
           request: Request.RequestDispatchMessage({
             message: { _tag: 'SubmittedValue', value: 'ready' },
@@ -977,30 +1146,26 @@ describe('startWebSocketBridge', () => {
 
       await vi.waitFor(() => expect(responses).toHaveLength(1))
       expect(Array.map(responses, ({ response }) => response._tag)).toEqual([
-        'ResponseDispatched',
-      ])
-      expect(prepared).toEqual([
-        ServiceMessage.SubmittedValue({ value: 'captured:ready' }),
-      ])
-
-      handleRequestFrame(
-        encodeRequestFrame({
-          id: 'malformed-service-dispatch',
-          maybeConnectionId: Option.some(connectionId),
-          request: Request.RequestDispatchMessage({
-            message: { _tag: 'SubmittedValue', value: 1 },
-          }),
-        }),
-      )
-
-      await vi.waitFor(() => expect(responses).toHaveLength(2))
-      expect(Array.map(responses, ({ response }) => response._tag)).toEqual([
-        'ResponseDispatched',
         'ResponseError',
       ])
-      expect(prepared).toHaveLength(1)
+      expect(responses).toMatchObject([
+        {
+          id: 'asynchronous-dispatch',
+          response: {
+            _tag: 'ResponseError',
+            reason: expect.stringContaining(
+              'The Codec must complete synchronously without Services',
+            ),
+          },
+        },
+      ])
+      expect(decode).toHaveBeenCalledExactlyOnceWith('ready', expect.anything())
+      expect(prepared).not.toHaveBeenCalled()
     } finally {
       run(Scope.close(scope, Exit.void))
+      expect(handleRequestFrame).toBeUndefined()
+      expect(off).toHaveBeenCalledOnce()
+      expect(sentEventTags).toEqual(['EventConnected', 'EventDisconnected'])
     }
   })
 

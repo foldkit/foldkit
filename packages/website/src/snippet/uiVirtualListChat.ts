@@ -143,7 +143,7 @@ const update = MessageListExampleComposition.makeUpdate({
 
     return Update.combineSteps(model, [
       makeFieldsStep(() => ({ messages: () => nextMessages })),
-      MessageListBinding.informItemsChanged(
+      MessageListBinding.informOfItemsChanged(
         Array.map(nextMessages, historyRows.itemToKey),
       ),
     ])
@@ -158,7 +158,7 @@ const update = MessageListExampleComposition.makeUpdate({
         historyLoad: () =>
           response.hasMore ? HistoryLoad.Idle() : HistoryLoad.Complete(),
       })),
-      MessageListBinding.informHistoryPrepended({
+      MessageListBinding.informOfHistoryPrepended({
         items: nextMessages,
         prependedItems: response.messages,
         itemToKey: historyRows.itemToKey,

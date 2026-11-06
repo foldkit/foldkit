@@ -1,8 +1,8 @@
 import { defineMessageUnion } from 'foldkit/message'
 
-import { IssueStatus } from '../../domain'
+import { Issue } from '../../domain'
 
 export const Message = defineMessageUnion({
-  ClickedCreateIssue: { status: IssueStatus },
+  ClickedCreateIssue: { status: Issue.Status },
 })
 export type Message = typeof Message.Type

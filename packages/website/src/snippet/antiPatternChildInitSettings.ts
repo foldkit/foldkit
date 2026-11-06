@@ -1,7 +1,7 @@
 // block.ts
 import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
 export const Theme = Schema.Literals(['Light', 'Dark'])
 export type Theme = typeof Theme.Type
@@ -11,7 +11,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedRestore: { theme: Theme },
 })
 export type InMessage = typeof InMessage.Type

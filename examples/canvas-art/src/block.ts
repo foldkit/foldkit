@@ -220,12 +220,18 @@ const ballShape = (ball: Ball): Canvas.Shape =>
     fill: ball.color,
   })
 
-const sceneShapes = (model: Model): ReadonlyArray<Canvas.Shape> => [
+const sceneShapes = (
+  balls: ReadonlyArray<Ball>,
+): ReadonlyArray<Canvas.Shape> => [
   backgroundShape,
-  ...Array.map(model.balls, ballShape),
+  ...Array.map(balls, ballShape),
 ]
 
-const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
+const controlsView = (
+  isRunning: boolean,
+  ballCount: number,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [h.Class('flex gap-3 mt-4')],
     [
@@ -240,7 +246,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
                   'min-w-20 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500',
                 ),
               ],
-              [model.isRunning ? 'Pause' : 'Play'],
+              [isRunning ? 'Pause' : 'Play'],
             ),
         },
         h,
@@ -266,7 +272,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
         [
           h.span(
             [h.Class('inline-block tabular-nums text-right min-w-8')],
-            [`${model.balls.length}`],
+            [`${ballCount}`],
           ),
           ' balls',
         ],
@@ -292,13 +298,13 @@ export const view = ApplicationComposition.makeView((model, h) => ({
         {
           width: CANVAS_WIDTH,
           height: CANVAS_HEIGHT,
-          shapes: sceneShapes(model),
+          shapes: sceneShapes(model.balls),
           className: 'rounded-lg shadow-2xl cursor-crosshair',
           onPointerDown: ({ x, y }) => Message.ClickedCanvas({ x, y }),
         },
         h,
       ),
-      controlsView(model, h),
+      controlsView(model.isRunning, model.balls.length, h),
     ],
   ),
 }))

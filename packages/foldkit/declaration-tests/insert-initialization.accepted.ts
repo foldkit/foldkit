@@ -1,4 +1,4 @@
-import { Context, Effect, HashMap, Schema } from 'effect'
+import { Context, Effect, HashMap, Option, Schema, pipe } from 'effect'
 import { Block, Message, Update } from 'foldkit'
 import { initAndInsert, makeInitIfMissingStep } from 'foldkit/bindingInit'
 
@@ -133,6 +133,56 @@ export const initHashMapIfMissing = makeInitIfMissingStep(
   ChildrenByNumberBinding,
   { key: 1, args: [1] },
 )
+export const DomainEntity = Schema.Struct({ id: Id, value: Schema.Number })
+export const domainEntity = DomainEntity.make({ id: firstId, value: 1 })
+export const initRecordFromEntity = makeInitIfMissingStep(
+  ChildrenByIdBinding,
+  _model =>
+    pipe(
+      Option.some(domainEntity),
+      Option.map(entity => ({ key: entity.id, args: [entity.value] })),
+    ),
+)
+export const initRecordFromModel = makeInitIfMissingStep(
+  ChildrenByIdBinding,
+  model =>
+    pipe(
+      Option.some(domainEntity),
+      Option.map(entity => ({
+        key: entity.id,
+        args: [entity.value, model.label, 'rest label'],
+      })),
+    ),
+)
+export const initHashMapFromEntity = makeInitIfMissingStep(
+  ChildrenByNumberBinding,
+  () =>
+    pipe(
+      Option.some(domainEntity),
+      Option.map(entity => ({ key: entity.value, args: [entity.value] })),
+    ),
+)
+export const skipRecordInitialization = makeInitIfMissingStep(
+  ChildrenByIdBinding,
+  () => Option.none(),
+)
+export type RecordInitProducer = (
+  model: typeof ParentModel.Type,
+) => Option.Option<
+  Readonly<{
+    key: typeof Id.Type
+    args: [count: number, label?: string, ...labels: ReadonlyArray<string>]
+  }>
+>
+export const recordInitProducer: RecordInitProducer = model =>
+  Option.some({
+    key: firstId,
+    args: [model.label.length, model.label],
+  })
+export const initRecordFromExtractedProducer = makeInitIfMissingStep(
+  ChildrenByIdBinding,
+  recordInitProducer,
+)
 export const initChildren = ParentDefinition.makeStep(() =>
   Update.combineSteps([initRecordIfMissing, initRecordIfMissing]),
 )
@@ -159,3 +209,35 @@ export const InitializingParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
   typeof prepareInitializingParent
 > = Block.assemble(prepareInitializingParent)
+
+export const ZeroChildModel = Schema.Struct({ ready: Schema.Boolean })
+const ZeroChildMessage = Message.defineMessageUnion({})
+const ZeroChildDefinition = Block.makeDefinition('DeclarationInsertZeroChild', {
+  Model: ZeroChildModel,
+  Message: ZeroChildMessage,
+})
+const ZeroChildComposition = ZeroChildDefinition.makeComposition()
+const prepareZeroChild = () =>
+  ZeroChildComposition.prepareBlock({
+    init: ZeroChildComposition.makeInit(() => ({ model: { ready: true } })),
+    update: ZeroChildComposition.makeUpdate({}),
+  })
+export const ZeroChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ZeroChildModel,
+  typeof prepareZeroChild
+> = Block.assemble(prepareZeroChild)
+export const ZeroParentModel = Schema.Struct({
+  childrenById: Schema.Record(Id, ZeroChildBlock.Model),
+})
+const ZeroParentDefinition = Block.makeDefinition(
+  'DeclarationInsertZeroParent',
+  { Model: ZeroParentModel, Message: Message.defineMessageUnion({}) },
+)
+export const ZeroChildrenByIdBinding = ZeroParentDefinition.makeMapBinding(
+  ZeroChildBlock,
+  { field: 'childrenById' },
+)
+export const initZeroChildFromProducer = makeInitIfMissingStep(
+  ZeroChildrenByIdBinding,
+  () => Option.some({ key: firstId, args: [] }),
+)

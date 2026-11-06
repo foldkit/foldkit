@@ -144,6 +144,145 @@ export type Subscription<
   Services = never,
 > = Entry<Model, Message, Dependencies, Services> & SubscriptionBrand
 
+/** @internal Identifies a passive keyed Binding inspection template. */
+export const KeyedTemplateTypeId = Symbol('foldkit/Subscription/KeyedTemplate')
+
+/** @internal Identifies an exact keyed occurrence selected for Scene. */
+export const KeyedSelectionTypeId = Symbol(
+  'foldkit/Subscription/KeyedSelection',
+)
+
+type SelectedKeyedEntry = Readonly<{
+  entry: Subscription<any, any, any, any>
+  isPresent: (model: any) => boolean
+}>
+
+type RuntimeKeyedTemplate = Readonly<{
+  binding: object
+  source: Subscription<any, any, any, any>
+  select: (key: string | number) => SelectedKeyedEntry
+}>
+
+/** A passive static registry entry contributed by a keyed child Binding. */
+export type KeyedTemplate<
+  Model,
+  Message,
+  Key extends string | number,
+  Placement extends string,
+  Source,
+  Dependencies,
+  Services,
+> = Subscription<Model, Message, Dependencies, Services> &
+  Readonly<{
+    '#Subscription.KeyedTemplate': Readonly<{
+      key: Key
+      placement: Placement
+      source: Source
+    }>
+  }>
+
+/** An exact keyed child Subscription occurrence selected for Scene. */
+export type KeyedSelection<
+  Key extends string | number,
+  Placement extends string,
+  Source,
+  Binding = unknown,
+> = Source &
+  Readonly<{
+    '#Subscription.KeyedSelection': Readonly<{
+      binding: Binding
+      key: Key
+      placement: Placement
+      source: Source
+    }>
+  }>
+
+/** @internal Constructs one passive keyed inspection template. */
+export const __makeKeyedTemplate = (
+  source: Subscription<any, any, any, any>,
+  binding: object,
+  select: RuntimeKeyedTemplate['select'],
+): Subscription<any, any, any, any> => {
+  const unavailable = () => {
+    throw new Error(
+      '[foldkit] A keyed child Subscription registry entry is a passive template. Select an occurrence with Scene.Subscription.at(Binding, key, entry).',
+    )
+  }
+  const template = {
+    ...source,
+    modelToDependencies: unavailable,
+    dependenciesToStream: unavailable,
+    [KeyedTemplateTypeId]: { binding, source, select },
+  }
+  copyIdentity(source, template)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return template as Subscription<any, any, any, any>
+}
+
+/** @internal Reads a keyed inspection template. */
+export const __keyedTemplate = (
+  entry: unknown,
+): RuntimeKeyedTemplate | undefined => {
+  if (!Predicate.isObject(entry)) {
+    return undefined
+  }
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return Reflect.get(entry, KeyedTemplateTypeId) as
+    | RuntimeKeyedTemplate
+    | undefined
+}
+
+/** @internal Constructs an exact passive keyed Scene selector. */
+export const __selectKeyed = (
+  binding: object,
+  key: string | number,
+  source: object,
+): object => ({
+  ...source,
+  [KeyedSelectionTypeId]: { binding, key, source },
+})
+
+/** @internal Reads an exact passive keyed Scene selector. */
+export const __keyedSelection = (
+  value: unknown,
+):
+  | Readonly<{ binding: object; key: string | number; source: object }>
+  | undefined => {
+  if (!Predicate.isObject(value)) {
+    return undefined
+  }
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return Reflect.get(value, KeyedSelectionTypeId) as
+    | Readonly<{ binding: object; key: string | number; source: object }>
+    | undefined
+}
+
+/** @internal Materializes a key-specific entry from a registered template. */
+export const __selectFromTemplate = (
+  template: object,
+  key: string | number,
+): SelectedKeyedEntry | undefined => {
+  const selected = __keyedTemplate(template)?.select(key)
+  if (selected !== undefined) {
+    Reflect.set(selected.entry, KeyedSelectionTypeId, {
+      isPresent: selected.isPresent,
+    })
+  }
+  return selected
+}
+
+/** @internal Whether a selected keyed occurrence exists in the current Model. */
+export const __selectedKeyIsPresent = (
+  entry: object,
+  model: unknown,
+): boolean | undefined => {
+  const selected = Reflect.get(entry, KeyedSelectionTypeId)
+  return Predicate.isObject(selected) &&
+    Predicate.isFunction(selected['isPresent'])
+    ? selected['isPresent'](model)
+    : undefined
+}
+
 /** A record of named Subscriptions keyed by dependency field name. */
 export type Subscriptions<Model, Message, Services = never> = Readonly<
   Record<string, Subscription<Model, Message, any, Services>>
@@ -1005,6 +1144,25 @@ const toLiftedEntry = (
 ) => {
   const lifted = makeLiftedEntry(subscription, config, when)
   copyIdentity(subscription, lifted)
+  const keyedTemplate = __keyedTemplate(subscription)
+  if (keyedTemplate !== undefined) {
+    Reflect.set(lifted, KeyedTemplateTypeId, {
+      ...keyedTemplate,
+      select: (key: string | number) => {
+        const selected = keyedTemplate.select(key)
+        const entry = toLiftedEntry(selected.entry, config, when)
+        Reflect.set(entry, KeyedSelectionTypeId, {
+          isPresent: (model: unknown) =>
+            Option.exists(config.read(model), selected.isPresent),
+        })
+        return {
+          entry,
+          isPresent: (model: unknown) =>
+            Option.exists(config.read(model), selected.isPresent),
+        }
+      },
+    })
+  }
   return lifted
 }
 

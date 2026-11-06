@@ -13,11 +13,34 @@ import {
   readRooms,
 } from './generated-bindings.accepted.js'
 
+declare const ServiceRoomId: Schema.Codec<
+  string,
+  number,
+  'RoomIdDecode',
+  'RoomIdEncode'
+>
+
 GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
   read: model => model.selected,
   // @ts-expect-error A contextual accessor requires generated delivery context.
   write: (model, nextCounter) =>
     modifyFields(model, { selected: () => Option.some(nextCounter) }),
+})
+
+const ServiceRoomBinding = GeneratedBindingParentDefinition.makeBinding(
+  CounterBlock,
+  {
+    readAll: readRooms,
+    key: readRoomId,
+    keySchema: ServiceRoomId,
+    read: readRoomCounter,
+    writeAt: model => model,
+    delivery: { toUpdateContext: model => [model.amount] },
+  },
+)
+// @ts-expect-error Generated child envelope key serialization must not require Services.
+GeneratedBindingParentDefinition.makeComposition({
+  bindings: [ServiceRoomBinding],
 })
 
 GeneratedBindingParentDefinition.makeBinding(CounterBlock, {

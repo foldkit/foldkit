@@ -9,6 +9,8 @@ import {
   simpleSetupPage,
 } from './unified-root-selection.accepted.js'
 import {
+  ChildrenBinding,
+  DeclaredStoreChildBlock,
   OtherBlock,
   SessionBlock,
   SessionReaderLayer,
@@ -27,6 +29,20 @@ import {
   unregisteredLayer,
   withSetupService,
 } from './unified-root-selection.accepted.js'
+
+Story.messageIn(
+  ChildrenBinding,
+  // @ts-expect-error The keyed child delivery requires the Binding's decoded key.
+  1,
+  DeclaredStoreChildBlock.Message.CompletedRead(),
+)
+
+Story.messageIn(
+  ChildrenBinding,
+  'first',
+  // @ts-expect-error The delivered Message must belong to the bound child.
+  { _tag: 'Wrong' },
+)
 
 export const rejectSpreadUnion = (
   selection: typeof registered | typeof unregistered,
