@@ -1,7 +1,10 @@
 import { Effect } from 'effect'
 
-import { EffectsLayer, init, update, view } from './asyncCounterDemo'
 import { AsyncCounterDemoBlock } from './block'
+import { DelayAdvanceAsyncCounterPhase } from './command'
+import { init } from './init'
+import { update } from './update'
+import { view } from './view'
 
 export const layer = AsyncCounterDemoBlock.makeLayer(
   Effect.gen(function* () {
@@ -10,7 +13,7 @@ export const layer = AsyncCounterDemoBlock.makeLayer(
       init,
       update,
       view,
-      EffectsLayer,
+      EffectsLayer: DelayAdvanceAsyncCounterPhase.layer,
     }
   }),
 )

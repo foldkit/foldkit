@@ -3,8 +3,6 @@ import type { Html } from 'foldkit/html'
 
 import type { Inline } from '@foldkit/markdown'
 
-// SLUG
-
 /**
  * Flattens inline markdown content to its plain text, dropping formatting. Used
  * to derive heading ids, heading aria labels, and table of contents entry text

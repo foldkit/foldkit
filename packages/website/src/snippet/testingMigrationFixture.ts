@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema, Stream } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const PinsModel = Schema.Struct({ count: Schema.Number })
@@ -12,7 +12,7 @@ const PinsMessage = defineMessageUnion({
 })
 type PinsMessage = typeof PinsMessage.Type
 
-const PinsInMessage = defineMessageUnion({ RequestedReadPins: {} })
+const PinsInMessage = defineInMessageUnion({ RequestedReadPins: {} })
 type PinsInMessage = typeof PinsInMessage.Type
 
 export const PinsKey = Symbol('Pins')

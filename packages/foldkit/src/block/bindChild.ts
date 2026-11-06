@@ -57,6 +57,7 @@ import {
   normalizeKeyedMapFieldConfig,
 } from './keyedMapFieldConnection.js'
 import type { OutMessageHelperEvidence } from './outMessageHelperEvidence.js'
+import type { PrivateDelivery } from './privateDelivery.js'
 import type { ValidateConcreteComposition } from './requirements.js'
 import type { Qualify } from './scope.js'
 
@@ -83,6 +84,11 @@ type IsAny<Value> = 0 extends 1 & Value ? true : false
 
 type IsUnknown<Value> =
   IsAny<Value> extends true ? false : unknown extends Value ? true : false
+
+type LocalMessageOfBlock<BlockValue extends BindableBlock> = Exclude<
+  BlockValue['Message']['Type'],
+  PrivateDelivery<any>
+>
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -1116,11 +1122,28 @@ type ContextualPolicyFold<Fold> = Fold extends (
   ? ContextualPolicyFunction<Fold>
   : Fold
 
+type ContextualBindingPolicyFold<Fold, Config, ChildMessage> =
+  Config extends Readonly<{ key: unknown }>
+    ? Fold extends (
+        key: any,
+        outMessage: infer ChildOutMessage,
+        context: any,
+      ) => any
+      ?
+          | ContextualPolicyFold<Fold>
+          | OutMessageHelperEvidence<ChildOutMessage, 'fold', ChildMessage>
+      : ContextualPolicyFold<Fold>
+    : ContextualPolicyFold<Fold>
+
 /** @internal Preserves the native policy contextual typing in named descriptor authoring. */
-export type ContextualOutMessagePolicy<Policy> = Policy extends unknown
+export type ContextualOutMessagePolicy<
+  Policy,
+  Config = unknown,
+  ChildMessage = never,
+> = Policy extends unknown
   ? {
       [Key in keyof Policy]: Key extends 'fold'
-        ? ContextualPolicyFold<Policy[Key]>
+        ? ContextualBindingPolicyFold<Policy[Key], Config, ChildMessage>
         : ContextualPolicyFunction<Policy[Key]>
     }
   : never
@@ -1177,7 +1200,9 @@ export type GeneralKeyedContextualProperties<
                   KeyValue,
                   never,
                   never
-                >
+                >,
+                unknown,
+                LocalMessageOfBlock<BlockValue>
               >
             : Key extends 'subscriptions'
               ? KeyedSubscriptionsContext<
@@ -1598,7 +1623,9 @@ export type BindChildContextualProperties<
                         KeyValue,
                         Field,
                         KeyField
-                      >
+                      >,
+                      unknown,
+                      LocalMessageOfBlock<BlockValue>
                     >
                   : ContextualOutMessagePolicy<
                       StaticOutMessageContext<
@@ -1606,7 +1633,9 @@ export type BindChildContextualProperties<
                         ParentModelSchema,
                         ParentMessageSchema,
                         ParentOutMessageSchema
-                      >
+                      >,
+                      unknown,
+                      LocalMessageOfBlock<BlockValue>
                     >
                 : Key extends 'delivery'
                   ? GeneratedDeliveryContext<
@@ -2008,7 +2037,8 @@ export type OutMessagePolicyForBindingConfig<
 type InvalidOutMessageHelperMember<BlockValue, Key, Candidate> =
   Candidate extends OutMessageHelperEvidence<
     infer HelperOutMessage,
-    infer HelperRole
+    infer HelperRole,
+    infer HelperMessage
   >
     ? IsAny<HelperOutMessage> extends true
       ? Key
@@ -2022,7 +2052,18 @@ type InvalidOutMessageHelperMember<BlockValue, Key, Candidate> =
               }>
             }>
             ? Equal<HelperOutMessage, ChildOutMessage> extends true
-              ? never
+              ? HelperRole extends 'fold'
+                ? BlockValue extends Readonly<{
+                    Message: Readonly<{ Type: infer ChildMessage }>
+                  }>
+                  ? Equal<
+                      HelperMessage,
+                      Exclude<ChildMessage, PrivateDelivery<any>>
+                    > extends true
+                    ? never
+                    : Key
+                  : Key
+                : never
               : Key
             : Key
           : Key
@@ -2045,13 +2086,19 @@ export type ValidateOutMessageHelperPolicy<BlockValue, Policy> = [
 ] extends [never]
   ? unknown
   : Readonly<{
-      'OutMessage helpers must use the exact tagged-union child OutMessage contract': InvalidOutMessageHelperPolicyKeys<
+      'OutMessage helpers must use the exact child Message and tagged-union OutMessage contracts required by their role': InvalidOutMessageHelperPolicyKeys<
         BlockValue,
         Policy
       >
     }>
 
-/** Selects the exact parent-owned OutMessage policy for a child Binding. */
+/**
+ * Selects the exact parent-owned OutMessage policy for a child Binding.
+ * A keyed Binding accepts an authored fold directly, or a key-dependent
+ * callback returning `makeOutMessageFold`. Its handlers retain the exact key,
+ * child payloads and FoldContext. Selection runs no handlers; the parent Step
+ * runs after the child's next Model has been written.
+ */
 export interface WithOutMessagePolicy<
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
@@ -2070,7 +2117,9 @@ export interface WithOutMessagePolicy<
           ParentMessageSchema,
           ParentOutMessageSchema,
           Config
-        >
+        >,
+        Config,
+        LocalMessageOfBlock<BlockValue>
       > &
       ValidateOutMessageHelperPolicy<BlockValue, NoInfer<Policy>>,
   ): SelectedChildBinding<
@@ -2981,6 +3030,7 @@ export const makeBindChild = <
       BindingValue extends Readonly<{ placement: string }>,
     >(
       binding: BindingValue,
+      isKeyed = false,
     ) => {
       currentBinding = binding
       registerBindingReconstructor(binding, nextBlock =>
@@ -2991,7 +3041,7 @@ export const makeBindChild = <
       )
 
       if (hasOutMessage) {
-        attachOutMessagePolicy(binding)
+        attachOutMessagePolicy(binding, isKeyed)
       }
       return Object.freeze(binding)
     }
@@ -3071,7 +3121,7 @@ export const makeBindChild = <
       if (generated !== undefined) {
         registerGeneratedDelivery(binding, generated.envelope)
       }
-      return finishBinding(binding)
+      return finishBinding(binding, true)
     }
 
     if (
@@ -3126,7 +3176,7 @@ export const makeBindChild = <
       if (generated !== undefined) {
         registerGeneratedDelivery(binding, generated.envelope)
       }
-      return finishBinding(binding)
+      return finishBinding(binding, true)
     }
 
     if (
@@ -3194,7 +3244,7 @@ export const makeBindChild = <
       if (init !== undefined) {
         registerBindingInitialPolicy(binding, init)
       }
-      return finishBinding(binding)
+      return finishBinding(binding, true)
     }
 
     if (!Predicate.isObject(config)) {

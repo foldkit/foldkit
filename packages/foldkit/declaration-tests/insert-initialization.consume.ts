@@ -1,4 +1,4 @@
-import { Layer } from 'effect'
+import { Layer, type Option } from 'effect'
 import type { Block, Command, Update } from 'foldkit'
 
 import {
@@ -11,14 +11,23 @@ import {
   ParentModel,
   Read,
   ReadService,
+  ZeroChildrenByIdBinding,
+  ZeroParentModel,
   init,
   initChildren,
+  initHashMapFromEntity,
   initHashMapIfMissing,
+  initRecordFromEntity,
+  initRecordFromExtractedProducer,
+  initRecordFromModel,
   initRecordIfMissing,
   initWithChildren,
+  initZeroChildFromProducer,
   insert,
   insertHashMap,
   insertRecord,
+  recordInitProducer,
+  skipRecordInitialization,
 } from './insert-initialization.accepted.js'
 
 type Equal<Left, Right> =
@@ -28,6 +37,26 @@ type Equal<Left, Right> =
     ? true
     : false
 type Expect<Value extends true> = Value
+type RecipeMessage<Recipe> =
+  Recipe extends Update.ResultRecipe<
+    infer _Model,
+    infer Message,
+    infer _OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? Message
+    : never
+type RecipeOutMessage<Recipe> =
+  Recipe extends Update.ResultRecipe<
+    infer _Model,
+    infer _Message,
+    infer OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? OutMessage
+    : never
 type ExpectedMessage = Readonly<{
   _tag: 'GotChildrenByIdMessage'
   placement: 'childrenById'
@@ -136,6 +165,102 @@ export type ExactHashMapInitializationRequirements = Expect<
     Update.RequirementsOf<typeof initHashMapIfMissing>,
     ExpectedHashMapRequirements
   >
+>
+export type ExactProducerModel = Expect<
+  Equal<Parameters<typeof recordInitProducer>[0], typeof ParentModel.Type>
+>
+export type ExactProducerOutput = Expect<
+  Equal<
+    ReturnType<typeof recordInitProducer>,
+    Option.Option<
+      Readonly<{
+        key: typeof Id.Type
+        args: [count: number, label?: string, ...labels: ReadonlyArray<string>]
+      }>
+    >
+  >
+>
+export type ExactEntityInitializationInput = Expect<
+  Equal<
+    Parameters<typeof initRecordFromEntity>[0],
+    Parameters<typeof initRecordIfMissing>[0]
+  >
+>
+export type ExactEntityInitializationRecipe = Expect<
+  Equal<
+    ReturnType<typeof initRecordFromEntity>,
+    ReturnType<typeof initRecordIfMissing>
+  >
+>
+export type ExactModelInitializationRecipe = Expect<
+  Equal<
+    ReturnType<typeof initRecordFromModel>,
+    ReturnType<typeof initRecordIfMissing>
+  >
+>
+export type ExactExtractedInitializationRecipe = Expect<
+  Equal<
+    ReturnType<typeof initRecordFromExtractedProducer>,
+    ReturnType<typeof initRecordIfMissing>
+  >
+>
+export type ExactSkippedInitializationRecipe = Expect<
+  Equal<
+    ReturnType<typeof skipRecordInitialization>,
+    ReturnType<typeof initRecordIfMissing>
+  >
+>
+export type ExactProducerMessage = Expect<
+  Equal<RecipeMessage<ReturnType<typeof initRecordFromEntity>>, ExpectedMessage>
+>
+export type ProducerHasNoOutMessage = Expect<
+  Equal<RecipeOutMessage<ReturnType<typeof initRecordFromEntity>>, never>
+>
+export type ExactProducerRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof initRecordFromEntity>,
+    ExpectedRequirements
+  >
+>
+export type ExactProducerEvidence = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initRecordFromEntity>>,
+    Block.RequirementOfBinding<typeof ChildrenByIdBinding>
+  >
+>
+export type ExactHashMapProducerRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof initHashMapFromEntity>,
+    ExpectedHashMapRequirements
+  >
+>
+export type ExactHashMapProducerEvidence = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initHashMapFromEntity>>,
+    Block.RequirementOfBinding<typeof ChildrenByNumberBinding>
+  >
+>
+export type ExactZeroProducerInput = Expect<
+  Equal<
+    Parameters<typeof initZeroChildFromProducer>[0],
+    typeof ZeroParentModel.Type &
+      Update.GraphCapability<
+        typeof ZeroParentModel.Type,
+        Block.RequirementOfBinding<typeof ZeroChildrenByIdBinding>
+      >
+  >
+>
+export type ExactZeroProducerRequirements = Expect<
+  Equal<Update.RequirementsOf<typeof initZeroChildFromProducer>, never>
+>
+export type ExactZeroProducerEvidence = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initZeroChildFromProducer>>,
+    Block.RequirementOfBinding<typeof ZeroChildrenByIdBinding>
+  >
+>
+export type ZeroProducerHasNoOutMessage = Expect<
+  Equal<RecipeOutMessage<ReturnType<typeof initZeroChildFromProducer>>, never>
 >
 export type ComposedInitializationRequirements = Expect<
   Equal<Update.RequirementsOf<typeof initChildren>, ExpectedRequirements>

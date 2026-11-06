@@ -1,6 +1,14 @@
+export { initRouteChildren } from './initRouteChildren'
 export {
-  applyIssueComment,
-  applyIssueSnapshot,
-  applySavedIssue,
-} from './issueData'
-export { requestIssueMove } from './issueMove'
+  handleFailedMoveIssue,
+  handleSucceededMoveIssue,
+  moveIssue,
+  retryIssueMove,
+} from './issueMove'
+export {
+  recordIssueComment,
+  mergeIssue,
+  mergeIssueRevision,
+  handleSucceededAssignIssue,
+} from './issues'
+export { changeIssueFilters, closeIssue, openIssue } from './navigation'

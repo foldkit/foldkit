@@ -1,8 +1,8 @@
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion } from 'foldkit/message'
 
 import * as Shared from '@typing-game/shared'
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   InformedOfJoin: { player: Shared.Player },
 })
 export type InMessage = typeof InMessage.Type

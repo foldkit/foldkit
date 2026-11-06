@@ -19,7 +19,7 @@ import {
   childAttributes,
 } from 'foldkit/html'
 import * as BlockFamily from 'foldkit/internal/block'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
@@ -91,7 +91,7 @@ export type PressedKeyboardNavigation =
   typeof Message.PressedKeyboardNavigation.Type
 
 /** Parent-owned configuration changes accepted independently from local Slider events. */
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   InformedOfRangeChange: { min: Schema.Number, max: Schema.Number },
 })
 export type InMessage = typeof InMessage.Type

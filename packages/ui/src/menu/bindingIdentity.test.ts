@@ -110,7 +110,7 @@ it.effect(
         expect(model.menu.animation.transitionState).toBe('Idle'),
       ),
       Story.Command.expectNone(),
-      Story.messageFrom(
+      Story.messageIn(
         MenuBinding,
         RefinedMenu.Message.SelectedItem({ item: 'Edit', index: 0 }),
       ),

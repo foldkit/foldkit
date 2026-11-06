@@ -121,13 +121,9 @@ export const Telemetry = Schema.Struct({
 })
 export type Telemetry = typeof Telemetry.Type
 
-// CONSTANT
-
 const LAST_EIGHT_WEEKS = 8
 const LAST_SIXTEEN_WEEKS = 16
 const LAST_YEAR_WEEKS = 52
-
-// QUERY
 
 const weekCountByPeriod: Record<Period, number> = {
   LastEightWeeks: LAST_EIGHT_WEEKS,

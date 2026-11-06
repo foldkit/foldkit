@@ -91,8 +91,6 @@ export const init = PlaygroundComposition.makeInit(
   },
 )
 
-// MANAGED RESOURCE
-
 const WebContainerPlayground = makeResource<PlaygroundWebContainer>()(
   'WebContainerPlayground',
 )

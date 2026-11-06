@@ -2,11 +2,16 @@ import { Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import * as Block from '../../block/public.js'
-import { defineMessageUnion } from '../../message/index.js'
+import {
+  defineInMessageUnion,
+  defineMessageUnion,
+} from '../../message/index.js'
 
 const Model = Schema.Struct({ value: Schema.Number })
 const Message = defineMessageUnion({ ChangedValue: {} })
-const InMessage = defineMessageUnion({ RequestedSet: { value: Schema.Number } })
+const InMessage = defineInMessageUnion({
+  RequestedSet: { value: Schema.Number },
+})
 
 describe('Definition declaration snapshots', () => {
   it('snapshots family namespace declarations before creating a native source', () => {
@@ -102,5 +107,20 @@ describe('Definition declaration snapshots', () => {
       ]),
     ).toThrow(/accessor/i)
     expect(reads).toBe(0)
+  })
+
+  it('rejects retired codec declarations from erased callers', () => {
+    expect(() =>
+      Reflect.apply(Block.makeDefinition, undefined, [
+        'RetiredCodecDefinition',
+        {
+          key: Symbol('RetiredCodecDefinition'),
+          Model,
+          Message,
+          Init: Schema.Tuple([]),
+          codec: { decoding: [], encoding: [] },
+        },
+      ]),
+    ).toThrow(/codec declarations are no longer supported/i)
   })
 })

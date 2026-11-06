@@ -563,12 +563,12 @@ it.layer(layer, { buildPerTest: true })(it => {
         )
       })
 
-      describe('informShowDelayChanged', () => {
+      describe('informOfShowDelayChanged', () => {
         it.effect(
           'records the informed delay without changing visibility or emitting an OutMessage',
           () =>
             Story.withBlock(block, block => {
-              const next = block.operations.informShowDelayChanged(
+              const next = block.operations.informOfShowDelayChanged(
                 block.init({ id: 'test' }).model,
                 '1 second',
               )
@@ -585,7 +585,7 @@ it.layer(layer, { buildPerTest: true })(it => {
             Story.story(
               block.update,
               Story.given(
-                block.operations.informShowDelayChanged(
+                block.operations.informOfShowDelayChanged(
                   block.init({ id: 'test' }).model,
                   50,
                 ).model,

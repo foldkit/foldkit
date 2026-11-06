@@ -2,17 +2,14 @@ import { Array, Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  DragAndDropBlock,
-  layer as DragAndDropLayer,
-} from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 // Add a field to your Model for the DragAndDrop Block plus the items being sorted:
 const Model = Schema.Struct({
   items: Schema.Array(
     Schema.Struct({ id: Schema.String, label: Schema.String }),
   ),
-  dragAndDrop: DragAndDropBlock.Model,
+  dragAndDrop: DragAndDrop.DragAndDropBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -48,22 +45,25 @@ const {
 // Update.Step over the parent Model, which already has the next DragAndDrop
 // Model written back. The parent Block checks the complete child union
 // and infers each parent Step:
-const foldDragAndDropOutMessage = makeOutMessageFold(DragAndDropBlock, {
-  Reordered: ({ itemId, fromIndex, toIndex }) =>
-    makeFieldsStep(() => ({
-      // reorder is your own function that moves the item
-      items: items => reorder(items, itemId, fromIndex, toIndex),
-    })),
-  // The child has emitted `Cancelled`. In this arm the parent can update
-  // its own state or dispatch its own Commands, for example revert an
-  // optimistic UI change, log analytics, or trigger a downstream Command.
-  StartedKeyboardDrag: makeNoopStep,
-  ChangedKeyboardTarget: makeNoopStep,
-  Cancelled: makeNoopStep,
-})
+const foldDragAndDropOutMessage = makeOutMessageFold(
+  DragAndDrop.DragAndDropBlock,
+  {
+    Reordered: ({ itemId, fromIndex, toIndex }) =>
+      makeFieldsStep(() => ({
+        // reorder is your own function that moves the item
+        items: items => reorder(items, itemId, fromIndex, toIndex),
+      })),
+    // The child has emitted `Cancelled`. In this arm the parent can update
+    // its own state or dispatch its own Commands, for example revert an
+    // optimistic UI change, log analytics, or trigger a downstream Command.
+    StartedKeyboardDrag: makeNoopStep,
+    ChangedKeyboardTarget: makeNoopStep,
+    Cancelled: makeNoopStep,
+  },
+)
 
 // The Binding retains the child contract; construction supplies its implementation.
-const DragAndDropBinding = makeBinding(DragAndDropBlock, {
+const DragAndDropBinding = makeBinding(DragAndDrop.DragAndDropBlock, {
   field: 'dragAndDrop',
   init: { contextToArgs: () => [{ id: 'sortable-list' }] },
 }).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
@@ -133,4 +133,4 @@ export const layer = SortableListBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(DragAndDropLayer))
+).pipe(Layer.provide(DragAndDrop.layer))

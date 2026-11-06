@@ -1,27 +1,23 @@
 import { Array, Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Button, Textarea } from '@foldkit/ui'
 
-import { Comment, Member } from '../../../../domain'
+import { Issue, Member } from '../../../../domain'
 import {
   CommentComposerComposition,
   type CommentComposerViewBuilder,
 } from './composition'
 import { isDraftEditable } from './draft'
 import { Message } from './message'
-import { type Model, PostState } from './model'
+import { PostState } from './model'
 
 const commentView = (
-  comment: Comment,
-  members: ReadonlyArray<Member>,
+  comment: Issue.Comment,
+  members: ReadonlyArray<Member.Member>,
   h: CommentComposerViewBuilder,
 ): Html => {
-  const maybeAuthor = Array.findFirst(
-    members,
-    member => member.id === comment.authorId,
-  )
+  const maybeAuthor = Member.findById(members, comment.authorId)
 
   return h.keyed('article')(
     comment.id,
@@ -63,10 +59,14 @@ const commentView = (
   )
 }
 
-const feedback = (model: Model, h: CommentComposerViewBuilder): Html =>
-  PostState.match(model.postState, {
+const feedback = (
+  postState: PostState,
+  body: string,
+  h: CommentComposerViewBuilder,
+): Html =>
+  PostState.match(postState, {
     Idle: () =>
-      String.isEmpty(model.body)
+      String.isEmpty(body)
         ? h.empty
         : h.p(
             [h.Role('status'), h.Class('text-xs font-medium text-slate-500')],
@@ -120,7 +120,7 @@ export const view = CommentComposerComposition.makeView.withInputs(
             ),
           ],
           [
-            textareaView(
+            Textarea.view(
               {
                 id: textareaId,
                 value: model.body,
@@ -154,13 +154,13 @@ export const view = CommentComposerComposition.makeView.withInputs(
               },
               h,
             ),
-            feedback(model, h),
+            feedback(model.postState, model.body, h),
             h.div(
               [h.Class('mt-3 flex items-center justify-end gap-2')],
               [
                 ...(isBodyNonEmpty
                   ? [
-                      buttonView(
+                      Button.view(
                         {
                           type: 'button',
                           isDisabled: isDraftLocked,
@@ -179,7 +179,7 @@ export const view = CommentComposerComposition.makeView.withInputs(
                       ),
                     ]
                   : []),
-                buttonView(
+                Button.view(
                   {
                     type: 'submit',
                     isDisabled: isDraftLocked,

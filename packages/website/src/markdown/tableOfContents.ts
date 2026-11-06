@@ -5,8 +5,6 @@ import type { Heading, MarkdownDocument } from '@foldkit/markdown'
 import type { TableOfContentsEntry } from '../tableOfContentsEntry'
 import { parseHeadingId, slugify } from './slug'
 
-// TABLE OF CONTENTS
-
 /** Stable heading ids by node identity, shared by the view and the extractor. */
 export type HeadingIds = ReadonlyMap<Heading, string>
 

@@ -1,24 +1,11 @@
 import { Array, HashSet, Option, pipe } from 'effect'
-import { Calendar } from 'foldkit'
-import {
-  Command,
-  type StorySimulation,
-  type TestBlock,
-  given,
-  init,
-  message,
-  messageFrom,
-  model,
-  steps,
-  story,
-  withBlock,
-} from 'foldkit/story'
+import { Calendar, Story } from 'foldkit'
 import { toParentMessageFor } from 'foldkit/test'
 import * as Url from 'foldkit/url'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import {
   HomeBlock,
@@ -34,7 +21,7 @@ import {
   LoadExampleSources,
 } from './blocks/exampleDetail/example'
 import { NotePlayerDemoBlock } from './blocks/home/blocks'
-import { managedResources as notePlayerResources } from './blocks/home/blocks/notePlayerDemo/notePlayerDemo'
+import { managedResources as notePlayerResources } from './blocks/home/blocks/notePlayerDemo/resource'
 import {
   NotePlayerDemoBinding,
   PlaygroundMenuBinding,
@@ -67,9 +54,9 @@ import { ThemeMenuBlock } from './view/themeMenu'
 
 const application = { block: ApplicationBlock, layer }
 
-type ApplicationSimulation = StorySimulation<
+type ApplicationSimulation = Story.StorySimulation<
   Model,
-  TestBlock<typeof application>['Message']['Type']
+  Story.TestBlock<typeof application>['Message']['Type']
 >
 
 type HomeBlockModel = typeof HomeBlock.Model.Type
@@ -131,8 +118,8 @@ const expectDefaultHome = (home: HomeBlockModel): void => {
   expect(home.notePlayerDemo.playbackState._tag).toBe('Idle')
 }
 const resolvePathChangeCommands = () => [
-  Command.resolve(ScrollToTop, Message.CompletedScrollToTop()),
-  Command.resolve(
+  Story.Command.resolve(ScrollToTop, Message.CompletedScrollToTop()),
+  Story.Command.resolve(
     ScrollSidebarActiveLinkIntoView,
     Message.CompletedScrollSidebarActiveLinkIntoView(),
   ),
@@ -158,29 +145,32 @@ const resolveBrowserStartup = (
   deployment: Deployment = flags.deployment,
   isPlaygroundSupported = true,
 ) =>
-  steps(
-    Command.resolve(
+  Story.steps(
+    Story.Command.resolve(
       LoadBrowserEnvironment,
       browserEnvironment(isPlaygroundSupported),
     ),
-    Command.resolve(ApplyTheme, Message.CompletedApplyTheme()),
+    Story.Command.resolve(ApplyTheme, Message.CompletedApplyTheme()),
     ...(isTelemetryEnabled(deployment)
       ? [
-          Command.resolve(InjectAnalytics, Message.CompletedInjectAnalytics()),
-          Command.resolve(
+          Story.Command.resolve(
+            InjectAnalytics,
+            Message.CompletedInjectAnalytics(),
+          ),
+          Story.Command.resolve(
             InjectSpeedInsights,
             Message.CompletedInjectSpeedInsights(),
           ),
         ]
       : []),
-    Command.resolve(
+    Story.Command.resolve(
       ScrollSidebarActiveLinkIntoView,
       Message.CompletedScrollSidebarActiveLinkIntoView(),
     ),
     ...Option.match(url.hash, {
       onNone: () => [],
       onSome: hash => [
-        Command.resolve(
+        Story.Command.resolve(
           ScrollToAnchor({ hash }),
           Message.CompletedScrollToAnchor(),
         ),
@@ -188,7 +178,7 @@ const resolveBrowserStartup = (
     }),
   )
 const resolveInitialData = () =>
-  Command.resolveAll(
+  Story.Command.resolveAll(
     [LoadApiData, ApiReferenceMessage.SucceededLoadApiData({ apiData })],
     [
       LoadExampleSources,
@@ -198,9 +188,9 @@ const resolveInitialData = () =>
     ],
   )
 const completeStartup = (url: Url.Url) =>
-  steps(resolveBrowserStartup(url), resolveInitialData())
+  Story.steps(resolveBrowserStartup(url), resolveInitialData())
 
-const makeFixture = (block: TestBlock<typeof application>) => {
+const makeFixture = (block: Story.TestBlock<typeof application>) => {
   const update = block.update
   const toParentMessage = toParentMessageFor(block)
   const toHomeMessage = toParentMessageFor(block, MaybeHomeBinding)
@@ -222,18 +212,18 @@ describe('application', () => {
         LoadExampleSources,
       ]
 
-      return story(
+      return Story.story(
         application,
-        init({ ...flags, deployment }, counterExampleUrl),
-        Command.expectExact(...startupCommands),
+        Story.init({ ...flags, deployment }, counterExampleUrl),
+        Story.Command.expectExact(...startupCommands),
         (simulation: ApplicationSimulation) => {
           for (const [pending, definition] of Array.zip(
             simulation.commands,
             startupCommands,
           )) {
-            expect(Option.isSome(Command.argsOf(definition)(pending))).toBe(
-              true,
-            )
+            expect(
+              Option.isSome(Story.Command.argsOf(definition)(pending)),
+            ).toBe(true)
           }
           return simulation
         },
@@ -252,10 +242,10 @@ describe('application', () => {
       LoadExampleSources,
     ]
 
-    return story(
+    return Story.story(
       application,
-      init(flags, counterExampleUrlWithHash),
-      Command.expectExact(
+      Story.init(flags, counterExampleUrlWithHash),
+      Story.Command.expectExact(
         LoadBrowserEnvironment,
         ScrollSidebarActiveLinkIntoView,
         ScrollToAnchor({ hash: 'application' }),
@@ -267,7 +257,9 @@ describe('application', () => {
           simulation.commands,
           startupCommands,
         )) {
-          expect(Option.isSome(Command.argsOf(definition)(pending))).toBe(true)
+          expect(Option.isSome(Story.Command.argsOf(definition)(pending))).toBe(
+            true,
+          )
         }
         return simulation
       },
@@ -277,21 +269,22 @@ describe('application', () => {
   })
 
   it.effect('navigation opens an existing closed sidebar group', () => {
-    let initialGroups: Model['sidebarGroups'] | undefined
-
-    return story(
+    return Story.story(
       application,
-      init(flags, homeUrl),
+      Story.init(flags, homeUrl),
       completeStartup(homeUrl),
-      model(model => {
-        initialGroups = model.sidebarGroups
+      Story.model(model => {
         expect(model.sidebarGroups.apiReference).toBe(false)
       }),
-      message(Message.ChangedUrl({ url: commandApiUrl })),
-      model(model => {
-        expect(model.sidebarGroups.apiReference).toBe(true)
-        expect(model.sidebarGroups.examples).toBe(initialGroups?.examples)
-      }),
+      Story.models(
+        Story.steps(Story.message(Message.ChangedUrl({ url: commandApiUrl }))),
+        (before, after) => {
+          expect(after.sidebarGroups.apiReference).toBe(true)
+          expect(after.sidebarGroups.examples).toBe(
+            before.sidebarGroups.examples,
+          )
+        },
+      ),
       ...resolvePathChangeCommands(),
     )
   })
@@ -299,18 +292,18 @@ describe('application', () => {
   it.effect(
     'navigation within an open sidebar group preserves its state',
     () => {
-      let initialGroups: Model['sidebarGroups'] | undefined
-
-      return story(
+      return Story.story(
         application,
-        init(flags, commandApiUrl),
+        Story.init(flags, commandApiUrl),
         completeStartup(commandApiUrl),
-        model(model => {
-          initialGroups = model.sidebarGroups
+        Story.model(model => {
           expect(model.sidebarGroups.apiReference).toBe(true)
         }),
-        message(Message.ChangedUrl({ url: updateApiUrl })),
-        model(model => expect(model.sidebarGroups).toBe(initialGroups)),
+        Story.models(
+          Story.steps(Story.message(Message.ChangedUrl({ url: updateApiUrl }))),
+          (before, after) =>
+            expect(after.sidebarGroups).toBe(before.sidebarGroups),
+        ),
         ...resolvePathChangeCommands(),
       )
     },
@@ -321,24 +314,24 @@ describe('application', () => {
     () => {
       const seededData = apiData
 
-      return story(
+      return Story.story(
         application,
-        init(
+        Story.init(
           { ...flags, maybeApiData: Option.some(seededData) },
           commandApiUrl,
         ),
         resolveBrowserStartup(commandApiUrl),
-        model(model =>
+        Story.model(model =>
           expect(model.apiReference.apiData).toEqual(
             ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
           ),
         ),
-        Command.expectExact(LoadApiData),
-        Command.resolve(
+        Story.Command.expectExact(LoadApiData),
+        Story.Command.resolve(
           LoadApiData,
           ApiReferenceMessage.FailedLoadApiData({ error: 'Offline' }),
         ),
-        model(model =>
+        Story.model(model =>
           expect(model.apiReference.apiData).toEqual(
             ApiReference.ApiDataAsyncData.Stale({
               data: seededData,
@@ -346,15 +339,15 @@ describe('application', () => {
             }),
           ),
         ),
-        message(Message.ChangedUrl({ url: updateApiUrl })),
-        model(model =>
+        Story.message(Message.ChangedUrl({ url: updateApiUrl })),
+        Story.model(model =>
           expect(model.apiReference.apiData).toEqual(
             ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
           ),
         ),
-        Command.expectHas(LoadApiData),
+        Story.Command.expectHas(LoadApiData),
         ...resolvePathChangeCommands(),
-        Command.resolve(
+        Story.Command.resolve(
           LoadApiData,
           ApiReferenceMessage.SucceededLoadApiData({ apiData }),
         ),
@@ -363,44 +356,45 @@ describe('application', () => {
   )
 
   it.effect('remaining on a Playground slug preserves its Model', () => {
-    let initialPlayground: Option.Option.Value<Model['playground']> | undefined
-
-    return story(
+    return Story.story(
       application,
-      init(flags, playgroundCounterUrl),
+      Story.init(flags, playgroundCounterUrl),
       completeStartup(playgroundCounterUrl),
-      model(model => {
-        initialPlayground = Option.getOrThrow(model.playground)
-      }),
-      message(
-        Message.ChangedUrl({
-          url: parseUrl('https://foldkit.dev/playground/counter#src/block.ts'),
-        }),
+      Story.models(
+        Story.steps(
+          Story.message(
+            Message.ChangedUrl({
+              url: parseUrl(
+                'https://foldkit.dev/playground/counter#src/block.ts',
+              ),
+            }),
+          ),
+        ),
+        (before, after) =>
+          expect(Option.getOrThrow(after.playground)).toBe(
+            Option.getOrThrow(before.playground),
+          ),
       ),
-      model(model =>
-        expect(Option.getOrThrow(model.playground)).toBe(initialPlayground),
-      ),
-      Command.expectExact(ScrollToAnchor),
-      Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
+      Story.Command.expectExact(ScrollToAnchor),
+      Story.Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
     )
   })
 
   it.effect('changing Playground slugs initializes a fresh Model', () => {
-    let initialPlayground: Option.Option.Value<Model['playground']> | undefined
-
-    return story(
+    return Story.story(
       application,
-      init(flags, playgroundCounterUrl),
+      Story.init(flags, playgroundCounterUrl),
       completeStartup(playgroundCounterUrl),
-      model(model => {
-        initialPlayground = Option.getOrThrow(model.playground)
-      }),
-      message(Message.ChangedUrl({ url: playgroundCountersUrl })),
-      model(model => {
-        const nextPlayground = Option.getOrThrow(model.playground)
-        expect(nextPlayground).not.toBe(initialPlayground)
-        expect(nextPlayground.slug).toBe('counters')
-      }),
+      Story.models(
+        Story.steps(
+          Story.message(Message.ChangedUrl({ url: playgroundCountersUrl })),
+        ),
+        (before, after) => {
+          const nextPlayground = Option.getOrThrow(after.playground)
+          expect(nextPlayground).not.toBe(Option.getOrThrow(before.playground))
+          expect(nextPlayground.slug).toBe('counters')
+        },
+      ),
       ...resolvePathChangeCommands(),
     )
   })
@@ -410,22 +404,18 @@ describe('application', () => {
     { isPlaygroundSupported: false },
   ])(
     'entering Playground reuses cached browser support ($isPlaygroundSupported)',
-    // we need to make sure all of our story tests look like story tests
-    // becuase reading this and the one below i see that these are not using
-    // the standard story test style? whats up with that? need full audit
-    // across codebase.
     ({ isPlaygroundSupported }) =>
-      story(
+      Story.story(
         application,
-        init(flags, newsletterUrl),
+        Story.init(flags, newsletterUrl),
         resolveBrowserStartup(
           newsletterUrl,
           flags.deployment,
           isPlaygroundSupported,
         ),
         resolveInitialData(),
-        message(Message.ChangedUrl({ url: playgroundCounterUrl })),
-        model(model =>
+        Story.message(Message.ChangedUrl({ url: playgroundCounterUrl })),
+        Story.model(model =>
           expect(Option.getOrThrow(model.playground).maybeIsSupported).toEqual(
             Option.some(isPlaygroundSupported),
           ),
@@ -435,19 +425,19 @@ describe('application', () => {
   )
 
   it.effect('entering and exiting Playground adds and removes its Model', () =>
-    story(
+    Story.story(
       application,
-      init(flags, newsletterUrl),
+      Story.init(flags, newsletterUrl),
       completeStartup(newsletterUrl),
-      message(Message.ChangedUrl({ url: playgroundCounterUrl })),
-      model(model =>
+      Story.message(Message.ChangedUrl({ url: playgroundCounterUrl })),
+      Story.model(model =>
         expect(Option.getOrThrow(model.playground).slug).toBe('counter'),
       ),
-      Command.expectExact(ScrollToTop, ScrollSidebarActiveLinkIntoView),
+      Story.Command.expectExact(ScrollToTop, ScrollSidebarActiveLinkIntoView),
       ...resolvePathChangeCommands(),
-      message(Message.ChangedUrl({ url: newsletterUrl })),
-      model(model => expect(Option.isNone(model.playground)).toBe(true)),
-      Command.expectExact(ScrollToTop, ScrollSidebarActiveLinkIntoView),
+      Story.message(Message.ChangedUrl({ url: newsletterUrl })),
+      Story.model(model => expect(Option.isNone(model.playground)).toBe(true)),
+      Story.Command.expectExact(ScrollToTop, ScrollSidebarActiveLinkIntoView),
       ...resolvePathChangeCommands(),
     ),
   )
@@ -466,53 +456,58 @@ describe('application', () => {
   ])(
     'remaining on the same $routeName slug does not reload route data',
     ({ initialUrl, urlWithHash }) =>
-      story(
+      Story.story(
         application,
-        init(flags, initialUrl),
+        Story.init(flags, initialUrl),
         completeStartup(initialUrl),
-        message(Message.ChangedUrl({ url: urlWithHash })),
-        Command.expectExact(ScrollToAnchor),
-        Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
+        Story.message(Message.ChangedUrl({ url: urlWithHash })),
+        Story.Command.expectExact(ScrollToAnchor),
+        Story.Command.resolve(
+          ScrollToAnchor,
+          Message.CompletedScrollToAnchor(),
+        ),
       ),
   )
 
   it.effect('route cleanup precedes scrolling to an anchor on a new path', () =>
-    story(
+    Story.story(
       application,
-      init(flags, newsletterUrl),
+      Story.init(flags, newsletterUrl),
       completeStartup(newsletterUrl),
-      message(Message.ClickedOpenSearch()),
-      Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+      Story.message(Message.ClickedOpenSearch()),
+      Story.Command.resolve(
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
-      Command.resolve(
+      Story.Command.resolve(
         FocusSearchInput,
         SearchBlock.Message.CompletedFocusSearchInput(),
       ),
-      message(Message.ChangedUrl({ url: homeUrlWithHash })),
-      model(model => expect(model.search.dialog.isOpen).toBe(false)),
-      Command.expectExact(
-        DialogTest.CloseDialog({ id: 'search-dialog' }),
+      Story.message(Message.ChangedUrl({ url: homeUrlWithHash })),
+      Story.model(model => expect(model.search.dialog.isOpen).toBe(false)),
+      Story.Command.expectExact(
+        Dialog.test.CloseDialog({ id: 'search-dialog' }),
         ScrollToAnchor,
         ScrollSidebarActiveLinkIntoView,
       ),
       (simulation: ApplicationSimulation) => {
         for (const [pending, definition] of Array.zip(simulation.commands, [
-          DialogTest.CloseDialog,
+          Dialog.test.CloseDialog,
           ScrollToAnchor,
           ScrollSidebarActiveLinkIntoView,
         ])) {
-          expect(Option.isSome(Command.argsOf(definition)(pending))).toBe(true)
+          expect(Option.isSome(Story.Command.argsOf(definition)(pending))).toBe(
+            true,
+          )
         }
         return simulation
       },
-      Command.resolve(
-        DialogTest.CloseDialog({ id: 'search-dialog' }),
-        DialogBlock.Message.CompletedCloseDialog(),
+      Story.Command.resolve(
+        Dialog.test.CloseDialog({ id: 'search-dialog' }),
+        Dialog.DialogBlock.Message.CompletedCloseDialog(),
       ),
-      Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
-      Command.resolve(
+      Story.Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
+      Story.Command.resolve(
         ScrollSidebarActiveLinkIntoView,
         Message.CompletedScrollSidebarActiveLinkIntoView(),
       ),
@@ -520,19 +515,21 @@ describe('application', () => {
   )
 
   it.effect('changing API module slugs retries missing API data', () =>
-    story(
+    Story.story(
       application,
-      init(flags, commandApiUrl),
+      Story.init(flags, commandApiUrl),
       resolveBrowserStartup(commandApiUrl),
-      Command.resolve(
+      Story.Command.resolve(
         LoadApiData,
         ApiReferenceMessage.FailedLoadApiData({ error: 'failed' }),
       ),
-      message(Message.ChangedUrl({ url: updateApiUrl })),
-      model(model => expect(model.apiReference.apiData._tag).toBe('Loading')),
-      Command.expectHas(LoadApiData),
+      Story.message(Message.ChangedUrl({ url: updateApiUrl })),
+      Story.model(model =>
+        expect(model.apiReference.apiData._tag).toBe('Loading'),
+      ),
+      Story.Command.expectHas(LoadApiData),
       ...resolvePathChangeCommands(),
-      Command.resolve(
+      Story.Command.resolve(
         LoadApiData,
         ApiReferenceMessage.SucceededLoadApiData({ apiData }),
       ),
@@ -540,25 +537,25 @@ describe('application', () => {
   )
 
   it.effect('changing example slugs requests the next example sources', () =>
-    story(
+    Story.story(
       application,
-      init(flags, counterExampleUrl),
+      Story.init(flags, counterExampleUrl),
       resolveBrowserStartup(counterExampleUrl),
-      Command.resolve(
+      Story.Command.resolve(
         LoadApiData,
         ApiReferenceMessage.SucceededLoadApiData({ apiData }),
       ),
-      Command.resolve(
+      Story.Command.resolve(
         LoadExampleSources,
         ExampleDetailMessage.FailedLoadExampleSources({ error: 'failed' }),
       ),
-      message(Message.ChangedUrl({ url: countersExampleUrl })),
-      model(model =>
+      Story.message(Message.ChangedUrl({ url: countersExampleUrl })),
+      Story.model(model =>
         expect(model.exampleDetail.currentSources._tag).toBe('Loading'),
       ),
-      Command.expectHas(LoadExampleSources({ slug: 'counters' })),
+      Story.Command.expectHas(LoadExampleSources({ slug: 'counters' })),
       ...resolvePathChangeCommands(),
-      Command.resolve(
+      Story.Command.resolve(
         LoadExampleSources,
         ExampleDetailMessage.SucceededLoadExampleSources({
           sources: { files: [] },
@@ -569,36 +566,46 @@ describe('application', () => {
   it.effect(
     'newsletter email follows navigation between Home and Newsletter',
     () =>
-      story(
+      Story.story(
         application,
-        init(flags, homeUrl),
+        Story.init(flags, homeUrl),
         completeStartup(homeUrl),
-        messageFrom(
+        Story.messageIn(
           MaybeHomeBinding,
           HomeBlock.Message.UpdatedNewsletterEmail({
             value: 'alice@example.com',
           }),
         ),
-        model(model => expect(model.newsletterEmail).toBe('alice@example.com')),
-        message(Message.ChangedUrl({ url: newsletterUrl })),
+        Story.model(model =>
+          expect(model.newsletterEmail).toBe('alice@example.com'),
+        ),
+        Story.message(Message.ChangedUrl({ url: newsletterUrl })),
         ...resolvePathChangeCommands(),
-        model(model => expect(model.newsletterEmail).toBe('alice@example.com')),
-        message(Message.UpdatedNewsletterEmail({ value: 'bob@example.com' })),
-        model(model => expect(model.newsletterEmail).toBe('bob@example.com')),
-        message(Message.ChangedUrl({ url: homeUrl })),
+        Story.model(model =>
+          expect(model.newsletterEmail).toBe('alice@example.com'),
+        ),
+        Story.message(
+          Message.UpdatedNewsletterEmail({ value: 'bob@example.com' }),
+        ),
+        Story.model(model =>
+          expect(model.newsletterEmail).toBe('bob@example.com'),
+        ),
+        Story.message(Message.ChangedUrl({ url: homeUrl })),
         ...resolvePathChangeCommands(),
-        model(model => expect(model.newsletterEmail).toBe('bob@example.com')),
+        Story.model(model =>
+          expect(model.newsletterEmail).toBe('bob@example.com'),
+        ),
       ),
   )
 
   it.effect('entering Home initializes fresh state', () =>
-    story(
+    Story.story(
       application,
-      init(flags, newsletterUrl),
+      Story.init(flags, newsletterUrl),
       completeStartup(newsletterUrl),
-      model(expectHomeAbsent),
-      message(Message.ChangedUrl({ url: homeUrl })),
-      model(model => {
+      Story.model(expectHomeAbsent),
+      Story.message(Message.ChangedUrl({ url: homeUrl })),
+      Story.model(model => {
         expectHomePresent(model)
         expectDefaultHome(Option.getOrThrow(model.maybeHome))
       }),
@@ -607,43 +614,41 @@ describe('application', () => {
   )
 
   it.effect('leaving Home removes the Home Block', () =>
-    story(
+    Story.story(
       application,
-      init(flags, homeUrl),
+      Story.init(flags, homeUrl),
       completeStartup(homeUrl),
-      model(expectHomePresent),
-      message(Message.ChangedUrl({ url: newsletterUrl })),
-      model(expectHomeAbsent),
+      Story.model(expectHomePresent),
+      Story.message(Message.ChangedUrl({ url: newsletterUrl })),
+      Story.model(expectHomeAbsent),
       ...resolvePathChangeCommands(),
     ),
   )
 
   it.effect('remaining on Home preserves the existing Home Model', () => {
-    let initialHome: HomeBlockModel | undefined
-
-    return story(
+    return Story.story(
       application,
-      init(flags, homeUrl),
+      Story.init(flags, homeUrl),
       completeStartup(homeUrl),
-      model(model => {
-        initialHome = Option.getOrThrow(model.maybeHome)
-      }),
-      message(Message.ChangedUrl({ url: homeUrl })),
-      model(model =>
-        expect(Option.getOrThrow(model.maybeHome)).toBe(initialHome),
+      Story.models(
+        Story.steps(Story.message(Message.ChangedUrl({ url: homeUrl }))),
+        (before, after) =>
+          expect(Option.getOrThrow(after.maybeHome)).toBe(
+            Option.getOrThrow(before.maybeHome),
+          ),
       ),
-      Command.expectNone(),
+      Story.Command.expectNone(),
     )
   })
   it.effect('returning to Home initializes fresh default state', () =>
-    withBlock(application, executable => {
+    Story.withBlock(application, executable => {
       const { update, toParentMessage, toHomeMessage } = makeFixture(executable)
       const initAt = (url: Url.Url) => executable.init(flags, url).model
 
-      story(
+      Story.story(
         update,
-        given(initAt(homeUrl)),
-        message(
+        Story.given(initAt(homeUrl)),
+        Story.message(
           toParentMessage(
             MaybeHomeBinding,
             toHomeMessage(
@@ -652,15 +657,15 @@ describe('application', () => {
             ),
           ),
         ),
-        model((model: Model) => {
+        Story.model((model: Model) => {
           expect(
             Option.getOrThrow(model.maybeHome).notePlayerDemo.noteInput.value,
           ).toBe('ABC')
         }),
-        message(Message.ChangedUrl({ url: newsletterUrl })),
+        Story.message(Message.ChangedUrl({ url: newsletterUrl })),
         ...resolvePathChangeCommands(),
-        message(Message.ChangedUrl({ url: homeUrl })),
-        model(model => {
+        Story.message(Message.ChangedUrl({ url: homeUrl })),
+        Story.model(model => {
           expectHomePresent(model)
           expectDefaultHome(Option.getOrThrow(model.maybeHome))
         }),
@@ -669,14 +674,14 @@ describe('application', () => {
     }),
   )
   it.effect('late Home Messages are ignored while Home is absent', () =>
-    withBlock(application, executable => {
+    Story.withBlock(application, executable => {
       const { update, toParentMessage, toHomeMessage } = makeFixture(executable)
       const initAt = (url: Url.Url) => executable.init(flags, url).model
 
-      story(
+      Story.story(
         update,
-        given(initAt(newsletterUrl)),
-        message(
+        Story.given(initAt(newsletterUrl)),
+        Story.message(
           toParentMessage(
             MaybeHomeBinding,
             toHomeMessage(
@@ -685,22 +690,22 @@ describe('application', () => {
             ),
           ),
         ),
-        model(model => {
+        Story.model(model => {
           expectHomeAbsent(model)
         }),
-        Command.expectNone(),
+        Story.Command.expectNone(),
       )
     }),
   )
   it.effect('Home playground selections load a fresh document', () =>
-    withBlock(application, executable => {
+    Story.withBlock(application, executable => {
       const { update, toParentMessage, toHomeMessage } = makeFixture(executable)
       const initAt = (url: Url.Url) => executable.init(flags, url).model
 
-      story(
+      Story.story(
         update,
-        given(initAt(homeUrl)),
-        message(
+        Story.given(initAt(homeUrl)),
+        Story.message(
           toParentMessage(
             MaybeHomeBinding,
             toHomeMessage(
@@ -712,22 +717,25 @@ describe('application', () => {
             ),
           ),
         ),
-        Command.resolve(LoadPlayground, Message.CompletedLoadPlayground()),
+        Story.Command.resolve(
+          LoadPlayground,
+          Message.CompletedLoadPlayground(),
+        ),
       )
     }),
   )
   it.effect('the parent opens Search through its child update capability', () =>
-    story(
+    Story.story(
       application,
-      init(flags, homeUrl),
+      Story.init(flags, homeUrl),
       completeStartup(homeUrl),
-      message(Message.ClickedOpenSearch()),
-      model(model => expect(model.search.dialog.isOpen).toBe(true)),
-      Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+      Story.message(Message.ClickedOpenSearch()),
+      Story.model(model => expect(model.search.dialog.isOpen).toBe(true)),
+      Story.Command.resolve(
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
-      Command.resolve(
+      Story.Command.resolve(
         FocusSearchInput,
         SearchBlock.Message.CompletedFocusSearchInput(),
       ),
@@ -737,27 +745,27 @@ describe('application', () => {
   it.effect('the parent delegates snippet copying to the child Block', () => {
     const snippetId = 'root-story-snippet'
 
-    return story(
+    return Story.story(
       application,
-      init(flags, homeUrl),
+      Story.init(flags, homeUrl),
       completeStartup(homeUrl),
-      messageFrom(
+      Story.messageIn(
         SnippetCopyBinding,
         SnippetCopyBlock.Message.ClickedCopySnippet({
           snippetId,
           text: 'const count = 0',
         }),
       ),
-      Command.resolve(
+      Story.Command.resolve(
         CopySnippet,
         SnippetCopyBlock.Message.SucceededCopySnippet({ snippetId }),
       ),
-      model(model =>
+      Story.model(model =>
         expect(HashSet.has(model.snippetCopy.copiedSnippetIds, snippetId)).toBe(
           true,
         ),
       ),
-      Command.resolve(
+      Story.Command.resolve(
         WaitBeforeHidingCopiedIndicator,
         SnippetCopyBlock.Message.CompletedWaitBeforeHidingCopiedIndicator({
           snippetId,
@@ -769,18 +777,18 @@ describe('application', () => {
   it.effect('the parent owns each snippet disclosure state', () => {
     const disclosureId = 'root-story-snippet'
 
-    return story(
+    return Story.story(
       application,
-      init(flags, homeUrl),
+      Story.init(flags, homeUrl),
       completeStartup(homeUrl),
-      messageFrom(
+      Story.messageIn(
         SnippetDisclosureBinding,
         SnippetDisclosureBlock.Message.ToggledCodeDisclosure({
           disclosureId,
           isOpen: true,
         }),
       ),
-      model(model =>
+      Story.model(model =>
         expect(
           HashSet.has(model.snippetDisclosure.openDisclosureIds, disclosureId),
         ).toBe(true),

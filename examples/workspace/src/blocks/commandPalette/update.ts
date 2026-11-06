@@ -9,7 +9,7 @@ import type { UpdatedQuery } from './message'
 import type { Model } from './model'
 import { OutMessage } from './outMessage'
 import { ResultTarget } from './resultTarget'
-import { closeDialog, openPalette } from './steps'
+import { closePalette, openPalette } from './steps'
 
 const keepModel = makeNoopStep()
 
@@ -21,7 +21,7 @@ const handleUpdatedQuery = (model: Model, { value }: UpdatedQuery) => ({
   commands: [ScrollActiveResult({ index: 0 })],
 })
 
-const moveActiveResult = (nextActiveResultIndex: number, resultCount: number) =>
+const activateResultAt = (nextActiveResultIndex: number, resultCount: number) =>
   makeStep(model => ({
     model: modifyFields(model, {
       activeResultIndex: () => nextActiveResultIndex,
@@ -33,10 +33,10 @@ const moveActiveResult = (nextActiveResultIndex: number, resultCount: number) =>
   }))
 
 const selectResult = (
-  model: Parameters<typeof closeDialog>[0],
+  model: Parameters<typeof closePalette>[0],
   target: ResultTarget,
 ) => {
-  const dialogClose = closeDialog(model)
+  const dialogClose = closePalette(model)
 
   const outMessage = ResultTarget.match(target, {
     Issue: ({ issueId }) => OutMessage.SelectedIssue({ issueId }),
@@ -53,7 +53,7 @@ export const update = CommandPaletteComposition.makeUpdate({
     const nextActiveResultIndex =
       resultCount > 0 ? (model.activeResultIndex + 1) % resultCount : 0
 
-    return moveActiveResult(nextActiveResultIndex, resultCount)(model)
+    return activateResultAt(nextActiveResultIndex, resultCount)(model)
   },
   PressedPreviousResult: (model, { resultCount }) => {
     const nextActiveResultIndex =
@@ -61,7 +61,7 @@ export const update = CommandPaletteComposition.makeUpdate({
         ? (model.activeResultIndex - 1 + resultCount) % resultCount
         : 0
 
-    return moveActiveResult(nextActiveResultIndex, resultCount)(model)
+    return activateResultAt(nextActiveResultIndex, resultCount)(model)
   },
   PressedEnter: (model, { maybeTarget }) =>
     Option.match(maybeTarget, {

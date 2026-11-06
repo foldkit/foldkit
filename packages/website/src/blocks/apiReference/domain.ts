@@ -28,8 +28,6 @@ import {
   type TypeDocType,
 } from './typedoc.ts'
 
-// SCHEMA
-
 const NullableString = Schema.OptionFromNullishOr(Schema.String, {
   onNoneEncoding: null,
 })
@@ -97,7 +95,6 @@ export const ParsedApiReference = Schema.Struct({
   modules: Schema.Array(ApiModule),
 })
 export type ParsedApiReference = typeof ParsedApiReference.Type
-// SHARED
 
 export const SIGNATURE_COLLAPSE_THRESHOLD = 500
 
@@ -140,8 +137,6 @@ export const scopedIdBelongsToModule = (
 
 export const sectionId = (moduleName: string, label: string): string =>
   `${moduleName}-${label.toLowerCase()}`
-
-// NAMED SCHEMA
 
 const isEffectStructReference = (type: TypeDocType): boolean =>
   type.type === 'reference' &&
@@ -245,8 +240,6 @@ export const collectNamedSchemas = (json: TypeDocJson): NamedSchemas => {
     Array.filter(entries, ([fingerprint]) => counts.get(fingerprint) === 1),
   )
 }
-
-// PARSE
 
 const partsToSummaryText = (
   parts: ReadonlyArray<TypeDocCommentPart>,

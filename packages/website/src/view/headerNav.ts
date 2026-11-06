@@ -1,7 +1,7 @@
 import { Match, Schema } from 'effect'
 import { Html } from 'foldkit/html'
 
-import { view as navView } from '@foldkit/ui/nav'
+import { Nav } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import {
@@ -42,7 +42,7 @@ export const view = (
   className: string,
   h: ApplicationViewBuilder,
 ): Html =>
-  navView<HeaderSection>({
+  Nav.view<HeaderSection>({
     items: headerSections,
     ariaLabel: 'Primary',
     toHref: sectionToHref,

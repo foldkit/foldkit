@@ -19,24 +19,32 @@ import {
 } from './command.js'
 import { closedModel } from './model.js'
 import { LEFT_MOUSE_BUTTON } from './selectors.js'
-import { BaseModel, InitConfig, Message, type OutMessage } from './types.js'
+import {
+  BaseModel,
+  InitConfig,
+  type Message,
+  type MessageSchema,
+  type OutMessage,
+} from './types.js'
 
 const modifyBaseFields = makeModifyFieldsFor<BaseModel>()
 
 type HandlerReturn<Model, Value extends string> = Readonly<{
   model: Model
+  commands?: never
   outMessage?: OutMessage<Value>
 }>
 
 /** Creates exact Listbox Message handlers and their Animation Binding. */
 export const makeUpdateHandlers = <
   Value extends string,
+  ValueEncoded,
   ParentOutMessageSchema extends Schema.Top,
   ParentOwner,
 >(
   bindChild: Block.MakeBinding<
     typeof BaseModel,
-    typeof Message,
+    MessageSchema<Value, ValueEncoded>,
     ParentOutMessageSchema,
     typeof InitConfig,
     'Provided',
@@ -44,17 +52,17 @@ export const makeUpdateHandlers = <
   >,
   makeOutMessageFold: Block.MakeDescriptorOutMessageFold<
     BaseModel,
-    Message,
+    Message<Value>,
     OutMessage<Value>
   >,
-  step: Block.DefineStep<BaseModel, Message, OutMessage<Value>>,
-  stepFields: Block.DefineStepFields<BaseModel, Message>,
+  step: Block.DefineStep<BaseModel, Message<Value>, OutMessage<Value>>,
+  stepFields: Block.DefineStepFields<BaseModel, Message<Value>>,
   stepNoop: Block.DefineStepNoop<BaseModel>,
-  commandsStep: Block.MakeCommandsStep<BaseModel, Message>,
+  commandsStep: Block.MakeCommandsStep<BaseModel, Message<Value>>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handleSelectedItem: (
     model: BaseModel,
-    item: string,
+    item: Value,
   ) => HandlerReturn<BaseModel, Value>,
 ) => {
   type Model = BaseModel
@@ -159,15 +167,30 @@ export const makeUpdateHandlers = <
     )
   }
 
-  const selectItem = (model: Model, item: string) => {
+  const selectItem = (model: Model, item: Value) => {
     const selection = handleSelectedItem(model, item)
-    if (selectionBehavior === 'CloseWithFocus') {
-      return step(() =>
-        Function.compose(
-          step(() =>
-            closeListbox(selection.model, closeWithFocusCommands(model)),
+
+    if (selectionBehavior === 'CloseWithFocus' && selection.model.isOpen) {
+      const closed = closedModel(selection.model)
+      const commands = closeWithFocusCommands(model)
+
+      if (selection.model.isAnimated) {
+        return step(() =>
+          Function.compose(
+            Update.combineSteps([
+              step(() => ({ model: closed, commands })),
+              AnimationBinding.requestHide(),
+            ]),
+            listboxClose =>
+              Update.withOutMessage(listboxClose, selection.outMessage),
           ),
-          Update.withOutMessage(selection.outMessage),
+        )
+      }
+
+      return step(() =>
+        Update.withOutMessage(
+          { model: closed, commands },
+          selection.outMessage,
         ),
       )
     } else {
@@ -343,9 +366,9 @@ export const makeUpdateHandlers = <
       return openWithActiveItem(model, Option.none())
     },
   } satisfies Readonly<{
-    [Tag in Message['_tag']]: (
+    [Tag in Message<Value>['_tag']]: (
       model: Model,
-      message: Extract<Message, Readonly<{ _tag: Tag }>>,
+      message: Extract<Message<Value>, Readonly<{ _tag: Tag }>>,
     ) => unknown
   }>
 

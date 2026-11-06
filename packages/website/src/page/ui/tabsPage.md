@@ -8,7 +8,7 @@ Tab panel navigation with roving tabindex keyboard support, horizontal and verti
 
 `Tabs.makeBlock()` and Blocks returned by `Tabs.makeBlock` keep their own keyboard-focus state, but the parent owns the active tab. Store the active value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through the Binding’s selected `fold` policy.
 
-What `Tabs.makeBlock<Value>()` returns is typed [`Completed<Value>` from `@foldkit/ui/tabs`](/ui/selection-blocks#completed-type), for cases where a created Block has to be named.
+What `Tabs.makeBlock<Value>()` returns is typed [`Tabs.Completed<Value>` from `@foldkit/ui`](/ui/selection-blocks#completed-type), for cases where a created Block has to be named.
 
 :::Info{label="See it in an app"}
 Check out how Tabs is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/tabs.ts).

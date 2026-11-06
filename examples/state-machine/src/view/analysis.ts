@@ -4,7 +4,7 @@ import type { Html } from 'foldkit/html'
 
 import * as Icon from '../icon'
 import { checkoutMachine } from '../machine'
-import { type Model } from '../model'
+import type { CheckoutState, TransitionLogEntry } from '../model'
 
 export const formatTags = (tags: ReadonlyArray<string>): string =>
   Array.match(tags, {
@@ -13,13 +13,13 @@ export const formatTags = (tags: ReadonlyArray<string>): string =>
   })
 
 export const transitionLogView = (
-  model: Model,
+  transitionLog: ReadonlyArray<TransitionLogEntry>,
   h: ApplicationViewBuilder,
 ): Html => {
   const transitionLogClassName =
     'border-l-2 border-orange-700 pl-3 font-mono text-xs leading-5 text-stone-300 lg:col-span-3'
 
-  return Array.match(model.transitionLog, {
+  return Array.match(transitionLog, {
     onEmpty: () =>
       h.div(
         [h.Role('status'), h.Class(transitionLogClassName)],
@@ -42,7 +42,11 @@ export const DEAD_TRANSITIONS = checkoutMachine.deadTransitions()
 export const UNREACHABLE_STATE_TAGS = checkoutMachine.unreachableStates()
 export const MERMAID_DEFINITION = checkoutMachine.toMermaid()
 
-export const analysisView = (model: Model, h: ApplicationViewBuilder): Html =>
+export const analysisView = (
+  checkout: CheckoutState,
+  transitionLog: ReadonlyArray<TransitionLogEntry>,
+  h: ApplicationViewBuilder,
+): Html =>
   h.section(
     [
       h.AriaLabel('State machine inspector'),
@@ -118,13 +122,13 @@ export const analysisView = (model: Model, h: ApplicationViewBuilder): Html =>
                 ],
                 ['Recent transitions'],
               ),
-              transitionLogView(model, h),
+              transitionLogView(transitionLog, h),
             ],
           ),
           h.ol(
             [h.AriaLabel('Machine states'), h.Class('flex flex-wrap gap-2')],
             Array.map(checkoutMachine.stateTags, stateTag => {
-              const isActive = model.checkout._tag === stateTag
+              const isActive = checkout._tag === stateTag
 
               return h.keyed('li')(
                 stateTag,

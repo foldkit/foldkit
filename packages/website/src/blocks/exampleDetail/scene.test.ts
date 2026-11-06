@@ -1,19 +1,9 @@
 import { Array, Option, pipe } from 'effect'
-import { Calendar, Url } from 'foldkit'
-import {
-  Command,
-  Mount,
-  click,
-  expect,
-  init,
-  role,
-  scene,
-  within,
-} from 'foldkit/scene'
+import { Calendar, Scene, Url } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { SnippetDisclosureBlock } from '..'
 import { Deployment } from '../../deployment'
@@ -62,12 +52,12 @@ const flags = {
 
 describe('example detail', () => {
   it.effect('source files share their code disclosure state', () =>
-    scene(
+    Scene.scene(
       application,
-      init(flags, url),
+      Scene.init(flags, url),
       resolveBrowserStartup(flags),
       resolveApiData,
-      Mount.resolve(
+      Scene.Mount.resolve(
         MeasureSnippetHeight({
           snippetId: 'example-ssr-source-src/application.ts',
         }),
@@ -76,31 +66,30 @@ describe('example detail', () => {
           snippetSize: SnippetSize.Overflows(),
         }),
       ),
-      click(
-        within(
-          role('tabpanel', { name: /application\.ts$/ }),
-          role('button', { name: 'Show code' }),
+      Scene.click(
+        Scene.within(
+          Scene.role('tabpanel', { name: /application\.ts$/ }),
+          Scene.role('button', { name: 'Show code' }),
         ),
       ),
-      expect(
-        within(
-          role('tabpanel', { name: /application\.ts$/ }),
-          role('button', { name: 'Hide code' }),
+      Scene.expect(
+        Scene.within(
+          Scene.role('tabpanel', { name: /application\.ts$/ }),
+          Scene.role('button', { name: 'Hide code' }),
         ),
       ).toExist(),
-      click(role('tab', { name: /entry\.server\.ts$/ })),
-      expect(role('tab', { name: /entry\.server\.ts$/ })).toHaveAttr(
-        'aria-selected',
-        'true',
-      ),
-      Command.resolve(
-        TabsTest.FocusTab,
+      Scene.click(Scene.role('tab', { name: /entry\.server\.ts$/ })),
+      Scene.expect(
+        Scene.role('tab', { name: /entry\.server\.ts$/ }),
+      ).toHaveAttr('aria-selected', 'true'),
+      Scene.Command.resolve(
+        Tabs.test.FocusTab,
         SourceFileTabsBlock.Message.CompletedFocusTab(),
       ),
-      expect(
-        within(
-          role('tabpanel', { name: /entry\.server\.ts$/ }),
-          role('button', { name: 'Hide code' }),
+      Scene.expect(
+        Scene.within(
+          Scene.role('tabpanel', { name: /entry\.server\.ts$/ }),
+          Scene.role('button', { name: 'Hide code' }),
         ),
       ).toExist(),
     ),

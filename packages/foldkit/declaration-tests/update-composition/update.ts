@@ -11,7 +11,7 @@ export const editDocument = makeUpdate({
   ReceivedDraft: makeStep.fromMessage(({ title, text }) =>
     Update.combineSteps([
       makeFieldsStep(() => ({ title: () => title })),
-      EditorBinding.informTextChange({ text }),
+      EditorBinding.informOfTextChange({ text }),
     ]),
   ),
   CompletedSaveDraft: makeNoopStep(),

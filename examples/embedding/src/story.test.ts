@@ -1,4 +1,4 @@
-import { Command, given, message, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
@@ -19,58 +19,58 @@ describe('update', () => {
     it.effect(
       'Ticked advances the count by the step and reports it on the outbound port',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(modifyFields(initialModel, { step: () => 3 })),
-          message(Message.Ticked()),
-          model(model => {
+          Story.given(modifyFields(initialModel, { step: () => 3 })),
+          Story.message(Message.Ticked()),
+          Story.model(model => {
             expect(model.count).toBe(13)
           }),
-          Command.expectHas(ReportCount),
-          Command.resolve(ReportCount, Message.CompletedReportCount()),
+          Story.Command.expectHas(ReportCount),
+          Story.Command.resolve(ReportCount, Message.CompletedReportCount()),
         ),
     )
 
     it.effect(
       'ClickedAdvance advances the count by the step and reports it',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
-          message(Message.ClickedAdvance()),
-          model(model => {
+          Story.given(initialModel),
+          Story.message(Message.ClickedAdvance()),
+          Story.model(model => {
             expect(model.count).toBe(11)
           }),
-          Command.expectHas(ReportCount),
-          Command.resolve(ReportCount, Message.CompletedReportCount()),
+          Story.Command.expectHas(ReportCount),
+          Story.Command.resolve(ReportCount, Message.CompletedReportCount()),
         ),
     )
   })
 
   describe('host input', () => {
     it.effect('ChangedStep stores the step pushed in by the host', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ChangedStep({ step: 7 })),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.ChangedStep({ step: 7 })),
+        Story.model(model => {
           expect(model.step).toBe(7)
           expect(model.count).toBe(10)
         }),
-        Command.expectNone(),
+        Story.Command.expectNone(),
       ),
     )
 
     it.effect('a changed step applies from the next tick onward', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ChangedStep({ step: 5 })),
-        message(Message.Ticked()),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.ChangedStep({ step: 5 })),
+        Story.message(Message.Ticked()),
+        Story.model(model => {
           expect(model.count).toBe(15)
         }),
-        Command.resolve(ReportCount, Message.CompletedReportCount()),
+        Story.Command.resolve(ReportCount, Message.CompletedReportCount()),
       ),
     )
   })

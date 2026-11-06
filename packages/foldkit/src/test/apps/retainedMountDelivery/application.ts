@@ -2,7 +2,10 @@ import { Array, Effect, Layer, Schema } from 'effect'
 
 import * as Block from '../../../block/public.js'
 import { type Html, createLazy } from '../../../html/public.js'
-import { defineMessageUnion } from '../../../message/public.js'
+import {
+  defineInMessageUnion,
+  defineMessageUnion,
+} from '../../../message/public.js'
 import * as Surface from './surface.js'
 
 const Model = Schema.Struct({
@@ -26,7 +29,7 @@ const Message = defineMessageUnion({
   ClickedBatch: {},
 })
 type Message = typeof Message.Type
-const InMessage = defineMessageUnion({
+const InMessage = defineInMessageUnion({
   RequestedRemove: {},
   RequestedRecreate: {},
 })

@@ -1,7 +1,7 @@
 import { Option, Record } from 'effect'
 import { Html, inertHtml as ih } from 'foldkit/html'
 
-import { view as disclosureView } from '@foldkit/ui/disclosure'
+import { Disclosure } from '@foldkit/ui'
 
 import { Icon } from '../../icon'
 import {
@@ -12,8 +12,6 @@ import { ComingFromReactContent } from './content'
 import { Message } from './message'
 import type { Model } from './model'
 import type { ViewInputs } from './viewInputs'
-
-// FAQ SHELL
 
 const chevron = (isOpen: boolean): Html =>
   ih.span(
@@ -44,7 +42,7 @@ const faqItem = (
 ): Html =>
   Option.match(Record.get(model, id), {
     onSome: isFaqOpen =>
-      disclosureView(
+      Disclosure.view(
         {
           id,
           isOpen: isFaqOpen,
@@ -76,8 +74,6 @@ const faqItem = (
     onNone: () =>
       h.div([], [h.p([h.Class('font-bold')], [question]), ...answerContent]),
   })
-
-// PAGE
 
 const { tableOfContents, view: renderPage } = ComingFromReactContent
 

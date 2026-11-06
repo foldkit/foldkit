@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { Command } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 
 import { LoadApiData } from './blocks/apiReference/command'
 import { ApiData } from './blocks/apiReference/domain'
@@ -15,7 +15,7 @@ import { Message } from './message'
 import { ApplyTheme } from './theme'
 
 export const resolveBrowserStartup = (flags: Flags) =>
-  Command.resolveAll(
+  Scene.Command.resolveAll(
     [
       LoadBrowserEnvironment,
       Message.CompletedLoadBrowserEnvironment({
@@ -36,7 +36,7 @@ export const resolveBrowserStartup = (flags: Flags) =>
     ],
   )
 
-export const resolveApiData = Command.resolve(
+export const resolveApiData = Scene.Command.resolve(
   LoadApiData,
   ApiReferenceMessage.SucceededLoadApiData({
     apiData: ApiData.make({ parsedApi: { modules: [] }, highlights: {} }),

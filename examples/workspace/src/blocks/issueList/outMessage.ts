@@ -1,15 +1,15 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { GroupBy, IssueFilters, IssueStatus } from '../../domain'
+import { Issue } from '../../domain'
 
 export const OutMessage = defineMessageUnion({
   ChangedQuery: { query: Schema.String },
-  ChangedStatusFilter: { maybeStatus: Schema.Option(IssueStatus) },
-  ChangedSort: { sort: IssueFilters.fields.sort },
-  ChangedGrouping: { groupBy: GroupBy },
+  ChangedStatusFilter: { maybeStatus: Schema.Option(Issue.Status) },
+  ChangedSort: { sort: Issue.SortBy },
+  ChangedGrouping: { groupBy: Issue.GroupBy },
   RequestedClearFilters: {},
   RequestedCreation: {},
-  SavedFilter: { name: Schema.String, filters: IssueFilters },
+  SubmittedSavedView: { name: Schema.String, filters: Issue.Filters },
 })
 export type OutMessage = typeof OutMessage.Type

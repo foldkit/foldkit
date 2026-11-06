@@ -1,6 +1,1 @@
-export * as HeaderNav from './headerNav'
-export * as Search from './search'
-export * as Sidebar from './sidebar'
-export * as TableOfContents from './tableOfContents'
-export * as ThemeSelector from './themeSelector'
-export * as ThemeMenu from './themeMenu'
+export { view } from './view'

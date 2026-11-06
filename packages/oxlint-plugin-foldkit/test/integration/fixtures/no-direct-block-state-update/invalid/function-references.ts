@@ -69,9 +69,9 @@ export const update = ApplicationComposition.makeUpdate({
     })
     void Update.combineSteps(model, [
       revealChildFields,
-      ChildBinding.informThemeChanged({ theme: 'Light' }),
+      ChildBinding.informOfThemeChanged({ theme: 'Light' }),
     ])
 
-    return ChildBinding.informThemeChanged({ theme: 'Light' })(model)
+    return ChildBinding.informOfThemeChanged({ theme: 'Light' })(model)
   },
 })

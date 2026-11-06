@@ -1,13 +1,13 @@
 import { Schema } from 'effect'
 
-import { Issue, IssueFilters, Member, Project } from '../../domain'
+import { Issue, Member, Project } from '../../domain'
 
 export const ViewInputs = Schema.Struct({
-  issues: Schema.Array(Issue),
-  members: Schema.Array(Member),
-  projects: Schema.Array(Project),
+  issues: Schema.Array(Issue.Issue),
+  members: Schema.Array(Member.Member),
+  projects: Schema.Array(Project.Project),
   maybeActiveIssueId: Schema.Option(Schema.String),
-  filters: IssueFilters,
-  issueHrefs: Schema.Record(Schema.String, Schema.String),
+  filters: Issue.Filters,
+  issueHrefsById: Schema.Record(Schema.String, Schema.String),
 })
 export type ViewInputs = typeof ViewInputs.Type

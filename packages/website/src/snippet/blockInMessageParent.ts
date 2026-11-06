@@ -48,6 +48,6 @@ const ConversationComposition = makeComposition({
 export const update = ConversationComposition.makeUpdate({
   ClickedSend: ComposerBinding.requestSubmit(),
   ChangedDraft: makeStep.fromMessage(({ text }) =>
-    ComposerBinding.informDraftChanged({ text }),
+    ComposerBinding.informOfDraftChanged({ text }),
   ),
 })

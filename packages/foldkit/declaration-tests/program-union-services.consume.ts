@@ -1,11 +1,12 @@
 import type { Layer } from 'effect'
-import { Program } from 'foldkit'
+import { Block, Program, Subscription } from 'foldkit'
 
 import {
   AnnotatedRegisteredBlock,
   AnnotatedUnregisteredBlock,
   KeyedRegisteredBlock,
   type KeyedSessionService,
+  RegisteredBinding,
   type SessionService,
   Store,
   StoreLayer,
@@ -14,6 +15,7 @@ import {
   makeRegisteredUnionProgram,
   makeResourceUnionProgram,
   makeStoreUnionProgram,
+  subscriptions,
 } from './program-union-services.accepted.js'
 
 type Equal<Left, Right> =
@@ -43,6 +45,38 @@ type RuntimeServicesOf<ProgramValue> =
   }>
     ? Services
     : never
+type SubscriptionServicesOf<Entry> =
+  Entry extends Subscription.Subscription<
+    unknown,
+    unknown,
+    unknown,
+    infer Services
+  >
+    ? Services
+    : never
+type KeyedTicks = Block.InspectionOfBinding<
+  typeof RegisteredBinding
+>['subscriptions']['ticks']
+type KeyedTicksMetadata = KeyedTicks['#Subscription.KeyedTemplate']
+
+export type ExactKeyedSubscriptionKey = Expect<
+  Equal<KeyedTicksMetadata['key'], string>
+>
+export type ExactKeyedSubscriptionPlacement = Expect<
+  Equal<KeyedTicksMetadata['placement'], typeof RegisteredBinding.placement>
+>
+export type ExactKeyedSubscriptionSource = Expect<
+  Equal<KeyedTicksMetadata['source'], typeof subscriptions.ticks>
+>
+export type ExactKeyedSubscriptionServices = Expect<
+  Equal<
+    SubscriptionServicesOf<KeyedTicks>,
+    Block.Qualify<
+      typeof RegisteredBinding.placement,
+      SubscriptionServicesOf<typeof subscriptions.ticks>
+    >
+  >
+>
 
 export type ExactResourceRequirement = Expect<
   Equal<

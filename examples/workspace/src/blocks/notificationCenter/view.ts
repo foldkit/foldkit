@@ -2,16 +2,15 @@ import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
-import { Notification, NotificationKind } from '../../domain'
+import { Issue, Member, Notification } from '../../domain'
 import {
   NotificationCenterComposition,
   type NotificationCenterViewBuilder,
   PopoverBinding,
 } from './composition'
 import { Message } from './message'
-import type { Model } from './model'
 import { absoluteTime, relativeTime } from './time'
 import type { ViewInputs } from './viewInputs'
 
@@ -37,7 +36,7 @@ const bellIcon = (h: NotificationCenterViewBuilder): Html =>
     ],
   )
 
-const readStateIcon = (
+const readToggleIcon = (
   isRead: boolean,
   h: NotificationCenterViewBuilder,
 ): Html =>
@@ -62,20 +61,15 @@ const readStateIcon = (
   )
 
 const notificationView = (
-  notification: Notification,
-  model: Model,
-  viewInputs: ViewInputs,
+  notification: Notification.Notification,
+  currentTimeMillis: number,
+  members: ViewInputs['members'],
+  issues: ViewInputs['issues'],
   h: NotificationCenterViewBuilder,
 ): Html => {
-  const maybeActor = Array.findFirst(
-    viewInputs.members,
-    member => member.id === notification.actorId,
-  )
+  const maybeActor = Member.findById(members, notification.actorId)
 
-  const maybeIssue = Array.findFirst(
-    viewInputs.issues,
-    issue => issue.id === notification.issueId,
-  )
+  const maybeIssue = Issue.findById(issues, notification.issueId)
 
   const actorName = Option.match(maybeActor, {
     onNone: () => 'Someone',
@@ -95,12 +89,15 @@ const notificationView = (
     onSome: issue => issue.title,
   })
 
-  const copy = NotificationKind.match(notification.kind, {
+  const activityDescription = Notification.Kind.match(notification.kind, {
     Commented: ({ body }) => ({
-      event: 'commented on',
-      maybeBody: Option.some(body),
+      verbPhrase: 'commented on',
+      maybeCommentBody: Option.some(body),
     }),
-    Assigned: () => ({ event: 'assigned you to', maybeBody: Option.none() }),
+    Assigned: () => ({
+      verbPhrase: 'assigned you to',
+      maybeCommentBody: Option.none(),
+    }),
   })
 
   const readStateAction = `${notification.isRead ? 'Mark as unread' : 'Mark as read'}: ${issueIdentifier}`
@@ -121,7 +118,7 @@ const notificationView = (
       ),
     ],
     [
-      buttonView(
+      Button.view(
         {
           type: 'button',
           onClick: Message.ClickedNotification({
@@ -152,7 +149,7 @@ const notificationView = (
                       [h.Class('block leading-5')],
                       [
                         h.span([h.Class('font-semibold')], [actorName]),
-                        ` ${copy.event} `,
+                        ` ${activityDescription.verbPhrase} `,
                         h.span([h.Class('font-semibold')], [issueIdentifier]),
                       ],
                     ),
@@ -164,7 +161,7 @@ const notificationView = (
                       ],
                       [issueTitle],
                     ),
-                    ...Option.match(copy.maybeBody, {
+                    ...Option.match(activityDescription.maybeCommentBody, {
                       onNone: () => [],
                       onSome: body => [
                         h.span(
@@ -185,7 +182,7 @@ const notificationView = (
                           'mt-1 block text-xs font-medium text-slate-500',
                         ),
                       ],
-                      [relativeTime(notification.createdAt, model.now)],
+                      [relativeTime(notification.createdAt, currentTimeMillis)],
                     ),
                   ],
                 ),
@@ -194,10 +191,10 @@ const notificationView = (
         },
         h,
       ),
-      buttonView(
+      Button.view(
         {
           type: 'button',
-          onClick: Message.ClickedNotificationReadState({
+          onClick: Message.ClickedNotificationReadToggle({
             notificationId: notification.id,
           }),
           toView: attributes =>
@@ -210,7 +207,7 @@ const notificationView = (
                   'mt-1 inline-grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-xs outline-none transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
                 ),
               ],
-              [readStateIcon(notification.isRead, h)],
+              [readToggleIcon(notification.isRead, h)],
             ),
         },
         h,
@@ -221,13 +218,13 @@ const notificationView = (
 
 export const view = NotificationCenterComposition.makeView.withInputs(
   (model, viewInputs, h) => {
-    const visibleNotifications = Array.filter(
+    const activeMemberNotifications = Array.filter(
       model.notifications,
       notification => notification.recipientId === viewInputs.activeMemberId,
     )
 
     const unreadCount = Array.filter(
-      visibleNotifications,
+      activeMemberNotifications,
       notification => !notification.isRead,
     ).length
 
@@ -311,7 +308,7 @@ export const view = NotificationCenterComposition.makeView.withInputs(
                               ),
                               ...(unreadCount > 0
                                 ? [
-                                    buttonView(
+                                    Button.view(
                                       {
                                         type: 'button',
                                         onClick: Message.ClickedMarkAllAsRead({
@@ -333,7 +330,7 @@ export const view = NotificationCenterComposition.makeView.withInputs(
                                 : []),
                             ],
                           ),
-                          ...Array.match(visibleNotifications, {
+                          ...Array.match(activeMemberNotifications, {
                             onEmpty: () => [
                               h.p(
                                 [
@@ -355,8 +352,9 @@ export const view = NotificationCenterComposition.makeView.withInputs(
                                 Array.map(notifications, notification =>
                                   notificationView(
                                     notification,
-                                    model,
-                                    viewInputs,
+                                    model.currentTimeMillis,
+                                    viewInputs.members,
+                                    viewInputs.issues,
                                     h,
                                   ),
                                 ),

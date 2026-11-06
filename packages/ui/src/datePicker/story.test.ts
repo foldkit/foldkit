@@ -128,7 +128,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               DatePickerBlock,
               Story.init({ id: 'picker', today }),
               ...givenOpen,
-              Story.messageFrom(
+              Story.messageIn(
                 BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
@@ -136,7 +136,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 UiCalendar.FocusGrid,
                 UiCalendar.Message.CompletedFocusGrid(),
               ),
-              Story.messageFrom(
+              Story.messageIn(
                 BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
@@ -187,7 +187,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               DatePickerBlock,
               Story.init({ id: 'picker', today }),
               ...givenOpen,
-              Story.messageFrom(
+              Story.messageIn(
                 BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
@@ -195,7 +195,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 UiCalendar.FocusGrid,
                 UiCalendar.Message.CompletedFocusGrid(),
               ),
-              Story.messageFrom(
+              Story.messageIn(
                 BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
@@ -224,7 +224,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               DatePickerBlock,
               Story.init({ id: 'picker', today }),
               ...givenOpen,
-              Story.messageFrom(
+              Story.messageIn(
                 BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
@@ -232,7 +232,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 UiCalendar.FocusGrid,
                 UiCalendar.Message.CompletedFocusGrid(),
               ),
-              Story.messageFrom(
+              Story.messageIn(
                 BaseCalendarBinding,
                 UiCalendar.Message.ClickedHeading(),
               ),
@@ -240,7 +240,7 @@ it.layer(layer, { buildPerTest: true })(it => {
                 UiCalendar.FocusGrid,
                 UiCalendar.Message.CompletedFocusGrid(),
               ),
-              Story.messageFrom(
+              Story.messageIn(
                 BaseCalendarBinding,
                 UiCalendar.Message.PagedYears({ direction: 1 }),
               ),
@@ -336,7 +336,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               DatePickerBlock,
               Story.init({ id: 'picker', today }),
               ...givenOpen,
-              Story.messageFrom(
+              Story.messageIn(
                 BaseCalendarBinding,
                 UiCalendar.Message.ClickedNextMonthButton(),
               ),
@@ -356,7 +356,7 @@ it.layer(layer, { buildPerTest: true })(it => {
               DatePickerBlock,
               Story.init({ id: 'picker', today }),
               ...givenOpen,
-              Story.messageFrom(
+              Story.messageIn(
                 BaseCalendarBinding,
                 UiCalendar.Message.PressedKeyOnGrid({
                   key: 'ArrowRight',
@@ -378,7 +378,7 @@ it.layer(layer, { buildPerTest: true })(it => {
             DatePickerBlock,
             Story.init({ id: 'picker', today }),
             ...givenOpen,
-            Story.messageFrom(
+            Story.messageIn(
               BasePopoverBinding,
               Popover.Message.PressedEscape(),
             ),
@@ -449,28 +449,30 @@ it.layer(layer, { buildPerTest: true })(it => {
         }),
       )
 
-      it.effect('informMinDateChanged forwards to the embedded calendar', () =>
-        Story.withBlock(DatePickerBlock, datePicker => {
-          const model = datePicker.init({ id: 'picker', today }).model
-          const newMin = Calendar.make(2026, 5, 1)
-          const minDateChange = datePicker.operations.informMinDateChanged(
-            model,
-            Option.some(newMin),
-          )
-          expect(minDateChange.model.calendar.maybeMinDate).toStrictEqual(
-            Option.some(newMin),
-          )
-        }),
+      it.effect(
+        'informOfMinDateChanged forwards to the embedded calendar',
+        () =>
+          Story.withBlock(DatePickerBlock, datePicker => {
+            const model = datePicker.init({ id: 'picker', today }).model
+            const newMin = Calendar.make(2026, 5, 1)
+            const minDateChange = datePicker.operations.informOfMinDateChanged(
+              model,
+              Option.some(newMin),
+            )
+            expect(minDateChange.model.calendar.maybeMinDate).toStrictEqual(
+              Option.some(newMin),
+            )
+          }),
       )
 
-      it.effect('informMinDateChanged clears the minimum', () =>
+      it.effect('informOfMinDateChanged clears the minimum', () =>
         Story.withBlock(DatePickerBlock, datePicker => {
           const model = datePicker.init({
             id: 'picker',
             today,
             minDate: Calendar.make(2026, 1, 1),
           }).model
-          const minDateChange = datePicker.operations.informMinDateChanged(
+          const minDateChange = datePicker.operations.informOfMinDateChanged(
             model,
             Option.none(),
           )
@@ -480,28 +482,33 @@ it.layer(layer, { buildPerTest: true })(it => {
         }),
       )
 
-      it.effect('informMaxDateChanged forwards to the embedded calendar', () =>
-        Story.withBlock(DatePickerBlock, datePicker => {
-          const model = datePicker.init({ id: 'picker', today }).model
-          const newMax = Calendar.make(2026, 12, 31)
-          const maxDateChange = datePicker.operations.informMaxDateChanged(
-            model,
-            Option.some(newMax),
-          )
-          expect(maxDateChange.model.calendar.maybeMaxDate).toStrictEqual(
-            Option.some(newMax),
-          )
-        }),
+      it.effect(
+        'informOfMaxDateChanged forwards to the embedded calendar',
+        () =>
+          Story.withBlock(DatePickerBlock, datePicker => {
+            const model = datePicker.init({ id: 'picker', today }).model
+            const newMax = Calendar.make(2026, 12, 31)
+            const maxDateChange = datePicker.operations.informOfMaxDateChanged(
+              model,
+              Option.some(newMax),
+            )
+            expect(maxDateChange.model.calendar.maybeMaxDate).toStrictEqual(
+              Option.some(newMax),
+            )
+          }),
       )
 
       it.effect(
-        'informDisabledDatesChanged forwards to the embedded calendar',
+        'informOfDisabledDatesChanged forwards to the embedded calendar',
         () =>
           Story.withBlock(DatePickerBlock, datePicker => {
             const model = datePicker.init({ id: 'picker', today }).model
             const disabled = [Calendar.make(2026, 4, 15)]
             const disabledDatesChange =
-              datePicker.operations.informDisabledDatesChanged(model, disabled)
+              datePicker.operations.informOfDisabledDatesChanged(
+                model,
+                disabled,
+              )
             expect(
               disabledDatesChange.model.calendar.disabledDates,
             ).toStrictEqual(disabled)
@@ -509,12 +516,12 @@ it.layer(layer, { buildPerTest: true })(it => {
       )
 
       it.effect(
-        'informDisabledDaysOfWeekChanged forwards to the embedded calendar',
+        'informOfDisabledDaysOfWeekChanged forwards to the embedded calendar',
         () =>
           Story.withBlock(DatePickerBlock, datePicker => {
             const model = datePicker.init({ id: 'picker', today }).model
             const disabledDaysChange =
-              datePicker.operations.informDisabledDaysOfWeekChanged(model, [
+              datePicker.operations.informOfDisabledDaysOfWeekChanged(model, [
                 'Saturday',
                 'Sunday',
               ])

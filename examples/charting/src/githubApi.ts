@@ -15,16 +15,12 @@ import { HttpClient, HttpClientRequest } from 'effect/http'
 
 import { fetchJson, isSuccessfulStatus, makeUrl } from './http'
 
-// CONSTANT
-
 const GITHUB_REPOSITORY_API = 'https://api.github.com/repos/foldkit/foldkit'
 const HTTP_ACCEPTED = 202
 const STAR_HISTORY_PAGE_SIZE = 30
 const STAT_MAX_RETRIES = 1
 const STAT_RETRY_DELAY = '2 seconds' as const
 const RELEASE_PAGE_SIZE = 100
-
-// SCHEMA
 
 export const GitHubRepositoryResponse = Schema.Struct({
   stargazers_count: Schema.Number,
@@ -71,8 +67,6 @@ export const GitHubCommitActivityResponse = Schema.Struct({
 })
 export type GitHubCommitActivityResponse =
   typeof GitHubCommitActivityResponse.Type
-
-// SERVICE
 
 export type GitHubStatResult<A> = Readonly<{
   data: Option.Option<A>

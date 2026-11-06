@@ -1,10 +1,9 @@
 import { Effect } from 'effect'
-import { Calendar } from 'foldkit'
-import { Command, inMessage, init, model, story } from 'foldkit/story'
+import { Calendar, Story } from 'foldkit'
 import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { DialogBlock, test as DialogTest } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import { UiBlock } from './block'
 import { InMessage } from './inMessage'
@@ -13,22 +12,22 @@ import { layer } from './layer'
 it.effect(
   'parent requests open and close the mobile menu through its Dialog',
   () =>
-    story(
+    Story.story(
       UiBlock,
-      init(Calendar.make(2026, 4, 16)),
-      inMessage(InMessage.RequestedOpenMobileMenu()),
-      Command.expectHas(DialogTest.ShowDialog),
-      Command.resolve(
-        DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+      Story.init(Calendar.make(2026, 4, 16)),
+      Story.inMessage(InMessage.RequestedOpenMobileMenu()),
+      Story.Command.expectHas(Dialog.test.ShowDialog),
+      Story.Command.resolve(
+        Dialog.test.ShowDialog,
+        Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
-      model(model => expect(model.mobileMenuDialog.isOpen).toBe(true)),
-      inMessage(InMessage.RequestedCloseMobileMenu()),
-      Command.expectHas(DialogTest.CloseDialog),
-      Command.resolve(
-        DialogTest.CloseDialog,
-        DialogBlock.Message.CompletedCloseDialog(),
+      Story.model(model => expect(model.mobileMenuDialog.isOpen).toBe(true)),
+      Story.inMessage(InMessage.RequestedCloseMobileMenu()),
+      Story.Command.expectHas(Dialog.test.CloseDialog),
+      Story.Command.resolve(
+        Dialog.test.CloseDialog,
+        Dialog.DialogBlock.Message.CompletedCloseDialog(),
       ),
-      model(model => expect(model.mobileMenuDialog.isOpen).toBe(false)),
+      Story.model(model => expect(model.mobileMenuDialog.isOpen).toBe(false)),
     ).pipe(Effect.provide(layer)),
 )

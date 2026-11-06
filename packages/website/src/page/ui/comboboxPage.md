@@ -8,7 +8,7 @@ A searchable select with input filtering, keyboard navigation, and anchor positi
 
 Embed Combobox via the [`Combobox.makeBlock(Item)` factory](/ui/selection-blocks) at module scope: `const CityComboboxBlock = Combobox.makeBlock(City)`. Pass the same string Schema used by the parent Model. The factory returns a passive Block contract whose view inputs, Binding operations, Message and OutMessage retain that Schema's exact type, so `Selected` carries a `City`. Provide `Combobox.layer` to the parent's construction Layer to acquire its implementation.
 
-What the factory returns is typed [`Completed<Item>` from `@foldkit/ui/combobox`](/ui/selection-blocks#completed-type). The multi-select subpath exports its own `Completed<Item>` type for cases where a created Block has to be named.
+What the factory returns is typed [`Combobox.Completed<Item>` from `@foldkit/ui`](/ui/selection-blocks#completed-type). The multi-select namespace exports its own `Combobox.Multi.Completed<Item>` type for cases where a created Block has to be named.
 
 Call `ParentBlock.makeBinding` with the Block contract, its parent Model `field` and an exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `bindings` list; its acquired connection contributes the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.makeBlock(Schema.String)` for plain strings; `Combobox.makeBlock(Item)` requires the Item Schema.
 
@@ -155,7 +155,7 @@ When the filtered listbox disappears, the input reports `aria-expanded="false"` 
 
 ### Naming the Input
 
-The input is a form field, so give it an accessible name. For a visible label, wire a native `<label for>` that targets the input id with `inputId(id)` imported from `@foldkit/ui/combobox` rather than hardcoding the `-input` convention. The `for` association makes the input properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses the input. That is why it is the recommended pattern.
+The input is a form field, so give it an accessible name. For a visible label, wire a native `<label for>` that targets the input id with `Combobox.inputId(id)` from `@foldkit/ui` rather than hardcoding the `-input` convention. The `for` association makes the input properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses the input. That is why it is the recommended pattern.
 
 Two view input fields cover the cases a `<label for>` does not. Pass `ariaLabel` when there is no visible label, or `ariaLabelledBy` when the element that names the input is not a `<label>` you can point `for` at.
 

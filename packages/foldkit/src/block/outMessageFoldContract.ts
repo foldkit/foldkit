@@ -282,9 +282,14 @@ export interface NormalizedOutMessageFold<
   ChildOutMessage,
   Context extends ReadonlyArray<unknown>,
   Data,
+  ChildMessage = Context extends readonly [
+    Update.FoldContext<infer ContextChildMessage, infer _ParentMessage, Model>,
+  ]
+    ? ContextChildMessage
+    : never,
 >
   extends
-    OutMessageHelperEvidence<ChildOutMessage, 'fold'>,
+    OutMessageHelperEvidence<ChildOutMessage, 'fold', ChildMessage>,
     NormalizedFoldEvidence<
       ChildOutMessage,
       NormalizedFoldContextData<Model, Context>,

@@ -5,8 +5,7 @@ import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import 'vanilla-colorful/hex-color-picker.js'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Input } from '@foldkit/ui'
 import '@shoelace-style/shoelace/dist/components/qr-code/qr-code.js'
 
 export const Model = Schema.Struct({
@@ -63,8 +62,6 @@ export const update = ApplicationComposition.makeUpdate({
   })),
 })
 
-// WEB COMPONENT
-
 export const hexColorPicker = CustomElement.define({
   tag: 'hex-color-picker',
   properties: {
@@ -99,7 +96,15 @@ export const view = ApplicationComposition.makeView((model, h) => ({
     [
       h.div(
         [h.Class('w-full max-w-3xl flex flex-col gap-8')],
-        [headerView(h), designerView(model, h)],
+        [
+          headerView(h),
+          designerView(
+            model.content,
+            model.fillColor,
+            model.backgroundColor,
+            h,
+          ),
+        ],
       ),
     ],
   ),
@@ -149,26 +154,39 @@ const FIELD_LABEL_CLASS =
 const FIELD_CONTROL_CLASS =
   'px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
 
-const designerView = (model: Model, h: ApplicationViewBuilder): Html =>
+const designerView = (
+  content: string,
+  fillColor: string,
+  backgroundColor: string,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [
       h.Class(
         'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 bg-white rounded-xl shadow-sm border border-slate-200 p-6',
       ),
     ],
-    [controlsView(model, h), previewView(model, h)],
+    [
+      controlsView(content, fillColor, backgroundColor, h),
+      previewView(content, fillColor, backgroundColor, h),
+    ],
   )
 
-const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
+const controlsView = (
+  content: string,
+  fillColor: string,
+  backgroundColor: string,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [h.Class('flex flex-col gap-5')],
     [
-      contentFieldView(model, h),
+      contentFieldView(content, h),
       colorFieldView(
         {
           id: 'fill-color',
           label: 'Fill color',
-          value: model.fillColor,
+          value: fillColor,
           onChange: value => Message.ChangedFillColor({ value }),
         },
         h,
@@ -177,7 +195,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
         {
           id: 'background-color',
           label: 'Background color',
-          value: model.backgroundColor,
+          value: backgroundColor,
           onChange: value => Message.ChangedBackgroundColor({ value }),
         },
         h,
@@ -185,11 +203,11 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const contentFieldView = (model: Model, h: ApplicationViewBuilder): Html =>
-  inputView(
+const contentFieldView = (content: string, h: ApplicationViewBuilder): Html =>
+  Input.view(
     {
       id: 'qr-content',
-      value: model.content,
+      value: content,
       onInput: value => Message.UpdatedContent({ value }),
       placeholder: 'https://foldkit.dev',
       toView: attributes =>
@@ -276,7 +294,7 @@ const swatchRow = (
   h.div(
     [h.Class('flex flex-wrap gap-1.5 max-w-[10rem]')],
     PRESET_COLORS.map(color =>
-      buttonView(
+      Button.view(
         {
           onClick: onChange(color),
           toView: attributes =>
@@ -297,7 +315,12 @@ const swatchRow = (
 
 const QR_SIZE = 220
 
-const previewView = (model: Model, h: ApplicationViewBuilder): Html => {
+const previewView = (
+  content: string,
+  fillColor: string,
+  backgroundColor: string,
+  h: ApplicationViewBuilder,
+): Html => {
   const qr = qrCode.withMessage(h)
 
   return h.div(
@@ -308,11 +331,11 @@ const previewView = (model: Model, h: ApplicationViewBuilder): Html => {
     ],
     [
       qr([
-        qr.Value(model.content),
-        qr.Label(`QR code for ${model.content}`),
+        qr.Value(content),
+        qr.Label(`QR code for ${content}`),
         qr.Size(QR_SIZE),
-        qr.Fill(model.fillColor),
-        qr.Background(model.backgroundColor),
+        qr.Fill(fillColor),
+        qr.Background(backgroundColor),
         qr.Radius(0),
       ]),
       h.p(

@@ -64,7 +64,7 @@ const makeFixture = ({ init, update, operations }: VirtualListOperations) => {
   } = operations
   const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 }).model
 
-  const informItemsChanged = operations.informItemsChanged
+  const informOfItemsChanged = operations.informOfItemsChanged
 
   const historyRows: HistoryRows<HistoryItem> = {
     itemToKey: (item: HistoryItem) => item.key,
@@ -94,7 +94,7 @@ const makeFixture = ({ init, update, operations }: VirtualListOperations) => {
     prependedItems: ReadonlyArray<HistoryItem>,
     page: HistoryPage = HistoryPage.More(),
   ) =>
-    operations.informHistoryPrepended(model, {
+    operations.informOfHistoryPrepended(model, {
       items: Array.map(itemKeys, key =>
         pipe(
           prependedItems,
@@ -183,7 +183,7 @@ const makeFixture = ({ init, update, operations }: VirtualListOperations) => {
     update,
     operations,
     defaultInit,
-    informItemsChanged,
+    informOfItemsChanged,
     historyRows,
     historyInit,
     activeHistoryModel,
@@ -309,10 +309,10 @@ describe('VirtualList', () => {
         Parameters<typeof operations.requestScrollToOffset>[1]
       >().toEqualTypeOf<number>()
       expectTypeOf<
-        Parameters<typeof operations.informItemsChanged>[1]
+        Parameters<typeof operations.informOfItemsChanged>[1]
       >().toEqualTypeOf<ReadonlyArray<string>>()
       expectTypeOf<
-        Parameters<typeof operations.informHistoryPrepended>[1]
+        Parameters<typeof operations.informOfHistoryPrepended>[1]
       >().toEqualTypeOf<HistoryPrependInput<HistoryItem>>()
       expectTypeOf(scrollTo).toEqualTypeOf(operations.requestScrollTo)
       expectTypeOf(scrollToIndex).toEqualTypeOf(operations.requestScrollToIndex)
@@ -381,7 +381,7 @@ describe('VirtualList', () => {
 
       expect(emptyScroll.model.initialScroll._tag).toBe('Pending')
 
-      const arrived = operations.informItemsChanged(emptyScroll.model, [
+      const arrived = operations.informOfItemsChanged(emptyScroll.model, [
         'first',
         'last',
       ])
@@ -432,7 +432,7 @@ describe('VirtualList', () => {
 
       expect(missing.model.initialScroll._tag).toBe('Pending')
 
-      const arrived = operations.informItemsChanged(missing.model, ['wanted'])
+      const arrived = operations.informOfItemsChanged(missing.model, ['wanted'])
       expect(arrived.model.pendingScroll).toMatchObject({
         _tag: 'Pending',
         request: {
@@ -556,7 +556,7 @@ describe('VirtualList', () => {
     })
 
     it('keeps an end scroll from a previous layout while rejecting its row index', ({
-      virtualList: { init, update, informItemsChanged },
+      virtualList: { init, update, informOfItemsChanged },
     }) => {
       const model = init({
         id: 'test',
@@ -577,7 +577,7 @@ describe('VirtualList', () => {
           },
         }),
       )
-      const changed = informItemsChanged(observed.model, ['visible'])
+      const changed = informOfItemsChanged(observed.model, ['visible'])
       const atEnd = update(
         changed.model,
         Message.ObservedContainerScroll({
@@ -606,7 +606,7 @@ describe('VirtualList', () => {
       'accepts a changed native anchor from a stale layout only after scrolling by more than one pixel ($delta)',
       (
         { delta, isAccepted },
-        { virtualList: { update, defaultInit, informItemsChanged } },
+        { virtualList: { update, defaultInit, informOfItemsChanged } },
       ) => {
         const observed = update(
           defaultInit(),
@@ -621,7 +621,10 @@ describe('VirtualList', () => {
             }),
           }),
         )
-        const changed = informItemsChanged(observed.model, ['before', 'after'])
+        const changed = informOfItemsChanged(observed.model, [
+          'before',
+          'after',
+        ])
         const nextAnchor = ObservedAnchor.Row({
           key: 'after',
           index: 1,
@@ -671,7 +674,9 @@ describe('VirtualList', () => {
 
       expect(scrolled.model.pendingScroll._tag).toBe('Idle')
       expect(scrolled.model.pendingScrollVersion).toBe(2)
-      const changed = operations.informItemsChanged(scrolled.model, ['row-20'])
+      const changed = operations.informOfItemsChanged(scrolled.model, [
+        'row-20',
+      ])
       expect(changed.model.pendingScroll._tag).toBe('Pending')
       if (changed.model.pendingScroll._tag === 'Pending') {
         expect(changed.model.pendingScroll.request).toStrictEqual({
@@ -688,7 +693,7 @@ describe('VirtualList', () => {
     })
 
     it('rebases an in-flight anchor correction to the latest visible row', ({
-      virtualList: { update, defaultInit, informItemsChanged },
+      virtualList: { update, defaultInit, informOfItemsChanged },
     }) => {
       const observed = update(
         defaultInit(),
@@ -704,7 +709,7 @@ describe('VirtualList', () => {
           },
         }),
       )
-      const changed = informItemsChanged(observed.model, ['older', 'first'])
+      const changed = informOfItemsChanged(observed.model, ['older', 'first'])
       const advanced = update(
         changed.model,
         Message.ObservedContainerScroll({
@@ -747,7 +752,7 @@ describe('VirtualList', () => {
     })
 
     it('uses the current offset when no row is visible during an anchor correction', ({
-      virtualList: { update, defaultInit, informItemsChanged },
+      virtualList: { update, defaultInit, informOfItemsChanged },
     }) => {
       const observed = update(
         defaultInit(),
@@ -763,7 +768,7 @@ describe('VirtualList', () => {
           },
         }),
       )
-      const changed = informItemsChanged(observed.model, ['older', 'first'])
+      const changed = informOfItemsChanged(observed.model, ['older', 'first'])
       const advanced = update(
         changed.model,
         Message.ObservedContainerScroll({
@@ -1409,11 +1414,11 @@ describe('VirtualList', () => {
     })
   })
 
-  describe('informItemsChanged', () => {
+  describe('informOfItemsChanged', () => {
     it('bumps the layout version and reconciles the stored anchor', ({
       virtualList: { operations, defaultInit },
     }) => {
-      const itemChange = operations.informItemsChanged(defaultInit(), [
+      const itemChange = operations.informOfItemsChanged(defaultInit(), [
         'first',
         'second',
       ])
@@ -1430,7 +1435,7 @@ describe('VirtualList', () => {
       virtualList: {
         update,
         defaultInit,
-        informItemsChanged,
+        informOfItemsChanged,
         runMountedScroll,
       },
     }) => {
@@ -1448,7 +1453,7 @@ describe('VirtualList', () => {
           },
         }),
       )
-      const itemChange = informItemsChanged(observed.model, ['first'])
+      const itemChange = informOfItemsChanged(observed.model, ['first'])
       const element = createScrollElement(
         40,
         100,
@@ -1479,7 +1484,7 @@ describe('VirtualList', () => {
       virtualList: {
         update,
         defaultInit,
-        informItemsChanged,
+        informOfItemsChanged,
         runMountedScroll,
       },
     }) => {
@@ -1497,7 +1502,7 @@ describe('VirtualList', () => {
           },
         }),
       )
-      const itemChange = informItemsChanged(observed.model, ['first'])
+      const itemChange = informOfItemsChanged(observed.model, ['first'])
       const element = createScrollElement(
         40,
         100,
@@ -1530,7 +1535,7 @@ describe('VirtualList', () => {
       virtualList: {
         update,
         defaultInit,
-        informItemsChanged,
+        informOfItemsChanged,
         runMountedScroll,
       },
     }) => {
@@ -1548,7 +1553,7 @@ describe('VirtualList', () => {
           },
         }),
       )
-      const itemChange = informItemsChanged(observed.model, ['first'])
+      const itemChange = informOfItemsChanged(observed.model, ['first'])
       const element = createScrollElement(
         180,
         100,
@@ -1568,7 +1573,7 @@ describe('VirtualList', () => {
     })
   })
 
-  describe('informHistoryPrepended', () => {
+  describe('informOfHistoryPrepended', () => {
     it('extends history without consuming the loading buffer or issuing a scroll', ({
       virtualList: { activeHistoryModel, prependHistory },
     }) => {
@@ -1948,7 +1953,7 @@ describe('VirtualList', () => {
       'preserves the offset above a $_tag list when visible rows are reordered or removed',
       (
         scrollContainer,
-        { virtualList: { update, init, informItemsChanged } },
+        { virtualList: { update, init, informOfItemsChanged } },
       ) => {
         const observed = update(
           init({ id: 'test', rowHeightPx: 30, scrollContainer }).model,
@@ -1963,11 +1968,11 @@ describe('VirtualList', () => {
             }),
           }),
         )
-        const reordered = informItemsChanged(observed.model, [
+        const reordered = informOfItemsChanged(observed.model, [
           'second',
           'first',
         ])
-        const filtered = informItemsChanged(reordered.model, ['second'])
+        const filtered = informOfItemsChanged(reordered.model, ['second'])
 
         expect(observed.model.viewportAnchor).toEqual({
           _tag: 'Offset',
@@ -2016,7 +2021,7 @@ describe('VirtualList', () => {
       'preserves a $_tag row anchor after scrolling into the list',
       (
         scrollContainer,
-        { virtualList: { update, init, informItemsChanged } },
+        { virtualList: { update, init, informOfItemsChanged } },
       ) => {
         const anchor = ObservedAnchor.Row({
           key: 'second',
@@ -2032,7 +2037,7 @@ describe('VirtualList', () => {
             anchor,
           }),
         )
-        const reordered = informItemsChanged(observed.model, [
+        const reordered = informOfItemsChanged(observed.model, [
           'second',
           'first',
         ])
@@ -2045,7 +2050,7 @@ describe('VirtualList', () => {
     )
 
     it('captures the current row after preceding content moves an idle list', ({
-      virtualList: { update, init, informItemsChanged },
+      virtualList: { update, init, informOfItemsChanged },
     }) => {
       const initial = update(
         init({
@@ -2079,7 +2084,7 @@ describe('VirtualList', () => {
           origin: { _tag: 'Layout' },
         }),
       )
-      const changed = informItemsChanged(shifted.model, ['second', 'fourth'])
+      const changed = informOfItemsChanged(shifted.model, ['second', 'fourth'])
 
       expect(shifted.model.viewportAnchor).toEqual(currentAnchor)
       expect(changed.model.pendingScroll).toMatchObject({
@@ -2165,9 +2170,9 @@ describe('VirtualList', () => {
     })
 
     it('does not turn an End request into followEnd for subsequent item changes', ({
-      virtualList: { informItemsChanged, completedEnd },
+      virtualList: { informOfItemsChanged, completedEnd },
     }) => {
-      const changed = informItemsChanged(completedEnd(), [
+      const changed = informOfItemsChanged(completedEnd(), [
         'last-window-start',
         'last',
         'appended',
@@ -2330,7 +2335,7 @@ describe('VirtualList', () => {
     it('ignores stale measurements from a previous items layout', ({
       virtualList: { operations, defaultInit, update },
     }) => {
-      const model = operations.informItemsChanged(defaultInit(), []).model
+      const model = operations.informOfItemsChanged(defaultInit(), []).model
       const measurement = update(
         model,
         Message.MeasuredRows({

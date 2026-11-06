@@ -1,31 +1,31 @@
-import { given, message, model, steps, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
 import { ApplicationBlock, Message, layer } from './counter'
 
-const increment = steps(message(Message.ClickedIncrement()))
+const increment = Story.steps(Story.message(Message.ClickedIncrement()))
 
 it.effect('increments again', () =>
-  story(
+  Story.story(
     { block: ApplicationBlock, layer },
-    given({ count: 0 }),
+    Story.given({ count: 0 }),
     increment,
-    message(Message.ClickedIncrement()),
-    model(model => {
+    Story.message(Message.ClickedIncrement()),
+    Story.model(model => {
       expect(model.count).toBe(2)
     }),
   ),
 )
 
 it.effect('decrements from the shared setup', () =>
-  story(
+  Story.story(
     { block: ApplicationBlock, layer },
-    given({ count: 0 }),
+    Story.given({ count: 0 }),
     increment,
-    message(Message.ClickedDecrement()),
-    model(model => {
+    Story.message(Message.ClickedDecrement()),
+    Story.model(model => {
       expect(model.count).toBe(0)
     }),
   ),

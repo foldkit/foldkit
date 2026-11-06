@@ -1,3 +1,13 @@
+import * as Story from 'foldkit/story'
+
+import { EditorBinding } from './composition.js'
+import * as Editor from './editor.js'
+
+export const editedChild = Story.messageIn(
+  EditorBinding,
+  Editor.Message.UpdatedText({ text: 'Edited' }),
+)
+
 export { ApplicationBlock, layer } from './block.js'
 export { SaveDraft } from './command.js'
 export {

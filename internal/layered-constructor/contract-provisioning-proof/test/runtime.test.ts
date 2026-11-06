@@ -46,7 +46,7 @@ test('accepted child OutMessages use the parent Binding policy without building 
     Story.story(
       ProvidedParent,
       Story.init(),
-      Story.messageFrom(ChildBinding, Message.SubmittedText()),
+      Story.messageIn(ChildBinding, Message.SubmittedText()),
       Story.Command.resolve(SendText, ParentMessage.CompletedSend()),
     ),
   ))

@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import * as Icon from '../icon'
 import { Message } from '../message'
@@ -72,7 +72,7 @@ export const confirmedView = (
         ],
         [`Order reference · ${state.orderId}`],
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedStartOver(),
           toView: attributes =>
@@ -112,7 +112,7 @@ export const cancelledView = (h: ApplicationViewBuilder): Html =>
           'Your checkout was cancelled before payment. You can begin again whenever you’re ready.',
         ],
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedStartOver(),
           toView: attributes =>

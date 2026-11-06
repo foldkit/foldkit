@@ -1,5 +1,5 @@
-import { makeBlock as makeMenuBlock } from '@foldkit/ui/menu'
+import { Menu } from '@foldkit/ui'
 
 import { type ThemePreference } from '../themePreference'
 
-export const ThemeMenuBlock = makeMenuBlock<ThemePreference>()
+export const ThemeMenuBlock = Menu.makeBlock<ThemePreference>()

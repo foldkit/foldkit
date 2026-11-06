@@ -1,64 +1,113 @@
-import { Array, Option } from 'effect'
+import { Option, pipe } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { makeStep } from '../block'
+import { makeFieldsStep, makeNoopStep, makeStep } from '../block'
 import { MoveIssue } from '../command'
 import { IssueBoardsBinding } from '../composition'
-import { type Issue, type IssueStatus } from '../domain'
-import { IssueMoveState } from '../optimistic'
+import { Issue, Workspace } from '../domain'
+import type { FailedMoveIssue, SucceededMoveIssue } from '../message'
+import { RepositoryError } from '../repository'
+import { maybeConfirmedIssue } from '../selectors'
+import { mergeIssue } from './issues'
 
-const beginIssueMove = (
-  issue: Issue,
-  status: IssueStatus,
+export const moveIssue = (
+  issueId: string,
+  status: Issue.Status,
   insertionIndex: number,
 ) =>
-  makeStep(model => ({
-    model: modifyFields(model, {
-      issueMoveState: () =>
-        IssueMoveState.MovingIssue({
-          issueId: issue.id,
+  makeStep(model => {
+    if (Issue.MoveState.guards.Moving(model.issueMoveState)) {
+      return { model }
+    }
+
+    const maybeIssue = maybeConfirmedIssue(model, issueId)
+
+    if (Option.isNone(maybeIssue)) {
+      return { model }
+    }
+
+    const issue = maybeIssue.value
+
+    return {
+      model: modifyFields(model, {
+        issueMoveState: () =>
+          Issue.MoveState.Moving({
+            issueId,
+            status,
+            insertionIndex,
+            expectedVersion: issue.version,
+          }),
+      }),
+      commands: [
+        MoveIssue({
+          issueId,
           status,
           insertionIndex,
           expectedVersion: issue.version,
         }),
-    }),
-    commands: [
-      MoveIssue({
-        issueId: issue.id,
-        status,
-        insertionIndex,
-        expectedVersion: issue.version,
-      }),
-    ],
-  }))
-
-export const requestIssueMove = (
-  issueId: string,
-  status: IssueStatus,
-  insertionIndex: number,
-) =>
-  makeStep(model => {
-    if (IssueMoveState.guards.MovingIssue(model.issueMoveState)) {
-      return { model }
+      ],
     }
-
-    return Option.match(AsyncData.getData(model.workspaceAsyncData), {
-      onNone: () => ({ model }),
-      onSome: workspace =>
-        Option.match(
-          Array.findFirst(workspace.issues, issue => issue.id === issueId),
-          {
-            onNone: () => ({ model }),
-            onSome: issue =>
-              Update.combineSteps([
-                beginIssueMove(issue, status, insertionIndex),
-                IssueBoardsBinding.informIssueMove(issue.projectId, {
-                  status,
-                  insertionIndex,
-                }),
-              ]),
-          },
-        ),
-    })
   })
+
+const announceIssueMoveFailure = (issueId: string) =>
+  makeStep(model =>
+    pipe(
+      maybeConfirmedIssue(model, issueId),
+      Option.match({
+        onNone: () => ({ model }),
+        onSome: issue =>
+          IssueBoardsBinding.informOfIssueMoveFailure(issue.projectId),
+      }),
+    ),
+  )
+
+export const handleSucceededMoveIssue = makeFieldsStep.fromMessage(
+  ({ moveResult }: SucceededMoveIssue) => ({
+    workspaceAsyncData: AsyncData.map(workspace =>
+      Workspace.confirmIssueMove(workspace, moveResult),
+    ),
+    issueMoveState: () => Issue.MoveState.Idle(),
+    maybeNotice: () => Option.some('Issue moved'),
+  }),
+)
+
+export const handleFailedMoveIssue = makeStep.fromMessage(
+  ({ issueId, status, insertionIndex, error }: FailedMoveIssue) => {
+    const recordMoveFailure = makeFieldsStep(() => ({
+      issueMoveState: () =>
+        Issue.MoveState.Failed({
+          issueId,
+          status,
+          insertionIndex,
+          error: error.message,
+        }),
+    }))
+
+    return RepositoryError.matchOrElse(
+      error,
+      {
+        Conflict: ({ latestIssue }) =>
+          Update.combineSteps([
+            recordMoveFailure,
+            mergeIssue(latestIssue),
+            announceIssueMoveFailure(issueId),
+          ]),
+      },
+      () =>
+        Update.combineSteps([
+          recordMoveFailure,
+          announceIssueMoveFailure(issueId),
+        ]),
+    )
+  },
+)
+
+export const retryIssueMove = makeStep(model =>
+  Issue.MoveState.match(model.issueMoveState, {
+    Idle: makeNoopStep,
+    Moving: makeNoopStep,
+    Failed: ({ issueId, status, insertionIndex }) =>
+      moveIssue(issueId, status, insertionIndex),
+  }),
+)

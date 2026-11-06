@@ -10,7 +10,9 @@ export class ValueFamily extends Context.Service<
 const ValueFamilyLayer = Layer.effect(ValueFamily)(Block.familyLifetime)
 export const ValueNamespace = Block.makeNamespace('InstanceValueFamily')
 export const ValueKey = Symbol('InstanceValueFamily')
-const makeValueFamily = <Value extends Schema.Top>(Value: Value) => {
+const makeValueFamily = <Value extends Schema.Codec<any, any, never, never>>(
+  Value: Value,
+) => {
   const Model = Schema.Struct({ value: Value })
   type Model = typeof Model.Type
   const Definition = Block.makeFamilyDefinition(ValueNamespace, {

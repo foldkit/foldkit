@@ -15,4 +15,4 @@ RUN pnpm --filter @typing-game/server... build
 WORKDIR /app/packages/typing-game/server
 
 EXPOSE 3001
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/main.js"]

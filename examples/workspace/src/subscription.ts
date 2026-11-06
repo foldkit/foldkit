@@ -2,20 +2,22 @@ import { Array, Duration, Schema, Stream } from 'effect'
 import { AsyncData } from 'foldkit'
 
 import { makeSubscriptions } from './block'
-import { protectUnsavedChanges } from './draftProtection'
 import { Message } from './message'
-import { unsavedIssueDrafts } from './selection'
+import { protectUnsavedChanges } from './protectUnsavedChanges'
+import { unsavedIssueSummaries } from './selectors'
 
 const ACTIVITY_TICK_INTERVAL = Duration.seconds(20)
 
 export const subscriptions = makeSubscriptions(entry => ({
   draftExitGuard: entry(
     'DraftExitGuard',
-    { isProtecting: Schema.Boolean },
+    { hasUnsavedChanges: Schema.Boolean },
     {
       messages: [],
       modelToDependencies: model => ({
-        isProtecting: Array.isReadonlyArrayNonEmpty(unsavedIssueDrafts(model)),
+        hasUnsavedChanges: Array.isReadonlyArrayNonEmpty(
+          unsavedIssueSummaries(model),
+        ),
       }),
       handler: function* () {
         return protectUnsavedChanges

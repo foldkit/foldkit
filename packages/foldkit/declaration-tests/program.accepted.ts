@@ -1,11 +1,4 @@
-import {
-  Context,
-  Effect,
-  Layer,
-  Option,
-  Schema,
-  SchemaTransformation,
-} from 'effect'
+import { Context, Effect, Layer, Schema, SchemaTransformation } from 'effect'
 import * as Block from 'foldkit/block'
 import type * as Command from 'foldkit/command'
 import * as Message from 'foldkit/message'
@@ -235,195 +228,101 @@ export const ElementProgram = Program.makeElement({
   flags: Effect.succeed(Flags.make({ status: 'ready' })),
 })
 
-export class DispatchDecoder extends Context.Service<
-  DispatchDecoder,
-  Readonly<{ prefix: string }>
->()('DeclarationDispatchDecoder') {}
-
-const ServiceDecodedString = Schema.String.pipe(
+const SynchronouslyDecodedString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.String,
     SchemaTransformation.transformEffect({
-      decode: value =>
-        Effect.map(DispatchDecoder, decoder => `${decoder.prefix}${value}`),
+      decode: value => Effect.succeed(`decoded:${value}`),
       encode: Effect.succeed,
     }),
   ),
 )
-const ServiceDecodedMessage = Message.defineMessageUnion({
-  SubmittedValue: { value: ServiceDecodedString },
+const SynchronouslyDecodedMessage = Message.defineMessageUnion({
+  SubmittedValue: { value: SynchronouslyDecodedString },
 })
-const ServiceDecodedProgramDefinition = Block.makeDefinition(
-  'ServiceDecodedProgram',
+const SynchronouslyDecodedProgramDefinition = Block.makeDefinition(
+  'SynchronouslyDecodedProgram',
   {
     Model,
-    Message: ServiceDecodedMessage,
+    Message: SynchronouslyDecodedMessage,
   },
 )
-const ServiceDecodedProgramComposition =
-  ServiceDecodedProgramDefinition.makeComposition()
-const serviceDecodedInit = () => ({
+const SynchronouslyDecodedProgramComposition =
+  SynchronouslyDecodedProgramDefinition.makeComposition()
+const synchronouslyDecodedInit = () => ({
   model: Model.make({ status: 'ready' }),
 })
-const serviceDecodedUpdate = ServiceDecodedProgramComposition.makeUpdate({
-  SubmittedValue: (_model, { value }) => ({
-    model: Model.make({ status: value }),
-  }),
-})
-const serviceDecodedElementView = ServiceDecodedProgramComposition.makeView(
-  (model, h) => h.div([], [model.status]),
-)
-const serviceDecodedPageView = ServiceDecodedProgramComposition.makeView(
-  model => ({
+const synchronouslyDecodedUpdate =
+  SynchronouslyDecodedProgramComposition.makeUpdate({
+    SubmittedValue: (_model, { value }) => ({
+      model: Model.make({ status: value }),
+    }),
+  })
+const synchronouslyDecodedElementView =
+  SynchronouslyDecodedProgramComposition.makeView((model, h) =>
+    h.div([], [model.status]),
+  )
+const synchronouslyDecodedPageView =
+  SynchronouslyDecodedProgramComposition.makeView(model => ({
     title: model.status,
     body: null,
-  }),
-)
-const DispatchDecoderLayer = Layer.succeed(DispatchDecoder, {
-  prefix: 'decoded:',
-})
-const prepareServiceDecodedBlock = () =>
-  ServiceDecodedProgramComposition.prepareBlock({
-    init: serviceDecodedInit,
-    update: serviceDecodedUpdate,
-    view: serviceDecodedElementView,
+  }))
+const prepareSynchronouslyDecodedElementBlock = () =>
+  SynchronouslyDecodedProgramComposition.prepareBlock({
+    init: synchronouslyDecodedInit,
+    update: synchronouslyDecodedUpdate,
+    view: synchronouslyDecodedElementView,
   })
-export const ServiceDecodedBlock: Block.FromAssemblyWithView<
+const SynchronouslyDecodedElementBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof prepareServiceDecodedBlock
-> = Block.assemble(prepareServiceDecodedBlock)
-const prepareServiceDecodedProvidedElementBlock = () =>
-  ServiceDecodedProgramComposition.prepareBlock({
-    init: serviceDecodedInit,
-    update: serviceDecodedUpdate,
-    view: serviceDecodedElementView,
-    EffectsLayer: DispatchDecoderLayer,
+  typeof prepareSynchronouslyDecodedElementBlock
+> = Block.assemble(prepareSynchronouslyDecodedElementBlock)
+const prepareSynchronouslyDecodedPageBlock = () =>
+  SynchronouslyDecodedProgramComposition.prepareBlock({
+    init: synchronouslyDecodedInit,
+    update: synchronouslyDecodedUpdate,
+    view: synchronouslyDecodedPageView,
   })
-export const ServiceDecodedProvidedElementBlock: Block.FromAssemblyWithView<
+const SynchronouslyDecodedPageBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof prepareServiceDecodedProvidedElementBlock
-> = Block.assemble(prepareServiceDecodedProvidedElementBlock)
-const prepareServiceDecodedProvidedPageBlock = () =>
-  ServiceDecodedProgramComposition.prepareBlock({
-    init: serviceDecodedInit,
-    update: serviceDecodedUpdate,
-    view: serviceDecodedPageView,
-    EffectsLayer: DispatchDecoderLayer,
-  })
-const ServiceDecodedProvidedPageBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepareServiceDecodedProvidedPageBlock
-> = Block.assemble(prepareServiceDecodedProvidedPageBlock)
+  typeof prepareSynchronouslyDecodedPageBlock
+> = Block.assemble(prepareSynchronouslyDecodedPageBlock)
 
-const ManagedDecoderProgramNamespace = Block.makeNamespace(
-  'ManagedDecoderProgram',
-)
-const ManagedDecoder =
-  ManagedDecoderProgramNamespace.makeResource<string>()('DispatchDecoder')
-const ManagedDecodedString = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.String,
-    SchemaTransformation.transformEffect({
-      decode: value => Effect.as(Effect.result(ManagedDecoder.get), value),
-      encode: Effect.succeed,
-    }),
-  ),
-)
-const ManagedDecodedMessage = Message.defineMessageUnion({
-  SubmittedValue: { value: ManagedDecodedString },
-})
-const ManagedDecoderProgramDefinition =
-  ManagedDecoderProgramNamespace.makeDefinition({
-    Model,
-    Message: ManagedDecodedMessage,
-  })
-const managedDecoders = ManagedDecoderProgramDefinition.makeManagedResources(
-  entry => ({
-    dispatchDecoder: entry('DispatchDecoder', Schema.Option(Schema.Null), {
-      resource: ManagedDecoder,
-      modelToMaybeRequirements: () => Option.none<null>(),
-      onAcquired: value => ManagedDecodedMessage.SubmittedValue({ value }),
-      onReleased: () => ManagedDecodedMessage.SubmittedValue({ value: '' }),
-      onAcquireError: () => ManagedDecodedMessage.SubmittedValue({ value: '' }),
-      handler: function* () {
-        return {
-          acquire: () => Effect.succeed('decoded'),
-          release: () => Effect.void,
-        }
-      },
-    }),
-  }),
-)
-const ManagedDecoderProgramComposition =
-  ManagedDecoderProgramDefinition.makeComposition()
-const prepareManagedDecodedBlock = () =>
-  ManagedDecoderProgramComposition.prepareBlock({
-    init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: ManagedDecoderProgramComposition.makeUpdate({
-      SubmittedValue: (model, { value }) => ({
-        model: Struct.modifyFields(model, { status: () => value }),
-      }),
-    }),
-    view: ManagedDecoderProgramComposition.makeView((model, h) =>
-      h.div([], [model.status]),
-    ),
-    managedResources: managedDecoders,
-    EffectsLayer: managedDecoders.dispatchDecoder.layer,
-  })
-const ManagedDecodedBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepareManagedDecodedBlock
-> = Block.assemble(prepareManagedDecodedBlock)
-export const RunnableManagedServiceDecodedElement = Program.makeElement({
-  block: ManagedDecodedBlock,
+export const RunnableSynchronouslyDecodedElement = Program.makeElement({
+  block: SynchronouslyDecodedElementBlock,
   container: null,
   devTools: { dispatch: true },
 })
-export const startManagedServiceDecodedElement =
-  RunnableManagedServiceDecodedElement.start
-
-export const RunnableServiceDecodedElement = Program.makeElement({
-  block: ServiceDecodedProvidedElementBlock,
+export const RunnableSynchronouslyDecodedPage = Program.make({
+  block: SynchronouslyDecodedPageBlock,
   container: null,
   devTools: { dispatch: true },
 })
-export const RunnableServiceDecodedPage = Program.make({
-  block: ServiceDecodedProvidedPageBlock,
-  container: null,
-  devTools: { dispatch: true },
-})
-export const InspectionServiceDecodedElement = Program.makeElement({
-  block: ServiceDecodedBlock,
+export const InspectionSynchronouslyDecodedElement = Program.makeElement({
+  block: SynchronouslyDecodedElementBlock,
   container: null,
   devTools: {},
 })
-export const PendingServiceDecodedElement = Program.makeElement({
-  block: ServiceDecodedBlock,
-  container: null,
-  devTools: { dispatch: true },
-})
-const maybeDispatchServiceConfig =
+const maybeSynchronousDispatchConfig =
   globalThis.Math.random() > 0.5
-    ? { block: ServiceDecodedBlock, container: null }
+    ? { block: SynchronouslyDecodedElementBlock, container: null }
     : {
-        block: ServiceDecodedBlock,
+        block: SynchronouslyDecodedElementBlock,
         container: null,
         devTools: { dispatch: true as const },
       }
-export const PendingMaybeDispatchServiceElement = Program.makeElement(
-  maybeDispatchServiceConfig,
+export const MaybeSynchronouslyDecodedElement = Program.makeElement(
+  maybeSynchronousDispatchConfig,
 )
 const configuredDevTools: Runtime.DevToolsConfig =
   globalThis.Math.random() > 0.5
     ? false
     : { dispatch: globalThis.Math.random() > 0.5 }
-export const PendingConfiguredDispatchServiceElement = Program.makeElement({
-  block: ServiceDecodedBlock,
+export const ConfiguredSynchronouslyDecodedElement = Program.makeElement({
+  block: SynchronouslyDecodedElementBlock,
   container: null,
   devTools: configuredDevTools,
 })
-export const ProvidedServiceDecodedElement =
-  PendingServiceDecodedElement.provide(DispatchDecoderLayer)
 
 class ProgramClient extends Context.Service<
   ProgramClient,
@@ -580,44 +479,20 @@ type ProvidedRawCommandElementIsExact = Expect<
     Program.Element<undefined, never, never, RawCommandSource>
   >
 >
-type InspectionServiceDecodedElementIsExact = Expect<
-  Equal<typeof InspectionServiceDecodedElement, Program.Element>
+type InspectionSynchronouslyDecodedElementIsExact = Expect<
+  Equal<typeof InspectionSynchronouslyDecodedElement, Program.Element>
 >
-type RunnableServiceDecodedElementIsExact = Expect<
-  Equal<
-    typeof RunnableServiceDecodedElement,
-    Program.Element<undefined, never, never, DispatchDecoder>
-  >
+type RunnableSynchronouslyDecodedElementIsExact = Expect<
+  Equal<typeof RunnableSynchronouslyDecodedElement, Program.Element>
 >
-type RunnableServiceDecodedPageIsExact = Expect<
-  Equal<
-    typeof RunnableServiceDecodedPage,
-    Program.Program<undefined, void, never, never, DispatchDecoder>
-  >
+type RunnableSynchronouslyDecodedPageIsExact = Expect<
+  Equal<typeof RunnableSynchronouslyDecodedPage, Program.Program>
 >
-type PendingServiceDecodedElementIsExact = Expect<
-  Equal<
-    typeof PendingServiceDecodedElement,
-    Program.Pending<undefined, void, DispatchDecoder, never, never, 'Element'>
-  >
+type MaybeSynchronouslyDecodedElementIsExact = Expect<
+  Equal<typeof MaybeSynchronouslyDecodedElement, Program.Element>
 >
-type PendingMaybeDispatchServiceElementIsExact = Expect<
-  Equal<
-    typeof PendingMaybeDispatchServiceElement,
-    Program.Pending<undefined, void, DispatchDecoder, never, never, 'Element'>
-  >
->
-type PendingConfiguredDispatchServiceElementIsExact = Expect<
-  Equal<
-    typeof PendingConfiguredDispatchServiceElement,
-    Program.Pending<undefined, void, DispatchDecoder, never, never, 'Element'>
-  >
->
-type ProvidedServiceDecodedElementIsExact = Expect<
-  Equal<
-    typeof ProvidedServiceDecodedElement,
-    Program.Element<undefined, never, never, DispatchDecoder>
-  >
+type ConfiguredSynchronouslyDecodedElementIsExact = Expect<
+  Equal<typeof ConfiguredSynchronouslyDecodedElement, Program.Element>
 >
 type ProgramAssertions = [
   ServiceLayerServicesAreExact,
@@ -626,17 +501,13 @@ type ProgramAssertions = [
   ProvidedServiceElementIsExact,
   PendingRawCommandElementIsExact,
   ProvidedRawCommandElementIsExact,
-  InspectionServiceDecodedElementIsExact,
-  RunnableServiceDecodedElementIsExact,
-  RunnableServiceDecodedPageIsExact,
-  PendingServiceDecodedElementIsExact,
-  PendingMaybeDispatchServiceElementIsExact,
-  PendingConfiguredDispatchServiceElementIsExact,
-  ProvidedServiceDecodedElementIsExact,
+  InspectionSynchronouslyDecodedElementIsExact,
+  RunnableSynchronouslyDecodedElementIsExact,
+  RunnableSynchronouslyDecodedPageIsExact,
+  MaybeSynchronouslyDecodedElementIsExact,
+  ConfiguredSynchronouslyDecodedElementIsExact,
 ]
 const programAssertions: ProgramAssertions = [
-  true,
-  true,
   true,
   true,
   true,

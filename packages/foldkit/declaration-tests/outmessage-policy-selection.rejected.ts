@@ -441,11 +441,12 @@ LeftBindingWithOutMessagePolicy.init({
     ParentModel.make({ left: child, right: child, entries: [] }),
 })
 
-LeftBindingWithOutMessagePolicy.embedView({
+const invalidChildView = {
   slotId: 'left',
-  // @ts-expect-error Selected embedView preserves the child Model.
   model: Schema.Struct({ wrong: Schema.Boolean }).make({ wrong: true }),
-})
+}
+// @ts-expect-error Selected embedView preserves the child Model.
+LeftBindingWithOutMessagePolicy.embedView(invalidChildView)
 
 void RightBindingWithOutMessagePolicy
 void ChildModel

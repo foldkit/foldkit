@@ -29,11 +29,12 @@ import type {
 } from '../experimental/contracted/readableProvider.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 
 export type DeclaredRootBlock = Readonly<{
   owner: Owner<string>
-  Model: AnySchema
-  Message: AnySchema
+  Model: AnySelfContainedSchema
+  Message: AnySelfContainedSchema
   OutMessage: AnySchema | undefined
   [DescriptorTypeId]: PublicFacts
 }>

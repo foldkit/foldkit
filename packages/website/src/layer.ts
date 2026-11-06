@@ -1,7 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
-import { layer as MenuLayer } from '@foldkit/ui/menu'
+import { Dialog, Menu } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
 import {
@@ -34,7 +33,7 @@ import { EffectsLayer } from './effectsLayer'
 import { init } from './init'
 import { subscriptions } from './subscription'
 import { update } from './update'
-import { view } from './view/view'
+import { view } from './view'
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
@@ -86,8 +85,8 @@ export const layer = ApplicationBlock.makeLayer(
       Search.layer,
       SnippetCopy.layer,
       SnippetDisclosure.layer,
-      DialogLayer,
-      MenuLayer,
+      Dialog.layer,
+      Menu.layer,
     ),
   ),
 )

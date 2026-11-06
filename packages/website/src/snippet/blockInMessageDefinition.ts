@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import * as Block from 'foldkit/block'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
 export const Model = Schema.Struct({ id: Schema.String, text: Schema.String })
 export type Model = typeof Model.Type
@@ -11,7 +11,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedSubmit: {},
   RequestedClear: {},
   InformedOfDraftChanged: { text: Schema.String },

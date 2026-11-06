@@ -81,7 +81,7 @@ type InferredElementConfigWithFlags<
 > = ElementConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
 
 type RoutingApplicationConfigWithFlagsInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   FlagsSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
@@ -96,7 +96,7 @@ type RoutingApplicationConfigWithFlagsInput<
 >
 
 type RoutingApplicationConfigInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
 > = Omit<
@@ -109,7 +109,7 @@ type RoutingApplicationConfigInput<
 >
 
 type ApplicationConfigWithFlagsInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   FlagsSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
@@ -124,7 +124,7 @@ type ApplicationConfigWithFlagsInput<
 >
 
 type ApplicationConfigInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
 > = Omit<
@@ -133,7 +133,7 @@ type ApplicationConfigInput<
 >
 
 type ElementConfigWithFlagsInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   FlagsSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
@@ -148,7 +148,7 @@ type ElementConfigWithFlagsInput<
 >
 
 type ElementConfigInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
 > = Omit<
@@ -487,7 +487,7 @@ type PublicProgram<
  * ManagedResources require.
  */
 export function __makeFromConfig<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
@@ -528,7 +528,7 @@ export function __makeFromConfig<
 >
 
 export function __makeFromConfig<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
   const Config extends RoutingApplicationConfigInput<
@@ -560,7 +560,7 @@ export function __makeFromConfig<
 >
 
 export function __makeFromConfig<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
@@ -596,7 +596,7 @@ export function __makeFromConfig<
 >
 
 export function __makeFromConfig<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
   const Config extends ApplicationConfigInput<ModelSchema, Update, Mounts> =
@@ -651,7 +651,7 @@ export function __makeFromConfig(
  * metadata.
  */
 export function __makeElementFromConfig<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
@@ -686,7 +686,7 @@ export function __makeElementFromConfig<
 >
 
 export function __makeElementFromConfig<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
   const Config extends ElementConfigInput<ModelSchema, Update, Mounts> =

@@ -2,16 +2,12 @@ import { Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  layer as RadioGroupLayer,
-  type RenderInfo as RadioGroupRenderInfo,
-  makeBlock as makeRadioGroupBlock,
-} from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 const Plan = Schema.Literals(['Startup', 'Business', 'Enterprise'])
 type Plan = typeof Plan.Type
 
-const PlanRadioGroup = makeRadioGroupBlock<Plan>()
+const PlanRadioGroup = RadioGroup.makeBlock<Plan>()
 
 // Add fields to your Model for the RadioGroup Block and the selected
 // value. The Block keeps private keyboard-focus state; the parent owns
@@ -82,7 +78,7 @@ const update = PlanPickerComposition.makeUpdate({})
 // Inside your view function, embed the radio group via h.block and pass
 // the parent-owned selection as selectedValue:
 const view = PlanPickerComposition.makeView((model, h) => {
-  const radioGroupView = ({ group, options }: RadioGroupRenderInfo<Plan>) =>
+  const radioGroupView = ({ group, options }: RadioGroup.RenderInfo<Plan>) =>
     h.div(
       [...group, h.Class('flex flex-col gap-3')],
       options.map(option => {
@@ -131,4 +127,4 @@ export const layer = PlanPickerBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(RadioGroupLayer))
+).pipe(Layer.provide(RadioGroup.layer))

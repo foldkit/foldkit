@@ -6,10 +6,10 @@ import * as Markdown from '@foldkit/markdown'
 import { parseMarkdown } from '@foldkit/markdown/vite'
 
 import { FAQ_IDS } from '../blocks/comingFromReact/faq'
-import { type CodeBlock } from '../component'
 import { PostFrontmatter } from '../page/blog/frontmatter'
 import comingFromReactSource from '../page/comingFromReact/comingFromReact.md?raw'
 import comboboxPageSource from '../page/ui/comboboxPage.md?raw'
+import type * as CodeBlock from './codeBlock'
 import { collectDemoLabels } from './demoLabel'
 import { islandAttributes } from './islandAttributes'
 import { docIslands } from './islands'
@@ -250,13 +250,13 @@ const demoDeclarationSource = (pagePath: string, pageSource: string): string =>
     Array.head(
       capturedNames(
         pageSource,
-        /import\s*\{\s*(\w+PageContent)\s*\}\s*from ['"]\.\/content['"]/g,
+        /import\s*\{\s*(\w+PageContent)\s*\}\s*from ['"]\.\.?\/content['"]/g,
       ),
     ),
     {
       onNone: () => pageSource,
       onSome: contentName => {
-        const contentPath = pagePath.replace(/[^/]+$/, 'content.ts')
+        const contentPath = pagePath.replace(/(?:view\/)?[^/]+$/, 'content.ts')
         const contentSource = pageSources[contentPath]
 
         expect(
@@ -297,7 +297,8 @@ describe('demo island registration', () => {
     '$markdownPath declares every demo its markdown embeds',
     ({ markdownPath, names }) => {
       const pagePath = markdownPath
-        .replace('../page/ui/', '../blocks/ui/')
+        .replace('../page/ui/', '../blocks/ui/view/')
+        .replace(/Page\.md$/, '.ts')
         .replace(/\.md$/, '.ts')
       const pageSource = pageSources[pagePath]
 

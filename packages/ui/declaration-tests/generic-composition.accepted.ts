@@ -52,8 +52,8 @@ export const EncodedItem = Schema.Number.pipe(
 )
 export const EncodedPicker = Combobox.makeBlock(EncodedItem)
 export const MultiPicker = Combobox.Multi.makeBlock(Item)
-export const ListPicker = Listbox.makeBlock<'Apple' | 'Pear'>()
-export const MultiListPicker = Listbox.Multi.makeBlock<'Apple' | 'Pear'>()
+export const ListPicker = Listbox.makeBlock(Item)
+export const MultiListPicker = Listbox.Multi.makeBlock(Item)
 export const MenuPicker = Menu.makeBlock<'Apple' | 'Pear'>()
 const MenuFoldModel = Schema.Struct({ selected: Item })
 export const MenuFoldFixtureBlock = Block.make('MenuFoldFixture', {
@@ -600,7 +600,7 @@ export type GenericAssertions = [
   >,
   Expect<
     Equal<
-      Parameters<SliderExecutable['operations']['informRangeChange']>,
+      Parameters<SliderExecutable['operations']['informOfRangeChange']>,
       [
         model: typeof Slider.SliderBlock.Model.Type,
         payload: Block.OperationPayload<
@@ -611,13 +611,13 @@ export type GenericAssertions = [
   >,
   Expect<
     Equal<
-      Parameters<RootSliderExecutable['operations']['informRangeChange']>,
-      Parameters<SliderExecutable['operations']['informRangeChange']>
+      Parameters<RootSliderExecutable['operations']['informOfRangeChange']>,
+      Parameters<SliderExecutable['operations']['informOfRangeChange']>
     >
   >,
   Expect<
     Equal<
-      Parameters<TooltipExecutable['operations']['informShowDelayChanged']>,
+      Parameters<TooltipExecutable['operations']['informOfShowDelayChanged']>,
       [model: typeof Tooltip.TooltipBlock.Model.Type, showDelay: Duration.Input]
     >
   >,
@@ -633,13 +633,13 @@ export type GenericAssertions = [
 ]
 
 export const sliderRangeChange = Story.withBlock(Slider.SliderBlock, slider =>
-  slider.operations.informRangeChange(
+  slider.operations.informOfRangeChange(
     slider.init({ id: 'volume', min: 0, max: 100, step: 1 }).model,
     { min: 10, max: 90 },
   ),
 ).pipe(Effect.provide(Slider.layer))
 export const rootSliderRangeChange = Story.withBlock(RootSlider, slider =>
-  slider.operations.informRangeChange(
+  slider.operations.informOfRangeChange(
     slider.init({ id: 'root-volume', min: 0, max: 100, step: 1 }).model,
     { min: 20, max: 80 },
   ),
@@ -647,7 +647,7 @@ export const rootSliderRangeChange = Story.withBlock(RootSlider, slider =>
 export const tooltipDelayFromString = Story.withBlock(
   Tooltip.TooltipBlock,
   tooltip =>
-    tooltip.operations.informShowDelayChanged(
+    tooltip.operations.informOfShowDelayChanged(
       tooltip.init({ id: 'help' }).model,
       '250 millis',
     ),
@@ -655,7 +655,7 @@ export const tooltipDelayFromString = Story.withBlock(
 export const tooltipDelayFromNumber = Story.withBlock(
   Tooltip.TooltipBlock,
   tooltip =>
-    tooltip.operations.informShowDelayChanged(
+    tooltip.operations.informOfShowDelayChanged(
       tooltip.init({ id: 'details' }).model,
       300,
     ),
@@ -663,7 +663,7 @@ export const tooltipDelayFromNumber = Story.withBlock(
 export const tooltipDelayFromDuration = Story.withBlock(
   Tooltip.TooltipBlock,
   tooltip =>
-    tooltip.operations.informShowDelayChanged(
+    tooltip.operations.informOfShowDelayChanged(
       tooltip.init({ id: 'settings' }).model,
       Duration.millis(350),
     ),
@@ -933,7 +933,7 @@ export type ExactSliderRangeOutMessage = Expect<
   Equal<
     Exclude<
       ReturnType<
-        SliderExecutable['operations']['informRangeChange']
+        SliderExecutable['operations']['informOfRangeChange']
       >['outMessage'],
       undefined
     >,
@@ -944,7 +944,7 @@ export type ExactRootSliderRangeOutMessage = Expect<
   Equal<
     Exclude<
       ReturnType<
-        RootSliderExecutable['operations']['informRangeChange']
+        RootSliderExecutable['operations']['informOfRangeChange']
       >['outMessage'],
       undefined
     >,

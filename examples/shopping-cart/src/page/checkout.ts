@@ -1,8 +1,7 @@
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Button, Textarea } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { Cart } from '../domain'
@@ -136,7 +135,7 @@ export const view = (
                 ),
               ],
             ),
-            textareaView(
+            Textarea.view(
               {
                 id: 'delivery-instructions',
                 value: deliveryInstructions,
@@ -179,7 +178,7 @@ export const view = (
                   ],
                   ['Back to Cart'],
                 ),
-                buttonView(
+                Button.view(
                   {
                     onClick: Message.ClickedPlaceOrder(),
                     toView: attributes =>

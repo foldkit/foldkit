@@ -1,6 +1,6 @@
 // Pseudocode walkthrough of what an arrow adds to a Popover you already have.
 // Popover positions the arrow. The CSS below the demo draws it.
-import type { RenderInfo as PopoverRenderInfo } from '@foldkit/ui/popover'
+import { Popover } from '@foldkit/ui'
 
 const view = PopoverExampleComposition.makeView((model, h) => {
   const popoverView = ({
@@ -9,7 +9,7 @@ const view = PopoverExampleComposition.makeView((model, h) => {
     backdrop,
     arrow,
     isVisible,
-  }: PopoverRenderInfo) =>
+  }: Popover.RenderInfo) =>
     h.div(
       [h.Class('relative inline-block')],
       [

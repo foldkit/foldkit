@@ -67,7 +67,7 @@ const pageFailure = DomainsQueryFailure.make({
 })
 
 const scroll = (scrollTop: number) =>
-  Story.messageFrom(
+  Story.messageIn(
     ResultsListBinding,
     ResultsListBlock.Message.ObservedContainerScroll({
       scrollTop,

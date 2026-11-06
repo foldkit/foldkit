@@ -1,6 +1,6 @@
 import { Array, Match, pipe } from 'effect'
 
-import type { RenderInfo } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import {
   ApplicationComposition,
@@ -31,7 +31,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                 tabs: Tab.literals,
                 selectedValue: model.activeTab,
                 ariaLabel: 'API cache sections',
-                toView: renderInfo => tabsView({ model, renderInfo }, h),
+                toView: renderInfo => tabsView(model, renderInfo, h),
               },
             }),
           ),
@@ -56,13 +56,8 @@ export const headerView = (h: ApplicationViewBuilder) =>
   )
 
 export const tabsView = (
-  {
-    model,
-    renderInfo: { tablist, tabs },
-  }: Readonly<{
-    model: Model
-    renderInfo: RenderInfo<Tab>
-  }>,
+  model: Model,
+  { tablist, tabs }: Tabs.RenderInfo<Tab>,
   h: ApplicationViewBuilder,
 ) =>
   h.div(
@@ -87,8 +82,15 @@ export const tabsView = (
             [...tabInfo.panel, h.Class('flex flex-col gap-4')],
             [
               Match.value(tabInfo.value).pipe(
-                Match.when('Posts', () => postsTabView(model, h)),
-                Match.when('Stats', () => statsTabView(model, h)),
+                Match.when('Posts', () =>
+                  postsTabView(
+                    model.maybeSelectedPostId,
+                    model.posts,
+                    model.postDetails,
+                    h,
+                  ),
+                ),
+                Match.when('Stats', () => statsTabView(model.stats, h)),
                 Match.exhaustive,
               ),
             ],

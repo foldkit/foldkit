@@ -1,15 +1,7 @@
 import { Match, Option } from 'effect'
 import type { ChildAttribute, Html } from 'foldkit/html'
 
-import type {
-  CalendarAttributes,
-  DaysModeAttributes,
-  MonthsModeAttributes,
-  Week,
-  YearsModeAttributes,
-} from '@foldkit/ui/calendar'
-import { triggerId } from '@foldkit/ui/datePicker'
-import type { AnchorConfig } from '@foldkit/ui/popover'
+import { Calendar, DatePicker, Popover } from '@foldkit/ui'
 
 import * as Icon from '../../../icon'
 import { DatePickerBasicDemoBinding, UiComposition } from '../composition'
@@ -59,7 +51,6 @@ const monthYearGridClassName =
 
 const monthYearButtonClassName =
   'flex h-full w-full items-center justify-center rounded-md text-sm text-gray-900 tabular-nums cursor-pointer hover:bg-gray-100 group-data-[today]:ring-1 group-data-[today]:ring-gray-400 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white! group-data-[selected]:hover:bg-accent-600 group-data-[focused]:outline-2 group-data-[focused]:outline-offset-2 group-data-[focused]:outline-accent-500 group-data-[disabled]:cursor-not-allowed group-data-[disabled]:opacity-40'
-// PIECES
 
 const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
@@ -68,7 +59,7 @@ const navButton = (
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
 const headingButton = (
-  heading: DaysModeAttributes['heading'],
+  heading: Calendar.DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
   h: UiViewBuilder,
 ): Html =>
@@ -77,7 +68,7 @@ const headingButton = (
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = (week: Week, h: UiViewBuilder) =>
+const weekRow = (week: Calendar.Week, h: UiViewBuilder) =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -93,9 +84,7 @@ const weekRow = (week: Week, h: UiViewBuilder) =>
     ),
   )
 
-// MODES
-
-const daysView = (days: DaysModeAttributes, h: UiViewBuilder) =>
+const daysView = (days: Calendar.DaysModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...days.root, h.Class(calendarWrapperClassName)],
     [
@@ -125,7 +114,7 @@ const daysView = (days: DaysModeAttributes, h: UiViewBuilder) =>
     ],
   )
 
-const monthsView = (months: MonthsModeAttributes, h: UiViewBuilder) =>
+const monthsView = (months: Calendar.MonthsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...months.root, h.Class(calendarWrapperClassName)],
     [
@@ -150,7 +139,7 @@ const monthsView = (months: MonthsModeAttributes, h: UiViewBuilder) =>
     ],
   )
 
-const yearsView = (years: YearsModeAttributes, h: UiViewBuilder) =>
+const yearsView = (years: Calendar.YearsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...years.root, h.Class(calendarWrapperClassName)],
     [
@@ -182,9 +171,7 @@ const yearsView = (years: YearsModeAttributes, h: UiViewBuilder) =>
     ],
   )
 
-// TRIGGER
-
-const DATE_PICKER_ANCHOR: AnchorConfig = {
+const DATE_PICKER_ANCHOR: Popover.AnchorConfig = {
   placement: 'bottom-start',
   gap: 4,
   padding: 8,
@@ -220,7 +207,7 @@ export const view = UiComposition.makeView((model, h) => {
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Date Picker']),
       h.label(
         [
-          h.For(triggerId(model.datePickerBasicDemo.id)),
+          h.For(DatePicker.triggerId(model.datePickerBasicDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Due date'],
@@ -237,7 +224,7 @@ export const view = UiComposition.makeView((model, h) => {
             panelClassName,
             backdropClassName,
             className: wrapperClassName,
-            toCalendarView: Match.type<CalendarAttributes>().pipe(
+            toCalendarView: Match.type<Calendar.CalendarAttributes>().pipe(
               Match.tagsExhaustive({
                 Days: days => daysView(days, h),
                 Months: months => monthsView(months, h),

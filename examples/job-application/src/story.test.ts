@@ -1,14 +1,11 @@
 import { Array, Option } from 'effect'
+import { Story } from 'foldkit'
 import { Validating } from 'foldkit/fieldValidation'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { messageFrom, withBlock } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { toParentMessageFor } from 'foldkit/test'
 import { describe, expect } from 'vitest'
 
-import { FileDropBlock } from '@foldkit/ui/fileDrop'
-import { test as MenuTest } from '@foldkit/ui/menu'
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { FileDrop, Menu, Tabs } from '@foldkit/ui'
 
 import {
   CoverLetterBlock,
@@ -44,33 +41,33 @@ type StepMenuMessage = typeof StepMenuBlock.Message.Type
 type StepTabsMessage = typeof StepTabsBlock.Message.Type
 
 const personalInfoMessage = (message: PersonalInfoMessage) =>
-  messageFrom(PersonalInfoBinding, message)
+  Story.messageIn(PersonalInfoBinding, message)
 
 const workHistoryMessage = (message: WorkHistoryMessage) =>
-  messageFrom(WorkHistoryBinding, message)
+  Story.messageIn(WorkHistoryBinding, message)
 
 const educationMessage = (message: EducationMessage) =>
-  messageFrom(EducationBinding, message)
+  Story.messageIn(EducationBinding, message)
 
 const skillsMessage = (message: SkillsMessage) =>
-  messageFrom(SkillsBinding, message)
+  Story.messageIn(SkillsBinding, message)
 
 const coverLetterMessage = (message: CoverLetterMessage) =>
-  messageFrom(CoverLetterBinding, message)
+  Story.messageIn(CoverLetterBinding, message)
 
 const stepMenuMessage = (message: StepMenuMessage) =>
-  messageFrom(StepMenuBinding, message)
+  Story.messageIn(StepMenuBinding, message)
 
 const stepTabsMessage = (message: StepTabsMessage) =>
-  messageFrom(StepTabsBinding, message)
+  Story.messageIn(StepTabsBinding, message)
 
-const resolveFocusTab = Command.resolve(
-  TabsTest.FocusTab,
+const resolveFocusTab = Story.Command.resolve(
+  Tabs.test.FocusTab,
   StepTabsBlock.Message.CompletedFocusTab(),
 )
 
-const resolveFocusMenuButton = Command.resolve(
-  MenuTest.FocusMenuButton,
+const resolveFocusMenuButton = Story.Command.resolve(
+  Menu.test.FocusMenuButton,
   StepMenuBlock.Message.CompletedFocusMenuButton(),
 )
 
@@ -79,12 +76,12 @@ describe('update', () => {
     it.effect(
       'ClickedNext advances to the next step',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
-          message(Message.ClickedNext()),
-          Command.expectNone(),
-          model(model => {
+          Story.given(initialModel),
+          Story.message(Message.ClickedNext()),
+          Story.Command.expectNone(),
+          Story.model(model => {
             expect(model.currentStep).toBe('WorkHistory')
           }),
         ),
@@ -93,11 +90,13 @@ describe('update', () => {
     it.effect(
       'ClickedPrevious goes back to the previous step',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(modifyFields(initialModel, { currentStep: () => 'Education' })),
-          message(Message.ClickedPrevious()),
-          model(model => {
+          Story.given(
+            modifyFields(initialModel, { currentStep: () => 'Education' }),
+          ),
+          Story.message(Message.ClickedPrevious()),
+          Story.model(model => {
             expect(model.currentStep).toBe('WorkHistory')
           }),
         ),
@@ -106,11 +105,11 @@ describe('update', () => {
     it.effect(
       'ClickedPrevious on the first step stays put',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
-          message(Message.ClickedPrevious()),
-          model(model => {
+          Story.given(initialModel),
+          Story.message(Message.ClickedPrevious()),
+          Story.model(model => {
             expect(model.currentStep).toBe('PersonalInfo')
           }),
         ),
@@ -119,11 +118,13 @@ describe('update', () => {
     it.effect(
       'ClickedNext on the last step stays put',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(modifyFields(initialModel, { currentStep: () => 'Review' })),
-          message(Message.ClickedNext()),
-          model(model => {
+          Story.given(
+            modifyFields(initialModel, { currentStep: () => 'Review' }),
+          ),
+          Story.message(Message.ClickedNext()),
+          Story.model(model => {
             expect(model.currentStep).toBe('Review')
           }),
         ),
@@ -132,13 +133,13 @@ describe('update', () => {
     it.effect(
       'a generated Tabs Message selects the matching step',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
+          Story.given(initialModel),
           stepTabsMessage(
             StepTabsBlock.Message.SelectedTab({ index: 6, value: 'Review' }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.currentStep).toBe('Review')
           }),
           resolveFocusTab,
@@ -148,16 +149,16 @@ describe('update', () => {
     it.effect(
       'a generated Menu Message selects the matching step',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
+          Story.given(initialModel),
           stepMenuMessage(
             StepMenuBlock.Message.Opened({
               maybeActiveItemIndex: Option.none(),
             }),
           ),
-          Command.resolve(
-            MenuTest.FocusMenuItems,
+          Story.Command.resolve(
+            Menu.test.FocusMenuItems,
             StepMenuBlock.Message.CompletedFocusMenuItems(),
           ),
           stepMenuMessage(
@@ -166,7 +167,7 @@ describe('update', () => {
               item: 'Attachments',
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.currentStep).toBe('Attachments')
           }),
           resolveFocusMenuButton,
@@ -178,15 +179,15 @@ describe('update', () => {
     it.effect(
       'ToggledPreview flips visibility',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
-          message(Message.ToggledPreview()),
-          model(model => {
+          Story.given(initialModel),
+          Story.message(Message.ToggledPreview()),
+          Story.model(model => {
             expect(model.isPreviewVisible).toBe(true)
           }),
-          message(Message.ToggledPreview()),
-          model(model => {
+          Story.message(Message.ToggledPreview()),
+          Story.model(model => {
             expect(model.isPreviewVisible).toBe(false)
           }),
         ),
@@ -197,13 +198,13 @@ describe('update', () => {
     it.effect(
       'a generated PersonalInfo Message writes through',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
+          Story.given(initialModel),
           personalInfoMessage(
             PersonalInfoBlock.Message.UpdatedFirstName({ value: 'Jane' }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.personalInfo.firstName.value).toBe('Jane')
           }),
         ),
@@ -212,15 +213,15 @@ describe('update', () => {
     it.effect(
       'a generated WorkHistory Message writes through',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
+          Story.given(initialModel),
           workHistoryMessage(
             WorkHistoryBlock.Message.CompletedGenerateWorkHistoryEntryId({
               entryId: 'test-work-1',
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.workHistory.entries).toHaveLength(2)
           }),
         ),
@@ -229,15 +230,15 @@ describe('update', () => {
     it.effect(
       'a generated Education Message writes through',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
+          Story.given(initialModel),
           educationMessage(
             EducationBlock.Message.CompletedGenerateEducationEntryId({
               entryId: 'test-edu-1',
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.education.entries).toHaveLength(2)
           }),
         ),
@@ -246,15 +247,15 @@ describe('update', () => {
     it.effect(
       'a generated Skills Message writes through',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
+          Story.given(initialModel),
           skillsMessage(
             SkillsBlock.Message.CompletedGenerateSkillsEntryId({
               entryId: 'test-skill-1',
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.skills.entries).toHaveLength(2)
           }),
         ),
@@ -263,15 +264,15 @@ describe('update', () => {
     it.effect(
       'a generated CoverLetter Message writes through',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
+          Story.given(initialModel),
           coverLetterMessage(
             CoverLetterBlock.Message.UpdatedContent({
               value: 'I love the Elm Architecture.',
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.coverLetter.content).toBe(
               'I love the Elm Architecture.',
             )
@@ -286,30 +287,35 @@ describe('update', () => {
           type: 'application/pdf',
         })
 
-        return withBlock({ block: ApplicationBlock, layer }, application => {
-          const toApplicationMessage = toParentMessageFor(application)
-          const toAttachmentsMessage = toParentMessageFor(
-            application,
-            AttachmentsBinding,
-          )
+        return Story.withBlock(
+          { block: ApplicationBlock, layer },
+          application => {
+            const toApplicationMessage = toParentMessageFor(application)
+            const toAttachmentsMessage = toParentMessageFor(
+              application,
+              AttachmentsBinding,
+            )
 
-          story(
-            application.update,
-            given(initialModel),
-            message(
-              toApplicationMessage(
-                AttachmentsBinding,
-                toAttachmentsMessage(
-                  ResumeDropBinding,
-                  FileDropBlock.Message.DroppedFiles({ files: [resume] }),
+            Story.story(
+              application.update,
+              Story.given(initialModel),
+              Story.message(
+                toApplicationMessage(
+                  AttachmentsBinding,
+                  toAttachmentsMessage(
+                    ResumeDropBinding,
+                    FileDrop.FileDropBlock.Message.DroppedFiles({
+                      files: [resume],
+                    }),
+                  ),
                 ),
               ),
-            ),
-            model(model => {
-              expect(model.attachments.maybeResume._tag).toBe('Some')
-            }),
-          )
-        })
+              Story.model(model => {
+                expect(model.attachments.maybeResume._tag).toBe('Some')
+              }),
+            )
+          },
+        )
       },
     )
   })
@@ -318,16 +324,18 @@ describe('update', () => {
     it.effect(
       'ClickedSubmit on a complete application transitions to Submitting and fires command',
       ({ models: { completeModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(modifyFields(completeModel, { currentStep: () => 'Review' })),
-          message(Message.ClickedSubmit()),
-          Command.expectExact(SubmitApplication),
-          Command.resolve(
+          Story.given(
+            modifyFields(completeModel, { currentStep: () => 'Review' }),
+          ),
+          Story.message(Message.ClickedSubmit()),
+          Story.Command.expectExact(SubmitApplication),
+          Story.Command.resolve(
             SubmitApplication,
             Message.SucceededSubmitApplication(),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.submission._tag).toBe('SubmitSuccess')
             expect(model.isSubmitAttempted).toBe(true)
           }),
@@ -360,12 +368,12 @@ describe('update', () => {
             }),
         })
 
-        return story(
+        return Story.story(
           { block: ApplicationBlock, layer },
-          given(modelWithMultipleEntries),
-          message(Message.ClickedSubmit()),
-          Command.expectNone(),
-          model(model => {
+          Story.given(modelWithMultipleEntries),
+          Story.message(Message.ClickedSubmit()),
+          Story.Command.expectNone(),
+          Story.model(model => {
             expect(model.submission._tag).toBe('NotSubmitted')
             expect(model.isSubmitAttempted).toBe(true)
             expect(model.personalInfo.firstName._tag).toBe('Invalid')
@@ -402,9 +410,9 @@ describe('update', () => {
     it.effect(
       'ClickedSubmit with pending validation does not submit',
       ({ models: { completeModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(
+          Story.given(
             modifyFields(completeModel, {
               currentStep: () => 'Review',
               personalInfo: modifyFields({
@@ -412,9 +420,9 @@ describe('update', () => {
               }),
             }),
           ),
-          message(Message.ClickedSubmit()),
-          Command.expectNone(),
-          model(model => {
+          Story.message(Message.ClickedSubmit()),
+          Story.Command.expectNone(),
+          Story.model(model => {
             expect(model.submission._tag).toBe('NotSubmitted')
             expect(model.isSubmitAttempted).toBe(true)
             expect(model.personalInfo.email._tag).toBe('Validating')
@@ -425,15 +433,17 @@ describe('update', () => {
     it.effect(
       'ClickedSubmit preserves Valid fields rather than re-running validation',
       ({ models: { completeModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(modifyFields(completeModel, { currentStep: () => 'Review' })),
-          message(Message.ClickedSubmit()),
-          Command.resolve(
+          Story.given(
+            modifyFields(completeModel, { currentStep: () => 'Review' }),
+          ),
+          Story.message(Message.ClickedSubmit()),
+          Story.Command.resolve(
             SubmitApplication,
             Message.SucceededSubmitApplication(),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.personalInfo.firstName._tag).toBe('Valid')
             expect(model.personalInfo.firstName.value).toBe('Jane')
           }),
@@ -443,32 +453,34 @@ describe('update', () => {
     it.effect(
       'successful submission shows success',
       ({ models: { initialModel } }) =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(
+          Story.given(
             modifyFields(initialModel, {
               currentStep: () => 'Review',
               submission: () => Submission.Submitting(),
             }),
           ),
-          message(Message.SucceededSubmitApplication()),
-          model(model => {
+          Story.message(Message.SucceededSubmitApplication()),
+          Story.model(model => {
             expect(model.submission._tag).toBe('SubmitSuccess')
           }),
         ),
     )
 
     it.effect('failed submission shows error', ({ models: { initialModel } }) =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(
+        Story.given(
           modifyFields(initialModel, {
             currentStep: () => 'Review',
             submission: () => Submission.Submitting(),
           }),
         ),
-        message(Message.FailedSubmitApplication({ error: 'Server down' })),
-        model(model => {
+        Story.message(
+          Message.FailedSubmitApplication({ error: 'Server down' }),
+        ),
+        Story.model(model => {
           expect(model.submission._tag).toBe('SubmitError')
         }),
       ),

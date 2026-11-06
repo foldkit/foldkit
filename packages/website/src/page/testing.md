@@ -79,7 +79,7 @@ The parent Message union no longer declares `GotPinsMessage`. Composition owns g
 
 ### Send a Child Fact Without a View
 
-Use `messageFrom(binding, childMessage)` in a Block-aware Story to test direct child delivery or OutMessage policy. A keyed Binding takes its decoded key before the Message. The passive step resolves the original Binding against that Story’s acquired graph.
+Use `messageIn(binding, childMessage)` in a Block-aware Story to test direct child delivery or OutMessage policy. A keyed Binding takes its decoded key before the Message. The passive step resolves the original Binding against that Story’s acquired graph.
 
 ::Snippet{name="testingHeadlessChildMessage" label="Test a parent policy without rendering the child"}
 

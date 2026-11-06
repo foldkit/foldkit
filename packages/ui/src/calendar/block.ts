@@ -14,7 +14,7 @@ import * as CalendarDomain from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
@@ -86,7 +86,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 /** Parent requests handled independently of local UI facts. */
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedDropToDays: {},
 })
 export type InMessage = typeof InMessage.Type
@@ -126,16 +126,17 @@ export const CalendarBlock = Block.make('Calendar', {
     requestFocusDate: (date: CalendarDate) =>
       Tuple.make(Message.RequestedFocusDate({ date })),
     /** Supplies a new minimum selectable date without reconciling selection. */
-    informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
+    informOfMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
       Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
     /** Supplies a new maximum selectable date without reconciling selection. */
-    informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
+    informOfMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
       Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
     /** Supplies the individually disabled dates without reconciling selection. */
-    informDisabledDatesChanged: (disabledDates: ReadonlyArray<CalendarDate>) =>
-      Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
+    informOfDisabledDatesChanged: (
+      disabledDates: ReadonlyArray<CalendarDate>,
+    ) => Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
     /** Supplies the disabled weekdays without reconciling selection. */
-    informDisabledDaysOfWeekChanged: (
+    informOfDisabledDaysOfWeekChanged: (
       disabledDaysOfWeek: ReadonlyArray<CalendarDomain.DayOfWeek>,
     ) =>
       Tuple.make(
@@ -222,22 +223,22 @@ const focusDateTransition = (model: Model, date: CalendarDate) => ({
   }),
 })
 
-const informMinDateChangedTransition = (
+const informOfMinDateChangedTransition = (
   model: Model,
   maybeMinDate: Option.Option<CalendarDate>,
 ) => ({ model: modifyFields(model, { maybeMinDate: () => maybeMinDate }) })
 
-const informMaxDateChangedTransition = (
+const informOfMaxDateChangedTransition = (
   model: Model,
   maybeMaxDate: Option.Option<CalendarDate>,
 ) => ({ model: modifyFields(model, { maybeMaxDate: () => maybeMaxDate }) })
 
-const informDisabledDatesChangedTransition = (
+const informOfDisabledDatesChangedTransition = (
   model: Model,
   disabledDates: ReadonlyArray<CalendarDate>,
 ) => ({ model: modifyFields(model, { disabledDates: () => disabledDates }) })
 
-const informDisabledDaysOfWeekChangedTransition = (
+const informOfDisabledDaysOfWeekChangedTransition = (
   model: Model,
   disabledDaysOfWeek: ReadonlyArray<CalendarDomain.DayOfWeek>,
 ) => ({
@@ -679,16 +680,16 @@ export const update = CalendarComposition.makeUpdate({
   RequestedFocusDate: (model, { date }) => focusDateTransition(model, date),
 
   InformedOfMinDateChange: (model, { maybeMinDate }) =>
-    informMinDateChangedTransition(model, maybeMinDate),
+    informOfMinDateChangedTransition(model, maybeMinDate),
 
   InformedOfMaxDateChange: (model, { maybeMaxDate }) =>
-    informMaxDateChangedTransition(model, maybeMaxDate),
+    informOfMaxDateChangedTransition(model, maybeMaxDate),
 
   InformedOfDisabledDatesChange: (model, { disabledDates }) =>
-    informDisabledDatesChangedTransition(model, disabledDates),
+    informOfDisabledDatesChangedTransition(model, disabledDates),
 
   InformedOfDisabledDaysOfWeekChange: (model, { disabledDaysOfWeek }) =>
-    informDisabledDaysOfWeekChangedTransition(model, disabledDaysOfWeek),
+    informOfDisabledDaysOfWeekChangedTransition(model, disabledDaysOfWeek),
 })
 
 /** Applies the parent request through the existing cursor transition. */

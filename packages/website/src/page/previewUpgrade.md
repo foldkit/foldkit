@@ -52,6 +52,36 @@ The result lists installed Effect copies and their locations. Check that the app
 
 After updating manifests and the lockfile, run `npm ci` to verify that the lockfile reproduces the intended graph. Preserve the existing lockfile while diagnosing an upgrade; an older workspace constraint can explain a retained version without a corrupt lockfile. If a prerelease lockfile still cannot resolve the declared target, retain the npm version, manifests, lockfile and error for a reproduction before attempting a wider lockfile regeneration.
 
+## Rename child notification methods
+
+`InMessage.InformedOfX` now generates `Binding.informOfX(...)`, retaining the preposition at the call site. Rename generated calls such as `informRouteChange(...)` to `informOfRouteChange(...)`. Keep the `InformedOfX` tags and payloads; `RequestedX` still generates `requestX`. The former method names are removed without aliases.
+
+UI's explicitly authored notification operations use the same spelling:
+
+| Block                | Former operation                  | Current operation                   |
+| -------------------- | --------------------------------- | ----------------------------------- |
+| Calendar, DatePicker | `informMinDateChanged`            | `informOfMinDateChanged`            |
+| Calendar, DatePicker | `informMaxDateChanged`            | `informOfMaxDateChanged`            |
+| Calendar, DatePicker | `informDisabledDatesChanged`      | `informOfDisabledDatesChanged`      |
+| Calendar, DatePicker | `informDisabledDaysOfWeekChanged` | `informOfDisabledDaysOfWeekChanged` |
+| Slider               | `informRangeChange`               | `informOfRangeChange`               |
+| Tooltip              | `informShowDelayChanged`          | `informOfShowDelayChanged`          |
+| VirtualList          | `informItemsChanged`              | `informOfItemsChanged`              |
+| VirtualList          | `informHistoryPrepended`          | `informOfHistoryPrepended`          |
+
+These operations retain their arguments and behavior. A preview predating Slider's separate InMessages may spell its operation `informRangeChanged`; migrate that call to `informOfRangeChange` too. See [Informing Blocks](/patterns/informing-blocks) for the current authoring pattern.
+
+## Simplify keyed OutMessage folds
+
+Keyed OutMessage folds can omit forwarding wrappers. Pass
+`makeOutMessageFold(ChildBlock, handlers)` directly when handlers do not use the
+key, or use `fold: key => makeOutMessageFold(ChildBlock, handlers)` when they do.
+Pass compatible extracted factories directly; keep callbacks that defer a
+declaration read or adapt inputs. The explicit `(key, outMessage, context) => step`
+form is supported. The Binding supplies the OutMessage and FoldContext to an
+authored returned fold and applies its parent Step after the child write.
+See [keyed folds](/core/block#surfacing-facts) for a complete example.
+
 ## Adopt Layer-based Block construction
 
 This candidate establishes each public Block contract before its implementation. Keep your Model, Message, child relationships, and transition behavior while changing completion:
@@ -181,7 +211,7 @@ The following additions are optional:
 - Schema-backed Record and HashMap child fields can use [ParentBlock.makeMapBinding](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing standalone calls need the [map Binding migration](#move-map-bindings-to-their-parent-block). General keyed Bindings remain supported for custom relationships.
 - A closed, fully attached ManagedResource registry supplies its handler recipes through [managedResources.layer](/core/managed-resources), matching Subscriptions. Empty registries supply `Layer.empty`; mixed attached/host-owned registries require explicit provider selection.
 - Story and Scene helpers can inspect captured Command arguments through [Command.argsOf](/testing/story#inspect-captured-command-arguments), matching the original Definition's source identity without changing the pending Command or selecting an occurrence.
-- Parent Stories can wrap a child fact with [Story.messageFrom](/testing#send-a-child-fact-without-a-view), using the exact Binding without view setup or fabricated envelope fields. Existing Command and Subscription replay paths remain appropriate for their respective sources.
+- Parent Stories can wrap a child fact with [Story.messageIn](/testing#send-a-child-fact-without-a-view), using the exact Binding without view setup or fabricated envelope fields. Existing Command and Subscription replay paths remain appropriate for their respective sources.
 - Whole tagged child variants can use [makeVariantBinding](/core/block#whole-tagged-variants). [Dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers) set singular children, append initialized keyed arrays, and insert direct-value map entries without repeating storage writers.
 - Story can [derive a Message from the current Model](/testing/story#build-a-message-from-the-current-model) with `messageWith` or [deliver a decoded registered Subscription Message](/testing/story#deliver-a-subscription-message) with an acquired fixture’s `Subscription.from(block.subscriptions).emit`.
 - Scene can [keep one exact ordinary Command pending](/testing/scene#pending-command-rules) across another interaction with `Command.keepPending`. The Command remains visible to assertions and resolution, and must resolve before the Scene ends.
@@ -220,7 +250,7 @@ Optional `makeVariantBinding` from `foldkit/variantBinding` replaces manual acce
 
 The optional `foldkit/bindingInit` module adds `initAndSet` for required/optional direct fields and exact key/child Option wrappers, `initAndAppend` for arrays with an existing `init.instances`/`init.toItem` policy, and `initAndInsert` for direct-value Record/HashMap storage. Pass the Binding, current parent Model and `{ args }`, adding `key` for keyed storage. Append and insert reject occupied keys. Keep explicit initialization for additional wrapper metadata, sibling changes, parent Commands, or whole tagged variants. See [dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers).
 
-For Record/HashMap fields storing child Models directly, `makeInitIfMissingStep(Binding, { key, args })` replaces a separate membership check and insertion when existing children should be retained. It returns a connected Step that checks the Binding's field when applied, preserving an existing child or retaining all init Commands for a missing one. Both paths require the registered Binding.
+For Record/HashMap fields storing child Models directly, `makeInitIfMissingStep` replaces a separate membership check and insertion when existing children should be retained. The existing `{ key, args }` form snapshots a static selection. A new producer form receives the contextually typed current Step Model and returns `Option.some({ key, args })` or `Option.none()`. Construction is passive; the registered graph evaluates the pure producer exactly once during interpretation. `None` and an existing key preserve the exact Model, emit no Commands, and do not run child init; a missing selected key retains all child init Commands. Every branch requires the original Binding. Keep explicit `Binding.init` for wrappers, custom metadata, or parent Commands.
 
 ## Update the Application Boundary
 

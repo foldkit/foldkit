@@ -1,9 +1,7 @@
 import { clsx } from 'clsx'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as checkboxView } from '@foldkit/ui/checkbox'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Checkbox, Input } from '@foldkit/ui'
 
 import * as Icon from '../icon'
 import { isReviewReady, promoToMaybeDiscount } from '../machine'
@@ -124,7 +122,7 @@ export const reviewView = (
                     : 'Payment method required',
                 ],
               ),
-              buttonView(
+              Button.view(
                 {
                   onClick: Message.ToggledPaymentMethod({
                     isSelected: !state.isPaymentMethodSelected,
@@ -159,7 +157,7 @@ export const reviewView = (
               h.OnSubmit(Message.SubmittedPromoCode()),
             ],
             [
-              inputView(
+              Input.view(
                 {
                   id: 'promo-code',
                   value: state.promoCodeInput,
@@ -188,7 +186,7 @@ export const reviewView = (
                 },
                 h,
               ),
-              buttonView(
+              Button.view(
                 {
                   type: 'submit',
                   toView: attributes =>
@@ -216,7 +214,7 @@ export const reviewView = (
           }),
         ],
       ),
-      checkboxView(
+      Checkbox.view(
         {
           id: 'accept-terms',
           isChecked: state.isTermsAccepted,
@@ -283,7 +281,7 @@ export const reviewView = (
           ),
         ],
         [
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedBack(),
               toView: attributes =>
@@ -300,7 +298,7 @@ export const reviewView = (
             h,
           ),
           h.div([h.Class('sm:justify-self-center')], [cancelCheckoutButton(h)]),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedPlaceOrder(),
               isDisabled: !isReadyToPlace,

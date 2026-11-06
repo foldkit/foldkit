@@ -14,7 +14,7 @@ import type {
 } from '../../block/bindChild.js'
 import type { AggregatedChildren, AnyBinding } from '../../block/binding.js'
 import type { ExecutableConnection } from '../../block/bindingConnection.js'
-import type { DispatchSchemaFor } from '../../block/childEnvelope.js'
+import type { CompleteMessageSelfContainedCodec } from '../../block/childEnvelope.js'
 import type { AuthoringDefinition } from '../../block/define.js'
 import type {
   Completed,
@@ -92,6 +92,7 @@ import type {
 import type { PlanSourceValidation } from './planSourceValidation.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 
 /** @internal Selects the owner of executable graph construction. */
@@ -120,15 +121,15 @@ export interface SourceContracts<MessageSchema, OutMessageSchema> {
 /** @internal Names the exact static graph metadata retained by portable authoring plans. */
 export interface StaticSourceFields<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Specs extends ReadonlyArray<unknown>,
 > extends SourceContracts<MessageSchema, OutMessageSchema> {
   readonly owner: OwnerValue
   readonly Model: ModelSchema
-  readonly Message: DispatchSchemaFor<
+  readonly Message: CompleteMessageSelfContainedCodec<
     MessageSchema,
     BindingsFromSpecs<Specs, ModelSchema, MessageSchema, OutMessageSchema>
   >
@@ -150,8 +151,8 @@ export interface StaticSourceFields<
 /** @internal Names the exact static graph retained by portable authoring plans. */
 export type StaticSource<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Specs extends ReadonlyArray<unknown>,
@@ -311,8 +312,8 @@ export type Validate<
 /** Completes existing Composition builders through one explicit constructor. */
 export interface MakeBlock<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Kind extends ConstructionKind = 'Effect',
 > {
@@ -413,8 +414,8 @@ export interface DescriptorEmbedView<
 /** @internal Retains an alternate view overload without changing ordinary native Binding contracts. */
 export interface DescriptorViewExtension<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   Source,
 > {
   readonly embedView: DescriptorEmbedView<
@@ -443,8 +444,8 @@ export interface DescriptorViewExtension<
 
 /** Creates passive child Bindings with native storage, policy, and initialization contracts. */
 export interface MakeBinding<
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Kind extends ConstructionKind = 'Effect',
@@ -681,8 +682,8 @@ export interface MakeBinding<
 
 /** Map relationships retain their ordinary key, storage, and initialization contracts. */
 export interface MakeMapBinding<
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Kind extends ConstructionKind = 'Effect',
@@ -774,8 +775,8 @@ export type ViewBuilderFor<CompositionValue> =
 /** Registers the same static Binding inventory without acquiring child implementations. */
 export interface MakeComposition<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
 > {
@@ -857,7 +858,8 @@ export interface MakeDescriptorOutMessageFold<
           CoreOutMessageContract<Child>,
           Cases
         >,
-        readonly [...Data]
+        readonly [...Data],
+        Child['Message']['Type']
       >
     : never
 }
@@ -887,8 +889,8 @@ export interface MakeDescriptorOutMessageForward<
 /** Current Definition authorship with an inferred construction completion boundary. */
 export type Definition<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Kind extends ConstructionKind = 'Effect',

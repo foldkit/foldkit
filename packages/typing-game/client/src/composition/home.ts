@@ -42,7 +42,7 @@ const initRoomInstance = (roomId: string) =>
 const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
   Update.combineSteps([
     initRoomInstance(roomId),
-    MaybeRoomInstanceBinding.informJoin(roomId, { player }, { roomId }),
+    MaybeRoomInstanceBinding.informOfJoin(roomId, { player }, { roomId }),
     navigateToRoom(roomId),
   ])
 

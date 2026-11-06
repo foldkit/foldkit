@@ -28,6 +28,7 @@ import type {
   NormalizedOutMessageFold,
   RestoredFoldContext,
 } from '../../block/outMessageFoldContract.js'
+import type { OutMessageHelperEvidence } from '../../block/outMessageHelperEvidence.js'
 import type { BindingPolicyEvidence } from '../../block/policyEvidence.js'
 import type { Qualify } from '../../block/scope.js'
 import type * as Update from '../../update/index.js'
@@ -46,12 +47,13 @@ import type {
 } from './contract.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 
 /** @internal Names a Binding's selected public child contract in declarations. */
 export interface BindingChildContract<
   OwnerValue extends AnyDescriptor['owner'],
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
   Facts extends PublicFacts,
   Acquisition,
@@ -83,8 +85,8 @@ type ChildInitContext<SchemaValue> = SchemaValue extends AnySchema
 
 type NativeDescriptorBinding<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
   Config,
   InitSchema extends AnySchema | undefined,
@@ -102,8 +104,8 @@ type NativeDescriptorBinding<
 /** @internal Retains native Binding metadata and the selected child connection without expanding its implementation. */
 export interface DescriptorBindingFields<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
   Config,
   InitSchema extends AnySchema | undefined,
@@ -167,8 +169,8 @@ type ParentOutMessageOfBinding<Native> =
 /** @internal Preserves the exact native parent contract alongside the child connection. */
 export interface ParentDescriptorBindingFields<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
   Config,
   InitSchema extends AnySchema | undefined,
@@ -225,8 +227,8 @@ export interface ParentDescriptorBindingFields<
 /** @internal Retains the exact parent contract while selecting a child OutMessage policy. */
 export interface DescriptorBindingWithPolicyFields<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
   Config,
   InitSchema extends AnySchema | undefined,
@@ -258,8 +260,8 @@ export interface DescriptorBindingWithPolicyFields<
 /** @internal Selects a child OutMessage policy for a Binding with no parent Model contract. */
 export interface DescriptorBindingPolicyFields<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
   Config,
   InitSchema extends AnySchema | undefined,
@@ -291,8 +293,8 @@ export interface DescriptorBindingPolicyFields<
 /** @internal Checks a separately authored OutMessage policy and preserves the selected Binding contract. */
 export interface DescriptorBindingPolicySelector<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
   Config,
   InitSchema extends AnySchema | undefined,
@@ -308,9 +310,11 @@ export interface DescriptorBindingPolicySelector<
           MessageSchema,
           OutSchema,
           Config
-        >
+        >,
+        Config,
+        Child['Message']['Type']
       > &
-      ValidateOutMessageHelperPolicy<CoreContract<Child>, NoInfer<Policy>>,
+      ValidateOutMessageHelperPolicy<Child, NoInfer<Policy>>,
   ): DescriptorBinding<
     Child,
     ModelSchema,
@@ -337,8 +341,8 @@ type InitialEvidenceOfBinding<Native> =
 
 type OccurrenceBindingMethods<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   Config,
   ParentOwner,
 > =
@@ -392,8 +396,8 @@ type OccurrenceBindingMethods<
 /** @internal Names the complete passive child relationship, including exact operations and construction channels. */
 export type DescriptorBindingMember<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
   Config,
   InitSchema extends AnySchema | undefined,
@@ -518,8 +522,8 @@ type DefaultBindingPolicy<Child> = Child extends AnyDescriptor
 /** @internal Preserves each child alternative and its distinct OutMessage policy obligation. */
 export type DescriptorBinding<
   Child extends AnyDescriptor,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
   Config,
   InitSchema extends AnySchema | undefined,
@@ -575,8 +579,18 @@ export interface DescriptorBindingSpec<
 declare const FoldOnlyPolicySpecTypeId: unique symbol
 
 /** @internal Stores an exact helper-only fold policy without repeating its parent Model. */
-export interface FoldOnlyPolicySpec<ChildOutMessage, Context, Data> {
-  readonly [FoldOnlyPolicySpecTypeId]: readonly [ChildOutMessage, Context, Data]
+export interface FoldOnlyPolicySpec<
+  ChildMessage,
+  ChildOutMessage,
+  Context,
+  Data,
+> {
+  readonly [FoldOnlyPolicySpecTypeId]: readonly [
+    ChildMessage,
+    ChildOutMessage,
+    Context,
+    Data,
+  ]
 }
 
 type ExactPolicy<Left, Right> =
@@ -594,16 +608,23 @@ type PolicySpecOf<Policy, Model> =
           infer Context,
           infer Data
         >
-        ? ExactPolicy<
-            Fold,
-            NormalizedOutMessageFold<
-              Model,
-              ChildOutMessage,
-              RestoredFoldContext<Model, Context>,
-              Data
-            >
-          > extends true
-          ? FoldOnlyPolicySpec<ChildOutMessage, Context, Data>
+        ? Fold extends OutMessageHelperEvidence<
+            ChildOutMessage,
+            'fold',
+            infer ChildMessage
+          >
+          ? ExactPolicy<
+              Fold,
+              NormalizedOutMessageFold<
+                Model,
+                ChildOutMessage,
+                RestoredFoldContext<Model, Context>,
+                Data,
+                ChildMessage
+              >
+            > extends true
+            ? FoldOnlyPolicySpec<ChildMessage, ChildOutMessage, Context, Data>
+            : Policy
           : Policy
         : Policy
       : Policy
@@ -611,6 +632,7 @@ type PolicySpecOf<Policy, Model> =
 
 type PolicyFromSpec<Policy, Model> =
   Policy extends FoldOnlyPolicySpec<
+    infer ChildMessage,
     infer ChildOutMessage,
     infer Context,
     infer Data
@@ -620,7 +642,8 @@ type PolicyFromSpec<Policy, Model> =
           Model,
           ChildOutMessage,
           RestoredFoldContext<Model, Context>,
-          Data
+          Data,
+          ChildMessage
         >
       }>
     : Policy
@@ -651,8 +674,8 @@ export type BindingSpecs<Bindings extends ReadonlyArray<unknown>> = {
 
 type BindingFromSpec<
   Value,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
 > =
   Value extends DescriptorBindingSpec<
@@ -679,8 +702,8 @@ type BindingFromSpec<
 /** @internal Restores complete Binding contracts against the same validated parent Schema contracts. */
 export type BindingsFromSpecs<
   Specs extends ReadonlyArray<unknown>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutSchema extends AnySchema | undefined,
 > = {
   [Index in keyof Specs]: BindingFromSpec<

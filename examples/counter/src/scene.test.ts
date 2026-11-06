@@ -1,4 +1,4 @@
-import { click, expect, given, role, scene, text } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -9,51 +9,51 @@ const initialModel = Model.make({ count: 0 })
 
 describe('view', () => {
   it.effect('renders the initial count and three buttons', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      expect(text('0')).toExist(),
-      expect(role('button', { name: '+' })).toExist(),
-      expect(role('button', { name: '-' })).toExist(),
-      expect(role('button', { name: 'Reset' })).toExist(),
+      Scene.given(initialModel),
+      Scene.expect(Scene.text('0')).toExist(),
+      Scene.expect(Scene.role('button', { name: '+' })).toExist(),
+      Scene.expect(Scene.role('button', { name: '-' })).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Reset' })).toExist(),
     ),
   )
 
   it.effect('clicking + increments the displayed count', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      click(role('button', { name: '+' })),
-      expect(text('1')).toExist(),
-      click(role('button', { name: '+' })),
-      expect(text('2')).toExist(),
+      Scene.given(initialModel),
+      Scene.click(Scene.role('button', { name: '+' })),
+      Scene.expect(Scene.text('1')).toExist(),
+      Scene.click(Scene.role('button', { name: '+' })),
+      Scene.expect(Scene.text('2')).toExist(),
     ),
   )
 
   it.effect('clicking - decrements the displayed count', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given({ count: 3 }),
-      click(role('button', { name: '-' })),
-      expect(text('2')).toExist(),
+      Scene.given({ count: 3 }),
+      Scene.click(Scene.role('button', { name: '-' })),
+      Scene.expect(Scene.text('2')).toExist(),
     ),
   )
 
   it.effect('clicking - past zero produces a negative count', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      click(role('button', { name: '-' })),
-      expect(text('-1')).toExist(),
+      Scene.given(initialModel),
+      Scene.click(Scene.role('button', { name: '-' })),
+      Scene.expect(Scene.text('-1')).toExist(),
     ),
   )
 
   it.effect('Reset returns the count to zero', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given({ count: 42 }),
-      click(role('button', { name: 'Reset' })),
-      expect(text('0')).toExist(),
+      Scene.given({ count: 42 }),
+      Scene.click(Scene.role('button', { name: 'Reset' })),
+      Scene.expect(Scene.text('0')).toExist(),
     ),
   )
 })

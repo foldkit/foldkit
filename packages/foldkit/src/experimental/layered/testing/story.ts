@@ -6,7 +6,7 @@ import type {
 } from '../../../runtime/rootBlock.js'
 import * as CoreStory from '../../../test/story.js'
 import { resolveInMessageSteps } from './inMessage.js'
-import { resolveStorySteps } from './messageFrom.js'
+import { resolveStorySteps } from './messageIn.js'
 import type {
   DirectSubject,
   SelectedTestConfig,
@@ -27,7 +27,7 @@ import { type BlockSubject, type TestEffect, withBlock } from './withBlock.js'
 
 export * from '../../../test/story.js'
 export { type InitStep, init } from './initialState.js'
-export { messageFrom } from './messageFrom.js'
+export { messageIn } from './messageIn.js'
 export { type InMessageStep, inMessage } from './inMessage.js'
 
 type InitialState<Block extends BlockSubject> =
@@ -56,9 +56,9 @@ export function story<const Block extends BlockSubject>(
   initial: InitialState<NoInfer<Block>>,
   ...steps: ReadonlyArray<Step<NoInfer<Block>>>
 ): Effect.Effect<
-  void,
-  Effect.Error<TestEffect<Block, void>>,
-  Effect.Services<TestEffect<Block, void>>
+  TestModel<Block>,
+  Effect.Error<TestEffect<Block, TestModel<Block>>>,
+  Effect.Services<TestEffect<Block, TestModel<Block>>>
 >
 export function story<
   const Block extends DeclaredRootBlock,
@@ -68,25 +68,35 @@ export function story<
   initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
   ...steps: ReadonlyArray<Step<SelectedLayeredRoot<Block, LayerValue>>>
 ): Effect.Effect<
-  void,
-  Effect.Error<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>,
-  Effect.Services<TestEffect<SelectedLayeredRoot<Block, LayerValue>, void>>
+  TestModel<SelectedLayeredRoot<Block, LayerValue>>,
+  Effect.Error<
+    TestEffect<
+      SelectedLayeredRoot<Block, LayerValue>,
+      TestModel<SelectedLayeredRoot<Block, LayerValue>>
+    >
+  >,
+  Effect.Services<
+    TestEffect<
+      SelectedLayeredRoot<Block, LayerValue>,
+      TestModel<SelectedLayeredRoot<Block, LayerValue>>
+    >
+  >
 >
 export function story<const Block extends BlockSubject>(
   config: TestConfig<Block>,
   initial: InitialState<NoInfer<Block>>,
   ...steps: ReadonlyArray<Step<NoInfer<Block>>>
 ): Effect.Effect<
-  void,
-  Effect.Error<TestEffect<Block, void>>,
-  Effect.Services<TestEffect<Block, void>>
+  TestModel<Block>,
+  Effect.Error<TestEffect<Block, TestModel<Block>>>,
+  Effect.Services<TestEffect<Block, TestModel<Block>>>
 >
 export function story(
   subject: TestSubject,
   initial: unknown,
   ...steps: ReadonlyArray<unknown>
 ): Effect.Effect<unknown, unknown, unknown> {
-  const run = (block: object) => {
+  const run = (block: object) =>
     Reflect.apply(CoreStory.story, undefined, [
       subjectUpdate(subject, block),
       initialStep(block, initial, CoreStory.__givenInit),
@@ -95,7 +105,6 @@ export function story(
         subjectInMessageUpdate(subject, block),
       ),
     ])
-  }
 
   if ('layer' in subject) {
     return withBlock(subject, run)

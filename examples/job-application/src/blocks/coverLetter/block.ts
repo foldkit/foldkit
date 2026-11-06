@@ -3,7 +3,7 @@ import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Textarea } from '@foldkit/ui'
 
 const Model = Schema.Struct({
   content: Schema.String,
@@ -46,7 +46,7 @@ export const view = CoverLetterComposition.makeView((model, h) => {
   const isOverLimit = remaining < 0
   const isWarning = !isOverLimit && remaining <= WARNING_THRESHOLD_CHARS
 
-  return textareaView(
+  return Textarea.view(
     {
       id: 'cover-letter',
       value: model.content,

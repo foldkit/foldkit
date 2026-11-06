@@ -44,7 +44,7 @@ test('the real extracted relationship remains available to independently authore
     Story.story(
       ChatRoomBlock.provide(MessageComposerBlock.layer),
       Story.init({ title: 'General', inputId: 'extracted-input' }),
-      Story.messageFrom(
+      Story.messageIn(
         MessageComposerBinding,
         ComposerMessage.UpdatedText({ value: 'Hello' }),
       ),

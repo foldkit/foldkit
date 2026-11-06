@@ -15,6 +15,7 @@ import {
   registerBindingDeclaration,
   registerExecutableHandle,
 } from '../../block/bindingConnection.js'
+import type { ValidateSelfContainedDefinitionCodecs } from '../../block/childEnvelope.js'
 import { canonicalBindingOf } from '../../block/composition.js'
 import { defaultViewOf, registerDefaultView } from '../../block/defaultView.js'
 import {
@@ -30,7 +31,10 @@ import {
 } from '../../block/inMessageUpdate.js'
 import { CurrentInstance } from '../../block/instanceContext.js'
 import { ExecutionEnvironmentTypeId } from '../../block/operationGraph.js'
-import { registerAuthoringChildContract } from '../../block/outMessageHandlers.js'
+import {
+  registerAuthoringChildContract,
+  registerChildLocalMessageContract,
+} from '../../block/outMessageHandlers.js'
 import {
   assertRuntimeAuthority,
   declareRuntimeCapability,
@@ -53,6 +57,7 @@ import type {
   ConstructionKind,
   ConstructorBody,
   Definition,
+  SourceOf,
 } from './authoring.js'
 import type {
   Descriptor,
@@ -75,7 +80,13 @@ import {
 } from './symbolic.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
+type ConstructedImplementation<Body extends ConstructorBody> = AnyBlock &
+  Readonly<{
+    Model: SourceOf<Body>['Model']
+    Message: SourceOf<Body>['Message']
+  }>
 type RuntimeReturn = Readonly<{
   model: unknown
   commands?: ReadonlyArray<Command<unknown, never, any>>
@@ -92,13 +103,14 @@ const inventories = new WeakMap<object, StaticInventory>()
 let nextExecutionIdentity = 0
 
 /** @internal Wraps a checked implementation without exposing its private graph. */
-export const wrapExecutable = (
+export const wrapExecutable = <Implementation extends AnyBlock>(
   descriptor: any,
-  implementation: AnyBlock,
+  implementation: Implementation,
   opaqueRuntime = false,
   acquisition: AcquisitionContext,
 ): object => {
   assertCompletedBlock(implementation)
+  registerChildLocalMessageContract(implementation, descriptor.Message)
 
   if (Object.hasOwn(implementation.operations, 'then')) {
     throw new Error(
@@ -275,7 +287,7 @@ const makeDescriptor = (
     Message: AnySchema
     OutMessage?: AnySchema | undefined
   }>,
-  constructor: (graph: object) => Effect.Effect<any, any, any>,
+  constructor: (graph: object) => Effect.Effect<AnyBlock, any, any>,
   kind: ConstructionKind = 'Effect',
   provideConstruction: (
     layer: Layer.Layer<any, any, any>,
@@ -443,12 +455,16 @@ export type CompileInMessageUpdate = (
   operations: Readonly<Record<string, AnyFunction>>
 }>
 
-const constructImplementation = (
+const constructImplementation = <const Body extends ConstructorBody>(
   definition: any,
-  body: any,
+  body: Body &
+    ValidateSelfContainedDefinitionCodecs<
+      SourceOf<Body>['Model'],
+      SourceOf<Body>['Message']
+    >,
   compileInMessageUpdate?: CompileInMessageUpdate,
   graph?: object,
-): any => {
+): ConstructedImplementation<Body> => {
   const source = planComposition<any>(body.init)
   const inventory = inventories.get(source)
 
@@ -545,7 +561,7 @@ const constructImplementation = (
   }
 
   const inputUpdate = compileInMessageUpdate?.(actual, source, environment)
-  const operations = { ...implementation.operations }
+  const operations: Record<string, unknown> = { ...implementation.operations }
 
   for (const [name, operation] of Object.entries(
     inputUpdate?.operations ?? {},
@@ -586,11 +602,17 @@ const constructImplementation = (
 }
 
 /** @internal Completes plans using their original Definition and immutable relationship inventory. */
-export const constructAuthoredImplementation = (
-  body: ConstructorBody,
+export const constructAuthoredImplementation = <
+  const Body extends ConstructorBody,
+>(
+  body: Body &
+    ValidateSelfContainedDefinitionCodecs<
+      SourceOf<Body>['Model'],
+      SourceOf<Body>['Message']
+    >,
   compileInMessageUpdate?: CompileInMessageUpdate,
   graph?: object,
-): AnyBlock => {
+): ConstructedImplementation<Body> => {
   const source = planComposition(body.init)
   const inventory = inventories.get(source)
 
@@ -705,8 +727,8 @@ export const makeDefinitionFactory =
   <const Kind extends ConstructionKind>(kind: Kind) =>
   <
     const Id extends string,
-    const ModelSchema extends AnySchema,
-    const MessageSchema extends AnySchema,
+    const ModelSchema extends AnySelfContainedSchema,
+    const MessageSchema extends AnySelfContainedSchema,
     const OutMessageSchema extends AnySchema | undefined = undefined,
     const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(

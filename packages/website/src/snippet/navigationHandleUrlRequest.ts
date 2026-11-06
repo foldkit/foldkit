@@ -3,8 +3,6 @@ import { Block, Navigation, Route, Url } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 
-// ROUTE
-
 const ApplicationRoute = defineRouteUnion({
   Home: {},
   Person: { personId: Schema.Number },

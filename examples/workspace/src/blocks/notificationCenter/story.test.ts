@@ -1,37 +1,29 @@
 import { Array, Option } from 'effect'
-import {
-  expectNoOutMessage,
-  expectOutMessage,
-  inMessage,
-  init,
-  message,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
 
-import { Comment, Issue, NotificationActivity } from '../../domain'
+import { Issue } from '../../domain'
 import { NotificationCenterBlock } from './block'
 import { InMessage } from './inMessage'
 import { layer } from './layer'
 import { Message } from './message'
 import { OutMessage } from './outMessage'
 
-const previousComment = Comment.make({
+const previousComment = Issue.Comment.make({
   id: 'comment-previous',
   authorId: 'member-participant',
   body: 'Earlier context',
   createdAt: '2026-10-24T12:00:00.000Z',
 })
-const newComment = Comment.make({
+const newComment = Issue.Comment.make({
   id: 'comment-new',
   authorId: 'member-author',
   body: 'Can you review this?',
   createdAt: '2026-10-24T13:00:00.000Z',
 })
-const issue = Issue.make({
+const issue = Issue.Issue.make({
   id: 'issue-notifications',
   identifier: 'WSP-200',
   title: 'Review notification behavior',
@@ -44,23 +36,26 @@ const issue = Issue.make({
   version: 1,
   comments: [previousComment, newComment],
 })
-const activity = NotificationActivity.Commented({ issue, comment: newComment })
 
 describe('NotificationCenterBlock', () => {
   it.effect(
-    'deduplicates activity and retains each recipient read state',
+    'deduplicates comments and retains each recipient read state',
     () => {
-      return story(
+      return Story.story(
         { block: NotificationCenterBlock, layer },
-        init(),
-        inMessage(InMessage.InformedOfActivity({ activity })),
-        message(
-          Message.ClickedNotificationReadState({
+        Story.init(),
+        Story.inMessage(
+          InMessage.InformedOfIssueComment({ issue, comment: newComment }),
+        ),
+        Story.message(
+          Message.ClickedNotificationReadToggle({
             notificationId: 'comment:comment-new:member-assignee',
           }),
         ),
-        inMessage(InMessage.InformedOfActivity({ activity })),
-        model(model => {
+        Story.inMessage(
+          InMessage.InformedOfIssueComment({ issue, comment: newComment }),
+        ),
+        Story.model(model => {
           expect(model.notifications).toHaveLength(2)
           expect(
             Array.findFirst(
@@ -75,7 +70,7 @@ describe('NotificationCenterBlock', () => {
             ).pipe(Option.getOrThrow).isRead,
           ).toBe(false)
         }),
-        expectNoOutMessage(),
+        Story.expectNoOutMessage(),
       )
     },
   )
@@ -83,17 +78,19 @@ describe('NotificationCenterBlock', () => {
   it.effect(
     'marks the selected notification read without changing another recipient',
     () => {
-      return story(
+      return Story.story(
         { block: NotificationCenterBlock, layer },
-        init(),
-        inMessage(InMessage.InformedOfActivity({ activity })),
-        message(
+        Story.init(),
+        Story.inMessage(
+          InMessage.InformedOfIssueComment({ issue, comment: newComment }),
+        ),
+        Story.message(
           Message.ClickedNotification({
             notificationId: 'comment:comment-new:member-assignee',
           }),
         ),
-        expectOutMessage(OutMessage.SelectedIssue({ issueId: issue.id })),
-        model(model => {
+        Story.expectOutMessage(OutMessage.SelectedIssue({ issueId: issue.id })),
+        Story.model(model => {
           expect(
             Array.findFirst(
               model.notifications,

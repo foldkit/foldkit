@@ -24,7 +24,7 @@ The Query handler retains the real RPC Service requirement. Pure Stories and Sce
 The full app exposed genuine integration requirements that the small slice did not cover:
 
 1. `initAndSet` needed the acquired symbolic Binding resolver. The original empty-query startup and viewport-reset Step now work unchanged, including SSR prerender.
-2. Raw child delivery in Stories needed public deferred `Story.messageFrom(Binding, message)`. Stale Query completion and VirtualList scroll tests now use it without constructing private envelopes. Shared ordinary Story Steps remain composable.
+2. Raw child delivery in Stories needed public deferred `Story.messageIn(Binding, message)`. Stale Query completion and VirtualList scroll tests now use it without constructing private envelopes. Shared ordinary Story Steps remain composable.
 3. Root declaration emission needed reachable public `KeyedQueryModel`, Listbox `OutMessageSchema`, and Binding ownership evidence names. Public exports fixed portability without application annotations.
 
 The original UI patch remains unchanged as provenance. Its missing VirtualList fixes were incorporated in the isolated UI source: native scroll movement during a row-layout update and width measurement before scroll observation. The existing signed-offset fix was already present. The patch is not applied twice.

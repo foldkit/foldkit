@@ -40,11 +40,12 @@ import {
 } from './runtime.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 type Declaration = ContractConfiguration &
   Readonly<{
-    Model: AnySchema
-    Message: AnySchema
+    Model: AnySelfContainedSchema
+    Message: AnySelfContainedSchema
     OutMessage?: AnySchema
     ChildInitContext?: AnySchema
   }>
@@ -207,8 +208,8 @@ export interface FamilyRecipe<
 /** Typed authoring contracts whose completion produces a private family recipe. */
 export type FamilyDefinition<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
@@ -251,8 +252,8 @@ export type FamilyAuthoring = Readonly<{
   [FamilyDefinitionTypeId]: Readonly<{
     [DescriptorTypeId]: PublicFacts
     owner: Owner<string>
-    Model: AnySchema
-    Message: AnySchema
+    Model: AnySelfContainedSchema
+    Message: AnySelfContainedSchema
     OutMessage: AnySchema | undefined
     get: Effect.Effect<any, any, any>
   }>

@@ -88,9 +88,9 @@ export const p0 = b0.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b1.informIncrement(),
-        b2.informIncrement(),
-        b3.informIncrement(),
+        b1.informOfIncrement(),
+        b2.informOfIncrement(),
+        b3.informOfIncrement(),
       ]),
   }),
 })
@@ -99,9 +99,9 @@ export const p1 = b1.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b2.informIncrement(),
-        b3.informIncrement(),
-        b4.informIncrement(),
+        b2.informOfIncrement(),
+        b3.informOfIncrement(),
+        b4.informOfIncrement(),
       ]),
   }),
 })
@@ -110,9 +110,9 @@ export const p2 = b2.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b3.informIncrement(),
-        b4.informIncrement(),
-        b5.informIncrement(),
+        b3.informOfIncrement(),
+        b4.informOfIncrement(),
+        b5.informOfIncrement(),
       ]),
   }),
 })
@@ -121,9 +121,9 @@ export const p3 = b3.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b4.informIncrement(),
-        b5.informIncrement(),
-        b6.informIncrement(),
+        b4.informOfIncrement(),
+        b5.informOfIncrement(),
+        b6.informOfIncrement(),
       ]),
   }),
 })
@@ -132,9 +132,9 @@ export const p4 = b4.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b5.informIncrement(),
-        b6.informIncrement(),
-        b7.informIncrement(),
+        b5.informOfIncrement(),
+        b6.informOfIncrement(),
+        b7.informOfIncrement(),
       ]),
   }),
 })
@@ -143,9 +143,9 @@ export const p5 = b5.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b6.informIncrement(),
-        b7.informIncrement(),
-        b8.informIncrement(),
+        b6.informOfIncrement(),
+        b7.informOfIncrement(),
+        b8.informOfIncrement(),
       ]),
   }),
 })
@@ -154,9 +154,9 @@ export const p6 = b6.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b7.informIncrement(),
-        b8.informIncrement(),
-        b9.informIncrement(),
+        b7.informOfIncrement(),
+        b8.informOfIncrement(),
+        b9.informOfIncrement(),
       ]),
   }),
 })
@@ -165,9 +165,9 @@ export const p7 = b7.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b8.informIncrement(),
-        b9.informIncrement(),
-        b10.informIncrement(),
+        b8.informOfIncrement(),
+        b9.informOfIncrement(),
+        b10.informOfIncrement(),
       ]),
   }),
 })
@@ -176,9 +176,9 @@ export const p8 = b8.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b9.informIncrement(),
-        b10.informIncrement(),
-        b11.informIncrement(),
+        b9.informOfIncrement(),
+        b10.informOfIncrement(),
+        b11.informOfIncrement(),
       ]),
   }),
 })
@@ -187,9 +187,9 @@ export const p9 = b9.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b10.informIncrement(),
-        b11.informIncrement(),
-        b0.informIncrement(),
+        b10.informOfIncrement(),
+        b11.informOfIncrement(),
+        b0.informOfIncrement(),
       ]),
   }),
 })
@@ -198,9 +198,9 @@ export const p10 = b10.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b11.informIncrement(),
-        b0.informIncrement(),
-        b1.informIncrement(),
+        b11.informOfIncrement(),
+        b0.informOfIncrement(),
+        b1.informOfIncrement(),
       ]),
   }),
 })
@@ -209,9 +209,9 @@ export const p11 = b11.withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChildBlock, {
     Notify: () =>
       Update.combineSteps([
-        b0.informIncrement(),
-        b1.informIncrement(),
-        b2.informIncrement(),
+        b0.informOfIncrement(),
+        b1.informOfIncrement(),
+        b2.informOfIncrement(),
       ]),
   }),
 })

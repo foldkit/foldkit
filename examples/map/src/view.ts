@@ -2,8 +2,7 @@ import clsx from 'clsx'
 import { Array, Equal, Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Input } from '@foldkit/ui'
 
 import { SEARCH_INPUT_ID } from './command'
 import { ApplicationComposition } from './composition'
@@ -37,15 +36,29 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.div(
     [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
     [
-      sidebarView(model, h),
-      mapPaneView(model, h),
+      sidebarView(
+        model.locations,
+        model.searchQuery,
+        model.maybeSelectedLocationId,
+        model.geolocateState,
+        model.maybeUserLocation,
+        h,
+      ),
+      mapPaneView(model.maybeMapError, model.maybeBounds, h),
       geolocateOverlayView(model.geolocateState, h),
     ],
   ),
 }))
 
-const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
-  const visible = filterLocations(model.locations, model.searchQuery)
+const sidebarView = (
+  locations: ReadonlyArray<Location>,
+  searchQuery: string,
+  maybeSelectedLocationId: Model['maybeSelectedLocationId'],
+  geolocateState: GeolocateState,
+  maybeUserLocation: Model['maybeUserLocation'],
+  h: ApplicationViewBuilder,
+): Html => {
+  const visible = filterLocations(locations, searchQuery)
   return h.aside(
     [
       h.Class(
@@ -69,11 +82,11 @@ const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
       h.div(
         [h.Class('px-5 py-3 border-b border-slate-200')],
         [
-          inputView(
+          Input.view(
             {
               id: SEARCH_INPUT_ID,
               type: 'search',
-              value: model.searchQuery,
+              value: searchQuery,
               placeholder: 'Filter locations',
               onInput: value => Message.UpdatedSearchQuery({ value }),
               toView: attributes =>
@@ -92,13 +105,13 @@ const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
       h.ul(
         [h.Class('flex-1 overflow-y-auto'), h.AriaLabel('Locations')],
         Array.match(visible, {
-          onEmpty: () => [emptySidebarView(model.searchQuery, h)],
+          onEmpty: () => [emptySidebarView(searchQuery, h)],
           onNonEmpty: Array.map(location =>
-            locationListItemView(model.maybeSelectedLocationId)(location, h),
+            locationListItemView(maybeSelectedLocationId)(location, h),
           ),
         }),
       ),
-      footerView(model, h),
+      footerView(geolocateState, maybeUserLocation, h),
     ],
   )
 }
@@ -123,7 +136,7 @@ const locationListItemView =
     return h.li(
       [],
       [
-        buttonView(
+        Button.view(
           {
             onClick: Message.ClickedLocation({ locationId: location.id }),
             toView: attributes =>
@@ -155,12 +168,16 @@ const locationListItemView =
     )
   }
 
-const footerView = (model: Model, h: ApplicationViewBuilder): Html => {
-  const isLocating = model.geolocateState._tag === 'Locating'
+const footerView = (
+  geolocateState: GeolocateState,
+  maybeUserLocation: Model['maybeUserLocation'],
+  h: ApplicationViewBuilder,
+): Html => {
+  const isLocating = geolocateState._tag === 'Locating'
   return h.div(
     [h.Class('border-t border-slate-200 px-5 py-3 space-y-2')],
     [
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedFindMe(),
           isDisabled: isLocating,
@@ -177,7 +194,7 @@ const footerView = (model: Model, h: ApplicationViewBuilder): Html => {
         },
         h,
       ),
-      Option.match(model.maybeUserLocation, {
+      Option.match(maybeUserLocation, {
         onNone: () => h.empty,
         onSome: ({ lng, lat }) =>
           h.p(
@@ -189,7 +206,11 @@ const footerView = (model: Model, h: ApplicationViewBuilder): Html => {
   )
 }
 
-const mapPaneView = (model: Model, h: ApplicationViewBuilder): Html =>
+const mapPaneView = (
+  maybeMapError: Model['maybeMapError'],
+  maybeBounds: Model['maybeBounds'],
+  h: ApplicationViewBuilder,
+): Html =>
   h.main(
     [h.Class('flex-1 relative')],
     [
@@ -198,8 +219,8 @@ const mapPaneView = (model: Model, h: ApplicationViewBuilder): Html =>
         h.AriaLabel('Map'),
         h.OnMount(MountMap({ hostId: HOST_ID })),
       ]),
-      mapErrorBannerView(model.maybeMapError, h),
-      boundsBadgeView(model.maybeBounds, h),
+      mapErrorBannerView(maybeMapError, h),
+      boundsBadgeView(maybeBounds, h),
     ],
   )
 
@@ -305,7 +326,7 @@ const geolocateFailedContentView = (
         ['Could not locate you'],
       ),
       h.p([h.Class('text-sm text-slate-600')], [reason]),
-      buttonView(
+      Button.view(
         {
           onClick: Message.DismissedGeolocate(),
           toView: attributes =>

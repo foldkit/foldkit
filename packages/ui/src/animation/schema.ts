@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
 // TRANSITION STATE
 
@@ -38,7 +38,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 /** Parent requests handled separately from Animation lifecycle facts. */
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedShow: {},
   RequestedHide: {},
   RequestedWaitForLeaveSettlement: {},

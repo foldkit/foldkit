@@ -1,7 +1,7 @@
 import { Match, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
+import { Toast } from '@foldkit/ui'
 
 import * as Icon from '../../../icon'
 import { ToastDemoBinding, UiComposition } from '../composition'
@@ -13,7 +13,7 @@ type ToastModel = typeof ToastBlock.Model.Type
 
 type Entry = ToastModel['entries'][number]
 
-const variantClassName = (variant: Variant): string =>
+const variantClassName = (variant: Toast.Variant): string =>
   Match.value(variant).pipe(
     Match.when('Info', () => 'border-gray-300 bg-white text-gray-900'),
     Match.when(
@@ -30,7 +30,7 @@ const entryClassName =
 
 const renderToastEntry = (
   entry: Entry,
-  handlers: EntryHandlers,
+  handlers: Toast.EntryHandlers,
   h: UiViewBuilder,
 ): Html => {
   return h.div(

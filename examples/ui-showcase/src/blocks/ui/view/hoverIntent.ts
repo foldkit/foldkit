@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import type { RenderInfo } from '@foldkit/ui/hoverIntent'
+import { HoverIntent } from '@foldkit/ui'
 
 import { HoverIntentDemoBinding, UiComposition } from '../composition'
 
@@ -14,7 +14,11 @@ const TRIGGER_ID = 'hover-intent-showcase-trigger'
 const PANEL_ID = 'hover-intent-showcase-panel'
 
 export const view = UiComposition.makeView((model, h) => {
-  const hoverIntentView = ({ trigger, panel, isVisible }: RenderInfo): Html =>
+  const hoverIntentView = ({
+    trigger,
+    panel,
+    isVisible,
+  }: HoverIntent.RenderInfo): Html =>
     h.div(
       [h.Class('relative inline-block')],
       [

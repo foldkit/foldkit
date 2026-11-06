@@ -7,7 +7,7 @@ import { describe, it } from '@effect/vitest'
 import { layer as ListboxLayer, makeBlock } from './public.js'
 import { InitConfig } from './types.js'
 
-const TestListbox = makeBlock<string>()
+const TestListbox = makeBlock()
 
 const Model = Schema.Struct({ listbox: TestListbox.Model })
 type Model = typeof Model.Type

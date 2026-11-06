@@ -1,14 +1,14 @@
 import { clsx } from 'clsx'
 import type { Html } from 'foldkit/html'
 
-import type { ItemInfo as NavItemInfo } from '@foldkit/ui/nav'
+import { Nav } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 
 const NAVIGATION_LINK_CLASS = 'block rounded-lg px-3 py-2 text-sm'
 
 export const navigationLink = (
-  item: NavItemInfo,
+  item: Nav.ItemInfo,
   label: string,
   h: ApplicationViewBuilder,
 ): Html =>

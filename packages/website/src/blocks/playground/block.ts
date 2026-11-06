@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
 import { PlaygroundFileTabsBlock } from './fileTabs'
@@ -53,7 +53,7 @@ export type SucceededMountPlaygroundEditor =
 export type FailedMountPlaygroundEditor =
   typeof Message.FailedMountPlaygroundEditor.Type
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   InformedOfSupport: { isSupported: Schema.Boolean },
 })
 export type InMessage = typeof InMessage.Type

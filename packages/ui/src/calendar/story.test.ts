@@ -1171,13 +1171,13 @@ describe('Calendar', () => {
       )
     })
 
-    describe('informMinDateChanged', () => {
+    describe('informOfMinDateChanged', () => {
       it('sets a minimum date on a calendar that had none', ({
         calendar: { init, operations },
       }) => {
         const model = init({ id: 'test', today }).model
         const newMin = Calendar.make(2026, 5, 1)
-        const minDateChange = operations.informMinDateChanged(
+        const minDateChange = operations.informOfMinDateChanged(
           model,
           Option.some(newMin),
         )
@@ -1192,7 +1192,7 @@ describe('Calendar', () => {
         const originalMin = Calendar.make(2026, 1, 1)
         const model = init({ id: 'test', today, minDate: originalMin }).model
         const newMin = Calendar.make(2026, 6, 1)
-        const minDateChange = operations.informMinDateChanged(
+        const minDateChange = operations.informOfMinDateChanged(
           model,
           Option.some(newMin),
         )
@@ -1206,7 +1206,7 @@ describe('Calendar', () => {
       }) => {
         const originalMin = Calendar.make(2026, 1, 1)
         const model = init({ id: 'test', today, minDate: originalMin }).model
-        const minDateChange = operations.informMinDateChanged(
+        const minDateChange = operations.informOfMinDateChanged(
           model,
           Option.none(),
         )
@@ -1218,7 +1218,7 @@ describe('Calendar', () => {
       }) => {
         const model = init({ id: 'test', today }).model
         const newMin = Calendar.make(2026, 6, 1)
-        const minDateChange = operations.informMinDateChanged(
+        const minDateChange = operations.informOfMinDateChanged(
           model,
           Option.some(newMin),
         )
@@ -1232,13 +1232,13 @@ describe('Calendar', () => {
       })
     })
 
-    describe('informMaxDateChanged', () => {
+    describe('informOfMaxDateChanged', () => {
       it('sets a maximum date on a calendar that had none', ({
         calendar: { init, operations },
       }) => {
         const model = init({ id: 'test', today }).model
         const newMax = Calendar.make(2026, 12, 31)
-        const maxDateChange = operations.informMaxDateChanged(
+        const maxDateChange = operations.informOfMaxDateChanged(
           model,
           Option.some(newMax),
         )
@@ -1252,7 +1252,7 @@ describe('Calendar', () => {
       }) => {
         const originalMax = Calendar.make(2026, 12, 31)
         const model = init({ id: 'test', today, maxDate: originalMax }).model
-        const maxDateChange = operations.informMaxDateChanged(
+        const maxDateChange = operations.informOfMaxDateChanged(
           model,
           Option.none(),
         )
@@ -1260,7 +1260,7 @@ describe('Calendar', () => {
       })
     })
 
-    describe('informDisabledDatesChanged', () => {
+    describe('informOfDisabledDatesChanged', () => {
       it('sets a list of disabled dates', ({
         calendar: { init, operations },
       }) => {
@@ -1269,7 +1269,7 @@ describe('Calendar', () => {
           Calendar.make(2026, 4, 15),
           Calendar.make(2026, 4, 16),
         ]
-        const disabledDatesChange = operations.informDisabledDatesChanged(
+        const disabledDatesChange = operations.informOfDisabledDatesChanged(
           model,
           disabled,
         )
@@ -1284,7 +1284,7 @@ describe('Calendar', () => {
           today,
           disabledDates: [Calendar.make(2026, 4, 15)],
         }).model
-        const disabledDatesChange = operations.informDisabledDatesChanged(
+        const disabledDatesChange = operations.informOfDisabledDatesChanged(
           model,
           [],
         )
@@ -1296,7 +1296,7 @@ describe('Calendar', () => {
       }) => {
         const disabled = Calendar.make(2026, 4, 15)
         const model = init({ id: 'test', today }).model
-        const disabledDatesChange = operations.informDisabledDatesChanged(
+        const disabledDatesChange = operations.informOfDisabledDatesChanged(
           model,
           [disabled],
         )
@@ -1309,12 +1309,12 @@ describe('Calendar', () => {
       })
     })
 
-    describe('informDisabledDaysOfWeekChanged', () => {
+    describe('informOfDisabledDaysOfWeekChanged', () => {
       it('sets disabled days of the week', ({
         calendar: { init, operations },
       }) => {
         const model = init({ id: 'test', today }).model
-        const disabledDaysChange = operations.informDisabledDaysOfWeekChanged(
+        const disabledDaysChange = operations.informOfDisabledDaysOfWeekChanged(
           model,
           ['Saturday', 'Sunday'],
         )
@@ -1332,7 +1332,7 @@ describe('Calendar', () => {
           today,
           disabledDaysOfWeek: ['Sunday'],
         }).model
-        const disabledDaysChange = operations.informDisabledDaysOfWeekChanged(
+        const disabledDaysChange = operations.informOfDisabledDaysOfWeekChanged(
           model,
           [],
         )

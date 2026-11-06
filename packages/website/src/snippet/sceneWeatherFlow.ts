@@ -1,40 +1,29 @@
-import {
-  Command,
-  click,
-  expect,
-  given,
-  inside,
-  label,
-  role,
-  scene,
-  text,
-  type,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 
 import { it } from '@effect/vitest'
 
 import { ApplicationBlock, layer } from './block'
 
 it.effect('type a zip code, click get weather, see the forecast', () =>
-  scene(
+  Scene.scene(
     { block: ApplicationBlock, layer },
-    given(model),
+    Scene.given(model),
 
-    type(label('Zip code'), '90210'),
-    click(role('button', { name: 'Get Weather' })),
-    expect(role('button', { name: 'Loading...' })).toExist(),
+    Scene.type(Scene.label('Zip code'), '90210'),
+    Scene.click(Scene.role('button', { name: 'Get Weather' })),
+    Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
 
     // Instance form: locks in the zipCode the runtime captured.
-    Command.expectExact(FetchWeather({ zipCode: '90210' })),
-    Command.resolve(
+    Scene.Command.expectExact(FetchWeather({ zipCode: '90210' })),
+    Scene.Command.resolve(
       FetchWeather,
       SucceededFetchWeather({ weather: beverlyHillsWeather }),
     ),
-    inside(
-      role('article'),
-      expect(text('Beverly Hills, California')).toExist(),
-      expect(text('72\u00B0F')).toExist(),
-      expect(text('Clear sky')).toExist(),
+    Scene.inside(
+      Scene.role('article'),
+      Scene.expect(Scene.text('Beverly Hills, California')).toExist(),
+      Scene.expect(Scene.text('72\u00B0F')).toExist(),
+      Scene.expect(Scene.text('Clear sky')).toExist(),
     ),
   ),
 )

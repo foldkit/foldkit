@@ -219,7 +219,7 @@ const toTestBlock = (executable: unknown): object => {
   }
 
   const view = defaultViewOf(executable)
-  const { subscriptions } = acquisitionOf(executable).block
+  const { managedResources, subscriptions } = acquisitionOf(executable).block
 
   const facade = Object.freeze({
     owner: Reflect.get(executable, 'owner'),
@@ -232,6 +232,7 @@ const toTestBlock = (executable: unknown): object => {
     inMessageUpdate: Reflect.get(executable, 'inMessageUpdate'),
     operations: Reflect.get(executable, 'operations'),
     EffectsLayer: Reflect.get(executable, 'EffectsLayer'),
+    managedResources,
     subscriptions,
     ...(view === undefined ? {} : { view }),
   })

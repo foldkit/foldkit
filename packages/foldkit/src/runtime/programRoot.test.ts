@@ -84,106 +84,63 @@ describe('completed root Block hosting', () => {
     expect(program.start).toBeTypeOf('function')
   })
 
-  it('installs DevTools with decoder Services from root and ordinary providers', async () => {
-    class DispatchDecoder extends Context.Service<
-      DispatchDecoder,
-      Readonly<{ prefix: string }>
-    >()('ProgramRoot/DispatchDecoder') {}
-
-    const ServiceDecodedString = Schema.String.pipe(
+  it('installs DevTools without evaluating the Message codec during startup', async () => {
+    const decode = vi.fn((value: string) => Effect.succeed(value.trim()))
+    const TrimmedString = Schema.String.pipe(
       Schema.decodeTo(
         Schema.String,
         SchemaTransformation.transformEffect({
-          decode: value =>
-            Effect.map(DispatchDecoder, decoder => `${decoder.prefix}${value}`),
+          decode,
           encode: Effect.succeed,
         }),
       ),
     )
-    type ServiceDecodedString = typeof ServiceDecodedString.Type
+    type TrimmedString = typeof TrimmedString.Type
     const Message = defineMessageUnion({
-      SubmittedValue: { value: ServiceDecodedString },
+      SubmittedValue: { value: TrimmedString },
     })
     type Message = typeof Message.Type
-    const Definition = Block.makeDefinition('ServiceDecodedRoot', {
+    const Definition = Block.makeDefinition('PureDecodedRoot', {
       Model: Schema.Struct({ value: Schema.String }),
       Message,
     })
     const Composition = Definition.makeComposition()
-    const init = Composition.makeInit(() => ({ model: { value: 'ready' } }))
-    const update = Composition.makeUpdate({
-      SubmittedValue: (model, { value }) => ({
-        model: modifyFields(model, { value: () => value }),
-      }),
-    })
-    const view = Composition.makeView((model, h) => h.div([], [model.value]))
-    const decoderValues: Array<string> = []
-
-    __setDevToolsOverlay(() =>
-      Effect.flatMap(Effect.context<never>(), context =>
-        Effect.sync(() => {
-          decoderValues.push(Context.getUnsafe(context, DispatchDecoder).prefix)
+    const prepare = () =>
+      Composition.prepareBlock({
+        init: Composition.makeInit(() => ({ model: { value: 'ready' } })),
+        update: Composition.makeUpdate({
+          SubmittedValue: (model, { value }) => ({
+            model: modifyFields(model, { value: () => value }),
+          }),
         }),
-      ),
-    )
-
-    const prepareRootProvidedBlock = () =>
-      Composition.prepareBlock({
-        init,
-        update,
-        view,
-        EffectsLayer: Layer.succeed(DispatchDecoder, { prefix: 'root' }),
+        view: Composition.makeView((model, h) => h.div([], [model.value])),
       })
-    const RootProvidedBlock: Block.FromAssemblyWithView<
+    const ApplicationBlock: Block.FromAssemblyWithView<
       typeof Composition.Model,
-      typeof prepareRootProvidedBlock
-    > = Block.assemble(prepareRootProvidedBlock)
-    const rootContainer = document.createElement('div')
-    rootContainer.id = 'root-provided-dispatch'
-    document.body.append(rootContainer)
-    const rootHandle = embed(
+      typeof prepare
+    > = Block.assemble(prepare)
+    const installOverlay = vi.fn(() => Effect.void)
+    __setDevToolsOverlay(installOverlay)
+    const container = document.createElement('div')
+    container.id = 'pure-decoded-dispatch'
+    document.body.append(container)
+
+    expect(decode).not.toHaveBeenCalled()
+
+    const handle = embed(
       Program.makeElement({
-        block: RootProvidedBlock,
-        container: rootContainer,
+        block: ApplicationBlock,
+        container,
         devTools: { show: 'Always', dispatch: true },
       }),
     )
 
     try {
-      await vi.waitFor(() => expect(decoderValues).toEqual(['root']))
+      await vi.waitFor(() => expect(installOverlay).toHaveBeenCalledTimes(1))
+      await vi.waitFor(() => expect(document.body.textContent).toBe('ready'))
+      expect(decode).not.toHaveBeenCalled()
     } finally {
-      rootHandle.dispose()
-      rootContainer.remove()
-    }
-
-    const prepareExternallyProvidedBlock = () =>
-      Composition.prepareBlock({
-        init,
-        update,
-        view,
-      })
-    const ExternallyProvidedBlock: Block.FromAssemblyWithView<
-      typeof Composition.Model,
-      typeof prepareExternallyProvidedBlock
-    > = Block.assemble(prepareExternallyProvidedBlock)
-    const externalContainer = document.createElement('div')
-    externalContainer.id = 'externally-provided-dispatch'
-    document.body.append(externalContainer)
-    const externalHandle = embed(
-      Program.makeElement({
-        block: ExternallyProvidedBlock,
-        container: externalContainer,
-        devTools: { show: 'Always', dispatch: true },
-      }).provide(Layer.succeed(DispatchDecoder, { prefix: 'external' })),
-    )
-
-    try {
-      await vi.waitFor(() =>
-        expect(decoderValues).toEqual(['root', 'external']),
-      )
-    } finally {
-      externalHandle.dispose()
-      externalContainer.remove()
+      handle.dispose()
     }
   })
 

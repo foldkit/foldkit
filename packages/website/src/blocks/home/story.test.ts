@@ -1,8 +1,8 @@
-import { Command, init, messageFrom, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { DemoTabsBinding } from './composition'
 import { DemoTabsBlock } from './demoTab'
@@ -11,53 +11,50 @@ import { HomeBlock, layer } from './index'
 const homeSubject = { block: HomeBlock, layer }
 
 describe('home', () => {
-  it.effect('selecting a demo tab preserves both demo Models', () => {
-    let initialAsyncCounterDemo:
-      | typeof HomeBlock.Model.Type.asyncCounterDemo
-      | undefined
-    let initialNotePlayerDemo:
-      | typeof HomeBlock.Model.Type.notePlayerDemo
-      | undefined
-
-    return story(
+  it.effect('selecting a demo tab preserves both demo Models', () =>
+    Story.story(
       homeSubject,
-      init(),
-      model(model => {
-        initialAsyncCounterDemo = model.asyncCounterDemo
-        initialNotePlayerDemo = model.notePlayerDemo
-      }),
-      messageFrom(
-        DemoTabsBinding,
-        DemoTabsBlock.Message.SelectedTab({
-          index: 1,
-          value: 'Note Player',
-        }),
+      Story.init(),
+      Story.models(
+        Story.steps(
+          Story.messageIn(
+            DemoTabsBinding,
+            DemoTabsBlock.Message.SelectedTab({
+              index: 1,
+              value: 'Note Player',
+            }),
+          ),
+          Story.Command.resolve(
+            Tabs.test.FocusTab,
+            DemoTabsBlock.Message.CompletedFocusTab(),
+          ),
+        ),
+        (before, after) => {
+          expect(after.activeDemoTab).toBe('Note Player')
+          expect(after.asyncCounterDemo).toBe(before.asyncCounterDemo)
+          expect(after.notePlayerDemo).toBe(before.notePlayerDemo)
+        },
       ),
-      model(model => {
-        expect(model.activeDemoTab).toBe('Note Player')
-        expect(model.asyncCounterDemo).toBe(initialAsyncCounterDemo)
-        expect(model.notePlayerDemo).toBe(initialNotePlayerDemo)
-      }),
-      Command.resolve(
-        TabsTest.FocusTab,
-        DemoTabsBlock.Message.CompletedFocusTab(),
+      Story.models(
+        Story.steps(
+          Story.messageIn(
+            DemoTabsBinding,
+            DemoTabsBlock.Message.SelectedTab({
+              index: 0,
+              value: 'AsyncCounter',
+            }),
+          ),
+          Story.Command.resolve(
+            Tabs.test.FocusTab,
+            DemoTabsBlock.Message.CompletedFocusTab(),
+          ),
+        ),
+        (before, after) => {
+          expect(after.activeDemoTab).toBe('AsyncCounter')
+          expect(after.asyncCounterDemo).toBe(before.asyncCounterDemo)
+          expect(after.notePlayerDemo).toBe(before.notePlayerDemo)
+        },
       ),
-      messageFrom(
-        DemoTabsBinding,
-        DemoTabsBlock.Message.SelectedTab({
-          index: 0,
-          value: 'AsyncCounter',
-        }),
-      ),
-      model(model => {
-        expect(model.activeDemoTab).toBe('AsyncCounter')
-        expect(model.asyncCounterDemo).toBe(initialAsyncCounterDemo)
-        expect(model.notePlayerDemo).toBe(initialNotePlayerDemo)
-      }),
-      Command.resolve(
-        TabsTest.FocusTab,
-        DemoTabsBlock.Message.CompletedFocusTab(),
-      ),
-    )
-  })
+    ),
+  )
 })

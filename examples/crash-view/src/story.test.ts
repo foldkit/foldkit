@@ -1,5 +1,5 @@
 import { Effect, Exit } from 'effect'
-import { init, message, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -10,10 +10,10 @@ describe('update', () => {
   it.effect('handling any Message throws to trigger the crash view', () =>
     Effect.gen(function* () {
       const outcome = yield* Effect.exit(
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          init(),
-          message(Message.ClickedCrash()),
+          Story.init(),
+          Story.message(Message.ClickedCrash()),
         ),
       )
 

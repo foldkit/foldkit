@@ -49,6 +49,7 @@ import type { MakeComposableUpdatePlan } from './updateComposition.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 
 /** The authored kind of a passive hybrid plan. */
 export type PlanKind = 'Init' | 'Update' | 'InMessageUpdate' | 'View'
@@ -560,8 +561,8 @@ export interface MakeViewPlan<
 /** The static core Composition metadata used by hybrid authoring. */
 export type AuthoringSource = Readonly<{
   owner: Owner<string>
-  Model: AnySchema
-  Message: AnySchema
+  Model: AnySelfContainedSchema
+  Message: AnySelfContainedSchema
   bindings: ReadonlyArray<AnyBinding>
   [LocalMountsTypeId]: ReadonlyArray<Mount.LayeredMountDefinition>
   prepareBlock?: unknown

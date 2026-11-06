@@ -1,34 +1,26 @@
 import { Effect } from 'effect'
-import {
-  click,
-  expectNoOutMessage,
-  expectOutMessage,
-  expectOutMessages,
-  given,
-  role,
-  scene,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 
 import { ApplicationBlock, layer } from './block'
 import { TreeRowBlock, layer as TreeRowLayer } from './treeRow'
 
 await Effect.runPromise(
-  scene(
+  Scene.scene(
     { block: ApplicationBlock, layer },
-    given(initialModel),
-    click(role('button', { name: 'Log out' })),
-    expectOutMessage(OutMessage.RequestedLogout()),
-    click(role('button', { name: 'Dismiss notification' })),
-    expectNoOutMessage(),
+    Scene.given(initialModel),
+    Scene.click(Scene.role('button', { name: 'Log out' })),
+    Scene.expectOutMessage(OutMessage.RequestedLogout()),
+    Scene.click(Scene.role('button', { name: 'Dismiss notification' })),
+    Scene.expectNoOutMessage(),
   ),
 )
 
 await Effect.runPromise(
-  scene(
+  Scene.scene(
     { block: TreeRowBlock, layer: TreeRowLayer },
-    given(initialModel),
-    click(role('button', { name: 'Expand' })),
-    expectOutMessages(
+    Scene.given(initialModel),
+    Scene.click(Scene.role('button', { name: 'Expand' })),
+    Scene.expectOutMessages(
       OutMessage.RequestedExpand(),
       OutMessage.RequestedSelection(),
     ),

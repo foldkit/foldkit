@@ -2,16 +2,12 @@ import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  PopoverBlock,
-  layer as PopoverLayer,
-  type RenderInfo as PopoverRenderInfo,
-} from '@foldkit/ui/popover'
+import { Popover } from '@foldkit/ui'
 
 // Add one Popover Block field for each level:
 const Model = Schema.Struct({
-  accountPopover: PopoverBlock.Model,
-  accountDetailsPopover: PopoverBlock.Model,
+  accountPopover: Popover.PopoverBlock.Model,
+  accountDetailsPopover: Popover.PopoverBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -32,19 +28,19 @@ export const AccountMenuBlock = Block.make('AccountMenu', {
 const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
   AccountMenuBlock
 
-const foldPopoverOutMessage = makeOutMessageFold(PopoverBlock, {
+const foldPopoverOutMessage = makeOutMessageFold(Popover.PopoverBlock, {
   Opened: makeNoopStep,
   Closed: makeNoopStep,
 })
 
-const AccountPopoverBinding = makeBinding(PopoverBlock, {
+const AccountPopoverBinding = makeBinding(Popover.PopoverBlock, {
   field: 'accountPopover',
   init: {
     contextToArgs: () => [{ id: 'account-popover', contentFocus: true }],
   },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const AccountDetailsPopoverBinding = makeBinding(PopoverBlock, {
+const AccountDetailsPopoverBinding = makeBinding(Popover.PopoverBlock, {
   field: 'accountDetailsPopover',
   init: {
     contextToArgs: () => [{ id: 'account-details-popover' }],
@@ -74,7 +70,7 @@ const view = AccountMenuComposition.makeView((model, h) => {
     panel,
     backdrop,
     isVisible,
-  }: PopoverRenderInfo) =>
+  }: Popover.RenderInfo) =>
     h.div(
       [h.Class('relative inline-block')],
       [
@@ -118,7 +114,7 @@ const view = AccountMenuComposition.makeView((model, h) => {
     panel,
     backdrop,
     isVisible,
-  }: PopoverRenderInfo) =>
+  }: Popover.RenderInfo) =>
     h.div(
       [h.Class('relative inline-block')],
       [
@@ -166,4 +162,4 @@ export const layer = AccountMenuBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(PopoverLayer))
+).pipe(Layer.provide(Popover.layer))

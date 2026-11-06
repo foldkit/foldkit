@@ -96,7 +96,7 @@ const UnregisteredBinding = ApplicationBlock.makeBinding(EditorBlock, {
 if (false) {
   makeInMessageUpdate.cases({
     // @ts-expect-error Connected operations must belong to this exact graph.
-    RequestedSet: UnregisteredBinding.informTextChange({ text: '' }),
+    RequestedSet: UnregisteredBinding.informOfTextChange({ text: '' }),
   })
 }
 
@@ -159,7 +159,7 @@ const EmittingComposition = ApplicationBlock.makeComposition({
 if (false) {
   // @ts-expect-error A shared connected operation cannot hide a child-derived OutMessage.
   EmittingComposition.makeInMessageUpdate.each(() =>
-    EmittingBinding.informTextChange({ text: 'child' }),
+    EmittingBinding.informOfTextChange({ text: 'child' }),
   )
 }
 

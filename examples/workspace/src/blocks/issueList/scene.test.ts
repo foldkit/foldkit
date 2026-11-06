@@ -1,68 +1,56 @@
 import { Array, Option } from 'effect'
-import {
-  Command,
-  Mount,
-  click,
-  expect,
-  expectOutMessage,
-  init,
-  label,
-  role,
-  scene,
-  text,
-  type,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as ListboxTest } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
-import { IssueFilters, initialWorkspace } from '../../domain'
-import { WorkspaceListboxBlock } from '../../listbox'
+import { Issue, initialWorkspace } from '../../domain'
+import { StringListboxBlock } from '../../listbox'
 import { IssueListBlock } from './block'
 import { layer } from './layer'
 import { OutMessage } from './outMessage'
 
-const initialFilters = IssueFilters.make({
+const initialFilters = Issue.Filters.make({
   query: '',
   maybeStatus: Option.none(),
   sort: 'Identifier',
   groupBy: 'None',
 })
 
-const viewInputs = (filters: IssueFilters = initialFilters) => ({
+const viewInputs = (filters: Issue.Filters = initialFilters) => ({
   issues: Array.take(initialWorkspace.issues, 2),
   members: initialWorkspace.members,
   projects: initialWorkspace.projects,
   maybeActiveIssueId: Option.none(),
   filters,
-  issueHrefs: { 'issue-101': '/issues/issue-101' },
+  issueHrefsById: { 'issue-101': '/issues/issue-101' },
 })
 
 const openFilter = (filter: string) => [
-  click(role('button', { name: filter })),
-  Command.resolve(
-    ListboxTest.FocusListboxItems,
-    WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
+  Scene.click(Scene.role('button', { name: filter })),
+  Scene.Command.resolve(
+    Listbox.test.FocusListboxItems,
+    StringListboxBlock.Message.CompletedFocusListboxItems(),
   ),
-  Mount.resolve(
-    ListboxTest.AnchorListbox,
-    WorkspaceListboxBlock.Message.CompletedAnchorListbox(),
+  Scene.Mount.resolve(
+    Listbox.test.AnchorListbox,
+    StringListboxBlock.Message.CompletedAnchorListbox(),
   ),
-  Mount.resolve(
-    ListboxTest.PortalListboxBackdrop,
-    WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
+  Scene.Mount.resolve(
+    Listbox.test.PortalListboxBackdrop,
+    StringListboxBlock.Message.CompletedPortalListboxBackdrop(),
   ),
 ]
 
 const finishSelection = () => [
-  Command.resolve(
-    ListboxTest.FocusListboxButton,
-    WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
+  Scene.Command.resolve(
+    Listbox.test.FocusListboxButton,
+    StringListboxBlock.Message.CompletedFocusListboxButton(),
   ),
-  Mount.expectEnded(
-    ListboxTest.AnchorListbox,
-    ListboxTest.PortalListboxBackdrop,
+  Scene.Mount.expectEnded(
+    Listbox.test.AnchorListbox,
+    Listbox.test.PortalListboxBackdrop,
   ),
 ]
 
@@ -70,7 +58,7 @@ describe('Issue List view', () => {
   it.effect(
     'disables issue creation when there is no project to create it in',
     () => {
-      return scene(
+      return Scene.scene(
         {
           block: IssueListBlock,
           layer,
@@ -80,11 +68,13 @@ describe('Issue List view', () => {
             projects: [],
             maybeActiveIssueId: Option.none(),
             filters: initialFilters,
-            issueHrefs: {},
+            issueHrefsById: {},
           },
         },
-        init(),
-        expect(role('button', { name: 'New issue' })).toBeDisabled(),
+        Scene.init(),
+        Scene.expect(
+          Scene.role('button', { name: 'New issue' }),
+        ).toBeDisabled(),
       )
     },
   )
@@ -92,20 +82,26 @@ describe('Issue List view', () => {
   it.effect(
     'reports search and clear requests while rendering controlled filters',
     () => {
-      const filters = IssueFilters.make({
+      const filters = Issue.Filters.make({
         ...initialFilters,
         query: 'no matching issue',
       })
-      return scene(
+      return Scene.scene(
         { block: IssueListBlock, layer, viewInputs: viewInputs(filters) },
-        init(),
-        expect(label('Search issues')).toHaveValue('no matching issue'),
-        expect(role('heading', { name: 'No matching issues' })).toExist(),
-        type(label('Search issues'), 'keyboard'),
-        expectOutMessage(OutMessage.ChangedQuery({ query: 'keyboard' })),
-        click(role('button', { name: 'Clear filters' })),
-        expectOutMessage(OutMessage.RequestedClearFilters()),
-        expect(label('Search issues')).toHaveValue('no matching issue'),
+        Scene.init(),
+        Scene.expect(Scene.label('Search issues')).toHaveValue(
+          'no matching issue',
+        ),
+        Scene.expect(
+          Scene.role('heading', { name: 'No matching issues' }),
+        ).toExist(),
+        Scene.type(Scene.label('Search issues'), 'keyboard'),
+        Scene.expectOutMessage(OutMessage.ChangedQuery({ query: 'keyboard' })),
+        Scene.click(Scene.role('button', { name: 'Clear filters' })),
+        Scene.expectOutMessage(OutMessage.RequestedClearFilters()),
+        Scene.expect(Scene.label('Search issues')).toHaveValue(
+          'no matching issue',
+        ),
       )
     },
   )
@@ -113,18 +109,20 @@ describe('Issue List view', () => {
   it.effect(
     'renders issue hrefs and leaves issues without hrefs as content',
     () => {
-      return scene(
+      return Scene.scene(
         { block: IssueListBlock, layer, viewInputs: viewInputs() },
-        init(),
-        expect(
-          role('link', { name: 'WSP-101 Build a faster command menu' }),
+        Scene.init(),
+        Scene.expect(
+          Scene.role('link', { name: 'WSP-101 Build a faster command menu' }),
         ).toHaveAttr('href', '/issues/issue-101'),
-        expect(
-          role('link', {
+        Scene.expect(
+          Scene.role('link', {
             name: 'WSP-102 Keep issue drafts when switching projects',
           }),
         ).not.toExist(),
-        expect(text('Keep issue drafts when switching projects')).toExist(),
+        Scene.expect(
+          Scene.text('Keep issue drafts when switching projects'),
+        ).toExist(),
       )
     },
   )
@@ -132,26 +130,28 @@ describe('Issue List view', () => {
   it.effect(
     'renders grouped controlled results and saves the current filters',
     () => {
-      const filters = IssueFilters.make({
+      const filters = Issue.Filters.make({
         query: '',
         maybeStatus: Option.none(),
         sort: 'Priority',
         groupBy: 'Project',
       })
-      return scene(
+      return Scene.scene(
         { block: IssueListBlock, layer, viewInputs: viewInputs(filters) },
-        init(),
-        expect(role('heading', { name: 'Experience · 1' })).toExist(),
-        expect(role('heading', { name: 'Platform · 1' })).toExist(),
-        type(label('Saved view name'), '  Project work  '),
-        click(role('button', { name: 'Save view' })),
-        expectOutMessage(
-          OutMessage.SavedFilter({
+        Scene.init(),
+        Scene.expect(
+          Scene.role('heading', { name: 'Experience · 1' }),
+        ).toExist(),
+        Scene.expect(Scene.role('heading', { name: 'Platform · 1' })).toExist(),
+        Scene.type(Scene.label('Saved view name'), '  Project work  '),
+        Scene.click(Scene.role('button', { name: 'Save view' })),
+        Scene.expectOutMessage(
+          OutMessage.SubmittedSavedView({
             name: 'Project work',
             filters,
           }),
         ),
-        expect(label('Saved view name')).toHaveValue(''),
+        Scene.expect(Scene.label('Saved view name')).toHaveValue(''),
       )
     },
   )
@@ -159,29 +159,31 @@ describe('Issue List view', () => {
   it.effect(
     'reports validated Listbox selections without changing controlled values',
     () => {
-      return scene(
+      return Scene.scene(
         { block: IssueListBlock, layer, viewInputs: viewInputs() },
-        init(),
+        Scene.init(),
         ...openFilter('Filter by status'),
-        click(role('option', { name: 'Todo' })),
-        expectOutMessage(
+        Scene.click(Scene.role('option', { name: 'Todo' })),
+        Scene.expectOutMessage(
           OutMessage.ChangedStatusFilter({
             maybeStatus: Option.some('Todo'),
           }),
         ),
         ...finishSelection(),
-        expect(role('button', { name: 'Filter by status' })).toHaveText(
-          'All statuses',
-        ),
+        Scene.expect(
+          Scene.role('button', { name: 'Filter by status' }),
+        ).toHaveText('All statuses'),
         ...openFilter('Sort issues'),
-        click(role('option', { name: 'Priority' })),
-        expectOutMessage(OutMessage.ChangedSort({ sort: 'Priority' })),
+        Scene.click(Scene.role('option', { name: 'Priority' })),
+        Scene.expectOutMessage(OutMessage.ChangedSort({ sort: 'Priority' })),
         ...finishSelection(),
         ...openFilter('Group issues'),
-        click(role('option', { name: 'Status' })),
-        expectOutMessage(OutMessage.ChangedGrouping({ groupBy: 'Status' })),
+        Scene.click(Scene.role('option', { name: 'Status' })),
+        Scene.expectOutMessage(
+          OutMessage.ChangedGrouping({ groupBy: 'Status' }),
+        ),
         ...finishSelection(),
-        expect(text('2 issues')).toExist(),
+        Scene.expect(Scene.text('2 issues')).toExist(),
       )
     },
   )

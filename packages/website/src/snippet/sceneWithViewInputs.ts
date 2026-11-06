@@ -1,16 +1,11 @@
 import { Effect, Layer, Schema } from 'effect'
-import { Block } from 'foldkit'
+import { Block, Scene } from 'foldkit'
 import { inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { expect, role, scene, init as sceneInit } from 'foldkit/scene'
 
-import {
-  type SliderAttributes,
-  SliderBlock,
-  layer as SliderLayer,
-} from '@foldkit/ui/slider'
+import { Slider } from '@foldkit/ui'
 
-const Model = Schema.Struct({ slider: SliderBlock.Model })
+const Model = Schema.Struct({ slider: Slider.SliderBlock.Model })
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({})
@@ -31,13 +26,13 @@ export const ApplicationBlock = Block.make('Application', {
 const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
   ApplicationBlock
 
-const SliderBinding = makeBinding(SliderBlock, {
+const SliderBinding = makeBinding(Slider.SliderBlock, {
   field: 'slider',
   init: {
     contextToArgs: () => [{ id: 'volume', min: 0, max: 10, step: 1 }],
   },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(SliderBlock, {
+  fold: makeOutMessageFold(Slider.SliderBlock, {
     ChangedValue: makeNoopStep,
   }),
 })
@@ -56,7 +51,7 @@ const view = ApplicationComposition.makeView.withInputs<
       viewInputs: {
         value,
         ...(isDisabled === undefined ? {} : { isDisabled }),
-        toView: (attributes: SliderAttributes) =>
+        toView: (attributes: Slider.SliderAttributes) =>
           ih.div(
             [...attributes.root],
             [ih.div([...attributes.track]), ih.div([...attributes.thumb])],
@@ -79,24 +74,24 @@ const layer = ApplicationBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(SliderLayer))
+).pipe(Layer.provide(Slider.layer))
 
 await Effect.runPromise(
-  scene(
+  Scene.scene(
     { block: ApplicationBlock, layer, viewInputs: { value: 5 } },
-    sceneInit(),
-    expect(role('slider')).toHaveAttr('aria-valuenow', '5'),
+    Scene.init(),
+    Scene.expect(Scene.role('slider')).toHaveAttr('aria-valuenow', '5'),
   ),
 )
 
 await Effect.runPromise(
-  scene(
+  Scene.scene(
     {
       block: ApplicationBlock,
       layer,
       viewInputs: { value: 5, isDisabled: true },
     },
-    sceneInit(),
-    expect(role('slider')).toHaveAttr('aria-disabled', 'true'),
+    Scene.init(),
+    Scene.expect(Scene.role('slider')).toHaveAttr('aria-disabled', 'true'),
   ),
 )

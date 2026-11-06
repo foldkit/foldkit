@@ -2,17 +2,9 @@ import { clsx } from 'clsx'
 import { Array, Option, pipe } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import {
-  DragState,
-  type RenderInfo,
-  ghostStyle,
-  isDragging,
-  maybeDraggedItemId,
-  maybeDropTarget,
-} from '@foldkit/ui/dragAndDrop'
+import { Button, DragAndDrop } from '@foldkit/ui'
 
-import { Issue, IssueStatus, issueStatusLabel } from '../../domain'
+import { Issue, Member } from '../../domain'
 import {
   DragAndDropBinding,
   IssueBoardComposition,
@@ -27,7 +19,7 @@ import { Message } from './message'
 import type { Model } from './model'
 import type { ViewInputs } from './viewInputs'
 
-const STATUSES: ReadonlyArray<IssueStatus> = [
+const STATUSES: ReadonlyArray<Issue.Status> = [
   'Backlog',
   'Todo',
   'InProgress',
@@ -47,7 +39,7 @@ const DRAG_HANDLE_CLASS =
 const COLUMN_CLASS = 'min-w-0 rounded-xl border p-3'
 
 const issueTitle = (
-  issue: Issue,
+  issue: Issue.Issue,
   maybeHref: Option.Option<string>,
   isDisabled: boolean,
   h: IssueBoardViewBuilder,
@@ -77,36 +69,37 @@ const issueTitle = (
   })
 }
 
-const maybeDraggedIssue = (model: Model, viewInputs: ViewInputs) =>
+const maybeDraggedIssue = (
+  dragAndDrop: Model['dragAndDrop'],
+  issues: ReadonlyArray<Issue.Issue>,
+) =>
   pipe(
-    maybeDraggedItemId(model.dragAndDrop),
+    DragAndDrop.maybeDraggedItemId(dragAndDrop),
     Option.flatMap(maybeIssueIdFromDraggableId),
-    Option.flatMap(issueId =>
-      Array.findFirst(viewInputs.issues, issue => issue.id === issueId),
-    ),
+    Option.flatMap(issueId => Issue.findById(issues, issueId)),
   )
 
 const issueCard = (
-  model: Model,
-  issue: Issue,
-  status: IssueStatus,
+  dragAndDrop: Model['dragAndDrop'],
+  issue: Issue.Issue,
+  status: Issue.Status,
   index: number,
   viewInputs: ViewInputs,
-  dragAndDropRenderInfo: RenderInfo,
+  dragAndDropRenderInfo: DragAndDrop.RenderInfo,
   h: IssueBoardViewBuilder,
 ): Html => {
-  const isSaving = viewInputs.isSaving ?? false
-  const isDisabled = isSaving || isDragging(model.dragAndDrop)
+  const isMovePending = viewInputs.isMovePending ?? false
+  const isDisabled = isMovePending || DragAndDrop.isDragging(dragAndDrop)
 
-  const maybeHref = Option.fromNullishOr(viewInputs.issueHrefs[issue.id])
+  const maybeHref = Option.fromNullishOr(viewInputs.issueHrefsById[issue.id])
 
   const maybeAssignee = Option.flatMap(issue.maybeAssigneeId, memberId =>
-    Array.findFirst(viewInputs.members, member => member.id === memberId),
+    Member.findById(viewInputs.members, memberId),
   )
 
   const isKeyboardDragged =
-    DragState.guards.KeyboardDragging(model.dragAndDrop.dragState) &&
-    model.dragAndDrop.dragState.itemId === draggableId(issue.id)
+    DragAndDrop.DragState.guards.KeyboardDragging(dragAndDrop.dragState) &&
+    dragAndDrop.dragState.itemId === draggableId(issue.id)
 
   return h.keyed('li')(
     issue.id,
@@ -122,7 +115,7 @@ const issueCard = (
       h.div(
         [
           // NOTE: Keyboard drops focus this marker while the move is still saving.
-          ...(isSaving
+          ...(isMovePending
             ? [h.DataAttribute('draggable-id', draggableId(issue.id))]
             : dragAndDropRenderInfo.draggable({
                 itemId: draggableId(issue.id),
@@ -133,11 +126,11 @@ const issueCard = (
           h.AriaLabel(`Drag ${issue.identifier}`),
           h.AriaDescribedBy(INSTRUCTIONS_ID),
           h.Tabindex(0),
-          h.AriaDisabled(isSaving),
+          h.AriaDisabled(isMovePending),
           h.Class(
             clsx(DRAG_HANDLE_CLASS, {
-              'cursor-wait opacity-50': isSaving,
-              'cursor-grab active:cursor-grabbing': !isSaving,
+              'cursor-wait opacity-50': isMovePending,
+              'cursor-grab active:cursor-grabbing': !isMovePending,
               'hover:bg-[#f4f3ff]': !isDisabled,
             }),
           ),
@@ -172,18 +165,18 @@ const issueCard = (
   )
 }
 
-const columnCards = (
-  model: Model,
-  status: IssueStatus,
-  issues: ReadonlyArray<Issue>,
+const issueCardsWithDropPreview = (
+  dragAndDrop: Model['dragAndDrop'],
+  status: Issue.Status,
+  issues: ReadonlyArray<Issue.Issue>,
   viewInputs: ViewInputs,
-  dragAndDropRenderInfo: RenderInfo,
+  dragAndDropRenderInfo: DragAndDrop.RenderInfo,
   h: IssueBoardViewBuilder,
 ): ReadonlyArray<Html> => {
-  if (!isDragging(model.dragAndDrop)) {
+  if (!DragAndDrop.isDragging(dragAndDrop)) {
     return Array.map(issues, (issue, index) =>
       issueCard(
-        model,
+        dragAndDrop,
         issue,
         status,
         index,
@@ -194,7 +187,7 @@ const columnCards = (
     )
   }
 
-  const maybeDragged = maybeDraggedIssue(model, viewInputs)
+  const maybeDragged = maybeDraggedIssue(dragAndDrop, viewInputs.issues)
 
   const visibleIssues = Array.filter(
     issues,
@@ -203,7 +196,7 @@ const columnCards = (
 
   const cards = Array.map(visibleIssues, (issue, index) =>
     issueCard(
-      model,
+      dragAndDrop,
       issue,
       status,
       index,
@@ -214,7 +207,7 @@ const columnCards = (
   )
 
   const maybeTarget = Option.filter(
-    maybeDropTarget(model.dragAndDrop),
+    DragAndDrop.maybeDropTarget(dragAndDrop),
     target => target.containerId === containerId(status),
   )
 
@@ -223,8 +216,8 @@ const columnCards = (
     onSome: target => {
       const insertionIndex = Math.max(0, Math.min(target.index, cards.length))
 
-      const preview = DragState.guards.KeyboardDragging(
-        model.dragAndDrop.dragState,
+      const preview = DragAndDrop.DragState.guards.KeyboardDragging(
+        dragAndDrop.dragState,
       )
         ? Option.match(maybeDragged, {
             onNone: () =>
@@ -236,7 +229,7 @@ const columnCards = (
               ]),
             onSome: issue =>
               issueCard(
-                model,
+                dragAndDrop,
                 issue,
                 status,
                 insertionIndex,
@@ -260,22 +253,19 @@ const columnCards = (
 }
 
 const column = (
-  model: Model,
-  status: IssueStatus,
+  dragAndDrop: Model['dragAndDrop'],
+  status: Issue.Status,
   viewInputs: ViewInputs,
-  dragAndDropRenderInfo: RenderInfo,
+  dragAndDropRenderInfo: DragAndDrop.RenderInfo,
   h: IssueBoardViewBuilder,
 ): Html => {
-  const issues = Array.filter(
-    viewInputs.issues,
-    issue => issue.status === status,
-  )
+  const issues = Issue.forStatus(viewInputs.issues, status)
 
   const isDisabled =
-    (viewInputs.isSaving ?? false) || isDragging(model.dragAndDrop)
+    (viewInputs.isMovePending ?? false) || DragAndDrop.isDragging(dragAndDrop)
 
   const isTarget = Option.exists(
-    maybeDropTarget(model.dragAndDrop),
+    DragAndDrop.maybeDropTarget(dragAndDrop),
     target => target.containerId === containerId(status),
   )
 
@@ -288,7 +278,7 @@ const column = (
           'border-[#e3e6ef] bg-[#f7f8fc]': !isTarget,
         }),
       ),
-      h.AriaLabel(issueStatusLabel(status)),
+      h.AriaLabel(Issue.statusLabel(status)),
     ],
     [
       h.header(
@@ -300,7 +290,7 @@ const column = (
         [
           h.h2(
             [h.Class('flex-1 text-sm font-semibold text-[#596378]')],
-            [issueStatusLabel(status)],
+            [Issue.statusLabel(status)],
           ),
           h.span(
             [
@@ -311,7 +301,7 @@ const column = (
             ],
             [`${issues.length}`],
           ),
-          buttonView(
+          Button.view(
             {
               type: 'button',
               onClick: Message.ClickedCreateIssue({ status }),
@@ -321,7 +311,7 @@ const column = (
                   [
                     ...attributes.button,
                     h.Disabled(isDisabled),
-                    h.AriaLabel(`Create issue in ${issueStatusLabel(status)}`),
+                    h.AriaLabel(`Create issue in ${Issue.statusLabel(status)}`),
                     h.Title('Create issue'),
                     h.Class(
                       'inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-50',
@@ -355,13 +345,13 @@ const column = (
         [
           ...dragAndDropRenderInfo.droppable(
             containerId(status),
-            `${issueStatusLabel(status)} issues`,
+            `${Issue.statusLabel(status)} issues`,
           ),
           h.Role('list'),
           h.Class('m-0 flex min-h-40 list-none flex-col gap-3 p-0'),
         ],
-        columnCards(
-          model,
+        issueCardsWithDropPreview(
+          dragAndDrop,
           status,
           issues,
           viewInputs,
@@ -373,15 +363,15 @@ const column = (
   )
 }
 
-const ghost = (
-  model: Model,
+const draggedIssueGhost = (
+  dragAndDrop: Model['dragAndDrop'],
   viewInputs: ViewInputs,
   h: IssueBoardViewBuilder,
 ): Html =>
   Option.match(
     Option.all({
-      style: ghostStyle(model.dragAndDrop),
-      issue: maybeDraggedIssue(model, viewInputs),
+      style: DragAndDrop.ghostStyle(dragAndDrop),
+      issue: maybeDraggedIssue(dragAndDrop, viewInputs.issues),
     }),
     {
       onNone: () => h.empty,
@@ -441,7 +431,7 @@ export const view = IssueBoardComposition.makeView.withInputs(
                       ],
                       Array.map(STATUSES, status =>
                         column(
-                          model,
+                          model.dragAndDrop,
                           status,
                           viewInputs,
                           dragAndDropRenderInfo,
@@ -449,7 +439,7 @@ export const view = IssueBoardComposition.makeView.withInputs(
                         ),
                       ),
                     ),
-                    ghost(model, viewInputs, h),
+                    draggedIssueGhost(model.dragAndDrop, viewInputs, h),
                   ],
                 ),
             },

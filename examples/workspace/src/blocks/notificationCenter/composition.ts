@@ -1,6 +1,6 @@
 import type { Block } from 'foldkit'
 
-import { PopoverBlock } from '@foldkit/ui/popover'
+import { Popover } from '@foldkit/ui'
 
 import {
   makeBinding,
@@ -9,12 +9,12 @@ import {
   makeOutMessageFold,
 } from './block'
 
-const foldPopoverOutMessage = makeOutMessageFold(PopoverBlock, {
+const foldPopoverOutMessage = makeOutMessageFold(Popover.PopoverBlock, {
   Opened: makeNoopStep,
   Closed: makeNoopStep,
 })
 
-export const PopoverBinding = makeBinding(PopoverBlock, {
+export const PopoverBinding = makeBinding(Popover.PopoverBlock, {
   field: 'popover',
   init: {
     contextToArgs: () => [{ id: 'workspace-notifications' }],

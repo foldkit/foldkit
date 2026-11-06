@@ -1,5 +1,4 @@
-import { FieldValidation } from 'foldkit'
-import { Command, given, message, model, story } from 'foldkit/story'
+import { FieldValidation, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
@@ -19,11 +18,11 @@ const validModel: Model = modifyFields(initialModel, {
 describe('update', () => {
   describe('name field', () => {
     it.effect('typing a long name produces a Valid field', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.UpdatedName({ value: 'Alice' })),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.UpdatedName({ value: 'Alice' })),
+        Story.model(model => {
           expect(model.name._tag).toBe('Valid')
           expect(model.name.value).toBe('Alice')
         }),
@@ -33,11 +32,11 @@ describe('update', () => {
     it.effect(
       'typing a short name produces an Invalid field with the min-length error',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
-          message(Message.UpdatedName({ value: 'A' })),
-          model(model => {
+          Story.given(initialModel),
+          Story.message(Message.UpdatedName({ value: 'A' })),
+          Story.model(model => {
             expect(model.name._tag).toBe('Invalid')
             if (model.name._tag === 'Invalid') {
               expect(model.name.errors).toContain(
@@ -53,21 +52,21 @@ describe('update', () => {
     it.effect(
       'typing a well-formed email transitions to Validating and fires ValidateEmail',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
-          message(Message.UpdatedEmail({ value: 'alice@example.com' })),
-          model(model => {
+          Story.given(initialModel),
+          Story.message(Message.UpdatedEmail({ value: 'alice@example.com' })),
+          Story.model(model => {
             expect(model.email._tag).toBe('Validating')
           }),
-          Command.expectHas(ValidateEmail),
-          Command.resolve(
+          Story.Command.expectHas(ValidateEmail),
+          Story.Command.resolve(
             ValidateEmail,
             Message.CompletedValidateEmail({
               field: FieldValidation.Valid({ value: 'alice@example.com' }),
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.email._tag).toBe('Valid')
           }),
         ),
@@ -76,12 +75,12 @@ describe('update', () => {
     it.effect(
       'typing a malformed email produces Invalid without an async command',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(initialModel),
-          message(Message.UpdatedEmail({ value: 'not-an-email' })),
-          Command.expectNone(),
-          model(model => {
+          Story.given(initialModel),
+          Story.message(Message.UpdatedEmail({ value: 'not-an-email' })),
+          Story.Command.expectNone(),
+          Story.model(model => {
             expect(model.email._tag).toBe('Invalid')
           }),
         ),
@@ -95,15 +94,15 @@ describe('update', () => {
             FieldValidation.Validating({ value: 'alice@example.com' }),
         })
 
-        return story(
+        return Story.story(
           { block: ApplicationBlock, layer },
-          given(inFlightModel),
-          message(
+          Story.given(inFlightModel),
+          Story.message(
             Message.CompletedValidateEmail({
               field: FieldValidation.Valid({ value: 'old@example.com' }),
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.email._tag).toBe('Validating')
           }),
         )
@@ -118,10 +117,10 @@ describe('update', () => {
             FieldValidation.Validating({ value: 'taken@example.com' }),
         })
 
-        return story(
+        return Story.story(
           { block: ApplicationBlock, layer },
-          given(inFlightModel),
-          message(
+          Story.given(inFlightModel),
+          Story.message(
             Message.CompletedValidateEmail({
               field: FieldValidation.Invalid({
                 value: 'taken@example.com',
@@ -129,7 +128,7 @@ describe('update', () => {
               }),
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.email._tag).toBe('Invalid')
           }),
         )
@@ -139,11 +138,11 @@ describe('update', () => {
 
   describe('message text field', () => {
     it.effect('UpdatedMessageText stores the value as Valid', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.UpdatedMessageText({ value: 'Hello there.' })),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.UpdatedMessageText({ value: 'Hello there.' })),
+        Story.model(model => {
           expect(model.messageText._tag).toBe('Valid')
           expect(model.messageText.value).toBe('Hello there.')
         }),
@@ -153,12 +152,12 @@ describe('update', () => {
 
   describe('submission', () => {
     it.effect('ClickedFormSubmit on an invalid form is ignored', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ClickedFormSubmit()),
-        Command.expectNone(),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.ClickedFormSubmit()),
+        Story.Command.expectNone(),
+        Story.model(model => {
           expect(model.submission._tag).toBe('NotSubmitted')
         }),
       ),
@@ -167,19 +166,19 @@ describe('update', () => {
     it.effect(
       'ClickedFormSubmit on a valid form fires SubmitForm and enters Submitting',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(validModel),
-          message(Message.ClickedFormSubmit()),
-          model(model => {
+          Story.given(validModel),
+          Story.message(Message.ClickedFormSubmit()),
+          Story.model(model => {
             expect(model.submission._tag).toBe('Submitting')
           }),
-          Command.expectHas(SubmitForm),
-          Command.resolve(
+          Story.Command.expectHas(SubmitForm),
+          Story.Command.resolve(
             SubmitForm,
             Message.SucceededSubmitForm({ name: 'Alice' }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.submission._tag).toBe('SubmitSuccess')
             if (model.submission._tag === 'SubmitSuccess') {
               expect(model.submission.confirmationText).toContain('Alice')
@@ -189,12 +188,12 @@ describe('update', () => {
     )
 
     it.effect('FailedSubmitForm sets SubmitError', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(validModel),
-        message(Message.ClickedFormSubmit()),
-        Command.resolve(SubmitForm, Message.FailedSubmitForm()),
-        model(model => {
+        Story.given(validModel),
+        Story.message(Message.ClickedFormSubmit()),
+        Story.Command.resolve(SubmitForm, Message.FailedSubmitForm()),
+        Story.model(model => {
           expect(model.submission._tag).toBe('SubmitError')
         }),
       ),

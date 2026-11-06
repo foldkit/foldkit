@@ -1,7 +1,7 @@
 import { Array, Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { initAndSet } from 'foldkit/bindingInit'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import * as Update from 'foldkit/update'
 
 import * as Dialog from '../../dialog/index.js'
@@ -24,7 +24,7 @@ export const TerminalDialogParentBlock = Block.make('TerminalDialogParent', {
     ClickedCancel: {},
     ClickedReplace: {},
   }),
-  InMessage: defineMessageUnion({
+  InMessage: defineInMessageUnion({
     RequestedOpen: { key: Schema.String, isAnimated: Schema.Boolean },
     RequestedCancel: {},
   }),
@@ -35,7 +35,7 @@ export const MaybeDialogInstanceBinding = TerminalDialogParentBlock.makeBinding(
   Dialog.DialogBlock,
   { field: 'maybeDialogInstance', key: 'key', childField: 'model' },
 ).withOutMessagePolicy({
-  fold: (key, outMessage) =>
+  fold: key =>
     TerminalDialogParentBlock.makeOutMessageFold(Dialog.DialogBlock, {
       Opened: () => TerminalDialogParentBlock.makeNoopStep(),
       Closed: () =>
@@ -47,7 +47,7 @@ export const MaybeDialogInstanceBinding = TerminalDialogParentBlock.makeBinding(
           completedKeys: Array.append(key),
           maybeDialogInstance: () => Option.none(),
         })),
-    })(outMessage),
+    }),
 })
 const TerminalDialogParentComposition =
   TerminalDialogParentBlock.makeComposition({

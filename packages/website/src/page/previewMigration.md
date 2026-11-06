@@ -156,9 +156,19 @@ Make these changes together:
 4. Register that Binding with `ParentBlock.makeComposition({ bindings: [SettingsBinding] })`.
 5. Delete `toParentMessage` and the local update branch that unpacks the child Message. Author the parent update with `ParentComposition.makeUpdate`; it matches only the parent's local Message union.
 
-Composition routes a private delivery envelope for each registered placement before the local update handlers. Use the acquired implementation's `Message` Codec for serialization, replay, DevTools, and crash reporting. `ParentBlock.Message` exposes the local union, independently of the implementation graph. Use `Block.ExecutableOf<typeof ParentBlock>` when a callback needs the complete dispatch type. Do not construct generated `Got<Placement>Message` envelopes yourself.
+Composition routes a private delivery envelope for each registered placement before the local update handlers. Use the acquired implementation's `Message` Codec at external serialization boundaries such as DevTools dispatch. Replay folds the Models and Messages already retained in memory and does not run that Codec. `ParentBlock.Message` exposes the local union, independently of the implementation graph. Use `Block.ExecutableOf<typeof ParentBlock>` when a callback needs the complete dispatch type. Do not construct generated `Got<Placement>Message` envelopes yourself.
 
 Use `delivery.when` to accept child delivery conditionally and `delivery.toUpdateContext` when the child's update needs parent-supplied dispatch context. Those fields control delivery. They do not recreate an authored wrapper.
+
+### Remove Codec Service Declarations
+
+Delete the Block `codec` field. `codec.decoding` and `codec.encoding` have no replacement aliases. The Model, local Message, and complete generated Message Codecs must encode and decode synchronously without Effect Services. Registered child envelopes propagate that check through the parent graph, so migrate a Service-dependent child transformation at its owning Message Schema instead of widening each parent.
+
+Pure synchronous transformations remain available, including `SchemaTransformation.transformEffect` backed by `Effect.succeed` and standard JSON Codecs for `Option` and `Date`. A requirement of `never` proves only that the Effect needs no Service. Foldkit rejects a transformation that suspends when an actual serialization boundary runs it; Block and Program construction remain passive.
+
+For generic Model or Message Schema parameters, use `Schema.Codec<Value, Encoded, never, never>` to preserve the encoded type and establish both Service bounds. `Schema.Schema<Value>` leaves those requirements unknown.
+
+This restriction covers Foldkit-managed Model and Message serialization. Command and other explicitly effectful boundary Codecs retain their full Effect Schema requirements.
 
 ### Author Local Update Handlers
 
@@ -178,7 +188,9 @@ record-authored update.
 
 ### Name and Compose Parent Input Handling
 
-Rename `Composition.makeReceive` to `Composition.makeInMessageUpdate`, rename the implementation field to `inMessageUpdate`, and move a feature's `receive.ts` module to `inMessageUpdate.ts`. Acquired executables support `inMessageUpdate(model, input, ...context)` and `inMessageUpdate(input)(model, ...context)`. The former names are removed; generated Binding methods such as `requestOpen()` and `informRouteChange(...)` stay the same.
+Rename `Composition.makeReceive` to `Composition.makeInMessageUpdate`, rename the implementation field to `inMessageUpdate`, and move a feature's `receive.ts` module to `inMessageUpdate.ts`. Acquired executables support `inMessageUpdate(model, input, ...context)` and `inMessageUpdate(input)(model, ...context)`. The former names are removed. Generated `RequestedX` Binding methods such as `requestOpen()` keep their spelling; `InformedOfX` methods retain the preposition as `informOfX`, such as `informOfRouteChange(...)`.
+
+Migrate ordinary InMessage case records from `defineMessageUnion` to `defineInMessageUnion`. Local Message and OutMessage unions continue to use `defineMessageUnion`. The InMessage helper returns the same MessageUnion constructors, Schema, matcher, and generated Binding names, so this migration does not change the Block contract. It adds declaration-time validation for literal and extracted case-record names and runtime validation for erased inputs. Custom Schema forms remain supported and continue through the Block's existing constructor and tag validation.
 
 Keep an exhaustive InMessage record as the default. Its `cases`, `each`, `on`, `except`, and `compose` helpers provide the same ordered composition as local updates. They narrow the InMessage union, use the separate `InMessageContext`, and preserve the original `before` Model for that invocation. Commands still produce ordinary local Messages, and compatible Model-only Steps can serve both entry points. See [parent input composition](/core/block#compose-parent-input-handling).
 
@@ -218,7 +230,7 @@ The parent can pass that connected Step directly as its `makeUpdate` handler:
 
 ::Snippet{name="blockDelegateViaHelper" label="Calling a bound Block request"}
 
-Declare ordinary parent requests with `InMessage`. Keep explicit `operations` adapters in `Block.make` when a positional or generic signature, defaults, refinements, or an existing local Message mapping needs them. Those adapters select a local Message constructor or an exact Message tuple producer and enter the child's ordinary update.
+Declare ordinary parent requests with `defineInMessageUnion`. Keep explicit `operations` adapters in `Block.make` when a positional or generic signature, defaults, refinements, or an existing local Message mapping needs them. Those adapters select a local Message constructor or an exact Message tuple producer and enter the child's ordinary update.
 
 An explicit operation retains the child update's full context tuple, even when the selected handler does not use every value. InMessage requests use the separate `InMessageContext`. Pass the appropriate context arguments when invoking either kind through a Binding or acquired executable. `delivery.toUpdateContext` supplies context only for routed child Message delivery.
 
@@ -228,7 +240,7 @@ When several Steps must run in order, pass the unapplied Binding operations alon
 
 Author parent transitions that read current state with `FeatureBlock.makeStep` or `makeFieldsStep`, then combine them with the Binding operations. The owner supplies the Model type, and each Step reads the Model produced by preceding Steps when it is applied.
 
-Use `request*` with `Requested*` Messages for actions and `inform*` with `InformedOf*` Messages for notifications. Keep internal Model-only transformations as Block-owned Steps. Remove stable public helpers that silently accept and return a child Model, especially `reflect*` helpers.
+Use `request*` with `Requested*` Messages for actions and `informOf*` with `InformedOf*` Messages for notifications. Keep internal Model-only transformations as Block-owned Steps. Remove stable public helpers that silently accept and return a child Model, especially `reflect*` helpers.
 
 ### Move Child Initialization into the Composition Plan
 

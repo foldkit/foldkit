@@ -70,11 +70,13 @@ export const BroadModel: Schema.Codec<
 > = Model
 export const MutableModel: Schema.Codec<{ count: number }, { count: number }> =
   Model
+// @ts-expect-error The completed value also retains invariant Model identity.
 export const BroadCarrier: Block.AssemblyWithView<
   typeof BroadModel,
   // @ts-expect-error The public carrier preserves exact Model agreement.
   typeof prepareViewed
 > = OriginalViewed
+// @ts-expect-error The completed value also rejects a structurally different mutable Model Schema.
 export const MutableCarrier: Block.AssemblyWithView<
   typeof MutableModel,
   // @ts-expect-error A structurally assignable mutable header still fails exact Schema agreement.

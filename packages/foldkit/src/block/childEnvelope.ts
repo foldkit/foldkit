@@ -104,6 +104,50 @@ export type DispatchSchemaFor<
     > &
       LocalConstructors<Local>
 
+/** @internal Retains one exact Codec while requiring serialization to need no Services. */
+export type SelfContainedCodec<Codec extends Schema.Top> =
+  Codec extends Schema.Codec<Codec['Type'], Codec['Encoded'], never, never>
+    ? Codec
+    : never
+
+type InvalidDefinitionCodec<
+  ModelSchema extends Schema.Top,
+  MessageSchema extends Schema.Top,
+> =
+  | ([SelfContainedCodec<ModelSchema>] extends [never] ? 'Model' : never)
+  | ([SelfContainedCodec<MessageSchema>] extends [never] ? 'Message' : never)
+
+/** @internal Rejects Service-dependent persisted Block contracts without widening them. */
+export type ValidateSelfContainedDefinitionCodecs<
+  ModelSchema extends Schema.Top,
+  MessageSchema extends Schema.Top,
+> = [InvalidDefinitionCodec<ModelSchema, MessageSchema>] extends [never]
+  ? unknown
+  : Readonly<{
+      'Block Model and Message Codecs must not require Services': InvalidDefinitionCodec<
+        ModelSchema,
+        MessageSchema
+      >
+    }>
+
+/** @internal Exact complete Message contract admitted at a serialization boundary. */
+export type CompleteMessageSelfContainedCodec<
+  Local extends Schema.Top,
+  Bindings extends ReadonlyArray<unknown>,
+> = [GeneratedEnvelopeOf<Bindings[number]>] extends [never]
+  ? Local
+  : SelfContainedCodec<DispatchSchemaFor<Local, Bindings>>
+
+/** @internal Rejects Service-dependent local or generated dispatch Codecs. */
+export type ValidateCompleteMessageSelfContainedCodec<
+  Local extends Schema.Top,
+  Bindings extends ReadonlyArray<unknown>,
+> = [SelfContainedCodec<DispatchSchemaFor<Local, Bindings>>] extends [never]
+  ? Readonly<{
+      'The complete Message Codec must not require Services': 'Message'
+    }>
+  : unknown
+
 const generatedDeliveries = new WeakMap<object, Schema.Top>()
 
 /** @internal Records generated delivery without adding author-facing constructors. */
@@ -268,4 +312,22 @@ export function makeDispatchSchema(
   }
 
   return dispatch
+}
+
+/** @internal Builds the complete dispatch Codec after its exact public graph passes serialization validation. */
+export function makeCompleteDispatchSchema<
+  Local extends Schema.Top,
+  const Bindings extends ReadonlyArray<unknown>,
+>(
+  local: Local,
+  bindings: Bindings &
+    ValidateCompleteMessageSelfContainedCodec<Local, Bindings>,
+  normalizedBindings: ReadonlyArray<object>,
+): CompleteMessageSelfContainedCodec<Local, Bindings>
+export function makeCompleteDispatchSchema(
+  local: Schema.Top,
+  _bindings: ReadonlyArray<object>,
+  normalizedBindings: ReadonlyArray<object>,
+): Schema.Top {
+  return makeDispatchSchema(local, generatedEnvelopeSchemas(normalizedBindings))
 }

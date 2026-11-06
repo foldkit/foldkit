@@ -1,7 +1,7 @@
-import { makeBlock as makeListboxBlock } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 // ❌ Bad: each call constructs a new component definition.
-const makeSortListbox = () => makeListboxBlock()
+const makeSortListbox = () => Listbox.makeBlock()
 
 // ✅ Good: configure Bindings with one module-scope definition.
-const SortListbox = makeListboxBlock()
+const SortListbox = Listbox.makeBlock()

@@ -1,12 +1,11 @@
 import { Option } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { messageFrom } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
-import { test as ListboxTest } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import { ReplaceFilters } from './command'
 import { DietListboxBinding } from './composition'
@@ -65,7 +64,7 @@ const browseModel: Model = {
 }
 
 const dietMessage = (message: DietListboxMessage) =>
-  messageFrom(DietListboxBinding, message)
+  Story.messageIn(DietListboxBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -89,17 +88,17 @@ describe('routing', () => {
 describe('update', () => {
   describe('ChangedUrl', () => {
     it.effect('parses search, sorting, diet, and period from the URL', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(browseModel),
-        message(
+        Story.given(browseModel),
+        Story.message(
           Message.ChangedUrl({
             url: urlOrThrow(
               'http://localhost/?search=raptor&sorting=Length:Ascending&diet=Carnivore&period=Cretaceous',
             ),
           }),
         ),
-        model(model => {
+        Story.model(model => {
           if (model.route._tag !== 'Browse') {
             throw new Error('Expected Browse route')
           }
@@ -114,15 +113,15 @@ describe('update', () => {
     )
 
     it.effect('an unknown path falls through to NotFound', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(browseModel),
-        message(
+        Story.given(browseModel),
+        Story.message(
           Message.ChangedUrl({
             url: urlOrThrow('http://localhost/somewhere/else'),
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.route._tag).toBe('NotFound')
         }),
       ),
@@ -133,19 +132,22 @@ describe('update', () => {
     it.effect(
       'typing search text fires a URL replacement with the new value',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(browseModel),
-          message(Message.ChangedSearchInput({ value: 'rex' })),
-          Command.expectHas(ReplaceFilters),
-          Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+          Story.given(browseModel),
+          Story.message(Message.ChangedSearchInput({ value: 'rex' })),
+          Story.Command.expectHas(ReplaceFilters),
+          Story.Command.resolve(
+            ReplaceFilters,
+            Message.CompletedReplaceFilters(),
+          ),
         ),
     )
 
     it.effect('clearing the search input fires a replacement', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(
+        Story.given(
           modifyFields(browseModel, {
             route: () =>
               ApplicationRoute.Browse({
@@ -156,9 +158,12 @@ describe('update', () => {
               }),
           }),
         ),
-        message(Message.ChangedSearchInput({ value: '' })),
-        Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+        Story.message(Message.ChangedSearchInput({ value: '' })),
+        Story.Command.expectHas(ReplaceFilters),
+        Story.Command.resolve(
+          ReplaceFilters,
+          Message.CompletedReplaceFilters(),
+        ),
       ),
     )
   })
@@ -167,12 +172,15 @@ describe('update', () => {
     it.effect(
       'first click on an Unsorted column produces an Ascending sort',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(browseModel),
-          message(Message.ClickedColumnHeader({ column: 'Name' })),
-          Command.expectHas(ReplaceFilters),
-          Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+          Story.given(browseModel),
+          Story.message(Message.ClickedColumnHeader({ column: 'Name' })),
+          Story.Command.expectHas(ReplaceFilters),
+          Story.Command.resolve(
+            ReplaceFilters,
+            Message.CompletedReplaceFilters(),
+          ),
         ),
     )
   })
@@ -181,27 +189,30 @@ describe('update', () => {
     it.effect(
       'selecting a diet refocuses the listbox button and replaces the URL',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(browseModel),
+          Story.given(browseModel),
           dietMessage(
             DietListboxBlock.Message.Opened({
               maybeActiveItemIndex: Option.none(),
             }),
           ),
-          Command.resolve(
-            ListboxTest.FocusListboxItems,
+          Story.Command.resolve(
+            Listbox.test.FocusListboxItems,
             DietListboxBlock.Message.CompletedFocusListboxItems(),
           ),
           dietMessage(
             DietListboxBlock.Message.SelectedItem({ item: 'Carnivore' }),
           ),
-          Command.resolve(
-            ListboxTest.FocusListboxButton,
+          Story.Command.resolve(
+            Listbox.test.FocusListboxButton,
             DietListboxBlock.Message.CompletedFocusListboxButton(),
           ),
-          Command.expectHas(ReplaceFilters),
-          Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+          Story.Command.expectHas(ReplaceFilters),
+          Story.Command.resolve(
+            ReplaceFilters,
+            Message.CompletedReplaceFilters(),
+          ),
         ),
     )
   })

@@ -1,4 +1,4 @@
-import { Command, given, message, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
@@ -18,34 +18,34 @@ const initialModel: Model = {
 
 describe('update', () => {
   it.effect('ClickedRunUpdateWork records update workload state', () =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      message(Message.ClickedRunUpdateWork()),
-      Command.expectNone(),
-      model(model => {
+      Story.given(initialModel),
+      Story.message(Message.ClickedRunUpdateWork()),
+      Story.Command.expectNone(),
+      Story.model(model => {
         expect(model.activeWorkload).toBe('Update')
       }),
     ),
   )
 
   it.effect('ClickedRunViewWork records view workload state', () =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      message(Message.ClickedRunViewWork()),
-      model(model => {
+      Story.given(initialModel),
+      Story.message(Message.ClickedRunViewWork()),
+      Story.model(model => {
         expect(model.activeWorkload).toBe('View')
       }),
     ),
   )
 
   it.effect('ClickedRunPatchWork mounts a large patch surface', () =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      message(Message.ClickedRunPatchWork()),
-      model(model => {
+      Story.given(initialModel),
+      Story.message(Message.ClickedRunPatchWork()),
+      Story.model(model => {
         expect(model.activeWorkload).toBe('Patch')
         expect(model.patchRows).toBeGreaterThan(0)
         expect(model.patchRun).toBe(1)
@@ -56,11 +56,11 @@ describe('update', () => {
   it.effect(
     'ClickedRunSubscriptionDependenciesWork records subscription dependency workload state',
     () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ClickedRunSubscriptionDependenciesWork()),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.ClickedRunSubscriptionDependenciesWork()),
+        Story.model(model => {
           expect(model.activeWorkload).toBe('SubscriptionDependencies')
         }),
       ),
@@ -69,10 +69,10 @@ describe('update', () => {
   it.effect(
     'RecordedSlowWarning stores the warning and clears active workload',
     () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(
+        Story.given(initialModel),
+        Story.message(
           Message.RecordedSlowWarning({
             report: {
               phase: 'Update',
@@ -83,7 +83,7 @@ describe('update', () => {
             },
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.activeWorkload).toBe('Idle')
           expect(model.nextWarningId).toBe(2)
           expect(model.warnings).toEqual([
@@ -103,9 +103,9 @@ describe('update', () => {
   it.effect(
     'ClickedClearWarnings clears warnings without resetting the patch surface',
     () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(
+        Story.given(
           modifyFields(initialModel, {
             patchRows: () => 4000,
             warnings: () => [
@@ -120,8 +120,8 @@ describe('update', () => {
             ],
           }),
         ),
-        message(Message.ClickedClearWarnings()),
-        model(model => {
+        Story.message(Message.ClickedClearWarnings()),
+        Story.model(model => {
           expect(model.warnings).toEqual([])
           expect(model.patchRows).toBe(4000)
         }),

@@ -3,9 +3,9 @@ import { Block } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { AnimationBlock, layer as AnimationLayer } from '@foldkit/ui/animation'
+import { Animation } from '@foldkit/ui'
 
-const Model = Schema.Struct({ animation: AnimationBlock.Model })
+const Model = Schema.Struct({ animation: Animation.AnimationBlock.Model })
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
@@ -41,12 +41,12 @@ const WaitForPanelSettled = makeCommand('WaitForPanelSettled', {
   },
 })
 
-const foldAnimationOutMessage = makeOutMessageFold(AnimationBlock, {
+const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
   StartedLeaveAnimating: ({ generation }) =>
     makeCommandsStep(() => [WaitForPanelSettled({ generation })]),
   TransitionedOut: makeNoopStep,
 })
-const AnimationBinding = makeBinding(AnimationBlock, {
+const AnimationBinding = makeBinding(Animation.AnimationBlock, {
   field: 'animation',
   init: { contextToArgs: () => [{ id: 'drawer' }] },
 }).withOutMessagePolicy({
@@ -75,4 +75,4 @@ export const layer = AnimationExampleBlock.makeLayer(
       EffectsLayer: WaitForPanelSettled.layer,
     }
   }),
-).pipe(Layer.provide(AnimationLayer))
+).pipe(Layer.provide(Animation.layer))

@@ -48,8 +48,6 @@ import {
   weekStartsForLastYear,
 } from './weeks'
 
-// CONSTANT
-
 const TOP_CONTRIBUTOR_COUNT = 6
 
 export type RawPackageData = Readonly<{
@@ -69,8 +67,6 @@ export type RawTelemetry = Readonly<{
   commitActivity: GitHubStatResult<ReadonlyArray<GitHubCommitActivityResponse>>
   packageData: ReadonlyArray<RawPackageData>
 }>
-
-// DERIVE
 
 const weeklyDownloads = (
   downloads: NpmDownloadsResponse,
@@ -324,8 +320,6 @@ export const contributorSummary = (
     contributions: contributor.contributions,
     avatarUrl: contributor.avatar_url,
   })
-
-// FETCH
 
 export const fetchRawTelemetry = ({
   github,

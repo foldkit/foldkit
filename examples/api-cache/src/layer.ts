@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
 import { TabsBinding } from './composition'
@@ -23,4 +23,4 @@ export const layer = ApplicationBlock.makeLayer(
       EffectsLayer,
     }
   }),
-).pipe(Layer.provide(TabsLayer))
+).pipe(Layer.provide(Tabs.layer))

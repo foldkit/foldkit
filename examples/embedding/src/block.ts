@@ -3,7 +3,7 @@ import { Block, Port } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 export const Model = Schema.Struct({
   count: Schema.Number,
@@ -40,8 +40,6 @@ const {
 } = ApplicationBlock
 
 export const ApplicationComposition = makeComposition()
-
-// PORT
 
 export const ports = {
   inbound: { stepChanged: Port.inbound(Schema.Number) },
@@ -133,7 +131,7 @@ export const view = ApplicationComposition.makeView((model, h) =>
         [h.Class('text-sm text-gray-600')],
         [`Ticking up by ${model.step} every second`],
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedAdvance(),
           toView: attributes =>

@@ -2,20 +2,13 @@ import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import {
-  DragAndDropBlock,
-  type RenderInfo,
-  ghostStyle,
-  isDragging,
-  maybeDraggedItemId,
-  maybeDropTarget,
-} from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 import { DragAndDropDemoBinding, UiComposition } from '../composition'
 import type { UiViewBuilder } from '../composition'
 import type { DemoCard, DemoColumn } from '../domain'
 
-type DragAndDropModel = typeof DragAndDropBlock.Model.Type
+type DragAndDropModel = typeof DragAndDrop.DragAndDropBlock.Model.Type
 
 const cardClassName =
   'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 cursor-grab active:cursor-grabbing select-none transition-opacity'
@@ -40,10 +33,10 @@ const cardView = (
   index: number,
   containerId: string,
   dragAndDropModel: DragAndDropModel,
-  render: RenderInfo,
+  render: DragAndDrop.RenderInfo,
   h: UiViewBuilder,
 ): Html => {
-  const maybeItemId = maybeDraggedItemId(dragAndDropModel)
+  const maybeItemId = DragAndDrop.maybeDraggedItemId(dragAndDropModel)
   const isBeingDragged = Option.exists(maybeItemId, id => id === card.id)
 
   const isKeyboardDragged =
@@ -77,12 +70,12 @@ const renderColumn = (
   column: DemoColumn,
   dragAndDropModel: DragAndDropModel,
   children: ReadonlyArray<Html>,
-  render: RenderInfo,
+  render: DragAndDrop.RenderInfo,
   h: UiViewBuilder,
 ): Html => {
-  const maybeTarget = maybeDropTarget(dragAndDropModel)
+  const maybeTarget = DragAndDrop.maybeDropTarget(dragAndDropModel)
   const isDropTarget =
-    isDragging(dragAndDropModel) &&
+    DragAndDrop.isDragging(dragAndDropModel) &&
     Option.exists(maybeTarget, ({ containerId }) => containerId === column.id)
 
   return h.keyed('div')(
@@ -119,12 +112,12 @@ const columnView = (
   columns: ReadonlyArray<DemoColumn>,
   column: DemoColumn,
   dragAndDropModel: DragAndDropModel,
-  render: RenderInfo,
+  render: DragAndDrop.RenderInfo,
   h: UiViewBuilder,
 ): Html => {
-  const maybeItemId = maybeDraggedItemId(dragAndDropModel)
-  const maybeTarget = maybeDropTarget(dragAndDropModel)
-  const isDraggingNow = isDragging(dragAndDropModel)
+  const maybeItemId = DragAndDrop.maybeDraggedItemId(dragAndDropModel)
+  const maybeTarget = DragAndDrop.maybeDropTarget(dragAndDropModel)
+  const isDraggingNow = DragAndDrop.isDragging(dragAndDropModel)
   const isPointerDragging = dragAndDropModel.dragState._tag === 'Dragging'
 
   const isTargetColumn =
@@ -174,10 +167,10 @@ const ghostView = (
   dragAndDropModel: DragAndDropModel,
   h: UiViewBuilder,
 ): Html => {
-  const maybeItemId = maybeDraggedItemId(dragAndDropModel)
+  const maybeItemId = DragAndDrop.maybeDraggedItemId(dragAndDropModel)
 
   return pipe(
-    ghostStyle(dragAndDropModel),
+    DragAndDrop.ghostStyle(dragAndDropModel),
     Option.flatMap(ghostStyle =>
       Option.map(findDraggedCard(columns, maybeItemId), card => ({
         ghostStyle,

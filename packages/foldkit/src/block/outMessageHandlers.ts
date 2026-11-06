@@ -1,20 +1,53 @@
 import { Array, Predicate, Schema } from 'effect'
 
+import { hasSameDecodedSchemaShape } from './decodedSchemaShape.js'
+
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 type HandlerCases = Readonly<Record<string, unknown>>
 type AuthoringMethod = 'makeOutMessageFold' | 'makeOutMessageForward'
 
 const authoringContracts = new WeakSet<object>()
+const localMessageContracts = new WeakMap<object, Schema.Top>()
 
 /** @internal Allows policy authoring against known passive constructor contracts. */
 export const registerAuthoringChildContract = (contract: object): void => {
   authoringContracts.add(contract)
 }
 
+/** @internal Retains the local Message contract behind an acquired complete child. */
+export const registerChildLocalMessageContract = (
+  child: object,
+  message: Schema.Top,
+): void => {
+  localMessageContracts.set(child, message)
+}
+
+const childMessageContractOf = (child: unknown): Schema.Top | undefined => {
+  if (!Predicate.isObject(child)) {
+    return undefined
+  }
+
+  const localMessage = localMessageContracts.get(child)
+  if (localMessage !== undefined) {
+    return localMessage
+  }
+
+  const message = Reflect.get(child, 'Message')
+  return Schema.isSchema(message) ? message : undefined
+}
+
 const handlerConfigurations = new WeakMap<
   object,
-  Readonly<{ method: AuthoringMethod; cases: HandlerCases }>
+  Readonly<{
+    method: AuthoringMethod
+    cases: HandlerCases
+    childMessage: Schema.Top | undefined
+  }>
 >()
+
+/** @internal Recognizes an authored policy helper without invoking it. */
+export const isOutMessageHandler = (handler: unknown): handler is AnyFunction =>
+  Predicate.isFunction(handler) && handlerConfigurations.has(handler)
 
 /** @internal Checks a handler record before its contextual child is available. */
 export const assertOutMessageHandlerRecord: (
@@ -51,7 +84,7 @@ export const assertChildOutMessageHandlers: (
   if (
     !Predicate.isObject(child) ||
     !Schema.isSchema(Reflect.get(child, 'Model')) ||
-    !Schema.isSchema(Reflect.get(child, 'Message')) ||
+    childMessageContractOf(child) === undefined ||
     (!authoringContracts.has(child) &&
       (!Predicate.isFunction(Reflect.get(child, 'init')) ||
         !Predicate.isFunction(Reflect.get(child, 'update')) ||
@@ -107,11 +140,16 @@ export const assertChildOutMessageHandlers: (
 /** @internal Retains helper cases for validation when a Binding supplies its child. */
 export const registerOutMessageHandler = (
   handler: AnyFunction,
+  child: unknown,
   cases: HandlerCases,
   method: AuthoringMethod,
 ): void => {
   assertHandlerFunctions(cases, Object.keys(cases), method)
-  handlerConfigurations.set(handler, { cases, method })
+  handlerConfigurations.set(handler, {
+    cases,
+    method,
+    childMessage: childMessageContractOf(child),
+  })
 }
 
 /** @internal Checks a known helper against its Binding and policy role without invoking handlers. */
@@ -131,6 +169,21 @@ export const validateOutMessageHandler = (
     if (configuration.method !== expectedMethod) {
       throw new Error(
         `[foldkit] Definition.${configuration.method} cannot supply an OutMessage ${role} policy. Use Definition.${expectedMethod}.`,
+      )
+    }
+
+    const actualChildMessage = childMessageContractOf(child)
+    if (
+      configuration.method === 'makeOutMessageFold' &&
+      configuration.childMessage !== undefined &&
+      (actualChildMessage === undefined ||
+        !hasSameDecodedSchemaShape(
+          configuration.childMessage,
+          actualChildMessage,
+        ))
+    ) {
+      throw new Error(
+        `[foldkit] Definition.${configuration.method} was authored for a different child Message contract than the selected Binding.`,
       )
     }
 

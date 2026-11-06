@@ -50,10 +50,10 @@ KeyedReciprocalApplicationDefinition.makeComposition({
 HomeBinding.resetJoinForm()
 // @ts-expect-error resetJoinForm accepts no extra arguments.
 HomeBinding.resetJoinForm('', 'extra')
-// @ts-expect-error informJoined requires key, username, and Room context.
-RoomBinding.informJoined('room-1', 'alice')
-// @ts-expect-error informJoined preserves the string Room context field.
-RoomBinding.informJoined('room-1', 'alice', { roomId: 1 })
+// @ts-expect-error informOfJoined requires key, username, and Room context.
+RoomBinding.informOfJoined('room-1', 'alice')
+// @ts-expect-error informOfJoined preserves the string Room context field.
+RoomBinding.informOfJoined('room-1', 'alice', { roomId: 1 })
 
 const PendingHomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'home',

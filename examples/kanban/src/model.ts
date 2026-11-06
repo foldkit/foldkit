@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 
-import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 import { Column } from './domain'
 
@@ -16,7 +16,7 @@ export type SavedBoardJsonString = typeof SavedBoardJsonString.Type
 
 export const Model = Schema.Struct({
   columns: Schema.Array(Column.Column),
-  dragAndDrop: DragAndDropBlock.Model,
+  dragAndDrop: DragAndDrop.DragAndDropBlock.Model,
   maybeNewCardColumnId: Schema.Option(Schema.String),
   newCardTitle: Schema.String,
   announcement: Schema.String,

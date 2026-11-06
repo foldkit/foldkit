@@ -1,6 +1,6 @@
 import { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { Session } from '../../../domain/session'
 import type { LoggedInViewBuilder } from '../composition'
@@ -48,7 +48,7 @@ export const view = (session: Session, h: LoggedInViewBuilder): Html =>
             [h.Class('text-xl font-semibold text-gray-800 mb-4')],
             ['Actions'],
           ),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedLogout(),
               toView: attributes =>

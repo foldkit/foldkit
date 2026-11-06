@@ -2,10 +2,10 @@
 // Message constructor.
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 const view = (h: HtmlBuilder<Message>) =>
-  buttonView(
+  Button.view(
     {
       onClick: ClickedSave(), // your Message
       toView: attributes =>

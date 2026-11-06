@@ -1,13 +1,5 @@
 import { Array, Option } from 'effect'
-import {
-  Command,
-  expectNoOutMessage,
-  expectOutMessage,
-  init,
-  message,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
@@ -18,7 +10,7 @@ import { ProjectSettingsBlock } from './block'
 import { SaveProject } from './command'
 import { layer } from './layer'
 import { Message } from './message'
-import { Model, SaveState } from './model'
+import { SaveState } from './model'
 import { OutMessage } from './outMessage'
 
 const projectSettingsSubject = { block: ProjectSettingsBlock, layer }
@@ -28,34 +20,31 @@ describe('Project Settings', () => {
   it.effect(
     'does not save unchanged, normalized, or invalid project settings',
     () => {
-      let unsavableModel: Model | undefined
-
-      return story(
+      return Story.story(
         projectSettingsSubject,
-        init(project),
-        model(model => {
-          unsavableModel = model
-        }),
-        message(Message.SubmittedProjectSettings()),
-        model(model => expect(model).toBe(unsavableModel)),
-        Command.expectNone(),
-        expectNoOutMessage(),
-        message(Message.UpdatedProjectName({ value: ` ${project.name} ` })),
-        model(model => {
-          unsavableModel = model
-        }),
-        message(Message.SubmittedProjectSettings()),
-        model(model => expect(model).toBe(unsavableModel)),
-        Command.expectNone(),
-        expectNoOutMessage(),
-        message(Message.UpdatedProjectName({ value: '   ' })),
-        model(model => {
-          unsavableModel = model
-        }),
-        message(Message.SubmittedProjectSettings()),
-        model(model => expect(model).toBe(unsavableModel)),
-        Command.expectNone(),
-        expectNoOutMessage(),
+        Story.init(project),
+        Story.models(
+          Story.steps(Story.message(Message.SubmittedProjectSettings())),
+          (before, after) => expect(after).toBe(before),
+        ),
+        Story.Command.expectNone(),
+        Story.expectNoOutMessage(),
+        Story.message(
+          Message.UpdatedProjectName({ value: ` ${project.name} ` }),
+        ),
+        Story.models(
+          Story.steps(Story.message(Message.SubmittedProjectSettings())),
+          (before, after) => expect(after).toBe(before),
+        ),
+        Story.Command.expectNone(),
+        Story.expectNoOutMessage(),
+        Story.message(Message.UpdatedProjectName({ value: '   ' })),
+        Story.models(
+          Story.steps(Story.message(Message.SubmittedProjectSettings())),
+          (before, after) => expect(after).toBe(before),
+        ),
+        Story.Command.expectNone(),
+        Story.expectNoOutMessage(),
       )
     },
   )
@@ -66,31 +55,35 @@ describe('Project Settings', () => {
       const savedProject = modifyFields(project, {
         name: () => 'A new project name',
       })
-      return story(
+      return Story.story(
         projectSettingsSubject,
-        init(project),
-        message(Message.UpdatedProjectName({ value: savedProject.name })),
-        message(Message.SubmittedProjectSettings()),
-        Command.expectExact(SaveProject({ project: savedProject })),
-        message(Message.UpdatedProjectName({ value: 'An edit during save' })),
-        message(Message.UpdatedProjectDescription({ value: 'Another edit' })),
-        message(Message.ClickedDiscardChanges()),
-        message(Message.SubmittedProjectSettings()),
-        message(Message.ClickedRetrySave()),
-        model(model => {
+        Story.init(project),
+        Story.message(Message.UpdatedProjectName({ value: savedProject.name })),
+        Story.message(Message.SubmittedProjectSettings()),
+        Story.Command.expectExact(SaveProject({ project: savedProject })),
+        Story.message(
+          Message.UpdatedProjectName({ value: 'An edit during save' }),
+        ),
+        Story.message(
+          Message.UpdatedProjectDescription({ value: 'Another edit' }),
+        ),
+        Story.message(Message.ClickedDiscardChanges()),
+        Story.message(Message.SubmittedProjectSettings()),
+        Story.message(Message.ClickedRetrySave()),
+        Story.model(model => {
           expect(model.draft).toEqual({
             name: savedProject.name,
             description: savedProject.description,
           })
           expect(model.saveState).toEqual(SaveState.Saving())
         }),
-        Command.expectExact(SaveProject({ project: savedProject })),
-        expectNoOutMessage(),
-        Command.resolve(
+        Story.Command.expectExact(SaveProject({ project: savedProject })),
+        Story.expectNoOutMessage(),
+        Story.Command.resolve(
           SaveProject,
           Message.SucceededSaveProject({ project: savedProject }),
         ),
-        expectOutMessage(OutMessage.Saved({ project: savedProject })),
+        Story.expectOutMessage(OutMessage.Saved({ project: savedProject })),
       )
     },
   )
@@ -107,28 +100,28 @@ describe('Project Settings', () => {
       const savedProject = modifyFields(project, {
         name: () => 'A new project name',
       })
-      let initialModel: Model | undefined
-      let savingModel: Model | undefined
 
-      return story(
+      return Story.story(
         projectSettingsSubject,
-        init(project),
-        model(model => {
-          initialModel = model
-        }),
-        message(Message.SucceededSaveProject({ project })),
-        model(model => expect(model).toBe(initialModel)),
-        expectNoOutMessage(),
-        message(Message.UpdatedProjectName({ value: savedProject.name })),
-        message(Message.SubmittedProjectSettings()),
-        model(model => {
-          savingModel = model
-        }),
-        message(Message.SucceededSaveProject({ project: otherProject })),
-        model(model => expect(model).toBe(savingModel)),
-        expectNoOutMessage(),
-        Command.expectExact(SaveProject({ project: savedProject })),
-        Command.resolve(
+        Story.init(project),
+        Story.models(
+          Story.steps(Story.message(Message.SucceededSaveProject({ project }))),
+          (before, after) => expect(after).toBe(before),
+        ),
+        Story.expectNoOutMessage(),
+        Story.message(Message.UpdatedProjectName({ value: savedProject.name })),
+        Story.message(Message.SubmittedProjectSettings()),
+        Story.models(
+          Story.steps(
+            Story.message(
+              Message.SucceededSaveProject({ project: otherProject }),
+            ),
+          ),
+          (before, after) => expect(after).toBe(before),
+        ),
+        Story.expectNoOutMessage(),
+        Story.Command.expectExact(SaveProject({ project: savedProject })),
+        Story.Command.resolve(
           SaveProject,
           Message.SucceededSaveProject({ project: savedProject }),
         ),
@@ -137,22 +130,22 @@ describe('Project Settings', () => {
   )
 
   it.effect(
-    'normalizes a name in the saved payload and makes the saved values the next baseline',
+    'normalizes a name in the saved payload and uses the saved values as the new draft baseline',
     () => {
       const savedProject = modifyFields(project, { name: () => 'A new name' })
-      return story(
+      return Story.story(
         projectSettingsSubject,
-        init(project),
-        message(Message.UpdatedProjectName({ value: ' A new name ' })),
-        message(Message.SubmittedProjectSettings()),
-        Command.expectExact(SaveProject({ project: savedProject })),
-        Command.resolve(
+        Story.init(project),
+        Story.message(Message.UpdatedProjectName({ value: ' A new name ' })),
+        Story.message(Message.SubmittedProjectSettings()),
+        Story.Command.expectExact(SaveProject({ project: savedProject })),
+        Story.Command.resolve(
           SaveProject,
           Message.SucceededSaveProject({ project: savedProject }),
         ),
-        expectOutMessage(OutMessage.Saved({ project: savedProject })),
-        model(model => {
-          expect(model.baseline).toEqual(savedProject)
+        Story.expectOutMessage(OutMessage.Saved({ project: savedProject })),
+        Story.model(model => {
+          expect(model.savedProject).toEqual(savedProject)
           expect(model.draft.name).toBe(savedProject.name)
         }),
       )

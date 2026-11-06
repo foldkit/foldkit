@@ -27,6 +27,10 @@ import {
 } from '../../block/operation.js'
 import { makeOperationMessageValidator } from '../../block/operationMessage.js'
 import type { OperationOutputs } from '../../block/operationOutputs.js'
+import {
+  type InputOperationName,
+  inputOperationName,
+} from '../../message/inMessageOperation.js'
 import * as Update from '../../update/index.js'
 import type { OperationEnvironment } from '../../update/operationRecipe.js'
 import type { AuthoringSource, Plan } from '../hybrid/authoring.js'
@@ -63,38 +67,8 @@ type InvalidConstructors<SchemaValue extends AnySchema> = {
         : Tag
 }[InputTag<SchemaValue>]
 
-/**
- * @internal Derives generated Binding method names from InMessage facts:
- * `RequestedX` becomes `requestX`, and `InformedOfX` becomes `informX`.
- * The remaining suffix is preserved exactly; empty operation names and other
- * prefixes are rejected. These methods invoke
- * the child's pure inMessageUpdate through a connected parent Step.
- */
-export type InputOperationName<Tag extends PropertyKey> =
-  Tag extends `Requested${infer Operation}`
-    ? Operation extends ''
-      ? never
-      : `request${Operation}`
-    : Tag extends `InformedOf${infer Operation}`
-      ? Operation extends ''
-        ? never
-        : `inform${Operation}`
-      : never
-
-/** @internal Enforces the same finite input protocol for erased declarations. */
-export const inputOperationName = (tag: string): string => {
-  if (tag.startsWith('Requested') && tag.length > 'Requested'.length) {
-    return `request${tag.slice('Requested'.length)}`
-  }
-
-  if (tag.startsWith('InformedOf') && tag.length > 'InformedOf'.length) {
-    return `inform${tag.slice('InformedOf'.length)}`
-  }
-
-  throw new Error(
-    '[foldkit] InMessage variants must use Requested... or InformedOf... with a nonempty operation name.',
-  )
-}
+export { inputOperationName }
+export type { InputOperationName }
 
 /** @internal A generated input API requires finite, owned callable variants. */
 export type ValidateInMessageSchema<SchemaValue extends AnySchema> =
@@ -318,7 +292,7 @@ export type CompiledInputs<
  *
  * Declare parent inputs once in the Block's InMessage union. A variant named
  * `RequestedOpen` generates `Binding.requestOpen()`, while
- * `InformedOfRouteChanged` generates `Binding.informRouteChanged(payload)`.
+ * `InformedOfRouteChanged` generates `Binding.informOfRouteChanged(payload)`.
  * Those calls return connected parent Steps and retain the child's declared
  * output and requirement channels. Keep UI facts and Command results in the
  * separate local Message update.

@@ -3,16 +3,12 @@ import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  inputId as ComboboxInputId,
-  layer as ComboboxLayer,
-  makeBlock as makeComboboxBlock,
-} from '@foldkit/ui/combobox'
+import { Combobox } from '@foldkit/ui'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
 type City = typeof City.Type
 
-const CityCombobox = makeComboboxBlock(City)
+const CityCombobox = Combobox.makeBlock(City)
 
 const Model = Schema.Struct({
   maybeCity: Schema.Option(City),
@@ -86,7 +82,7 @@ const view = CityPickerComposition.makeView((model, h) => {
   return h.div(
     [h.Class('flex flex-col gap-1.5')],
     [
-      h.label([h.Id(labelId), h.For(ComboboxInputId('city'))], ['City']),
+      h.label([h.Id(labelId), h.For(Combobox.inputId('city'))], ['City']),
       h.block(
         ComboboxBinding.embedView({
           slotId: 'city',
@@ -135,4 +131,4 @@ export const layer = CityPickerBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(ComboboxLayer))
+).pipe(Layer.provide(Combobox.layer))

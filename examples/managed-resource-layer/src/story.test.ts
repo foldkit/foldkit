@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { Command, given, message, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
@@ -31,22 +31,24 @@ describe('update', () => {
     it.effect(
       'ClickedStartEngine requests the engine by entering Booting',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(offModel),
-          message(Message.ClickedStartEngine()),
-          model(model => {
+          Story.given(offModel),
+          Story.message(Message.ClickedStartEngine()),
+          Story.model(model => {
             expect(model.engine._tag).toBe('Booting')
           }),
         ),
     )
 
     it.effect('StartedEngine marks the engine ready with its id', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
-        message(Message.StartedEngine({ engineId: 'engine-7' })),
-        model(model => {
+        Story.given(
+          modifyFields(offModel, { engine: () => EngineState.Booting() }),
+        ),
+        Story.message(Message.StartedEngine({ engineId: 'engine-7' })),
+        Story.model(model => {
           expect(model.engine).toStrictEqual(
             EngineState.Ready({ engineId: 'engine-7' }),
           )
@@ -55,33 +57,35 @@ describe('update', () => {
     )
 
     it.effect('ClickedStopEngine releases the engine by entering Off', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(readyModel),
-        message(Message.ClickedStopEngine()),
-        model(model => {
+        Story.given(readyModel),
+        Story.message(Message.ClickedStopEngine()),
+        Story.model(model => {
           expect(model.engine._tag).toBe('Off')
         }),
       ),
     )
 
     it.effect('StoppedEngine is a no-op lifecycle ack', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(offModel),
-        message(Message.StoppedEngine()),
-        model(model => {
+        Story.given(offModel),
+        Story.message(Message.StoppedEngine()),
+        Story.model(model => {
           expect(model).toStrictEqual(offModel)
         }),
       ),
     )
 
     it.effect('FailedStartEngine records the failure reason', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
-        message(Message.FailedStartEngine({ reason: 'boot timeout' })),
-        model(model => {
+        Story.given(
+          modifyFields(offModel, { engine: () => EngineState.Booting() }),
+        ),
+        Story.message(Message.FailedStartEngine({ reason: 'boot timeout' })),
+        Story.model(model => {
           expect(model.engine).toStrictEqual(
             EngineState.Failed({ reason: 'boot timeout' }),
           )
@@ -94,27 +98,30 @@ describe('update', () => {
     it.effect(
       'ClickedCompute increments the counter and fires Compute with the next value',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(readyModel),
-          message(Message.ClickedCompute()),
-          model(model => {
+          Story.given(readyModel),
+          Story.message(Message.ClickedCompute()),
+          Story.model(model => {
             expect(model.computeCount).toBe(3)
           }),
-          Command.expectExact(Compute({ value: 3 })),
-          Command.resolve(Compute, Message.SucceededCompute({ result: 9 })),
-          model(model => {
+          Story.Command.expectExact(Compute({ value: 3 })),
+          Story.Command.resolve(
+            Compute,
+            Message.SucceededCompute({ result: 9 }),
+          ),
+          Story.model(model => {
             expect(model.maybeSquareResult).toStrictEqual(Option.some(9))
           }),
         ),
     )
 
     it.effect('FailedCompute leaves the model unchanged', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(readyModel),
-        message(Message.FailedCompute()),
-        model(model => {
+        Story.given(readyModel),
+        Story.message(Message.FailedCompute()),
+        Story.model(model => {
           expect(model).toStrictEqual(readyModel)
         }),
       ),

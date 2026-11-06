@@ -24,7 +24,7 @@ export const Settings = BoundSettingsComposition.prepareBlock({
   init,
   update,
   operations: {
-    informThemeChanged: Message.InformedOfThemeChange,
+    informOfThemeChanged: Message.InformedOfThemeChange,
   },
   EffectsLayer: Layer.empty,
 })

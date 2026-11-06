@@ -754,6 +754,12 @@ const checks: ReadonlyArray<
     consumers: ['outmessage-fold.consume.ts'],
   },
   {
+    name: 'keyed-outmessage-fold',
+    accepted: ['keyed-outmessage-fold/accepted.ts'],
+    rejected: ['keyed-outmessage-fold/rejected.ts'],
+    consumers: ['keyed-outmessage-fold/consume.ts'],
+  },
+  {
     name: 'descriptor-fold',
     accepted: ['descriptor-fold.accepted.ts'],
     rejected: ['descriptor-fold.rejected.ts'],
@@ -784,7 +790,10 @@ const checks: ReadonlyArray<
   {
     name: 'optional-wrapped-keyed',
     accepted: ['optional-wrapped-keyed.accepted.ts'],
-    rejected: ['optional-wrapped-keyed.rejected.ts'],
+    rejected: [
+      'optional-wrapped-keyed.rejected.ts',
+      'canonical-keyed-scene.rejected.ts',
+    ],
     consumers: ['optional-wrapped-keyed.consume.ts'],
   },
   {
@@ -871,6 +880,12 @@ const checks: ReadonlyArray<
     accepted: ['helper-inputs.accepted.ts', 'helper-inputs.definition.ts'],
     rejected: ['helper-inputs.rejected.ts'],
     consumers: ['helper-inputs.consume.ts'],
+  },
+  {
+    name: 'inmessage-union',
+    accepted: ['inmessage-union.accepted.ts'],
+    rejected: ['inmessage-union.rejected.ts'],
+    consumers: ['inmessage-union.consume.ts'],
   },
   {
     name: 'inmessage-update-composition',
@@ -1208,6 +1223,7 @@ const main = async (): Promise<void> => {
   )
 
   for (const name of [
+    'canonical-keyed-scene',
     'constructor-plan-ownership',
     'program',
     'command-args',
@@ -1230,8 +1246,10 @@ const main = async (): Promise<void> => {
     'set-initialization',
     'set-optional-initialization',
     'insert-initialization',
+    'keyed-outmessage-fold',
     'generic-service-factory',
     'testing-event-delivery',
+    'inmessage-union',
     'unified-inmessages',
     'query-modes',
     'family-layer-members',

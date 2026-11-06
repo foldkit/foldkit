@@ -2,7 +2,10 @@ import { Predicate } from 'effect'
 
 import { registerBindingAlias, runtimeBindingOf } from './composition.js'
 import { activeBindingOutMessagePolicy } from './operationGraph.js'
-import { validateOutMessageHandler } from './outMessageHandlers.js'
+import {
+  isOutMessageHandler,
+  validateOutMessageHandler,
+} from './outMessageHandlers.js'
 import type { RuntimeOutMessagePolicy } from './outMessagePolicyRuntime.js'
 
 type RuntimeBinding = Readonly<{ placement: string }>
@@ -19,6 +22,7 @@ const selectedPolicies = new WeakMap<object, SelectedBindingOutMessagePolicy>()
 const snapshotPolicy = (
   binding: RuntimeBinding,
   value: unknown,
+  isKeyed: boolean,
 ): RuntimeOutMessagePolicy => {
   if (!Predicate.isObject(value) || globalThis.Array.isArray(value)) {
     throw new Error(
@@ -72,8 +76,27 @@ const snapshotPolicy = (
     ...(fold === undefined
       ? {}
       : {
-          fold: (...args: ReadonlyArray<any>) =>
-            Reflect.apply(fold, undefined, args),
+          fold: (...args: ReadonlyArray<any>) => {
+            if (!isKeyed) {
+              return Reflect.apply(fold, undefined, args)
+            }
+
+            const [_key, outMessage, context] = args
+
+            if (isOutMessageHandler(fold)) {
+              return fold(outMessage, context)
+            }
+
+            const step = Reflect.apply(fold, undefined, args)
+
+            if (isOutMessageHandler(step)) {
+              validateOutMessageHandler(step, child, 'fold')
+
+              return step(outMessage, context)
+            }
+
+            return step
+          },
         }),
     ...(forward === undefined
       ? {}
@@ -85,7 +108,10 @@ const snapshotPolicy = (
 }
 
 /** @internal Installs immutable policy selection without replacing Binding methods. */
-export const attachOutMessagePolicy = (binding: RuntimeBinding): void => {
+export const attachOutMessagePolicy = (
+  binding: RuntimeBinding,
+  isKeyed: boolean,
+): void => {
   bindingsRequiringPolicy.add(binding)
 
   Object.defineProperty(binding, 'withOutMessagePolicy', {
@@ -93,7 +119,7 @@ export const attachOutMessagePolicy = (binding: RuntimeBinding): void => {
     enumerable: false,
     writable: false,
     value: (policy: unknown): object => {
-      const outMessage = snapshotPolicy(binding, policy)
+      const outMessage = snapshotPolicy(binding, policy, isKeyed)
       const configured: object = Object.create(
         Object.getPrototypeOf(binding),
         Object.getOwnPropertyDescriptors(binding),

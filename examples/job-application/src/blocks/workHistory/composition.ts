@@ -26,7 +26,7 @@ export const EntriesBinding = makeBinding(WorkHistoryEntryBlock, {
     toItem: (_occurrence, entry) => entry,
   },
 }).withOutMessagePolicy({
-  fold: (entryId, outMessage) => foldEntryOutMessage(entryId)(outMessage),
+  fold: foldEntryOutMessage,
 })
 
 export const WorkHistoryComposition = makeComposition({

@@ -1,15 +1,5 @@
 import { Array, Option } from 'effect'
-import {
-  Command,
-  click,
-  expect,
-  init,
-  label,
-  role,
-  scene,
-  text,
-  type,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -30,44 +20,52 @@ const viewInputs = {
 describe('Comment Composer view', () => {
   it.effect('shows and discards a retained comment draft', () => {
     const body = 'Keep this comment available.'
-    return scene(
+    return Scene.scene(
       { block: CommentComposerBlock, layer, viewInputs },
-      init(issue.id, body),
-      expect(label('Write a comment')).toHaveValue(body),
-      expect(text('Comment draft kept for this session')).toExist(),
-      click(role('button', { name: 'Discard comment' })),
-      expect(label('Write a comment')).toHaveValue(''),
-      expect(role('button', { name: 'Discard comment' })).not.toExist(),
-      expect(text('Comment draft kept for this session')).not.toExist(),
+      Scene.init(issue.id, body),
+      Scene.expect(Scene.label('Write a comment')).toHaveValue(body),
+      Scene.expect(Scene.text('Comment draft kept for this session')).toExist(),
+      Scene.click(Scene.role('button', { name: 'Discard comment' })),
+      Scene.expect(Scene.label('Write a comment')).toHaveValue(''),
+      Scene.expect(
+        Scene.role('button', { name: 'Discard comment' }),
+      ).not.toExist(),
+      Scene.expect(
+        Scene.text('Comment draft kept for this session'),
+      ).not.toExist(),
     )
   })
 
   it.effect('keeps the comment available after failure and retries it', () => {
     const body = 'Please review this change.'
-    return scene(
+    return Scene.scene(
       { block: CommentComposerBlock, layer, viewInputs },
-      init(issue.id),
-      type(label('Write a comment'), body),
-      click(role('button', { name: 'Post comment' })),
-      expect(text('Posting comment…')).toExist(),
-      expect(label('Write a comment')).toBeDisabled(),
-      expect(role('button', { name: 'Discard comment' })).toBeDisabled(),
-      expect(role('button', { name: 'Post comment' })).toBeDisabled(),
-      Command.resolve(
+      Scene.init(issue.id),
+      Scene.type(Scene.label('Write a comment'), body),
+      Scene.click(Scene.role('button', { name: 'Post comment' })),
+      Scene.expect(Scene.text('Posting comment…')).toExist(),
+      Scene.expect(Scene.label('Write a comment')).toBeDisabled(),
+      Scene.expect(
+        Scene.role('button', { name: 'Discard comment' }),
+      ).toBeDisabled(),
+      Scene.expect(
+        Scene.role('button', { name: 'Post comment' }),
+      ).toBeDisabled(),
+      Scene.Command.resolve(
         AddComment,
         Message.FailedAddComment({
           error: 'The workspace is temporarily unavailable.',
         }),
       ),
-      expect(role('alert')).toContainText(
+      Scene.expect(Scene.role('alert')).toContainText(
         'The workspace is temporarily unavailable.',
       ),
-      expect(label('Write a comment')).toHaveValue(body),
-      click(role('button', { name: 'Post comment' })),
-      Command.expectExact(
+      Scene.expect(Scene.label('Write a comment')).toHaveValue(body),
+      Scene.click(Scene.role('button', { name: 'Post comment' })),
+      Scene.Command.expectExact(
         AddComment({ issueId: issue.id, body, authorId: 'maya' }),
       ),
-      Command.resolve(
+      Scene.Command.resolve(
         AddComment,
         Message.FailedAddComment({
           error: 'The workspace is temporarily unavailable.',

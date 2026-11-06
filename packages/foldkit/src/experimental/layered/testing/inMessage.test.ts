@@ -1,12 +1,15 @@
 import { Effect, Schema } from 'effect'
-import { expect, test } from 'vitest'
+import { expect, expectTypeOf, test } from 'vitest'
 
 import { it } from '@effect/vitest'
 
 import * as Block from '../../../block/public.js'
 import * as Command from '../../../command/index.js'
 import type { HtmlBuilder } from '../../../html/index.js'
-import { defineMessageUnion } from '../../../message/index.js'
+import {
+  defineInMessageUnion,
+  defineMessageUnion,
+} from '../../../message/index.js'
 import { modifyFields } from '../../../struct/index.js'
 import * as CoreScene from '../../../test/scene.js'
 import * as CoreStory from '../../../test/story.js'
@@ -23,7 +26,7 @@ const Message = defineMessageUnion({
   CompletedRecordValue: { value: Schema.Number },
 })
 type Message = typeof Message.Type
-const InMessage = defineMessageUnion({
+const InMessage = defineInMessageUnion({
   RequestedRecordValue: { value: Schema.Number },
   InformedOfValue: { value: Schema.Number },
   InformedOfClear: {},
@@ -310,6 +313,23 @@ test('the scoped inMessageUpdate adapter validates schema and uses separate inpu
     ).toBe(true)
     expect(
       Effect.isEffect(
+        Story.story<typeof block>(
+          { block, updateContext: [1], inMessageContext: ['remote'] },
+          Story.init(),
+          // @ts-expect-error Compared groups retain the separate InMessage payload contract.
+          Story.models(
+            Story.steps(
+              Story.inMessage(Message.CompletedRecordValue({ value: 1 })),
+            ),
+            (before, after) => {
+              expect(after).toBe(before)
+            },
+          ),
+        ),
+      ),
+    ).toBe(true)
+    expect(
+      Effect.isEffect(
         Scene.scene<typeof block>(
           // @ts-expect-error Update context does not provide the InMessage context.
           { block, updateContext: [1], inMessageContext: [1] },
@@ -407,12 +427,21 @@ it.effect(
             .model.value,
         ).toBe(9)
       })
-      yield* Story.story(
+      const storyModel = yield* Story.story(
         ReceiverBlock,
         Story.init(),
-        Story.inMessage(requested),
-        Story.model((model: Model) => expect(model.value).toBe(8)),
+        Story.models(
+          Story.steps(Story.inMessage(requested)),
+          (before, after) => {
+            expectTypeOf(before).toEqualTypeOf<Model>()
+            expectTypeOf(after).toEqualTypeOf<Model>()
+            expect(before.value).toBe(0)
+            expect(after.value).toBe(8)
+          },
+        ),
       )
+      expectTypeOf(storyModel).toEqualTypeOf<Model>()
+      expect(storyModel.value).toBe(8)
       yield* Scene.scene(
         { block: ReceiverBlock, inMessageContext: ['Remote', 'A', 'B'] },
         Scene.init(),

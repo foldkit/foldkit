@@ -1,7 +1,5 @@
 import { Order } from 'effect'
 
-// BLOG METADATA
-
 /**
  * The blog's own title and description, shared by the rendered index, the
  * page metadata the prerender writes into each document, and the RSS channel.

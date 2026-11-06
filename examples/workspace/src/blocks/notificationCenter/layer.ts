@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as PopoverLayer } from '@foldkit/ui/popover'
+import { Popover } from '@foldkit/ui'
 
 import { NotificationCenterBlock } from './block'
 import { PopoverBinding } from './composition'
@@ -24,4 +24,4 @@ export const layer = NotificationCenterBlock.makeLayer(
       EffectsLayer: subscriptions.layer,
     }
   }),
-).pipe(Layer.provide(PopoverLayer))
+).pipe(Layer.provide(Popover.layer))

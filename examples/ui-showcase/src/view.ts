@@ -2,11 +2,7 @@ import clsx from 'clsx'
 import { Array, Match, Option, pipe } from 'effect'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
-import {
-  type ItemInfo as NavItemInfo,
-  type RenderInfo as NavRenderInfo,
-  view as navView,
-} from '@foldkit/ui/nav'
+import { Nav } from '@foldkit/ui'
 
 import { Ui } from './blocks'
 import { ApplicationComposition, UiModelBinding } from './composition'
@@ -109,9 +105,9 @@ const navItemHref = (index: number): string =>
 
 const componentNav = (
   currentRoute: ApplicationRoute,
-  toView: (render: NavRenderInfo) => Html,
+  toView: (render: Nav.RenderInfo) => Html,
 ): Html =>
-  navView({
+  Nav.view({
     items: NAV_ROUTE_TAGS,
     ariaLabel: 'Components',
     toHref: (_routeTag, index) => navItemHref(index),
@@ -120,7 +116,7 @@ const componentNav = (
   })
 
 const navListView = <Message, AllowedMountRequirements>(
-  items: ReadonlyArray<NavItemInfo>,
+  items: ReadonlyArray<Nav.ItemInfo>,
   linkClassName: (isActive: boolean) => string,
   h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html =>
@@ -163,7 +159,7 @@ const sidebarView = (
   currentRoute: ApplicationRoute,
   h: ApplicationViewBuilder,
 ) => {
-  const sidebarNavView = ({ nav, items }: NavRenderInfo): Html =>
+  const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
     h.nav(
       [
         ...nav,
@@ -199,7 +195,7 @@ const mobileMenuContent =
     currentRoute: ApplicationRoute,
   ): Ui.View.MobileMenuViewInputs['renderContent'] =>
   (closeButton, h) => {
-    const mobileNavView = ({ nav, items }: NavRenderInfo): Html =>
+    const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
       h.nav(
         [
           ...nav,
@@ -255,7 +251,10 @@ const mobileMenuContent =
     )
   }
 
-const mobileHeaderView = (model: Model, h: ApplicationViewBuilder) =>
+const mobileHeaderView = (
+  isMobileMenuOpen: boolean,
+  h: ApplicationViewBuilder,
+) =>
   h.header(
     [
       h.Class(
@@ -286,7 +285,7 @@ const mobileHeaderView = (model: Model, h: ApplicationViewBuilder) =>
           h.Class(
             'p-2 rounded-md hover:bg-gray-200 transition text-gray-700 cursor-pointer',
           ),
-          h.AriaExpanded(model.uiModel.mobileMenuDialog.isOpen),
+          h.AriaExpanded(isMobileMenuOpen),
           h.AriaLabel('Toggle menu'),
           h.OnClick(Message.ClickedOpenMobileMenu()),
         ],
@@ -295,13 +294,17 @@ const mobileHeaderView = (model: Model, h: ApplicationViewBuilder) =>
     ],
   )
 
-const mobileMenuView = (model: Model, h: ApplicationViewBuilder) =>
+const mobileMenuView = (
+  uiModel: Model['uiModel'],
+  route: Model['route'],
+  h: ApplicationViewBuilder,
+) =>
   h.block(
     UiModelBinding.embedView({
       slotId: 'mobile-menu',
-      model: model.uiModel,
+      model: uiModel,
       view: Ui.View.mobileMenu,
-      viewInputs: { renderContent: mobileMenuContent(model.route) },
+      viewInputs: { renderContent: mobileMenuContent(route) },
     }),
   )
 
@@ -347,17 +350,21 @@ const notFoundView = (path: string, h: ApplicationViewBuilder) =>
     ],
   )
 
-const contentView = (model: Model, h: ApplicationViewBuilder) => {
+const contentView = (
+  uiModel: Model['uiModel'],
+  route: Model['route'],
+  h: ApplicationViewBuilder,
+) => {
   const embedUi = (id: string, view: typeof Ui.View.button): Html =>
     h.block(
       UiModelBinding.embedView({
         slotId: id,
-        model: model.uiModel,
+        model: uiModel,
         view,
       }),
     )
 
-  return ApplicationRoute.match(model.route, {
+  return ApplicationRoute.match(route, {
     Home: () => homeView(h),
     Button: () => embedUi('ui-button', Ui.View.button),
     Calendar: () => embedUi('ui-calendar', Ui.View.calendar),
@@ -401,12 +408,12 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.div(
     [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
     [
-      mobileHeaderView(model, h),
-      mobileMenuView(model, h),
+      mobileHeaderView(model.uiModel.mobileMenuDialog.isOpen, h),
+      mobileMenuView(model.uiModel, model.route, h),
       sidebarView(model.route, h),
       h.main(
         [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
-        [contentView(model, h)],
+        [contentView(model.uiModel, model.route, h)],
       ),
     ],
   ),

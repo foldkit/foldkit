@@ -51,7 +51,7 @@ export const defineWithNamespace = (
  * An optional `InMessage` Schema declares parent requests separately from local
  * `Message` facts. Author its exhaustive handlers with `Composition.makeInMessageUpdate`
  * and return `inMessageUpdate` from the constructor. Bindings generate `requestX` and
- * `informX` methods from `RequestedX` and `InformedOfX` variants.
+ * `informOfX` methods from `RequestedX` and `InformedOfX` variants.
  */
 export const makeDefinition: typeof makeContractDefinition &
   typeof makeNativeDefinition = (

@@ -1,6 +1,5 @@
 import type { Html } from 'foldkit/html'
 
-import type { IssueStatus } from '../../../domain'
 import type { IssueListViewBuilder } from '../composition'
 
 export const searchIcon = (h: IssueListViewBuilder): Html =>
@@ -33,6 +32,3 @@ export const plusIcon = (h: IssueListViewBuilder): Html =>
     ],
     [h.path([h.D('M8 3v10M3 8h10'), h.StrokeLinecap('round')])],
   )
-
-export const statusLabel = (status: IssueStatus): string =>
-  status === 'InProgress' ? 'In progress' : status

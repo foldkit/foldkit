@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as FileDropLayer } from '@foldkit/ui/fileDrop'
+import { FileDrop } from '@foldkit/ui'
 
 import { AttachmentsBlock } from './block'
 import { AdditionalFilesDropBinding, ResumeDropBinding } from './composition'
@@ -20,4 +20,4 @@ export const layer = AttachmentsBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(FileDropLayer)))
+).pipe(Layer.provide(Layer.mergeAll(FileDrop.layer)))

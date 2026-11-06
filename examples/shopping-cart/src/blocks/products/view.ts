@@ -1,7 +1,6 @@
 import { Array } from 'effect'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Input } from '@foldkit/ui'
 
 import { Cart } from '../../domain'
 import { cartRouter } from '../../route'
@@ -30,7 +29,7 @@ export const view = ProductsComposition.makeView.withInputs(
             h.search(
               [h.Class('mb-6')],
               [
-                inputView(
+                Input.view(
                   {
                     id: 'product-search',
                     value: model.searchText,
@@ -74,7 +73,7 @@ export const view = ProductsComposition.makeView.withInputs(
                       ],
                     ),
                     Cart.itemQuantity(product.id)(cart) === 0
-                      ? buttonView(
+                      ? Button.view(
                           {
                             onClick: Message.ClickedAddToCart({
                               item: product,
@@ -95,7 +94,7 @@ export const view = ProductsComposition.makeView.withInputs(
                       : h.div(
                           [h.Class('flex items-center gap-2')],
                           [
-                            buttonView(
+                            Button.view(
                               {
                                 onClick: Message.ClickedDecrementQuantity({
                                   itemId: product.id,
@@ -121,7 +120,7 @@ export const view = ProductsComposition.makeView.withInputs(
                               ],
                               [String(Cart.itemQuantity(product.id)(cart))],
                             ),
-                            buttonView(
+                            Button.view(
                               {
                                 onClick: Message.ClickedIncrementQuantity({
                                   itemId: product.id,

@@ -56,8 +56,8 @@ export const update = ApplicationComposition.makeUpdate({
     return Update.combineSteps(model, [
       revealPreferenceErrors,
       ApplicationDefinition.makeNoopStep(),
-      ChildBinding.informThemeChanged({ theme: 'Light' }),
-      EntriesBinding.informThemeChanged('retained', { theme: 'Light' }),
+      ChildBinding.informOfThemeChanged({ theme: 'Light' }),
+      EntriesBinding.informOfThemeChanged('retained', { theme: 'Light' }),
     ])
   },
 })

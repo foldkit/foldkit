@@ -3,7 +3,7 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { type SwitchAttributes, view as uiSwitchView } from '@foldkit/ui/switch'
+import { Switch } from '@foldkit/ui'
 
 // Store the on/off state as a plain boolean field in your Model:
 const Model = Schema.Struct({
@@ -52,7 +52,7 @@ const update = NotificationSettingsComposition.makeUpdate({
 // track color keys off the data-checked attribute; the knob position derives
 // from the same Model field.
 const view = NotificationSettingsComposition.makeView((model, h) => {
-  const switchView = (attributes: SwitchAttributes<Message>) =>
+  const switchView = (attributes: Switch.SwitchAttributes<Message>) =>
     h.div(
       [h.Class('flex items-center gap-3')],
       [
@@ -87,7 +87,7 @@ const view = NotificationSettingsComposition.makeView((model, h) => {
       ],
     )
 
-  return uiSwitchView(
+  return Switch.view(
     {
       id: 'notifications',
       isChecked: model.notificationsEnabled,

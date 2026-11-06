@@ -1,13 +1,13 @@
 import { Schema } from 'effect'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import { DialogBlock } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
-import { IssuePriority, IssueStatus } from '../../domain'
+import { Issue } from '../../domain'
 import {
   PriorityListboxBlock,
   StatusListboxBlock,
-  WorkspaceListboxBlock,
+  StringListboxBlock,
 } from '../../listbox'
 
 export const CreateState = defineTaggedUnion({
@@ -21,11 +21,11 @@ export const Model = Schema.Struct({
   title: Schema.String,
   description: Schema.String,
   projectId: Schema.String,
-  status: IssueStatus,
-  priority: IssuePriority,
+  status: Issue.Status,
+  priority: Issue.Priority,
   createState: CreateState,
-  dialog: DialogBlock.Model,
-  projectListbox: WorkspaceListboxBlock.Model,
+  dialog: Dialog.DialogBlock.Model,
+  projectListbox: StringListboxBlock.Model,
   statusListbox: StatusListboxBlock.Model,
   priorityListbox: PriorityListboxBlock.Model,
 })

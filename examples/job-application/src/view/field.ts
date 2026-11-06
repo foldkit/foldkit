@@ -4,9 +4,7 @@ import { FieldValidation } from 'foldkit'
 import { type Field } from 'foldkit/fieldValidation'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
-import { view as checkboxView } from '@foldkit/ui/checkbox'
-import { view as inputView } from '@foldkit/ui/input'
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Checkbox, Input, Textarea } from '@foldkit/ui'
 
 const borderClass = (field: Field<string>): string =>
   FieldValidation.match(field, {
@@ -27,7 +25,7 @@ export const input = <ParentMessage>(
   }>,
   h: HtmlBuilder<ParentMessage>,
 ): Html =>
-  inputView(
+  Input.view(
     {
       id: config.id,
       value: config.field.value,
@@ -102,7 +100,7 @@ export const checkbox = <ParentMessage>(
   }>,
   h: HtmlBuilder<ParentMessage>,
 ): Html =>
-  checkboxView(
+  Checkbox.view(
     {
       id: config.id,
       isChecked: config.isChecked,
@@ -152,7 +150,7 @@ export const textarea = <ParentMessage>(
   }>,
   h: HtmlBuilder<ParentMessage>,
 ): Html =>
-  textareaView(
+  Textarea.view(
     {
       id: config.id,
       value: config.value,

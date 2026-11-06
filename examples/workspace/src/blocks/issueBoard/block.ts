@@ -25,4 +25,5 @@ export const {
   makeNoopStep,
   makeOutMessageFold,
   makeOutMessageStep,
+  makeStep,
 } = IssueBoardBlock

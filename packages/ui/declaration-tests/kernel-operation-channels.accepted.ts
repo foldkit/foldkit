@@ -11,8 +11,8 @@ const Fruit = Schema.Literals(['Apple', 'Pear'])
 
 export const FruitCombobox = Combobox.makeBlock(Fruit)
 export const FruitMultiCombobox = Combobox.Multi.makeBlock(Fruit)
-export const FruitListbox = Listbox.makeBlock<typeof Fruit.Type>()
-export const FruitMultiListbox = Listbox.Multi.makeBlock<typeof Fruit.Type>()
+export const FruitListbox = Listbox.makeBlock(Fruit)
+export const FruitMultiListbox = Listbox.Multi.makeBlock(Fruit)
 export const FruitVirtualList = VirtualList.makeBlock<typeof Fruit.Type>()
 
 export type FruitComboboxExecutable = Block.ExecutableOf<typeof FruitCombobox>
@@ -43,7 +43,7 @@ export type OperationAssertions = [
   Expect<
     Equal<
       Parameters<
-        FruitVirtualListExecutable['operations']['informHistoryPrepended']
+        FruitVirtualListExecutable['operations']['informOfHistoryPrepended']
       >[1],
       VirtualList.HistoryPrependInput<typeof Fruit.Type>
     >
@@ -51,7 +51,7 @@ export type OperationAssertions = [
   Expect<
     Equal<
       OutMessageOf<
-        FruitVirtualListExecutable['operations']['informHistoryPrepended']
+        FruitVirtualListExecutable['operations']['informOfHistoryPrepended']
       >,
       never
     >

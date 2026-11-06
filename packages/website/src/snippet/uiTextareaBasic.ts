@@ -2,13 +2,10 @@
 // a string. Replace model.bio and UpdatedBio with your own field and Message.
 import type { HtmlBuilder } from 'foldkit/html'
 
-import {
-  type TextareaAttributes,
-  view as uiTextareaView,
-} from '@foldkit/ui/textarea'
+import { Textarea } from '@foldkit/ui'
 
 const view = (model: Model, h: HtmlBuilder<Message>) => {
-  const textareaView = (attributes: TextareaAttributes<Message>) =>
+  const textareaView = (attributes: Textarea.TextareaAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-1.5')],
       [
@@ -24,7 +21,7 @@ const view = (model: Model, h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return uiTextareaView(
+  return Textarea.view(
     {
       id: 'bio',
       hasDescription: true,

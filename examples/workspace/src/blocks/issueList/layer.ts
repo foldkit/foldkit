@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import { IssueListBlock } from './block'
 import {
@@ -8,7 +8,6 @@ import {
   SortListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
@@ -23,8 +22,7 @@ export const layer = IssueListBlock.makeLayer(
       children: [statusListbox, sortListbox, groupListbox],
       init,
       update,
-      inMessageUpdate,
       view,
     }
   }),
-).pipe(Layer.provide(ListboxLayer))
+).pipe(Layer.provide(Listbox.layer))

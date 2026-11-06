@@ -3,14 +3,12 @@ import { Html, inertHtml as ih } from 'foldkit/html'
 
 import * as Markdown from '@foldkit/markdown'
 
-import { CodeBlock } from '../component'
 import { ctaLinks, infoCalloutBlocks, warningCalloutBlocks } from '../prose'
+import * as CodeBlock from './codeBlock'
 import type { DemoLabels } from './demoLabel'
 import { islandAttributes } from './islandAttributes'
 import { type Slots, renderFaqSection, resolveDemo } from './slots'
 import { lookupSnippet } from './snippets'
-
-// ISLANDS
 
 /**
  * Renders a demo as a region labelled by the heading it sits under, so a page of

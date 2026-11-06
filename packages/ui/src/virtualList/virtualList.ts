@@ -23,7 +23,7 @@ import {
   childAttributes,
 } from 'foldkit/html'
 import * as BlockFamily from 'foldkit/internal/block'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import * as Render from 'foldkit/render'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -262,7 +262,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 /** Parent requests handled independently of local UI facts. */
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedScrollToEnd: {},
 })
 export type InMessage = typeof InMessage.Type
@@ -316,7 +316,7 @@ export const InitConfig = Schema.Union([
 export type InitConfig = typeof InitConfig.Type
 
 const makeOperations = <Item>() => ({
-  informHistoryPrepended: (input: HistoryPrependInput<Item>) =>
+  informOfHistoryPrepended: (input: HistoryPrependInput<Item>) =>
     Tuple.make(
       Message.InformedOfHistoryPrepend({
         itemKeys: Array.map(input.items, input.itemToKey),
@@ -324,7 +324,7 @@ const makeOperations = <Item>() => ({
         page: input.page,
       }),
     ),
-  informItemsChanged: (itemKeys: ReadonlyArray<string>) =>
+  informOfItemsChanged: (itemKeys: ReadonlyArray<string>) =>
     Tuple.make(Message.InformedOfItemsChange({ itemKeys })),
   requestScrollTo: (target: ScrollTarget, options: ScrollToOptions = {}) =>
     Tuple.make(
@@ -2676,12 +2676,12 @@ type CanonicalFacts = Block.FactsOf<CanonicalContract>
 type RefinedFacts<Item> = Omit<CanonicalFacts, 'view' | 'operations'> &
   Readonly<{
     view: Block.ViewContract<ViewInputs<Item>, 'Element'>
-    operations: Omit<CanonicalFacts['operations'], 'informHistoryPrepended'> &
+    operations: Omit<CanonicalFacts['operations'], 'informOfHistoryPrepended'> &
       Readonly<{
-        informHistoryPrepended: Block.OperationContract<
+        informOfHistoryPrepended: Block.OperationContract<
           readonly [input: HistoryPrependInput<Item>],
           never,
-          CanonicalFacts['operations']['informHistoryPrepended']['requirements']
+          CanonicalFacts['operations']['informOfHistoryPrepended']['requirements']
         >
       }>
   }>

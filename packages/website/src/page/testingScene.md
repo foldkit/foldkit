@@ -4,7 +4,9 @@
 
 Application behavior tests use the Story or Scene DSL. Deliver Messages or InMessages, resolve Commands and assert through those steps. Do not replace the runner with a chain of acquired update calls or direct Step applications. A pure fixture may build an initial Model or deliberately use `given(model)`; an advanced scoped fixture may need acquired initialization, graph identity or view context. Keep the behavior itself in the DSL. Pure domain and selector unit tests remain separate; raw transition tests belong to framework infrastructure.
 
-A Block-aware `scene({ block: FeatureBlock, layer }, init(...args), ...steps)` returns an Effect that acquires and scopes the implementation graph. The selected Layer supplies the feature's construction providers. Use `given(model)` for an existing Model, and pass `{ block, layer, viewInputs, updateContext, routing }` when the view or test requires those inputs. Handler Services are unnecessary for pure Scenes because handlers do not run.
+A Block-aware `scene({ block: FeatureBlock, layer }, init(...args), ...steps)` returns an Effect that acquires and scopes the implementation graph. The pair selects the public Block contract and its implementation Layer; tests often name it `featureSubject`. Pass `viewInputs`, `updateContext` or `routing` when the view or test requires them. Handler Services are unnecessary for pure Scenes because handlers do not run.
+
+Use `init(...args)` to exercise the real initializer, including startup Commands that the Scene must resolve. Use `given(model)` for an intentional immutable view fixture; it skips the initializer and adds no startup Commands. A loading-state fixture can therefore isolate presentation, while a Scene starting with `init` verifies the interaction and pending work that produce it.
 
 In Vitest, return the Scene Effect from `it.effect` in `@effect/vitest`. The integration owns execution and test cleanup, so normal tests need no `Effect.runPromise` wrapper or manual extraction of update and view. Use `init` and explicit Command resolution for startup scenarios. Provide test Layers for any remaining construction dependencies through ordinary `Effect.provide`.
 
@@ -16,7 +18,7 @@ Use `withBlock` for an advanced fixture that needs initialized state or a custom
 
 Scene operates on VNodes directly. It needs no DOM, jsdom, or browser.
 
-Import the steps you need from `foldkit/scene`. Use named imports when the file contains only Scene tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
+Import the `Scene` namespace from `foldkit` and qualify every step through it. This keeps the testing DSL visible at call sites such as `Scene.given`, `Scene.click`, and `Scene.expect`.
 
 ## Locators
 
@@ -241,7 +243,7 @@ When a Scene helper needs to read captured args before resolving a Command, use 
 
 `Navigation.changedUrl` delivers a URL through the Scene's configured `routing.onUrlChange`. Scene applies the resulting Message through update and renders the next view. Use the same callback or canonical Message constructor that the Program uses.
 
-Inside a Scene test, import the named helpers from `foldkit/scene` and the shown Commands, `Message`, initial Model, update, and view from your search feature. The feature increments its request id when input changes; its URL-change handler returns `FetchSearch`.
+Inside a Scene test, import the `Scene` namespace from `foldkit` and the shown Commands, `Message`, initial Model, update, and view from your search feature. The feature increments its request id when input changes; its URL-change handler returns `FetchSearch`.
 
 ::Snippet{name="sceneNavigation" label="Search through URL-change delivery"}
 
@@ -313,6 +315,8 @@ Each Subscription entry's `messages` collection is its emission contract. `emit(
 
 For a lifted Subscription, pass the child Message. Scene replays the entry's generated delivery through every child boundary before calling the update under test. The entry argument always makes the event source explicit, including when several Subscriptions declare the same Message.
 
+A keyed child Binding contributes passive inspection templates rather than executable Streams. Select one occurrence with `Scene.Subscription.at(Binding, key, childSubscriptions.entry)`, then pass that selection to `emit`, `expectActive`, or `expectInactive`. The Scene step types reject the raw child entry because it does not identify a key. An absent key is inactive. Emitting for an absent key throws instead of delivering the Message to another occurrence.
+
 `emit` supplies an output from the registered Subscription graph; it does not check whether the current Model activates the entry. This allows a test to represent an event that was already queued when its Subscription became inactive. Assert activity before emitting when the test needs to prove that the Runtime would be listening.
 
 Use `emit` for a Subscription-origin fact. If the same Message can come from a button or another DOM interaction, use that interaction when testing the DOM-origin path. The interaction verifies the handler wiring that `emit` would skip. `emit` throws while Commands, Mounts, or unacknowledged unmounts are pending.
@@ -331,7 +335,9 @@ A [ManagedResource](/core/managed-resources) reports three lifecycle outcomes: a
 
 Drive the Model into the matching state before declaring an outcome. `acquire` and `failAcquire` throw unless `modelToMaybeRequirements` returns `Some`. `release` throws until it returns `None`.
 
-These steps dispatch immediately and leave nothing pending. They are optional because Scene sees update and view, not the application's ManagedResources record. A scene may end while the Model still requests a resource, just as the runtime can wait for its acquire Effect to finish. If a lifecycle step contradicts the Model, it throws immediately.
+These steps dispatch immediately and leave nothing pending. A scene may end while the Model still requests a resource, just as the runtime can wait for its acquire Effect to finish. If a lifecycle step contradicts the Model, it throws immediately.
+
+A keyed child Binding also contributes passive ManagedResource inspection templates. Select one occurrence with `Scene.ManagedResource.at(Binding, key, childResources.entry)` before using `acquire`, `failAcquire`, or `release`. A Block-aware Scene rejects a raw child entry because it does not name an occurrence. Selecting an absent key and declaring a lifecycle outcome throws before update runs.
 
 ### Supply Lifecycle Results
 

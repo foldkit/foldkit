@@ -1,11 +1,11 @@
 import { Schema } from 'effect'
 
-import { makeBlock as makeTabsBlock } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 export const Tab = Schema.Literals(['AsyncCounter', 'Note Player'])
 export type Tab = typeof Tab.Type
 
-export const DemoTabsBlock = makeTabsBlock<Tab>()
+export const DemoTabsBlock = Tabs.makeBlock<Tab>()
 
 export const all: ReadonlyArray<Tab> = ['AsyncCounter', 'Note Player']
 

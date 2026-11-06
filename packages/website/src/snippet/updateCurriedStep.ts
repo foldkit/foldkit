@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({ routeChangeCount: Schema.Number })
@@ -11,7 +11,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const InMessage = defineMessageUnion({ InformedOfRouteChange: {} })
+const InMessage = defineInMessageUnion({ InformedOfRouteChange: {} })
 type InMessage = typeof InMessage.Type
 
 export const RouteAwareKey = Symbol('RouteAware')

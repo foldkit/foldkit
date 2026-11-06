@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import { EducationEntryBlock } from './block'
 import { GraduationYearListboxBinding } from './composition'
@@ -21,4 +21,4 @@ export const layer = EducationEntryBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(ListboxLayer)))
+).pipe(Layer.provide(Layer.mergeAll(Listbox.layer)))

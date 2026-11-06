@@ -2,7 +2,6 @@ import { Match, Option } from 'effect'
 import { Html, createKeyedLazy, inertHtml as ih } from 'foldkit/html'
 
 import { SnippetCopyBlock, SnippetDisclosureBlock, UiBlock } from '../blocks'
-import { Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
 import {
   SnippetCopyBinding,
@@ -10,6 +9,7 @@ import {
   UiPagesBinding,
 } from '../composition'
 import { Docs } from '../layout'
+import * as Site from '../layout/site'
 import { docPage } from '../markdown'
 import { Message } from '../message'
 import { type Model } from '../model'
@@ -108,7 +108,7 @@ export const view = (
   return h.div(
     [h.Class('flex flex-col min-h-screen')],
     [
-      Shared.skipNavLink,
+      Site.skipNavLink,
       Docs.headerView(model, h),
       Search.dialogView(model, h),
       Sidebar.mobileView(model, h),

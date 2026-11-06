@@ -1,7 +1,7 @@
 import { Effect, Layer, type Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 
-import { Model } from './from-assembly.accepted.js'
+import { Model, Store } from './from-assembly.accepted.js'
 import {
   CountComposition,
   EffectsLayer,
@@ -145,6 +145,7 @@ export type UncheckedHeader<Header> = Omit<typeof OriginalViewed, 'Model'> &
 export const OldCovariantAcceptance: UncheckedHeader<
   typeof MutableBroadHeader
 > = OriginalViewed
+// @ts-expect-error The invariant completion proof also rejects the broader annotated value.
 export const CovariantAnnotation: Block.FromAssemblyWithView<
   typeof MutableBroadHeader,
   // @ts-expect-error A broader mutable decoded/encoded Model cannot replace the assembly's exact Schema.
@@ -156,6 +157,7 @@ export const MutableExactHeader: Schema.Codec<
 > = Model
 export const OldMutableAcceptance: UncheckedHeader<typeof MutableExactHeader> =
   OriginalViewed
+// @ts-expect-error The invariant completion proof also rejects the structurally different annotated value.
 export const MutableAnnotation: Block.FromAssemblyWithView<
   typeof MutableExactHeader,
   // @ts-expect-error A structurally assignable but different mutable Schema header cannot replace the assembly Schema.
@@ -166,6 +168,48 @@ export const AnyModelAnnotation: Block.FromAssemblyWithView<
   // @ts-expect-error A completely any Model Schema cannot disable header agreement.
   typeof prepareViewed
 > = OriginalViewed
+
+declare const ServiceModel: Schema.Codec<
+  Readonly<{ value: string }>,
+  Readonly<{ value: string }>,
+  Store,
+  Store
+>
+declare const ServiceMessage: Schema.Codec<
+  Readonly<{ _tag: 'ChangedValue'; value: string }>,
+  Readonly<{ _tag: 'ChangedValue'; value: string }>,
+  Store,
+  Store
+>
+export const BroaderMessage: Schema.Codec<any, any, never, never> =
+  OriginalViewed.Message
+type ForgedServiceModelBlock = Omit<typeof OriginalViewed, 'Model'> &
+  Readonly<{ Model: typeof ServiceModel }>
+type ForgedServiceMessageBlock = Omit<typeof OriginalViewed, 'Message'> &
+  Readonly<{ Message: typeof ServiceMessage }>
+type ForgedBroaderMessageBlock = {
+  readonly [Key in keyof typeof OriginalViewed]: Key extends 'Message'
+    ? typeof BroaderMessage
+    : (typeof OriginalViewed)[Key]
+}
+declare const forgedServiceModelProducer: () => Block.AssemblyDraft<ForgedServiceModelBlock>
+declare const forgedServiceMessageProducer: () => Block.AssemblyDraft<ForgedServiceMessageBlock>
+declare const forgedBroaderMessageProducer: () => Block.AssemblyDraft<ForgedBroaderMessageBlock>
+export type ForgedServiceModelAnnotation = Block.FromAssemblyWithView<
+  typeof ServiceModel,
+  // @ts-expect-error The opaque completion proof rejects a replaced Service-dependent Model.
+  typeof forgedServiceModelProducer
+>
+export type ForgedServiceMessageAnnotation = Block.FromAssemblyWithView<
+  typeof Model,
+  // @ts-expect-error The opaque completion proof rejects a replaced Service-dependent Message.
+  typeof forgedServiceMessageProducer
+>
+export type ForgedBroaderMessageAnnotation = Block.FromAssemblyWithView<
+  typeof Model,
+  // @ts-expect-error The invariant completion proof rejects a broader self-contained Message Codec.
+  typeof forgedBroaderMessageProducer
+>
 
 // @ts-expect-error Headless assembly cannot acquire a default view through an annotation.
 export const InventedView: Block.FromAssemblyWithView<

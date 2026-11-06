@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Equal, HashSet, Match, Number, flow } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import type { TabInfo } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { type ApplicationViewBuilder, StepMenuBinding } from '../composition'
 import { Step } from '../domain'
@@ -83,7 +83,7 @@ const stepButtonClass = (status: StepStatus, needsAttention: boolean): string =>
   )
 
 export const stepTabButton = (
-  tab: TabInfo<Step.Step>,
+  tab: Tabs.TabInfo<Step.Step>,
   currentStep: Step.Step,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
   h: ApplicationViewBuilder,

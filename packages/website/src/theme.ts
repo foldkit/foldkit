@@ -31,9 +31,6 @@ const setThemeColorMeta = (color: string): void => {
   }
 }
 
-// i think unless there is a good reason not to we should always be importing
-// makeCommand, makeOutMessageFold, etc. directly from the block file instead of
-// exporting ApplicationBlock, and we should be consistent
 export const ApplyTheme = makeCommand('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],

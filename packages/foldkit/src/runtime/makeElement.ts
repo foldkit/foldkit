@@ -48,7 +48,7 @@ type BaseElementConfig<
   P extends Ports | undefined = undefined,
   Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = Readonly<{
-  Model: Schema.Codec<Model, any, unknown, unknown>
+  Model: Schema.Codec<Model, any, never, never>
   update: (
     model: Model,
     message: Message,
@@ -155,7 +155,7 @@ type InferredElementConfigWithFlags<
 > = ElementConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
 
 type ElementConfigWithFlagsInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   FlagsSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
@@ -171,7 +171,7 @@ type ElementConfigWithFlagsInput<
   Readonly<{ Model: ModelSchema; Flags: FlagsSchema; update: Update }>
 
 type ElementConfigInput<
-  ModelSchema extends Schema.Codec<any, any, any, any>,
+  ModelSchema extends Schema.Codec<any, any, never, never>,
   Update extends (model: ModelSchema['Type'], message: any) => any,
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
 > = Omit<
@@ -348,7 +348,7 @@ const toCrashConfig = <Model, Message>(
  * ManagedResources need them.
  */
 export function makeElement<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
@@ -382,7 +382,7 @@ export function makeElement<
 ): MakeRuntimeReturn<ConfigPorts<Config>, void, never, 'Element'>
 
 export function makeElement<
-  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const ModelSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
   const Config extends ElementConfigInput<ModelSchema, Update, Mounts> =

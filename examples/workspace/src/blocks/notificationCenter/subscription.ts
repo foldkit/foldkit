@@ -19,7 +19,9 @@ export const subscriptions = makeSubscriptions(entry => ({
           isOpen
             ? Stream.tick(CLOCK_INTERVAL).pipe(
                 Stream.mapEffect(() => clock.currentTimeMillis),
-                Stream.map(timestamp => Message.TickedClock({ timestamp })),
+                Stream.map(currentTimeMillis =>
+                  Message.TickedClock({ currentTimeMillis }),
+                ),
               )
             : Stream.empty
       },

@@ -108,7 +108,7 @@ After the record is complete, diagnose any remaining result-channel or registrat
 
 An authored update supports both call directions. The Runtime calls `update(model, message, ...context)`. Application code can call `update(message)(model, ...context)` to turn one truthful Message into a Step. The curried form retains the same Command requirements, OutMessage type, and registered graph evidence.
 
-Use the curried form for internal Step composition. Declare parent requests and notifications separately through [InMessage and inMessageUpdate](/core/block#inmessages). The Block generates Binding methods for those inputs. This Block receives a route notification through `informRouteChange`; its local reset button remains in update:
+Use the curried form for internal Step composition. Declare parent requests and notifications separately through [InMessage and inMessageUpdate](/core/block#inmessages). The Block generates Binding methods for those inputs. This Block receives a route notification through `informOfRouteChange`; its local reset button remains in update:
 
 ::Snippet{name="updateCurriedStep" label="Separating parent notifications from local facts"}
 

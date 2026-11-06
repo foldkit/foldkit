@@ -118,8 +118,12 @@ const navigationView = (h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const pageView = (model: Model, h: ApplicationViewBuilder): Html =>
-  ApplicationRoute.match(model.route, {
+const pageView = (
+  route: ApplicationRoute,
+  count: number,
+  h: ApplicationViewBuilder,
+): Html =>
+  ApplicationRoute.match(route, {
     Home: () =>
       h.section(
         [h.Class('grid gap-4')],
@@ -137,7 +141,7 @@ const pageView = (model: Model, h: ApplicationViewBuilder): Html =>
               h.OnClick(Message.ClickedIncrement()),
               h.Class('w-fit bg-black px-4 py-2 text-white'),
             ],
-            [`Count: ${model.count}`],
+            [`Count: ${count}`],
           ),
         ],
       ),
@@ -174,7 +178,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   title: routeTitle(model.route),
   body: h.main(
     [h.Class('mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8')],
-    [navigationView(h), pageView(model, h)],
+    [navigationView(h), pageView(model.route, model.count, h)],
   ),
 }))
 

@@ -1,16 +1,15 @@
-import type { Effect } from 'effect'
 import type * as Block from 'foldkit/block'
 
 import {
-  ApplicationBlock,
-  DispatchDecoder,
-  DispatchEncoder,
-  EditorBlock,
-  decoding,
-  dispatchProgram,
-  encoding,
-  quietProgram,
-  suppliedDispatchProgram,
+  ChildInitContext,
+  CodecService,
+  InMessage,
+  Message,
+  Model,
+  NativeComposition,
+  OutMessage,
+  ParentBlock,
+  ServiceText,
 } from './codec-contract.accepted.js'
 
 type Equal<Left, Right> =
@@ -20,45 +19,34 @@ type Equal<Left, Right> =
     ? true
     : false
 type Assert<Value extends true> = Value
-type ProgramRequirements<Program> =
-  Program extends Readonly<{
-    '~foldkit/ProgramProvision'?: Readonly<{
-      Requirements: (requirements: infer Requirements) => unknown
-    }>
-  }>
-    ? Requirements
-    : never
 
-export type LocalSchemaDecoderIsInferred = Assert<
-  Equal<Block.FactsOf<typeof EditorBlock>['decodingServices'], DispatchDecoder>
+export type ModelDecodeIsSelfContained = Assert<
+  Equal<typeof Model.DecodingServices, never>
 >
-export type LocalSchemaEncoderIsInferred = Assert<
-  Equal<Block.FactsOf<typeof EditorBlock>['encodingServices'], DispatchEncoder>
+export type ModelEncodeIsSelfContained = Assert<
+  Equal<typeof Model.EncodingServices, never>
 >
-export type OpaqueChildDecoderIsDeclared = Assert<
-  Equal<
-    Block.FactsOf<typeof ApplicationBlock>['decodingServices'],
-    DispatchDecoder
-  >
+export type LocalMessageDecodeIsSelfContained = Assert<
+  Equal<typeof Message.DecodingServices, never>
 >
-export type OpaqueChildEncoderIsDeclared = Assert<
-  Equal<
-    Block.FactsOf<typeof ApplicationBlock>['encodingServices'],
-    DispatchEncoder
-  >
+export type NativeMessageDecodeIsSelfContained = Assert<
+  Equal<typeof NativeComposition.Message.DecodingServices, never>
 >
-export type CompleteDecodeRequiresService = Assert<
-  Equal<Effect.Services<typeof decoding>, DispatchDecoder>
+export type NativeMessageEncodeIsSelfContained = Assert<
+  Equal<typeof NativeComposition.Message.EncodingServices, never>
 >
-export type CompleteEncodeRequiresService = Assert<
-  Equal<Effect.Services<typeof encoding>, DispatchEncoder>
+export type ServiceSchemaRetainsDecodeRequirement = Assert<
+  Equal<typeof ServiceText.DecodingServices, CodecService>
 >
-export type DevToolsDispatchRequiresDecoder = Assert<
-  Equal<ProgramRequirements<typeof dispatchProgram>, DispatchDecoder>
+export type NonserializedInMessageRetainsService = Assert<
+  Equal<typeof InMessage.DecodingServices, CodecService>
 >
-export type OrdinaryProgramNeedsNoCodecServices = Assert<
-  Equal<ProgramRequirements<typeof quietProgram>, never>
+export type NonserializedOutMessageRetainsService = Assert<
+  Equal<typeof OutMessage.DecodingServices, CodecService>
 >
-export type SuppliedDispatchClosesDecoder = Assert<
-  Equal<ProgramRequirements<typeof suppliedDispatchProgram>, never>
+export type NonserializedChildContextRetainsService = Assert<
+  Equal<typeof ChildInitContext.DecodingServices, CodecService>
+>
+export type ParentFactsRemainSelfContained = Assert<
+  Equal<Block.FactsOf<typeof ParentBlock>['decodingServices'], never>
 >

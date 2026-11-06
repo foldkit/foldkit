@@ -185,7 +185,9 @@ export const modelAwareContextualConnectedUpdate =
 export const modelAwareContextualChildReport =
   modelAwareContextualConnectedUpdate(ParentMessage.RequestedReport())
 
-export const makeGenericCounter = <Value>(Value: Schema.Schema<Value>) => {
+export const makeGenericCounter = <Value, Encoded>(
+  Value: Schema.Codec<Value, Encoded, never, never>,
+) => {
   const Model = Schema.Struct({ value: Value })
   const Message = defineMessageUnion({ RequestedSet: { value: Value } })
   const Definition = Block.makeDefinition('MessageOnlyGeneric', {
@@ -202,7 +204,9 @@ export const makeGenericCounter = <Value>(Value: Schema.Schema<Value>) => {
 }
 export const setString = makeGenericCounter(Schema.String)
 
-export const makeModelAwareCounter = <Value>(Value: Schema.Schema<Value>) => {
+export const makeModelAwareCounter = <Value, Encoded>(
+  Value: Schema.Codec<Value, Encoded, never, never>,
+) => {
   const Model = Schema.Struct({ value: Value })
   const Message = defineMessageUnion({ RequestedSet: { value: Value } })
   const Definition = Block.makeDefinition('ModelAwareGeneric', {

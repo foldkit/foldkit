@@ -50,10 +50,15 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                             [
                               Match.value(tabInfo.value).pipe(
                                 Match.when('Posts', () =>
-                                  postsTabView(model, h),
+                                  postsTabView(
+                                    model.maybeSelectedPostId,
+                                    model.posts,
+                                    model.postDetailById,
+                                    h,
+                                  ),
                                 ),
                                 Match.when('Stats', () =>
-                                  statsTabView(model, h),
+                                  statsTabView(model.stats, h),
                                 ),
                                 Match.exhaustive,
                               ),

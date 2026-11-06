@@ -2,9 +2,7 @@ import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import { type Html, childAttributes } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import type { AnchorConfig } from '@foldkit/ui/listbox'
-import { view as switchView } from '@foldkit/ui/switch'
+import { Button, Listbox, Switch } from '@foldkit/ui'
 
 import {
   GridSizeRadioGroupBlock,
@@ -42,7 +40,7 @@ const TOOL_SHORTCUTS: Record<Tool, string> = {
 
 export const THEME_INDEX_STRINGS = Array.makeBy(PALETTE_THEMES.length, String)
 
-export const THEME_LISTBOX_ANCHOR: AnchorConfig = {
+export const THEME_LISTBOX_ANCHOR: Listbox.AnchorConfig = {
   placement: 'bottom-start',
   gap: 4,
   padding: 8,
@@ -199,7 +197,7 @@ const mirrorSectionView = (
       h.div(
         [h.Class('flex gap-2')],
         [
-          switchView(
+          Switch.view(
             {
               id: MIRROR_HORIZONTAL_SWITCH_ID,
               isChecked: isMirrorHorizontal,
@@ -233,7 +231,7 @@ const mirrorSectionView = (
             },
             h,
           ),
-          switchView(
+          Switch.view(
             {
               id: MIRROR_VERTICAL_SWITCH_ID,
               isChecked: isMirrorVertical,
@@ -438,7 +436,7 @@ const clearCanvasView = (
   isCanvasEmpty: boolean,
   h: ApplicationViewBuilder,
 ): Html =>
-  buttonView(
+  Button.view(
     {
       onClick: Message.ClickedClear(),
       isDisabled: isCanvasEmpty,

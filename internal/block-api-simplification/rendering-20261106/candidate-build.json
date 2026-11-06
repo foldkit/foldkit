@@ -1,0 +1,37 @@
+{
+  "sourceHead": "9e2c0d309c070ba7a99b1669c3f69094c7ba2003",
+  "node": "v22.22.3",
+  "vite": "8.3.5",
+  "viteRoot": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite",
+  "sourceUnchanged": true,
+  "checks": [
+    {
+      "variant": "naive",
+      "startedAt": "2026-11-06T06:12:24.824Z",
+      "completedAt": "2026-11-06T06:12:25.334Z",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "cwd": "/private/tmp/foldkit-final-preview-rendering-20261106/candidate/internal/lustre-benchmark",
+      "exitCode": 0,
+      "log": "candidate-naive-build.log",
+      "logSha256": "78bad743b4b72b3894affdd3be86e9d6ce4a34e14fe34513aa58fd27bc417993"
+    },
+    {
+      "variant": "optimised",
+      "startedAt": "2026-11-06T06:12:25.335Z",
+      "completedAt": "2026-11-06T06:12:25.798Z",
+      "command": [
+        "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+        "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "cwd": "/private/tmp/foldkit-final-preview-rendering-20261106/candidate/internal/lustre-benchmark",
+      "exitCode": 0,
+      "log": "candidate-optimised-build.log",
+      "logSha256": "6b8897a45d84e22f3ab44932e3e846f3492e1be4020cd354a7b005e7d529db2e"
+    }
+  ]
+}

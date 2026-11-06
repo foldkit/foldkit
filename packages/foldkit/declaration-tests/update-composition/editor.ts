@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import * as Block from 'foldkit/block'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({ text: Schema.String })
@@ -11,7 +11,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const InMessage = defineMessageUnion({
+const InMessage = defineInMessageUnion({
   InformedOfTextChange: { text: Schema.String },
 })
 

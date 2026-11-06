@@ -31,9 +31,9 @@ const setRoute = (nextRoute: ApplicationRoute) =>
 
 const keepModel = makeNoopStep()
 
-type InformPeopleRouteStep =
+type InformPeopleOfRouteChange =
   | typeof keepModel
-  | ReturnType<typeof PeoplePageBinding.informRouteChange>
+  | ReturnType<typeof PeoplePageBinding.informOfRouteChange>
 
 export const update = ApplicationComposition.makeUpdate({
   CompletedNavigateInternal: makeNoopStep(),
@@ -55,19 +55,23 @@ export const update = ApplicationComposition.makeUpdate({
     const nextRoute = urlToApplicationRoute(url)
 
     const transition = Transition.make(model.route, nextRoute)
-    const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
-      transition,
-      'People',
-      {
-        Entered: peopleRoute =>
-          PeoplePageBinding.informRouteChange({ route: peopleRoute }),
-        Stayed: ({ nextRoute }) =>
-          PeoplePageBinding.informRouteChange({ route: nextRoute }),
-      },
-      () => keepModel,
-    )
+    const informPeopleOfRouteChange =
+      Transition.matchOrElse<InformPeopleOfRouteChange>()(
+        transition,
+        'People',
+        {
+          Entered: peopleRoute =>
+            PeoplePageBinding.informOfRouteChange({ route: peopleRoute }),
+          Stayed: ({ nextRoute }) =>
+            PeoplePageBinding.informOfRouteChange({ route: nextRoute }),
+        },
+        () => keepModel,
+      )
 
-    return Update.combineSteps(model, [setRoute(nextRoute), informPeopleRoute])
+    return Update.combineSteps(model, [
+      setRoute(nextRoute),
+      informPeopleOfRouteChange,
+    ])
   },
 
   EnteredNavigationShortcut: makeCommandsStep.fromMessage(({ shortcut }) => {

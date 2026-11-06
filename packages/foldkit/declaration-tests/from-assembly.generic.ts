@@ -4,13 +4,8 @@ import { Block, Message as MessageModule, Struct } from 'foldkit'
 import { type Assembled, Store } from './from-assembly.accepted.js'
 import type { Assert, Equal, SameMembers } from './from-assembly.assertions.js'
 
-export const createPicker = <Item, Encoded, DecodingServices, EncodingServices>(
-  ItemSchema: Schema.Codec<
-    Item,
-    Encoded,
-    DecodingServices,
-    EncodingServices
-  > & {
+export const createPicker = <Item, Encoded>(
+  ItemSchema: Schema.Codec<Item, Encoded, never, never> & {
     readonly '~type.make': Item
   },
 ) => {
@@ -152,13 +147,8 @@ export declare const ItemSchema: Schema.Codec<
   DecodeItem,
   EncodeItem
 > & { readonly '~type.make': number }
-export const ServicePicker = createPicker(ItemSchema)
-export type Decoding = Assert<
-  Equal<typeof ServicePicker.PickerBlock.Model.DecodingServices, DecodeItem>
->
-export type Encoding = Assert<
-  Equal<typeof ServicePicker.PickerBlock.Model.EncodingServices, EncodeItem>
->
+// @ts-expect-error A generic Block factory cannot admit a Service-dependent serialization Codec.
+createPicker(ItemSchema)
 export const AnyValuePicker = createPicker(Schema.Any)
 export type LegitimateAnyValue = Assert<
   Equal<

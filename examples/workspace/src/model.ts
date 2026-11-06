@@ -11,12 +11,14 @@ import {
   NotificationCenterBlock,
   ProjectSettingsBlock,
 } from './blocks'
-import { SavedView, Workspace } from './domain'
-import { WorkspaceListboxBlock } from './listbox'
-import { IssueMoveState } from './optimistic'
+import { Issue, SavedView, Workspace } from './domain'
+import { StringListboxBlock } from './listbox'
 import { ApplicationRoute } from './route'
 
-export const WorkspaceAsyncData = AsyncData.Schema(Workspace, Schema.String)
+export const WorkspaceAsyncData = AsyncData.Schema(
+  Workspace.Workspace,
+  Schema.String,
+)
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,
@@ -31,11 +33,11 @@ export const Model = Schema.Struct({
   maybeNotice: Schema.Option(Schema.String),
   maybeActivityError: Schema.Option(Schema.String),
   activeMemberId: Schema.String,
-  activeMemberListbox: WorkspaceListboxBlock.Model,
-  activityTick: Schema.Number,
-  savedViews: Schema.Array(SavedView),
-  nextSavedViewId: Schema.Number,
+  activeMemberListbox: StringListboxBlock.Model,
+  activityRequestCount: Schema.Number,
+  savedViews: Schema.Array(SavedView.SavedView),
+  nextSavedViewNumber: Schema.Number,
   projectSettings: Schema.Record(Schema.String, ProjectSettingsBlock.Model),
-  issueMoveState: IssueMoveState,
+  issueMoveState: Issue.MoveState,
 })
 export type Model = typeof Model.Type

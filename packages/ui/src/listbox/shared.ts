@@ -4,6 +4,8 @@ export {
   InitConfig,
   InMessage,
   Message,
+  makeMessage,
+  makeOutMessage,
   OutMessage,
   Orientation,
   ActivationTrigger,
@@ -14,6 +16,8 @@ export type {
   BaseViewInputs,
   ItemToValueInput,
   OutMessageSchema,
+  MessageSchema,
+  ValueSchema,
   ItemConfig,
   GroupHeading,
 } from './types.js'

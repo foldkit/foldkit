@@ -1,3 +1,3 @@
-import { makeBlock as makeTabsBlock } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
-export const PlaygroundFileTabsBlock = makeTabsBlock()
+export const PlaygroundFileTabsBlock = Tabs.makeBlock()

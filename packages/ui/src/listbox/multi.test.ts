@@ -19,11 +19,14 @@ import {
   makeView,
 } from './shared.js'
 
-const view = makeView<Model>({ ariaMultiSelectable: true })<string, string>()
+const view = makeView<Model, string, string>(
+  { ariaMultiSelectable: true },
+  Message,
+)
 
 type TestHtmlBuilder = Parameters<typeof view>[2]
 
-const TestListbox = makeBlock<string>()
+const TestListbox = makeBlock()
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorListbox,

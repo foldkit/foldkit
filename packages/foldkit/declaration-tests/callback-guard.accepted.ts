@@ -203,7 +203,9 @@ export type KeyedRegistration = Expect<
     Block.RequirementOfBinding<typeof KeyedBinding>
   >
 >
-export const makeGenericOwner = <Value>(Value: Schema.Schema<Value>) => {
+export const makeGenericOwner = <Value, Encoded>(
+  Value: Schema.Codec<Value, Encoded, never, never>,
+) => {
   const Model = Schema.Struct({ child: ChildModel, value: Value })
   const Definition = Block.makeDefinition('CallbackGuardGeneric', {
     Model,

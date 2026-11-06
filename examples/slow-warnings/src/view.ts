@@ -6,12 +6,7 @@ import {
   type ApplicationViewBuilder,
 } from './composition'
 import { Message } from './message'
-import {
-  type Model,
-  type SlowPhase,
-  type SlowWarning,
-  type Workload,
-} from './model'
+import { type SlowPhase, type SlowWarning, type Workload } from './model'
 import { VIEW_WORK_MS, burnCpu } from './workload'
 
 const phaseLabel = (phase: SlowPhase): string =>
@@ -212,7 +207,11 @@ const patchRowsView = (
   }
 }
 
-const patchSurfaceView = (model: Model, h: ApplicationViewBuilder): Html =>
+const patchSurfaceView = (
+  patchRows: number,
+  patchRun: number,
+  h: ApplicationViewBuilder,
+): Html =>
   h.section(
     [h.Class('rounded-lg border border-zinc-200 bg-white p-4 shadow-sm')],
     [
@@ -228,13 +227,13 @@ const patchSurfaceView = (model: Model, h: ApplicationViewBuilder): Html =>
               ),
               h.p(
                 [h.Class('text-sm text-zinc-600')],
-                [`${model.patchRows.toLocaleString()} keyed rows mounted`],
+                [`${patchRows.toLocaleString()} keyed rows mounted`],
               ),
             ],
           ),
         ],
       ),
-      lazyPatchRows(patchRowsView, [model.patchRows, model.patchRun, h]),
+      lazyPatchRows(patchRowsView, [patchRows, patchRun, h]),
     ],
   )
 
@@ -319,7 +318,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
               ],
             ),
             warningsView(model.warnings, h),
-            patchSurfaceView(model, h),
+            patchSurfaceView(model.patchRows, model.patchRun, h),
           ],
         ),
       ],

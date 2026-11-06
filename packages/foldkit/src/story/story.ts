@@ -87,8 +87,8 @@ interface ContextualStory {
     subject: Subject & StorySubjectValidation<NoInfer<Subject>>,
     ...steps: StorySteps<NoInfer<Subject>>
   ): Subject extends (...args: ReadonlyArray<never>) => unknown
-    ? void
-    : TestEffect<StoryBlock<Subject>, void>
+    ? Parameters<Subject>[0]
+    : TestEffect<StoryBlock<Subject>, TestModel<StoryBlock<Subject>>>
 }
 
 /**

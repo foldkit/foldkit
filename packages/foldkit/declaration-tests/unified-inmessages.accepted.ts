@@ -1,6 +1,6 @@
 import { Context, Effect, Schema } from 'effect'
 import * as Block from 'foldkit/block'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { Command, inMessage, init, story, withBlock } from 'foldkit/story'
 import * as Update from 'foldkit/update'
 
@@ -10,7 +10,7 @@ export const Message = defineMessageUnion({
   CompletedSave: { value: Schema.Number },
 })
 export type Message = typeof Message.Type
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedSet: { value: Schema.Number },
   RequestedSave: { value: Schema.Number },
 })

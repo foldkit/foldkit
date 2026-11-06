@@ -181,7 +181,7 @@ It renders `App` in jsdom, simulates a stroke, spies on localStorage, and waits 
 | State transition      | Model after Messages                 | State after Actions                                |
 | Event-driven effect   | Inspect or resolve returned Commands | Exercise the handler or Hook at component boundary |
 | Persistence assertion | Resolve `SaveCanvas`                 | Spy on localStorage and wait for the Effect        |
-| Infrastructure        | `foldkit/story`, no DOM              | Vitest, React Testing Library, and jsdom           |
+| Infrastructure        | Foldkit `Story`, no DOM              | Vitest, React Testing Library, and jsdom           |
 | Timing in examples    | Synchronous Command resolution       | `waitFor` for the Effect-based persistence test    |
 
 ## Interaction Testing Without a DOM {#interaction-testing}

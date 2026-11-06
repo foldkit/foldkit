@@ -1,14 +1,14 @@
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { Field } from 'foldkit/fieldValidation'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
-import { makeBlock as makeRadioGroupBlock } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import { ProficiencyLevel } from '../../../../domain'
 
 export const ProficiencyRadioGroup =
-  makeRadioGroupBlock<ProficiencyLevel.ProficiencyLevel>()
+  RadioGroup.makeBlock<ProficiencyLevel.ProficiencyLevel>()
 
 export const Model = Schema.Struct({
   id: Schema.String,
@@ -24,7 +24,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedRevealErrors: {},
 })
 export type InMessage = typeof InMessage.Type

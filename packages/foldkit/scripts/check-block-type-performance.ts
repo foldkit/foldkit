@@ -162,6 +162,7 @@ const measure = (
   )
 
   const result = runCompiler([
+    '--singleThreaded',
     '-p',
     configPath,
     '--extendedDiagnostics',
@@ -353,6 +354,10 @@ const main = (): void => {
         .join(', ')}.`,
     )
   }
+
+  process.stderr.write(
+    `[block-type-performance] TypeScript ${typescriptVersion}; --singleThreaded diagnostics\n`,
+  )
 
   const runRoot = mkdtempSync(join(tmpdir(), 'foldkit-block-type-performance-'))
 

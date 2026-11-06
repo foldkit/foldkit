@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { HashMap, HashSet, Option, Predicate } from 'effect'
 import { twMerge } from 'tailwind-merge'
 
-import { view as disclosureView } from '@foldkit/ui/disclosure'
+import { Disclosure } from '@foldkit/ui'
 
 import { SnippetDisclosureComposition } from './composition'
 import { Message } from './message'
@@ -21,8 +21,12 @@ const isEstimatedToOverflow = (rawCode: string): boolean =>
   rawCode.split('\n').length * CODE_LINE_HEIGHT_PX + CODE_VERTICAL_PADDING_PX >
   COLLAPSED_PREVIEW_HEIGHT_PX + MINIMUM_EXPANSION_HEIGHT_PX
 
-const isMeasuredToOverflow = (model: Model, id: string, rawCode: string) =>
-  Option.match(HashMap.get(model.snippetSizes, id), {
+const isMeasuredToOverflow = (
+  snippetSizes: Model['snippetSizes'],
+  id: string,
+  rawCode: string,
+) =>
+  Option.match(HashMap.get(snippetSizes, id), {
     onNone: () => isEstimatedToOverflow(rawCode),
     onSome: snippetSize =>
       SnippetSize.match(snippetSize, {
@@ -49,7 +53,11 @@ export const view =
     ) => {
       const disclosureId = disclosureGroupId ?? id
       const isOpen = HashSet.has(model.openDisclosureIds, disclosureId)
-      const isCollapsible = isMeasuredToOverflow(model, id, rawCode)
+      const isCollapsible = isMeasuredToOverflow(
+        model.snippetSizes,
+        id,
+        rawCode,
+      )
       const hasTitle = Predicate.isNotUndefined(title)
       const titleId = `${id}-title`
       const mountedContent = h.div(
@@ -106,7 +114,7 @@ export const view =
         ])
       }
 
-      return disclosureView(
+      return Disclosure.view(
         {
           id,
           isOpen,

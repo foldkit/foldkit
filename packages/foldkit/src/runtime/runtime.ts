@@ -29,6 +29,7 @@ import type { ManagedResources } from '../managedResource/index.js'
 import type { AnyMountHandler, LayeredMountDefinition } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
+import * as Serialization from '../serialization.js'
 import {
   type Registrations,
   aggregate as aggregateSubscriptions,
@@ -105,8 +106,8 @@ export type RuntimeConfig<
 > = Readonly<{
   kind: Kind
   ports: P
-  Model: Schema.Codec<Model, any, unknown, unknown>
-  Flags: Schema.Codec<Flags, any, unknown, unknown>
+  Model: Schema.Codec<Model, any, never, never>
+  Flags: Schema.Codec<Flags, any, never, never>
   configuredFlags: Option.Option<Effect.Effect<Flags, never, Resources>>
   isFlagsRequired: boolean
   init: (
@@ -204,16 +205,13 @@ export type RuntimeConfig<
    * registered child bindings supply their occurrence-scoped registrations.
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
-  devTools?: RuntimeDevToolsConfig<Resources>
+  devTools?: RuntimeDevToolsConfig
 }>
 
+/** Flags Schema used for startup and the server-to-browser hydration handoff. */
 export type FlagsSchemaConfig<Flags> = Readonly<{
-  // Flags decode synchronously, on hydration through `decodeUnknownSync` and
-  // across development reloads through the sync Model/Flags codec, so the codec
-  // must require no decode or encode services. The `never` service parameters
-  // also make a full application config assignable to the experimental server
-  // render input, which needs the same guarantee to serialize Flags without an
-  // app context.
+  /** Must encode and decode without Services, completing synchronously when
+   * the hydration handoff runs it. Configuration does not evaluate the Codec. */
   Flags: Schema.Codec<Flags, any, never, never>
 }>
 
@@ -453,37 +451,40 @@ export const makeRuntime = <
           assertComposedHandlers(declaredComposition, applicationContext)
         }
 
-        const ModelJsonCodec = Schema.toCodecJson(
-          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          Model as Schema.Codec<Model>,
-        )
-        const decodePreservedModel = Schema.decodeUnknownExit(ModelJsonCodec)
-        const encodePreservedModel = Schema.encodeUnknownExit(ModelJsonCodec)
+        const ModelJsonCodec = Schema.toCodecJson(Model)
+        const decodePreservedModel = Schema.decodeUnknownEffect(ModelJsonCodec)
+        const encodePreservedModel = Schema.encodeEffect(ModelJsonCodec)
         let isPreservationFailing = false
 
         const preserveCurrentModel = (
           model: Model,
           isReloadFlush: boolean,
         ): void =>
-          Exit.match(encodePreservedModel(model), {
-            onFailure: error => {
-              preserveModel(runtimeId, undefined, isReloadFlush)
+          Result.match(
+            Serialization.run(
+              encodePreservedModel(model),
+              `Model preservation for runtime "${runtimeId}"`,
+            ),
+            {
+              onFailure: error => {
+                preserveModel(runtimeId, undefined, isReloadFlush)
 
-              if (!isPreservationFailing) {
-                isPreservationFailing = true
-                console.warn(
-                  `[foldkit] Could not preserve Model for runtime "${runtimeId}". ` +
-                    'The live Model is unchanged; the next development reload will initialize fresh. ' +
-                    'Use JSON-capable Schemas for values that must survive a reload.',
-                  error,
-                )
-              }
+                if (!isPreservationFailing) {
+                  isPreservationFailing = true
+                  console.warn(
+                    `[foldkit] Could not preserve Model for runtime "${runtimeId}". ` +
+                      'The live Model is unchanged; the next development reload will initialize fresh. ' +
+                      'Use JSON-capable Schemas for values that must survive a reload.',
+                    error,
+                  )
+                }
+              },
+              onSuccess: encodedModel => {
+                isPreservationFailing = false
+                preserveModel(runtimeId, encodedModel, isReloadFlush)
+              },
             },
-            onSuccess: encodedModel => {
-              isPreservationFailing = false
-              preserveModel(runtimeId, encodedModel, isReloadFlush)
-            },
-          })
+          )
 
         const currentUrl: Option.Option<Url> = Option.fromNullishOr(
           routingConfig,
@@ -503,11 +504,23 @@ export const makeRuntime = <
         )
 
         const init_ = yield* preservedModel !== undefined
-          ? Exit.match(decodePreservedModel(preservedModel), {
-              onFailure: () => runInit,
-              onSuccess: restoredModel =>
-                Effect.succeed<InitResult>({ model: restoredModel }),
-            })
+          ? Result.match(
+              Serialization.run(
+                decodePreservedModel(preservedModel),
+                `Model restoration for runtime "${runtimeId}"`,
+              ),
+              {
+                onFailure: error => {
+                  if (error instanceof Serialization.SerializationError) {
+                    console.warn(error.message, error.cause)
+                  }
+
+                  return runInit
+                },
+                onSuccess: restoredModel =>
+                  Effect.succeed<InitResult>({ model: restoredModel }),
+              },
+            )
           : runInit
         const initModelRaw = init_.model
         const initCommands = init_.commands ?? []
@@ -634,14 +647,12 @@ export const makeRuntime = <
         }
         const devToolsIntegration = yield* makeDevToolsIntegration<
           Model,
-          Message,
-          Resources
+          Message
         >({
           devTools,
           update,
           maybeFreezeModel,
           prepareDispatch,
-          provideDispatchServices: provideApplicationServices,
         })
         const {
           isRecordingCommands,

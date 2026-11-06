@@ -1,11 +1,7 @@
 import clsx from 'clsx'
 import type { Html } from 'foldkit/html'
 
-import {
-  type DisclosureAttributes,
-  buttonId as disclosureButtonId,
-  view as disclosureView,
-} from '@foldkit/ui/disclosure'
+import { Disclosure } from '@foldkit/ui'
 
 import * as Icon from '../../../icon'
 import { UiComposition } from '../composition'
@@ -72,7 +68,7 @@ const subheading = (text: string, h: UiViewBuilder) => {
 
 export const view = UiComposition.makeView((model, h) => {
   const basicDisclosureView = (
-    attributes: DisclosureAttributes<UiMessage>,
+    attributes: Disclosure.DisclosureAttributes<UiMessage>,
   ): Html =>
     h.div(
       [],
@@ -101,7 +97,7 @@ export const view = UiComposition.makeView((model, h) => {
     )
 
   const animatedDisclosureView = (
-    attributes: DisclosureAttributes<UiMessage>,
+    attributes: Disclosure.DisclosureAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('border border-gray-300 rounded-lg overflow-hidden')],
@@ -131,7 +127,7 @@ export const view = UiComposition.makeView((model, h) => {
     button,
     panel,
     animatePanel,
-  }: DisclosureAttributes<UiMessage>): Html =>
+  }: Disclosure.DisclosureAttributes<UiMessage>): Html =>
     h.article(
       [
         h.Class(
@@ -204,12 +200,12 @@ export const view = UiComposition.makeView((model, h) => {
       subheading('Basic', h),
       h.label(
         [
-          h.For(disclosureButtonId(DISCLOSURE_BASIC_DEMO_ID)),
+          h.For(Disclosure.buttonId(DISCLOSURE_BASIC_DEMO_ID)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Frequently asked'],
       ),
-      disclosureView(
+      Disclosure.view(
         {
           id: DISCLOSURE_BASIC_DEMO_ID,
           isOpen: model.isDisclosureBasicDemoOpen,
@@ -222,12 +218,12 @@ export const view = UiComposition.makeView((model, h) => {
       subheading('Animated', h),
       h.label(
         [
-          h.For(disclosureButtonId(DISCLOSURE_ANIMATED_DEMO_ID)),
+          h.For(Disclosure.buttonId(DISCLOSURE_ANIMATED_DEMO_ID)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Frequently asked'],
       ),
-      disclosureView(
+      Disclosure.view(
         {
           id: DISCLOSURE_ANIMATED_DEMO_ID,
           isOpen: model.isDisclosureAnimatedDemoOpen,
@@ -242,7 +238,7 @@ export const view = UiComposition.makeView((model, h) => {
         [h.Class('mb-1.5 text-sm font-medium text-gray-900')],
         ['Featured article'],
       ),
-      disclosureView(
+      Disclosure.view(
         {
           id: DISCLOSURE_COLLAPSED_PREVIEW_DEMO_ID,
           isOpen: model.isDisclosureCollapsedPreviewDemoOpen,

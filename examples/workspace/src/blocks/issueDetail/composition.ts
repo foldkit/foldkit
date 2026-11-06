@@ -1,13 +1,13 @@
-import { Option, Schema } from 'effect'
+import { Option } from 'effect'
 import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { IssuePriority, IssueStatus } from '../../domain'
 import {
   PriorityListboxBlock,
   StatusListboxBlock,
-  WorkspaceListboxBlock,
+  StringListboxBlock,
 } from '../../listbox'
+import { decodeAssigneeSelection } from './assigneeSelection'
 import {
   makeBinding,
   makeComposition,
@@ -16,7 +16,6 @@ import {
   makeOutMessageStep,
 } from './block'
 import { CommentComposerBlock } from './blocks'
-import { decodeAssigneeSelection } from './field'
 import { OutMessage } from './outMessage'
 import { editDraft } from './steps'
 
@@ -45,9 +44,7 @@ export const StatusListboxBinding = makeBinding(StatusListboxBlock, {
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
-      Schema.is(IssueStatus)(value)
-        ? editDraft(draft => modifyFields(draft, { status: () => value }))
-        : makeNoopStep(),
+      editDraft(draft => modifyFields(draft, { status: () => value })),
   }),
 })
 
@@ -59,31 +56,29 @@ export const PriorityListboxBinding = makeBinding(PriorityListboxBlock, {
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
-      Schema.is(IssuePriority)(value)
-        ? editDraft(draft => modifyFields(draft, { priority: () => value }))
-        : makeNoopStep(),
+      editDraft(draft => modifyFields(draft, { priority: () => value })),
   }),
 })
 
-export const ProjectListboxBinding = makeBinding(WorkspaceListboxBlock, {
+export const ProjectListboxBinding = makeBinding(StringListboxBlock, {
   field: 'projectListbox',
   init: {
     contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-project` }],
   },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(WorkspaceListboxBlock, {
+  fold: makeOutMessageFold(StringListboxBlock, {
     Selected: ({ value }) =>
       editDraft(draft => modifyFields(draft, { projectId: () => value })),
   }),
 })
 
-export const AssigneeListboxBinding = makeBinding(WorkspaceListboxBlock, {
+export const AssigneeListboxBinding = makeBinding(StringListboxBlock, {
   field: 'assigneeListbox',
   init: {
     contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-assignee` }],
   },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(WorkspaceListboxBlock, {
+  fold: makeOutMessageFold(StringListboxBlock, {
     Selected: ({ value }) =>
       Option.match(decodeAssigneeSelection(value), {
         onNone: makeNoopStep,

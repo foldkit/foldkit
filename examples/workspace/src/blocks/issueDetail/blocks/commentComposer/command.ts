@@ -15,7 +15,7 @@ export const AddComment = makeCommand('AddComment', {
     const repository = yield* WorkspaceRepository
 
     return args =>
-      repository.addComment(args).pipe(
+      repository.addIssueComment(args).pipe(
         Effect.map(comment => Message.SucceededAddComment({ comment })),
         Effect.catch(error =>
           Effect.succeed(

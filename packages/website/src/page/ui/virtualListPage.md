@@ -81,7 +81,7 @@ For chat, logs, and reverse infinite feeds, combine an initial `End` target, `fo
 
 Dynamic mode treats `rowHeightPx` as the default estimate. Rendered rows are measured with `ResizeObserver`. Keep the stable-key and height-estimate functions stable across renders so VirtualList can reuse row offsets as the user scrolls.
 
-Call the Binding’s `informItemsChanged` operation in the same parent update for ordinary item changes. Appends follow the end while the user is within the configured threshold. When the user scrolls away, VirtualList preserves the visible keyed row.
+Call the Binding’s `informOfItemsChanged` operation in the same parent update for ordinary item changes. Appends follow the end while the user is within the configured threshold. When the user scrolls away, VirtualList preserves the visible keyed row.
 
 ### Requesting older history
 
@@ -91,7 +91,7 @@ Choose the buffer and prefetch distance for the expected request latency and scr
 
 ### Prepending a page
 
-In the update that prepends fetched items to the parent Model, call the Binding’s `informHistoryPrepended` operation with the complete loaded array, the new page, the same `itemToKey` function used by the view, and `HistoryPage.More()`. VirtualList extends the upward scroll range without a position write, so an ongoing gesture can continue through the new rows. The parent controls how many items remain loaded; VirtualList bounds the mounted DOM rows.
+In the update that prepends fetched items to the parent Model, call the Binding’s `informOfHistoryPrepended` operation with the complete loaded array, the new page, the same `itemToKey` function used by the view, and `HistoryPage.More()`. VirtualList extends the upward scroll range without a position write, so an ongoing gesture can continue through the new rows. The parent controls how many items remain loaded; VirtualList bounds the mounted DOM rows.
 
 ### Completing history
 
@@ -199,7 +199,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the VirtualL
 
 ### History loading
 
-The `ApproachedLoadedStart` OutMessage includes `distanceToLoadedStartPx` and `containerHeight`. Handle it in the Binding’s OutMessage policy and return a parent-owned fetch Command when a page is needed. Call the Binding’s `informHistoryPrepended` operation in the update that puts fetched rows in the parent Model. Pass `{ items, prependedItems, itemToKey, page }`, using the same stable key function as the view. Pass `HistoryPage.Complete()` on the last page so the real beginning becomes reachable.
+The `ApproachedLoadedStart` OutMessage includes `distanceToLoadedStartPx` and `containerHeight`. Handle it in the Binding’s OutMessage policy and return a parent-owned fetch Command when a page is needed. Call the Binding’s `informOfHistoryPrepended` operation in the update that puts fetched rows in the parent Model. Pass `{ items, prependedItems, itemToKey, page }`, using the same stable key function as the view. Pass `HistoryPage.Complete()` on the last page so the real beginning becomes reachable.
 
 ### ScrollTarget {#scroll-target}
 

@@ -56,12 +56,13 @@ import {
 } from './inMessageUpdate.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 /** @internal Retains the shared exact declaration configuration. */
 export type Declaration = ContractConfiguration &
   Readonly<{
-    Model: AnySchema
-    Message: AnySchema
+    Model: AnySelfContainedSchema
+    Message: AnySelfContainedSchema
     OutMessage?: AnySchema
     ChildInitContext?: AnySchema
   }>
@@ -400,39 +401,38 @@ export function snapshotDefinitionConfiguration(config: Declaration): object {
     })
   }
 
-  for (const key of ['effects', 'codec']) {
-    if (Object.hasOwn(snapshot, key) && snapshot[key] !== undefined) {
-      const declaration = snapshotRecord(snapshot[key], key)
+  if (Object.hasOwn(snapshot, 'codec')) {
+    throw new Error(
+      '[foldkit] Block codec declarations are no longer supported. Model and complete Message Codecs must not require Services.',
+    )
+  }
 
-      if (key === 'effects' && Object.hasOwn(declaration, 'resources')) {
-        throw new Error(
-          '[foldkit] effects.resources has been renamed to effects.managedResources.',
-        )
-      }
+  if (Object.hasOwn(snapshot, 'effects') && snapshot['effects'] !== undefined) {
+    const declaration = snapshotRecord(snapshot['effects'], 'effects')
 
-      for (const member of [
-        'services',
-        'managedResources',
-        'decoding',
-        'encoding',
-      ]) {
-        if (Object.hasOwn(declaration, member)) {
-          Object.defineProperty(declaration, member, {
-            configurable: false,
-            enumerable: true,
-            value: snapshotArray(declaration[member], `${key}.${member}`),
-            writable: false,
-          })
-        }
-      }
-
-      Object.defineProperty(snapshot, key, {
-        configurable: false,
-        enumerable: true,
-        value: Object.freeze(declaration),
-        writable: false,
-      })
+    if (Object.hasOwn(declaration, 'resources')) {
+      throw new Error(
+        '[foldkit] effects.resources has been renamed to effects.managedResources.',
+      )
     }
+
+    for (const member of ['services', 'managedResources']) {
+      if (Object.hasOwn(declaration, member)) {
+        Object.defineProperty(declaration, member, {
+          configurable: false,
+          enumerable: true,
+          value: snapshotArray(declaration[member], `effects.${member}`),
+          writable: false,
+        })
+      }
+    }
+
+    Object.defineProperty(snapshot, 'effects', {
+      configurable: false,
+      enumerable: true,
+      value: Object.freeze(declaration),
+      writable: false,
+    })
   }
 
   return Object.freeze(snapshot)

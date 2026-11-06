@@ -1,16 +1,18 @@
 import { Schema } from 'effect'
 
-import { protectUnsavedChanges } from '../../draftProtection'
+import { protectUnsavedChanges } from '../../protectUnsavedChanges'
 import { makeSubscriptions } from './block'
-import { isDirty } from './draft'
+import { hasUnsavedChanges } from './draft'
 
 export const subscriptions = makeSubscriptions(entry => ({
   draftExitGuard: entry(
     'ProjectDraftExitGuard',
-    { isProtecting: Schema.Boolean },
+    { hasUnsavedChanges: Schema.Boolean },
     {
       messages: [],
-      modelToDependencies: model => ({ isProtecting: isDirty(model) }),
+      modelToDependencies: model => ({
+        hasUnsavedChanges: hasUnsavedChanges(model),
+      }),
       handler: function* () {
         return protectUnsavedChanges
       },

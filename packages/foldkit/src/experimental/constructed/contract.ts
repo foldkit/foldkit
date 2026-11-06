@@ -1,6 +1,9 @@
 import type { Effect, Layer, Schema, Scope, Stream } from 'effect'
 
-import type { CompletionProof } from '../../block/assemblyState.js'
+import type {
+  CompletionContractProof,
+  CompletionProof,
+} from '../../block/assemblyState.js'
 import type { ExecutableHandle } from '../../block/bindingConnection.js'
 import type {
   DefaultViewOf,
@@ -22,6 +25,10 @@ import type {
 } from '../../block/operationOutputs.js'
 import type { Owner } from '../../block/owner.js'
 import type {
+  PrivateDelivery,
+  PrivateEncodedDelivery,
+} from '../../block/privateDelivery.js'
+import type {
   HandlerEvidenceOfBlock,
   PublicRuntimeServicesTypeId,
   RequirementsOfBlock,
@@ -35,6 +42,11 @@ import type { Subscription } from '../../subscription/subscription.js'
 import type * as Update from '../../update/index.js'
 import type { InputOperationName } from '../contracted/inMessageUpdate.js'
 
+export type {
+  PrivateDelivery,
+  PrivateEncodedDelivery,
+} from '../../block/privateDelivery.js'
+
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 type ReturnOf<Operation> = Operation extends (
   ...args: ReadonlyArray<never>
@@ -42,6 +54,7 @@ type ReturnOf<Operation> = Operation extends (
   ? Output
   : never
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 /** @internal Only outputs supplied by every possible provider satisfy a dependency. */
 export type GuaranteedLayerOutputs<Dependencies extends Layer.Any> =
   LayerOutputs<Dependencies>
@@ -59,8 +72,6 @@ type OutOf<Output> =
 /** Identifies a passive constructor descriptor, distinct from a completed Block. */
 export const DescriptorTypeId = Symbol('foldkit/ConstructedBlock/Descriptor')
 
-declare const PrivateDeliveryTypeId: unique symbol
-declare const PrivateEncodedDeliveryTypeId: unique symbol
 declare const InternalExecutionTypeId: unique symbol
 declare const GraphTypeId: unique symbol
 /** @internal Supplies constructor typing for a unified Block declaration. */
@@ -142,18 +153,6 @@ export interface LayeredDescriptor<
     | Exclude<ConstructorRequirements, GuaranteedLayerOutputs<Dependencies>>
     | Layer.Services<Dependencies>
   >
-}
-
-/** A descendant Message validated by an acquired executable's private Codec. */
-export interface PrivateDelivery<OwnerValue> {
-  readonly [PrivateDeliveryTypeId]: OwnerValue
-  readonly _tag: string
-}
-
-/** Encoded private delivery whose concrete wire format belongs to the executable. */
-export interface PrivateEncodedDelivery<OwnerValue> {
-  readonly [PrivateEncodedDeliveryTypeId]: OwnerValue
-  readonly _tag: string
 }
 
 /** A private execution capability supplied by one acquired executable's Layer. */
@@ -247,8 +246,8 @@ export interface PublicFacts {
   readonly hostRequirements: unknown
   readonly programRequirements: unknown
   readonly runtimeServices: unknown
-  readonly decodingServices: unknown
-  readonly encodingServices: unknown
+  readonly decodingServices: never
+  readonly encodingServices: never
 }
 
 /** @internal Exact test registry belonging to one selected implementation. */
@@ -724,8 +723,8 @@ export type ProjectFacts<
 /** Canonical authoring contracts needed to project an inferred checked Block. */
 export interface DefinitionContract {
   readonly owner: Owner<string>
-  readonly Model: AnySchema
-  readonly Message: AnySchema
+  readonly Model: AnySelfContainedSchema
+  readonly Message: AnySelfContainedSchema
   readonly OutMessage?: AnySchema | undefined
 }
 
@@ -791,7 +790,19 @@ interface CoreContractFields<
   LocalMessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Facts extends PublicFacts,
-> extends CompletionProof {
+>
+  extends
+    CompletionProof,
+    CompletionContractProof<
+      ModelSchema,
+      DispatchSchema<
+        OwnerValue,
+        LocalMessageSchema,
+        Facts['decodingServices'],
+        Facts['encodingServices'],
+        Facts['isMessageFree']
+      >
+    > {
   readonly owner: OwnerValue
   readonly Model: ModelSchema
   readonly Message: DispatchSchema<

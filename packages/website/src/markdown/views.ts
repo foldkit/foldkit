@@ -4,7 +4,6 @@ import { type Attribute, Html, inertHtml as ih } from 'foldkit/html'
 import type { Alignment } from '@foldkit/markdown'
 import type * as Markdown from '@foldkit/markdown'
 
-import { CodeBlock } from '../component'
 import {
   type RenderHeadingLink,
   diagram,
@@ -12,10 +11,9 @@ import {
   inlineCode,
   pageTitle,
 } from '../prose'
+import * as CodeBlock from './codeBlock'
 import { inlineToText, parseHeadingId, stripHeadingIdMarker } from './slug'
 import { type HeadingIds, headingId } from './tableOfContents'
-
-// VIEWS
 
 /** Everything a document needs to render its nodes with the site's styling. */
 export type DocViewConfig = Readonly<{

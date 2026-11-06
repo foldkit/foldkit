@@ -1,7 +1,7 @@
 import { Array, Option } from 'effect'
 import { type Html, childAttributes } from 'foldkit/html'
 
-import { buttonId } from '@foldkit/ui/listbox'
+import { Listbox } from '@foldkit/ui'
 
 import * as Icon from '../../../icon'
 import {
@@ -83,8 +83,6 @@ const LISTBOX_ANCHOR = {
   padding: 8,
 }
 
-// PIECES
-
 const itemContent = (label: string, h: UiViewBuilder) =>
   h.div(
     [h.Class('flex items-center gap-2')],
@@ -118,8 +116,6 @@ const field = (
     ],
   )
 
-// DEMOS
-
 const singleSelectDemo = (
   listboxModel: ItemListboxModel,
   maybeSelectedItem: Option.Option<ListboxItem>,
@@ -131,7 +127,7 @@ const singleSelectDemo = (
   )
 
   return field(
-    buttonId(listboxModel.id),
+    Listbox.buttonId(listboxModel.id),
     'Family member',
     h.block(
       ListboxDemoBinding.embedView({
@@ -168,7 +164,7 @@ const multiSelectDemo = (
   })
 
   return field(
-    buttonId(listboxModel.id),
+    Listbox.buttonId(listboxModel.id),
     'Family members',
     h.block(
       ListboxMultiDemoBinding.embedView({
@@ -202,7 +198,7 @@ const groupedDemo = (
   )
 
   return field(
-    buttonId(listboxModel.id),
+    Listbox.buttonId(listboxModel.id),
     'Character',
     h.block(
       ListboxGroupedDemoBinding.embedView({

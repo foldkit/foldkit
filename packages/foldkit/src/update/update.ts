@@ -1552,7 +1552,7 @@ export type FoldWithOutMessage<
  *      model => ({ model, commands: [NavigateToRoom({ roomId })] }),
  *      Update.foldChild({
  *        update: (room: Room.Model, joinedPlayer: Player) =>
- *          Room.informJoined(room, joinedPlayer, { roomId }),
+ *          Room.informOfJoined(room, joinedPlayer, { roomId }),
  *        read: readRoom,
  *        write: writeRoom,
  *        toParentMessage: toGotRoomMessage,
@@ -2158,7 +2158,7 @@ const finalizeChildFold = (
 }
 
 /** {@link ChildFold} for an entry point that takes nothing but the child
- *  Model, such as `Dialog.close` or a Block's `informRouteChanged` that
+ *  Model, such as `Dialog.close` or a Block's `informOfRouteChanged` that
  *  derives everything it needs from its own state. There is no `input`, so
  *  {@link foldChildStep} returns the {@link Step} itself rather than a dual
  *  {@link Fold}. */

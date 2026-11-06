@@ -1,7 +1,6 @@
 import { Effect, Schema } from 'effect'
-import { Block } from 'foldkit'
+import { Block, Story } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { withBlock } from 'foldkit/story'
 import * as Update from 'foldkit/update'
 
 const Model = Schema.Struct({
@@ -51,7 +50,7 @@ const layer = ContextualRefreshBlock.makeLayer(
   }),
 )
 
-export const requestRefresh = withBlock(
+export const requestRefresh = Story.withBlock(
   { block: ContextualRefreshBlock, layer },
   block => {
     const refresh = (model: Model) =>

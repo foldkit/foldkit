@@ -2,11 +2,7 @@ import { Array, Effect, Match, Number, Option, Schema, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  HistoryPage as VirtualListHistoryPage,
-  type InitConfig as VirtualListInitConfig,
-  ScrollTarget as VirtualListScrollTarget,
-} from '@foldkit/ui/virtualList'
+import { VirtualList } from '@foldkit/ui'
 
 import {
   makeBinding,
@@ -16,10 +12,7 @@ import {
   makeOutMessageFold,
   makeStep,
 } from './block'
-import {
-  ChatVirtualListBlock,
-  HistoryModeRadioGroupBlock,
-} from './demo/components'
+import { ChatVirtualListBlock, HistoryModeRadioGroupBlock } from './controls'
 import {
   VirtualListChatHistoryLoad,
   type VirtualListChatHistoryMode,
@@ -62,7 +55,7 @@ export const chatMessageKey = (message: VirtualListChatMessage): string =>
 
 const virtualListChatInitConfig = (
   source: VirtualListChatHistorySource,
-): VirtualListInitConfig => ({
+): VirtualList.InitConfig => ({
   id: VirtualListChatHistorySource.match(source, {
     Unbounded: () => 'virtual-list-chat-demo',
     Finite: () => 'virtual-list-chat-demo-finite',
@@ -75,7 +68,7 @@ const virtualListChatInitConfig = (
     }),
     prefetchViewports: CHAT_HISTORY_PREFETCH_VIEWPORTS,
   },
-  initialScroll: { target: VirtualListScrollTarget.End() },
+  initialScroll: { target: VirtualList.ScrollTarget.End() },
   followEnd: { thresholdPx: 8 },
 })
 
@@ -113,11 +106,11 @@ export const FetchVirtualListChatHistory = makeCommand(
                 }),
             })
             const page = VirtualListChatHistorySource.match(source, {
-              Unbounded: () => VirtualListHistoryPage.More(),
+              Unbounded: () => VirtualList.HistoryPage.More(),
               Finite: ({ remainingCount }) =>
                 remainingCount - count <= 0
-                  ? VirtualListHistoryPage.Complete()
-                  : VirtualListHistoryPage.More(),
+                  ? VirtualList.HistoryPage.Complete()
+                  : VirtualList.HistoryPage.More(),
             })
 
             return Message.CompletedFetchVirtualListChatHistory({
@@ -296,7 +289,7 @@ export const updateVirtualListChatMessages = (
 
     return Update.combineSteps([
       updateMessages,
-      VirtualListChatDemoBinding.informItemsChanged(
+      VirtualListChatDemoBinding.informOfItemsChanged(
         Array.map(nextMessages, chatMessageKey),
       ),
     ])
@@ -337,7 +330,7 @@ export const handleCompletedFetchVirtualListChatHistory = makeStep(
 
     return Update.combineSteps([
       updateMessages,
-      VirtualListChatDemoBinding.informHistoryPrepended({
+      VirtualListChatDemoBinding.informOfHistoryPrepended({
         items: nextMessages,
         prependedItems: messages,
         itemToKey: chatMessageKey,

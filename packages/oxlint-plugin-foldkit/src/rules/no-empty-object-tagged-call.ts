@@ -20,14 +20,28 @@ import {
   resolveFoldkitApiPath,
   resolvedVariable,
 } from '../guards.ts'
+import { isFoldkitMessageUnionHelperName } from '../message.ts'
 
 const PASCAL_CASE = /^[A-Z][A-Za-z0-9]*$/
 
-const UNION_HELPERS_BY_MODULE: Readonly<Record<string, string>> = {
-  'foldkit/message': 'defineMessageUnion',
-  'foldkit/route': 'defineRouteUnion',
-  'foldkit/schema': 'defineTaggedUnion',
+type IsUnionHelperName = (name: string) => boolean
+
+const isRouteUnionHelperName: IsUnionHelperName = name =>
+  name === 'defineRouteUnion'
+const isSchemaUnionHelperName: IsUnionHelperName = name =>
+  name === 'defineTaggedUnion'
+
+const UNION_HELPERS_BY_MODULE: Readonly<Record<string, IsUnionHelperName>> = {
+  'foldkit/message': isFoldkitMessageUnionHelperName,
+  'foldkit/route': isRouteUnionHelperName,
+  'foldkit/schema': isSchemaUnionHelperName,
 }
+const UNION_HELPERS_BY_NAMESPACE: Readonly<Record<string, IsUnionHelperName>> =
+  {
+    Message: isFoldkitMessageUnionHelperName,
+    Route: isRouteUnionHelperName,
+    Schema: isSchemaUnionHelperName,
+  }
 
 const recordUnionHelperBindings = (
   bindings: Set<string>,
@@ -45,8 +59,8 @@ const recordUnionHelperBindings = (
       continue
     }
 
-    const helperName = UNION_HELPERS_BY_MODULE[statement.source.value]
-    if (helperName === undefined) {
+    const isHelperName = UNION_HELPERS_BY_MODULE[statement.source.value]
+    if (isHelperName === undefined) {
       continue
     }
 
@@ -54,9 +68,10 @@ const recordUnionHelperBindings = (
       if (
         specifier.type === 'ImportSpecifier' &&
         specifier.importKind !== 'type' &&
-        (isIdentifier(specifier.imported, helperName) ||
+        ((specifier.imported.type === 'Identifier' &&
+          isHelperName(specifier.imported.name)) ||
           (isStringLiteral(specifier.imported) &&
-            specifier.imported.value === helperName))
+            isHelperName(specifier.imported.value)))
       ) {
         bindings.add(specifier.local.name)
       }
@@ -78,15 +93,11 @@ const isUnionHelperCall = (
 
   return Option.exists(resolveFoldkitApiPath(references, node.callee), path => {
     const [namespace, helperName, extraMember] = path
-    const expectedHelperByNamespace: Readonly<Record<string, string>> = {
-      Message: 'defineMessageUnion',
-      Route: 'defineRouteUnion',
-      Schema: 'defineTaggedUnion',
-    }
 
     return (
       namespace !== undefined &&
-      expectedHelperByNamespace[namespace] === helperName &&
+      helperName !== undefined &&
+      UNION_HELPERS_BY_NAMESPACE[namespace]?.(helperName) === true &&
       extraMember === undefined
     )
   })

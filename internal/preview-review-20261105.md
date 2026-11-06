@@ -106,8 +106,11 @@ native close. Source-free parent Layer/Story consumers pass on both compilers.
 Nine Dialog behavior and provider-name mutation controls fail at their intended
 assertions before exact source is restored.
 
-The final mandatory push hook and required PR checks apply to the complete
-committed candidate. Component receipts are not substitutes for those gates.
+The final mandatory push hook and both PR and merge-queue workflows pass for
+[integration #1894](https://github.com/foldkit/foldkit/pull/1894), merged as
+`570ecedddaef638bb07fbaaf9abda2f905125548`. All ten example-browser shards pass
+in both runs. The merged tree exactly matches the independently reviewed commit
+`3117c8947db1190a850fdba72d0ed4cb7a4335ff`.
 The coherent public-package build and a fresh installed packed-SSR consumer pass
 at code commit `75a3990d55302c163a6d56282d43e33fc34a6a0b`, including Chromium,
 Firefox and WebKit. Independent review approves that exact code commit.

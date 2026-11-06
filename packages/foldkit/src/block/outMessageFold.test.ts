@@ -1,11 +1,12 @@
-import { Array, Effect, Number, Option, Schema } from 'effect'
-import { expect, expectTypeOf, it } from 'vitest'
+import { Array, Effect, HashMap, Number, Option, Record, Schema } from 'effect'
+import { expect, expectTypeOf, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import { __bindCommandMatcher } from '../test/bindingMatcher.js'
 import * as Update from '../update/public.js'
+import { selectedBindingOutMessagePolicyOf } from './bindingOutMessagePolicy.js'
 import { ViewScopeTypeId } from './identity.js'
 import * as Block from './public.js'
 
@@ -1087,4 +1088,334 @@ it('rejects helper authoring on a child without a tagged-union contract', () => 
       fold: FoldParentDefinition.makeNoopStep,
     }),
   ).not.toThrow()
+})
+
+const KeyedModel = Schema.Struct({
+  entries: Schema.Record(Schema.String, ChildModel),
+  numberedEntries: Schema.HashMap(Schema.Int, ChildModel),
+  choice: Choice,
+  selectedKey: Schema.String,
+  previousCount: Schema.Number,
+})
+type KeyedModel = typeof KeyedModel.Type
+const KeyedMessage = defineMessageUnion({
+  RequestedSelect: { key: Schema.String, value: Choice },
+  RequestedSelectNumbered: { key: Schema.Int, value: Choice },
+  CompletedRecord: {},
+})
+const KeyedOutMessage = defineMessageUnion({ Selected: { value: Choice } })
+const KeyedDefinition = Block.makeDefinition('KeyedFoldParent', {
+  Model: KeyedModel,
+  Message: KeyedMessage,
+  OutMessage: KeyedOutMessage,
+})
+const ForeignChildMessage = defineMessageUnion({ CompletedForeign: {} })
+const ForeignChildDefinition = Block.makeDefinition('ForeignKeyedFoldChild', {
+  Model: ChildModel,
+  Message: ForeignChildMessage,
+  OutMessage: ChildOutMessage,
+})
+const ForeignChildComposition = ForeignChildDefinition.makeComposition()
+const prepareForeignChildBlock = () =>
+  ForeignChildComposition.prepareBlock({
+    init: ForeignChildComposition.makeInit(() => ({
+      model: ChildModel.make({ count: 0 }),
+    })),
+    update: ForeignChildComposition.makeUpdate({
+      CompletedForeign: ForeignChildDefinition.makeNoopStep(),
+    }),
+  })
+const ForeignChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof prepareForeignChildBlock
+> = Block.assemble(prepareForeignChildBlock)
+const EquivalentChildMessage = defineMessageUnion({
+  RequestedSelect: { value: Choice },
+  RequestedClose: {},
+  CompletedObserveSelection: {},
+})
+const EquivalentChildDefinition = Block.makeDefinition(
+  'EquivalentKeyedFoldChild',
+  {
+    Model: ChildModel,
+    Message: EquivalentChildMessage,
+    OutMessage: ChildOutMessage,
+  },
+)
+const EquivalentChildComposition = EquivalentChildDefinition.makeComposition()
+const prepareEquivalentChildBlock = () =>
+  EquivalentChildComposition.prepareBlock({
+    init: EquivalentChildComposition.makeInit(() => ({
+      model: ChildModel.make({ count: 0 }),
+    })),
+    update: EquivalentChildComposition.makeUpdate({
+      RequestedSelect: EquivalentChildDefinition.makeNoopStep(),
+      RequestedClose: EquivalentChildDefinition.makeNoopStep(),
+      CompletedObserveSelection: EquivalentChildDefinition.makeNoopStep(),
+    }),
+  })
+const EquivalentChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof prepareEquivalentChildBlock
+> = Block.assemble(prepareEquivalentChildBlock)
+const RecordKeyedChoice = KeyedDefinition.makeCommand('RecordKeyedChoice', {
+  args: { value: Choice },
+  messages: [KeyedMessage.CompletedRecord],
+  handler: function* () {
+    return () => Effect.succeed(KeyedMessage.CompletedRecord())
+  },
+})
+const keyedInitialModel = KeyedModel.make({
+  entries: {
+    first: ChildModel.make({ count: 3 }),
+    second: ChildModel.make({ count: 7 }),
+  },
+  numberedEntries: HashMap.make([2, ChildModel.make({ count: 11 })]),
+  choice: 'Apple',
+  selectedKey: '',
+  previousCount: 0,
+})
+
+it('applies a direct keyed fold after writing the child and preserves its complete result', () => {
+  const fold = KeyedDefinition.makeOutMessageFold(ChildBlock, {
+    Selected:
+      ({ value }, { liftCommand, modelBeforeUpdate }) =>
+      model => ({
+        model: modifyFields(model, {
+          choice: () => value,
+          previousCount: () =>
+            Option.getOrThrow(Record.get(modelBeforeUpdate.entries, 'first'))
+              .count,
+        }),
+        commands: [
+          RecordKeyedChoice({ value }),
+          liftCommand(ObserveSelection()),
+        ],
+        outMessage: KeyedOutMessage.Selected({ value }),
+      }),
+    Closed: KeyedDefinition.makeNoopStep,
+  })
+  const forward = KeyedDefinition.makeOutMessageForward(ChildBlock, {
+    Selected: () => KeyedOutMessage.Selected({ value: 'Apple' }),
+    Closed: () => undefined,
+  })
+  const EntriesBinding = KeyedDefinition.makeMapBinding(ChildBlock, {
+    field: 'entries',
+  }).withOutMessagePolicy({
+    fold,
+    forward: (_key, outMessage) => forward(outMessage),
+  })
+  const composition = KeyedDefinition.makeComposition({
+    bindings: [EntriesBinding],
+  })
+  const update = composition.makeUpdate({
+    RequestedSelect: (model, { key, value }) =>
+      EntriesBinding.requestSelect(key, { value })(model),
+    RequestedSelectNumbered: KeyedDefinition.makeNoopStep(),
+    CompletedRecord: KeyedDefinition.makeNoopStep(),
+  })
+  const selected = update(
+    keyedInitialModel,
+    KeyedMessage.RequestedSelect({ key: 'first', value: 'Pear' }),
+  )
+
+  expect(selected.model.entries).toEqual({
+    first: { count: 4 },
+    second: { count: 7 },
+  })
+  expect(selected.model.choice).toBe('Pear')
+  expect(selected.model.previousCount).toBe(3)
+  expect(selected.outMessage).toEqual(
+    KeyedOutMessage.Selected({ value: 'Pear' }),
+  )
+  expect(selected.commands).toHaveLength(2)
+  expect(
+    Array.some(
+      selected.commands ?? [],
+      command => command.name === RecordKeyedChoice.name,
+    ),
+  ).toBe(true)
+  expect(
+    Array.some(selected.commands ?? [], command =>
+      __bindCommandMatcher(
+        ChildBlock,
+        EntriesBinding,
+        ObserveSelection(),
+        'first',
+      ).matches(command),
+    ),
+  ).toBe(true)
+})
+
+it('accepts fold helpers with the same structural child Message contract and role-specific forwards', () => {
+  const equivalentFold = KeyedDefinition.makeOutMessageFold(
+    EquivalentChildBlock,
+    {
+      Selected: KeyedDefinition.makeNoopStep,
+      Closed: KeyedDefinition.makeNoopStep,
+    },
+  )
+  const EntriesBinding = KeyedDefinition.makeMapBinding(ChildBlock, {
+    field: 'entries',
+  })
+
+  expect(() =>
+    EntriesBinding.withOutMessagePolicy({ fold: equivalentFold }),
+  ).not.toThrow()
+
+  const foreignForward = FoldParentDefinition.makeOutMessageForward(
+    ForeignChildBlock,
+    {
+      Selected: ({ value }) => OutMessage.Chose({ value }),
+      Closed: () => undefined,
+    },
+  )
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
+    field: 'child',
+    init: false,
+  })
+
+  expect(() =>
+    ChildBinding.withOutMessagePolicy({ forward: foreignForward }),
+  ).not.toThrow()
+})
+
+it('evaluates a curried fold for the selected key during dispatch and leaves absent occurrences unchanged', () => {
+  const authored = vi.fn<(key: number) => void>()
+  const EntriesBinding = KeyedDefinition.makeMapBinding(ChildBlock, {
+    field: 'numberedEntries',
+  }).withOutMessagePolicy({
+    fold: key => {
+      expectTypeOf(key).toEqualTypeOf<number>()
+      authored(key)
+
+      return KeyedDefinition.makeOutMessageFold(ChildBlock, {
+        Selected:
+          ({ value }, { modelBeforeUpdate }) =>
+          model => {
+            expectTypeOf(value).toEqualTypeOf<Choice>()
+            expectTypeOf(model).toEqualTypeOf<KeyedModel>()
+            expectTypeOf(modelBeforeUpdate).toEqualTypeOf<KeyedModel>()
+
+            return {
+              model: modifyFields(model, {
+                choice: () => value,
+                selectedKey: () => key.toString(),
+                previousCount: () =>
+                  Option.getOrThrow(
+                    HashMap.get(modelBeforeUpdate.numberedEntries, key),
+                  ).count,
+              }),
+            }
+          },
+        Closed: KeyedDefinition.makeNoopStep,
+      })
+    },
+  })
+  const composition = KeyedDefinition.makeComposition({
+    bindings: [EntriesBinding],
+  })
+  const update = composition.makeUpdate({
+    RequestedSelect: KeyedDefinition.makeNoopStep(),
+    RequestedSelectNumbered: (model, { key, value }) =>
+      EntriesBinding.requestSelect(key, { value })(model),
+    CompletedRecord: KeyedDefinition.makeNoopStep(),
+  })
+
+  expect(authored).not.toHaveBeenCalled()
+
+  const ignored = update(
+    keyedInitialModel,
+    KeyedMessage.RequestedSelectNumbered({ key: 9, value: 'Pear' }),
+  )
+
+  expect(ignored.model).toBe(keyedInitialModel)
+  expect(authored).not.toHaveBeenCalled()
+
+  const selected = update(
+    keyedInitialModel,
+    KeyedMessage.RequestedSelectNumbered({ key: 2, value: 'Pear' }),
+  )
+
+  expect(selected.model.selectedKey).toBe('2')
+  expect(selected.model.previousCount).toBe(11)
+  expect(
+    Option.getOrThrow(HashMap.get(selected.model.numberedEntries, 2)).count,
+  ).toBe(12)
+  expect(authored).toHaveBeenCalledExactlyOnceWith(2)
+})
+
+it('validates erased produced folds during delivery without invoking producers during configuration', () => {
+  const EntriesBinding = KeyedDefinition.makeMapBinding(ChildBlock, {
+    field: 'entries',
+  })
+  const forward = KeyedDefinition.makeOutMessageForward(ChildBlock, {
+    Selected: ({ value }) => KeyedOutMessage.Selected({ value }),
+    Closed: () => undefined,
+  })
+  const produceForward = vi.fn(() => forward)
+  const configured = Reflect.apply(
+    EntriesBinding.withOutMessagePolicy,
+    EntriesBinding,
+    [{ fold: produceForward }],
+  )
+  const selected = Option.getOrThrow(
+    Option.fromNullishOr(selectedBindingOutMessagePolicyOf(configured)),
+  )
+  const fold = Option.getOrThrow(Option.fromNullishOr(selected.outMessage.fold))
+
+  expect(produceForward).not.toHaveBeenCalled()
+  expect(() =>
+    fold('first', ChildOutMessage.Selected({ value: 'Pear' }), {}),
+  ).toThrow('cannot supply an OutMessage fold policy')
+  expect(produceForward).toHaveBeenCalledOnce()
+
+  const produceIncomplete = vi.fn(() =>
+    Reflect.apply(KeyedDefinition.makeOutMessageFold, undefined, [
+      ChildBlock,
+      { Selected: KeyedDefinition.makeNoopStep },
+    ]),
+  )
+  const incomplete = Reflect.apply(
+    EntriesBinding.withOutMessagePolicy,
+    EntriesBinding,
+    [{ fold: produceIncomplete }],
+  )
+  const incompletePolicy = Option.getOrThrow(
+    Option.fromNullishOr(selectedBindingOutMessagePolicyOf(incomplete)),
+  )
+  const incompleteFold = Option.getOrThrow(
+    Option.fromNullishOr(incompletePolicy.outMessage.fold),
+  )
+
+  expect(produceIncomplete).not.toHaveBeenCalled()
+  expect(() =>
+    incompleteFold('first', ChildOutMessage.Selected({ value: 'Pear' }), {}),
+  ).toThrow('missing handlers for: Closed')
+
+  const handleForeignSelected = vi.fn(() => KeyedDefinition.makeNoopStep())
+  const foreignFold = KeyedDefinition.makeOutMessageFold(ForeignChildBlock, {
+    Selected: handleForeignSelected,
+    Closed: KeyedDefinition.makeNoopStep,
+  })
+  const produceForeignFold = vi.fn(() => foreignFold)
+  const foreign = Reflect.apply(
+    EntriesBinding.withOutMessagePolicy,
+    EntriesBinding,
+    [{ fold: produceForeignFold }],
+  )
+  const foreignPolicy = Option.getOrThrow(
+    Option.fromNullishOr(selectedBindingOutMessagePolicyOf(foreign)),
+  )
+  const deliverForeign = Option.getOrThrow(
+    Option.fromNullishOr(foreignPolicy.outMessage.fold),
+  )
+
+  expect(produceForeignFold).not.toHaveBeenCalled()
+  expect(handleForeignSelected).not.toHaveBeenCalled()
+  expect(() =>
+    deliverForeign('first', ChildOutMessage.Selected({ value: 'Pear' }), {}),
+  ).toThrow('authored for a different child Message contract')
+  expect(produceForeignFold).toHaveBeenCalledOnce()
+  expect(handleForeignSelected).not.toHaveBeenCalled()
 })

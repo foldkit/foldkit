@@ -31,7 +31,7 @@ export const applyGridSizeChange = (size: number) =>
     }),
   }))
 
-export const requestGridSizeChange = (size: number) =>
+export const changeGridSize = (size: number) =>
   makeStep(model => {
     if (size === model.gridSize) {
       return { model }

@@ -1,8 +1,7 @@
 import { AsyncData } from 'foldkit'
 import { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Input } from '@foldkit/ui'
 
 import {
   ApplicationComposition,
@@ -28,7 +27,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
           h.OnSubmit(Message.SubmittedWeatherForm()),
         ],
         [
-          inputView(
+          Input.view(
             {
               id: 'location',
               value: model.zipCodeInput,
@@ -47,7 +46,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
             },
             h,
           ),
-          buttonView(
+          Button.view(
             {
               type: 'submit',
               isDisabled: AsyncData.isPending(model.weather),

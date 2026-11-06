@@ -1,5 +1,4 @@
-import { init } from 'foldkit/story'
-import { expectOutMessage, message, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -9,11 +8,11 @@ import { SkillsEntryBlock, layer } from './index'
 
 describe('skills entry', () => {
   it.effect('UpdatedName stores a valid skill name', () =>
-    story(
+    Story.story(
       { block: SkillsEntryBlock, layer },
-      init('entry-1'),
-      message(Message.UpdatedName({ value: 'TypeScript' })),
-      model(model => {
+      Story.init('entry-1'),
+      Story.message(Message.UpdatedName({ value: 'TypeScript' })),
+      Story.model(model => {
         expect(model.name.value).toBe('TypeScript')
         expect(model.name._tag).toBe('Valid')
       }),
@@ -21,11 +20,11 @@ describe('skills entry', () => {
   )
 
   it.effect('ClickedRemoveSelf emits Removed', () =>
-    story(
+    Story.story(
       { block: SkillsEntryBlock, layer },
-      init('entry-1'),
-      message(Message.ClickedRemoveSelf()),
-      expectOutMessage(OutMessage.Removed()),
+      Story.init('entry-1'),
+      Story.message(Message.ClickedRemoveSelf()),
+      Story.expectOutMessage(OutMessage.Removed()),
     ),
   )
 })

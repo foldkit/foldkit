@@ -2,12 +2,12 @@ import { Schema } from 'effect'
 import { Block, File } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { FileDropBlock } from '@foldkit/ui/fileDrop'
+import { FileDrop } from '@foldkit/ui'
 
 export const Model = Schema.Struct({
-  resumeDrop: FileDropBlock.Model,
+  resumeDrop: FileDrop.FileDropBlock.Model,
   maybeResume: Schema.Option(File.File),
-  additionalFilesDrop: FileDropBlock.Model,
+  additionalFilesDrop: FileDrop.FileDropBlock.Model,
   additionalFiles: Schema.Array(File.File),
 })
 export type Model = typeof Model.Type

@@ -8,19 +8,21 @@ A Block-aware Story acquires the chosen implementation, then calls its pure upda
 
 In Vitest, return that Effect from `it.effect` in `@effect/vitest`. The runner awaits the result and manages the test Scope. Prefer direct Block-aware calls for ordinary scenarios; keep `withBlock` for fixtures needing initialized state, graph identity or custom view context. Start startup scenarios with `init` and explicit Command resolution so their initial Commands remain visible.
 
-Pass `{ block: FeatureBlock, layer }` so the runner checks the declaration against its selected implementation Layer. Start with `init(...args)` to retain startup Model and Commands, or `given(model)` for a deliberate fixture. Send Messages, resolve Commands, and assert on the Model. `withBlock` supplies acquired initialization, graph identity, or custom view context for advanced fixtures. Keep subsequent application interactions in the Story or Scene DSL.
+Pass `{ block: FeatureBlock, layer }` so the runner checks the Block contract against its selected implementation Layer. A test may name this pair `featureSubject` and reuse it. The contract declares the Model, Messages and other public types; the Layer supplies the executable implementation and its child graph.
+
+Start with `init(...args)` when initialization is part of the scenario. It runs the real initializer and retains its startup Commands for explicit resolution. Use `given(model)` when the scenario starts from an intentional immutable fixture; it skips initialization and adds no startup Commands. Send subsequent Messages and resolve Commands through the DSL. `withBlock` supplies acquired initialization, graph identity or custom view context for advanced fixtures.
 
 ## The API
 
 ### Import Story Steps
 
-Import the steps you need from `foldkit/story`.
+Import the `Story` namespace from `foldkit`.
 
-- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `init`, `steps`, `given`, `message`, `messageFrom`, `messageWith`, `model`, `expectOutMessage`, and `expectNoOutMessage`.
+- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `init`, `steps`, `given`, `message`, `messageIn`, `messageWith`, `model`, `models`, `expectOutMessage`, and `expectNoOutMessage`.
 - The `Command` namespace handles pending Commands: `argsOf`, `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, and `expectNone`.
 - `Subscription.from(block.subscriptions)` creates emission steps inside an acquired test fixture. For private registries, test the checked implementation that owns them.
 
-Use named imports when the file contains only Story tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
+Qualify every testing step through the namespace so call sites such as `Story.given`, `Story.message`, and `Story.model` identify the DSL directly.
 
 ::Snippet{name="testingApi" label="API reference"}
 
@@ -50,7 +52,17 @@ Here’s a test for the delayed reset from the [Commands](/core/commands) page. 
 
 ::Snippet{name="counterCommandsTest" label="Delayed-reset Story test"}
 
-Read it from top to bottom. The Model starts at 5. `ClickedResetAfterDelay()` returns `DelayReset`. The test resolves that Command with `CompletedDelayReset()`, which update handles by setting the count to 0.
+Read it from top to bottom. The Model starts at 5. `ClickedResetAfterDelay()` returns `WaitBeforeReset`. The test resolves that Command with `CompletedWaitBeforeReset()`, which update handles by setting the count to 0.
+
+### Compare Models Without Mutable Captures
+
+Use `models(steps(...), (before, after) => ...)` to compare the Models around a sequence. The callback receives the exact Model type, including when the sequence delivers a child Message or an InMessage. It can compare values or check that an unchanged child retains its reference. The runner retains the original reference; it does not clone the Model.
+
+::Snippet{name="testingModelComparison" label="Compare Models around a transition"}
+
+`story` returns its final Model after checking that every Command was resolved. A Block-aware Story returns an Effect containing that Model. An immutable result can seed a later Story or Scene with `given`; pending Commands and graph resources do not carry into that new test.
+
+Do not assign Models into outer variables from an assertion callback. Use a comparison group, the returned Model or a deliberate immutable fixture. If those cannot express the scenario, check whether the test is asserting the right behavior or whether the DSL needs an operation for it.
 
 ## Multi-Step Flows
 

@@ -1,4 +1,4 @@
-import { Command, given, message, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
 
@@ -31,12 +31,12 @@ describe('update', () => {
     it.effect(
       'ClickedCanvas fires GenerateBall with the click coordinates',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(emptyModel),
-          message(Message.ClickedCanvas({ x: 150, y: 200 })),
-          Command.expectHas(GenerateBall),
-          Command.resolve(
+          Story.given(emptyModel),
+          Story.message(Message.ClickedCanvas({ x: 150, y: 200 })),
+          Story.Command.expectHas(GenerateBall),
+          Story.Command.resolve(
             GenerateBall,
             Message.CompletedGenerateBall({
               x: 150,
@@ -47,7 +47,7 @@ describe('update', () => {
               color: '#ff2d55',
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.balls).toHaveLength(1)
             expect(model.balls[0]).toMatchObject({
               id: 0,
@@ -64,10 +64,10 @@ describe('update', () => {
     it.effect(
       'CompletedGenerateBall increments nextId for each ball added',
       () =>
-        story(
+        Story.story(
           { block: ApplicationBlock, layer },
-          given(emptyModel),
-          message(
+          Story.given(emptyModel),
+          Story.message(
             Message.CompletedGenerateBall({
               x: 10,
               y: 10,
@@ -77,7 +77,7 @@ describe('update', () => {
               color: '#fff',
             }),
           ),
-          message(
+          Story.message(
             Message.CompletedGenerateBall({
               x: 20,
               y: 20,
@@ -87,7 +87,7 @@ describe('update', () => {
               color: '#fff',
             }),
           ),
-          model(model => {
+          Story.model(model => {
             expect(model.balls.map(({ id }) => id)).toEqual([0, 1])
             expect(model.nextId).toBe(2)
           }),
@@ -97,11 +97,11 @@ describe('update', () => {
 
   describe('TickedFrame', () => {
     it.effect('advances ball positions based on velocity and delta time', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(populatedModel),
-        message(Message.TickedFrame({ deltaTime: 1000 })),
-        model(model => {
+        Story.given(populatedModel),
+        Story.message(Message.TickedFrame({ deltaTime: 1000 })),
+        Story.model(model => {
           expect(model.balls[0]?.x).toBe(150)
           expect(model.balls[0]?.y).toBe(150)
         }),
@@ -126,11 +126,11 @@ describe('update', () => {
           nextId: () => 1,
         })
 
-        return story(
+        return Story.story(
           { block: ApplicationBlock, layer },
-          given(movingRightModel),
-          message(Message.TickedFrame({ deltaTime: 1000 })),
-          model(model => {
+          Story.given(movingRightModel),
+          Story.message(Message.TickedFrame({ deltaTime: 1000 })),
+          Story.model(model => {
             expect(model.balls[0]?.vx).toBe(-100)
             expect(model.balls[0]?.x).toBe(590)
           }),
@@ -141,26 +141,26 @@ describe('update', () => {
 
   describe('controls', () => {
     it.effect('ClickedClear empties the balls list', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(populatedModel),
-        message(Message.ClickedClear()),
-        model(model => {
+        Story.given(populatedModel),
+        Story.message(Message.ClickedClear()),
+        Story.model(model => {
           expect(model.balls).toHaveLength(0)
         }),
       ),
     )
 
     it.effect('ClickedTogglePlay flips the isRunning flag', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
-        message(Message.ClickedTogglePlay()),
-        model(model => {
+        Story.given(emptyModel),
+        Story.message(Message.ClickedTogglePlay()),
+        Story.model(model => {
           expect(model.isRunning).toBe(false)
         }),
-        message(Message.ClickedTogglePlay()),
-        model(model => {
+        Story.message(Message.ClickedTogglePlay()),
+        Story.model(model => {
           expect(model.isRunning).toBe(true)
         }),
       ),

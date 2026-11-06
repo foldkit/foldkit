@@ -1,17 +1,15 @@
 import { Array, Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as fieldsetView } from '@foldkit/ui/fieldset'
-import { view as inputView } from '@foldkit/ui/input'
-import { buttonId } from '@foldkit/ui/listbox'
-import { view as textareaView } from '@foldkit/ui/textarea'
+import { Button, Fieldset, Input, Listbox, Textarea } from '@foldkit/ui'
 
+import { Issue } from '../../domain'
 import {
   PriorityListboxOption,
   StatusListboxOption,
-  listboxViewInputs,
+  toListboxViewInputs,
 } from '../../listbox'
+import { encodeAssigneeSelection } from './assigneeSelection'
 import {
   AssigneeListboxBinding,
   CommentComposerBinding,
@@ -21,18 +19,20 @@ import {
   ProjectListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { CONFLICT_MESSAGE, isDirty } from './draft'
-import { encodeAssigneeSelection } from './field'
+import {
+  CONFLICT_MESSAGE,
+  draftForDisplay,
+  hasConflict,
+  hasUnsavedIssueChanges,
+} from './draft'
 import { Message } from './message'
 import { type Model, SaveState } from './model'
 import type { ViewInputs } from './viewInputs'
 
-const STATUS_OPTIONS: ReadonlyArray<StatusListboxOption> = [
-  { value: 'Backlog', label: 'Backlog' },
-  { value: 'Todo', label: 'Todo' },
-  { value: 'InProgress', label: 'In progress' },
-  { value: 'Done', label: 'Done' },
-]
+const STATUS_OPTIONS: ReadonlyArray<StatusListboxOption> = Array.map(
+  Issue.Status.literals,
+  status => ({ value: status, label: Issue.statusLabel(status) }),
+)
 const PRIORITY_OPTIONS: ReadonlyArray<PriorityListboxOption> = [
   { value: 'Low', label: 'Low' },
   { value: 'Medium', label: 'Medium' },
@@ -44,7 +44,7 @@ const secondaryButton = (
   onClick: Message,
   h: IssueDetailViewBuilder,
 ): Html =>
-  buttonView(
+  Button.view(
     {
       onClick,
       toView: attributes =>
@@ -70,11 +70,12 @@ const propertyField = (
     ],
   )
 
-const saveFeedback = (model: Model, h: IssueDetailViewBuilder): Html => {
-  if (
-    Option.isSome(model.maybeIncomingRevision) &&
-    !SaveState.guards.Saving(model.saveState)
-  ) {
+const saveFeedback = (
+  model: Model,
+  issue: Issue.Issue,
+  h: IssueDetailViewBuilder,
+): Html => {
+  if (hasConflict(model, issue) && !SaveState.guards.Saving(model.saveState)) {
     return h.div(
       [
         h.Role('alert'),
@@ -98,7 +99,7 @@ const saveFeedback = (model: Model, h: IssueDetailViewBuilder): Html => {
             'flex items-center gap-1.5 text-xs font-medium text-slate-500',
           ),
         ],
-        isDirty(model)
+        hasUnsavedIssueChanges(model, issue)
           ? ['Draft kept for this session']
           : [
               h.svg(
@@ -145,6 +146,7 @@ const saveFeedback = (model: Model, h: IssueDetailViewBuilder): Html => {
 const properties = (
   model: Model,
   viewInputs: ViewInputs,
+  draft: Issue.Draft,
   h: IssueDetailViewBuilder,
 ): Html => {
   const isSaving = SaveState.guards.Saving(model.saveState)
@@ -166,14 +168,14 @@ const properties = (
     [h.Class('grid grid-cols-2 gap-x-4 gap-y-5')],
     [
       propertyField(
-        buttonId(model.statusListbox.id),
+        Listbox.buttonId(model.statusListbox.id),
         'Status',
         h.block(
           StatusListboxBinding.embedView({
             slotId: model.statusListbox.id,
             model: model.statusListbox,
-            viewInputs: listboxViewInputs({
-              value: model.draft.status,
+            viewInputs: toListboxViewInputs({
+              value: draft.status,
               options: STATUS_OPTIONS,
               isDisabled: isSaving,
             }),
@@ -182,14 +184,14 @@ const properties = (
         h,
       ),
       propertyField(
-        buttonId(model.priorityListbox.id),
+        Listbox.buttonId(model.priorityListbox.id),
         'Priority',
         h.block(
           PriorityListboxBinding.embedView({
             slotId: model.priorityListbox.id,
             model: model.priorityListbox,
-            viewInputs: listboxViewInputs({
-              value: model.draft.priority,
+            viewInputs: toListboxViewInputs({
+              value: draft.priority,
               options: PRIORITY_OPTIONS,
               isDisabled: isSaving,
             }),
@@ -198,14 +200,14 @@ const properties = (
         h,
       ),
       propertyField(
-        buttonId(model.projectListbox.id),
+        Listbox.buttonId(model.projectListbox.id),
         'Project',
         h.block(
           ProjectListboxBinding.embedView({
             slotId: model.projectListbox.id,
             model: model.projectListbox,
-            viewInputs: listboxViewInputs({
-              value: model.draft.projectId,
+            viewInputs: toListboxViewInputs({
+              value: draft.projectId,
               options: projectOptions,
               isDisabled: isSaving,
             }),
@@ -214,14 +216,14 @@ const properties = (
         h,
       ),
       propertyField(
-        buttonId(model.assigneeListbox.id),
+        Listbox.buttonId(model.assigneeListbox.id),
         'Assignee',
         h.block(
           AssigneeListboxBinding.embedView({
             slotId: model.assigneeListbox.id,
             model: model.assigneeListbox,
-            viewInputs: listboxViewInputs({
-              value: encodeAssigneeSelection(model.draft.maybeAssigneeId),
+            viewInputs: toListboxViewInputs({
+              value: encodeAssigneeSelection(draft.maybeAssigneeId),
               options: assigneeOptions,
               isDisabled: isSaving,
             }),
@@ -233,15 +235,20 @@ const properties = (
   )
 }
 
-const titleField = (model: Model, h: IssueDetailViewBuilder): Html =>
-  inputView(
+const titleField = (
+  issueId: string,
+  saveState: SaveState,
+  draft: Issue.Draft,
+  h: IssueDetailViewBuilder,
+): Html =>
+  Input.view(
     {
-      id: `issue-${model.issueId}-title`,
-      value: model.draft.title,
-      isDisabled: SaveState.guards.Saving(model.saveState),
+      id: `issue-${issueId}-title`,
+      value: draft.title,
+      isDisabled: SaveState.guards.Saving(saveState),
       isInvalid:
-        SaveState.guards.Failed(model.saveState) &&
-        String.isEmpty(String.trim(model.draft.title)),
+        SaveState.guards.Failed(saveState) &&
+        String.isEmpty(String.trim(draft.title)),
       onInput: value => Message.UpdatedTitle({ value }),
       toView: attributes =>
         h.div(
@@ -266,13 +273,18 @@ const titleField = (model: Model, h: IssueDetailViewBuilder): Html =>
     h,
   )
 
-const descriptionField = (model: Model, h: IssueDetailViewBuilder): Html =>
-  textareaView(
+const descriptionField = (
+  issueId: string,
+  isSaving: boolean,
+  draft: Issue.Draft,
+  h: IssueDetailViewBuilder,
+): Html =>
+  Textarea.view(
     {
-      id: `issue-${model.issueId}-description`,
-      value: model.draft.description,
+      id: `issue-${issueId}-description`,
+      value: draft.description,
       rows: 6,
-      isDisabled: SaveState.guards.Saving(model.saveState),
+      isDisabled: isSaving,
       onInput: value => Message.UpdatedDescription({ value }),
       toView: attributes =>
         h.div(
@@ -301,8 +313,10 @@ const fields = (
   model: Model,
   viewInputs: ViewInputs,
   h: IssueDetailViewBuilder,
-): Html =>
-  fieldsetView(
+): Html => {
+  const draft = draftForDisplay(model, viewInputs.issue)
+
+  return Fieldset.view(
     {
       id: `issue-${model.issueId}-fields`,
       isDisabled: SaveState.guards.Saving(model.saveState),
@@ -313,22 +327,23 @@ const fields = (
             h.Class('m-0 grid min-w-0 gap-5 border-0 p-0'),
           ],
           [
-            titleField(model, h),
-            descriptionField(model, h),
-            properties(model, viewInputs, h),
+            titleField(model.issueId, model.saveState, draft, h),
+            descriptionField(
+              model.issueId,
+              SaveState.guards.Saving(model.saveState),
+              draft,
+              h,
+            ),
+            properties(model, viewInputs, draft, h),
           ],
         ),
     },
     h,
   )
+}
 
-const submitButton = (model: Model, h: IssueDetailViewBuilder): Html => {
-  const isDisabled =
-    SaveState.guards.Saving(model.saveState) ||
-    !isDirty(model) ||
-    Option.isSome(model.maybeIncomingRevision)
-
-  return buttonView(
+const submitButton = (isDisabled: boolean, h: IssueDetailViewBuilder): Html =>
+  Button.view(
     {
       type: 'submit',
       isDisabled,
@@ -344,11 +359,15 @@ const submitButton = (model: Model, h: IssueDetailViewBuilder): Html => {
     },
     h,
   )
-}
 
 export const view = IssueDetailComposition.makeView.withInputs(
-  (model, viewInputs, h) =>
-    h.section(
+  (model, viewInputs, h) => {
+    const isSaving = SaveState.guards.Saving(model.saveState)
+    const hasUnsavedChanges = hasUnsavedIssueChanges(model, viewInputs.issue)
+    const isSaveDisabled =
+      isSaving || !hasUnsavedChanges || hasConflict(model, viewInputs.issue)
+
+    return h.section(
       [
         h.Class('w-full min-w-0 bg-slate-50/70 text-slate-700'),
         h.AriaLabel(`${viewInputs.issue.identifier} details`),
@@ -385,24 +404,18 @@ export const view = IssueDetailComposition.makeView.withInputs(
                         ),
                       ],
                       [
-                        ...(isDirty(model)
+                        ...(hasUnsavedChanges
                           ? [
-                              buttonView(
+                              Button.view(
                                 {
                                   type: 'button',
                                   onClick: Message.ClickedDiscardChanges(),
-                                  isDisabled: SaveState.guards.Saving(
-                                    model.saveState,
-                                  ),
+                                  isDisabled: isSaving,
                                   toView: attributes =>
                                     h.button(
                                       [
                                         ...attributes.button,
-                                        h.Disabled(
-                                          SaveState.guards.Saving(
-                                            model.saveState,
-                                          ),
-                                        ),
+                                        h.Disabled(isSaving),
                                         h.Class('button'),
                                       ],
                                       ['Discard changes'],
@@ -412,10 +425,10 @@ export const view = IssueDetailComposition.makeView.withInputs(
                               ),
                             ]
                           : []),
-                        submitButton(model, h),
+                        submitButton(isSaveDisabled, h),
                       ],
                     ),
-                    saveFeedback(model, h),
+                    saveFeedback(model, viewInputs.issue, h),
                   ],
                 ),
               ],
@@ -427,12 +440,13 @@ export const view = IssueDetailComposition.makeView.withInputs(
                 viewInputs: {
                   members: viewInputs.members,
                   comments: viewInputs.issue.comments,
-                  authorId: viewInputs.authorId,
+                  authorId: viewInputs.commentAuthorId,
                 },
               }),
             ),
           ],
         ),
       ],
-    ),
+    )
+  },
 )

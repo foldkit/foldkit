@@ -42,7 +42,7 @@ The panel has `role="tooltip"` and the trigger is linked via `aria-describedby`.
 
 ### Name the Trigger
 
-The tooltip describes the trigger but does not name it, so give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `triggerId(id)` imported from `@foldkit/ui/tooltip` rather than hardcoding the `-trigger` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses the trigger. That is why it is the recommended pattern.
+The tooltip describes the trigger but does not name it, so give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `Tooltip.triggerId(id)` from `@foldkit/ui` rather than hardcoding the `-trigger` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses the trigger. That is why it is the recommended pattern.
 
 Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel` for an icon-only trigger with no visible label, or `ariaLabelledBy` when the element that names the trigger is not a `<label>` you can point `for` at.
 
@@ -81,11 +81,11 @@ Payload delivered to the `toView` callback each render.
 
 ### Programmatic Helpers
 
-Call `TooltipBinding.informShowDelayChanged(showDelay)` when parent-owned configuration changes the Tooltip's delay. The Binding call returns a connected parent Step. Its producer accepts every `Duration.Input` form, normalizes the value, and constructs `InformedOfShowDelayChange`; Tooltip update stores the normalized Duration.
+Call `TooltipBinding.informOfShowDelayChanged(showDelay)` when parent-owned configuration changes the Tooltip's delay. The Binding call returns a connected parent Step. Its producer accepts every `Duration.Input` form, normalizes the value, and constructs `InformedOfShowDelayChange`; Tooltip update stores the normalized Duration.
 
-| Binding call                                       | Arguments                   | Description                                                                                                                                                                                            |
-| -------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `TooltipBinding.informShowDelayChanged(showDelay)` | `showDelay: Duration.Input` | Dispatches `InformedOfShowDelayChange` through Tooltip update. A bare number is milliseconds. The update branch returns `{ model }`, emits no OutMessage, and applies the new delay on the next hover. |
+| Binding call                                         | Arguments                   | Description                                                                                                                                                                                            |
+| ---------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `TooltipBinding.informOfShowDelayChanged(showDelay)` | `showDelay: Duration.Input` | Dispatches `InformedOfShowDelayChange` through Tooltip update. A bare number is milliseconds. The update branch returns `{ model }`, emits no OutMessage, and applies the new delay on the next hover. |
 
 ### OutMessage {#out-message}
 

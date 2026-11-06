@@ -17,10 +17,10 @@ import {
   pushHistory,
   setPixels,
 } from './grid'
-import { Model } from './model'
+import { type MirrorMode, Model } from './model'
 import {
   applyGridSizeChange,
-  requestGridSizeChange,
+  changeGridSize,
   selectColor,
   selectTool,
 } from './steps'
@@ -108,14 +108,15 @@ export const update = ApplicationComposition.makeUpdate({
 
   SelectedTool: (model, { tool }) => selectTool(tool)(model),
 
-  SelectedGridSize: (model, { size }) => requestGridSizeChange(size)(model),
+  SelectedGridSize: (model, { size }) => changeGridSize(size)(model),
 
   ToggledMirrorHorizontal: makeFieldsStep(model => {
     const nextMirrorMode = Match.value(model.mirrorMode).pipe(
-      Match.when('None', () => 'Horizontal' as const),
-      Match.when('Horizontal', () => 'None' as const),
-      Match.when('Vertical', () => 'Both' as const),
-      Match.when('Both', () => 'Vertical' as const),
+      Match.withReturnType<MirrorMode>(),
+      Match.when('None', () => 'Horizontal'),
+      Match.when('Horizontal', () => 'None'),
+      Match.when('Vertical', () => 'Both'),
+      Match.when('Both', () => 'Vertical'),
       Match.exhaustive,
     )
     return { mirrorMode: () => nextMirrorMode }
@@ -123,10 +124,11 @@ export const update = ApplicationComposition.makeUpdate({
 
   ToggledMirrorVertical: makeFieldsStep(model => {
     const nextMirrorMode = Match.value(model.mirrorMode).pipe(
-      Match.when('None', () => 'Vertical' as const),
-      Match.when('Vertical', () => 'None' as const),
-      Match.when('Horizontal', () => 'Both' as const),
-      Match.when('Both', () => 'Horizontal' as const),
+      Match.withReturnType<MirrorMode>(),
+      Match.when('None', () => 'Vertical'),
+      Match.when('Vertical', () => 'None'),
+      Match.when('Horizontal', () => 'Both'),
+      Match.when('Both', () => 'Horizontal'),
       Match.exhaustive,
     )
     return { mirrorMode: () => nextMirrorMode }
@@ -159,10 +161,12 @@ export const update = ApplicationComposition.makeUpdate({
     }),
 
   ClickedHistoryStep: (model, { stepIndex }) => {
-    const targetGrid = model.undoStack[stepIndex]
-    if (targetGrid === undefined) {
+    const maybeTargetGrid = Array.get(model.undoStack, stepIndex)
+    if (Option.isNone(maybeTargetGrid)) {
       return { model }
     }
+
+    const targetGrid = maybeTargetGrid.value
 
     const statesAfterTarget = Array.drop(model.undoStack, stepIndex + 1)
 
@@ -180,10 +184,12 @@ export const update = ApplicationComposition.makeUpdate({
   },
 
   ClickedRedoStep: (model, { stepIndex }) => {
-    const targetGrid = model.redoStack[stepIndex]
-    if (targetGrid === undefined) {
+    const maybeTargetGrid = Array.get(model.redoStack, stepIndex)
+    if (Option.isNone(maybeTargetGrid)) {
       return { model }
     }
+
+    const targetGrid = maybeTargetGrid.value
 
     const statesBetweenCurrentAndTarget = Array.drop(
       model.redoStack,

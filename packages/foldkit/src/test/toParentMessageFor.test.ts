@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { describe, expect } from 'vitest'
+import { describe, expect, expectTypeOf } from 'vitest'
 
 import { it } from '@effect/vitest'
 
@@ -107,6 +107,35 @@ const Top = TopDefinition.makeBlock(
 ).provide(Parent.layer)
 
 describe('toParentMessageFor', () => {
+  it.effect(
+    'resolves nested child delivery inside a Model comparison group',
+    () =>
+      Effect.gen(function* () {
+        const finalModel = yield* Story.story(
+          Parent,
+          Story.init(),
+          Story.models(
+            Story.steps(
+              Story.messageIn(
+                LeftBinding,
+                ChildMessage.UpdatedCount({ count: 3 }),
+              ),
+            ),
+            (before, after) => {
+              expectTypeOf(before).toEqualTypeOf<typeof Parent.Model.Type>()
+              expectTypeOf(after).toEqualTypeOf<typeof Parent.Model.Type>()
+              expect(before.left.count).toBe(0)
+              expect(after.left.count).toBe(3)
+              expect(after.right).toBe(before.right)
+            },
+          ),
+        )
+
+        expectTypeOf(finalModel).toEqualTypeOf<typeof Parent.Model.Type>()
+        expect(finalModel.left.count).toBe(3)
+      }),
+  )
+
   it.effect(
     'maps nested delivery against the selected child graph and retains provenance',
     () =>

@@ -1,12 +1,12 @@
 import { Schema } from 'effect'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion } from 'foldkit/message'
 
-import { IssueStatus } from '../../domain'
+import { Issue } from '../../domain'
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedOpen: {
     projectId: Schema.String,
-    status: Schema.optionalKey(IssueStatus),
+    status: Schema.optionalKey(Issue.Status),
   },
   RequestedClose: {},
 })

@@ -1,19 +1,15 @@
 import { Effect, Layer } from 'effect'
 
 // composition.ts
-import { DialogBlock, layer as DialogLayer } from '@foldkit/ui/dialog'
-import {
-  layer as MenuLayer,
-  makeBlock as makeMenuBlock,
-} from '@foldkit/ui/menu'
+import { Dialog, Menu } from '@foldkit/ui'
 
 import { ApplicationBlock, makeBinding, makeComposition } from './block'
 
-export const DialogBinding = makeBinding(DialogBlock, {
+export const DialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const ApplicationMenu = makeMenuBlock<string>()
+export const ApplicationMenu = Menu.makeBlock<string>()
 
 export const MenuBinding = makeBinding(ApplicationMenu, {
   field: 'menu',
@@ -77,7 +73,7 @@ export const layer = ApplicationBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(DialogLayer, MenuLayer)))
+).pipe(Layer.provide(Layer.mergeAll(Dialog.layer, Menu.layer)))
 
 // entry.ts
 

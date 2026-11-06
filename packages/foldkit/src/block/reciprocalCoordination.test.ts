@@ -102,7 +102,7 @@ const Room = Block.makeDefinition('Room', {
   OutMessage: RoomOutMessage,
 })
 const RoomComposition = Room.makeComposition()
-const informJoined = Room.makeStep(
+const informOfJoined = Room.makeStep(
   (model, username: string, _context: RoomContext) => ({
     model: modifyFields(model, { maybeUsername: () => Option.some(username) }),
   }),
@@ -114,14 +114,14 @@ const prepareRoomBlock = () =>
     })),
     update: RoomComposition.makeUpdate.withContext((context: RoomContext) => ({
       RequestedInformJoined: (model, { username }) =>
-        informJoined(model, username, context),
+        informOfJoined(model, username, context),
       CompletedLeaveRoom: model => ({
         model,
         outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
       }),
     })),
     operations: {
-      informJoined: (username: string, context: RoomContext) =>
+      informOfJoined: (username: string, context: RoomContext) =>
         Tuple.make(RoomMessage.RequestedInformJoined({ username }), context),
     },
     EffectsLayer: Layer.empty,
@@ -181,7 +181,7 @@ const foldHomeOutMessage = Application.makeOutMessageFold(HomeBlock, {
             }),
         }),
       ),
-      RoomBinding.informJoined(roomId, username, { roomId }),
+      RoomBinding.informOfJoined(roomId, username, { roomId }),
       Application.makeStep(model => ({
         model: modifyFields(model, {
           route: () => ApplicationRoute.Room({ roomId }),

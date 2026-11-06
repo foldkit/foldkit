@@ -1,0 +1,62 @@
+{
+  "timedCodeCommit": "9e2c0d309c070ba7a99b1669c3f69094c7ba2003",
+  "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "originalPrivateDirectory": "/private/tmp/foldkit-final-preview-rendering-20261106",
+  "sourceFieldOmissionIsExplicit": true,
+  "retainedTimingSamples": 32,
+  "discardedTimingSamples": 0,
+  "files": {
+    "analysis.json": {
+      "source": "/private/tmp/foldkit-final-preview-rendering-20261106/timing-analysis.json",
+      "sourceSha256": "f2ce9a00179dc07a1920ed9fddce9a76f3efe56cfdce8c33460293d70e61d173",
+      "transformation": "Omit only top-level artifacts; add explicit curation metadata; all other parsed fields deep-equal."
+    },
+    "artifacts-summary.json": {
+      "source": "/private/tmp/foldkit-final-preview-rendering-20261106/final-artifact-receipt.json",
+      "sourceSha256": "85f8c906e26e860d50b4de6fcdd685b7444e096cce68c2564f9331017def0f8a",
+      "transformation": "Digest/count/pin summary of full artifact receipt; original is retained privately."
+    },
+    "timing-final-execution.json": {
+      "source": "/private/tmp/foldkit-final-preview-rendering-20261106/timing-final-execution.json",
+      "sourceSha256": "ef37f1a091799764acce4a3979f67a1b0c809bb2c9549a4c278197d6e5f1d7ee",
+      "transformation": "Unchanged parsed JSON; formatting may change bytes."
+    },
+    "analysis-controls.json": {
+      "source": "/private/tmp/foldkit-final-preview-rendering-20261106/analysis-controls.json",
+      "sourceSha256": "e1c84032775d9ece06bacbf1ac3827f54a0b4ff3314104815c23036bd0976178",
+      "transformation": "Unchanged parsed JSON; formatting may change bytes."
+    },
+    "candidate-build.json": {
+      "source": "/private/tmp/foldkit-final-preview-rendering-20261106/candidate-build.json",
+      "sourceSha256": "04b8b9368c66360698d74c4754281d64c2057726aa2a4a291e81a36cbc55bac5",
+      "transformation": "Unchanged parsed JSON; formatting may change bytes."
+    },
+    "host-before.json": {
+      "source": "/private/tmp/foldkit-final-preview-rendering-20261106/host-before.json",
+      "sourceSha256": "e59c5d8aa7c8d43ae503d57934462dae6d3a56e312f8c8ded067c1fe71b94a2d",
+      "transformation": "Unchanged parsed JSON; formatting may change bytes."
+    },
+    "host-after.json": {
+      "source": "/private/tmp/foldkit-final-preview-rendering-20261106/host-after.json",
+      "sourceSha256": "6c500575a065a0da418be688ba8571ecb6d27e287dac63128365c2278ccdb154",
+      "transformation": "Unchanged parsed JSON; formatting may change bytes."
+    },
+    "preflight-final/results.json": {
+      "source": "/private/tmp/foldkit-final-preview-rendering-20261106/preflight-final/results.json",
+      "sourceSha256": "5ccefd0d881a0e61f9b9e668d90895aa644bd638422d52eebdad7caa435e2108",
+      "transformation": "Unchanged parsed JSON; formatting may change bytes."
+    }
+  },
+  "timingLog": {
+    "source": "/private/tmp/foldkit-final-preview-rendering-20261106/timing-final.log",
+    "sha256": "fde171e7f3a6c44e9c66933ebf142f7b662feea55a597c1331870cbfa79753b9",
+    "copyIsByteIdentical": true
+  },
+  "preflightLogsByteIdentical": true,
+  "priorNov4ResultsUnchanged": true,
+  "notes": [
+    "Original raw receipt hashes refer to retained private capture bytes, not repository-formatted copies.",
+    "The copied harness has no Git metadata; the unchanged driver prints unknown and a Git diagnostic. Preparation independently verifies its pinned archive and all tracked-file hashes.",
+    "Canonical distributions matched the frozen copies when analysed. Frozen copies remain available if canonical build output changes later."
+  ]
+}

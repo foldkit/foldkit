@@ -1,4 +1,4 @@
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import { DatePicker, Field } from '../../../../view'
 import { Message } from './block'
@@ -123,7 +123,7 @@ export const view = WorkHistoryEntryComposition.makeView((model, h) => {
       h.div(
         [h.Class('flex justify-end')],
         [
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedRemoveSelf(),
               toView: attributes =>

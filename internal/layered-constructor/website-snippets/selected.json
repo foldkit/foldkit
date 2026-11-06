@@ -85,6 +85,7 @@
   "testingMigrationFixture.ts",
   "testingMigrationSubscriptionAfter.ts",
   "testingMigrationUiAfter.ts",
+  "testingModelComparison.ts",
   "testingReusableSteps.ts",
   "uiAnimationBasic.ts",
   "uiAnimationCustomLeave.ts",

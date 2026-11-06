@@ -70,6 +70,7 @@ import {
 } from './runtime.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 
 type ValidateLayerHandlerSelectionAlternative<
   LayerValue extends Layer.Any,
@@ -133,8 +134,8 @@ export type ValidateLayerHandlerSelection<
  */
 export interface MakeLayer<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
 > {
@@ -210,8 +211,8 @@ type LayerWithImplementationFacts<
 /** @internal Adds the original host handler recipe to an ordinary Block Layer. */
 export interface ProvideLayerHandlers<
   OwnerValue extends Owner<string>,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
 > {
   <const Handlers extends Layer.Any>(
@@ -288,8 +289,8 @@ type SelectedLayerOutputForPending<Success, Pending> =
 
 type DeclaredGraph<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
 > = ContractGraph<
@@ -308,8 +309,8 @@ type DeclaredGraph<
 /** @internal Names the unified authoring surface in consumer declarations. */
 export interface UnifiedBlockFields<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
@@ -421,7 +422,10 @@ export interface UnifiedBlockFields<
   >
 }
 
-type UnifiedIncomingMessage<MessageSchema extends AnySchema, Config> =
+type UnifiedIncomingMessage<
+  MessageSchema extends AnySelfContainedSchema,
+  Config,
+> =
   | MessageSchema['Type']
   | (Config extends Readonly<{ InMessage: infer In extends AnySchema }>
       ? In['Type']
@@ -430,8 +434,8 @@ type UnifiedIncomingMessage<MessageSchema extends AnySchema, Config> =
 /** @internal One unified Block with ordinary Layer completion helpers. */
 export type UnifiedBlock<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,

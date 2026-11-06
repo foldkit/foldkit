@@ -111,11 +111,19 @@ For a direct-value map created with `ParentBlock.makeMapBinding`, insertion keep
 
 ::Snippet{name="initInsertMappedChild" label="Inserting a mapped child"}
 
-When an existing child should be retained, use `makeInitIfMissingStep(Binding, { key, args })`. It returns a connected Step and derives the map field from the Binding. Construction captures the key and arguments; applying the Step checks the current Model. An existing key preserves the exact parent Model and emits no Commands. An absent key initializes and inserts the child with its init Commands. Both paths require the registered Binding.
+When an existing child should be retained, use `makeInitIfMissingStep`. It returns a connected Step and derives the map field from the Binding. The static form snapshots its key and arguments at construction:
 
 ::Snippet{name="initMappedChildIfMissing" label="Retaining a mapped child"}
 
-Pass the Step directly to `Update.combineSteps` or a compatible update handler. Use the owning Block's `makeStep` when a producer selects or combines Steps. Keep entity lookup and handling of unknown URL IDs in the application.
+When the selection depends on the current Model, pass a producer that returns `Option.some({ key, args })` or `Option.none()`. The Binding contextually supplies the exact parent Model, key, and init argument types. Construction remains passive. The registered graph evaluates the producer exactly once when it interprets the Step, using the current Step Model after any preceding Steps:
+
+::Snippet{name="initMappedChildFromCurrentModel" label="Selecting a mapped child from the current Model"}
+
+`Option.none()` preserves the exact Model, emits no Commands, and does not run child init. `Option.some` has the same identity result when the key already exists; when it is absent, the Step initializes and inserts the child with its init Commands. Every branch, including `None`, requires the original Binding to be registered.
+
+Keep the producer pure. The complete `makeInitIfMissingStep(...)` expression retains its contextual typing when moved into a named value or another module. A producer extracted independently needs a precise parent Model and initializer-tuple return contract, or can be an existing compatible function. Prefer ordinary array literals when the helper provides tuple context. Pass the Step directly to `Update.combineSteps` or a compatible update handler. Use the owning Block's `makeStep` when selecting or combining Steps.
+
+Both forms support only direct-value Record and HashMap storage. Keep entity lookup and handling of unknown URL IDs in the application. Use explicit `Binding.init` for wrappers, custom metadata, or parent Commands.
 
 Wrapped maps keep explicit construction so the parent supplies their metadata. Keyed identity identifies an occurrence; it does not require storing multiple children. Same-key reinitialization does not create a fresh generation or cancel pending work. Replacing a keyed Option with a different key follows ordinary occurrence removal and creation.
 
@@ -204,6 +212,8 @@ The Flags Effect leaves `KeyValueStore` in its requirements, and the Program sup
 #### Server-Supplied Flags
 
 Server rendering provides Flags from the request or build instead of running a client Flags Effect. `Server.renderToString({ block: ApplicationBlock, layer }, { Flags }, { flags })` acquires the selected executable and calls init with those Flags. It encodes the startup data through the Schema and embeds it in the HTML. `Runtime.hydrate` acquires the browser graph, decodes the same startup data and calls the same init, so the client reconstructs the Model that produced the server HTML.
+
+That handoff transfers Flags, not the server Model or Messages. Its Schema encoding and decoding must complete synchronously without Effect Services. This is separate from a fresh client's Flags Effect, which may use Services while obtaining an already decoded Flags value. A static render with `isHydratable: false` emits no Flags handoff and does not run the serialization Codec.
 
 #### Handoff Validation
 

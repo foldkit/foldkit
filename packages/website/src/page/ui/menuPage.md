@@ -8,7 +8,7 @@ A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget:
 
 Programmatic operations are exposed through the Binding. `requestOpen()` and `requestClose()` are generated from Menu InMessages and run `inMessageUpdate`. `requestSelectItem(item, index)` retains its positional adapter and exact item type.
 
-What `Menu.makeBlock<Item>()` returns is typed [`Completed<Item>` from `@foldkit/ui/menu`](/ui/selection-blocks#completed-type), for the cases where a created Block has to be named rather than called directly.
+What `Menu.makeBlock<Item>()` returns is typed [`Menu.Completed<Item>` from `@foldkit/ui`](/ui/selection-blocks#completed-type), for the cases where a created Block has to be named rather than called directly.
 
 Use `Menu.makeBlock()` for plain strings. Bind the public contract returned by `Menu.makeBlock<Item>()` when the item type is narrower, and provide `Menu.layer` when constructing the parent.
 
@@ -73,7 +73,7 @@ The button receives `aria-haspopup="menu"` and `aria-expanded`. The items contai
 
 ### Naming the Trigger
 
-Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `buttonId(id)` imported from `@foldkit/ui/menu` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the menu. That is why it is the recommended pattern.
+Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `Menu.buttonId(id)` from `@foldkit/ui` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the menu. That is why it is the recommended pattern.
 
 Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel` for an icon-only trigger with no visible label, or `ariaLabelledBy` when the element that names the trigger is not a `<label>` you can point `for` at.
 

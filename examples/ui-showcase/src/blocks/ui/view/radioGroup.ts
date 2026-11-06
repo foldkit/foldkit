@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import type { RenderInfo } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import {
   HorizontalRadioGroupDemoBinding,
@@ -63,7 +63,7 @@ export const view = UiComposition.makeView((model, h) => {
   const verticalPlanOptionsView = ({
     group,
     options,
-  }: RenderInfo<Plan>): Html =>
+  }: RadioGroup.RenderInfo<Plan>): Html =>
     h.div(
       [...group, h.Class(verticalGroupClassName)],
       options.map(option => {
@@ -101,7 +101,7 @@ export const view = UiComposition.makeView((model, h) => {
   const horizontalPlanOptionsView = ({
     group,
     options,
-  }: RenderInfo<Plan>): Html =>
+  }: RadioGroup.RenderInfo<Plan>): Html =>
     h.div(
       [...group, h.Class(horizontalGroupClassName)],
       options.map(option => {

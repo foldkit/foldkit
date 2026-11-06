@@ -1,5 +1,4 @@
 import {
-  Context,
   Effect,
   Layer,
   Option,
@@ -23,23 +22,15 @@ import { embed } from '../../runtime/start.js'
 import * as Story from '../../story/public.js'
 import { modifyFields } from '../../struct/index.js'
 
-class DispatchDecoder extends Context.Service<
-  DispatchDecoder,
-  Readonly<{ prefix: string }>
->()('CodecContractTest/DispatchDecoder') {}
-class DispatchEncoder extends Context.Service<
-  DispatchEncoder,
-  Readonly<{ prefix: string }>
->()('CodecContractTest/DispatchEncoder') {}
+const decodeLabel = vi.fn((value: string) => Effect.succeed(`decoded:${value}`))
+const encodeLabel = vi.fn((value: string) => Effect.succeed(`encoded:${value}`))
 
 const Label = Schema.String.pipe(
   Schema.decodeTo(
     Schema.String,
     SchemaTransformation.transformEffect({
-      decode: value =>
-        Effect.map(DispatchDecoder, decoder => `${decoder.prefix}${value}`),
-      encode: value =>
-        Effect.map(DispatchEncoder, encoder => `${encoder.prefix}${value}`),
+      decode: decodeLabel,
+      encode: encodeLabel,
     }),
   ),
 )
@@ -75,7 +66,6 @@ const ApplicationBlock = Block.make('CodecContractApplication', {
   Model,
   Message,
   Init: Schema.Tuple([]),
-  codec: { decoding: [DispatchDecoder], encoding: [DispatchEncoder] },
   view: { kind: 'Element' },
 })
 const EditorBinding = ApplicationBlock.makeBinding(EditorBlock, {
@@ -106,22 +96,17 @@ const encodedChildMessage = {
   message: { _tag: 'SubmittedLabel', label: 'value' },
 }
 
-const DecoderLayer = Layer.succeed(DispatchDecoder, { prefix: 'decoded:' })
-const EncoderLayer = Layer.succeed(DispatchEncoder, { prefix: 'encoded:' })
-
-describe('opaque child Message codec contracts', () => {
-  it('supplies an opaque child decoder to the running Program DevTools scope', async () => {
-    const prefixes: Array<string> = []
+describe('complete child Message serialization', () => {
+  it('hosts a child codec without evaluating its transformations during startup', async () => {
+    decodeLabel.mockClear()
+    encodeLabel.mockClear()
     const preservation = vi
       .spyOn(ModelPreservationBridge, 'resolvePreservedModel')
       .mockReturnValue(Effect.succeed(undefined))
-    __setDevToolsOverlay(() =>
-      Effect.flatMap(Effect.context<never>(), context =>
-        Effect.sync(() => {
-          prefixes.push(Context.getUnsafe(context, DispatchDecoder).prefix)
-        }),
-      ),
-    )
+    const installOverlay = vi.fn(() => Effect.void)
+    __setDevToolsOverlay(installOverlay)
+    expect(decodeLabel).not.toHaveBeenCalled()
+    expect(encodeLabel).not.toHaveBeenCalled()
     const container = document.createElement('div')
     container.id = 'opaque-codec-devtools'
     document.body.append(container)
@@ -130,11 +115,13 @@ describe('opaque child Message codec contracts', () => {
         ...subject,
         container,
         devTools: { dispatch: true, show: 'Always' },
-      }).provide(DecoderLayer),
+      }),
     )
 
     try {
-      await vi.waitFor(() => expect(prefixes).toEqual(['decoded:']))
+      await vi.waitFor(() => expect(installOverlay).toHaveBeenCalledTimes(1))
+      expect(decodeLabel).not.toHaveBeenCalled()
+      expect(encodeLabel).not.toHaveBeenCalled()
     } finally {
       await handle.dispose()
       __setDevToolsOverlay(undefined)
@@ -144,7 +131,7 @@ describe('opaque child Message codec contracts', () => {
   })
 
   it.effect(
-    'decodes and encodes complete child envelopes through the declared Services',
+    'retains synchronous child transformations in the complete Message codec',
     () =>
       Story.withBlock(subject, executable =>
         Effect.gen(function* () {
@@ -162,11 +149,11 @@ describe('opaque child Message codec contracts', () => {
             message: { _tag: 'SubmittedLabel', label: 'encoded:decoded:value' },
           })
         }),
-      ).pipe(Effect.provide(Layer.merge(DecoderLayer, EncoderLayer))),
+      ),
   )
 
   it.effect(
-    'supplies the decoder to DevTools before routing a child Message into update',
+    'decodes a child envelope before DevTools admits it to update',
     () =>
       Story.withBlock(subject, executable =>
         Effect.gen(function* () {
@@ -200,6 +187,6 @@ describe('opaque child Message codec contracts', () => {
           expect(response._tag).toBe('ResponseDispatched')
           expect(applied).toEqual([{ editor: { label: 'decoded:value' } }])
         }),
-      ).pipe(Effect.provide(DecoderLayer)),
+      ),
   )
 })

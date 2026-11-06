@@ -19,6 +19,12 @@ delivery. Application authors do not declare those variants in the local
 
 Avoid imperative names such as `SetCartItems`, `UpdateSearchText`, and `MutateUserState`. Those names prescribe a transition before update has seen the current Model. A fact leaves the decision where it belongs: in update.
 
+## Facts at child boundaries
+
+An OutMessage describes what happened within the child. If the parent owns the Route, a child asking to leave emits `RequestedClose`, rather than claiming `Closed` before that Route changes. A form can report `SubmittedSavedView` while the parent owns creating the saved view.
+
+Name the responding parent transition for its domain operation. A Board can emit `RequestedMove`; the parent handles it with `moveIssue`, computing an optimistic placement and a persistence Command. Use a `request` name when the transition itself only asks another owner to perform the action. Commands still execute later in Runtime.
+
 ## Command Result Names {#command-results}
 
 For an infallible Command, add `Completed` to the Command name. `FocusSearchInput` produces `CompletedFocusSearchInput`, and `LockScroll` produces `CompletedLockScroll`.

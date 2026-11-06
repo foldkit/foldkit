@@ -28,7 +28,10 @@ import {
 import { AnimationBinding, block, layer, makeBlock } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
-const render = makeView<Model>({ ariaMultiSelectable: false })<string, string>()
+const render = makeView<Model, string, string>(
+  { ariaMultiSelectable: false },
+  Message,
+)
 const view = (
   model: Model,
   { maybeSelectedValue, ...baseInputs }: ViewInputs<string>,
@@ -45,7 +48,7 @@ const view = (
 
 type TestHtmlBuilder = Parameters<typeof view>[2]
 
-const TestListbox = makeBlock<string>()
+const TestListbox = makeBlock()
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorListbox,
@@ -1444,7 +1447,7 @@ describe('Listbox', () => {
                 FocusListboxItems,
                 Message.CompletedFocusListboxItems(),
               ),
-              Story.messageFrom(
+              Story.messageIn(
                 AnimationBinding,
                 Animation.Message.CompletedWaitForPaint({ generation: 0 }),
               ),
@@ -2651,9 +2654,12 @@ describe('Listbox', () => {
         { id: '3', name: 'Charlie' },
       ]
 
-      const renderPersonListbox = makeView<Model>({
-        ariaMultiSelectable: false,
-      })<Person, string>()
+      const renderPersonListbox = makeView<Model, Person, string>(
+        {
+          ariaMultiSelectable: false,
+        },
+        Message,
+      )
 
       const personSceneView =
         (

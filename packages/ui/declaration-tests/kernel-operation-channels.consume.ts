@@ -37,7 +37,7 @@ export type RelocatedOperationAssertions = [
   Expect<
     Equal<
       Parameters<
-        FruitVirtualListExecutable['operations']['informHistoryPrepended']
+        FruitVirtualListExecutable['operations']['informOfHistoryPrepended']
       >[1],
       VirtualList.HistoryPrependInput<'Apple' | 'Pear'>
     >
@@ -45,7 +45,7 @@ export type RelocatedOperationAssertions = [
   Expect<
     Equal<
       OutMessageOf<
-        FruitVirtualListExecutable['operations']['informHistoryPrepended']
+        FruitVirtualListExecutable['operations']['informOfHistoryPrepended']
       >,
       never
     >
@@ -125,17 +125,18 @@ export const operationChecks = Story.withBlock(FruitListbox, listbox =>
       // @ts-expect-error The selected Item remains the factory's Schema type.
       combobox.operations.requestSelectItem(comboboxModel, 'Banana', 'Banana')
 
-      const prependFruitHistory = virtualList.operations.informHistoryPrepended(
-        virtualList.init({ id: 'fruit-history', rowHeightPx: 30 }).model,
-        {
-          items: ['Apple', 'Pear'],
-          prependedItems: ['Apple'],
-          itemToKey: item => item,
-          page: VirtualList.HistoryPage.More(),
-        },
-      )
+      const prependFruitHistory =
+        virtualList.operations.informOfHistoryPrepended(
+          virtualList.init({ id: 'fruit-history', rowHeightPx: 30 }).model,
+          {
+            items: ['Apple', 'Pear'],
+            prependedItems: ['Apple'],
+            itemToKey: item => item,
+            page: VirtualList.HistoryPage.More(),
+          },
+        )
 
-      virtualList.operations.informHistoryPrepended(
+      virtualList.operations.informOfHistoryPrepended(
         virtualList.init({ id: 'fruit-history', rowHeightPx: 30 }).model,
         {
           // @ts-expect-error History notifications retain the completed Block's item type.

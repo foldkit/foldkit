@@ -2,10 +2,10 @@
 // string. Replace model.name and UpdatedName with your own field and Message.
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { type InputAttributes, view as uiInputView } from '@foldkit/ui/input'
+import { Input } from '@foldkit/ui'
 
 const view = (model: Model, h: HtmlBuilder<Message>) => {
-  const inputView = (attributes: InputAttributes<Message>) =>
+  const inputView = (attributes: Input.InputAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-1.5')],
       [
@@ -24,7 +24,7 @@ const view = (model: Model, h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return uiInputView(
+  return Input.view(
     {
       id: 'full-name',
       hasDescription: true,

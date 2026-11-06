@@ -1,16 +1,14 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import { NotePlayerDemoBlock } from './block'
+import { DelayAdvanceNotePlayerPhase, PlayNote } from './command'
 import { NoteDurationRadioGroupBinding } from './composition'
-import {
-  EffectsLayer,
-  init,
-  managedResources,
-  update,
-  view,
-} from './notePlayerDemo'
+import { init } from './init'
+import { managedResources } from './resource'
+import { update } from './update'
+import { view } from './view'
 
 export const layer = NotePlayerDemoBlock.makeLayer(
   Effect.gen(function* () {
@@ -22,7 +20,11 @@ export const layer = NotePlayerDemoBlock.makeLayer(
       update,
       view,
       managedResources,
-      EffectsLayer,
+      EffectsLayer: Layer.mergeAll(
+        DelayAdvanceNotePlayerPhase.layer,
+        PlayNote.layer,
+        managedResources.layer,
+      ),
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
+).pipe(Layer.provide(Layer.mergeAll(RadioGroup.layer)))

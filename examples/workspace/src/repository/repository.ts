@@ -10,24 +10,20 @@ import {
 } from 'effect'
 
 import {
-  type Comment,
   type Issue,
-  type IssueDraft,
-  type MovedIssue,
   type Project,
-  type SavedIssue,
   type Workspace,
   initialWorkspace,
 } from '../domain'
 import {
-  addCommentInState,
+  addIssueCommentInState,
   createIssueInState,
   moveIssueInState,
   saveIssueInState,
 } from './issue'
 import { saveProjectInState } from './project'
 import {
-  type AddCommentInput,
+  type AddIssueCommentInput,
   type MoveIssueInput,
   RepositoryError,
   type RepositoryOperation,
@@ -40,23 +36,27 @@ const DEFAULT_LATENCY_MS = 250
 export class WorkspaceRepository extends Context.Service<
   WorkspaceRepository,
   Readonly<{
-    load: Effect.Effect<Workspace, RepositoryError>
+    load: Effect.Effect<Workspace.Workspace, RepositoryError>
     saveIssue: (
       input: SaveIssueInput,
-    ) => Effect.Effect<SavedIssue, RepositoryError>
-    createIssue: (draft: IssueDraft) => Effect.Effect<Issue, RepositoryError>
-    addComment: (
-      input: AddCommentInput,
-    ) => Effect.Effect<Comment, RepositoryError>
+    ) => Effect.Effect<Issue.SaveResult, RepositoryError>
+    createIssue: (
+      draft: Issue.Draft,
+    ) => Effect.Effect<Issue.Issue, RepositoryError>
+    addIssueComment: (
+      input: AddIssueCommentInput,
+    ) => Effect.Effect<Issue.Comment, RepositoryError>
     moveIssue: (
       input: MoveIssueInput,
-    ) => Effect.Effect<MovedIssue, RepositoryError>
-    saveProject: (project: Project) => Effect.Effect<Project, RepositoryError>
+    ) => Effect.Effect<Issue.MoveResult, RepositoryError>
+    saveProject: (
+      project: Project.Project,
+    ) => Effect.Effect<Project.Project, RepositoryError>
     failNext: (operation: RepositoryOperation) => Effect.Effect<void>
   }>
 >()('workspace/WorkspaceRepository') {}
 
-const consumeFailure = (
+const consumePendingFailure = (
   pendingFailures: ReadonlyArray<RepositoryOperation>,
   operation: RepositoryOperation,
 ): Readonly<[boolean, ReadonlyArray<RepositoryOperation>]> => {
@@ -73,8 +73,8 @@ const consumeFailure = (
 
 const makeWorkspaceRepository = (
   options: Readonly<{
-    latency?: number
-    initialWorkspace?: Workspace
+    latencyMs?: number
+    initialWorkspace?: Workspace.Workspace
     failNext?: ReadonlyArray<RepositoryOperation>
   }>,
 ) =>
@@ -86,15 +86,15 @@ const makeWorkspaceRepository = (
       ReadonlyArray<RepositoryOperation>
     >(options.failNext ?? [])
     const clock = yield* Clock.Clock
-    const latencyMs = options.latency ?? DEFAULT_LATENCY_MS
+    const latencyMs = options.latencyMs ?? DEFAULT_LATENCY_MS
 
-    const checkAvailability = (operation: RepositoryOperation) =>
+    const checkOperationAvailability = (operation: RepositoryOperation) =>
       Effect.gen(function* () {
         yield* Effect.sleep(latencyMs)
 
         const isUnavailable = yield* Ref.modify(
           pendingFailuresRef,
-          pendingFailures => consumeFailure(pendingFailures, operation),
+          pendingFailures => consumePendingFailure(pendingFailures, operation),
         )
 
         if (isUnavailable) {
@@ -109,14 +109,14 @@ const makeWorkspaceRepository = (
       })
 
     const load = Effect.gen(function* () {
-      yield* checkAvailability('Load')
+      yield* checkOperationAvailability('LoadWorkspace')
 
       return (yield* Ref.get(stateRef)).workspace
     })
 
     const saveIssue = (input: SaveIssueInput) =>
       Effect.gen(function* () {
-        yield* checkAvailability('Save')
+        yield* checkOperationAvailability('SaveIssue')
 
         const saveResult = yield* Ref.modify(stateRef, currentState =>
           saveIssueInState(currentState, input),
@@ -125,9 +125,9 @@ const makeWorkspaceRepository = (
         return yield* Effect.fromResult(saveResult)
       })
 
-    const createIssue = (draft: IssueDraft) =>
+    const createIssue = (draft: Issue.Draft) =>
       Effect.gen(function* () {
-        yield* checkAvailability('Create')
+        yield* checkOperationAvailability('CreateIssue')
 
         const creationResult = yield* Ref.modify(stateRef, currentState =>
           createIssueInState(currentState, draft),
@@ -136,15 +136,15 @@ const makeWorkspaceRepository = (
         return yield* Effect.fromResult(creationResult)
       })
 
-    const addComment = (input: AddCommentInput) =>
+    const addIssueComment = (input: AddIssueCommentInput) =>
       Effect.gen(function* () {
-        yield* checkAvailability('Comment')
+        yield* checkOperationAvailability('AddIssueComment')
 
         const createdAt = DateTime.formatIso(
           DateTime.makeUnsafe(yield* clock.currentTimeMillis),
         )
         const commentResult = yield* Ref.modify(stateRef, currentState =>
-          addCommentInState(currentState, input, createdAt),
+          addIssueCommentInState(currentState, input, createdAt),
         )
 
         return yield* Effect.fromResult(commentResult)
@@ -152,7 +152,7 @@ const makeWorkspaceRepository = (
 
     const moveIssue = (input: MoveIssueInput) =>
       Effect.gen(function* () {
-        yield* checkAvailability('Move')
+        yield* checkOperationAvailability('MoveIssue')
 
         const moveResult = yield* Ref.modify(stateRef, currentState =>
           moveIssueInState(currentState, input),
@@ -161,9 +161,9 @@ const makeWorkspaceRepository = (
         return yield* Effect.fromResult(moveResult)
       })
 
-    const saveProject = (project: Project) =>
+    const saveProject = (project: Project.Project) =>
       Effect.gen(function* () {
-        yield* checkAvailability('Project')
+        yield* checkOperationAvailability('SaveProject')
 
         const saveResult = yield* Ref.modify(stateRef, currentState =>
           saveProjectInState(currentState, project),
@@ -176,7 +176,7 @@ const makeWorkspaceRepository = (
       load,
       saveIssue,
       createIssue,
-      addComment,
+      addIssueComment,
       moveIssue,
       saveProject,
       failNext: (operation: RepositoryOperation) =>
@@ -186,8 +186,8 @@ const makeWorkspaceRepository = (
 
 export const makeWorkspaceRepositoryLayer = (
   options: Readonly<{
-    latency?: number
-    initialWorkspace?: Workspace
+    latencyMs?: number
+    initialWorkspace?: Workspace.Workspace
     failNext?: ReadonlyArray<RepositoryOperation>
   }> = {},
 ) => Layer.effect(WorkspaceRepository, makeWorkspaceRepository(options))

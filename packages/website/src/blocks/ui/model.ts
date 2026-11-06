@@ -1,16 +1,18 @@
 import { Schema } from 'effect'
 import { File, Calendar as FoldkitCalendar } from 'foldkit'
 
-import { AnimationBlock } from '@foldkit/ui/animation'
-import { CalendarBlock } from '@foldkit/ui/calendar'
-import { DatePickerBlock } from '@foldkit/ui/datePicker'
-import { DialogBlock } from '@foldkit/ui/dialog'
-import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
-import { FileDropBlock } from '@foldkit/ui/fileDrop'
-import { HoverIntentBlock } from '@foldkit/ui/hoverIntent'
-import { PopoverBlock } from '@foldkit/ui/popover'
-import { SliderBlock } from '@foldkit/ui/slider'
-import { TooltipBlock } from '@foldkit/ui/tooltip'
+import {
+  Animation,
+  DatePicker,
+  Dialog,
+  DragAndDrop,
+  FileDrop,
+  HoverIntent,
+  Popover,
+  Slider,
+  Tooltip,
+  Calendar as UiCalendar,
+} from '@foldkit/ui'
 
 import { CityComboboxBlock, CityMultiComboboxBlock } from './combobox'
 import {
@@ -22,8 +24,7 @@ import {
   ItemListboxBlock,
   ItemMultiListboxBlock,
   PlanRadioGroupBlock,
-} from './demo/components'
-import { ToastBlock } from './demo/toastModule'
+} from './controls'
 import {
   City,
   DemoColumn,
@@ -34,6 +35,7 @@ import {
   VirtualListChatHistorySource,
   VirtualListChatMessage,
 } from './domain/domain'
+import { ToastBlock } from './toast'
 
 export const Model = Schema.Struct({
   buttonClickCount: Schema.Number,
@@ -42,11 +44,11 @@ export const Model = Schema.Struct({
   fieldsetInputValue: Schema.String,
   fieldsetTextareaValue: Schema.String,
   isFieldsetCheckboxDemoChecked: Schema.Boolean,
-  calendarBasicDemo: CalendarBlock.Model,
+  calendarBasicDemo: UiCalendar.CalendarBlock.Model,
   maybeCalendarBasicDemoSelectedDate: Schema.Option(
     FoldkitCalendar.CalendarDate,
   ),
-  datePickerBasicDemo: DatePickerBlock.Model,
+  datePickerBasicDemo: DatePicker.DatePickerBlock.Model,
   maybeDatePickerBasicDemoSelectedDate: Schema.Option(
     FoldkitCalendar.CalendarDate,
   ),
@@ -63,13 +65,13 @@ export const Model = Schema.Struct({
   comboboxMultiDemoSelectedCities: Schema.Array(City),
   comboboxSelectOnFocusDemo: CityComboboxBlock.Model,
   maybeComboboxSelectOnFocusDemoSelectedCity: Schema.Option(City),
-  dialogDemo: DialogBlock.Model,
-  dialogAnimatedDemo: DialogBlock.Model,
-  overlayDialogDemo: DialogBlock.Model,
+  dialogDemo: Dialog.DialogBlock.Model,
+  dialogAnimatedDemo: Dialog.DialogBlock.Model,
+  overlayDialogDemo: Dialog.DialogBlock.Model,
   overlayComboboxDemo: CityComboboxBlock.Model,
   maybeOverlayComboboxDemoSelectedCity: Schema.Option(City),
-  nestedDialogParentDemo: DialogBlock.Model,
-  nestedDialogChildDemo: DialogBlock.Model,
+  nestedDialogParentDemo: Dialog.DialogBlock.Model,
+  nestedDialogChildDemo: Dialog.DialogBlock.Model,
   isDisclosureDemoOpen: Schema.Boolean,
   isDisclosureCollapsedPreviewDemoOpen: Schema.Boolean,
   listboxDemo: ItemListboxBlock.Model,
@@ -80,36 +82,36 @@ export const Model = Schema.Struct({
   maybeListboxGroupedDemoSelectedItem: Schema.Option(Schema.String),
   menuBasicDemo: DemoMenuBlock.Model,
   menuAnimatedDemo: DemoMenuBlock.Model,
-  popoverBasicDemo: PopoverBlock.Model,
-  popoverAnimatedDemo: PopoverBlock.Model,
-  popoverArrowDemo: PopoverBlock.Model,
-  popoverNestedParentDemo: PopoverBlock.Model,
-  popoverNestedChildDemo: PopoverBlock.Model,
+  popoverBasicDemo: Popover.PopoverBlock.Model,
+  popoverAnimatedDemo: Popover.PopoverBlock.Model,
+  popoverArrowDemo: Popover.PopoverBlock.Model,
+  popoverNestedParentDemo: Popover.PopoverBlock.Model,
+  popoverNestedChildDemo: Popover.PopoverBlock.Model,
   verticalRadioGroupDemo: PlanRadioGroupBlock.Model,
   verticalRadioGroupDemoValue: Schema.Option(Plan),
   horizontalRadioGroupDemo: PlanRadioGroupBlock.Model,
   horizontalRadioGroupDemoValue: Schema.Option(Plan),
   selectDemoValue: Schema.String,
-  sliderRatingDemo: SliderBlock.Model,
+  sliderRatingDemo: Slider.SliderBlock.Model,
   sliderRatingValue: Schema.Number,
-  sliderVolumeDemo: SliderBlock.Model,
+  sliderVolumeDemo: Slider.SliderBlock.Model,
   sliderVolumeValue: Schema.Number,
   isSwitchDemoChecked: Schema.Boolean,
   horizontalTabsDemo: DemoTabsBlock.Model,
   horizontalTabsDemoTab: DemoTab,
   verticalTabsDemo: DemoTabsBlock.Model,
   verticalTabsDemoTab: DemoTab,
-  dragAndDropDemo: DragAndDropBlock.Model,
+  dragAndDropDemo: DragAndDrop.DragAndDropBlock.Model,
   dragAndDropDemoColumns: Schema.Array(DemoColumn),
   dragAndDropDemoAnnouncement: Schema.String,
-  fileDropBasicDemo: FileDropBlock.Model,
+  fileDropBasicDemo: FileDrop.FileDropBlock.Model,
   fileDropBasicDemoFiles: Schema.Array(File.File),
   toastDemo: ToastBlock.Model,
   maybeLastDismissedToastTitle: Schema.Option(Schema.String),
-  tooltipDemo: TooltipBlock.Model,
-  hoverIntentCardDemo: HoverIntentBlock.Model,
-  hoverIntentMenuDemo: HoverIntentBlock.Model,
-  animationDemo: AnimationBlock.Model,
+  tooltipDemo: Tooltip.TooltipBlock.Model,
+  hoverIntentCardDemo: HoverIntent.HoverIntentBlock.Model,
+  hoverIntentMenuDemo: HoverIntent.HoverIntentBlock.Model,
+  animationDemo: Animation.AnimationBlock.Model,
   virtualListDemo: ActivityVirtualListBlock.Model,
   virtualListVariableDemo: ActivityVirtualListBlock.Model,
   virtualListChatDemo: ChatVirtualListBlock.Model,

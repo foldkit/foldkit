@@ -107,8 +107,6 @@ export const DOCS_SIDEBAR_NAV_ID = 'docs-sidebar-nav'
 
 export const MOBILE_MENU_NAV_ID = 'mobile-menu-nav'
 
-// NAV PAGE
-
 export type NavPage = Readonly<{
   _tag: string
   href: string
@@ -135,8 +133,6 @@ export const isNavPageActive = (
       onSome: slug => pageTag === exampleDetailTag(slug),
     }),
   )
-
-// DOCS SECTIONS
 
 export type DocsSection = Readonly<{
   key: GroupKey
@@ -733,14 +729,10 @@ export const docsSections: ReadonlyArray<DocsSection> = [
   },
 ]
 
-// FLAT PAGE LIST
-
 export const allPages: ReadonlyArray<NavPage> = [
   getStartedPage,
   ...Array.flatMap(docsSections, ({ pageGroups }) => Array.flatten(pageGroups)),
 ]
-
-// NEXT / PREV LOOKUP
 
 export type PageNeighbors = Readonly<{
   maybePrevious: Option.Option<NavPage>

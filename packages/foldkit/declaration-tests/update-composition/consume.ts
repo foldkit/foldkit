@@ -1,10 +1,16 @@
 import { Effect } from 'effect'
-import { withBlock } from 'foldkit/story'
+import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationBlock, Message, layer, makeUpdate } from './accepted.js'
+import {
+  ApplicationBlock,
+  Message,
+  editedChild,
+  layer,
+  makeUpdate,
+} from './accepted.js'
 
-export const acquiredCalls = withBlock(
+export const acquiredCalls = Story.withBlock(
   { block: ApplicationBlock, layer },
   block => {
     const applicationInit = block.init()
@@ -15,6 +21,7 @@ export const acquiredCalls = withBlock(
     return block.update(Message.CompletedSaveDraft())(renamed.model).model.title
   },
 )
+export const relocatedChildDelivery = editedChild
 
 type Expect<Condition extends true> = Condition
 export type NoExtraServices = Expect<

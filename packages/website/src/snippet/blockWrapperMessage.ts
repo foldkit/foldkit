@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
+import { Story } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { withBlock } from 'foldkit/story'
 
 import { layer } from './block'
 import { ApplicationBlock, makeComposition } from './block'
@@ -17,7 +17,7 @@ export const ApplicationComposition = makeComposition({
 })
 
 // Persistence and replay use the acquired graph's complete dispatch Codec.
-export const messageDecoder = withBlock(
+export const messageDecoder = Story.withBlock(
   { block: ApplicationBlock, layer },
   application => Schema.decodeUnknownSync(application.Message),
 )

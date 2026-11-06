@@ -1,12 +1,12 @@
 import { Array, type Result, Schema } from 'effect'
 
-import { Issue, Workspace } from '../domain'
+import { Workspace } from '../domain'
 import type { RepositoryError } from './schema'
 
 const FIRST_ISSUE_NUMBER = 101
 
 export const RepositoryState = Schema.Struct({
-  workspace: Workspace,
+  workspace: Workspace.Workspace,
   nextIssueNumber: Schema.Number,
   nextCommentNumber: Schema.Number,
 })
@@ -16,7 +16,7 @@ export type RepositoryTransition<Value> = Readonly<
   [Result.Result<Value, RepositoryError>, RepositoryState]
 >
 
-export const makeRepositoryState = (workspace: Workspace) =>
+export const makeRepositoryState = (workspace: Workspace.Workspace) =>
   RepositoryState.make({
     workspace,
     nextIssueNumber: FIRST_ISSUE_NUMBER + workspace.issues.length,
@@ -26,20 +26,6 @@ export const makeRepositoryState = (workspace: Workspace) =>
         0,
         (commentCount, issue) => commentCount + issue.comments.length,
       ) + 1,
-  })
-
-export const findIssue = (state: RepositoryState, issueId: string) =>
-  Array.findFirst(state.workspace.issues, issue => issue.id === issueId)
-
-export const hasProject = (state: RepositoryState, projectId: string) =>
-  Array.some(state.workspace.projects, project => project.id === projectId)
-
-export const replaceIssue = (workspace: Workspace, issue: Issue) =>
-  Workspace.make({
-    ...workspace,
-    issues: Array.map(workspace.issues, currentIssue =>
-      currentIssue.id === issue.id ? issue : currentIssue,
-    ),
   })
 
 export const findAvailableIssueNumber = (state: RepositoryState): number => {

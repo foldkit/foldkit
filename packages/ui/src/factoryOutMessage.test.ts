@@ -14,8 +14,8 @@ import * as Tabs from './tabs/tabs.js'
 const Fruit = Schema.Literals(['Apple', 'Pear'])
 type Fruit = typeof Fruit.Type
 
-const FruitListbox = Listbox.makeBlock<Fruit>()
-const FruitMultiListbox = MultiListbox.makeBlock<Fruit>()
+const FruitListbox = Listbox.makeBlock(Fruit)
+const FruitMultiListbox = MultiListbox.makeBlock(Fruit)
 const FruitMenu = Menu.makeBlock<Fruit>()
 const FruitRadioGroup = RadioGroup.makeBlock<Fruit>()
 const FruitTabs = Tabs.makeBlock<Fruit>()

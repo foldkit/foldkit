@@ -3,15 +3,12 @@ import { Block, Calendar } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  DatePickerBlock,
-  layer as DatePickerLayer,
-} from '@foldkit/ui/datePicker'
+import { DatePicker } from '@foldkit/ui'
 
 const Model = Schema.Struct({
   maybeStartDate: Schema.Option(Calendar.CalendarDate),
   maybeEndDate: Schema.Option(Calendar.CalendarDate),
-  endDatePicker: DatePickerBlock.Model,
+  endDatePicker: DatePicker.DatePickerBlock.Model,
 })
 type Model = typeof Model.Type
 
@@ -49,7 +46,7 @@ const {
   makeComposition,
 } = DateRangeBlock
 
-const foldEndDateOutMessage = makeOutMessageFold(DatePickerBlock, {
+const foldEndDateOutMessage = makeOutMessageFold(DatePicker.DatePickerBlock, {
   SelectedDate: ({ date }) =>
     makeStep(model => {
       const nextModel = modifyFields(model, {
@@ -69,14 +66,14 @@ const foldEndDateOutMessage = makeOutMessageFold(DatePickerBlock, {
   ChangedViewMonth: makeNoopStep,
 })
 
-const EndDatePickerBinding = makeBinding(DatePickerBlock, {
+const EndDatePickerBinding = makeBinding(DatePicker.DatePickerBlock, {
   field: 'endDatePicker',
   init: {
     contextToArgs: today => [{ id: 'end-date', today }],
   },
 }).withOutMessagePolicy({
   fold: foldEndDateOutMessage,
-  forward: makeOutMessageForward(DatePickerBlock, {
+  forward: makeOutMessageForward(DatePicker.DatePickerBlock, {
     SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
     ClearedDate: () => undefined,
     ChangedViewMonth: () => undefined,
@@ -108,4 +105,4 @@ export const layer = DateRangeBlock.makeLayer(
       update,
     }
   }),
-).pipe(Layer.provide(DatePickerLayer))
+).pipe(Layer.provide(DatePicker.layer))

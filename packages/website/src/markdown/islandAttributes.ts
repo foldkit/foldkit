@@ -1,7 +1,5 @@
 import { Schema } from 'effect'
 
-// ISLAND ATTRIBUTES
-
 /**
  * Attribute schemas for every markdown island directive used on the site. One
  * record drives both halves of the pipeline: the markdown Vite plugin validates

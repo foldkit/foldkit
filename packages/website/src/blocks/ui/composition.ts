@@ -3,16 +3,18 @@ import { Block, Calendar } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { AnimationBlock } from '@foldkit/ui/animation'
-import { CalendarBlock } from '@foldkit/ui/calendar'
-import { DatePickerBlock } from '@foldkit/ui/datePicker'
-import { DialogBlock } from '@foldkit/ui/dialog'
-import { DragAndDropBlock } from '@foldkit/ui/dragAndDrop'
-import { FileDropBlock } from '@foldkit/ui/fileDrop'
-import { HoverIntentBlock } from '@foldkit/ui/hoverIntent'
-import { PopoverBlock } from '@foldkit/ui/popover'
-import { SliderBlock } from '@foldkit/ui/slider'
-import { TooltipBlock } from '@foldkit/ui/tooltip'
+import {
+  Animation,
+  DatePicker,
+  Dialog,
+  DragAndDrop,
+  FileDrop,
+  HoverIntent,
+  Popover,
+  Slider,
+  Tooltip,
+  Calendar as UiCalendar,
+} from '@foldkit/ui'
 
 import {
   makeBinding,
@@ -30,9 +32,9 @@ import {
   ItemListboxBlock,
   ItemMultiListboxBlock,
   PlanRadioGroupBlock,
-} from './demo/components'
-import { ToastBlock } from './demo/toastModule'
+} from './controls'
 import { type DemoCard, type DemoColumn } from './domain/domain'
+import { ToastBlock } from './toast'
 import {
   VirtualListChatDemoBinding,
   VirtualListChatHistoryModeGroupBinding,
@@ -134,7 +136,7 @@ const dragAndDropDemoAnnouncementToText = DragAndDropDemoAnnouncement.match({
   Cancelled: () => 'Drag cancelled.',
 })
 
-const foldDialogOutMessage = makeOutMessageFold(DialogBlock, {
+const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   Opened: makeNoopStep,
   Closed: makeNoopStep,
   CompletedClose: makeNoopStep,
@@ -145,20 +147,23 @@ const foldMenuOutMessage = makeOutMessageFold(DemoMenuBlock, {
   Closed: makeNoopStep,
 })
 
-const foldPopoverOutMessage = makeOutMessageFold(PopoverBlock, {
+const foldPopoverOutMessage = makeOutMessageFold(Popover.PopoverBlock, {
   Opened: makeNoopStep,
   Closed: makeNoopStep,
 })
 
-const foldCalendarBasicDemoOutMessage = makeOutMessageFold(CalendarBlock, {
-  SelectedDate: ({ date }) =>
-    makeFieldsStep(() => ({
-      maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
-    })),
-  ChangedViewMonth: makeNoopStep,
-})
+const foldCalendarBasicDemoOutMessage = makeOutMessageFold(
+  UiCalendar.CalendarBlock,
+  {
+    SelectedDate: ({ date }) =>
+      makeFieldsStep(() => ({
+        maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
+      })),
+    ChangedViewMonth: makeNoopStep,
+  },
+)
 
-export const CalendarBasicDemoBinding = makeBinding(CalendarBlock, {
+export const CalendarBasicDemoBinding = makeBinding(UiCalendar.CalendarBlock, {
   field: 'calendarBasicDemo',
   init: {
     contextToArgs: today => [
@@ -172,31 +177,37 @@ export const CalendarBasicDemoBinding = makeBinding(CalendarBlock, {
   },
 }).withOutMessagePolicy({ fold: foldCalendarBasicDemoOutMessage })
 
-const foldDatePickerBasicDemoOutMessage = makeOutMessageFold(DatePickerBlock, {
-  SelectedDate: ({ date }) =>
-    makeFieldsStep(() => ({
-      maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
-    })),
-  ClearedDate: () =>
-    makeFieldsStep(() => ({
-      maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
-    })),
-  ChangedViewMonth: makeNoopStep,
-})
-
-export const DatePickerBasicDemoBinding = makeBinding(DatePickerBlock, {
-  field: 'datePickerBasicDemo',
-  init: {
-    contextToArgs: today => [
-      {
-        id: 'date-picker-basic-demo',
-        today,
-        minDate: Calendar.subtractYears(today, 1),
-        maxDate: Calendar.addYears(today, 1),
-      },
-    ],
+const foldDatePickerBasicDemoOutMessage = makeOutMessageFold(
+  DatePicker.DatePickerBlock,
+  {
+    SelectedDate: ({ date }) =>
+      makeFieldsStep(() => ({
+        maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
+      })),
+    ClearedDate: () =>
+      makeFieldsStep(() => ({
+        maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
+      })),
+    ChangedViewMonth: makeNoopStep,
   },
-}).withOutMessagePolicy({ fold: foldDatePickerBasicDemoOutMessage })
+)
+
+export const DatePickerBasicDemoBinding = makeBinding(
+  DatePicker.DatePickerBlock,
+  {
+    field: 'datePickerBasicDemo',
+    init: {
+      contextToArgs: today => [
+        {
+          id: 'date-picker-basic-demo',
+          today,
+          minDate: Calendar.subtractYears(today, 1),
+          maxDate: Calendar.addYears(today, 1),
+        },
+      ],
+    },
+  },
+).withOutMessagePolicy({ fold: foldDatePickerBasicDemoOutMessage })
 
 const foldComboboxDemoOutMessage = makeOutMessageFold(CityComboboxBlock, {
   Selected: ({ value }) =>
@@ -299,19 +310,19 @@ export const ComboboxSelectOnFocusDemoBinding = makeBinding(CityComboboxBlock, {
   },
 }).withOutMessagePolicy({ fold: foldComboboxSelectOnFocusDemoOutMessage })
 
-export const DialogDemoBinding = makeBinding(DialogBlock, {
+export const DialogDemoBinding = makeBinding(Dialog.DialogBlock, {
   field: 'dialogDemo',
   init: { contextToArgs: () => [{ id: 'dialog-demo' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const DialogAnimatedDemoBinding = makeBinding(DialogBlock, {
+export const DialogAnimatedDemoBinding = makeBinding(Dialog.DialogBlock, {
   field: 'dialogAnimatedDemo',
   init: {
     contextToArgs: () => [{ id: 'dialog-animated-demo', isAnimated: true }],
   },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const OverlayDialogDemoBinding = makeBinding(DialogBlock, {
+export const OverlayDialogDemoBinding = makeBinding(Dialog.DialogBlock, {
   field: 'overlayDialogDemo',
   init: { contextToArgs: () => [{ id: 'overlay-dialog-demo' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
@@ -332,14 +343,14 @@ export const OverlayComboboxDemoBinding = makeBinding(CityComboboxBlock, {
   init: { contextToArgs: () => [{ id: 'overlay-combobox-demo' }] },
 }).withOutMessagePolicy({ fold: foldOverlayComboboxDemoOutMessage })
 
-export const NestedDialogParentDemoBinding = makeBinding(DialogBlock, {
+export const NestedDialogParentDemoBinding = makeBinding(Dialog.DialogBlock, {
   field: 'nestedDialogParentDemo',
   init: {
     contextToArgs: () => [{ id: 'nested-dialog-parent-demo' }],
   },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const NestedDialogChildDemoBinding = makeBinding(DialogBlock, {
+export const NestedDialogChildDemoBinding = makeBinding(Dialog.DialogBlock, {
   field: 'nestedDialogChildDemo',
   init: {
     contextToArgs: () => [{ id: 'nested-dialog-child-demo' }],
@@ -406,45 +417,48 @@ export const MenuAnimatedDemoBinding = makeBinding(DemoMenuBlock, {
   },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
-export const PopoverBasicDemoBinding = makeBinding(PopoverBlock, {
+export const PopoverBasicDemoBinding = makeBinding(Popover.PopoverBlock, {
   field: 'popoverBasicDemo',
   init: { contextToArgs: () => [{ id: 'popover-basic-demo' }] },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-export const PopoverAnimatedDemoBinding = makeBinding(PopoverBlock, {
+export const PopoverAnimatedDemoBinding = makeBinding(Popover.PopoverBlock, {
   field: 'popoverAnimatedDemo',
   init: {
     contextToArgs: () => [{ id: 'popover-animated-demo', isAnimated: true }],
   },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-export const PopoverArrowDemoBinding = makeBinding(PopoverBlock, {
+export const PopoverArrowDemoBinding = makeBinding(Popover.PopoverBlock, {
   field: 'popoverArrowDemo',
   init: { contextToArgs: () => [{ id: 'popover-arrow-demo' }] },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-export const PopoverNestedParentDemoBinding = makeBinding(PopoverBlock, {
-  field: 'popoverNestedParentDemo',
-  init: {
-    contextToArgs: () => [
-      { id: 'popover-nested-parent-demo', contentFocus: true },
-    ],
+export const PopoverNestedParentDemoBinding = makeBinding(
+  Popover.PopoverBlock,
+  {
+    field: 'popoverNestedParentDemo',
+    init: {
+      contextToArgs: () => [
+        { id: 'popover-nested-parent-demo', contentFocus: true },
+      ],
+    },
   },
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-export const PopoverNestedChildDemoBinding = makeBinding(PopoverBlock, {
+export const PopoverNestedChildDemoBinding = makeBinding(Popover.PopoverBlock, {
   field: 'popoverNestedChildDemo',
   init: {
     contextToArgs: () => [{ id: 'popover-nested-child-demo' }],
   },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const foldSliderRatingDemoOutMessage = makeOutMessageFold(SliderBlock, {
+const foldSliderRatingDemoOutMessage = makeOutMessageFold(Slider.SliderBlock, {
   ChangedValue: ({ value }) =>
     makeFieldsStep(() => ({ sliderRatingValue: () => value })),
 })
 
-export const SliderRatingDemoBinding = makeBinding(SliderBlock, {
+export const SliderRatingDemoBinding = makeBinding(Slider.SliderBlock, {
   field: 'sliderRatingDemo',
   init: {
     contextToArgs: () => [
@@ -453,12 +467,12 @@ export const SliderRatingDemoBinding = makeBinding(SliderBlock, {
   },
 }).withOutMessagePolicy({ fold: foldSliderRatingDemoOutMessage })
 
-const foldSliderVolumeDemoOutMessage = makeOutMessageFold(SliderBlock, {
+const foldSliderVolumeDemoOutMessage = makeOutMessageFold(Slider.SliderBlock, {
   ChangedValue: ({ value }) =>
     makeFieldsStep(() => ({ sliderVolumeValue: () => value })),
 })
 
-export const SliderVolumeDemoBinding = makeBinding(SliderBlock, {
+export const SliderVolumeDemoBinding = makeBinding(Slider.SliderBlock, {
   field: 'sliderVolumeDemo',
   init: {
     contextToArgs: () => [
@@ -489,28 +503,37 @@ export const VerticalTabsDemoBinding = makeBinding(DemoTabsBlock, {
   init: { contextToArgs: () => [{ id: 'vertical-tabs-demo' }] },
 }).withOutMessagePolicy({ fold: foldVerticalTabsDemoOutMessage })
 
-const foldTooltipOutMessage = makeOutMessageFold(TooltipBlock, {
+const foldTooltipOutMessage = makeOutMessageFold(Tooltip.TooltipBlock, {
   Shown: makeNoopStep,
   Hidden: makeNoopStep,
 })
 
-export const TooltipDemoBinding = makeBinding(TooltipBlock, {
+export const TooltipDemoBinding = makeBinding(Tooltip.TooltipBlock, {
   field: 'tooltipDemo',
   init: { contextToArgs: () => [{ id: 'tooltip-demo' }] },
 }).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
-const foldHoverIntentOutMessage = makeOutMessageFold(HoverIntentBlock, {
-  Opened: makeNoopStep,
-  Closed: makeNoopStep,
-})
+const foldHoverIntentOutMessage = makeOutMessageFold(
+  HoverIntent.HoverIntentBlock,
+  {
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+  },
+)
 
-export const HoverIntentCardDemoBinding = makeBinding(HoverIntentBlock, {
-  field: 'hoverIntentCardDemo',
-}).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
+export const HoverIntentCardDemoBinding = makeBinding(
+  HoverIntent.HoverIntentBlock,
+  {
+    field: 'hoverIntentCardDemo',
+  },
+).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
-export const HoverIntentMenuDemoBinding = makeBinding(HoverIntentBlock, {
-  field: 'hoverIntentMenuDemo',
-}).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
+export const HoverIntentMenuDemoBinding = makeBinding(
+  HoverIntent.HoverIntentBlock,
+  {
+    field: 'hoverIntentMenuDemo',
+  },
+).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
 const foldToastDemoOutMessage = makeOutMessageFold(ToastBlock, {
   DismissedToast: ({ payload }) =>
@@ -526,103 +549,115 @@ export const ToastDemoBinding = makeBinding(ToastBlock, {
   },
 }).withOutMessagePolicy({ fold: foldToastDemoOutMessage })
 
-const BaseAnimationDemoBinding = makeBinding(AnimationBlock, {
+const BaseAnimationDemoBinding = makeBinding(Animation.AnimationBlock, {
   field: 'animationDemo',
   init: { contextToArgs: () => [{ id: 'animation-demo' }] },
 })
 
-const foldAnimationDemoOutMessage = makeOutMessageFold(AnimationBlock, {
-  StartedLeaveAnimating: () =>
-    BaseAnimationDemoBinding.requestWaitForLeaveSettlement(),
-  TransitionedOut: makeNoopStep,
-})
+const foldAnimationDemoOutMessage = makeOutMessageFold(
+  Animation.AnimationBlock,
+  {
+    StartedLeaveAnimating: () =>
+      BaseAnimationDemoBinding.requestWaitForLeaveSettlement(),
+    TransitionedOut: makeNoopStep,
+  },
+)
 
-const foldFileDropBasicDemoOutMessage = makeOutMessageFold(FileDropBlock, {
-  ReceivedFiles: ({ files }) =>
-    makeFieldsStep(() => ({
-      fileDropBasicDemoFiles: Array.appendAll(files),
-    })),
-  RejectedNonFiles: makeNoopStep,
-})
+const foldFileDropBasicDemoOutMessage = makeOutMessageFold(
+  FileDrop.FileDropBlock,
+  {
+    ReceivedFiles: ({ files }) =>
+      makeFieldsStep(() => ({
+        fileDropBasicDemoFiles: Array.appendAll(files),
+      })),
+    RejectedNonFiles: makeNoopStep,
+  },
+)
 
-export const FileDropBasicDemoBinding = makeBinding(FileDropBlock, {
+export const FileDropBasicDemoBinding = makeBinding(FileDrop.FileDropBlock, {
   field: 'fileDropBasicDemo',
   init: { contextToArgs: () => [{ id: 'file-drop-basic-demo' }] },
 }).withOutMessagePolicy({ fold: foldFileDropBasicDemoOutMessage })
 
-const foldDragAndDropDemoOutMessage = makeOutMessageFold(DragAndDropBlock, {
-  StartedKeyboardDrag: ({ itemId }) =>
-    makeFieldsStep(model => ({
-      dragAndDropDemoAnnouncement: () =>
-        dragAndDropDemoAnnouncementToText(
-          DragAndDropDemoAnnouncement.PickedUp({
-            label: findDragAndDropDemoCardLabel(
-              model.dragAndDropDemoColumns,
-              itemId,
-            ),
-          }),
-        ),
-    })),
-  ChangedKeyboardTarget: ({ fromContainerId, toContainerId, toIndex }) =>
-    makeFieldsStep(model => ({
-      dragAndDropDemoAnnouncement: () => {
-        const args = {
-          columnLabel: findDragAndDropDemoColumnLabel(
-            model.dragAndDropDemoColumns,
-            toContainerId,
-          ),
-          position: toIndex + 1,
-        }
-        return dragAndDropDemoAnnouncementToText(
-          fromContainerId !== toContainerId
-            ? DragAndDropDemoAnnouncement.MovedToColumn(args)
-            : DragAndDropDemoAnnouncement.MovedWithinColumn(args),
-        )
-      },
-    })),
-  Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) =>
-    makeFieldsStep(model => {
-      const label = findDragAndDropDemoCardLabel(
-        model.dragAndDropDemoColumns,
-        itemId,
-      )
-      const columnLabel = findDragAndDropDemoColumnLabel(
-        model.dragAndDropDemoColumns,
-        toContainerId,
-      )
-
-      return {
-        dragAndDropDemoColumns: dragAndDropDemoColumns =>
-          reorderColumns(
-            dragAndDropDemoColumns,
-            itemId,
-            fromContainerId,
-            toContainerId,
-            toIndex,
-          ),
+const foldDragAndDropDemoOutMessage = makeOutMessageFold(
+  DragAndDrop.DragAndDropBlock,
+  {
+    StartedKeyboardDrag: ({ itemId }) =>
+      makeFieldsStep(model => ({
         dragAndDropDemoAnnouncement: () =>
           dragAndDropDemoAnnouncementToText(
-            DragAndDropDemoAnnouncement.Dropped({
-              label,
-              columnLabel,
-              position: toIndex + 1,
+            DragAndDropDemoAnnouncement.PickedUp({
+              label: findDragAndDropDemoCardLabel(
+                model.dragAndDropDemoColumns,
+                itemId,
+              ),
             }),
           ),
-      }
-    }),
-  Cancelled: () =>
-    makeFieldsStep(() => ({
-      dragAndDropDemoAnnouncement: () =>
-        dragAndDropDemoAnnouncementToText(
-          DragAndDropDemoAnnouncement.Cancelled(),
-        ),
-    })),
-})
+      })),
+    ChangedKeyboardTarget: ({ fromContainerId, toContainerId, toIndex }) =>
+      makeFieldsStep(model => ({
+        dragAndDropDemoAnnouncement: () => {
+          const args = {
+            columnLabel: findDragAndDropDemoColumnLabel(
+              model.dragAndDropDemoColumns,
+              toContainerId,
+            ),
+            position: toIndex + 1,
+          }
+          return dragAndDropDemoAnnouncementToText(
+            fromContainerId !== toContainerId
+              ? DragAndDropDemoAnnouncement.MovedToColumn(args)
+              : DragAndDropDemoAnnouncement.MovedWithinColumn(args),
+          )
+        },
+      })),
+    Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) =>
+      makeFieldsStep(model => {
+        const label = findDragAndDropDemoCardLabel(
+          model.dragAndDropDemoColumns,
+          itemId,
+        )
+        const columnLabel = findDragAndDropDemoColumnLabel(
+          model.dragAndDropDemoColumns,
+          toContainerId,
+        )
 
-export const DragAndDropDemoBinding = makeBinding(DragAndDropBlock, {
-  field: 'dragAndDropDemo',
-  init: { contextToArgs: () => [{ id: 'drag-and-drop-demo' }] },
-}).withOutMessagePolicy({ fold: foldDragAndDropDemoOutMessage })
+        return {
+          dragAndDropDemoColumns: dragAndDropDemoColumns =>
+            reorderColumns(
+              dragAndDropDemoColumns,
+              itemId,
+              fromContainerId,
+              toContainerId,
+              toIndex,
+            ),
+          dragAndDropDemoAnnouncement: () =>
+            dragAndDropDemoAnnouncementToText(
+              DragAndDropDemoAnnouncement.Dropped({
+                label,
+                columnLabel,
+                position: toIndex + 1,
+              }),
+            ),
+        }
+      }),
+    Cancelled: () =>
+      makeFieldsStep(() => ({
+        dragAndDropDemoAnnouncement: () =>
+          dragAndDropDemoAnnouncementToText(
+            DragAndDropDemoAnnouncement.Cancelled(),
+          ),
+      })),
+  },
+)
+
+export const DragAndDropDemoBinding = makeBinding(
+  DragAndDrop.DragAndDropBlock,
+  {
+    field: 'dragAndDropDemo',
+    init: { contextToArgs: () => [{ id: 'drag-and-drop-demo' }] },
+  },
+).withOutMessagePolicy({ fold: foldDragAndDropDemoOutMessage })
 
 const foldVirtualListOutMessage = makeOutMessageFold(ActivityVirtualListBlock, {
   ObservedContainerScroll: makeNoopStep,

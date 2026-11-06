@@ -1,6 +1,6 @@
 // ✅ Match the original Definition and supply the child's raw result.
 import { Effect } from 'effect'
-import { Command, init, message, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 
 import {
   ApplicationBlock,
@@ -11,12 +11,12 @@ import {
 } from './testingMigrationFixture'
 
 await Effect.runPromise(
-  story(
+  Story.story(
     { block: ApplicationBlock, layer },
-    init(),
-    message(Message.RequestedRefreshPins()),
-    Command.expectHas(ReadPins),
-    Command.resolve(
+    Story.init(),
+    Story.message(Message.RequestedRefreshPins()),
+    Story.Command.expectHas(ReadPins),
+    Story.Command.resolve(
       ReadPins,
       PinsBlock.Message.CompletedReadPins({ count: 3 }),
     ),

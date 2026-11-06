@@ -1,16 +1,14 @@
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
-import { buttonId as listboxButtonId } from '@foldkit/ui/listbox'
+import { Button, Input, Listbox } from '@foldkit/ui'
 
-import { GroupBy, IssueFilters, IssueStatus } from '../../../domain'
+import { Issue } from '../../../domain'
 import {
   GroupListboxOption,
   SortListboxOption,
   StatusFilterListboxOption,
-  listboxViewInputs,
+  toListboxViewInputs,
 } from '../../../listbox'
 import {
   GroupListboxBinding,
@@ -20,16 +18,16 @@ import {
 } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
-import { plusIcon, searchIcon, statusLabel } from './controls'
+import { plusIcon, searchIcon } from './controls'
 
 const FIELD_CLASS = 'block min-w-0 space-y-1.5 @lg:max-w-40 @4xl:max-w-none'
 const LABEL_CLASS = 'block text-[13px] font-medium text-slate-600'
 
 const STATUS_OPTIONS: ReadonlyArray<StatusFilterListboxOption> = [
   { value: 'All', label: 'All statuses' },
-  ...Array.map(IssueStatus.literals, status => ({
+  ...Array.map(Issue.Status.literals, status => ({
     value: status,
-    label: statusLabel(status),
+    label: Issue.statusLabel(status),
   })),
 ]
 
@@ -39,27 +37,27 @@ const SORT_OPTIONS: ReadonlyArray<SortListboxOption> = [
 ]
 
 const GROUP_OPTIONS: ReadonlyArray<GroupListboxOption> = Array.map(
-  GroupBy.literals,
+  Issue.GroupBy.literals,
   group => ({ value: group, label: group }),
 )
 
 const statusFilterView = (
-  model: Model,
-  filters: IssueFilters,
+  statusListbox: Model['statusListbox'],
+  filters: Issue.Filters,
   h: IssueListViewBuilder,
 ): Html =>
   h.div(
     [h.Class(FIELD_CLASS)],
     [
       h.label(
-        [h.For(listboxButtonId(model.statusListbox.id)), h.Class(LABEL_CLASS)],
+        [h.For(Listbox.buttonId(statusListbox.id)), h.Class(LABEL_CLASS)],
         ['Status'],
       ),
       h.block(
         StatusListboxBinding.embedView({
-          slotId: model.statusListbox.id,
-          model: model.statusListbox,
-          viewInputs: listboxViewInputs({
+          slotId: statusListbox.id,
+          model: statusListbox,
+          viewInputs: toListboxViewInputs({
             value: Option.getOrElse(filters.maybeStatus, () => 'All'),
             options: STATUS_OPTIONS,
             isCompact: true,
@@ -71,22 +69,22 @@ const statusFilterView = (
   )
 
 const sortView = (
-  model: Model,
-  filters: IssueFilters,
+  sortListbox: Model['sortListbox'],
+  filters: Issue.Filters,
   h: IssueListViewBuilder,
 ): Html =>
   h.div(
     [h.Class(FIELD_CLASS)],
     [
       h.label(
-        [h.For(listboxButtonId(model.sortListbox.id)), h.Class(LABEL_CLASS)],
+        [h.For(Listbox.buttonId(sortListbox.id)), h.Class(LABEL_CLASS)],
         ['Sort'],
       ),
       h.block(
         SortListboxBinding.embedView({
-          slotId: model.sortListbox.id,
-          model: model.sortListbox,
-          viewInputs: listboxViewInputs({
+          slotId: sortListbox.id,
+          model: sortListbox,
+          viewInputs: toListboxViewInputs({
             value: filters.sort,
             options: SORT_OPTIONS,
             isCompact: true,
@@ -98,22 +96,22 @@ const sortView = (
   )
 
 const groupView = (
-  model: Model,
-  filters: IssueFilters,
+  groupListbox: Model['groupListbox'],
+  filters: Issue.Filters,
   h: IssueListViewBuilder,
 ): Html =>
   h.div(
     [h.Class(FIELD_CLASS)],
     [
       h.label(
-        [h.For(listboxButtonId(model.groupListbox.id)), h.Class(LABEL_CLASS)],
+        [h.For(Listbox.buttonId(groupListbox.id)), h.Class(LABEL_CLASS)],
         ['Group'],
       ),
       h.block(
         GroupListboxBinding.embedView({
-          slotId: model.groupListbox.id,
-          model: model.groupListbox,
-          viewInputs: listboxViewInputs({
+          slotId: groupListbox.id,
+          model: groupListbox,
+          viewInputs: toListboxViewInputs({
             value: filters.groupBy,
             options: GROUP_OPTIONS,
             isCompact: true,
@@ -125,8 +123,8 @@ const groupView = (
   )
 
 const savedViewForm = (
-  model: Model,
-  filters: IssueFilters,
+  savedViewName: string,
+  filters: Issue.Filters,
   h: IssueListViewBuilder,
 ): Html =>
   h.form(
@@ -137,11 +135,11 @@ const savedViewForm = (
       ),
     ],
     [
-      inputView(
+      Input.view(
         {
           id: 'issue-list-saved-view-name',
           placeholder: 'View name',
-          value: model.savedViewName,
+          value: savedViewName,
           onInput: value => Message.UpdatedSavedViewName({ value }),
           toView: attributes =>
             h.input([
@@ -155,7 +153,7 @@ const savedViewForm = (
         },
         h,
       ),
-      buttonView(
+      Button.view(
         {
           type: 'submit',
           toView: attributes =>
@@ -170,9 +168,11 @@ const savedViewForm = (
   )
 
 export const filterToolbarView = (
-  model: Model,
-  filters: IssueFilters,
-  isCreationDisabled: boolean,
+  statusListbox: Model['statusListbox'],
+  sortListbox: Model['sortListbox'],
+  groupListbox: Model['groupListbox'],
+  filters: Issue.Filters,
+  isIssueCreationDisabled: boolean,
   h: IssueListViewBuilder,
 ): Html =>
   h.div(
@@ -182,7 +182,7 @@ export const filterToolbarView = (
       ),
     ],
     [
-      inputView(
+      Input.view(
         {
           id: 'issue-list-input-1',
           type: 'search',
@@ -209,18 +209,18 @@ export const filterToolbarView = (
         },
         h,
       ),
-      statusFilterView(model, filters, h),
-      sortView(model, filters, h),
-      groupView(model, filters, h),
-      buttonView(
+      statusFilterView(statusListbox, filters, h),
+      sortView(sortListbox, filters, h),
+      groupView(groupListbox, filters, h),
+      Button.view(
         {
-          isDisabled: isCreationDisabled,
+          isDisabled: isIssueCreationDisabled,
           onClick: Message.ClickedCreateIssue(),
           toView: attributes =>
             h.button(
               [
                 ...attributes.button,
-                ...(isCreationDisabled
+                ...(isIssueCreationDisabled
                   ? [h.AriaDescription('No projects are available')]
                   : []),
                 h.Class(
@@ -236,8 +236,8 @@ export const filterToolbarView = (
   )
 
 export const listSummaryView = (
-  model: Model,
-  filters: IssueFilters,
+  savedViewName: string,
+  filters: Issue.Filters,
   issueCount: number,
   h: IssueListViewBuilder,
 ): Html =>
@@ -252,6 +252,6 @@ export const listSummaryView = (
         ],
         [`${issueCount} ${issueCount === 1 ? 'issue' : 'issues'}`],
       ),
-      savedViewForm(model, filters, h),
+      savedViewForm(savedViewName, filters, h),
     ],
   )

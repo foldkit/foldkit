@@ -68,8 +68,9 @@ export const LoadBrowserEnvironment = makeCommand('LoadBrowserEnvironment', {
         )
 
         // NOTE: Playground navigation loads a fresh document with COOP/COEP headers.
-        // Firefox can boot this standalone WebContainer embed, but its iframe preview
-        // stays blank and opening the URL needs a project connection route Foldkit lacks.
+        // Firefox can boot WebContainer here, but its iframe preview stays blank.
+        // Standalone previews need a non-isolated `/webcontainer/connect/*` page
+        // running setupConnect(), which the Website has not implemented.
         const isPlaygroundSupported =
           window.crossOriginIsolated &&
           typeof SharedArrayBuffer !== 'undefined' &&

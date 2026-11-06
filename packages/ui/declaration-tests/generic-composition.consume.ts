@@ -74,7 +74,7 @@ export type RelocatedAssertions = [
     Equal<
       Exclude<
         ReturnType<
-          SliderExecutable['operations']['informRangeChange']
+          SliderExecutable['operations']['informOfRangeChange']
         >['outMessage'],
         undefined
       >,
@@ -85,7 +85,7 @@ export type RelocatedAssertions = [
     Equal<
       Exclude<
         ReturnType<
-          RootSliderExecutable['operations']['informRangeChange']
+          RootSliderExecutable['operations']['informOfRangeChange']
         >['outMessage'],
         undefined
       >,
@@ -125,12 +125,12 @@ export const relocatedOperations = Story.withBlock(Slider.SliderBlock, slider =>
   Story.withBlock(RootSlider, rootSlider =>
     Story.withBlock(Tooltip.TooltipBlock, tooltip =>
       Story.withBlock(ToastBlock, toast => {
-        slider.operations.informRangeChange(
+        slider.operations.informOfRangeChange(
           slider.init({ id: 'relocated-range', min: 0, max: 100, step: 1 })
             .model,
           { min: 10, max: 90 },
         )
-        rootSlider.operations.informRangeChange(
+        rootSlider.operations.informOfRangeChange(
           slider.init({
             id: 'relocated-root-range',
             min: 0,
@@ -139,7 +139,7 @@ export const relocatedOperations = Story.withBlock(Slider.SliderBlock, slider =>
           }).model,
           { min: 20, max: 80 },
         )
-        tooltip.operations.informShowDelayChanged(
+        tooltip.operations.informOfShowDelayChanged(
           tooltip.init({ id: 'relocated-tooltip' }).model,
           Duration.millis(250),
         )

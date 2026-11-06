@@ -81,7 +81,7 @@ test('root and subpath test namespaces share Steps and scoped acquisition', () =
   expect(RootScene.scene).toBe(Scene.scene)
   expect(RootStory.init).toBe(Story.init)
   expect(RootScene.init).toBe(Scene.init)
-  expect(RootStory.messageFrom).toBe(Story.messageFrom)
+  expect(RootStory.messageIn).toBe(Story.messageIn)
   expect(Scene.withBlock).toBe(Story.withBlock)
   expect(RootStory.withBlock).toBe(Story.withBlock)
   expect(RootScene.withBlock).toBe(Story.withBlock)
@@ -143,9 +143,9 @@ test('Block-aware Scene renders its acquired child and preserves OutMessages', a
   expect(events).toEqual(['acquire', 'release'])
 })
 
-test('messageFrom resolves the same passive step within each parent acquisition', async () => {
+test('messageIn resolves the same passive step within each parent acquisition', async () => {
   const events: Array<string> = []
-  const delivery = Story.messageFrom(
+  const delivery = Story.messageIn(
     CounterBinding,
     CounterMessage.UpdatedCount({ value: 7 }),
   )

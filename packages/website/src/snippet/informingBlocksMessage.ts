@@ -1,10 +1,10 @@
 import { Schema } from 'effect'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
 import { Person } from './informingBlocksModel'
 import { ApplicationRoute } from './informingBlocksRoute'
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   InformedOfRouteChange: { route: ApplicationRoute.People },
 })
 export type InMessage = typeof InMessage.Type

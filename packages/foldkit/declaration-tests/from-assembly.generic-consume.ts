@@ -4,11 +4,9 @@ import { Block } from 'foldkit'
 import { Store } from './from-assembly.accepted.js'
 import type { Assert, Equal, SameMembers } from './from-assembly.assertions.js'
 import { createPicker } from './from-assembly.generic.js'
-import { DecodeItem, EncodeItem, ItemSchema } from './from-assembly.generic.js'
 
 export const Numeric = createPicker(Schema.NumberFromString)
 export const Literal = createPicker(Schema.Literals(['Red', 'Blue']))
-export const WithServices = createPicker(ItemSchema)
 export type ExactNumericMembers = Assert<
   SameMembers<typeof Numeric.PickerBlock, typeof Numeric.OriginalPickerBlock>
 >
@@ -25,10 +23,10 @@ export type Encoded = Assert<
   >
 >
 export type DecodingServices = Assert<
-  Equal<typeof WithServices.PickerBlock.Model.DecodingServices, DecodeItem>
+  Equal<typeof Numeric.PickerBlock.Model.DecodingServices, never>
 >
 export type EncodingServices = Assert<
-  Equal<typeof WithServices.PickerBlock.Model.EncodingServices, EncodeItem>
+  Equal<typeof Numeric.PickerBlock.Model.EncodingServices, never>
 >
 export type OrdinaryServices = Assert<
   Equal<Layer.Services<typeof Numeric.PickerBlock.EffectsLayer>, Store>
@@ -43,8 +41,8 @@ export type LiteralOutMessage = Assert<
   >
 >
 
-export function createDownstreamPicker<Item, EncodedValue, Decoding, Encoding>(
-  Item: Schema.Codec<Item, EncodedValue, Decoding, Encoding> & {
+export function createDownstreamPicker<Item, EncodedValue>(
+  Item: Schema.Codec<Item, EncodedValue, never, never> & {
     readonly '~type.make': Item
   },
 ) {

@@ -105,13 +105,13 @@ The button receives `aria-expanded` and `aria-controls` linking to the panel. Th
 
 ### Name the Trigger
 
-Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `buttonId(id)` imported from `@foldkit/ui/popover` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the popover. That is why it is the recommended pattern.
+Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `Popover.buttonId(id)` from `@foldkit/ui` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the popover. That is why it is the recommended pattern.
 
 Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel` for an icon-only trigger with no visible label, or `ariaLabelledBy` when the element that names the trigger is not a `<label>` you can point `for` at.
 
 ## Testing
 
-Spreading the `arrow` bundle supplies the arrow id in application markup. A Scene test that asserts the panel Mount's `arrowId` argument needs to construct that value directly. Import `arrowId` from `@foldkit/ui/popover` and call `arrowId(id)` rather than hardcoding the `-arrow` convention.
+Spreading the `arrow` bundle supplies the arrow id in application markup. A Scene test that asserts the panel Mount's `arrowId` argument needs to construct that value directly. Call `Popover.arrowId(id)` from `@foldkit/ui` rather than hardcoding the `-arrow` convention.
 
 Use `Scene.focusLeave(panel)` to test that a default Popover closes when focus leaves its panel.
 

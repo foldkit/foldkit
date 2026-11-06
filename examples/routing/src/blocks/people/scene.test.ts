@@ -1,5 +1,5 @@
 import { Array, String } from 'effect'
-import { expect, given, role, scene, text } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -19,26 +19,26 @@ const loaded = (searchInput: string) =>
 
 describe('people', () => {
   it.effect('lists every person', () =>
-    scene(
+    Scene.scene(
       { block: PeopleBlock, layer },
-      given(loaded('')),
-      expect(role('heading', { name: 'People' })).toExist(),
-      expect(text('Alice Johnson')).toExist(),
-      expect(text('Bob Smith')).toExist(),
-      expect(text('Carol Davis')).toExist(),
-      expect(text('David Wilson')).toExist(),
-      expect(text('Eva Brown')).toExist(),
+      Scene.given(loaded('')),
+      Scene.expect(Scene.role('heading', { name: 'People' })).toExist(),
+      Scene.expect(Scene.text('Alice Johnson')).toExist(),
+      Scene.expect(Scene.text('Bob Smith')).toExist(),
+      Scene.expect(Scene.text('Carol Davis')).toExist(),
+      Scene.expect(Scene.text('David Wilson')).toExist(),
+      Scene.expect(Scene.text('Eva Brown')).toExist(),
     ),
   )
 
   it.effect('a search filters matches by name or role', () =>
-    scene(
+    Scene.scene(
       { block: PeopleBlock, layer },
-      given(loaded('designer')),
-      expect(text('Alice Johnson')).toExist(),
-      expect(text('Eva Brown')).toExist(),
-      expect(text('Bob Smith')).toBeAbsent(),
-      expect(text('2 results', { exact: false })).toExist(),
+      Scene.given(loaded('designer')),
+      Scene.expect(Scene.text('Alice Johnson')).toExist(),
+      Scene.expect(Scene.text('Eva Brown')).toExist(),
+      Scene.expect(Scene.text('Bob Smith')).toBeAbsent(),
+      Scene.expect(Scene.text('2 results', { exact: false })).toExist(),
     ),
   )
 })

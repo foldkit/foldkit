@@ -1,10 +1,6 @@
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion } from 'foldkit/message'
 
-import { Issue } from '../../domain'
-
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedSave: {},
-  InformedOfIssueChange: { issue: Issue },
 })
 export type InMessage = typeof InMessage.Type
-export type InformedOfIssueChange = typeof InMessage.InformedOfIssueChange.Type

@@ -298,8 +298,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       childField: 'animation',
     },
   ).withOutMessagePolicy({
-    fold: (entryId, outMessage) =>
-      makeEntryAnimationOutMessageFold(entryId)(outMessage),
+    fold: entryId => makeEntryAnimationOutMessageFold(entryId),
   })
 
   const makeEntryAnimationOutMessageFold = (entryId: string) =>

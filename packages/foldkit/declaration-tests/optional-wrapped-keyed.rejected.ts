@@ -1,15 +1,52 @@
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
+import * as Scene from 'foldkit/scene'
 
 import {
   DeclarationOptionalWrappedKeyedParentDefinition,
+  LiteralRoomBinding,
   ParentMessage,
   ParentModel,
+  RoomBinding,
   RoomBlock,
   RoomId,
   RoomInstance,
+  RoomMessage,
   RoomModel,
+  roomManagedResources,
+  roomSubscriptions,
 } from './optional-wrapped-keyed.accepted.js'
+
+declare const roomId: typeof RoomId.Type
+const selectedTicks = Scene.Subscription.at(
+  RoomBinding,
+  roomId,
+  roomSubscriptions.ticks,
+)
+Scene.Subscription.emit(
+  selectedTicks,
+  // @ts-expect-error The selected Subscription accepts only its declared Message.
+  RoomMessage.RequestedSetCount({ count: 1 }),
+)
+const selectedSession = Scene.ManagedResource.at(
+  RoomBinding,
+  roomId,
+  roomManagedResources.session,
+)
+Scene.ManagedResource.acquire(
+  selectedSession,
+  // @ts-expect-error The selected ManagedResource preserves its acquired value type.
+  1,
+)
+Scene.Subscription.at(
+  RoomBinding,
+  // @ts-expect-error The selected occurrence key must match the keyed Binding.
+  1,
+  roomSubscriptions.ticks,
+)
+const foreignSource = roomSubscriptions.ticks
+// @ts-expect-error The Subscription source must belong to the keyed child Block.
+Scene.Subscription.at(LiteralRoomBinding, 'Primary', foreignSource)
 
 const OptionalRoomInstance = Schema.Struct({
   roomId: Schema.optionalKey(RoomId),

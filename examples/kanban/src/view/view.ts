@@ -1,6 +1,6 @@
 import { Array, Option, pipe } from 'effect'
 
-import { ghostStyle, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
+import { DragAndDrop } from '@foldkit/ui'
 
 import { ApplicationComposition, DragAndDropBinding } from '../composition'
 import type { ApplicationViewBuilder } from '../composition'
@@ -8,24 +8,34 @@ import type { Model } from '../model'
 import { ghostCardView } from './card'
 import { columnView } from './column'
 
-const findDraggedCard = (model: Model) =>
+const findDraggedCard = (
+  dragAndDrop: Model['dragAndDrop'],
+  columns: Model['columns'],
+) =>
   pipe(
-    model.dragAndDrop,
-    maybeDraggedItemId,
+    dragAndDrop,
+    DragAndDrop.maybeDraggedItemId,
     Option.flatMap(cardId =>
       pipe(
-        model.columns,
+        columns,
         Array.flatMap(({ cards }) => cards),
         Array.findFirst(({ id }) => id === cardId),
       ),
     ),
   )
 
-const ghostElement = (model: Model, h: ApplicationViewBuilder) =>
+const ghostElement = (
+  dragAndDrop: Model['dragAndDrop'],
+  columns: Model['columns'],
+  h: ApplicationViewBuilder,
+) =>
   pipe(
-    ghostStyle(model.dragAndDrop),
+    DragAndDrop.ghostStyle(dragAndDrop),
     Option.flatMap(ghostStyle =>
-      Option.map(findDraggedCard(model), card => ({ ghostStyle, card })),
+      Option.map(findDraggedCard(dragAndDrop, columns), card => ({
+        ghostStyle,
+        card,
+      })),
     ),
     Option.match({
       onNone: () => h.empty,
@@ -67,10 +77,19 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                       ),
                     ],
                     Array.map(model.columns, column =>
-                      columnView(model, column, render, message => message, h),
+                      columnView(
+                        model.dragAndDrop,
+                        model.columns,
+                        model.maybeNewCardColumnId,
+                        model.newCardTitle,
+                        column,
+                        render,
+                        message => message,
+                        h,
+                      ),
                     ),
                   ),
-                  ghostElement(model, h),
+                  ghostElement(model.dragAndDrop, model.columns, h),
                 ],
               ),
           },

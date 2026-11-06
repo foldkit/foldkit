@@ -1,4 +1,4 @@
-import { click, expect, given, role, scene, text } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -13,20 +13,20 @@ const initialModel = Model.make({
 
 describe('view', () => {
   it.effect('renders the statically generated home page', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      expect(text('Statically generated home')).toExist(),
-      expect(role('button', { name: 'Count: 0' })).toExist(),
+      Scene.given(initialModel),
+      Scene.expect(Scene.text('Statically generated home')).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Count: 0' })).toExist(),
     ),
   )
 
   it.effect('clicking the counter increments the count', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(initialModel),
-      click(role('button', { name: 'Count: 0' })),
-      expect(role('button', { name: 'Count: 1' })).toExist(),
+      Scene.given(initialModel),
+      Scene.click(Scene.role('button', { name: 'Count: 0' })),
+      Scene.expect(Scene.role('button', { name: 'Count: 1' })).toExist(),
     ),
   )
 })

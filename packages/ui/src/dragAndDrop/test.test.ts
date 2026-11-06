@@ -478,7 +478,7 @@ const KeyedBinding = KeyedDragAndDropTestParentBlock.makeBinding(
       }),
   },
 ).withOutMessagePolicy({
-  fold: (_key, outMessage) => foldKeyedDragAndDropOutMessage(outMessage),
+  fold: foldKeyedDragAndDropOutMessage,
 })
 
 const KeyedDragAndDropTestParentComposition =

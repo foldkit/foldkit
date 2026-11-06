@@ -1,15 +1,4 @@
-import {
-  Command,
-  click,
-  expect,
-  given,
-  label,
-  role,
-  scene,
-  submit,
-  text,
-  type,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
@@ -37,22 +26,22 @@ const modelWithTodos: Model = modifyFields(emptyModel, {
 
 describe('view', () => {
   it.effect('empty state shows heading and placeholder message', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(emptyModel),
-      expect(role('heading', { name: 'Todo App' })).toExist(),
-      expect(text('No todos yet. Add one above!')).toExist(),
+      Scene.given(emptyModel),
+      Scene.expect(Scene.role('heading', { name: 'Todo App' })).toExist(),
+      Scene.expect(Scene.text('No todos yet. Add one above!')).toExist(),
     ),
   )
 
   it.effect('renders existing todos', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(modelWithTodos),
-      expect(text('Buy milk')).toExist(),
-      expect(text('Walk the dog')).toExist(),
-      expect(text('Done task')).toExist(),
-      expect(role('status')).toContainText('2 active, 1 completed'),
+      Scene.given(modelWithTodos),
+      Scene.expect(Scene.text('Buy milk')).toExist(),
+      Scene.expect(Scene.text('Walk the dog')).toExist(),
+      Scene.expect(Scene.text('Done task')).toExist(),
+      Scene.expect(Scene.role('status')).toContainText('2 active, 1 completed'),
     ),
   )
 
@@ -64,13 +53,13 @@ describe('view', () => {
       createdAt: 5000,
     }
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(emptyModel),
-      type(label('New todo'), 'Write tests'),
-      submit(role('form')),
-      Command.expectExact(GenerateTodo),
-      Command.resolve(
+      Scene.given(emptyModel),
+      Scene.type(Scene.label('New todo'), 'Write tests'),
+      Scene.submit(Scene.role('form')),
+      Scene.Command.expectExact(GenerateTodo),
+      Scene.Command.resolve(
         GenerateTodo,
         Message.CompletedGenerateTodo({
           id: 'new-1',
@@ -78,13 +67,13 @@ describe('view', () => {
           text: 'Write tests',
         }),
       ),
-      Command.expectExact(SaveTodos),
-      Command.resolve(
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(
         SaveTodos,
         Message.SucceededSaveTodos({ todos: [addedTodo] }),
       ),
-      expect(text('Write tests')).toExist(),
-      expect(label('New todo')).toHaveValue(''),
+      Scene.expect(Scene.text('Write tests')).toExist(),
+      Scene.expect(Scene.label('New todo')).toHaveValue(''),
     )
   })
 
@@ -93,33 +82,33 @@ describe('view', () => {
       todo.id === 'abc' ? modifyFields(todo, { completed: () => true }) : todo,
     )
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(modelWithTodos),
-      click(label('Buy milk')),
-      Command.expectExact(SaveTodos),
-      Command.resolve(
+      Scene.given(modelWithTodos),
+      Scene.click(Scene.label('Buy milk')),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(
         SaveTodos,
         Message.SucceededSaveTodos({ todos: toggledTodos }),
       ),
-      expect(role('status')).toContainText('1 active, 2 completed'),
+      Scene.expect(Scene.role('status')).toContainText('1 active, 2 completed'),
     )
   })
 
   it.effect('delete a todo', () => {
     const remainingTodos = modelWithTodos.todos.filter(({ id }) => id !== 'abc')
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(modelWithTodos),
-      click(role('button', { name: 'Delete Buy milk' })),
-      Command.expectExact(SaveTodos),
-      Command.resolve(
+      Scene.given(modelWithTodos),
+      Scene.click(Scene.role('button', { name: 'Delete Buy milk' })),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(
         SaveTodos,
         Message.SucceededSaveTodos({ todos: remainingTodos }),
       ),
-      expect(text('Buy milk')).toBeAbsent(),
-      expect(text('Walk the dog')).toExist(),
+      Scene.expect(Scene.text('Buy milk')).toBeAbsent(),
+      Scene.expect(Scene.text('Walk the dog')).toExist(),
     )
   })
 
@@ -128,17 +117,17 @@ describe('view', () => {
       ({ completed }) => !completed,
     )
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(modelWithTodos),
-      click(role('button', { name: 'Clear 1 completed' })),
-      Command.expectExact(SaveTodos),
-      Command.resolve(
+      Scene.given(modelWithTodos),
+      Scene.click(Scene.role('button', { name: 'Clear 1 completed' })),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(
         SaveTodos,
         Message.SucceededSaveTodos({ todos: activeTodos }),
       ),
-      expect(text('Done task')).toBeAbsent(),
-      expect(role('status')).toContainText('2 active, 0 completed'),
+      Scene.expect(Scene.text('Done task')).toBeAbsent(),
+      Scene.expect(Scene.role('status')).toContainText('2 active, 0 completed'),
     )
   })
 
@@ -147,27 +136,27 @@ describe('view', () => {
       modifyFields(todo, { completed: () => true }),
     )
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(modelWithTodos),
-      click(role('button', { name: 'Mark all complete' })),
-      Command.expectExact(SaveTodos),
-      Command.resolve(
+      Scene.given(modelWithTodos),
+      Scene.click(Scene.role('button', { name: 'Mark all complete' })),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(
         SaveTodos,
         Message.SucceededSaveTodos({ todos: allCompletedTodos }),
       ),
-      expect(role('status')).toContainText('0 active, 3 completed'),
+      Scene.expect(Scene.role('status')).toContainText('0 active, 3 completed'),
     )
   })
 
   it.effect('keeps in-memory changes when saving fails', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(modelWithTodos),
-      click(label('Buy milk')),
-      Command.expectExact(SaveTodos),
-      Command.resolve(SaveTodos, Message.FailedSaveTodos()),
-      expect(role('status')).toContainText('1 active, 2 completed'),
+      Scene.given(modelWithTodos),
+      Scene.click(Scene.label('Buy milk')),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(SaveTodos, Message.FailedSaveTodos()),
+      Scene.expect(Scene.role('status')).toContainText('1 active, 2 completed'),
     ),
   )
 })

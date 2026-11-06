@@ -3,6 +3,7 @@ import {
   DeclarationCanonicalConstructorParentComposition,
   DeclarationCanonicalConstructorParentDefinition,
   ParentMessage,
+  Payload,
 } from './canonical-constructor.accepted.js'
 
 // oxlint-disable-next-line typescript/no-explicit-any -- Erasure must not restore removed authoring fields.
@@ -22,7 +23,8 @@ DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
 // @ts-expect-error Composition derives outgoing delivery; mapper fields are forbidden.
 DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
   field: 'child',
-  toParentMessage: () => ParentMessage.ReceivedPayload({ payload: 'value' }),
+  toParentMessage: () =>
+    ParentMessage.ReceivedPayload({ payload: Payload.make('value') }),
 })
 // @ts-expect-error Composition derives incoming routing; mapper fields are forbidden.
 DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {

@@ -2,9 +2,7 @@ import { clsx } from 'clsx'
 import { Array, Match, Option, Order, String, pipe } from 'effect'
 import { Html, childAttributes } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as inputView } from '@foldkit/ui/input'
-import { AnchorConfig, type ItemConfig } from '@foldkit/ui/listbox'
+import { Button, Input, Listbox } from '@foldkit/ui'
 
 import {
   ApplicationComposition,
@@ -14,7 +12,13 @@ import {
 } from './composition'
 import { type Dinosaur, dinosaurs } from './data'
 import { Message } from './message'
-import { type Model, dietFilterItems, periodFilterItems } from './model'
+import {
+  type DietFilter,
+  type Model,
+  type PeriodFilter,
+  dietFilterItems,
+  periodFilterItems,
+} from './model'
 import {
   ApplicationRoute,
   type BrowseFields,
@@ -169,7 +173,7 @@ const sortableColumnHeader = (
   return h.th(
     [h.AriaSort(ariaSortValue(column, fields.sorting))],
     [
-      buttonView(
+      Button.view(
         {
           onClick: Message.ClickedColumnHeader({ column }),
           toView: attributes =>
@@ -188,7 +192,7 @@ const sortableColumnHeader = (
   )
 }
 
-const LISTBOX_ANCHOR: AnchorConfig = {
+const LISTBOX_ANCHOR: Listbox.AnchorConfig = {
   placement: 'bottom-start',
   gap: 4,
   padding: 8,
@@ -210,7 +214,7 @@ const listboxWrapperClassName = 'relative inline-block'
 const filterItemConfig = (
   label: string,
   h: ApplicationViewBuilder,
-): ItemConfig => {
+): Listbox.ItemConfig => {
   return {
     className: listboxItemClassName,
     content: h.div(
@@ -266,14 +270,15 @@ const filterButtonLabel = (
     Option.getOrElse(() => fallback),
   )
 
-const dietLabel = (item: string): string =>
-  String.isEmpty(item) ? 'All Diets' : item
+const dietLabel = (item: DietFilter): string =>
+  item === 'All' ? 'All Diets' : item
 
-const periodLabel = (item: string): string =>
-  String.isEmpty(item) ? 'All Periods' : item
+const periodLabel = (item: PeriodFilter): string =>
+  item === 'All' ? 'All Periods' : item
 
 const browseView = (
-  model: Model,
+  dietListbox: Model['dietListbox'],
+  periodListbox: Model['periodListbox'],
   route: BrowseRoute,
   h: ApplicationViewBuilder,
 ): Html => {
@@ -297,7 +302,7 @@ const browseView = (
       h.div(
         [h.Class('flex flex-wrap items-start gap-3 mb-6')],
         [
-          inputView(
+          Input.view(
             {
               id: 'dinosaur-search',
               value: Option.getOrElse(fields.search, () => ''),
@@ -315,12 +320,12 @@ const browseView = (
           ),
           h.block(
             DietListboxBinding.embedView({
-              slotId: model.dietListbox.id,
-              model: model.dietListbox,
+              slotId: dietListbox.id,
+              model: dietListbox,
               viewInputs: {
                 anchor: LISTBOX_ANCHOR,
                 items: dietFilterItems,
-                maybeSelectedValue: Option.orElseSome(fields.diet, () => ''),
+                maybeSelectedValue: Option.orElseSome(fields.diet, () => 'All'),
                 itemToConfig: item => filterItemConfig(dietLabel(item), h),
                 itemToSearchText: dietLabel,
                 buttonContent: filterButtonContent(
@@ -342,12 +347,15 @@ const browseView = (
           ),
           h.block(
             PeriodListboxBinding.embedView({
-              slotId: model.periodListbox.id,
-              model: model.periodListbox,
+              slotId: periodListbox.id,
+              model: periodListbox,
               viewInputs: {
                 anchor: LISTBOX_ANCHOR,
                 items: periodFilterItems,
-                maybeSelectedValue: Option.orElseSome(fields.period, () => ''),
+                maybeSelectedValue: Option.orElseSome(
+                  fields.period,
+                  () => 'All',
+                ),
                 itemToConfig: item => filterItemConfig(periodLabel(item), h),
                 itemToSearchText: periodLabel,
                 buttonContent: filterButtonContent(
@@ -491,7 +499,8 @@ const routeTitle = (route: Model['route']): string =>
 
 export const view = ApplicationComposition.makeView((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
-    Browse: route => browseView(model, route, h),
+    Browse: route =>
+      browseView(model.dietListbox, model.periodListbox, route, h),
     NotFound: ({ path }) => notFoundView(path, h),
   })
 

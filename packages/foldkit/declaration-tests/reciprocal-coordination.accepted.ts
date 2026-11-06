@@ -153,7 +153,7 @@ const DeclarationReciprocalRoomDefinition = Block.makeDefinition(
 )
 const DeclarationReciprocalRoomComposition =
   DeclarationReciprocalRoomDefinition.makeComposition()
-const informJoined = DeclarationReciprocalRoomDefinition.makeStep(
+const informOfJoined = DeclarationReciprocalRoomDefinition.makeStep(
   (model, username: string, _context: typeof RoomContext.Type) => ({
     model: Struct.modifyFields(model, {
       maybeUsername: () => Option.some(username),
@@ -170,7 +170,7 @@ const prepareRoomBlock = () =>
     update: DeclarationReciprocalRoomComposition.makeUpdate.withContext(
       (context: typeof RoomContext.Type) => ({
         InformedOfJoin: (model, { username }) =>
-          informJoined(model, username, context),
+          informOfJoined(model, username, context),
         CompletedLeaveRoom: model => ({
           model,
           outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
@@ -178,7 +178,7 @@ const prepareRoomBlock = () =>
       }),
     ),
     operations: {
-      informJoined: (username: string, context: typeof RoomContext.Type) =>
+      informOfJoined: (username: string, context: typeof RoomContext.Type) =>
         Tuple.make(RoomMessage.InformedOfJoin({ username }), context),
     },
     EffectsLayer: Layer.empty,
@@ -238,7 +238,7 @@ export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
               }),
           }),
         ),
-        RoomBinding.informJoined(roomId, username, { roomId }),
+        RoomBinding.informOfJoined(roomId, username, { roomId }),
         ApplicationDefinition.makeStep(model => ({
           model: Struct.modifyFields(model, {
             route: () => ApplicationRoute.Room({ roomId }),
@@ -280,7 +280,7 @@ export const requestJoin = HomeBinding.requestJoin('room-1', 'alice')
 type HomeReset = ReturnType<typeof HomeBinding.resetJoinForm>
 type HomeRequestJoin = ReturnType<typeof HomeBinding.requestJoin>
 type HomeFold = ReturnType<typeof HomeBinding.fold>
-type RoomInform = ReturnType<typeof RoomBinding.informJoined>
+type RoomInform = ReturnType<typeof RoomBinding.informOfJoined>
 type RoomFold = ReturnType<typeof RoomBinding.fold>
 type HomeLayerServicesAreExact = Expect<
   Equal<Layer.Services<typeof HomeBlock.EffectsLayer>, DraftStore>
@@ -300,7 +300,7 @@ type HomeRequestArgumentsAreExact = Expect<
 >
 type RoomArgumentsAreExact = Expect<
   Equal<
-    Parameters<typeof RoomBinding.informJoined>,
+    Parameters<typeof RoomBinding.informOfJoined>,
     [key: string, username: string, _context: typeof RoomContext.Type]
   >
 >

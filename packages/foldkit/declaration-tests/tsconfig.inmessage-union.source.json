@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": false,
+    "rootDir": "..",
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/message": ["../src/message/index.ts"]
+    }
+  },
+  "files": [
+    "inmessage-union.accepted.ts",
+    "inmessage-union.rejected.ts",
+    "inmessage-union.consume.ts",
+    "../src/vite-env.d.ts"
+  ],
+  "include": []
+}

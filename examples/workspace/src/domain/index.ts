@@ -1,34 +1,7 @@
-export {
-  Comment,
-  GroupBy,
-  Issue,
-  IssueDraft,
-  IssueFilters,
-  IssuePriority,
-  IssueRevision,
-  IssueStatus,
-  MovedIssue,
-  Member,
-  Notification,
-  NotificationActivity,
-  NotificationKind,
-  Project,
-  SavedView,
-  SavedIssue,
-  Workspace,
-  issueStatusLabel,
-  makeNotifications,
-  moveIssue,
-  placeIssue,
-} from './domain'
-export {
-  applyComment,
-  applyMovedIssue,
-  applySavedIssue,
-  draftFromIssue,
-  mergeIssue,
-  mergeIssues,
-  revisionFromIssue,
-  savedIssueFromIssue,
-} from './issue'
+export * as Issue from './issue'
+export * as Member from './member'
+export * as Notification from './notification'
+export * as Project from './project'
+export * as SavedView from './savedView'
+export * as Workspace from './workspace'
 export { initialWorkspace } from './seed'

@@ -269,7 +269,12 @@ export interface OutMessageFold<
   ChildOutMessage,
   Step,
   Context extends ReadonlyArray<unknown>,
-> extends OutMessageHelperEvidence<ChildOutMessage, 'fold'> {
+  ChildMessage = Context extends readonly [
+    Update.FoldContext<infer ContextChildMessage, infer _ParentMessage, any>,
+  ]
+    ? ContextChildMessage
+    : never,
+> extends OutMessageHelperEvidence<ChildOutMessage, 'fold', ChildMessage> {
   (outMessage: ChildOutMessage, ...context: Context): Step
 }
 
@@ -281,6 +286,10 @@ export interface OutMessageFold<
  * Pass the completed child Block so refined OutMessage payloads and the child
  * Message type used by FoldContext remain available. The resulting fold
  * requires FoldContext only when a handler declares it.
+ *
+ * Keyed `Binding.withOutMessagePolicy` accepts the fold directly when handlers
+ * do not use the occurrence key. Otherwise return it from `fold: key => ...`;
+ * the Binding supplies the actual OutMessage and FoldContext during delivery.
  */
 export interface MakeOutMessageFold<Model, Message, OutMessage> {
   /**
@@ -295,7 +304,8 @@ export interface MakeOutMessageFold<Model, Message, OutMessage> {
   ): OutMessageFold<
     ChildOutMessage<Child>,
     DefinedCaseSteps<Model, Cases>,
-    OutMessageFoldContext<Model, Message, Child, Cases>
+    OutMessageFoldContext<Model, Message, Child, Cases>,
+    ChildMessage<Child>
   >
 }
 
@@ -328,7 +338,7 @@ export function makeOutMessageFold(): AnyFunction {
       return handle(outMessage, context)
     }
 
-    registerOutMessageHandler(handler, cases, 'makeOutMessageFold')
+    registerOutMessageHandler(handler, child, cases, 'makeOutMessageFold')
 
     return handler
   }

@@ -1,9 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import {
-  type ProgressAttributes,
-  view as progressView,
-} from '@foldkit/ui/progress'
+import { Progress } from '@foldkit/ui'
 
 import type { UiMessage } from '../composition'
 import { UiComposition } from '../composition'
@@ -21,7 +18,7 @@ export const view = UiComposition.makeView((_model, h) => {
     label,
     track,
     indicator,
-  }: ProgressAttributes<UiMessage>): Html =>
+  }: Progress.ProgressAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(rowClassName)],
       [
@@ -48,7 +45,7 @@ export const view = UiComposition.makeView((_model, h) => {
     progress,
     label,
     indicator,
-  }: ProgressAttributes<UiMessage>): Html =>
+  }: Progress.ProgressAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(rowClassName)],
       [
@@ -73,7 +70,7 @@ export const view = UiComposition.makeView((_model, h) => {
         [h.Class('text-lg font-semibold text-gray-900 mb-4')],
         ['Determinate'],
       ),
-      progressView(
+      Progress.view(
         {
           id: 'upload-progress',
           value: 42,
@@ -86,7 +83,7 @@ export const view = UiComposition.makeView((_model, h) => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Indeterminate'],
       ),
-      progressView(
+      Progress.view(
         {
           id: 'sync-progress',
           valueText: 'Syncing files',

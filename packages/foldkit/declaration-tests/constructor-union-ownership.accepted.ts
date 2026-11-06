@@ -1,12 +1,12 @@
 import { Effect, Layer, Schema } from 'effect'
 import * as Block from 'foldkit/block'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
 export const Model = Schema.Struct({ count: Schema.Number })
 export type Model = typeof Model.Type
 export const Message = defineMessageUnion({ CompletedTick: {} })
 export type Message = typeof Message.Type
-export const InMessage = defineMessageUnion({ RequestedReset: {} })
+export const InMessage = defineInMessageUnion({ RequestedReset: {} })
 export type InMessage = typeof InMessage.Type
 export const CounterKey = Symbol('InMessagePlanOwnership')
 export const CounterBlock = Block.make('InMessagePlanOwnership', {
@@ -266,7 +266,7 @@ export const selectedSecondHostLayer =
   HostBlock.provideHandlers(secondHandlers)(secondHostLayer)
 
 export const InputKey = Symbol('ConstructorUnionInputs')
-export const InputMessage = defineMessageUnion({ RequestedRead: {} })
+export const InputMessage = defineInMessageUnion({ RequestedRead: {} })
 export type InputMessage = typeof InputMessage.Type
 export const InputBlock = Block.make('ConstructorUnionInputs', {
   key: InputKey,

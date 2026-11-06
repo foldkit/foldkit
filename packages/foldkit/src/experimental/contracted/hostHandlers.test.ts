@@ -123,6 +123,46 @@ describe('ordinary Block host-handler selection', () => {
     expect(events).toEqual(['graph acquired', 'graph released'])
   })
 
+  it('returns the final Story Model and releases graph resources', async () => {
+    events.length = 0
+
+    const finalModel = await Effect.runPromise(
+      Story.story(
+        SelectedHostBlock,
+        Story.init(),
+        Story.Command.resolve(
+          ReadValue,
+          Message.CompletedReadValue({ value: 'resolved' }),
+        ),
+      ),
+    )
+
+    expectTypeOf(finalModel).toEqualTypeOf<Model>()
+    expect(finalModel).toEqual({ value: 'resolved' })
+    expect(events).toEqual(['graph acquired', 'graph released'])
+  })
+
+  it('releases graph resources when a Model comparison fails', async () => {
+    events.length = 0
+
+    await expect(
+      Effect.runPromise(
+        Story.story(
+          SelectedHostBlock,
+          Story.init(),
+          Story.models(Story.steps(), () => {
+            throw new Error('comparison failed')
+          }),
+          Story.Command.resolve(
+            ReadValue,
+            Message.CompletedReadValue({ value: 'resolved' }),
+          ),
+        ),
+      ),
+    ).rejects.toThrow('comparison failed')
+    expect(events).toEqual(['graph acquired', 'graph released'])
+  })
+
   it('builds the original provider under the handler scope and preserves cleanup order', async () => {
     events.length = 0
 

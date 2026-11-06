@@ -3,13 +3,9 @@ import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Program from 'foldkit/program'
 
-import {
-  LegacyEditorBlock,
-  MessageMigration,
-  layer as editorLayer,
-} from './blockCodecChild'
+import { LabelEditorBlock, layer as editorLayer } from './blockCodecChild'
 
-const Model = Schema.Struct({ editor: LegacyEditorBlock.Model })
+const Model = Schema.Struct({ editor: LabelEditorBlock.Model })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedReload: {} })
 type Message = typeof Message.Type
@@ -20,13 +16,9 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
-  codec: {
-    decoding: [MessageMigration],
-    encoding: [MessageMigration],
-  },
 })
 const { makeBinding, makeComposition, makeNoopStep } = ApplicationBlock
-const EditorBinding = makeBinding(LegacyEditorBlock, { field: 'editor' })
+const EditorBinding = makeBinding(LabelEditorBlock, { field: 'editor' })
 const ApplicationComposition = makeComposition({ bindings: [EditorBinding] })
 
 export const layer = ApplicationBlock.makeLayer(
@@ -56,20 +48,9 @@ export const layer = ApplicationBlock.makeLayer(
   }),
 ).pipe(Layer.provide(editorLayer))
 
-const MigrationLayer = Layer.succeed(MessageMigration, {
-  decodeLabel: label => label.trim(),
-  encodeLabel: label => label,
-})
-
 export const dispatchProgram = Program.makeElement({
   block: ApplicationBlock,
   layer,
   container: null,
   devTools: { dispatch: true },
-}).provide(MigrationLayer)
-
-export const quietProgram = Program.makeElement({
-  block: ApplicationBlock,
-  layer,
-  container: null,
 })

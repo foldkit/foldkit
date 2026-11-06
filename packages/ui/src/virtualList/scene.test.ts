@@ -2,7 +2,7 @@ import { Array, Effect } from 'effect'
 import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
-import { it as baseIt } from 'vitest'
+import { it as baseIt, vi } from 'vitest'
 
 import { describe, expect, makeMethods } from '@effect/vitest'
 
@@ -225,11 +225,7 @@ describe('VirtualList', () => {
     }) => {
       const items = Array.makeBy(10_000, id => ({ id, label: `Item ${id}` }))
       const itemToKey = (item: DemoItem) => String(item.id)
-      let estimateCount = 0
-      const itemToEstimatedRowHeightPx = () => {
-        estimateCount += 1
-        return ROW_HEIGHT
-      }
+      const itemToEstimatedRowHeightPx = vi.fn(() => ROW_HEIGHT)
       const dynamicView = (model: Model, h: TestHtmlBuilder) =>
         view(
           model,
@@ -247,7 +243,11 @@ describe('VirtualList', () => {
       Scene.scene(
         { update, view: dynamicView },
         Scene.given(measuredModel),
-        Scene.tap(() => expect(estimateCount).toBe(items.length)),
+        Scene.tap(() =>
+          expect(itemToEstimatedRowHeightPx).toHaveBeenCalledTimes(
+            items.length,
+          ),
+        ),
         Scene.Mount.resolve(
           ObserveVirtualList({ id: 'test' }),
           Message.ObservedContainerScroll({
@@ -257,7 +257,11 @@ describe('VirtualList', () => {
             anchor: { _tag: 'None' },
           }),
         ),
-        Scene.tap(() => expect(estimateCount).toBe(items.length)),
+        Scene.tap(() =>
+          expect(itemToEstimatedRowHeightPx).toHaveBeenCalledTimes(
+            items.length,
+          ),
+        ),
       )
     })
 

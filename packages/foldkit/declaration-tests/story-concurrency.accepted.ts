@@ -46,7 +46,13 @@ export const runConcurrentStory = () =>
   Story.story(
     update,
     Story.given(initialModel),
-    concurrentMessages,
+    Story.models(concurrentMessages, (before, after) => {
+      const beforeModel: typeof Model.Type = before
+      const afterModel: typeof Model.Type = after
+
+      void beforeModel
+      void afterModel
+    }),
     Story.Command.expectExact(Fetch({ requestId: 1 }), Fetch({ requestId: 2 })),
     Story.Command.resolveAll(
       [

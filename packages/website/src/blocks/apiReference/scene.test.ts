@@ -1,6 +1,5 @@
 import { Option, pipe } from 'effect'
-import { Calendar } from 'foldkit'
-import { Command, expect, init, role, scene } from 'foldkit/scene'
+import { Calendar, Scene } from 'foldkit'
 import * as Url from 'foldkit/url'
 import { describe } from 'vitest'
 
@@ -52,16 +51,20 @@ describe('prerendered API Reference', () => {
         maybeExampleSources: Option.none(),
       }
 
-      return scene(
+      return Scene.scene(
         application,
-        init(flags, url),
+        Scene.init(flags, url),
         resolveBrowserStartup(flags),
-        expect(role('heading', { name: 'SeededCommand' })).toExist(),
-        Command.resolve(
+        Scene.expect(
+          Scene.role('heading', { name: 'SeededCommand' }),
+        ).toExist(),
+        Scene.Command.resolve(
           LoadApiData,
           ApiReferenceMessage.FailedLoadApiData({ error: 'Offline' }),
         ),
-        expect(role('heading', { name: 'SeededCommand' })).toExist(),
+        Scene.expect(
+          Scene.role('heading', { name: 'SeededCommand' }),
+        ).toExist(),
       )
     },
   )

@@ -2,8 +2,7 @@ import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import type { OptionInfo } from '@foldkit/ui/radioGroup'
+import { Button, RadioGroup } from '@foldkit/ui'
 
 import {
   type ApplicationViewBuilder,
@@ -25,7 +24,7 @@ import {
 type EditionRadioGroupModel = typeof EditionRadioGroupBlock.Model.Type
 
 export const editionOptionView = (
-  option: OptionInfo,
+  option: RadioGroup.OptionInfo,
   h: ApplicationViewBuilder,
 ): Html => {
   const selectionBadgeClassName =
@@ -98,7 +97,7 @@ export const editionOptionView = (
 }
 
 export const cancelCheckoutButton = (h: ApplicationViewBuilder): Html =>
-  buttonView(
+  Button.view(
     {
       onClick: Message.ClickedCancel(),
       toView: attributes =>
@@ -193,7 +192,7 @@ export const cartView = (
         ],
         [
           cancelCheckoutButton(h),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedContinue(),
               toView: attributes =>

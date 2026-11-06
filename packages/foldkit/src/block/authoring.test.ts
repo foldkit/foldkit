@@ -198,7 +198,7 @@ const homeBoot = HomeDefinition.makeStep(model => ({
   commands: [CreateRoom()],
 }))
 
-const homeInformJoined = HomeDefinition.makeStep(
+const homeInformOfJoined = HomeDefinition.makeStep(
   (model, joinedCount: number) => ({
     model: modifyFields(model, { joinedCount: () => joinedCount }),
   }),
@@ -207,7 +207,7 @@ const homeInformJoined = HomeDefinition.makeStep(
 const homeUpdate = HomeComposition.makeUpdate({
   RequestedBoot: model => homeBoot(model),
   RequestedInformJoined: (model, { joinedCount }) =>
-    homeInformJoined(model, joinedCount),
+    homeInformOfJoined(model, joinedCount),
   ClickedCreateRoom: model => ({
     model: modifyFields(model, { status: () => 'Creating' }),
     commands: [CreateRoom()],
@@ -225,7 +225,7 @@ const prepareHome = () =>
     update: homeUpdate,
     operations: {
       boot: () => Tuple.make(HomeMessage.RequestedBoot()),
-      informJoined: (joinedCount: number) =>
+      informOfJoined: (joinedCount: number) =>
         Tuple.make(HomeMessage.RequestedInformJoined({ joinedCount })),
     },
     EffectsLayer: CreateRoom.layer,
@@ -391,7 +391,7 @@ const RoomDefinition = RoomNamespace.makeDefinition({
 })
 
 const RoomComposition = RoomDefinition.makeComposition()
-const roomInformJoined = RoomDefinition.makeStep(
+const roomInformOfJoined = RoomDefinition.makeStep(
   (model, joinedCount: number, source?: 'Lobby' | 'Game') => ({
     model: modifyFields(model, {
       joinedCount: () => joinedCount + (source === 'Game' ? 1 : 0),
@@ -401,7 +401,7 @@ const roomInformJoined = RoomDefinition.makeStep(
 const roomUpdate = RoomComposition.makeUpdate.withContext(
   (source: 'Reconnect' | 'Route', retryCount?: number) => ({
     RequestedInformJoined: (model, { joinedCount, source }) =>
-      roomInformJoined(model, joinedCount, source),
+      roomInformOfJoined(model, joinedCount, source),
     ClickedRefreshRoom: model => ({
       model,
       commands: [LoadRoom({ roomId: model.roomId })],
@@ -422,7 +422,7 @@ const prepareRoom = () =>
     }),
     update: roomUpdate,
     operations: {
-      informJoined: (joinedCount: number, source?: 'Lobby' | 'Game') =>
+      informOfJoined: (joinedCount: number, source?: 'Lobby' | 'Game') =>
         Tuple.make(
           RoomMessage.RequestedInformJoined(
             source === undefined ? { joinedCount } : { joinedCount, source },
@@ -455,7 +455,9 @@ const ObserveChoice = ChoiceNamespace.makeMount('ObserveChoice', {
 
 const ChoiceEffectsLayer = Layer.empty
 
-const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
+const makeChoice = <Value extends string>(
+  Value: Schema.Codec<Value, any, never, never>,
+) => {
   const Model = Schema.Struct({ value: Value })
   const SelectedChoice = Schema.TaggedStruct('SelectedChoice', { value: Value })
   const RequestedFinish = Schema.TaggedStruct('RequestedFinish', {
@@ -1948,10 +1950,10 @@ describe('Block authoring', () => {
     expect(defaultViewOf(Home)).toBe(homeView)
     expect(Home.operations).toEqual({
       boot: expect.any(Function),
-      informJoined: expect.any(Function),
+      informOfJoined: expect.any(Function),
     })
     expect(Home.operations.boot).not.toBe(homeBoot)
-    expect(Home.operations.informJoined).not.toBe(homeInformJoined)
+    expect(Home.operations.informOfJoined).not.toBe(homeInformOfJoined)
     expect(typeof HomeDefinition.makeComposition).toBe('function')
     expect(Home).not.toHaveProperty('connection')
 
@@ -1966,7 +1968,7 @@ describe('Block authoring', () => {
     const clickedCreateRoom = HomeMessage.ClickedCreateRoom()
     const startedCreate = Home.update(model, clickedCreateRoom)
     const curriedCreate = Home.update(clickedCreateRoom)(model)
-    const informedJoined = Home.operations.informJoined(model, 3)
+    const informedJoined = Home.operations.informOfJoined(model, 3)
 
     expect(curriedCreate.model).toEqual(startedCreate.model)
     expect(curriedCreate.commands?.map(command => command.name)).toEqual(
@@ -1994,17 +1996,19 @@ describe('Block authoring', () => {
   })
 
   it('keeps required and optional context on host-backed Room operations', () => {
-    type ExpectedInformJoinedReturn = Update.Return<RoomModel, RoomMessage>
-    type ExpectedInformJoined = (
+    type ExpectedInformOfJoinedReturn = Update.Return<RoomModel, RoomMessage>
+    type ExpectedInformOfJoined = (
       model: RoomModel,
       joinedCount: number,
       source?: 'Lobby' | 'Game',
-    ) => ExpectedInformJoinedReturn
-    type InformJoinedReturn = ReturnType<typeof Room.operations.informJoined>
+    ) => ExpectedInformOfJoinedReturn
+    type InformOfJoinedReturn = ReturnType<
+      typeof Room.operations.informOfJoined
+    >
     type IsAny<Value> = 0 extends 1 & Value ? true : false
     type IsUnknown<Value> =
       IsAny<Value> extends true ? false : unknown extends Value ? true : false
-    const informedJoined = Room.operations.informJoined(
+    const informedJoined = Room.operations.informOfJoined(
       RoomModel.make({ roomId: 'room', joinedCount: 0 }),
       2,
       'Game',
@@ -2024,7 +2028,7 @@ describe('Block authoring', () => {
       Update.Return<RoomModel, RoomMessage, Command.HandlerOf<typeof LoadRoom>>
     >()
     expectTypeOf<
-      Parameters<typeof Room.operations.informJoined>
+      Parameters<typeof Room.operations.informOfJoined>
     >().toEqualTypeOf<
       [
         model: RoomModel,
@@ -2033,17 +2037,17 @@ describe('Block authoring', () => {
       ]
     >()
     expectTypeOf<
-      typeof Room.operations.informJoined
-    >().toMatchTypeOf<ExpectedInformJoined>()
-    expectTypeOf<ExpectedInformJoined>().toMatchTypeOf<
+      typeof Room.operations.informOfJoined
+    >().toMatchTypeOf<ExpectedInformOfJoined>()
+    expectTypeOf<ExpectedInformOfJoined>().toMatchTypeOf<
       (
-        ...args: Parameters<typeof Room.operations.informJoined>
-      ) => ReturnType<typeof Room.operations.informJoined>
+        ...args: Parameters<typeof Room.operations.informOfJoined>
+      ) => ReturnType<typeof Room.operations.informOfJoined>
     >()
-    expectTypeOf<InformJoinedReturn>().toMatchTypeOf<ExpectedInformJoinedReturn>()
-    expectTypeOf<ExpectedInformJoinedReturn>().toMatchTypeOf<InformJoinedReturn>()
-    expectTypeOf<IsAny<InformJoinedReturn>>().toEqualTypeOf<false>()
-    expectTypeOf<IsUnknown<InformJoinedReturn>>().toEqualTypeOf<false>()
+    expectTypeOf<InformOfJoinedReturn>().toMatchTypeOf<ExpectedInformOfJoinedReturn>()
+    expectTypeOf<ExpectedInformOfJoinedReturn>().toMatchTypeOf<InformOfJoinedReturn>()
+    expectTypeOf<IsAny<InformOfJoinedReturn>>().toEqualTypeOf<false>()
+    expectTypeOf<IsUnknown<InformOfJoinedReturn>>().toEqualTypeOf<false>()
   })
 
   it('retains generic Model and OutMessage payloads with Mount capabilities', () => {

@@ -1,5 +1,151 @@
 # Next preview tasks
 
+## November 5 review cleanup
+
+Work continues from integrated preview `570ecedddaef`. Publication and private
+source transfer remain held while the review changes are being completed.
+
+- [x] Address the user's new inline review comments and remove each resolved
+      note. Preserve concurrent edits and unresolved comments.
+- [x] Organize Website shared rendering by responsibility, place UI page views
+      under `view/`, and split substantial Home demo Blocks consistently.
+- [x] Use one root `@foldkit/ui` namespace import per ordinary consumer file,
+      including active examples, snippets, templates and guidance. Preserve
+      historical content and deliberate public-contract fixtures.
+- [x] Remove decorative section-header comments from active application code
+      and guidance while preserving meaningful teaching and boundary comments.
+- [x] Eliminate mutable outer captures from Story/Scene specs and their fixture
+      helpers. Preserve meaningful behavior and identity assertions; establish
+      any concrete DSL gap before adding a testing operation.
+
+The [cleanup report](preview-review-cleanup-20261105.md) records the immutable
+Story API, consumer migrations, declaration boundary and completed checks.
+
+- [ ] Review the measured rendering gap and verify any proposed optimization
+      against the unchanged workloads before claiming improvement.
+  - [x] Complete the bounded scoped view Context-cache attempt and retain its
+        CPU, allocation, safety and noise controls. The final frozen comparison
+        is [complete](block-api-simplification/rendering-20261106/README.md).
+        Main versus candidate medians are 637.1/672.8 ms naive and 207.2/269.4 ms
+        optimized. The remaining rendering and bundle costs require release
+        review. [Targeted evidence](preview-rendering-scope-cache-20261105.md).
+- [x] Narrow Block-managed serialization to synchronous, service-free codecs.
+      Remove `codec.decoding` and `codec.encoding` without aliases and preserve
+      exact Service requirements through generated child Message envelopes.
+      Keep construction passive, reject asynchronous execution at the actual
+      serialization boundary, and preserve synchronous transformations including
+      Option and Date. Inspect DevTools dispatch, hydration, restoration and
+      replay before deciding whether any boundary needs a distinct contract.
+- [x] Verify serialization Source and emitted consumers, rejected Service and
+      asynchronous codecs, complete child propagation and existing lifecycles.
+      Track the combined compiler ceiling separately below. Update active docs,
+      skills, migration notes and changesets without rewriting published history.
+- [x] Add canonical `defineInMessageUnion` after serialization. Reuse the
+      Message-union machinery, preserve exact payloads, constructors, guards,
+      matching and Schema requirements, and report invalid `RequestedX` /
+      `InformedOfX` names at the offending property. Preserve the generated
+      `requestX` / approved `informOfX` spelling without another prefix family or brand.
+- [x] Migrate authored InMessages throughout consumers, examples, Website,
+      Typing Game, scaffolds and active docs/skills. Keep local Messages and
+      OutMessages on `defineMessageUnion`, preserve alternative-Schema Block
+      validation and erased-caller checks, and verify extracted records,
+      generated methods and Source/emitted consumers. Add migration guidance
+      and a changeset; preserve published history and concurrent edits.
+- [x] Address newly reported keyed Subscription and ManagedResource inspection
+      in [#1895](https://github.com/foldkit/foldkit/issues/1895). Preserve
+      occurrence keys, selected implementation identities and Runtime lifecycles
+      while adding precise Scene inspection and emission.
+  - [x] Verify canonical Block/Layer keyed Scene selection and resolve the
+        four-group Workspace compiler ceiling. Keep private delivery brands in
+        a compact leaf contract so fold validation need not import the complete
+        constructed graph. The unchanged workload now reports 214,884 Types
+        against 229,173. The separate Machine ceiling is tracked below.
+- [x] Review and address the current Workspace inline comments with the user.
+      Preserve the user's working-directory edits and remove resolved notes.
+  - [x] Apply item 1's approved workflow organization and names: consolidate
+        issue and move transitions, extract shared navigation, flatten the root
+        update module, and preserve the remaining review comments. Move child
+        initialization without changing its policy before discussing item 2.
+  - [x] Simplify Workspace state ownership after the user's follow-up review.
+        Keep current Issues in the parent; pass them as view inputs and update
+        Context rather than broadcasting changes to retained editors. Remove
+        the incoming-revision copy, derive conflicts from the editing baseline,
+        and prepare clean drafts before local or nested Listbox input through
+        existing update composition. Let the Board announce its own accepted
+        drops and retain only the asynchronous failure input. Preserve save,
+        retry, conflict, discard, retained-draft and stale-result behavior.
+        Workspace typecheck, application/Effect lint and all 150 tests pass;
+        unrelated review comments remain for discussion.
+  - [x] Address item 2's child-initialization review. Compose the selected-issue
+        and project-page initialization as two parent-owned Steps. Select the
+        project once for Board/settings routes and leave insertion, existing
+        occurrence preservation and init Commands to `makeInitIfMissingStep`.
+        Keep first-visit allocation and retained state; remove the resolved
+        lifecycle comment and refresh the README. No framework addition is
+        needed. All 150 Workspace tests, typecheck, application/Effect lint and
+        formatting pass.
+  - [x] Apply the approved domain-query pass across Workspace. Export `Issue`,
+        `Project`, `Member`, `Workspace`, `SavedView` and `Notification` as
+        concept namespaces from `domain/index.ts`; route consumer imports
+        through that barrel. Use shared entity, assignment, project/status and
+        comment queries in initialization, mutations, views, repository
+        validation and tests. Keep feature-specific search and interaction
+        predicates local, preserve Schema contracts and review comments, and
+        document the convention in the example README.
+  - [x] Move the Board-specific pending-move Schema and display projection into
+        `Issue.MoveState` and `Workspace.withPendingMove`. Update all consumers
+        through the domain barrel, retain the root Model's move-state field,
+        remove the generic `optimistic/` directory, and refresh the README.
+        All 150 Workspace tests, typecheck and scoped lint pass.
+  - [x] Consolidate issue/filter URL builders in `route.ts`. Pass Routes and
+        applied filters explicitly from callers, remove `issueLinks.ts`, and
+        keep the Route module independent of the application Model/selectors.
+        All 150 Workspace tests, typecheck and scoped lint pass.
+  - [x] Prototype and adopt Model-produced `makeInitIfMissingStep` requests.
+        Preserve the static form, exact contextual Model/key/argument typing,
+        passive construction, registration on `None`, original identities and
+        lifted Commands. Source and relocated emitted acceptance/rejection
+        pass under TypeScript 6 and 7. All 99 focused initialization/adjacent
+        framework tests and 150 Workspace tests pass; Core/UI builds, Core and
+        Website typechecks, scoped lint, formatting and Workspace production
+        build pass. Update active docs, the runnable snippet, scaffold/skills
+        and changeset. The unrelated keyed Scene compiler outlier remains open.
+  - [x] Address item 3's keyed OutMessage fold authoring. Accept an authored
+        fold directly when the key is unused, or return it from a key-dependent
+        callback or extracted factory. Preserve ordinary adapters, exact child
+        contracts, parent outputs, Commands, FoldContext and graph evidence.
+        Keep configuration passive and distinguish returned helpers through
+        existing registration metadata. Migrate Workspace, Job Application and
+        eligible UI consumers; update active docs/snippets, scaffold, skills,
+        TSDoc and the changeset. Source/emitted/relocated checks pass under
+        TypeScript 6 and 7. Scoped runtime, app, documentation and build checks
+        pass; the existing four-group Workspace compiler ceiling stays open.
+  - [x] Address the latest Workspace view and testing comments. Split loaded
+        workspace rendering from root loading/failure routing, retain
+        `embedView`'s placement role, use one routed saved-view Scene, and adopt
+        Story/Scene namespaces in active applications, snippets and guidance.
+  - [x] Address item 4's framework Listbox gap. Accept runtime Value Schemas in
+        Single/Multi factories, with a view-only Item Schema for object options.
+        Preserve exact decoded/encoded selection channels, Commands, original
+        identities, passive construction and the scoped family Layer. Use direct
+        Value items or an explicit extractor without casts or conditional-input
+        constructor failures. Migrate active consumers/docs/skills, remove the
+        seven redundant Workspace enum guards, and move invalid selection
+        coverage to the framework boundary. Source, emitted and source-free
+        relocated consumers pass under TypeScript 6 and 7; actual Workspace
+        production declarations also emit and relocate in both versions. All
+        1,408 UI tests, 151 Workspace tests and 987 documentation checks pass.
+        Independent targeted review finds no actionable issue. Compiler fixture
+        results are unchanged, including the separately open four-group ceiling.
+        [Contracts and receipts](preview-contracts-20261105.md#schema-backed-listbox-values).
+  - [x] Complete this Workspace/Website inline-comment review round. Compare
+        preserved review notes with the current implementation and record
+        explicit answers where the existing design is retained. Release gates
+        and the requested rendering benchmark are separate pending work.
+- [ ] Refresh relevant GitHub feedback, finish verification and independent
+      review, then freeze one final candidate for fresh Daybreak authorization.
+- [ ] Push the prepared changes to preview; await the user's publication approval.
+
 ## November 5 candidate review
 
 The [current review](preview-review-20261105.md) compares this work with published
@@ -18,7 +164,9 @@ preview `90746b32d2ca`. Earlier dated sections retain their checkpoint scope.
       [Contribution disposition](preview-feedback-integration-20261105.md).
 - [x] Finish Dialog's terminal failure cleanup through existing completion
       signals and verify independently emitted UI provider Layers.
-- [ ] Complete the combined gates and push to preview.
+- [x] Complete the combined gates and integrate preview through #1894 as
+      `570ecedddaef638bb07fbaaf9abda2f905125548`. Local, PR and merge-queue
+      checks pass, including all ten example-browser shards.
 - [x] Record a final quiet Lustre comparison against actual main, retaining all
       32 samples and the remaining rendering and bundle costs for release review.
 - [ ] Obtain authorization for a fresh Daybreak addendum for the final candidate.
@@ -46,10 +194,10 @@ repository-wide convention and test migration on top of merged preview
       method documentation and source-backed snippets.
 - [x] Finish the TypeScript 6 helper-export nameability repair and all eight
       unchanged mapped compiler ceilings; verify one physical Effect runtime.
-- [ ] Finish integrated checks and review the exact committed diff before push.
+- [x] Finish integrated checks and review the exact committed diff before push.
 - [x] Reconcile newly arrived feedback, including Scene Mount routing, empty
       Menus, pointer drop indexes, Query runtime tests, and Node response cleanup.
-- [ ] Integrate reviewed code into the preview branch through required checks.
+- [x] Integrate reviewed code into the preview branch through required checks.
 
 Publication remains held for the user's review and approval. No new private
 source review transfer is authorized by earlier commit-specific approvals.
@@ -765,9 +913,11 @@ regressions. General feature proposals do not automatically join its scope.
       strictly typechecked reproducers for Listbox, RadioGroup, Tabs and Menu,
       plus the Combobox Schema-based precedent. Assess native Select separately;
       it exposes plain strings without generic refinement. The issue separates
-      string Value contract repair from non-string selection design. No framework
-      API change or removal of boundary adapters is claimed. Implementing this
-      general UI proposal is not a requirement for the Blocks + Layers preview.
+      string Value contract repair from non-string selection design. The
+      authorized November 5 Listbox work above implements its Listbox Value
+      contract repair and removes the corresponding Workspace enum adapters.
+      The broader report also covers RadioGroup, Tabs, Menu and non-string
+      selection; those are outside this completed Listbox change.
 
 ## Publication completion, October 26
 
@@ -1242,3 +1392,97 @@ The user authorized repository-wide migration after the recursive contract/Layer
 Actual Workspace, Job Application and Website whole projects now emit, including their intermediate authoring exports. Strict relocated consumers pass with zero reads from original application or framework source, and copied contract-erasure controls fail as expected. [Adoption scope and evidence](layered-constructor/ADOPTION.md).
 
 The work is committed locally. Independent review passes after the candidate-only validation and constructor snapshot corrections. Final report changes also require exact-commit review. The remaining rendering/bundle costs and dependency advisories are explicit release-review items, not approved deferrals. [Local security review and its limits](layered-constructor/final-security-review.md). No push or publication is authorized by this preparation.
+
+## Workspace semantic naming review and informOf methods
+
+- [x] Rename generated `InformedOfX` methods to `informOfX` without aliases, preserving `requestX`, exact contracts and passive construction. Align explicit UI notification adapters and active consumer/guidance surfaces.
+- [x] Review Workspace names at call sites for actual ownership, temporal meaning, response shapes, units and derived data. Correct the move operation, child request/submission/conflict facts, partial mutation results, editor baselines, selectors, notification facts and activity counter. Remove the unused clear-filter request echo rather than giving it a new name.
+- [x] Preserve ordinary operation names and dedicated handler conventions where already accurate. Document the distinction between requesting another owner's action and computing the operation's Model changes and Commands.
+- [x] Verify Workspace Stories/Scenes, affected consumers, runtime routing, exact source/emitted/rejected and relocated contracts. Keep existing compiler fixtures and budgets unchanged; the keyed Scene Types ceiling remains open with identical counts.
+- [x] Address this review round's naming, ownership, factoring, test-organization and Listbox Schema/API comments. The post-Listbox audit confirms no unresolved user review comments in the active application files. Publication and private review transfer remain held.
+
+[Semantic review and verification record](preview-contracts-20261105.md#workspace-naming-and-child-notification-spelling).
+
+## Latest Workspace inline comments
+
+- [x] Replace root view guard/ternary branches with Route/Option matching and extract named loaded-workspace/header/page/editor/loading/failure views. Preserve DOM layout, scroll containers and occurrence keys.
+- [x] Explain and retain `embedView` as placement configuration for `h.block`, and explain the current Issue context on `RequestedSave`.
+- [x] Simplify the saved-view and navigation Scenes to one interaction pipeline each; remove the framework-only Route Schema test and retain app-specific URL policy tests.
+- [x] Make Story/Scene namespace imports the active application/scaffold/documentation convention, migrating symbol references consistently and preserving historical examples.
+- [x] Address the local Listbox type comments: adjacent String option alias, named SortBy Schema, shared view settings and contextual callbacks without Omit reconstruction. Keep normal selection coverage in the app and invalid Codec coverage at the framework boundary.
+- [x] Implement item 4's approved public Schema-backed Listbox factory shape. Actual Value Codecs enforce selection Messages and OutMessages; remove the seven redundant Workspace enum guards. Preserve the broader selection issue's scope without claiming other components were migrated.
+
+See [comment dispositions and Listbox boundary](preview-contracts-20261105.md#latest-workspace-comments-and-listbox-review) and the [completed comment audit](preview-contracts-20261105.md#completed-inline-comment-audit). Release-wide verification and rendering benchmarking are pending. Private review transfer and publication remain held.
+
+## Workspace review order
+
+The original eight-item discussion order is preserved below. Implementation
+status is separate from walking through each result with the user.
+
+1. Update/composition factoring and naming — implemented and discussed.
+2. Child initialization and domain queries — implemented and discussed.
+3. Curried keyed OutMessage folds — implemented and discussed.
+4. Listbox option types and runtime Value Schemas — implemented and discussed.
+5. What `selection.ts` represents — renamed to `selectors.ts` in the naming
+   pass and discussed. Shared application queries are useful, but they do not
+   justify broad rendering-helper inputs; the agreed followup is item 10.
+6. Route tests — retain application URL policies and remove Schema/configuration
+   repetitions. The user approved the remaining cleanup; the test audit owns
+   final verification.
+7. Story/Scene namespace imports — migrated across active applications and
+   guidance; review the convention with the user.
+8. Unsaved-change protection filename — renamed `draftProtection.ts` to
+   `protectUnsavedChanges.ts`; review its single exported responsibility.
+9. [x] Rename `Story.messageFrom` to `Story.messageIn` after the preceding review
+       items. The helper means “handle this local Message in this bound child and
+       observe the composed parent result.” Preserve the Binding/key overloads,
+       passive graph acquisition, child routing, Commands and OutMessage folding.
+       Migrate active consumers, tests, docs/snippets, scaffold and skills with
+       source/emitted coverage. The rename does not turn a local Message into an
+       InMessage or change its handler; keep the operation/InMessage modeling
+       question distinct. Source and emitted verification are recorded by the
+       repository-wide test audit.
+10. [x] Narrow rendering-helper inputs and audit their use of Model selectors.
+        The owning Block view receives its Model; smaller renderers should take
+        the fields or derived values they actually need. Start with
+        `pageTitle` (Route, saved views and project data) and the active-member
+        control (its Listbox Model, selected member ID and members). Retain
+        genuine shared application queries such as effective filters and
+        unsaved issue summaries. Do not use a selector module to hide broad
+        view dependencies. Preserve behavior and existing Story/Scene coverage;
+        The application audit and canonical guidance now apply the rule across
+        all applications and templates; primary views and cohesive composers
+        retain their owning Model.
+
+## Repository-wide review adoption
+
+The user approved completing the open review items and explicitly applied all
+relevant feedback to every Foldkit application, including examples, Website,
+Typing Game and scaffold templates. Published historical examples and the
+previously approved post-main deferrals for #1662 and #1663 retain their scope.
+
+- [x] Audit production architecture, names, state ownership, child initialization,
+      keyed folds, UI contracts/imports, readability and file organization across
+      every application. Apply the bounded fixes and record intentional cases in
+      [the application audit](application-architecture-audit-20261105.md).
+- [x] Complete the rendering-input audit and its per-application verification.
+- [x] Complete the Story/Scene test audit, canonical `messageIn` migration and
+      declaration checks, including meaningful URL-policy coverage.
+- [x] Close canonical Block/Layer keyed Scene selection with compact parent
+      Owner evidence, source/emitted acceptance/rejection and actual acquired
+      graph tests, rather than relying only on native completed-Block fixtures.
+- [x] Repair the independent review's candidate-only produced-fold contract
+      hole: helpers with identical OutMessages but incompatible child Messages
+      must not borrow the actual child's FoldContext and Command delivery.
+- [x] Resolve the combined compiler ceiling without altering workloads or
+      accepted/rejected contract checks. The user approved single-checker
+      measurements and tighter ceilings for all eight fixtures; the calibrated
+      gate and its rejection controls pass.
+- [x] Run combined release verification and a fresh frozen rendering comparison.
+      All 44 test projects pass 9,247 tests; source/type, lint, formatting,
+      cross-version declarations and three-browser packed SSR checks pass. The
+      compiler gate now uses the separately approved single-checker calibration.
+- [ ] Review the exact final commit independently and push the prepared preview.
+      Source commit `9e2c0d309c07` is approved. Evidence-only follow-up review and
+      resolution of the required compiler gate precede push; no bypass is used.
+      Publication and private Daybreak source transfer remain held.

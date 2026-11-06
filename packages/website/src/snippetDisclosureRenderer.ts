@@ -1,8 +1,8 @@
 import { type Html } from 'foldkit/html'
 
 import { SnippetDisclosureBlock } from './blocks'
-import { type CodeBlock } from './component'
 import type { SnippetDisclosureBinding } from './composition'
+import type * as CodeBlock from './markdown/codeBlock'
 
 type SnippetDisclosureBlockModel = typeof SnippetDisclosureBlock.Model.Type
 

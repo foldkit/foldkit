@@ -1,4 +1,4 @@
-import { click, expect, given, role, scene, text } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
@@ -16,24 +16,24 @@ describe('view', () => {
   it.effect(
     'initial view shows the heading, prompt, and Pause + Clear controls',
     () =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(emptyModel),
-        expect(role('heading', { name: 'Canvas Art' })).toExist(),
-        expect(text('Click the canvas to spawn a ball.')).toExist(),
-        expect(role('button', { name: 'Pause' })).toExist(),
-        expect(role('button', { name: 'Clear' })).toExist(),
-        expect(text('0 balls')).toExist(),
+        Scene.given(emptyModel),
+        Scene.expect(Scene.role('heading', { name: 'Canvas Art' })).toExist(),
+        Scene.expect(Scene.text('Click the canvas to spawn a ball.')).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Pause' })).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Clear' })).toExist(),
+        Scene.expect(Scene.text('0 balls')).toExist(),
       ),
   )
 
   it.effect('Pause toggles to Play when the simulation is stopped', () =>
-    scene(
+    Scene.scene(
       { block: ApplicationBlock, layer },
-      given(emptyModel),
-      click(role('button', { name: 'Pause' })),
-      expect(role('button', { name: 'Play' })).toExist(),
-      expect(role('button', { name: 'Pause' })).toBeAbsent(),
+      Scene.given(emptyModel),
+      Scene.click(Scene.role('button', { name: 'Pause' })),
+      Scene.expect(Scene.role('button', { name: 'Play' })).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Pause' })).toBeAbsent(),
     ),
   )
 
@@ -47,10 +47,10 @@ describe('view', () => {
       nextId: () => 3,
     })
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(populatedModel),
-      expect(text('3 balls')).toExist(),
+      Scene.given(populatedModel),
+      Scene.expect(Scene.text('3 balls')).toExist(),
     )
   })
 
@@ -62,12 +62,12 @@ describe('view', () => {
       nextId: () => 1,
     })
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(populatedModel),
-      expect(text('1 balls')).toExist(),
-      click(role('button', { name: 'Clear' })),
-      expect(text('0 balls')).toExist(),
+      Scene.given(populatedModel),
+      Scene.expect(Scene.text('1 balls')).toExist(),
+      Scene.click(Scene.role('button', { name: 'Clear' })),
+      Scene.expect(Scene.text('0 balls')).toExist(),
     )
   })
 })

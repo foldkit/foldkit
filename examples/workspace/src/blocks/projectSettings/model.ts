@@ -18,7 +18,7 @@ export const SaveState = defineTaggedUnion({
 export type SaveState = typeof SaveState.Type
 
 export const Model = Schema.Struct({
-  baseline: Project,
+  savedProject: Project.Project,
   draft: ProjectDraft,
   saveState: SaveState,
 })

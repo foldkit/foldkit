@@ -6,9 +6,9 @@ A custom select dropdown with keyboard navigation, typeahead search, and anchor 
 
 ### Create a Typed Listbox
 
-Declare a typed Listbox at module scope with the [`Listbox.makeBlock<Item, Value>()` factory](/ui/selection-blocks). Its type arguments describe the view inputs, `requestSelectItem` input and typed `Selected` OutMessage.
+Declare a typed Listbox at module scope with the [`Listbox.makeBlock` factory](/ui/selection-blocks). Pass no Schema for plain strings, one Value Schema when items are values directly, or an Item Schema and Value Schema when the view renders richer items. The Value Schema defines the `requestSelectItem` input, typed `Selected` OutMessage, and runtime selection validation.
 
-What the factory returns is typed [`Completed<Item, Value>` from `@foldkit/ui/listbox`](/ui/selection-blocks#completed-type). The multi-select namespace exports its own `Completed<Item, Value>` type, for the cases where a created Block has to be named rather than called directly.
+What the factory returns is typed [`Listbox.Completed<Item, Value>` from `@foldkit/ui`](/ui/selection-blocks#completed-type). The multi-select namespace exports its own `Listbox.Multi.Completed<Item, Value>` type, for the cases where a created Block has to be named rather than called directly.
 
 ### Programmatic Helpers
 
@@ -30,7 +30,7 @@ Pass an `itemToConfig` callback that maps each item to its content. The context 
 
 ### Multi-select
 
-Use `Listbox.Multi.makeBlock()` and `Listbox.Multi.makeBlock` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
+Use the same zero-, one-, or two-Schema forms through `Listbox.Multi.makeBlock` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
 
 ::Demo{name="multi-select"}
 
@@ -109,7 +109,7 @@ The button receives `aria-haspopup="listbox"` and `aria-expanded`. The items con
 
 ### Naming the Trigger
 
-The trigger is a form field, so give it an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `buttonId(id)` imported from `@foldkit/ui/listbox` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses and opens the listbox. That is why it is the recommended pattern.
+The trigger is a form field, so give it an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `Listbox.buttonId(id)` from `@foldkit/ui` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses and opens the listbox. That is why it is the recommended pattern.
 
 Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel` for an icon-only trigger with no visible label, or `ariaLabelledBy` when the element that names the trigger is not a `<label>` you can point `for` at.
 

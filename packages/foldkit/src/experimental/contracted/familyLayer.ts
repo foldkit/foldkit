@@ -69,11 +69,12 @@ import {
 } from './runtime.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 type Declaration = ContractConfiguration &
   Readonly<{
-    Model: AnySchema
-    Message: AnySchema
+    Model: AnySelfContainedSchema
+    Message: AnySelfContainedSchema
     OutMessage?: AnySchema
     ChildInitContext?: AnySchema
   }>
@@ -125,8 +126,8 @@ export type FamilySpecializationLayer<
 /** @internal Bound family helpers whose completion returns an ordinary Layer. */
 export type FamilyLayerDefinition<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
@@ -183,8 +184,8 @@ type SelectedAuthoring<Declaration extends FamilyAuthoring, Hosts, Handlers> =
   Declaration extends Readonly<{
     [FamilyAuthoringParametersTypeId]: readonly [
       infer Id extends string,
-      infer ModelSchema extends AnySchema,
-      infer MessageSchema extends AnySchema,
+      infer ModelSchema extends AnySelfContainedSchema,
+      infer MessageSchema extends AnySelfContainedSchema,
       infer OutMessageSchema extends AnySchema | undefined,
       infer ChildInitContextSchema extends AnySchema | undefined,
       infer Config extends ContractConfiguration,
@@ -211,8 +212,8 @@ type FamilyCompletion<
   Declaration extends Readonly<{
     [FamilyAuthoringParametersTypeId]: readonly [
       infer Id extends string,
-      infer ModelSchema extends AnySchema,
-      infer MessageSchema extends AnySchema,
+      infer ModelSchema extends AnySelfContainedSchema,
+      infer MessageSchema extends AnySelfContainedSchema,
       infer OutMessageSchema extends AnySchema | undefined,
       AnySchema | undefined,
       infer Config extends ContractConfiguration,
@@ -555,8 +556,8 @@ export function resolveFamily(
 /** @internal Validates a passive family template and returns an ordinary Layer. */
 export interface MakeFamilyLayer<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
 > {
@@ -636,8 +637,8 @@ type FamilyProviderFacts<
 /** @internal Checks a selected family implementation with its original host declarations. */
 export interface MakeFamilyProviderLayer<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
   Identifier,

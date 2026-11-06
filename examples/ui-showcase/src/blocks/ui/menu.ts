@@ -1,5 +1,5 @@
-import { makeBlock as makeMenuBlock } from '@foldkit/ui/menu'
+import { Menu } from '@foldkit/ui'
 
 export type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
-export const DemoMenuBlock = makeMenuBlock<MenuItem>()
+export const DemoMenuBlock = Menu.makeBlock<MenuItem>()

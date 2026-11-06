@@ -2,15 +2,11 @@ import { Array, Effect, Layer, Schema } from 'effect'
 import { Block, File } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  FileDropBlock,
-  type FileDropAttributes as FileDropFileDropAttributes,
-  layer as FileDropLayer,
-} from '@foldkit/ui/fileDrop'
+import { FileDrop } from '@foldkit/ui'
 
 // Add the FileDrop Block to your Model, plus a list of accepted files:
 const Model = Schema.Struct({
-  uploader: FileDropBlock.Model,
+  uploader: FileDrop.FileDropBlock.Model,
   uploadedFiles: Schema.Array(File.File),
   // ...your other fields
 })
@@ -41,7 +37,7 @@ const {
 // over the parent Model, which already has the next FileDrop Model written
 // back. The parent Block checks every named child variant and infers the
 // parent Step from each handler:
-const foldFileDropOutMessage = makeOutMessageFold(FileDropBlock, {
+const foldFileDropOutMessage = makeOutMessageFold(FileDrop.FileDropBlock, {
   ReceivedFiles: ({ files }) =>
     makeFieldsStep(() => ({
       uploadedFiles: Array.appendAll(files),
@@ -53,7 +49,7 @@ const foldFileDropOutMessage = makeOutMessageFold(FileDropBlock, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const UploaderBinding = makeBinding(FileDropBlock, {
+const UploaderBinding = makeBinding(FileDrop.FileDropBlock, {
   field: 'uploader',
   init: { contextToArgs: () => [{ id: 'uploader' }] },
 }).withOutMessagePolicy({ fold: foldFileDropOutMessage })
@@ -78,7 +74,7 @@ const update = FileDropExampleComposition.makeUpdate({})
 // `input` onto a hidden <input type="file"> nested inside. Style the
 // drag-over state via `data-drag-over`.
 const view = FileDropExampleComposition.makeView((model, h) => {
-  const fileDropView = (attributes: FileDropFileDropAttributes) =>
+  const fileDropView = (attributes: FileDrop.FileDropAttributes) =>
     h.label(
       [
         ...attributes.root,
@@ -117,4 +113,4 @@ export const layer = FileDropExampleBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(FileDropLayer))
+).pipe(Layer.provide(FileDrop.layer))

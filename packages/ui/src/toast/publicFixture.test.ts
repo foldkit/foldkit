@@ -147,7 +147,7 @@ const SlotsToastBinding = KeyedToastFixtureParentBlock.makeBinding(FirstToast, {
     toItem: ({ key }, toast) => ({ key, toast }),
   },
 }).withOutMessagePolicy({
-  fold: (_key, outMessage) => foldKeyedToastOutMessage(outMessage),
+  fold: foldKeyedToastOutMessage,
 })
 const KeyedToastFixtureParentComposition =
   KeyedToastFixtureParentBlock.makeComposition({

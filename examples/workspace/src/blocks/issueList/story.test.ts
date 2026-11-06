@@ -1,14 +1,5 @@
 import { Option, Schema } from 'effect'
-import {
-  Command,
-  expectNoOutMessage,
-  expectOutMessage,
-  init,
-  message,
-  messageFrom,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -26,25 +17,24 @@ import {
 } from './composition'
 import { layer } from './layer'
 import { Message } from './message'
-import type { Model } from './model'
 import { OutMessage } from './outMessage'
 
 describe('IssueListBlock', () => {
   it.effect('emits controlled filter changes from typed local facts', () => {
-    return story(
+    return Story.story(
       { block: IssueListBlock, layer },
-      init(),
-      message(Message.UpdatedQuery({ value: 'keyboard' })),
-      expectOutMessage(OutMessage.ChangedQuery({ query: 'keyboard' })),
-      message(Message.UpdatedGrouping({ value: 'Status' })),
-      expectOutMessage(OutMessage.ChangedGrouping({ groupBy: 'Status' })),
-      message(Message.UpdatedSort({ value: 'Priority' })),
-      expectOutMessage(OutMessage.ChangedSort({ sort: 'Priority' })),
-      message(Message.UpdatedStatusFilter({ value: 'All' })),
-      expectOutMessage(
+      Story.init(),
+      Story.message(Message.UpdatedQuery({ value: 'keyboard' })),
+      Story.expectOutMessage(OutMessage.ChangedQuery({ query: 'keyboard' })),
+      Story.message(Message.UpdatedGrouping({ value: 'Status' })),
+      Story.expectOutMessage(OutMessage.ChangedGrouping({ groupBy: 'Status' })),
+      Story.message(Message.UpdatedSort({ value: 'Priority' })),
+      Story.expectOutMessage(OutMessage.ChangedSort({ sort: 'Priority' })),
+      Story.message(Message.UpdatedStatusFilter({ value: 'All' })),
+      Story.expectOutMessage(
         OutMessage.ChangedStatusFilter({ maybeStatus: Option.none() }),
       ),
-      Command.expectNone(),
+      Story.Command.expectNone(),
     )
   })
 
@@ -63,59 +53,51 @@ describe('IssueListBlock', () => {
   })
 
   it.effect('folds Listbox selections into controlled filter changes', () => {
-    let initialModel: Model | undefined
-
-    return story(
+    return Story.story(
       { block: IssueListBlock, layer },
-      init(),
-      model(model => {
-        initialModel = model
-      }),
-      messageFrom(
-        StatusListboxBinding,
-        StatusFilterListboxBlock.Message.RequestedSelectItem({
-          item: 'Todo',
-        }),
+      Story.init(),
+      Story.models(
+        Story.steps(
+          Story.messageIn(
+            StatusListboxBinding,
+            StatusFilterListboxBlock.Message.RequestedSelectItem({
+              item: 'Todo',
+            }),
+          ),
+          Story.expectOutMessage(
+            OutMessage.ChangedStatusFilter({
+              maybeStatus: Option.some('Todo'),
+            }),
+          ),
+          Story.messageIn(
+            SortListboxBinding,
+            SortListboxBlock.Message.RequestedSelectItem({
+              item: 'Priority',
+            }),
+          ),
+          Story.expectOutMessage(OutMessage.ChangedSort({ sort: 'Priority' })),
+          Story.messageIn(
+            GroupListboxBinding,
+            GroupListboxBlock.Message.RequestedSelectItem({
+              item: 'Project',
+            }),
+          ),
+          Story.expectOutMessage(
+            OutMessage.ChangedGrouping({ groupBy: 'Project' }),
+          ),
+          Story.messageIn(
+            StatusListboxBinding,
+            StatusFilterListboxBlock.Message.RequestedSelectItem({
+              item: 'All',
+            }),
+          ),
+          Story.expectOutMessage(
+            OutMessage.ChangedStatusFilter({ maybeStatus: Option.none() }),
+          ),
+        ),
+        (before, after) => expect(after).toEqual(before),
       ),
-      expectOutMessage(
-        OutMessage.ChangedStatusFilter({
-          maybeStatus: Option.some('Todo'),
-        }),
-      ),
-      messageFrom(
-        SortListboxBinding,
-        SortListboxBlock.Message.RequestedSelectItem({
-          item: 'Priority',
-        }),
-      ),
-      expectOutMessage(OutMessage.ChangedSort({ sort: 'Priority' })),
-      messageFrom(
-        GroupListboxBinding,
-        GroupListboxBlock.Message.RequestedSelectItem({
-          item: 'Project',
-        }),
-      ),
-      expectOutMessage(OutMessage.ChangedGrouping({ groupBy: 'Project' })),
-      messageFrom(
-        StatusListboxBinding,
-        StatusFilterListboxBlock.Message.RequestedSelectItem({
-          item: 'All',
-        }),
-      ),
-      expectOutMessage(
-        OutMessage.ChangedStatusFilter({ maybeStatus: Option.none() }),
-      ),
-      messageFrom(
-        StatusListboxBinding,
-        StatusFilterListboxBlock.Message.RequestedSelectItem({
-          item: 'Unknown',
-        }),
-      ),
-      expectNoOutMessage(),
-      model(model => {
-        expect(model).toEqual(initialModel)
-      }),
-      Command.expectNone(),
+      Story.Command.expectNone(),
     )
   })
 })

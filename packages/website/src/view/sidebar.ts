@@ -3,10 +3,8 @@ import { Array, Equal, Option } from 'effect'
 import { Html, createKeyedLazy } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
-import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
-import { view as disclosureView } from '@foldkit/ui/disclosure'
+import { Dialog, Disclosure } from '@foldkit/ui'
 
-import { Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
 import { MobileMenuDialogBinding } from '../composition'
 import {
@@ -19,6 +17,7 @@ import {
   isNavPageActive,
 } from '../docsNav'
 import { Icon } from '../icon'
+import * as Site from '../layout/site'
 import { Link } from '../link'
 import { Message } from '../message'
 import { type Model } from '../model'
@@ -73,7 +72,7 @@ const sidebarGroup = (
   return h.li(
     [h.Class('mb-2.5 last:mb-0')],
     [
-      disclosureView(
+      Disclosure.view(
         {
           id: config.id,
           isOpen: config.isOpen,
@@ -333,7 +332,7 @@ export const mobileView = (model: Model, h: ApplicationViewBuilder): Html => {
     description,
     initialFocus,
     title,
-  }: DialogRenderInfo): Html =>
+  }: Dialog.RenderInfo): Html =>
     h.div(
       [h.Class('flex flex-col h-full')],
       [
@@ -360,7 +359,7 @@ export const mobileView = (model: Model, h: ApplicationViewBuilder): Html => {
                   h.Decoding('sync'),
                   h.Class('h-6 w-auto dark:invert'),
                 ]),
-                Shared.betaTag,
+                Site.betaTag,
               ],
             ),
             h.button(
@@ -395,14 +394,10 @@ export const mobileView = (model: Model, h: ApplicationViewBuilder): Html => {
             h.div(
               [h.Class('flex items-center justify-center gap-8')],
               [
-                Shared.iconLink(Link.github, 'GitHub', Icon.github('w-6 h-6')),
-                Shared.iconLink(
-                  Link.discord,
-                  'Discord',
-                  Icon.discord('w-6 h-6'),
-                ),
-                Shared.iconLink(Link.xSocial, 'X', Icon.xSocial('w-6 h-6')),
-                Shared.iconLink(Link.npm, 'npm', Icon.npm('w-8 h-8')),
+                Site.iconLink(Link.github, 'GitHub', Icon.github('w-6 h-6')),
+                Site.iconLink(Link.discord, 'Discord', Icon.discord('w-6 h-6')),
+                Site.iconLink(Link.xSocial, 'X', Icon.xSocial('w-6 h-6')),
+                Site.iconLink(Link.npm, 'npm', Icon.npm('w-8 h-8')),
               ],
             ),
           ],

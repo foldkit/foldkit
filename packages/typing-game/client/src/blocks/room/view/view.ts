@@ -80,7 +80,13 @@ export const view = RoomComposition.makeView.withInputs(
               [h.Class('mb-12 flex items-center gap-2')],
               [h.span([], [roomId]), copyButton, copiedIndicator],
             ),
-            content(model, h),
+            content(
+              model.roomAsyncData,
+              model.maybeSession,
+              model.userGameText,
+              model.username,
+              h,
+            ),
             maybeErrorMessage(maybeError, h),
           ],
         ),
@@ -91,7 +97,10 @@ export const view = RoomComposition.makeView.withInputs(
 )
 
 const content = (
-  { roomAsyncData, maybeSession, userGameText, username }: Model,
+  roomAsyncData: Model['roomAsyncData'],
+  maybeSession: Model['maybeSession'],
+  userGameText: string,
+  username: string,
   h: RoomViewBuilder,
 ): Html =>
   AsyncData.matchData(roomAsyncData, {

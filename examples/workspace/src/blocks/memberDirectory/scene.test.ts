@@ -1,14 +1,5 @@
 import { Array, Option } from 'effect'
-import {
-  click,
-  expect,
-  init,
-  label,
-  role,
-  scene,
-  text,
-  type,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe } from 'vitest'
 
@@ -21,20 +12,22 @@ import { layer } from './layer'
 const viewInputs = {
   members: initialWorkspace.members,
   issues: initialWorkspace.issues,
-  issueHrefs: { 'issue-101': '/issues/issue-101' },
+  issueHrefsById: { 'issue-101': '/issues/issue-101' },
 }
 
 describe('member directory', () => {
   it.effect('filters members by name and reports an empty search', () => {
-    return scene(
+    return Scene.scene(
       { block: MemberDirectoryBlock, layer, viewInputs },
-      init(),
-      expect(text('3 members')).toExist(),
-      type(label('Search members'), 'maya'),
-      expect(role('button', { name: 'View Maya Chen' })).toExist(),
-      expect(role('button', { name: 'View Alex Rivera' })).not.toExist(),
-      type(label('Search members'), 'no matching teammate'),
-      expect(role('status')).toContainText('No matching members.'),
+      Scene.init(),
+      Scene.expect(Scene.text('3 members')).toExist(),
+      Scene.type(Scene.label('Search members'), 'maya'),
+      Scene.expect(Scene.role('button', { name: 'View Maya Chen' })).toExist(),
+      Scene.expect(
+        Scene.role('button', { name: 'View Alex Rivera' }),
+      ).not.toExist(),
+      Scene.type(Scene.label('Search members'), 'no matching teammate'),
+      Scene.expect(Scene.role('status')).toContainText('No matching members.'),
     )
   })
 
@@ -42,13 +35,13 @@ describe('member directory', () => {
     'shows a selected member and renders a native assigned-issue link',
     () => {
       const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
-      return scene(
+      return Scene.scene(
         { block: MemberDirectoryBlock, layer, viewInputs },
-        init(),
-        click(role('button', { name: 'View Maya Chen' })),
-        expect(role('heading', { name: 'Maya Chen' })).toExist(),
-        expect(
-          role('link', { name: `${issue.identifier} ${issue.title}` }),
+        Scene.init(),
+        Scene.click(Scene.role('button', { name: 'View Maya Chen' })),
+        Scene.expect(Scene.role('heading', { name: 'Maya Chen' })).toExist(),
+        Scene.expect(
+          Scene.role('link', { name: `${issue.identifier} ${issue.title}` }),
         ).toHaveAttr('href', '/issues/issue-101'),
       )
     },
@@ -58,18 +51,18 @@ describe('member directory', () => {
     'renders non-link assigned-issue content when its href is absent',
     () => {
       const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
-      return scene(
+      return Scene.scene(
         {
           block: MemberDirectoryBlock,
           layer,
-          viewInputs: { ...viewInputs, issueHrefs: {} },
+          viewInputs: { ...viewInputs, issueHrefsById: {} },
         },
-        init(),
-        click(role('button', { name: 'View Maya Chen' })),
-        expect(
-          role('link', { name: `${issue.identifier} ${issue.title}` }),
+        Scene.init(),
+        Scene.click(Scene.role('button', { name: 'View Maya Chen' })),
+        Scene.expect(
+          Scene.role('link', { name: `${issue.identifier} ${issue.title}` }),
         ).not.toExist(),
-        expect(text(issue.title)).toExist(),
+        Scene.expect(Scene.text(issue.title)).toExist(),
       )
     },
   )
@@ -78,16 +71,16 @@ describe('member directory', () => {
     const nextIssues = Array.map(initialWorkspace.issues, issue =>
       modifyFields(issue, { maybeAssigneeId: () => Option.none() }),
     )
-    return scene(
+    return Scene.scene(
       {
         block: MemberDirectoryBlock,
         layer,
         viewInputs: { ...viewInputs, issues: nextIssues },
       },
-      init(),
-      click(role('button', { name: 'View Maya Chen' })),
-      expect(role('heading', { name: 'Maya Chen' })).toExist(),
-      expect(text('No assigned issues.')).toExist(),
+      Scene.init(),
+      Scene.click(Scene.role('button', { name: 'View Maya Chen' })),
+      Scene.expect(Scene.role('heading', { name: 'Maya Chen' })).toExist(),
+      Scene.expect(Scene.text('No assigned issues.')).toExist(),
     )
   })
 })

@@ -1,13 +1,4 @@
-import {
-  Command,
-  Subscription,
-  click,
-  expect,
-  given,
-  role,
-  scene,
-  text,
-} from 'foldkit/scene'
+import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -32,30 +23,30 @@ describe('view', () => {
   it.effect(
     'initial view shows the zeroed time and Start + Reset buttons',
     () =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        expect(text('00:00.00')).toExist(),
-        expect(role('button', { name: 'Start' })).toExist(),
-        expect(role('button', { name: 'Reset' })).toExist(),
-        expect(role('button', { name: 'Stop' })).toBeAbsent(),
+        Scene.given(initialModel),
+        Scene.expect(Scene.text('00:00.00')).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Start' })).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Reset' })).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Stop' })).toBeAbsent(),
       ),
   )
 
   it.effect(
     'clicking Start fires DetermineStartTime and switches to Stop',
     () =>
-      scene(
+      Scene.scene(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        click(role('button', { name: 'Start' })),
-        Command.expectExact(DetermineStartTime({ elapsedMs: 0 })),
-        Command.resolve(
+        Scene.given(initialModel),
+        Scene.click(Scene.role('button', { name: 'Start' })),
+        Scene.Command.expectExact(DetermineStartTime({ elapsedMs: 0 })),
+        Scene.Command.resolve(
           DetermineStartTime,
           Message.CompletedDetermineStartTime({ startTime: 1000 }),
         ),
-        expect(role('button', { name: 'Stop' })).toExist(),
-        expect(role('button', { name: 'Start' })).toBeAbsent(),
+        Scene.expect(Scene.role('button', { name: 'Stop' })).toExist(),
+        Scene.expect(Scene.role('button', { name: 'Start' })).toBeAbsent(),
       ),
   )
 
@@ -66,13 +57,13 @@ describe('view', () => {
       startTime: 1000,
     })
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(runningModel),
-      expect(role('button', { name: 'Stop' })).toExist(),
-      click(role('button', { name: 'Stop' })),
-      expect(role('button', { name: 'Start' })).toExist(),
-      expect(role('button', { name: 'Stop' })).toBeAbsent(),
+      Scene.given(runningModel),
+      Scene.expect(Scene.role('button', { name: 'Stop' })).toExist(),
+      Scene.click(Scene.role('button', { name: 'Stop' })),
+      Scene.expect(Scene.role('button', { name: 'Start' })).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Stop' })).toBeAbsent(),
     )
   })
 
@@ -83,13 +74,13 @@ describe('view', () => {
       startTime: 1000,
     })
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(runningModel),
-      expect(text('00:12.34')).toExist(),
-      click(role('button', { name: 'Reset' })),
-      expect(text('00:00.00')).toExist(),
-      expect(role('button', { name: 'Start' })).toExist(),
+      Scene.given(runningModel),
+      Scene.expect(Scene.text('00:12.34')).toExist(),
+      Scene.click(Scene.role('button', { name: 'Reset' })),
+      Scene.expect(Scene.text('00:00.00')).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Start' })).toExist(),
     )
   })
 
@@ -103,20 +94,20 @@ describe('view', () => {
         startTime,
       })
 
-      return scene(
+      return Scene.scene(
         { block: ApplicationBlock, layer },
-        given(runningModel),
-        expect(text('00:00.00')).toExist(),
-        Subscription.expectActive(subscriptions.stopwatchTicks),
-        Subscription.emit(subscriptions.stopwatchTicks, Message.Ticked()),
-        Command.expectExact(DetermineTickTime({ startTime })),
-        Command.resolve(
+        Scene.given(runningModel),
+        Scene.expect(Scene.text('00:00.00')).toExist(),
+        Scene.Subscription.expectActive(subscriptions.stopwatchTicks),
+        Scene.Subscription.emit(subscriptions.stopwatchTicks, Message.Ticked()),
+        Scene.Command.expectExact(DetermineTickTime({ startTime })),
+        Scene.Command.resolve(
           DetermineTickTime,
           Message.CompletedDetermineTickTime({ elapsedMs: 4320 }),
         ),
-        expect(text('00:04.32')).toExist(),
-        click(role('button', { name: 'Stop' })),
-        Subscription.expectInactive(subscriptions.stopwatchTicks),
+        Scene.expect(Scene.text('00:04.32')).toExist(),
+        Scene.click(Scene.role('button', { name: 'Stop' })),
+        Scene.Subscription.expectInactive(subscriptions.stopwatchTicks),
       )
     },
   )
@@ -128,10 +119,10 @@ describe('view', () => {
       startTime: 0,
     })
 
-    return scene(
+    return Scene.scene(
       { block: ApplicationBlock, layer },
-      given(longRunModel),
-      expect(text('01:07.89')).toExist(),
+      Scene.given(longRunModel),
+      Scene.expect(Scene.text('01:07.89')).toExist(),
     )
   })
 })

@@ -1,7 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as DialogLayer } from '@foldkit/ui/dialog'
-import { layer as ListboxLayer } from '@foldkit/ui/listbox'
+import { Dialog, Listbox } from '@foldkit/ui'
 
 import { CreateIssueBlock } from './block'
 import { CreateIssue } from './command'
@@ -32,4 +31,4 @@ export const layer = CreateIssueBlock.makeLayer(
       EffectsLayer: CreateIssue.layer,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(DialogLayer, ListboxLayer)))
+).pipe(Layer.provide(Layer.mergeAll(Dialog.layer, Listbox.layer)))

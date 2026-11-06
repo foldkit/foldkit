@@ -2,11 +2,7 @@ import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  layer as VirtualListLayer,
-  ScrollContainer as VirtualListScrollContainer,
-  makeBlock as makeVirtualListBlock,
-} from '@foldkit/ui/virtualList'
+import { VirtualList } from '@foldkit/ui'
 
 const Activity = Schema.Struct({
   id: Schema.String,
@@ -15,7 +11,7 @@ const Activity = Schema.Struct({
 })
 type Activity = typeof Activity.Type
 
-const ActivityListBlock = makeVirtualListBlock<Activity>()
+const ActivityListBlock = VirtualList.makeBlock<Activity>()
 const Model = Schema.Struct({
   activities: Schema.Array(Activity),
   activityList: ActivityListBlock.Model,
@@ -43,7 +39,7 @@ const ActivityListBinding = makeBinding(ActivityListBlock, {
       {
         id: 'activity-feed',
         rowHeightPx: 88,
-        scrollContainer: VirtualListScrollContainer.Window(),
+        scrollContainer: VirtualList.ScrollContainer.Window(),
       },
     ],
   },
@@ -108,4 +104,4 @@ export const layer = ActivityFeedBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(VirtualListLayer))
+).pipe(Layer.provide(VirtualList.layer))

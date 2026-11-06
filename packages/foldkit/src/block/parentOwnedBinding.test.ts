@@ -254,7 +254,7 @@ const ParentBlock: Block.FromAssemblyWithOutMessage<
 > = Block.assemble(prepareParentBlock)
 
 const makeGenericChoice = <const Value extends string>(
-  Value: Schema.Schema<Value>,
+  Value: Schema.Codec<Value, any, never, never>,
 ) => {
   const Model = Schema.Struct({ value: Value })
   const Message = defineMessageUnion({ UpdatedChoice: { value: Value } })
@@ -310,7 +310,7 @@ const GenericChoiceBinding = GenericParent.makeBinding(GenericChoice.block, {
 })
 
 const makeKeyedGenericParent = <const Value extends string>(
-  Value: Schema.Schema<Value>,
+  Value: Schema.Codec<Value, any, never, never>,
 ) => {
   const Entry = Schema.Struct({
     id: Schema.Literals(['first', 'second']),

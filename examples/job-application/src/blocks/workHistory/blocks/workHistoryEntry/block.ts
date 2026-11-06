@@ -2,17 +2,17 @@ import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { CalendarDate } from 'foldkit/calendar'
 import { Field } from 'foldkit/fieldValidation'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
-import { DatePickerBlock } from '@foldkit/ui/datePicker'
+import { DatePicker } from '@foldkit/ui'
 
 export const Model = Schema.Struct({
   id: Schema.String,
   company: Field(Schema.String),
   title: Field(Schema.String),
-  startDate: DatePickerBlock.Model,
+  startDate: DatePicker.DatePickerBlock.Model,
   maybeStartDate: Schema.Option(CalendarDate),
-  endDate: DatePickerBlock.Model,
+  endDate: DatePicker.DatePickerBlock.Model,
   maybeEndDate: Schema.Option(CalendarDate),
   isCurrentlyEmployed: Schema.Boolean,
   description: Schema.String,
@@ -28,7 +28,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedRevealErrors: {},
 })
 export type InMessage = typeof InMessage.Type

@@ -2,15 +2,11 @@ import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  HoverIntentBlock,
-  layer as HoverIntentLayer,
-  type RenderInfo as HoverIntentRenderInfo,
-} from '@foldkit/ui/hoverIntent'
+import { HoverIntent } from '@foldkit/ui'
 
 // Add a field to your Model:
 const Model = Schema.Struct({
-  hoverIntent: HoverIntentBlock.Model,
+  hoverIntent: HoverIntent.HoverIntentBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -30,12 +26,15 @@ export const HoverIntentExampleBlock = Block.make('HoverIntentExample', {
 const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
   HoverIntentExampleBlock
 
-const foldHoverIntentOutMessage = makeOutMessageFold(HoverIntentBlock, {
-  Opened: makeNoopStep,
-  Closed: makeNoopStep,
-})
+const foldHoverIntentOutMessage = makeOutMessageFold(
+  HoverIntent.HoverIntentBlock,
+  {
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+  },
+)
 
-const HoverIntentBinding = makeBinding(HoverIntentBlock, {
+const HoverIntentBinding = makeBinding(HoverIntent.HoverIntentBlock, {
   field: 'hoverIntent',
   init: {
     contextToArgs: () => [{ openDelay: 200, closeDelay: 300 }],
@@ -65,7 +64,7 @@ const view = HoverIntentExampleComposition.makeView((model, h) => {
     trigger,
     panel,
     isVisible,
-  }: HoverIntentRenderInfo) =>
+  }: HoverIntent.RenderInfo) =>
     h.div(
       [],
       [
@@ -113,4 +112,4 @@ export const layer = HoverIntentExampleBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(HoverIntentLayer))
+).pipe(Layer.provide(HoverIntent.layer))

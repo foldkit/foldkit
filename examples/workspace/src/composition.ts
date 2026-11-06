@@ -23,72 +23,54 @@ import {
   ProjectSettingsBlock,
 } from './blocks'
 import { NavigateInternal, ReplaceInternalUrl } from './command'
-import { type IssueFilters, SavedView } from './domain'
-import { issueFiltersHref, issueHref } from './issueLinks'
-import { WorkspaceListboxBlock } from './listbox'
+import { SavedView, Workspace } from './domain'
+import { StringListboxBlock } from './listbox'
 import {
-  ApplicationRoute,
-  isPageRoute,
-  issuesRouter,
   maybeProjectId,
   projectRouter,
-  routeToPath,
-  withoutIssueId,
+  routeHrefWithIssueFilters,
 } from './route'
-import { appliedIssueFilters } from './selection'
+import { effectiveIssueFilters, maybeConfirmedIssue } from './selectors'
+import { moveIssue } from './steps/issueMove'
 import {
-  applyIssueComment,
-  applyIssueSnapshot,
-  applySavedIssue,
-  requestIssueMove,
-} from './steps'
+  mergeIssue,
+  mergeIssueRevision,
+  recordIssueComment,
+} from './steps/issues'
+import { changeIssueFilters, closeIssue, openIssue } from './steps/navigation'
 
-export const ActiveMemberListboxBinding = makeBinding(WorkspaceListboxBlock, {
+export const ActiveMemberListboxBinding = makeBinding(StringListboxBlock, {
   field: 'activeMemberListbox',
   init: { contextToArgs: () => [{ id: 'workspace-active-member' }] },
 }).withOutMessagePolicy({
-  fold: makeOutMessageFold(WorkspaceListboxBlock, {
+  fold: makeOutMessageFold(StringListboxBlock, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({ activeMemberId: () => value })),
   }),
 })
 
-const foldIssueDetailOutMessage = makeOutMessageFold(IssueDetailBlock, {
-  Saved: ({ savedIssue }) =>
-    Update.combineSteps([
-      applySavedIssue(savedIssue),
-      makeFieldsStep(() => ({
-        maybeNotice: () => Option.some(`${savedIssue.identifier} saved`),
-      })),
-    ]),
-  AddedComment: ({ issueId, comment }) => applyIssueComment(issueId, comment),
-  ReceivedIssue: ({ issue }) => applyIssueSnapshot(issue),
-  Closed: () =>
-    makeCommandsStep(model => {
-      const { route } = model
-
-      if (ApplicationRoute.guards.Issue(route)) {
-        return [NavigateInternal({ url: issuesRouter({}) })]
-      }
-
-      if (!isPageRoute(route)) {
-        return []
-      }
-
-      return [NavigateInternal({ url: routeToPath(withoutIssueId(route)) })]
-    }),
-})
-
 export const IssueDetailsBinding = makeMapBinding(IssueDetailBlock, {
   field: 'issueDetails',
+  delivery: {
+    toUpdateContext: (model, issueId) => [
+      Option.getOrThrow(maybeConfirmedIssue(model, issueId)),
+    ],
+  },
 }).withOutMessagePolicy({
-  fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
+  fold: makeOutMessageFold(IssueDetailBlock, {
+    Saved: ({ saveResult }) =>
+      Update.combineSteps([
+        mergeIssueRevision(saveResult),
+        makeFieldsStep(() => ({
+          maybeNotice: () => Option.some(`${saveResult.identifier} saved`),
+        })),
+      ]),
+    AddedComment: ({ issueId, comment }) =>
+      recordIssueComment(issueId, comment),
+    DetectedSaveConflict: ({ latestIssue }) => mergeIssue(latestIssue),
+    RequestedClose: () => closeIssue,
+  }),
 })
-
-const openIssue = (issueId: string) =>
-  makeCommandsStep(model => [
-    NavigateInternal({ url: issueHref(model, issueId) }),
-  ])
 
 export const CreateIssueBinding = makeBinding(CreateIssueBlock, {
   field: 'createIssue',
@@ -117,54 +99,45 @@ export const NotificationCenterBinding = makeBinding(NotificationCenterBlock, {
   }),
 })
 
-const navigateIssueFilters = (
-  change: (filters: IssueFilters) => IssueFilters,
-) =>
-  makeCommandsStep(model => [
-    NavigateInternal({
-      url: issueFiltersHref(model, change(appliedIssueFilters(model))),
-    }),
-  ])
-
 export const IssueListBinding = makeBinding(IssueListBlock, {
   field: 'issueList',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(IssueListBlock, {
-    SavedFilter: ({ name, filters }) =>
+    SubmittedSavedView: ({ name, filters }) =>
       makeFieldsStep(model => ({
         savedViews: Array.append(
-          SavedView.make({
-            id: `view-${model.nextSavedViewId}`,
+          SavedView.SavedView.make({
+            id: `view-${model.nextSavedViewNumber}`,
             name,
             filters,
           }),
         ),
-        nextSavedViewId: Number.increment,
+        nextSavedViewNumber: Number.increment,
         maybeNotice: () => Option.some(`Saved view “${name}”`),
       })),
     ChangedQuery: ({ query }) =>
       makeCommandsStep(model => [
         ReplaceInternalUrl({
-          url: issueFiltersHref(
-            model,
-            modifyFields(appliedIssueFilters(model), { query: () => query }),
+          url: routeHrefWithIssueFilters(
+            model.route,
+            modifyFields(effectiveIssueFilters(model), { query: () => query }),
           ),
         }),
       ]),
     ChangedStatusFilter: ({ maybeStatus }) =>
-      navigateIssueFilters(filters =>
+      changeIssueFilters(filters =>
         modifyFields(filters, { maybeStatus: () => maybeStatus }),
       ),
     ChangedSort: ({ sort }) =>
-      navigateIssueFilters(filters =>
+      changeIssueFilters(filters =>
         modifyFields(filters, { sort: () => sort }),
       ),
     ChangedGrouping: ({ groupBy }) =>
-      navigateIssueFilters(filters =>
+      changeIssueFilters(filters =>
         modifyFields(filters, { groupBy: () => groupBy }),
       ),
     RequestedClearFilters: () =>
-      navigateIssueFilters(filters =>
+      changeIssueFilters(filters =>
         modifyFields(filters, {
           query: () => '',
           maybeStatus: () => Option.none(),
@@ -179,11 +152,7 @@ export const IssueListBinding = makeBinding(IssueListBlock, {
 
             const maybeProject = Option.match(maybeProjectId(route), {
               onNone: () => Array.head(workspace.projects),
-              onSome: projectId =>
-                Array.findFirst(
-                  workspace.projects,
-                  project => project.id === projectId,
-                ),
+              onSome: projectId => Workspace.findProject(workspace, projectId),
             })
 
             return Option.match(maybeProject, {
@@ -200,23 +169,20 @@ export const IssueListBinding = makeBinding(IssueListBlock, {
 export const IssueBoardsBinding = makeMapBinding(IssueBoardBlock, {
   field: 'issueBoards',
 }).withOutMessagePolicy({
-  fold: (projectId, outMessage) =>
+  fold: projectId =>
     makeOutMessageFold(IssueBoardBlock, {
       RequestedCreation: ({ status }) =>
         CreateIssueBinding.requestOpen({ projectId, status }),
       RequestedMove: ({ issueId, status, insertionIndex }) =>
-        requestIssueMove(issueId, status, insertionIndex),
-    })(outMessage),
+        moveIssue(issueId, status, insertionIndex),
+    }),
 })
 
 export const CommandPaletteBinding = makeBinding(CommandPaletteBlock, {
   field: 'commandPalette',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(CommandPaletteBlock, {
-    SelectedIssue: ({ issueId }) =>
-      makeCommandsStep(model => [
-        NavigateInternal({ url: issueHref(model, issueId) }),
-      ]),
+    SelectedIssue: ({ issueId }) => openIssue(issueId),
     SelectedProject: ({ projectId }) =>
       makeCommandsStep(() => [
         NavigateInternal({ url: projectRouter({ projectId }) }),
@@ -231,19 +197,14 @@ export const MemberDirectoryBinding = makeBinding(MemberDirectoryBlock, {
 export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
   field: 'projectSettings',
 }).withOutMessagePolicy({
-  fold: (_projectId, outMessage) =>
-    makeOutMessageFold(ProjectSettingsBlock, {
-      Saved: ({ project }) =>
-        makeFieldsStep(() => ({
-          workspaceAsyncData: AsyncData.map(workspace =>
-            modifyFields(workspace, {
-              projects: Array.map(currentProject =>
-                currentProject.id === project.id ? project : currentProject,
-              ),
-            }),
-          ),
-        })),
-    })(outMessage),
+  fold: makeOutMessageFold(ProjectSettingsBlock, {
+    Saved: ({ project }) =>
+      makeFieldsStep(() => ({
+        workspaceAsyncData: AsyncData.map(workspace =>
+          Workspace.replaceProject(workspace, project),
+        ),
+      })),
+  }),
 })
 
 export const ApplicationComposition = makeComposition({

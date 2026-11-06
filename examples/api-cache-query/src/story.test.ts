@@ -1,16 +1,9 @@
 import { Option, Result } from 'effect'
-import {
-  Command,
-  given,
-  message,
-  messageFrom,
-  model,
-  story,
-} from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
-import { test as TabsTest } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { TabsBinding } from './composition'
 import { ApplicationBlock, layer } from './index'
@@ -32,34 +25,34 @@ const SECOND_REQUEST_GENERATION = 2
 const postAsyncDataTag = (model: Model, postId: string): string =>
   postQuery.read(model.postDetails, { postId })._tag
 
-const selectedPostsTab = messageFrom(
+const selectedPostsTab = Story.messageIn(
   TabsBinding,
   AppTabsBlock.Message.SelectedTab({ index: 0, value: 'Posts' }),
 )
 
-const selectedStatsTab = messageFrom(
+const selectedStatsTab = Story.messageIn(
   TabsBinding,
   AppTabsBlock.Message.SelectedTab({ index: 1, value: 'Stats' }),
 )
 
-const resolveFocusTab = Command.resolve(
-  TabsTest.FocusTab,
+const resolveFocusTab = Story.Command.resolve(
+  Tabs.test.FocusTab,
   AppTabsBlock.Message.CompletedFocusTab(),
 )
 
 it.effect(
   'first visit to the Stats tab fetches stats',
   ({ models: { loadedPostsModel } }) =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(loadedPostsModel),
+      Story.given(loadedPostsModel),
       selectedStatsTab,
-      model(model => {
+      Story.model(model => {
         expect(model.activeTab).toBe('Stats')
         expect(statsQuery.read(model.stats)._tag).toBe('Loading')
       }),
       resolveFocusTab,
-      Command.resolve(
+      Story.Command.resolve(
         statsQuery.Fetch,
         statsQuery.Message.CompletedFetch({
           generation: FIRST_REQUEST_GENERATION,
@@ -69,7 +62,7 @@ it.effect(
           }),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(statsQuery.read(model.stats)._tag).toBe('Success')
       }),
     ),
@@ -78,16 +71,16 @@ it.effect(
 it.effect(
   'returning to a tab with cached data does not refetch',
   ({ models: { loadedStatsModel } }) =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(loadedStatsModel),
+      Story.given(loadedStatsModel),
       selectedPostsTab,
       resolveFocusTab,
-      Command.expectNone(),
+      Story.Command.expectNone(),
       selectedStatsTab,
       resolveFocusTab,
-      Command.expectNone(),
-      model(model => {
+      Story.Command.expectNone(),
+      Story.model(model => {
         expect(statsQuery.read(model.stats)._tag).toBe('Success')
       }),
     ),
@@ -96,18 +89,18 @@ it.effect(
 it.effect(
   'a revalidation tick keeps stale stats on screen while refetching',
   ({ models: { loadedStatsModel } }) =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(loadedStatsModel),
-      message(Message.TickedStatsRefreshInterval()),
-      model(model => {
+      Story.given(loadedStatsModel),
+      Story.message(Message.TickedStatsRefreshInterval()),
+      Story.model(model => {
         const statsAsyncData = statsQuery.read(model.stats)
         expect(statsAsyncData._tag).toBe('Refreshing')
         if (statsAsyncData._tag === 'Refreshing') {
           expect(statsAsyncData.data.stats).toEqual(fixtureStats)
         }
       }),
-      Command.resolve(
+      Story.Command.resolve(
         statsQuery.Fetch,
         statsQuery.Message.CompletedFetch({
           generation: SECOND_REQUEST_GENERATION,
@@ -117,7 +110,7 @@ it.effect(
           }),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         const statsAsyncData = statsQuery.read(model.stats)
         expect(statsAsyncData._tag).toBe('Success')
         if (statsAsyncData._tag === 'Success') {
@@ -130,18 +123,18 @@ it.effect(
 it.effect(
   'a failed refresh keeps the stale stats on screen with the error',
   ({ models: { loadedStatsModel } }) =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(loadedStatsModel),
-      message(Message.TickedStatsRefreshInterval()),
-      Command.resolve(
+      Story.given(loadedStatsModel),
+      Story.message(Message.TickedStatsRefreshInterval()),
+      Story.Command.resolve(
         statsQuery.Fetch,
         statsQuery.Message.CompletedFetch({
           generation: SECOND_REQUEST_GENERATION,
           result: Result.fail('The server is down.'),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         const statsAsyncData = statsQuery.read(model.stats)
         expect(statsAsyncData._tag).toBe('Stale')
         if (statsAsyncData._tag === 'Stale') {
@@ -154,41 +147,57 @@ it.effect(
 
 it.effect(
   'refresh clicks during an in-flight fetch are deduplicated',
-  ({ models: { loadingStatsModel } }) =>
-    story(
+  ({ models: { loadedPostsModel } }) =>
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(loadingStatsModel),
-      message(Message.ClickedRefreshStats()),
-      Command.expectNone(),
+      Story.given(loadedPostsModel),
+      Story.message(Message.ClickedRefreshStats()),
+      Story.message(Message.ClickedRefreshStats()),
+      Story.Command.expectExact(statsQuery.Fetch),
+      Story.Command.resolve(
+        statsQuery.Fetch,
+        statsQuery.Message.CompletedFetch({
+          generation: FIRST_REQUEST_GENERATION,
+          result: Result.fail('The server is down.'),
+        }),
+      ),
     ),
 )
 
 it.effect(
   'a revalidation tick during a refresh is deduplicated',
-  ({ models: { refreshingStatsModel } }) =>
-    story(
+  ({ models: { loadedStatsModel } }) =>
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(refreshingStatsModel),
-      message(Message.TickedStatsRefreshInterval()),
-      Command.expectNone(),
+      Story.given(loadedStatsModel),
+      Story.message(Message.TickedStatsRefreshInterval()),
+      Story.message(Message.TickedStatsRefreshInterval()),
+      Story.Command.expectExact(statsQuery.Fetch),
+      Story.Command.resolve(
+        statsQuery.Fetch,
+        statsQuery.Message.CompletedFetch({
+          generation: SECOND_REQUEST_GENERATION,
+          result: Result.fail('The server is down.'),
+        }),
+      ),
     ),
 )
 
 it.effect(
   'refreshing posts refetches while keeping the current list',
   ({ models: { loadedPostsModel } }) =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(loadedPostsModel),
-      message(Message.ClickedRefreshPosts()),
-      model(model => {
+      Story.given(loadedPostsModel),
+      Story.message(Message.ClickedRefreshPosts()),
+      Story.model(model => {
         const postsAsyncData = postsQuery.read(model.posts)
         expect(postsAsyncData._tag).toBe('Refreshing')
         if (postsAsyncData._tag === 'Refreshing') {
           expect(postsAsyncData.data.posts).toEqual(fixturePosts)
         }
       }),
-      Command.resolve(
+      Story.Command.resolve(
         postsQuery.Fetch,
         postsQuery.Message.CompletedFetch({
           generation: SECOND_REQUEST_GENERATION,
@@ -198,7 +207,7 @@ it.effect(
           }),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(postsQuery.read(model.posts)._tag).toBe('Success')
       }),
     ),
@@ -207,14 +216,14 @@ it.effect(
 it.effect(
   'retrying failed posts shows the loading state and refetches',
   ({ models: { failedPostsModel } }) =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(failedPostsModel),
-      message(Message.ClickedRetryPosts()),
-      model(model => {
+      Story.given(failedPostsModel),
+      Story.message(Message.ClickedRetryPosts()),
+      Story.model(model => {
         expect(postsQuery.read(model.posts)._tag).toBe('Loading')
       }),
-      Command.resolve(
+      Story.Command.resolve(
         postsQuery.Fetch,
         postsQuery.Message.CompletedFetch({
           generation: SECOND_REQUEST_GENERATION,
@@ -224,7 +233,7 @@ it.effect(
           }),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(postsQuery.read(model.posts)._tag).toBe('Success')
       }),
     ),
@@ -233,14 +242,14 @@ it.effect(
 it.effect(
   'opening a post once reuses its retained data on later visits',
   ({ models: { loadedPostsModel } }) =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(loadedPostsModel),
-      message(Message.ClickedPost({ postId: 'first-post' })),
-      model(model => {
+      Story.given(loadedPostsModel),
+      Story.message(Message.ClickedPost({ postId: 'first-post' })),
+      Story.model(model => {
         expect(postAsyncDataTag(model, 'first-post')).toBe('Loading')
       }),
-      Command.resolve(
+      Story.Command.resolve(
         postQuery.Fetch,
         postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
@@ -252,10 +261,10 @@ it.effect(
           }),
         }),
       ),
-      message(Message.ClickedBackToPosts()),
-      message(Message.ClickedPost({ postId: 'first-post' })),
-      Command.expectNone(),
-      model(model => {
+      Story.message(Message.ClickedBackToPosts()),
+      Story.message(Message.ClickedPost({ postId: 'first-post' })),
+      Story.Command.expectNone(),
+      Story.model(model => {
         expect(postAsyncDataTag(model, 'first-post')).toBe('Success')
         expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
       }),
@@ -265,11 +274,11 @@ it.effect(
 it.effect(
   'a failed post fetch enters Failure and retry fetches it again',
   ({ models: { loadedPostsModel } }) =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(loadedPostsModel),
-      message(Message.ClickedPost({ postId: 'first-post' })),
-      Command.resolve(
+      Story.given(loadedPostsModel),
+      Story.message(Message.ClickedPost({ postId: 'first-post' })),
+      Story.Command.resolve(
         postQuery.Fetch,
         postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
@@ -278,14 +287,14 @@ it.effect(
           result: Result.fail('The connection dropped.'),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(postAsyncDataTag(model, 'first-post')).toBe('Failure')
       }),
-      message(Message.ClickedRetryPost({ postId: 'first-post' })),
-      model(model => {
+      Story.message(Message.ClickedRetryPost({ postId: 'first-post' })),
+      Story.model(model => {
         expect(postAsyncDataTag(model, 'first-post')).toBe('Loading')
       }),
-      Command.resolve(
+      Story.Command.resolve(
         postQuery.Fetch,
         postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
@@ -297,7 +306,7 @@ it.effect(
           }),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(postAsyncDataTag(model, 'first-post')).toBe('Success')
       }),
     ),
@@ -306,15 +315,15 @@ it.effect(
 it.effect(
   'revisiting a post with a cached failure loads it again',
   ({ models: { failedFirstPostModel } }) =>
-    story(
+    Story.story(
       { block: ApplicationBlock, layer },
-      given(failedFirstPostModel),
-      message(Message.ClickedPost({ postId: 'first-post' })),
-      model(model => {
+      Story.given(failedFirstPostModel),
+      Story.message(Message.ClickedPost({ postId: 'first-post' })),
+      Story.model(model => {
         expect(postAsyncDataTag(model, 'first-post')).toBe('Loading')
         expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
       }),
-      Command.resolve(
+      Story.Command.resolve(
         postQuery.Fetch,
         postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
@@ -323,7 +332,7 @@ it.effect(
           result: Result.fail('The connection dropped.'),
         }),
       ),
-      model(model => {
+      Story.model(model => {
         expect(postAsyncDataTag(model, 'first-post')).toBe('Failure')
       }),
     ),

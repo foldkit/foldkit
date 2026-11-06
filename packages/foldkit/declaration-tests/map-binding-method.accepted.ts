@@ -210,8 +210,8 @@ export const PickerBinding = PickerDefinition.makeMapBinding(PickerBlock, {
     }),
 })
 
-export const createMappedPicker = <Item, Encoded, Decoding, Encoding>(
-  Item: Schema.Codec<Item, Encoded, Decoding, Encoding> & {
+export const createMappedPicker = <Item, Encoded>(
+  Item: Schema.Codec<Item, Encoded, never, never> & {
     readonly '~type.make': Item
   },
 ) => {

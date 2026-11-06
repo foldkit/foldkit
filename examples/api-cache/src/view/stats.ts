@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { view as buttonView } from '@foldkit/ui/button'
+import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
 import type { Stats } from '../data'
@@ -12,8 +12,11 @@ import { errorPanel, loadingPanel, toolbarButtonClassName } from './shared'
 const formatFetchedAt = (fetchedAt: number): string =>
   new Date(fetchedAt).toLocaleTimeString()
 
-export const statsTabView = (model: Model, h: ApplicationViewBuilder) => {
-  const isPending = AsyncData.isPending(model.stats)
+export const statsTabView = (
+  statsAsyncData: Model['stats'],
+  h: ApplicationViewBuilder,
+) => {
+  const isPending = AsyncData.isPending(statsAsyncData)
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -22,7 +25,7 @@ export const statsTabView = (model: Model, h: ApplicationViewBuilder) => {
         [h.Class('flex items-center justify-between')],
         [
           h.h2([h.Class('text-xl font-bold text-slate-800')], ['Stats']),
-          buttonView(
+          Button.view(
             {
               onClick: Message.ClickedRefreshStats(),
               isDisabled: isPending,
@@ -42,7 +45,7 @@ export const statsTabView = (model: Model, h: ApplicationViewBuilder) => {
           'Stats refetch every 5 seconds while this tab is open. The old numbers stay on screen while the new ones load.',
         ],
       ),
-      AsyncData.matchDataSplitEmpty(model.stats, {
+      AsyncData.matchDataSplitEmpty(statsAsyncData, {
         onIdle: () => loadingPanel('Loading stats...', h),
         onLoading: () => loadingPanel('Loading stats...', h),
         onFailure: error =>
@@ -51,7 +54,7 @@ export const statsTabView = (model: Model, h: ApplicationViewBuilder) => {
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(AsyncData.getError(model.stats), {
+              ...Option.match(AsyncData.getError(statsAsyncData), {
                 onNone: () => [],
                 onSome: error => [
                   errorPanel(
@@ -64,7 +67,7 @@ export const statsTabView = (model: Model, h: ApplicationViewBuilder) => {
                 {
                   stats,
                   fetchedAt,
-                  isRefreshing: AsyncData.isRefreshing(model.stats),
+                  isRefreshing: AsyncData.isRefreshing(statsAsyncData),
                 },
                 h,
               ),

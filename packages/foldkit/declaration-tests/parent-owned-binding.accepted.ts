@@ -366,8 +366,8 @@ export const pureBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 
 export const emptyLayer = Layer.empty
 
-export const makeGenericKeyedBinding = <const Value extends string>(
-  Value: Schema.Schema<Value>,
+export const makeGenericKeyedBinding = <const Value extends string, Encoded>(
+  Value: Schema.Codec<Value, Encoded, never, never>,
 ) => {
   const Entry = Schema.Struct({
     id: Schema.Literals(['first', 'second']),

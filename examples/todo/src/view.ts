@@ -2,22 +2,14 @@ import clsx from 'clsx'
 import { Array, Match, Option } from 'effect'
 import { Html } from 'foldkit/html'
 
-import { view as buttonView } from '@foldkit/ui/button'
-import { view as checkboxView } from '@foldkit/ui/checkbox'
-import { view as inputView } from '@foldkit/ui/input'
+import { Button, Checkbox, Input } from '@foldkit/ui'
 
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
 } from './composition'
 import { Message } from './message'
-import {
-  EditingState,
-  type Filter,
-  type Model,
-  type Todo,
-  type Todos,
-} from './model'
+import { EditingState, type Filter, type Todo, type Todos } from './model'
 
 const editingTextFor = (
   editing: EditingState,
@@ -47,7 +39,7 @@ const editingTodoView = (
     todo.id,
     [h.Class('flex items-center gap-3 p-3 bg-gray-50 rounded-lg')],
     [
-      inputView(
+      Input.view(
         {
           id: `edit-${todo.id}`,
           value: text,
@@ -63,7 +55,7 @@ const editingTodoView = (
         },
         h,
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.SavedEdit(),
           toView: attributes =>
@@ -79,7 +71,7 @@ const editingTodoView = (
         },
         h,
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.CancelledEdit(),
           toView: attributes =>
@@ -109,7 +101,7 @@ const nonEditingTodoView = (todo: Todo, h: ApplicationViewBuilder): Html =>
     todo.id,
     [h.Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
     [
-      checkboxView(
+      Checkbox.view(
         {
           id: `todo-${todo.id}`,
           isChecked: todo.completed,
@@ -142,7 +134,7 @@ const nonEditingTodoView = (todo: Todo, h: ApplicationViewBuilder): Html =>
         ],
         [todo.text],
       ),
-      buttonView(
+      Button.view(
         {
           onClick: Message.DeletedTodo({ id: todo.id }),
           toView: attributes =>
@@ -163,9 +155,9 @@ const nonEditingTodoView = (todo: Todo, h: ApplicationViewBuilder): Html =>
   )
 
 const filterButtonView =
-  (model: Model) =>
+  (selectedFilter: Filter) =>
   (filter: Filter, label: string, h: ApplicationViewBuilder): Html =>
-    buttonView(
+    Button.view(
       {
         onClick: Message.SelectedFilter({ filter }),
         toView: attributes =>
@@ -174,7 +166,7 @@ const filterButtonView =
               ...attributes.button,
               h.Class(
                 `px-3 py-1 rounded ${
-                  model.filter === filter
+                  selectedFilter === filter
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`,
@@ -187,12 +179,13 @@ const filterButtonView =
     )
 
 const footerView = (
-  model: Model,
+  todos: Todos,
+  selectedFilter: Filter,
   activeCount: number,
   completedCount: number,
   h: ApplicationViewBuilder,
 ): Html =>
-  Array.match(model.todos, {
+  Array.match(todos, {
     onEmpty: () => h.empty,
     onNonEmpty: () =>
       h.div(
@@ -206,19 +199,19 @@ const footerView = (
           h.div(
             [h.Class('flex justify-center gap-2')],
             [
-              filterButtonView(model)('All', 'All', h),
-              filterButtonView(model)('Active', 'Active', h),
-              filterButtonView(model)('Completed', 'Completed', h),
+              filterButtonView(selectedFilter)('All', 'All', h),
+              filterButtonView(selectedFilter)('Active', 'Active', h),
+              filterButtonView(selectedFilter)('Completed', 'Completed', h),
             ],
           ),
 
           h.div(
             [h.Class('flex justify-center gap-2')],
             [
-              Array.match(model.todos, {
+              Array.match(todos, {
                 onEmpty: () => h.empty,
                 onNonEmpty: todos =>
-                  buttonView(
+                  Button.view(
                     {
                       onClick: Message.ToggledAll(),
                       toView: attributes =>
@@ -241,7 +234,7 @@ const footerView = (
               }),
 
               completedCount > 0
-                ? buttonView(
+                ? Button.view(
                     {
                       onClick: Message.ClearedCompleted(),
                       toView: attributes =>
@@ -296,7 +289,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
               h.div(
                 [h.Class('flex gap-3')],
                 [
-                  inputView(
+                  Input.view(
                     {
                       id: 'new-todo',
                       value: model.newTodoText,
@@ -313,7 +306,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
                     },
                     h,
                   ),
-                  buttonView(
+                  Button.view(
                     {
                       type: 'submit',
                       toView: attributes =>
@@ -356,7 +349,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
               ),
           }),
 
-          footerView(model, activeCount, completedCount, h),
+          footerView(model.todos, model.filter, activeCount, completedCount, h),
         ],
       ),
     ],

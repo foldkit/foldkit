@@ -1,12 +1,12 @@
-import { click, expect, inside, role, within } from 'foldkit/scene'
+import { Scene } from 'foldkit'
 
 // Scope a single locator to a parent element.
-within(role('region', { name: 'Sidebar' }), role('link'))
+Scene.within(Scene.role('region', { name: 'Sidebar' }), Scene.role('link'))
 
 // Scope a block of steps — every assertion and interaction
 // resolves within the parent's subtree.
-inside(
-  role('dialog', { name: 'Confirm' }),
-  expect(role('heading')).toHaveText('Delete item?'),
-  click(role('button', { name: 'Cancel' })),
+Scene.inside(
+  Scene.role('dialog', { name: 'Confirm' }),
+  Scene.expect(Scene.role('heading')).toHaveText('Delete item?'),
+  Scene.click(Scene.role('button', { name: 'Cancel' })),
 )

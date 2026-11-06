@@ -1,6 +1,6 @@
 import { Update } from 'foldkit'
 
-import { DialogBlock } from '@foldkit/ui/dialog'
+import { Dialog } from '@foldkit/ui'
 
 import {
   EditorComposition,
@@ -11,7 +11,7 @@ import {
   makeBinding,
 } from './editor/block'
 
-const foldDialogOutMessage = makeOutMessageFold(DialogBlock, {
+const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   Opened: makeNoopStep,
   Closed: () =>
     makeFieldsStep(() => ({
@@ -20,7 +20,7 @@ const foldDialogOutMessage = makeOutMessageFold(DialogBlock, {
   CompletedClose: makeNoopStep,
 })
 
-export const DialogBinding = makeBinding(DialogBlock, {
+export const DialogBinding = makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 

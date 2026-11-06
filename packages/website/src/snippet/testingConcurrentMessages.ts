@@ -1,4 +1,4 @@
-import { Command, given, message, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -12,18 +12,18 @@ import {
 } from './counterCommands'
 
 it.effect('accepts another click while the reset is pending', () =>
-  story(
+  Story.story(
     { block: ApplicationBlock, layer },
-    given(Model.make({ count: 5 })),
-    message(Message.ClickedResetAfterDelay()),
-    Command.expectExact(WaitBeforeReset),
-    message(Message.ClickedIncrement()),
-    model(model => {
+    Story.given(Model.make({ count: 5 })),
+    Story.message(Message.ClickedResetAfterDelay()),
+    Story.Command.expectExact(WaitBeforeReset),
+    Story.message(Message.ClickedIncrement()),
+    Story.model(model => {
       expect(model.count).toBe(6)
     }),
-    Command.expectExact(WaitBeforeReset),
-    Command.resolve(WaitBeforeReset, Message.CompletedWaitBeforeReset()),
-    model(model => {
+    Story.Command.expectExact(WaitBeforeReset),
+    Story.Command.resolve(WaitBeforeReset, Message.CompletedWaitBeforeReset()),
+    Story.model(model => {
       expect(model.count).toBe(0)
     }),
   ),

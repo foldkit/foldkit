@@ -1,8 +1,7 @@
 import { Array, Schema } from 'effect'
+import { Scene, Story } from 'foldkit'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
-import * as Scene from 'foldkit/scene'
-import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
 const Message = defineMessageUnion({

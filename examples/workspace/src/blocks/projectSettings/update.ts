@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { makeStep } from './block'
 import { SaveProject } from './command'
 import { ProjectSettingsComposition } from './composition'
-import { isDirty } from './draft'
+import { draftFromProject, hasUnsavedChanges } from './draft'
 import { type Model, type ProjectDraft, SaveState } from './model'
 import { OutMessage } from './outMessage'
 
@@ -28,7 +28,7 @@ const saveProject = makeStep(model => {
   if (
     SaveState.guards.Saving(model.saveState) ||
     String.isEmpty(name) ||
-    !isDirty(model)
+    !hasUnsavedChanges(model)
   ) {
     return { model }
   }
@@ -37,7 +37,7 @@ const saveProject = makeStep(model => {
     model: modifyFields(model, { saveState: () => SaveState.Saving() }),
     commands: [
       SaveProject({
-        project: modifyFields(model.baseline, {
+        project: modifyFields(model.savedProject, {
           name: () => name,
           description: () => model.draft.description,
         }),
@@ -53,10 +53,7 @@ const handleClickedDiscardChanges = (model: Model) => {
 
   return {
     model: modifyFields(model, {
-      draft: () => ({
-        name: model.baseline.name,
-        description: model.baseline.description,
-      }),
+      draft: () => draftFromProject(model.savedProject),
       saveState: () => SaveState.Idle(),
     }),
   }
@@ -75,15 +72,15 @@ export const update = ProjectSettingsComposition.makeUpdate({
   SucceededSaveProject: (model, { project }) => {
     if (
       !SaveState.guards.Saving(model.saveState) ||
-      project.id !== model.baseline.id
+      project.id !== model.savedProject.id
     ) {
       return { model }
     }
 
     return {
       model: modifyFields(model, {
-        baseline: () => project,
-        draft: () => ({ name: project.name, description: project.description }),
+        savedProject: () => project,
+        draft: () => draftFromProject(project),
         saveState: () => SaveState.Saved(),
       }),
       outMessage: OutMessage.Saved({ project }),

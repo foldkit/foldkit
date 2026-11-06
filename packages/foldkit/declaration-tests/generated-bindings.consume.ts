@@ -101,13 +101,13 @@ export type CompleteEncodedKey = Expect<
 export type CompleteDecodingServices = Expect<
   Equal<
     typeof GeneratedBindingParentComposition.Message.DecodingServices,
-    'RoomIdDecode'
+    never
   >
 >
 export type CompleteEncodingServices = Expect<
   Equal<
     typeof GeneratedBindingParentComposition.Message.EncodingServices,
-    'RoomIdEncode'
+    never
   >
 >
 

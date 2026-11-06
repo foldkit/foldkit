@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import * as Block from 'foldkit/block'
-import { defineMessageUnion } from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 export const ContextKey = Symbol('InputContexts')
 const Model = Schema.Struct({
@@ -10,7 +10,7 @@ const Model = Schema.Struct({
 export const Message = defineMessageUnion({
   UpdatedValue: { value: Schema.Number },
 })
-export const InMessage = defineMessageUnion({
+export const InMessage = defineInMessageUnion({
   RequestedValue: { value: Schema.Number },
 })
 export const ContextBlock = Block.make('InputContexts', {

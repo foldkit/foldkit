@@ -2,6 +2,7 @@ import { Predicate, Schema } from 'effect'
 
 import type * as Mount from '../mount/index.js'
 import type { AnyBinding } from './binding.js'
+import type { ValidateCompleteMessageSelfContainedCodec } from './childEnvelope.js'
 import type { Base, Composition, ValidateChildBindings } from './definition.js'
 import type { CompositionDeliveryArguments } from './delivery.js'
 import type { ValidateChildInitContext } from './initialization.js'
@@ -15,10 +16,11 @@ import {
 import type { Owner } from './owner.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 
 type RuntimeDefinitionContracts = Readonly<{
-  Model: AnySchema
-  Message: AnySchema
+  Model: AnySelfContainedSchema
+  Message: AnySelfContainedSchema
   OutMessage?: AnySchema
   ChildInitContext?: AnySchema
 }>
@@ -82,8 +84,8 @@ export type Primitives<Id extends string, Message = unknown> = Readonly<{
  * start lifecycle work. */
 export interface AuthoringMakeComposition<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Concrete extends boolean = true,
   ChildInitContextSchema extends AnySchema | undefined = undefined,
@@ -125,7 +127,8 @@ export interface AuthoringMakeComposition<
         ModelSchema['Type'],
         MessageSchema['Type'],
         OutMessageSchema extends AnySchema ? OutMessageSchema['Type'] : never
-      >,
+      > &
+      ValidateCompleteMessageSelfContainedCodec<MessageSchema, Children>,
   ): Composition<
     Owner<Id, Concrete>,
     ModelSchema,
@@ -140,8 +143,8 @@ export interface AuthoringMakeComposition<
  * registration. */
 export type AuthoringDefinition<
   Id extends string,
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   Concrete extends boolean = true,
   ChildInitContextSchema extends AnySchema | undefined = undefined,
@@ -176,8 +179,8 @@ export interface NamespaceMakeDefinition<
   Concrete extends boolean = true,
 > {
   <
-    const ModelSchema extends AnySchema,
-    const MessageSchema extends AnySchema,
+    const ModelSchema extends AnySelfContainedSchema,
+    const MessageSchema extends AnySelfContainedSchema,
     const OutMessageSchema extends AnySchema,
     const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(
@@ -204,8 +207,8 @@ export interface NamespaceMakeDefinition<
     ChildInitContextSchema
   >
   <
-    const ModelSchema extends AnySchema,
-    const MessageSchema extends AnySchema,
+    const ModelSchema extends AnySelfContainedSchema,
+    const MessageSchema extends AnySelfContainedSchema,
     const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(
     config: Readonly<{
@@ -284,8 +287,8 @@ export function makeNamespace(id: string): any {
  * effect declarations. The returned Definition is passive configuration. */
 export function makeDefinition<
   const Id extends string,
-  const ModelSchema extends AnySchema,
-  const MessageSchema extends AnySchema,
+  const ModelSchema extends AnySelfContainedSchema,
+  const MessageSchema extends AnySelfContainedSchema,
   const OutMessageSchema extends AnySchema,
   const ChildInitContextSchema extends AnySchema | undefined = undefined,
 >(
@@ -316,8 +319,8 @@ export function makeDefinition<
  * effect declarations. The returned Definition is passive configuration. */
 export function makeDefinition<
   const Id extends string,
-  const ModelSchema extends AnySchema,
-  const MessageSchema extends AnySchema,
+  const ModelSchema extends AnySelfContainedSchema,
+  const MessageSchema extends AnySelfContainedSchema,
   const ChildInitContextSchema extends AnySchema | undefined = undefined,
 >(
   id: (Id extends '' | `${string}/${string}` | `${string}::${string}`
@@ -347,8 +350,8 @@ export function makeDefinition<
  * effect declarations. The returned Definition is passive configuration. */
 export function makeDefinition<
   const Id extends string,
-  const ModelSchema extends AnySchema,
-  const MessageSchema extends AnySchema,
+  const ModelSchema extends AnySelfContainedSchema,
+  const MessageSchema extends AnySelfContainedSchema,
   const OutMessageSchema extends AnySchema,
   const ChildInitContextSchema extends AnySchema | undefined = undefined,
 >(
@@ -378,8 +381,8 @@ export function makeDefinition<
  * effect declarations. The returned Definition is passive configuration. */
 export function makeDefinition<
   const Id extends string,
-  const ModelSchema extends AnySchema,
-  const MessageSchema extends AnySchema,
+  const ModelSchema extends AnySelfContainedSchema,
+  const MessageSchema extends AnySelfContainedSchema,
   const ChildInitContextSchema extends AnySchema | undefined = undefined,
 >(
   id: Id extends '' | `${string}/${string}` | `${string}::${string}`

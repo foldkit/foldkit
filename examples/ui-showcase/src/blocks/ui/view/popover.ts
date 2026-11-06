@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { PopoverBlock, type RenderInfo, buttonId } from '@foldkit/ui/popover'
+import { Popover } from '@foldkit/ui'
 
 import {
   PopoverAnimatedDemoBinding,
@@ -11,7 +11,7 @@ import {
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
 
-type PopoverModel = typeof PopoverBlock.Model.Type
+type PopoverModel = typeof Popover.PopoverBlock.Model.Type
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -49,7 +49,7 @@ const makePopoverView =
   (
     panelClassNameValue: string,
     h: UiViewBuilder,
-  ): ((renderInfo: RenderInfo) => Html) =>
+  ): ((renderInfo: Popover.RenderInfo) => Html) =>
   ({ button, panel, backdrop, isVisible }) =>
     h.div(
       [h.Class(wrapperClassName)],
@@ -87,7 +87,7 @@ const nestedChildPopover = (
     panel,
     backdrop,
     isVisible,
-  }: RenderInfo): Html =>
+  }: Popover.RenderInfo): Html =>
     h.div(
       [h.Class(wrapperClassName)],
       [
@@ -141,7 +141,7 @@ const nestedDemo = (
     panel,
     backdrop,
     isVisible,
-  }: RenderInfo): Html =>
+  }: Popover.RenderInfo): Html =>
     h.div(
       [h.Class(wrapperClassName)],
       [
@@ -202,7 +202,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(buttonId(model.popoverBasicDemo.id)),
+          h.For(Popover.buttonId(model.popoverBasicDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Product menu'],
@@ -229,7 +229,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(buttonId(model.popoverAnimatedDemo.id)),
+          h.For(Popover.buttonId(model.popoverAnimatedDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Product menu'],
@@ -256,7 +256,7 @@ export const view = UiComposition.makeView((model, h) => {
       ),
       h.label(
         [
-          h.For(buttonId(model.popoverNestedParentDemo.id)),
+          h.For(Popover.buttonId(model.popoverNestedParentDemo.id)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Account'],

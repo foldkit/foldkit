@@ -6,6 +6,7 @@ import {
   HostSaveLayer,
   Model,
   PageDraft,
+  ParentModel,
   Viewed,
   ViewedDraft,
   prepareViewed,
@@ -22,9 +23,11 @@ const DraftModel = Schema.Struct({
   // @ts-expect-error A draft Model cannot enter a nested Array Schema.
   children: Schema.Array(ViewedDraft.Model),
 })
+void DraftModel
+
 const DraftParentDefinition = Block.makeDefinition(
   'MandatoryCompletionDraftParent',
-  { Model: DraftModel, Message: Schema.Never },
+  { Model: ParentModel, Message: Schema.Never },
 )
 
 // @ts-expect-error Bindings accept completed Blocks, not assembly drafts.

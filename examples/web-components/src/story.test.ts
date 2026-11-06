@@ -1,4 +1,4 @@
-import { Command, given, message, model, story } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { describe, expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -14,26 +14,26 @@ const initialModel: Model = {
 describe('update', () => {
   describe('content', () => {
     it.effect('UpdatedContent stores the encoded value', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(
+        Story.given(initialModel),
+        Story.message(
           Message.UpdatedContent({
             value: 'WIFI:S:Network;T:WPA;P:secret;;',
           }),
         ),
-        model(model => {
+        Story.model(model => {
           expect(model.content).toBe('WIFI:S:Network;T:WPA;P:secret;;')
         }),
       ),
     )
 
     it.effect('clearing the input stores the empty string', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.UpdatedContent({ value: '' })),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.UpdatedContent({ value: '' })),
+        Story.model(model => {
           expect(model.content).toBe('')
         }),
       ),
@@ -42,11 +42,11 @@ describe('update', () => {
 
   describe('color changes', () => {
     it.effect('ChangedFillColor replaces only the fill', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ChangedFillColor({ value: '#0f766e' })),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.ChangedFillColor({ value: '#0f766e' })),
+        Story.model(model => {
           expect(model.fillColor).toBe('#0f766e')
           expect(model.backgroundColor).toBe(initialModel.backgroundColor)
           expect(model.content).toBe(initialModel.content)
@@ -55,11 +55,11 @@ describe('update', () => {
     )
 
     it.effect('ChangedBackgroundColor replaces only the background', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ChangedBackgroundColor({ value: '#ffffff' })),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.ChangedBackgroundColor({ value: '#ffffff' })),
+        Story.model(model => {
           expect(model.backgroundColor).toBe('#ffffff')
           expect(model.fillColor).toBe(initialModel.fillColor)
         }),
@@ -67,13 +67,13 @@ describe('update', () => {
     )
 
     it.effect('successive color changes accumulate', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ChangedFillColor({ value: '#9d174d' })),
-        message(Message.ChangedBackgroundColor({ value: '#ffffff' })),
-        message(Message.ChangedFillColor({ value: '#0f766e' })),
-        model(model => {
+        Story.given(initialModel),
+        Story.message(Message.ChangedFillColor({ value: '#9d174d' })),
+        Story.message(Message.ChangedBackgroundColor({ value: '#ffffff' })),
+        Story.message(Message.ChangedFillColor({ value: '#0f766e' })),
+        Story.model(model => {
           expect(model.fillColor).toBe('#0f766e')
           expect(model.backgroundColor).toBe('#ffffff')
         }),
@@ -81,11 +81,11 @@ describe('update', () => {
     )
 
     it.effect('update never produces Commands', () =>
-      story(
+      Story.story(
         { block: ApplicationBlock, layer },
-        given(initialModel),
-        message(Message.ChangedFillColor({ value: '#9d174d' })),
-        Command.expectNone(),
+        Story.given(initialModel),
+        Story.message(Message.ChangedFillColor({ value: '#9d174d' })),
+        Story.Command.expectNone(),
       ),
     )
   })

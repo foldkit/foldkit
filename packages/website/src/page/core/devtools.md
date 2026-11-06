@@ -55,7 +55,7 @@ Inspection and replay remain available when `dispatch` is omitted or `false`. Me
 
 Enable dispatch only for trusted development clients. Schema decoding validates Message data; it does not authenticate its sender. Generated child envelopes carry runtime-local generations and are not a portable live-dispatch protocol between applications or sessions. See [generated child delivery](/core/block#debugging-in-devtools) for their admission contract.
 
-When the acquired root Message Codec needs Services for decoding, `dispatch: true` adds them to the Program's requirements. Supply any remaining decoding Services through `program.provide(...)`. Leaving dispatch disabled adds no Message decoding requirements.
+DevTools decodes each dispatched Message synchronously without Effect Services. This adds no decoder Service requirements to the Program. Synchronous transformations backed by `Effect.succeed` and JSON Codecs for values such as `Option` and `Date` remain supported. A Promise-backed transformation is rejected before the Message is prepared for the runtime queue.
 
 ### show
 
@@ -120,6 +120,8 @@ The number of recorded Messages between full Model snapshots. The default is `31
 #### Replay Tradeoff
 
 To reconstruct an entry, DevTools starts at the nearest earlier snapshot and replays update. A smaller interval stores more snapshots but shortens that replay. Set the interval to `1` when update is expensive and time-travel feels slow. Every entry then has its own snapshot, so no replay is needed.
+
+Replay uses the Models and Messages already retained in browser memory. It does not encode or decode them through the application Codecs.
 
 #### Excluded Messages
 

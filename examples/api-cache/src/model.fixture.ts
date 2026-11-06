@@ -1,10 +1,10 @@
 import { Effect, HashMap, Option } from 'effect'
-import { withBlock } from 'foldkit/story'
+import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { test as baseTest } from 'vitest'
 
 import { makeMethods } from '@effect/vitest'
-import { layer as TabsLayer } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import type { Post, PostDetail, Stats } from './data'
 import {
@@ -44,8 +44,8 @@ export const fixtureStats: Stats = {
   cacheHitRatePercent: 97,
 }
 
-const models = withBlock(
-  { block: ApplicationTabsBlock, layer: TabsLayer },
+const models = Story.withBlock(
+  { block: ApplicationTabsBlock, layer: Tabs.layer },
   tabs => {
     const loadingPostsModel: Model = {
       tabs: tabs.init({ id: TABS_ID }).model,

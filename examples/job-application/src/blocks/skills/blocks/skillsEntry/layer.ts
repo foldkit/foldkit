@@ -1,6 +1,6 @@
 import { Effect, Layer } from 'effect'
 
-import { layer as RadioGroupLayer } from '@foldkit/ui/radioGroup'
+import { RadioGroup } from '@foldkit/ui'
 
 import { SkillsEntryBlock } from './block'
 import { ProficiencyRadioGroupBinding } from './composition'
@@ -21,4 +21,4 @@ export const layer = SkillsEntryBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(Layer.mergeAll(RadioGroupLayer)))
+).pipe(Layer.provide(Layer.mergeAll(RadioGroup.layer)))

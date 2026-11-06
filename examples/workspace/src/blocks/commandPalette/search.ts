@@ -6,7 +6,7 @@ import { ResultTarget } from './resultTarget'
 export const SearchResult = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
-  description: Schema.String,
+  contextLabel: Schema.String,
   target: ResultTarget,
 })
 export type SearchResult = typeof SearchResult.Type
@@ -15,8 +15,8 @@ const MAX_RESULTS = 12
 
 export const searchResults = (
   query: string,
-  issues: ReadonlyArray<Issue>,
-  projects: ReadonlyArray<Project>,
+  issues: ReadonlyArray<Issue.Issue>,
+  projects: ReadonlyArray<Project.Project>,
 ): ReadonlyArray<SearchResult> => {
   const searchText = query.trim().toLowerCase()
 
@@ -28,7 +28,7 @@ export const searchResults = (
     SearchResult.make({
       id: `project-${project.id}`,
       title: project.name,
-      description: 'Project',
+      contextLabel: 'Project',
       target: ResultTarget.Project({ projectId: project.id }),
     }),
   )
@@ -41,7 +41,7 @@ export const searchResults = (
     SearchResult.make({
       id: `issue-${issue.id}`,
       title: issue.title,
-      description: issue.identifier,
+      contextLabel: issue.identifier,
       target: ResultTarget.Issue({ issueId: issue.id }),
     }),
   )

@@ -2,12 +2,12 @@ import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { AnimationBlock, layer as AnimationLayer } from '@foldkit/ui/animation'
+import { Animation } from '@foldkit/ui'
 
 // Add a field to your Model for the Animation Block. Animation tracks
 // its own visibility and lifecycle state. No need for a separate flag:
 const Model = Schema.Struct({
-  animation: AnimationBlock.Model,
+  animation: Animation.AnimationBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -31,12 +31,12 @@ const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
 
 // Bind before defining the policy so its standard leave operation is available
 // inside the StartedLeaveAnimating branch.
-const BaseAnimationBinding = makeBinding(AnimationBlock, {
+const BaseAnimationBinding = makeBinding(Animation.AnimationBlock, {
   field: 'animation',
   init: { contextToArgs: () => [{ id: 'content' }] },
 })
 
-const foldAnimationOutMessage = makeOutMessageFold(AnimationBlock, {
+const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
   // The operation asks Animation to wait for its wrapper's CSS to settle.
   // A custom policy can race another signal against that settlement instead.
   StartedLeaveAnimating: () =>
@@ -117,4 +117,4 @@ export const layer = AnimationExampleBlock.makeLayer(
       view,
     }
   }),
-).pipe(Layer.provide(AnimationLayer))
+).pipe(Layer.provide(Animation.layer))
