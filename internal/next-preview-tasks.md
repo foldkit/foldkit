@@ -1,9 +1,71 @@
 # Next preview tasks
 
+## November 6 incoming feedback
+
+- [x] Reproduce #1897's DevTools stack overflow against the built preview.
+- [x] Review all of #1899, preserve its contributor commit and include the
+      logical Chunk conversion and required Effect prebundle entry.
+- [x] Verify empty/non-empty/nested Chunks, secret masking and inspection
+      reference sharing. Removing the conversion reproduces the stack overflow
+      in both Chunk regressions; restoring it passes the serializer suite.
+- [x] Assess #1898 separately against the canonical Block/Layer path. It does
+      not expose a missing Block-aware registry or `unhover` fix. Its broader
+      profiling APIs are unaccepted, and native Scene registry parity remains
+      outside this stabilization change.
+- [x] Complete the separately authorized Daybreak addendum and final artifact
+      verification for the Chunk fix and release-preparation follow-up.
+- [ ] Integrate the reviewed preparation branch through protected checks and
+      prepend #1655's preparation notice without replacing published Ready.
+
+## November 6 release documentation
+
+- [x] Audit and repair both active migration paths against the implemented
+      Block/Layer API, distinguishing published-preview migrations from
+      intermediate unpublished spellings.
+- [x] Cover runtime Listbox Value Schemas, synchronous serialization,
+      InMessage authoring, scoped Story/Scene results, immutable observations,
+      keyed lifecycle selection and optional initialization/fold helpers.
+- [x] Correct the host/DevTools boundaries and import direction in the stable
+      guide. Reuse the existing compiled snippets and preserve published
+      historical content.
+- [x] Prepare #1655's upcoming-change description and a preparation prefix.
+      Preserve the current Ready announcement and user prose verbatim until
+      a new registry cohort and immutable deployment pass verification.
+- [x] Verify all 1,449 Website tests, typechecking and the production build.
+      Render and hydrate both guides locally at 1280 pixels, verify no page
+      overflow, and export complete Markdown with full snippets and relative
+      manifest links. The missing-code control is rejected by the exporter.
+- [x] Retain manual dispatch on the exact final preview SHA and keep package
+      versions, immutable deployment links and generated Ready prompts behind
+      the existing publication verification boundary.
+
+The [current handoff](next-preview-release-handoff.md#november-6-preparation)
+and [prepared PR text](preview-pr-next-release.md) own the publication sequence.
+Exact-commit review and protected integration apply to this documentation
+follow-up. Rendering/bundle review, the two assessed build-tool advisories and
+user publication approval remain separate decisions.
+
+## November 6 security review
+
+- [x] Complete the authorized read-only Daybreak review of frozen candidate
+      `50d8e5f375e27b68b80932cc4ca766578f696f6f`. Preserve the original report
+      and receipt, verify all 8,878 source entries after completion, and classify
+      the existing caveats. No substantiated new security or release-blocking
+      correctness finding required a source fix.
+      [Review and limits](daybreak-20261106/README.md).
+- [x] Pass the ordinary pre-push hook, #1896 pull request checks and protected
+      merge-group checks without bypassing them. The preview integration is
+      `253cf72ed47ead5ee5a46e2530e10dcbaa1283e7`; its tree matches the reviewed
+      tree exactly.
+- [ ] Review the measured rendering and bundle costs before publication.
+- [ ] Review the two assessed moderate build-tool advisories before publication.
+- [ ] Obtain separate user publication approval. No release was dispatched.
+
 ## November 5 review cleanup
 
-Work continues from integrated preview `570ecedddaef`. Publication and private
-source transfer remain held while the review changes are being completed.
+This checkpoint starts from integrated preview `570ecedddaef`. Publication and
+private source transfer were held while the review changes were completed. The
+November 6 section above records the later authorization and completed review.
 
 - [x] Address the user's new inline review comments and remove each resolved
       note. Preserve concurrent edits and unresolved comments.
@@ -142,9 +204,11 @@ Story API, consumer migrations, declaration boundary and completed checks.
         preserved review notes with the current implementation and record
         explicit answers where the existing design is retained. Release gates
         and the requested rendering benchmark are separate pending work.
-- [ ] Refresh relevant GitHub feedback, finish verification and independent
-      review, then freeze one final candidate for fresh Daybreak authorization.
-- [ ] Push the prepared changes to preview; await the user's publication approval.
+- [x] Refresh relevant GitHub feedback, finish verification and independent
+      review, freeze candidate `50d8e5f375`, and complete its authorized Daybreak
+      review. Current receipts are recorded in the November 6 section above.
+- [x] Integrate the prepared candidate through #1896 with protected checks
+      passing. Publication requires separate user approval.
 
 ## November 5 candidate review
 
@@ -169,7 +233,7 @@ preview `90746b32d2ca`. Earlier dated sections retain their checkpoint scope.
       checks pass, including all ten example-browser shards.
 - [x] Record a final quiet Lustre comparison against actual main, retaining all
       32 samples and the remaining rendering and bundle costs for release review.
-- [ ] Obtain authorization for a fresh Daybreak addendum for the final candidate.
+- [x] Obtain authorization and complete the Daybreak review of the final candidate. See the November 6 receipt above.
 - [ ] Obtain user approval before publication.
 
 ## November 4 review follow-ups

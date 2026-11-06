@@ -1,4 +1,4 @@
-import { HashSet, Option, Redacted } from 'effect'
+import { Array, Chunk, HashSet, Option, Redacted } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -96,6 +96,44 @@ describe('toInspectableValue', () => {
         { link: 'https://example.com/' },
       ],
     })
+  })
+
+  it('converts a Chunk to an array of its converted elements', () => {
+    const date = new Date('2026-01-01T00:00:00.000Z')
+    expect(
+      toInspectableValue({
+        empty: Chunk.empty(),
+        log: Chunk.make({ created: date }, { id: 2 }),
+      }),
+    ).toEqual({
+      empty: [],
+      log: [{ created: '2026-01-01T00:00:00.000Z' }, { id: 2 }],
+    })
+  })
+
+  it('masks secrets in nested Chunks while preserving shared inspection references', () => {
+    const secret = 'refresh-token-not-for-devtools'
+    const entry = {
+      credentials: Chunk.make(Redacted.make(secret)),
+    }
+    const input = Chunk.make(entry, entry)
+    const result = toInspectableValue(input)
+
+    expect(result).toEqual([
+      { credentials: ['<redacted>'] },
+      { credentials: ['<redacted>'] },
+    ])
+    expect(JSON.stringify(result)).not.toContain(secret)
+    expect(toInspectableValue(input)).toBe(result)
+
+    if (!globalThis.Array.isArray(result)) {
+      throw new Error('Chunk inspection must return an array')
+    }
+
+    const inspectedEntry = toInspectableValue(entry)
+
+    expect(Option.getOrThrow(Array.head(result))).toBe(inspectedEntry)
+    expect(Option.getOrThrow(Array.last(result))).toBe(inspectedEntry)
   })
 
   it('returns the same reference when called twice with the same input', () => {

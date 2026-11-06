@@ -2,8 +2,9 @@
 
 The comparison is the last published preview,
 `90746b32d2ca8bc0476de7a051ace396ca590ae0`. This document supersedes the
-November 5 candidate summary. Publication and private Daybreak source transfer
-remain held. No release has been dispatched.
+November 5 candidate summary. The authorized Daybreak review of frozen candidate
+`50d8e5f375e27b68b80932cc4ca766578f696f6f` is complete. Publication remains
+held. No release has been dispatched.
 
 ## Changes since the published preview
 
@@ -84,7 +85,10 @@ The early repeat search found no issues or pull requests updated on November 6
 at that checkpoint. The later push refresh found updates on #1895 and #1890:
 #1895 has the same report body and no comments, and #1890 retains the same
 empty-patch head `2223f2aa9166bf69c28aa149705de49a5e5ec75f` with no new comments.
-Neither adds an unaddressed report or patch.
+Neither adds an unaddressed report or patch. A post-Daybreak direct API refresh
+found no issue, pull request, issue-comment or review-comment updates since
+17:00 UTC on November 6. The preview discussion still has 19 timeline entries,
+with its latest update on October 30, and no inline review threads.
 Main remains `a471adb24d750ab9e8d8312edad53ff6f26d961b`; its content was
 already synchronized before this review round.
 
@@ -107,6 +111,12 @@ approved deferrals.
 
 ## Verification checkpoint
 
+Candidate `50d8e5f375` passed the ordinary pre-push hook and pull request
+checks. [#1896](https://github.com/foldkit/foldkit/pull/1896) then passed both
+protected merge-group workflows and merged into preview as
+`253cf72ed47ead5ee5a46e2530e10dcbaa1283e7`. The merged tree matches the
+Daybreak snapshot exactly. No protected check was bypassed.
+
 The final combined rerun after the framework follow-ups passed:
 
 - All 44 declared package/application test projects: 9,247 tests passed.
@@ -123,6 +133,8 @@ The final combined rerun after the framework follow-ups passed:
   with tighter ceilings calibrated against the current and previously accepted
   declarations. Workload sources and acceptance/rejection contracts are unchanged;
   the CLI controls continue rejecting invalid budgets and exceeded ceilings.
+  [Controlled evidence](compiler-checker-partitions-20261106.md) records the
+  duplicate parallel work and separate calibration.
 - Generated-project smoke passed. The final packed SSR consumer rerun passed,
   including Chromium, Firefox and WebKit refusal/hydration checks and cleanup.
 - Script checks: 239 passed. Script types, dead-code analysis, public exports,
@@ -134,6 +146,20 @@ passed. A build/lint overlap temporarily hid generated declarations and produced
 broad type warnings; stable all-root Effect lint and exact TypeScript 6/7
 consumer probes show no Listbox error/requirement leakage. Final verification
 will keep builds and declaration consumers sequential.
+
+## Daybreak review
+
+The [November 6 review](daybreak-20261106/README.md) completed with no
+substantiated new security finding or release-blocking correctness defect.
+The original report and its receipt are preserved. Independent post-review
+verification checked all 8,878 tracked entries, Git blob identities, file modes
+and the literal symlink target against candidate `50d8e5f375`.
+
+The review required no source changes. Its development cleanup observation
+is already covered by the documented full-process restart procedure when HMR
+is disabled. Inherited DevTools, relay, bootstrap and dependency caveats remain
+explicit. This static review does not substitute for behavioral tests or accept
+the separate rendering and bundle costs.
 
 ## Remaining release checks
 
@@ -152,13 +178,9 @@ small scoped Context-cache improvement does not close or explain this larger
 gap. These costs remain for release review; acceptance is not assumed.
 
 - Review the rendering and bundle costs above before publication.
-- Finish the ordinary pre-push and integration checks. The approved compiler
-  measurement change resolves the Machine gate by using one checker and tighter
-  ceilings for every unchanged workload. [Controlled evidence](compiler-checker-partitions-20261106.md)
-  records the duplicate parallel work and the separate calibration; no check is
-  bypassed.
-- Obtain fresh Daybreak authorization for the exact final candidate and retain
-  the separate publication approval.
+- Review the two assessed moderate build-tool advisories below before publication.
+- Retain the separate user publication approval. The approved private-source
+  review is complete; no release or deployment has been dispatched.
 
 A fresh dependency audit still reports two moderate build-tool findings, glob
 and minimatch, with no high or critical findings. Their constrained parent ranges

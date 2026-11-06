@@ -1,5 +1,6 @@
 import {
   Array,
+  Chunk,
   Function,
   Match,
   Option,
@@ -33,6 +34,9 @@ const computeInspectableValue = (value: unknown): unknown =>
     })),
     Match.when(Match.instanceOf(Date), date => date.toISOString()),
     Match.when(Match.instanceOf(URL), ({ href }) => href),
+    Match.when(Chunk.isChunk, chunk =>
+      Array.map(Chunk.toReadonlyArray(chunk), toInspectableValue),
+    ),
     Match.when(globalThis.Array.isArray, Array.map(toInspectableValue)),
     Match.when(Predicate.isObject, Record.map(toInspectableValue)),
     Match.orElse(Function.identity),
@@ -43,9 +47,11 @@ const computeInspectableValue = (value: unknown): unknown =>
  * DOM-class instances (File, Blob, Date, URL) to plain-object
  * representations so the tree renderer's key-enumeration walk can see their
  * meaningful data, which otherwise lives on the prototype as getters and
- * is invisible to `Object.keys`. Recurses through arrays and records so
- * the transform applies at every level. File is matched before Blob
- * because File extends Blob.
+ * is invisible to `Object.keys`. Converts Effect `Chunk` values to arrays,
+ * because a Chunk's `left` and `right` fields lead to the empty Chunk, which
+ * refers to itself, so walking them field by field never ends. Recurses
+ * through Chunk elements, arrays, and records so the transform applies at
+ * every level. File is matched before Blob because File extends Blob.
  *
  * Memoized by reference. The transform allocates fresh wrappers via
  * `Array.map` / `Record.map` even when the input contains no DOM classes

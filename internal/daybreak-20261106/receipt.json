@@ -1,0 +1,204 @@
+{
+  "status": "CompletedNoSubstantiatedNewFindingPublicationHeld",
+  "candidate": "50d8e5f375e27b68b80932cc4ca766578f696f6f",
+  "tree": "d612b09b8d0a3cf2d82e91271659b9bff90cc310",
+  "publishedBaseline": "90746b32d2ca8bc0476de7a051ace396ca590ae0",
+  "previousDaybreakCandidate": "44e94feeba0e69c2d61657cb4fba32570452cde8",
+  "authorization": {
+    "recipient": "OpenAI Daybreak service",
+    "readOnlySourceAndRelevantHistory": true,
+    "equivalentIntegrationCode": true,
+    "smallReviewDrivenFollowUps": true,
+    "publicationAuthorized": false,
+    "userAnswer": "Approve Daybreak review and follow-ups"
+  },
+  "review": {
+    "requestedModel": "gpt-daybreak-blue-latest",
+    "provider": "openai",
+    "accessProgram": "daybreak_blue",
+    "sandbox": "read-only",
+    "nestedDelegationEnabled": false,
+    "threadId": "01a1b20b-79de-7f80-b349-24c61829326b",
+    "startedAt": "2026-11-06T18:07:38.889Z",
+    "completedAt": "2026-11-06T18:18:22.893Z",
+    "exitCode": 0,
+    "eventTypes": {
+      "thread.started": 1,
+      "turn.started": 1,
+      "item.completed": 77,
+      "item.started": 71,
+      "turn.completed": 1
+    },
+    "reportSha256": "5d4a87dcba8c6fa54d6b25f1348691f0e19cdf3a3ab903e056ac1d259563a0b6",
+    "sourceContentTransferred": true,
+    "transferScope": "The OpenAI-backed Daybreak turn read authorized snapshot source and relevant history through read-only review tools. This does not assert that every snapshot file was transmitted or inspected.",
+    "invocation": {
+      "executable": "/opt/homebrew/bin/codex",
+      "args": [
+        "exec",
+        "--ignore-user-config",
+        "--disable",
+        "multi_agent",
+        "-m",
+        "gpt-daybreak-blue-latest",
+        "-c",
+        "model_provider=\"openai\"",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "-c",
+        "approval_policy=\"never\"",
+        "-s",
+        "read-only",
+        "--cyber-access-program",
+        "daybreak_blue",
+        "--skip-git-repo-check",
+        "--color",
+        "never",
+        "--json",
+        "-C",
+        "/private/tmp/foldkit-daybreak-50d8e5f375-20261106",
+        "-o",
+        "/private/tmp/foldkit-daybreak-50d8e5f375-20261106/direct-review/daybreak-report.md",
+        "-"
+      ]
+    },
+    "launcherStatusReconciliation": "The original runner status retained a preparation-time sourceTransferred=false flag. It is preserved separately; the host reconciled that metadata after the successful OpenAI-backed source review. The source and raw review events are unchanged."
+  },
+  "sourceVerification": {
+    "verifiedAt": "2026-11-06T18:20:42.972095+00:00",
+    "candidate": "50d8e5f375e27b68b80932cc4ca766578f696f6f",
+    "tree": "d612b09b8d0a3cf2d82e91271659b9bff90cc310",
+    "trackedEntries": 8878,
+    "allSha256Match": true,
+    "allGitBlobsMatch": true,
+    "allFileModesMatch": true,
+    "noAddedOrMissingEntries": true,
+    "symlinks": ["CLAUDE.md"]
+  },
+  "initialAttempt": {
+    "status": "InterruptedAfterDelegationModelAccessErrors",
+    "reportAccepted": false,
+    "sourcePreserved": true,
+    "evidenceDirectory": "/private/tmp/foldkit-daybreak-50d8e5f375-20261106",
+    "reason": "The Daybreak root started, but its generic delegated-model requests were rejected with HTTP 403. The successful review restarted with delegation disabled."
+  },
+  "assessment": {
+    "newSubstantiatedSecurityFindings": 0,
+    "newSubstantiatedReleaseBlockingCorrectnessFindings": 0,
+    "nonblockingObservation": "Development HMR-disabled cleanup requires a full process restart; this limitation and procedure are already documented. No candidate source fix was required.",
+    "inheritedCaveats": [
+      "Explicit fixed-port DevTools/MCP exposure",
+      "Relay registry filesystem race assumptions",
+      "Two moderate build-tool dependency advisories",
+      "Release npm bootstrap trusts TLS and registry integrity"
+    ],
+    "limits": [
+      "Static read-only source/history inspection",
+      "No builds, tests, applications, installs, active attacks or live remote probes performed by Daybreak",
+      "Browser and lifecycle timing conclusions are static inferences",
+      "Not an exhaustive third-party dependency audit"
+    ]
+  },
+  "independentDependencyAudit": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 2,
+    "low": 0,
+    "exitCode": 1,
+    "advisories": ["GHSA-3g3m-2fjr-6pw4", "GHSA-g3hv-75wg-m249"],
+    "qualification": "Separate fresh audit checkpoint; recorded reachability assessment is not a clean dependency audit."
+  },
+  "integration": {
+    "pullRequest": 1896,
+    "queueCommit": "253cf72ed47ead5ee5a46e2530e10dcbaa1283e7",
+    "queueTree": "d612b09b8d0a3cf2d82e91271659b9bff90cc310",
+    "queueTreeVerifiedEqual": true,
+    "mergeStatus": "Merged",
+    "actualMergeCommit": "253cf72ed47ead5ee5a46e2530e10dcbaa1283e7",
+    "actualMergeTree": "d612b09b8d0a3cf2d82e91271659b9bff90cc310",
+    "actualMergeTreeVerifiedEqual": true,
+    "mergedAt": "2026-11-06T19:05:19Z",
+    "checks": {
+      "pullRequestCi": {
+        "runId": 42251996584,
+        "attempt": 2,
+        "conclusion": "success"
+      },
+      "pullRequestExamples": {
+        "runId": 42251996598,
+        "conclusion": "success"
+      },
+      "mergeGroupCi": {
+        "runId": 42268625192,
+        "conclusion": "success"
+      },
+      "mergeGroupExamples": {
+        "runId": 42268625209,
+        "conclusion": "success"
+      }
+    }
+  },
+  "remainingReleaseDecisions": [
+    "Review the recorded rendering and bundle costs",
+    "Review the two assessed moderate build-tool advisories",
+    "Obtain separate user publication approval"
+  ],
+  "artifactDirectory": "/private/tmp/foldkit-daybreak-50d8e5f375-20261106",
+  "artifactSha256": {
+    "authorization.json": "79afaa7bd198b8252038f95d89484950c572c0fb657a23846b710d39d03ef228",
+    "source-manifest.json": "b211b891338bc634167531ef1629eddaaea0de27ab86ec80383132666a88013a",
+    "candidate.tar": "9c06c18ab633c099b5ce3dafb59ed8193f67ceac171521d11e29fe606ec4d048",
+    "prompt.direct.md": "49e9e4b4fc9e753196a8c84fa5d16ff521425913f25b3fc0fb8118042a74d0f4",
+    "direct-review/run-review.mjs": "9f423296a63c02f0aea6c5b69cfc116bee6786741c721f12f5460fe395f77851",
+    "direct-review/events.jsonl": "686912db62425f8f1675a0169a9418dedf78f37ce3cfb3876c3c9dc5873e39b8",
+    "direct-review/runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "direct-review/daybreak-report.md": "5d4a87dcba8c6fa54d6b25f1348691f0e19cdf3a3ab903e056ac1d259563a0b6",
+    "direct-review/review-status.runner-original.json": "79706254adc6ea987ecae4945c00618653cf1b1c8fe6b33526673beb102a51d3",
+    "post-review-source-verification.json": "f5201a2dbcf46a821f88d7b7a2f666ccbaa67307a7e8647c189b3ec32f322774",
+    "evidence/full-preview-delta.patch": "5bfb0ace66f776eaba2ccd639b998df34988a20b34cab214091afd0d48f972d2",
+    "evidence/since-previous-daybreak.patch": "a25d666d6a2d8092f25e7555d6e720ccbee032b0a23479c1b0cce2d0b156e678",
+    "evidence/review-history.txt": "ec267443307ee19bdeba2a722c5d028e4eaae2b4492a52e6961a58eec3a39398",
+    "evidence/dependency-audit-20261106.json": "dfbf0ac731c391742c4b56e66a5fea877176b70cb111fe66ae9ebeda1922eae2"
+  },
+  "reportCitationCorrections": [
+    {
+      "original": "source/packages/vite-plugin/src/ssr.ts:933",
+      "correct": "source/packages/vite-plugin-foldkit/src/ssr.ts:933",
+      "reason": "The original report shortened the package directory incorrectly. The raw review events show successful reads of the actual vite-plugin-foldkit file, and the host verified the cited TSDoc and scaffold guidance. The original report remains unmodified.",
+      "reviewEventIds": ["item_40", "item_45", "item_74"]
+    }
+  ],
+  "independentEvidenceReview": {
+    "reviewer": "separate lead-appointed agent",
+    "completed": true,
+    "findings": 0,
+    "checks": [
+      "All listed artifact hashes and exact report bytes",
+      "Authorization scope and publication hold",
+      "Accepted direct review completion versus interrupted delegated attempt",
+      "All 8,878 source hashes, Git blobs, modes, symlink and inventory",
+      "Citation correction against original read events and existing guidance",
+      "Static limits, inherited caveats and unresolved rendering costs"
+    ]
+  },
+  "feedbackRefresh": {
+    "recordedAt": "2026-11-06T18:27:53.103880+00:00",
+    "repository": "foldkit/foldkit",
+    "directRestSince": "2026-11-06T17:00:00Z",
+    "updatedIssueOrPullRequestCount": 0,
+    "newOrUpdatedIssueCommentCount": 0,
+    "newOrUpdatedReviewCommentCount": 0,
+    "previewPullRequest": 1655,
+    "previewTimelineEntries": 19,
+    "latestPreviewCommentUpdatedAt": "2026-10-30T20:13:18Z",
+    "previewReviewThreadCount": 0,
+    "qualification": "Checkpoint scope only; not a claim about future updates."
+  },
+  "reviewRecordPaths": [
+    "internal/daybreak-20261106/README.md",
+    "internal/daybreak-20261106/receipt.json",
+    "internal/daybreak-20261106/report.txt",
+    "internal/next-preview-tasks.md",
+    "internal/preview-release-review-20261106.md"
+  ]
+}

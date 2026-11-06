@@ -1,0 +1,63 @@
+# Foldkit Daybreak security review addendum
+
+## Scope
+
+- **Candidate:** `d9da49a134c85c50844b17e9f31db44a8df1e555`
+- **Tree:** `f91df7f7d98c1c1848765aa4f049cd399cf3237e`
+- **Previously reviewed baseline:** `50d8e5f375e27b68b80932cc4ca766578f696f6f`
+- **Published migration reference:** `90746b32d2ca8bc0476de7a051ace396ca590ae0`
+
+This review covered the complete post-baseline delta, with focused tracing of the Chunk inspection change, DevTools UI and wire consumers, regression tests, Vite optimization entry, and changed release and migration documentation. It did not repeat the baseline’s full static review.
+
+## Verdict
+
+**No substantiated new security issue.**
+
+**No substantiated release-correctness defect.**
+
+The Chunk conversion fixes the self-referential implementation-field traversal without opening a demonstrated secret disclosure, mutable alias, cross-snapshot corruption, or new denial-of-service path.
+
+This is a static defensive review, not certification, publication approval, or acceptance of separate performance and dependency risks.
+
+## Security findings
+
+None.
+
+### Boundary assessment
+
+- `packages/foldkit/src/devTools/serialize.ts:37` recognizes a real Effect `Chunk` before generic array/object traversal and converts its logical elements recursively.
+- `packages/foldkit/src/devTools/serialize.ts:24` handles `Redacted` before Chunk traversal. Nested Chunk elements therefore retain masking.
+- `packages/foldkit/src/devTools/serialize.ts:38` maps into a fresh array, while nested records and arrays also receive inspection copies. No live Model, Message, Command arguments, Mount arguments, or Codec is modified.
+- `packages/foldkit/src/devTools/serialize.ts:70` preserves memoized output identity for repeated references. The focused test at `packages/foldkit/src/devTools/serialize.test.ts:114` checks the secret is absent, repeated elements share the same inspected object, and repeated inspection returns the cached root.
+- The transform feeds the local DevTools overlay and outbound development responses for Models, history Messages, Command arguments, Mount arguments, replay, initialization, and diffs. Replay continues using retained Model values rather than inspected copies.
+- The actual untrusted ingress is external DevTools dispatch when an application explicitly enables dispatch and a caller can reach that development capability. `packages/foldkit/src/devTools/webSocketBridge.ts:632` decodes the payload through the acquired root’s complete JSON Message Codec before queue admission. A Schema permitting Chunk reconstructs a Chunk before it can later appear in history inspection.
+- A caller meeting those preconditions could submit a very large or deeply nested Chunk, but arrays and records already have the same unbounded recursive inspection characteristics. Before this fix, every ordinary Chunk followed its internal cycle and crashed. I found no concrete worsening attributable to the new path.
+- Chunk membership is immutable. Stale inspection after in-place mutation of a reused element object is the same existing cache limitation as reused arrays or records and conflicts with Foldkit’s immutable Model convention.
+
+## Release correctness
+
+No defect was substantiated.
+
+- The Vite dependency list includes `effect/Chunk` at `packages/vite-plugin-foldkit/src/index.ts:173`, alongside the bare `effect` entry and every Foldkit-used Effect namespace. The existing static prebundle checker would detect its omission.
+- The serializer tests establish empty and non-empty logical conversion, recursive Date conversion, nested Redacted masking, root memoization, and shared nested references. The supplied negative log shows both new tests reproducing stack overflow when the Chunk branch is removed. They do not directly exercise Chunk through every overlay or wire endpoint.
+- The migration claims match the implementation:
+  - Synchronous, service-free execution is enforced by `packages/foldkit/src/serialization.ts:59`.
+  - Complete Message Codecs include generated child envelopes through `packages/foldkit/src/block/childEnvelope.ts:317`.
+  - Listbox runtime Value Schemas govern Message and OutMessage selection channels at `packages/ui/src/listbox/types.ts:49`; the Item Schema remains view typing only.
+  - Program construction defers graph acquisition until startup at `packages/foldkit/src/runtime/programConstruction.ts:93`.
+  - Block-aware Story returns its final Model after pending-Command validation at `packages/foldkit/src/test/story.ts:698`, while Story and Scene graph acquisition is Effect-scoped at `packages/foldkit/src/experimental/layered/testing/withBlock.ts:350`.
+- Release copy correctly separates requirements from published `90746b32d2ca` from intermediate unpublished names. It preserves the current Ready snapshot, assigns no new package version or deployment URL, and does not present proposal #1898 as adopted.
+
+## Inherited limitations and separate decisions
+
+- Arbitrary cyclic user records can still overflow recursive inspection. This predates the Chunk change and requires an explicit wire-safe circular-reference representation for a general solution.
+- Explicit fixed-port DevTools exposure and other baseline caveats remain inherited.
+- The recorded performance gap, two moderate build-tool advisories, and user publication approval remain separate release decisions. This verdict accepts none of them.
+
+## Evidence and limits
+
+I read the full 1,823-line `evidence/changes-since-reviewed.patch`, changed-path inventory, history, prior report, supplied positive and negative regression logs, surrounding serializer and consumers, protocol and dispatch boundaries, Vite optimization logic, and relevant Block, Listbox, Program, Story, Scene, and serialization implementations.
+
+An in-memory read-only verification checked all 8,887 manifest entries. SHA-256 hashes, Git blob identities, byte sizes, modes, inventory, candidate/tree metadata, and the literal `CLAUDE.md -> AGENTS.md` symlink target all matched.
+
+No builds, tests, applications, installs, network access, active probes, external APIs, or source changes were performed. The supplied test logs were inspected as evidence but were not treated as freshly executed coverage. Browser behavior, stress limits, and third-party Effect internals remain unexecuted or unaudited.

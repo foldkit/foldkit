@@ -1,8 +1,90 @@
 # Next preview release handoff
 
-## November 5 candidate
+## November 6 preparation
 
-Use the [current review](preview-review-20261105.md) for changes since published
+The [current release review](preview-release-review-20261106.md) supersedes the
+November 5 summary. The implementation is integrated into
+`codex/layers-and-submodels` as `253cf72ed47ead5ee5a46e2530e10dcbaa1283e7`,
+with its pull request and protected merge-group checks passing. Its tree is
+identical to the reviewed Daybreak candidate `50d8e5f375`. The
+[original security report and receipt](daybreak-20261106/README.md) preserve the
+static review's scope and limits. No substantiated new security finding or
+release-blocking correctness defect required a source fix.
+
+The published Ready snapshot remains `90746b32d2ca`; no replacement has been
+published or deployed. The documentation follow-up refreshes both migration
+paths, the release description and the handoff. It changes no framework or
+application behavior. Freeze the preview branch's full final SHA after those
+changes pass review and protected integration; a development-branch commit is
+not the publication target.
+
+### Before publication approval
+
+- Review the [changes since the published preview](preview-release-review-20261106.md#changes-since-the-published-preview),
+  migration guides and [prepared PR text](preview-pr-next-release.md).
+- Review the remaining rendering and bundle costs: main/candidate medians are
+  637.1/672.8 ms naive and 207.2/269.4 ms optimized, with 45,201/45,848 added
+  gzip bytes. The single-checker compiler measurement approval does not accept
+  these runtime costs.
+- Review the [two moderate build-tool advisories](layered-constructor/dependency-advisories/README.md).
+  The fresh audit has no high or critical findings; it is not a clean audit.
+- Refresh relevant issues, PRs, review replies and main synchronization once
+  more at the final freeze. Only #1662 and #1663 have an explicit post-main
+  deferral.
+- Retain separate user approval for publication. All preparation and integration
+  above leave that hold in place.
+
+### After publication approval
+
+1. Select the frozen full preview-branch SHA. Dispatch the existing Release
+   workflow on `codex/layers-and-submodels` with `published_commit` equal to
+   that exact ref and checkout. [Dispatch boundary](preview-release-dispatch.md).
+   Ordinary pushes do not publish or deploy.
+2. Verify the workflow-produced package manifest and all nine registry package
+   versions, coherent dependencies and peers, and installed consumer acceptance.
+   Keep local packed-fixture results separate from registry verification.
+3. Verify the matching immutable Website deployment, its same-origin
+   `preview-release.json`, source identity, embedded examples, migration pages
+   and browser behavior.
+4. Generate the Ready section through `scripts/preview-release-manifest.mjs
+summary` using the actual manifest, full source SHA and observed immutable
+   HTTPS deployment. The generator supplies exact versions, all three starting
+   paths and both agent prompts. No version or deployment URL is assigned
+   during preparation.
+5. Replace #1655's preparation section with the generated Ready section and
+   prepared change summary. Preserve the prior verified snapshot and user prose;
+   read the result back to check source, versions, links and prompts. Complete
+   any separately authorized application migration and announcement handoff,
+   then record the publication receipt.
+
+Earlier sections below retain their dated checkpoint scope. Their older
+publication mechanics and performance dispositions do not supersede this
+section or the current dispatch instructions.
+
+### Fresh feedback after the reviewed snapshot
+
+[#1897](https://github.com/foldkit/foldkit/issues/1897) reproduces on the preview:
+DevTools follows an Effect Chunk's circular internal fields and overflows the
+stack. The preparation branch includes Wayne Maurer's
+[#1899](https://github.com/foldkit/foldkit/pull/1899) fix, preserving the original
+commit and author, plus a separate nested-secret and reference-sharing
+regression. The documentation-only follow-up above does not itself change
+behavior; this later DevTools fix does. Its separately authorized
+[Daybreak addendum and artifact verification](daybreak-20261106-addendum/README.md)
+are complete, with no substantiated new security or release-correctness defect.
+The rebuilt production benchmark artifacts are byte-identical to the previously
+measured workloads; their existing timing and gzip results remain applicable.
+
+The new [profiling proposal (#1898)](https://github.com/foldkit/foldkit/pull/1898)
+is assessed separately and is not included. Canonical Block-aware Scene already
+preserves its boundary registry and supports `unhover`. Native Scene registry
+parity remains outside this change; the proposed profiling APIs need their own
+acceptance, Program/Block integration and lifecycle/timing design. This is an
+unaccepted proposal, not an agreed deferral or implemented release feature.
+
+## November 5 checkpoint
+
+The [November 5 review](preview-review-20261105.md) records changes since published
 preview `90746b32d2ca`, verification, remaining review items and publication holds.
 It includes the repository-wide convention and Story/Scene migration, preserved
 user edits, incoming Node/Scene/Menu/DragAndDrop/Query contributions, and Dialog
@@ -278,7 +360,10 @@ The local nine-package artifact snapshot is `f5277e87…`; the rehearsal records
 
 The final source sweep includes the internal benchmark and Vite fixtures that its first run found using removed callback/no-argument forms. TodoMVC uses its existing exhaustive record directly. Three dedicated Typing Game handlers now follow `handle<MessageTag>` naming without changing their argument contracts. The Vite suite uses loopback-enabled execution; the sandbox-blocked run is excluded. Website uses the pinned cached pnpm; its stalled default-Corepack attempt is excluded. No timeout or compiler ceiling was increased.
 
-## Release status and boundary
+## Historical release status and boundary
+
+This checkpoint predates the current manual-dispatch publication gate. Use the
+November 6 procedure above for the next release.
 
 Published Ready remains `1f6776fa7ececa766188df5201eefec6ba781b5d`. Final preparation does not promote that snapshot. Publication is held for the user’s approval, and preview integration targets `codex/layers-and-submodels`, never `main`.
 
@@ -386,7 +471,11 @@ The real Workspace root emits 80 declaration files after the internal repair and
 
 The subsequent October 24 followup independently passes all 53 source configurations, 132 focused core runtime tests, full core/UI external declaration harnesses, focused lint, and all five unchanged compiler ceilings with identical counts. Three alternating paired native runs show no material incremental regression. Its bounded independent review found no blocking issue. [Current verification, exact scope, mutations, and limitations](preview-type-feedback-20261024.md). Production JavaScript and dependencies are unchanged; the existing security disposition remains in effect, without claiming a new Daybreak run or clean audit.
 
-## Release sequence
+## Historical release sequence
+
+These steps retain the older automation assumptions. Follow the current
+[manual dispatch procedure](preview-release-dispatch.md) and November 6 section
+above instead.
 
 Local verification and review precede final approval. The candidate remains unpublished until the user approves release.
 
