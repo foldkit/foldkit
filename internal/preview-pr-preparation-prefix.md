@@ -9,6 +9,7 @@ This next round includes:
 - Synchronous, service-free Block serialization and runtime-Schema-backed Listbox values.
 - Scoped Story/Scene testing, `Story.messageIn`, immutable Model observations, and precise keyed lifecycle selection.
 - Lifecycle, Node response cancellation, Menu, DragAndDrop, Dialog, Query and SSR fixes, plus consistent adoption across the examples, Website and Typing Game.
+- A DevTools fix for inspecting Effect Chunks without overflowing the stack, preserving nested secret masking and shared references.
 
 The [prepared change description](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/preview-pr-next-release.md) and [release review](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/preview-release-review-20261106.md) distinguish required migrations, optional APIs and remaining limits. Rendering/bundle costs and two moderate build-tool advisories remain for release review. Publication stays held for explicit approval.
 

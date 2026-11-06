@@ -1,5 +1,22 @@
 # Next preview tasks
 
+## November 6 incoming feedback
+
+- [x] Reproduce #1897's DevTools stack overflow against the built preview.
+- [x] Review all of #1899, preserve its contributor commit and include the
+      logical Chunk conversion and required Effect prebundle entry.
+- [x] Verify empty/non-empty/nested Chunks, secret masking and inspection
+      reference sharing. Removing the conversion reproduces the stack overflow
+      in both Chunk regressions; restoring it passes the serializer suite.
+- [x] Assess #1898 separately against the canonical Block/Layer path. It does
+      not expose a missing Block-aware registry or `unhover` fix. Its broader
+      profiling APIs are unaccepted, and native Scene registry parity remains
+      outside this stabilization change.
+- [ ] Complete the separately authorized Daybreak addendum and final artifact
+      verification for the Chunk fix and release-preparation follow-up.
+- [ ] Integrate the reviewed preparation branch through protected checks and
+      prepend #1655's preparation notice without replacing published Ready.
+
 ## November 6 release documentation
 
 - [x] Audit and repair both active migration paths against the implemented

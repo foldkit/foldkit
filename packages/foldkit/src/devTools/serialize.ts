@@ -50,8 +50,8 @@ const computeInspectableValue = (value: unknown): unknown =>
  * is invisible to `Object.keys`. Converts Effect `Chunk` values to arrays,
  * because a Chunk's `left` and `right` fields lead to the empty Chunk, which
  * refers to itself, so walking them field by field never ends. Recurses
- * through arrays and records so the transform applies at every level. File
- * is matched before Blob because File extends Blob.
+ * through Chunk elements, arrays, and records so the transform applies at
+ * every level. File is matched before Blob because File extends Blob.
  *
  * Memoized by reference. The transform allocates fresh wrappers via
  * `Array.map` / `Record.map` even when the input contains no DOM classes
