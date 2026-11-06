@@ -1474,12 +1474,14 @@ previously approved post-main deferrals for #1662 and #1663 retain their scope.
 - [x] Repair the independent review's candidate-only produced-fold contract
       hole: helpers with identical OutMessages but incompatible child Messages
       must not borrow the actual child's FoldContext and Command delivery.
-- [ ] Resolve the combined compiler ceiling without altering workloads, budgets
-      or accepted/rejected contract checks.
+- [x] Resolve the combined compiler ceiling without altering workloads or
+      accepted/rejected contract checks. The user approved single-checker
+      measurements and tighter ceilings for all eight fixtures; the calibrated
+      gate and its rejection controls pass.
 - [x] Run combined release verification and a fresh frozen rendering comparison.
       All 44 test projects pass 9,247 tests; source/type, lint, formatting,
       cross-version declarations and three-browser packed SSR checks pass. The
-      unchanged compiler gate's Machine partition issue remains explicit above.
+      compiler gate now uses the separately approved single-checker calibration.
 - [ ] Review the exact final commit independently and push the prepared preview.
       Source commit `9e2c0d309c07` is approved. Evidence-only follow-up review and
       resolution of the required compiler gate precede push; no bypass is used.

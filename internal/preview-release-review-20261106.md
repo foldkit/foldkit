@@ -80,7 +80,11 @@ Commands retain their corresponding existing APIs.
 The November 6 refresh checked #1655's conversation and review threads, recently
 updated issues and pull requests, and the known incoming contribution heads.
 No new preview-PR discussion appeared after the assessed October 30 report.
-The final repeat search found no issues or pull requests updated on November 6.
+The early repeat search found no issues or pull requests updated on November 6
+at that checkpoint. The later push refresh found updates on #1895 and #1890:
+#1895 has the same report body and no comments, and #1890 retains the same
+empty-patch head `2223f2aa9166bf69c28aa149705de49a5e5ec75f` with no new comments.
+Neither adds an unaddressed report or patch.
 Main remains `a471adb24d750ab9e8d8312edad53ff6f26d961b`; its content was
 already synchronized before this review round.
 
@@ -115,6 +119,10 @@ The final combined rerun after the framework follow-ups passed:
 - The final keyed-fold and canonical keyed-Scene fixtures emit and reject under
   TypeScript 6 and 7; both outputs pass all four cross-version relocated
   consumer combinations without checkout or source paths.
+- After user approval, all eight compiler workloads pass a single-checker gate
+  with tighter ceilings calibrated against the current and previously accepted
+  declarations. Workload sources and acceptance/rejection contracts are unchanged;
+  the CLI controls continue rejecting invalid budgets and exceeded ceilings.
 - Generated-project smoke passed. The final packed SSR consumer rerun passed,
   including Chromium, Firefox and WebKit refusal/hydration checks and cleanup.
 - Script checks: 239 passed. Script types, dead-code analysis, public exports,
@@ -144,15 +152,11 @@ small scoped Context-cache improvement does not close or explain this larger
 gap. These costs remain for release review; acceptance is not assumed.
 
 - Review the rendering and bundle costs above before publication.
-- Resolve the remaining Machine compiler ceiling. Seven of eight unchanged
-  workloads now pass, including both Workspace workloads after separating a
-  compact private delivery contract from the constructed graph. Machine reports
-  99,051 Instantiations and 22,486 Types against 83,700 and 18,800. Earlier
-  [controlled evidence](compiler-checker-partitions-20261106.md) identifies
-  TypeScript 7 checker-pool duplication in the former Workspace failure.
-  Fixtures, canonical measurement options and budgets have not been altered.
-- Push and integrate the prepared commits once the required compiler gate is
-  resolved. The ordinary pre-push checks include that gate; no bypass is used.
+- Finish the ordinary pre-push and integration checks. The approved compiler
+  measurement change resolves the Machine gate by using one checker and tighter
+  ceilings for every unchanged workload. [Controlled evidence](compiler-checker-partitions-20261106.md)
+  records the duplicate parallel work and the separate calibration; no check is
+  bypassed.
 - Obtain fresh Daybreak authorization for the exact final candidate and retain
   the separate publication approval.
 

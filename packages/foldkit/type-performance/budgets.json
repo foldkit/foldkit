@@ -2,36 +2,36 @@
   "typescriptVersion": "7.1.0-beta",
   "fixtures": {
     "deep-composition-8": {
-      "maxInstantiationsDelta": 1152618,
-      "maxTypesDelta": 55843
+      "maxInstantiationsDelta": 671225,
+      "maxTypesDelta": 54305
     },
     "wide-composition-100": {
-      "maxInstantiationsDelta": 3132298,
-      "maxTypesDelta": 216662
+      "maxInstantiationsDelta": 1407702,
+      "maxTypesDelta": 81772
     },
     "command-requirements-200": {
-      "maxInstantiationsDelta": 2659415,
-      "maxTypesDelta": 389460
+      "maxInstantiationsDelta": 346362,
+      "maxTypesDelta": 64468
     },
     "workspace-composition-4": {
-      "maxInstantiationsDelta": 3017735,
-      "maxTypesDelta": 229173
+      "maxInstantiationsDelta": 1604687,
+      "maxTypesDelta": 116418
     },
     "workspace-composition-8": {
-      "maxInstantiationsDelta": 5498506,
-      "maxTypesDelta": 299721
+      "maxInstantiationsDelta": 2778703,
+      "maxTypesDelta": 157971
     },
     "wide-subscriptions-100": {
-      "maxInstantiationsDelta": 548740,
-      "maxTypesDelta": 24583
+      "maxInstantiationsDelta": 548577,
+      "maxTypesDelta": 24507
     },
     "machine-search": {
-      "maxInstantiationsDelta": 83700,
-      "maxTypesDelta": 18800
+      "maxInstantiationsDelta": 70054,
+      "maxTypesDelta": 13402
     },
     "attribute-bundles-200": {
-      "maxInstantiationsDelta": 114377,
-      "maxTypesDelta": 29634
+      "maxInstantiationsDelta": 114226,
+      "maxTypesDelta": 29370
     }
   }
 }

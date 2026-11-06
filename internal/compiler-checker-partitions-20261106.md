@@ -10,9 +10,12 @@ boundary restored that fixture, while the final parallel gate reports only
 allocation duplication caused by different parallel partitions, not comparable
 increases in the fixtures' single-checker type work.
 
-This report is evidence for a later, deliberate harness-only normalization. It
-does not change the canonical harness, fixtures, budgets, or source, and it does
-not classify the private single-thread results as an equivalent passing gate.
+On November 6 the user approved the single-checker normalization and tighter
+ceilings for all eight fixtures. The canonical harness now uses that mode for
+both baseline and fixture measurements. All eight workloads pass, and the CLI
+controls still reject an exceeded budget, an incomplete budget and a compiler
+version mismatch. Fixture sources and acceptance/rejection contracts are
+unchanged. The historical parallel readings below remain separate evidence.
 
 ## Historical workspace snapshot
 
@@ -203,9 +206,9 @@ The retained Machine traces are:
 Changing public exports to perturb checker scheduling is therefore not a
 coherent source optimization.
 
-## Private opt-in normalization proposal
+## Normalization prototype before approval
 
-The unadopted proposal is retained at
+The prototype prepared before approval is retained at
 `/private/tmp/foldkit-single-threaded-harness-proposal-20261106`. Its patch adds
 only `--singleThreaded` to the canonical runner and replaces all eight ceilings
 together. Fixtures are unchanged. Each proposed ceiling is the greater of the
@@ -224,22 +227,22 @@ retaining unrelated parallel ceilings.
 | `machine-search`           |                  70,054 |         13,402 |
 | `attribute-bundles-200`    |                 114,226 |         29,370 |
 
-This is a concrete decision artifact, not an adopted change. The repository's
-runner, fixtures, and budgets remain untouched.
+These prototype ceilings were adopted together after approval. No additional
+tolerance was added, and the repository's fixture sources were not changed.
 
 An applicable unified diff is
 `/private/tmp/foldkit-single-threaded-harness-proposal-20261106/single-threaded-normalization-applicable.patch`
 (SHA-256 `9dd248a7d2facf2a5bb2cfff898ee58b04160ab4926f2354876d83974d5f4d88`).
-`git apply --check` passes against the committed candidate. The patch has not
-been applied.
+`git apply --check` passed against the committed candidate before adoption.
+The canonical runner also prints its compiler version and checker mode.
 
-## Recommendation
+## Adopted measurement rule
 
 Do not change public types, validation, fixtures, or budgets to chase this
 parallel partition. Do not simply add `--singleThreaded` while retaining the
 old numerical ceilings; that would silently loosen the effective gate.
 
-In a separate, explicit harness-only change:
+The approved harness change follows these rules:
 
 1. make the type-performance runner pass TypeScript 7's supported
    `--singleThreaded` option;
@@ -249,5 +252,8 @@ In a separate, explicit harness-only change:
 5. retain parallel wall-time profiling as separate evidence when performance,
    rather than deterministic type allocation, is under review.
 
-Until that decision is made, the unchanged parallel ceiling remains pending;
-the private result must not be reported as an equivalent pass.
+The former parallel ceiling is not reported as passing. It was replaced by a
+separately calibrated, explicitly labelled single-checker gate. The current
+receipt is `/private/tmp/foldkit-approved-single-checker-counts-20261106.log`;
+the CLI control receipt is
+`/private/tmp/foldkit-approved-single-checker-tests-20261106.log`.
