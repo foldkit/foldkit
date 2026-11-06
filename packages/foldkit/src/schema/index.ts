@@ -194,6 +194,10 @@ type VariantNameCollision<Name extends PropertyKey> = Readonly<{
   'Variant names must not conflict with union properties': Name
 }>
 
+type NoVariants = Readonly<{
+  'A union must declare at least one variant': never
+}>
+
 type ValidateVariantNames<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
 > =
@@ -202,6 +206,12 @@ type ValidateVariantNames<
       ? unknown
       : VariantNameCollision<Name & PropertyKey>
     : never
+
+type ValidateNonEmptyVariantNames<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+> = [keyof CasesByTag] extends [never]
+  ? NoVariants
+  : ValidateVariantNames<CasesByTag>
 
 type BaseTaggedUnion<CasesByTag extends Record<string, Schema.Struct.Fields>> =
   Schema.TaggedUnion<{
@@ -397,7 +407,7 @@ interface RichUnionSchema<
   readonly guards: BaseTaggedUnion<CasesByTag>['guards']
   readonly isAnyOf: BaseTaggedUnion<CasesByTag>['isAnyOf']
   readonly matchOrElse: TaggedUnionMatchOrElse<CasesByTag>
-  readonly members: ReadonlyArray<TaggedUnionMember<CasesByTag>>
+  readonly members: Array.NonEmptyReadonlyArray<TaggedUnionMember<CasesByTag>>
   /** Returns a Schema that accepts only the named variants. */
   readonly subset: <
     const Tags extends ReadonlyArray<keyof CasesByTag & string>,
@@ -443,6 +453,12 @@ export type RouteUnion<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
 > = TaggedUnion<CasesByTag>
 
+const requireVariants = (casesByTag: Record<string, Schema.Struct.Fields>) => {
+  if (!Array.isArrayNonEmpty(Object.keys(casesByTag))) {
+    throw new Error('A union must declare at least one variant')
+  }
+}
+
 const defineUnion = <CasesByTag extends Record<string, Schema.Struct.Fields>>(
   variantLabel: string,
   casesByTag: Record<string, Schema.Struct.Fields>,
@@ -462,15 +478,14 @@ const defineUnion = <CasesByTag extends Record<string, Schema.Struct.Fields>>(
     )
   }
 
+  const callableEntries = Array.map(
+    Object.entries<Schema.Struct.Fields>(casesByTag),
+    ([tag, fields]) => [tag, makeCallable(tag, fields)] as const,
+  )
   const callables: Record<
     string,
     CallableTaggedStruct<string, Schema.Struct.Fields>
-  > = {}
-  for (const [tag, fields] of Object.entries<Schema.Struct.Fields>(
-    casesByTag,
-  )) {
-    callables[tag] = makeCallable(tag, fields)
-  }
+  > = Object.fromEntries(callableEntries)
 
   const subset = (tags: ReadonlyArray<string>) => {
     const members: Array<CallableTaggedStruct<string, Schema.Struct.Fields>> =
@@ -492,7 +507,7 @@ const defineUnion = <CasesByTag extends Record<string, Schema.Struct.Fields>>(
   return Object.assign(union, callables, {
     // NOTE: Schema.TaggedUnion does not expose the member list that Schema.Union
     // does. Machine.define uses that list to enumerate the state tags.
-    members: Object.values(callables),
+    members: Array.map(callableEntries, ([, callable]) => callable),
     subset,
   }) as unknown as TaggedUnion<CasesByTag>
 }
@@ -577,8 +592,9 @@ export function defineMessageUnion<
 export function defineTaggedUnion<
   const CasesByTag extends Record<string, Schema.Struct.Fields>,
 >(
-  casesByTag: CasesByTag & ValidateVariantNames<CasesByTag>,
+  casesByTag: CasesByTag & ValidateNonEmptyVariantNames<CasesByTag>,
 ): TaggedUnion<CasesByTag> {
+  requireVariants(casesByTag)
   return defineUnion<CasesByTag>('Variant', casesByTag)
 }
 
@@ -629,8 +645,9 @@ export function defineTaggedUnion<
 export function defineRouteUnion<
   const CasesByTag extends Record<string, Schema.Struct.Fields>,
 >(
-  casesByTag: CasesByTag & ValidateVariantNames<CasesByTag>,
+  casesByTag: CasesByTag & ValidateNonEmptyVariantNames<CasesByTag>,
 ): RouteUnion<CasesByTag> {
+  requireVariants(casesByTag)
   return defineUnion<CasesByTag>('Route variant', casesByTag)
 }
 
