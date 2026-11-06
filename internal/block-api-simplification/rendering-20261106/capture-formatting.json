@@ -1,0 +1,60 @@
+{
+  "scope": "Only durable JSON copies are formatted; original private captures and raw logs are unchanged. Original capture hashes continue to refer to the private bytes.",
+  "formatter": "oxfmt 0.66.0",
+  "files": [
+    {
+      "file": "analysis-controls.json",
+      "beforeFormattingSha256": "e1c84032775d9ece06bacbf1ac3827f54a0b4ff3314104815c23036bd0976178",
+      "formattedSha256": "e1c84032775d9ece06bacbf1ac3827f54a0b4ff3314104815c23036bd0976178",
+      "parsedValuesUnchanged": true
+    },
+    {
+      "file": "analysis.json",
+      "beforeFormattingSha256": "506f3dde696e666f4a08b785c9a342056d205fb0b08e7d47591162c2dbec9d7b",
+      "formattedSha256": "506f3dde696e666f4a08b785c9a342056d205fb0b08e7d47591162c2dbec9d7b",
+      "parsedValuesUnchanged": true
+    },
+    {
+      "file": "artifacts-summary.json",
+      "beforeFormattingSha256": "49bcb98ee0b2e74d7b7e67ac6174bd057ca8a5491555cf098dae41a913c76881",
+      "formattedSha256": "49bcb98ee0b2e74d7b7e67ac6174bd057ca8a5491555cf098dae41a913c76881",
+      "parsedValuesUnchanged": true
+    },
+    {
+      "file": "candidate-build.json",
+      "beforeFormattingSha256": "04b8b9368c66360698d74c4754281d64c2057726aa2a4a291e81a36cbc55bac5",
+      "formattedSha256": "04b8b9368c66360698d74c4754281d64c2057726aa2a4a291e81a36cbc55bac5",
+      "parsedValuesUnchanged": true
+    },
+    {
+      "file": "capture-integrity.json",
+      "beforeFormattingSha256": "12ab285486ccd0f52bcb27900a84b72c4d3a8d09b5a9712f9fd4b0187aec1be6",
+      "formattedSha256": "12ab285486ccd0f52bcb27900a84b72c4d3a8d09b5a9712f9fd4b0187aec1be6",
+      "parsedValuesUnchanged": true
+    },
+    {
+      "file": "host-after.json",
+      "beforeFormattingSha256": "6c500575a065a0da418be688ba8571ecb6d27e287dac63128365c2278ccdb154",
+      "formattedSha256": "6296f7bea3eb2ea6587e91039d79b8d7bf6dee5053c02474dc9334dd698fa470",
+      "parsedValuesUnchanged": true
+    },
+    {
+      "file": "host-before.json",
+      "beforeFormattingSha256": "e59c5d8aa7c8d43ae503d57934462dae6d3a56e312f8c8ded067c1fe71b94a2d",
+      "formattedSha256": "8d2a4494b19f6d4a079f228079662b2fa137991362942563659695db76b099b6",
+      "parsedValuesUnchanged": true
+    },
+    {
+      "file": "preflight-final/results.json",
+      "beforeFormattingSha256": "5ccefd0d881a0e61f9b9e668d90895aa644bd638422d52eebdad7caa435e2108",
+      "formattedSha256": "5ccefd0d881a0e61f9b9e668d90895aa644bd638422d52eebdad7caa435e2108",
+      "parsedValuesUnchanged": true
+    },
+    {
+      "file": "timing-final-execution.json",
+      "beforeFormattingSha256": "ef37f1a091799764acce4a3979f67a1b0c809bb2c9549a4c278197d6e5f1d7ee",
+      "formattedSha256": "ef37f1a091799764acce4a3979f67a1b0c809bb2c9549a4c278197d6e5f1d7ee",
+      "parsedValuesUnchanged": true
+    }
+  ]
+}

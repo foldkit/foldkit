@@ -25,7 +25,10 @@ Story API, consumer migrations, declaration boundary and completed checks.
       against the unchanged workloads before claiming improvement.
   - [x] Complete the bounded scoped view Context-cache attempt and retain its
         CPU, allocation, safety and noise controls. The final frozen comparison
-        remains pending. [Evidence](preview-rendering-scope-cache-20261105.md).
+        is [complete](block-api-simplification/rendering-20261106/README.md).
+        Main versus candidate medians are 637.1/672.8 ms naive and 207.2/269.4 ms
+        optimized. The remaining rendering and bundle costs require release
+        review. [Targeted evidence](preview-rendering-scope-cache-20261105.md).
 - [x] Narrow Block-managed serialization to synchronous, service-free codecs.
       Remove `codec.decoding` and `codec.encoding` without aliases and preserve
       exact Service requirements through generated child Message envelopes.
@@ -1473,6 +1476,11 @@ previously approved post-main deferrals for #1662 and #1663 retain their scope.
       must not borrow the actual child's FoldContext and Command delivery.
 - [ ] Resolve the combined compiler ceiling without altering workloads, budgets
       or accepted/rejected contract checks.
-- [ ] Run combined release verification and a fresh frozen rendering comparison.
+- [x] Run combined release verification and a fresh frozen rendering comparison.
+      All 44 test projects pass 9,247 tests; source/type, lint, formatting,
+      cross-version declarations and three-browser packed SSR checks pass. The
+      unchanged compiler gate's Machine partition issue remains explicit above.
 - [ ] Review the exact final commit independently and push the prepared preview.
+      Source commit `9e2c0d309c07` is approved. Evidence-only follow-up review and
+      resolution of the required compiler gate precede push; no bypass is used.
       Publication and private Daybreak source transfer remain held.

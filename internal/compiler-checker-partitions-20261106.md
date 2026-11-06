@@ -227,6 +227,12 @@ retaining unrelated parallel ceilings.
 This is a concrete decision artifact, not an adopted change. The repository's
 runner, fixtures, and budgets remain untouched.
 
+An applicable unified diff is
+`/private/tmp/foldkit-single-threaded-harness-proposal-20261106/single-threaded-normalization-applicable.patch`
+(SHA-256 `9dd248a7d2facf2a5bb2cfff898ee58b04160ab4926f2354876d83974d5f4d88`).
+`git apply --check` passes against the committed candidate. The patch has not
+been applied.
+
 ## Recommendation
 
 Do not change public types, validation, fixtures, or budgets to chase this

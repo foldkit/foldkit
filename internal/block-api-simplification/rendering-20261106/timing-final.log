@@ -1,0 +1,46 @@
+harness revision: unknown
+chromium version: 153.0.8010.12
+[round 1/8] foldkit-main: 656.5ms
+[round 1/8] foldkit-preview-final: 683.9ms
+[round 1/8] foldkit-main-optimised: 205.0ms
+[round 1/8] foldkit-preview-final-optimised: 282.9ms
+[round 2/8] foldkit-preview-final: 678.2ms
+[round 2/8] foldkit-main-optimised: 208.6ms
+[round 2/8] foldkit-preview-final-optimised: 277.2ms
+[round 2/8] foldkit-main: 609.6ms
+[round 3/8] foldkit-main-optimised: 199.7ms
+[round 3/8] foldkit-preview-final-optimised: 272.5ms
+[round 3/8] foldkit-main: 639.7ms
+[round 3/8] foldkit-preview-final: 657.8ms
+[round 4/8] foldkit-preview-final-optimised: 270.0ms
+[round 4/8] foldkit-main: 634.5ms
+[round 4/8] foldkit-preview-final: 670.6ms
+[round 4/8] foldkit-main-optimised: 208.1ms
+[round 5/8] foldkit-main: 619.3ms
+[round 5/8] foldkit-preview-final: 687.9ms
+[round 5/8] foldkit-main-optimised: 195.9ms
+[round 5/8] foldkit-preview-final-optimised: 268.5ms
+[round 6/8] foldkit-preview-final: 673.7ms
+[round 6/8] foldkit-main-optimised: 206.2ms
+[round 6/8] foldkit-preview-final-optimised: 249.2ms
+[round 6/8] foldkit-main: 616.6ms
+[round 7/8] foldkit-main-optimised: 208.3ms
+[round 7/8] foldkit-preview-final-optimised: 237.4ms
+[round 7/8] foldkit-main: 645.5ms
+[round 7/8] foldkit-preview-final: 624.2ms
+[round 8/8] foldkit-preview-final-optimised: 268.8ms
+[round 8/8] foldkit-main: 639.8ms
+[round 8/8] foldkit-preview-final: 671.9ms
+[round 8/8] foldkit-main-optimised: 209.7ms
+foldkit-main {"crossOriginIsolated":true,"total":637.1,"sync":40.6,"timeout":0,"animationFrame":595.4,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":3.07}
+foldkit-preview-final {"crossOriginIsolated":true,"total":672.8,"sync":48.1,"timeout":0,"animationFrame":624.8,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":3.25}
+foldkit-main-optimised {"crossOriginIsolated":true,"total":207.2,"sync":42.2,"timeout":0,"animationFrame":164.9,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1}
+foldkit-preview-final-optimised {"crossOriginIsolated":true,"total":269.4,"sync":51.1,"timeout":0,"animationFrame":218.3,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.3}
+
+=== medians (ms) ===
+implementation                            total   relative       sync    timeout animationFrame  microtask    promise
+foldkit-main                              637.1      3.07x       40.6          0      595.4          0          0
+foldkit-preview-final                     672.8      3.25x       48.1          0      624.8          0          0
+foldkit-main-optimised                    207.2      1.00x       42.2          0      164.9          0          0
+foldkit-preview-final-optimised           269.4      1.30x       51.1          0      218.3          0          0
+fatal: not a git repository (or any of the parent directories): .git

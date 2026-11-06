@@ -129,9 +129,21 @@ will keep builds and declaration consumers sequential.
 
 ## Remaining release checks
 
-- Independently review the exact resulting commit after the completed combined
-  lint, formatting, declaration, runtime and consumer checks.
-- Run the prepared fresh 32-sample rendering comparison against actual main.
+The source commit `9e2c0d309c070ba7a99b1669c3f69094c7ba2003` passed independent
+exact-commit review. The final [32-sample rendering comparison](block-api-simplification/rendering-20261106/README.md)
+is complete against actual main. No samples were discarded.
+
+| Workload  | Main median | Candidate median |  Change |
+| --------- | ----------: | ---------------: | ------: |
+| Naive     |    637.1 ms |         672.8 ms |  +5.60% |
+| Optimized |    207.2 ms |         269.4 ms | +30.02% |
+
+The optimized candidate is slower in every paired round. Gzip JavaScript adds
+45,201 bytes in the naive workload and 45,848 in the optimized workload. The
+small scoped Context-cache improvement does not close or explain this larger
+gap. These costs remain for release review; acceptance is not assumed.
+
+- Review the rendering and bundle costs above before publication.
 - Resolve the remaining Machine compiler ceiling. Seven of eight unchanged
   workloads now pass, including both Workspace workloads after separating a
   compact private delivery contract from the constructed graph. Machine reports
@@ -139,6 +151,8 @@ will keep builds and declaration consumers sequential.
   [controlled evidence](compiler-checker-partitions-20261106.md) identifies
   TypeScript 7 checker-pool duplication in the former Workspace failure.
   Fixtures, canonical measurement options and budgets have not been altered.
+- Push and integrate the prepared commits once the required compiler gate is
+  resolved. The ordinary pre-push checks include that gate; no bypass is used.
 - Obtain fresh Daybreak authorization for the exact final candidate and retain
   the separate publication approval.
 
