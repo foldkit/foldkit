@@ -1,5 +1,6 @@
 import { Cause, Effect, Option, type Scope } from 'effect'
 
+import type { MessageOrigin } from './instrument.js'
 import type { RuntimeStatus } from './runtimeStatus.js'
 
 const DRAIN_BUDGET_MS = 5
@@ -29,9 +30,13 @@ export const makeMessageQueue = <Message>({
   status,
   processMessage,
   crashWith,
+  captureOrigin,
 }: Readonly<{
   status: RuntimeStatus
-  processMessage: (message: Message) => void
+  processMessage: (message: Message, origin: MessageOrigin | undefined) => void
+  /** Present only when instrumentation is on. Origins then travel in a
+   *  parallel array kept in step with `pendingMessages`. */
+  captureOrigin?: () => MessageOrigin
   crashWith: (
     cause: Cause.Cause<never>,
     maybeMessage: Option.Option<Message>,
@@ -39,6 +44,7 @@ export const makeMessageQueue = <Message>({
 }>): Effect.Effect<MessageQueue<Message>, never, Scope.Scope> =>
   Effect.gen(function* () {
     let pendingMessages: Array<Message> = []
+    let pendingOrigins: Array<MessageOrigin> = []
     let isProcessingMessages = false
     // NOTE: a Message arriving before boot completes, say a navigation
     // event during an async boot step, is buffered, not processed.
@@ -52,6 +58,9 @@ export const makeMessageQueue = <Message>({
         return
       }
       pendingMessages.push(message)
+      if (captureOrigin !== undefined) {
+        pendingOrigins.push(captureOrigin())
+      }
       if (!isBootComplete || status.isRenderingFrame) {
         return
       }
@@ -125,11 +134,13 @@ export const makeMessageQueue = <Message>({
       try {
         while (pendingMessages.length > 0) {
           const batch = pendingMessages
+          const origins = pendingOrigins
           pendingMessages = []
+          pendingOrigins = []
           for (let index = 0; index < batch.length; index++) {
             const message = batch[index]!
             currentMessage = Option.some(message)
-            processMessage(message)
+            processMessage(message, origins[index])
 
             const hasRemainingWork =
               index + 1 < batch.length || pendingMessages.length > 0
@@ -142,6 +153,9 @@ export const makeMessageQueue = <Message>({
               // anything in pendingMessages, so they go back to the
               // front to keep arrival order.
               pendingMessages = batch.slice(index + 1).concat(pendingMessages)
+              if (captureOrigin !== undefined) {
+                pendingOrigins = origins.slice(index + 1).concat(pendingOrigins)
+              }
               scheduleDeferredDrain()
               return
             }

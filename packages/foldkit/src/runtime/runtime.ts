@@ -45,6 +45,11 @@ import {
   type HydrationConfig,
   resolveHydrationHandoff,
 } from './hydrationHandoff.js'
+import {
+  type InstrumentConfig,
+  type MessageOrigin,
+  __makeFrameRecorder,
+} from './instrument.js'
 import { forkManagedResourceFibers } from './managedResourceFibers.js'
 import { type MessageQueue, makeMessageQueue } from './messageQueue.js'
 import { preserveModel } from './modelPreservationBridge.js'
@@ -130,6 +135,9 @@ export type RuntimeConfig<
   routing?: RoutingConfig<Message>
   crash?: CrashConfig<Model, Message>
   slow?: SlowConfig<Model, Message>
+  /** Reports per-frame timings (update, view, patch, input-to-paint) with the
+   *  Messages and DOM events that caused them. Off unless configured. */
+  instrument?: InstrumentConfig<Message>
   /**
    * Wraps qualifying renders in `document.startViewTransition` so the browser
    * animates between the old and new DOM states. Return `false` for a plain
@@ -297,6 +305,7 @@ export const makeRuntime = <
   routing: routingConfig,
   crash,
   slow,
+  instrument,
   viewTransition,
   freezeModel,
   preserveScroll,
@@ -542,6 +551,11 @@ export const makeRuntime = <
 
         const status = makeRuntimeStatus()
 
+        const maybeFrameRecorder = __makeFrameRecorder(
+          instrument,
+          !!import.meta.hot,
+        )
+
         // NOTE: `processMessagePlain` and `crashWith` are defined further
         // down, so they are wrapped here instead of passed by reference. The
         // queue has to exist before the navigation listeners attach below,
@@ -552,8 +566,12 @@ export const makeRuntime = <
         const messageQueue: MessageQueue<Message> =
           yield* makeMessageQueue<Message>({
             status,
-            processMessage: message => processMessagePlain(message),
+            processMessage: (message, origin) =>
+              processMessagePlain(message, origin),
             crashWith: (cause, maybeMessage) => crashWith(cause, maybeMessage),
+            ...(Option.isSome(maybeFrameRecorder) && {
+              captureOrigin: maybeFrameRecorder.value.captureOrigin,
+            }),
           })
         const { enqueueMessage, enqueueMessageEffect, completeBoot } =
           messageQueue
@@ -645,6 +663,7 @@ export const makeRuntime = <
           readLiveModel: () => liveModel,
           messageQueue,
           devToolsIntegration,
+          maybeFrameRecorder,
         })
 
         yield* Effect.addFinalizer(() =>
@@ -715,13 +734,22 @@ export const makeRuntime = <
           })
         }
 
-        const processMessagePlain = (message: Message): void => {
+        const processMessagePlain = (
+          message: Message,
+          origin: MessageOrigin | undefined,
+        ): void => {
           const currentModel = liveModel
 
+          const processedAt = Option.isSome(maybeFrameRecorder)
+            ? performance.now()
+            : 0
           const [messageUpdate, maybeUpdateDuration] = measureSlowPhase(
             maybeSlowUpdate,
             () => update(currentModel, message),
           )
+          const updateEndedAt = Option.isSome(maybeFrameRecorder)
+            ? performance.now()
+            : 0
           const nextModelRaw = messageUpdate.model
           const commands = messageUpdate.commands ?? []
           const nextModel = maybeFreezeModel(nextModelRaw)
@@ -747,6 +775,16 @@ export const makeRuntime = <
               Effect.runSync(schedulePreserveModel(nextModel))
             }
             scheduleRenderFrame()
+          }
+
+          if (Option.isSome(maybeFrameRecorder)) {
+            maybeFrameRecorder.value.recordMessage(
+              message,
+              origin,
+              processedAt,
+              updateEndedAt - processedAt,
+              currentModel !== nextModel,
+            )
           }
 
           if (isRecordingCommands) {
