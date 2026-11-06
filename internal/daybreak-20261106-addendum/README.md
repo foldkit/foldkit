@@ -53,6 +53,19 @@ passes. The prebundle checker verifies all 39 required Effect namespaces.
 Arbitrary cyclic user records remain an inherited limitation that needs an
 explicit wire-safe representation in a separate design.
 
+## Node test synchronization follow-up
+
+A subsequent full check exposed a Node fixture race: the marker file existed
+before its asynchronous write completed, so the test read an empty string.
+The six lifecycle-marker assertions now poll for the expected contents within
+the existing one-second limit. This changes test synchronization only; the
+reviewed runtime code is unchanged.
+
+All 37 Node tests pass with a forced 100 ms gap between marker creation and
+content writing. A deliberately incorrect abort marker still fails. Restoring
+the ordinary fixture also passes all 37 tests. The fixture mutations are
+verification controls and are not part of the committed change.
+
 ## Previously measured production workloads
 
 The [artifact comparison](benchmark-artifacts.json) rebuilds the unchanged

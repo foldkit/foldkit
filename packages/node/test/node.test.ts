@@ -71,18 +71,16 @@ const waitForResponse = async (url: string): Promise<Response> => {
   throw lastError
 }
 
-const waitForFile = async (path: string): Promise<string> => {
-  let lastError: unknown = undefined
-  for (let attempt = 0; attempt < 40; attempt++) {
-    try {
-      return await readFile(path, 'utf8')
-    } catch (error) {
-      lastError = error
-      await new Promise(resolveWait => setTimeout(resolveWait, 25))
-    }
-  }
-  throw lastError
-}
+const FILE_CONTENTS_POLL_INTERVAL_MS = 25
+const FILE_CONTENTS_TIMEOUT_MS = 1_000
+
+const expectFileContents = (path: string, contents: string) =>
+  expect
+    .poll(() => readFile(path, 'utf8'), {
+      interval: FILE_CONTENTS_POLL_INTERVAL_MS,
+      timeout: FILE_CONTENTS_TIMEOUT_MS,
+    })
+    .toBe(contents)
 
 const requestTarget = (
   port: number,
@@ -310,7 +308,7 @@ describe('serve', () => {
       )
       expect(response.status).toBe(200)
       expect(await response.text()).toBe('')
-      await expect(waitForFile(fixture.abortedPath)).resolves.toBe('canceled')
+      await expectFileContents(fixture.abortedPath, 'canceled')
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
@@ -547,11 +545,9 @@ describe('serve', () => {
         )
       })
 
-      await expect(waitForFile(fixture.abortStartedPath)).resolves.toBe(
-        'started',
-      )
+      await expectFileContents(fixture.abortStartedPath, 'started')
       client.destroy()
-      await expect(waitForFile(fixture.abortedPath)).resolves.toBe('aborted')
+      await expectFileContents(fixture.abortedPath, 'aborted')
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
@@ -585,11 +581,9 @@ describe('serve', () => {
         )
       })
 
-      await expect(waitForFile(fixture.abortStartedPath)).resolves.toBe(
-        'started',
-      )
+      await expectFileContents(fixture.abortStartedPath, 'started')
       await receivedResponse
-      await expect(waitForFile(fixture.abortedPath)).resolves.toBe('aborted')
+      await expectFileContents(fixture.abortedPath, 'aborted')
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
@@ -627,7 +621,7 @@ describe('serve', () => {
       })
 
       await receivedBody
-      await expect(waitForFile(fixture.canceledPath)).resolves.toBe('canceled')
+      await expectFileContents(fixture.canceledPath, 'canceled')
       client.destroy()
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
