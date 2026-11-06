@@ -1,4 +1,4 @@
-import { Option, Predicate } from 'effect'
+import { Option, Predicate, Result } from 'effect'
 
 import { currentDispatchingEvent } from '../snabbdom/eventlisteners.js'
 import { type Visibility, isVisible } from './visibility.js'
@@ -88,10 +88,14 @@ const MAX_TAG_DEPTH = 4
 // pending list bounded until the next frame reports it.
 const MAX_PENDING_MESSAGES = 200
 
+// NOTE: Option and Result values carry a `_tag` too (`Some`, `Success`) but
+// are payload, not a wrapped Submodel Message.
 const isTaggedObject = (value: unknown): boolean =>
   Predicate.isObject(value) &&
   Predicate.hasProperty(value, '_tag') &&
-  Predicate.isString(value._tag)
+  Predicate.isString(value._tag) &&
+  !Option.isOption(value) &&
+  !Result.isResult(value)
 
 /** Names a Message by its tag path. Submodel Messages wrap the child Message
  *  in a field, so the first tagged field is followed

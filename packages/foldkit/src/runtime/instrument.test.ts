@@ -1,4 +1,4 @@
-import { Effect, Fiber, Number, Option, Schema } from 'effect'
+import { Effect, Fiber, Number, Option, Result, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { __htmlBuilder } from '../html/index.js'
@@ -167,6 +167,18 @@ describe('messageTagPath', () => {
     expect(messageTagPath(Message.GotPanel({ message: Inner.Toggled() }))).toBe(
       'GotPanel>Toggled',
     )
+  })
+
+  it('stops at Option and Result payloads', () => {
+    expect(
+      messageTagPath({
+        _tag: 'ChangedChartFocus',
+        maybeKey: Option.some('p95'),
+      }),
+    ).toBe('ChangedChartFocus')
+    expect(
+      messageTagPath({ _tag: 'CompletedFetch', result: Result.succeed(1) }),
+    ).toBe('CompletedFetch')
   })
 
   it('names an untagged value unknown', () => {
