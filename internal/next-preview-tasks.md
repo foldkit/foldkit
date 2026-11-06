@@ -12,7 +12,7 @@
       not expose a missing Block-aware registry or `unhover` fix. Its broader
       profiling APIs are unaccepted, and native Scene registry parity remains
       outside this stabilization change.
-- [ ] Complete the separately authorized Daybreak addendum and final artifact
+- [x] Complete the separately authorized Daybreak addendum and final artifact
       verification for the Chunk fix and release-preparation follow-up.
 - [ ] Integrate the reviewed preparation branch through protected checks and
       prepend #1655's preparation notice without replacing published Ready.

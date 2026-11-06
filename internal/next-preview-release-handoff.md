@@ -69,8 +69,11 @@ stack. The preparation branch includes Wayne Maurer's
 [#1899](https://github.com/foldkit/foldkit/pull/1899) fix, preserving the original
 commit and author, plus a separate nested-secret and reference-sharing
 regression. The documentation-only follow-up above does not itself change
-behavior; this later DevTools fix does. Its separately authorized Daybreak
-addendum and final artifact verification must be recorded before sign-off.
+behavior; this later DevTools fix does. Its separately authorized
+[Daybreak addendum and artifact verification](daybreak-20261106-addendum/README.md)
+are complete, with no substantiated new security or release-correctness defect.
+The rebuilt production benchmark artifacts are byte-identical to the previously
+measured workloads; their existing timing and gzip results remain applicable.
 
 The new [profiling proposal (#1898)](https://github.com/foldkit/foldkit/pull/1898)
 is assessed separately and is not included. Canonical Block-aware Scene already

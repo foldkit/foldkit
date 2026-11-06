@@ -1,0 +1,110 @@
+{
+  "candidate": "d9da49a134c85c50844b17e9f31db44a8df1e555",
+  "previousMeasuredCode": "9e2c0d309c070ba7a99b1669c3f69094c7ba2003",
+  "node": "v22.22.3",
+  "vite": "8.3.5",
+  "sourceChecks": [
+    {
+      "relative": "packages/foldkit/src",
+      "fileCount": 645,
+      "exact": true
+    },
+    {
+      "relative": "packages/vite-plugin-foldkit/src",
+      "fileCount": 12,
+      "exact": true
+    }
+  ],
+  "benchmarkSourcesMatch": true,
+  "dependencyLinks": 56,
+  "dependencyLinksSha256": "13296792f4b90c70f076f1a897e35c77e08f132446a4c49838d3f93de4671aca",
+  "distributions": [
+    {
+      "component": "foldkit",
+      "fileCount": 1143,
+      "inventorySha256": "29135716ee204f34585b78aa379106352600f82530dc8e1a635033aff58fd526"
+    },
+    {
+      "component": "vite-plugin-foldkit",
+      "fileCount": 36,
+      "inventorySha256": "b67dc6566683c37848014f3bf32e9cbfac766fcd0678fd8d3424633e4eec696e"
+    }
+  ],
+  "checks": [
+    {
+      "variant": "naive",
+      "exitCode": 0,
+      "log": "build-naive.log",
+      "newFiles": [
+        {
+          "file": "assets/index-5gg15r4U.js",
+          "bytes": 466645,
+          "sha256": "6da01e754a48591a99d3f6f30734037f0f60a2bbf34d30f2d0baf611e94e5cd6",
+          "gzipBytes": 144232
+        },
+        {
+          "file": "index.html",
+          "bytes": 678,
+          "sha256": "790ada134d265034269f2f476e4911b5a515e2228c5818bcf809d4f7338ad31d",
+          "gzipBytes": 381
+        }
+      ],
+      "oldFiles": [
+        {
+          "file": "assets/index-5gg15r4U.js",
+          "bytes": 466645,
+          "sha256": "6da01e754a48591a99d3f6f30734037f0f60a2bbf34d30f2d0baf611e94e5cd6",
+          "gzipBytes": 144232
+        },
+        {
+          "file": "index.html",
+          "bytes": 678,
+          "sha256": "790ada134d265034269f2f476e4911b5a515e2228c5818bcf809d4f7338ad31d",
+          "gzipBytes": 381
+        }
+      ],
+      "byteIdentical": true
+    },
+    {
+      "variant": "optimised",
+      "exitCode": 0,
+      "log": "build-optimised.log",
+      "newFiles": [
+        {
+          "file": "assets/index.optimised-BMJMCYdV.js",
+          "bytes": 473238,
+          "sha256": "43ddca028c7935ee29837bcbe2151dea72b2e6a3d332603e8d3717700e0bfe83",
+          "gzipBytes": 145589
+        },
+        {
+          "file": "index.optimised.html",
+          "bytes": 700,
+          "sha256": "337cc987bf189b76c7c93569b7cfcca72065af5aed048b4ebcaf84ec393ace4f",
+          "gzipBytes": 395
+        }
+      ],
+      "oldFiles": [
+        {
+          "file": "assets/index.optimised-BMJMCYdV.js",
+          "bytes": 473238,
+          "sha256": "43ddca028c7935ee29837bcbe2151dea72b2e6a3d332603e8d3717700e0bfe83",
+          "gzipBytes": 145589
+        },
+        {
+          "file": "index.optimised.html",
+          "bytes": 700,
+          "sha256": "337cc987bf189b76c7c93569b7cfcca72065af5aed048b4ebcaf84ec393ace4f",
+          "gzipBytes": 395
+        }
+      ],
+      "byteIdentical": true
+    }
+  ],
+  "allBenchmarkArtifactsByteIdentical": true,
+  "negativeControl": {
+    "control": "Flip one byte in a copied JavaScript asset while retaining its name and byte length",
+    "result": "Artifact identity rejected"
+  },
+  "conclusion": "The post-Chunk-fix production workload artifacts are byte-identical to the already timed candidate; previous timing and gzip measurements remain applicable to these exact benchmark bytes.",
+  "scope": "Carry forward only the previously measured naive/optimized benchmark timings and exact gzip bytes. This is not a new timing run or a claim about other entrypoints or Chunk-heavy DevTools workloads."
+}
