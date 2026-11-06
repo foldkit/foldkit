@@ -1,0 +1,93 @@
+# Foldkit preview candidate defensive security review
+
+## Scope
+
+- **Candidate:** `50d8e5f375e27b68b80932cc4ca766578f696f6f`
+- **Candidate tree:** `d612b09b8d0a3cf2d82e91271659b9bff90cc310`
+- **Published baseline:** `90746b32d2ca8bc0476de7a051ace396ca590ae0`
+- **Earlier Daybreak candidate:** `44e94feeba0e69c2d61657cb4fba32570452cde8`
+- **Reviewed source:** frozen `source/` snapshot, checked against [source-manifest.json](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/source-manifest.json:1)
+- **Baseline comparison:** 5,419 changed paths, approximately 530,644 insertions and 151,087 deletions.
+
+The review covered the complete supplied delta as the scope inventory, then traced security-relevant owned implementation through its realistic consumers and selected providers. Vendored Effect code was kept separate and followed only where Foldkit-owned adapters depended on changed behavior.
+
+## Verdict
+
+**No substantiated new security finding.**
+
+I also found **no release-correctness defect warranting a release block** in the reviewed candidate.
+
+This is a static, read-only assessment—not certification. It does not authorize publication, deployment, pushing, merging, or other release activity.
+
+## Security findings
+
+None.
+
+I did not find a concrete path where untrusted encoded data, erased callers, remote ingress, or ordinary application inputs can newly cross a privilege, ownership, service, graph, or lifecycle boundary in the candidate.
+
+## Release-correctness findings
+
+None substantiated.
+
+In particular:
+
+- Generated and local Message codecs preserve the synchronous, service-free contract. Asynchronous schema execution is detected and interrupted; unexpected defects and service access are not mislabeled as ordinary schema rejection. See [serialization.ts](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/source/packages/foldkit/src/serialization.ts:15).
+- Complete generated child Message codecs, private delivery envelopes, exact operation membership, and graph ownership checks remain connected rather than trusting caller-shaped objects.
+- InMessage declarations reject constructor, tag, generated-method, and schema-surface collisions before exposing `requestX` or `informOfX`.
+- Model-produced initialization is deferred to the active update step. Recipe evaluation uses the then-current Model, while occurrence membership and graph identity are rechecked before installing children.
+- Direct and produced keyed OutMessage folds are normalized with the selected binding, Message, OutMessage, and FoldContext contracts. The documented need to adapt a non-keyed forward to the keyed signature is an application typing/configuration concern, not a crossed security boundary.
+- The single-checker compiler allocation harness still fails compilation errors independently of budget measurement and does not convert rejected contracts into accepted ones.
+- Package versioning, internal dependency rewriting, packed artifact integrity checks, peer compatibility, and the single-Effect-runtime smoke boundary are coherent with the pending release changes.
+
+## Non-blocking hardening observation
+
+### Development cleanup when Vite HMR is disabled
+
+**Confidence:** High
+
+When development HMR is disabled, module-level application resources cannot receive Vite’s normal dispose callback. Repeated edits can therefore retain old handlers or listeners until the development process is restarted. The limitation is explicitly documented in [ssr.ts](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/source/packages/vite-plugin/src/ssr.ts:933).
+
+- **Preconditions:** Development server, HMR disabled, and an entry module that acquires persistent resources.
+- **Impact:** Development-only duplicate handlers or leaked resources; no demonstrated production or remote privilege boundary.
+- **Smallest improvement:** Add a plugin-owned disposal route independent of module HMR, or make restart-on-edit mandatory and mechanically enforced for this mode.
+- **Focused check:** Run an HMR-disabled development fixture with a counted scoped listener, trigger multiple rebuilds, and assert that at most one live listener remains or that the process is deliberately restarted.
+
+This does not justify blocking the preview on security grounds.
+
+## Inherited risks
+
+These were not introduced or materially worsened by the candidate:
+
+- **Explicit fixed-port DevTools/MCP mode:** `devToolsMcpPort` binds a predictable, unauthenticated WebSocket listener and does not enforce an Origin allowlist. A browser page or network peer able to reach that listener may access DevTools capabilities. The safer automatic relay instead uses loopback, an ephemeral port, a high-entropy token, challenge/HMAC proof, and ownership-checked registry records. Fixed-port mode remains an explicitly selected development exposure.
+- **Relay registry race surface:** The current candidate validates scheme, credentials, host, port, path, and token before performing a liveness probe in [relayRegistry.ts](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/source/packages/devtools-mcp/src/relayRegistry.ts:48). This addresses the earlier ordering concern; ordinary filesystem race limitations remain.
+- **Dependency advisories:** The recorded checkpoint contains two moderate build-tool advisories involving `glob` and `minimatch`; it is not a clean or universally patched dependency tree. The recorded reachability is build cleanup and fixed repository/CI tooling rather than production request processing. See [dependency-advisories/README.md](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/source/internal/layered-constructor/dependency-advisories/README.md:1). This review was not a fresh advisory audit.
+- **Release bootstrap:** The release workflow downloads the pinned npm CLI tarball without independently pinning and checking its digest before extraction. TLS and registry integrity remain trusted at that bootstrap step. A pinned SHA-512 verification would reduce this inherited supply-chain exposure.
+
+## Material security properties inspected
+
+- Block construction and provider registration: authenticated descriptors, exact identities, graph ownership, requirements, constructor failures, and erased JavaScript callers.
+- Generated child Message codecs, Flags transfer, DevTools decoding, replay/restoration, SSR serialization, failure diagnostics, and separation from effectful Command codecs.
+- InMessage declarations and generated operations, including prototype-like names, collisions, exact constructor membership, and local-versus-parent ownership.
+- Private child delivery, keyed child normalization, sibling registration, Command lifting, direct and produced OutMessage folds, and channel preservation.
+- Passive/model-produced initialization, deferred startup context, duplicate keys, occurrence retention, stale Models, and propagation of initialization Commands.
+- Subscription, ManagedResource, Mount, Scene, and keyed-generation lifetimes, including synchronous self-removal, replacement barriers, interruption, release order, delayed results, and parent isolation.
+- Scoped view Context caching across Runtime, cursor, node, generation, key, resources, replay, and render frames. See [viewScope.ts](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/source/packages/foldkit/src/block/viewScope.ts:48).
+- Schema-backed Single/Multi Listbox value channels, transformed encoded values, view-only Item services, and family/provider identity.
+- SSR/SSG/hydration boundaries: path normalization, same-origin enforcement, HTML/script escaping, structural template checks, flags, build stamps, request isolation, scoped entry disposal, and development reload cleanup.
+- DevTools/MCP and relay ingress: loopback restrictions, namespace and registry validation, authentication before liveness probing, untrusted payload decoding, and privileged capability reachability.
+- CI, packaging, coherent versions, provenance, peer compatibility, and compiler allocation enforcement.
+
+## Evidence and limits
+
+The review used only read-only inspection inside the supplied case directory:
+
+- [AGENTS.md](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/source/AGENTS.md:1)
+- [source-manifest.json](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/source-manifest.json:1)
+- [changed-paths.txt](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/evidence/changed-paths.txt:1)
+- [full-preview-delta.patch](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/evidence/full-preview-delta.patch:1)
+- [since-previous-daybreak.patch](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/evidence/since-previous-daybreak.patch:1)
+- [review-history.txt](/private/tmp/foldkit-daybreak-50d8e5f375-20261106/evidence/review-history.txt:1)
+
+The manifest identities and literal `CLAUDE.md → AGENTS.md` symlink target were checked. The earlier report was used only for prioritization; neither it nor host-reported green tests was treated as current coverage.
+
+No builds, tests, applications, installs, network access, remote probes, or active attacks were run. No dependencies were installed, and no files, configuration, credentials, repositories, or external services were modified. Consequently, lifecycle timing and browser/network behavior remain static inferences rather than freshly reproduced behavior. Third-party packages were not exhaustively audited.

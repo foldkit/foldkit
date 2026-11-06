@@ -1,9 +1,26 @@
 # Next preview tasks
 
+## November 6 security review
+
+- [x] Complete the authorized read-only Daybreak review of frozen candidate
+      `50d8e5f375e27b68b80932cc4ca766578f696f6f`. Preserve the original report
+      and receipt, verify all 8,878 source entries after completion, and classify
+      the existing caveats. No substantiated new security or release-blocking
+      correctness finding required a source fix.
+      [Review and limits](daybreak-20261106/README.md).
+- [x] Pass the ordinary pre-push hook, #1896 pull request checks and protected
+      merge-group checks without bypassing them. The preview integration is
+      `253cf72ed47ead5ee5a46e2530e10dcbaa1283e7`; its tree matches the reviewed
+      tree exactly.
+- [ ] Review the measured rendering and bundle costs before publication.
+- [ ] Review the two assessed moderate build-tool advisories before publication.
+- [ ] Obtain separate user publication approval. No release was dispatched.
+
 ## November 5 review cleanup
 
-Work continues from integrated preview `570ecedddaef`. Publication and private
-source transfer remain held while the review changes are being completed.
+This checkpoint starts from integrated preview `570ecedddaef`. Publication and
+private source transfer were held while the review changes were completed. The
+November 6 section above records the later authorization and completed review.
 
 - [x] Address the user's new inline review comments and remove each resolved
       note. Preserve concurrent edits and unresolved comments.
@@ -142,9 +159,11 @@ Story API, consumer migrations, declaration boundary and completed checks.
         preserved review notes with the current implementation and record
         explicit answers where the existing design is retained. Release gates
         and the requested rendering benchmark are separate pending work.
-- [ ] Refresh relevant GitHub feedback, finish verification and independent
-      review, then freeze one final candidate for fresh Daybreak authorization.
-- [ ] Push the prepared changes to preview; await the user's publication approval.
+- [x] Refresh relevant GitHub feedback, finish verification and independent
+      review, freeze candidate `50d8e5f375`, and complete its authorized Daybreak
+      review. Current receipts are recorded in the November 6 section above.
+- [x] Integrate the prepared candidate through #1896 with protected checks
+      passing. Publication requires separate user approval.
 
 ## November 5 candidate review
 
@@ -169,7 +188,7 @@ preview `90746b32d2ca`. Earlier dated sections retain their checkpoint scope.
       checks pass, including all ten example-browser shards.
 - [x] Record a final quiet Lustre comparison against actual main, retaining all
       32 samples and the remaining rendering and bundle costs for release review.
-- [ ] Obtain authorization for a fresh Daybreak addendum for the final candidate.
+- [x] Obtain authorization and complete the Daybreak review of the final candidate. See the November 6 receipt above.
 - [ ] Obtain user approval before publication.
 
 ## November 4 review follow-ups
