@@ -1,0 +1,528 @@
+> [!TIP]
+> **Ready.** Choose the stable migration, previous-preview upgrade, or new-project path below. Each targets the same verified snapshot.
+
+> [!NOTE]
+> This is a preview of Foldkit's new Block composition and handler Layers. APIs and conventions will likely change before the stable release. I'm sharing it early to get feedback from the community. Try it out and share your feedback in this PR.
+
+## Integration preview ready
+
+Source: [`90746b32d2ca8bc0476de7a051ace396ca590ae0`](https://github.com/foldkit/foldkit/commit/90746b32d2ca8bc0476de7a051ace396ca590ae0)
+
+Website: [https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/](https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/)
+
+Manifest: [preview-release.json](https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/preview-release.json)
+
+### Choose your starting point
+
+1. **Existing stable Foldkit application:** [Complete migration guide](https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/preview-migration)
+2. **Application using an earlier preview:** [Previous-preview upgrade guide](https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/preview-upgrade)
+3. **New project:** `npx create-foldkit-app@0.40.0-canary.90746b32d2ca`
+
+<details>
+<summary>Complete package-set reference</summary>
+
+This command installs the entire set as production dependencies; it is a snapshot reference, not an upgrade command for an existing project.
+
+`pnpm add --save-exact "@foldkit/devtools@0.169.0-canary.90746b32d2ca" "@foldkit/devtools-mcp@0.25.0-canary.90746b32d2ca" "@foldkit/markdown@0.14.4-canary.90746b32d2ca" "@foldkit/node@0.1.0-canary.90746b32d2ca" "@foldkit/oxlint-plugin@0.15.3-canary.90746b32d2ca" "@foldkit/ui@0.169.0-canary.90746b32d2ca" "@foldkit/vite-plugin@0.28.0-canary.90746b32d2ca" "foldkit@0.169.0-canary.90746b32d2ca"`
+
+</details>
+
+For an existing application, update only its installed Foldkit packages and preserve dependency/devDependency placement.
+
+### Editor performance
+
+Large Block compositions can still cause editor latency. We recommend trying the optional tsrs language-server setup, which improved responsiveness in our Neovim use. See the [editor tooling guide](https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/preview-upgrade#optional-editor-setup-tsrs) for setup, the tested version and limitations.
+
+### Package versions
+
+- [`@foldkit/devtools@0.169.0-canary.90746b32d2ca`](https://www.npmjs.com/package/@foldkit/devtools/v/0.169.0-canary.90746b32d2ca)
+- [`@foldkit/devtools-mcp@0.25.0-canary.90746b32d2ca`](https://www.npmjs.com/package/@foldkit/devtools-mcp/v/0.25.0-canary.90746b32d2ca)
+- [`@foldkit/markdown@0.14.4-canary.90746b32d2ca`](https://www.npmjs.com/package/@foldkit/markdown/v/0.14.4-canary.90746b32d2ca)
+- [`@foldkit/node@0.1.0-canary.90746b32d2ca`](https://www.npmjs.com/package/@foldkit/node/v/0.1.0-canary.90746b32d2ca)
+- [`@foldkit/oxlint-plugin@0.15.3-canary.90746b32d2ca`](https://www.npmjs.com/package/@foldkit/oxlint-plugin/v/0.15.3-canary.90746b32d2ca)
+- [`@foldkit/ui@0.169.0-canary.90746b32d2ca`](https://www.npmjs.com/package/@foldkit/ui/v/0.169.0-canary.90746b32d2ca)
+- [`@foldkit/vite-plugin@0.28.0-canary.90746b32d2ca`](https://www.npmjs.com/package/@foldkit/vite-plugin/v/0.28.0-canary.90746b32d2ca)
+- [`create-foldkit-app@0.40.0-canary.90746b32d2ca`](https://www.npmjs.com/package/create-foldkit-app/v/0.40.0-canary.90746b32d2ca)
+- [`foldkit@0.169.0-canary.90746b32d2ca`](https://www.npmjs.com/package/foldkit/v/0.169.0-canary.90746b32d2ca)
+
+### Agent prompts
+
+<details>
+<summary>Agent prompt: migrate a stable application</summary>
+
+```text
+Migrate this existing Foldkit application from its installed stable API to the Blocks and Effect Layers preview.
+
+Target source commit: 90746b32d2ca8bc0476de7a051ace396ca590ae0
+Migration guide: https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/preview-migration.md
+Verified package manifest: https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/preview-release.json
+
+First inspect package.json, the lockfile, the source tree and existing project instructions. Record the installed versions and, for a preview, its source commit. Preserve concurrent work. Read the complete target guide, including its before/after examples, before editing. Resolve supporting documentation paths on this same deployment so you stay on the target API.
+
+Fetch the manifest and confirm its sourceCommit and package map match this target. Upgrade every Foldkit package already used by the project together, preserving dependency/devDependency placement and exact versions. Edit all installed Foldkit entries before one install. Do not install unused packages. Check declared peer requirements before changing Effect or other dependencies.
+
+Target package map:
+@foldkit/devtools@0.169.0-canary.90746b32d2ca
+@foldkit/devtools-mcp@0.25.0-canary.90746b32d2ca
+@foldkit/markdown@0.14.4-canary.90746b32d2ca
+@foldkit/node@0.1.0-canary.90746b32d2ca
+@foldkit/oxlint-plugin@0.15.3-canary.90746b32d2ca
+@foldkit/ui@0.169.0-canary.90746b32d2ca
+@foldkit/vite-plugin@0.28.0-canary.90746b32d2ca
+create-foldkit-app@0.40.0-canary.90746b32d2ca
+foldkit@0.169.0-canary.90746b32d2ca
+
+If the project already vendors repos/foldkit, repin it to the full target commit. Refresh an existing managed FOLDKIT.md snapshot and any installed Foldkit skills from that snapshot, preserving project-specific AGENTS.md instructions. Otherwise use the target guide and commit-pinned source directly; do not add a subtree or instruction files as an unrequested migration step. Use the target guide and source, not current main or remembered preview APIs.
+
+Migrate directly to the final handler Layer, Block/Composition, Binding and Program APIs. Preserve application behavior, Model ownership, initialization Commands, OutMessage policies, occurrence identity and lifecycle cleanup.
+
+Do not bypass type errors with casts, ts-ignore, runtime-only workarounds or weakened configuration. Inspect matching emitted declarations and examples; report a concrete blocker when an exact contract cannot be preserved.
+
+Run the project typecheck including tests, lint, tests and production build. Exercise its actual browser, SSR/SSG or embedding path where applicable. Use installed package artifacts rather than workspace source aliases. Report the source and target versions, changes made, checks run and any remaining gaps. Do not commit, push or deploy without my request.
+```
+
+</details>
+
+<details>
+<summary>Agent prompt: upgrade an earlier preview</summary>
+
+```text
+Upgrade this existing Foldkit preview application directly to the target preview below.
+
+Target source commit: 90746b32d2ca8bc0476de7a051ace396ca590ae0
+Migration guide: https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/preview-upgrade.md
+Verified package manifest: https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/preview-release.json
+
+First inspect package.json, the lockfile, the source tree and existing project instructions. Record the installed versions and, for a preview, its source commit. Preserve concurrent work. Read the complete target guide, including its before/after examples, before editing. Resolve supporting documentation paths on this same deployment so you stay on the target API.
+
+Fetch the manifest and confirm its sourceCommit and package map match this target. Upgrade every Foldkit package already used by the project together, preserving dependency/devDependency placement and exact versions. Edit all installed Foldkit entries before one install. Do not install unused packages. Check declared peer requirements before changing Effect or other dependencies.
+
+Target package map:
+@foldkit/devtools@0.169.0-canary.90746b32d2ca
+@foldkit/devtools-mcp@0.25.0-canary.90746b32d2ca
+@foldkit/markdown@0.14.4-canary.90746b32d2ca
+@foldkit/node@0.1.0-canary.90746b32d2ca
+@foldkit/oxlint-plugin@0.15.3-canary.90746b32d2ca
+@foldkit/ui@0.169.0-canary.90746b32d2ca
+@foldkit/vite-plugin@0.28.0-canary.90746b32d2ca
+create-foldkit-app@0.40.0-canary.90746b32d2ca
+foldkit@0.169.0-canary.90746b32d2ca
+
+If the project already vendors repos/foldkit, repin it to the full target commit. Refresh an existing managed FOLDKIT.md snapshot and any installed Foldkit skills from that snapshot, preserving project-specific AGENTS.md instructions. Otherwise use the target guide and commit-pinned source directly; do not add a subtree or instruction files as an unrequested migration step. Use the target guide and source, not current main or remembered preview APIs.
+
+Apply the required changes from the installed preview to the target. Separate optional conveniences from required migration; preserve existing behavior and do not redo already-correct Block wiring.
+
+Do not bypass type errors with casts, ts-ignore, runtime-only workarounds or weakened configuration. Inspect matching emitted declarations and examples; report a concrete blocker when an exact contract cannot be preserved.
+
+Run the project typecheck including tests, lint, tests and production build. Exercise its actual browser, SSR/SSG or embedding path where applicable. Use installed package artifacts rather than workspace source aliases. Report the source and target versions, changes made, checks run and any remaining gaps. Do not commit, push or deploy without my request.
+```
+
+</details>
+
+## Changes since the previous preview
+
+The previous preview is `f3be22cfeefed437164ad614d08b16d9000e0703`. It already includes checked Block assembly, record-only `makeUpdate`, focused Step producer callbacks, aggregate ManagedResource Layers, and the contributor work credited in that snapshot. Keep those APIs and the existing child graph.
+
+### Required migrations
+
+- Replace standalone `makeMapBinding` calls with the parent Definition's `makeMapBinding` method. The `foldkit/mapBinding` import is removed. Applications without map Bindings need no change for this migration.
+- Rename generic UI Block factories to `makeBlock`: Listbox, Combobox, Menu, RadioGroup, Tabs, and VirtualList replace `create`, including the Listbox and Combobox Multi variants; Toast replaces `make`. The old names have no compatibility aliases.
+- If the application uses experimental Machine, replace curried `Machine.define` and standalone authoring helpers with `Machine.makeDefinition`, its bound `makeGuard`, `makeHandler`, and `makeTransitions` helpers, and `Definition.makeMachine`.
+- Migrate persisted experimental Query Models for the new freshness and recency metadata. Existing Query behavior defaults remain unchanged when Models are not persisted.
+- Update exhaustive VirtualList parent policies for the new `ApproachedLoadedStart` and `EndedContainerScroll` OutMessages.
+
+See the [previous-preview upgrade guide](https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/preview-upgrade) for exact before-and-after forms and verification steps.
+
+### Authoring and lifecycle fixes
+
+- Inline Model-aware `makeStep` handlers, including `.withContext`, infer their exact Message variants. Contextual update records accept compatible Steps and Binding operations directly. Registration-evidence extraction also avoids TS2589 in the reported large Root composition while preserving registration checks.
+- Scene follows renderer element identity for Mount lifetimes, and Runtime releases an element's original Mount when that element is removed after dropping `OnMount`. Scene also adds explicit URL-change delivery and `Scene.unhover`.
+- Subscription entries accept Model-based `when` gates, with explicit Scene activity assertions. Handler constructors still run at Runtime startup and retain their Service requirements and errors.
+- SSR development reloads recreate Block Definitions with their declarations, and server entries can register an HMR disposal callback. SSG preview resolves prerendered extensionless routes without reexecuting the server entry.
+- Effect peers accept the verified 4.0.0 and 4.0.6 pairs while application and development pins remain exact.
+
+### Machine, Query, and VirtualList additions
+
+- [Machine](https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/core/machine) binds its State, Message, and optional Context Schemas once, checks completed transition tables, preserves exact handler narrowing and Command requirements, and retains pure transition, folding, and graph analysis.
+- [Query and KeyedQuery](https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/core/query) add freshness-aware loading, targeted cancellation, accepted-completion OutMessages, bounded settled retention, and pending-request inspection. Pending entries are protected from eviction and can temporarily exceed the settled-entry limit.
+- [VirtualList](https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/ui/virtual-list) adds continuous upward history, semantic table rows, ancestor and Window scroll ownership, and positioned ordinary rows. Parent Blocks continue to own fetching, loaded rows, table structure, and external layout.
+
+Additional opt-in helpers include `makeInitIfMissingStep`, `Route.parsePathWithFallback`, and `makeStep.fromMessage`. Active examples, scaffolds, docs, and skills use adjacent Schema type aliases as an authoring convention; this is not a consumer API migration.
+
+## Previous verified previews
+
+The previous snapshot remains available at [commit `f3be22cfeefe`](https://github.com/foldkit/foldkit/commit/f3be22cfeefed437164ad614d08b16d9000e0703), with its [immutable documentation](https://foldkit-website-preview-ky42cyp8l-devin-jamesons-projects.vercel.app/) and [package manifest](https://foldkit-website-preview-ky42cyp8l-devin-jamesons-projects.vercel.app/preview-release.json).
+
+The earlier snapshot remains available at [commit `1f6776fa7ece`](https://github.com/foldkit/foldkit/commit/1f6776fa7ececa766188df5201eefec6ba781b5d), with its [immutable documentation](https://foldkit-website-preview-jlwvct0dx-devin-jamesons-projects.vercel.app/) and [package manifest](https://foldkit-website-preview-jlwvct0dx-devin-jamesons-projects.vercel.app/preview-release.json).
+
+## Bonus prompt: understand your migrated app
+
+After migrating, use this bonus prompt for a guided tour of your own application. You should read this one before you use it, too.
+
+```text
+Give me a guided tour of how this migration changed my application.
+Use the actual code and migration diff, with this application's files
+and feature names.
+
+Explain:
+- What became simpler, and which repeated wiring disappeared.
+- Where code moved and why it belongs there.
+- What each Block owns and what its parent still decides.
+- What new concepts or tradeoffs I need to understand.
+
+Draw a small ASCII diagram of this application's Application, Blocks,
+and Bindings. Show where shared Services are provided, if applicable.
+
+Trace one real interaction through Messages, updates, Commands, and any
+parent coordination. Point me to the relevant files as you go.
+
+Show two meaningful before/after examples from this migration. If the
+original code is unavailable, say so instead of inventing it.
+
+Finish with a short suggested reading order for the migrated code.
+Do not make further code changes.
+```
+
+## Why Foldkit is making this change
+
+**Build applications from Blocks. Fold their updates into a single application Model.**
+
+Blocks give features ownership of their state, behavior, optional views, effects, and public operations. A counter and a large website follow the same architecture.
+
+Parents connect Blocks through Bindings. Foldkit handles repetitive child initialization, Message routing, and lifecycle wiring. You decide which children exist, how they coordinate, and what your application does. TypeScript checks those connections and dependencies as the application is assembled.
+
+**This is a breaking release combining Block composition and handler Layers.**
+
+## What changes
+
+### 1. Reusable features become checked Blocks
+
+A feature exports a completed value such as `SearchBlock`. Parents use its Model Schema, connect it through a Binding, and use the Binding's operations and view. The feature's implementation stays internal.
+
+Authoring has three stages:
+
+1. **Definition** establishes identity, contracts, and early authoring helpers.
+2. **Composition** registers children and Mounts and authors init, update, and view.
+3. **Assembly** prepares a checked draft through `Composition.prepareBlock`, then exports the completed Block through `Block.assemble(prepare)` with its checked `FromAssembly*` annotation. The explicit Model/producer boundary keeps parent Schema access from demanding full implementation inference.
+
+These stages build configuration. Runtime constructs Layers and executes effects later. Even a feature without children or Mounts uses a Composition.
+
+Preparation requires each handler to be supplied locally or delegated through `hostHandlers`. Delegated requirements remain visible to the parent.
+
+### 2. Parent-owned Bindings connect children once
+
+Bindings describe a child's Model storage, identity, initialization, Message delivery, and OutMessage policy.
+
+- Direct-field shorthands cover required and optional children.
+- Custom readers and writers express parent policy; keyed Bindings preserve instance identity, membership, and order.
+- Registered children contribute their handlers and lifecycle registrations automatically.
+- Child presence and Subscription-only activation remain separate policies.
+
+Composition derives qualified effect identities and checks child and Mount registrations, including uses through operations, initialization, nested views, and supplied content.
+
+#### Message unions and updates contain local facts
+
+Parents previously declared and routed child wrappers alongside their own facts:
+
+**Before**
+
+```ts
+const Message = defineMessageUnion({
+  ClickedSave: {},
+  GotCounterMessage: { message: Counter.Message },
+})
+
+const update = (model: Model, message: Message) =>
+  Message.match(message, {
+    ClickedSave: () => ({
+      model,
+      commands: [SavePanel()],
+    }),
+    GotCounterMessage: ({ message }) =>
+      foldCounter(model, message),
+  })
+```
+
+**After**
+
+```ts
+const Message = defineMessageUnion({
+  ClickedSave: {},
+})
+
+const update = PanelComposition.makeUpdate({
+  ClickedSave: model => ({
+    model,
+    commands: [SavePanel()],
+  }),
+})
+```
+
+Your update describes your feature's behavior; Composition routes child Messages. Model, Message, and Command requirements are inferred. Parent coordination uses Binding OutMessage policies and public operations.
+
+`PanelComposition.Message` provides the complete dispatch Schema, including generated child-routing Messages, for Runtime and DevTools.
+
+#### Child wiring before and after
+
+The old parent also repeated its child relationship in the fold and view:
+
+**Before**
+
+```ts
+const foldCounter = Update.foldChild({
+  update: Counter.update,
+  read: (model: Model) => Option.some(model.counter),
+  write: (model, nextCounter) =>
+    modifyFields(model, { counter: () => nextCounter }),
+  toParentMessage: message => Message.GotCounterMessage({ message }),
+})
+
+const view = Submodel.defineView<Model, Message>((model, h) =>
+  h.submodel({
+    slotId: 'counter',
+    model: model.counter,
+    view: Counter.view,
+    toParentMessage: message => Message.GotCounterMessage({ message }),
+  }),
+)
+```
+
+**After**
+
+```ts
+const CounterBinding = PanelDefinition.makeBinding(CounterBlock, {
+  field: 'counter',
+})
+
+const PanelComposition = PanelDefinition.makeComposition({
+  bindings: [CounterBinding],
+})
+
+const view = PanelComposition.makeView((model, h) =>
+  h.block(
+    CounterBinding.embedView({
+      slotId: 'counter',
+      model: model.counter,
+    }),
+  ),
+)
+```
+
+One Binding now supplies both update and view wiring.
+
+### 3. Composition assembles child initialization
+
+Binding policies choose child initializer arguments and which optional or keyed instances initially exist. Parent init supplies shared child-initialization context and its own fields. Composition places the child Models and collects their Commands.
+
+Additional startup policy uses ordinary Steps. `Update.combineSteps` orders pure transitions; it does not guarantee sequential Command completion. There is no separate Runtime boot phase.
+
+#### Initialization before and after
+
+For example, the old Counters application initialized each child in its parent:
+
+```ts
+export const init = () => ({
+  model: {
+    rows: [
+      { id: 'counter-0', counter: Counter.init },
+      { id: 'counter-1', counter: Counter.init },
+      { id: 'counter-2', counter: Counter.init },
+    ],
+    nextRowId: 3,
+  },
+})
+```
+
+The Counters Binding declares the initial instances. Parent init supplies only its own fields:
+
+```ts
+export const init = ApplicationComposition.makeInit(() => ({
+  model: { nextCounterId: INITIAL_COUNTER_COUNT },
+}))
+```
+
+### 4. Public child operations go through Messages
+
+Declare a Block's public API under `operations`. Binding methods produce parent Steps that enter the child's update.
+
+Names distinguish actions from notifications:
+
+- `requestCloseMenu` constructs `Message.RequestedCloseMenu`.
+- `informJoined` constructs `Message.InformedOfJoin`.
+
+Parents change child state through these operations. Read-only selectors remain ordinary helpers.
+
+#### Parent operations before and after
+
+Search previously needed a separate adapter to close its Dialog:
+
+**Before**
+
+```ts
+const closeDialog = Update.foldChildStep({
+  update: Dialog.close,
+  read: (model: Model) => Option.some(model.dialog),
+  write: (model, nextDialog) =>
+    modifyFields(model, { dialog: () => nextDialog }),
+  toParentMessage: message => Message.GotSearchDialogMessage({ message }),
+  foldOutMessage: foldSearchDialogOutMessage,
+})
+```
+
+**After**
+
+```ts
+const closeDialog = DialogBinding.requestClose()
+```
+
+The Step preserves the Binding's Model mapping, Command lifting, OutMessage policy, and instance identity, and composes through `Update.combineSteps`.
+
+### 5. Effect handlers become Layer recipes
+
+Commands, Subscriptions, Mounts, and ManagedResources separate their contracts from handler construction.
+
+- Attach a canonical constructor through `handler` and compose its `.layer` into `EffectsLayer`.
+- Use the original definition's `.toLayer` for an external implementation.
+- The root provider supplies ordinary Services. Service requirements and constructor errors remain typed through assembly.
+
+Constructors capture stable dependencies. Shared infrastructure such as RPC clients belongs in application Service Layers; application state stays in the Model.
+
+#### Command handlers before and after
+
+This draft-saving Command illustrates the split. The Message constructors and `DRAFT_STORAGE_KEY` are assumed below.
+
+**Before**
+
+```ts
+const StoreDraft = Command.define('StoreDraft', {
+  args: { contents: Schema.String },
+  messages: [Message.CompletedStoreDraft, Message.FailedStoreDraft],
+  execute: ({ contents }) =>
+    Effect.gen(function* () {
+      const store = yield* KeyValueStore.KeyValueStore
+
+      yield* store.set(DRAFT_STORAGE_KEY, contents)
+      return Message.CompletedStoreDraft()
+    }).pipe(
+      Effect.catch(() => Effect.succeed(Message.FailedStoreDraft())),
+    ),
+})
+```
+
+**After**
+
+```ts
+const StoreDraft = DraftEditorDefinition.makeCommand('StoreDraft', {
+  args: { contents: Schema.String },
+  messages: [Message.CompletedStoreDraft, Message.FailedStoreDraft],
+  handler: function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+
+    return ({ contents }) =>
+      store.set(DRAFT_STORAGE_KEY, contents).pipe(
+        Effect.as(Message.CompletedStoreDraft()),
+        Effect.catch(() => Effect.succeed(Message.FailedStoreDraft())),
+      )
+  },
+})
+
+const EffectsLayer = StoreDraft.layer
+```
+
+Pass `EffectsLayer` to `DraftEditorComposition.prepareBlock`, then create the completed Block with `Block.assemble(prepare)` and its checked export annotation. The handler constructor captures the storage Service when Runtime builds its Layer; each invocation receives fresh `contents`. The Program supplies storage separately:
+
+```ts
+const ApplicationLayer = BrowserKeyValueStore.layerLocalStorage
+
+Runtime.run(program.provide(ApplicationLayer))
+```
+
+Update continues to return `StoreDraft({ contents })`.
+
+#### Implementation dependencies stay with the handler
+
+Consider a `CreateRoom` Command whose handler uses `RoomsClient`. Later, the handler also needs `Telemetry`.
+
+| Boundary | Handler requirements carried directly by the Command | Handler supplied through a Layer |
+| --- | --- | --- |
+| Update and parent folds | Requirements change from `RoomsClient` to `RoomsClient \| Telemetry` | Continue to require the declared `CreateRoom` handler |
+| Application assembly | Supplies the implementation Services | Checks the handler Layer's new `Telemetry` requirement |
+
+Adding `Telemetry` changes the handler Layer's requirements while update keeps the same `CreateRoom` contract. Missing Services remain visible in the application's requirements.
+
+Ordinary application execution tests should keep the real handler and replace its underlying Services. Whole-handler replacement remains available for host implementations and deliberately controlled runtime scenarios.
+
+The cost is explicit Layer composition; it makes missing implementations and Services visible before execution.
+
+### 6. Construction does not change operation lifetimes
+
+| Responsibility | Lifetime |
+| --- | --- |
+| Application Services and handler construction | One Runtime start and its application Scope |
+| Command work | Each execution, including its interruption |
+| Subscription Stream | Its active registration and dependency policy |
+| Mount acquisition | The mounted element |
+| ManagedResource handle | Its active Model-driven acquisition Scope |
+
+Removing an optional or keyed child stops its lifecycle work without rebuilding shared application Services. Acquisition, interruption, and cleanup retain their existing Scopes and ordering.
+
+### 7. Guides, tooling, and testing follow the same architecture
+
+The example apps, scaffolds, documentation, and skills demonstrate the new patterns together. Ownership lint rules help catch parent updates that bypass a child's public operations.
+
+Story and Scene tests retain their Command-resolution workflows. Scene Subscription emission names the registered source and checks its declared result Messages. Query and KeyedQuery use the same Block and handler model.
+
+<details>
+<summary>Implementation and verification details</summary>
+
+- Source and emitted-declaration tests accept valid wiring and reject invalid requirements, registrations, and public consumer types.
+- Runtime tests cover routing, initialization, cleanup, keyed identity, and Service sharing.
+- Compiler-performance fixtures remain a release gate.
+- Runtime validation checks definition identities, dynamic configurations, and keyed instances.
+
+The exact source-review chain reports no new release-blocking security or output-integrity findings. The earlier Vite/`launch-editor` finding was patched, and the review was repeated in a clean, commit-pinned checkout. This is not a clean dependency audit: existing maintenance advisories remain, with affected execution paths assessed separately. Static security review does not certify every final npm tarball or deployed asset.
+
+These checks do not claim to prove every invariant of arbitrary JavaScript or explicitly erased types.
+
+</details>
+
+## Real applications to review and learn from
+
+Explore complete applications using these patterns:
+
+- **Website:** large feature composition, routing, optional pages, startup data, SSR, and UI integration.
+- **Typing Game:** shared RPC Services, parent-owned coordination, contextual delivery, and stale room-instance handling.
+- **Examples:** small applications through mounted resources, keyed collections, nested forms, and reusable UI Blocks.
+
+## Future work
+
+The declared Block graph and effect contracts provide a foundation for full-application integration tests using real handlers and controlled external Services. Visualizing Message flow and effect lifecycles would require additional runtime instrumentation.
+
+Those testing and visualization tools remain future work. This release supplies the composition model and identities they can build on.
+
+## Tracked feedback and follow-ups
+
+The linked issues own the detailed scope and verification criteria. Leave deferred work unchecked with its intended release; check implementation items only after verification and record the implementing commit or release. This checklist does not change the preview status or installation instructions above.
+
+### Preview feedback closeout
+
+- [x] Reconcile every item in Filip’s four migration reports: [first app](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6251453995), [second app](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6265510467), [additional API/docs feedback](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6266157465), and [website migration](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6266972848). Record each item as fixed, clarified, intentionally retained, or deferred, linking regression evidence or follow-up issues. Check this item when the disposition audit is complete; it does not mean every proposed API was implemented. [Post-publication disposition ledger for this released snapshot](https://github.com/foldkit/foldkit/blob/6cd096cecfcfc06e8e262fdd0c8e58632c2f3b64/internal/preview-feedback-closeout.md).
+
+### Tracked investigations
+
+- [x] [#1706 — Schema-backed HashMap and Record child Binding adapters](https://github.com/foldkit/foldkit/issues/1706). Implemented for Schema-backed Record and HashMap storage with primitive occurrence keys. The current preview exposes it as the parent Definition method `makeMapBinding`; the standalone `foldkit/mapBinding` import is removed. Parent-owned membership, absence, lifecycle, stale-result handling and composite-key limits remain explicit.
+- [x] [#1704 — Animation’s default leave-completion policy](https://github.com/foldkit/foldkit/issues/1704). Implemented through `AnimationBinding.requestWaitForLeaveSettlement()`; specialized settlement strategies remain supported. Verified in this snapshot and recorded in the disposition ledger.
+
+- [x] [#1707 — Command-only Step authoring](https://github.com/foldkit/foldkit/issues/1707). Implemented as `Definition.makeCommandsStep`, preserving Model, Command requirements and registration evidence.
+- [x] [#1708 — Consistent Step factory names](https://github.com/foldkit/foldkit/issues/1708). The owned family is `makeStep`, `makeFieldsStep`, `makeCommandsStep`, `makeOutMessageStep` and `makeNoopStep`; removed names have no compatibility aliases.
+- [ ] [#1709 — Block type inference and editor language-service latency](https://github.com/foldkit/foldkit/issues/1709). This snapshot ships checked completed-export boundaries and measured checker improvements under unchanged compiler budgets. Large root diagnostics and full-type expansion can still be slow; long-lived editor stability and universal memory behavior are not established. [Community investigation and evidence](https://github.com/foldkit/foldkit/issues/1737).
+
+## Migration source references
+
+The release summary above identifies the verified snapshot and its matching documentation. Use those exact versions and commit-pinned references when migrating.
+
+These references are pinned to the verified snapshot: [migration guides](https://github.com/foldkit/foldkit/tree/90746b32d2ca8bc0476de7a051ace396ca590ae0/.changeset), [Project Organization source](https://github.com/foldkit/foldkit/blob/90746b32d2ca8bc0476de7a051ace396ca590ae0/packages/website/src/page/projectOrganization.md), [all three consumer skills](https://github.com/foldkit/foldkit/tree/90746b32d2ca8bc0476de7a051ace396ca590ae0/skills), [plugin manifest](https://github.com/foldkit/foldkit/blob/90746b32d2ca8bc0476de7a051ace396ca590ae0/.claude-plugin/plugin.json), [scaffold AGENTS.md](https://github.com/foldkit/foldkit/blob/90746b32d2ca8bc0476de7a051ace396ca590ae0/packages/create-foldkit-app/templates/base/AGENTS.md), [scaffold FOLDKIT.md](https://github.com/foldkit/foldkit/blob/90746b32d2ca8bc0476de7a051ace396ca590ae0/packages/create-foldkit-app/templates/base/FOLDKIT.md), and [example applications](https://github.com/foldkit/foldkit/tree/90746b32d2ca8bc0476de7a051ace396ca590ae0/examples).
+
+### Updating to a newer preview
+
+Select the newer verified snapshot and update all Foldkit packages this application uses together. Follow that snapshot's documentation and commit-pinned migration guidance, then rerun the application's checks. Do not assume the moving branch or a newer npm package has matching preview documentation.

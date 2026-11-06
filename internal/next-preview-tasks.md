@@ -1,5 +1,33 @@
 # Next preview tasks
 
+## November 6 release documentation
+
+- [x] Audit and repair both active migration paths against the implemented
+      Block/Layer API, distinguishing published-preview migrations from
+      intermediate unpublished spellings.
+- [x] Cover runtime Listbox Value Schemas, synchronous serialization,
+      InMessage authoring, scoped Story/Scene results, immutable observations,
+      keyed lifecycle selection and optional initialization/fold helpers.
+- [x] Correct the host/DevTools boundaries and import direction in the stable
+      guide. Reuse the existing compiled snippets and preserve published
+      historical content.
+- [x] Prepare #1655's upcoming-change description and a preparation prefix.
+      Preserve the current Ready announcement and user prose verbatim until
+      a new registry cohort and immutable deployment pass verification.
+- [x] Verify all 1,449 Website tests, typechecking and the production build.
+      Render and hydrate both guides locally at 1280 pixels, verify no page
+      overflow, and export complete Markdown with full snippets and relative
+      manifest links. The missing-code control is rejected by the exporter.
+- [x] Retain manual dispatch on the exact final preview SHA and keep package
+      versions, immutable deployment links and generated Ready prompts behind
+      the existing publication verification boundary.
+
+The [current handoff](next-preview-release-handoff.md#november-6-preparation)
+and [prepared PR text](preview-pr-next-release.md) own the publication sequence.
+Exact-commit review and protected integration apply to this documentation
+follow-up. Rendering/bundle review, the two assessed build-tool advisories and
+user publication approval remain separate decisions.
+
 ## November 6 security review
 
 - [x] Complete the authorized read-only Daybreak review of frozen candidate

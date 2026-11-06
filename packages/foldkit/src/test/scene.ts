@@ -350,11 +350,10 @@ type ChildSubscriptions<CompositionValue extends AnyComposition> =
  *
  * This only prepares test configuration. It does not initialize Models,
  * construct handler Layers, or start Streams. Completed feature Blocks already
- * expose their aggregated `subscriptions` directly.
+ * expose their aggregated `subscriptions` directly. Duplicate registration
+ * keys are rejected rather than overwritten.
  *
  * @param composition - The Block Composition whose child graph is tested.
- * @param localSubscriptions - Optional Subscriptions declared by that Block.
- * Duplicate registration keys are rejected rather than overwritten.
  */
 export function subscriptions<const CompositionValue extends AnyComposition>(
   composition: CompositionValue,

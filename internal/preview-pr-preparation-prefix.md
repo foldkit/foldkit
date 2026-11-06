@@ -1,0 +1,17 @@
+## Next preview in preparation
+
+The integration branch now contains the next Blocks + Effect Layers API. It is not published yet. The Ready announcement, package map, migration prompts and code walkthrough below still describe the verified `90746b32d2ca` snapshot.
+
+This next round includes:
+
+- One public `Block.make` declaration and ordinary `makeLayer` implementation, with portable typed builders and explicit child Bindings.
+- Separate InMessage handling, generated `informOfX` notification methods, ordered update composition, and less keyed initialization and OutMessage wiring.
+- Synchronous, service-free Block serialization and runtime-Schema-backed Listbox values.
+- Scoped Story/Scene testing, `Story.messageIn`, immutable Model observations, and precise keyed lifecycle selection.
+- Lifecycle, Node response cancellation, Menu, DragAndDrop, Dialog, Query and SSR fixes, plus consistent adoption across the examples, Website and Typing Game.
+
+The [prepared change description](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/preview-pr-next-release.md) and [release review](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/preview-release-review-20261106.md) distinguish required migrations, optional APIs and remaining limits. Rendering/bundle costs and two moderate build-tool advisories remain for release review. Publication stays held for explicit approval.
+
+The new Ready section will be generated from the actual published package manifest and verified immutable Website deployment. Until then, the installed snapshot and instructions below remain unchanged.
+
+---

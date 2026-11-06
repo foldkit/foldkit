@@ -85,7 +85,7 @@ const view = PlanPickerComposition.makeView((model, h) =>
           slotId: 'plan',
           model: model.listbox,
           viewInputs: {
-            // `items` must be ReadonlyArray<Plan>. The factory's <Plan> parameter constrains the shape.
+            // `items` must be ReadonlyArray<Plan>. The supplied Plan Schema constrains the shape.
             items: plans,
             // The parent owns the selection and passes it in. Single-select
             // takes an Option: None when nothing is selected yet.
