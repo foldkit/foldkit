@@ -1,4 +1,4 @@
-import { HashSet, Option, Redacted } from 'effect'
+import { Chunk, HashSet, Option, Redacted } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -95,6 +95,19 @@ describe('toInspectableValue', () => {
         { created: '2026-01-01T00:00:00.000Z' },
         { link: 'https://example.com/' },
       ],
+    })
+  })
+
+  it('converts a Chunk to an array of its converted elements', () => {
+    const date = new Date('2026-01-01T00:00:00.000Z')
+    expect(
+      toInspectableValue({
+        empty: Chunk.empty(),
+        log: Chunk.make({ created: date }, { id: 2 }),
+      }),
+    ).toEqual({
+      empty: [],
+      log: [{ created: '2026-01-01T00:00:00.000Z' }, { id: 2 }],
     })
   })
 
