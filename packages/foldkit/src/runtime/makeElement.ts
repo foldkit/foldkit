@@ -11,6 +11,7 @@ import type {
   ElementCrashConfig,
 } from './crashUI.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
+import type { InstrumentConfig } from './instrument.js'
 import type { ApplicationInit } from './makeApplication.js'
 import {
   type FlagsSchemaConfig,
@@ -43,6 +44,7 @@ type BaseElementConfig<
   ports?: P
   crash?: ElementCrashConfig<Model, Message>
   slow?: SlowConfig<Model, Message>
+  instrument?: InstrumentConfig<Message>
   viewTransition?: ViewTransitionConfig<Model, Message>
   freezeModel?: boolean
   resources?: Layer.Layer<Resources>
@@ -218,6 +220,9 @@ export function makeElement<
     ...(Predicate.isNotUndefined(crash) && { crash }),
     ...(Predicate.isNotUndefined(config.slow) && {
       slow: config.slow,
+    }),
+    ...(Predicate.isNotUndefined(config.instrument) && {
+      instrument: config.instrument,
     }),
     ...(Predicate.isNotUndefined(config.viewTransition) && {
       viewTransition: config.viewTransition,

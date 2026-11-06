@@ -77,6 +77,8 @@ The error identifies each cache miss by slot number, includes the key for keyed 
 
 Slot numbers follow the order in which lazy instances are first called on the second render. All keys from one `createKeyedLazy` instance share a slot number.
 
+Pass a label to name a slot in these failures and in [Scene performance reports](/testing/scene#render-performance): `createKeyedLazy('timeline rows')` reports as `slot 1 "timeline rows"`. The label does not affect caching.
+
 ### Choosing Models to Test
 
 Test each Model state that renders different memoized content. For example, a view whose Model has an `activeTab` field needs a case for each tab:
