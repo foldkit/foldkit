@@ -1,0 +1,8 @@
+
+ RUN  v4.1.12 /private/tmp/foldkit-unified-recovery-20261103/packages/vite-plugin-foldkit
+
+
+ Test Files  2 passed (2)
+      Tests  38 passed | 3 skipped (41)
+   Start at  21:50:53
+   Duration  7.23s (transform 658ms, setup 0ms, import 1.57s, tests 5.78s, environment 0ms)

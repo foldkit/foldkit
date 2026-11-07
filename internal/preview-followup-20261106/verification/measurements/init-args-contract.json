@@ -1,0 +1,14 @@
+{
+  "candidateCommit": "29b3f80e4048996e43f3d3b1262870a96c3b005b",
+  "source": "packages/foldkit/declaration-tests/bulk-child-acquisition/rejected.ts",
+  "sourceSha256": "daf31e93d0248d4a13131c29e7c5da3fe463c846067bf20656c07c8aabe9b8d9",
+  "negativeSource": {
+    "TypeScript7": 0,
+    "TypeScript6": 0
+  },
+  "otherwiseIdenticalInitArgsPositiveControl": {
+    "TypeScript7": 0,
+    "TypeScript6": 0
+  },
+  "unrelatedContractErrorsRemoved": true
+}

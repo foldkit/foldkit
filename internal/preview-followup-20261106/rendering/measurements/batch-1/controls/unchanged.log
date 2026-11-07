@@ -1,0 +1,241 @@
+{
+  "evidenceKind": "measured",
+  "comparisons": {
+    "naive": {
+      "main": "foldkit-main",
+      "candidate": "foldkit-preview-final",
+      "totalMs": {
+        "main": 582,
+        "candidate": 534.9,
+        "added": -47.1,
+        "percentChange": -8.09
+      },
+      "syncMs": {
+        "main": 53.2,
+        "candidate": 56.1
+      },
+      "animationFrameMs": {
+        "main": 534.7,
+        "candidate": 477.2
+      },
+      "rangeMs": {
+        "main": {
+          "minimum": 210.1,
+          "maximum": 705.5
+        },
+        "candidate": {
+          "minimum": 257.1,
+          "maximum": 787.2
+        }
+      },
+      "bundle": {
+        "main": {
+          "files": [
+            {
+              "file": "assets/index-DN9U5aN7.js",
+              "sha256": "d3e37e9f695531f98727dadc3ead8bddd4b0bdb93f52b64029880c3d7a78adb4",
+              "bytes": 304187,
+              "gzipBytes": 99031
+            }
+          ],
+          "rawBytes": 304187,
+          "gzipBytes": 99031
+        },
+        "candidate": {
+          "files": [
+            {
+              "file": "assets/index-DmiGb-xu.js",
+              "sha256": "cc903b683385320f4a22a8846cac2e83f3cd5437a69ad34b617c48333126f0f4",
+              "bytes": 474721,
+              "gzipBytes": 146915
+            }
+          ],
+          "rawBytes": 474721,
+          "gzipBytes": 146915
+        },
+        "addedRawBytes": 170534,
+        "addedGzipBytes": 47884,
+        "gzipPercentChange": 48.35
+      }
+    },
+    "optimized": {
+      "main": "foldkit-main-optimised",
+      "candidate": "foldkit-preview-final-optimised",
+      "totalMs": {
+        "main": 216.7,
+        "candidate": 284.6,
+        "added": 67.9,
+        "percentChange": 31.33
+      },
+      "syncMs": {
+        "main": 57.1,
+        "candidate": 65.5
+      },
+      "animationFrameMs": {
+        "main": 152.1,
+        "candidate": 217.8
+      },
+      "rangeMs": {
+        "main": {
+          "minimum": 109.8,
+          "maximum": 363.6
+        },
+        "candidate": {
+          "minimum": 132.9,
+          "maximum": 452.3
+        }
+      },
+      "bundle": {
+        "main": {
+          "files": [
+            {
+              "file": "assets/index.optimised-UkWhNSKN.js",
+              "sha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+              "bytes": 306590,
+              "gzipBytes": 99741
+            }
+          ],
+          "rawBytes": 306590,
+          "gzipBytes": 99741
+        },
+        "candidate": {
+          "files": [
+            {
+              "file": "assets/index.optimised-DVnsESzc.js",
+              "sha256": "67c6b8459359fabf4bf14e662265021e5ca9666cc1991b851d804ebedea0e1b7",
+              "bytes": 481314,
+              "gzipBytes": 148252
+            }
+          ],
+          "rawBytes": 481314,
+          "gzipBytes": 148252
+        },
+        "addedRawBytes": 174724,
+        "addedGzipBytes": 48511,
+        "gzipPercentChange": 48.64
+      }
+    }
+  },
+  "pairedRounds": [
+    {
+      "round": 1,
+      "naive": {
+        "mainMs": 654.4,
+        "candidateMs": 787.2,
+        "addedMs": 132.8,
+        "percentChange": 20.29
+      },
+      "optimized": {
+        "mainMs": 286.8,
+        "candidateMs": 412.4,
+        "addedMs": 125.6,
+        "percentChange": 43.79
+      }
+    },
+    {
+      "round": 2,
+      "naive": {
+        "mainMs": 696.5,
+        "candidateMs": 754.6,
+        "addedMs": 58.1,
+        "percentChange": 8.34
+      },
+      "optimized": {
+        "mainMs": 313.5,
+        "candidateMs": 324.7,
+        "addedMs": 11.2,
+        "percentChange": 3.57
+      }
+    },
+    {
+      "round": 3,
+      "naive": {
+        "mainMs": 705.5,
+        "candidateMs": 415.9,
+        "addedMs": -289.6,
+        "percentChange": -41.05
+      },
+      "optimized": {
+        "mainMs": 363.6,
+        "candidateMs": 452.3,
+        "addedMs": 88.7,
+        "percentChange": 24.39
+      }
+    },
+    {
+      "round": 4,
+      "naive": {
+        "mainMs": 381.9,
+        "candidateMs": 602.9,
+        "addedMs": 221,
+        "percentChange": 57.87
+      },
+      "optimized": {
+        "mainMs": 224.2,
+        "candidateMs": 234.7,
+        "addedMs": 10.5,
+        "percentChange": 4.68
+      }
+    },
+    {
+      "round": 5,
+      "naive": {
+        "mainMs": 534.9,
+        "candidateMs": 476.3,
+        "addedMs": -58.6,
+        "percentChange": -10.96
+      },
+      "optimized": {
+        "mainMs": 209.3,
+        "candidateMs": 244.4,
+        "addedMs": 35.1,
+        "percentChange": 16.77
+      }
+    },
+    {
+      "round": 6,
+      "naive": {
+        "mainMs": 629.2,
+        "candidateMs": 593.6,
+        "addedMs": -35.6,
+        "percentChange": -5.66
+      },
+      "optimized": {
+        "mainMs": 191.9,
+        "candidateMs": 241.9,
+        "addedMs": 50,
+        "percentChange": 26.06
+      }
+    },
+    {
+      "round": 7,
+      "naive": {
+        "mainMs": 533.7,
+        "candidateMs": 372.6,
+        "addedMs": -161.1,
+        "percentChange": -30.19
+      },
+      "optimized": {
+        "mainMs": 198.1,
+        "candidateMs": 351.8,
+        "addedMs": 153.7,
+        "percentChange": 77.59
+      }
+    },
+    {
+      "round": 8,
+      "naive": {
+        "mainMs": 210.1,
+        "candidateMs": 257.1,
+        "addedMs": 47,
+        "percentChange": 22.37
+      },
+      "optimized": {
+        "mainMs": 109.8,
+        "candidateMs": 132.9,
+        "addedMs": 23.1,
+        "percentChange": 21.04
+      }
+    }
+  ]
+}

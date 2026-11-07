@@ -1,0 +1,240 @@
+
+ RUN  v5.0.3 /private/tmp/foldkit-unified-recovery-20261103/examples/websocket-chat
+
+stdout | src/webSocketConnection.test.ts > WebSocket connection acquisition > waits for readiness and keeps the reader active after opening
+[20:56:20.279] ERROR (#1): Error [AssertionError]: expected +0 to be 1 // Object.is equality
+    at /private/tmp/foldkit-unified-recovery-20261103/examples/websocket-chat/src/webSocketConnection.test.ts:122:33 {
+  actual: 0,
+  expected: 1,
+  showDiff: true,
+  operator: 'strictEqual',
+  [cause]: undefined
+}
+
+stdout | src/webSocketConnection.test.ts > WebSocket connection acquisition > releases a failed partial connection and ignores a competing open
+[20:56:20.284] ERROR (#10): Error [AssertionError]: expected +0 to be 1 // Object.is equality
+    at /private/tmp/foldkit-unified-recovery-20261103/examples/websocket-chat/src/webSocketConnection.test.ts:142:33 {
+  actual: 0,
+  expected: 1,
+  showDiff: true,
+  operator: 'strictEqual',
+  [cause]: undefined
+}
+
+stdout | src/webSocketConnection.test.ts > WebSocket connection acquisition > times out and releases the partially opened socket
+[20:56:20.286] ERROR (#19): Error [AssertionError]: expected +0 to be 1 // Object.is equality
+    at /private/tmp/foldkit-unified-recovery-20261103/examples/websocket-chat/src/webSocketConnection.test.ts:163:33 {
+  actual: 0,
+  expected: 1,
+  showDiff: true,
+  operator: 'strictEqual',
+  [cause]: undefined
+}
+
+stdout | src/webSocketConnection.test.ts > WebSocket connection acquisition > releases a connection interrupted before readiness
+[20:56:20.287] ERROR (#29): Error [AssertionError]: expected +0 to be 1 // Object.is equality
+    at /private/tmp/foldkit-unified-recovery-20261103/examples/websocket-chat/src/webSocketConnection.test.ts:179:33 {
+  actual: 0,
+  expected: 1,
+  showDiff: true,
+  operator: 'strictEqual',
+  [cause]: undefined
+}
+
+stdout | src/webSocketConnection.test.ts > WebSocket connection acquisition > accepts an already-open connection without waiting for another event
+[20:56:20.289] ERROR (#38): Error [AssertionError]: expected +0 to be 1 // Object.is equality
+    at /private/tmp/foldkit-unified-recovery-20261103/examples/websocket-chat/src/webSocketConnection.test.ts:200:33 {
+  actual: 0,
+  expected: 1,
+  showDiff: true,
+  operator: 'strictEqual',
+  [cause]: undefined
+}
+
+stdout | src/webSocketConnection.test.ts > WebSocket connection acquisition > rejects an already-closed connection and releases its scope
+[20:56:20.290] ERROR (#43): Error [AssertionError]: expected +0 to be 1 // Object.is equality
+    at /private/tmp/foldkit-unified-recovery-20261103/examples/websocket-chat/src/webSocketConnection.test.ts:213:33 {
+  actual: 0,
+  expected: 1,
+  showDiff: true,
+  operator: 'strictEqual',
+  [cause]: undefined
+}
+
+ ❯ src/webSocketConnection.test.ts (6 tests | 6 failed) 21ms
+   ❯ WebSocket connection acquisition (6)
+     × waits for readiness and keeps the reader active after opening 12ms
+     × releases a failed partial connection and ignores a competing open 2ms
+     × times out and releases the partially opened socket 2ms
+     × releases a connection interrupted before readiness 1ms
+     × accepts an already-open connection without waiting for another event 2ms
+     × rejects an already-closed connection and releases its scope 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/webSocketConnection.test.ts > WebSocket connection acquisition > waits for readiness and keeps the reader active after opening
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/webSocketConnection.test.ts:122:33
+    120|       )
+    121|
+    122|       expect(socket.closeCount).toBe(1)
+       |                                 ^
+    123|       expect(socket.listenerCount('open')).toBe(0)
+    124|       expect(socket.listenerCount('message')).toBe(0)
+ ❯ ~effect/Effect/successCont ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1476:28
+ ❯ ~effect/Effect/evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/core.ts:587:30
+ ❯ FiberImpl.runLoop ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:694:41
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:635:23
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:624:29
+ ❯ Array.<anonymous> ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1070:13
+ ❯ MixedSchedulerDispatcher.runTasks ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/Scheduler.ts:254:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/webSocketConnection.test.ts > WebSocket connection acquisition > releases a failed partial connection and ignores a competing open
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/webSocketConnection.test.ts:142:33
+    140|
+    141|       expect(failureReason(connection)._tag).toBe('SocketOpenError')
+    142|       expect(socket.closeCount).toBe(1)
+       |                                 ^
+    143|       expect(socket.listenerCount('open')).toBe(0)
+    144|       expect(socket.listenerCount('message')).toBe(0)
+ ❯ ~effect/Effect/successCont ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1476:28
+ ❯ ~effect/Effect/evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/core.ts:587:30
+ ❯ FiberImpl.runLoop ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:694:41
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:635:23
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:624:29
+ ❯ Array.<anonymous> ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1070:13
+ ❯ MixedSchedulerDispatcher.runTasks ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/Scheduler.ts:254:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/webSocketConnection.test.ts > WebSocket connection acquisition > times out and releases the partially opened socket
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/webSocketConnection.test.ts:163:33
+    161|         kind: 'Timeout',
+    162|       })
+    163|       expect(socket.closeCount).toBe(1)
+       |                                 ^
+    164|       expect(socket.listenerCount('open')).toBe(0)
+    165|       expect(socket.listenerCount('message')).toBe(0)
+ ❯ ~effect/Effect/successCont ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1476:28
+ ❯ ~effect/Effect/evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/core.ts:587:30
+ ❯ FiberImpl.runLoop ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:694:41
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:635:23
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:624:29
+ ❯ Array.<anonymous> ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1070:13
+ ❯ MixedSchedulerDispatcher.runTasks ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/Scheduler.ts:254:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/webSocketConnection.test.ts > WebSocket connection acquisition > releases a connection interrupted before readiness
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/webSocketConnection.test.ts:179:33
+    177|       yield* Fiber.interrupt(pendingConnection)
+    178|
+    179|       expect(socket.closeCount).toBe(1)
+       |                                 ^
+    180|       expect(socket.listenerCount('open')).toBe(0)
+    181|       expect(socket.listenerCount('message')).toBe(0)
+ ❯ ~effect/Effect/successCont ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1476:28
+ ❯ ~effect/Effect/evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/core.ts:587:30
+ ❯ FiberImpl.runLoop ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:694:41
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:635:23
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:624:29
+ ❯ Array.<anonymous> ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1070:13
+ ❯ MixedSchedulerDispatcher.runTasks ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/Scheduler.ts:254:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/webSocketConnection.test.ts > WebSocket connection acquisition > accepts an already-open connection without waiting for another event
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/webSocketConnection.test.ts:200:33
+    198|       )
+    199|
+    200|       expect(socket.closeCount).toBe(1)
+       |                                 ^
+    201|     }),
+    202|   )
+ ❯ ~effect/Effect/successCont ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1476:28
+ ❯ ~effect/Effect/evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/core.ts:587:30
+ ❯ FiberImpl.runLoop ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:694:41
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:635:23
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5749:9
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5827:19
+ ❯ Module.<anonymous> ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5846:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  src/webSocketConnection.test.ts > WebSocket connection acquisition > rejects an already-closed connection and releases its scope
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/webSocketConnection.test.ts:213:33
+    211|
+    212|       expect(failureReason(connection)._tag).toBe('SocketCloseError')
+    213|       expect(socket.closeCount).toBe(1)
+       |                                 ^
+    214|       expect(socket.listenerCount('open')).toBe(0)
+    215|       expect(socket.listenerCount('message')).toBe(0)
+ ❯ ~effect/Effect/successCont ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1476:28
+ ❯ FiberImpl.succeedWith ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:751:30
+ ❯ ~effect/Effect/failureCont ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:3854:20
+ ❯ ~effect/Effect/evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/core.ts:629:20
+ ❯ FiberImpl.runLoop ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:694:41
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:635:23
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5749:9
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5827:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+   Start at  20:56:19
+   Duration  549ms (environment 40%, setup 35%, transform 16%, tests 5%, import 2%, worker 1%)
+
+undefined
+/private/tmp/foldkit-unified-recovery-20261103/examples/websocket-chat:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/webSocketConnection.test.ts

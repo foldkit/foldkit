@@ -193,9 +193,23 @@ Both are below the already approved ceilings. The other six workload counters
 are unchanged. The final receipt is
 `/private/tmp/foldkit-followup-compiler-performance-20261106-verified.log`.
 
-Public-package rebuilds, declaration consumers and focused application checks
-are distinct from the remaining complete pre-push gate and rendering comparison.
-No final source candidate has been frozen or sent to Daybreak for this follow-up.
+Public-package rebuilds, declaration consumers, focused application checks,
+installed packed SSR consumers in three browsers and the generated-app smoke
+test pass. The [verification receipts](preview-followup-20261106/verification/README.md)
+retain their scope separately from the final normal pre-push gate and protected
+integration requirements.
+
+The [fresh rendering capture](preview-followup-20261106/rendering/README.md)
+retains all 64 samples across two batches, raw receipts and analyzer controls.
+The optimized preview is slower in all 16 paired rounds, with medians of
+216.7/284.6 ms and 180.7/254.6 ms. Host load, reported free memory and sample
+ranges limit both batch percentages (+31.33% and +40.90%). Added gzip costs are
+47,884/48,511 bytes. Neither remaining cost has user acceptance.
+
+The implementation commit `29b3f80e4048996e43f3d3b1262870a96c3b005b` passes
+independent review. It rebases onto protected integration `4a196d9f05` as
+`5184951f81` with an identical tree. No final integrated release candidate has been sent to
+Daybreak for this follow-up.
 
 The fresh GitHub check found no newer #1655 discussion reply and no inline review
 threads. #1904 is addressed through the existing Effect Socket API. The
@@ -210,7 +224,7 @@ remain unchanged. Shared folds, substantial folds and the reciprocal Job
 Application date-picker folds remain extracted. Inlining the reciprocal folds
 produced an inference cycle, so their existing deferred boundary is retained.
 
-Publication remains held. Fresh rendering and bundle evidence, exact-commit
-review, protected integration and a newly authorized security review still
-precede release approval. Only #1662 and #1663 have the user's explicit post-main
-deferral.
+Publication remains held. The final normal pre-push gate, exact-commit review,
+protected integration and a newly authorized security review must precede
+release approval. Rendering/bundle review remains separate. Only #1662 and
+#1663 have the user's explicit post-main deferral.

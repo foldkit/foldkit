@@ -3,9 +3,9 @@
 ## November 6 follow-up feedback
 
 Daybreak and publication remain held while this pass is in progress. The prior
-Binding adoption is frozen at `3d3eb8998eeced834d4a7fa1810f72179796a3c3` in
-[#1903](https://github.com/foldkit/foldkit/pull/1903); these changes belong to its
-follow-up rather than that already reviewed commit.
+Binding adoption merged through [#1903](https://github.com/foldkit/foldkit/pull/1903)
+as `4a196d9f05`, with the same tree as reviewed `3d3eb8998e`. These changes
+belong to its follow-up rather than that already reviewed commit.
 
 - [x] Permit keyed-array initialization without an identity `toItem` only for
       direct child Model storage. Preserve wrapped adapters, exact keys,
@@ -35,9 +35,15 @@ follow-up rather than that already reviewed commit.
 - [x] Update the guidance, migration notes, skills, changesets and release
       preparation. Preserve singular `subscription.ts`, minimal childless
       Composition, explicit Block identities and ordinary OutMessage unions.
-- [ ] Pass focused runtime, source/emitted, consumer and unchanged compiler
+- [x] Pass focused runtime, source/emitted, consumer and unchanged compiler
       gates; refresh performance evidence and preview-related feedback before
       freezing another candidate for review.
+- [ ] Complete the selected candidate's normal pre-push gate and protected
+      integration, then obtain the applicable fresh Daybreak authorization.
+- [ ] Review the remaining optimized-rendering and bundle costs separately
+      from compiler acceptance. The fresh capture retains all samples and
+      records high host load and low reported free memory.
+- [ ] Obtain publication approval. No release is dispatched by this work.
 
 ## November 6 explicit Binding relationships
 

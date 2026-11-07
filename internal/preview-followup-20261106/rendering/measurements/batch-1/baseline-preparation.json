@@ -1,0 +1,1758 @@
+{
+  "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "mainSourceFiles": [
+    {
+      "file": "packages/foldkit/package.json",
+      "gitBlob": "97727f5a2966c5056f54a5123d9da2e1cffd0860",
+      "sha256": "08ae1a23573479d3ecf91ce3a0b1acd9453659cace6db8900bc09e0c506c0c03"
+    },
+    {
+      "file": "packages/foldkit/src/asyncData/asyncData.test.ts",
+      "gitBlob": "6a319beda8c00a3dca2128f8854721ca68830c09",
+      "sha256": "f55b1527f222c37b49cf3cea71471a26a01ad430f722f0e5faa878106e71110d"
+    },
+    {
+      "file": "packages/foldkit/src/asyncData/asyncData.ts",
+      "gitBlob": "497dae5025b753d77c1d76df7e7620fb189492c4",
+      "sha256": "3d7d43d790fa8cc18682616b7753df60b1189759d241e0a09852ca49b0376cf9"
+    },
+    {
+      "file": "packages/foldkit/src/asyncData/index.ts",
+      "gitBlob": "cacf60d89858adc7de87de571c0f41ce1017dab0",
+      "sha256": "98b136568b4f4fa732d34947f916847ac27388d58de61ab0ab286cfdcbac6b49"
+    },
+    {
+      "file": "packages/foldkit/src/asyncData/public.ts",
+      "gitBlob": "82008332b5e220a7595312db587f4c8c8e56af04",
+      "sha256": "2fc8fad0079b2d9cc3f2df0887f0950a954e8c91a9f02aa7b17c14c763275bb2"
+    },
+    {
+      "file": "packages/foldkit/src/brand/brand.test.ts",
+      "gitBlob": "d7baec145824afc2c98ae3f9763e30bd8434fa3c",
+      "sha256": "8e5b2b339ab0e7fb204078b3e3b0e6c99f6827c194bf8dec8e5c9814574ea947"
+    },
+    {
+      "file": "packages/foldkit/src/brand/brand.ts",
+      "gitBlob": "b4ffc4a3bc86a4e56942ccd37b7190463f1e950e",
+      "sha256": "14b99fd7b5f2e5a7cc41844aeddbf41f6bb9315ae7c7cf299d17d0b40a3adab2"
+    },
+    {
+      "file": "packages/foldkit/src/brand/index.ts",
+      "gitBlob": "56d05015f40e23258ed1046551ec3f20a2eb4247",
+      "sha256": "21002cce6427b573dfa6ba74025f3c0d9df8987b3d217baaec04027aa7a949bb"
+    },
+    {
+      "file": "packages/foldkit/src/brand/public.ts",
+      "gitBlob": "c42724299107ae6d10697a2ab7be0a59d3231bde",
+      "sha256": "337aa84e7c84926c463fa29a33f2622391df7dd5826720d7bb405c3c54f23277"
+    },
+    {
+      "file": "packages/foldkit/src/buildToken.ts",
+      "gitBlob": "c5a555fae05d011d4cb1fe31eb110a27b940ef64",
+      "sha256": "a361bba1dd677ab8fc6856527ace6e35cfc8d2abeb647de0b587807bb6bbebe2"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/arithmetic.test.ts",
+      "gitBlob": "dca58719361fe6f39cdd127f65ef06e8520c1744",
+      "sha256": "efa68578b100d60c7974da8243ec38e6a793fca1d9e3e53bf91e6b8846e1f365"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/arithmetic.ts",
+      "gitBlob": "3261adc54599683f05e0cebb54ffc63d9f7e46a0",
+      "sha256": "4338acf52256442246d21d921128c70001199c872031de1863b63171619ecb47"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/calendarDate.test.ts",
+      "gitBlob": "49df16a97980de01cf31d168a063fe359eaf960a",
+      "sha256": "c7ec94f4d30a4102c738fd30ee6cea7c098884361e1971a5c660ee6b8ef98be3"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/calendarDate.ts",
+      "gitBlob": "2fd7e26fa5c4f3398d8350aea8f8dc4542943440",
+      "sha256": "0aad98f1222c3f594f7d2e9eae56108f54e6d0076928cda956c45bd6ef84be72"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/comparison.test.ts",
+      "gitBlob": "4774440cbce73e9d5f2b031606dac840ffde0418",
+      "sha256": "d92bae394f2671d7a4102bdc947fa193410ca63de317256bcfe22f0f8572c9aa"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/comparison.ts",
+      "gitBlob": "ba271c6d8f33e6a3408b0ab19ae3b5002b092413",
+      "sha256": "c8ca0031c23080a674eb03936fa84c7788bfa5cdb3368dda68db7d08c0709488"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/index.ts",
+      "gitBlob": "61ef944ff4f9ce3c609aa37125b93bd1b9c3b37d",
+      "sha256": "4bb734e39475fa186d25fd45ad89d0321c5cac0722e4b6f5bf47b3f756162abb"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/info.test.ts",
+      "gitBlob": "578b46a1c58834463bac12e8fcd23e0b979f761d",
+      "sha256": "f411cbce0a30e83f503e2ec532d9df9b21168e15056132e0c714b53ce20c8b95"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/info.ts",
+      "gitBlob": "c1784590782a97edf9f83f3b06c3ad7951be1dae",
+      "sha256": "46257b9ad8fdcd6165d245510fe5aece6e0c1c3779cba1f4bd2e7b904530df24"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/locale.test.ts",
+      "gitBlob": "69ee6916fe91af8c0d7aedade892f5d772a2e882",
+      "sha256": "caf24ad5a95cb4deee4bd656f93a3df6e2db876639d1f88d879a9286b99eff23"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/locale.ts",
+      "gitBlob": "c51cb68b917cd269f545ffdc511daa155037e6e1",
+      "sha256": "b0543bf2ab61fcb1be1f01ee8d9a1b43fbd88e62f87f1389ac5fa84fa89e473e"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/public.ts",
+      "gitBlob": "0f558d0317c64d700f4d9a927ed8069c47a73c9e",
+      "sha256": "b52d56e2c0e3ed46c1ff887cf85b45b4077412121b3a0170f0dacace81f51711"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/today.test.ts",
+      "gitBlob": "8e822d5ce150e449bd531d2dcceba741668cf154",
+      "sha256": "8017989b385e1924d65ff1d68f61abbc081687e1c9571cb9e07c729930ac1427"
+    },
+    {
+      "file": "packages/foldkit/src/calendar/today.ts",
+      "gitBlob": "45ac5858faefe76773151cc4eadc349868c94d90",
+      "sha256": "e6d2245aa6410f3f1f196de0478a95ab420dc2ed0b0bdeeaf605055041392de6"
+    },
+    {
+      "file": "packages/foldkit/src/canvas/index.ts",
+      "gitBlob": "e32f5537ab38ab270eab2f0200c5b7007a065f4f",
+      "sha256": "2dedca040dcfbec4ed7ae7c36fa2cacf0da4eeb582f500d621f48a3e5744f746"
+    },
+    {
+      "file": "packages/foldkit/src/canvas/paint.test.ts",
+      "gitBlob": "d69a99e2c12b68cecb57411d4a51510887a4c0c7",
+      "sha256": "cb03dd0544e3fc8265d86d6a6b59726b34718acdcc9e98e088012f07afc79881"
+    },
+    {
+      "file": "packages/foldkit/src/canvas/paint.ts",
+      "gitBlob": "e4634aceddf4b3562953079dfee99e1bdae8eda0",
+      "sha256": "0d3fc65471f919a3f4e635af17e47350e8ba145cc29930c9ef532f5bd3dfb9f6"
+    },
+    {
+      "file": "packages/foldkit/src/canvas/public.ts",
+      "gitBlob": "7f370fe397a0fc89af57af2fedb524e73aa83390",
+      "sha256": "904a8680a89aeb81a14c35e924f4cc37174433d959912230386e0bb51e5b6db2"
+    },
+    {
+      "file": "packages/foldkit/src/canvas/shape.test.ts",
+      "gitBlob": "69d406096785d0447fda7826022578f253fa8912",
+      "sha256": "6d66e2c5c7bb5eef7bb081f7e1746a2536e34fa5dfe2414cf7c26483c9647b12"
+    },
+    {
+      "file": "packages/foldkit/src/canvas/shape.ts",
+      "gitBlob": "181599bbc6abe2e9b7d10acb597566e48e56f27c",
+      "sha256": "8f647571ae778129f507905863d22bfa05466b835a38e31e2a3941badb3c1c2c"
+    },
+    {
+      "file": "packages/foldkit/src/canvas/view.test.ts",
+      "gitBlob": "9ae02eea4125b50a91ac44bd3ebd46d96d8cd39a",
+      "sha256": "6e0ac7e05babb17da0ebf075ccb32059e166bc815347a21224dcb8b13925eadf"
+    },
+    {
+      "file": "packages/foldkit/src/canvas/view.ts",
+      "gitBlob": "c5f8e0af2f3a3c82ebba1cced8247194d061bfa6",
+      "sha256": "cb5509316a60e877b4250614f46f132b3e46ab99e170b4d90ca3206723016011"
+    },
+    {
+      "file": "packages/foldkit/src/command/brand.ts",
+      "gitBlob": "443f3ceab5baffb1275f2a9b4d3cd55392f1f184",
+      "sha256": "2e27e97a1df236729a2b398475e488037f1fef167a7fb205ef70f1c3f285f9c8"
+    },
+    {
+      "file": "packages/foldkit/src/command/define.test.ts",
+      "gitBlob": "3f90adec6a4d07535aaf7aeaf3e2e1377dfae04c",
+      "sha256": "3c97fb08adf1129850d1095e7f25caad1488f5e85cea2f5fceaae173d95fcb5d"
+    },
+    {
+      "file": "packages/foldkit/src/command/index.ts",
+      "gitBlob": "06859f3dc8479560b360fb9de1a35ca4dbb4d993",
+      "sha256": "bbb615ef8d1d4a3bda10cbe756d11e0b7c1510fa0caadeccb3f38a40c094b1c7"
+    },
+    {
+      "file": "packages/foldkit/src/command/interruptible/index.ts",
+      "gitBlob": "1c09e96c76030a5d00b94d78657c82f00848d22a",
+      "sha256": "e7bbd09654a50dd85d9aaa76614d0ef3219b401785d9986172b084c48f9af28f"
+    },
+    {
+      "file": "packages/foldkit/src/command/interruptible/interruptible.test.ts",
+      "gitBlob": "7b2bf4b8a8aab0c747a93c895581a4f7eb0770ee",
+      "sha256": "18a852c3e925e01dfc199c6b0a886f6682d90751f3b7b1662cbe7034bf994d4a"
+    },
+    {
+      "file": "packages/foldkit/src/command/interruptible/interruptible.ts",
+      "gitBlob": "03628c99043fecf2f5d379159f6302f17bde3de7",
+      "sha256": "6c0f658355ea4dd6405bc30d34dea16a085d1589bd7b9d5f028110e0477f7495"
+    },
+    {
+      "file": "packages/foldkit/src/command/interruptible/public.ts",
+      "gitBlob": "892f1fd2112943c7a48ad0e3b4c593b5e2d4444e",
+      "sha256": "94734c2322acaa10f1bce4ee5c4b6e51ac86173706c795540bd53bd5c9fa8cc1"
+    },
+    {
+      "file": "packages/foldkit/src/command/mapMessages.test.ts",
+      "gitBlob": "07077fa5f69a058937006ffaf7d2b40b551d445f",
+      "sha256": "07380334a3cbffff6e9f43db7a9463b49b99d08309930cb2418e9fd4de299630"
+    },
+    {
+      "file": "packages/foldkit/src/command/public.ts",
+      "gitBlob": "4b57a881912fa780e00a003e944614a7b1e6b056",
+      "sha256": "6c7dcd5720bbe66c078765823aac78954e5c48fe644e785ec8af8d1032661120"
+    },
+    {
+      "file": "packages/foldkit/src/controlledDomState.ts",
+      "gitBlob": "715135a954925c9c71ed2e3eb71db41afa991865",
+      "sha256": "17c782e194866d0fe6b35cae2959874c66552a81bc805719876d57f19f0be6e8"
+    },
+    {
+      "file": "packages/foldkit/src/cssStyleProperties.test.ts",
+      "gitBlob": "ae9ae6b3fb037e81ed18d206bcf6116f7666f6f9",
+      "sha256": "d648dd12c46ffb9d0ee54153db579f95877790563a659d1cecd072f472682af8"
+    },
+    {
+      "file": "packages/foldkit/src/cssStyleProperties.ts",
+      "gitBlob": "02a78aa8ac31a2e0bcef4ef225616dee021e1189",
+      "sha256": "b74768fbbbac471727cf14f20b772c219d9ff455d59b87e0a77897b740ceeeb8"
+    },
+    {
+      "file": "packages/foldkit/src/customElement/customElement.test.ts",
+      "gitBlob": "f072d5f16e06b9eb83cf18453187e920ac09736c",
+      "sha256": "774ee67ff9ac79a8547f2fc30eae1d2bd82eb6d35bc3133aee3104da4d5cd652"
+    },
+    {
+      "file": "packages/foldkit/src/customElement/index.ts",
+      "gitBlob": "6de63cbdeaf76f43200985fc11f72b56add3ddc9",
+      "sha256": "885825a03b80fe5895e515a7c593a1725010783a1a09655864207761de08df74"
+    },
+    {
+      "file": "packages/foldkit/src/customElement/public.ts",
+      "gitBlob": "32e00360a00eec20e229b69b5855d7ec07ea4143",
+      "sha256": "eac7d67d4e0da9c1f4f3b08020d6425439b4618e7191c49005d642e2599024cb"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/historyQuery.test.ts",
+      "gitBlob": "6856b4a8285a6778aeb3a7a06efec3e7ddd15830",
+      "sha256": "6fe32b503bd7d7323b9e40e875149c0a2c352dad216f8b9e15cc4bb6f4034a4f"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/historyQuery.ts",
+      "gitBlob": "f33c05383c454f973d67ef8d79c36ee1e547fc30",
+      "sha256": "585be11d210d771195c78a09403c5a2c4a4dc5859d6b375cac77ea0daa2059e2"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/host.ts",
+      "gitBlob": "33a9d890436f595f726bf862bf8b364682ca1c2a",
+      "sha256": "1cd7c1a136ac0dadd1412723b2614bc3ea580f85fec01f65a179e0eb5874f109"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/protocol.ts",
+      "gitBlob": "c5bc7475f9fc124c28965a18031d1d73e711ffbc",
+      "sha256": "c675275c9c18ca7059560061dd0944caa0f3369276eac5b629678259cead9148"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/public.ts",
+      "gitBlob": "b828803ebfc4a4f2313fba7092b78739e4735197",
+      "sha256": "cc925e6cfd02abc673dbf7c091fa335fc75f5017fafd676868a179dfc56e185f"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/schemaSummarize.test.ts",
+      "gitBlob": "ba274b8410eb1118a74a05adee6ce68408e325cd",
+      "sha256": "39b725e0e014121bd55f1b7521af6d2b742073ffe7c5fab52ba26fae32b66568"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/schemaSummarize.ts",
+      "gitBlob": "e3f743407b27ff7085ff256f74977aacf375cc0d",
+      "sha256": "836db09939a03bff8402722475435df01a4a497f1167d4f560166ffb565478cf"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/serialize.test.ts",
+      "gitBlob": "3343b6be614bc810242a9512ac3ffdbb7f67d839",
+      "sha256": "a9fa9875a440d9b644f3d04adb5d0ed401b9d04dedd4dce0c69a1817c4eee4de"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/serialize.ts",
+      "gitBlob": "c7a30ee49b2361443fe72a26f5b4e71b29979895",
+      "sha256": "a136fec16bf25316535fa9656acaf975a8c52738b15d37f27276d3eb754d9064"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/store.test.ts",
+      "gitBlob": "e47b6e6df86171e4d1b5336f981e92c5aa8fed16",
+      "sha256": "81fcb9050bc111dc1b235f3b76f70270fd0a96f963ae00f0d2fd4b37b60d5a8f"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/store.ts",
+      "gitBlob": "125c55dc1053060e4c501a7527da566cb002dffb",
+      "sha256": "9a9d30de00ea20125cf3cefdaacf58c4bcf2a84a885a6383c839bf8b93de85a1"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/submodelPath.test.ts",
+      "gitBlob": "a82cc44e568fd6eb674373b584bd7da577f31159",
+      "sha256": "f050e94655dd75e065360e8465acf199db1a694908f8b46f135c61f80b49240e"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/submodelPath.ts",
+      "gitBlob": "c10fe4be89ec8be5134810fb5bf34518e38db7a5",
+      "sha256": "5b00415d0f9b01bf956d9f978716ef46dabb26ecfb4f72ff7f68f2ce25f04534"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/summarize.test.ts",
+      "gitBlob": "1f99ae358a2b1b26dfbbeeed51cb87b86d574ef8",
+      "sha256": "877e437a98b97168d937b0d3cdda0fa7d52f66564ab7385e987108e25362929c"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/summarize.ts",
+      "gitBlob": "146f335740a906560329ef5334624e37a9b57197",
+      "sha256": "79612e7b7e847bdbe36dc7801441886c16ff997dda0e7a5ec8c893a038ee94ec"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/webSocketBridge.test.ts",
+      "gitBlob": "f847e25a29fe61d229dd5dc0e1a11aa1558f12c5",
+      "sha256": "48fbb02fe063f49d8a8f0a8435ad0877b190c5c7bba4d8b6f23c832a841a0fcb"
+    },
+    {
+      "file": "packages/foldkit/src/devTools/webSocketBridge.ts",
+      "gitBlob": "c618897fa87120f24c17ff6a72b02923351db8d6",
+      "sha256": "ed1b545a8770aee0a01317d6cac63f6884949c7cf8d2989ec4f2d79567e56073"
+    },
+    {
+      "file": "packages/foldkit/src/dom/dialogRuntime.ts",
+      "gitBlob": "b7e1a1470fedce4f94985283ab22d2391c1f4f08",
+      "sha256": "db3e0d5fb0115e67495ada1a6c36a0e4caff96c542ffa2eaa0573231cad2df2b"
+    },
+    {
+      "file": "packages/foldkit/src/dom/dom.ts",
+      "gitBlob": "270ceb4863c4dc2e352d2c81f8ec03a302a31e42",
+      "sha256": "6b6c8554f056867375b51ea70aee4b1425bb553cd1506065f3a78fc726b5aea3"
+    },
+    {
+      "file": "packages/foldkit/src/dom/elementMovement.ts",
+      "gitBlob": "592dce9805213c80d4bdc7022511777dda7e6dc3",
+      "sha256": "11d276c7460bcb15e87dbfa21f12d06227185104aaa86b93d25c956d05823068"
+    },
+    {
+      "file": "packages/foldkit/src/dom/error.ts",
+      "gitBlob": "2d0b07eb267c8839314b8c923862ba186aac5909",
+      "sha256": "337790d5b0f4cb6c25850b5c49d0ab6e481758cccaf14bf5b2e2a303b6f7e259"
+    },
+    {
+      "file": "packages/foldkit/src/dom/index.test.ts",
+      "gitBlob": "49723bf442ba020a1f9d9b1968e33e7bded63715",
+      "sha256": "7e4734a1ca49a161e74c78fe7158587e3a6b006b6423bb2ff51b3a139dff2757"
+    },
+    {
+      "file": "packages/foldkit/src/dom/index.ts",
+      "gitBlob": "c59c7a2afdc827eeefdc9c6b16e5884b12239f78",
+      "sha256": "9caa95c7c88f5680b8815f9eb5c5b779d3ea47c758227baf18cb67eec0268906"
+    },
+    {
+      "file": "packages/foldkit/src/dom/inert.ts",
+      "gitBlob": "bd417ef3775de19e481b30a23381fbd596dc738d",
+      "sha256": "c994968563512f24e034d531edd1a70f119425955fd1a4bcb11bb401cc0df7dd"
+    },
+    {
+      "file": "packages/foldkit/src/dom/public.ts",
+      "gitBlob": "610b5f2e4eaf09f7d00549b5d1fd0b1dce04cd82",
+      "sha256": "dcd80601f7d6326e11e33114ceb8f6b6362580fe41cdf428ed5c5f926b131edd"
+    },
+    {
+      "file": "packages/foldkit/src/dom/scrollLock.ts",
+      "gitBlob": "8019b04b037822ad30dfeb30e249b3c39389d432",
+      "sha256": "c2a68e41e2a92bc3f7971255b386260e75310ff5efd4d4c27e0f4fa37ecc07f0"
+    },
+    {
+      "file": "packages/foldkit/src/dom/streamFromEvent.test.ts",
+      "gitBlob": "eec5f5a8783553c83e295944f6e06621f38347d7",
+      "sha256": "874196b567d4cbb562df3066b9257e1c6d2dbdd5c325141a758dbb834a2d8f41"
+    },
+    {
+      "file": "packages/foldkit/src/dom/streamFromEvent.ts",
+      "gitBlob": "6f6ef64c33355d8ef049087384b5e538bed06a8d",
+      "sha256": "81434ac12adfa75831c2e21d73342ff90275bf7aea71fec937c4c84e894b51d9"
+    },
+    {
+      "file": "packages/foldkit/src/dom/streamFromKeyBindings.test.ts",
+      "gitBlob": "59552e409a23b30a76a5ee104bc04cf05b8798ee",
+      "sha256": "5fe64789f2b8d93c7e1404bb29bff3c32503e0626c02779b8728c954e8ee4ea1"
+    },
+    {
+      "file": "packages/foldkit/src/dom/streamFromKeyBindings.ts",
+      "gitBlob": "69ec88ed73274119d466b13c6f3331a6acb338bd",
+      "sha256": "9dd176310bf8a512f3a090033e158813a96ad79baeee1d2d7889103b1dd0aa44"
+    },
+    {
+      "file": "packages/foldkit/src/dom/streamFromMediaQuery.test.ts",
+      "gitBlob": "40db4fd097080f08b3bfd88d3dcfd73baba50424",
+      "sha256": "789c750a78c51041acc577974f9b506afa11747737a552eb9c94feeac26fe2e5"
+    },
+    {
+      "file": "packages/foldkit/src/dom/streamFromMediaQuery.ts",
+      "gitBlob": "3687230bce3f66c6124e5c8e3aa7ce191a1267ae",
+      "sha256": "8925a1a3695dd701a889229a4ad764d47e0e83a5c90e6c7bffc69ab7e2efe48f"
+    },
+    {
+      "file": "packages/foldkit/src/dom/waitForAnimation.ts",
+      "gitBlob": "25f82089bfbaf3a69e01938f8a46ad975ed232ee",
+      "sha256": "da7d481a0affc88e3f515af5ed33fd787fac9208cda5fe19ff5077ff72cae8a0"
+    },
+    {
+      "file": "packages/foldkit/src/domReflection.ts",
+      "gitBlob": "28b6c13609bb07fa20e7c71a9738e67ff33dc7d5",
+      "sha256": "00801a3056d72b5573118efe9514f513e34ceed81c36289c2fc716297db2de54"
+    },
+    {
+      "file": "packages/foldkit/src/effectExtensions/index.ts",
+      "gitBlob": "ccd2001cd53959f7b283ed59cddc38d34421dde8",
+      "sha256": "f9ed5cbcee1cc93fc56e3117d20ec0480b9b42e56b1727ad6323b38341e43c47"
+    },
+    {
+      "file": "packages/foldkit/src/effectExtensions/optionExtensions.test.ts",
+      "gitBlob": "ba03961c651b361c00afdba4bc05370481274e74",
+      "sha256": "5724895a15d4e46d28571de6f98e08f59e9e0ab313c1c80fe0c0d2a7ea8a4a20"
+    },
+    {
+      "file": "packages/foldkit/src/effectExtensions/optionExtensions.ts",
+      "gitBlob": "e5cc95692748d3e1a515d6544e780bfdbeb6bc9b",
+      "sha256": "ee380fb29c3835b9b2d0aac59fddba6c9448f329d365d52a5819c37201d668c8"
+    },
+    {
+      "file": "packages/foldkit/src/effectExtensions/stringExtensions.test.ts",
+      "gitBlob": "f33d963aa1f0debba6d15fdfd21e21312ddf36f7",
+      "sha256": "cdd3b7cdd6eefef836a320ddf5f9e2e39a530086a3b36c8727df381bf385ce8b"
+    },
+    {
+      "file": "packages/foldkit/src/effectExtensions/stringExtensions.ts",
+      "gitBlob": "c339a2102249a26da736bc2c8cf8dc4221d2006f",
+      "sha256": "ca591c7933ed3ab1851ee8bf8fa79e196e3a2033aed8b4ab23d093682a00b96d"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/index.ts",
+      "gitBlob": "9dc17cad3c46a75684a6f4240540c5edfc685b54",
+      "sha256": "9c4af33653d5395967eb2e8427b90882bfc76d8f63a170d78715f07a4e923457"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/machine/index.ts",
+      "gitBlob": "9786363aa74a9ad7f845abc9ad66f775302c18f8",
+      "sha256": "17baf74dea279a37edbd2ce1e0f36225749644d4345783d921805be97f164278"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/machine/machine.test.ts",
+      "gitBlob": "63ef194aa5fc91ec4c463f6d1034a47849b6fdda",
+      "sha256": "f3a5b82444002bf181fb859f12b934009cac74c5837528a83ca4bbadb144d26e"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/machine/machine.ts",
+      "gitBlob": "48be92a50f5432f0b000bd06b084e82c9b79574b",
+      "sha256": "ae3eb502f8cef374e86b0f0cebbae867325b0e12e5f2a77da0744d890e8b115f"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/machine/public.ts",
+      "gitBlob": "fcb9204cbc7a92e094380e8c2e2372d3810db490",
+      "sha256": "be2f35590bee45e69850d0d8d48f0b8c8f5c0ef0ecf8a7265ab12fb7add6584d"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/public.ts",
+      "gitBlob": "fcb9204cbc7a92e094380e8c2e2372d3810db490",
+      "sha256": "be2f35590bee45e69850d0d8d48f0b8c8f5c0ef0ecf8a7265ab12fb7add6584d"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/query/define.ts",
+      "gitBlob": "31a95bc691f5ec840d302ed8dcaa4f17a0b78323",
+      "sha256": "9c6efd35a3ca02985631e66b3cca0f71c0596a3eb0cf246650a6d2318142def8"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/query/index.ts",
+      "gitBlob": "e88ea638347c74bd34e9c8bce0140974fe1601dc",
+      "sha256": "5ad3826e84d545c2e5b18e03a7c25f1d05eedbba34549ae130c060036cd7f6f5"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/query/internal.ts",
+      "gitBlob": "3f9050294ffd7437274071b3e0148b45a8cebac0",
+      "sha256": "f27b29d832699373d5cecae0bbe432feb2c0b92529ff558e909bf26fb62976a0"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/query/keyedQuery.ts",
+      "gitBlob": "f6f029cdd41eab666b6b142db400f30b7ba633c7",
+      "sha256": "75062a849ab24e4ad45abaea4cfbad2e7c2ce5aaa4b5285c32af2e932270bc4e"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/query/public.ts",
+      "gitBlob": "10afc669aea5389e1ffed95f238468eda125de15",
+      "sha256": "1df84018a4a80473d327f91076fac70ee23cbff861f4da99d3af8060f131c289"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/query/query.test.ts",
+      "gitBlob": "be85bca1f2c9b9eadf769729251b58c1059881a2",
+      "sha256": "1a27337709747bc0e408d191b3fc059d2806c04b812420e4ceaf1cbe8f717cd4"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/query/query.ts",
+      "gitBlob": "faa45a2c53bf0a7fdeaaa7dd8e08a334ce0f6591",
+      "sha256": "1e26b59d880e63851519f00aa213927c6d847abe0802bf42a249bbfe503ce798"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/document.test.ts",
+      "gitBlob": "ce87ff42d083b5af7fc6770483463ddf9b7db49c",
+      "sha256": "df5f33163a749440500c80fd3d367b6502cdc6de495adb7f52da11017e43b1dc"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/document.ts",
+      "gitBlob": "ce4a7c70165abd44cb2ba3637fd069130186de91",
+      "sha256": "1f4ec4a8a17d5ccc4460b4e98e36cb2cd9598d416ff530b9e9deeccea8aa7f9a"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/entry.test.ts",
+      "gitBlob": "c364c5ccb4785d66015bab25b2ea38665dd12d0c",
+      "sha256": "9549178921171712e92ebb528ad7ec9f1b383dd4d3a369be3277795256908db3"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/entry.ts",
+      "gitBlob": "01dd000696fe6830c65769080afd04e4d96a8cf0",
+      "sha256": "7a33bd4bd1cf51c144cc8d577fec1bec10dd57e640cc0ef41cd0e36fb1fc6734"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/fetch.test.ts",
+      "gitBlob": "3d3ec267af5d66576bc5771703854f81b8b0aa4e",
+      "sha256": "4f0db4586fc41ae866ab85d385fa62df95294b197914a75c5993081d111fbad1"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/fetch.ts",
+      "gitBlob": "304064fa99e485352f73473c770093c11410760f",
+      "sha256": "24652b24c211536c2e81004f96a6ca146820d19180f839478c6f4c6419e4f08f"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/fragment.ts",
+      "gitBlob": "6f22d72bcf2690e404f7f8522730541bfcdae902",
+      "sha256": "e7c1e2b2a32e338d7cc7c8f5cd93bab8088113d0346c3a80fdd26addedf33655"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/host.test.ts",
+      "gitBlob": "daefad104e603a573c69dd55e5f870350a844e5d",
+      "sha256": "5776ee231563943ec1ce43659e922e39a7c437e54f15ea22401c080e9dd38167"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/host.ts",
+      "gitBlob": "fb9e1ce918abb943ce6bc3f8bbf7c00f8e27428a",
+      "sha256": "84334305e13bb8e5bdcf7b48604d41bc075e30f18e46c44783dbe918f02d5aa6"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/index.ts",
+      "gitBlob": "6ed2665e9b6f6b25b37732127daa837faf5b8241",
+      "sha256": "44018de729d3695d630852d6400d552c982b1ec645477969a3b2b773693a23c3"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/public.ts",
+      "gitBlob": "2e9a61cf033ea44122eb306471b8f051cfc8fb1e",
+      "sha256": "3b740c81f823044364ce681f444dd9c2160e5ceb794a9ea631e1db2ba88b8d7b"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/serialize.test.ts",
+      "gitBlob": "490648040ade4133b414a58b1d766793d5e7cce3",
+      "sha256": "68d369d438fafab26689bc25552e7da481b7047d8d42324741b5fcc68e245623"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/serialize.ts",
+      "gitBlob": "4b1d811ca3043a902a3714f4a146696f916ba657",
+      "sha256": "b53223abebd648027f0388a366449311006c0b9c07ece4da049fb31a4ab4fac1"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/server.test.ts",
+      "gitBlob": "7871292be82ccdb0a666caa6ddf6d77a6a6bcb96",
+      "sha256": "8ab1bd364f294d2e66c2339e3b5288c90aef5e6be401c62b0992fa0fb49541b5"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/server.ts",
+      "gitBlob": "9bbaded8db257f30ca92de7f64cdb27a8e1fa6e3",
+      "sha256": "89beb2f247399849b6b09bf799f4fa746ee240220e236d6a869371f09c6935ef"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/template.test.ts",
+      "gitBlob": "3afc6576628342a936a60fcd7dbb1c1c405e906b",
+      "sha256": "23d8871ce912e8a17819a3b7dc75107c3b050ab9344fc059026a38d1314f4868"
+    },
+    {
+      "file": "packages/foldkit/src/experimental/server/template.ts",
+      "gitBlob": "d6624adfea4099abc6843718e5ba117f6143f215",
+      "sha256": "223d4911ab8bc72bff4d36f3ea2bcab208bf8c946626020002f02a5b15016d81"
+    },
+    {
+      "file": "packages/foldkit/src/fieldValidation/fieldValidation.test.ts",
+      "gitBlob": "74963a7162f913cf68d073c8e75ae40b596cb915",
+      "sha256": "308f18c747a41b082498c15ba3725ab5e658cdfc705ed5898a10f7e007f0fdf8"
+    },
+    {
+      "file": "packages/foldkit/src/fieldValidation/fieldValidation.ts",
+      "gitBlob": "d573dfbcf4538935f634e1de25b87b5fb3490eac",
+      "sha256": "ef8a1b1fbeee69c89a93ba02192fb6625d5e68abf3518f0905351a6561c24b0f"
+    },
+    {
+      "file": "packages/foldkit/src/fieldValidation/index.ts",
+      "gitBlob": "dfc319b377754e769cb351891fd273d5def1687e",
+      "sha256": "d70b7d00e2c01a908d14ea1b4eac2539341efa0b20d72544b1ebd625fca0b733"
+    },
+    {
+      "file": "packages/foldkit/src/fieldValidation/public.ts",
+      "gitBlob": "d1ebbfb7e8972579370323ac531ad37ab83c4453",
+      "sha256": "d04ed1c9b8338153fab38baa7f772f6ddddac7e586dc29d1aee7fb27cc2bab17"
+    },
+    {
+      "file": "packages/foldkit/src/fieldValidation/rule.ts",
+      "gitBlob": "635709eae61c60ab719b1829427ee602445b54c6",
+      "sha256": "f5d81d5b52c3770936d3e7a9448d133548d24bbed72885aa158e43207035c3a3"
+    },
+    {
+      "file": "packages/foldkit/src/file/error.ts",
+      "gitBlob": "14f65365a818151d742bb38b3f0aa05f737d4f3f",
+      "sha256": "7e4473dc44f9928df2f8978ca754f00f46b189dab53143502325d9e150cd04be"
+    },
+    {
+      "file": "packages/foldkit/src/file/file.ts",
+      "gitBlob": "4f5362155d5aac37d5588a11a8aea69ca99c3eb1",
+      "sha256": "c065f50a4a25aa6f7ccb80e12180f8e9ba6fdd4bb3bd2351f55f9636882374e4"
+    },
+    {
+      "file": "packages/foldkit/src/file/index.test.ts",
+      "gitBlob": "385df8f380097c34c37303650ebd8abfa1c17365",
+      "sha256": "d1580fd08349bdb7a1b226b2e850621d1c24105a7722205603a51aee3035c74f"
+    },
+    {
+      "file": "packages/foldkit/src/file/index.ts",
+      "gitBlob": "98e286d055d17d3763cc5c39b409a6560b4fd9df",
+      "sha256": "a1614d8f088710fa3df7f98f0bcff15daa9f0bace31377af19316d2e199be3ea"
+    },
+    {
+      "file": "packages/foldkit/src/file/public.ts",
+      "gitBlob": "78d5285d513e8a94c639014048bd6d2ae452a968",
+      "sha256": "735f8ba5b14e096e3e5a576098a2583265c3802ed46e7e4d43bfbcbd05a9b458"
+    },
+    {
+      "file": "packages/foldkit/src/file/reader.ts",
+      "gitBlob": "169e69680b5f4f7aadc3ff9dbae5540d95e02752",
+      "sha256": "8edbfb4cc45e84af49ffb88de36b24b23bc82f5f11e37042ae7f488897227145"
+    },
+    {
+      "file": "packages/foldkit/src/file/select.ts",
+      "gitBlob": "6922467ff6e22282a5289de0a45463a5cfbc308c",
+      "sha256": "fa8c0a6a85a5bbcbe13b556c94f2d29d15aeb98a450699e242d645aa4c104d95"
+    },
+    {
+      "file": "packages/foldkit/src/html/attributeHandlers.test.ts",
+      "gitBlob": "19b94ee7623f022c75b8bc5654218e8ae6b12b65",
+      "sha256": "70a6ea8491cc7cd6efcbb348b2bf43a96e235e3b78784104858bdd002e2ab328"
+    },
+    {
+      "file": "packages/foldkit/src/html/boundary.test.ts",
+      "gitBlob": "074fb64cb96da774dfe76c868bfbe6c4ef143cb9",
+      "sha256": "3bf764f70f2584b7461bebcfed2005a0f35a38825f07274809082ec648ff8178"
+    },
+    {
+      "file": "packages/foldkit/src/html/boundary.ts",
+      "gitBlob": "8cf38ab0ecf7289674b220e02656dd63d34a1cfe",
+      "sha256": "5c5dd8b8aa607ab6d9b5d1e6e9af712fb2b4e3ef15846b4a00e9bd4eeb539865"
+    },
+    {
+      "file": "packages/foldkit/src/html/cancel.test.ts",
+      "gitBlob": "582eb48127764f01b4bba587054cff887b48fbfb",
+      "sha256": "4bb7648f17da9fadb513186ecb224a34d7fc5aee9d9d1ed8529d4f33fd5050fd"
+    },
+    {
+      "file": "packages/foldkit/src/html/childAttribute.test.ts",
+      "gitBlob": "b7503398a522e7a0aa15547b44838f9dc69aec5c",
+      "sha256": "bc997830d42ce435c08ecd92da26003122afbe39c49a0994129a42c10f8319f1"
+    },
+    {
+      "file": "packages/foldkit/src/html/childAttribute.ts",
+      "gitBlob": "27b107efe60247607159aabca234f794680ea2f3",
+      "sha256": "fa73159e08d58dd01ba9f139d74cadfef7149c7c6211ebea8e05ad28a787a984"
+    },
+    {
+      "file": "packages/foldkit/src/html/click.test.ts",
+      "gitBlob": "7ae048ea65aee0e957bbe4e998ef961508503e85",
+      "sha256": "fddfd21f211e077fa987129191df275c1b24b5fc8026757b0a6a6d27d4f11add"
+    },
+    {
+      "file": "packages/foldkit/src/html/clipboard.test.ts",
+      "gitBlob": "babae516d0f9d7d38f8ab197610f63e0e4602c3f",
+      "sha256": "2c175a2cba39f7120c7eb3a8fa331f7fec0033f4e724c5d999539226bad5ba81"
+    },
+    {
+      "file": "packages/foldkit/src/html/dragZoneTracking.test.ts",
+      "gitBlob": "d6e88681f795ac29da426ffb4319f3978151217f",
+      "sha256": "48dca5f6fbc0329380255094558a042d3fb4c69c92bdc681ae185058ac553874"
+    },
+    {
+      "file": "packages/foldkit/src/html/dragZoneTracking.ts",
+      "gitBlob": "cdf9e954f3496866f0b9b108d1f65038e70e8a5d",
+      "sha256": "f335a93e98d6f9f2d6e797e428e5d35fa0f3ed23a06cb05a0163a84ed512f667"
+    },
+    {
+      "file": "packages/foldkit/src/html/focusBoundary.test.ts",
+      "gitBlob": "88b58a19be5fc4b0b4532d9f53956f87bebec447",
+      "sha256": "787fae2f261f62dca653da5c6a5f6025ef89773d3a1f3835f1a31d28e72b368f"
+    },
+    {
+      "file": "packages/foldkit/src/html/htmlBuilder.test.ts",
+      "gitBlob": "747acbd4e04c5999b71b86ff6ecd37761fbd6bc3",
+      "sha256": "25d32d5313f16b48c8fc5894d3d4c8e4163000d5ea84a9d913fbf2270b4e6359"
+    },
+    {
+      "file": "packages/foldkit/src/html/index.ts",
+      "gitBlob": "aed2584c77f46c8b3ce63cb33bfcc2adfd609513",
+      "sha256": "c60ed5d970ba97cb97e2f338ebb7530aa8f2df726a391eeb16979740c1cd081a"
+    },
+    {
+      "file": "packages/foldkit/src/html/keyboard.test.ts",
+      "gitBlob": "d7bec198583528a38d22dd0576fa146c92040bf8",
+      "sha256": "d3fe4557811e105fe32052936b9932dd2740ac940d56ee756e4b1dbb5f3b5e6e"
+    },
+    {
+      "file": "packages/foldkit/src/html/keyed.test.ts",
+      "gitBlob": "2eaaa9a8d4606e9f2748b01263e27291e66222e7",
+      "sha256": "4a0975087a6518d2ad26496b13a90811ddb3d20165450c33731ff8665380c7d7"
+    },
+    {
+      "file": "packages/foldkit/src/html/lazy.test.ts",
+      "gitBlob": "6cef127f805012dc928fa2ef06e6507d3c1d9b9f",
+      "sha256": "457bffb1216d1b30ee280d64becf9e216263fe1c2e54d89bf171f81cc0a7fb57"
+    },
+    {
+      "file": "packages/foldkit/src/html/lazy.ts",
+      "gitBlob": "d0eca5b833b95cc6326c3d6f58b8dc0d1c4c0c45",
+      "sha256": "d27f7193add9ed1f917a5951aaa7fec9ea24ac81514e129d9ec8bdbf508b2a44"
+    },
+    {
+      "file": "packages/foldkit/src/html/lazyOwnership.test.ts",
+      "gitBlob": "8b8c5add8430d9d7f0ced6dbd54e1b7408d2d0fc",
+      "sha256": "716886b4c2ada479b63b641ed5a41bc95b8de6ff21db7c65c6b5183e50205895"
+    },
+    {
+      "file": "packages/foldkit/src/html/onInput.test.ts",
+      "gitBlob": "39711d3f1f202c1ec6b71f3341bfe4fac6fb0c30",
+      "sha256": "05e78908658829983b5593a6eaf85b0318edf18bc68962d5cf81c9d06fc5a812"
+    },
+    {
+      "file": "packages/foldkit/src/html/onMount.test.ts",
+      "gitBlob": "1a8fb0d8d8e460f0da0576db64b1d6835212596f",
+      "sha256": "f4a202c9295db5e8d7e0bb11d9b0c789561cb808473baef048de260255e846f1"
+    },
+    {
+      "file": "packages/foldkit/src/html/onUnmount.test.ts",
+      "gitBlob": "729b928363ec0134e4a1d9c61dcf8287905695cb",
+      "sha256": "a2fcdd51d2ff10d1d6941b6f2334ea307cc750603203044ab73f94943f104810"
+    },
+    {
+      "file": "packages/foldkit/src/html/pointerDown.test.ts",
+      "gitBlob": "4c6e007ba21d241b13550f12ae94c575049fcc0d",
+      "sha256": "743df460a5add31ea604bf34097c113a7cab77a897e0007b305f1cfd67113f29"
+    },
+    {
+      "file": "packages/foldkit/src/html/public.ts",
+      "gitBlob": "6bd893b914f68dfc9d0ffb3d510f94756c5764eb",
+      "sha256": "309623a38ab3eec6891fceb73c225f95106faf13200d7a67b0f20d26b7af512e"
+    },
+    {
+      "file": "packages/foldkit/src/html/runtimeSingleton.test.ts",
+      "gitBlob": "93d3c7ff085b75ec7504efc274da93c21110c041",
+      "sha256": "367f3ca5bcca20e6cc8d7ed70b1da8e9d28e17c6f39b60320698deff10b51f01"
+    },
+    {
+      "file": "packages/foldkit/src/html/runtimeSingleton.ts",
+      "gitBlob": "fe526573dd945bc73ad62197e575f97c6cb77eb6",
+      "sha256": "c8f5353a8865973984981d5e9bdab49b13f097e78173e873f94a92ba5d9f6efa"
+    },
+    {
+      "file": "packages/foldkit/src/html/submodel.test.ts",
+      "gitBlob": "7ce055066ee3c6c04ff81dcf860712e2655f4e6b",
+      "sha256": "4e7d5a2e120a6f20b0203fffb843eacd69f6836c5f6cd40be557dca6ce7f41a5"
+    },
+    {
+      "file": "packages/foldkit/src/html/submodel.ts",
+      "gitBlob": "622bd78eb9f0853804f8161b33f37bc8c565b285",
+      "sha256": "7b572380805944581b262f5d0d51e092517c6843e548c603db8a5bc6604d835c"
+    },
+    {
+      "file": "packages/foldkit/src/html/submodelTeardown.test.ts",
+      "gitBlob": "ee2a8d1cae0eeeb4331b77d0724bb075c375e9a4",
+      "sha256": "63dda79b7af0a9b18d69aa59641c57810d85330b9b4426a43753157b40891f0e"
+    },
+    {
+      "file": "packages/foldkit/src/http/http.test.ts",
+      "gitBlob": "5953a38c643269f7003beec50ef222be176f1a1b",
+      "sha256": "d9bbe4a17a0d6076f8bf364e6a2cf8f114552b99d35e268b55c09e10fa2726a3"
+    },
+    {
+      "file": "packages/foldkit/src/http/http.ts",
+      "gitBlob": "e24df8866a63d802e4045aeea9334e4d7ae0d683",
+      "sha256": "7a57fac91d62d651f9744bd882bfe95cd5945d430a6d130f9997d15d51aac0f8"
+    },
+    {
+      "file": "packages/foldkit/src/http/index.ts",
+      "gitBlob": "d2790f186c937ff48d7734599b334b8dea604b5b",
+      "sha256": "7da755c3a413d1ce91ae86f779554cad7373b1919ce46e5c832df51dc742b06a"
+    },
+    {
+      "file": "packages/foldkit/src/http/public.ts",
+      "gitBlob": "a1246f3197d4bb546d3636ac4c8b7c6ffcad8cc1",
+      "sha256": "8605ff5f1691695d1d51d0897f9938b45e1ac83dcf85056f9a4654586a32da17"
+    },
+    {
+      "file": "packages/foldkit/src/hydrate.test.ts",
+      "gitBlob": "1279d133c53a01a45d7797fc1f8449509e12213d",
+      "sha256": "2b9a0bc0404bff7c11fa837e71938371f161afac6155c9d007b55d56179d8747"
+    },
+    {
+      "file": "packages/foldkit/src/hydrate.ts",
+      "gitBlob": "96bbf5efac6260888b204f8715ca4c4689d3ee8b",
+      "sha256": "d81323080ea53f29fcd9d77a89894c7fdcfce6f7b9d504327dd323566678dd41"
+    },
+    {
+      "file": "packages/foldkit/src/hydrationMarker.ts",
+      "gitBlob": "c9585da58ccd98ac1944de0e0a84d35ef4351988",
+      "sha256": "df9a864bf65af4cf79e7add016825b402289e1c64e771f3f6601d47ccaec472f"
+    },
+    {
+      "file": "packages/foldkit/src/hydrationMarkers.ts",
+      "gitBlob": "561e1f11433b8bfdcb37d64aab923d0a86acd896",
+      "sha256": "38164988328db6e485ac9a0adc108069a079c30178dfddc2a5b890588b28504d"
+    },
+    {
+      "file": "packages/foldkit/src/imeComposition.ts",
+      "gitBlob": "261da6cbb705e0ad22d2ed5c37e086101cc5795d",
+      "sha256": "d06820638be6866c0fda88148f4ff33537849484fa5788122676125b6865940a"
+    },
+    {
+      "file": "packages/foldkit/src/index.ts",
+      "gitBlob": "0f7e0ec080c61d7dcd485de911e6698f932fe6b2",
+      "sha256": "c49b7f08ab2acfb1f6062fdce38c0a623dc781c90be7a80445d2e16bb9d2c057"
+    },
+    {
+      "file": "packages/foldkit/src/managedResource/index.ts",
+      "gitBlob": "335f119913539bd2225dbe82c35ea5202b02b49b",
+      "sha256": "a731bf6d2408dde398c70660a8ec139cb3fc07d777792e0e7c1993bca2b7f900"
+    },
+    {
+      "file": "packages/foldkit/src/managedResource/managedResource.test.ts",
+      "gitBlob": "74250d7a777c3a9a5a42df194d92f24f0c7c6cb2",
+      "sha256": "02e46d4a6308b3a845b77f51ef3e25e7bfec7a9dca4ed0bc54052c789139177b"
+    },
+    {
+      "file": "packages/foldkit/src/managedResource/managedResource.ts",
+      "gitBlob": "10a1af150e4d16ae36bdc5f6074cbbf42d66e599",
+      "sha256": "97f71891b7719f15e116aa45f0af89295b67a97f5207302ad99092db75fa8588"
+    },
+    {
+      "file": "packages/foldkit/src/managedResource/public.ts",
+      "gitBlob": "2ef433ef8ac42235e1400765bbf5b518fdc8d3eb",
+      "sha256": "6319b45ea791aab60c1dbc2312ed028fda01963513f5b1ff15dfcb1c6cd395c8"
+    },
+    {
+      "file": "packages/foldkit/src/message/index.ts",
+      "gitBlob": "b4d45b33f49227d7ef2934c6b2778b9789737241",
+      "sha256": "280431d1b89c72cb123871c735253555f1776c394a16dd7dcfcd545b692d80f6"
+    },
+    {
+      "file": "packages/foldkit/src/message/public.ts",
+      "gitBlob": "3ac04bbfa704272134b17b148857a9ea9db55e58",
+      "sha256": "c032467153cfa225e971f7f925bb4728ebb3d8e87088e1cb91019fe7e76dc1e7"
+    },
+    {
+      "file": "packages/foldkit/src/mount/define.test.ts",
+      "gitBlob": "a20ae1609104cd3ccd9846b9975cfc23161df680",
+      "sha256": "1935307798b4a7fb90c509279a40041c135a087b491a7c18ceb148fa84ada67f"
+    },
+    {
+      "file": "packages/foldkit/src/mount/index.ts",
+      "gitBlob": "327e7a8552c688dd02e32f3b03cce7c6c5ba82c3",
+      "sha256": "8b12389b73ea5b27d51cd117f2e6d5cd7932d84cadb5822c1727ac87e82602fb"
+    },
+    {
+      "file": "packages/foldkit/src/mount/public.ts",
+      "gitBlob": "e6a1a5345cec29df20962e6a00911e014b9a1548",
+      "sha256": "39fcdd871a82c7b3d4914f4774bcbc43c8d54b0474613abfcf0691f8d8e9e964"
+    },
+    {
+      "file": "packages/foldkit/src/nativeInnerHtml.ts",
+      "gitBlob": "5a7e4c3c69f9bac754e6efce5b953037555edff9",
+      "sha256": "4a600ed5bb7da636fe29c1fb2f2ab74e2ec3920ac366d5062b1666884a39b96b"
+    },
+    {
+      "file": "packages/foldkit/src/navigation/index.ts",
+      "gitBlob": "73c8afd109c93524b530449264bc13c55fd1c2a5",
+      "sha256": "c9e39e36627a1e562c9a785bcff71ff236767f2376e4128271140cf5d19cec36"
+    },
+    {
+      "file": "packages/foldkit/src/navigation/public.ts",
+      "gitBlob": "99757611e157d16da2560873b74d012521757a10",
+      "sha256": "857910b974b025fdce0950e494ba67df2432f7bf95813bd6359b9f03f2f052bf"
+    },
+    {
+      "file": "packages/foldkit/src/navigation/urlRequest.ts",
+      "gitBlob": "c27aa682dd70564b6b557d1ef229b9def0f66ad6",
+      "sha256": "0e59c55360d880ed714ac258a0f021ecb0bcd90aeaddccb0f495a946bbd23a7c"
+    },
+    {
+      "file": "packages/foldkit/src/onUnmountModule.ts",
+      "gitBlob": "7e8b0146f371324d862621681f4de6f851571cb6",
+      "sha256": "31c9f813f3f06eec0ce7710db81d03bb4029d64880c79499865dd334acae7bcc"
+    },
+    {
+      "file": "packages/foldkit/src/patchVNode.test.ts",
+      "gitBlob": "0381547b919ce70a09f103f22af3742c57e0b0a9",
+      "sha256": "c03809ba2a5d92e65776191c2b6a4648675c6d82535ad00efccc275ab603d6ce"
+    },
+    {
+      "file": "packages/foldkit/src/port/index.ts",
+      "gitBlob": "4fe666e3e3640b84e57ac70c0693c2ee6ac3ca44",
+      "sha256": "59f702bb9281f18824d29bda4a19d3804fd7eb6b8cbfa8d8781beb4e1504ddf3"
+    },
+    {
+      "file": "packages/foldkit/src/port/port.ts",
+      "gitBlob": "923d9be74bd528b70e16d3b566f70378760be61c",
+      "sha256": "85ca1878ffb68da3071be54e995f17aa99dd3b44126bd62fc2b9c93c1874cdef"
+    },
+    {
+      "file": "packages/foldkit/src/port/public.ts",
+      "gitBlob": "214785d6c9941f4b5ffd4681804c7b3148b4afb5",
+      "sha256": "541d5c80f2143dcd391e59e830ffd62ca232b7d1b32b82d0be4d6d0db09bad73"
+    },
+    {
+      "file": "packages/foldkit/src/propertyProvenance.ts",
+      "gitBlob": "ba8778ad1a36c55f1094a7dc057c78e015d86b14",
+      "sha256": "c0c3dec9bb970078c00fc475a51e1d9453513d1fc52e6377b056cec5da021035"
+    },
+    {
+      "file": "packages/foldkit/src/propsModule.test.ts",
+      "gitBlob": "e54c0ac5e1b8f9a20490c1ecfbcc525aac5c7773",
+      "sha256": "c4df0f6abfa15f96dadbaaf461935d45f7fbb5c6caddf02858dc17824ebe0477"
+    },
+    {
+      "file": "packages/foldkit/src/propsModule.ts",
+      "gitBlob": "518de160a1437a3e617b7529813e0e00131a971f",
+      "sha256": "205555e460456d8c049b5157da107d8daf2888b1c1c34fd7e36a55c31e3f064a"
+    },
+    {
+      "file": "packages/foldkit/src/render/commit.ts",
+      "gitBlob": "fbefcab674831f7db8782c378366f785f7a212f7",
+      "sha256": "9459182be2d7f0cd88cb02b574467b5c43c4f9a29cb59a3e79ef1712c3ebf158"
+    },
+    {
+      "file": "packages/foldkit/src/render/index.ts",
+      "gitBlob": "76f29a18f5b917c021cd4a2d6bc908e8dbed94f2",
+      "sha256": "4d6bb6afaf98e1f136f42c09c97c82feb7101f731bd44b9033bd91f4030b4ca5"
+    },
+    {
+      "file": "packages/foldkit/src/render/public.ts",
+      "gitBlob": "e9f99596e15a4663e93840576ceab3a97261fb60",
+      "sha256": "c00f76016ebe098b22155dd6b45e224d596d2ebf0d3359f04c932bb29cbc6f37"
+    },
+    {
+      "file": "packages/foldkit/src/render/render.ts",
+      "gitBlob": "cba50edb9fcda177615f1662cc106ea34215b927",
+      "sha256": "85caeacb12fe95f42ce4da2c215040a23775b0b1416b07774dd3510f866a2bee"
+    },
+    {
+      "file": "packages/foldkit/src/route/index.ts",
+      "gitBlob": "6bac749174fd6cf54bd79e83fd08005b295ad477",
+      "sha256": "05aef7c00e452c99595848048ba2769adf5511882a32bd702220f29bf97f188a"
+    },
+    {
+      "file": "packages/foldkit/src/route/parser.test.ts",
+      "gitBlob": "34960c42d2fa9ed14788705808901ce089184191",
+      "sha256": "45a67614691638359d3858fec105ad8cc7b012a1a92152a035a9bb545831746e"
+    },
+    {
+      "file": "packages/foldkit/src/route/parser.ts",
+      "gitBlob": "8aee3d54b7ceef831e1b9e000206f7bf40d36cfb",
+      "sha256": "d54b9002fb79f87590367781f9cd7e6201257be95240b991f4781ad7d9227599"
+    },
+    {
+      "file": "packages/foldkit/src/route/public.ts",
+      "gitBlob": "8c85c31e1161d89727a4d1a3445a6574813f7c6b",
+      "sha256": "dcb79d6b69304ca216121a0323064f003b197cca6afb951cf0cf04f2921156be"
+    },
+    {
+      "file": "packages/foldkit/src/route/transition.test.ts",
+      "gitBlob": "71e8f7a741981eda54fca96e4d1f9a101b77e5be",
+      "sha256": "78aba95f89e590445933efa57ed3c1ece5f857e85f8c3770c1533f091d624037"
+    },
+    {
+      "file": "packages/foldkit/src/route/transition.ts",
+      "gitBlob": "8d44790f1f34e1251b333695cef1f7818cc08da3",
+      "sha256": "caca32c628c7ead59de381ca7147a7acc951aa7442419bc7dae56abea10fc38d"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/bootModelChanges.test.ts",
+      "gitBlob": "250590468f66c74b727f09473478c8446af51c63",
+      "sha256": "0e6ad771b41e660a1ad51467f81ded607e42f2ebe9c65003b37ff55496994ea2"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/browserListeners.test.ts",
+      "gitBlob": "9c7407279fd599b132b7778471ae16887eb6f407",
+      "sha256": "c2469419f39c71bfa6492d1d1abe3f5cc7785a9856356658d460b723f697d9fb"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/browserListeners.ts",
+      "gitBlob": "b828c6c3487e5e80893a86da89b20dd8d5ab2c35",
+      "sha256": "1ac43bf9f41a262771b1e932ba5f86a262c347d69d47733efeaa34bd4772c1df"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/browserScheduler.ts",
+      "gitBlob": "6d8763a317ab90542aec60bcff8675f05d532ec8",
+      "sha256": "325584101d9f61282a309843a7450645803c7297992a9befd1d63c768ccf42f8"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/commandMessageMappers.test.ts",
+      "gitBlob": "67a7f6379801cf51a3d077c1632f5e350830a26d",
+      "sha256": "41d2ece4dcb6fbd5aedbbd2d02304e267f7282ae4b69287697bfde2d04654084"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/crashUI.ts",
+      "gitBlob": "4411ca06f0a1b6adc060785eaa8a5e89f29c47eb",
+      "sha256": "0f524321c9cf3279269044517708f995468101d082638b716d2eaf82339077e4"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/deepFreeze.test.ts",
+      "gitBlob": "ce564bb11512aed607d766a15c27a03f9e085455",
+      "sha256": "0a8bd5095a6061f5b3500fe4cd037022250fb45cb3ff8d278af26d494d176332"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/deepFreeze.ts",
+      "gitBlob": "61843d21fd8a28441b609259eeca246a5fdf7b19",
+      "sha256": "f6dec7f34475e84b34cc3b67931340d520c02c5a193c15a7d444db1b79d757d4"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/devToolsConfig.ts",
+      "gitBlob": "e1be26a0881c642cc3ac7d5a1dbb118468c3bda1",
+      "sha256": "54f728eac6b94e00ff0fe13451b82df482de5300a3eaa19ab964e120b5b08adc"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/devToolsIntegration.ts",
+      "gitBlob": "20de427826ac6a0c7007768aa6f1e246d8342f74",
+      "sha256": "66b0670f8747136b87b58b919e0467efe20f07000c2942f15bd08eeafd2676e6"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/dialogCleanup.test.ts",
+      "gitBlob": "5311e9a5d4d556c882f44b75a630071a8afcaebc",
+      "sha256": "3f334696d69e3f1fa48ddc80a7d570bf71ee79494aeadb7d058a62aad3918c30"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/dispatch.ts",
+      "gitBlob": "a0dee4a133df58035454bd3dd3970ff8f609c6ed",
+      "sha256": "cfaee8c6cec76b1c0c69198cc795c4acc2a94aada7595e69fd0877c0b24cb1b4"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/dispatchBench.test.ts",
+      "gitBlob": "7ac9ab9c727c9b9724e5ac236c8a60a0ab9150de",
+      "sha256": "8a34fb6eb30ac32b77ee4425105b575f6ce1da6e1aa3aba3e28ba7e24efcfab4"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/documentMetadata.ts",
+      "gitBlob": "be9cdba37567632d8ac1595e5505142ed2350a1c",
+      "sha256": "290562024ffe5668a9a7a7b944034acafd639c587bf9642c5ec941f595b574b4"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/duplicateIdScanner.ts",
+      "gitBlob": "67d8123327a2f3543d7c43f3950a1f9686614c8c",
+      "sha256": "7adfaffea8afa547df62261beb85e85332eebccb1bc13d5208ff60e383459d91"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/embed.test.ts",
+      "gitBlob": "64f05ca6da49d7c682781f3bcde16000c37da9ad",
+      "sha256": "31e012c51a2764e5464ed74bf475743bd1182e9a6478d6f9892e793c8883ad03"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/hostConnector.ts",
+      "gitBlob": "44f15955c9f16e69a50124a9c97e2ecdbeb98ef5",
+      "sha256": "b9cccdecfb0ea6dd90b9c99bcd60432094f692cea2746b2b8c86384c0999f444"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/hydrateBoot.test.ts",
+      "gitBlob": "1d4af1883ca4372a83c3f26fdb5ac8035bb41920",
+      "sha256": "8de655289f753e5785c07a42400b11fa48455ed86834965fc5a2615820114959"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/hydrationHandoff.ts",
+      "gitBlob": "d4424ec557c0da8811b941864d466c4b44deb04e",
+      "sha256": "34921471cc009a4288ac2894e94e0f861ce9926dae239489b85d59f463f1cbcc"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/index.ts",
+      "gitBlob": "f4b359033ffcfa1b9976c08a9f0c5e5470b5cab4",
+      "sha256": "da21307dc058654ed05b2317e5388d87774977a2bc50c951d3e15613be40b9ca"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/makeApplication.ts",
+      "gitBlob": "179048899536acd8c4361b9d30387fde89cbe004",
+      "sha256": "b6ad15d4364b141cbb21fc1de30778311f3056935187d5c25ddf522b7a2bbe6e"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/makeElement.test.ts",
+      "gitBlob": "2268bf2f0a2a2c62bf4f8f8d2d73e2b667a12cca",
+      "sha256": "dbd5b83ff664fc47dde001180a8b933407ddbf5dd225aa0fea16de2c23f2ae45"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/makeElement.ts",
+      "gitBlob": "889e8f3a946a45ad692dec9cf593fce1d15aa775",
+      "sha256": "17434a4d1d349143f36001958736c0a800f93519790e8817a7ba113cbc5a1808"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/managedResourceFibers.ts",
+      "gitBlob": "a08849c8109203197183efb3cd6f84f51f40f82f",
+      "sha256": "2b09ec984238c523051cbc914ec51edeb79831bc8cf46e0b30ef8c6bc1068e7f"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/managedResourceLifecycle.test.ts",
+      "gitBlob": "412f6ee4bbe2b82b90eafb6014cbd95c3837781a",
+      "sha256": "15fccb5cd3ba2da6cc2a1f43083ea9b58ea619945f7a5789b679ad0e42ea8e0a"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/messageProcessing.test.ts",
+      "gitBlob": "d191900d46f44bb497b9ae06b770bdae94f0b642",
+      "sha256": "2edfb103c06746b5735ab5f4c3cf55fc75785555856a724c7c3cb08d41b75f8b"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/messageQueue.ts",
+      "gitBlob": "1a498d4bfeb00ff1fb93c9ce2ca42e59b749cab2",
+      "sha256": "cef751edfc1bdb757a61c76770287d729be70089ec6069f8004636f4305a35f4"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/modelPreservation.test.ts",
+      "gitBlob": "4093491f435bedc02581df951d4c25b45c66cd2c",
+      "sha256": "08b4f883254ab9ba407b5a4c9f3f2abdf1d2fe5ecaeeb7bc5d9aab46d717d3a2"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/modelPreservation.ts",
+      "gitBlob": "df628d79975934bee76e6933a8dd2ef7040bb93d",
+      "sha256": "a80427b4f3a8865b1cedc732d522075d49f8b0cd342c9de7d45d1fae8a4cd215"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/modelPreservationBridge.ts",
+      "gitBlob": "b332d41ad453569755dbd154552585422474e77c",
+      "sha256": "5ced5d234a5df8d2cb712736dd37f3ee29ac2f48e04d822487f96020cfcd8590"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/modelPreservationPublic.ts",
+      "gitBlob": "9b3b30e8cd6b9af42af05ce8d4667dc951c819c2",
+      "sha256": "201568a6df6b8bb5bfed1510aa8f759f11538d01269834beb7030678a6803f79"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/mountViewState.test.ts",
+      "gitBlob": "92972207ed81d3c767ae7da3cb51ac87d3e6584c",
+      "sha256": "f3aff4f7b2ffb80b905584143a1f2c99cc04ff596d3dc1b265b25134b24c51f3"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/pageLifecycle.test.ts",
+      "gitBlob": "fe03f6b6a150e6b9a3f4cb9f2ce393fa3caa4a47",
+      "sha256": "b1fdc9c07af3d8c3590169af35ce92c1fcfd4f249180de708f9f65012d6185b6"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/preserveScheduler.test.ts",
+      "gitBlob": "02c719eb1c5ba640357e85ac2a30f7274ec28c9b",
+      "sha256": "41bc7fc3a170c416ae5fcc774caefd859dd5b90ae12651545913d4c4a801fd48"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/preserveScheduler.ts",
+      "gitBlob": "78d35885f23ef19988092edb510ce4a6271dd269",
+      "sha256": "aec4b7f8d585bce7c554f6a0099ee6fb9741248d8b68ada3c46ff1f9fd5125ed"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/public.ts",
+      "gitBlob": "d342b75e4d55bf7a1d0db4c84b433a4071f7073e",
+      "sha256": "208c9d572a17491d0fd18ebd1f6370062d7ce8b9cc25f5b675f091da5ae2b27c"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/renderCommit.test.ts",
+      "gitBlob": "25175191789d03ab873b970ad1969b81cb64ac78",
+      "sha256": "a2a6692b0ecc773a4432aa7198b710c6ed608f8e8c4d37b573ed8c421d9d4761"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/renderer.ts",
+      "gitBlob": "93fb5317ae7e5f22f5ca31aaf70ea90557e4187b",
+      "sha256": "207240595195e6913f70aaba898a30b25c993bc67d9f03f192f0af96960db80f"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/reportUnhandledCause.test.ts",
+      "gitBlob": "f3734c00c1052441ab0cb0314bf82986d8a75377",
+      "sha256": "f6ac3a5b8354864475ecc5e9a40cd7b83bee7fc76a64aef3b69b28985de576ff"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/resourceProvider.ts",
+      "gitBlob": "6b6f0b14e4688108cd56f195c8734376a0935f55",
+      "sha256": "272de4dd99b931f3a4e80e066c3f586eb6e599b0d63cd0fea11994f3b592e47b"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/resources.test.ts",
+      "gitBlob": "831597b5ff9a69887af3dc70ba7f69af94ae9a2f",
+      "sha256": "e87ff5d0617dccd5e4a305b9b461a71a5df1f8dc38ee56f5ef84dbbf995adf72"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/runtime.ts",
+      "gitBlob": "38542da9ac7070eeb994402d4ae89f45f4319d07",
+      "sha256": "b7acd658f8fa3e539e011aeca266c1607600acbe8d98d3124f6efa82d6611538"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/runtimeStatus.ts",
+      "gitBlob": "8d2180e2db9e37c7e51f5b042ebb5edd0c78fd42",
+      "sha256": "f3cb78d4aea4f1e1282779059788d4e50d130b8296196f513a244b74e3e76be3"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/scrollPreservation.test.ts",
+      "gitBlob": "3b5a06f1b25e79b35a6d478c27841f16574860ca",
+      "sha256": "54d1da0d3cde2f016e4dc3291e52c9e3b6be9d8447fcc44aba15ec40b6830a5f"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/scrollPreservation.ts",
+      "gitBlob": "63e5a8dd75a02e20de74bb25401556ed55935e10",
+      "sha256": "b21e4bb948d935a1dddf208e204afaa84ee8d1c05574db8cfea5f2791701edb5"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/slow.test.ts",
+      "gitBlob": "9df867621138c0e884b7f95178203ad66867994e",
+      "sha256": "657aa97240a1ad3743ec5ae1368b8af16bad16a34b3f4f52e1d39d2282ae3d4f"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/slowPhase.ts",
+      "gitBlob": "a9d9879f03ec446509b0e6be4edc3e796a3ec386",
+      "sha256": "d1f79c02b27e018317601ef8c6810dd6d0691b266051309c9218b4335a6f64cc"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/start.ts",
+      "gitBlob": "cbea0943fbec6f0a29f29a08bfc3022214f8357a",
+      "sha256": "9c95847bf8a6aa19d06c568318ba526e53ba2c2799e4b5f020127a46a8018372"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/subscriptionFibers.ts",
+      "gitBlob": "d541be3c1a4a00c29227453fcae054456fef7a4d",
+      "sha256": "963c44bdd4800c78b85ef3d69c2b438058d779ae9b1521e3eb3fe3ccb71c9184"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/viewTransition.test.ts",
+      "gitBlob": "8ae7f11bbccc13934d4ff937274b01e0aaab73a7",
+      "sha256": "01c39a4a58fd0f3c1a61528d93a942899fe6f6303a051f1fb6b9697ae77d3361"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/viewTransition.ts",
+      "gitBlob": "e838e85b1650fbf136bdaa8f7dbfcb820c93cf9e",
+      "sha256": "a8b3dce239f2a275a704f595c9651642a2af4fdbd32d7e7534e9cf76e25eeafd"
+    },
+    {
+      "file": "packages/foldkit/src/runtime/visibility.ts",
+      "gitBlob": "9e5a6764707dc0c1c01837d22b53e1023d078de9",
+      "sha256": "3d56592b102a6ccedae0f3dc2f1adedfa5fbd213e9cf566ba01ea43e473f5a7c"
+    },
+    {
+      "file": "packages/foldkit/src/scene/public.ts",
+      "gitBlob": "40708d9b81292ce6ddd13b64b7cd2782f348baa6",
+      "sha256": "af50702c543322d2cef05f99209c8876cc853a61593af12948ccc4eb33a75fcc"
+    },
+    {
+      "file": "packages/foldkit/src/schema/defineMessageUnion.test.ts",
+      "gitBlob": "86c584aa50e1959428e366b475a7c5ff23cc3e70",
+      "sha256": "f8470db9bdfebd5be899a8e36cd66ae0ca0249e62adb779753d2bebab16f7945"
+    },
+    {
+      "file": "packages/foldkit/src/schema/defineTaggedUnion.test.ts",
+      "gitBlob": "2d7bf256ac543114c6c45c907f8ea56312484d67",
+      "sha256": "beb19c7c92684889902fb10f3be951007b5074f707a1db666caa9da247baa4ea"
+    },
+    {
+      "file": "packages/foldkit/src/schema/index.test.ts",
+      "gitBlob": "a790200801e148d60a9df872cbb27e1f3dcb95a4",
+      "sha256": "d1c9d1fc8881e70774867268d1ac4f6402be5b6499db45e1e6fb478a8906a23c"
+    },
+    {
+      "file": "packages/foldkit/src/schema/index.ts",
+      "gitBlob": "2baf5bad18cf615afc0e26e22d7241412d6b719f",
+      "sha256": "709ef509d7bf401a45152a360bbb3031469865f7ff17a646a11ee8e4cc40153c"
+    },
+    {
+      "file": "packages/foldkit/src/schema/public.ts",
+      "gitBlob": "b67821c96d265ded0ccfd93b564bf107f79b412f",
+      "sha256": "785d5b4e9ffdc1683d001846529f991280f6cd8cdc50f19deb8cb5a429ceb91c"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/LICENSE",
+      "gitBlob": "2f1fedbdeaa1d8421af8b151067ff121ec7cb4c2",
+      "sha256": "40b17e30359787ee415582223f3d10440f8bab87c5967e03406ea59120c59311"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/README.md",
+      "gitBlob": "a9feec31d7fab9ed1e5591ca41bffc39631c4cb1",
+      "sha256": "761fd90b707bd0dfff6e554dab9ad2cc762f367a21fd10f206717029cb17f464"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/attributes.ts",
+      "gitBlob": "95d53ae490da04a0fe63871fead187bf9d6a702f",
+      "sha256": "fcf7da2da848711a38df284b7c8ed2a79dcf7b9f8d7ee70f07ac2eb437adbd71"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/class.ts",
+      "gitBlob": "8dfaf4f48476c5fea5d88b228f543cd4c1456499",
+      "sha256": "0a3c3b7ab14a5753cf32f61f3f17fa7869b39baec293f9b3bf877b80898d55c4"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/dataset.ts",
+      "gitBlob": "2f9812b0adfb1b5b9e0b5fb7543d91ecd75204bc",
+      "sha256": "50c82c476241e608b6e614ed14e277a204146ad85afa07d9d0f0609caa6496e3"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/eventlisteners.test.ts",
+      "gitBlob": "4f051025e064568ed9cb5735f0456c3d7dd9d7c5",
+      "sha256": "370996bde937880396d4303f9c4391d20531d849e474df70cfd216190dc92219"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/eventlisteners.ts",
+      "gitBlob": "2eedae143e5e3279c34b19dff0b91412f8154c18",
+      "sha256": "45a249d9cad101046a139ba79b61c24069c95cf293b5c55a9d3fa91ddbcc3f47"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/h.ts",
+      "gitBlob": "71af38c852e26d482fb9028bf24f4441ab8f7c79",
+      "sha256": "381bea9ee0597e203c8769595fd0b701ad89676d343676bcc64fb71cda7699f0"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/hooks.ts",
+      "gitBlob": "71588495106cd9bed5133929bea4f203e6f2ea0c",
+      "sha256": "e25dc4214bfbdb328275b56cb9e484e2151c3f0ab685fc6f3d96eff5fcd24519"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/htmldomapi.ts",
+      "gitBlob": "88484eb8dc1177b9b2548d909c36d796471e16fc",
+      "sha256": "1f4cbc27a27b15e602b1bb3333a943c44d19cee116d625c26571949ffedfdecf"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/index.ts",
+      "gitBlob": "cb333441c2c4f166d1d90b0989aee4f7c0e7e5c5",
+      "sha256": "6fff29e3a13ff5ac5d6a949c5ae0d7d7aedef9684a507b5883f4d5f375464ff7"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/init.test.ts",
+      "gitBlob": "0af6f9954b7ad15cdab47f0780118d98af579562",
+      "sha256": "45f506d9109ac2ae9f532244ee97a454cc7b0c392e13a5e3496fd67aa0068f52"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/init.ts",
+      "gitBlob": "9334628e773ef565aaba62dddbccf96fffc456f3",
+      "sha256": "d8755fac9cac6235283407a075322e34a023586a219b2034ca1f26ff9a0f54bc"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/is.ts",
+      "gitBlob": "8f88f6658bb5818623d3ea863bad6edc7f4d4d85",
+      "sha256": "8d1224053137893b5297759455adb89b7337f608baede1f9e06a616df405ff36"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/module.ts",
+      "gitBlob": "1c43fa4ec7e7848c79945dbf207f8a8f62d7d2ec",
+      "sha256": "a6ed5766e2b143bf3321978738ac1ea4af8b9dc69e26191a1d2c758dce5923fa"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/modules.test.ts",
+      "gitBlob": "9899e49e6668e4be82bafca028a5435e85592b56",
+      "sha256": "5fcd69bffbb7ee81c0ffc82dede9a81967945af6967da16b012bce25a0b7e33c"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/props.ts",
+      "gitBlob": "c0e10f20cde07575f8518d865a32cfbfcded9f9c",
+      "sha256": "a69a0d3d4b434661df68fc54e8d914e3152c86a30b530eada42c276ce7b4c001"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/style.ts",
+      "gitBlob": "e24a62e7470e9a7944853c422b382b2a76961efc",
+      "sha256": "32d1d44b20e8b1a3ff2729297984bd848dded4a98d344631d08916e78fecf8b1"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/tovnode.test.ts",
+      "gitBlob": "f6928ded17969cb91036d2f157ccaecb9f2ba696",
+      "sha256": "77ab74c0d67bba31412fbc7a89f973cf1811d961aa010407d86a9287116d306a"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/tovnode.ts",
+      "gitBlob": "cc36f8085055226b75c25f018785ac438fbe8bf1",
+      "sha256": "973e4a5ae14a0c110111dd208fe5474abc9000b5d812ff9af9f0f0a583dda474"
+    },
+    {
+      "file": "packages/foldkit/src/snabbdom/vnode.ts",
+      "gitBlob": "35f3d7e36f9d811ccb60a8d5feecd9c648cc9b6c",
+      "sha256": "bf247c5f7223e5462e4fb6d2fb2274965ad6bcd4c44c1cfe6889d5549cafcd4c"
+    },
+    {
+      "file": "packages/foldkit/src/story/public.ts",
+      "gitBlob": "6af07faad4e3892e6e668ab84838ec87b30ab458",
+      "sha256": "12779e191454c84bf77dd27c0df8c4b5800370bfe99e0aca5835f3a6697ae0fc"
+    },
+    {
+      "file": "packages/foldkit/src/struct/index.test.ts",
+      "gitBlob": "f6c299e49e71ad4ac00ec1ca2c9505e3397116ce",
+      "sha256": "2b117f35e7a090bee6b0d635adc17038179d8043a5a65f131a33b8e412b8cf4f"
+    },
+    {
+      "file": "packages/foldkit/src/struct/index.ts",
+      "gitBlob": "ba5a47a47e9895bf4bd9c4d7feaa245687dc7ac6",
+      "sha256": "2ed95ab20742ffebd7a47bf0a4fef20ede97060b1460f390f548f9fdb68b24f9"
+    },
+    {
+      "file": "packages/foldkit/src/struct/public.ts",
+      "gitBlob": "1161cda868a056d54ca7a4c0ab6d84d67acd6bea",
+      "sha256": "f2189d926da149cd5aca8a91afc057d0b97af76cebc5589f74ac2011be67d91e"
+    },
+    {
+      "file": "packages/foldkit/src/submodel/public.ts",
+      "gitBlob": "924a064aa8b7e4a2eb48aefed7052ff7763d0b2a",
+      "sha256": "8f84af175ba8e46713f8724bdddd03cf0170956c3f5ae625e75b7109686e480c"
+    },
+    {
+      "file": "packages/foldkit/src/submodel/submodel.ts",
+      "gitBlob": "847abf9596971b1202d86418d2e5d38d72f5bfda",
+      "sha256": "1b82fded6ab5fe3c8fe06794096966eea54aadb46ed8563d4d264739d2d392ea"
+    },
+    {
+      "file": "packages/foldkit/src/subscription/animationFrame.ts",
+      "gitBlob": "a69cf422653e1eb3b7722f8d3a6d56757c64b01f",
+      "sha256": "b0b051cf57098c4ae4795fc6556325c49a610bf453f3f68632ab33ba983333ef"
+    },
+    {
+      "file": "packages/foldkit/src/subscription/public.ts",
+      "gitBlob": "8afa1fa89005ee37e05cd3820fe7c4a8c65aa043",
+      "sha256": "232fbd4c0a7dfa317b3d99966d96338e5b7834dc88c6bba8244d90876c25aefa"
+    },
+    {
+      "file": "packages/foldkit/src/subscription/subscription.test.ts",
+      "gitBlob": "6a170468146323db2241fee4811ea3e3ba67309d",
+      "sha256": "0343f5f4c6b528ee4e7dabb25353406e0435a59f39e76c5c9e25513363b93f1a"
+    },
+    {
+      "file": "packages/foldkit/src/subscription/subscription.ts",
+      "gitBlob": "163cd17e270860b0aaf3827fc844bc8d661b7e09",
+      "sha256": "451d29d6d850398ed25ee83bbbf6e1ec4dc51fa9bb19b75df08f8f041f11813d"
+    },
+    {
+      "file": "packages/foldkit/src/tagName.ts",
+      "gitBlob": "14a3803a7b1c31f78a83efecbbc5636f9b8f6b45",
+      "sha256": "173291d76e600fba1b25b4b9062540c39fce0c454050556903fe6ad82e9e5fc1"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/attributes.ts",
+      "gitBlob": "156500f260f5208300c5cea8b7379f0dc00b3f2b",
+      "sha256": "2ce9b9431b9ca6f6b885da0891aaa73c4248c544b248c0004524ff12e6a89aaf"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/bubbling.ts",
+      "gitBlob": "e5b8972bb6707cd01913e3a252b408121a7371b8",
+      "sha256": "de4fd7c6e6e2e0d33f4725ed83197f9a3f9dfa2b40f8aaceb3a322842d933c70"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/colorPicker.ts",
+      "gitBlob": "8cab14bcdda0625c342a3ab00951334bed78e6b9",
+      "sha256": "781e670d04c7f5b8f89699a0a19aa3f7c010e0c676d975ce0b758a1ac56ed2d2"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/contentEditableEditor.ts",
+      "gitBlob": "8229b0174a033344208d4407ea91357f6f1bf9ae",
+      "sha256": "f159eb380e1c7acd0e895c62786649038439e6785914c4be47bd7fe3c57f00d8"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/contextMenu.ts",
+      "gitBlob": "b445d15f69abe4ad6a6b5e5413fe7c57088bbc96",
+      "sha256": "7b65aed2172b92adb2837dbb165ceaad146448a160a604e456cdadbac0953cc0"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/counter.ts",
+      "gitBlob": "7dca2a33202897d950facf01e5ab2faecbaa4ae4",
+      "sha256": "238cc8a6dea689451582f50a727586d77c4c6b32a56a1d86dc7afd2064095ae5"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/crashOnRender.test.ts",
+      "gitBlob": "80122c3080100e8959f86e9b20749df09baafab9",
+      "sha256": "715c3a2dece65a031b289cd9a4858bf93f11c2997e0f267d3ac0fab3b17a1c04"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/crashOnRender.ts",
+      "gitBlob": "32dc0c9cd06b46fcb7c6b14393feb18902ed6760",
+      "sha256": "63fc3d3013198132d70d5f6835b7bbcd1942ff03190cf8166d1685a4cd5ce178"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/drafts.ts",
+      "gitBlob": "e721ac433de3327be270c5f3ac983e65347c06cb",
+      "sha256": "1d38f7755835aa47eb92395e332292bce17d0a50f746277d27db7bd29322a596"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/feedSocket.ts",
+      "gitBlob": "f644fa6677fd6f6260f2a2b8bbbd4be525f480e6",
+      "sha256": "6032502e7ccaf36fcc43c57ade3b3fd8c721d35c0da205092fffd8db964489b8"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/fileUpload.ts",
+      "gitBlob": "d9faeabbf951f19d22d851c3715071463210ef85",
+      "sha256": "9cda6cc81322404ff03c79d679f5d234c9264b7c28db1156b41f33cc12f378a5"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/focusBoundary.ts",
+      "gitBlob": "3b414450d40147d56cb43b818b900b8b7d89267a",
+      "sha256": "9de70ad8ab4af8c61d481ad972681ec3067982b75fd0d05410bc231290804514"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/formChild.ts",
+      "gitBlob": "8f5aa56aabb8d39f672590e5bf3e7bc277e1d817",
+      "sha256": "c7f0fbbf1c0d963af2fdf16c2f82d2154f4b2eb0fa47a05174e16fa3b5cf4b21"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/interactions.ts",
+      "gitBlob": "a77bfa60d9eb5d4cfdac70d03e9c5303bdf9a5bd",
+      "sha256": "d1c4f0af1988db5a9148939acc2525640c5fe870914af0000a689352b0cde2c3"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/keypress.ts",
+      "gitBlob": "7990b8734175a573cf2436a2bec81fae407b8053",
+      "sha256": "521cce3a657618c52cc0c14f623860bd8e02b841a3af7d99e2484ee54137a788"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/keypressSelf.ts",
+      "gitBlob": "1f8712d1184dad5cf2d796533915a7484f946dab",
+      "sha256": "c70e87921a09c66fe17c457b1a000805395321d48318293056c2a059470ad75d"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/login.ts",
+      "gitBlob": "ece8d91cffbebcdda3541e1f70cae83b873b3d7e",
+      "sha256": "7737bda48896b2b0b6341f1dc5b23eb3f1def516f14bc48c9349f0f928d1da57"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/logoutButton.ts",
+      "gitBlob": "ecb032a8b581949b6906025038a3953ab4ec9298",
+      "sha256": "3ce4ce39f2fd70375b79d28fbf3f7ce7f825e51fd23491933493e7ae020a9f0a"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/mountPanel.ts",
+      "gitBlob": "e76d9d8293d78d5a981913e310cd4a78dd91354f",
+      "sha256": "c0ec91faa0949452858e393d9164245a2a5a9e41983f9b521625745bf4d8fcb5"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/multiRole.ts",
+      "gitBlob": "f22ba52010df2d7593a3a8b440f3b8961f8c911e",
+      "sha256": "b6979fa80adf8b9c8bdd0803b5658a0b057ecddb9255863bb2e8a388aa2fdfaa"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/pointer.ts",
+      "gitBlob": "a2c740e7c5fb78480c00559a2223697ab86a50ac",
+      "sha256": "2df339030a4b264e9809eed61fd52148bf35cafa8a7ac53e389471b66c64f3d4"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/resumeUpload.ts",
+      "gitBlob": "6362dfceb85387f70e4640467c234a6b49db24ff",
+      "sha256": "8b2c13391b5b13f8b359de995c7b66a29e85f1f15ccd4cb70e139976b449b6c0"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/scorePanel.ts",
+      "gitBlob": "a12f686cd6c6020d91a630992d99c28955344ff1",
+      "sha256": "18327404939fc4f03c3a48fca81d3cf33072a0ff9ec19a11f4cb90e92386c551"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/selectiveKeys.ts",
+      "gitBlob": "7c3a63a9abe1a7bc0dbb095ebc14d2b7de022c85",
+      "sha256": "717b7a3964605e63ece2d306dee0c71c31c30708f4caaca18e0b6158d2994333"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/uploads.test.ts",
+      "gitBlob": "5a86a387918204e696c1e4431cbf3e6bb4a92e11",
+      "sha256": "96e3f8abcd2e91a126147ad9dca7feeaea543b54c6a0895651080d12d84a5769"
+    },
+    {
+      "file": "packages/foldkit/src/test/apps/uploads.ts",
+      "gitBlob": "2c06fc3ab32e5eba1f0172a46b4c4211003ed8f1",
+      "sha256": "6ebf9d6c3a5e8702e74000ba1cd63ea1b58a7814d8d33fa3b0a64a3c05c833b1"
+    },
+    {
+      "file": "packages/foldkit/src/test/internal.ts",
+      "gitBlob": "15282532bfa45b7d5b74235aac2f38230dc33b8a",
+      "sha256": "6cb024666cc7dc546c9aa56127d78e8aced3636bc5729cd152bd70a481bd2c69"
+    },
+    {
+      "file": "packages/foldkit/src/test/lazy.test.ts",
+      "gitBlob": "463fe0a66a566c960f412e3806626cf3c2b20e0b",
+      "sha256": "925406df839ec0022aa33723b931849590d681ddbb79ef023db4f1a071d2b678"
+    },
+    {
+      "file": "packages/foldkit/src/test/lazy.ts",
+      "gitBlob": "7786910cbb8aa69b4d2a6a06d337ef31fa28b608",
+      "sha256": "126c7a2a64829d00e44fc08ab5c7d3fe73e3fcec69a636526da34a9284cde75d"
+    },
+    {
+      "file": "packages/foldkit/src/test/matchers.ts",
+      "gitBlob": "6879fb76bcbb9419d11ceb0e19ea752da88fcf28",
+      "sha256": "559503853145fe261861e92bb0ab020fcd83b118779c97563b515e899cb96e29"
+    },
+    {
+      "file": "packages/foldkit/src/test/public.ts",
+      "gitBlob": "462935bc1c01743c7d7303e49c03717dbcd72e15",
+      "sha256": "a48707fd0827eacd9bb0650e442aa4bb7596e7e235404c40cb8588f114956724"
+    },
+    {
+      "file": "packages/foldkit/src/test/query.ts",
+      "gitBlob": "e152772e874d48342c6a04bb582c7244950a5712",
+      "sha256": "30bbcee7eb96c90f4dcec19ce5201f17ce17d24be7e853c7a89eeaef1987aa5e"
+    },
+    {
+      "file": "packages/foldkit/src/test/scene.test.ts",
+      "gitBlob": "ed5c1d5e6e0697d4f87feb4938857588036401d5",
+      "sha256": "436a2ff8449597cc20d1ca1355d5e4e8b2862fdf1413142e37941abd2eae29cc"
+    },
+    {
+      "file": "packages/foldkit/src/test/scene.ts",
+      "gitBlob": "78d1ca3ac4ac2deeafff77c9c650af81cb72cc5e",
+      "sha256": "bb31b25571441b863680153fea63d50fd0e3194c961eb2244a5db1e20b87c026"
+    },
+    {
+      "file": "packages/foldkit/src/test/story.test.ts",
+      "gitBlob": "7f1ff380877c174f76feef2aea17e1274efc309e",
+      "sha256": "afd8c601ba77421973f3bef0ecdc46bf966593adfcb9017ac6f942e66402bc76"
+    },
+    {
+      "file": "packages/foldkit/src/test/story.ts",
+      "gitBlob": "494695a91d62cfe25dfd4f4d624be2f2b98bf326",
+      "sha256": "cb48a45bf50f1e392fe8a0948bf32160ad96d3669673cc6d69c686e318a817ab"
+    },
+    {
+      "file": "packages/foldkit/src/test/vitest-setup.ts",
+      "gitBlob": "ba6b827f0e30c05a57531f170dfd354761283d88",
+      "sha256": "a22b8c84f7503749fd6d7f899300bc28e7fdfd063c8ee578d69b3df795cef3a1"
+    },
+    {
+      "file": "packages/foldkit/src/test/vitest.ts",
+      "gitBlob": "fa738a0d20c25d1b8200d759f3d4f932f380bb50",
+      "sha256": "67487653f4c1bb33c3b81355fdbbff74dcf83dab4faeb38bca8c0f1975e6e04f"
+    },
+    {
+      "file": "packages/foldkit/src/update/foldChildInit.test.ts",
+      "gitBlob": "18a8320fb3dd4db052f586b41fb43a4e1afdd82b",
+      "sha256": "52ca04b4fe5e6bbc361e0f1a189fd98b1878a068476c4d1c2224818332721a52"
+    },
+    {
+      "file": "packages/foldkit/src/update/foldChildInits.inference.test.ts",
+      "gitBlob": "94f8f16031396257bd9ca08cc889c4ac99e24d56",
+      "sha256": "804689f999eaefef820a1e332ff83e608d9c678fccc09535f6d814e603c3e6e4"
+    },
+    {
+      "file": "packages/foldkit/src/update/foldChildInits.test.ts",
+      "gitBlob": "07e8f037b6eb4e42a8d2e02d6c3b020569f73bb8",
+      "sha256": "90e4144fb732a7584bb02bf2921758ab5ba53295f5656074a4043590c49dc8dd"
+    },
+    {
+      "file": "packages/foldkit/src/update/index.ts",
+      "gitBlob": "0a96afad88c7adb2c132da9e3f50a5b7e41b7c50",
+      "sha256": "9f5c751847dede455ec1089b7341113839879c6fcba3e850dfcded27648b953d"
+    },
+    {
+      "file": "packages/foldkit/src/update/public.ts",
+      "gitBlob": "df2bfa596f732945fb0e19ef5b841070a8b6c5fe",
+      "sha256": "ec36ae91023759aa1a67943740ee04c044fe75703d51fd9f3ec4e4452d15d614"
+    },
+    {
+      "file": "packages/foldkit/src/update/update.test.ts",
+      "gitBlob": "e12c69248e77fe58fcca8760b8d8f476fcfead23",
+      "sha256": "e8800c81292d79acb7a3f8e5ff5ba084f6139979dc327969e311828cc1fa6f33"
+    },
+    {
+      "file": "packages/foldkit/src/update/update.ts",
+      "gitBlob": "675e55e8fe8e0346df6095caa6f42528b3a5a4a0",
+      "sha256": "d2b1f4aadcd760960812282dea0752bb69fdf7719217e1b7213a3e7da61c9923"
+    },
+    {
+      "file": "packages/foldkit/src/url/index.test.ts",
+      "gitBlob": "ddf1432561c36b0f80691ad2c3460f1742666edf",
+      "sha256": "e2464a9c5b063495524484cd6d43e4ba7774c8a03457d5cf9271a5ac6e7476ef"
+    },
+    {
+      "file": "packages/foldkit/src/url/index.ts",
+      "gitBlob": "e8396bedca6daaa604e6336548f28ebe34c8d3e6",
+      "sha256": "e4843ec582a7a8081cb6f4e81f7730ea2a567d72dc209d48a22844b772db882a"
+    },
+    {
+      "file": "packages/foldkit/src/url/public.ts",
+      "gitBlob": "7c0d6bc0fbe4d9d83de5d7f8281a8f5c9fec9f9a",
+      "sha256": "0d1c0bfbc716ff8f95ae4d5249b6394564afa8e733e6341d148184930f4fd8c2"
+    },
+    {
+      "file": "packages/foldkit/src/vdom.test.ts",
+      "gitBlob": "4633675ea008cf733d6f0ddf16108ecc6a07fb9f",
+      "sha256": "0fc403d85694119de6e5ef18df062b444509e86e99066fafe592a919562691b3"
+    },
+    {
+      "file": "packages/foldkit/src/vdom.ts",
+      "gitBlob": "dbe80eb0ff2a458c65169deda6b49a2b337aa3a6",
+      "sha256": "5bc615ab41fe7075a8a738dc90a778068bcdb636b4dfcebad29e28bdb3bd676c"
+    },
+    {
+      "file": "packages/foldkit/src/vite-env.d.ts",
+      "gitBlob": "11f02fe2a0061d6e6e1f271b21da95423b448b32",
+      "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/package.json",
+      "gitBlob": "a67adbee075168e986fc5d471933dc8a9d79432f",
+      "sha256": "c5b48e284b1dd304ed9589e2a68af7237aa7f25530ac9c4328427ab5276103f0"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/brandDist.ts",
+      "gitBlob": "4a1a2c31cdae09b23ff5686908d030441fab7e1e",
+      "sha256": "dc1d1b188d263e22e080a9d9fa2301d3a82d2a9f1cdf28b168b57297bee325ed"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/build.ts",
+      "gitBlob": "bfcd6982ecd59a9ae87e19ec3b81698f2a5de808",
+      "sha256": "909dd4094a1262dd9b2beac606b0eb8a33db7fff5c3c17a942d8c1cf951c9c47"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/buildToken.ts",
+      "gitBlob": "36e48f69306423f619c2c555621c2abf5155a4ed",
+      "sha256": "fc1219da795450f24ed300c2ecaa84a53bc64efc4943582e0195829c1233c4af"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/devToolsOverlay.ts",
+      "gitBlob": "348e98816babab52c5e8ae4348c16ed702e8617c",
+      "sha256": "d9312bd18583022834c1b7d4accf76bf071ccfcec8fd276822022cd579efc422"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/foldkitPackages.ts",
+      "gitBlob": "896c82689f721a7a149c826ddbc253499234e02c",
+      "sha256": "a58fd77a5e6305acc86a91925cda18334c15c3eaff2a1139ba15272128744a32"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/index.ts",
+      "gitBlob": "36236ee7a05b3ae6be01508c9a9f86286506e5e3",
+      "sha256": "5382b8a1268f7f56314b9ae34a8d1560cb1057047d03bd2b4b04deff7f773977"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/relayRegistry.ts",
+      "gitBlob": "e0541ba062a5192f715afe55c647827dc8abb3ca",
+      "sha256": "f2baa4c47b3a73268f434a36e620be91bedf5a8aa3d513e2d436393c26d9c665"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/relayRegistryTrust.ts",
+      "gitBlob": "c88fe4f17e69f2d295144f4e59b2911909580eef",
+      "sha256": "66e02e9a3aa915ddb617c3364245152a2235dbfea093ecd05755211e9637492b"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/ssr.ts",
+      "gitBlob": "cc6b34f33e9b9ea0f8ecdc2bd293730a2ba5ea75",
+      "sha256": "4a4e43535403f8966ef833ffc9d1f8197a1174b60d647f6e5c0a006d87f109c9"
+    },
+    {
+      "file": "packages/vite-plugin-foldkit/src/viewIdentity.ts",
+      "gitBlob": "44e0c88a924f32455edfd70131c63930e7444e24",
+      "sha256": "770978e9123fac80f616270a766225e9dc7de7639591be7b94ed0ef26b013026"
+    }
+  ],
+  "sourceGitBlobChecksPassed": true,
+  "reusedBuildRoot": "/private/tmp/foldkit-final-preview-rendering-20261106/main",
+  "sourceCopyRoot": "/private/tmp/foldkit-preview-followup-rendering-20261106/main",
+  "priorArtifactReceipt": "/private/tmp/foldkit-final-preview-rendering-20261106/final-artifact-receipt.json",
+  "priorArtifactReceiptSha256": "85f8c906e26e860d50b4de6fcdd685b7444e096cce68c2564f9331017def0f8a",
+  "limitations": [
+    "Reuses the previously built and independently reviewed actual-main artifacts; no independent fresh install or baseline rebuild."
+  ]
+}

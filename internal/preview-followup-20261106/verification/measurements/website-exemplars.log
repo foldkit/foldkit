@@ -1,0 +1,17 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./scripts/demoCodePlugin" without a file extension (vitest.config.ts:9:8). Add the file extension
+  - import "./src/markdown/islandAttributes" without a file extension (vitest.config.ts:10:34). Add the file extension
+  - import "./src/page/blog/frontmatter" without a file extension (vitest.config.ts:11:33). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.3 /private/tmp/foldkit-unified-recovery-20261103/packages/website
+
+
+ Test Files  2 passed (2)
+      Tests  14 passed (14)
+   Start at  21:55:58
+   Duration  1.79s (transform 63%, import 25%, environment 10%, tests 2%)
+
+  Transform  transforming modules took 2.08s · 63% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns

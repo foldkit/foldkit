@@ -1,0 +1,144 @@
+$ node scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix
+Package @foldkit/devtools must depend on the current version of @foldkit/ui: 0.170.0 vs >=0.171.0
+Package @foldkit/devtools must depend on the current version of foldkit: 0.170.0 vs >=0.171.0
+Package @foldkit/ui must depend on the current version of foldkit: 0.170.0 vs >=0.171.0
+Package @foldkit/devtools must depend on the current version of @foldkit/ui: 0.170.0 vs >=0.171.0
+Package @foldkit/devtools must depend on the current version of foldkit: 0.170.0 vs >=0.171.0
+Package @foldkit/ui must depend on the current version of foldkit: 0.170.0 vs >=0.171.0
+[packed-ssr] foldkit: checkout 0.170.0, planned 0.171.0
+[packed-ssr] Packing foldkit...
+[packed-ssr] Packed foldkit-0.171.0.tgz
+[packed-ssr] @foldkit/vite-plugin: checkout 0.29.0, planned 0.29.1
+[packed-ssr] Packing @foldkit/vite-plugin...
+[packed-ssr] Packed foldkit-vite-plugin-0.29.1.tgz
+[packed-ssr] @foldkit/ui: checkout 0.170.0, planned 0.171.0
+[packed-ssr] Packing @foldkit/ui...
+[packed-ssr] Packed foldkit-ui-0.171.0.tgz
+[packed-ssr] @foldkit/markdown: checkout 0.15.0, planned 0.15.1
+[packed-ssr] Packing @foldkit/markdown...
+[packed-ssr] Packed foldkit-markdown-0.15.1.tgz
+[packed-ssr] @foldkit/node: checkout 0.2.0, planned 0.2.1
+[packed-ssr] Packing @foldkit/node...
+[packed-ssr] Packed foldkit-node-0.2.1.tgz
+[packed-ssr] @foldkit/devtools: checkout 0.170.0, planned 0.171.0
+[packed-ssr] Packing @foldkit/devtools...
+[packed-ssr] Packed foldkit-devtools-0.171.0.tgz
+[packed-ssr] @foldkit/devtools-mcp: checkout 0.26.0, planned 0.27.0
+[packed-ssr] Packing @foldkit/devtools-mcp...
+[packed-ssr] Packed foldkit-devtools-mcp-0.27.0.tgz
+[packed-ssr] Consumer project: /var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-ssr-sTQTje
+[packed-ssr] Consumer uses Effect 4.1.0, platform-browser 4.1.0, platform-node 4.1.0, and platform-node-shared 4.1.0
+[packed-ssr] Installing the packed tarballs outside the monorepo...
+
+added 229 packages in 8s
+[packed-ssr] Checking one Effect runtime and valid platform peers...
+{"effectVersion":"4.1.0","platformVersions":{"@effect/platform-browser":"4.1.0","@effect/platform-node":"4.1.0","@effect/platform-node-shared":"4.1.0"},"effectPath":"/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-packed-ssr-sTQTje/node_modules/effect/package.json","resolvedPackages":12,"npmLs":"ok"}
+[packed-ssr] Checking the packed direct entrypoints...
+[packed-ssr] Starting the packed Vite plugin relay...
+[foldkit:devTools] MCP relay listening at ws://127.0.0.1:62107/__foldkit/devtools-mcp
+[foldkit:devTools] MCP client connected (1 total)
+Installed Vite plugin starts its SecureRandom-backed relay and answers a request
+[foldkit:devTools] MCP relay stopped
+[packed-ssr] Building the deployment that served the page...
+
+> packed-ssr-consumer@0.0.0 build
+> vite build --base /served/
+
+vite v8.3.6 building client environment for production...
+transforming...
+✓ 760 modules transformed.
+rendering chunks...
+computing gzip size...
+build-served/client/assets/app-CIHvq0VM.js  653.53 kB │ gzip: 195.72 kB
+
+✓ built in 315ms
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+vite v8.3.6 building ssr environment for production...
+transforming...
+✓ 462 modules transformed.
+rendering chunks...
+computing gzip size...
+build-served/server/fetch.js  682.36 kB │ gzip: 161.10 kB
+
+✓ built in 120ms
+  wrote foldkit.build.json
+[packed-ssr] Building the deployment now live...
+
+> packed-ssr-consumer@0.0.0 build
+> vite build --base /current/
+
+vite v8.3.6 building client environment for production...
+transforming...
+✓ 760 modules transformed.
+rendering chunks...
+computing gzip size...
+build-current/client/assets/app-Cb81rOS5.js  653.53 kB │ gzip: 195.72 kB
+
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 558ms
+vite v8.3.6 building ssr environment for production...
+transforming...
+✓ 462 modules transformed.
+rendering chunks...
+computing gzip size...
+build-current/server/fetch.js  682.36 kB │ gzip: 161.10 kB
+
+✓ built in 93ms
+  wrote foldkit.build.json
+[packed-ssr] Server bundle contains Foldkit singletons and @foldkit/markdown, with no bare imports
+[packed-ssr] Server bundle contains Foldkit singletons and @foldkit/markdown, with no bare imports
+[packed-ssr] Packed declarations compile, and a consumer can write its own
+[packed-ssr] Running the npm workspace consumer with a shared Model Schema...
+The npm workspace consumer updates its shared Model
+[packed-ssr] No source-derived digest in the client bundle (843 identities)
+[packed-ssr] Installed @foldkit/ui rendered against the bundled Foldkit runtime
+[packed-ssr] Installed @foldkit/markdown rendered against the bundled Foldkit runtime
+[packed-ssr] Client bundle carries 5422a3bb-2ba9-42be-b528-bb9fe7c87f64
+[packed-ssr] Client bundle carries c5f8e5d7-641a-4ebf-b4df-bb3644e72184
+[packed-ssr] Served root carries data-foldkit-build="5422a3bb-2ba9-42be-b528-bb9fe7c87f64"
+[packed-ssr] An explicit empty build id fails with MissingBuildId
+[packed-ssr] Same build: root, input, and iframe adopted; view-owned custom-element host rebuilt
+[packed-ssr] Packed Chromium: hydration, ownership release, reset, custom-element, style mutation, and strict CSP behavior agree
+[packed-ssr] Other build: refused before adoption, served DOM left untouched
+[packed-ssr] /stale: inert to links, forms, and focus
+[packed-ssr] /no-flags: inert to links, forms, and focus
+[packed-ssr] /no-flags: refused and contained
+[packed-ssr] /duplicate-flags: inert to links, forms, and focus
+[packed-ssr] /duplicate-flags: refused and contained
+[packed-ssr] /malformed-flags: inert to links, forms, and focus
+[packed-ssr] /malformed-flags: refused and contained
+[packed-ssr] /incompatible-flags: inert to links, forms, and focus
+[packed-ssr] /incompatible-flags: refused and contained
+[packed-ssr] /modal: light/open/closed-shadow top layers covered without lifecycle or native interaction
+[packed-ssr] /no-stamp: inert to links, forms, and focus
+[packed-ssr] /no-stamp: refused and contained
+[packed-ssr] /duplicate-roots: inert to links, forms, and focus
+[packed-ssr] /duplicate-roots: refused and contained
+[packed-ssr] /ambiguous-roots: inert to links, forms, and focus
+[packed-ssr] /ambiguous-roots: refused and contained
+[packed-ssr] /lifecycle: inert to links, forms, and focus
+[packed-ssr] /lifecycle: nothing reconnected, reloaded, or took focus
+[packed-ssr] Running the critical server-rendering checks in Firefox...
+[packed-ssr] Other build: refused before adoption, served DOM left untouched
+[packed-ssr] /stale: inert to links, forms, and focus
+[packed-ssr] /modal: light/open/closed-shadow top layers covered without lifecycle or native interaction
+[packed-ssr] /lifecycle: inert to links, forms, and focus
+[packed-ssr] /lifecycle: nothing reconnected, reloaded, or took focus
+[packed-ssr] Firefox: critical server-rendering checks agree
+[packed-ssr] Running the critical server-rendering checks in WebKit...
+[packed-ssr] Other build: refused before adoption, served DOM left untouched
+[packed-ssr] /stale: inert to links, forms, and focus
+[packed-ssr] /modal: light/open/closed-shadow top layers covered without lifecycle or native interaction
+[packed-ssr] /lifecycle: inert to links, forms, and focus
+[packed-ssr] /lifecycle: nothing reconnected, reloaded, or took focus
+[packed-ssr] WebKit: critical server-rendering checks agree
+[packed-ssr] Cleaning up the consumer project...
+[packed-ssr] PASS

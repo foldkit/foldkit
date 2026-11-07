@@ -1,0 +1,36 @@
+{
+  "status": "complete",
+  "evidenceKind": "measured",
+  "work": "/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-rendering-analysis-controls-IKMvtb",
+  "artifactReceiptSha256": "3e41c8bd65c33be3f3fcf75cdc707e7c7d46bdef628f8db2a52aabd6ae91a078",
+  "executionReceiptSha256": "7f7f8c6a71cc8cf27a1703c8a717f2f93c5098da86c073cbc15c89d2df202cc0",
+  "originalLogSha256": "57a969e00f3f41d8caa6a8d715ae8933588ba9f40dfb8dd6ad1d9f9b538956bb",
+  "refreshedMutationLogHashes": true,
+  "results": [
+    {
+      "name": "unchanged",
+      "exitCode": 0,
+      "expectedFailure": null
+    },
+    {
+      "name": "foreign-driver",
+      "exitCode": 1,
+      "expectedFailure": "Unexpected physical benchmark driver"
+    },
+    {
+      "name": "foreign-harness",
+      "exitCode": 1,
+      "expectedFailure": "Unexpected physical harness"
+    },
+    {
+      "name": "wrong-counter",
+      "exitCode": 1,
+      "expectedFailure": "Invalid representative workload counters"
+    },
+    {
+      "name": "omitted-sample",
+      "exitCode": 1,
+      "expectedFailure": "Expected 32 timing samples"
+    }
+  ]
+}

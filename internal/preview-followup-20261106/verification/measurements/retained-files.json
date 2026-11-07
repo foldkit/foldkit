@@ -1,0 +1,94 @@
+{
+  "files": [
+    {
+      "file": "compiler-performance.log",
+      "bytes": 1526,
+      "sha256": "ffe5acd4adfa0e85432f5ae7c22cadc2785055b6ea72aaa8d6ac239575aafdef",
+      "originalSha256": "256c0d37c307502dd514df45cd8dabb728159424fe6d6807dedcd115436e43d4",
+      "normalizedTrailingWhitespace": true
+    },
+    {
+      "file": "core-focused.log",
+      "bytes": 240,
+      "sha256": "50c721243f2ad046e16282bbe344fef3ba8d637040995258a720581e418f4d4d",
+      "originalSha256": "8f7fec0ccc16a60a247d0557bd764055f9e67055f3e324569edff4a94a4b68da",
+      "normalizedTrailingWhitespace": true
+    },
+    {
+      "file": "emitted-declarations.log",
+      "bytes": 39214,
+      "sha256": "73dd9024e2578f2ab875b7e9969394707013d668966a3333072d06fb4da44379",
+      "originalSha256": "73dd9024e2578f2ab875b7e9969394707013d668966a3333072d06fb4da44379",
+      "normalizedTrailingWhitespace": false
+    },
+    {
+      "file": "ephemeral-port-mutation.log",
+      "bytes": 1283,
+      "sha256": "3d27b8bd03b59b81812e0062583fb2afa4bae5d6ba44424a4d0ef576e2f244d6",
+      "originalSha256": "3d27b8bd03b59b81812e0062583fb2afa4bae5d6ba44424a4d0ef576e2f244d6",
+      "normalizedTrailingWhitespace": false
+    },
+    {
+      "file": "ephemeral-port.log",
+      "bytes": 273,
+      "sha256": "a306e49710fc308b6d57c3e728e536ed6d685744ad0c9940aafffe091c32d47d",
+      "originalSha256": "4f282bb15804cf073087ed629d85f35905a0fe7e4d0433fc7c43bfb910db0872",
+      "normalizedTrailingWhitespace": true
+    },
+    {
+      "file": "init-args-contract.json",
+      "bytes": 448,
+      "sha256": "c9b1b846612b8a816d218156431b00690b5239ae2bb5511bd9989e975353f82c"
+    },
+    {
+      "file": "init-args-positive-control.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "normalizedTrailingWhitespace": false
+    },
+    {
+      "file": "issue-context-mutation.log",
+      "bytes": 8556,
+      "sha256": "5b89df1e69c0764574eb9b6e1c4670f1d73e7248e55505efa6392d38d15a3699",
+      "originalSha256": "5b89df1e69c0764574eb9b6e1c4670f1d73e7248e55505efa6392d38d15a3699",
+      "normalizedTrailingWhitespace": false
+    },
+    {
+      "file": "packed-ssr.log",
+      "bytes": 8089,
+      "sha256": "58f9648b2ddfc269df7979c55fb9e927f1c845bd75b4dfc0d60d191c18c0f782",
+      "originalSha256": "a62fa543864d7fc6ecf98600e7bccee05465137cfd817cb82509164b203d3d1b",
+      "normalizedTrailingWhitespace": true
+    },
+    {
+      "file": "scaffold-smoke.log",
+      "bytes": 2863,
+      "sha256": "84083706f502bcb2b744d79c3501b59b7432858da2bcf9c311c0901c60260131",
+      "originalSha256": "84083706f502bcb2b744d79c3501b59b7432858da2bcf9c311c0901c60260131",
+      "normalizedTrailingWhitespace": false
+    },
+    {
+      "file": "socket-cleanup-mutation.log",
+      "bytes": 12259,
+      "sha256": "49ba964a71739de19429a7315647fb1aad9333f075b3ffbd966e9bffa54a2873",
+      "originalSha256": "49ba964a71739de19429a7315647fb1aad9333f075b3ffbd966e9bffa54a2873",
+      "normalizedTrailingWhitespace": false
+    },
+    {
+      "file": "source-ts6.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "normalizedTrailingWhitespace": false
+    },
+    {
+      "file": "website-exemplars.log",
+      "bytes": 1059,
+      "sha256": "1bf53eaab285eb40f4489bed82c140b169300aaa32875b62ea70968cdb4d4361",
+      "originalSha256": "020867ebe1addbca9c3c35b1b2e84323fc1059b49291ee5118f47cdfc4a605ae",
+      "normalizedTrailingWhitespace": true
+    }
+  ],
+  "logNormalization": "Remove trailing whitespace and extra terminal blank lines only; original stdout remains in the named /private/tmp receipts."
+}

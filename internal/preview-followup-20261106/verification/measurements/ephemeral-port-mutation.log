@@ -1,0 +1,29 @@
+
+ RUN  v4.1.12 /private/tmp/foldkit-unified-recovery-20261103/packages/vite-plugin-foldkit
+
+ ❯ test/listenOnEphemeralPort.test.ts (4 tests | 1 failed | 3 skipped) 3ms
+     × retries when another listener claims Vite’s selected ephemeral port 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/listenOnEphemeralPort.test.ts > ephemeral Vite server ports > retries when another listener claims Vite’s selected ephemeral port
+Error: Port 42363 is already in use
+ ❯ test/listenOnEphemeralPort.test.ts:17:30
+     15|     const listen = vi
+     16|       .fn<() => Promise<void>>()
+     17|       .mockRejectedValueOnce(new Error('Port 42363 is already in use'))
+       |                              ^
+     18|       .mockResolvedValue(undefined)
+     19|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 skipped (4)
+   Start at  21:51:48
+   Duration  268ms (transform 8ms, setup 0ms, import 147ms, tests 3ms, environment 0ms)
+
+undefined
+/private/tmp/foldkit-unified-recovery-20261103/packages/vite-plugin-foldkit:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run test/listenOnEphemeralPort.test.ts -t 'retries when another listener'

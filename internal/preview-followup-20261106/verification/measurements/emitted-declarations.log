@@ -1,0 +1,336 @@
+$ pnpm --filter foldkit --filter @foldkit/ui check:emitted-declarations && node scripts/check-counters-declarations.ts
+Scope: 2 of 54 workspace projects
+packages/foldkit check:emitted-declarations$ node scripts/check-emitted-declarations.ts && pnpm check:child-instances
+packages/foldkit check:emitted-declarations: [emitted-declarations] Reading the package TypeScript version
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking Program diagnostic order
+packages/foldkit check:emitted-declarations: [emitted-declarations] Program diagnostic order: parsing the source config
+packages/foldkit check:emitted-declarations: [emitted-declarations] Program diagnostic order: creating the single-checker program
+packages/foldkit check:emitted-declarations: [emitted-declarations] Program diagnostic order: checking Program and Mount diagnostics
+packages/foldkit check:emitted-declarations: [emitted-declarations] Program diagnostic order: closing the native API
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking Program diagnostic order: passed
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source canonical-keyed-scene contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source constructor-plan-ownership contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source program contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source command-args contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source keyed-map-field contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source map-binding-method contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source variant-binding contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source binding-relationships contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source bulk-child-acquisition contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source story-message-in-path contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source codec-contract contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source managed-resource-contract contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source managed-resource-registry contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source policy-graph contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source story-concurrency contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source test-parent-message contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source extracted-connected-step contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source message-steps contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source machine contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source scene-routing contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source scene-family-construction contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source scene-mount-stream contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source append-initialization contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source set-initialization contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source set-optional-initialization contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source insert-initialization contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source keyed-outmessage-fold contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source generic-service-factory contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source testing-event-delivery contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source inmessage-union contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source unified-inmessages contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source query-modes contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source family-layer-members contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source unified-root-selection contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking direct source attribute-alias contracts
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external constructor-plan-ownership declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external constructor-plan-ownership wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated constructor-plan-ownership declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external constructor-host-handlers declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external constructor-host-handlers wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated constructor-host-handlers declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external update-composition declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external update-composition wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated update-composition declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external view-plans declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external view-plans wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated view-plans declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external mandatory-completion declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external mandatory-completion wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated mandatory-completion declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external from-assembly declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external from-assembly wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated from-assembly declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external generic-handler-contracts declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external generic-handler-contracts wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated generic-handler-contracts declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external testing-event-delivery declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external testing-event-delivery wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated testing-event-delivery declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external generic-service-factory declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external generic-service-factory wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated generic-service-factory declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external generic-outmessage-policy declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external generic-outmessage-policy wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated generic-outmessage-policy declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external named-assembly-header declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external named-assembly-header wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated named-assembly-header declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external combined-outmessage declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external combined-outmessage wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated combined-outmessage declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external callback-guard declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external callback-guard wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated callback-guard declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external record-update declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external record-update wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated record-update declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external outmessage-policy-selection declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external outmessage-policy-selection wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated outmessage-policy-selection declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external outmessage-forward declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external outmessage-forward wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated outmessage-forward declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external outmessage-fold declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external outmessage-fold wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated outmessage-fold declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external keyed-outmessage-fold declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external keyed-outmessage-fold wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated keyed-outmessage-fold declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external descriptor-fold declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external descriptor-fold wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated descriptor-fold declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external program-server declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external program-server wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated program-server declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external program declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external program wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated program declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external optional-wrapped-keyed declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external optional-wrapped-keyed wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated optional-wrapped-keyed declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external append-initialization declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external append-initialization wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated append-initialization declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external set-initialization declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external set-initialization wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated set-initialization declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external set-optional-initialization declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external set-optional-initialization wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated set-optional-initialization declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external insert-initialization declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external insert-initialization wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated insert-initialization declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external view-inputs declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external view-inputs wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated view-inputs declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external assembly-view declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external assembly-view wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated assembly-view declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external composed-init declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external composed-init wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated composed-init declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external field-steps declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external field-steps wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated field-steps declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external commands-steps declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external commands-steps wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated commands-steps declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external scene-routing declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external scene-routing wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated scene-routing declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external scene-mount-stream declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external scene-mount-stream wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated scene-mount-stream declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external machine declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external machine wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated machine declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external helper-inputs declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external helper-inputs wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated helper-inputs declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external inmessage-union declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external inmessage-union wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated inmessage-union declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external inmessage-update-composition declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external inmessage-update-composition wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated inmessage-update-composition declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external inmessages declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external inmessages wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated inmessages declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external constructor-union-ownership declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external constructor-union-ownership wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated constructor-union-ownership declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external unified-inmessages declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external unified-inmessages wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated unified-inmessages declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external unified-root-selection declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external unified-root-selection wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated unified-root-selection declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external message-steps declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external message-steps wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated message-steps declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external codec-contract declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external codec-contract wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated codec-contract declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external managed-resource-contract declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external managed-resource-contract wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated managed-resource-contract declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external managed-resource-registry declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external managed-resource-registry wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated managed-resource-registry declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external policy-graph declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external policy-graph wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated policy-graph declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external keyed-map-field declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external keyed-map-field wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated keyed-map-field declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external map-binding-method declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external map-binding-method wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated map-binding-method declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external variant-binding declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external variant-binding wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated variant-binding declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external binding-relationships declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external binding-relationships wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated binding-relationships declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external bulk-child-acquisition declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external bulk-child-acquisition wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated bulk-child-acquisition declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external story-message-in-path declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external story-message-in-path wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated story-message-in-path declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external command-args declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external command-args wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated command-args declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external story-concurrency declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external story-concurrency wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated story-concurrency declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external test-parent-message declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external test-parent-message wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated test-parent-message declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external extracted-connected-step declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external extracted-connected-step wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated extracted-connected-step declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external outmessage-steps declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external outmessage-steps wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated outmessage-steps declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external generated-dispatch declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external generated-dispatch wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated generated-dispatch declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external generated-bindings declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external generated-bindings wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated generated-bindings declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external subscription-registry declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external subscription-registry wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated subscription-registry declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external operation-constructor declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external operation-constructor wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated operation-constructor declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external exposed-rest declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external exposed-rest wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated exposed-rest declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external exposed-message declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external exposed-message wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated exposed-message declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external binding-message-policy declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external binding-message-policy wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated binding-message-policy declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external strict-routing declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external strict-routing wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated strict-routing declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external route-path declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external route-path wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated route-path declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external route-step-program declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external route-step-program wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated route-step-program declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external message-free-keyed declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external message-free-keyed wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated message-free-keyed declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external dual-update declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external dual-update wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated dual-update declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external base declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external base wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated base declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external family-layer-members declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external family-layer-members wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated family-layer-members declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external query-factory-modes declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external query-factory-modes wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated query-factory-modes declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external scene-family-construction declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external scene-family-construction wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated scene-family-construction declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external focused declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external focused wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated focused declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external attribute-alias declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external attribute-alias wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated attribute-alias declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external view-helper declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external view-helper wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated view-helper declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external child-placement declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external child-placement wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated child-placement declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external direct-field declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external direct-field wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated direct-field declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external keyed-field declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external keyed-field wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated keyed-field declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external wrapped-keyed-field declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external wrapped-keyed-field wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated wrapped-keyed-field declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external canonical-constructor declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external canonical-constructor wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated canonical-constructor declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external composition-authoring declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external composition-authoring wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated composition-authoring declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external reciprocal-coordination declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external reciprocal-coordination wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated reciprocal-coordination declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external binding-policy declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external binding-policy wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated binding-policy declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external schema-boundary declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external schema-boundary wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated schema-boundary declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external composition-safety declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external composition-safety wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated composition-safety declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external schema-match declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external schema-match wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated schema-match declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Emitting external startup-defaults declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Rejecting invalid external startup-defaults wiring
+packages/foldkit check:emitted-declarations: [emitted-declarations] Consuming relocated startup-defaults declarations
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking conservative operation emission metadata
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking source and relocated compiler diagnostics
+packages/foldkit check:emitted-declarations: [compiler-diagnostics] Source and relocated emitted diagnostics passed.
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking update authoring documentation
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking update authoring documentation: passed
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking composable update completions
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking composable update completions: passed
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking Binding completions
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking Binding completions: passed
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking Binding configuration documentation
+packages/foldkit check:emitted-declarations: [emitted-declarations] Checking Binding configuration documentation: passed
+packages/foldkit check:emitted-declarations: [emitted-declarations] Version 7.1.0-beta; external emission, rejected wiring, relocation, native completion and inferred configuration documentation checks passed.
+packages/foldkit check:emitted-declarations: $ node scripts/check-child-instances.ts
+packages/foldkit check:emitted-declarations: {
+packages/foldkit check:emitted-declarations:   "checks": [
+packages/foldkit check:emitted-declarations:     "source",
+packages/foldkit check:emitted-declarations:     "emitted",
+packages/foldkit check:emitted-declarations:     "emit-consumer",
+packages/foldkit check:emitted-declarations:     "relocated",
+packages/foldkit check:emitted-declarations:     "negative-control"
+packages/foldkit check:emitted-declarations:   ]
+packages/foldkit check:emitted-declarations: }
+packages/foldkit check:emitted-declarations: Done
+packages/ui check:emitted-declarations$ node scripts/check-emitted-declarations.ts
+packages/ui check:emitted-declarations: [ui-emitted-declarations] Version 7.1.0-beta; shared Dialog source contracts, isolated package build, external emission, exact kernel operation channels, rejected wiring, and relocation checks passed.
+packages/ui check:emitted-declarations: Done
+Actual Counters application declarations passed.

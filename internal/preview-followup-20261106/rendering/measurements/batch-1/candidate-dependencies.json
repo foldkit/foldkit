@@ -1,0 +1,293 @@
+{
+  "links": [
+    {
+      "link": "node_modules/@types/node",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@types+node@26.4.0/node_modules/@types/node",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/madge",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/madge@8.0.0_@typescript+typescript6@6.0.2/node_modules/madge",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/@manypkg/get-packages",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@manypkg+get-packages@3.1.0/node_modules/@manypkg/get-packages",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/@typescript/native",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/typescript@7.1.0-beta/node_modules/typescript",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/oxfmt",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/oxfmt@0.66.0/node_modules/oxfmt",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/knip",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/knip@6.38.0/node_modules/knip",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/typescript",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@typescript+typescript6@6.0.2/node_modules/@typescript/typescript6",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/oxlint",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/oxlint@1.85.0_oxlint-tsgolint@7.0.2003/node_modules/oxlint",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/effect",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/@effect/tsgo",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@effect+tsgo@0.50.0/node_modules/@effect/tsgo",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/semver",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/semver@7.8.5/node_modules/semver",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/vite",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/simple-git-hooks",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/simple-git-hooks@2.14.0/node_modules/simple-git-hooks",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/@changesets/assemble-release-plan",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@changesets+assemble-release-plan@7.0.0/node_modules/@changesets/assemble-release-plan",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/@changesets/config",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@changesets+config@4.0.1/node_modules/@changesets/config",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/@changesets/read",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@changesets+read@1.0.1/node_modules/@changesets/read",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/@changesets/cli",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@changesets+cli@3.0.3/node_modules/@changesets/cli",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/@changesets/pre",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@changesets+pre@3.0.0/node_modules/@changesets/pre",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/@changesets/changelog-github",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@changesets+changelog-github@1.0.1/node_modules/@changesets/changelog-github",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/oxlint-tsgolint",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/oxlint-tsgolint@7.0.2003/node_modules/oxlint-tsgolint",
+      "localWorkspace": false
+    },
+    {
+      "link": "node_modules/foldkit",
+      "target": "/private/tmp/foldkit-preview-followup-rendering-20261106/candidate/packages/foldkit",
+      "localWorkspace": true
+    },
+    {
+      "link": "packages/foldkit/node_modules/happy-dom",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/happy-dom@21.0.4/node_modules/happy-dom",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/foldkit/node_modules/rimraf",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/rimraf@6.1.3/node_modules/rimraf",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/foldkit/node_modules/vitest",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vitest@5.0.3_@opentelemetry+api@1.9.0_@types+node@26.4.0_@vitest+coverage-v8@5.0.3_happ_f0a3007575c7cd53435f77200ca712b9/node_modules/vitest",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/foldkit/node_modules/typescript",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/typescript@7.1.0-beta/node_modules/typescript",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/foldkit/node_modules/effect",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/foldkit/node_modules/@effect/vitest",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@effect+vitest@4.1.0_effect@4.1.0_vitest@5.0.3/node_modules/@effect/vitest",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/foldkit/node_modules/@effect/platform-browser",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@effect+platform-browser@4.1.0_effect@4.1.0/node_modules/@effect/platform-browser",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/foldkit/node_modules/@vitest/coverage-v8",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@vitest+coverage-v8@5.0.3_vitest@5.0.3/node_modules/@vitest/coverage-v8",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/foldkit/node_modules/parse5",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/parse5@8.0.1/node_modules/parse5",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/vitefu",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vitefu@1.1.3_vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1_/node_modules/vitefu",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/@types/node",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@types+node@26.4.0/node_modules/@types/node",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/@types/ws",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@types+ws@8.18.1/node_modules/@types/ws",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/happy-dom",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/happy-dom@21.0.4/node_modules/happy-dom",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/rimraf",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/rimraf@6.1.3/node_modules/rimraf",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/vite-host",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.2.4_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/vitest",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vitest@4.1.12_@opentelemetry+api@1.9.0_@types+node@26.4.0_happy-dom@21.0.4_jsdom@30.1.1_1b2d0cf0cf591529460b1f29f85a17f5/node_modules/vitest",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/magic-string",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/magic-string@1.4.2/node_modules/magic-string",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/typescript",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/typescript@7.1.0-beta/node_modules/typescript",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/effect",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/@vitejs/plugin-basic-ssl",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@vitejs+plugin-basic-ssl@2.3.0_vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1_/node_modules/@vitejs/plugin-basic-ssl",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/@effect/platform-node",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@effect+platform-node@4.1.0_effect@4.1.0_redis@6.2.1_@opentelemetry+api@1.9.0_/node_modules/@effect/platform-node",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/@effect/platform-node-shared",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@effect+platform-node-shared@4.1.0_effect@4.1.0/node_modules/@effect/platform-node-shared",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/vite",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/ws",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/ws@8.21.3/node_modules/ws",
+      "localWorkspace": false
+    },
+    {
+      "link": "packages/vite-plugin-foldkit/node_modules/foldkit",
+      "target": "/private/tmp/foldkit-preview-followup-rendering-20261106/candidate/packages/foldkit",
+      "localWorkspace": true
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/@types/node",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@types+node@26.4.0/node_modules/@types/node",
+      "localWorkspace": false
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/happy-dom",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/happy-dom@21.0.4/node_modules/happy-dom",
+      "localWorkspace": false
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/vitest",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vitest@4.1.12_@opentelemetry+api@1.9.0_@types+node@26.4.0_happy-dom@21.0.4_jsdom@30.1.1_1b2d0cf0cf591529460b1f29f85a17f5/node_modules/vitest",
+      "localWorkspace": false
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/typescript",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/typescript@7.1.0-beta/node_modules/typescript",
+      "localWorkspace": false
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/effect",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect",
+      "localWorkspace": false
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/playwright",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright",
+      "localWorkspace": false
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/@effect/platform-browser",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/@effect+platform-browser@4.1.0_effect@4.1.0/node_modules/@effect/platform-browser",
+      "localWorkspace": false
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/vite",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite",
+      "localWorkspace": false
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/@foldkit/vite-plugin",
+      "target": "/private/tmp/foldkit-preview-followup-rendering-20261106/candidate/packages/vite-plugin-foldkit",
+      "localWorkspace": true
+    },
+    {
+      "link": "internal/lustre-benchmark/node_modules/foldkit",
+      "target": "/private/tmp/foldkit-preview-followup-rendering-20261106/candidate/packages/foldkit",
+      "localWorkspace": true
+    }
+  ],
+  "skippedUnusedWorkspacePackages": [
+    {
+      "link": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/@foldkit/oxlint-plugin",
+      "target": "/private/tmp/foldkit-unified-recovery-20261103/packages/oxlint-plugin-foldkit"
+    }
+  ],
+  "effectPhysical": "/private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect",
+  "packageManagersRun": false,
+  "sharedDependencyDirectoryLinks": false
+}

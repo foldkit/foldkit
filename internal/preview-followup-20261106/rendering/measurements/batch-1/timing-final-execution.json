@@ -1,0 +1,30 @@
+{
+  "status": "complete",
+  "exitCode": 0,
+  "startedAt": "2026-11-07T03:04:19.045Z",
+  "completedAt": "2026-11-07T03:11:31.637Z",
+  "env": {
+    "IMPLS": "foldkit-main,foldkit-preview-final,foldkit-main-optimised,foldkit-preview-final-optimised",
+    "RUNS": "8",
+    "HARNESS_DIR": "/private/tmp/foldkit-preview-followup-rendering-20261106/harness",
+    "PORT": "8477"
+  },
+  "driver": "/private/tmp/foldkit-preview-followup-rendering-20261106/driver/run.mjs",
+  "log": "timing-final.log",
+  "logSha256": "2507250f656de4b1eded20779b20ce34ade33974c4c36fffc4f49f6e1a6db3e5",
+  "artifactReceiptSha256": "3e41c8bd65c33be3f3fcf75cdc707e7c7d46bdef628f8db2a52aabd6ae91a078",
+  "preflightResultsSha256": "a871d42dabd7744bd1b88278139178f7acc34bb7debbc2d7783900c0a6c73bc3",
+  "hostBefore": {
+    "file": "host-before.json",
+    "sha256": "18a13ec5f02a259b3d81c330d03a9dbbac46b25d286552b7c1aea1b097188b8a"
+  },
+  "hostAfter": {
+    "file": "host-after.json",
+    "sha256": "b7d3d2eb7bfde2bcc8b5e327d1b491e9993770c7fd43913a7d0ddf200176c25c"
+  },
+  "timingIsolation": {
+    "buildsAndTestsQuiet": true,
+    "otherBrowserChecksQuiet": true
+  },
+  "benchmarkPortClosedAfterRun": true
+}

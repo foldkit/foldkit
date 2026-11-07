@@ -1,0 +1,100 @@
+
+ RUN  v5.0.3 /private/tmp/foldkit-unified-recovery-20261103/examples/workspace
+
+stdout | src/blocks/issueDetail/story.test.ts > Issue Detail > when the confirmed Issue is unavailable > keeps text editable and allows the editor to close
+[20:55:55.915] ERROR (#1): Error: getOrThrow called on a None
+    at file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Option.js:804:61
+    at file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Option.js:768:9
+    at Module.<anonymous> (file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Function.js:82:18)
+    at Object.handler (/private/tmp/foldkit-unified-recovery-20261103/examples/workspace/src/blocks/issueDetail/update.ts:113:53)
+    at /private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:415:59
+    at withOperationGraph (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/operationGraph.js:36:16)
+    at dispatch (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:356:58)
+    at Object.update (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:427:20)
+    at update (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/constructed/runtime.js:83:43)
+    at Object.updateFn (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/layered/testing/subject.js:16:40) {
+  [cause]: undefined
+}
+
+stdout | src/blocks/issueDetail/story.test.ts > Issue Detail > when the confirmed Issue is unavailable > reports an unavailable Issue instead of saving or discarding the draft
+[20:55:55.922] ERROR (#10): Error: getOrThrow called on a None
+    at file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Option.js:804:61
+    at file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Option.js:768:9
+    at Module.<anonymous> (file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Function.js:82:18)
+    at Object.handler (/private/tmp/foldkit-unified-recovery-20261103/examples/workspace/src/blocks/issueDetail/update.ts:113:53)
+    at /private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:415:59
+    at withOperationGraph (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/operationGraph.js:36:16)
+    at dispatch (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:356:58)
+    at Object.update (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:427:20)
+    at update (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/constructed/runtime.js:83:43)
+    at Object.updateFn (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/layered/testing/subject.js:16:40) {
+  [cause]: undefined
+}
+
+stdout | src/blocks/issueDetail/story.test.ts > Issue Detail > when the confirmed Issue is unavailable > settles a pending failure without needing the Issue snapshot
+[20:55:55.929] ERROR (#19): Error: getOrThrow called on a None
+    at file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Option.js:804:61
+    at file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Option.js:768:9
+    at Module.<anonymous> (file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Function.js:82:18)
+    at Object.handler (/private/tmp/foldkit-unified-recovery-20261103/examples/workspace/src/blocks/issueDetail/update.ts:113:53)
+    at /private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:415:59
+    at withOperationGraph (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/operationGraph.js:36:16)
+    at dispatch (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:356:58)
+    at Object.update (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:427:20)
+    at update (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/constructed/runtime.js:83:43)
+    at Object.updateFn (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/layered/testing/subject.js:16:40) {
+  [cause]: undefined
+}
+
+stdout | src/blocks/issueDetail/story.test.ts > Issue Detail > when the confirmed Issue is unavailable > settles a pending success from the returned revision
+[20:55:55.934] ERROR (#32): Error: getOrThrow called on a None
+    at file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Option.js:804:61
+    at file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Option.js:768:9
+    at Module.<anonymous> (file:///private/tmp/foldkit-unified-recovery-20261103/node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Function.js:82:18)
+    at Object.handler (/private/tmp/foldkit-unified-recovery-20261103/examples/workspace/src/blocks/issueDetail/update.ts:113:53)
+    at /private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:415:59
+    at withOperationGraph (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/operationGraph.js:36:16)
+    at dispatch (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:356:58)
+    at Object.update (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/block/delivery.js:427:20)
+    at update (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/constructed/runtime.js:83:43)
+    at Object.updateFn (/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/layered/testing/subject.js:16:40) {
+  [cause]: undefined
+}
+
+ ❯ src/blocks/issueDetail/story.test.ts (11 tests | 4 failed | 7 skipped) 41ms
+   ❯ Issue Detail (11)
+     ❯ when the confirmed Issue is unavailable (4)
+       × keeps text editable and allows the editor to close 22ms
+       × reports an unavailable Issue instead of saving or discarding the draft 5ms
+       × settles a pending failure without needing the Issue snapshot 7ms
+       × settles a pending success from the returned revision 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/blocks/issueDetail/story.test.ts > Issue Detail > when the confirmed Issue is unavailable > keeps text editable and allows the editor to close
+ FAIL  src/blocks/issueDetail/story.test.ts > Issue Detail > when the confirmed Issue is unavailable > reports an unavailable Issue instead of saving or discarding the draft
+ FAIL  src/blocks/issueDetail/story.test.ts > Issue Detail > when the confirmed Issue is unavailable > settles a pending failure without needing the Issue snapshot
+ FAIL  src/blocks/issueDetail/story.test.ts > Issue Detail > when the confirmed Issue is unavailable > settles a pending success from the returned revision
+Error: getOrThrow called on a None
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/Option.ts:1467:75
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/Option.ts:1430:9
+ ❯ Module.<anonymous> ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/Function.ts:256:18
+ ❯ Object.handler src/blocks/issueDetail/update.ts:113:53
+    111| const refreshCleanDraftBeforeUpdate = makeUpdate.each(
+    112|   (model, _message, _frame, maybeIssue: Option.Option<Issue.Issue>) =>…
+    113|     model: refreshCleanDraftFromIssue(model, Option.getOrThrow(maybeIs…
+       |                                                     ^
+    114|   }),
+    115| )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 7 skipped (11)
+   Start at  20:55:53
+   Duration  1.97s (transform 64%, import 18%, environment 8%, setup 8%, tests 2%)
+
+undefined
+/private/tmp/foldkit-unified-recovery-20261103/examples/workspace:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/blocks/issueDetail/story.test.ts -t 'when the confirmed Issue is unavailable'
