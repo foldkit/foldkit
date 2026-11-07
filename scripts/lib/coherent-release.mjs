@@ -36,7 +36,9 @@ const isInterruptedRegistryRead = error =>
   error instanceof Error &&
   error.cause instanceof Error &&
   'code' in error.cause &&
-  (error.cause.code === 'ECONNRESET' || error.cause.code === 'UND_ERR_SOCKET')
+  (error.cause.code === 'ECONNRESET' ||
+    error.cause.code === 'UND_ERR_SOCKET' ||
+    error.cause.code === 'EPIPE')
 
 const encodedPackageName = name => encodeURIComponent(name)
 
