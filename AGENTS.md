@@ -162,7 +162,7 @@ Match the implementation style to the subsystem and the behavior being modeled. 
 - Use `const`. Only use `let` when mutation is truly unavoidable. Always brace control flow.
 - For ordinary records, destructure same-named fields instead of creating one-for-one aliases such as `const node = entry.node`. Preserve the owning object where another convention requires its identity, including update-like results and union namespaces.
 - Use blank lines to show the phases of non-trivial control flow, and prefer a blank line when uncertain. Separate setup, a value read from the guard that consumes it, independent guards or validation cases, writes, and the final return. In a loop, give each skip, failure, or mutation condition its own visual paragraph. Keep statements together only when they form one operation or one explicit `if`/`else` chain.
-- In Block constructors, leave one blank line between the Binding acquisition group and `return`. Write each returned implementation field on its own line, even when the record would fit on one line. Use the same layout for graphless Blocks.
+- Write each Block implementation field on its own line, including records passed to `makeLayer`, even when the record would fit on one line. In a custom Effect constructor, leave one blank line between the Binding acquisition group and `return`. Use the same field layout for childless Blocks.
 - Extract magic numbers to named constants.
 - Never use nested ternaries. Use `Match.value`, an `if`/`else` chain, or a named helper.
 - Prefer explicit `if`/`else` when both branches return. Early-return reads as "A is exceptional, B is the default"; reserve it for true guards.

@@ -341,7 +341,7 @@ Canonical routing Messages can be passed directly when their payloads are `{ req
 
 ### Pass the Block and Layer to the server {#pass-the-completed-block-to-the-server}
 
-`Server.renderToString` receives `{ block: ApplicationBlock, layer }`, selecting the same contract and construction Layer as the browser Program. Its second argument contains server host declarations such as `Flags` and `routing`. Its third argument contains request inputs such as `flags` and `url`. Keep init, update, view, lifecycle declarations and handler recipes in the implementation returned by `makeLayer`; the server acquires that graph before running init and view.
+`Server.renderToString` receives `{ block: ApplicationBlock, layer }`, selecting the same contract and construction Layer as the browser Program. Its second argument contains server host declarations such as `Flags` and `routing`. Its third argument contains request inputs such as `flags` and `url`. Keep init, update, view, lifecycle declarations and handler recipes in the implementation record passed to `makeLayer`; the server acquires that graph before running init and view.
 
 ::Snippet{name="serverRenderingBlockServerEntry" label="Rendering the root Block and Layer"}
 
@@ -367,7 +367,7 @@ Rename direct-field `presentWhen` to `activeWhen`. Its semantics are unchanged: 
 
 Move initialization-helper imports from `foldkit/bindingInit` to `foldkit/binding`; the helper names and calling forms are unchanged. Remove `foldkit/variantBinding` and call the parent's `makeVariantBinding`. Older standalone map calls from `foldkit/mapBinding` also move to the appropriate parent method, dropping the parent positional argument. These removed names and subpaths have no compatibility aliases.
 
-Split features may export their needed destructured constructors from `block.ts`. They preserve the parent contracts when imported into composition modules. Register the policy-complete Binding and yield that same relationship in the constructor; no child implementation or lifecycle migration is required. See [Binding constructors](/core/block#binding-constructors) for supported shapes and [map fields](/core/block#keyed-map-fields) for key and initialization rules.
+Split features may export their needed destructured constructors from `block.ts`. They preserve the parent contracts when imported into composition modules. Register the policy-complete Binding in the Composition; ordinary record completion acquires that same relationship automatically, so no child implementation or lifecycle migration is required. See [Binding constructors](/core/block#binding-constructors) for supported shapes and [map fields](/core/block#keyed-map-fields) for key and initialization rules.
 
 ## Rename Definition Authoring Factories
 
@@ -494,7 +494,7 @@ Publish the contract, not an inferred descendant graph. Generic library interfac
 
 The checklist below applies to the older `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca` snapshots. For `1fbeaffe6563`, use [its direct upgrade path](#upgrade-from-1fbeaffe6563), then [verify the upgrade](#verify-the-upgrade). Search first, then change only the code the project contains:
 
-- Replace previous completion methods and preparation producers with the [declared contract and effectful constructor](#adopt-layer-based-block-construction).
+- Replace previous completion methods and preparation producers with the [declared contract and implementation Layer](#adopt-layer-based-block-construction).
 - Replace every removed Definition or Namespace factory name using the table above. Do not rename completion config fields, public Block metadata, or standalone Command and Update APIs.
 - Convert each existing `makeCommandsStep(commands)` call to a callback. Construct Model-dependent Commands inside that callback so they read the Model at Step application time.
 - Replace remaining `makeApplicationDefinition`, `assembleApplication`, and `assembleElement` uses with the root Block/Layer pair and Program boundary above.

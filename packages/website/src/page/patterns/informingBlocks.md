@@ -34,7 +34,7 @@ The InMessage handler copies the route query into the input, records it in recen
 
 ### Handle the Notification
 
-The Block generates `informOfRouteChange` from `InMessage.InformedOfRouteChange`. It takes the variant's payload object, with constructor defaults honored. Its InMessage handler owns the invariant, Model transition, and `FetchPeople` Command. Return the portable InMessage update from the Block constructor alongside update and init.
+The Block generates `informOfRouteChange` from `InMessage.InformedOfRouteChange`. It takes the variant's payload object, with constructor defaults honored. Its InMessage handler owns the invariant, Model transition, and `FetchPeople` Command. Include the portable InMessage update in the implementation record alongside update and init.
 
 ::Snippet{name="informingBlocksChild" label="Receiving a route change"}
 

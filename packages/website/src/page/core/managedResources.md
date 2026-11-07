@@ -14,7 +14,7 @@ Application-scoped Layers are the kitchen equipment available all night. A Manag
 
 Create the handle accessor from the named feature with `FeatureBlock.makeResource<Value>()('ResourceName')`, then define its lifecycle through `FeatureBlock.makeManagedResources`. The feature name qualifies the accessor's local identity. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
 
-Give each entry a stable local handler name and attach a generator constructor returning both `acquire` and `release`. Include `managedResources.layer` in the local `EffectsLayer` when every entry has a handler. Return the registry under `managedResources` from `FeatureBlock.makeLayer`. Construction connects the graph; the Runtime acquires and releases each handle according to the Model.
+Give each entry a stable local handler name and attach a generator constructor returning both `acquire` and `release`. Include `managedResources.layer` in the local `EffectsLayer` when every entry has a handler. Include the registry under `managedResources` in the implementation record passed to `FeatureBlock.makeLayer`. Construction connects the graph; the Runtime acquires and releases each handle according to the Model.
 
 Keep `CameraBlock` in `block.ts` and its Composition in `composition.ts`. Put the `CameraStream` accessor in `resource.ts`, importing the Block. Both the lifecycle registry and Commands import that same accessor from `resource.ts`, which imports neither consumer. This gives them one identity without a cycle through Block assembly.
 
@@ -93,7 +93,7 @@ The resource accessor holds that bare value, so Commands read it through `.get` 
 
 A child Block defines its ManagedResources in its own Model and Message terms, with no knowledge of its parent. Create the registry through `FeatureBlock.makeManagedResources` and include it in `FeatureBlock.makeLayer`.
 
-A Binding lifts the child’s entries through its Model access and generated delivery. Register the Binding in the Composition, yield it in the constructor, and return that connection under `children`. Each placement retains its own resource identity and lifecycle. Completion rejects one local resource accessor used by two lifecycle owners.
+A Binding lifts the child’s entries through its Model access and generated delivery. Register the Binding in the Composition. Ordinary record completion acquires init's registered child inventory automatically, and the parent provides the child's implementation Layer separately. Each placement retains its own resource identity and lifecycle. Completion rejects one local resource accessor used by two lifecycle owners.
 
 ### Optional Child Models
 

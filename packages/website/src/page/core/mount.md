@@ -66,7 +66,7 @@ Portal-to-body is a small example. When an overlay enters the DOM, its Mount mov
 
 ### Handler Layers
 
-In a split feature, `mount.ts` owns the definition and handler, and `composition.ts` registers it. Author the view through that Composition and return the local handler recipe from `FeatureBlock.makeLayer`. A conditional Mount need not appear in every render.
+In a split feature, `mount.ts` owns the definition and handler, and `composition.ts` registers it. Author the view through that Composition and include the local handler recipe in the implementation record passed to `FeatureBlock.makeLayer`. A conditional Mount need not appear in every render.
 
 ::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
 
@@ -186,7 +186,7 @@ Registering a Mount that the view never renders starts no element lifecycle, lis
 
 ### Block Assembly and Child Placements
 
-Create local Mounts through the owning Block and register them in its Composition. Return the authored view and local handler recipes from `FeatureBlock.makeLayer`. A parent declares its Binding against the public contract, then supplies the child implementation Layer. Each connected placement retains the Mount registrations and handler identities.
+Create local Mounts through the owning Block and register them in its Composition. Include the authored view and local handler recipes in the implementation record passed to `FeatureBlock.makeLayer`. A parent declares its Binding against the public contract, then supplies the child implementation Layer. Each connected placement retains the Mount registrations and handler identities.
 
 For a direct array of child Models with declared Struct key fields, use `ParentBlock.makeKeyedArrayBinding` with `field` and a string-valued `key`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration use `makeCustomKeyedBinding`. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `bindings`.
 

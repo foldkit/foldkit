@@ -39,7 +39,7 @@ Declare a rendered Block's `view.kind` and optional `view.Inputs`. Use Schema tu
 
 ::Snippet{name="blockDefinition" label="Block contracts and a local Command"}
 
-A Command's generator constructor obtains its Services and returns its invocation function. Keep request state in the Model and changing request inputs in Command args. The Block constructor acquires the executable child graph; it does not replace the Command handler constructor.
+A Command's generator constructor obtains its Services and returns its invocation function. Keep request state in the Model and changing request inputs in Command args. The Block implementation Layer acquires the executable child graph; it does not replace the Command handler constructor.
 
 ### Define the Composition
 
@@ -178,7 +178,7 @@ An operation must supply the child's required update context even when its selec
 Binding operations retain the exact argument types, Command requirements, Binding requirement, and OutMessage behavior of the child operation.
 
 :::Info{label="Completion inference"}
-Author update through `Composition.makeUpdate`. The complete expression retains its contextual Model and per-Message typing inline in the constructor return, as a constructor-local value, or in an extracted module.
+Author update through `Composition.makeUpdate`. The complete expression retains its contextual Model and per-Message typing as an inline implementation-record property, as an implementation-local value, or in an extracted module. A custom Effect constructor retains the same inference for its return fields.
 :::
 
 ### Initialize the child
@@ -191,7 +191,7 @@ Use `init: { contextToArgs }` when another child needs inputs, or `init: false` 
 
 The parent init callback returns only parent-owned fields. Composition calls the selected child initializer, stores its Model, and retains its Commands. See [Init & Flags](/core/init-and-flags#child-initialization) for optional children, keyed occurrences, custom storage, Command batching, and initial Steps.
 
-Block init cannot emit an OutMessage. Author it through the Block Composition, then return that init builder from `FeatureBlock.makeLayer`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing request such as `RequestedRestore` or `RequestedOpen` already describes the transition, call its generated Binding method. The same method may run later from update. Do not create a separate startup-only Message when an existing InMessage already describes the request.
+Block init cannot emit an OutMessage. Author it through the Block Composition, then include that init builder in the implementation record passed to `FeatureBlock.makeLayer`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing request such as `RequestedRestore` or `RequestedOpen` already describes the transition, call its generated Binding method. The same method may run later from update. Do not create a separate startup-only Message when an existing InMessage already describes the request.
 
 The Binding's selected `fold` policy can handle a fact from that initial Step against the complete parent Model. Parent init cannot forward an OutMessage, so a startup Step used there must finish with a plain update result.
 

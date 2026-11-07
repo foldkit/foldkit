@@ -141,7 +141,7 @@ Complete the ordinary implementation with `FooBlock.makeLayer({ init, update, vi
 
 Use `FooBlock.makeLayer(Effect.gen(...))` only when graph construction has genuine dependencies, scoped resources, or needs acquired handles. That form remains explicit: yield individual Bindings when their handles are used, or optionally call `FooComposition.acquireChildren()` for the complete registered inventory, then return `children` with the portable implementation. It never mixes automatic acquisition with that explicit result; `children` is the complete selected inventory. A childless custom constructor returns `children: []`. Neither form initializes child Models, evaluates init arguments, builds handlers, or starts lifecycles.
 
-Leave one blank line between the Binding acquisition group and `return`. Write each returned implementation field on its own line, even when the record would fit on one line. Use the same layout for graphless Blocks.
+Write each Block implementation field on its own line, including records passed to `makeLayer`, even when the record would fit on one line. In a custom Effect constructor, leave one blank line between the Binding acquisition group and `return`. Use the same field layout for childless Blocks.
 
 Inline single-use `bindings` at their registration sites. Export one policy-complete Binding for each relationship. In the exceptional custom Effect constructor, inline a single-use `children` array and acquire the same Binding only when construction uses its handle. Keep a necessary base Binding internal when reciprocal policies or self-directed operations need to break a dependency cycle. A Binding registers the relationship to a child contract; the supplied child Layer constructs its implementation.
 
@@ -281,7 +281,7 @@ For a split root or child:
 
 - `block.ts` declares `FooBlock = Block.make(...)`, its adjacent stable key, Model/Message/InitArgs and optional context/view/input/effect contracts. Export the authoring helpers needed by implementation modules.
 - `composition.ts` owns Bindings, child OutMessage policy, child/Mount registration and the Composition's graph-aware builders. It imports no init, update, view or construction Layer.
-- `layer.ts` imports those portable builders, acquires registered Bindings, returns `children` and the implementation fields, and provides child construction Layers. It exports `layer`.
+- `layer.ts` imports those portable builders, completes `FooBlock.makeLayer({ init, update, view, ... })`, and provides child construction Layers. The record acquires init's registered Binding inventory automatically. It exports `layer`.
 - `effectsLayer.ts` composes a separate local `EffectsLayer` from attached recipes and explicit host providers. Individual Commands remain in `command.ts` or beside their owning behavior.
 - `resource.ts` owns a shared ManagedResource accessor; lifecycle and Command modules import that accessor without creating another Composition.
 - `services.ts` composes ordinary providers as `ApplicationLayer`; `entry.ts` selects the root pair, host options and startup inputs, then starts Runtime.
