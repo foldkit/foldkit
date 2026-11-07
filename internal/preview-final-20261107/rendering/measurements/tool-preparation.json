@@ -1,0 +1,105 @@
+{
+  "status": "tools-prepared-only",
+  "candidateModified": false,
+  "candidateFrozen": false,
+  "buildsStarted": false,
+  "browsersStarted": false,
+  "timingsStarted": false,
+  "repository": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+  "workspace": "/private/tmp/foldkit-record-release-rendering-xpwmm820",
+  "priorPacket": "/private/tmp/foldkit-preview-followup-rendering-20261106",
+  "repeatPacket": "/private/tmp/foldkit-preview-followup-rendering-20261106-repeat",
+  "files": [
+    {
+      "file": "prepare.py",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/prepare.py",
+      "originalSHA256": "f55e3e7b76133a89b6d3c88cd56ac7ec41f0ab7321a252532c94d584f63dd274",
+      "retainedSHA256": "6324b2f7078a5a102edd9607b3a2bef766ba06ebb718953f8caa3f74665af6f3",
+      "transformation": "Replace only prior packet root and repository root strings; all validation, workloads and commands retained."
+    },
+    {
+      "file": "freeze-candidate.py",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/freeze-candidate.py",
+      "originalSHA256": "59653e40bb76edb9bc6e6469e8a082a11387bad68a767b2f26276c7176d45c80",
+      "retainedSHA256": "a50b55ff930852a6718db473ce8e1d164b76c544cfecbb501c00da1c7b4876b8",
+      "transformation": "Replace only prior packet root and repository root strings; all validation, workloads and commands retained."
+    },
+    {
+      "file": "build-candidate.mjs",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/build-candidate.mjs",
+      "originalSHA256": "689fab090f3d11e754eb9306b3386728db30e4094c4384fdd157825037cad023",
+      "retainedSHA256": "e33d679f0ff599165bd27a5e1ad79884e77d5b2b52270f879694d6c206ef75d0",
+      "transformation": "Replace only prior packet root and repository root strings; all validation, workloads and commands retained."
+    },
+    {
+      "file": "record-artifacts.mjs",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/record-artifacts.mjs",
+      "originalSHA256": "6e260b6ef2f90e06152fa46b4d3be6d2b0321f2e449888b50f3792d03c69010a",
+      "retainedSHA256": "6df73edafbb473459a3ad18891f6e81fa9b9c12a3858ec59f5808754ab74e82f",
+      "transformation": "Replace only prior packet root and repository root strings; all validation, workloads and commands retained."
+    },
+    {
+      "file": "run-final.mjs",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/run-final.mjs",
+      "originalSHA256": "8f54ae2c63760d133a4be99e5aa020c0d63d7902bd231dbfb23e7c27fe795f9e",
+      "retainedSHA256": "2a8d7f042e826b820f56815b087fb8d883b43f93a86326e5faf60f73e1382296",
+      "transformation": "Replace only prior packet root and repository root strings; all validation, workloads and commands retained."
+    },
+    {
+      "file": "driver/run.mjs",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/driver/run.mjs",
+      "originalSHA256": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0",
+      "retainedSHA256": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0",
+      "transformation": "None"
+    },
+    {
+      "file": "driver/runner.html",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/driver/runner.html",
+      "originalSHA256": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1",
+      "retainedSHA256": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1",
+      "transformation": "None"
+    },
+    {
+      "file": "driver/verify.mjs",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/driver/verify.mjs",
+      "originalSHA256": "8b85d2c9a8695bfcc6d3cb2de4a89cee332550bb08f63381d62d1276528d4cd9",
+      "retainedSHA256": "8b85d2c9a8695bfcc6d3cb2de4a89cee332550bb08f63381d62d1276528d4cd9",
+      "transformation": "None"
+    },
+    {
+      "file": "driver/package.json",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/driver/package.json",
+      "originalSHA256": "6dc1b06d6b093e9cccb20bee06a93836eee0420ae26803ca2ce4065d82f070d1",
+      "retainedSHA256": "6dc1b06d6b093e9cccb20bee06a93836eee0420ae26803ca2ce4065d82f070d1",
+      "transformation": "None"
+    },
+    {
+      "file": "driver/install.mjs",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/driver/install.mjs",
+      "originalSHA256": "909827f1f1f4570c90f7e97df9b17515a62be144a08c89752a7bf54f237c4215",
+      "retainedSHA256": "909827f1f1f4570c90f7e97df9b17515a62be144a08c89752a7bf54f237c4215",
+      "transformation": "None"
+    },
+    {
+      "file": "driver/server.mjs",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106/driver/server.mjs",
+      "originalSHA256": "fb76bfaf628dd7ecd9932c008604b566a0cafaa20fc9f88f8f35bfa3ac980398",
+      "retainedSHA256": "fb76bfaf628dd7ecd9932c008604b566a0cafaa20fc9f88f8f35bfa3ac980398",
+      "transformation": "None"
+    },
+    {
+      "file": "analysis/analyse-timing.mjs",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106-repeat/analysis/analyse-timing.mjs",
+      "originalSHA256": "0c9bc9502611609b7fae961bbe3679c0eb4562ec1b2e4fe54ac59570ffdb17b4",
+      "retainedSHA256": "0c9bc9502611609b7fae961bbe3679c0eb4562ec1b2e4fe54ac59570ffdb17b4",
+      "transformation": "None; retained physical-path identity validation"
+    },
+    {
+      "file": "analysis/verify-controls.mjs",
+      "original": "/private/tmp/foldkit-preview-followup-rendering-20261106-repeat/analysis/verify-controls.mjs",
+      "originalSHA256": "a9a3639e0fcce9fd7f782e5efbaf7a3eb858b60f5ae996a8167584e7f288fa73",
+      "retainedSHA256": "a9a3639e0fcce9fd7f782e5efbaf7a3eb858b60f5ae996a8167584e7f288fa73",
+      "transformation": "None; retained physical-path identity validation"
+    }
+  ]
+}

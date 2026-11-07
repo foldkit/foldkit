@@ -1,0 +1,30 @@
+{
+  "status": "complete",
+  "exitCode": 0,
+  "startedAt": "2026-11-07T05:46:53.675Z",
+  "completedAt": "2026-11-07T05:54:05.255Z",
+  "env": {
+    "IMPLS": "foldkit-main,foldkit-preview-final,foldkit-main-optimised,foldkit-preview-final-optimised",
+    "RUNS": "8",
+    "HARNESS_DIR": "/private/tmp/foldkit-record-release-rendering-xpwmm820/harness",
+    "PORT": "8477"
+  },
+  "driver": "/private/tmp/foldkit-record-release-rendering-xpwmm820/driver/run.mjs",
+  "log": "timing-final.log",
+  "logSha256": "129d35d40c6885c4d2224a37a7386b8a84edcbb4122e8075f7ec3783eb148d67",
+  "artifactReceiptSha256": "9e4713466acc76e4f063e257212f209bf8533828c92c36f6eab8cd49a9c2bbde",
+  "preflightResultsSha256": "875b89f147b57fe162e1942688f1aa23cac93da3e724d9fb3471ff9d25f9cf49",
+  "hostBefore": {
+    "file": "host-before.json",
+    "sha256": "efa15faa1f1b2aa3e5175ca68205c24d5c802508c46e7a215dd5002023ff4f54"
+  },
+  "hostAfter": {
+    "file": "host-after.json",
+    "sha256": "3c271fdd1e03dcf1122aff5f6c1af807b76570df0b5e1b24eeff8aa8a4a61144"
+  },
+  "timingIsolation": {
+    "buildsAndTestsQuiet": true,
+    "otherBrowserChecksQuiet": true
+  },
+  "benchmarkPortClosedAfterRun": true
+}

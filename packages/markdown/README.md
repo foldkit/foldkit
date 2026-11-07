@@ -129,10 +129,11 @@ type Model = typeof Model.Type
 const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message: Schema.Never,
+  isMessageFree: true,
 })
 
 const CounterBinding = ApplicationBlock.makeRequiredFieldBinding(
@@ -175,7 +176,7 @@ const postView = (
   })
 ```
 
-The parent constructor yields `CounterBinding`, returns the connection under `children`, and provides `Counter.layer` through `Layer.provide`. The view helper uses the registered Binding directly.
+The parent registers `CounterBinding` in `ApplicationComposition` and completes its plans with an implementation record. `ApplicationBlock.makeLayer` acquires that registered child automatically; provide `Counter.layer` through `Layer.provide`. The view helper uses the registered Binding directly.
 
 Attribute values are strings on the wire, so transforming field schemas decode past them: `Schema.NumberFromString` turns `::Chart{height="240"}` into `height: number`. A plain `islands` record of untyped views (`Readonly<Record<string, IslandView>>`) also works when you want to skip the schemas.
 

@@ -1,0 +1,68 @@
+# Foldkit Blocks/Layers preview review
+
+- Candidate: `1117a93316ff8111d402bffc995067476ec97983`
+- Tree: `ced96aee39bcc06070ae3b781cf7e45980be5b3e`
+- Previously reviewed baseline: `d9da49a134c85c50844b17e9f31db44a8df1e555`
+
+## Verdict
+
+**Security:** No substantiated new security defect found.
+
+**Release correctness:** One **moderate** documentation defect should be corrected before publication. No implementation-level release blocker was substantiated in the reviewed record-completion, Binding, application, or testing paths.
+
+This is bounded static review evidence, not certification.
+
+## Findings
+
+### Security
+
+No Critical, High, Moderate, or Low security findings.
+
+The reviewed runtime boundary:
+
+- Authenticates the original init Composition and rejects foreign Sources before acquisition: [runtime.ts:949](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/runtime.ts:949).
+- Snapshots the record once, acquires only that Source’s registered Bindings, and supplies the existing Scope and memo map: [runtime.ts:715](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/runtime.ts:715), [runtime.ts:970](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/runtime.ts:970).
+- Keeps custom Effects responsible for their own children and rejects inherited or structurally narrowed init/update hybrids before execution: [runtime.ts:950](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/runtime.ts:950), [completionRecord.ts:7](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/completionRecord.ts:7).
+- Rejects record `children`, `bindings`, and `operations`: [runtime.ts:960](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/runtime.ts:960).
+- Validates selected host-provider alternatives against the original declared error and Service bounds: [unified.ts:101](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/unified.ts:101), [contract.ts:607](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/contract.ts:607).
+
+No new serialization boundary was introduced: record acquisition remains explicit Layer construction, while synchronous service-free Codecs and effectful Commands retain separate responsibilities.
+
+### Release correctness — Moderate: release-facing READMEs contain a removed initializer key
+
+**Precondition:** A user follows or copies either package README against this candidate.
+
+**Evidence:**
+
+- The primary Foldkit example passes removed `Init` to `Block.make`: [packages/foldkit/README.md:62](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/README.md:62).
+- The Markdown package example repeats it: [packages/markdown/README.md:130](/private/tmp/foldkit-daybreak-record-20261107/source/packages/markdown/README.md:130).
+- The public contract requires `InitArgs`: [contract.ts:148](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/contract.ts:148). An erased declaration without it is deliberately rejected at runtime: [runtime.ts:608](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/contracted/runtime.ts:608).
+- Both READMEs also retain manual Effect/`children` guidance for ordinary construction: [packages/foldkit/README.md:99](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/README.md:99), [packages/foldkit/README.md:128](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/README.md:128), [packages/markdown/README.md:178](/private/tmp/foldkit-daybreak-record-20261107/source/packages/markdown/README.md:178). That form remains supported, but contradicts the release claim that active guidance uses record completion: [.changeset/ordinary-block-completion.md:27](/private/tmp/foldkit-daybreak-record-20261107/source/.changeset/ordinary-block-completion.md:27).
+
+**Impact:** The copied declaration fails typechecking and throws for missing `InitArgs` if invoked through an erased boundary. The accompanying ordinary-construction guidance also presents the superseded workflow.
+
+**Smallest remedy:** Change both examples to `InitArgs`; convert the ordinary Foldkit example to `makeLayer({ init, update, view })`; update the two child-acquisition paragraphs to say record completion acquires the registered inventory automatically. Add these README snippets to the existing documentation/consumer compile coverage.
+
+No other substantiated release-correctness finding was found. In particular, Workspace missing-entity handling preserves drafts and rejects stale completions ([update.ts:43](/private/tmp/foldkit-daybreak-record-20261107/source/examples/workspace/src/blocks/issueDetail/update.ts:43)); nested Story paths resolve the selected graph and validate erased keys/messages ([messageIn.ts:181](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/experimental/layered/testing/messageIn.ts:181), [toParentMessage.ts:139](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/test/toParentMessage.ts:139)); and ordered Command assertions compare identity, arguments, occurrence, order, and exact count ([internal.ts:674](/private/tmp/foldkit-daybreak-record-20261107/source/packages/foldkit/src/test/internal.ts:674)).
+
+## Inherited and separately documented limits
+
+Not classified as new findings:
+
+- Arbitrary cyclic DevTools records.
+- Existing compiler ceilings and the canonical comparison’s disclosed nonzero result.
+- Rendering and bundle costs.
+- The two moderate build-tool advisories.
+- Green host checks, which are correctness evidence rather than security evidence.
+
+The release text correctly retains `90746b32d2ca` as the actually verified published snapshot and assigns no new versions or deployment URL: [preview-pr-next-release.md:1](/private/tmp/foldkit-daybreak-record-20261107/source/internal/preview-pr-next-release.md:1). This review does not establish registry publication, artifact contents, or Website deployment.
+
+## Inspected and executed
+
+Inspected the complete supplied delta and record-completion patch, changed-path inventory, relevant three-commit history, prior reports, implementation and declaration contracts, focused runtime/tests, Workspace and generic UI/Query consumers, changesets, migration guidance, performance receipt, and release handoff.
+
+Executed only read-only searches and small in-memory checks. The manifest check covered all 9,089 entries and matched inventory, size, SHA-256, Git blob identity, mode, and the literal `CLAUDE.md → AGENTS.md` symlink target without following it.
+
+No dependencies were installed; no build, test, application, network probe, external API, write, publication, merge, push, or comment was performed.
+
+AI-generated by Sol (Codex), posted at the user's request.

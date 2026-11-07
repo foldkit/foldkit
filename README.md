@@ -64,10 +64,16 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
   Model,
   Message,
-}).makeComposition()
+  InitArgs: Schema.Tuple([]),
+  view: { kind: 'Document' },
+})
+
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 export const update = ApplicationComposition.makeUpdate({
   ClickedDecrement: model => ({
@@ -80,7 +86,7 @@ export const update = ApplicationComposition.makeUpdate({
 })
 
 export const init = ApplicationComposition.makeInit(() => ({
-  model: { count: 0 },
+  model: Model.make({ count: 0 }),
 }))
 
 export const view = ApplicationComposition.makeView((model, h) => ({
@@ -119,38 +125,35 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+})
 ```
 
 ```ts
 // src/entry.ts
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
 })
 
 Runtime.run(program)
 ```
 
-The `makeComposition`, `makeInit`, `makeUpdate`, `makeView`, `prepareBlock`,
-`Block.assemble`, and `Program.make` calls return passive configuration or
-authored functions. `Block.assemble` evaluates `prepare` once while constructing
-the passive Block. `Runtime.run` starts the completed program.
+`Block.make`, `makeComposition`, `makeInit`, `makeUpdate`, `makeView`, and
+`Program.make` return passive configuration or authored functions.
+`ApplicationBlock.makeLayer` records the implementation plans without running
+init. `Runtime.run` acquires the selected implementation Layer, initializes the
+Model, and starts the completed program.
 
-Try [Counter in the browser](https://foldkit.dev/example-apps/counter), follow the [walkthrough](https://foldkit.dev/core/counter-example), or explore the [source](https://github.com/foldkit/foldkit/tree/main/examples/counter).
+Try [Counter in the browser](https://foldkit.dev/example-apps/counter), follow the [walkthrough](https://foldkit.dev/core/counter-example), or explore the [source](https://github.com/foldkit/foldkit/tree/1117a93316ff8111d402bffc995067476ec97983/examples/counter).
 
 ## What Ships With Foldkit
 

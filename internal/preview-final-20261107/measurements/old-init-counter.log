@@ -1,0 +1,10 @@
+exit 2
+../../../../../../private/tmp/foldkit-readme-record-completion-20261107/old-init-counter/src/block.ts(22,3): error TS2353: Object literal may only specify known properties, and 'Init' does not exist in type 'Omit<Declaration, "key"> & Readonly<{ key: unique symbol; }>'.
+../../../../../../private/tmp/foldkit-readme-record-completion-20261107/old-init-counter/src/block.ts(28,46): error TS2554: Expected 2 arguments, but got 1.
+../../../../../../private/tmp/foldkit-readme-record-completion-20261107/old-init-counter/src/block.ts(55,49): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '{ init: Block.AuthoredInitPlan<Block.StaticSource<Block.Owner<Block.NominalId<"Application", unique symbol>, true>, AnySelfContainedSchema, AnySelfContainedSchema, undefined, ..., ...>, ..., ...>; update: Block.AuthoredUpdatePlan<...>; view: Block.AuthoredDocumentViewPlan<...>; }' is not assignable to parameter of type 'never'.
+../../../../../../private/tmp/foldkit-readme-record-completion-20261107/old-init-counter/src/entry.ts(7,3): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type 'UnifiedBlockFields<"Application", AnySelfContainedSchema, AnySelfContainedSchema, undefined, undefined, Omit<Declaration, "key"> & Readonly<...>, any, DeclaredGraph<...>, never>' is not assignable to type 'UnifiedBlockFields<"Application", AnySelfContainedSchema, AnySelfContainedSchema, undefined, undefined, Omit<Declaration, "key"> & Readonly<...>, any, DeclaredGraph<...>, never> & CompletionProof & Readonly<...>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+      Property '[CompletionTypeId]' is missing in type 'UnifiedBlockFields<"Application", AnySelfContainedSchema, AnySelfContainedSchema, undefined, undefined, Omit<Declaration, "key"> & Readonly<...>, any, DeclaredGraph<...>, never>' but required in type 'CompletionProof'.

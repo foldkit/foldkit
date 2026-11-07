@@ -24,10 +24,11 @@ With `@foldkit/vite-plugin`, installing this package as a development dependency
 // src/entry.ts
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './application'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
   devTools: { dispatch: true },
 })
@@ -35,7 +36,7 @@ const program = Program.make({
 Runtime.run(program)
 ```
 
-The application root is an ordinary Block created with `Block.makeDefinition('Application', { Model, Message })`. Author its implementation through `ApplicationComposition`. Call `prepareBlock` inside a private `prepare` function, then export `ApplicationBlock` with its matching `FromAssembly` annotation and `Block.assemble(prepare)`. Pass that Block to `Program.make` in the entry point.
+The application root is an ordinary Block created with `Block.make('Application', { key, Model, Message, InitArgs, view })`. Author its implementation plans through `ApplicationComposition`, complete them with `layer = ApplicationBlock.makeLayer({ init, update, view })`, and pass both `{ block: ApplicationBlock, layer }` to `Program.make` in the entry point. These declarations stay passive until the Runtime starts the Program.
 
 The `devTools` configuration is optional. Development inspection is enabled by default, while external Message dispatch is disabled. Set `dispatch: true` when the [DevTools MCP server](https://foldkit.dev/ai/mcp) should discover and dispatch the completed root Block's Messages. Foldkit derives that Schema from `ApplicationBlock`, including the generated envelopes for registered child Blocks.
 
@@ -44,6 +45,7 @@ To include the overlay in production, move `@foldkit/devtools` to regular `depen
 ```typescript
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container,
   // ...
   devTools: {

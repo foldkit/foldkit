@@ -1,0 +1,18 @@
+{
+  "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+  "harnessArchiveSHA256": "adfd6db46d989745a5c4b6a7bfe80deaa3943d4bf2185c8e2fd78c11657f0541",
+  "userHarnessUnmodified": true,
+  "driver": {
+    "run.mjs": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0",
+    "runner.html": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1",
+    "verify.mjs": "8b85d2c9a8695bfcc6d3cb2de4a89cee332550bb08f63381d62d1276528d4cd9",
+    "package.json": "6dc1b06d6b093e9cccb20bee06a93836eee0420ae26803ca2ce4065d82f070d1",
+    "install.mjs": "909827f1f1f4570c90f7e97df9b17515a62be144a08c89752a7bf54f237c4215",
+    "server.mjs": "fb76bfaf628dd7ecd9932c008604b566a0cafaa20fc9f88f8f35bfa3ac980398"
+  },
+  "preparedAt": "2026-11-07T05:46:14.470473+00:00",
+  "previousBatch": "/private/tmp/foldkit-final-preview-rendering-20261106",
+  "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "mainReusedBuild": true,
+  "driverDependency": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright"
+}

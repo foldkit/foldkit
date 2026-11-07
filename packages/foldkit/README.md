@@ -43,7 +43,7 @@ A complete Foldkit program. State lives in a single Model, events become Message
 
 ```ts
 // src/block.ts
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -63,7 +63,7 @@ export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
 })
 
@@ -96,16 +96,11 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+})
 ```
 
 ```ts
@@ -123,9 +118,9 @@ const program = Program.make({
 Runtime.run(program)
 ```
 
-The root is an ordinary Block. `Block.make` declares its public contracts once and supplies typed authoring helpers. Its Composition supplies init, update and view builders. `ApplicationBlock.makeLayer` checks the effectful constructor without running it; the host acquires that Layer before applying the pure init and update functions. The public Block contract is bounded independently of the implementation graph, so ordinary app code needs no preparation function or assembly annotation.
+The root is an ordinary Block. `Block.make` declares its public contracts once and supplies typed authoring helpers. Its Composition supplies init, update and view builders. `ApplicationBlock.makeLayer` checks the implementation record without running init; the host acquires that Layer before applying the pure init and update functions. The public Block contract is bounded independently of the implementation graph, so ordinary app code needs no preparation function or assembly annotation.
 
-A parent declares a relationship through the constructor matching the child Model's storage, such as `ParentBlock.makeRequiredFieldBinding(FeatureBlock, { field: 'feature' })`. It registers that Binding in its Composition, yields it inside its constructor, and returns the acquired connection under `children`. Supply the child's implementation through ordinary `Layer.provide(Feature.layer)`. Optional fields, keyed arrays, Records, HashMaps, custom accessors and whole tagged variants have their own checked [Binding constructors](https://foldkit.dev/core/block#binding-constructors).
+A parent declares a relationship through the constructor matching the child Model's storage, such as `ParentBlock.makeRequiredFieldBinding(FeatureBlock, { field: 'feature' })`. It registers that Binding in its Composition. The implementation record's init plan identifies that Composition, so `makeLayer` acquires its registered children automatically. Supply the child's implementation through ordinary `Layer.provide(Feature.layer)`. Optional fields, keyed arrays, Records, HashMaps, custom accessors and whole tagged variants have their own checked [Binding constructors](https://foldkit.dev/core/block#binding-constructors). Use an explicit Effect constructor only when graph construction itself must acquire another Service, fail, or own a scoped resource.
 
 When local view helpers need the Composition's exact builder capabilities, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition and export it only for cross-file use. The owner prefix identifies that specific Composition; structural contracts keep the standard `Model`, `Message`, and `OutMessage` names and normally travel through the feature namespace.
 
@@ -137,7 +132,7 @@ Runtime.run(program.provide(ApplicationLayer))
 
 `program.provide(ApplicationLayer)` returns another passive program. The Runtime builds the Layer only when it starts that program.
 
-Source: [examples/counter](https://github.com/foldkit/foldkit/blob/d782b73e62c95a1bfba60c11bbfdaf99c496b153/examples/counter/src/block.ts).
+Source: [examples/counter](https://github.com/foldkit/foldkit/blob/1117a93316ff8111d402bffc995067476ec97983/examples/counter/src/block.ts).
 
 ## What Ships With Foldkit
 

@@ -12,7 +12,7 @@ This next round includes:
 - Lifecycle, Node response cancellation, Menu, DragAndDrop, Dialog, Query and SSR fixes, plus consistent adoption across the examples, Website and Typing Game.
 - A DevTools fix for inspecting Effect Chunks without overflowing the stack, preserving nested secret masking and shared references.
 
-The [prepared change description](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/preview-pr-next-release.md) and [release review](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/preview-release-review-20261106.md) distinguish required migrations, optional APIs and remaining limits. Rendering/bundle costs and two moderate build-tool advisories remain for release review. Final verification, security review and artifact preparation precede publication.
+The [prepared change description](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/preview-pr-next-release.md) and [release review](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/preview-release-review-20261106.md) distinguish required migrations, optional APIs and remaining limits. The final verification record documents the rendering/bundle gap and two moderate build-tool advisories. The authorized security review found no new security defect; its README finding is corrected. Protected integration and artifact verification precede publication.
 
 The new Ready section will be generated from the actual published package manifest and verified immutable Website deployment. Until then, the installed snapshot and instructions below remain unchanged.
 

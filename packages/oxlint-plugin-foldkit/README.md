@@ -8,45 +8,36 @@ Oxlint rules for Foldkit applications. Extend `recommended.json` for the full su
 
 These ownership and routing checks recognize all parent-owned Binding constructors, including `makeRecordBinding` and `makeHashMapBinding`, across local extracted or aliased helpers and directly exported feature-local helpers imported from their Block module. They retain the parent Block owner while identifying the child Block and configuration arguments, and ignore unrelated or shadowed functions with the same name. Direct child transformations through Effect `HashMap.modify` are detected in data-first calls, point-free data-last calls, immediately applied data-last calls, and `pipe`. Immutable local helper aliases, named import aliases and namespace imports of directly exported helpers are followed. Arbitrary helper re-exports and factory wrappers are outside the supported imported-helper provenance. This remains provenance-based analysis; arbitrary factory wrappers and unresolvable cross-file relationships require review.
 
-`foldkit/block-name-matches-variable` requires direct literal Block authoring declarations to use the suffix for their stage. Definitions use `<BlockId>Definition`, Namespaces use `<BlockId>Namespace`, and Compositions derived in the same file use `<BlockId>Composition`:
+`foldkit/block-name-matches-variable` requires direct literal Block declarations to use the suffix for their stage. A canonical `Block.make` value uses `<BlockId>Block`, and a Composition derived in the same file uses `<BlockId>Composition`. The legacy native Namespace and Definition stages described below retain `<BlockId>Namespace` and `<BlockId>Definition`:
 
 ```ts
 const PeopleKey = Symbol('People')
-const PeopleDefinition = Block.makeDefinition('People', {
+const PeopleBlock = Block.make('People', {
   key: PeopleKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
-const PeopleComposition = PeopleDefinition.makeComposition()
-
-const PickerNamespace = Block.makeNamespace('Picker')
-const PickerKey = Symbol('Picker')
-const PickerDefinition = PickerNamespace.makeDefinition({
-  key: PickerKey,
-  Model,
-  Message,
-  Init: Schema.Tuple([]),
-})
+const PeopleComposition = PeopleBlock.makeComposition()
 ```
 
-The application root is an ordinary Block named `Application`, so its authoring values use `ApplicationDefinition` and `ApplicationComposition`:
+The application root is an ordinary Block named `Application`, so its authoring values use `ApplicationBlock` and `ApplicationComposition`:
 
 ```ts
 const ApplicationKey = Symbol('Application')
-const ApplicationDefinition = Block.makeDefinition('Application', {
+const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
 })
-const ApplicationComposition = ApplicationDefinition.makeComposition()
-const ApplicationBlock = ApplicationDefinition.makeBlock(
-  Effect.gen(function* () {
-    return { children: [], init, update, view }
-  }),
-)
+const ApplicationComposition = ApplicationBlock.makeComposition()
+const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+})
 ```
 
 The rule follows supported `foldkit` root and `foldkit/block` imports, including namespace and import aliases. It follows inline chains and authoring values declared in the same file. A Composition derived from an authoring value imported from another local module is not verified because Oxlint does not expose cross-module symbol or type information. Dynamic names are left for the developer to review.
@@ -56,6 +47,7 @@ The rule follows supported `foldkit` root and `foldkit/block` imports, including
 ```ts
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container,
   routing: {
     onUrlRequest: ApplicationBlock.Message.ClickedLink,
@@ -66,17 +58,17 @@ const program = Program.make({
 
 Rules that inspect HTML builder calls share provenance-aware recognition. They recognize `HtmlBuilder`, `Block.ViewBuilderFor<typeof FooComposition>`, local aliases of those types, owner-specific ViewBuilder types imported from a relative module, and the builder parameter of `FooComposition.makeView` and `makeView.withInputs` callbacks. For an imported alias, the plugin resolves the relative TypeScript module and explicit re-export barrels until it finds an actual exported `Block.ViewBuilderFor` declaration; declaration-like text in comments and string literals is ignored. This covers extracted view helpers while leaving unrelated types named `*ViewBuilder` alone. Package aliases, wildcard re-exports, JavaScript declarations, and generated declaration-only modules are not resolved; annotate those helpers directly with `HtmlBuilder` or `Block.ViewBuilderFor` when lint recognition is needed.
 
-The `command-define-pascal-const` rule owns the complete Command declaration convention for both `Command.define` and Definition `makeCommand` calls: literal PascalCase identity, `const` binding, and an exact binding-name match. The older `command-binding-matches-name` configuration ID has been removed. Replace it with `foldkit/command-define-pascal-const` in explicit rule configurations. The same consolidated `no-direct-block-state-update` ID covers discarded Commands and OutMessages when a parent copies a child update or operation result's `model`; the older `require-fold-for-child-update-result` ID has also been removed.
+The `command-define-pascal-const` rule owns the complete Command declaration convention for both `Command.define` and an authored Block's `makeCommand` calls: literal PascalCase identity, `const` binding, and an exact binding-name match. The older `command-binding-matches-name` configuration ID has been removed. Replace it with `foldkit/command-define-pascal-const` in explicit rule configurations. The same consolidated `no-direct-block-state-update` ID covers discarded Commands and OutMessages when a parent copies a child update or operation result's `model`; the older `require-fold-for-child-update-result` ID has also been removed.
 
-`foldkit/no-direct-block-state-update` also recognizes child-owned transform references in `modifyFields`, `Definition.makeFieldsStep`, and point-free `Array.map` updates. Focused helpers used directly in Composition handler records retain those checks, including local immutable aliases and `makeFieldsStep.fromMessage`. Destructured helpers and their aliases retain the owning Definition. Named helpers imported from a relative source module are recognized when that module directly exports the helper by destructuring its own `Block.makeDefinition` value; renamed imports are supported. Only ordinary helper callbacks receive parent Model evidence; a `.fromMessage` callback receives a Message. It uses the Block registered by a local Binding as evidence: a transform must resolve through the same imported namespace or local path, through a named `block` import from the same module, or through a local helper whose parameter and return types both name that child module's Model. The rule deliberately leaves cross-file Composition registration, dynamic helper construction, and unannotated local helper inference to type review because Oxlint does not expose the required project-wide type ownership.
+`foldkit/no-direct-block-state-update` also recognizes child-owned transform references in `modifyFields`, an authored Block's `makeFieldsStep`, and point-free `Array.map` updates. Focused helpers used directly in Composition handler records retain those checks, including local immutable aliases and `makeFieldsStep.fromMessage`. Destructured helpers and their aliases retain the owning Block. Named helpers imported from a relative source module are recognized when that module directly exports the helper by destructuring its own canonical Block value; renamed imports are supported. Only ordinary helper callbacks receive parent Model evidence; a `.fromMessage` callback receives a Message. It uses the Block registered by a local Binding as evidence: a transform must resolve through the same imported namespace or local path, through a named `block` import from the same module, or through a local helper whose parameter and return types both name that child module's Model. The rule deliberately leaves cross-file Composition registration, dynamic helper construction, and unannotated local helper inference to type review because Oxlint does not expose the required project-wide type ownership.
 
-`foldkit/no-child-message-construction-in-root` recognizes the owning Definition in focused helper callbacks, including `.fromMessage` and named local producers. It permits that Definition's own Messages. A named producer shared by parent and child must satisfy both owners. The same local and relative-import helper provenance preserves ownership after extracting Step helpers from a Definition.
+`foldkit/no-child-message-construction-in-root` recognizes the owning Block in focused helper callbacks, including `.fromMessage` and named local producers. It permits that Block's own Messages. A named producer shared by parent and child must satisfy both owners. The same local and relative-import helper provenance preserves ownership after extracting Step helpers from a Block.
 
 Imported helper recognition does not resolve re-export barrels, package/path aliases, default imports, arbitrary factory results, JavaScript or declaration-only modules. Namespace/factory variants and indirect export assignments are outside this proof. Missing source evidence leaves the helper unrecognized; it does not prove that a transformation is safe. These syntax-based rules do not replace typechecking or establish universal child-state enforcement.
 
-`foldkit/no-completed-block-model-in-schema` keeps parent Schema construction independent of a completed child's inferred implementation. Use the child’s independent `Definition.contract.Model` or canonical Model Schema when composing the recognized Effect Schema constructors: `Struct`, `Array`, `NonEmptyArray`, `Option`, `Union`, `Record`, `Tuple`, `TupleWithRest`, `NullOr`, `UndefinedOr`, `NullishOr`, `optional`, `optionalKey`, and `mutable`. The rule follows nested field records and immutable local aliases of Blocks, Schema imports, constructors, field records, and child Schemas. Independent contracts and constructor-owned `makeBlock` descriptors expose bounded Model contracts and are allowed in parent Schemas. A native completed Block's `.Model` remains public and is allowed in ordinary accesses, decoders, predicates and `typeof ChildBlock.Model.Type` annotations.
+`foldkit/no-completed-block-model-in-schema` keeps parent Schema construction independent of a completed native child's inferred implementation. Use a canonical child Block's bounded `.Model` or its exported Model Schema when composing the recognized Effect Schema constructors: `Struct`, `Array`, `NonEmptyArray`, `Option`, `Union`, `Record`, `Tuple`, `TupleWithRest`, `NullOr`, `UndefinedOr`, `NullishOr`, `optional`, `optionalKey`, and `mutable`. The rule follows nested field records and immutable local aliases of Blocks, Schema imports, constructors, field records, and child Schemas. A native completed Block's `.Model` remains public and is allowed in ordinary accesses, decoders, predicates and `typeof ChildBlock.Model.Type` annotations.
 
-This is a performance guardrail. It reports only proven `Block.makeDefinition` or `Block.makeNamespace` → `makeDefinition` → `makeComposition` → `prepareBlock` producer → `Block.assemble` provenance. It follows scope-resolved local `const` aliases and relative TypeScript imports through named and namespace re-export barrels. Imported modules are parsed with the declared runtime `oxc-parser` dependency; only top-level imports, exports and immutable authoring declarations provide evidence. Nested function declarations, templates, comments and regex literals cannot supply fake top-level evidence. Parse and file-read failures are treated as unknown provenance. Parsed modules are cached only for the current file's lint invocation.
+For legacy native authoring, this performance guardrail reports only proven `Block.makeDefinition` or `Block.makeNamespace` → `makeDefinition` → `makeComposition` → `prepareBlock` producer → `Block.assemble` provenance. It follows scope-resolved local `const` aliases and relative TypeScript imports through named and namespace re-export barrels. Imported modules are parsed with the declared runtime `oxc-parser` dependency; only top-level imports, exports and immutable authoring declarations provide evidence. Nested function declarations, templates, comments and regex literals cannot supply fake top-level evidence. Parse and file-read failures are treated as unknown provenance. Parsed modules are cached only for the current file's lint invocation.
 
 The rule follows transparent TypeScript value wrappers such as `as`, `satisfies` and non-null assertions while leaving type-only annotations alone. It does not infer provenance from names or the presence of a `Model` property. Unrelated registries, shadowed parameters, decoders and ordinary `.Model` accesses remain allowed.
 
@@ -84,13 +76,13 @@ Unknown factory results, package imports, path aliases, wildcard re-exports with
 
 ## Constructor and pure callback boundaries
 
-`foldkit/no-impure-call-at-decision-time` permits deferred Effect code inside a Block constructor or an attached handler constructor. An outer `Effect.gen` does not make nested init, update, view, or Step producers effectful: those callbacks must still return pure decisions. The rule follows direct, destructured, and aliased Definition helpers, including `.fromMessage`, and named local producers passed to them. An explicitly deferred Effect inside a pure producer retains its normal execution boundary.
+`foldkit/no-impure-call-at-decision-time` permits deferred Effect code inside an explicit Effect Block constructor or an attached handler constructor. An outer `Effect.gen` does not make nested init, update, view, or Step producers effectful: those callbacks must still return pure decisions. The rule follows direct, destructured, and aliased Block helpers, including `.fromMessage`, and named local producers passed to them. An explicitly deferred Effect inside a pure producer retains its normal execution boundary.
 
-A Block’s `.layer` provides its constructor; Command, Subscription, Mount and ManagedResource `.layer` values remain lazy handler recipes. Compose those Layers through the existing feature provider conventions. Neither provider construction nor a Block constructor initializes an occurrence’s Model or starts its lifecycle.
+The Layer returned by `FeatureBlock.makeLayer` provides its implementation; Command, Subscription, Mount and ManagedResource `.layer` values remain lazy handler recipes. Compose those Layers through the existing feature provider conventions. Neither record completion, explicit Effect construction, nor provider composition initializes an occurrence’s Model or starts its lifecycle.
 
 ## Legacy native producer boundaries
 
-New independent Definitions expose their public contract before implementation construction; they do not need an assembly producer annotation. Existing native producer/header boundaries remain supported.
+Canonical Blocks expose their public contract before implementation construction; they do not need an assembly producer annotation. Existing native producer/header boundaries remain supported.
 
 The rule accepts an explicit annotation using the actual Foldkit `Block.FromAssemblyWithView`, `Block.FromAssemblyWithViewAndOutMessage`, `Block.FromAssemblyWithOutMessage`, or `Block.FromAssemblyWithoutViewOrOutMessage` helper. Named helper imports from `foldkit/block` may be aliased; `Block` imports from `foldkit` may be aliased. Exactly two `typeof` arguments must name the Model and the same producer passed once to the declaration initializer's proven `Block.assemble` call, without explicit type arguments. The producer must be a direct immutable zero-argument arrow, with no async or generics, whose expression body or sole return statement directly calls a proven Composition's `prepareBlock`. Ordinary producers keep their return type inferred. Framework helper constraints remain responsible for contract checking; the lint exemption is a performance-boundary recognition, not an independent type-safety proof.
 
@@ -106,6 +98,6 @@ The completed Block methods `provideHandlers` and `replaceEffectsLayer` preserve
 
 ### Binding writer ownership
 
-`no-binding-write-coordination` is included in the recommended configuration. For a proven Foldkit Definition, it reports a direct `Option.some(model.child)` reader whose writer stores the next child and also derives a sibling parent field from that next child. It follows Definition imports, immutable local callback/configuration aliases, and lexical references, including shadowing.
+`no-binding-write-coordination` is included in the recommended configuration. For a proven Foldkit Block or legacy Definition, it reports a direct `Option.some(model.child)` reader whose writer stores the next child and also derives a sibling parent field from that next child. It follows Block and Definition imports, immutable local callback/configuration aliases, and lexical references, including shadowing.
 
 Use the Binding OutMessage policy for parent announcements and other reactions. Custom nested/wrapped storage, keyed replacement, absence checks, and preserving wrapper metadata remain supported. The rule does not infer arbitrary helper bodies, complex accessors, mutations, or every indirect dependency. It has no autofix because exposing a child fact and choosing the parent response require domain decisions.
