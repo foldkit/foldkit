@@ -329,7 +329,7 @@ describe('message processing', () => {
     }
   }
 
-  it('skips rendering until a deferred Message drain completes', async () => {
+  it('runs a deferred Message drain before rendering its frame', async () => {
     const { processedLog, heldFrames, runHeldFrame, dispatchBurns, stop } =
       await startBurnElementWithHeldFrames()
 
@@ -340,6 +340,33 @@ describe('message processing', () => {
 
       runHeldFrame()
 
+      expect(processedLog).toEqual(labels)
+      expect(document.body.textContent).toBe(labels.join(','))
+      expect(heldFrames).toHaveLength(0)
+    } finally {
+      await stop()
+    }
+  })
+
+  it('skips rendering while a drain run by the frame defers again', async () => {
+    const { processedLog, heldFrames, runHeldFrame, dispatchBurns, stop } =
+      await startBurnElementWithHeldFrames()
+
+    try {
+      const labels = [
+        'burn-1',
+        'burn-2',
+        'burn-3',
+        'burn-4',
+        'burn-5',
+        'burn-6',
+      ]
+      dispatchBurns(labels)
+      expect(processedLog).toEqual(['burn-1', 'burn-2'])
+
+      runHeldFrame()
+
+      expect(processedLog).toEqual(['burn-1', 'burn-2', 'burn-3', 'burn-4'])
       expect(document.body.textContent).toBe('')
       expect(heldFrames).toHaveLength(1)
 

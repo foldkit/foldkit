@@ -9,6 +9,7 @@ export type MessageQueue<Message> = Readonly<{
   enqueueMessage: (message: Message) => void
   enqueueMessageEffect: (message: Message) => Effect.Effect<void>
   drainPendingMessages: () => void
+  drainDeferredNow: () => void
   resetDrainBudget: () => void
   isAnyMessageDeferred: () => boolean
   completeBoot: () => void
@@ -157,6 +158,20 @@ export const makeMessageQueue = <Message>({
       }
     }
 
+    // NOTE: a deferred drain waits for the browser to get control back.
+    // A running animation frame means it has, so the render frame drains
+    // here instead of painting a frame behind the queue. A drain that runs
+    // over the budget again defers again. The channel message posted for
+    // the deferral still arrives later and drains whatever is pending then.
+    const drainDeferredNow = (): void => {
+      if (!isDrainDeferredToNextTask) {
+        return
+      }
+      isDrainDeferredToNextTask = false
+      syncWorkMsSinceYield = 0
+      drainPendingMessages()
+    }
+
     const resetDrainBudget = (): void => {
       syncWorkMsSinceYield = 0
     }
@@ -173,6 +188,7 @@ export const makeMessageQueue = <Message>({
       enqueueMessage,
       enqueueMessageEffect,
       drainPendingMessages,
+      drainDeferredNow,
       resetDrainBudget,
       isAnyMessageDeferred,
       completeBoot,
